@@ -1,3 +1,4 @@
+import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
@@ -7,12 +8,12 @@ import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
-import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
+import { TILT_MAX_MAZES, TILT_V2_PARTIAL_MAX } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
 import { BUB_V2_PARTIAL_MAX } from "@/lib/arcade/bubble";
 import { HOVER_REACHABLE_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
-import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_STREAK_POINTS, SKYLINE_V2_BLOCK_POINTS, SKYLINE_V2_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
 /**
@@ -130,7 +131,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
 
   // Arcade
   hover: `Up to ${HOVER_V2_GATES_SCORE} for all ${HOVER_REACHABLE_GATES} barriers, plus up to ${HOVER_V2_STARS_SCORE} for gold stars.`,
-  skyline: `${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop. Up to 150.`,
+  skyline: `${SKYLINE_V2_BLOCK_POINTS} per block, ${SKYLINE_V2_PERFECT_POINTS} per perfect drop, +${SKYLINE_STREAK_POINTS} per perfect from ${SKYLINE_STREAK_FROM} in a row. Up to 150.`,
   bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
@@ -143,13 +144,13 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "150 needs every wave plus the boss. Points for ships, armour, saucers, waves and the boss.",
   flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
-  junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
+  junction: `${JUNC_V2_CAR_POINTS} per car, ${JUNC_V2_BUS_POINTS} per bus, ±4 per ambulance, ${JUNC_V2_SURVIVE_BONUS} for lasting the minute. Up to 150.`,
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
   burst: "150: all 90 s, no life lost, 4+ waves cleared. Else 2 an atom, −9 a life, up to 130.",
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
-  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
+  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. All ${SNIP_CONFIG.levels} quickly: up to 150.`,
   swing: arcadeSplit("distance and stars", `Reach ${SWING_FINISH_M} metres`),
-  tilt: arcadeSplit("each maze", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
+  tilt: arcadeSplit("each maze and star", `Finish all ${TILT_MAX_MAZES} mazes`, TILT_V2_PARTIAL_MAX),
   balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",

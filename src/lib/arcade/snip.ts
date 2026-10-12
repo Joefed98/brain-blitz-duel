@@ -36,6 +36,20 @@ export interface SnipTemplate {
   platforms: readonly (readonly [number, number, number, number])[];
   mouth: readonly [number, number];
   stars: readonly (readonly [number, number])[];
+  /**
+   * Orchard elements (snipRev 3 templates only; older templates have none, so
+   * their physics is untouched). Segments are x0, y0, x1, y1 in px.
+   *  planks  — sloped planks the apple rolls along;
+   *  gutters — troughs that carry it down without a bounce;
+   *  springs — springy branches that bounce it off hard;
+   *  nests   — wasp nests (x, y, radius) the apple must not touch;
+   *  slide   — the basket slides ± amplitude px over a period in ticks.
+   */
+  planks?: readonly (readonly [number, number, number, number])[];
+  gutters?: readonly (readonly [number, number, number, number])[];
+  springs?: readonly (readonly [number, number, number, number])[];
+  nests?: readonly (readonly [number, number, number])[];
+  slide?: readonly [number, number];
 }
 
 export const SNIP_CONFIG = {
@@ -76,6 +90,11 @@ export const SNIP_CONFIG = {
   pointsPerStar: 3,
   /** Bonus for clearing all ten levels, scaled by time left. */
   finishBonus: 20,
+  /** Orchard elements: plank bounce and roll kept (out of 256), spring kick (1/256 px a tick). */
+  plankBounce: 40,
+  plankRoll: 252,
+  springKick: 1_792,
+  springMax: 2_560,
   maxScore: 150,
   /** Ten levels in play order, easiest first. */
   templates: [
@@ -110,6 +129,40 @@ export const SNIP_CONFIG = {
     { name: "Low anchor", sweet: [270, 150], pins: [[270, 50, 0], [150, 300, 0]], platforms: [], mouth: [390, 490], stars: [[251, 463]] },
     { name: "Off gap", sweet: [220, 150], pins: [[110, 100, 30], [350, 100, 30]], platforms: [[110, 400, 200, 416], [260, 400, 380, 416]], mouth: [230, 500], stars: [[220, 213]] },
     { name: "Perch", sweet: [300, 150], pins: [[200, 50, 0]], platforms: [[110, 360, 220, 376]], mouth: [400, 490], stars: [[330, 230]] },
+    // ---- Orchard revision (snipRev 3): springy branches, planks, gutters, a sliding basket, wasp nests. ----
+    // Easy (30–37).
+    { name: "Spring hop", sweet: [160, 150], pins: [[160, 50, 0]], platforms: [], springs: [[110, 330, 210, 345]], mouth: [400, 490], stars: [[160, 325]] },
+    { name: "Plank roll", sweet: [160, 150], pins: [[160, 50, 0]], platforms: [], planks: [[110, 300, 330, 360]], mouth: [410, 470], stars: [[301, 340]] },
+    { name: "Gutter run", sweet: [380, 140], pins: [[380, 40, 0]], platforms: [], gutters: [[430, 260, 200, 330]], mouth: [110, 480], stars: [[356, 270]] },
+    { name: "Wasp swing", sweet: [180, 150], pins: [[270, 50, 0]], platforms: [], nests: [[270, 330, 22]], mouth: [420, 490], stars: [[252, 191]] },
+    { name: "Moving basket", sweet: [270, 170], pins: [[270, 60, 0]], platforms: [], slide: [90, 240], mouth: [220, 490], stars: [[270, 303]] },
+    { name: "Twin spring", sweet: [270, 150], pins: [[200, 50, 0], [340, 50, 0]], platforms: [], springs: [[300, 330, 380, 300]], mouth: [205, 490], stars: [[333, 181]] },
+    { name: "Ramp pair", sweet: [270, 180], pins: [[160, 60, 0], [380, 60, 0]], platforms: [], planks: [[220, 330, 420, 380]], mouth: [150, 500], stars: [[226, 319]] },
+    { name: "Nest drop", sweet: [270, 160], pins: [[200, 60, 0], [340, 60, 0]], platforms: [], nests: [[270, 330, 24]], mouth: [365, 490], stars: [[388, 184]] },
+    // Medium (38–48).
+    { name: "Order matters", sweet: [270, 200], pins: [[150, 80, 0], [390, 80, 0], [270, 40, 0]], platforms: [], nests: [[200, 400, 24]], planks: [[300, 380, 430, 420]], mouth: [265, 500], stars: [[191, 245]] },
+    { name: "Spring shelf", sweet: [200, 160], pins: [[120, 60, 0], [280, 60, 0]], platforms: [[330, 260, 430, 276]], springs: [[250, 350, 330, 390]], mouth: [355, 228], stars: [[249, 338]] },
+    { name: "Gutter swing", sweet: [300, 150], pins: [[200, 50, 0], [400, 100, 0], [300, 40, 0]], platforms: [], gutters: [[110, 300, 260, 360]], mouth: [345, 490], stars: [[241, 339]] },
+    { name: "Wasp gap", sweet: [270, 180], pins: [[150, 60, 0], [390, 60, 0]], platforms: [], nests: [[180, 360, 24], [360, 360, 24]], mouth: [190, 490], stars: [[338, 223]] },
+    { name: "Rolling slide", sweet: [180, 150], pins: [[120, 60, 0], [240, 60, 0]], platforms: [], planks: [[120, 300, 300, 350]], slide: [70, 300], mouth: [430, 490], stars: [[256, 325]] },
+    { name: "Bounce back", sweet: [330, 160], pins: [[230, 60, 0], [430, 90, 0]], platforms: [], springs: [[110, 360, 170, 300]], mouth: [425, 490], stars: [[255, 206]] },
+    { name: "Triple ramp", sweet: [270, 170], pins: [[140, 70, 0], [270, 40, 0], [400, 70, 0]], platforms: [], planks: [[110, 320, 250, 360], [430, 400, 290, 440]], mouth: [250, 500], stars: [[222, 340]] },
+    { name: "Low nest", sweet: [270, 250], pins: [[160, 120, 0], [380, 120, 0], [270, 330, 0]], platforms: [], nests: [[150, 420, 24]], mouth: [310, 490], stars: [[334, 287]] },
+    { name: "Spring pair", sweet: [270, 140], pins: [[170, 50, 0], [370, 50, 0]], platforms: [], springs: [[150, 330, 230, 350], [310, 350, 390, 330]], mouth: [280, 490], stars: [[203, 331]] },
+    { name: "Gutter slide", sweet: [380, 150], pins: [[300, 50, 0], [430, 60, 0]], platforms: [], gutters: [[420, 280, 240, 340]], slide: [60, 260], mouth: [130, 490], stars: [[402, 273]] },
+    { name: "Leaf ledge", sweet: [200, 150], pins: [[120, 60, 0], [300, 60, 0], [200, 40, 0]], platforms: [[260, 330, 380, 346]], planks: [[380, 346, 430, 400]], mouth: [215, 490], stars: [[137, 181]] },
+    // Hard (49–59).
+    { name: "Four knots", sweet: [270, 200], pins: [[130, 80, 0], [410, 80, 0], [200, 40, 0], [340, 40, 0]], platforms: [], nests: [[270, 420, 26]], planks: [[110, 380, 220, 420]], mouth: [355, 490], stars: [[380, 216]] },
+    { name: "Sliding orchard", sweet: [270, 170], pins: [[150, 60, 0], [390, 60, 0], [270, 40, 0]], platforms: [], nests: [[150, 380, 22], [390, 380, 22]], slide: [100, 280], mouth: [305, 490], stars: [[208, 214]] },
+    { name: "Spring maze", sweet: [200, 150], pins: [[110, 60, 0], [290, 60, 0], [200, 300, 0]], platforms: [], springs: [[260, 380, 340, 350]], nests: [[380, 250, 22]], mouth: [200, 490], stars: [[248, 188]] },
+    { name: "Gutter cascade", sweet: [400, 140], pins: [[330, 40, 0], [430, 60, 0], [400, 280, 0]], platforms: [], gutters: [[430, 250, 250, 300], [150, 350, 330, 410]], mouth: [430, 490], stars: [[404, 245]] },
+    { name: "Wasp corridor", sweet: [270, 150], pins: [[150, 50, 0], [390, 50, 0], [270, 40, 0], [270, 300, 0]], platforms: [], nests: [[190, 330, 22], [350, 330, 22]], mouth: [280, 490], stars: [[212, 200]] },
+    { name: "Bounce and roll", sweet: [160, 150], pins: [[110, 50, 0], [250, 50, 0], [160, 40, 0]], platforms: [], springs: [[140, 320, 220, 350]], planks: [[300, 300, 430, 340]], mouth: [110, 490], stars: [[215, 182]] },
+    { name: "Pendulum slide", sweet: [140, 200], pins: [[270, 60, 0], [110, 100, 0], [160, 60, 0]], platforms: [], nests: [[270, 320, 22]], slide: [80, 220], mouth: [130, 490], stars: [[254, 251]] },
+    { name: "Double gutter", sweet: [270, 150], pins: [[170, 50, 0], [370, 50, 0], [270, 40, 0]], platforms: [], gutters: [[110, 280, 250, 320], [430, 280, 290, 320]], nests: [[270, 420, 22]], mouth: [195, 490], stars: [[411, 273]] },
+    { name: "Top shelf", sweet: [230, 200], pins: [[130, 100, 0], [330, 100, 0], [230, 330, 0]], platforms: [[330, 340, 430, 356]], springs: [[170, 440, 270, 460]], mouth: [340, 308], stars: [[281, 238]] },
+    { name: "Last orchard", sweet: [270, 170], pins: [[130, 70, 0], [410, 70, 0], [200, 40, 0], [340, 40, 0]], platforms: [], planks: [[110, 330, 240, 370]], springs: [[300, 400, 380, 380]], nests: [[270, 300, 20]], slide: [70, 300], mouth: [285, 490], stars: [[222, 352]] },
+    { name: "Wasp pendulum", sweet: [300, 120], pins: [[200, 40, 0], [400, 40, 0], [300, 250, 0]], platforms: [], nests: [[200, 300, 22], [400, 300, 22]], mouth: [310, 490], stars: [[239, 167]] },
   ].map((template): SnipTemplate => ({
     // Keep each layout intact, with 360 extra px of swing clearance on each side.
     name: template.name,
@@ -118,8 +171,29 @@ export const SNIP_CONFIG = {
     platforms: template.platforms.map(([x0 = 0, y0 = 0, x1 = 0, y1 = 0]) => [x0 + 360, y0, x1 + 360, y1]),
     mouth: [(template.mouth[0] ?? 0) + 360, template.mouth[1] ?? 0],
     stars: template.stars.map(([x = 0, y = 0]) => [x + 360, y]),
+    ...orchardFields(template as OrchardSource),
   })) as readonly SnipTemplate[],
 } as const;
+
+type Seg = readonly [number, number, number, number];
+interface OrchardSource {
+  planks?: readonly Seg[];
+  gutters?: readonly Seg[];
+  springs?: readonly Seg[];
+  nests?: readonly (readonly [number, number, number])[];
+  slide?: readonly [number, number];
+}
+/** The orchard fields of a template, shifted into the wide world like the rest of it (absent stays absent). */
+function orchardFields(t: OrchardSource): OrchardSource {
+  const seg = (list: readonly Seg[]) => list.map(([x0, y0, x1, y1]) => [x0 + 360, y0, x1 + 360, y1] as const);
+  const out: OrchardSource = {};
+  if (t.planks) out.planks = seg(t.planks);
+  if (t.gutters) out.gutters = seg(t.gutters);
+  if (t.springs) out.springs = seg(t.springs);
+  if (t.nests) out.nests = t.nests.map(([x, y, r]) => [x + 360, y, r] as const);
+  if (t.slide) out.slide = t.slide;
+  return out;
+}
 
 export const SNIP_RUN_TICKS = SNIP_CONFIG.runSeconds * TICKS_PER_SECOND;
 export const SNIP_LEVEL_TICKS = SNIP_CONFIG.levelSeconds * TICKS_PER_SECOND;
@@ -140,6 +214,8 @@ export const SNIP_EATEN = 1;
 export const SNIP_LOST = 2;
 export const SNIP_TIMEOUT = 3;
 export const SNIP_LANDED = 4;
+/** snipRev 3: the apple touched a wasp nest. */
+export const SNIP_STUNG = 5;
 
 /* ================================ State ================================ */
 
@@ -184,6 +260,10 @@ export interface SnipState {
   cutLog: number[];
   /** Sweet position every 300 ticks, packed x px · 1024 + y px. */
   trail: number[];
+  /** snipRev 3 only: the run's level-variety revision, springy-branch bounces and the tick of the last one. */
+  rev?: number;
+  springHits?: number;
+  springTick?: number;
 }
 
 function buildLevel(state: SnipState, level: number, fixedJitter?: number): SnipState {
@@ -458,7 +538,32 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
       sox = sx + ((pvx * c.bounce) >> 8);
     }
   }
+  // Orchard surfaces (snipRev 3 templates): planks and gutters roll the apple, springs kick it away.
+  let sprung = false;
+  if (tpl.planks || tpl.gutters || tpl.springs) {
+    const hit = (list: readonly Seg[] | undefined, kind: number) => {
+      for (const seg of list ?? []) {
+        const res = collideSegment(seg, kind, sx, sy, sox, soy, r);
+        if (!res) continue;
+        // A spring counts once per bounce: only when the apple was moving into it.
+        if (kind === 2 && res.into) sprung = true;
+        sx = res.sx;
+        sy = res.sy;
+        sox = res.sox;
+        soy = res.soy;
+        if (res.resting) resting = true;
+      }
+    };
+    hit(tpl.planks, 0);
+    hit(tpl.gutters, 1);
+    hit(tpl.springs, 2);
+  }
   next = { ...next, sx, sy, sox, soy, rest: resting ? state.rest + 1 : 0 };
+  if (sprung) {
+    // snipRev 3 only (spring templates exist only there): bounce count and tick, read by art and effects.
+    next.springHits = (state.springHits ?? 0) + 1;
+    next.springTick = tick;
+  }
 
   // 5. Stars, mouth, out of the arena, timeout.
   const reach = c.starReach * 256;
@@ -472,11 +577,13 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
     }
     next.starGot = got;
   }
-  const mx = tpl.mouth[0] * 256 - sx;
-  const my = tpl.mouth[1] * 256 - sy;
+  const mouth = snipMouthAt(tpl, next.levelTick);
+  const mx = mouth.x - sx;
+  const my = mouth.y - sy;
   const mr = c.mouthRadius * 256;
   let outcome = SNIP_PLAYING;
   if (mx * mx + my * my < mr * mr) outcome = SNIP_EATEN;
+  else if (tpl.nests && snipTouchesNest(tpl, sx, sy)) outcome = SNIP_STUNG;
   else if (sy > (c.worldH + c.sweetRadius * 2) * 256 || sy < -c.sweetRadius * 2 * 256) outcome = SNIP_LOST;
   else if (next.rest >= c.restTicks) outcome = SNIP_LANDED;
   else if (next.levelTick >= SNIP_LEVEL_TICKS) outcome = SNIP_TIMEOUT;
@@ -496,6 +603,85 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
     next = buildLevel(next, state.level + 1);
   }
   return next;
+}
+
+/**
+ * One orchard surface against the apple (integer only). The apple is pushed out
+ * along the contact normal; its velocity into the surface is replaced by a
+ * small bounce (plank), none (gutter) or a kick of at least springKick
+ * (spring); along the surface a plank or gutter keeps plankRoll/256 of it.
+ */
+function collideSegment(
+  seg: Seg, kind: number, sx: number, sy: number, sox: number, soy: number, r: number,
+): { sx: number; sy: number; sox: number; soy: number; resting: boolean; into: boolean } | null {
+  const c = SNIP_CONFIG;
+  const ax = seg[0] * 256, ay = seg[1] * 256, bx = seg[2] * 256, by = seg[3] * 256;
+  const ux = bx - ax, uy = by - ay;
+  const len2 = ux * ux + uy * uy;
+  const along = clampInt((sx - ax) * ux + (sy - ay) * uy, 0, len2);
+  const cx = ax + Math.trunc((ux * along) / len2);
+  const cy = ay + Math.trunc((uy * along) / len2);
+  let nx = sx - cx;
+  let ny = sy - cy;
+  const d2 = nx * nx + ny * ny;
+  if (d2 >= r * r) return null;
+  let nl = isqrt(d2);
+  if (nl === 0) {
+    // Centre exactly on the line: push out on the upper side.
+    nx = -uy;
+    ny = ux;
+    if (ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    nl = isqrt(len2);
+  }
+  const pvx = sx - sox;
+  const pvy = sy - soy;
+  const nsx = cx + Math.trunc((nx * r) / nl);
+  const nsy = cy + Math.trunc((ny * r) / nl);
+  // Normal and tangential parts of the velocity (1/256 px a tick).
+  const vn = Math.trunc((pvx * nx + pvy * ny) / nl);
+  let tx = pvx - Math.trunc((vn * nx) / nl);
+  let ty = pvy - Math.trunc((vn * ny) / nl);
+  let out = vn;
+  if (vn < 0) {
+    if (kind === 2) out = Math.min(c.springMax, Math.max(-vn, c.springKick));
+    else if (kind === 1) out = 0;
+    else out = Math.trunc((-vn * c.plankBounce) / 256);
+  }
+  if (kind !== 2) {
+    tx = Math.trunc((tx * c.plankRoll) / 256);
+    ty = Math.trunc((ty * c.plankRoll) / 256);
+  }
+  const vx = tx + Math.trunc((out * nx) / nl);
+  const vy = ty + Math.trunc((out * ny) / nl);
+  const resting = kind !== 2 && ny < 0 && Math.abs(vx) < c.restSpeed && Math.abs(vy) < c.restSpeed * 4;
+  return { sx: nsx, sy: nsy, sox: nsx - vx, soy: nsy - vy, resting, into: vn < 0 };
+}
+
+/** The basket centre on a level tick (1/256 px): fixed, or sliding on an integer triangle wave (snipRev 3). */
+export function snipMouthAt(tpl: SnipTemplate, levelTick: number): { x: number; y: number } {
+  const x = tpl.mouth[0] * 256;
+  const y = tpl.mouth[1] * 256;
+  if (!tpl.slide) return { x, y };
+  const [amp, period] = tpl.slide;
+  const half = period >> 1;
+  const phase = levelTick % period;
+  const u = phase < half ? phase : period - phase;
+  return { x: x + Math.trunc(((2 * u - half) * amp * 256) / half), y };
+}
+
+/** Whether the apple touches any wasp nest of a template. */
+export function snipTouchesNest(tpl: SnipTemplate, sx: number, sy: number): boolean {
+  const reach = SNIP_CONFIG.sweetRadius * 256;
+  for (const [x, y, rad] of tpl.nests ?? []) {
+    const dx = sx - x * 256;
+    const dy = sy - y * 256;
+    const rr = reach + rad * 256;
+    if (dx * dx + dy * dy < rr * rr) return true;
+  }
+  return false;
 }
 
 /** 10 per level fed + 3 per star; all ten fed adds round(20 × ms left ÷ 60 s); cap 150. */
@@ -691,6 +877,43 @@ export const snipGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = {
 
 /** Level-variety revision. */
 export const snipRev2Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev2 };
+
+/**
+ * Orchard revision (snipRev 3): the bank grows to 60 templates (30 new ones
+ * with springy branches, planks, gutters, a sliding basket and wasp nests;
+ * medium and hard ones hang from two to four ropes, often needing the cuts in
+ * the right order). Levels 1–3 easy, 4–7 medium, 8–10 hard, drawn on their own
+ * stream; pin wobble is drawn from the seed as before. snipRev 2 rounds keep
+ * SNIP_BANDS and its 30 templates.
+ */
+export const SNIP_REV3 = 3;
+export const SNIP_BANDS_V3 = {
+  easy: [...SNIP_BANDS.easy, 30, 31, 32, 33, 34, 35, 36, 37],
+  medium: [...SNIP_BANDS.medium, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48],
+  hard: [...SNIP_BANDS.hard, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+} as const;
+
+/** The ten-level order for a snipRev-3 seed. */
+export function snipLevelOrderV3(seed: number): number[] {
+  let rng = (seed ^ 0x0c4a_7d13) | 0;
+  const out: number[] = [];
+  [SNIP_BANDS_V3.easy, SNIP_BANDS_V3.medium, SNIP_BANDS_V3.hard].forEach((band, b) => {
+    const pool = [...band];
+    for (let k = 0; k < SNIP_BAND_PLAN[b]!; k++) {
+      const r = rngBelow(rng, pool.length);
+      rng = r.state;
+      out.push(pool.splice(r.value, 1)[0]!);
+    }
+  });
+  return out;
+}
+
+function initRev3(seed: number): SnipState {
+  const s = init(seed);
+  return buildLevel({ ...s, rng: seed | 0, order: snipLevelOrderV3(seed), rev: SNIP_REV3 }, 0);
+}
+
+export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
-  return rev === SNIP_REV ? snipRev2Game : snipGame;
+  return rev === SNIP_REV3 ? snipRev3Game : rev === SNIP_REV ? snipRev2Game : snipGame;
 }

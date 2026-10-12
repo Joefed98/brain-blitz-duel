@@ -18,6 +18,16 @@ import {
   JUNC_LIGHT_AT,
   JUNC_WORLD_H,
   JUNC_WORLD_W,
+  juncBuiltAt,
+  juncCarPoseV2,
+  juncLanePoint,
+  juncLenOf,
+  juncStopOf,
+  JUNC_APPROACHES_V2,
+  JUNC_BUILD_TICKS,
+  JUNC_LIGHT_AT_V2,
+  JUNC_REV,
+  junctionRev2Game,
   type JuncCar,
   type JuncState,
 } from "./junction";
@@ -52,6 +62,7 @@ const FADE_TICKS = 30;
 
 /** Presentation-only turn pivot at the destination arm's outgoing lane. */
 export function junctionArtCarPose(car: JuncCar): { x: number; y: number; dx: number; dy: number } {
+  if (car.ap >= 4) return juncCarPoseV2(car);
   if (!car.turn) return juncCarPose(car);
   const origin = juncCarPose({ ...car, s: 0, turn: 0 });
   const { dx, dy } = origin;
@@ -64,6 +75,155 @@ export function junctionArtCarPose(car: JuncCar): { x: number; y: number; dx: nu
   const s = car.s / FP;
   if (s <= pivot) return { x: origin.x + dx * s, y: origin.y + dy * s, dx, dy };
   return { x: origin.x + dx * pivot + tx * (s - pivot), y: origin.y + dy * pivot + ty * (s - pivot), dx: tx, dy: ty };
+}
+
+const BUS_COLOUR = "#E8B21C";
+/** junctionRev 2: one colour per road, shared by its light's ring, stop line and painted arrow. */
+export const JUNC_LANE_COLOURS = ["#38BDF8", "#FB923C", "#C084FC", "#4ADE80", "#F472B6", "#FACC15", "#2DD4BF", "#F87171"] as const;
+const DIAG_HALF = 15;
+const HIGHLIGHT_MS = 550;
+
+interface LightMemory { lights: number; changed: number[] }
+const lightMemo = new WeakMap<CanvasRenderingContext2D, LightMemory>();
+
+/** Render only: when each light last changed (a tap), for the lane highlight. */
+function lightChanges(ctx: CanvasRenderingContext2D, state: JuncState): number[] {
+  const now = realNow();
+  let m = lightMemo.get(ctx);
+  if (!m || state.tick < 2) {
+    m = { lights: state.lights, changed: new Array<number>(JUNC_APPROACHES_V2).fill(-1e9) };
+    lightMemo.set(ctx, m);
+  }
+  const diff = m.lights ^ state.lights;
+  for (let ap = 0; ap < JUNC_APPROACHES_V2; ap++) if ((diff >> ap) & 1) m.changed[ap] = now;
+  m.lights = state.lights;
+  return m.changed;
+}
+
+/** Path points of an approach's inbound lane from `s0` to `s1` px. */
+function lanePath(ctx: CanvasRenderingContext2D, ap: number, s0: number, s1: number): void {
+  const a = juncLanePoint(ap, s0);
+  const b = juncLanePoint(ap, s1);
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+}
+
+/** Rev 2: built diagonal roads (growing out from the junction while being built), with cones while building. */
+function drawDiagonalRoads(ctx: CanvasRenderingContext2D, state: JuncState): void {
+  const builds = state.builds ?? [];
+  for (const ap of builds) {
+    const at = juncBuiltAt(builds, ap);
+    const end = juncStopOf(ap) / FP + 44;
+    if (state.tick < at - 60) continue;
+    if (state.tick < at) {
+      // Cones mark where the next road will join, a second before it is built.
+      for (const s of [end - 6, end - 26]) {
+        const p = juncLanePoint(ap, s);
+        cone(ctx, p.x - p.dy * 12, p.y + p.dx * 12);
+        cone(ctx, p.x + p.dy * 12, p.y - p.dx * 12);
+      }
+      continue;
+    }
+    const k = Math.min(1, (state.tick - at) / JUNC_BUILD_TICKS);
+    const start = end - (end + 20) * k;
+    ctx.save();
+    ctx.lineCap = "butt";
+    ctx.strokeStyle = REAL_KERB;
+    ctx.lineWidth = DIAG_HALF * 2 + 6;
+    ctx.beginPath();
+    lanePath(ctx, ap, start, end - 30);
+    ctx.stroke();
+    ctx.strokeStyle = REAL_ASPHALT;
+    ctx.lineWidth = DIAG_HALF * 2;
+    ctx.beginPath();
+    lanePath(ctx, ap, start, end);
+    ctx.stroke();
+    ctx.restore();
+    if (k < 1) {
+      const p = juncLanePoint(ap, start);
+      cone(ctx, p.x - p.dy * 11, p.y + p.dx * 11);
+      cone(ctx, p.x + p.dy * 11, p.y - p.dx * 11);
+    }
+  }
+}
+
+function cone(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = "#FF7A1A";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 6);
+  ctx.lineTo(x + 4.5, y + 4);
+  ctx.lineTo(x - 4.5, y + 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x - 2.5, y - 1, 5, 2);
+}
+
+/** Rev 2: each built road's coloured stop line and painted arrow, and a glow along a lane whose light just changed. */
+function drawLaneMarks(ctx: CanvasRenderingContext2D, state: JuncState, changed: number[]): void {
+  const builds = state.builds ?? [];
+  const now = realNow();
+  for (let ap = 0; ap < JUNC_APPROACHES_V2; ap++) {
+    const at = juncBuiltAt(builds, ap);
+    if (at > state.tick || (ap >= 4 && state.tick - at < JUNC_BUILD_TICKS)) continue;
+    const colour = JUNC_LANE_COLOURS[ap]!;
+    const stop = juncStopOf(ap) / FP;
+    const glow = 1 - (now - changed[ap]!) / HIGHLIGHT_MS;
+    if (glow > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.45 * glow;
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 24;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      lanePath(ctx, ap, 0, stop);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Stop line across the lane, in the road's colour, joined to its light along the kerb.
+    const p = juncLanePoint(ap, stop);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(p.x - p.dy * 14, p.y + p.dx * 14);
+    ctx.lineTo(p.x + p.dy * 14, p.y - p.dx * 14);
+    ctx.stroke();
+    const [lx, ly] = JUNC_LIGHT_AT_V2[ap]!;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(p.x - p.dy * 15, p.y + p.dx * 15);
+    ctx.lineTo(lx, ly);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Painted arrow behind the stop line: straight on for main roads, bear left for diagonals.
+    const q = juncLanePoint(ap, stop - 34);
+    ctx.save();
+    ctx.translate(q.x, q.y);
+    ctx.rotate(Math.atan2(q.dy, q.dx));
+    ctx.fillStyle = colour;
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    if (ap < 4) {
+      ctx.rect(-12, -2, 14, 4);
+      ctx.moveTo(10, 0);
+      ctx.lineTo(1, -6);
+      ctx.lineTo(1, 6);
+    } else {
+      ctx.rect(-12, -2, 11, 4);
+      // Shaft bending 45° to the driver's left, then the head.
+      ctx.moveTo(-2, -2);
+      ctx.lineTo(4, -8);
+      ctx.lineTo(7, -5);
+      ctx.lineTo(1, 2);
+      ctx.closePath();
+      ctx.moveTo(9, -13);
+      ctx.lineTo(1, -11);
+      ctx.lineTo(7, -5);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 /** Daylight versions of the car colours, taken from Cross's palette. */
@@ -181,16 +341,16 @@ function drawLight(ctx: CanvasRenderingContext2D, x: number, y: number, green: b
   ctx.restore();
 }
 
-function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string, amb: boolean, tick: number, alpha = 1): void {
+function drawCar(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, colour: string, amb: boolean, tick: number, alpha = 1, len = CAR_PX, bus = false): void {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y);
   ctx.rotate(Math.atan2(dy, dx));
   ctx.fillStyle = REAL_SHADOW;
   ctx.beginPath();
-  ctx.roundRect(-CAR_PX + 2, -CAR_W / 2 + 2, CAR_PX, CAR_W, 8);
+  ctx.roundRect(-len + 2, -CAR_W / 2 + 2, len, CAR_W, 8);
   ctx.fill();
-  realVehicle(ctx, -CAR_PX, -CAR_W / 2, CAR_PX, CAR_W, 1, amb ? "#F7F8FA" : colour, false, false);
+  realVehicle(ctx, -len, -CAR_W / 2, len, CAR_W, 1, amb ? "#F7F8FA" : bus ? BUS_COLOUR : colour, bus, false);
   if (amb) {
     ctx.fillStyle = REAL_RED;
     ctx.fillRect(-CAR_PX / 2 - 9, -2, 14, 4);
@@ -224,6 +384,11 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
   ctx.rect(0, 0, JUNC_WORLD_W, JUNC_WORLD_H);
   ctx.clip();
   drawScene(ctx);
+  const changed = state.rev ? lightChanges(ctx, state) : [];
+  if (state.rev) {
+    drawDiagonalRoads(ctx, state);
+    drawLaneMarks(ctx, state, changed);
+  }
 
   const clearPose=m.success;
   successFrame(ctx,{id:'junction',tick:state.tick,count:state.cleared,misses:state.gaveUp,colour:SUCCESS_ACCENTS.green,width:JUNC_WORLD_W,height:JUNC_WORLD_H,point:{x:clearPose.x,y:clearPose.y-18,shape:'tick'},hud:{x:JUNC_CX-65,y:16,text:`Cleared ${state.cleared}`}});
@@ -234,9 +399,9 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
 
   for (const car of state.cars) {
     const pose = junctionArtCarPose(car);
-    drawCar(ctx, pose.x, pose.y, pose.dx, pose.dy, CAR_COLOURS[car.colour % CAR_COLOURS.length]!, car.amb === 1, tick);
+    drawCar(ctx, pose.x, pose.y, pose.dx, pose.dy, CAR_COLOURS[car.colour % CAR_COLOURS.length]!, car.amb === 1, tick, 1, juncLenOf(car) / FP, car.kind === 1);
     // Indicator before the turn (same timing as the sim's old drawing).
-    const toLine = (STOP[car.ap]! - car.s) / juncSpeed(tick);
+    const toLine = (juncStopOf(car.ap) - car.s) / juncSpeed(tick);
     if (car.turn && toLine < JUNC_INDICATE_TICKS && toLine > -40 && Math.trunc(tick / 8) % 2 === 0) {
       ctx.save();
       ctx.translate(pose.x, pose.y);
@@ -247,7 +412,7 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
       ctx.fillRect(-CAR_PX + 1, side * (CAR_W / 2 - 2) - 2, 5, 4);
       ctx.restore();
     }
-    if (!car.amb && car.wait > 0 && car.s <= STOP[car.ap]!) {
+    if (!car.amb && car.wait > 0 && car.s <= juncStopOf(car.ap)) {
       const left = 1 - car.wait / car.patience;
       const bx = pose.x - CAR_PX / 2 - (pose.dx * CAR_PX) / 2;
       const by = pose.y - 24 - (pose.dy * CAR_PX) / 2;
@@ -258,13 +423,43 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
     }
   }
 
-  for (let ap = 0; ap < 4; ap++) {
-    const [lx, ly] = JUNC_LIGHT_AT[ap]!;
-    drawLight(ctx, lx, ly, ((state.lights >> ap) & 1) === 1);
+  if (state.rev) {
+    // Rev 2: each light at its own stop line, ringed in its road's colour; a ring pulse when tapped.
+    const now = realNow();
+    for (let ap = 0; ap < JUNC_APPROACHES_V2; ap++) {
+      const at = juncBuiltAt(state.builds ?? [], ap);
+      if (at > tick) continue;
+      const [lx, ly] = JUNC_LIGHT_AT_V2[ap]!;
+      const grow = ap >= 4 ? Math.min(1, (tick - at) / 20) : 1;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.scale(grow, grow);
+      ctx.strokeStyle = JUNC_LANE_COLOURS[ap]!;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-11, -18, 22, 36, 7);
+      ctx.stroke();
+      const pulse = 1 - (now - changed[ap]!) / HIGHLIGHT_MS;
+      if (pulse > 0) {
+        ctx.globalAlpha = pulse;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 22 + (1 - pulse) * 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      drawLight(ctx, 0, 0, ((state.lights >> ap) & 1) === 1);
+      ctx.restore();
+    }
+  } else {
+    for (let ap = 0; ap < 4; ap++) {
+      const [lx, ly] = JUNC_LIGHT_AT[ap]!;
+      drawLight(ctx, lx, ly, ((state.lights >> ap) & 1) === 1);
+    }
   }
 
   if (tick - state.honkTick < 30) {
-    const [lx, ly] = JUNC_LIGHT_AT[state.honkAp]!;
+    const [lx, ly] = (state.rev ? JUNC_LIGHT_AT_V2 : JUNC_LIGHT_AT)[state.honkAp]!;
     ctx.fillStyle = REAL_RED;
     ctx.font = "bold 13px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "center";
@@ -307,5 +502,9 @@ function drawJunctionArtWorld(ctx: CanvasRenderingContext2D, state: JuncState, s
 }
 
 export const junctionArtGame = { ...junctionGame, draw: drawJunctionArt };
+export const junctionRev2ArtGame = { ...junctionRev2Game, draw: drawJunctionArt };
+export function junctionArtGameFor(rev?: number | null) {
+  return rev === JUNC_REV ? junctionRev2ArtGame : junctionArtGame;
+}
 export const junctionRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: JuncState, size: CanvasSize) => drawJunctionArt(ctx, state, size, false) };
 export const JUNC_ART_BG = REAL_GRASS_DARK;

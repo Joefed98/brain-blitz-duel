@@ -8,7 +8,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   skylineCheckpoint,
-  skylineGame,
+  skylineGameFor,
   skylineSurvived,
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_RUN_TICKS,
@@ -85,6 +85,9 @@ export function decodeSkylineRun(raw: string): SkylineRun {
 export interface SkylineResult {
   blocks: number;
   perfects: number;
+  /** skylineRev 2: longest run of perfect drops and the streak bonus earned (0 on original rounds). */
+  bestStreak: number;
+  streakPoints: number;
   survived: boolean;
   /** Seconds into the run when the tower was missed, or the full run length. */
   endedSeconds: number;
@@ -101,7 +104,8 @@ export interface SkylineResult {
 }
 
 /** The single place a Skyline score is worked out. */
-export function replaySkylineRun(seed: number, raw: string): SkylineResult {
+export function replaySkylineRun(seed: number, raw: string, rev?: number | null): SkylineResult {
+  const skylineGame = skylineGameFor(rev);
   const run = decodeSkylineRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SKYLINE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SKYLINE_RUN_TICKS;
@@ -139,6 +143,8 @@ export function replaySkylineRun(seed: number, raw: string): SkylineResult {
   const result: SkylineResult = {
     blocks: state.placed,
     perfects: state.perfects,
+    bestStreak: state.bestStreak ?? 0,
+    streakPoints: state.streakPoints ?? 0,
     survived,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

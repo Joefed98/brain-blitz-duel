@@ -1,8 +1,11 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { useMemo, useRef } from "react";
 import {
   juncApproachAt,
+  juncApproachAtV2,
+  juncBuildOrder,
   juncCheckpoint,
-  junctionGame,
+  JUNC_REV,
   JUNC_BG,
   JUNC_CAR_COLOURS,
   JUNC_CHECKPOINT_INTERVAL,
@@ -15,7 +18,7 @@ import {
 } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { JUNCTION_TIME_MS, type JunctionPuzzleData } from "@/lib/duel/types";
-import { junctionArtGame, JUNC_ART_BG } from "@/lib/arcade/junction.renderer";
+import { junctionArtGameFor, JUNC_ART_BG } from "@/lib/arcade/junction.renderer";
 import { junctionSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
@@ -34,13 +37,18 @@ function IntroExample() {
         <circle cx={62} cy={44} r={4} fill={JUNC_GREEN} />
         <circle cx={58} cy={88} r={4} fill={JUNC_RED} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Tap the corner beside a road to switch its light.</p>
+      <p className="text-center text-xs text-muted-foreground">Tap a light (or its lane) to switch it. A new diagonal road joins every 12 s.</p>
     </div>
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: JunctionPuzzleData | null = puzzle.type === "junction" ? puzzle : null;
+  const rev2 = data?.junctionRev === JUNC_REV;
+  const seed = data?.seed ?? 1;
+  const builds = useMemo(() => juncBuildOrder(seed), [seed]);
+  // The sim tick, so a tap only maps to a light that is already built (rev 2).
+  const tick = useRef(0);
   return (
     <ArcadeCanvasStage
       diagKey="junction"
@@ -51,16 +59,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={JUNC_WORLD_W}
       worldH={JUNC_WORLD_H}
-      game={junctionArtGame}
+      game={junctionArtGameFor(data?.junctionRev)}
       sounds={junctionSounds}
       checkpoint={juncCheckpoint}
       interval={JUNC_CHECKPOINT_INTERVAL}
       encodeRun={encodeJunctionRun}
       discrete
       inputKind={JUNC_INPUT_TAP}
+      tickInput={(state) => {
+        tick.current = state.tick;
+        return null;
+      }}
       pointer={(kind, x, y) => {
         if (kind !== "down") return null;
-        const ap = juncApproachAt(x, y);
+        const ap = rev2 ? juncApproachAtV2(x, y, builds, tick.current + 1) : juncApproachAt(x, y);
         return ap < 0 ? null : { a: ap, b: 0, c: 0 };
       }}
       onSubmit={(answer) => onSubmit(answer)}
@@ -77,7 +89,7 @@ export function junctionLine(r: { cleared: number; gaveUp: number; survived: boo
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "junction") return null;
-  const result = replayJunctionRun(puzzle.seed, myAnswer ?? "");
+  const result = replayJunctionRun(puzzle.seed, myAnswer ?? "", puzzle.junctionRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -97,7 +109,7 @@ export const junctionPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: JUNCTION_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "junction", seed: 1 }) satisfies JunctionPuzzleData,
+  generate: () => ({ type: "junction", seed: 1, junctionRev: JUNC_REV }) satisfies JunctionPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -114,7 +114,7 @@ const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame),
-  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a), undefined, skylineRevealGame),
+  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
@@ -145,7 +145,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (s) => ({ x: s.shipX, y: WAV_SHIP_Y }),
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
-  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a), undefined, junctionRevealGame),
+  junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: {
     accent: "#2ED3B7",
@@ -192,7 +192,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a)),
+  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined)),
   balltrack: {
     accent: GOLD,
     worldW: BT_W,

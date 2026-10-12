@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltGame, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltGame, tiltRev2Game, tiltTotalStars, TILT_REV, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
@@ -21,6 +21,11 @@ const DX = [1, 0, -1, 0];
 const DY = [0, 1, 0, -1];
 export const TILT_MARBLE_BLUE = "#3E7BFA";
 export const TILT_MARBLE_RED = "#E8394A";
+/** tiltRev 2: the second marble and its cup. */
+export const TILT_MARBLE_AMBER = "#F29A1F";
+const CUP_AMBER_GLASS = "#FFD99A";
+const STAR_GOLD = "#FFD23F";
+const STAR_EDGE = "#9A6A10";
 const STRIP = "#8C5A30";
 const STRIP_TOP = "#B9824C";
 const CUP_GLASS = "#C4E9FA";
@@ -47,13 +52,65 @@ function edge(ctx: CanvasRenderingContext2D, m: Maze, c: number, d: number, o: n
   else { ctx.moveTo(x, y); ctx.lineTo(x + cs, y); }
 }
 
-/** The cup just beyond the exit edge, in disc-centred maze coordinates. */
-function cupOf(m: Maze, o: number) {
+/**
+ * The cup just beyond an exit edge, in disc-centred maze coordinates. Original
+ * rounds keep the marble-sized cup; rev 2 draws a larger cup (rim + colour) so
+ * marble, dark hole and cup never read as three similar dots.
+ */
+function cupOf(m: Maze, o: number, exit = m.exit, exitDir = m.exitDir, big = false) {
   const cs = m.cs / FP;
-  const cx = (m.exit % m.n) * cs + cs / 2 - o + (DX[m.exitDir]! * cs) / 2;
-  const cy = Math.trunc(m.exit / m.n) * cs + cs / 2 - o + (DY[m.exitDir]! * cs) / 2;
-  const r = m.br / FP;
-  return { x: cx + DX[m.exitDir]! * r, y: cy + DY[m.exitDir]! * r, r };
+  const cx = (exit % m.n) * cs + cs / 2 - o + (DX[exitDir]! * cs) / 2;
+  const cy = Math.trunc(exit / m.n) * cs + cs / 2 - o + (DY[exitDir]! * cs) / 2;
+  const r = big ? Math.min(cs * 0.55, (m.br / FP) * 1.75) : m.br / FP;
+  return { x: cx + DX[exitDir]! * r, y: cy + DY[exitDir]! * r, r };
+}
+
+/** tiltRev 2 cup: dark brass rim, coloured glass, a deep centre and a bright lip, in the marble's colour. */
+function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: number; r: number }, colour: string, glass: string, filled: boolean): void {
+  ctx.fillStyle = TOY_BRASS_DARK;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r + 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = TOY_BRASS;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r + 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r - 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = glass;
+  ctx.globalAlpha = 0.55;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  if (!filled) {
+    ctx.fillStyle = "rgba(20,10,4,0.55)";
+    ctx.beginPath();
+    ctx.arc(cup.x, cup.y + cup.r * 0.08, cup.r * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** tiltRev 2 bonus star: a gold five-point star filling most of its dead-end cell. */
+function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-rot);
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const d = i % 2 === 0 ? r : r * 0.45;
+    ctx.lineTo(Math.cos(a) * d, Math.sin(a) * d);
+  }
+  ctx.closePath();
+  ctx.fillStyle = STAR_GOLD;
+  ctx.fill();
+  ctx.strokeStyle = STAR_EDGE;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function walls(ctx: CanvasRenderingContext2D, m: Maze, o: number, dx: number, dy: number) {
@@ -114,6 +171,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   ctx.font = "600 16px ui-monospace, monospace";
   ctx.textAlign = "left";
   ctx.fillText(`Maze ${Math.min(TILT_MAX_MAZES, state.mazes + 1)} / ${TILT_MAX_MAZES}`, 14, 26);
+  if (state.rev) {
+    ctx.textAlign = "right";
+    ctx.fillText(`Stars ${state.stars ?? 0} / ${tiltTotalStars(state)}`, TILT_WORLD_W - 14, 26);
+    ctx.textAlign = "left";
+  }
 
   ctx.translate(CX, CY);
   // Disc rim: darker wood ring just outside the sim's disc.
@@ -152,6 +214,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     ctx.stroke();
   }
 
+  if (state.rev) {
+    // Rev 2: bigger rimmed cups in each marble's colour; a stars in dead-end detours.
+    drawBigCup(ctx, cupOf(m, o, m.exit, m.exitDir, true), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
+    if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupOf(m, o, m.exit2!, m.exitDir2!, true), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
+    (m.stars ?? []).forEach((c, k) => {
+      if ((state.starGot ?? [])[k]) return;
+      drawStar(ctx, (c % m.n) * cs + cs / 2 - o, Math.trunc(c / m.n) * cs + cs / 2 - o, cs * 0.3, rot);
+    });
+  } else {
   // Blue glass cup: the soft glow is contained in the existing outer ring.
   const cupGlow = ctx.createRadialGradient(cup.x, cup.y, cup.r * 0.5, cup.x, cup.y, cup.r + 2);
   cupGlow.addColorStop(0, CUP_GLASS);
@@ -173,6 +244,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   ctx.beginPath();
   ctx.arc(cup.x, cup.y, Math.max(1, cup.r - 1), 0, Math.PI * 2);
   ctx.stroke();
+  }
 
   // Raised wooden strips with a slight shadow.
   ctx.lineCap = "round";
@@ -232,7 +304,20 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     toyMarble(ctx, prevCup.x, prevCup.y, prevCup.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
     ctx.globalAlpha = 1;
   }
-  if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) {
+  if (state.rev) {
+    // Rev 2: a marble in its cup rests at the cup's centre; the amber marble is code art.
+    const mr = m.br / FP;
+    if (state.b) {
+      const cup = cupOf(m, o, m.exit2!, m.exitDir2!, true);
+      const at = state.bHome ? cup : { x: state.b.x / FP - o, y: state.b.y / FP - o };
+      if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+    }
+    if (state.aHome) {
+      const cup = cupOf(m, o, m.exit, m.exitDir, true);
+      toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
+    }
+  }
+  if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES) && !state.aHome) {
     // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
     const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
     if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
@@ -242,3 +327,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
 }
 
 export const tiltArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, draw };
+/** tiltRev 2 with the same art (the drawing reads the revision from the state). */
+export const tiltRev2ArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, draw };
+export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  return rev === TILT_REV ? tiltRev2ArtGame : tiltArtGame;
+}

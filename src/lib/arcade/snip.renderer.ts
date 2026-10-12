@@ -4,8 +4,8 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { SNIP_FX } from "./arcadeFxGames.renderer";
 /** Orchard Snip. Art only: original world, camera, rope nodes and collision geometry. */
 import type { CanvasSize } from './engine';
-import { snipCamera, snipGame, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_W, type SnipState } from './snip';
-import { countryStamp, drawCountryside, COUNTRY_SKY, COUNTRY_GRASS_DARK, COUNTRY_WOOD, COUNTRY_WOOD_DARK, COUNTRY_WOOD_LIGHT, COUNTRY_STONE, COUNTRY_STONE_DARK, COUNTRY_GOLD, COUNTRY_GOLD_EDGE, COUNTRY_SHINE, COUNTRY_APPLE, COUNTRY_APPLE_EDGE } from './countryside.renderer';
+import { snipCamera, snipGame, snipMouthAt, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_STUNG, SNIP_W, type SnipState, type SnipTemplate } from './snip';
+import { countryStamp, drawCountryside, COUNTRY_SKY, COUNTRY_GRASS, COUNTRY_GRASS_DARK, COUNTRY_WOOD, COUNTRY_WOOD_DARK, COUNTRY_WOOD_LIGHT, COUNTRY_STONE, COUNTRY_STONE_DARK, COUNTRY_GOLD, COUNTRY_GOLD_EDGE, COUNTRY_SHINE, COUNTRY_APPLE, COUNTRY_APPLE_EDGE } from './countryside.renderer';
 
 export interface SnipSwipe { a: number; b: number; c: number; d: number; at: number }
 function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number):void { c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill(); }
@@ -59,6 +59,89 @@ function twine(c:CanvasRenderingContext2D,points:readonly (readonly [number,numb
   c.strokeStyle=COUNTRY_WOOD_DARK;c.lineWidth=3.5;c.stroke();
   c.strokeStyle=COUNTRY_WOOD_LIGHT;c.lineWidth=1.4;c.setLineDash([3,2]);c.stroke();c.restore();
 }
+type Seg = readonly [number, number, number, number];
+/** Unit "down" side normal of a segment (the side the surface body hangs on) and its length. */
+function segFrame(s: Seg): { ux: number; uy: number; nx: number; ny: number; len: number } {
+  const dx = s[2] - s[0], dy = s[3] - s[1];
+  const len = Math.hypot(dx, dy) || 1;
+  let nx = -dy / len, ny = dx / len;
+  if (ny < 0) { nx = -nx; ny = -ny; }
+  return { ux: dx / len, uy: dy / len, nx, ny, len };
+}
+/** snipRev 3 plank: its top face is the collision line; the board hangs below it. */
+function plankArt(c: CanvasRenderingContext2D, s: Seg): void {
+  const f = segFrame(s), t = 9;
+  c.save();
+  c.translate(s[0], s[1]);
+  c.rotate(Math.atan2(f.uy, f.ux));
+  const down = f.ny * Math.cos(Math.atan2(f.uy, f.ux)) - f.nx * Math.sin(Math.atan2(f.uy, f.ux)) >= 0 ? 1 : -1;
+  c.fillStyle = COUNTRY_WOOD_DARK; c.fillRect(0, 0, f.len, t * down);
+  c.fillStyle = COUNTRY_WOOD; c.fillRect(1, down, f.len - 2, (t - 2) * down);
+  c.fillStyle = COUNTRY_WOOD_LIGHT; c.fillRect(1, down, f.len - 2, 2 * down);
+  c.fillStyle = COUNTRY_WOOD_DARK; for (let x = 10; x < f.len - 6; x += 28) c.fillRect(x, 5 * down, 2, 2 * down);
+  c.restore();
+}
+/** snipRev 3 gutter: a tin trough whose inner floor is the collision line, lips rising behind and in front. */
+function gutterArt(c: CanvasRenderingContext2D, s: Seg): void {
+  const f = segFrame(s);
+  c.save();
+  c.translate(s[0], s[1]);
+  const a = Math.atan2(f.uy, f.ux);
+  c.rotate(a);
+  const down = f.ny * Math.cos(a) - f.nx * Math.sin(a) >= 0 ? 1 : -1;
+  c.fillStyle = COUNTRY_STONE_DARK; c.fillRect(0, 0, f.len, 7 * down);
+  c.fillStyle = COUNTRY_STONE; c.fillRect(0, down, f.len, 5 * down);
+  // Rolled lips at both ends and along the back, behind the apple.
+  c.fillStyle = COUNTRY_STONE_DARK; c.fillRect(-3, -9 * down, 3, 16 * down); c.fillRect(f.len, -9 * down, 3, 16 * down);
+  c.globalAlpha = 0.55; c.fillStyle = COUNTRY_STONE; c.fillRect(0, -10 * down, f.len, 3 * down); c.globalAlpha = 1;
+  c.restore();
+}
+/** snipRev 3 springy branch: a green-barked bough whose top is the collision line, with a coil under its middle. */
+function springArt(c: CanvasRenderingContext2D, s: Seg, flex: number): void {
+  const f = segFrame(s);
+  c.save();
+  c.translate(s[0], s[1]);
+  const a = Math.atan2(f.uy, f.ux);
+  c.rotate(a);
+  const down = f.ny * Math.cos(a) - f.nx * Math.sin(a) >= 0 ? 1 : -1;
+  const bend = flex * 4 * down;
+  c.strokeStyle = COUNTRY_WOOD_DARK; c.lineWidth = 2;
+  c.beginPath(); for (let k = 0; k <= 6; k++) { const x = f.len / 2 - 8 + (k % 2) * 16; c.lineTo(x, (6 + k * 2.5) * down); } c.stroke();
+  c.fillStyle = COUNTRY_GRASS_DARK;
+  c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(f.len / 2, bend, f.len, 0); c.lineTo(f.len, 6 * down); c.quadraticCurveTo(f.len / 2, 6 * down + bend, 0, 6 * down); c.closePath(); c.fill();
+  c.fillStyle = COUNTRY_GRASS; c.fillRect(2, down, f.len - 4, 2 * down);
+  c.fillStyle = COUNTRY_GRASS_DARK; for (const x of [6, f.len - 10]) { c.beginPath(); c.ellipse(x, 9 * down, 5, 3, 0.4, 0, Math.PI * 2); c.fill(); }
+  c.restore();
+}
+/** snipRev 3 wasp nest: a papery striped nest filling the collision disc, with wasps circling just outside it. */
+function nestArt(c: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, angry: boolean): void {
+  c.save();
+  c.fillStyle = '#B7A27E'; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#8A7553'; c.lineWidth = 2;
+  for (let k = -2; k <= 2; k++) { c.beginPath(); c.ellipse(x, y + k * r * 0.32, r * Math.sqrt(1 - (k * 0.32) ** 2) * 0.98, 2.2, 0, 0, Math.PI * 2); c.stroke(); }
+  c.fillStyle = '#3A2C1A'; c.beginPath(); c.arc(x, y + r * 0.55, r * 0.18, 0, Math.PI * 2); c.fill();
+  for (let k = 0; k < 3; k++) {
+    const a = t * (angry ? 9 : 3.2) + k * 2.1, d = r + 5 + (k % 2) * 3;
+    const wx = x + Math.cos(a) * d, wy = y + Math.sin(a) * d * 0.7;
+    c.fillStyle = '#F5C518'; c.beginPath(); c.ellipse(wx, wy, 3.2, 2.2, a, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#20170C'; c.fillRect(wx - 0.6, wy - 2, 1.2, 4);
+  }
+  c.restore();
+}
+function drawOrchardElements(c: CanvasRenderingContext2D, tpl: SnipTemplate, state: SnipState): void {
+  const now = typeof performance === 'undefined' ? 0 : performance.now() / 1000;
+  for (const s of tpl.planks ?? []) plankArt(c, s);
+  for (const s of tpl.gutters ?? []) gutterArt(c, s);
+  const flex = state.springTick !== undefined && state.tick - state.springTick < 12 ? Math.sin(((state.tick - state.springTick) / 12) * Math.PI) : 0;
+  for (const s of tpl.springs ?? []) springArt(c, s, flex);
+  const angry = state.lastOutcome === SNIP_STUNG && state.tick - state.endTick < 40;
+  for (const [x, y, r] of tpl.nests ?? []) nestArt(c, x, y, r, now, false);
+  if (angry) {
+    const prev = SNIP_CONFIG.templates[state.order[Math.max(0, state.level - 1)] ?? state.template];
+    if (prev && prev !== tpl) for (const [x, y, r] of prev.nests ?? []) { c.globalAlpha = 1 - (state.tick - state.endTick) / 40; nestArt(c, x, y, r, now, true); c.globalAlpha = 1; }
+  }
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSnipArt(c: CanvasRenderingContext2D, state: SnipState, size: CanvasSize, trail?: readonly (readonly [number, number])[], cameraX = snipCamera(state, state.sx / 256 - SNIP_CONFIG.viewW / 2, 1), swipes: readonly SnipSwipe[] = []): void {
   arcadeFx(c, SNIP_FX, state, () => drawSnipArtWorld(c, state, size, trail, cameraX, swipes), size);
@@ -76,7 +159,11 @@ function drawSnipArtWorld(c:CanvasRenderingContext2D,state:SnipState,size:Canvas
   for(const rope of state.ropes){const px=rope.x[0],py=rope.y[0];if(px===undefined||py===undefined)continue;c.beginPath();c.moveTo(px/256-28,10);c.bezierCurveTo(px/256-18,py/512,px/256+18,py/512,px/256,py/256);c.stroke();}c.restore();
   countryStamp(c,'orchard-wall',3,SNIP_H,0,0,wall);countryStamp(c,'orchard-wall',3,SNIP_H,SNIP_W-3,0,wall);
   for(const [x0,y0,x1,y1] of tpl.platforms)countryStamp(c,'orchard-rail',x1-x0,y1-y0,x0,y0,ctx=>rail(ctx,x1-x0,y1-y0));
-  countryStamp(c,'orchard-basket',64,64,tpl.mouth[0]-32,tpl.mouth[1]-32,basket);
+  drawOrchardElements(c,tpl,state);
+  // snipRev 3 baskets can slide; others sit at their fixed mouth.
+  const mouth=snipMouthAt(tpl,state.levelTick);
+  if(tpl.slide){c.save();c.strokeStyle=COUNTRY_WOOD_DARK;c.globalAlpha=0.35;c.lineWidth=3;c.beginPath();c.moveTo(tpl.mouth[0]-tpl.slide[0]-32,tpl.mouth[1]+34);c.lineTo(tpl.mouth[0]+tpl.slide[0]+32,tpl.mouth[1]+34);c.stroke();c.restore();}
+  countryStamp(c,'orchard-basket',64,64,mouth.x/256-32,mouth.y/256-32,basket);
   state.starX.forEach((x,i)=>{const y=state.starY[i];if(state.starGot[i]||y===undefined)return;// Art pilot (Orchard): golden-leaf sprite fills the 48 px pickup disc's square; code art when absent.
     if(!drawArtSprite(c,'orchard','leaf',x/256-24,y/256-24,48,48))countryStamp(c,'orchard-leaf',48,48,x/256-24,y/256-24,leaf);});
   for(const rope of state.ropes){const pts:[number,number][]=[];for(let i=0;i<rope.x.length;i++){const x=rope.x[i],y=rope.y[i];if(x!==undefined&&y!==undefined)pts.push([x/256,y/256]);}if(rope.alive)pts.push([state.sx/256,state.sy/256]);twine(c,pts,rope.alive?1:0.6);}

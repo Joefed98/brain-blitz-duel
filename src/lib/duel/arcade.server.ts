@@ -5,7 +5,10 @@ import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
-import { SNIP_REV } from "@/lib/arcade/snip";
+import { SNIP_REV3 } from "@/lib/arcade/snip";
+import { SKYLINE_REV } from "@/lib/arcade/skyline";
+import { TILT_REV } from "@/lib/arcade/tilt";
+import { JUNC_REV } from "@/lib/arcade/junction";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { BURST_REV } from "@/lib/arcade/burst";
@@ -71,7 +74,7 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  return { type: "skyline", seed: arcadeSeed() };
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -168,7 +171,7 @@ export function generateParry(): ParryPuzzleData {
 }
 
 export function generateJunction(): JunctionPuzzleData {
-  return { type: "junction", seed: arcadeSeed() };
+  return { type: "junction", seed: arcadeSeed(), junctionRev: JUNC_REV };
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
@@ -188,7 +191,7 @@ export function generateOrbit(): OrbitPuzzleData {
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV3 };
 }
 
 /** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */
@@ -206,7 +209,7 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  return { type: "tilt", seed: arcadeSeed() };
+  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

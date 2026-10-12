@@ -22,8 +22,11 @@ import {
   snipGame,
   snipGameFor,
   snipLevelOrder,
+  snipLevelOrderV3,
   snipTestLevel,
   SNIP_BANDS,
+  SNIP_BANDS_V3,
+  SNIP_REV3,
   SNIP_REV,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_CONFIG,
@@ -73,7 +76,9 @@ const PERMS: Record<number, number[][]> = {
   3: [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]],
 };
 console.log(FULL_DEPTH ? "full depth: every template, all wobbles, fine grid" : "quick depth (--full for the full search)");
-for (let t = 0; t < SNIP_CONFIG.templates.length; t++) {
+// The 30 snipRev-3 orchard templates (30–59) are proven by stored plans in arcade-batch4-check.
+const BRUTE_FORCE_TEMPLATES = 30;
+for (let t = 0; t < BRUTE_FORCE_TEMPLATES; t++) {
   if (ONLY === "replay" || (ONLY && String(t) !== ONLY)) continue;
   const tpl = SNIP_CONFIG.templates[t]!;
   const n = tpl.pins.length;
@@ -123,7 +128,15 @@ if (ONLY && ONLY !== "replay") process.exit(failures ? 1 : 0);
 /* ------------------------------ Bands ------------------------------ */
 {
   const all = [...SNIP_BANDS.easy, ...SNIP_BANDS.medium, ...SNIP_BANDS.hard].sort((a, b) => a - b);
-  if (all.join() !== Array.from({ length: SNIP_CONFIG.templates.length }, (_, i) => i).join()) fail("bands must cover every template exactly once");
+  if (all.join() !== Array.from({ length: BRUTE_FORCE_TEMPLATES }, (_, i) => i).join()) fail("rev-2 bands must cover the first 30 templates exactly once");
+  const all3 = [...SNIP_BANDS_V3.easy, ...SNIP_BANDS_V3.medium, ...SNIP_BANDS_V3.hard].sort((a, b) => a - b);
+  if (all3.join() !== Array.from({ length: SNIP_CONFIG.templates.length }, (_, i) => i).join()) fail("rev-3 bands must cover every template exactly once");
+  for (let seed = 1; seed < 2000; seed += 7) {
+    const o = snipLevelOrderV3(seed);
+    const okBand = (i: number, band: readonly number[]) => band.includes(o[i]!);
+    if (new Set(o).size !== 10 || ![0, 1, 2].every((i) => okBand(i, SNIP_BANDS_V3.easy)) || ![3, 4, 5, 6].every((i) => okBand(i, SNIP_BANDS_V3.medium)) || ![7, 8, 9].every((i) => okBand(i, SNIP_BANDS_V3.hard)))
+      fail(`rev-3 seed ${seed} order ${o}`);
+  }
   for (let seed = 1; seed < 2000; seed += 7) {
     const o = snipLevelOrder(seed);
     const okBand = (i: number, band: readonly number[]) => band.includes(o[i]!);
@@ -148,7 +161,7 @@ for (let run = 0; run < RUNS; run++) {
     rng = x.state;
     return x.value;
   };
-  const rev = run % 4 < 2 ? SNIP_REV : undefined;
+  const rev = run % 6 < 2 ? SNIP_REV3 : run % 6 < 4 ? SNIP_REV : undefined;
   const game = snipGameFor(rev);
   let s = game.init(seed);
   const log: ArcadeInputEvent[] = [];

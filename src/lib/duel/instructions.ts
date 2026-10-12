@@ -1,4 +1,20 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import {
+  SKYLINE_STREAK_FROM,
+  SKYLINE_STREAK_POINTS,
+  SKYLINE_V2_BLOCK_POINTS,
+  SKYLINE_V2_PERFECT_POINTS,
+  SKYLINE_WIND_FROM,
+} from "@/lib/arcade/skyline";
+import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
+import {
+  TILT_STARS_PER_MAZE,
+  TILT_TWO_FROM,
+  TILT_V2_FINISH_BONUS,
+  TILT_V2_MAZE_POINTS,
+  TILT_V2_PARTIAL_MAX,
+  TILT_V2_STAR_POINTS,
+} from "@/lib/arcade/tilt";
 import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
@@ -519,13 +535,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "75 coins in the run; 2 per coin, so all 75 = 150.",
   },
   skyline: {
-    goal: "Stack the blocks as high as you can.",
+    goal: "Stack blocks as high as you can.",
     how: [
-      { action: "Tap to drop", detail: "the sliding block onto the tower." },
-      { action: "Overhang is cut", detail: "so the next block is narrower." },
-      { action: "Line it up exactly", detail: "and the block grows back a little." },
+      { action: "Tap to drop", detail: "the sliding block on the tower." },
+      { action: "Perfect drops in a row", detail: "earn a streak bonus." },
+      { action: "From block 20", detail: "a waving flag warns of wind." },
+      { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
+      { action: "Streak:", detail: `from the ${SKYLINE_STREAK_FROM}rd perfect drop in a row, every perfect drop scores ${SKYLINE_STREAK_POINTS} bonus point. A drop that isn't perfect resets the streak.`, helpOnly: true },
+      { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+      { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
     ],
-    score: "floor(2.5 × blocks stacked + 3 × perfect drops), capped at 150.",
+    score: `${SKYLINE_V2_BLOCK_POINTS} per block stacked + ${SKYLINE_V2_PERFECT_POINTS} per perfect drop (rounded down), plus ${SKYLINE_STREAK_POINTS} for each perfect drop from the ${SKYLINE_STREAK_FROM}rd in a row. Capped at 150.`,
   },
   bintoss: {
     goal: "Throw the ball into the bin - ten throws.",
@@ -781,14 +801,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per arrow deflected, −10 per life lost.",
   },
   junction: {
-    goal: "Keep the traffic moving without a crash.",
+    goal: "Keep traffic moving, no crashes.",
     how: [
-      { action: "Tap the black corner beside a road", detail: "to switch its light between red (stop) and green (go)." },
-      { action: "Cars on red queue up", detail: "- and they don't wait forever." },
-      { action: "Later,", detail: "some cars turn - they flash an indicator a second before the line." },
-      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s - give them green before they reach the line." },
+      { action: "Tap a light", detail: "to switch its road red or green." },
+      { action: "Every 12 s", detail: "a new diagonal road joins." },
+      { action: "Cars from crossing roads", detail: "must not meet." },
+      { action: "Each light", detail: "stands at its own road's stop line, ringed in that road's colour; the stop line and the arrow painted on the lane share it. Tap the light, or anywhere along its lane, and the lane flashes.", helpOnly: true },
+      { action: "Sharing the middle:", detail: "straight-on traffic from opposite main roads can cross together. Turning cars, and cars from a diagonal road (they bear left onto the main road), need the middle to themselves.", helpOnly: true },
+      { action: "Cars on red queue up", detail: "- and they don't wait forever.", helpOnly: true },
+      { action: "Buses (long, yellow)", detail: "take longer to clear the middle and block it while they cross.", helpOnly: true },
+      { action: "Later,", detail: "some main-road cars turn - they flash an indicator a second before the line.", helpOnly: true },
+      { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads - give them green before they reach the line.", helpOnly: true },
+      { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0-150.",
+    score: `${JUNC_V2_CAR_POINTS} per car through, ${JUNC_V2_BUS_POINTS} per bus, −1 per driver who gives up, +4 per ambulance waved through, −4 if one has to stop, +${JUNC_V2_SURVIVE_BONUS} for surviving the minute. Clamp 0-150.`,
   },
   inkbridge: {
     goal: "Draw a path so the coin rolls into the pot.",
@@ -826,9 +852,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   snip: {
     goal: "Drop the apple into the basket.",
     how: [
-      { action: "Swipe across a rope", detail: "to cut it - time it with the swing." },
-      { action: "Cut the last rope", detail: "and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena." },
-      { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
+      { action: "Swipe across a rope", detail: "to cut it. Order matters." },
+      { action: "Avoid wasp nests;", detail: "use planks and springs." },
+      { action: "10 levels,", detail: "up to 12 s each." },
+      { action: "Time it with the swing.", detail: "Cut the last rope and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena.", helpOnly: true },
+      { action: "Orchard pieces:", detail: "the apple rolls along sloped planks and down tin gutters, bounces hard off springy green branches, and a touch on a wasp nest loses the level. Some baskets slide slowly side to side - drop it as one comes under.", helpOnly: true },
+      { action: "Several ropes?", detail: "Which one you cut first decides which way the apple swings.", helpOnly: true },
+      { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
+      { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
     ],
     score: "10 per apple collected, +3 for each level's single leaf; collect all ten for up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150.",
   },
@@ -848,13 +879,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Distance: 120 × metres ÷ 500. Stars: 1 each, up to 10. Unfinished runs score up to 130; reaching 500 m adds 20, so 500 m with all 10 stars scores 150.",
   },
   tilt: {
-    goal: "Roll the ball into the blue cup.",
+    goal: "Roll each marble into its own cup.",
     how: [
-      { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Dark holes end the run." },
-      { action: "From maze 2 the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends." },
+      { action: "Drag left or right", detail: "to spin the maze." },
+      { action: "Gold stars sit off the route:", detail: "bonus detours." },
+      { action: `From maze ${TILT_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
+      { action: "Marbles always roll down.", detail: "Each finished maze brings a harder one; dark holes end the run.", helpOnly: true },
+      { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
+      { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the end of side passages. Roll either marble over one to collect it.`, helpOnly: true },
+      { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: "Four mazes, 30 each. All four = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: `${TILT_V2_MAZE_POINTS} per maze and ${TILT_V2_STAR_POINTS} per bonus star. Finish all four mazes for up to ${TILT_V2_FINISH_BONUS} more for speed: the full ${TILT_V2_FINISH_BONUS} if you finish with at least half the time left. Capped at 150; without finishing all four, at most ${TILT_V2_PARTIAL_MAX}.`,
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",

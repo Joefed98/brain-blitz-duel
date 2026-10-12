@@ -901,7 +901,7 @@ export function gradeSubmission(
     }
     case "skyline": {
       const replayStart = performance.now();
-      const run = replaySkylineRun(puzzle.seed, answer);
+      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -912,6 +912,7 @@ export function gradeSubmission(
       extraDetail = {
         blocks: run.blocks,
         perfects: run.perfects,
+        ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1460,7 +1461,7 @@ export function gradeSubmission(
     }
     case "junction": {
       const replayStart = performance.now();
-      const run = replayJunctionRun(puzzle.seed, answer);
+      const run = replayJunctionRun(puzzle.seed, answer, puzzle.junctionRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1474,6 +1475,7 @@ export function gradeSubmission(
         ambThrough: run.ambThrough,
         ambStopped: run.ambStopped,
         total: run.total,
+        ...(puzzle.junctionRev ? { junctionRev: puzzle.junctionRev, busCleared: run.busCleared, diagCleared: run.diagCleared } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -1627,7 +1629,7 @@ export function gradeSubmission(
     }
     case "tilt": {
       const replayStart = performance.now();
-      const run = replayTiltRun(puzzle.seed, answer);
+      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1637,6 +1639,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         mazes: run.mazes,
+        ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

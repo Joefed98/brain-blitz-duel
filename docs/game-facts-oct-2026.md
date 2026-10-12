@@ -994,7 +994,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 390×560; start block 200 px wide
-- **Revision:** `speedPar: 1` only
+- **Revision:** `speedPar: 1`; `skylineRev: 2` (Oct 2026 batch 4): from block 20 the top block flies a flag and seeded gusts (1.5–2.5 s, either way, one strength: 1.25 px a tick) nudge the sliding block, the flag waving from 1 s before each; perfect drops from the 3rd in a row add 1 each (streak). Rev-2 score: floor(2.5 × blocks + 2.5 × perfects) + streak points, cap 150. Unstamped rounds keep the rules below.
 - **Input:** Tap to drop
 - **Scoring:** `score()` in `src/lib/arcade/skyline.ts`, replayed on the server by `src/lib/duel/skyline.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Slide speed 768 → 1536 (+26 per block); perfect tolerance 3 px, grows 6 px; floor(2.5 × blocks + 3 × perfects), cap 150 (`SKYLINE_PAR`, `SKYLINE_POINTS_CAP`, `SKYLINE_SURVIVE_BONUS` are defined but unused by the scorer)
@@ -1045,9 +1045,9 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
-- **Board and items:** Four-way junction, 390×620
-- **Revision:** `speedPar: 1` only
-- **Input:** Tap a corner light
+- **Board and items:** Four-way junction, 390×620 (eight-way by 48 s on `junctionRev: 2`)
+- **Revision:** `speedPar: 1`; `junctionRev: 2` (Oct 2026 batch 4): a one-way diagonal road is built into a corner at 12, 24, 36 and 48 s (seeded order), each with its own light by its stop line; lights, stop lines and lane arrows share a colour per road; buses (70 px) from 6 s on the main roads; diagonal and turning traffic needs the middle to itself. Rev-2 score: 2 per car, 3 per bus, −1 give-up, ±4 ambulance, +20 survive, cap 150. Unstamped rounds keep the rules below.
+- **Input:** Tap a corner light (rev 2: tap a light or its lane)
 - **Scoring:** `juncScoreOf()` in `src/lib/arcade/junction.ts`, replayed on the server by `src/lib/duel/junction.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Arrivals every 1.4 → 0.5 s; patience 6 → 4 s; turning cars from 30 s (1 s indicator); ambulances from 20 s every 15 s at 1.3× speed; 2 per car, −1 give-up, ±4 ambulance, +40 survive
 - **Intro text:**
@@ -1152,7 +1152,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 1260×560 world, 360 px view; 10 levels from 30 templates
-- **Revision:** `snipRev: 2` (`SNIP_REV`): 3 easy + 4 medium + 3 hard drawn from `SNIP_BANDS`; unstamped = fixed legacy order
+- **Revision:** `snipRev: 2` (`SNIP_REV`): 3 easy + 4 medium + 3 hard drawn from `SNIP_BANDS`; `snipRev: 3` (`SNIP_REV3`, Oct 2026 batch 4): the same plan from `SNIP_BANDS_V3` over 60 templates, the 30 new ones with springy branches, sloped planks, gutters, a sliding basket and wasp nests (2–4 ropes on medium/hard); unstamped = fixed legacy order
 - **Input:** Swipe to cut ropes
 - **Scoring:** `snipScore()` in `src/lib/arcade/snip.ts`, replayed on the server by `src/lib/duel/snip.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Level cap 12 s inside a 60 s run; rest fail after 30 ticks; 10 per apple, 3 per leaf, all ten + up to 20 (par curve); cap 150
@@ -1225,7 +1225,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 93,000 ms (93 s); sim run 90 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** Circular maze; 4 mazes of size 9, 11, 11, 13
-- **Revision:** `speedPar: 1` only
+- **Revision:** `speedPar: 1`; `tiltRev: 2` (Oct 2026 batch 4): same mazes plus two bonus stars per maze in dead-end detours; from maze 3 an amber marble with its own amber cup (each marble leaves only through its own cup; red chaser in maze 2 only); larger rimmed cups. Rev-2 score: 25 per maze + 5 per star, all four + up to 30 (par curve), cap 150; unfinished maximum 115. Unstamped rounds keep the rules below.
 - **Input:** Drag left / right to spin
 - **Scoring:** `score()` in `src/lib/arcade/tilt.ts`, replayed on the server by `src/lib/duel/tilt.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Run 90 s; red chaser behind a padlocked gate from maze 2; 30 per maze; all four = `finishScore()`

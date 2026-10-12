@@ -63,8 +63,9 @@ const { burstArtGameFor } = await import("../src/lib/arcade/burst.renderer");
 const { wavefrontArtGameFor } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
 const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
+const { skylineRev2Game } = await import("../src/lib/arcade/skyline");
 const { crossArtGameFor } = await import("../src/lib/arcade/cross.renderer");
-const { junctionArtGame } = await import("../src/lib/arcade/junction.renderer");
+const { junctionRev2ArtGame: junctionArtGame } = await import("../src/lib/arcade/junction.renderer");
 const { inkBridgeArtGameFor } = await import("../src/lib/arcade/inkBridge.renderer");
 const { sliceArtGameFor } = await import("../src/lib/arcade/slice.renderer");
 const { binTossArtGame } = await import("../src/lib/arcade/binTossArt.renderer");
@@ -75,7 +76,8 @@ const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
-const { tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
+const { snipRev3Game } = await import("../src/lib/arcade/snip");
+const { tiltRev2ArtGame: tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
 const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
 const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
@@ -110,7 +112,7 @@ const GAMES: Record<string, AnyGame> = {
   burst: burstArtGameFor(2) as AnyGame,
   wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
-  skyline: skylineArtGame as AnyGame,
+  skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
   cross: crossArtGameFor(3) as AnyGame,
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(3) as AnyGame,
@@ -120,7 +122,7 @@ const GAMES: Record<string, AnyGame> = {
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGameFor(4) as AnyGame,
-  snip: snipArtGame as AnyGame,
+  snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
     ...btGame,
@@ -264,7 +266,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, bossKilled: 1 }),
   ],
   orbit: [(s) => ({ ...s, best: s.best + 10 }), (s) => ({ ...s, finished: 1 })],
-  skyline: [(s) => ({ ...s, perfects: s.perfects + 1 }), (s) => ({ ...s, placed: s.placed + 10 })],
+  skyline: [
+    (s) => ({ ...s, perfects: s.perfects + 1 }),
+    (s) => ({ ...s, placed: s.placed + 10 }),
+    (s) => ({ ...s, streak: 3, streakPoints: (s.streakPoints ?? 0) + 1 }),
+    (s) => ({ ...s, placed: Math.max(s.placed, 20) }),
+    (s) => ({ ...s, gustPerfects: (s.gustPerfects ?? 0) + 1 }),
+  ],
   cross: [
     (s) => ({ ...s, crossings: s.crossings + 1 }),
     (s) => ({ ...s, crossings: 3, reached: 0 }),
@@ -273,6 +281,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   junction: [
     (s) => ({ ...s, ambThrough: s.ambThrough + 1 }),
     (s) => ({ ...s, cleared: s.cleared + 10 }),
+    (s) => ({ ...s, tick: Math.max(s.tick, 721) }),
+    (s) => ({ ...s, busCleared: (s.busCleared ?? 0) + 1 }),
+    (s) => ({ ...s, diagCleared: (s.diagCleared ?? 0) + 5 }),
   ],
   inkbridge: [(s) => ({ ...s, levels: s.levels + 1 }), (s) => ({ ...s, levels: 10 })],
   slice: [
@@ -331,8 +342,14 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, stars: s.stars + 1 }),
     (s) => ({ ...s, eaten: s.eaten + 1 }),
     (s) => ({ ...s, eaten: 10 }),
+    (s) => ({ ...s, springHits: (s.springHits ?? 0) + 1 }),
   ],
-  tilt: [(s) => ({ ...s, mazes: s.mazes + 1 }), (s) => ({ ...s, mazes: 4 })],
+  tilt: [
+    (s) => ({ ...s, mazes: s.mazes + 1 }),
+    (s) => ({ ...s, mazes: 4 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, b: { x: s.x, y: s.y, vx: 0, vy: 0 }, aHome: 1, bHome: 0 }),
+  ],
   balltrack: [
     (s) => ({ ...s, home: s.home + 5 }),
     (s) => ({ ...s, home: 30 }),

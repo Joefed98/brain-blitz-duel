@@ -7,6 +7,7 @@ import { SKYLINE_FX } from "./arcadeFxGames.renderer";
  * is the same render-only eased zoom/scroll as skyline.ts.
  */
 import { px, type CanvasSize } from "./engine";
+import { skylineFlagAt, skylineGustAt, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
 import { realMemo, realNow, realNightSky, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP, REAL_LAMP_WASH } from "./realworld.renderer";
@@ -147,6 +148,89 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   void tick;
 }
 
+const FLAG_RED = "#E5484D";
+const FLAG_WHITE = "#F4F4F5";
+
+/**
+ * skylineRev 2: the flag on the top block (pole at its centre, behind the
+ * sliding block). Hanging still = calm; streaming and rippling = a gust is
+ * about to blow or is blowing, toward `dir`. Presentation only.
+ */
+function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: number, tick: number, zoom: number): void {
+  // Screen-sized whatever the camera zoom; the pole clears the sliding block (one block high) so the cloth is never hidden.
+  const k = 1 / zoom;
+  const poleH = px(SKYLINE_BLOCK_H) + 34 * k;
+  const lw = 2 * k;
+  ctx.save();
+  ctx.strokeStyle = STEEL_LIGHT;
+  ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.moveTo(x, top);
+  ctx.lineTo(x, top - poleH);
+  ctx.stroke();
+  ctx.fillStyle = REAL_GOLD;
+  ctx.beginPath();
+  ctx.arc(x, top - poleH, 3 * k, 0, Math.PI * 2);
+  ctx.fill();
+  const still = dir === 0 || reducedMotion();
+  const len = 34 * k;
+  const h = 20 * k;
+  const phase = (tick / 60) * Math.PI * 2 * 2.2;
+  const pts: [number, number][] = [];
+  if (dir === 0) {
+    // Hanging limp down the pole.
+    ctx.fillStyle = FLAG_RED;
+    ctx.beginPath();
+    ctx.moveTo(x, top - poleH + 2 * k);
+    ctx.lineTo(x + 8 * k, top - poleH + 4 * k);
+    ctx.lineTo(x + 7 * k, top - poleH + 4 * k + len * 0.8);
+    ctx.lineTo(x, top - poleH + 2 * k + len * 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  for (let i = 0; i <= 8; i++) {
+    const u = i / 8;
+    const wave = still ? 0 : Math.sin(phase - u * 5) * 4 * k * u;
+    pts.push([x + dir * len * u, top - poleH + 2 * k + wave]);
+  }
+  ctx.fillStyle = FLAG_RED;
+  ctx.beginPath();
+  ctx.moveTo(pts[0]![0], pts[0]![1]);
+  for (const [px0, py0] of pts) ctx.lineTo(px0, py0);
+  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i]![0], pts[i]![1] + h);
+  ctx.closePath();
+  ctx.fill();
+  // A white stripe so the ripple reads at a glance.
+  ctx.fillStyle = FLAG_WHITE;
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i]![0], pts[i]![1] + h * 0.4);
+  for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(pts[i]![0], pts[i]![1] + h * 0.6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** skylineRev 2: faint streaks across the sky while a gust actually blows (presentation only). */
+function drawGustLines(ctx: CanvasRenderingContext2D, dir: number, tick: number): void {
+  if (dir === 0 || reducedMotion()) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let k = 0; k < 7; k++) {
+    const y = 70 + ((k * 67) % 360);
+    const span = SKYLINE_WORLD_W + 120;
+    const x = ((tick * 9 + k * 113) % span) - 60;
+    const sx = dir > 0 ? x : SKYLINE_WORLD_W - x;
+    ctx.moveTo(sx, y);
+    ctx.lineTo(sx - dir * (30 + (k % 3) * 14), y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
   arcadeFx(ctx, SKYLINE_FX, state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
@@ -198,6 +282,11 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   });
 
   const hangTop = SKYLINE_WORLD_H - state.blocks.length * blockH - blockH;
+  // skylineRev 2: the flag flies from the top block once the wind can blow.
+  if (state.rev && state.placed >= SKYLINE_WIND_FROM && !state.missed) {
+    const top = state.blocks[state.blocks.length - 1]!;
+    drawFlag(ctx, px(top.x + top.w / 2), hangTop + blockH, skylineFlagAt(state, state.tick), state.tick, zoom);
+  }
   let hookX = SKYLINE_WORLD_W / 2;
   if (!state.missed) {
     const bx = px(state.x);
@@ -255,6 +344,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   }
   ctx.restore();
 
+  if (state.rev && !state.missed) drawGustLines(ctx, skylineGustAt(state, state.tick), state.tick);
+
   const perfectTop=state.blocks.at(-1);
   if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:(px(perfectTop.x+perfectTop.w/2)-SKYLINE_WORLD_W/2)*zoom+SKYLINE_WORLD_W/2,y:SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH+camScroll)*zoom,shape:'spark',label:'PERFECT'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});
   // Crane jib at the top, trolley above the hook's screen x.
@@ -265,6 +356,14 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   successHud(ctx,'skyline',state.tick,12,12,()=>{ctx.fillText(`Blocks ${state.placed}`, 12, 12);});
+  // skylineRev 2: the perfect-streak counter, gold once it is scoring.
+  if (state.rev && (state.streak ?? 0) > 0) {
+    const streak = state.streak ?? 0;
+    ctx.textAlign = "right";
+    ctx.fillStyle = streak >= SKYLINE_STREAK_FROM ? REAL_GOLD : REAL_NIGHT_TEXT;
+    ctx.fillText(`Streak ×${streak}`, SKYLINE_WORLD_W - 12, 12);
+    ctx.textAlign = "left";
+  }
 
   if (state.missed && crashIndicator) {
     ctx.fillStyle = "rgba(229, 72, 77, 0.18)";
