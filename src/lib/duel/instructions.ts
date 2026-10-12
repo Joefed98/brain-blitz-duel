@@ -1,4 +1,11 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import {
+  SKYLINE_STREAK_FROM,
+  SKYLINE_STREAK_POINTS,
+  SKYLINE_V2_BLOCK_POINTS,
+  SKYLINE_V2_PERFECT_POINTS,
+  SKYLINE_WIND_FROM,
+} from "@/lib/arcade/skyline";
 import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
@@ -519,13 +526,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "75 coins in the run; 2 per coin, so all 75 = 150.",
   },
   skyline: {
-    goal: "Stack the blocks as high as you can.",
+    goal: "Stack blocks as high as you can.",
     how: [
-      { action: "Tap to drop", detail: "the sliding block onto the tower." },
-      { action: "Overhang is cut", detail: "so the next block is narrower." },
-      { action: "Line it up exactly", detail: "and the block grows back a little." },
+      { action: "Tap to drop", detail: "the sliding block on the tower." },
+      { action: "Perfect drops in a row", detail: "earn a streak bonus." },
+      { action: "From block 20", detail: "a waving flag warns of wind." },
+      { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
+      { action: "Streak:", detail: `from the ${SKYLINE_STREAK_FROM}rd perfect drop in a row, every perfect drop scores ${SKYLINE_STREAK_POINTS} bonus point. A drop that isn't perfect resets the streak.`, helpOnly: true },
+      { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+      { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
     ],
-    score: "floor(2.5 × blocks stacked + 3 × perfect drops), capped at 150.",
+    score: `${SKYLINE_V2_BLOCK_POINTS} per block stacked + ${SKYLINE_V2_PERFECT_POINTS} per perfect drop (rounded down), plus ${SKYLINE_STREAK_POINTS} for each perfect drop from the ${SKYLINE_STREAK_FROM}rd in a row. Capped at 150.`,
   },
   bintoss: {
     goal: "Throw the ball into the bin - ten throws.",

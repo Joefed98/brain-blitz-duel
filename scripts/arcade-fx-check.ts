@@ -63,6 +63,7 @@ const { burstArtGame } = await import("../src/lib/arcade/burst.renderer");
 const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
 const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
+const { skylineRev2Game } = await import("../src/lib/arcade/skyline");
 const { crossArtGameFor } = await import("../src/lib/arcade/cross.renderer");
 const { junctionArtGame } = await import("../src/lib/arcade/junction.renderer");
 const { inkBridgeArtGameFor } = await import("../src/lib/arcade/inkBridge.renderer");
@@ -110,7 +111,7 @@ const GAMES: Record<string, AnyGame> = {
   burst: burstArtGame as AnyGame,
   wavefront: wavefrontArtGame as AnyGame,
   orbit: orbitArtGame as AnyGame,
-  skyline: skylineArtGame as AnyGame,
+  skyline: { ...skylineArtGame, init: skylineRev2Game.init } as AnyGame,
   cross: crossArtGameFor(3) as AnyGame,
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(3) as AnyGame,
@@ -259,7 +260,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, wavesCleared: 5 }),
   ],
   orbit: [(s) => ({ ...s, best: s.best + 10 }), (s) => ({ ...s, finished: 1 })],
-  skyline: [(s) => ({ ...s, perfects: s.perfects + 1 }), (s) => ({ ...s, placed: s.placed + 10 })],
+  skyline: [
+    (s) => ({ ...s, perfects: s.perfects + 1 }),
+    (s) => ({ ...s, placed: s.placed + 10 }),
+    (s) => ({ ...s, streak: 3, streakPoints: (s.streakPoints ?? 0) + 1 }),
+    (s) => ({ ...s, placed: Math.max(s.placed, 20) }),
+    (s) => ({ ...s, gustPerfects: (s.gustPerfects ?? 0) + 1 }),
+  ],
   cross: [
     (s) => ({ ...s, crossings: s.crossings + 1 }),
     (s) => ({ ...s, crossings: 3, reached: 0 }),

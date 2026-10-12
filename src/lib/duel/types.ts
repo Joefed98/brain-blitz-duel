@@ -1917,6 +1917,8 @@ export interface SkylinePuzzleData {
   type: "skyline";
   /** Decides which side the first block slides in from. */
   seed: number;
+  /** Rules revision (2 = wind gusts from block 20 and the perfect-streak bonus); absent = original rules. */
+  skylineRev?: number;
 }
 
 /* =========================== Bin Toss / Bullseye ========================= */

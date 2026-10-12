@@ -70,10 +70,15 @@ const BUILDERS: Record<string, Builder> = {
   },
   skyline: (r, s) => ({
     axis: { value: n(r, "blocks"), max: null, label: "Blocks stacked" },
-    lines: [`${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`],
+    lines: [
+      n(r, "skylineRev") > 0
+        ? `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect · +${n(r, "streakPoints")} streak → ${s}`
+        : `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`,
+    ],
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
+      ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
     ],
     outcome: ended(r, false),
   }),

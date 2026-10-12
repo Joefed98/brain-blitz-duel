@@ -46,7 +46,7 @@ import {
   type SnakeState,
 } from "./snake";
 import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossKindCrossed,
@@ -478,6 +478,20 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
       label: () => null,
     },
     { kind: "streak", count: (s) => s.placed, every: 10, label: (_s, n) => `${n} FLOORS` },
+    // skylineRev 2 (original rounds keep these counters at 0 / undefined).
+    { kind: "combo", count: (s) => (s.streakPoints ? s.streak ?? 0 : 0), min: SKYLINE_STREAK_FROM, label: (_s, n) => `STREAK ×${n}` },
+    {
+      kind: "pop",
+      count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
+      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.3 }),
+      label: () => "FLAG UP: WATCH THE WIND!",
+    },
+    {
+      kind: "perfect",
+      count: (s) => s.gustPerfects ?? 0,
+      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.36 }),
+      label: () => "PERFECT IN THE WIND!",
+    },
   ],
 };
 

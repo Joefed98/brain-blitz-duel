@@ -900,7 +900,7 @@ export function gradeSubmission(
     }
     case "skyline": {
       const replayStart = performance.now();
-      const run = replaySkylineRun(puzzle.seed, answer);
+      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -911,6 +911,7 @@ export function gradeSubmission(
       extraDetail = {
         blocks: run.blocks,
         perfects: run.perfects,
+        ...(puzzle.skylineRev ? { skylineRev: puzzle.skylineRev, bestStreak: run.bestStreak, streakPoints: run.streakPoints } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

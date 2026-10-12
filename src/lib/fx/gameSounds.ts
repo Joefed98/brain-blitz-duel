@@ -401,6 +401,8 @@ export function skylineSounds(): GameSounds<SkylineState> {
         if (state.blocks.length > prev.blocks.length) {
           playSound("arc_clank", 0.8, 1, true);
           if (state.perfectTick === state.tick) playSound("correct");
+          // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
+          if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) playSound("arc_retro_coin", 0.7);
         }
         if (state.missed && !prev.missed) playSound("arc_crash");
       }

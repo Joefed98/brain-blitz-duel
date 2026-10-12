@@ -1062,7 +1062,10 @@ const skylineSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${blocks} blocks · ${perfects} perfect · survived`
       : `${blocks} blocks · missed at ${ended.toFixed(1)}s`,
-    detail: [`${perfects} perfect drop${perfects === 1 ? "" : "s"}`],
+    detail: [
+      `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
+      ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
+    ],
   };
 };
 

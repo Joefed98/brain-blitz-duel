@@ -6,6 +6,7 @@ import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
+import { SKYLINE_REV } from "@/lib/arcade/skyline";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
@@ -68,7 +69,7 @@ export function generateSwerve(): SwervePuzzleData {
 }
 
 export function generateSkyline(): SkylinePuzzleData {
-  return { type: "skyline", seed: arcadeSeed() };
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV };
 }
 
 export function generateBinToss(): BinTossPuzzleData {

@@ -14,11 +14,12 @@ import {
 } from "@/lib/arcade/engine";
 import {
   skylineCheckpoint,
-  skylineGame,
+  skylineGameFor,
   SKYLINE_BG,
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
   SKYLINE_FLASH,
+  SKYLINE_REV,
   SKYLINE_RUN_TICKS,
   type SkylineState,
 } from "@/lib/arcade/skyline";
@@ -48,7 +49,7 @@ function IntroExample() {
         <rect x="30" y="14" width="64" height="20" fill={SKYLINE_COLOURS[3]} opacity="0.8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        The part hanging over the edge is cut away.
+        The part hanging over the edge is cut away. Perfect drops in a row build a streak; from block 20 a waving flag warns of wind.
       </p>
     </div>
   );
@@ -57,6 +58,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SkylinePuzzleData | null = puzzle.type === "skyline" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const skylineGame = skylineGameFor(data?.skylineRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -98,7 +100,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     submitted.current = false;
     missedAt.current = null;
     forceRedraw((n) => n + 1);
-  }, [seed]);
+  }, [seed, skylineGame]);
 
   useEffect(() => {
     if (!data) return;
@@ -193,7 +195,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       sounds.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, seed]);
+  }, [data, seed, skylineGame]);
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
@@ -235,7 +237,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "skyline") return null;
-  const result = replaySkylineRun(puzzle.seed, myAnswer ?? "");
+  const result = replaySkylineRun(puzzle.seed, myAnswer ?? "", puzzle.skylineRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -252,7 +254,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         ))}
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.blocks} blocks · {result.perfects} perfect ·{" "}
+        {result.blocks} blocks · {result.perfects} perfect
+        {puzzle.skylineRev ? ` · best streak ${result.bestStreak}` : ""} ·{" "}
         {result.survived ? "survived" : `missed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
@@ -269,7 +272,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1 }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
