@@ -480,7 +480,19 @@ export const ORBIT3_FX: ArcadeFxSpec<OrbitRev3State> = {
   world: "space",
   width: ORBIT_CAM_VIEW_W,
   height: ORBIT_CAM_VIEW_H,
-  events: orbitEvents,
+  events: [
+    ...orbitEvents,
+    {
+      // Rev 4: through a black hole, several planets on (shown as the planets it skipped).
+      kind: "clear" as const,
+      count: (s: OrbitRev3State) => s.jumps ?? 0,
+      at: () => ({ x: ORBIT_CAM_VIEW_W / 2, y: 120 }),
+      label: (s: OrbitRev3State) => {
+        const hole = s.holes?.find((h) => h.to === s.cur);
+        return hole ? `BLACK HOLE! +${hole.to - hole.from} PLANETS` : "BLACK HOLE!";
+      },
+    },
+  ],
 };
 
 /* ============================== Real World ============================== */

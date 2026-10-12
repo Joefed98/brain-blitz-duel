@@ -850,14 +850,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per atom destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.",
   },
   orbit: {
-    goal: "Reach the sun, choosing one planet as your checkpoint.",
+    goal: "Fly planet to planet to the sun.",
     how: [
-      { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you." },
-      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds." },
-      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing." },
+      { action: "Tap to let go;", detail: "the next orbit catches you." },
+      { action: "Checkpoint:", detail: "a crash returns you there." },
+      { action: "Black hole:", detail: "fly in, skip 5-6 planets." },
+      { action: "You orbit automatically.", detail: "Tap to let go - you fly straight until the next orbit catches you.", helpOnly: true },
+      { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds.", helpOnly: true },
+      { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing.", helpOnly: true },
+      { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out orbiting a planet 5 or 6 further on; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
     ],
-    score: "3 per planet; reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "3 per planet reached (planets skipped by a black hole count); reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
+
   snip: {
     goal: "Drop the apple into the basket.",
     how: [

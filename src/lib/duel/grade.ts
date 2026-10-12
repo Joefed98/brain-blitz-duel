@@ -1548,7 +1548,7 @@ export function gradeSubmission(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1559,6 +1559,8 @@ export function gradeSubmission(
       extraDetail = {
         passed: run.passed,
         captured: run.captured,
+        jumps: "jumps" in run ? run.jumps : 0,
+        skipped: "skipped" in run ? run.skipped : 0,
         finished: run.finished,
         secondsLeft: run.secondsLeft,
         total: run.total,

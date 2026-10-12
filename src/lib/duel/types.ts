@@ -1,5 +1,5 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
-import type { OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
+import type { OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 export type PuzzleType =
   | "wordsmith"
   | "groups"
@@ -2241,6 +2241,8 @@ export interface OrbitPuzzleData {
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
+  /** Rev 4 only: three proved black holes, [from, to, x, y] each (orbitHoleBank.server.ts). */
+  holes?: OrbitHoleRow[];
 }
 
 export interface SwingPuzzleData {

@@ -38,6 +38,8 @@ export const ORBIT_INPUT_CHECKPOINT = 1;
 export const ORBIT_TOTAL = 40;
 /** Rev stamp for the wider zig-zag/scrolling-camera course (orbitRev3.ts). */
 export const ORBIT_REV3 = 3;
+/** Rev 4: a rev-3 bank course plus black holes (puzzle.holes); see orbitRev3.ts. */
+export const ORBIT_REV4 = 4;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
@@ -681,7 +683,11 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
     rng: state.rng | 0,
   };
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snap)) {
+  const values = Object.values(snap);
+  // Rev 4 folds its black-hole counters in; older states never have them, so their sums are unchanged.
+  const holes = state as { jumps?: number; skipped?: number };
+  if (holes.jumps !== undefined) values.push(holes.jumps, holes.skipped ?? 0);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }

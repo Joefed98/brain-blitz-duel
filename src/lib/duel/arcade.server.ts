@@ -8,10 +8,10 @@ import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
-import { ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
 import { RALLY_REV } from "@/lib/arcade/rally";
 import { BEAT_REV } from "@/lib/arcade/beat";
-import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V3_BANK } from "./swingBank.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
@@ -183,6 +183,10 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
+  // Rev 4 when the course has proved black holes (scripts/orbit-hole-bank.ts); otherwise rev 3.
+  const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
+  const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
+  if (holes) return { type: "orbit", seed, orbitRev: ORBIT_REV4, planets: encodeRev3Planets(bankPlanets), holes };
   return { type: "orbit", seed, orbitRev: ORBIT_REV3, planets: encodeRev3Planets(bankPlanets) };
 }
 

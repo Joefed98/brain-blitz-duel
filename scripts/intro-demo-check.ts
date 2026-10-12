@@ -26,8 +26,8 @@ import { flipGame } from "@/lib/arcade/flip";
 import { junctionGame } from "@/lib/arcade/junction";
 import { inkBridgeGame } from "@/lib/arcade/inkBridge";
 import { burstGame } from "@/lib/arcade/burst";
-import { orbitGame, ORBIT_REV3 } from "@/lib/arcade/orbit";
-import { orbitRev3Game, initRev3From, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { orbitGame, ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
+import { orbitRev3Game, initRev3From, initRev4From, decodeOrbitHoles, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGame } from "@/lib/arcade/snip";
 import { tiltGame } from "@/lib/arcade/tilt";
@@ -99,13 +99,14 @@ const CASES: Case[] = [
   { type: "burst", game: g(burstGame), replay: r(replayBurstRun) },
   {
     type: "orbit",
-    // orbitRev 3 rounds fly the stamped puzzle's own planets, as the phone and server do.
+    // orbitRev 3/4 rounds fly the stamped puzzle's own planets (and rev-4 holes), as the phone and server do.
     game: (p) => {
-      if (p.type !== "orbit" || p.orbitRev !== ORBIT_REV3) return orbitGame as unknown as AnyGame;
+      if (p.type !== "orbit" || (p.orbitRev !== ORBIT_REV3 && p.orbitRev !== ORBIT_REV4)) return orbitGame as unknown as AnyGame;
       const planets = p.planets && p.planets.length > 0 ? decodeRev3Planets(p.planets) : buildCourse3(p.seed, ORBIT_REV3_WORLD_W).planets;
+      if (p.orbitRev === ORBIT_REV4) return { ...orbitRev3Game, init: () => initRev4From(planets, ORBIT_REV3_WORLD_W, decodeOrbitHoles(p.holes ?? [])) } as unknown as AnyGame;
       return { ...orbitRev3Game, init: () => initRev3From(planets, ORBIT_REV3_WORLD_W) } as unknown as AnyGame;
     },
-    replay: (p, s, raw) => replayOrbitRun(s, raw, p.type === "orbit" ? p.orbitRev : undefined, p.type === "orbit" ? p.planets : undefined),
+    replay: (p, s, raw) => replayOrbitRun(s, raw, p.type === "orbit" ? p.orbitRev : undefined, p.type === "orbit" ? p.planets : undefined, p.type === "orbit" ? p.holes : undefined),
   },
   { type: "swing", game: (p) => swingGameFor(p.type === "swing" ? p.swingRev : undefined) as unknown as AnyGame, replay: (p, s, raw) => replaySwingRun(s, raw, p.type === "swing" ? p.swingRev : undefined) },
   { type: "snip", game: g(snipGame), replay: r(replaySnipRun) },

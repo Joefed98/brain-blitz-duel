@@ -73,7 +73,13 @@ import {
   BINTOSS_RIM_Y,
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
-import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateRally } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
+import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
+import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
+import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
+import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -326,6 +332,106 @@ if (want("inkbridge")) {
   }
   console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
   ok(INTRO_SCORE.inkbridge.includes("up to 150") && INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and the partial maximum");
+}
+
+/* ================================ 2f. Orbit ================================ */
+if (want("orbit")) {
+  section("Orbit orbitRev 4 (black holes about every ten planets)");
+  ok(ORBIT_HOLE_BANK.length >= ORBIT_REV3_BANK.length * 0.6, `most proved courses carry holes (${ORBIT_HOLE_BANK.length} / ${ORBIT_REV3_BANK.length})`);
+  {
+    let stamped = 0;
+    for (let k = 0; k < 40; k++) {
+      const p = generateOrbit();
+      if (p.orbitRev === ORBIT_REV4) {
+        stamped++;
+        ok(p.holes?.length === 3 && p.planets?.length === ORBIT_TOTAL + 1, "rev-4 rounds ship their planets and three holes");
+      }
+    }
+    ok(stamped > 0, `new rounds are stamped orbitRev 4 when the course has holes (${stamped} / 40)`);
+  }
+  const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
+  const tap = (t: number) => ({ t, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
+  const play = (start: OrbitRev3State, pick: (s: OrbitRev3State, t: number) => ReturnType<typeof tap> | null) => {
+    const events: ReturnType<typeof tap>[] = [];
+    const checkpoints: unknown[] = [];
+    let s = start;
+    while (!orbitRev3Game.isOver(s)) {
+      const t = s.tick + 1;
+      const ev = pick(s, t);
+      if (ev) events.push(ev);
+      s = orbitRev3Game.step(s, ev);
+      if (s.tick % 300 === 0) checkpoints.push(orbitCheckpoint(s as never));
+    }
+    return { s, events, checkpoints };
+  };
+  const runs = Number(process.env.BATCH5_ORBIT_RUNS ?? 6);
+  for (const entry of ORBIT_HOLE_BANK.filter((_, i) => i % Math.max(1, Math.floor(ORBIT_HOLE_BANK.length / runs)) === 0).slice(0, runs)) {
+    const course = bankBySeed.get(entry.seed)!;
+    const planets = decodeRev3Planets(course.planets);
+    const holes = decodeOrbitHoles(entry.holes);
+    const start = () => initRev4From(planets, ORBIT_REV3_WORLD_W, holes);
+    ok(holes.length === 3 && holes.every((h, i) => h.from >= [9, 19, 28][i]! && h.from <= [9, 19, 28][i]! + 2 && (h.to - h.from === 5 || h.to - h.from === 6)), `course ${entry.seed}: holes about every ten planets, each 5 or 6 planets on`);
+    ok(holes.every((h) => clearSpot(planets, h.x, h.y)), `course ${entry.seed}: every hole sits clear of all orbits and belts`);
+    const replay = (events: ReturnType<typeof tap>[], s: OrbitRev3State, checkpoints: unknown[]) =>
+      replayOrbitRun(entry.seed, encodeOrbitRun({ seed: entry.seed, claimedScore: orbitRev3Game.score(s), events, endTick: s.tick, checkpoints: checkpoints as never }), ORBIT_REV4, course.planets, entry.holes);
+    // The witness takes every hole and reaches the sun, through the server replay.
+    const witness = new Set(entry.taps);
+    const w = play(start(), (_s, t) => (witness.has(t) ? tap(t) : null));
+    const wr = replay(w.events, w.s, w.checkpoints);
+    ok(!wr.flagged && wr.finished && wr.jumps === 3 && wr.score === 150, `course ${entry.seed}: all three holes taken and the sun reached = 150 through the server replay (${wr.score})`);
+    ok(wr.skipped === holes.reduce((n, h) => n + h.to - h.from - 1, 0), "skipped planets are counted");
+    // The course's own planet-by-planet proof still reaches the sun with the holes in place.
+    const plainTaps = new Set(course.taps);
+    const p = play(start(), (_s, t) => (plainTaps.has(t) ? tap(t) : null));
+    ok(p.s.finished === 1 && (p.s.jumps ?? 0) === 0, `course ${entry.seed}: the holes never block the normal route`);
+    // Each hole is a narrow, timed approach: 2-6 consecutive release ticks a lap.
+    {
+      let s = start();
+      let checked = 0;
+      while (!orbitRev3Game.isOver(s) && checked < 3) {
+        const hole = holes.find((h) => h.from === s.cur);
+        if (hole && s.flying === 0 && (s.jumps ?? 0) === checked) {
+          const kinds: boolean[] = [];
+          for (let d = 0; d <= holeDelays(s); d++) kinds.push(holeFork(s, d).kind === "hole");
+          let run = 0, best = 0;
+          for (const k of kinds) best = Math.max(best, (run = k ? run + 1 : 0));
+          ok(best >= HOLE_WINDOW_MIN && best <= HOLE_WINDOW_MAX, `course ${entry.seed}: hole at planet ${hole.from} opens for ${best} release ticks`);
+          checked++;
+        }
+        s = orbitRev3Game.step(s, witness.has(s.tick + 1) ? tap(s.tick + 1) : null);
+      }
+      ok(checked === 3, "all three hole windows measured");
+    }
+    // Checkpoint across a jump: set it before the hole, jump, crash, and come back to it.
+    {
+      const first = holes[0]!;
+      let crashed = false;
+      let crashAt = -1;
+      let cpPlanet = -1;
+      const c = play(start(), (s, t) => {
+        // A checkpoint on the last planet before the hole planet, on a tick with no witness tap.
+        if (s.cur < first.from && s.cur >= first.from - 3 && s.flying === 0 && s.checkpoint < 0 && !witness.has(t)) {
+          cpPlanet = s.cur;
+          return { t, k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0, d: 0 };
+        }
+        if (!crashed && s.cur === first.to && s.flying === 0 && (s.jumps ?? 0) === 1) {
+          // Find a release that crashes from here.
+          if (crashAt < 0) for (let d = 0; d < 200 && crashAt < 0; d++) if (holeFork(s, d).kind === "die") crashAt = t + d;
+          if (t === crashAt) {
+            crashed = true;
+            return tap(t);
+          }
+          return null;
+        }
+        if (crashed) return null;
+        return witness.has(t) ? tap(t) : null;
+      });
+      const cr = replay(c.events, c.s, c.checkpoints);
+      ok(cpPlanet >= 0 && !cr.flagged && cr.checkpoint === cpPlanet && cr.passed === first.to && cr.respawned && !cr.finished, `course ${entry.seed}: a crash after the jump returns to the checkpoint (planet ${cpPlanet}) and keeps the skipped planets (best ${cr.passed})`);
+    }
+  }
+  console.log(`  ${runs} courses: witness runs take all three holes and score 150; normal routes unaffected; checkpoints work across a jump`);
+  ok(/up to 150/.test(INTRO_SCORE.orbit) && /up to 117/.test(INTRO_SCORE.orbit), "Orbit intro maximums: 150 for the sun, 117 one planet short");
 }
 
 /* ============================ 3. Intro text rules ============================ */

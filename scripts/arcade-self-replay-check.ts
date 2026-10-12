@@ -93,8 +93,9 @@ import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { btCheckpoint, makeBallTrackGame, BT_REV } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "@/lib/duel/ballTrackBank.server";
-import { ORBIT_REV3 } from "@/lib/arcade/orbit";
-import { encodeRev3Planets, initRev3From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
+import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev3From, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
@@ -136,6 +137,15 @@ const orbitPlanets = (seed: number) => {
   if (!planets) throw new Error(`orbit rev3: seed ${seed} is not a bank seed`);
   return planets;
 };
+
+/** Orbit rev 4: rooms only deal bank courses that have proved holes, shipped in the puzzle. */
+const orbitHoles = (seed: number) => {
+  const entry = ORBIT_HOLE_BANK.find((e) => e.seed === seed);
+  if (!entry) throw new Error(`orbit rev4: seed ${seed} has no holes`);
+  return entry.holes;
+};
+/** The bank course with exactly this seed (its holes were proved on it). */
+const orbitCourse = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
 
 const GAMES: Game[] = [
   {
@@ -353,6 +363,17 @@ const GAMES: Game[] = [
     rate: 25,
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
+  },
+  {
+    key: "orbit/v4",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initRev4From(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed))) }),
+    seedFor: (n: number) => ORBIT_HOLE_BANK[n % ORBIT_HOLE_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV4, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
   },
   { key: "cross/v2", game: crossGameFor(CROSS_REV2), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV2) },
   { key: "cross/v3", game: crossGameFor(CROSS_REV), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV) },

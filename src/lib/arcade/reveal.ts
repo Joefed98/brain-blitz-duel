@@ -301,6 +301,7 @@ const BUILDERS: Record<string, Builder> = {
       tiles: [
         { label: "Checkpoint planet", value: typeof r["checkpoint"] === "number" && n(r, "checkpoint") >= 0 ? String(n(r, "checkpoint")) : "none" },
         { label: "Planets", value: String(n(r, "captured")) },
+        ...(n(r, "holes") > 0 ? [{ label: "Black holes", value: `${n(r, "jumps")} / ${n(r, "holes")} (+${n(r, "skipped")} planets)` }] : []),
       ],
       outcome: done ? "finish" : ended(r, false),
     };
