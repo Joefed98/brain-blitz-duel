@@ -235,15 +235,20 @@ same simulated players and seeds.
 | Rainbow Bridge | inkRev 5 → 6 | Joe scores 110–124 (about 60–76 units); knots below the top at about 93.5 % of their points, so his runs land about 103–116 | 35 → 33 | 55 → 51 | 73 → 67 | 99 → 92 |
 | Roofbound | flipRev 3 → 4 | The corridor bends from 10 s (was 15 s); about 10 % higher (knots below the top gain a tenth) | 77 → 85 | 144 → 147 | 144 → 147 | 150 → 150 |
 | Tempo | beatRev 3 → 4 | About 10 % higher (145 can only rise to 148); no highlight box while a hold note is held (all revisions, art only) | 69 → 76 | 103 → 113 | 131 → 140 | 148 → 149 |
-| Wavefront | wavRev 4 → 5 | Four formation waves, then the boss as the fifth stage; waves 3 and 4 drop half a row at a wall; the curve tops out at four perfect waves plus every boss hit (140), the kill adds 10; knots at the same share of the run, about 10 % higher | 73 → 150 | 99 → 150 | 140 → 150 | 140 → 150 |
+| Wavefront | wavRev 4 → 5 | The same five waves and boss; waves 3 and 4 drop three quarters of a row at a wall. Ships, armour, waves (15), boss hits and saucers (1, was 5) count; 140 at five perfect waves and every boss hit (269), saucers standing in for misses; the kill adds up to 10 by how fast the boss fell from its arrival (the full 10 within 20 s, none after 40 s). Knots 100 → 25, 180 → 50, 211 → 70, 218 → 100, 245 → 112, 266 → 125, 268 → 138, 269 → 140 | 73 → 72 | 99 → 100 | 140 → 128 | 140 → 139 |
 | Tilt | tiltRev 3 → 4 | The amber marble starts at least a maze's width along the paths from its cup; stars at the mouth of a black hole on or one cell off a route (a risky lean as you pass), else one cell off a route (22 % of maze-1 stars sit at a hole, 65 % of maze-4 stars); knots refitted (50 → 35, 86 → 70, 100 → 100, 114 → 125, 140 → 137) | 67 → 71 | 106 → 99 | 119 → 124 | 131 → 121 |
 | Slice | sliceRev 3 → 4 | Blade 4 px wider each side and cutting 50 % back past the swipe's start (was 25 %); the lower knots move up a little to keep the levels in band | 73 → 74 | 105 → 105 | 130 → 129 | 130 → 126 |
 
-- **Wavefront** is now too easy for every simulated level: with one wave fewer and slower drops, all four levels kill
-  the boss (25 of 30 average runs, every good-or-better run) at about 75–82 s, and a kill is 150 by the rule Joe set
-  (150 needs all four waves plus the boss). No curve can separate levels that all finish, so the band is out for
-  Wavefront until Joe's phone play says whether the game itself needs to be harder (a shorter run, a tougher boss or a
-  speed bonus for the kill are the options).
+- **Wavefront**: a first cut removed wave 5 (with half-speed drops every level killed the boss, all 150), then a
+  70-hit boss; Joe kept all five waves instead. With three-quarter-speed drops on waves 3 and 4 the boss is reached
+  slightly more often than before (average and good players mostly stop in waves 4–5; great and near-perfect ones
+  fight the boss, killing it in about a third of runs), so the boss stays as it was (36 hits, same volleys). 150 needs
+  all five waves and a kill within 20 s of the boss's arrival: a scripted flawless player (the skill-band player with no
+  lapses or error) does it through the server replay.
+- **Tilt**: the whole-run speed window could not pay the full 10 (the fastest scripted run with every star finishes at
+  68.5–70 s), so tiltRev 4's window runs from 60 s to the buzzer (`TILT_V4_FINISH_MIN`, as Ball Tracker's does from its
+  earliest landing): the full 10 by 75 s. A scripted run with every maze and star scores 150 through the server replay;
+  the level medians did not move.
 - **Gemstone** good, great and near-perfect sit below band (88 / 103 / 112): the simulated players make about 1,100
   match points at best, well short of Joe's 2,500 par. His par stands; the bots never plan cascades, so they
   under-rate strong players here.

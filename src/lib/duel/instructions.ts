@@ -19,7 +19,7 @@ import { BUB_SPECIAL_BLOCK, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
-import { WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
+import { WAV_BOSS_HP, WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
 import { FLIP_V4_BAND_CURVE } from "@/lib/arcade/flip";
 import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
 import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
@@ -820,19 +820,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
-    goal: "Four waves and a boss in 90 s.",
+    goal: "Five waves and a boss in 90 s.",
     how: [
       { action: "Drag to move;", detail: "you fire on your own." },
       { action: "Dodge red bolts and divers:", detail: "3 lives." },
-      { action: "After wave 4,", detail: "shoot down the boss." },
+      { action: "After wave 5,", detail: "shoot down the boss fast." },
       { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
       { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
-      { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle and a pentagon - always 30 ships. Waves 3 and 4 come down half as fast.", helpOnly: true },
-      { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-10 hits - every hit counts.", helpOnly: true },
+      { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon - always 30 ships. Waves 3 and 4 come down more slowly.", helpOnly: true },
+      { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits - every hit counts.", helpOnly: true },
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
-      { action: "The boss slides side to side and fires in patterns.", detail: "Its bar shows the 36 hits it can take; every hit counts, and destroying it ends the run.", helpOnly: true },
+      { action: "The boss slides side to side and fires in patterns.", detail: `Its bar shows the ${WAV_BOSS_HP} hits it can take; every hit counts, and destroying it ends the run - the sooner after it arrives, the more it scores.`, helpOnly: true },
     ],
-    score: bandHelp("Ships, armour hits and boss hits count 1, saucers 5 and cleared waves 15.", WAV_V5_BAND_CURVE, "Destroying the boss adds 10."),
+    score: bandHelp("Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", WAV_V5_BAND_CURVE, "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s."),
   },
   bastion: {
     goal: "Defend the base.",
@@ -979,7 +979,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the mouth of a black hole beside the route where there is one, otherwise one step off the route. Roll either marble over one to collect it, without rolling on into the hole.`, helpOnly: true },
       { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_V4_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_V4_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 by 75 s, falling to 0 at the buzzer."),
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",

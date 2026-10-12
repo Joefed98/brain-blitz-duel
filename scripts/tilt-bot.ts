@@ -7,7 +7,7 @@
  * the run replays on the server exactly as a phone's would.
  */
 import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltCheckpoint, tiltStarPoint, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 
 const DX = [1, 0, -1, 0];
 const DY = [0, 1, 0, -1];
@@ -58,11 +58,12 @@ function cellAt(m: Maze, x: number, y: number): number {
 }
 
 /** FP distance along the maze from a body to a cell centre (or out through `exitDir` when given). */
-function pathDist(m: Maze, x: number, y: number, target: number, exitDir = -1): number {
+function pathDist(m: Maze, x: number, y: number, target: number, exitDir = -1, pt?: { x: number; y: number }): number {
   const c = cellAt(m, x, y);
   if (c < 0) return 0;
   const dist = field(m, target);
-  const centre = tiltCellCentre(m, c);
+  // tiltRev 4 stars have their own point inside the cell (at a hole's mouth); earlier ones sit at its centre.
+  const centre = dist[c] === 0 && pt ? pt : tiltCellCentre(m, c);
   if (dist[c] === 0) {
     if (exitDir < 0) return Math.abs(x - centre.x) + Math.abs(y - centre.y);
     const edge = { x: centre.x + (DX[exitDir]! * m.cs) / 2, y: centre.y + (DY[exitDir]! * m.cs) / 2 };
@@ -87,10 +88,10 @@ export function value(s: TiltState, stars: boolean): number {
   if (!s.aHome) live.push({ x: s.x, y: s.y, exit: m.exit, dir: m.exitDir });
   if (s.b && !s.bHome) live.push({ x: s.b.x, y: s.b.y, exit: m.exit2!, dir: m.exitDir2! });
   v += (2 - live.length) * 1e10;
-  const wanted = stars ? (m.stars ?? []).filter((_, k) => !(s.starGot ?? [])[k]) : [];
+  const wanted = stars ? (m.stars ?? []).map((c, k) => ({ c, k })).filter(({ k }) => !(s.starGot ?? [])[k]) : [];
   if (wanted.length) {
     let best = Infinity;
-    for (const star of wanted) for (const ball of live) best = Math.min(best, pathDist(m, ball.x, ball.y, star));
+    for (const star of wanted) for (const ball of live) best = Math.min(best, pathDist(m, ball.x, ball.y, star.c, -1, tiltStarPoint(m, star.k)));
     return v - best;
   }
   // One marble at a time: chase the nearer cup, with only a light pull on the other.

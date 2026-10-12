@@ -2188,7 +2188,7 @@ export interface WavefrontPuzzleData {
   type: "wavefront";
   /** Draws every wave and enemy shot — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = 90 s, continuous waves, divers, boss; 3 = score bands; 4 = shaped formations; 5 = four waves then the boss, slower waves 3–4, Tuning C); absent = original 60 s rules. */
+  /** Rules revision (2 = 90 s, continuous waves, divers, boss; 3 = score bands; 4 = shaped formations; 5 = slower waves 3–4 and a timed boss kill, Tuning C); absent = original 60 s rules. */
   wavRev?: number;
 }
 

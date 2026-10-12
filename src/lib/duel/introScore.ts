@@ -136,7 +136,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   bubble: "Points for each bubble cleared. Clear the whole field quickly for up to 150.",
   slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
   beat: "Points for each note hit in time; every note Perfect for 150. A miss costs a little.",
-  wavefront: "Points for ships, saucers, waves and boss hits. Destroy the boss for 10 more.",
+  wavefront: "Points for ships, saucers, waves and boss hits. Destroy the boss fast for up to 10 more.",
   flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
   junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
   inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to 150.`,

@@ -207,8 +207,7 @@ if (want("wavefront")) {
     ok(/measureText\(pop\.text\)/.test(paint) && /clip\.x \+ clip\.w - half/.test(paint), "every arcade pop is clamped inside the arena");
   }
   const help = INSTRUCTIONS.wavefront!;
-  // Tuning C dropped wave 5 (the octagon): the help names the four shapes rooms now deal.
-  ok(help.how.some((h) => /triangle, a circle and a pentagon/.test(h.detail)), "the help names the shapes");
+  ok(help.how.some((h) => /triangle, a circle, a pentagon and an octagon/.test(h.detail)), "the help names the shapes");
 }
 
 /* ================================ 2c. Orbit ================================ */

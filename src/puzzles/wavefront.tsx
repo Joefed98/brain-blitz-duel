@@ -56,7 +56,7 @@ function IntroExample() {
         <rect x={82} y={78} width={4} height={12} fill={WAV_GOLD} />
         <polygon points="84,100 104,118 84,112 64,118" fill={WAV_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Four waves, then the boss.</p>
+      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Five waves, then the boss.</p>
     </div>
   );
 }

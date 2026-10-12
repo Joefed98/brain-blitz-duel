@@ -218,7 +218,8 @@ if (want("wavefront")) {
   const text = JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront) + INTRO_SCORE.wavefront;
   ok(!/block/i.test(text) && /armoured ship/.test(text), "Wavefront text says armoured ships, never blocks");
   ok(/90 s/.test(PUZZLE_INSTRUCTIONS.wavefront.goal), "the intro says 90 seconds");
-  ok(/Destroy the boss for 10 more/.test(INTRO_SCORE.wavefront), "intro: destroying the boss adds 10 (score bands)");
+  // Tuning C (wavRev 5) times the kill: up to 10, sooner scores more.
+  ok(/Destroy the boss fast for up to 10 more/.test(INTRO_SCORE.wavefront), "intro: destroying the boss adds up to 10 for speed (Tuning C)");
 }
 
 /* ================================ 2b. Breaker ================================ */

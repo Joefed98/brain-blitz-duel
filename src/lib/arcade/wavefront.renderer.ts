@@ -256,8 +256,9 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   const barY = y - 9;
   ctx.fillStyle = "rgba(255,255,255,0.15)";
   ctx.fillRect(x, barY, w, 5);
-  ctx.fillStyle = boss.hp * 3 > WAV_BOSS_HP ? "#FF4DB8" : WAV_RED;
-  ctx.fillRect(x, barY, (w * boss.hp) / WAV_BOSS_HP, 5);
+  const maxHp = WAV_BOSS_HP;
+  ctx.fillStyle = boss.hp * 3 > maxHp ? "#FF4DB8" : WAV_RED;
+  ctx.fillRect(x, barY, (w * boss.hp) / maxHp, 5);
 }
 
 /** Per-canvas render memory of the boss's last hit tick (flash only). */

@@ -1070,7 +1070,13 @@ export function tiltBandParts(state: TiltState): BandParts {
   return {
     units,
     points: bandPoints(state.tunec ? TILT_V4_BAND_CURVE : TILT_BAND_CURVE, units),
-    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, TILT_RUN_TICKS - clampInt(state.endedTick, 0, TILT_RUN_TICKS), TILT_RUN_TICKS) : 0,
+    // tiltRev 4: the speed window runs from TILT_V4_FINISH_MIN (no perfect run can finish sooner) to the
+    // buzzer, so a fast perfect run takes the full 10; earlier revisions use the whole run.
+    bonus: finished
+      ? state.tunec
+        ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(TILT_RUN_TICKS - state.endedTick, 0, TILT_RUN_TICKS - TILT_V4_FINISH_MIN), TILT_RUN_TICKS - TILT_V4_FINISH_MIN)
+        : speedBonusCurve(BAND_FINISH_BONUS, TILT_RUN_TICKS - clampInt(state.endedTick, 0, TILT_RUN_TICKS), TILT_RUN_TICKS)
+      : 0,
     penalty: 0,
     finished,
     text: `${mazes} / ${TILT_MAX_MAZES} mazes${finished ? "" : ` + ${Math.round((100 * prog) / TILT_BAND_PROGRESS)}% of the next`} · ${stars} stars`,
@@ -1143,6 +1149,12 @@ export const TILT_REV_TUNEC = 4;
  * knots are refitted to keep each level in its band; all four mazes and eight
  * stars still reach 140, plus up to 10 for speed.
  */
+/**
+ * tiltRev 4: the earliest a run can finish all four mazes for the speed bonus (60 s): the amber
+ * marble's walk makes the whole-run window unreachable (the fastest scripted run with every star
+ * finishes at 68.5 s). The full 10 for finishing by 75 s, falling to 0 at the buzzer.
+ */
+export const TILT_V4_FINISH_MIN = 60 * TICKS_PER_SECOND;
 export const TILT_V4_BAND_CURVE = bandCurve([0, 50, 86, 100, 114, 140, 160], [0, 35, 70, 100, 125, 137, 140]);
 /** Minimum path distance (cells) from the amber cup's cell to the amber start: the maze's width in cells. */
 export function tiltAmberMinHops(m: Maze): number {

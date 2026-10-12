@@ -48,7 +48,7 @@ const runShapes = makeArcadeRun<WavState, WavCheckpoint>({
   interval: WAV_CHECKPOINT_INTERVAL,
 });
 
-/** Tuning C: four waves then the boss, slower drops on waves 3 and 4. */
+/** Tuning C: slower drops on waves 3 and 4, the boss kill timed. */
 const runTunec = makeArcadeRun<WavState, WavCheckpoint>({
   tag: "wavefront",
   game: wavefrontGameFor(WAV_REV_TUNEC),

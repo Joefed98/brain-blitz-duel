@@ -12,7 +12,7 @@
  *  3. Score-only revisions (Grappler, Hover, Rainbow Bridge, Tempo) replay the
  *     same log to the same play as before and score it on their new curves.
  *  4. Per game, the new rules: Gemstone's wait and par, Roofbound's 10 s bend,
- *     Wavefront's four waves then the boss and slower drops, Tilt's amber start
+ *     Wavefront's slower drops and timed boss kill, Tilt's amber start
  *     and hole-mouth stars, Slice's bigger blade; and 150 through the server
  *     replay where a game changed play.
  *
@@ -24,7 +24,10 @@ import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
 import { TUNING_C_GAMES, type TuningCRecord } from "./arcade-tuning-c-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
-import { Human, type SkillLevel } from "./arcade-skill-bands/human";
+import { Human, type SkillLevel, type SkillProfile } from "./arcade-skill-bands/human";
+
+/** A flawless player for 150 proofs: quick, never lapses, no timing, aim or judgement error. */
+const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
 import { puzzleUsesBands } from "../src/lib/arcade/bandParts";
 import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
 import { ACTIVE_ARCADE_GAMES, ARCADE_GAME_WORLDS, MATCHUP_FX } from "../src/lib/arcade/arcadeFxGames.renderer";
@@ -52,8 +55,9 @@ import {
   wavDropPx,
   wavefrontGameFor,
   wavWaves,
-  WAV_BAND_CURVE,
+  WAV_BOSS_HP,
   WAV_DROP_SLOW_PX,
+  WAV_KILL_WINDOW_V5,
   WAV_PAR_V5,
   WAV_POINTS_BOSS,
   WAV_REV_SHAPES,
@@ -73,6 +77,7 @@ import {
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
+  TILT_V4_FINISH_MIN,
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
@@ -80,6 +85,8 @@ import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generat
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
+import { playTilt } from "./tilt-bot";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -92,12 +99,14 @@ const ok = (cond: boolean, label: string) => {
 const section = (name: string) => console.log(`— ${name}`);
 
 /** A skill-band player's run on a revision, sent through the server's encode + replay; returns the replay. */
-async function botRun(type: string, rev: number, level: SkillLevel, n: number, withCheckpoints = true) {
+async function botRun(type: string, rev: number, level: SkillLevel, n: number, withCheckpoints = true, profile?: SkillProfile) {
   const spec = GAME_BY_TYPE.get(type as never)!;
   const { bot } = await import(`./arcade-skill-bands/bots/${type}.ts`);
   const seed = spec.seedFor(n);
   const game = spec.gameFor(rev, seed);
-  const out = bot({ game, seed, rev, human: new Human(spec.type, seed, level) });
+  const human = new Human(spec.type, seed, level);
+  if (profile) (human as unknown as { p: SkillProfile }).p = profile;
+  const out = bot({ game, seed, rev, human });
   let state = game.init(seed);
   const checkpoints: unknown[] = [];
   const byTick = new Map((out.events ?? []).map((e: any) => [e.t, e]));
@@ -303,33 +312,47 @@ if (want("flip")) {
 
 /* ================================ 4c. Wavefront ================================ */
 if (want("wavefront")) {
-  section("Wavefront wavRev 5: four waves, then the boss; slower waves 3 and 4");
+  section("Wavefront wavRev 5: five waves then the boss; slower waves 3 and 4; the kill timed");
   const game = wavefrontGameFor(WAV_REV_TUNEC);
-  ok(wavWaves({ tunec: 1 }) === 4 && wavWaves({}) === 5, "four formation waves on wavRev 5, five before");
-  ok(wavDropPx({ tunec: 1, wave: 3 }) === WAV_DROP_SLOW_PX && wavDropPx({ tunec: 1, wave: 4 }) === WAV_DROP_SLOW_PX && wavDropPx({ tunec: 1, wave: 2 }) === 36 && wavDropPx({ wave: 3 }) === 36, "waves 3 and 4 drop half a row at a wall on wavRev 5 only");
+  ok(wavWaves({ tunec: 1 }) === 5 && wavWaves({}) === 5, "five formation waves, as before");
+  ok(WAV_DROP_SLOW_PX === 27 && wavDropPx({ tunec: 1, wave: 3 }) === WAV_DROP_SLOW_PX && wavDropPx({ tunec: 1, wave: 4 }) === WAV_DROP_SLOW_PX && wavDropPx({ tunec: 1, wave: 2 }) === 36 && wavDropPx({ tunec: 1, wave: 5 }) === 36 && wavDropPx({ wave: 3 }) === 36, "waves 3 and 4 drop three quarters of a row at a wall on wavRev 5 only");
   let s = game.init(13) as WavState;
   const seen: number[] = [];
-  for (let k = 0; k < 6000 && !s.ended && !s.boss; k++) {
+  for (let k = 0; k < 8000 && !s.ended && !s.boss; k++) {
     if ((s.enter ?? 0) === 0 && !seen.includes(s.wave)) {
       seen.push(s.wave);
       s = { ...s, shapes: s.shapes.map(() => 0), armour: null };
     }
     s = game.step(s, null) as WavState;
   }
-  ok(seen.join() === "1,2,3,4" && Boolean(s.boss), `waves ${seen.join(", ")} then the boss`);
-  // The par: 140 needs every ship, armour hit, wave and boss hit of four waves; the kill makes 150.
-  ok(bandTop(WAV_V5_BAND_CURVE) === WAV_PAR_V5 - WAV_POINTS_BOSS, `the curve tops out at four perfect waves plus every boss hit (${WAV_PAR_V5 - WAV_POINTS_BOSS})`);
-  const base = game.init(1) as WavState;
-  const almost = wavefrontBandParts({ ...base, shapesDown: 999, armourHits: 99, saucers: 9, wavesCleared: WAV_V5_WAVES, bossHits: 35, bossKilled: 0 } as WavState);
-  ok(almost.points + almost.bonus < 150, `no boss kill, no 150 (${almost.points + almost.bonus})`);
-  for (let u = 1; u < bandTop(WAV_V5_BAND_CURVE); u++) {
-    const old = bandPoints(WAV_BAND_CURVE, Math.round((u * bandTop(WAV_BAND_CURVE)) / bandTop(WAV_V5_BAND_CURVE)));
-    if (bandPoints(WAV_V5_BAND_CURVE, u) + 2 < old) ok(false, `wavefront: ${u} units (same share of the run) score less than before`);
+  ok(seen.join() === "1,2,3,4,5" && Boolean(s.boss) && (s.bossAt ?? 0) > 0, `waves ${seen.join(", ")} then the boss, its arrival recorded`);
+  // Same boss as wavRev 4: its hits and its seeded volleys.
+  {
+    const old = wavefrontGameFor(WAV_REV_SHAPES);
+    let a = { ...s, enter: 0, reds: [] } as WavState;
+    let b = { ...a, tunec: undefined, bossAt: undefined } as WavState;
+    let same = a.boss?.hp === WAV_BOSS_HP;
+    for (let k = 0; k < 400 && !a.ended && !b.ended; k++) {
+      a = game.step({ ...a, invuln: 999 }, null) as WavState;
+      b = old.step({ ...b, invuln: 999 }, null) as WavState;
+      same &&= JSON.stringify(a.reds) === JSON.stringify(b.reds) && a.boss?.x === b.boss?.x;
+    }
+    ok(same, "the boss is wavRev 4's (36 hits, the same seeded volleys)");
   }
-  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Four waves"), "the intro says four waves");
+  // 140 needs every ship, armour hit and wave of five waves and every boss hit; saucers can stand in for misses.
+  ok(bandTop(WAV_V5_BAND_CURVE) === WAV_PAR_V5 - WAV_POINTS_BOSS, `the curve tops out at five perfect waves plus every boss hit (${bandTop(WAV_V5_BAND_CURVE)})`);
+  const base = game.init(1) as WavState;
+  const almost = wavefrontBandParts({ ...base, shapesDown: 999, armourHits: 99, saucers: 9, wavesCleared: WAV_V5_WAVES, bossHits: WAV_BOSS_HP - 1, bossKilled: 0 } as WavState);
+  ok(almost.points + almost.bonus <= 140, `no boss kill, at most 140 (${almost.points + almost.bonus})`);
+  // The kill adds up to 10 by how fast the boss fell from its arrival: full within half the window, 0 at the window.
+  const kill = (fight: number) => wavefrontBandParts({ ...base, shapesDown: 999, armourHits: 99, saucers: 9, wavesCleared: WAV_V5_WAVES, bossHits: WAV_BOSS_HP, bossKilled: 1, bossAt: 3000, tick: 3000 + fight } as WavState).bonus;
+  ok(kill(WAV_KILL_WINDOW_V5 / 2) === 10 && kill(WAV_KILL_WINDOW_V5) === 0 && kill((WAV_KILL_WINDOW_V5 * 3) / 4) === 5, "the kill's bonus: 10 within half the window, 5 at three quarters, 0 at the end");
+  for (let f = 0; f < WAV_KILL_WINDOW_V5; f += 30) if (kill(f + 30) > kill(f)) ok(false, `a slower kill scores more at ${f} ticks`);
+  ok(PUZZLE_INSTRUCTIONS.wavefront.goal.startsWith("Five waves") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("saucers count 1") && PUZZLE_INSTRUCTIONS.wavefront.score.includes("within 20 s"), "the intro and help say five waves and the timed kill");
+  // 150 through the server replay: the skill-band player with a perfect profile (no lapses, no aim or timing error).
   let best = 0;
-  for (let n = 0; n < 6 && best < 150; n++) {
-    const run = await botRun("wavefront", WAV_REV_TUNEC, "near", n);
+  for (let n = 0; n < 12 && best < 150; n++) {
+    const run = await botRun("wavefront", WAV_REV_TUNEC, "near", n, true, PERFECT);
     ok(!run.result.flagged && run.result.score === run.score, `wavefront ${run.seed}: the server replay agrees (${run.result.score})`);
     best = Math.max(best, run.result.score);
   }
@@ -420,13 +443,27 @@ if (want("tilt")) {
   ok(mouth >= SEEDS * 2 * 1.5, `many stars sit at a hole's mouth (${mouth} of ${SEEDS * 8})`);
   ok(mouthOk, "every mouth star is next to its hole and can be taken without falling in");
   ok(PUZZLE_INSTRUCTIONS.tilt.how.some((h) => h.action.includes("black holes")), "the intro says where the stars are");
+  // 150 through the server replay: the checks' scripted Tilt player (scripts/tilt-bot.ts, real-sim lookahead,
+  // brisk 4° a tick drags) takes all four mazes and all eight stars fast enough for the full speed bonus.
   let best = 0;
-  for (let n = 0; n < 10 && best < 150; n++) {
-    const run = await botRun("tilt", TILT_REV_TUNEC, "near", n);
-    ok(!run.result.flagged && run.result.score === run.score, `tilt ${run.seed}: the server replay agrees (${run.result.score})`);
-    best = Math.max(best, run.result.score);
-  }
-  ok(best >= 140, `a near-perfect player finishes tiltRev 4 through the server replay (best ${best})`);
+  let perfect = "";
+  for (let n = 1; n <= 40 && best < 150; n++)
+    for (const variant of [0, 1]) {
+      if (best === 150) break;
+      const seed = n * 7919;
+      const run = playTilt(game, seed, { horizon: 36, variant });
+      const score = game.score(run.state);
+      if (run.state.mazes < 4 || (run.state.stars ?? 0) < 8) continue;
+      const replay = replayTiltRun(seed, encodeTiltRun({ seed, claimedScore: score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints }), TILT_REV_TUNEC);
+      ok(!replay.flagged && replay.score === score, `tilt ${seed}: the server replay agrees (${replay.score})`);
+      if (replay.score > best) {
+        best = replay.score;
+        perfect = `seed ${seed}: all 4 mazes, ${run.state.stars} stars, finished at ${(run.state.endedTick / 60).toFixed(1)} s`;
+      }
+    }
+  ok(best === 150, `a scripted perfect run (every maze and star, fast) scores 150 on tiltRev 4 through the server replay (best ${best}; ${perfect})`);
+  if (best === 150) console.log(`  150: ${perfect}`);
+  ok(TILT_V4_FINISH_MIN === 3600, "tiltRev 4's speed bonus runs from 60 s to the buzzer (full by 75 s)");
 }
 
 /* ================================ 4e. Slice ================================ */
