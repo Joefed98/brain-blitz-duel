@@ -15,7 +15,7 @@ import {
   matchupCellAt,
   matchupAnimationDuration,
   matchupCheckpoint,
-  matchupGame,
+  matchupGameFor,
   MATCHUP_BG,
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_COLOURS,
@@ -81,6 +81,9 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MatchupPuzzleData | null = puzzle.type === "matchup" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const matchupGame = matchupGameFor(data?.matchupRev);
+  /** matchupRev 2: keep swapping while gems clear and fall; each resolution step animates on its own. */
+  const constantPlay = Boolean(data?.matchupRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -93,7 +96,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const animUntil = useRef(0);
   const swapTween = useRef<MatchupSwapTween | null>(null);
   /** Pending gem chimes for the current swap: wall-clock times, cascade step = index. */
-  const chimes = useRef<{ at: number[]; sounds: SoundId[]; next: number }>({
+  const chimes = useRef<{ at: number[]; sounds: SoundId[]; next: number; depth?: number }>({
     at: [], sounds: [], next: 0,
   });
   const submitted = useRef(false);
@@ -175,7 +178,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             state.current,
             inputAt(events.current, state.current.tick + 1),
           );
-          if (applied && state.current.swaps > before.swaps) {
+          if (constantPlay && (state.current.resolveSerial ?? 0) > (before.resolveSerial ?? 0)) {
+            // One resolution step: the swap's own clear, or a cascade step on its own tick.
+            const swapped = Boolean(applied && state.current.swaps > before.swaps);
+            const lead = swapped ? MATCHUP_SWAP_MS : 0;
+            animStart.current = time + lead;
+            animUntil.current = time + lead + matchupAnimationDuration(state.current.lastAnimation, state.current);
+            if (!swapped) swapTween.current = null;
+            const animSteps = state.current.lastAnimation;
+            const depth = Math.max(1, state.current.lastSteps);
+            chimes.current = {
+              at: animSteps.map(() => time + lead),
+              sounds: animSteps.map(matchupStepSound),
+              next: 0,
+              depth,
+            };
+          } else if (applied && state.current.swaps > before.swaps) {
             const duration = matchupAnimationDuration(state.current.lastAnimation);
             animStart.current = time;
             animUntil.current = time + duration;
@@ -207,7 +225,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
         // Cascade pitch ladder: chain depth 1-4 rises 1.0 / 1.12 / 1.26 / 1.41.
-        const depth = Math.min(chime.next + 1, MATCHUP_PITCH_RATES.length);
+        const depth = Math.min(chime.depth ?? chime.next + 1, MATCHUP_PITCH_RATES.length);
         playSound("arc_gem_match", 0.8, MATCHUP_PITCH_RATES[depth - 1] ?? 1, true);
         const special = chime.sounds[chime.next];
         // A special layers over the match chime rather than cutting it.
@@ -225,6 +243,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const swapDuration = MATCHUP_SWAP_MS * (tween?.rejected ? 2 : 1);
           if (tween && elapsed < swapDuration) {
             drawMatchupSwap(ctx, state.current, size, tween, elapsed);
+          } else if (constantPlay && time < animUntil.current) {
+            drawMatchupArtAnimated(ctx, state.current, size, time - animStart.current);
+          } else if (constantPlay) {
+            drawMatchupArt(ctx, state.current, size);
           } else if (tween && !tween.rejected && time < animUntil.current + MATCHUP_SWAP_MS) {
             drawMatchupArtAnimated(ctx, state.current, size, elapsed - MATCHUP_SWAP_MS);
           } else if (!tween && time < animUntil.current) {
@@ -233,7 +255,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             drawMatchupArt(ctx, state.current, size);
           }
           const pick = selected.current;
-          if (pick && !matchupGame.isOver(state.current) && time >= animUntil.current &&
+          if (pick && !matchupGame.isOver(state.current) && (constantPlay || time >= animUntil.current) &&
             (!tween || elapsed >= swapDuration)) {
             drawMatchupArtSelection(ctx, size, pick.row, pick.col);
           }
@@ -294,12 +316,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     );
   };
 
-  /** Ignored while the animation plays, so nothing is recorded out of step. */
+  /** Ignored while the animation plays (original rounds), so nothing is recorded out of step. */
   const busy = () =>
     locked ||
     submitted.current ||
     matchupGame.isOver(state.current) ||
-    performance.now() < animUntil.current;
+    (!constantPlay && performance.now() < animUntil.current);
 
   const trySwap = (a: { row: number; col: number }, b: { row: number; col: number }) => {
     if (Math.abs(a.row - b.row) + Math.abs(a.col - b.col) !== 1) return false;
@@ -351,7 +373,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "matchup") return null;
-  const result = replayMatchupRun(puzzle.seed, myAnswer ?? "");
+  const result = replayMatchupRun(puzzle.seed, myAnswer ?? "", puzzle.matchupRev);
   const sent = decodeMatchupRun(myAnswer ?? "").events.length;
 
   return (
@@ -368,6 +390,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.swaps} swap{result.swaps === 1 ? "" : "s"} · best line {result.bestLine || "-"}
         {result.reshuffles > 0 ? ` · ${result.reshuffles} reshuffled` : ""}
       </p>
+      {result.jackpots > 0 && (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.jackpots} jackpot gem{result.jackpots === 1 ? "" : "s"}
+        </p>
+      )}
       {sent > result.swaps && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {sent} swaps tried

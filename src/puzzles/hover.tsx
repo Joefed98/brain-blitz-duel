@@ -13,7 +13,7 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import {
-  hoverGame,
+  hoverGameFor,
   hoverCheckpoint,
   hoverSurvived,
   HOVER_BG,
@@ -21,6 +21,7 @@ import {
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
+  HOVER_REV,
   HOVER_RUN_TICKS,
   type HoverState,
 } from "@/lib/arcade/hover";
@@ -53,13 +54,15 @@ function IntroExample() {
         </defs>
         <rect x="95" y="0" width="20" height="30" fill="url(#hover-energy-blocks)" />
         <rect x="95" y="78" width="20" height="32" fill="url(#hover-energy-blocks)" />
-        <rect x="155" y="0" width="20" height="46" fill="url(#hover-energy-blocks)" />
-        <rect x="155" y="90" width="20" height="20" fill="url(#hover-energy-blocks)" />
-        <path d="M95 29.5 H115 M95 78.5 H115 M155 45.5 H175 M155 90.5 H175" stroke="#F6ADFF" strokeWidth="1" />
+        <rect x="155" y="0" width="20" height="18" fill="url(#hover-energy-blocks)" />
+        <rect x="155" y="44" width="20" height="26" fill="url(#hover-energy-blocks)" />
+        <rect x="155" y="94" width="20" height="16" fill="url(#hover-energy-blocks)" />
+        <path d="M95 29.5 H115 M95 78.5 H115 M155 17.5 H175 M155 44.5 H175 M155 69.5 H175 M155 94.5 H175" stroke="#F6ADFF" strokeWidth="1" />
+        <path d="M105 37 L107 41 L111 41.5 L108 44 L109 48 L105 46 L101 48 L102 44 L99 41.5 L103 41 Z" fill="#FFD84A" />
         <circle cx="55" cy="55" r="9" fill={HOVER_DISC_COLOUR} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap to lift the saucer through the gaps in the energy barriers.
+        Tap to lift the saucer through the gaps. Brush a gold star for a bonus; later barriers have two gaps or slide.
       </p>
     </div>
   );
@@ -68,6 +71,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HoverPuzzleData | null = puzzle.type === "hover" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const hoverGame = hoverGameFor(data?.hoverRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -263,7 +267,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "hover") return null;
-  const result = replayHoverRun(puzzle.seed, myAnswer ?? "");
+  const result = replayHoverRun(puzzle.seed, myAnswer ?? "", puzzle.hoverRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -271,6 +275,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {result.gates} / {result.totalGates} barriers ·{" "}
         {result.survived ? "Survived" : `Crashed at ${result.endedSeconds.toFixed(1)}s`}
       </p>
+      {result.totalStars > 0 && (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.stars} / {result.totalStars} gold stars
+        </p>
+      )}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         Same course for everyone
       </p>
@@ -285,7 +294,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1 }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

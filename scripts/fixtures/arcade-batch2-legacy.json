@@ -1,0 +1,170 @@
+[
+ {
+  "game": "matchup",
+  "seed": 1,
+  "score": 80,
+  "replayScore": 80,
+  "stateHash": 2307291638
+ },
+ {
+  "game": "bubble",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 4221380784
+ },
+ {
+  "game": "snake",
+  "seed": 1,
+  "score": 10,
+  "replayScore": 10,
+  "stateHash": 2434621272
+ },
+ {
+  "game": "hover",
+  "seed": 1,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 1860563240
+ },
+ {
+  "game": "matchup",
+  "seed": 77,
+  "score": 87,
+  "replayScore": 87,
+  "stateHash": 4140288610
+ },
+ {
+  "game": "bubble",
+  "seed": 77,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 296568099
+ },
+ {
+  "game": "snake",
+  "seed": 77,
+  "score": 20,
+  "replayScore": 20,
+  "stateHash": 632349815
+ },
+ {
+  "game": "hover",
+  "seed": 77,
+  "score": 14,
+  "replayScore": 14,
+  "stateHash": 3209176449
+ },
+ {
+  "game": "matchup",
+  "seed": 4242,
+  "score": 99,
+  "replayScore": 99,
+  "stateHash": 3480488846
+ },
+ {
+  "game": "bubble",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 68140935
+ },
+ {
+  "game": "snake",
+  "seed": 4242,
+  "score": 15,
+  "replayScore": 15,
+  "stateHash": 926450019
+ },
+ {
+  "game": "hover",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2511921672
+ },
+ {
+  "game": "matchup",
+  "seed": 90210,
+  "score": 91,
+  "replayScore": 91,
+  "stateHash": 788276235
+ },
+ {
+  "game": "bubble",
+  "seed": 90210,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3467071418
+ },
+ {
+  "game": "snake",
+  "seed": 90210,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1261323988
+ },
+ {
+  "game": "hover",
+  "seed": 90210,
+  "score": 7,
+  "replayScore": 7,
+  "stateHash": 2248609470
+ },
+ {
+  "game": "matchup",
+  "seed": 123457,
+  "score": 84,
+  "replayScore": 84,
+  "stateHash": 1126463621
+ },
+ {
+  "game": "bubble",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2939559098
+ },
+ {
+  "game": "snake",
+  "seed": 123457,
+  "score": 5,
+  "replayScore": 5,
+  "stateHash": 4191837308
+ },
+ {
+  "game": "hover",
+  "seed": 123457,
+  "score": 14,
+  "replayScore": 14,
+  "stateHash": 2823956253
+ },
+ {
+  "game": "matchup",
+  "seed": 31337,
+  "score": 91,
+  "replayScore": 91,
+  "stateHash": 3553469342
+ },
+ {
+  "game": "bubble",
+  "seed": 31337,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1745888243
+ },
+ {
+  "game": "snake",
+  "seed": 31337,
+  "score": 45,
+  "replayScore": 45,
+  "stateHash": 2943649672
+ },
+ {
+  "game": "hover",
+  "seed": 31337,
+  "score": 25,
+  "replayScore": 25,
+  "stateHash": 452763106
+ }
+]

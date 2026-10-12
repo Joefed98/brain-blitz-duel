@@ -8,6 +8,7 @@
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
+import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -51,9 +52,17 @@ const BUILDERS: Record<string, Builder> = {
     const done = n(r, "gates") >= n(r, "totalGates") && n(r, "totalGates") > 0;
     return {
       axis: { value: n(r, "gates"), max: n(r, "totalGates"), label: "Barriers passed" },
-      lines: [`${n(r, "gates")} / ${n(r, "totalGates")} barriers → ${s}`],
+      lines:
+        n(r, "totalStars") > 0
+          ? [
+              `${n(r, "gates")} / ${n(r, "totalGates")} barriers → ${Math.min(HOVER_V2_GATES_SCORE, Math.round((HOVER_V2_GATES_SCORE * n(r, "gates")) / Math.max(1, n(r, "totalGates"))))}`,
+              `${n(r, "stars")} / ${n(r, "totalStars")} gold stars → ${Math.min(HOVER_V2_STARS_SCORE, Math.round((HOVER_V2_STARS_SCORE * n(r, "stars")) / n(r, "totalStars")))}`,
+              `Total → ${s}`,
+            ]
+          : [`${n(r, "gates")} / ${n(r, "totalGates")} barriers → ${s}`],
       tiles: [
         { label: "Barriers", value: String(n(r, "gates")) },
+        ...(n(r, "totalStars") > 0 ? [{ label: "Gold stars", value: `${n(r, "stars")} / ${n(r, "totalStars")}` }] : []),
         { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),
@@ -90,10 +99,11 @@ const BUILDERS: Record<string, Builder> = {
     outcome: b(r, "finished") ? "finish" : "time",
   }),
   matchup: (r, s) => ({
-    axis: { value: n(r, "raw"), max: MATCHUP_PAR_RAW, label: "Match points" },
+    axis: { value: n(r, "raw"), max: n(r, "parRaw") || MATCHUP_PAR_RAW, label: "Match points" },
     lines: [`${n(r, "raw").toLocaleString("en-GB")} match points → ${s}`],
     tiles: [
       { label: "Best line", value: String(n(r, "bestLine")) },
+      ...(n(r, "jackpots") > 0 ? [{ label: "Jackpots", value: String(n(r, "jackpots")) }] : []),
       { label: "Cascades", value: String(n(r, "cascades")) },
       { label: "Swaps", value: String(n(r, "swaps")) },
     ],
@@ -170,7 +180,8 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "pellets")} stars → ${s}`],
     tiles: [
       { label: "Length", value: String(n(r, "length")) },
-      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
+      { label: b(r, "survived") ? "Survived" : b(r, "rockHit") ? "Hit a rock at" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "endedSeconds")) },
+      ...(n(r, "rocks") > 0 ? [{ label: "Rocks dodged", value: String(n(r, "rocksDodged")) }] : []),
     ],
     outcome: ended(r, false),
   }),

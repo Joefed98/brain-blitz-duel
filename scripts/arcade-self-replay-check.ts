@@ -23,7 +23,7 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { beatCheckpoint, beatGame } from "@/lib/arcade/beat";
 import { binTossCheckpoint, binTossGame } from "@/lib/arcade/binToss";
 import { brkCheckpoint, breakerGame } from "@/lib/arcade/breaker";
-import { bubCheckpoint, bubbleGame } from "@/lib/arcade/bubble";
+import { bubCheckpoint, bubbleGame, bubbleGameFor, BUB_REV } from "@/lib/arcade/bubble";
 import {
   bullseyeCheckpoint,
   bullseyeGame,
@@ -32,13 +32,13 @@ import {
 } from "@/lib/arcade/bullseye";
 import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
-import { hoverCheckpoint, hoverGame } from "@/lib/arcade/hover";
-import { matchupCheckpoint, matchupGame } from "@/lib/arcade/matchup";
+import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
+import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV } from "@/lib/arcade/matchup";
 import { rallyCheckpoint, rallyGame } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame } from "@/lib/arcade/skyline";
 import { sliceCheckpoint, sliceGame, sliceGameFor, SLICE_REV } from "@/lib/arcade/slice";
-import { snakeCheckpoint, snakeGame } from "@/lib/arcade/snake";
+import { snakeCheckpoint, snakeGame, snakeGameFor, SNAKE_REV } from "@/lib/arcade/snake";
 import { stdCheckpoint, steadyGame } from "@/lib/arcade/steady";
 import { swerveCheckpoint, swerveGame, type SwerveInput } from "@/lib/arcade/swerve";
 import { encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
@@ -354,6 +354,10 @@ const GAMES: Game[] = [
   { key: "cross/v2", game: crossGameFor(CROSS_REV), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV) },
   { key: "flip/v2", game: flipGameFor(FLIP_REV), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV) },
   { key: "slice/v2", game: sliceGameFor(SLICE_REV), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV) },
+  { key: "matchup/v2", game: matchupGameFor(MATCHUP_REV), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV) },
+  { key: "bubble/v2", game: bubbleGameFor(BUB_REV), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV) },
+  { key: "hover/v2", game: hoverGameFor(HOVER_REV), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV) },
+  { key: "snake/v2", game: snakeGameFor(SNAKE_REV), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV) },
   { key: "bintoss/v2", game: binTossGameFor(BINTOSS_REV), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV) },
   { key: "ink/v3", game: inkBridgeGameFor(INK_REV3), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV3) },
   { key: "swing/v3", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV) },

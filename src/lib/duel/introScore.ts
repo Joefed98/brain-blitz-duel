@@ -9,6 +9,9 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
+import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
+import { BUB_V2_PARTIAL_MAX } from "@/lib/arcade/bubble";
+import { HOVER_REACHABLE_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { SKYLINE_BLOCK_POINTS, SKYLINE_PERFECT_POINTS } from "@/lib/arcade/skyline";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
@@ -126,16 +129,16 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
   // Arcade
-  hover: arcadeOpen("each barrier gap you fly through; all of them scores 150"),
+  hover: `Up to ${HOVER_V2_GATES_SCORE} for all ${HOVER_REACHABLE_GATES} barriers, plus up to ${HOVER_V2_STARS_SCORE} for gold stars.`,
   skyline: `${SKYLINE_BLOCK_POINTS} points per block stacked, plus ${SKYLINE_PERFECT_POINTS} per perfect drop. Up to 150.`,
   bintoss: arcadeSplit("each bucket", `Sink all ${BINTOSS_THROWS} buckets`, 90),
   bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]} at the edge. Higher totals score more.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
-  snake: arcadeOpen("each star you eat"),
+  snake: `${SNAKE_PELLET_POINTS} points for each star you eat. Up to 150.`,
   cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,
   breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
   rally: `${RALLY_GOLD_POINTS} points per gold-ball hit, up to 150. The blue ball scores nothing.`,
-  bubble: arcadeSplit("each bubble", "Clear the whole field", 128),
+  bubble: arcadeSplit("each bubble", "Clear the whole field", BUB_V2_PARTIAL_MAX),
   slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
   beat: "Points for each note you hit in time. Missed note: lose 2.",
   wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",

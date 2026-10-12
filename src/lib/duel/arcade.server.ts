@@ -2,6 +2,9 @@ import { SLICE_REV } from "@/lib/arcade/slice";
 import { FLIP_REV } from "@/lib/arcade/flip";
 import { CROSS_REV } from "@/lib/arcade/cross";
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
+import { SNAKE_REV } from "@/lib/arcade/snake";
+import { BUB_REV } from "@/lib/arcade/bubble";
+import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
@@ -78,11 +81,11 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  return { type: "matchup", seed: arcadeSeed() };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV };
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed() };
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -114,7 +117,7 @@ export function generateSlice(): SlicePuzzleData {
 }
 
 export function generateBubble(): BubblePuzzleData {
-  return { type: "bubble", seed: arcadeSeed() };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV };
 }
 
 export function generateBeat(): BeatPuzzleData {

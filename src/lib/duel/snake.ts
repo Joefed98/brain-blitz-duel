@@ -9,7 +9,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   snakeCheckpoint,
-  snakeGame,
+  snakeGameFor,
   snakeSurvived,
   SNAKE_CHECKPOINT_INTERVAL,
   SNAKE_INPUT_RANGES,
@@ -98,7 +98,12 @@ export function decodeSnakeRun(raw: string): SnakeRun {
 }
 
 export interface SnakeResult {
+  /** Stars eaten (the stored key keeps its original name). */
   pellets: number;
+  /** snakeRev 2: rocks that landed, those that landed clear of the head, and whether a rock ended the run. */
+  rocks: number;
+  rocksDodged: number;
+  rockHit: boolean;
   length: number;
   survived: boolean;
   endedSeconds: number;
@@ -115,7 +120,8 @@ export interface SnakeResult {
 }
 
 /** The single place a Snake score is worked out. */
-export function replaySnakeRun(seed: number, raw: string): SnakeResult {
+export function replaySnakeRun(seed: number, raw: string, rev?: number | null): SnakeResult {
+  const snakeGame = snakeGameFor(rev);
   const run = decodeSnakeRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SNAKE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SNAKE_RUN_TICKS;
@@ -152,6 +158,9 @@ export function replaySnakeRun(seed: number, raw: string): SnakeResult {
   const mismatch = run.claimedScore !== replayScore || run.seed !== seed;
   const result: SnakeResult = {
     pellets: state.eaten,
+    rocks: state.rocks?.length ?? 0,
+    rocksDodged: (state.rocks?.length ?? 0) - (state.rockHit === 2 ? 1 : 0),
+    rockHit: (state.rockHit ?? 0) > 0,
     length: state.body.length,
     survived: snakeSurvived(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
