@@ -23,8 +23,14 @@
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
  *
+ * --part=k/n plays one of n disjoint groups of games, balanced by how long each
+ * game took on a CI runner (CI_SECONDS). CI runs the parts as separate jobs, each
+ * still playing one game at a time in its own browser, so every game runs under
+ * the same conditions as the recorded baseline (and as a whole run).
+ *
  *   bun scripts/arcade-play-check.ts                 # all 22 games
  *   bun scripts/arcade-play-check.ts cross flip      # only these game ids
+ *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # rewrite the frame-time baseline
  *   bun scripts/arcade-play-check.ts --url=http://127.0.0.1:5174
  *
@@ -40,6 +46,7 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
+const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
 const ONLY = args.filter((a) => !a.startsWith("--"));
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
@@ -50,6 +57,30 @@ const PORT = 5179;
 // Jaywalk sidesteps are an instant 26 px column change; Meteor moves a whole cell per step.
 const SPEED_LIMIT: Record<string, number> = { cross: 27, flip: 40, slice: 32, balltrack: 26.5, snake: 40, orbit: 40, swing: 40 };
 const DEFAULT_LIMIT = 24;
+
+/**
+ * Seconds each game took on a CI runner (baseline record run of 12 Oct 2026, page load
+ * and restarts included), used only to balance --part groups. Unlisted games count 25.
+ */
+const CI_SECONDS: Record<string, number> = {
+  hover: 21, breaker: 21, rally: 32, beat: 21, snake: 46, burst: 21, wavefront: 20, orbit: 35,
+  skyline: 56, cross: 24, junction: 24, inkbridge: 21, slice: 22, bintoss: 24, bullseye: 24,
+  bubble: 21, flip: 35, swing: 46, snip: 21, tilt: 21, balltrack: 21, matchup: 21,
+};
+
+/** Game group k of n (1-based): longest game first onto the lightest group, ties by name. */
+function partOf(games: string[], k: number, n: number): string[] {
+  const load = Array.from({ length: n }, () => 0);
+  const groups: string[][] = Array.from({ length: n }, () => []);
+  const cost = (g: string) => CI_SECONDS[g] ?? 25;
+  for (const g of [...games].sort((a, b) => cost(b) - cost(a) || a.localeCompare(b))) {
+    const i = load.indexOf(Math.min(...load));
+    load[i] += cost(g);
+    groups[i]!.push(g);
+  }
+  const order = new Map(games.map((g, i) => [g, i]));
+  return groups[k - 1]!.sort((a, b) => order.get(a)! - order.get(b)!);
+}
 
 /**
  * In-page extractors: sim state -> tracked drawn points [id, x, y] in world px, plus a
@@ -171,7 +202,16 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  const games = Object.keys(ARCADE_GAME_WORLDS).filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = Object.keys(ARCADE_GAME_WORLDS).filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  if (PART_ARG) {
+    const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
+    if (!(n >= 1 && k >= 1 && k <= n)) {
+      console.log(`FAIL: bad --part=${PART_ARG} (expected k/n with 1 <= k <= n)`);
+      process.exit(1);
+    }
+    games = partOf(games, k, n);
+    console.log(`part ${k}/${n}: ${games.join(", ")}`);
+  }
   const baseline: Record<string, number> = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, "utf8")) : {};
   const { origin, proc } = await startServer();
   const browser = await chromium.launch({ executablePath: CHROMIUM });

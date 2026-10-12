@@ -1,17 +1,23 @@
 /**
  * CI shard lists for .github/workflows/checks.yml (one job per key; the matrix
- * there must name the same keys). Balanced by runtime from a full local run on
- * 12 Oct 2026 (snip ~625 s alone; a, b and c ~600 s each; play ~555 s in #16). Rebalance if one
- * job's time drifts well past the others.
+ * there must name the same keys). An entry `<file>@<k>/<n>` runs part k of n of
+ * that check (run-checks passes --part). Balanced from the CI run of 12 Oct 2026
+ * (run 38198462753) with the quick modes: a, b, c and d ~260-300 s each of checks
+ * (snip-check quick ~90 s, each puzzle-bank-check part ~65 s), each play group
+ * ~110-130 s of games plus ~60-90 s of dev-server start. Rebalance if one job's
+ * time drifts well past the others.
  *
  * A check file not listed here still runs, in CATCH_ALL.
  */
 export const SHARDS: Record<string, string[]> = {
-  snip: ["snip-check.ts"],
-  // Headless Chromium (arrives with #16; skipped while the file doesn't exist).
-  // The workflow installs the browser and swaps in the CI frame-time baseline
-  // for this shard only.
-  play: ["arcade-play-check.ts"],
+  // Headless Chromium: arcade-play-check's 22 games in five groups (one job each,
+  // one game at a time, so frame times compare fairly with the CI baseline). The
+  // workflow installs the browser and swaps in the CI frame-time baseline for these.
+  play1: ["arcade-play-check.ts@1/5"],
+  play2: ["arcade-play-check.ts@2/5"],
+  play3: ["arcade-play-check.ts@3/5"],
+  play4: ["arcade-play-check.ts@4/5"],
+  play5: ["arcade-play-check.ts@5/5"],
   a: [
     "arcade-fixes-check.ts",
     "arcade-fx-check.ts",
@@ -21,18 +27,16 @@ export const SHARDS: Record<string, string[]> = {
     "colour-clash-spawn-check.ts",
     "dig-check.ts",
     "four-tuning-check.ts",
-    "gravity4-check.ts",
     "iceslide-portals-check.ts",
     "ink-live-bottom-check.ts",
-    "logic-grid-check.ts",
     "orbit-checkpoint-check.ts",
-    "puzzle-bank-check.ts",
     "puzzle-surface-check.tsx",
     "reveal-score-check.tsx",
     "rings5-check.ts",
     "room-viewport-check.tsx",
     "slice-kitchen-check.ts",
     "stroke-tiles-rings-check.ts",
+    "puzzle-bank-check.ts@2/4",
   ],
   b: [
     "arcade-batch2-check.ts",
@@ -61,7 +65,6 @@ export const SHARDS: Record<string, string[]> = {
     "new-types-check.ts",
     "nonogram-pair-flood-check.ts",
     "orbit-camera-check.ts",
-    "orbit-legacy-replay-check.ts",
     "pipes-check.ts",
     "play-control-clearance-check.tsx",
     "polish-a-check.tsx",
@@ -86,6 +89,7 @@ export const SHARDS: Record<string, string[]> = {
     "whack-check.ts",
     "word-game-tuning-check.ts",
     "wordsearch-check.ts",
+    "puzzle-bank-check.ts@3/4",
   ],
   c: [
     "arcade-batch1-check.ts",
@@ -93,9 +97,9 @@ export const SHARDS: Record<string, string[]> = {
     "arcade-correction-check.ts",
     "arcade-drag-check.ts",
     "arcade-oct4-check.ts",
-    "arcade-self-replay-check.ts",
     "bullseye-cross-flip-tuning-check.ts",
     "chain-cycles-check.ts",
+    "gravity4-check.ts",
     "hotfloor-flip-check.ts",
     "ink-live-check.ts",
     "ink-rev3-fix-check.ts",
@@ -107,8 +111,16 @@ export const SHARDS: Record<string, string[]> = {
     "room-practice-parity-check.tsx",
     "shikaku-lightup-check.ts",
     "six-game-scoring-check.ts",
+    "puzzle-bank-check.ts@1/4",
+  ],
+  d: [
+    "arcade-self-replay-check.ts",
+    "logic-grid-check.ts",
+    "orbit-legacy-replay-check.ts",
+    "snip-check.ts",
     "tubes-safe-bomb-check.ts",
     "wordsmith-variable-check.tsx",
+    "puzzle-bank-check.ts@4/4",
   ],
 };
 

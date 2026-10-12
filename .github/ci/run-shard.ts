@@ -7,6 +7,9 @@
  *
  * Shard lists live in shards.ts. Any check file that no shard lists (a newly
  * added check) runs in the catch-all shard, so nothing is ever silently skipped.
+ * An entry `<file>@<k>/<n>` runs that check's part k of n (run-checks passes
+ * --part). CHECKS_FULL=1 in the environment (the manual "full" run) reaches every
+ * check through run-checks.
  */
 import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
@@ -23,14 +26,15 @@ if (!shard || !(shard in SHARDS)) {
 const allChecks = readdirSync("scripts")
   .filter((f) => /-check\.tsx?$/.test(f))
   .sort();
-const listed = new Set(Object.values(SHARDS).flat());
+const base = (entry: string) => entry.split("@")[0]!;
+const listed = new Set(Object.values(SHARDS).flat().map(base));
 const stale = [...listed, ...Object.keys(CI_SKIP)].filter((f) => !allChecks.includes(f));
-const notYet = SHARDS[shard].filter((f) => !allChecks.includes(f));
+const notYet = SHARDS[shard].filter((f) => !allChecks.includes(base(f)));
 const unassigned = allChecks.filter(
   (f) => !listed.has(f) && !OPTIONAL.includes(f) && !(f in CI_SKIP),
 );
 const files = [...SHARDS[shard], ...(shard === CATCH_ALL ? unassigned : [])].filter(
-  (f) => allChecks.includes(f) && !(f in CI_SKIP),
+  (f) => allChecks.includes(base(f)) && !(base(f) in CI_SKIP),
 );
 
 mkdirSync("ci-results", { recursive: true });
@@ -52,7 +56,8 @@ const results: Result[] = existsSync(jsonPath)
 const byFile = new Map(results.map((r) => [r.file, r]));
 const icon = { pass: "✅ pass", fail: "❌ fail", timeout: "⏱️ timeout" } as const;
 
-const lines = [`## Checks — ${shard}`, "", "| Check | Result | Time |", "| --- | --- | --- |"];
+const depth = process.env.CHECKS_FULL === "1" ? "full depth" : "quick depth";
+const lines = [`## Checks — ${shard} (${depth})`, "", "| Check | Result | Time |", "| --- | --- | --- |"];
 for (const f of files) {
   const r = byFile.get(f);
   lines.push(
