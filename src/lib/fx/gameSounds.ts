@@ -73,10 +73,14 @@ export function wavefrontSounds(): GameSounds<WavState> {
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
         if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
-        // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
+        // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_shape_pop", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
+        // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
+        if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) playSound("arc_retro_hit", 0.7, 1, true);
+        if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) playSound("stage_complete", 0.8);
+        if ((state.divers ?? []).length > (prev.divers ?? []).length) playSound("arc_retro_blip", 0.5, 1, true);
       }
       prev = state;
     },

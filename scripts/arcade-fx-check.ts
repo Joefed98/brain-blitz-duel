@@ -60,7 +60,7 @@ const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
 const { snakeRev3Game } = await import("../src/lib/arcade/snake");
 const { burstArtGameFor } = await import("../src/lib/arcade/burst.renderer");
-const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
+const { wavefrontArtGameFor } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
 const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
 const { crossArtGameFor } = await import("../src/lib/arcade/cross.renderer");
@@ -108,7 +108,7 @@ const GAMES: Record<string, AnyGame> = {
   beat: beatArtGame as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
   burst: burstArtGameFor(2) as AnyGame,
-  wavefront: wavefrontArtGame as AnyGame,
+  wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: skylineArtGame as AnyGame,
   cross: crossArtGameFor(3) as AnyGame,
@@ -259,7 +259,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   wavefront: [
     (s) => ({ ...s, saucers: s.saucers + 1 }),
     (s) => ({ ...s, wavesCleared: s.wavesCleared + 1 }),
-    (s) => ({ ...s, wavesCleared: 5 }),
+    (s) => ({ ...s, diversDown: (s.diversDown ?? 0) + 1 }),
+    (s) => ({ ...s, boss: s.boss ?? { x: 131, dir: 1, hp: 30, fireIn: 60 }, bossHits: (s.bossHits ?? 0) + 6 }),
+    (s) => ({ ...s, bossKilled: 1 }),
   ],
   orbit: [(s) => ({ ...s, best: s.best + 10 }), (s) => ({ ...s, finished: 1 })],
   skyline: [(s) => ({ ...s, perfects: s.perfects + 1 }), (s) => ({ ...s, placed: s.placed + 10 })],

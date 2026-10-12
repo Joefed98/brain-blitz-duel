@@ -6,13 +6,14 @@ import {
   WAV_COLOURS,
   WAV_DRAG_ZONE_TOP,
   WAV_GOLD,
+  WAV_REV,
   WAV_WORLD_H,
   WAV_WORLD_W,
 } from "@/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
 import { WAVEFRONT_TIME_MS, type WavefrontPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { wavefrontArtGame } from "@/lib/arcade/wavefront.renderer";
+import { wavefrontArtGameFor } from "@/lib/arcade/wavefront.renderer";
 import { wavefrontSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -54,7 +55,7 @@ function IntroExample() {
         <rect x={82} y={78} width={4} height={12} fill={WAV_GOLD} />
         <polygon points="84,100 104,118 84,112 64,118" fill={WAV_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own.</p>
+      <p className="text-center text-xs text-muted-foreground">Your ship fires on its own. Five waves, then the boss.</p>
     </div>
   );
 }
@@ -71,7 +72,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={WAV_WORLD_W}
       worldH={WAV_WORLD_H}
-      game={wavefrontArtGame}
+      game={wavefrontArtGameFor(data?.wavRev)}
       sounds={wavefrontSounds}
       checkpoint={wavCheckpoint}
       interval={WAV_CHECKPOINT_INTERVAL}
@@ -92,14 +93,16 @@ export function wavefrontLine(r: {
   saucers: number;
   survived: boolean;
   endedSeconds: number;
+  bossKilled?: number;
 }): string {
-  const head = `Wave ${r.wave} · ${r.shapesDown} shape${r.shapesDown === 1 ? "" : "s"} · ${r.saucers} saucer${r.saucers === 1 ? "" : "s"}`;
+  if (r.bossKilled) return `Boss destroyed at ${r.endedSeconds.toFixed(1)}s · ${r.shapesDown} ships · ${r.saucers} saucer${r.saucers === 1 ? "" : "s"}`;
+  const head = `Wave ${r.wave} · ${r.shapesDown} ship${r.shapesDown === 1 ? "" : "s"} · ${r.saucers} saucer${r.saucers === 1 ? "" : "s"}`;
   return r.survived ? `${head} · survived` : `${head} · destroyed at ${r.endedSeconds.toFixed(1)}s`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "wavefront") return null;
-  const result = replayWavefrontRun(puzzle.seed, myAnswer ?? "");
+  const result = replayWavefrontRun(puzzle.seed, myAnswer ?? "", puzzle.wavRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -107,7 +110,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.wavesCleared} wave{result.wavesCleared === 1 ? "" : "s"} cleared · {result.armourHits} armour
-        hit{result.armourHits === 1 ? "" : "s"} · same formation for everyone
+        hit{result.armourHits === 1 ? "" : "s"}
+        {puzzle.wavRev ? ` · boss ${result.bossHits} hit${result.bossHits === 1 ? "" : "s"}` : ""} · same waves for everyone
       </p>
     </div>
   );
@@ -120,7 +124,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1 }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

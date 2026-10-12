@@ -9,6 +9,7 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
+import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -201,6 +202,23 @@ const BUILDERS: Record<string, Builder> = {
     outcome: ended(r, false),
   }),
   wavefront: (r, s) => {
+    if (n(r, "wavRev") > 0) {
+      // wavRev 2: five waves, then the boss.
+      const killed = n(r, "bossKilled") > 0;
+      return {
+        axis: { value: n(r, "wavesCleared"), max: WAV_V2_WAVES, label: "Waves" },
+        lines: [
+          `${n(r, "wavesCleared")} / ${WAV_V2_WAVES} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
+          `Boss: ${n(r, "bossHits")} / ${WAV_BOSS_HP} hits${killed ? " · destroyed" : ""} → ${s}`,
+        ],
+        tiles: [
+          { label: "Boss", value: killed ? "Destroyed" : `${n(r, "bossHits")} / ${WAV_BOSS_HP}` },
+          { label: "Saucers", value: String(n(r, "saucers")) },
+          { label: "Lives left", value: String(n(r, "lives")) },
+        ],
+        outcome: killed ? "finish" : ended(r, false),
+      };
+    }
     const done = n(r, "wavesCleared") >= 5;
     return {
       axis: { value: n(r, "wavesCleared"), max: 5, label: "Waves" },

@@ -461,7 +461,29 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
     },
-    { kind: "final", count: (s) => (s.wavesCleared >= 5 ? 1 : 0), label: () => "ALL WAVES!" },
+    // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
+    {
+      kind: "pop",
+      count: (s) => s.diversDown ?? 0,
+      at: (s) => {
+        const b = s.bursts.at(-1);
+        return b ? { x: b.x, y: b.y - 18 } : { x: s.shipX, y: WAV_SHIP_Y - 60 };
+      },
+      label: () => "DIVER DOWN!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.bossHits ?? 0,
+      every: 6,
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      label: (_s, n) => `BOSS HIT ×${n}`,
+    },
+    {
+      kind: "final",
+      count: (s) => (s.rev !== undefined ? (s.bossKilled ?? 0) : s.wavesCleared >= 5 ? 1 : 0),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 108 }),
+      label: (s) => (s.rev !== undefined ? "BOSS DOWN!" : "ALL WAVES!"),
+    },
   ],
 };
 

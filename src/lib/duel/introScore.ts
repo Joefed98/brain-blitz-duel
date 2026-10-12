@@ -141,7 +141,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   bubble: arcadeSplit("each bubble", "Clear the whole field", BUB_V2_PARTIAL_MAX),
   slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
   beat: "Points for each note you hit in time. Missed note: lose 2.",
-  wavefront: "Points for ships, saucers and waves cleared. Clear all five waves perfectly for 150.",
+  wavefront: "Points for ships, armour, saucers, waves and the boss. 150 needs every wave plus the boss.",
   flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
   junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),

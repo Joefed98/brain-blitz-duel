@@ -2137,14 +2137,16 @@ export interface BalancePuzzleData {
 
 /* ========================== Wavefront / Bastion ========================== */
 
-/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
-export const WAVEFRONT_TIME_MS = 63_000;
+/** Wavefront (wavRev 2) runs 90 seconds and Bastion 60; the round clock adds three of slack. */
+export const WAVEFRONT_TIME_MS = 93_000;
 export const BASTION_TIME_MS = 63_000;
 
 export interface WavefrontPuzzleData {
   type: "wavefront";
   /** Draws every wave and enemy shot — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = 90 s, continuous waves, divers, boss); absent = original 60 s rules. */
+  wavRev?: number;
 }
 
 export interface BastionPuzzleData {

@@ -141,7 +141,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     390,
     620,
     wavefrontGame,
-    (p, a) => replayWavefrontRun(seedOf(p), a),
+    (p, a) => replayWavefrontRun(seedOf(p), a, p.type === "wavefront" ? p.wavRev : undefined),
     (s) => ({ x: s.shipX, y: WAV_SHIP_Y }),
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),

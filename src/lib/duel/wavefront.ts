@@ -3,6 +3,8 @@
 import {
   wavCheckpoint,
   wavefrontGame,
+  wavefrontGameFor,
+  WAV_REV,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -18,6 +20,14 @@ const run = makeArcadeRun<WavState, WavCheckpoint>({
   interval: WAV_CHECKPOINT_INTERVAL,
 });
 
+const runV2 = makeArcadeRun<WavState, WavCheckpoint>({
+  tag: "wavefront",
+  game: wavefrontGameFor(WAV_REV),
+  checkpoint: wavCheckpoint,
+  keys: WAV_CHECKPOINT_KEYS,
+  interval: WAV_CHECKPOINT_INTERVAL,
+});
+
 export type WavefrontRun = FlatRun<WavCheckpoint>;
 
 export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
@@ -28,14 +38,18 @@ export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
   wavesCleared: number;
   lives: number;
   survived: boolean;
+  /** wavRev 2 (0 on original rounds): hits on the boss, 1 if destroyed, ships that rammed the player. */
+  bossHits: number;
+  bossKilled: number;
+  rammed: number;
 }
 
 export const encodeWavefrontRun = run.encode;
 export const decodeWavefrontRun = run.decode;
 
 /** The single place a Wavefront score is worked out. */
-export function replayWavefrontRun(seed: number, raw: string): WavefrontResult {
-  const result = run.replay(seed, raw);
+export function replayWavefrontRun(seed: number, raw: string, rev?: number | null): WavefrontResult {
+  const result = (rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
@@ -46,5 +60,8 @@ export function replayWavefrontRun(seed: number, raw: string): WavefrontResult {
     wavesCleared: s.wavesCleared,
     lives: s.lives,
     survived: s.ended !== 2,
+    bossHits: s.bossHits ?? 0,
+    bossKilled: s.bossKilled ?? 0,
+    rammed: s.rammed ?? 0,
   };
 }

@@ -10,6 +10,7 @@ import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { BURST_REV } from "@/lib/arcade/burst";
 import { BRK_REV } from "@/lib/arcade/breaker";
+import { WAV_REV } from "@/lib/arcade/wavefront";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
 import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -139,7 +140,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed() };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV };
 }
 
 export function generateBastion(): BastionPuzzleData {

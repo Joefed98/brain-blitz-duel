@@ -1301,7 +1301,7 @@ export function gradeSubmission(
     }
     case "wavefront": {
       const replayStart = performance.now();
-      const run = replayWavefrontRun(puzzle.seed, answer);
+      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1315,6 +1315,7 @@ export function gradeSubmission(
         saucers: run.saucers,
         armourHits: run.armourHits,
         wavesCleared: run.wavesCleared,
+        ...(puzzle.wavRev ? { wavRev: puzzle.wavRev, bossHits: run.bossHits, bossKilled: run.bossKilled, rammed: run.rammed } : {}),
         lives: run.lives,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
