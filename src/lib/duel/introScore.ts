@@ -59,6 +59,11 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   balance: "The scales score 20, 40 and 60. Balance all three for 120, more if you're quick.",
   numpyramid: "30 for each pyramid you finish, more if you're quick. Bricks right still score.",
   trail: standard("Complete the path", "5 per tile in place"),
+  measure: "25 per puzzle, +5 for fewest moves, +30 speed if all four are solved",
+  // "board" for the brief's "stage": the intro wording check rejects "stage".
+  checkout: "18-26 per board, +2 for fewest darts, +30 speed if all five are solved",
+  // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
+  numline: "Up to 8 per number for accuracy; speed points grow with accuracy",
   tendrop: "13 points for each target you hit. Clear all ten quickly for extra points.",
   numseq: "20 points for each sequence. Get all five quickly for extra points.",
   chaincalc: "Get it right quickly for the most points.",

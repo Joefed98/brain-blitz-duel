@@ -1,3 +1,4 @@
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
 
@@ -84,6 +85,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="burst"
       label={gameDisplayName("burst")}
       background="#000000"
+      arenaBackground={ARCADE_ARENA_FILL.burst}
+      fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

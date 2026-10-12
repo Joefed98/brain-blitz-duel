@@ -71,6 +71,9 @@ import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
+import { gradeMeasureBoards, scoreMeasure } from "./measure";
+import { gradeCheckoutStages, scoreCheckout } from "./checkout";
+import { gradeNumlineItems, NUMLINE_FULL_ERROR, numlineAccuracy, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
@@ -89,6 +92,16 @@ import { balanceRoundScore, balanceSolvedCount, BAL_SCALES, decodeBalance } from
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
+import {
+  TAP_LOG_ANSWER_CAP,
+  decodeNumberTaps,
+  decodeTapTimes,
+  replayAscend,
+  replayBangOn,
+  replayFlash,
+  usesTapLog,
+  type TapLogDiag,
+} from "./tapLog";
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
@@ -199,19 +212,44 @@ export function trustedMsRemaining(
 }
 
 /**
+ * The last round-clock ms a tap-log tap may carry: the end of the round, or,
+ * in a room, the moment the server received the log plus the same network
+ * allowance as the time-left check. A tap the phone claims after that never
+ * happened before the answer was sent.
+ */
+export function latestTapMs(timeLimitMs: number, receivedMsRemaining?: number): number {
+  if (receivedMsRemaining === undefined || !Number.isFinite(receivedMsRemaining)) return timeLimitMs;
+  return Math.min(timeLimitMs, Math.round(timeLimitMs - receivedMsRemaining) + TIME_CLAIM_TOLERANCE_MS);
+}
+
+function tapLogDetail(diag: TapLogDiag): Record<string, unknown> {
+  return {
+    taps: diag.received,
+    repaired: diag.clamped + diag.dropped,
+    clamped: diag.clamped,
+    dropped: diag.dropped,
+    ...(diag.first ? { reason: diag.first } : {}),
+  };
+}
+
+/**
  * The single place an answer is checked and scored. Runs on the server only —
  * for real rooms (submit_answer) and for practice mode alike.
+ * `receivedMsRemaining` is the server's own time left when the answer arrived
+ * (rooms only); tap logs may not carry taps after it, network grace included.
  */
 export function gradeSubmission(
   puzzle: PuzzleData,
   rawAnswer: string,
   msRemaining: number,
   rawExtra?: SubmitExtra,
+  receivedMsRemaining?: number,
 ): Graded {
   const extra = rawExtra ?? {};
+  const tapLog = usesTapLog(puzzle);
   // Arcade runs carry a full input log (one event a tick at most), so they get a
   // far larger allowance; cutting a log short silently changes the replay.
-  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : 4_000;
+  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : tapLog ? TAP_LOG_ANSWER_CAP : 4_000;
   const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, answerCap) : "";
   let arcadeDiag: ArcadeDiag | null = null;
   /** The server replay result, for the stored arcade reveal summary. */
@@ -304,6 +342,27 @@ export function gradeSubmission(
       break;
     }
     case "reaction": {
+      if (tapLog) {
+        // Every reaction and false start is worked out from the raw taps against
+        // the stored flash schedule.
+        const { times, diag } = decodeTapTimes(answer, latestTapMs(timeLimitMs, receivedMsRemaining));
+        const replay = replayFlash(puzzle, times, timeLimitMs);
+        const flashCount = puzzle.flashes.length;
+        const total = replay.times.map((v) => (v === null ? REACTION_MISS_MS : clamp(v, 1, REACTION_MISS_MS)));
+        const falseStarts = clamp(replay.falseStarts, 0, 99);
+        reactionAvgMs = Math.round(total.reduce((sum, v) => sum + v, 0) / Math.max(1, flashCount));
+        isCorrect = true;
+        errors = falseStarts;
+        score = scoreReaction(reactionAvgMs, falseStarts);
+        storedMs = 0;
+        extraDetail = {
+          times: total,
+          falseStarts,
+          misses: total.filter((v) => v >= REACTION_MISS_MS).length,
+          ...tapLogDetail(diag),
+        };
+        break;
+      }
       const [timesPart = "", falsePart = "0"] = answer.split("|");
       const flashCount = puzzle.flashes.length;
       const attempts = timesPart.split(",").slice(0, flashCount).map((value) => Number.parseInt(value, 10));
@@ -414,6 +473,22 @@ export function gradeSubmission(
       break;
     }
     case "stopwatch": {
+      if (tapLog) {
+        // The server places the marker and the target at every tap from the
+        // stored watch specs on the fixed schedule.
+        const { times, diag } = decodeTapTimes(answer, latestTapMs(timeLimitMs, receivedMsRemaining));
+        const replay = replayBangOn(puzzle.watches, times, timeLimitMs);
+        const total = Array.from({ length: STOPWATCH_ATTEMPTS }, (_, index) => {
+          const distance = replay.results[index]?.distance;
+          return distance === undefined || distance === null ? STOPWATCH_MISS_MS : clamp(distance, 0, STOPWATCH_MISS_MS);
+        });
+        reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / STOPWATCH_ATTEMPTS);
+        isCorrect = true;
+        score = scoreStopWatch(reactionAvgMs);
+        storedMs = 0;
+        extraDetail = { distances: total, signed: replay.results.map((r) => r.signed), ...tapLogDetail(diag) };
+        break;
+      }
       const distances = answer.split(",").slice(0, STOPWATCH_ATTEMPTS).map((v) => Number.parseInt(v, 10));
       const total = Array.from({ length: STOPWATCH_ATTEMPTS }, (_, index) => {
         const distance = distances[index];
@@ -428,6 +503,28 @@ export function gradeSubmission(
       break;
     }
     case "numhunt": {
+      if (tapLog) {
+        // Every tap is checked against the layout on screen at its time; the
+        // count reached, the wrong taps and the finish time all come from the log.
+        const { taps, diag } = decodeNumberTaps(answer, latestTapMs(timeLimitMs, receivedMsRemaining), puzzle);
+        const replay = replayAscend(puzzle, taps);
+        const reached = clamp(replay.reached, 0, NUMHUNT_COUNT);
+        errors = clamp(replay.errors, 0, 99);
+        const finished = reached >= NUMHUNT_COUNT && replay.finishedAt !== null;
+        // Time left is the phone's claim (already held to the receipt check), but
+        // never more than the log's own finishing tap allows. An unfinished run
+        // has no time left.
+        storedMs = finished ? Math.min(ms, clamp(timeLimitMs - replay.finishedAt!, 0, timeLimitMs)) : 0;
+        isCorrect = finished;
+        correctCount = reached;
+        score = scoreNumberHunt(finished, storedMs, errors, reached, NUMHUNT_COUNT, timeLimitMs);
+        extraDetail = {
+          reached,
+          finishedAtMs: finished ? replay.finishedAt : null,
+          ...tapLogDetail(diag),
+        };
+        break;
+      }
       const parts = answer.split(",");
       const parsed = Number.parseInt(parts[0] ?? "0", 10);
       const reached = Number.isFinite(parsed) ? clamp(parsed, 0, NUMHUNT_COUNT) : 0;
@@ -1731,6 +1828,43 @@ export function gradeSubmission(
       correctCount = trCorrectTiles(puzzle.givens, path, puzzle.solution ?? []);
       score = scoreTrail(complete, ms, timeLimitMs, correctCount);
       extraDetail = { complete, prefix, correctTiles: correctCount, drawn: path.filter((cell) => cell >= 0).length };
+      break;
+    }
+    case "measure": {
+      // Each board's action list is replayed on the stored jugs; the minimums are the server's own.
+      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer);
+      const solved = results.filter((r) => r.solved).length;
+      isCorrect = solved === puzzle.boards.length;
+      correctCount = solved;
+      score = scoreMeasure(results, ms, timeLimitMs);
+      extraDetail = { solved, measureRev: puzzle.measureRev, boards: results };
+      break;
+    }
+    case "checkout": {
+      // Every stage's darts are re-added against the stored board, target and finishing ring.
+      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer);
+      const solved = results.filter((r) => r.solved).length;
+      isCorrect = solved === puzzle.stages.length;
+      correctCount = solved;
+      score = scoreCheckout(results, ms, timeLimitMs);
+      extraDetail = { solved, fewest: results.filter((r) => r.fewest).length, checkoutRev: puzzle.checkoutRev, stages: results };
+      break;
+    }
+    case "numline": {
+      // Placements are measured against the stored exact values; the client sends positions only.
+      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer);
+      const placed = results.filter((r) => r.placed).length;
+      // Finished = every number placed; accuracy decides the score.
+      isCorrect = placed === results.length;
+      correctCount = placed;
+      score = scoreNumline(results, ms, timeLimitMs);
+      extraDetail = {
+        placed,
+        withinFull: results.filter((r) => r.error !== null && r.error <= NUMLINE_FULL_ERROR).length,
+        accuracy: Math.round(numlineAccuracy(results) * 10) / 10,
+        numlineRev: puzzle.numlineRev,
+        errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
+      };
       break;
     }
     case "numpyramid": {

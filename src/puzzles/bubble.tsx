@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -261,50 +263,52 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: BUB_BG }}
-        aria-label={gameDisplayName("bubble")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || bubbleGame.isOver(state.current)) return;
-          anchor.current = worldPoint(event);
-          aim.current = null;
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const start = anchor.current;
-          if (!start) return;
-          const point = worldPoint(event);
-          const preview = dragLaunch(point.x - start.x, point.y - start.y, BUB_SPEED);
-          aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy } : null;
-        }}
-        onPointerUp={(event) => {
-          const start = anchor.current;
-          anchor.current = null;
-          const shot = aim.current;
-          aim.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          if (!start || !shot || locked || submitted.current) return;
-          pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
-        }}
-        onPointerCancel={(event) => {
-          anchor.current = null;
-          aim.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={BUB_WORLD_W} height={BUB_WORLD_H} background={ARCADE_ARENA_FILL.bubble}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: BUB_BG }}
+          aria-label={gameDisplayName("bubble")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || bubbleGame.isOver(state.current)) return;
+            anchor.current = worldPoint(event);
+            aim.current = null;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            const start = anchor.current;
+            if (!start) return;
+            const point = worldPoint(event);
+            const preview = dragLaunch(point.x - start.x, point.y - start.y, BUB_SPEED);
+            aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy } : null;
+          }}
+          onPointerUp={(event) => {
+            const start = anchor.current;
+            anchor.current = null;
+            const shot = aim.current;
+            aim.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            if (!start || !shot || locked || submitted.current) return;
+            pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
+          }}
+          onPointerCancel={(event) => {
+            anchor.current = null;
+            aim.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

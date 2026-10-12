@@ -1147,6 +1147,57 @@ body.game-lock {
   padding-top: 0;
 }
 
+/*
+ * Arcade arena slot (ArcadeArenaSlot). The slot takes all the height from the
+ * arena's fixed top edge down to the controls below it (or the bottom padding).
+ * Its data-game-arena child is the world
+ * rectangle: the game's world aspect (--arena-w / --arena-h) at the largest
+ * uniform scale that fits the slot, top-anchored and centred across. Every phone
+ * therefore shows the same world, undistorted; games map pointers through that
+ * box, so world coordinates and input logs are unchanged. Spare height below the
+ * arena is painted --arena-fill (::after, the arena's width); spare width stays page.
+ */
+[data-arena-slot] {
+  container-type: size;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+[data-arena-slot] > [data-game-arena],
+.game-column [data-arena-slot] > [data-game-arena] {
+  flex: none;
+  width: min(100cqw, 100cqh * var(--arena-w) / var(--arena-h));
+  height: min(100cqh, 100cqw * var(--arena-h) / var(--arena-w));
+  min-height: 0;
+  max-height: none;
+}
+[data-arena-slot]::after {
+  content: "";
+  flex: 1 1 0;
+  width: min(100cqw, 100cqh * var(--arena-w) / var(--arena-h));
+  min-height: 0;
+  background: var(--arena-fill);
+}
+.game-column [data-stage-column] > [data-arena-slot] {
+  flex-grow: 1;
+  flex-basis: 0;
+}
+/* Exactly 12px from the slot to the controls below it, as from any arena. */
+.game-column [data-stage-column] > [data-arena-slot] + * {
+  margin-top: calc(12px - var(--stage-gap));
+}
+/* The arena stops about 6-8px above the bottom edge and the safe area: the
+   column's own padding is max(8px, inset); top it up to max(8px, inset + 6px). */
+.game-column:has([data-arena-slot]) {
+  padding-bottom: calc(max(8px, env(safe-area-inset-bottom) + 6px) - max(8px, env(safe-area-inset-bottom)));
+}
+
 /* Chat message list: its own finger-scrollable area, never chaining to the page. */
 .ice-board { background: linear-gradient(145deg, var(--ice-surface), color-mix(in srgb, var(--ice-surface) 88%, var(--ice-grid))); }
 .ice-board-grid { background: var(--ice-grid); }
@@ -1223,6 +1274,9 @@ body.game-lock {
   --glass: rgba(200, 225, 255, 0.07);
   --glass-edge: rgba(200, 225, 255, 0.32);
   --glass-shine: rgba(255, 255, 255, 0.35);
+  --measure-water: #3D9BFF;
+  --measure-glass-edge: rgba(200, 225, 255, 0.55);
+  --measure-tick: rgba(225, 238, 255, 0.72);
   --cork: #B88552;
   --cork-dark: #7A5332;
   --flood-a: #E0508F;
@@ -1393,3 +1447,10 @@ body.game-lock {
   .arcade-celebration-headline { animation: practice-best-moment 2600ms linear both; }
   .arcade-score-celebrate { animation: none; }
 }
+
+/* Brimful: clear glass jugs, water and the pour stream (presentation only). */
+.measure-glass { background: var(--glass); box-shadow: inset 6px 0 0 rgba(255, 255, 255, 0.06); }
+.measure-water { background: linear-gradient(to bottom, color-mix(in oklab, var(--measure-water) 80%, white), var(--measure-water)); }
+@keyframes measure-pour-stream { 0% { opacity: 0; stroke-dasharray: 0 400; } 25% { opacity: 1; } 100% { opacity: 0; stroke-dasharray: 400 0; } }
+.animate-pour-stream path { animation: measure-pour-stream 520ms ease-in-out forwards; }
+@media (prefers-reduced-motion: reduce) { .animate-pour-stream path { animation: none; opacity: 0; } .measure-water { transition: none !important; } }

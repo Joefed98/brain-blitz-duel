@@ -14,6 +14,8 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
+import { ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
 const room = readFileSync("src/routes/duel.$code.tsx", "utf8").split("const roomGameHeader")[1] ?? "";
@@ -26,12 +28,34 @@ const window = new Window();
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, d]) => !d.retired);
 let comparisons = 0;
 let controls = 0;
+let arenas = 0;
+// Phones from the smallest supported to the tallest, plus a laptop window.
+const SIZES = [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const;
+const ARCADE_WORLDS = ARCADE_FX_SPECS as Record<string, { width: number; height: number }>;
 for (const [key, definition] of active) {
   const type = key as PuzzleType;
   const puzzle = splitPuzzle(withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type))).pub;
   const stage = renderToStaticMarkup(<definition.Stage puzzle={puzzle} phaseStartedAt={0} now={0} locked={false} onSubmit={() => {}} stateKey={`parity-${type}`} />);
   assert.ok(stage.length, `${key}: empty stage`);
-  for (const [width, height] of [[390, 700], [375, 667]]) {
+  const world = ARCADE_WORLDS[key];
+  if (world) {
+    // Arcade: exactly one arena slot (painted the arena fill, carrying the world size)
+    // whose only arena child is the world rectangle; controls follow the slot, never inside it.
+    const host = window.document.createElement("div");
+    host.innerHTML = stage;
+    const slots = [...host.querySelectorAll("[data-arena-slot]")];
+    assert.equal(slots.length, 1, `${key}: one arena slot`);
+    const slot = slots[0]!;
+    const style = (slot.getAttribute("style") ?? "").replace(/\s/g, "");
+    assert.ok(style.includes(`--arena-w:${world.width}`) && style.includes(`--arena-h:${world.height}`), `${key}: slot world ${style}`);
+    const fill = (ARCADE_ARENA_FILL as Record<string, string>)[key]!;
+    assert.ok(style.toLowerCase().includes(`--arena-fill:${fill.toLowerCase()}`), `${key}: slot fill ${style}`);
+    assert.equal([...slot.children].filter((c) => c.hasAttribute("data-game-arena")).length, 1, `${key}: one arena in the slot`);
+    assert.equal(host.querySelectorAll("[data-game-arena]").length, 1, `${key}: no arena outside the slot`);
+    assert.equal(slot.querySelectorAll("[data-game-controls], button").length, 0, `${key}: controls sit below the slot`);
+    arenas++;
+  }
+  for (const [width, height] of SIZES) {
     window.happyDOM.setWindowSize({ width, height });
     let baseline = "";
     for (const mode of ["practice", "room", "multi"] as const) {
@@ -81,6 +105,8 @@ for (const [key, definition] of active) {
     }
   }
 }
-console.log(`PASS ${active.length} active games, ${comparisons} room/multi versus practice DOM comparisons at 390×700 and 375×667; ${controls} control nodes covered.`);
+assert.equal(arenas, Object.keys(ARCADE_WORLDS).length, "every arcade game has its arena slot");
+console.log(`PASS ${active.length} active games, ${comparisons} room/multi versus practice DOM comparisons at 390×700, 375×667, 390×844, 430×932 and 1280×800; ${controls} control nodes covered.`);
+console.log(`PASS ${arenas} arcade stages: one arena slot each with the game's world size and arena fill, one world-aspect arena inside, controls below it.`);
 console.log("PASS fixed 36px top bar, 28px heading, shared 20px timer and identical stage ancestry; calculated room/practice height delta 0px, including 34px bottom inset.");
 console.log("No source-level game differences. Actual control positions within 4px, font rendering, 44px target fit and no-scroll visibility remain UNMEASURED: no browser tests ran.");

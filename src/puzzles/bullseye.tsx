@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { flightpathColour, flightpathInk } from "@/lib/arcade/flightpathPalette.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -34,6 +36,8 @@ import {
   BULLSEYE_RINGS,
   BULLSEYE_RUN_TICKS,
   type BullseyeState,
+  BULLSEYE_WORLD_H,
+  BULLSEYE_WORLD_W,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
 import { bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
@@ -289,50 +293,52 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: BULLSEYE_BG }}
-        aria-label={gameDisplayName("bullseye")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
-          // The anchor is wherever the finger went down; the aim is the drag from
-          // it, so the predicted landing holds still when the finger does.
-          anchor.current = worldPoint(event);
-          aim.current = null;
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const start = anchor.current;
-          if (!start) return;
-          const point = worldPoint(event);
-          const preview = bullseyeDrag(point.x - start.x, point.y - start.y);
-          aim.current = preview ? { vx: preview.vx, vy: preview.vy } : null;
-        }}
-        onPointerUp={(event) => {
-          const start = anchor.current;
-          anchor.current = null;
-          aim.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          if (!start || locked || submitted.current) return;
-          const point = worldPoint(event);
-          const launch = bullseyeDrag(point.x - start.x, point.y - start.y);
-          if (!launch) return;
-          pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
-        }}
-        onPointerCancel={(event) => {
-          anchor.current = null;
-          aim.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H} background={ARCADE_ARENA_FILL.bullseye}>
+      <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: BULLSEYE_BG }}
+          aria-label={gameDisplayName("bullseye")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || bullseyeGame.isOver(state.current)) return;
+            // The anchor is wherever the finger went down; the aim is the drag from
+            // it, so the predicted landing holds still when the finger does.
+            anchor.current = worldPoint(event);
+            aim.current = null;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            const start = anchor.current;
+            if (!start) return;
+            const point = worldPoint(event);
+            const preview = bullseyeDrag(point.x - start.x, point.y - start.y);
+            aim.current = preview ? { vx: preview.vx, vy: preview.vy } : null;
+          }}
+          onPointerUp={(event) => {
+            const start = anchor.current;
+            anchor.current = null;
+            aim.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            if (!start || locked || submitted.current) return;
+            const point = worldPoint(event);
+            const launch = bullseyeDrag(point.x - start.x, point.y - start.y);
+            if (!launch) return;
+            pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
+          }}
+          onPointerCancel={(event) => {
+            anchor.current = null;
+            aim.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

@@ -191,6 +191,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
+      { action: "Don't guess:", detail: "a tap within 0.1 s of the gold is too fast to be real and is a false start too." },
     ],
     score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
   },
@@ -1002,6 +1003,33 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Undo removes your last square; Reset clears your path.", detail: "Dragging back along the path also undoes. Fixed numbers stay." },
     ],
     score: "Complete path = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 5 per player tile in its correct cell; wrong tiles = 0, no penalty.",
+  },
+  measure: {
+    goal: "Measure out exactly the target amount using the jugs.",
+    how: [
+      { action: "Tap a jug, then another jug to pour.", detail: "It pours until the first is empty or the second is full." },
+      { action: "Fill and Empty", detail: "use the tap and the drain. Puzzle 4 has neither: make the split shown on the jugs." },
+      { action: "Every pour, fill and empty is a move.", detail: "Reset starts the puzzle again; moves keep counting." },
+    ],
+    score: "25 per solved puzzle + up to 5 for moves (full 5 at the fewest possible, none at twice that). Solve all four for up to 30 more for speed: the full 30 if you finish with at least half the time left. The puzzle you are on scores nothing until solved.",
+  },
+  checkout: {
+    goal: "Score exactly the target with your darts, finishing in the right ring.",
+    how: [
+      { action: "Tap a number, then x1, x2 or x3", detail: "to throw a dart there. Outer bull = 25, inner bull = 50 (a double)." },
+      { action: "Hit zero exactly", detail: "and land the last dart in the ring shown (double or treble). Then tap Throw." },
+      { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back." },
+    ],
+    score: "Boards score 18, 20, 22, 24 and 26 (110 in all), +2 for each one solved in the fewest darts possible (the four-dart board always counts). Solve all five for up to 30 more for speed: the full 30 if you finish with at least half the time left.",
+  },
+  numline: {
+    goal: "Place each number where it belongs on the line.",
+    how: [
+      { action: "Drag the marker along the line,", detail: "then tap Place. A magnifier shows where your finger is." },
+      { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines; only the ends are labelled." },
+      { action: "No calculator needed:", detail: "estimate fractions, percentages, powers and roots." },
+    ],
+    score: "Up to 8 per number: full 8 within 2% of the line, falling evenly to 0 at 15% away. Place all 15 for up to 30 more for speed (the full 30 with at least half the time left), multiplied by your accuracy share (points ÷ 120).",
   },
   numpyramid: {
     goal: "Complete four pyramids: every cell is the sum of the two below it.",

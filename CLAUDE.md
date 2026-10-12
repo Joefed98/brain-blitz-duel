@@ -8,7 +8,7 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 68 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 71 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Memory is dormant). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
@@ -93,13 +93,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- **Baseline:** whatever the latest green PR run of the Checks workflow reports (95
-  routine checks as of 12 Oct 2026, with arcade-batch4-check and arcade-batch5-check; the two `--include-optional` checks never run in
+- **Baseline:** whatever the latest green PR run of the Checks workflow reports (96
+  routine checks as of 12 Oct 2026, with arcade-batch4-check, arcade-batch5-check and tap-log-check; the two `--include-optional` checks never run in
   CI). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
   (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
   puzzle-bank-check part ~65 s (whole ~5 min CI, ~4 min on 4 local cores); arcade-fx,
   arcade-self-replay, ink-live-bottom and orbit-camera ~60–70 s; burst-swing-score and
-  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
+  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. number-batch-check (Brimful, Checkout, Ballpark: same-seed puzzles, BFS and exhaustive-search proofs, score anchors) takes ~12 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set. tap-log-check (Flash, Bang On and Ascend tap logs against honest runs recorded on main, phone parity in happy-dom, tampered logs) takes ~30 s; `TAP_LOG_PARITY=all` plays every recorded run through the phone.
 - **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
   `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
   arcade-fx and reveal-score. It plays all 22 active arcade games in headless Chromium
@@ -129,7 +129,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 2. **Version-stamp every gameplay change.** Any change to rules, generation, physics,
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
-   `sliceRev`, `bombVersion`, `rulesVersion`). Unstamped/older rounds must replay and score exactly as before.
+   `sliceRev`, `tapRev`, `bombVersion`, `rulesVersion`). Unstamped/older rounds must replay and score exactly as before.
    Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
@@ -147,11 +147,14 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
-**Known gap (ruled 11 Oct 2026):** Flash (`reaction`) trusts the phone's per-flash
-reaction times and false-start count (clamped only; see `grade.ts` case "reaction").
-It needs server-verifiable timing before ranked play (Phase 3, before ratings).
-Bang On (`stopwatch`) and Ascend (`numhunt`) also grade from phone-reported values;
-see `docs/scoring-audit-oct-2026.md`.
+**Trusted client inputs (updated 12 Oct 2026, ruling D):** Flash (`reaction`), Bang On
+(`stopwatch`) and Ascend (`numhunt`) rounds stamped `tapRev: 1` send raw tap logs, and the
+server works out every reaction, false start, distance, count reached and wrong tap from
+them against the stored puzzle (`src/lib/duel/tapLog.ts`, proved by `tap-log-check`).
+What remains client-side is the tap timing (the phone's synced clock, held to the round
+and the 1.5 s receipt check) and which taps the phone chooses to send; fully server-timed
+taps would need live streaming before money play. Unstamped rounds keep the old summary
+grading. See `docs/duelz-scoring-reference.md` section 14.
 
 ## Working process
 

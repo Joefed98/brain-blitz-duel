@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +32,7 @@ import { BALLTRACK_TIME_MS, type BallTrackPuzzleData } from "@/lib/duel/types";
 import { playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { btArtDraw } from "@/lib/arcade/ballTrackArt.renderer";
+import { TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { ballTrackSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -226,29 +229,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
-      <div
-        ref={board}
-        data-play-area
-        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
-        style={{ touchAction: "none" }}
-        aria-label={`${gameDisplayName("balltrack")} course`}
-        onContextMenu={(e) => e.preventDefault()}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (blocked()) return;
-          const p = world(event.clientX, event.clientY);
-          if (!p) return;
-          const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
-          if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
-          const cell = row * BT_COLS + col;
-          // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-          const switchPoint = (rev === BT_REV || rev === BT_REV_BAND) && row === BT_ROWS - 1 && col > 0;
-          if (!game.rotatable.has(cell) && !switchPoint) return;
-          push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
-        }}
-      >
-        <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
-      </div>
+      <ArcadeArenaSlot width={BT_W} height={BT_H} background={ARCADE_ARENA_FILL.balltrack}>
+        <div
+          ref={board}
+          data-play-area
+          data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
+          style={{ touchAction: "none" }}
+          aria-label={`${gameDisplayName("balltrack")} course`}
+          onContextMenu={(e) => e.preventDefault()}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (blocked()) return;
+            const p = world(event.clientX, event.clientY);
+            if (!p) return;
+            const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
+            if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
+            const cell = row * BT_COLS + col;
+            // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
+            const switchPoint = (rev === BT_REV || rev === BT_REV_BAND) && row === BT_ROWS - 1 && col > 0;
+            if (!game.rotatable.has(cell) && !switchPoint) return;
+            push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
+          }}
+        >
+          <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
+        </div>
+      </ArcadeArenaSlot>
       <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">
         <span>{hud.home} home{hud.wrong ? ` · ${hud.wrong} wrong` : ""}</span>
         <span>{hud.left} to drop</span>

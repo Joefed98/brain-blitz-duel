@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -235,29 +237,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: RALLY_BG }}
-        aria-label={gameDisplayName("rally")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.currentTarget.setPointerCapture(event.pointerId);
-          track(event);
-        }}
-        onPointerMove={track}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={RALLY_WORLD_W} height={RALLY_WORLD_H} background={ARCADE_ARENA_FILL.rally}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: RALLY_BG }}
+          aria-label={gameDisplayName("rally")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            track(event);
+          }}
+          onPointerMove={track}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 
