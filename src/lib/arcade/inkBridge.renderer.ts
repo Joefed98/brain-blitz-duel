@@ -2,11 +2,10 @@ import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
-import { sceneryTexture, grassTexture } from "./sceneryTexture.renderer";
 import type { CanvasSize } from './engine';
 import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
-import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryStamp, drawCountryside, drawCountryGround } from './countryside.renderer';
+import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryClock, countryStamp } from './countryside.renderer';
 
 /* Private geometry mirrors: 7px coin, 4px rim caps, 6px stroke. */
 const FP = 256, BALL_R = 7, RIM_R = 4, STROKE_W = 6;
@@ -148,6 +147,81 @@ function goldStar(m: CanvasRenderingContext2D): void {
   m.fill();
 }
 
+/* ===================== Tuning D: sky and grass (art only) ===================== */
+/**
+ * Deep-to-pale daylight sky, a sun haze and hazy far hills; baked once. No
+ * rainbow in the sky: rainbow lines are what the player draws.
+ */
+function inkSky(m: CanvasRenderingContext2D): void {
+  const W = INK_WORLD_W, H = INK_WORLD_H;
+  const sky = m.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#3E9EE0'); sky.addColorStop(0.45, '#7CC6EF'); sky.addColorStop(0.85, '#C9EAF7'); sky.addColorStop(1, '#E4F5FA');
+  m.fillStyle = sky; m.fillRect(0, 0, W, H);
+  // Sun haze in the top right, behind the HUD's ink meter.
+  const sun = m.createRadialGradient(330, 86, 0, 330, 86, 150);
+  sun.addColorStop(0, 'rgba(255,252,228,0.9)'); sun.addColorStop(0.12, 'rgba(255,246,205,0.55)'); sun.addColorStop(1, 'rgba(255,246,205,0)');
+  m.fillStyle = sun; m.fillRect(180, 0, W - 180, 240);
+  // High wisps.
+  m.strokeStyle = 'rgba(255,255,255,0.22)'; m.lineWidth = 3; m.lineCap = 'round';
+  for (let i = 0; i < 6; i++) { const x = 14 + (i * 83) % (W - 90), y = 70 + (i * 67) % 260; m.beginPath(); m.moveTo(x, y); m.bezierCurveTo(x + 20, y - 5, x + 52, y + 4, x + 80, y - 2); m.stroke(); }
+  // Far hills: a hazy blue ridge, then a softer green one with tiny trees.
+  m.fillStyle = 'rgba(132,186,196,0.55)';
+  m.beginPath(); m.moveTo(0, 548); m.quadraticCurveTo(70, 508, 150, 540); m.quadraticCurveTo(250, 500, 330, 534); m.quadraticCurveTo(370, 520, W, 528); m.lineTo(W, H); m.lineTo(0, H); m.closePath(); m.fill();
+  m.fillStyle = 'rgba(146,206,128,0.8)';
+  m.beginPath(); m.moveTo(0, 578); m.quadraticCurveTo(110, 548, 220, 574); m.quadraticCurveTo(310, 556, W, 570); m.lineTo(W, H); m.lineTo(0, H); m.closePath(); m.fill();
+  for (const [x, y, r] of [[40, 566, 5], [52, 568, 4], [262, 566, 5], [336, 563, 4], [350, 565, 5]] as const) {
+    m.fillStyle = '#6B9F63'; m.fillRect(x - 0.6, y, 1.2, 5);
+    m.fillStyle = '#5E9A5A'; m.beginPath(); m.arc(x, y - r * 0.6, r, 0, Math.PI * 2); m.fill();
+  }
+}
+/** Blades in two tones, clover clumps and a scatter of small flowers; clipped into the hill. */
+function inkGrass(m: CanvasRenderingContext2D): void {
+  const W = INK_WORLD_W, H = INK_WORLD_H;
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 97) % W, y = 30 + (i * 53) % (H - 30);
+    m.fillStyle = i % 2 ? 'rgba(40,110,45,0.16)' : 'rgba(170,230,120,0.14)';
+    m.beginPath(); m.ellipse(x, y, 10 + (i % 4) * 3, 3 + (i % 3), 0, 0, Math.PI * 2); m.fill();
+  }
+  m.lineWidth = 0.9; m.lineCap = 'round';
+  for (let i = 0; i < 1100; i++) {
+    const x = (i * 47 + (i >> 4) * 13) % W, y = 10 + (i * 31) % (H - 10), lean = ((i * 7) % 5) - 2;
+    m.strokeStyle = i % 3 === 0 ? 'rgba(220,255,170,0.22)' : i % 3 === 1 ? 'rgba(28,90,38,0.24)' : 'rgba(70,150,60,0.22)';
+    m.beginPath(); m.moveTo(x, y); m.lineTo(x + lean, y - 5 - (i % 3)); m.stroke();
+  }
+  const petals = ['#FFFFFF', '#FFE45C', '#FF9EC4', '#C9B6FF'];
+  for (let i = 0; i < 46; i++) {
+    const x = 6 + (i * 151) % (W - 12), y = 24 + (i * 89) % (H - 30), r = 1.3 + (i % 3) * 0.3;
+    m.fillStyle = petals[i % petals.length]!;
+    for (let k = 0; k < 4; k++) { m.beginPath(); m.arc(x + Math.cos(k * Math.PI / 2) * r, y + Math.sin(k * Math.PI / 2) * r, r * 0.8, 0, Math.PI * 2); m.fill(); }
+    m.fillStyle = '#F3B33D'; m.beginPath(); m.arc(x, y, r * 0.6, 0, Math.PI * 2); m.fill();
+  }
+}
+/** Same ground outline as the shared countryside hill: its flat crest meets the pot's base. */
+function inkGroundPath(c: CanvasRenderingContext2D, base: number, x: number): void {
+  c.beginPath(); c.moveTo(0,base+12);
+  c.quadraticCurveTo(Math.max(0,x-80),base+12,x-32,base);
+  c.lineTo(x+32,base);
+  c.quadraticCurveTo(Math.min(INK_WORLD_W,x+80),base+12,INK_WORLD_W,base+12);
+  c.lineTo(INK_WORLD_W,INK_WORLD_H);c.lineTo(0,INK_WORLD_H);c.closePath();
+}
+function drawInkBackdrop(c: CanvasRenderingContext2D): void {
+  stamp(c,'inksky',INK_WORLD_W,INK_WORLD_H,0,0,inkSky);
+  const t=countryClock();
+  for(const [x,y,f,a] of [[38,100,0.55,0.75],[278,146,0.7,0.8],[152,218,0.4,0.6],[300,300,0.35,0.5],[70,350,0.3,0.45]] as const) {
+    c.save();c.globalAlpha=a;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);
+    countryStamp(c,'cloud',48,26,0,0,cloud);c.restore();
+  }
+}
+function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number): void {
+  const fill=c.createLinearGradient(0,base,0,INK_WORLD_H);
+  fill.addColorStop(0,'#78C957');fill.addColorStop(0.35,GRASS);fill.addColorStop(1,'#3C8A36');
+  c.save();inkGroundPath(c,base,x);c.fillStyle=fill;c.fill();c.clip();
+  stamp(c,'inkgrass',INK_WORLD_W,INK_WORLD_H,0,0,inkGrass);
+  // A sunlit crest line along the top of the hill (inside the ground).
+  inkGroundPath(c,base,x);c.strokeStyle='#B4E88A';c.lineWidth=3;c.stroke();
+  c.restore();
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawInkBridgeArt(c: CanvasRenderingContext2D, state: InkState, size: CanvasSize): void {
   arcadeFx(c, INKBRIDGE_FX, state, () => drawInkBridgeArtWorld(c, state, size), size);
@@ -158,12 +232,10 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const scale=Math.min(size.width/INK_WORLD_W,size.height/INK_WORLD_H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-INK_WORLD_H*scale)/2);c.scale(scale,scale);
-  drawCountryside(c);
-  c.save();c.globalAlpha=.24;sceneryTexture(c,"rainbow");c.restore();
+  drawInkBackdrop(c);
   // Background only, below the pot opening and every level block; touchable art paints above it.
-  drawCountryGround(c,lvl.bucketY+INK_BUCKET_H,inkBucketX(lvl,state.tick));
-  c.save(); const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
-  c.beginPath();c.moveTo(0,INK_WORLD_H);c.lineTo(0,INK_WORLD_H-18);c.quadraticCurveTo(bx*.55,INK_WORLD_H-18,bx-32,base);c.lineTo(bx+32,base);c.quadraticCurveTo(bx+(INK_WORLD_W-bx)*.65,base,INK_WORLD_W,INK_WORLD_H-10);c.lineTo(INK_WORLD_W,INK_WORLD_H);c.closePath();c.clip();grassTexture(c);c.restore();
+  const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
+  drawInkGround(c,base,bx);
   stamp(c,"leprechaun",22,30,Math.min(INK_WORLD_W-24,Math.max(2,bx+40)),base-27,leprechaun);
   countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
   for(const b of lvl.blocks) {
