@@ -14,7 +14,7 @@ import { WAV_REV } from "@/lib/arcade/wavefront";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
 import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
-import { SWING_V3_BANK } from "./swingBank.server";
+import { SWING_V4_BANK } from "./swingBankV4.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
@@ -194,9 +194,9 @@ export function generateSnip(): SnipPuzzleData {
 /** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  if (SWING_V3_BANK.length > 0) {
-    const index = ((roomSeed % SWING_V3_BANK.length) + SWING_V3_BANK.length) % SWING_V3_BANK.length;
-    return { type: "swing", seed: SWING_V3_BANK[index]!.seed, swingRev: SWING_REV };
+  if (SWING_V4_BANK.length > 0) {
+    const index = ((roomSeed % SWING_V4_BANK.length) + SWING_V4_BANK.length) % SWING_V4_BANK.length;
+    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV };
   }
   for (let attempt = 0; attempt < 8; attempt++) {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();

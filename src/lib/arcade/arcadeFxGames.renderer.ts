@@ -765,10 +765,30 @@ export const SWING_FX: ArcadeFxSpec<SwingState> = {
       count: (s) => (s.ended === 0 ? Math.floor(swingMetres(s) / 100) : 0),
       label: (_s, n) => `${n * 100} M`,
     },
+    // swingRev 4 success moments (older rounds keep these at 0): a star, a dodged stalactite, a jet passed, the dragon outrun.
+    {
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: (s) => `STAR ${s.stars ?? 0}!`,
+      colour: () => "#FFD84A",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.rocks ?? []).filter((r) => r.phase === 3).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: () => "DODGED!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.jets ?? []).filter((j) => j.x < s.x - 20 * 256).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + 26 }),
+      label: () => "OVER THE LAVA!",
+    },
     {
       kind: "final",
       count: (s) => (s.ended === 1 && swingMetres(s) >= SWING_FINISH_M ? 1 : 0),
-      label: () => "500 M!",
+      label: (s) => ((s.chaseX ?? 0) !== 0 ? "500 M! DRAGON OUTRUN!" : "500 M!"),
     },
   ],
 };

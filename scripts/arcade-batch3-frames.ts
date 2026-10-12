@@ -84,4 +84,36 @@ if (!only || only.includes("burst")) {
   await stills("burst", game, burstArtGameFor(BURST_REV), 1, run.raw, decodeBurstRun, (s, p) =>
     s.icons.length > p.icons.length || s.freeze === 120, 8, 390, BURST_FLOOR_Y);
 }
+if (!only || only.includes("swing")) {
+  const { swingGameFor, SWING_REV } = await import("../src/lib/arcade/swing");
+  const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
+  const { proveSwingSeedV4 } = await import("../src/lib/duel/swingProof.server");
+  const { SWING_V4_BANK } = await import("../src/lib/duel/swingBankV4.server");
+  const game = swingGameFor(SWING_REV);
+  const seed = SWING_V4_BANK[0]!.seed;
+  const witness = proveSwingSeedV4(seed)!;
+  // A slower copy of the witness (every input 40 % later is not valid physics), so instead stall at 300 m to meet the dragon.
+  const raw = JSON.stringify({ events: witness.log });
+  let jetShots = 0;
+  await stills("swing", game, swingArtGameFor(SWING_REV), seed, raw, (r) => JSON.parse(r), (s, p) => {
+    if ((s.stars ?? 0) > (p.stars ?? 0) && s.stars % 4 === 1) return true;
+    if ((s.rocks ?? []).some((r: any, i: number) => r.phase === 1 && r.t === 30 && Math.abs(r.x - s.x) < 200 * 256)) return true;
+    if ((s.rocks ?? []).some((r: any, i: number) => r.phase === 2 && r.t === 12)) return true;
+    if (jetShots < 2 && (s.jets ?? []).some((j: any) => Math.abs(j.x - s.x) < 150 * 256 && ((s.tick + j.phase) % j.period) === j.period - 20)) { jetShots++; return true; }
+    if (s.chaseX && !p.chaseX) return true;
+    return false;
+  }, 10);
+  // The dragon catching a ninja who stalls just after 200 m.
+  let s = game.init(seed);
+  const byTick = new Map(witness.log.map((e) => [e.t, e]));
+  while (!s.chaseX) s = game.step(s, byTick.get(s.tick + 1) ?? null);
+  const canvas = createCanvas(390, 620);
+  const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
+  for (let i = 0; i < 400 && !s.ended; i++) {
+    s = game.step(s, null);
+    clock += 1000 / 60;
+    swingArtGameFor(SWING_REV).draw(ctx, s, { width: 390, height: 620 });
+    if (i === 30 || s.ended) writeFileSync(`${out}/swing-stall-${String(s.tick).padStart(4, "0")}.png`, canvas.toBuffer("image/png"));
+  }
+}
 console.log(`stills written to ${out}`);

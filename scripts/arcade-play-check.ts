@@ -68,13 +68,24 @@ const EXTRACT = String.raw`
     case "breaker": s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
     case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
     case "burst": P.push(["player", fp(s.x), 0]); s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.wave + ":" + s.lives; break;
-    case "wavefront": break; // the ship is finger-driven (see breaker); invaders step on a grid
+    // The ship is finger-driven (see breaker) and invaders step on a grid; wavRev 2 divers and the boss fly.
+    case "wavefront":
+      (s.divers ?? []).forEach((d) => P.push(["diver" + d.cell, fp(d.x), fp(d.y)]));
+      if (s.boss) P.push(["boss", s.boss.x, 0]);
+      reset = s.wave + ":" + (s.divers ?? []).map((d) => d.cell + (d.t > 150 ? "h" : "d")).join(",");
+      break;
     case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur; break;
     case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
     case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
-    case "swing": P.push(["player", fp(s.x), fp(s.y)]); reset = s.ended; break;
+    case "swing":
+      P.push(["player", fp(s.x), fp(s.y)]);
+      // swingRev 4: the chasing dragon and falling stalactites.
+      if (s.chaseX) P.push(["dragon", fp(s.chaseX), fp(s.chaseY)]);
+      (s.rocks ?? []).forEach((r, i) => { if (r.phase === 2) P.push(["rock" + i, fp(r.x), fp(r.y)]); });
+      reset = s.ended + ":" + (s.rocks ?? []).map((r) => r.phase).join("");
+      break;
     case "snip": P.push(["candy", fp(s.sx), fp(s.sy)]); reset = s.eaten + ":" + s.level; break;
     case "tilt": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.level + ":" + s.mazes + ":" + s.caught; break;
     case "snake": { const head = s.body[0] ?? 0; P.push(["head", m.snake.snakeCol(head) * m.snake.SNAKE_CELL, m.snake.snakeRow(head) * m.snake.SNAKE_CELL]); reset = s.dead; break; }

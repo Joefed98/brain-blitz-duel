@@ -39,7 +39,7 @@ function IntroExample() {
         <path d="M75 82 H80" stroke="var(--foreground)" strokeWidth={1.5} />
         <path d="M 84 82 Q 104 70 118 50" fill="none" stroke={SWING_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward. Watch out for dragons near the end.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward. Keep moving: from 200 m a dragon chases you.</p>
     </div>
   );
 }
@@ -86,8 +86,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function swingLine(r: { metres: number; survived: boolean; survivedSeconds: number }): string {
-  return r.survived ? `${r.metres} m · survived` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s`;
+export function swingLine(r: { metres: number; survived: boolean; survivedSeconds: number; cause?: number }): string {
+  if (r.survived) return `${r.metres} m · survived`;
+  return r.cause === 1 ? `${r.metres} m · caught by the dragon at ${r.survivedSeconds.toFixed(1)}s` : `${r.metres} m · fell at ${r.survivedSeconds.toFixed(1)}s`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
@@ -98,7 +99,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV ? "Watch out for dragons near the end." : "Same cavern for everyone"}</p>
+      {puzzle.swingRev === SWING_REV && (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.stars ?? 0} / {result.starTotal ?? 0} stars
+        </p>
+      )}
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same cavern for everyone</p>
     </div>
   );
 }
@@ -110,7 +116,6 @@ export const swingPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SWING_TIME_MS,
   revealMs: 6_000,
-  introLine: (puzzle) => puzzle.type === "swing" && puzzle.swingRev === SWING_REV ? "Watch out for dragons near the end." : null,
   generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV }) satisfies SwingPuzzleData,
   check: () => false,
   revealHeading: "Your run",

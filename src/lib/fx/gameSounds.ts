@@ -59,6 +59,11 @@ export function swingSounds(): GameSounds<SwingState> {
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) playSound("arc_grapple");
+        // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_pickup", 0.9);
+        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) playSound("arc_siren", 0.6);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) playSound("arc_clank", 0.5);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) playSound("arc_wood_knock", 0.5);
       }
       prev = state;
     },

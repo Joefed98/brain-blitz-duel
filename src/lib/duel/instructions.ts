@@ -722,7 +722,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target. Maximum 150.",
   },
   wavefront: {
-    goal: "Clear five waves, then the boss.",
+    goal: "Five waves and a boss in 90 s.",
     how: [
       { action: "Drag to move;", detail: "you fire on your own." },
       { action: "Dodge red bolts and divers:", detail: "3 lives." },
@@ -833,14 +833,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "10 per apple collected, +3 for each level's single leaf; collect all ten for up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150.",
   },
   swing: {
-    goal: "Swing the ninja to the 500 m finish.",
+    goal: "Swing the ninja to the 500 m line.",
     how: [
-      { action: "Hold to grab an anchor and swing,", detail: "let go to fly." },
-      { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed." },
-      { action: "Don't touch the spikes", detail: "or fall into the lava." },
-      { action: "Watch out for dragons near the end.", detail: "Touching one ends the run." },
+      { action: "Hold to grab and swing,", detail: "let go to fly." },
+      { action: "From 200 m a dragon chases you:", detail: "keep going." },
+      { action: "Grab star anchors", detail: "for bonus stars." },
+      { action: "Stuck? Keep swinging", detail: "- every pass gets you higher. Swipe up to shorten the rope for speed, down to let it out.", helpOnly: true },
+      { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
+      { action: "Loose stalactites shake and cast a shadow on the lava", detail: "about a second before they fall. Don't be under one.", helpOnly: true },
+      { action: "Lava bubbles before it jets up.", detail: "Don't be over a jet when it erupts.", helpOnly: true },
+      { action: "Ten star anchors hang high in the gaps.", detail: "Grab one to take its star; they are optional.", helpOnly: true },
+      { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
-    score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "Distance: 120 × metres ÷ 500. Stars: 1 each, up to 10. Unfinished runs score up to 130; reaching 500 m adds 20, so 500 m with all 10 stars scores 150.",
   },
   tilt: {
     goal: "Roll the ball into the blue cup.",

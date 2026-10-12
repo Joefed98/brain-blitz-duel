@@ -73,7 +73,7 @@ const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
-const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
+const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
 const { tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
 const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
@@ -119,7 +119,7 @@ const GAMES: Record<string, AnyGame> = {
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
-  swing: swingArtGame as AnyGame,
+  swing: swingArtGameFor(4) as AnyGame,
   snip: snipArtGame as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
@@ -322,6 +322,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, rocks: (s.rocks ?? []).map((r: any, i: number) => (i === 0 ? { ...r, phase: 3 } : r)) }),
+    (s) => ({ ...s, x: (s.jets?.[0]?.x ?? 0) + 40 * 256 }),
     (s) => ({ ...s, ended: 1, maxX: s.maxX + 600 * 256 * 40 }),
   ],
   snip: [

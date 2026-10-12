@@ -306,8 +306,22 @@ const BUILDERS: Record<string, Builder> = {
     const done = metres >= 500;
     return {
       axis: { value: Math.min(500, metres), max: 500, label: "Metres" },
-      lines: [head(`${Math.min(500, metres)} m`, s, done), ...(n(r, "dragonTotal") > 0 ? ["Watch out for dragons near the end."] : [])],
-      tiles: [{ label: done ? "Finished at" : b(r, "survived") ? "Survived" : "Fell at", value: sec(n(r, "survivedSeconds")) }],
+      lines:
+        n(r, "swingRev") > 0
+          ? [
+              `${Math.min(500, metres)} m → ${Math.min(120, Math.round((120 * Math.min(500, metres)) / 500))}`,
+              `${n(r, "stars")} / ${n(r, "starTotal")} stars → ${n(r, "stars")}${done ? " · 500 m reached +20" : ""}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${Math.min(500, metres)} m`, s, done)],
+      tiles: [
+        {
+          label: done ? "Finished at" : b(r, "survived") ? "Survived" : n(r, "cause") === 1 ? "Caught at" : "Fell at",
+          value: sec(n(r, "survivedSeconds")),
+        },
+        ...(n(r, "swingRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starTotal")}` }] : []),
+        ...(n(r, "cause") > 0 ? [{ label: "Ended by", value: ["", "the dragon", "a stalactite", "a lava jet"][n(r, "cause")] ?? "" }] : []),
+      ],
       outcome: done ? "finish" : ended(r, false),
     };
   },

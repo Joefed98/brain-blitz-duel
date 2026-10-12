@@ -43,8 +43,13 @@ const LEAD = 195 * FP;
 const METRE = 40 * FP;
 const COL = 40 * FP;
 export const SWING_FINISH_M = 500;
-/** Current version: swingRev 3 (bigger, menacing dragons). swingRev 2 rounds keep the original 40×28 box and art. */
-export const SWING_REV = 3;
+/**
+ * Current version: swingRev 4 (Oct 2026): no fixed dragons; a chasing dragon from 200 m,
+ * falling stalactites, lava jets and star anchors (see "swingRev 4" below).
+ * swingRev 3 (bigger, menacing dragons) and swingRev 2 rounds keep their own dragons.
+ */
+export const SWING_REV = 4;
+export const SWING_REV_V3 = 3;
 export const SWING_REV_V2 = 2;
 /** swingRev 2 dragon box: 40 × 28 px. */
 export const SWING_DRAGON_HALF_W_V2 = 20 * FP;
@@ -255,6 +260,48 @@ function reachable(c: Course, i: number): boolean {
   return false;
 }
 
+/**
+ * swingRev 4: from a standard swing on anchor `i`, can some release then grab take
+ * `star` (it is the nearest anchor at the grab), and from a standard swing on the
+ * star can some release reach the anchor after it? Same probe shape as reachable().
+ */
+function starTakeable(c: Course, i: number, star: number): boolean {
+  const a = c.anchors[i]!;
+  const s = c.anchors[star]!;
+  const next = c.anchors[star + 1]!;
+  const spikes = c.spikes.filter((sp) => sp.x > a.x - 400 * FP && sp.x < next.x + 400 * FP);
+  const view = { ...c, spikes };
+  const start: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: 130 * FP, th: 55000 * SUB, om: 0, grabLen: 130 * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
+  ropePos(start, a);
+  const swing = { ...start };
+  for (let r = 0; r < 400; r++) {
+    if (moveBody(swing, view)) return false;
+    if (swing.pumps > 4) return false;
+    if (r % 3) continue;
+    const fly = { ...swing };
+    detach(fly, a);
+    for (let t = 0; t < 90; t++) {
+      if (moveBody(fly, view)) break;
+      if (t % 2 || nearestAhead(c.anchors, fly, 0) !== star) continue;
+      // Grab the star here, then swing on it: some release must reach the next anchor.
+      const on = { ...fly };
+      attach(on, star, s);
+      for (let k = 0; k < 240; k++) {
+        if (moveBody(on, view)) break;
+        if (k % 3) continue;
+        const off = { ...on };
+        detach(off, s);
+        for (let u = 0; u < 90; u++) {
+          if (moveBody(off, view)) break;
+          if (nearestAhead(c.anchors, off, star + 1) === star + 1 && off.x < next.x) return true;
+        }
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
 function buildCourse(seed: number): Course {
   let rng = seed | 0;
   const draw = (bound: number) => {
@@ -301,10 +348,90 @@ function buildCourse(seed: number): Course {
   return course;
 }
 
+/* ============================== swingRev 4 ============================== */
+
+/** The chasing dragon appears this far in, this far behind the ninja, and flies at a set pace. */
+export const SWING_CHASE_FROM_M = 200;
+export const SWING_CHASE_GAP = 400 * FP;
+export const SWING_CHASE_PACE = 4 * FP;
+/** How far ahead of the dragon's centre its jaws reach (the catch line). */
+export const SWING_CHASE_REACH = 34 * FP;
+/** Falling stalactites: count, where they may hang, trigger distance range, warning and fall. */
+export const SWING_ROCKS = 8;
+export const SWING_ROCK_WARN = 60;
+export const SWING_ROCK_HALF_W = 9 * FP;
+export const SWING_ROCK_HALF_H = 16 * FP;
+const ROCK_TRIGGER_MIN = 280;
+const ROCK_TRIGGER_SPAN = 201;
+const ROCK_FALL_START = 2 * FP;
+const ROCK_FALL_ACCEL = 64;
+const ROCK_FALL_MAX = 14 * FP;
+/** Lava jets: count, cycle length range, bubbling warning and eruption, half-width, height range. */
+export const SWING_JETS = 8;
+export const SWING_JET_BUBBLE = 60;
+export const SWING_JET_ERUPT = 40;
+export const SWING_JET_HALF_W = 12 * FP;
+const JET_RISE = 8;
+const JET_PERIOD_MIN = 200;
+const JET_PERIOD_SPAN = 81;
+const JET_H_MIN = 150;
+const JET_H_SPAN = 101;
+/** Star anchors: grabbing one takes its star. They hang high, close under the ceiling. */
+export const SWING_STARS = 10;
+export const SWING_STAR_DEPTH = 60;
+/** swingRev 4 score: distance up to 120, a point a star (10), reaching 500 m adds 20. */
+export const SWING_V4_DISTANCE_SCORE = 120;
+export const SWING_V4_FINISH_BONUS = 20;
+
+export interface SwingRock {
+  x: number;
+  /** Ceiling under which it hangs (1/256 px), and the ninja distance that starts its warning. */
+  top: number;
+  trigger: number;
+  /** 0 hanging, 1 warning (shadow), 2 falling, 3 shattered. */
+  phase: number;
+  /** Ticks into its phase; while falling, its centre y and speed (1/256 px). */
+  t: number;
+  y: number;
+  vy: number;
+}
+
+export interface SwingJet {
+  x: number;
+  period: number;
+  phase: number;
+  /** Full eruption height above the lava, 1/256 px. */
+  h: number;
+}
+
+/** A jet's height above the lava at a tick (0 when quiet), and whether it is bubbling (the warning). */
+export function swingJetAt(jet: SwingJet, tick: number): { h: number; bubbling: boolean } {
+  const c = (tick + jet.phase) % jet.period;
+  const erupt = jet.period - SWING_JET_ERUPT;
+  if (c < erupt - SWING_JET_BUBBLE) return { h: 0, bubbling: false };
+  if (c < erupt) return { h: 0, bubbling: true };
+  const k = c - erupt;
+  const left = SWING_JET_ERUPT - 1 - k;
+  const ramp = Math.min(JET_RISE, k + 1, left + 1);
+  return { h: Math.trunc((jet.h * ramp) / JET_RISE), bubbling: false };
+}
+
 /* ================================ State ================================ */
 
 export interface SwingState extends Body {
   dragons?: SwingDragon[];
+  /** swingRev 4 only (absent on older rounds). */
+  rev?: number;
+  /** swingRev 4: the chasing dragon's centre (0 until it appears). */
+  chaseX?: number;
+  chaseY?: number;
+  rocks?: SwingRock[];
+  jets?: SwingJet[];
+  /** swingRev 4: anchor indices that carry a star, stars taken, and how the run ended (1 dragon, 2 rock, 3 jet). */
+  starAnchors?: number[];
+  stars?: number;
+  starsTaken?: number[];
+  cause?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -379,6 +506,99 @@ function initDragonsV3(seed: number): SwingState {
   return { ...s, dragons };
 }
 
+/** swingRev 4: the same cavern plus star anchors, falling stalactites and lava jets, all from the seed. */
+const v4Cache = new Map<number, SwingState>();
+function initV4(seed: number): SwingState {
+  const cached = v4Cache.get(seed | 0);
+  if (cached) return { ...cached, rocks: cached.rocks!.map((r) => ({ ...r })) };
+  const s = init(seed);
+  let rng = s.rng;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const base = s.anchors;
+  const startIndex = base.findIndex((a) => a.x >= START_X);
+  const metreOf = (x: number) => Math.trunc((x - START_X) / METRE);
+  // Course gaps (anchor i to i + 1) in the run, by metre band.
+  const gaps: number[] = [];
+  // Gaps under a ceiling spike are left alone: a star anchor or a stalactite would hang inside it.
+  const spiked = (i: number) => s.spikes.some((sp) => sp.x > base[i]!.x - SPIKE_HALF && sp.x < base[i + 1]!.x + SPIKE_HALF);
+  for (let i = startIndex; i + 1 < base.length; i++)
+    if (metreOf(base[i]!.x) >= 30 && metreOf(base[i + 1]!.x) <= 490 && !spiked(i)) gaps.push(i);
+  /** One gap from each of `count` equal bands of the list, never one already used. */
+  const pickGaps = (count: number, used: Set<number>, from: number) => {
+    const list = gaps.filter((i) => metreOf(base[i]!.x) >= from);
+    const out: number[] = [];
+    for (let k = 0; k < count; k++) {
+      const lo = Math.trunc((k * list.length) / count);
+      const hi = Math.max(lo + 1, Math.trunc(((k + 1) * list.length) / count));
+      let pick = list[lo + draw(hi - lo)]!;
+      for (let j = lo; used.has(pick) && j < hi; j++) pick = list[j]!;
+      used.add(pick);
+      out.push(pick);
+    }
+    return out;
+  };
+  const used = new Set<number>();
+  const starGaps = pickGaps(SWING_STARS, used, 30);
+  const rockGaps = pickGaps(SWING_ROCKS, used, 120);
+  // Star anchors: high in the gap, under the ceiling. Each is proved takeable (and leavable)
+  // from a standard swing; a gap whose spots all fail moves on to the next free gap.
+  const extra: Anchor[] = [];
+  const spare = gaps.filter((i) => !used.has(i));
+  const course: Course = { ceil: s.ceil, floor: s.floor, anchors: base, spikes: s.spikes, rng: 0 };
+  const tryGap = (i: number): boolean => {
+    for (let k = 0; k < 3; k++) {
+      const x = base[i]!.x + Math.trunc(((base[i + 1]!.x - base[i]!.x) * (40 + draw(31))) / 100);
+      const star = { x, y: lerpAt(s.ceil, x) + (SWING_STAR_DEPTH + draw(21)) * FP };
+      const trial = [...base.slice(0, i + 1), star, ...base.slice(i + 1)];
+      if (starTakeable({ ...course, anchors: trial }, i, i + 1)) {
+        extra.push(star);
+        return true;
+      }
+    }
+    return false;
+  };
+  for (const i of starGaps) {
+    if (tryGap(i)) continue;
+    while (spare.length > 0) {
+      const j = spare.shift()!;
+      if (tryGap(j)) break;
+    }
+  }
+  const anchors = [...base, ...extra].sort((a, b) => a.x - b.x);
+  const starAnchors = extra.map((a) => anchors.indexOf(a));
+  const rocks: SwingRock[] = rockGaps.map((i) => {
+    const x = Math.trunc((base[i]!.x + base[i + 1]!.x) / 2) + (draw(41) - 20) * FP;
+    return { x, top: lerpAt(s.ceil, x), trigger: (ROCK_TRIGGER_MIN + draw(ROCK_TRIGGER_SPAN)) * FP, phase: 0, t: 0, y: 0, vy: 0 };
+  });
+  rocks.sort((a, b) => a.x - b.x);
+  const jets: SwingJet[] = [];
+  for (let k = 0; k < SWING_JETS; k++) {
+    // Even bands from 120 m to 490 m, seeded spot in each.
+    const m = 120 + Math.trunc((k * 370) / SWING_JETS) + draw(Math.trunc(370 / SWING_JETS));
+    const period = JET_PERIOD_MIN + draw(JET_PERIOD_SPAN);
+    jets.push({ x: START_X + m * METRE + draw(METRE / FP) * FP, period, phase: draw(period), h: (JET_H_MIN + draw(JET_H_SPAN)) * FP });
+  }
+  const startAnchor = anchors.findIndex((a) => a.x >= START_X);
+  const v4: SwingState = {
+    ...s,
+    rope: startAnchor,
+    rng,
+    anchors,
+    rev: SWING_REV,
+    chaseX: 0,
+    chaseY: 0,
+    rocks,
+    jets,
+    starAnchors,
+    stars: 0,
+    starsTaken: [],
+    cause: 0,
+  };
+  if (v4Cache.size > 16) v4Cache.clear();
+  v4Cache.set(seed | 0, v4);
+  return { ...v4, rocks: rocks.map((r) => ({ ...r })) };
+}
+
 function isOver(state: SwingState): boolean {
   return state.ended !== 0;
 }
@@ -394,14 +614,26 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
         if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
         attach(s, target, s.anchors[target]!);
         s.grabTick = tick;
+        // swingRev 4: grabbing a star anchor takes its star (once).
+        if (s.starAnchors && s.starAnchors.includes(target) && !(s.starsTaken ?? []).includes(target)) {
+          s.starsTaken = [...(s.starsTaken ?? []), target];
+          s.stars = (s.stars ?? 0) + 1;
+        }
       }
     } else if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
   } else if (input !== null && input.k === SWING_INPUT_REEL) {
     startReel(s, clampInt(input.a, 0, 1));
   }
-  const dead = moveBody(s, s);
+  let dead = moveBody(s, s);
   s.camX = s.x - LEAD;
   if (s.x > s.maxX) s.maxX = s.x;
+  if (s.rev === SWING_REV && !dead) {
+    const cause = stepHazards(s, tick);
+    if (cause > 0) {
+      dead = true;
+      s.cause = cause;
+    }
+  }
   if (dead) {
     s.ended = 2;
     s.endedTick = tick;
@@ -415,18 +647,78 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   return s;
 }
 
+/** swingRev 4 hazards for one tick; returns 0, or what ended the run (1 dragon, 2 stalactite, 3 lava jet). */
+function stepHazards(s: SwingState, tick: number): number {
+  let cause = 0;
+  // The chasing dragon: appears behind the ninja at 200 m, then flies at its set pace.
+  if ((s.chaseX ?? 0) === 0 && swingMetres(s) >= SWING_CHASE_FROM_M) {
+    s.chaseX = s.x - SWING_CHASE_GAP;
+    s.chaseY = s.y;
+  } else if ((s.chaseX ?? 0) !== 0) {
+    s.chaseX = (s.chaseX ?? 0) + SWING_CHASE_PACE;
+    // It drifts toward the ninja's height (a quarter of the gap a tick, at most 3 px).
+    s.chaseY = (s.chaseY ?? 0) + clampInt(Math.trunc((s.y - (s.chaseY ?? 0)) / 4), -3 * FP, 3 * FP);
+    if ((s.chaseX ?? 0) + SWING_CHASE_REACH >= s.x - RADIUS) cause = 1;
+  }
+  // Stalactites: warn when the ninja comes within the trigger distance, fall a second later.
+  s.rocks = (s.rocks ?? []).map((r) => {
+    const rock = { ...r };
+    if (rock.phase === 0 && rock.x - s.x <= rock.trigger) {
+      rock.phase = 1;
+      rock.t = 0;
+    } else if (rock.phase === 1) {
+      rock.t += 1;
+      if (rock.t >= SWING_ROCK_WARN) {
+        rock.phase = 2;
+        rock.t = 0;
+        rock.y = rock.top + SWING_ROCK_HALF_H;
+        rock.vy = ROCK_FALL_START;
+      }
+    } else if (rock.phase === 2) {
+      rock.t += 1;
+      rock.y += rock.vy;
+      rock.vy = Math.min(ROCK_FALL_MAX, rock.vy + ROCK_FALL_ACCEL);
+      if (rock.y + SWING_ROCK_HALF_H >= lerpAt(s.floor, rock.x)) rock.phase = 3;
+      else if (Math.abs(s.x - rock.x) <= SWING_ROCK_HALF_W + RADIUS && Math.abs(s.y - rock.y) <= SWING_ROCK_HALF_H + RADIUS) cause = cause || 2;
+    }
+    return rock;
+  });
+  // Lava jets: a pure function of the tick.
+  for (const jet of s.jets ?? []) {
+    if (Math.abs(s.x - jet.x) > SWING_JET_HALF_W + RADIUS) continue;
+    const { h } = swingJetAt(jet, tick);
+    if (h > 0 && s.y + RADIUS >= lerpAt(s.floor, jet.x) - h) cause = cause || 3;
+  }
+  return cause;
+}
+
 export function swingMetres(s: SwingState): number {
   return Math.max(0, Math.trunc((s.maxX - START_X) / METRE));
 }
 
+/** swingRev 4: 120 × metres ÷ 500 + a point a star (130 max unfinished); reaching 500 m adds 20. */
+export function swingScoreV4(metres: number, stars: number): number {
+  const m = Math.min(SWING_FINISH_M, metres);
+  const st = clampInt(stars, 0, SWING_STARS);
+  if (m >= SWING_FINISH_M) return clampInt(SWING_V4_DISTANCE_SCORE + st + SWING_V4_FINISH_BONUS, 0, 150);
+  return clampInt(Math.round((SWING_V4_DISTANCE_SCORE * m) / SWING_FINISH_M) + st, 0, 130);
+}
+
 function score(state: SwingState): number {
+  if (state.rev === SWING_REV) return swingScoreV4(swingMetres(state), state.stars ?? 0);
   const m = Math.min(SWING_FINISH_M, swingMetres(state));
   if (m >= SWING_FINISH_M) return finishScore(SWING_RUN_TICKS, state.endedTick);
   return clampInt(Math.round((130 * m) / SWING_FINISH_M), 0, 130);
 }
 
 export function swingExtra(s: SwingState) {
-  return { metres: swingMetres(s), survived: s.ended !== 2, survivedSeconds: s.tick / 60, ...(s.dragons ? { dragonTotal: s.dragons.length } : {}) };
+  return {
+    metres: swingMetres(s),
+    survived: s.ended !== 2,
+    survivedSeconds: s.tick / 60,
+    ...(s.dragons ? { dragonTotal: s.dragons.length } : {}),
+    ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: (s.starAnchors ?? []).length, cause: s.cause ?? 0 } : {}),
+  };
 }
 
 /* ============================= Checkpoints ============================= */
@@ -471,7 +763,13 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     rng: state.rng | 0,
   };
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snap)) {
+  const values = Object.values(snap);
+  // swingRev 4 only, so older checksums are unchanged.
+  if (state.rev !== undefined) {
+    values.push(state.rev, state.chaseX ?? 0, state.chaseY ?? 0, state.stars ?? 0, state.cause ?? 0);
+    for (const r of state.rocks ?? []) values.push(r.phase, r.t, r.y);
+  }
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -629,8 +927,10 @@ export const swingGame: ArcadeGame<SwingState, ArcadeInputEvent | null> = {
 
 const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
+const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
-  if (rev === SWING_REV) return dragonGameV3;
+  if (rev === SWING_REV) return chaseGameV4;
+  if (rev === SWING_REV_V3) return dragonGameV3;
   if (rev === SWING_REV_V2) return dragonGameV2;
   return swingGame;
 }
