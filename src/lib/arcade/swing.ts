@@ -435,6 +435,8 @@ export interface SwingState extends Body, BandFields {
   cause?: number;
   /** swingRev 6 only: set on the revision; its stars are touch pickups at these [x, y] centres (1/256 px), not anchors. */
   tuned?: number;
+  /** swingRev 7 only (Tuning C): 1 = rev-6 play scored on the lower SWING_V7_BAND_CURVE. Absent on every earlier round. */
+  tunec?: number;
   starSpots?: [number, number][];
   tick: number;
   rng: number;
@@ -786,6 +788,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     for (const r of state.rocks ?? []) values.push(r.phase, r.t, r.y);
     // swingRev 6 only, after every rev-4 value.
     if (state.tuned) values.push(state.tuned, ...(state.starsTaken ?? []));
+    // swingRev 7 only, last.
+    if (state.tunec) values.push(state.tunec);
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -947,6 +951,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_TUNEC) return swingTunecGame;
   if (rev === SWING_REV_TUNED) return swingTunedGame;
   if (rev === SWING_REV_BAND) return swingBandGame;
   if (rev === SWING_REV) return chaseGameV4;
@@ -964,7 +969,7 @@ export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 
 export function swingBandParts(state: SwingState): BandParts {
   const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
-  return { units, points: bandPoints(SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
+  return { units, points: bandPoints(state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
 }
 
 function scoreBand(state: SwingState): number {
@@ -1105,3 +1110,15 @@ function initV6(seed: number): SwingState {
 }
 
 export const swingTunedGame: typeof swingGame = { ...swingBandGame, init: (seed) => bandInit(initV6(seed)) };
+
+/* ================= Tuning C (swingRev 7, Oct 2026) ================= */
+
+/**
+ * swingRev 7 (Tuning C): swingRev 6 play unchanged, scored about 10 % lower
+ * (Joe found Grappler a little lenient): every knot below the top keeps its
+ * units and drops to nine tenths of its points; 500 m with every star still
+ * reaches 140, plus 10 for the finish. States add `tunec: 1`.
+ */
+export const SWING_REV_TUNEC = 7;
+export const SWING_V7_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 63, 90, 112, 122, 124, 140]);
+export const swingTunecGame: typeof swingGame = { ...swingTunedGame, init: (seed) => ({ ...swingTunedGame.init(seed), tunec: 1 }) };

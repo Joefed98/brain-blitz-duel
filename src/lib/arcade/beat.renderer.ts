@@ -65,7 +65,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
       pixelRect(ctx, x, BEAT_HUD_H, laneW, h, `${colour}55`);
       ctx.globalAlpha = 1;
     }
-    if (state.holding[lane]! >= 0) pixelRect(ctx, x, BEAT_HIT_LINE_Y - 12, laneW, 24, `${colour}55`);
+    // Tuning C: no highlight box at the hit line while a hold note is held (the brighter beam shows it).
   }
 
   pixelRect(ctx, 0, BEAT_HIT_LINE_Y - 2, BEAT_WORLD_W, 4, RETRO_WHITE, bloom);

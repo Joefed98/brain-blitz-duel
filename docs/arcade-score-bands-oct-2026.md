@@ -216,3 +216,43 @@ proof, arena position) changed no sim and keep skylineRev 3 / tiltRev 3. Medians
   that; it stays inside the 135–138 range seven games already sit in, and every other level is in band.
 - `scripts/arcade-tuning-a-check.ts` replays 40 runs recorded on the pre-change code
   (`scripts/fixtures/arcade-tuning-a-legacy.json`) to the same score and final state.
+
+## Tuning C (12 Oct 2026): Joe's calibration play
+
+Joe (a good-to-great player) played every changed game on a phone. Where he found scoring lenient or harsh, the
+game's curve moved so his kind of runs land about 10 % lower or higher; Rainbow Bridge was refitted from his own
+scores and Gemstone's 150 from his par, not from the bots. Every change is a new stamp (`tunec: 1` in the state);
+older rounds replay and score exactly as before (`scripts/arcade-tuning-c-check.ts` replays 72 runs recorded on the
+code before this change, `scripts/fixtures/arcade-tuning-c-legacy.json`). Medians (p10–p90 in the PR) from
+`bun scripts/arcade-skill-bands.ts <game> --rev=c --seeds=60`: the revision rooms stamped before → the Tuning C one,
+same simulated players and seeds.
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Gemstone | matchupRev 4 → 5 | Constant play reverted: each swap resolves its whole cascade and the sim refuses swaps until the gems have cleared and fallen at the original speed (200 ms clear + 120 ms a row, plus the 150 ms swap tween). Joe's par: 150 at 2,500 match points; lower knots 620 → 70, 900 → 100, 1,300 → 125, 2,000 → 145. No bursts or rings over the gems (text pop-ups kept) | 73 → 70 | 97 → 88 | 120 → 103 | 144 → 112 |
+| Grappler | swingRev 6 → 7 | About 10 % lower: each knot below the top at nine tenths of its points | 75 → 67 | 101 → 91 | 129 → 116 | 137 → 123 |
+| Hover | hoverRev 3 → 4 | About 10 % lower (same rule) | 70 → 63 | 97 → 87 | 127 → 114 | 136 → 122 |
+| Rainbow Bridge | inkRev 5 → 6 | Joe scores 110–124 (about 60–76 units); knots below the top at about 93.5 % of their points, so his runs land about 103–116 | 35 → 33 | 55 → 51 | 73 → 67 | 99 → 92 |
+| Roofbound | flipRev 3 → 4 | The corridor bends from 10 s (was 15 s); about 10 % higher (knots below the top gain a tenth) | 77 → 85 | 144 → 147 | 144 → 147 | 150 → 150 |
+| Tempo | beatRev 3 → 4 | About 10 % higher (145 can only rise to 148); no highlight box while a hold note is held (all revisions, art only) | 69 → 76 | 103 → 113 | 131 → 140 | 148 → 149 |
+| Wavefront | wavRev 4 → 5 | The same five waves and boss; waves 3 and 4 drop three quarters of a row at a wall. Ships, armour, waves (15), boss hits and saucers (1, was 5) count; 140 at five perfect waves and every boss hit (269), saucers standing in for misses; the kill adds up to 10 by how fast the boss fell from its arrival (the full 10 within 20 s, none after 40 s). Knots 100 → 25, 180 → 50, 211 → 70, 218 → 100, 245 → 112, 266 → 125, 268 → 138, 269 → 140 | 73 → 72 | 99 → 100 | 140 → 128 | 140 → 139 |
+| Tilt | tiltRev 3 → 4 | The amber marble starts at least a maze's width along the paths from its cup; stars at the mouth of a black hole on or one cell off a route (a risky lean as you pass), else one cell off a route (22 % of maze-1 stars sit at a hole, 65 % of maze-4 stars); knots refitted (50 → 35, 86 → 70, 100 → 100, 114 → 125, 140 → 137) | 67 → 71 | 106 → 99 | 119 → 124 | 131 → 121 |
+| Slice | sliceRev 3 → 4 | Blade 4 px wider each side and cutting 50 % back past the swipe's start (was 25 %); the lower knots move up a little to keep the levels in band | 73 → 74 | 105 → 105 | 130 → 129 | 130 → 126 |
+
+- **Wavefront**: a first cut removed wave 5 (with half-speed drops every level killed the boss, all 150), then a
+  70-hit boss; Joe kept all five waves instead. With three-quarter-speed drops on waves 3 and 4 the boss is reached
+  slightly more often than before (average and good players mostly stop in waves 4–5; great and near-perfect ones
+  fight the boss, killing it in about a third of runs), so the boss stays as it was (36 hits, same volleys). 150 needs
+  all five waves and a kill within 20 s of the boss's arrival: a scripted flawless player (the skill-band player with no
+  lapses or error) does it through the server replay.
+- **Tilt**: the whole-run speed window could not pay the full 10 (the fastest scripted run with every star finishes at
+  68.5–70 s), so tiltRev 4's window runs from 60 s to the buzzer (`TILT_V4_FINISH_MIN`, as Ball Tracker's does from its
+  earliest landing): the full 10 by 75 s. A scripted run with every maze and star scores 150 through the server replay;
+  the level medians did not move.
+- **Gemstone** good, great and near-perfect sit below band (88 / 103 / 112): the simulated players make about 1,100
+  match points at best, well short of Joe's 2,500 par. His par stands; the bots never plan cascades, so they
+  under-rate strong players here.
+- **Tilt**'s bot takes a star beside a hole half as often as any other star (a fall ends the run), and now aims at the
+  star's own point; near-perfect players still fall chasing them, so near (121) sits under great (124).
+- **Junction** is retired to practice (registry `RETIRED_TYPES`); rooms deal 21 arcade games. Its band curve stays
+  for practice and stored rounds.

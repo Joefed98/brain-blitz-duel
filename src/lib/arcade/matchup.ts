@@ -37,7 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -347,6 +347,11 @@ export interface MatchupState extends BandFields {
   /** Jackpot gems made and set off. */
   jackpots?: number;
   jackpotsFired?: number;
+  /**
+   * matchupRev 5 only (Tuning C): swaps are refused before this tick, while the
+   * last swap's gems clear and fall at the original speed. Absent on every earlier round.
+   */
+  busyUntil?: number;
 }
 
 function drawSymbol(rng: number): { state: number; value: number } {
@@ -772,6 +777,7 @@ function stepRev2(state: MatchupState, input: ArcadeInputEvent | null): MatchupS
 }
 
 function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState {
+  if (state.rev === MATCHUP_REV_WAIT) return stepWait(state, input);
   if (matchupConstantPlay(state)) return stepRev2(state, input);
   if (isOver(state)) return state;
   const tick = state.tick + 1;
@@ -851,8 +857,8 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 
 /** The par a round scores against: matchupRev 2 has its own. */
 export function matchupParRaw(state: Pick<MatchupState, "rev" | "band">): number {
-  // Score-band rounds (matchupRev 4) reach 150 at the band curve's top.
-  if (state.band) return bandTop(MATCHUP_BAND_CURVE);
+  // Score-band rounds (matchupRev 4) reach 150 at the band curve's top; matchupRev 5 at 2,500.
+  if (state.band) return bandTop(matchupBandCurve(state));
   if (state.rev === MATCHUP_REV) return MATCHUP_V3_PAR_RAW;
   return state.rev === MATCHUP_REV2 ? MATCHUP_V2_PAR_RAW : MATCHUP_PAR_RAW;
 }
@@ -910,6 +916,8 @@ export function matchupCheckpoint(state: MatchupState): MatchupCheckpoint {
   const snapshot = matchupCheckpointState(state);
   // matchupRev 2 folds its pending step and jackpots into the checksum; the encoded fields stay the same.
   const extra = matchupConstantPlay(state) ? [state.pendingTick ?? 0, state.resolveSerial ?? 0, state.jackpots ?? 0, state.jackpotsFired ?? 0] : [];
+  // matchupRev 5 folds its wait and jackpots in after the unchanged fields.
+  if (state.busyUntil !== undefined) extra.push(state.busyUntil, state.jackpots ?? 0, state.jackpotsFired ?? 0);
   return { ...snapshot, checksum: fnv([...Object.values(snapshot), ...extra]) };
 }
 
@@ -1362,6 +1370,7 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_WAIT) return matchupWaitGame;
   if (rev === MATCHUP_REV_BAND) return matchupBandGame;
   if (rev === MATCHUP_REV) return matchupRev3Game;
   return rev === MATCHUP_REV2 ? matchupRev2Game : matchupGame;
@@ -1376,7 +1385,7 @@ export const MATCHUP_BAND_CURVE = bandCurve([0, 560, 760, 980, 1150, 1300], [0, 
 
 export function matchupBandParts(state: MatchupState): BandParts {
   const units = Math.max(0, state.raw);
-  return { units, points: bandPoints(MATCHUP_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
+  return { units, points: bandPoints(matchupBandCurve(state), units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
 }
 
 function scoreBand(state: MatchupState): number {
@@ -1384,3 +1393,120 @@ function scoreBand(state: MatchupState): number {
 }
 
 export const matchupBandGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupRev3Game, init: (seed) => bandInit(matchupRev3Game.init(seed)) };
+
+/* ============ Tuning C (matchupRev 5): wait for the gems to fall ============ */
+
+/**
+ * matchupRev 5 (Tuning C, Oct 2026): constant play is reverted. A swap resolves
+ * its whole cascade on the tick it applies (as the original rules did), keeps
+ * the Jackpot gem, and the sim refuses further swaps until the swap tween and
+ * every step's original-speed clear and fall (MATCHUP_CLEAR_MS + rows ×
+ * MATCHUP_DROP_MS) are over, so the wait is the same on every phone and in the
+ * server replay. A swap that makes no line swaps back and waits out both tweens.
+ * Scored on the band shape with 150 at 2,500 match points (Joe's par).
+ */
+export const MATCHUP_REV_WAIT = 5;
+/**
+ * matchupRev 5 band knots: Joe's par fixes 150 at 2,500 match points (the original
+ * rules' par); the lower knots keep the simulated average player near 70, and good
+ * and great runs need more than on rev 4 (scripts/arcade-skill-bands.ts --rev=c).
+ */
+export const MATCHUP_V5_BAND_CURVE = bandCurve([0, 620, 900, 1300, 2000, 2500], [0, 70, 100, 125, 145, 150]);
+
+/** The band curve a banded state scores on. */
+export function matchupBandCurve(state: Pick<MatchupState, "rev">): BandCurve {
+  return state.rev === MATCHUP_REV_WAIT ? MATCHUP_V5_BAND_CURVE : MATCHUP_BAND_CURVE;
+}
+
+/** matchupRev 5: ticks a swap keeps the board busy (swap tween plus every step's original-speed clear and fall). */
+export function matchupWaitTicks(animation: readonly MatchupAnimStep[]): number {
+  const ms = animation.reduce((total, item) => total + MATCHUP_CLEAR_MS + Math.max(1, item.ticks) * MATCHUP_DROP_MS, MATCHUP_V3_SWAP_MS);
+  return Math.ceil((ms * TICKS_PER_SECOND) / 1000);
+}
+/** matchupRev 5: ticks an invalid swap keeps the board busy (out and back). */
+export const MATCHUP_V5_INVALID_TICKS = Math.ceil((2 * MATCHUP_V3_SWAP_MS * TICKS_PER_SECOND) / 1000);
+
+/** matchupRev 5: true while the board is still clearing and falling (swaps are refused). */
+export function matchupBusy(state: MatchupState): boolean {
+  return state.tick + 1 < (state.busyUntil ?? 0);
+}
+
+function stepWait(state: MatchupState, input: ArcadeInputEvent | null): MatchupState {
+  if (isOver(state)) return state;
+  const tick = state.tick + 1;
+  const done = (next: MatchupState) => (isOver(next) ? { ...next, endedTick: tick } : next);
+  if (input && input.k === MATCHUP_INPUT_SWAP && tick >= (state.busyUntil ?? 0)) {
+    const row1 = clampInt(input.a, 0, MATCHUP_ROWS - 1);
+    const col1 = clampInt(input.b, 0, MATCHUP_SIZE - 1);
+    const row2 = clampInt(input.c, 0, MATCHUP_ROWS - 1);
+    const col2 = clampInt(input.d, 0, MATCHUP_SIZE - 1);
+    if (adjacent(row1, col1, row2, col2)) {
+      const a = matchupIndex(row1, col1);
+      const b = matchupIndex(row2, col2);
+      const cells = [...state.cells];
+      const av = cells[a] ?? 0;
+      const bv = cells[b] ?? 0;
+      cells[a] = bv;
+      cells[b] = av;
+      const specialSeeds = [a, b].filter((index) => isSpecial(cells[index] ?? -1));
+      const own = matchupRuns(cells).some((run) => run.cells.includes(a) || run.cells.includes(b));
+      if (!own && specialSeeds.length === 0) {
+        return done({
+          ...state,
+          tick,
+          lastInvalidA: a,
+          lastInvalidB: b,
+          lastInvalidTick: tick,
+          lastGain: 0,
+          lastSteps: 0,
+          lastCleared: [],
+          lastAnimation: [],
+          lastAnimTicks: 0,
+          busyUntil: tick + MATCHUP_V5_INVALID_TICKS,
+        });
+      }
+      const heads = [...state.heads];
+      const resolved = resolveBoard(cells, state.queues, heads, b, specialSeeds, a, { maxSteps: Number.MAX_SAFE_INTEGER, jackpot: true });
+      let rng = state.rng;
+      let board = cells;
+      let reshuffles = state.reshuffles;
+      if (!matchupFindSwap(board)) {
+        const shuffled = reshuffle(board, rng);
+        rng = shuffled.state;
+        board = shuffled.cells;
+        reshuffles += 1;
+      }
+      const wait = matchupWaitTicks(resolved.animation);
+      return done({
+        ...state,
+        tick,
+        rng,
+        cells: board,
+        heads,
+        swaps: state.swaps + 1,
+        raw: state.raw + resolved.gain,
+        bestLine: Math.max(state.bestLine, resolved.best),
+        cascades: state.cascades + Math.max(0, resolved.steps - 1),
+        reshuffles,
+        lastScoreTick: tick,
+        lastGain: resolved.gain,
+        lastSteps: resolved.steps,
+        lastCleared: resolved.cleared,
+        lastAnimation: resolved.animation,
+        lastAnimTicks: wait,
+        lastInvalidA: -1,
+        lastInvalidB: -1,
+        busyUntil: tick + wait,
+        jackpots: (state.jackpots ?? 0) + resolved.jackpots,
+        jackpotsFired: (state.jackpotsFired ?? 0) + resolved.fired,
+      });
+    }
+  }
+  return done({ ...state, tick });
+}
+
+function initWait(seed: number): MatchupState {
+  return bandInit({ ...init(seed), rev: MATCHUP_REV_WAIT, busyUntil: 0, jackpots: 0, jackpotsFired: 0 });
+}
+
+export const matchupWaitGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupGame, init: initWait };

@@ -78,6 +78,11 @@ export interface Maze {
   start2?: number;
   exit2?: number;
   exitDir2?: number;
+  /**
+   * tiltRev 4 only: each star's exact point (x, y in FP, the maze frame), flattened.
+   * Stars there sit at the mouth of a black hole beside a route; `stars` keeps the cell each point is in.
+   */
+  starXY?: number[];
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -281,6 +286,8 @@ export interface TiltState extends BandFields {
   /** tiltRev 3 (score bands) only: best progress towards the exit(s) in the maze being played (0–29) and which maze that was. */
   prog?: number;
   progMaze?: number;
+  /** tiltRev 4 only (Tuning C): 1 = mazes decorated by decorateV4. Absent on every earlier round. */
+  tunec?: number;
 }
 
 const cache = new Map<number, { list: Maze[]; rng: number }>();
@@ -535,6 +542,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   const values = Object.values(snap);
   // tiltRev 2: the amber marble, cups and stars fold into the checksum; encoded fields are unchanged.
   if (state.rev === TILT_REV) values.push(state.b ? (state.b.x ^ Math.imul(state.b.y, 31)) | 0 : 0, state.aHome ?? 0, state.bHome ?? 0, state.stars ?? 0);
+  // tiltRev 4 adds its marker last.
+  if (state.tunec) values.push(state.tunec);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -951,7 +960,7 @@ function stepRev2(state: TiltState, input: ArcadeInputEvent | null): TiltState {
     const q = Math.trunc(m.cs / 3);
     for (let k = 0; k < stars.length; k++) {
       if (got[k]) continue;
-      const p = cellCentre(m, stars[k]!);
+      const p = tiltStarPoint(m, k);
       if (live.some((ball) => Math.abs(ball.x - p.x) < q && Math.abs(ball.y - p.y) < q)) {
         got[k] = 1;
         s.stars = (s.stars ?? 0) + 1;
@@ -985,6 +994,12 @@ export function tiltTotalStars(state: TiltState): number {
   return state.rev === TILT_REV ? state.list.reduce((n, m) => n + (m.stars?.length ?? 0), 0) : 0;
 }
 
+/** A star's point in the maze frame, FP: its stored point (tiltRev 4) or its cell's centre. */
+export function tiltStarPoint(m: Maze, k: number): { x: number; y: number } {
+  if (m.starXY) return { x: m.starXY[2 * k]!, y: m.starXY[2 * k + 1]! };
+  return cellCentre(m, m.stars![k]!);
+}
+
 /** Render/bots: cell-centre position of a cell in a maze, FP. */
 export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
   return cellCentre(m, c);
@@ -992,6 +1007,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_TUNEC) return tiltTunecGame;
   if (rev === TILT_REV_BAND) return tiltBandGame;
   return rev === TILT_REV ? tiltRev2Game : tiltGame;
 }
@@ -1053,8 +1069,14 @@ export function tiltBandParts(state: TiltState): BandParts {
   const finished = mazes >= TILT_MAX_MAZES;
   return {
     units,
-    points: bandPoints(TILT_BAND_CURVE, units),
-    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, TILT_RUN_TICKS - clampInt(state.endedTick, 0, TILT_RUN_TICKS), TILT_RUN_TICKS) : 0,
+    points: bandPoints(state.tunec ? TILT_V4_BAND_CURVE : TILT_BAND_CURVE, units),
+    // tiltRev 4: the speed window runs from TILT_V4_FINISH_MIN (no perfect run can finish sooner) to the
+    // buzzer, so a fast perfect run takes the full 10; earlier revisions use the whole run.
+    bonus: finished
+      ? state.tunec
+        ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(TILT_RUN_TICKS - state.endedTick, 0, TILT_RUN_TICKS - TILT_V4_FINISH_MIN), TILT_RUN_TICKS - TILT_V4_FINISH_MIN)
+        : speedBonusCurve(BAND_FINISH_BONUS, TILT_RUN_TICKS - clampInt(state.endedTick, 0, TILT_RUN_TICKS), TILT_RUN_TICKS)
+      : 0,
     penalty: 0,
     finished,
     text: `${mazes} / ${TILT_MAX_MAZES} mazes${finished ? "" : ` + ${Math.round((100 * prog) / TILT_BAND_PROGRESS)}% of the next`} · ${stars} stars`,
@@ -1100,5 +1122,187 @@ export function tiltCupReachable(m: Maze, which: 0 | 1): boolean {
 
 /** True when every maze a seed deals on the live revision has both cups reachable (the server deals only such seeds). */
 export function tiltSeedCupsReachable(seed: number): boolean {
-  return tiltBandGame.init(seed).list.every((m) => tiltCupReachable(m, 0) && tiltCupReachable(m, 1));
+  return tiltTunecGame.init(seed).list.every((m) => tiltCupReachable(m, 0) && tiltCupReachable(m, 1));
 }
+
+/* ============== Tuning C (tiltRev 4, Oct 2026) ============== */
+
+/**
+ * tiltRev 4 (Tuning C): the same seeded mazes, walls, holes and blue cup as
+ * tiltRev 3, decorated from the same separate stream with two changes:
+ *  - the amber cup is picked first (a quarter turn or more round the rim from
+ *    the blue cup, the shortest route from the maze centre, as before), then
+ *    the amber marble starts at least TILT_AMBER_MIN_HOPS(n) cells along the
+ *    maze's paths from its own cup (a seeded pick among the nearest such cells
+ *    to the centre, off the blue route), so it never starts near its cup;
+ *  - each star sits at the mouth of a black hole whose dead end opens on, or
+ *    one cell off, a marble's route to its cup: inside the cell in front of the
+ *    hole, TILT_STAR_MOUTH of a cell toward it. Taking it means leaning toward
+ *    the hole as you pass; overshoot and the marble drops in. Mazes with too few
+ *    such holes (most holes sit deeper in side passages) put the rest on dead ends one cell off a route.
+ * Scored on the tiltRev 3 band curve. States add `tunec: 1`.
+ */
+export const TILT_REV_TUNEC = 4;
+/**
+ * tiltRev 4 band knots: the amber marble's longer trip and the riskier stars make
+ * the same players reach less (scripts/arcade-skill-bands.ts tilt --rev=c), so the
+ * knots are refitted to keep each level in its band; all four mazes and eight
+ * stars still reach 140, plus up to 10 for speed.
+ */
+/**
+ * tiltRev 4: the earliest a run can finish all four mazes for the speed bonus (60 s): the amber
+ * marble's walk makes the whole-run window unreachable (the fastest scripted run with every star
+ * finishes at 68.5 s). The full 10 for finishing by 75 s, falling to 0 at the buzzer.
+ */
+export const TILT_V4_FINISH_MIN = 60 * TICKS_PER_SECOND;
+export const TILT_V4_BAND_CURVE = bandCurve([0, 50, 86, 100, 114, 140, 160], [0, 35, 70, 100, 125, 137, 140]);
+/** Minimum path distance (cells) from the amber cup's cell to the amber start: the maze's width in cells. */
+export function tiltAmberMinHops(m: Maze): number {
+  return m.n;
+}
+/** How far from the front cell's centre toward the hole a mouth star sits, in 1/100 of a cell. */
+export const TILT_STAR_MOUTH = 45;
+
+function decorateV4(m: Maze, index: number, draw: (n: number) => number): Maze {
+  const out: Maze = { ...m, stars: [], starXY: [], start2: -1, exit2: -1, exitDir2: -1 };
+  const a = bfsFrom(m, m.start);
+  const routes = routeCells(a.parent, m.exit);
+  const used = new Set<number>([m.start, m.exit, ...m.pits]);
+  const n = m.n;
+  if (index + 1 >= TILT_TWO_FROM) {
+    out.crevice = -1;
+    out.gateDir = -1;
+    out.lock = -1;
+    const inCell = (i: number, j: number) => i >= 0 && j >= 0 && i < n && j < n && m.inside[j * n + i] === 1;
+    // The amber cup first: a quarter turn or more from the blue cup, then the shortest trip from the centre.
+    const exitBearing = cellBearing(m, m.exit);
+    let best = -1;
+    let bestDir = -1;
+    let bestScore = -1;
+    for (let c = 0; c < n * n; c++) {
+      if (!m.inside[c] || used.has(c)) continue;
+      for (let d = 0; d < 4; d++) {
+        if (inCell((c % n) + DX[d]!, Math.trunc(c / n) + DY[d]!)) continue;
+        let sep = Math.abs(cellBearing(m, c) - exitBearing);
+        if (sep > 180) sep = 360 - sep;
+        const score = Math.min(sep, 90) * 1000 - a.dist[c]!;
+        if (score > bestScore) {
+          bestScore = score;
+          best = c;
+          bestDir = d;
+        }
+        break;
+      }
+    }
+    // Then the amber start: off the blue route, at least the minimum path distance from its own cup,
+    // among the nearest such cells to the centre (a seeded pick of up to four).
+    const fromCup = bfsFrom(m, best).dist;
+    const minHops = tiltAmberMinHops(m);
+    let cands: number[] = [];
+    for (let c = 0; c < n * n; c++) {
+      if (!m.inside[c] || used.has(c) || routes.has(c) || c === best || a.dist[c]! < 2) continue;
+      if (fromCup[c]! >= minHops) cands.push(c);
+    }
+    if (!cands.length) {
+      // No cell that far (never seen on the live sizes): the farthest cell from the cup off the blue route.
+      let far = -1;
+      for (let c = 0; c < n * n; c++) if (m.inside[c] && !used.has(c) && !routes.has(c) && c !== best && (far < 0 || fromCup[c]! > fromCup[far]!)) far = c;
+      cands = far >= 0 ? [far] : [m.start];
+    }
+    cands.sort((x, y) => a.dist[x]! - a.dist[y]! || x - y);
+    const pool = cands.slice(0, 4);
+    const start2 = pool[draw(pool.length)]!;
+    out.start2 = start2;
+    out.exit2 = best;
+    out.exitDir2 = bestDir;
+    for (const c of routeCells(bfsFrom(m, start2).parent, best)) routes.add(c);
+    used.add(start2);
+    used.add(best);
+  }
+  if (m.crevice >= 0 && out.crevice >= 0) {
+    used.add(m.crevice);
+    used.add(m.lock);
+  }
+  // Hops from a cell to the nearest route cell (0 on a route).
+  const toRoute = new Array<number>(n * n).fill(-1);
+  const queue: number[] = [];
+  for (const c of routes) {
+    toRoute[c] = 0;
+    queue.push(c);
+  }
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q]!;
+    for (let d = 0; d < 4; d++) {
+      const nc = openNeighbour(n, m.inside, m.wallR, m.wallD, c, d);
+      if (nc >= 0 && toRoute[nc]! < 0) {
+        toRoute[nc] = toRoute[c]! + 1;
+        queue.push(nc);
+      }
+    }
+  }
+  const put = (cell: number, x: number, y: number) => {
+    out.stars!.push(cell);
+    out.starXY!.push(x, y);
+  };
+  // Mouth stars: holes whose front cell is on a route or one cell off it, nearest first, seeded order within a distance.
+  const mouths: { pit: number; front: number; d: number; hops: number }[] = [];
+  for (const pit of m.pits) {
+    for (let d = 0; d < 4; d++) {
+      const front = openNeighbour(n, m.inside, m.wallR, m.wallD, pit, d);
+      if (front < 0 || m.pits.includes(front) || front === out.start2 || front === m.start) continue;
+      const hops = toRoute[front]!;
+      if (hops >= 0 && hops <= 1) mouths.push({ pit, front, d: (d + 2) % 4, hops });
+    }
+  }
+  for (const hops of [0, 1]) {
+    const tier = mouths.filter((e) => e.hops === hops);
+    while (tier.length && out.stars!.length < TILT_STARS_PER_MAZE) {
+      const e = tier.splice(draw(tier.length), 1)[0]!;
+      const p = cellCentre(m, e.front);
+      // From the front cell's centre toward the hole (e.d points from the front cell to the pit).
+      const off = Math.trunc((m.cs * TILT_STAR_MOUTH) / 100);
+      put(e.front, p.x + DX[e.d]! * off, p.y + DY[e.d]! * off);
+    }
+  }
+  // The rest: dead ends one cell off a route (their centre), then the shortest dead-end detours.
+  if (out.stars!.length < TILT_STARS_PER_MAZE) {
+    const ends: { c: number; hops: number }[] = [];
+    for (let c = 0; c < n * n; c++) {
+      if (!m.inside[c] || used.has(c) || routes.has(c) || out.stars!.includes(c)) continue;
+      let open = 0;
+      for (let d = 0; d < 4; d++) if (openNeighbour(n, m.inside, m.wallR, m.wallD, c, d) >= 0) open += 1;
+      if (open === 1 && toRoute[c]! > 0) ends.push({ c, hops: toRoute[c]! });
+    }
+    ends.sort((x, y) => x.hops - y.hops || x.c - y.c);
+    const nearest = ends.length ? ends[0]!.hops : 0;
+    const pool = ends.filter((e) => e.hops === nearest);
+    const rest = ends.filter((e) => e.hops !== nearest);
+    while (out.stars!.length < TILT_STARS_PER_MAZE && (pool.length || rest.length)) {
+      const e = pool.length ? pool.splice(draw(pool.length), 1)[0]! : rest.shift()!;
+      const p = cellCentre(m, e.c);
+      put(e.c, p.x, p.y);
+    }
+  }
+  return out;
+}
+
+const cacheV4 = new Map<number, Maze[]>();
+
+function initV4(seed: number): TiltState {
+  const s = init(seed);
+  let list = cacheV4.get(seed | 0);
+  if (!list) {
+    let rng = (seed ^ 0x7a11_5eed) | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    list = s.list.map((m, i) => decorateV4(m, i, draw));
+    if (cacheV4.size > 16) cacheV4.clear();
+    cacheV4.set(seed | 0, list);
+  }
+  return bandInit({ ...enterMaze({ ...s, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000 }, 0), tunec: 1 });
+}
+
+export const tiltTunecGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, init: initV4 };

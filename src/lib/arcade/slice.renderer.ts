@@ -5,7 +5,7 @@ import { SLICE_FX } from "./arcadeFxGames.renderer";
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
-import { sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sliceMayoWeight, sliceObjectAt, sliceSlowOn, sliceSuppressed,
+import { SLICE_BLADE_V4, sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sliceMayoWeight, sliceObjectAt, sliceSlowOn, sliceSuppressed,
   SLICE_SPECIAL_MAYO,
   SLICE_COMBO_TICKS, SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
   SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
@@ -230,7 +230,7 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
     }
   }
   ctx.lineCap='round';for(const e of memo.trail){const [x1,y1,x2,y2]=e.seg;ctx.globalAlpha=.65*(1-(now-e.at)/110);ctx.strokeStyle=K.silver;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
-  ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
+  ctx.globalAlpha=1;if(state.swipe){const[x1,y1,x2,y2]=state.swipe;ctx.strokeStyle=K.silver;ctx.lineWidth=state.tunec?2*SLICE_BLADE_V4:3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.strokeStyle=K.white;ctx.lineWidth=.8;ctx.stroke();}
   if(state.flash>0){ctx.fillStyle=`rgba(224,80,60,${state.flash/SLICE_FLASH_TICKS*.45})`;ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_WORLD_H);}
   drawSliceComboMeter(ctx,state);
   ctx.fillStyle='rgba(18,12,8,0.78)';ctx.fillRect(0,0,SLICE_WORLD_W,SLICE_HUD_H);

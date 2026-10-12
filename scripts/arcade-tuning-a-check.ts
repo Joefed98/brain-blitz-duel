@@ -125,7 +125,7 @@ if (want("skyline")) {
 /* ============================== 2b. Wavefront ============================== */
 if (want("wavefront")) {
   section("Wavefront wavRev 4: shaped formations");
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES, "new Wavefront rounds are stamped wavRev 4");
+  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 1, "new Wavefront rounds are stamped wavRev 5 (Tuning C, after wavRev 4)");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;
@@ -323,7 +323,7 @@ if (want("orbit")) {
 /* =============================== 2d. Grappler =============================== */
 if (want("swing")) {
   section("Grappler swingRev 6: touch stars, crumbling stalactites");
-  ok(generateSwing().swingRev === SWING_REV_TUNED, "new Grappler rounds are stamped swingRev 6");
+  ok(generateSwing().swingRev === SWING_REV_TUNED + 1, "new Grappler rounds are stamped swingRev 7 (Tuning C, after swingRev 6)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");
@@ -396,7 +396,8 @@ if (want("swing")) {
 if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn, arena lower");
   const p = generateTilt();
-  ok(p.tiltRev === TILT_REV_BAND && tiltSeedCupsReachable(p.seed), "new Tilt rounds keep tiltRev 3 (no gameplay change) and deal a seed with every cup reachable");
+  // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check); every cup stays reachable.
+  ok(p.tiltRev === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;
   let amber = 0;

@@ -258,6 +258,12 @@ export interface ArcadeFxEvent<S> {
    */
   sweep?: boolean;
   /**
+   * Text only at the event's place: no particle burst, ring or lights there
+   * (Gemstone, where bursts over the gems read as bubbles). The pop or banner,
+   * edge glow, arena glow and flash still play.
+   */
+  textOnly?: boolean;
+  /**
    * Also release a short burst of soft coloured lights (glow orbs that spread
    * from `at` and fade within ARCADE_FX_LIGHTS_MS), cycling these colours.
    */
@@ -537,7 +543,7 @@ function spawn<S>(
   const big = event.kind === "clear" || event.kind === "final";
   const textColours = arcadeFxTextColours(spec.game);
 
-  const n = still ? Math.min(3, t.particles) : t.particles;
+  const n = event.textOnly ? 0 : still ? Math.min(3, t.particles) : t.particles;
   for (let i = 0; i < n; i++) {
     const angle = (i / n) * Math.PI * 2 + hash(seed, i) * 0.9;
     const speed = (0.45 + hash(seed, i + 97) * 0.55) * t.spread;
@@ -602,7 +608,7 @@ function spawn<S>(
     }
     if (m.pops.length > ARCADE_FX_MAX_POPS) m.pops.splice(0, m.pops.length - ARCADE_FX_MAX_POPS);
   }
-  if (t.ring) {
+  if (t.ring && !event.textOnly) {
     m.rings.push({
       x: point.x,
       y: point.y,
@@ -622,7 +628,7 @@ function spawn<S>(
     m.shakeAt = now;
     m.shakeMs = t.shake;
   }
-  if (event.lights?.length) {
+  if (event.lights?.length && !event.textOnly) {
     // Soft lights spread from the event in an even ring with a little seeded
     // jitter; with reduced motion they glow in place and fade.
     const lights = still ? 3 : 7;

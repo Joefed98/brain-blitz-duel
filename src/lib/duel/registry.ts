@@ -174,6 +174,8 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "dig",
   "bastion",
   "ladder",
+  // Tuning C (Oct 2026): practice only.
+  "junction",
 ]);
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {

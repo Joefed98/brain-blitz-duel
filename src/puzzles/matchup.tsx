@@ -16,6 +16,9 @@ import {
 import {
   matchupCellAt,
   matchupAnimationDuration,
+  matchupBusy,
+  matchupConstantPlay,
+  MATCHUP_REV_WAIT,
   matchupCheckpoint,
   matchupGameFor,
   MATCHUP_BG,
@@ -86,8 +89,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MatchupPuzzleData | null = puzzle.type === "matchup" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const matchupGame = matchupGameFor(data?.matchupRev);
-  /** matchupRev 2: keep swapping while gems clear and fall; each resolution step animates on its own. */
-  const constantPlay = Boolean(data?.matchupRev);
+  /** matchupRev 2–4: keep swapping while gems clear and fall; each resolution step animates on its own. */
+  const constantPlay = matchupConstantPlay(matchupGame.init(seed));
+  /** matchupRev 5: the sim itself refuses swaps until the gems have fallen in. */
+  const waitPlay = matchupGame.init(seed).rev === MATCHUP_REV_WAIT;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -325,7 +330,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     locked ||
     submitted.current ||
     matchupGame.isOver(state.current) ||
-    (!constantPlay && performance.now() < animUntil.current);
+    (waitPlay ? matchupBusy(state.current) || pending.current.length > 0 : !constantPlay && performance.now() < animUntil.current);
 
   const trySwap = (a: { row: number; col: number }, b: { row: number; col: number }) => {
     if (Math.abs(a.row - b.row) + Math.abs(a.col - b.col) !== 1) return false;

@@ -4,7 +4,7 @@
  * each time it starts a round.
  */
 
-import { HOVER_REV_BAND } from "@/lib/arcade/hover";
+import { HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 
 import { randomBelow } from "./random";
 import type { HoverPuzzleData } from "./types";
@@ -15,5 +15,5 @@ export function hoverSeed(): number {
 }
 
 export function generateHover(): HoverPuzzleData {
-  return { type: "hover", seed: hoverSeed(), hoverRev: HOVER_REV_BAND };
+  return { type: "hover", seed: hoverSeed(), hoverRev: HOVER_REV_TUNEC };
 }

@@ -1,7 +1,7 @@
 /**
  * Shared arcade success layer + art pipeline checks (presentation only).
  *
- *  1. All 22 active arcade games: seeded random inputs, every frame drawn through
+ *  1. All 22 arcade games with a world (21 active, Junction practice only): seeded random inputs, every frame drawn through
  *     the game's real renderer (which now runs the shared effects layer). Drawing
  *     must never change state (deep-equal before/after every draw), and the run
  *     with drawing must end in exactly the state of the same run without drawing.
@@ -134,7 +134,7 @@ const GAMES: Record<string, AnyGame> = {
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 22, "22 active arcade games");
+assert.equal(Object.keys(GAMES).length, 22, "22 arcade games with a world (21 active, Junction practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),

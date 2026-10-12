@@ -14,7 +14,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { ARCADE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
@@ -105,7 +105,8 @@ for (const [key, definition] of active) {
     }
   }
 }
-assert.equal(arenas, Object.keys(ARCADE_WORLDS).length, "every arcade game has its arena slot");
+// Junction (practice only since Tuning C) is not an active type; every active arcade game is.
+assert.equal(arenas, ACTIVE_ARCADE_GAMES.length, "every active arcade game has its arena slot");
 console.log(`PASS ${active.length} active games, ${comparisons} room/multi versus practice DOM comparisons at 390×700, 375×667, 390×844, 430×932 and 1280×800; ${controls} control nodes covered.`);
 console.log(`PASS ${arenas} arcade stages: one arena slot each with the game's world size and arena fill, one world-aspect arena inside, controls below it.`);
 console.log("PASS fixed 36px top bar, 28px heading, shared 20px timer and identical stage ancestry; calculated room/practice height delta 0px, including 34px bottom inset.");

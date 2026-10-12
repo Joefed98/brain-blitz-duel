@@ -87,9 +87,11 @@ export const INK_REV3 = 3;
 export const INK_REV4 = 4;
 /** Score-band revision (puzzle.inkRev = 5): rev-4 play unchanged, scored on the shared band curve (scoreBands.ts). */
 export const INK_REV_BAND = 5;
+/** Tuning C (puzzle.inkRev = 6): inkRev 5 play unchanged, scored on INK_V6_BAND_CURVE. */
+export const INK_REV_TUNEC = 6;
 /** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
 function rev3Rules(rev?: number | null): boolean {
-  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND;
+  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC;
 }
 /** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
 export const INK_STAR_R = 9;
@@ -1326,6 +1328,8 @@ export interface InkState extends BandFields {
   /** Rev 4 only: stars potted, and whether the coin in this drop has touched the star. */
   stars?: number;
   starGot?: number;
+  /** inkRev 6 only (Tuning C): 1 = scored on INK_V6_BAND_CURVE. Absent on every earlier round. */
+  tunec?: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -1638,6 +1642,8 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
   for (const p of state.positions) values.push(p.x, p.y);
   // Rev 4 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === INK_REV4) values.push(state.stars ?? 0, state.starGot ?? 0);
+  // inkRev 6 (Tuning C) adds its marker before the segments only when present, so older sums are unchanged.
+  if (state.tunec) values.push(state.tunec);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
   let checksum = 0x811c9dc5;
   for (const value of values) {
@@ -1818,6 +1824,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_TUNEC) return inkBridgeTunecGame;
   if (rev === INK_REV_BAND) return inkBridgeBandGame;
   if (rev === INK_REV4) return inkBridgeInkRev4Game;
   if (rev === INK_REV3) return inkBridgeInkRev3Game;
@@ -1831,7 +1838,7 @@ export const INK_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 35
 export function inkBridgeBandParts(state: InkState): BandParts {
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS) + INK_STAR_POINTS * clampInt(state.stars ?? 0, 0, INK_STAR_LEVELS);
   const finished = state.levels >= INK_LEVELS;
-  return { units, points: bandPoints(INK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
+  return { units, points: bandPoints(state.tunec ? INK_V6_BAND_CURVE : INK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
 }
 
 function scoreBand(state: InkState): number {
@@ -1839,3 +1846,15 @@ function scoreBand(state: InkState): number {
 }
 
 export const inkBridgeBandGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeInkRev4Game, init: (seed) => bandInit(inkBridgeInkRev4Game.init(seed)) };
+
+/* ================= Tuning C (inkRev 6, Oct 2026) ================= */
+
+/**
+ * inkRev 6 knots, refitted from Joe's phone runs rather than the bots: he scores
+ * 110–124 on inkRev 5 (about 60–76 units: six or seven levels plus stars) and found
+ * that slightly lenient, so every knot below the top keeps its units and drops to
+ * about 93.5 % of its points (his runs now land about 103–116). All ten levels and
+ * every star still reach 140, plus up to 10 for speed.
+ */
+export const INK_V6_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 33, 51, 79, 103, 120, 129, 140]);
+export const inkBridgeTunecGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeBandGame, init: (seed) => ({ ...inkBridgeBandGame.init(seed), tunec: 1 }) };

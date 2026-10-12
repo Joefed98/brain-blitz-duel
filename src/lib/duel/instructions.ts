@@ -19,26 +19,26 @@ import { BUB_SPECIAL_BLOCK, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
-import { WAV_BAND_CURVE } from "@/lib/arcade/wavefront";
-import { FLIP_BAND_CURVE } from "@/lib/arcade/flip";
-import { INK_BAND_CURVE } from "@/lib/arcade/inkBridge";
-import { MATCHUP_BAND_CURVE } from "@/lib/arcade/matchup";
+import { WAV_BOSS_HP, WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
+import { FLIP_V4_BAND_CURVE } from "@/lib/arcade/flip";
+import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
+import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
 import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
 import { SNAKE_BAND_CURVE } from "@/lib/arcade/snake";
 import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
 import { SNIP_BAND_CURVE } from "@/lib/arcade/snip";
-import { HOVER_BAND_CURVE } from "@/lib/arcade/hover";
+import { HOVER_V4_BAND_CURVE } from "@/lib/arcade/hover";
 import { SKYLINE_BAND_CURVE } from "@/lib/arcade/skyline";
 import { JUNC_BAND_CURVE } from "@/lib/arcade/junction";
 import { BRK_BAND_CURVE } from "@/lib/arcade/breaker";
-import { TILT_BAND_CURVE } from "@/lib/arcade/tilt";
+import { TILT_V4_BAND_CURVE } from "@/lib/arcade/tilt";
 import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
-import { BEAT_BAND_CURVE } from "@/lib/arcade/beat";
-import { SLICE_BAND_CURVE } from "@/lib/arcade/slice";
+import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
+import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
-import { SWING_BAND_CURVE } from "@/lib/arcade/swing";
+import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
 import { BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
 import { bandHelp } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "./types";
@@ -547,7 +547,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
       { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_BAND_CURVE, "Lasting the minute adds 10."),
+    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_V4_BAND_CURVE, "Lasting the minute adds 10."),
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -638,16 +638,16 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   matchup: {
     goal: "Line up three or more gems.",
     how: [
-      { action: "Swap neighbours;", detail: "keep going as gems fall." },
+      { action: "Swap neighbours;", detail: "wait for gems to fall in." },
       { action: "4, 5 or an L / T", detail: "makes a bomb or a star." },
       { action: "5 plus an L / T in one swap:", detail: "a jackpot!" },
-      { action: "Drag one gem onto its neighbour", detail: "to swap them. You can keep swapping while matched gems clear and new ones fall.", helpOnly: true },
+      { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
       { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
       { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_BAND_CURVE),
+    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V5_BAND_CURVE),
   },
   snake: {
     goal: "Eat the stars; don't crash.",
@@ -740,7 +740,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
       { action: "One finger-down-to-up path counts together", detail: "- curves too, up to about three-quarters of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
-    score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_BAND_CURVE),
+    score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_V4_BAND_CURVE),
   },
   bubble: {
     goal: "Pop bubbles in threes.",
@@ -767,7 +767,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_BAND_CURVE),
+    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V4_BAND_CURVE),
   },
 
   ricochet: {
@@ -824,15 +824,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to move;", detail: "you fire on your own." },
       { action: "Dodge red bolts and divers:", detail: "3 lives." },
-      { action: "After wave 5,", detail: "shoot down the boss." },
+      { action: "After wave 5,", detail: "shoot down the boss fast." },
       { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
       { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
-      { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon - always 30 ships.", helpOnly: true },
+      { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon - always 30 ships. Waves 3 and 4 come down more slowly.", helpOnly: true },
       { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits - every hit counts.", helpOnly: true },
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
-      { action: "The boss slides side to side and fires in patterns.", detail: "Its bar shows the 36 hits it can take; every hit counts, and destroying it ends the run.", helpOnly: true },
+      { action: "The boss slides side to side and fires in patterns.", detail: `Its bar shows the ${WAV_BOSS_HP} hits it can take; every hit counts, and destroying it ends the run - the sooner after it arrives, the more it scores.`, helpOnly: true },
     ],
-    score: bandHelp("Ships, armour hits and boss hits count 1, saucers 5 and cleared waves 15.", WAV_BAND_CURVE, "Destroying the boss adds 10."),
+    score: bandHelp("Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", WAV_V5_BAND_CURVE, "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s."),
   },
   bastion: {
     goal: "Defend the base.",
@@ -864,11 +864,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap to flip", detail: "to the other side. Spikes or lava on one side? Run on the other." },
       { action: "Cracked stone tiles break", detail: "soon after you land on them, so flip off quickly." },
-      { action: "Grab the gold stars.", detail: "From 15 seconds the corridor bends." },
+      { action: "Grab the gold stars.", detail: "From 10 seconds the corridor bends." },
       { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
       { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
-    score: bandHelp("Each half second you last counts 1 and each gold star 3.", FLIP_BAND_CURVE, "Lasting the full minute adds 10."),
+    score: bandHelp("Each half second you last counts 1 and each gold star 3.", FLIP_V4_BAND_CURVE, "Lasting the full minute adds 10."),
   },
   parry: {
     goal: "Block every arrow with the gong shield.",
@@ -908,7 +908,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
       { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
     ],
-    score: bandHelp("Each level counts 10 and each gold star 2.", INK_BAND_CURVE, "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: bandHelp("Each level counts 10 and each gold star 2.", INK_V6_BAND_CURVE, "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
 
   burst: {
@@ -966,20 +966,20 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ten stars float along the way,", detail: "some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
       { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
-    score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_BAND_CURVE, "Reaching 500 m adds 10."),
+    score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_V7_BAND_CURVE, "Reaching 500 m adds 10."),
   },
   tilt: {
     goal: "Roll each marble into its own cup.",
     how: [
       { action: "Drag left or right", detail: "to spin the maze." },
-      { action: "Gold stars sit off the route:", detail: "bonus detours." },
+      { action: "Gold stars sit by black holes:", detail: "risky bonuses." },
       { action: `From maze ${TILT_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
       { action: "Marbles always roll down.", detail: "Each finished maze brings a harder one; dark holes end the run.", helpOnly: true },
-      { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
-      { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the end of side passages. Roll either marble over one to collect it.`, helpOnly: true },
+      { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
+      { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the mouth of a black hole beside the route where there is one, otherwise one step off the route. Roll either marble over one to collect it, without rolling on into the hole.`, helpOnly: true },
       { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_V4_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 by 75 s, falling to 0 at the buzzer."),
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",

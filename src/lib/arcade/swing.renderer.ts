@@ -25,6 +25,7 @@ import {
   SWING_ROCK_WARN,
   SWING_ROCK_WARN_V6,
   SWING_REV_TUNED,
+  SWING_REV_TUNEC,
   SWING_STAR_R,
   swingStarTotal,
   SWING_GOLD,
@@ -627,7 +628,9 @@ const dragonArtGameV3 = { ...swingGameFor(3), draw: drawSwingArt };
 const chaseArtGameV4 = { ...swingGameFor(SWING_REV), draw: drawSwingArt };
 const bandArtGameV5 = { ...swingGameFor(SWING_REV_BAND), draw: drawSwingArt };
 const tunedArtGameV6 = { ...swingGameFor(SWING_REV_TUNED), draw: drawSwingArt };
+const tunecArtGameV7 = { ...swingGameFor(SWING_REV_TUNEC), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_TUNEC) return tunecArtGameV7;
   if (rev === SWING_REV_TUNED) return tunedArtGameV6;
   if (rev === SWING_REV_BAND) return bandArtGameV5;
   if (rev === SWING_REV) return chaseArtGameV4;

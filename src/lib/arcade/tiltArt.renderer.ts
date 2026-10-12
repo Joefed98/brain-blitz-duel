@@ -7,7 +7,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltTotalStars, TILT_REV, TILT_REV_BAND, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
@@ -234,9 +234,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     // Rev 2: bigger rimmed cups in each marble's colour; a stars in dead-end detours.
     drawBigCup(ctx, cupOf(m, o, m.exit, m.exitDir, true), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
     if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupOf(m, o, m.exit2!, m.exitDir2!, true), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
-    (m.stars ?? []).forEach((c, k) => {
+    (m.stars ?? []).forEach((_c, k) => {
       if ((state.starGot ?? [])[k]) return;
-      drawStar(ctx, (c % m.n) * cs + cs / 2 - o, Math.trunc(c / m.n) * cs + cs / 2 - o, cs * 0.3, rot);
+      // tiltRev 4 stars sit at their own point (a hole's mouth); earlier ones at their cell's centre.
+      const p = tiltStarPoint(m, k);
+      drawStar(ctx, p.x / FP - o, p.y / FP - o, cs * 0.3, rot);
     });
   } else {
   // Blue glass cup: the soft glow is contained in the existing outer ring.
@@ -373,7 +375,9 @@ export const tiltArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...
 /** tiltRev 2 with the same art (the drawing reads the revision from the state). */
 export const tiltRev2ArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, draw };
 const tiltBandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltBandGame, draw };
+const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTunecGame, draw };
 export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_TUNEC) return tiltTunecArtGame;
   if (rev === TILT_REV_BAND) return tiltBandArtGame;
   return rev === TILT_REV ? tiltRev2ArtGame : tiltArtGame;
 }

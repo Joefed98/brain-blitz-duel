@@ -125,6 +125,8 @@ export interface HoverState extends BandFields {
   pillars: HoverPillar[];
   /** hoverRev 2 only; absent on unstamped rounds. */
   rev?: number;
+  /** hoverRev 4 only (Tuning C): 1 = scored on HOVER_V4_BAND_CURVE. Absent on every earlier round. */
+  tunec?: number;
   /** Stars collected, the pillar index of each (in order), and stars on reachable barriers. */
   stars?: number;
   starsTaken?: number[];
@@ -431,6 +433,8 @@ export function hoverCheckpoint(state: HoverState): HoverCheckpoint {
   let checksum = 0x811c9dc5;
   // hoverRev 2 folds its stars into the checksum; the encoded fields stay the same.
   const extra = state.rev === HOVER_REV ? [state.stars ?? 0, ...(state.starsTaken ?? [])] : [];
+  // hoverRev 4 (Tuning C) adds its marker last.
+  if (state.tunec) extra.push(state.tunec);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -528,6 +532,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_TUNEC) return hoverTunecGame;
   if (rev === HOVER_REV_BAND) return hoverBandGame;
   return rev === HOVER_REV ? hoverRev2Game : hoverGame;
 }
@@ -541,7 +546,7 @@ export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70
 export function hoverBandParts(state: HoverState): BandParts {
   const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
   const finished = hoverSurvived(state);
-  return { units, points: bandPoints(HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
+  return { units, points: bandPoints(state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: HoverState): number {
@@ -549,3 +554,15 @@ function scoreBand(state: HoverState): number {
 }
 
 export const hoverBandGame: ArcadeGame<HoverState> = { ...hoverRev2Game, init: (seed) => bandInit(hoverRev2Game.init(seed)) };
+
+/* ================= Tuning C (hoverRev 4, Oct 2026) ================= */
+
+/**
+ * hoverRev 4 (Tuning C): hoverRev 3 play unchanged, scored about 10 % lower
+ * (Joe found Hover a little lenient): every knot below the top keeps its units
+ * and drops to nine tenths of its points; every barrier and star still reaches
+ * 140, plus 10 for lasting the minute. States add `tunec: 1`.
+ */
+export const HOVER_REV_TUNEC = 4;
+export const HOVER_V4_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 63, 90, 112, 122, 124, 140]);
+export const hoverTunecGame: ArcadeGame<HoverState> = { ...hoverBandGame, init: (seed) => ({ ...hoverBandGame.init(seed), tunec: 1 }) };

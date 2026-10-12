@@ -178,7 +178,11 @@ function matchupJackpotPoint(s: MatchupState): { x: number; y: number } {
   };
 }
 
-/** Which world each active arcade game belongs to (docs/duelz-game-bank.md). */
+/**
+ * Which world each arcade game with a world belongs to (docs/duelz-game-bank.md):
+ * the 21 active ones and Junction, retired to practice in Tuning C (Oct 2026),
+ * which keeps its world, fill and effects for practice and stored-round reveals.
+ */
 export const ARCADE_GAME_WORLDS = {
   hover: "retro",
   breaker: "retro",
@@ -206,9 +210,14 @@ export const ARCADE_GAME_WORLDS = {
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
+/** Arcade games with a world that rooms no longer deal (practice only; registry RETIRED_TYPES). */
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = ["junction"];
+/** The 21 active arcade games (rooms deal these). */
+export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
+
 /**
  * Engine games outside the Arcade category that draw in an arcade world and
- * through the shared success layer. Kept apart from the 22 so their counts and
+ * through the shared success layer. Kept apart from the arcade games so their counts and
  * checks stay as they are; arcade-play-check plays these too.
  */
 export const ENGINE_GAME_WORLDS = {
@@ -1111,11 +1120,13 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
       when: (s) => s.lastSteps >= 3,
       at: matchupClearPoint,
       label: (s) => `CASCADE ×${s.lastSteps}`,
+      textOnly: true,
     },
-    { kind: "perfect", count: (s) => s.bestLine, min: 5, at: matchupClearPoint, label: (_s, n) => `${n} IN A LINE!` },
+    // Tuning C: text pop-ups only over the gems; no particle bursts or rings there.
+    { kind: "perfect", count: (s) => s.bestLine, min: 5, at: matchupClearPoint, label: (_s, n) => `${n} IN A LINE!`, textOnly: true },
     // matchupRev 2+: a Jackpot gem made (5 and an L/T in one swap) and one set off.
-    { kind: "perfect", count: (s) => s.jackpots ?? 0, at: matchupJackpotPoint, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF" },
-    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, at: matchupClearPoint, label: () => "JACKPOT!" },
+    { kind: "perfect", count: (s) => s.jackpots ?? 0, at: matchupJackpotPoint, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF", textOnly: true },
+    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, at: matchupClearPoint, label: () => "JACKPOT!", textOnly: true },
     {
       kind: "final",
       count: (s) => (s.raw >= matchupParRaw(s) ? 1 : 0),
@@ -1124,7 +1135,7 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
   ],
 };
 
-/** All 22 game specs (Orbit counts once; rev 3 has its own view-sized spec). */
+/** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX,
   breaker: BREAKER_FX,

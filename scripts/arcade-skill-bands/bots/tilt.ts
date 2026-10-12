@@ -13,7 +13,7 @@
  * misreads a long dead-end branch as the way on, rolls down it and stops to
  * rethink. A slip is a moment of tilting the wrong way.
  */
-import { tiltCellCentre, TILT_INPUT_DRAG, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltStarPoint, TILT_INPUT_DRAG, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -30,8 +30,10 @@ const FINGER: Record<SkillLevel, number> = { average: 7, good: 8, great: 9, near
 const GLANCE: Record<SkillLevel, number> = { average: 12, good: 10, great: 8, near: 6 };
 /** How far ahead (ticks) the player foresees where the marbles roll. */
 const HORIZON: Record<SkillLevel, number> = { average: 30, good: 38, great: 44, near: 48 };
+/** tiltRev 4: a star at a hole's mouth is taken this much less often (the fall ends the run). */
+const MOUTH_GO = 0.5;
 /** Chance of detouring for each bonus star. */
-const STAR_GO: Record<SkillLevel, number> = { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
+const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
 
 function openCell(m: Maze, c: number, d: number): number {
   const i = (c % m.n) + DX[d]!;
@@ -74,11 +76,12 @@ function cellAt(m: Maze, x: number, y: number): number {
 }
 
 /** FP distance along the maze from a point to a cell centre (or out through `exitDir` when given). */
-function pathDist(m: Maze, x: number, y: number, target: number, exitDir = -1): number {
+function pathDist(m: Maze, x: number, y: number, target: number, exitDir = -1, pt?: { x: number; y: number }): number {
   const c = cellAt(m, x, y);
   if (c < 0) return 0;
   const dist = field(m, target);
-  const centre = tiltCellCentre(m, c);
+  // tiltRev 4 star at a hole's mouth: in its cell, the distance to the star itself.
+  const centre = dist[c] === 0 && pt ? pt : tiltCellCentre(m, c);
   if (dist[c] === 0) {
     if (exitDir < 0) return Math.abs(x - centre.x) + Math.abs(y - centre.y);
     const edge = { x: centre.x + (DX[exitDir]! * m.cs) / 2, y: centre.y + (DY[exitDir]! * m.cs) / 2 };
@@ -129,6 +132,8 @@ interface Goal {
   /** Target cell; leave through `dir` when it is the cup. */
   cell: number;
   dir: number;
+  /** tiltRev 4: the star's own point inside the target cell. */
+  pt?: { x: number; y: number };
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
@@ -170,7 +175,12 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     thinkUntil = t + human.thinkTicks(2600 + 700 * s.level + (two ? 1200 : 0));
     decided.clear();
     detour = null;
-    starPlan = (m.stars ?? []).filter(() => human.chance(STAR_GO[level]));
+    // tiltRev 4 stars beside a black hole (not at their cell's centre) are a risk to the whole run: half as tempting.
+    starPlan = (m.stars ?? []).filter((c, k) => {
+      const centre = tiltCellCentre(m, c);
+      const atHole = !!m.starXY && (m.starXY[2 * k] !== centre.x || m.starXY[2 * k + 1] !== centre.y);
+      return human.chance(STAR_GO[level] * (atHole ? MOUTH_GO : 1));
+    });
     focus = 0;
     if (two) {
       const da = field(m, m.exit)[cellAt(m, s.x, s.y)] ?? 99;
@@ -197,7 +207,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (want.length && c >= 0) {
       const dist = field(m, c);
       want.sort((p, q) => dist[p]! - dist[q]!);
-      return { which, cell: want[0]!, dir: -1 };
+      return { which, cell: want[0]!, dir: -1, pt: tiltStarPoint(m, stars.indexOf(want[0]!)) };
     }
     // Reading a fork for the first time: a long dead-end branch can look like the way on.
     if (c >= 0 && degree(m, c) >= 3 && !decided.has(c)) {
@@ -230,7 +240,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     v += (home - home0) * 1e10;
     v += ((p.stars ?? 0) - (s0.stars ?? 0)) * (goal.dir < 0 ? 1e8 : 0);
     const b = bodyOf(p, goal.which);
-    if (b) v -= pathDist(m, b.x, b.y, goal.cell, goal.dir);
+    if (b) v -= pathDist(m, b.x, b.y, goal.cell, goal.dir, goal.pt);
     // A light pull on the other marble toward its own cup.
     const o = bodyOf(p, 1 - goal.which);
     if (o) v -= 0.05 * pathDist(m, o.x, o.y, goal.which === 0 ? m.exit2! : m.exit, goal.which === 0 ? m.exitDir2! : m.exitDir);
@@ -284,7 +294,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         }
         // Stuck guard on the goal distance.
         const b = bodyOf(seen, goal.which)!;
-        const prog = pathDist(m, b.x, b.y, goal.cell, goal.dir);
+        const prog = pathDist(m, b.x, b.y, goal.cell, goal.dir, goal.pt);
         if (prog < bestProgress - 8 * 256) {
           bestProgress = prog;
           bestAt = t;

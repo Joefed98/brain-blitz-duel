@@ -235,14 +235,16 @@ const BUILDERS: Record<string, Builder> = {
     if (n(r, "wavRev") > 0) {
       // wavRev 2: five waves, then the boss.
       const killed = n(r, "bossKilled") > 0;
+      const waves = WAV_V2_WAVES;
+      const bossHp = WAV_BOSS_HP;
       return {
-        axis: { value: n(r, "wavesCleared"), max: WAV_V2_WAVES, label: "Waves" },
+        axis: { value: n(r, "wavesCleared"), max: waves, label: "Waves" },
         lines: [
-          `${n(r, "wavesCleared")} / ${WAV_V2_WAVES} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
-          `Boss: ${n(r, "bossHits")} / ${WAV_BOSS_HP} hits${killed ? " · destroyed" : ""} → ${s}`,
+          `${n(r, "wavesCleared")} / ${waves} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
+          `Boss: ${n(r, "bossHits")} / ${bossHp} hits${killed ? " · destroyed" : ""} → ${s}`,
         ],
         tiles: [
-          { label: "Boss", value: killed ? "Destroyed" : `${n(r, "bossHits")} / ${WAV_BOSS_HP}` },
+          { label: "Boss", value: killed ? "Destroyed" : `${n(r, "bossHits")} / ${bossHp}` },
           { label: "Saucers", value: String(n(r, "saucers")) },
           { label: "Lives left", value: String(n(r, "lives")) },
         ],
