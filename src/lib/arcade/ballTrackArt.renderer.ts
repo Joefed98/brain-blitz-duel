@@ -72,10 +72,17 @@ function turnOf(s: BtState, cell: number): { u: number; sign: number } {
   return { u: k * k * (3 - 2 * k), sign: toVertical ? (d > 0 ? 1 : -1) : (d > 0 ? -1 : 1) };
 }
 
-/** Where a marble is drawn: rev 2 marbles in a tube turned since they entered swing round with it. */
-function ballPoint(s: BtState, b: BtBall, rot: Set<number>) {
+/**
+ * Where a marble is drawn: a rev-2 marble swings round with its tube only when
+ * the tube turned while the marble was inside it (turned after it arrived; the
+ * sim applies a tap before marbles move, so a same-tick arrival came in after the
+ * turn). A marble rolling into a tube that was already turned rolls straight in
+ * and drops, exactly as the sim moves it.
+ */
+export function btArtBallPoint(s: BtState, b: BtBall, rot: Set<number>) {
   const p = btBallPoint(s, b);
   if (s.rev !== BT_REV || b.cell < 0 || b.cell >= SLOT || !rot.has(b.cell)) return p;
+  if ((s.turned?.[b.cell] ?? -1000) <= b.arrived) return p;
   const enteredVertical = b.above === 1;
   if (enteredVertical === (s.vert[b.cell] === 1)) return p;
   const c = cellCentre(b.cell);
@@ -85,8 +92,13 @@ function ballPoint(s: BtState, b: BtBall, rot: Set<number>) {
   return { x: c.x + dx * Math.cos(a) - dy * Math.sin(a), y: c.y + dx * Math.sin(a) + dy * Math.cos(a) };
 }
 
-/** Rev 2 switch point badge on a live bottom-row drop: ↓ drops into the tray, → sends marbles on. */
+/**
+ * Rev 2 switch point badge, drawn only on a switched drop: a gold → shows marbles
+ * now roll past that cup. Open drops show no arrow (the upright drop tube already
+ * shows the way down).
+ */
 function drawSwitch(ctx: CanvasRenderingContext2D, cell: number, on: boolean) {
+  if (!on) return;
   const { x, y } = cellCentre(cell);
   ctx.save();
   ctx.fillStyle = on ? "#2B1A0E" : "#3A2614";
@@ -298,7 +310,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     }
   }
   for (const b of s.balls) {
-    const p = ballPoint(s, b, rot);
+    const p = btArtBallPoint(s, b, rot);
     toyMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, 0, b.colour);
   }
   const lastHome=[...s.landings].reverse().find(m=>m.ok);

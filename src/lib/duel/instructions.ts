@@ -889,7 +889,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap a gold tube to turn it.", detail: "A marble rolling into an upright tube drops a row." },
       { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end." },
-      { action: "Tap a bottom-row arrow", detail: "to drop into that cup (↓) or roll past it (→)." },
+      { action: "Tap a cup's drop on the bottom row", detail: "to send marbles rolling past it (gold →); tap again to reopen it." },
       { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
       { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
     ],

@@ -105,6 +105,111 @@
   "stateHash": 1772400592
  },
  {
+  "game": "cross/v2",
+  "seed": 1,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 4010254712
+ },
+ {
+  "game": "cross/v2",
+  "seed": 77,
+  "score": 6,
+  "replayScore": 6,
+  "stateHash": 2957042068
+ },
+ {
+  "game": "cross/v2",
+  "seed": 4242,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 983778640
+ },
+ {
+  "game": "cross/v2",
+  "seed": 90210,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 3682378331
+ },
+ {
+  "game": "cross/v2",
+  "seed": 123457,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 929840505
+ },
+ {
+  "game": "flip/v2",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3155449780
+ },
+ {
+  "game": "flip/v2",
+  "seed": 77,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 2599506519
+ },
+ {
+  "game": "flip/v2",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 774915414
+ },
+ {
+  "game": "flip/v2",
+  "seed": 90210,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2093514805
+ },
+ {
+  "game": "flip/v2",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1524508243
+ },
+ {
+  "game": "slice/v2",
+  "seed": 1,
+  "score": 20,
+  "replayScore": 20,
+  "stateHash": 3952312520
+ },
+ {
+  "game": "slice/v2",
+  "seed": 77,
+  "score": 28,
+  "replayScore": 28,
+  "stateHash": 1813452652
+ },
+ {
+  "game": "slice/v2",
+  "seed": 4242,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 2527901701
+ },
+ {
+  "game": "slice/v2",
+  "seed": 90210,
+  "score": 7,
+  "replayScore": 7,
+  "stateHash": 3824845538
+ },
+ {
+  "game": "slice/v2",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3330165529
+ },
+ {
   "game": "balltrack",
   "seed": 1,
   "score": 30,
@@ -138,5 +243,40 @@
   "score": 22,
   "replayScore": 22,
   "stateHash": 957043024
+ },
+ {
+  "game": "balltrack/v2",
+  "seed": 1,
+  "score": 30,
+  "replayScore": 30,
+  "stateHash": 3259920811
+ },
+ {
+  "game": "balltrack/v2",
+  "seed": 2,
+  "score": 39,
+  "replayScore": 39,
+  "stateHash": 2014929292
+ },
+ {
+  "game": "balltrack/v2",
+  "seed": 3,
+  "score": 30,
+  "replayScore": 30,
+  "stateHash": 2406264748
+ },
+ {
+  "game": "balltrack/v2",
+  "seed": 4,
+  "score": 35,
+  "replayScore": 35,
+  "stateHash": 3755388351
+ },
+ {
+  "game": "balltrack/v2",
+  "seed": 5,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 1968693105
  }
 ]

@@ -111,7 +111,7 @@ const GAMES: Record<string, AnyGame> = {
   wavefront: wavefrontArtGame as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: skylineArtGame as AnyGame,
-  cross: crossArtGameFor(2) as AnyGame,
+  cross: crossArtGameFor(3) as AnyGame,
   junction: junctionArtGame as AnyGame,
   inkbridge: inkBridgeArtGameFor(3) as AnyGame,
   slice: sliceArtGameFor(2) as AnyGame,

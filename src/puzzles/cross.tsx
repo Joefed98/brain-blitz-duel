@@ -75,7 +75,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
-  const state = useRef<CrossState>(crossGame.init(seed));
+  // Lazily initialised: init proves every crossing's traffic, far too slow to run on every render.
+  const state = useRef<CrossState>(null as unknown as CrossState);
+  if (!state.current) state.current = crossGame.init(seed);
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof crossCheckpoint>[]>([]);
   const pending = useRef<number[]>([]);
