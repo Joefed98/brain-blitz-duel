@@ -150,7 +150,22 @@ function matchupClearPoint(s: MatchupState): { x: number; y: number } {
     x += p.x;
     y += p.y;
   }
-  return { x: x / cells.length, y: y / cells.length };
+  x /= cells.length;
+  y /= cells.length;
+  // Always a gem that was actually cleared: the one nearest the middle of the
+  // clear (the bare centroid of an L, a T or two separate lines can fall on a
+  // gem that stayed put).
+  let best = centre(cells[0]!);
+  let bestD = Infinity;
+  for (const index of cells) {
+    const p = centre(index);
+    const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return best;
 }
 
 /** A Jackpot gem's cell on the board (matchupRev 2+), else the last clear. */
@@ -765,12 +780,32 @@ export const BINTOSS_FX: ArcadeFxSpec<BinTossState> = {
   ],
 };
 
+/**
+ * Darts that have landed: the in-flight dart (already in `hits` from its
+ * release) is left out until it lands. Counting only landed darts keeps every
+ * counter steady through a flight, so an event fires once, on the landing of
+ * the dart that earned it, never again on later darts.
+ */
+function bullLanded(s: BullseyeState): BullseyeState["hits"] {
+  return s.flightTick === 0 ? s.hits : s.hits.slice(0, -1);
+}
+
+/** A dart in the bullseye: the centre disc, while it is the gold 10. */
+function isBull(h: BullseyeState["hits"][number]): boolean {
+  return h.ring === 0 && h.value - (h.bal ?? 0) >= 10;
+}
+
 function bullRun(s: BullseyeState): number {
-  if (s.flightTick !== 0) return 0;
+  const landed = bullLanded(s);
   let run = 0;
-  for (let i = s.hits.length - 1; i >= 0 && s.hits[i]!.ring === 0; i--) run += 1;
+  for (let i = landed.length - 1; i >= 0 && isBull(landed[i]!); i--) run += 1;
   return run;
 }
+
+const lastLanded = (s: BullseyeState) => {
+  const h = bullLanded(s).at(-1);
+  return { x: h?.x ?? BULLSEYE_CX, y: h?.y ?? BULLSEYE_CY };
+};
 
 export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
   game: "bullseye",
@@ -782,22 +817,22 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
   events: [
     {
       kind: "perfect",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.ring === 0).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter(isBull).length,
+      at: lastLanded,
       label: () => "BULLSEYE!",
     },
     {
       // Rev 2: the tiny inner bull.
       kind: "perfect",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.bull === 1).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter((h) => h.bull === 1).length,
+      at: lastLanded,
       label: () => "INNER BULL!",
     },
     {
       // Rev 2: a balloon popped.
       kind: "pop",
-      count: (s) => (s.flightTick === 0 ? s.hits.filter((h) => h.pop === 1).length : 0),
-      at: (s) => ({ x: s.hits.at(-1)?.x ?? BULLSEYE_CX, y: s.hits.at(-1)?.y ?? BULLSEYE_CY }),
+      count: (s) => bullLanded(s).filter((h) => h.pop === 1).length,
+      at: lastLanded,
       label: () => "POP!",
     },
     { kind: "combo", count: bullRun, min: 2, label: (_s, n) => `${n} BULLS IN A ROW` },

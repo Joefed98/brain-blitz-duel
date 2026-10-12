@@ -368,7 +368,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             />
           ),
         )}
-        {result.hits.filter((hit) => hit.pop !== 1).map((hit, index) => {
+        {result.hits.filter((hit) => hit.pop !== 1 || result.tuned === 1).map((hit, index) => {
           // Each hit is shown where it fell relative to the target it hit, so
           // every dart is comparable on one full-size ring set (balloon pops are listed below).
           const scale = bullseyeScalePct(hit.arrow);
@@ -382,7 +382,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       {puzzle.bullRev ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-          {result.innerBulls} inner bull{result.innerBulls === 1 ? "" : "s"} · {result.pops} of {result.balloons} balloons
+          {result.innerBulls} inner bull{result.innerBulls === 1 ? "" : "s"} · {result.pops} of {result.balloons} balloons{result.tuned ? ` (+${result.balloonPoints})` : ""}
         </p>
       ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">

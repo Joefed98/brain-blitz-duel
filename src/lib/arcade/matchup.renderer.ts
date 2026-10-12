@@ -17,7 +17,7 @@ import {
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
-import { successHud, successFrame } from "./success.renderer";
+import { successHud } from "./success.renderer";
 
 /** Nine frames at 60 Hz, independent of simulation ticks. */
 export const MATCHUP_SWAP_MS = 150;
@@ -503,34 +503,80 @@ interface SceneOptions {
   skip?: ReadonlySet<number>;
 }
 
-/** Wall/render clock only: three sparse lanes, one 400ms glint per lane.
- * No per-frame sprite rebuild, no dirty-cell invalidation, no live blur.
- * Suppressed on moving boards and under reduced motion. */
-function drawGlints(ctx: CanvasRenderingContext2D, cells: readonly number[], now: number): void {
-  if (reducedMotion()) return;
-  const period = 2300;
-  for (let lane = 0; lane < 3; lane++) {
-    const clock = now + lane * 690;
-    const cycle = Math.floor(clock / period);
-    const delay = artHash(cycle, lane + 31) % 650;
-    const age = clock % period - delay;
-    if (age < 0 || age >= 400) continue;
-    const index = artHash(cycle, lane + 71) % cells.length;
-    const kind = cells[index];
-    if (kind === undefined || kind >= MATCHUP_COLOURS.length) continue;
-    const { x, y } = centre(index);
-    const p = age / 400;
-    const gx = x + (p - 0.5) * RADIUS * 0.8;
-    const gy = y - RADIUS * 0.22;
-    ctx.save();
-    pathOf(ctx, cutPoints(MATCHUP_SHAPES[kind] ?? "circle", x, y, RADIUS)); ctx.clip();
-    ctx.globalAlpha = Math.sin(Math.PI * p) * 0.42;
-    ctx.strokeStyle = shade(MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD, 0.75);
-    ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(gx - 2.8, gy); ctx.lineTo(gx + 2.8, gy);
-    ctx.moveTo(gx, gy - 3.5); ctx.lineTo(gx, gy + 3.5); ctx.stroke();
-    ctx.restore();
+/**
+ * Cascade bursts (presentation only): each clear (a swap's or a cascade
+ * step's) bursts on exactly the cells it cleared, read from the sim's
+ * lastCleared, and nowhere else. Memory per canvas, keyed by the sim's clear
+ * counters; a rewind (new run, replay, demo loop) resets it, and the first
+ * frame a canvas sees never fires. Replaces the old ambient glints, which
+ * sparkled on random gems and read as stray cascade effects.
+ */
+interface ClearBurst { tick: number; cells: number[]; steps: number }
+interface ClearMemory { tick: number; key: string; bursts: ClearBurst[] }
+const clearMemories = new WeakMap<CanvasRenderingContext2D, ClearMemory>();
+const CLEAR_BURST_TICKS = 30;
+
+function clearKey(state: MatchupState): string {
+  return `${state.lastScoreTick}:${state.cascades}:${state.resolveSerial ?? 0}`;
+}
+
+function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): void {
+  let m = clearMemories.get(ctx);
+  const key = clearKey(state);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, key, bursts: [] };
+    clearMemories.set(ctx, m);
   }
+  if (key !== m.key && state.tick !== m.tick && state.lastCleared.length > 0) {
+    m.bursts.push({ tick: state.tick, cells: state.lastCleared.slice(0, 24), steps: state.lastSteps });
+    if (m.bursts.length > 3) m.bursts.shift();
+  }
+  m.key = key;
+  m.tick = state.tick;
+  const still = reducedMotion();
+  const life = still ? 10 : CLEAR_BURST_TICKS;
+  m.bursts = m.bursts.filter((burst) => state.tick - burst.tick >= 0 && state.tick - burst.tick < life);
+  if (m.bursts.length === 0) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOARD_W, MATCHUP_BOARD_H);
+  ctx.clip();
+  for (const burst of m.bursts) {
+    const p = (state.tick - burst.tick) / life;
+    ctx.globalAlpha = Math.max(0, 0.85 * (1 - p));
+    ctx.fillStyle = MATCHUP_GOLD;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.5;
+    for (const index of burst.cells) {
+      const { x, y } = centre(index);
+      if (still) {
+        ctx.beginPath();
+        ctx.arc(x, y, RADIUS * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        continue;
+      }
+      // Four pixel sparks flying out of the cleared cell, within its own square.
+      const d = 3 + p * RADIUS * 0.9;
+      for (let k = 0; k < 4; k++) {
+        const a = k * (Math.PI / 2) + Math.PI / 4;
+        ctx.fillRect(Math.round(x + Math.cos(a) * d) - 1.5, Math.round(y + Math.sin(a) * d) - 1.5, 3, 3);
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, RADIUS * (0.35 + 0.5 * p), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // The chain count sits on the first cleared gem, as before.
+    if (burst.steps > 1 && burst.cells.length > 0) {
+      const { x, y } = centre(burst.cells[0]!);
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.font = "700 16px 'JetBrains Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = MATCHUP_GOLD;
+      ctx.fillText(`×${burst.steps}`, x, y - RADIUS * 0.6 - (still ? 0 : p * 6));
+    }
+  }
+  ctx.restore();
 }
 
 /** The board drawing through the shared success layer (presentation only). */
@@ -553,7 +599,6 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   const animating = animationMs != null && state.lastAnimation.length > 0;
   if (animating && animationMs != null) drawAnimated(ctx, state, animationMs, time);
   else drawSettled(ctx, options.cells ?? state.cells, time, options.skip);
-  if (!animating && !options.skip) drawGlints(ctx, options.cells ?? state.cells, performance.now());
 
   if (!animating && !options.cells && !matchupPending(state) && matchupShowHint(state)) {
     const hint = matchupFindSwap(state.cells);
@@ -573,7 +618,7 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   successHud(ctx,'matchup',state.tick,12,12,()=>{ctx.fillText(`${state.raw} pts`, 12, 12);});
-  successFrame(ctx,{id:'matchup',tick:state.tick,count:state.cascades,eventTick:state.lastScoreTick,colour:MATCHUP_GOLD,width:390,height:560,point:{...centre(state.lastCleared[0]??0),shape:'pixel',label:state.lastSteps>1?`×${state.lastSteps}`:undefined},hud:{x:12,y:12,text:`${state.raw} pts`}});
+  if (!options.cells) drawClearBursts(ctx, state);
   ctx.restore();
 }
 

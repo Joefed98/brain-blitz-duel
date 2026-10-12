@@ -109,14 +109,16 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   bullseye: (r, s) => {
-    // bullRev 2: inner bulls and balloons score 12, so the axis runs to 120.
+    // bullRev 2: inner bulls and balloons score 12, so the axis runs to 120;
+    // bullRev 4 balloons add up to 6 on top of the rings (126).
     const rev2 = n(r, "bullRev") === 2;
+    const tuned = n(r, "tuned") === 1;
     return {
-      axis: { value: n(r, "total"), max: rev2 ? 120 : 100, label: "Dart total" },
+      axis: { value: n(r, "total"), max: tuned ? 126 : rev2 ? 120 : 100, label: "Dart total" },
       lines: rev2 ? [`${n(r, "total")} points from 10 darts → ${s}`] : [`${n(r, "total")} / 100 rings → ${s}`],
       tiles: [
         { label: "Bullseyes", value: String(n(r, "inner")) },
-        ...(rev2 ? [{ label: "Inner bulls", value: String(n(r, "innerBulls")) }, { label: "Balloons", value: `${n(r, "pops")} / ${n(r, "balloons")}` }] : []),
+        ...(rev2 ? [{ label: "Inner bulls", value: String(n(r, "innerBulls")) }, { label: "Balloons", value: tuned ? `${n(r, "pops")} / ${n(r, "balloons")} · +${n(r, "balloonPoints")}` : `${n(r, "pops")} / ${n(r, "balloons")}` }] : []),
         { label: "Darts", value: String(n(r, "arrows")) },
       ],
       outcome: b(r, "finished") ? "finish" : "time",

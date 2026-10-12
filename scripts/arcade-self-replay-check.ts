@@ -113,14 +113,14 @@ import { INK_REV_BAND } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
-import { RALLY_REV_BAND } from "@/lib/arcade/rally";
+import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_TUNED } from "@/lib/arcade/breaker";
 import { TILT_REV_BAND } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
 import { initBandFrom } from "@/lib/arcade/orbitRev3";
@@ -128,7 +128,7 @@ import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND } from "@/lib/arcade/slice";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { SWING_REV_BAND } from "@/lib/arcade/swing";
-import { BULLSEYE_REV_BAND, bullseyeInitFor } from "@/lib/arcade/bullseye";
+import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -446,6 +446,7 @@ const GAMES: Game[] = [
   { key: "bubble/band", game: bubbleGameFor(BUB_REV_BAND), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_BAND) },
   { key: "cross/band", game: crossGameFor(CROSS_REV_BAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_BAND) },
   { key: "rally/band", game: rallyGameFor(RALLY_REV_BAND), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_BAND) },
+  { key: "rally/tuned", game: rallyGameFor(RALLY_REV_TUNED), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TUNED) },
   { key: "snake/band", game: snakeGameFor(SNAKE_REV_BAND), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_BAND) },
   { key: "bintoss/band", game: binTossGameFor(BINTOSS_REV_BAND), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV_BAND) },
   { key: "snip/band", game: snipGameFor(SNIP_REV_BAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_BAND) },
@@ -453,6 +454,7 @@ const GAMES: Game[] = [
   { key: "hover/band", game: hoverGameFor(HOVER_REV_BAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_BAND) },
   { key: "junction/band", game: junctionGameFor(JUNC_REV_BAND), checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: (seed: number, raw: string) => replayJunctionRun(seed, raw, JUNC_REV_BAND) },
   { key: "breaker/band", game: breakerGameFor(BRK_REV_BAND), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_BAND) },
+  { key: "breaker/tuned", game: breakerGameFor(BRK_REV_TUNED), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_TUNED) },
   { key: "tilt/band", game: tiltGameFor(TILT_REV_BAND), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BAND) },
   { key: "beat/band", game: beatGameFor(BEAT_REV_BAND), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_BAND) },
   { key: "slice/band", game: sliceGameFor(SLICE_REV_BAND), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_BAND) },
@@ -488,6 +490,17 @@ const GAMES: Game[] = [
     rate: 25,
     encode: encodeBullseyeRun,
     replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_BAND),
+  },
+  {
+    // Tuning B: value balloons across the board (bullRev 4).
+    key: "bullseye/tuned",
+    game: bullseyeGameFor(BULLSEYE_REV_TUNED),
+    checkpoint: bullseyeCheckpoint,
+    init: (seed: number) => bullseyeInitFor(seed, bullseyeWinds(seed), BULLSEYE_REV_TUNED),
+    mode: "events",
+    rate: 25,
+    encode: encodeBullseyeRun,
+    replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_TUNED),
   },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },

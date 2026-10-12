@@ -1957,7 +1957,7 @@ export interface BullseyePuzzleData {
   seed: number;
   /** Persisted with the round so every player and the server use the same winds. */
   winds: number[];
-  /** 2 = inner bull and drifting balloons. Absent on rounds stored before it. */
+  /** 2 = inner bull and drifting balloons; 3 = rev 2 on the score bands; 4 = value balloons across the board (Tuning B). Absent on rounds stored before rev 2. */
   bullRev?: number;
 }
 
@@ -2021,7 +2021,7 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball); absent = original rules. */
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B); absent = original rules. */
   brkRev?: number;
 }
 
@@ -2029,7 +2029,7 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
-  /** 2 = far-wall targets and a bumper from 30 s. Absent on rounds stored before it. */
+  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B). Absent on rounds stored before rev 2. */
   rallyRev?: number;
 }
 
