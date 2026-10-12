@@ -31,9 +31,22 @@ const PACE = 4;
 const RELEASE_HORIZON = 150;
 const FLIGHT_LOOK = 70;
 /** Ticks a fresh grab must keep the ninja alive for it to count as a good grab. */
-const SAFE_SWING = 40;
+const SAFE_SWING = 70;
 /** Shortest hold before letting go again (ticks). */
 const MIN_HOLD = 8;
+/** Quickest let-go-then-press a finger makes (ticks, ~80 ms). */
+const REGRAB_MIN = 5;
+
+/** What a missed grab (a fall) weighs against progress in px when choosing. */
+const MISS_COST = 400;
+
+/** Standard normal CDF. */
+function phi(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
 
 const hold = (a: number) => ({ k: SWING_INPUT_HOLD, a, b: 0, c: 0, d: 0 });
 
@@ -78,6 +91,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   /** Tick of the next planned press or release, and a pending re-plan after a surprise. */
   let pendingAt = 0;
   let replanAt: number | null = null;
+  /** The grab window planned together with the coming release (ticks after it). */
+  let seqGrab: { start: number; len: number } | null = null;
 
   const wantStar = (s: SwingState, j: number) => {
     if (!(s.starAnchors ?? []).includes(j) || (s.starsTaken ?? []).includes(j)) return false;
@@ -94,7 +109,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const j = nearest(b);
     if (j < 0 || j <= ropeAnchor) return { j: -1, v: -Infinity };
     const a = b.anchors[j]!;
-    if (a.x < b.x - 20 * FP) return { j: -1, v: -Infinity };
+    if (a.x < b.x - 80 * FP) return { j: -1, v: -Infinity };
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -102,10 +117,19 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return { j, v: (a.x - from) / FP + (wantStar(b, j) ? 160 : 0) };
   };
 
+  /** Own timing spread (ticks) for a press `start` ticks into a flight, and where in a window they aim. */
+  const spread = (start: number) => (human.p.timingSdMs * (1 + start / 40)) / (1000 / 60);
+  const aimIn = (start: number, len: number) => start + Math.min(Math.trunc((len - 1) / 2), Math.round(1.5 * spread(start)) + 1);
+  const hitChance = (start: number, len: number) => {
+    const sd = Math.max(0.3, spread(start));
+    const a = aimIn(start, len);
+    return Math.max(0, phi((start + len - 0.5 - a) / sd) - phi((start - 0.5 - a) / sd));
+  };
+
   /** Runs of flight ticks where a press takes the same good anchor: a comfortable grab is a wide one. */
-  const windowsOf = (vals: { j: number; v: number }[]): { start: number; len: number; value: number }[] => {
+  const windowsOf = (vals: { j: number; v: number }[], from = 0): { start: number; len: number; value: number }[] => {
     const out: { start: number; len: number; value: number }[] = [];
-    let i = 0;
+    let i = from;
     while (i < vals.length) {
       const j = vals[i]!.j;
       if (j < 0) {
@@ -117,7 +141,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const len = k - i;
       if (len >= 3) {
         const mid = i + Math.trunc((len - 1) / 2);
-        out.push({ start: i, len, value: vals[mid]!.v + Math.min(len, 12) - PACE * mid });
+        // A player knows roughly how reliably they can hit a window this wide this far ahead,
+        // and weighs the progress against the fall that a miss means.
+        const hit = hitChance(i, len);
+        out.push({ start: i, len, value: vals[mid]!.v * hit - MISS_COST * (1 - hit) - PACE * mid });
       }
       i = k;
     }
@@ -137,44 +164,59 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   };
 
   /** On a rope: the release tick (delay from now) whose flight offers the best grab, robust to a tick or two either side. */
-  const planRelease = (s: SwingState): number | null => {
+  const planRelease = (s: SwingState): { d: number; grab: { start: number; len: number } } | null => {
     const ropeAnchor = s.rope;
     const from = s.anchors[ropeAnchor]?.x ?? s.x;
     let rope = s;
     const value: number[] = [];
+    const grabs: ({ start: number; len: number } | null)[] = [];
     const anchorX = s.anchors[ropeAnchor]!.x;
     let prev = rope;
     for (let d = 0; d <= RELEASE_HORIZON && !rope.ended; d++) {
       // A player lets go on the forward upswing (ahead of the anchor, moving forward and up), never straight after grabbing.
       const upswing = rope.x > prev.x && rope.y < prev.y && rope.x >= anchorX;
       if (d % 2 === 0) {
-        if (d < MIN_HOLD || !upswing) value.push(-Infinity);
-        else {
+        if (d < MIN_HOLD || !upswing) {
+          value.push(-Infinity);
+          grabs.push(null);
+        } else {
+          // A let-go-and-regrab is one planned movement, so the grab may come soon after the release.
           const { vals } = flightGrabs(step(rope, hold(0)), from, ropeAnchor);
-          const w = windowsOf(vals);
-          value.push(w.length ? Math.max(...w.map((x) => x.value)) - PACE * d : -Infinity);
+          const w = windowsOf(vals, REGRAB_MIN);
+          let top = null as { start: number; len: number; value: number } | null;
+          for (const x of w) if (!top || x.value > top.value) top = x;
+          value.push(top ? top.value - PACE * d : -Infinity);
+          grabs.push(top);
         }
       }
       prev = rope;
       rope = step(rope, null);
     }
-    let best = -Infinity;
-    let bestD: number | null = null;
-    for (let i = 0; i < value.length; i++) {
-      const v = Math.min(value[i]!, value[i - 1] ?? value[i]!, value[i + 1] ?? value[i]!);
-      if (v > best) {
-        best = v;
-        bestD = i * 2;
-      }
+    const order = value
+      .map((_, i) => ({ i, v: Math.min(value[i]!, value[i - 1] ?? value[i]!, value[i + 1] ?? value[i]!) }))
+      .filter((x) => x.v > -Infinity)
+      .sort((a, b) => b.v - a.v);
+    // The player's feel for the cave: the best few, checked for a grab that does not swing them into something.
+    for (const { i } of order.slice(0, 12)) {
+      const g = grabs[i]!;
+      let f = s;
+      for (let k = 0; k < i * 2; k++) f = step(f, null);
+      f = step(f, hold(0));
+      const aim = aimIn(g.start, g.len);
+      for (let k = 0; k < aim && !f.ended; k++) f = step(f, null);
+      f = step(f, hold(1));
+      for (let k = 0; k < SAFE_SWING && !f.ended; k++) f = step(f, null);
+      if (f.ended !== 2) return { d: i * 2, grab: g };
     }
-    return bestD;
+    // Nothing safe in sight: keep swinging and look again.
+    return null;
   };
 
   /** Flying: the grab tick (delay from now) in the best window whose swing keeps the ninja alive. */
   const planGrab = (s: SwingState, ropeAnchor: number): { start: number; len: number } | null => {
     const from = s.anchors[Math.max(0, ropeAnchor)]?.x ?? s.x;
     const { vals, states } = flightGrabs(s, from, ropeAnchor);
-    const wins = windowsOf(vals).sort((a, b) => b.value - a.value);
+    const wins = windowsOf(vals, lag + 2).sort((a, b) => b.value - a.value);
     const safe = (d: number) => {
       let g = step(states[d]!, hold(1));
       for (let k = 0; k < SAFE_SWING && !g.ended; k++) g = step(g, null);
@@ -244,20 +286,23 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           planned = false;
           return null;
         }
-        const d = planRelease(s);
-        if (d === null) {
+        const r = planRelease(s);
+        if (r === null) {
           // No good release in sight: keep swinging and look again shortly.
           planned = false;
-          plan.at(t + 30, { k: -1, a: 0, b: 0, c: 0, d: 0 });
+          plan.at(t + 20, { k: -1, a: 0, b: 0, c: 0, d: 0 });
           return null;
         }
-        let at = d + human.timingTicks(1);
-        if (human.slip(0.5)) at += (human.chance(0.5) ? 1 : -1) * human.int(6, 14);
+        let at = r.d + human.timingTicks(1);
+        if (human.slip(0.25)) at += (human.chance(0.5) ? 1 : -1) * human.int(6, 14);
+        seqGrab = r.grab;
         pendingAt = plan.at(t + Math.max(1, at), hold(0));
       } else {
         // The flight is seen a tracking lag late, so nothing earlier than that.
         const look = lag + 2;
-        const g = planGrab(s, lastRope);
+        // A quick regrab planned with the release is executed blind; otherwise they watch the flight.
+        const g = seqGrab && seqGrab.start < look ? seqGrab : planGrab(s, lastRope);
+        seqGrab = null;
         if (g === null) {
           // Nothing forward in reach: a desperate press a reaction later.
           pendingAt = plan.at(t + human.reactTicks(), hold(1));
@@ -266,11 +311,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // Pressing late (out of reach) is fatal, early just misses or takes the old anchor, so a
         // player aims early in the window by about one and a half of their own timing spread.
         const scale = 1 + g.start / 40;
-        const margin = Math.round((1.5 * human.p.timingSdMs * scale) / (1000 / 60)) + 1;
-        const aim = g.start + Math.min(Math.trunc((g.len - 1) / 2), margin);
-        let at = Math.max(aim, look) + human.timingTicks(scale);
-        if (human.slip(0.5)) at += (human.chance(0.5) ? 1 : -1) * human.int(5, 12);
+        const aim = aimIn(g.start, g.len);
+        let at = (g.start < look ? aim : Math.max(aim, look)) + human.timingTicks(scale);
+        if (human.slip(0.25)) at += (human.chance(0.5) ? 1 : -1) * human.int(5, 12);
         pendingAt = plan.at(t + Math.max(1, at), hold(1));
+        if (process.env.SDBG) console.log("GRAB", t, JSON.stringify(g), "aim", aim, "at", at, "look", look);
       }
     }
     return null;

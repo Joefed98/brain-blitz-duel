@@ -188,12 +188,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const horizon = LOOKAHEAD[level]!;
     const half = WAV_SHIP_W / 2 + 2;
     const margin = 6 + human.p.aimSdPx;
-    const threats: { x: number; w: number; t: number }[] = [];
+    /** Each threat: where it crosses the ship's line, how wide, and the ticks it spends there. */
+    const threats: { x: number; w: number; t: number; out: number }[] = [];
     for (const r of reds) {
       if (t < r.noticeAt) continue;
-      const tt = (SHIP_TOP - (r.y + 12)) / redSpeed;
-      if (tt < -2 || tt > horizon) continue;
-      threats.push({ x: r.x, w: half + margin, t: tt });
+      const tIn = (SHIP_TOP - (r.y + 12)) / redSpeed;
+      const tOut = (WAV_SHIP_Y + WAV_SHIP_H / 2 - r.y) / redSpeed;
+      if (tOut < -1 || tIn > horizon) continue;
+      threats.push({ x: r.x, w: half + margin, t: tIn, out: tOut + 2 });
     }
     for (const d of s.divers ?? []) {
       if (s.shapes[d.cell] === 0) continue;
@@ -207,10 +209,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const vx = od ? (d.x - od.x) / 256 / 6 : 0;
       const vy = od ? (d.y - od.y) / 256 / 6 : 4;
       if (c.y > WAV_SHIP_Y + WAV_SHIP_H || vy <= 0) continue;
-      const tt = (WAV_SHIP_Y - WAV_CELL - c.y) / Math.max(1, vy);
-      if (tt > horizon + 10) continue;
-      const px = c.x + vx * Math.max(0, tt);
-      threats.push({ x: px, w: (WAV_SHIP_W + WAV_CELL) / 2 + margin + Math.abs(vx) * 4, t: tt });
+      // It overlaps the ship's line while its centre is within (ship + diver) / 2 of the ship's y.
+      const band = (WAV_SHIP_H + WAV_CELL) / 2;
+      const tIn = (WAV_SHIP_Y - band - c.y) / Math.max(1, vy);
+      const tOut = (WAV_SHIP_Y + band - c.y) / Math.max(1, vy);
+      if (tIn > horizon + 10 || tOut < -1) continue;
+      const xIn = c.x + vx * Math.max(0, tIn);
+      const xOut = c.x + vx * Math.max(0, tOut);
+      threats.push({ x: (xIn + xOut) / 2, w: (WAV_SHIP_W + WAV_CELL) / 2 + margin + Math.abs(xOut - xIn) / 2, t: tIn, out: tOut + 2 });
     }
     const safeAt = (x: number) => {
       const travel = (xx: number) => Math.abs(xx - finger) / speed;
@@ -220,8 +226,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const lo = Math.min(finger, x);
         const hi = Math.max(finger, x);
         if (th.x + th.w > lo && th.x - th.w < hi) {
-          const cross = travel(Math.max(lo, Math.min(hi, th.x)));
-          if (Math.abs(cross - th.t) < 6) return false;
+          // The ship is inside its band between these two moments on the way across.
+          const a = travel(Math.max(lo, Math.min(hi, th.x - th.w)));
+          const b = travel(Math.max(lo, Math.min(hi, th.x + th.w)));
+          if (Math.max(a, b) >= th.t - 1 && Math.min(a, b) <= th.out) return false;
         }
       }
       return true;
