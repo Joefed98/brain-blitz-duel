@@ -9,7 +9,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   crossCheckpoint,
-  crossGame,
+  crossGameFor,
   crossSurvived,
   crossTotalLanes,
   CROSS_CHECKPOINT_INTERVAL,
@@ -136,7 +136,8 @@ export interface CrossResult {
 }
 
 /** The single place a Cross score is worked out. */
-export function replayCrossRun(seed: number, raw: string): CrossResult {
+export function replayCrossRun(seed: number, raw: string, rev?: number | null): CrossResult {
+  const crossGame = crossGameFor(rev);
   const run = decodeCrossRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, CROSS_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < CROSS_RUN_TICKS;

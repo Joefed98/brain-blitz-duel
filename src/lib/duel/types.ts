@@ -1974,6 +1974,8 @@ export interface CrossPuzzleData {
   type: "cross";
   /** Draws every crossing's traffic — identical for everyone in the room. */
   seed: number;
+  /** Course revision (2 = fair early gaps, cyclists, roadworks); absent = original traffic. */
+  crossRev?: number;
 }
 
 export interface DualPuzzleData {
@@ -2065,6 +2067,8 @@ export interface SlicePuzzleData {
   type: "slice";
   /** Draws the whole launch schedule, bombs included — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo); absent = original. */
+  sliceRev?: number;
 }
 
 export interface BubblePuzzleData {
@@ -2171,6 +2175,8 @@ export interface FlipPuzzleData {
   type: "flip";
   /** Draws the whole corridor — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = bend at 15 s, crumbling tiles, stars, larger runner); absent = original. */
+  flipRev?: number;
 }
 
 export interface ParryPuzzleData {
@@ -2325,6 +2331,8 @@ export interface BallTrackPuzzleData {
   /** Playbook piece actions and the proving event log — private until the reveal. */
   par?: number;
   playbook?: string;
+  /** Rules revision (2 = turn occupied tubes, bottom-row switch points); absent = original. */
+  btRev?: number;
 }
 
 /** Letter Wheel: 120 s to fill a small crossword from a wheel of letters. */

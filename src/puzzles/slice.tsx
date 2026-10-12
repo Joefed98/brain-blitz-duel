@@ -16,7 +16,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   sliceCheckpoint,
-  sliceGame,
+  sliceGameFor,
   SLICE_BG,
   SLICE_CHECKPOINT_INTERVAL,
   SLICE_COLOURS,
@@ -53,7 +53,7 @@ function IntroExample() {
         aria-hidden="true"
         style={{ background: SLICE_BG, borderRadius: 10 }}
       />
-      <p className="text-center text-xs text-muted-foreground">Three in one swipe earns a bonus.</p>
+      <p className="text-center text-xs text-muted-foreground">Three in one swipe starts a combo. The cream bottle pulls food together.</p>
     </div>
   );
 }
@@ -61,6 +61,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SlicePuzzleData | null = puzzle.type === "slice" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const sliceGame = sliceGameFor(data?.sliceRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -260,7 +261,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "slice") return null;
-  const result = replaySliceRun(puzzle.seed, myAnswer ?? "");
+  const result = replaySliceRun(puzzle.seed, myAnswer ?? "", puzzle.sliceRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -274,6 +275,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {result.bombsHit === 1 ? "1 chilli" : `${result.bombsHit} chillies`} hit
+        {result.mayoOn ? ` · ${result.mayo} mayo` : ""}
       </p>
     </div>
   );

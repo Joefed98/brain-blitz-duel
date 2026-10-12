@@ -1,3 +1,6 @@
+import { SLICE_REV } from "@/lib/arcade/slice";
+import { FLIP_REV } from "@/lib/arcade/flip";
+import { CROSS_REV } from "@/lib/arcade/cross";
 import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
@@ -86,7 +89,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed() };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -110,7 +113,7 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed() };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV };
 }
 
 export function generateBubble(): BubblePuzzleData {
@@ -154,7 +157,7 @@ export function generateColourClash(): StroopPuzzleData {
 }
 
 export function generateFlip(): FlipPuzzleData {
-  return { type: "flip", seed: arcadeSeed() };
+  return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV };
 }
 
 export function generateParry(): ParryPuzzleData {

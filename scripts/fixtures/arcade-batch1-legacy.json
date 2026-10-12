@@ -1,0 +1,142 @@
+[
+ {
+  "game": "cross",
+  "seed": 1,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 425661730
+ },
+ {
+  "game": "cross",
+  "seed": 77,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 798645101
+ },
+ {
+  "game": "cross",
+  "seed": 4242,
+  "score": 4,
+  "replayScore": 4,
+  "stateHash": 939178146
+ },
+ {
+  "game": "cross",
+  "seed": 90210,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 2447802548
+ },
+ {
+  "game": "cross",
+  "seed": 123457,
+  "score": 2,
+  "replayScore": 2,
+  "stateHash": 843064541
+ },
+ {
+  "game": "flip",
+  "seed": 1,
+  "score": 1,
+  "replayScore": 1,
+  "stateHash": 301987109
+ },
+ {
+  "game": "flip",
+  "seed": 77,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3529865965
+ },
+ {
+  "game": "flip",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1161017302
+ },
+ {
+  "game": "flip",
+  "seed": 90210,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1388810003
+ },
+ {
+  "game": "flip",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1136455059
+ },
+ {
+  "game": "slice",
+  "seed": 1,
+  "score": 7,
+  "replayScore": 7,
+  "stateHash": 824739898
+ },
+ {
+  "game": "slice",
+  "seed": 77,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1675971504
+ },
+ {
+  "game": "slice",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 811964891
+ },
+ {
+  "game": "slice",
+  "seed": 90210,
+  "score": 12,
+  "replayScore": 12,
+  "stateHash": 1080557597
+ },
+ {
+  "game": "slice",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1772400592
+ },
+ {
+  "game": "balltrack",
+  "seed": 1,
+  "score": 30,
+  "replayScore": 30,
+  "stateHash": 4249088932
+ },
+ {
+  "game": "balltrack",
+  "seed": 2,
+  "score": 30,
+  "replayScore": 30,
+  "stateHash": 121309403
+ },
+ {
+  "game": "balltrack",
+  "seed": 3,
+  "score": 22,
+  "replayScore": 22,
+  "stateHash": 572036890
+ },
+ {
+  "game": "balltrack",
+  "seed": 4,
+  "score": 13,
+  "replayScore": 13,
+  "stateHash": 1637400514
+ },
+ {
+  "game": "balltrack",
+  "seed": 5,
+  "score": 22,
+  "replayScore": 22,
+  "stateHash": 957043024
+ }
+]

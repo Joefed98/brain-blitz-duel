@@ -587,13 +587,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   cross: {
     goal: "Get across the traffic as many times as you can.",
     how: [
-      { action: "Swipe up to hop", detail: "one lane forward; swipe down to step back." },
-      { action: "Swipe left or right", detail: "to move sideways." },
-      {
-        action: "After each crossing",
-        detail: "you get a second on the kerb before the next one.",
-      },
-      { action: "Three lives", detail: "a hit costs one and restarts you on the start lane of this crossing after a second." },
+      { action: "Swipe up to hop forward.", detail: "Swipe down to step back, left or right to step sideways." },
+      { action: "Bikes race along green lanes", detail: "from crossing 3. Cones block the road from crossing 4: find the gap." },
+      { action: "Three lives.", detail: "A hit sends you back to the start of this crossing." },
+      { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
+      { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
     ],
     score: "2 × total lanes crossed + 4 × crossings completed, up to 150. No clean-crossing bonus.",
   },
@@ -643,18 +641,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "150 − 5 per touch.",
   },
   slice: {
-    goal: "Slice the flying discs. Don't hit the bombs.",
+    goal: "Slice the flying food. Don't cut the chillies.",
     how: [
-      { action: "Swipe through the discs", detail: "to slice them in half." },
-      { action: "Never touch the lit chilli", detail: "- each one costs ten points." },
-      {
-        action: "Two special bottles",
-        detail: "- Saucy (ketchup) opens three bomb-free seconds; Simmer (mustard) slows everything for four.",
-      },
-      { action: "Cut 3+ discs in one swipe", detail: "one finger-down-to-up path counts together, even a curve or loop. First combo gives ×2, second gives ×3. Each combo resets 10 seconds; only expiry returns you to ×1." },
-      { action: "Each swipe has a length limit", detail: "- curve it, but it stops after about three-quarters of the screen." },
+      { action: "Swipe through the food", detail: "to slice it. Cut 3 or more in one swipe for a combo: ×2, then ×3." },
+      { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
+      { action: "Cut a bottle:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together." },
+      { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
+      { action: "One finger-down-to-up path counts together", detail: "- curves too, up to about three-quarters of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
-    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150.",
+    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150. A chilli also ends the combo.",
   },
   bubble: {
     goal: "Pop bubbles in threes.",
@@ -756,11 +751,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   flip: {
     goal: "Run the corridor - flip to the other side to dodge.",
     how: [
-      { action: "Tap to flip gravity.", detail: "" },
-      { action: "Spikes and gaps on one side", detail: "mean run on the other." },
-      { action: "From 20 s the corridor bends.", detail: "Hazards ride the bends with you." },
+      { action: "Tap to flip", detail: "to the other side. Spikes or lava on one side? Run on the other." },
+      { action: "Cracked stone tiles break", detail: "soon after you land on them, so flip off quickly." },
+      { action: "Grab the gold stars.", detail: "From 15 seconds the corridor bends." },
+      { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
+      { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
-    score: "The longer you last, the more you score - the full minute is 150.",
+    score: "floor(130 × (seconds survived ÷ 60)²) + 2 per gold star (10 on the course): the full minute plus every star = 150.",
   },
   parry: {
     goal: "Block every arrow with the gong shield.",
@@ -886,13 +883,15 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "30 per completed pyramid, plus up to 30 for finishing all four early. The current pyramid earns proportional partial points.",
   },
   balltrack: {
-    goal: "Steer every ball into the tray of its colour.",
+    goal: "Steer every marble into the cup of its colour.",
     how: [
-      { action: "30 balls drop about every 1.72 seconds", detail: "- the last is released at about 50 seconds; the run lasts 60 seconds." },
-      { action: "Tap a gold tube to turn it into a drop", detail: "- the bottom row is fixed, so send each ball down early…" },
-      { action: "…the track's bottom row re-lays and the trays swap colours mid-round", detail: "- watch for both." },
+      { action: "Tap a gold tube to turn it.", detail: "A marble rolling into an upright tube drops a row." },
+      { action: "Tubes turn with a marble inside;", detail: "it rolls out of the new end." },
+      { action: "Tap a bottom-row arrow", detail: "to drop into that cup (↓) or roll past it (→)." },
+      { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
+      { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
     ],
-    score: "round(130 × marbles home ÷ 30); all 30 home = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150. Wrong trays have no penalty.",
+    score: "round(130 × marbles home ÷ 30). All 30 home = 130 + up to 20 for speed, timed from the earliest the last marble can land (53 s): the full 20 if it lands by 56.5 s, then less until 0 at 60 s. Wrong cups cost nothing.",
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

@@ -83,7 +83,13 @@ export const ART_WORLDS: Readonly<Record<ArtWorld, ArtWorldManifest>> = {
     author: KENNEY,
     page: "https://kenney.nl/assets/racing-pack",
     licence: CC0,
-    sprites: { car: { file: "car.png" }, lorry: { file: "lorry.png" } },
+    sprites: {
+      car: { file: "car.png" },
+      lorry: { file: "lorry.png" },
+      // Jaywalk roadworks (crossRev 2); the cyclists stay code-drawn (the pack has no bikes).
+      cone: { file: "cone.png" },
+      barrier: { file: "barrier.png" },
+    },
   },
   kitchen: {
     pack: "Food Kit",

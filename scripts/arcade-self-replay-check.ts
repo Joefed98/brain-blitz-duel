@@ -30,14 +30,14 @@ import {
   bullseyeInit,
   bullseyeWinds,
 } from "@/lib/arcade/bullseye";
-import { crossCheckpoint, crossGame } from "@/lib/arcade/cross";
+import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
 import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV } from "@/lib/arcade/matchup";
 import { rallyCheckpoint, rallyGame } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame } from "@/lib/arcade/skyline";
-import { sliceCheckpoint, sliceGame } from "@/lib/arcade/slice";
+import { sliceCheckpoint, sliceGame, sliceGameFor, SLICE_REV } from "@/lib/arcade/slice";
 import { snakeCheckpoint, snakeGame, snakeGameFor, SNAKE_REV } from "@/lib/arcade/snake";
 import { stdCheckpoint, steadyGame } from "@/lib/arcade/steady";
 import { swerveCheckpoint, swerveGame, type SwerveInput } from "@/lib/arcade/swerve";
@@ -65,7 +65,7 @@ import { roofCheckpoint, rooftopGame } from "@/lib/arcade/rooftop";
 import { encodeRooftopRun, replayRooftopRun } from "@/lib/duel/rooftop";
 import { sortCheckpoint, sortRushGame } from "@/lib/arcade/sortRush";
 import { encodeSortRushRun, replaySortRushRun } from "@/lib/duel/sortRush";
-import { flipCheckpoint, flipGame } from "@/lib/arcade/flip";
+import { flipCheckpoint, flipGame, flipGameFor, FLIP_REV } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { parryCheckpoint, parryGame } from "@/lib/arcade/parry";
 import { encodeParryRun, replayParryRun } from "@/lib/duel/parry";
@@ -87,7 +87,7 @@ import { clashCheckpoint, colourClashGame, colourClashRev3Game } from "@/lib/arc
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import { snipCheckpoint, snipGameFor, SNIP_REV } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
-import { btCheckpoint, makeBallTrackGame } from "@/lib/arcade/ballTrack";
+import { btCheckpoint, makeBallTrackGame, BT_REV } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "@/lib/duel/ballTrackBank.server";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
@@ -329,6 +329,16 @@ const GAMES: Game[] = [
     encode: (run: any) => encodeBallTrackRun(btCourse(run.seed), run),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourse(seed), seed, raw),
   },
+  {
+    key: "balltrack/v2",
+    game: makeBallTrackGame(btCourse(0), BT_REV),
+    gameFor: (seed: number) => makeBallTrackGame(btCourse(seed), BT_REV),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btCourse(run.seed), run, BT_REV),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btCourse(seed), seed, raw, BT_REV),
+  },
   // Current stamped revisions of games whose entries above replay their legacy (unstamped) rules.
   {
     key: "orbit/v3",
@@ -341,6 +351,9 @@ const GAMES: Game[] = [
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
   },
+  { key: "cross/v2", game: crossGameFor(CROSS_REV), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV) },
+  { key: "flip/v2", game: flipGameFor(FLIP_REV), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV) },
+  { key: "slice/v2", game: sliceGameFor(SLICE_REV), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV) },
   { key: "matchup/v2", game: matchupGameFor(MATCHUP_REV), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV) },
   { key: "bubble/v2", game: bubbleGameFor(BUB_REV), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV) },
   { key: "hover/v2", game: hoverGameFor(HOVER_REV), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV) },
