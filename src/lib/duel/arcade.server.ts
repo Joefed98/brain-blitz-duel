@@ -5,7 +5,7 @@ import { INK_REV3 } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
-import { SNIP_REV } from "@/lib/arcade/snip";
+import { SNIP_REV3 } from "@/lib/arcade/snip";
 import { SKYLINE_REV } from "@/lib/arcade/skyline";
 import { TILT_REV } from "@/lib/arcade/tilt";
 import { JUNC_REV } from "@/lib/arcade/junction";
@@ -188,7 +188,7 @@ export function generateOrbit(): OrbitPuzzleData {
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV3 };
 }
 
 /** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */

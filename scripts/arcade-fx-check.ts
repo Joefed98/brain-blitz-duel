@@ -76,6 +76,7 @@ const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
+const { snipRev3Game } = await import("../src/lib/arcade/snip");
 const { tiltRev2ArtGame: tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
 const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
 const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
@@ -121,7 +122,7 @@ const GAMES: Record<string, AnyGame> = {
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
   swing: swingArtGame as AnyGame,
-  snip: snipArtGame as AnyGame,
+  snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
     ...btGame,
@@ -333,6 +334,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, stars: s.stars + 1 }),
     (s) => ({ ...s, eaten: s.eaten + 1 }),
     (s) => ({ ...s, eaten: 10 }),
+    (s) => ({ ...s, springHits: (s.springHits ?? 0) + 1 }),
   ],
   tilt: [
     (s) => ({ ...s, mazes: s.mazes + 1 }),

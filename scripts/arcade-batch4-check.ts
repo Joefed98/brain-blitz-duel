@@ -74,6 +74,25 @@ import {
 } from "../src/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "../src/lib/duel/junction";
 import { playJunction } from "./junction-bot";
+import {
+  snipGame,
+  snipGameFor,
+  snipLevelOrderV3,
+  snipMouthAt,
+  snipTestLevel,
+  SNIP_BANDS,
+  SNIP_BANDS_V3,
+  SNIP_CONFIG,
+  SNIP_LEVEL_TICKS,
+  SNIP_REV,
+  SNIP_REV3,
+  SNIP_RUN_TICKS,
+  SNIP_STUNG,
+  type SnipState,
+} from "../src/lib/arcade/snip";
+import { encodeSnipRun, replaySnipRun } from "../src/lib/duel/snip";
+import { playSnipLevel } from "./snip-solver";
+import { playSnipRun, SNIP_PROOFS } from "./snip-run-bot";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -368,9 +387,133 @@ if (want("junction")) {
   console.log(`  look-ahead bot: mean ${(total / 4).toFixed(1)}, uncapped ${raws.join(", ")}`);
 }
 
+
+/* =============================== 2d. Scrumper =============================== */
+if (want("snip")) {
+  section("Scrumper snipRev 3 (60 templates, orchard elements, 2–4 ropes)");
+  const game = snipGameFor(SNIP_REV3);
+  ok(snipGameFor(undefined) === snipGame && snipGame.init(5).rev === undefined, "unstamped Scrumper keeps the original game");
+  ok(snipGameFor(SNIP_REV).init(5).rev === undefined && snipGameFor(SNIP_REV).init(5).order.every((t) => t < 30), "snipRev 2 keeps its 30 templates");
+  ok(game.init(5).rev === SNIP_REV3, "the state carries the stamp");
+  ok(SNIP_CONFIG.templates.length === 60, "the bank has 60 templates");
+  const fresh = (t: number) => t >= 30;
+  const orchard = (t: number) => {
+    const tpl = SNIP_CONFIG.templates[t]!;
+    return !!(tpl.planks || tpl.gutters || tpl.springs || tpl.nests || tpl.slide);
+  };
+  for (let t = 0; t < 60; t++) ok(fresh(t) === orchard(t), `template ${t}: orchard elements only on the new templates`);
+  const kinds = { planks: 0, gutters: 0, springs: 0, nests: 0, slide: 0 };
+  for (let t = 30; t < 60; t++) for (const k of Object.keys(kinds) as (keyof typeof kinds)[]) if (SNIP_CONFIG.templates[t]![k]) kinds[k] += 1;
+  ok(Object.values(kinds).every((n) => n >= 4), `every element appears on several levels (${JSON.stringify(kinds)})`);
+  const ropes = (band: readonly number[]) => band.filter(fresh).map((t) => SNIP_CONFIG.templates[t]!.pins.length);
+  ok(Math.min(...ropes(SNIP_BANDS_V3.medium)) >= 2 && Math.min(...ropes(SNIP_BANDS_V3.hard)) >= 3 && Math.max(...ropes(SNIP_BANDS_V3.hard)) === 4, "new medium levels hang from 2–3 ropes, new hard ones from 3–4");
+  let newDrawn = 0;
+  for (const seed of SEEDS(200, 7_919)) {
+    const order = snipLevelOrderV3(seed);
+    newDrawn += order.filter(fresh).length;
+    ok(order.join() === game.init(seed).order.join(), "the order comes from the seed");
+  }
+  ok(newDrawn / 200 > 4, `half the levels of a run are new orchard levels on average (${(newDrawn / 200).toFixed(1)} of 10)`);
+  // Elements behave as described.
+  {
+    const find = (key: "planks" | "gutters" | "springs" | "nests" | "slide") => SNIP_CONFIG.templates.findIndex((tpl) => !!tpl[key]);
+    // A plank: an apple set on it rolls downhill.
+    const pt = find("planks");
+    const plank = SNIP_CONFIG.templates[pt]!.planks![0]!;
+    const mid = { x: (plank[0] + plank[2]) / 2, y: (plank[1] + plank[3]) / 2 };
+    let s: SnipState = { ...snipTestLevel(pt, 0), ropes: [] };
+    s = { ...s, sx: mid.x * 256, sy: (mid.y - 13) * 256, sox: mid.x * 256, soy: (mid.y - 13) * 256 };
+    for (let k = 0; k < 30; k++) s = snipGame.step(s, null);
+    const downhill = Math.sign(plank[3] > plank[1] ? plank[2] - plank[0] : plank[0] - plank[2]);
+    ok(Math.sign(s.sx - mid.x * 256) === downhill && Math.abs(s.sy - mid.y * 256) < 40 * 256, "an apple on a plank rolls down it");
+    // A spring: an apple dropped on it leaves faster than the kick.
+    const st = find("springs");
+    const spring = SNIP_CONFIG.templates[st]!.springs![0]!;
+    const sm = { x: (spring[0] + spring[2]) / 2, y: (spring[1] + spring[3]) / 2 };
+    let b: SnipState = { ...snipTestLevel(st, 0), ropes: [] };
+    b = { ...b, sx: sm.x * 256, sy: (sm.y - 40) * 256, sox: sm.x * 256, soy: (sm.y - 40) * 256 - 512 };
+    let up = 0;
+    for (let k = 0; k < 40; k++) {
+      b = snipGame.step(b, null);
+      up = Math.max(up, b.soy - b.sy);
+    }
+    ok((b.springHits ?? 0) >= 1 && up >= SNIP_CONFIG.springKick - 400, "a springy branch kicks the apple back up hard");
+    // A gutter carries it without a bounce.
+    const gt = find("gutters");
+    const gut = SNIP_CONFIG.templates[gt]!.gutters![0]!;
+    const gm = { x: (gut[0] + gut[2]) / 2, y: (gut[1] + gut[3]) / 2 };
+    let g: SnipState = { ...snipTestLevel(gt, 0), ropes: [] };
+    g = { ...g, sx: gm.x * 256, sy: (gm.y - 20) * 256, sox: gm.x * 256, soy: (gm.y - 20) * 256 - 1024 };
+    let rise = 0;
+    for (let k = 0; k < 30; k++) {
+      g = snipGame.step(g, null);
+      rise = Math.max(rise, g.soy - g.sy);
+    }
+    ok(rise < 200, "a gutter takes the apple without a bounce");
+    // A nest: touching it loses the level.
+    const nt = find("nests");
+    const [nx, ny] = SNIP_CONFIG.templates[nt]!.nests![0]!;
+    let w: SnipState = { ...snipTestLevel(nt, 0), ropes: [] };
+    w = { ...w, sx: nx * 256, sy: (ny - 40) * 256, sox: nx * 256, soy: (ny - 40) * 256 };
+    for (let k = 0; k < 40 && w.level === 0; k++) w = snipGame.step(w, null);
+    ok(w.level === 1 && w.lastOutcome === SNIP_STUNG && w.eaten === 0, "touching a wasp nest loses the level");
+    // A sliding basket moves within its range and feeds at its moving position.
+    const lt = find("slide");
+    const tpl = SNIP_CONFIG.templates[lt]!;
+    const xs = Array.from({ length: tpl.slide![1] }, (_, k) => snipMouthAt(tpl, k).x / 256);
+    ok(Math.abs(Math.min(...xs) - (tpl.mouth[0] - tpl.slide![0])) <= 1 && Math.abs(Math.max(...xs) - (tpl.mouth[0] + tpl.slide![0])) <= 1, "the basket slides ± its amplitude");
+    let m: SnipState = { ...snipTestLevel(lt, 0), ropes: [] };
+    const at = snipMouthAt(tpl, 61);
+    m = { ...m, levelTick: 60, sx: at.x, sy: at.y - 10 * 256, sox: at.x, soy: at.y - 10 * 256 };
+    m = snipGame.step(m, null);
+    ok(m.eaten === 1, "the apple is caught where the basket is now");
+  }
+  // Every template is proven at pin wobble −10, 0 and +10 by a stored human-paced plan.
+  const worst: number[] = [];
+  const worstLeaf: number[] = [];
+  for (let t = 0; t < 60; t++) {
+    let w = 0;
+    let wl = 0;
+    for (const jit of [-10, 0, 10]) {
+      const proof = SNIP_PROOFS[String(t)]?.[String(jit)];
+      ok(!!proof?.fast, `template ${t} wobble ${jit}: a stored winning plan`);
+      const res = playSnipLevel(t, jit, proof!.fast!.plan);
+      ok(res.eaten && res.tick === proof!.fast!.tick, `template ${t} wobble ${jit}: the plan feeds the apple at tick ${proof!.fast!.tick}`);
+      w = Math.max(w, res.tick);
+      if (proof!.leaf) {
+        const lr = playSnipLevel(t, jit, proof!.leaf.plan);
+        ok(lr.eaten && lr.star, `template ${t} wobble ${jit}: the leaf plan takes the leaf and feeds the apple`);
+        wl = Math.max(wl, lr.tick);
+      } else wl = Infinity;
+    }
+    worst.push(w);
+    worstLeaf.push(wl);
+    ok(w <= SNIP_LEVEL_TICKS, `template ${t}: fed within the 12 s level`);
+  }
+  // Strong player, every mix: the 3 slowest easy + 4 slowest medium + 3 slowest hard still fit the minute.
+  const slowest = (band: readonly number[], k: number, by: number[]) => band.map((t) => by[t]!).sort((a, b) => b - a).slice(0, k).reduce((a, b) => a + b, 0);
+  const bound = slowest(SNIP_BANDS_V3.easy, 3, worst) + slowest(SNIP_BANDS_V3.medium, 4, worst) + slowest(SNIP_BANDS_V3.hard, 3, worst);
+  ok(bound <= SNIP_RUN_TICKS, `every ten-level mix can be finished in the minute (worst mix ${(bound / 60).toFixed(1)} s with stored plans)`);
+  console.log(`  worst mix, fastest plans: ${(bound / 60).toFixed(1)} s; slowest single level ${(Math.max(...worst) / 60).toFixed(1)} s`);
+  const leafBound = slowest(SNIP_BANDS_V3.easy, 3, worstLeaf) + slowest(SNIP_BANDS_V3.medium, 4, worstLeaf) + slowest(SNIP_BANDS_V3.hard, 3, worstLeaf);
+  console.log(`  worst mix taking every leaf: ${Number.isFinite(leafBound) ? (leafBound / 60).toFixed(1) + " s" : "not every leaf proven"}`);
+  void SNIP_BANDS;
+  // 150 through the server replay on a real seeded run (actual pin wobble).
+  let best = 0;
+  for (const seed of [1, 77, 4242]) {
+    const run = playSnipRun(game, seed, {});
+    const raw = encodeSnipRun({ seed, claimedScore: run.score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+    const replay = replaySnipRun(seed, raw, SNIP_REV3);
+    ok(replay.score === run.score && !replay.flagged && JSON.stringify(replay.state) === JSON.stringify(run.state), `seed ${seed}: server replay agrees (${run.score}: ${run.state.eaten} apples, ${run.state.stars} leaves, done at ${(run.state.finishTick / 60).toFixed(1)} s)`);
+    ok(run.state.eaten === SNIP_CONFIG.levels, `seed ${seed}: the bot feeds all ten apples`);
+    best = Math.max(best, replay.score);
+  }
+  ok(best === 150, "150 is reachable on snipRev 3 through the server replay");
+}
+
 /* ============================ 3. Intro text rules ============================ */
 section("intro text");
-for (const type of (["skyline", "tilt", "junction"] as const).filter(want)) {
+for (const type of (["skyline", "tilt", "junction", "snip"] as const).filter(want)) {
   const help = PUZZLE_INSTRUCTIONS[type];
   const intro = help.how.filter((line) => !line.helpOnly);
   ok(intro.length <= 3, `${type}: intro HOW has at most three lines (${intro.length})`);
@@ -380,6 +523,7 @@ for (const type of (["skyline", "tilt", "junction"] as const).filter(want)) {
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters (${INTRO_SCORE[type].length})`);
 }
 if (want("skyline")) ok(/up to 150/i.test(INTRO_SCORE.skyline), "High Rise intro states the 150 maximum the bot reaches");
+if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && `${l.action} ${l.detail}`.includes("up to 12 s each")), "Scrumper intro says up to 12 s each");
 if (want("junction")) ok(/up to 150/i.test(INTRO_SCORE.junction), "Junction intro states the 150 maximum the bot reaches");
 if (want("tilt")) ok(INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && /up to 150/.test(INTRO_SCORE.tilt), "Tilt intro states the real partial maximum and the 150");
 

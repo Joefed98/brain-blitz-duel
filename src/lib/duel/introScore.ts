@@ -148,7 +148,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
   burst: "Points for each atom you destroy or split. Clear four waves without losing a life for 150.",
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
-  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
+  snip: `${SNIP_CONFIG.pointsPerSweet} per apple, ${SNIP_CONFIG.pointsPerStar} per leaf; all ${SNIP_CONFIG.levels} apples fast adds up to ${SNIP_CONFIG.finishBonus}. Up to 150.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
   tilt: `${TILT_V2_MAZE_POINTS} per maze, ${TILT_V2_STAR_POINTS} per star; finish all ${TILT_MAX_MAZES} fast for up to 150. Otherwise up to ${TILT_V2_PARTIAL_MAX}.`,
   balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),

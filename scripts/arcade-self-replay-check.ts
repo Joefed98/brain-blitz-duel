@@ -85,7 +85,7 @@ import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { clashCheckpoint, colourClashGame, colourClashRev3Game } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
-import { snipCheckpoint, snipGameFor, SNIP_REV } from "@/lib/arcade/snip";
+import { snipCheckpoint, snipGameFor, SNIP_REV, SNIP_REV3 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { btCheckpoint, makeBallTrackGame, BT_REV } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
@@ -358,6 +358,7 @@ const GAMES: Game[] = [
   { key: "matchup/v2", game: matchupGameFor(MATCHUP_REV2), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV2) },
   { key: "matchup/v3", game: matchupGameFor(MATCHUP_REV), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV) },
   { key: "bubble/v2", game: bubbleGameFor(BUB_REV), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV) },
+  { key: "snip/v3", game: snipGameFor(SNIP_REV3), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV3) },
   { key: "junction/v2", game: junctionGameFor(JUNC_REV), checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: (seed: number, raw: string) => replayJunctionRun(seed, raw, JUNC_REV) },
   { key: "tilt/v2", game: tiltGameFor(TILT_REV), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV) },
   { key: "skyline/v2", game: skylineGameFor(SKYLINE_REV), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV) },

@@ -770,15 +770,29 @@ export const SNIP_FX: ArcadeFxSpec<SnipState> = {
       kind: "clear",
       count: (s) => s.eaten,
       when: (s) => s.eaten < SNIP_CONFIG.levels,
-      label: (_s, n) => `LEVEL ${n}!`,
+      label: (s, n) => snipClearLabel(s) ?? `LEVEL ${n}!`,
     },
     {
       kind: "final",
       count: (s) => (s.eaten >= SNIP_CONFIG.levels ? 1 : 0),
       label: () => "ALL 10 APPLES!",
     },
+    // snipRev 3 (springy branches exist only there): each bounce off one.
+    { kind: "pop", count: (s) => s.springHits ?? 0, at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - 16 }), label: () => "BOING!" },
   ],
 };
+
+/** snipRev 3: the level just fed names the orchard element it beat (older templates have none). */
+function snipClearLabel(s: SnipState): string | null {
+  const tpl = SNIP_CONFIG.templates[s.order[Math.max(0, s.level - 1)] ?? -1];
+  if (!tpl) return null;
+  if (tpl.slide) return "CAUGHT IN THE BASKET!";
+  if (tpl.nests) return "PAST THE WASPS!";
+  if (tpl.springs) return "BOUNCED IN!";
+  if (tpl.gutters) return "DOWN THE GUTTER!";
+  if (tpl.planks) return "ROLLED IN!";
+  return null;
+}
 
 /* ================================ Toybox ================================ */
 

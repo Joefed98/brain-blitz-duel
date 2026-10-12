@@ -483,6 +483,8 @@ export function snipSounds(): GameSounds<SnipState> {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (state.cuts > prev.cuts) playSound("arc_rope_cut", 0.8, 1, true);
+        // snipRev 3: a springy branch bounce.
+        if ((state.springHits ?? 0) > (prev.springHits ?? 0)) playSound("arc_bounce", 0.7);
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
         if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_leaf_collect");

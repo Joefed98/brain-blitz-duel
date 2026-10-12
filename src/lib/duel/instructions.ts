@@ -839,9 +839,14 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   snip: {
     goal: "Drop the apple into the basket.",
     how: [
-      { action: "Swipe across a rope", detail: "to cut it - time it with the swing." },
-      { action: "Cut the last rope", detail: "and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena." },
-      { action: "Don't let it settle on a ledge", detail: "or fly out the top or bottom - 10 levels, 12 s each." },
+      { action: "Swipe across a rope", detail: "to cut it. Order matters." },
+      { action: "Avoid wasp nests;", detail: "use planks and springs." },
+      { action: "10 levels,", detail: "up to 12 s each." },
+      { action: "Time it with the swing.", detail: "Cut the last rope and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena.", helpOnly: true },
+      { action: "Orchard pieces:", detail: "the apple rolls along sloped planks and down tin gutters, bounces hard off springy green branches, and a touch on a wasp nest loses the level. Some baskets slide slowly side to side - drop it as one comes under.", helpOnly: true },
+      { action: "Several ropes?", detail: "Which one you cut first decides which way the apple swings.", helpOnly: true },
+      { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
+      { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
     ],
     score: "10 per apple collected, +3 for each level's single leaf; collect all ten for up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150.",
   },

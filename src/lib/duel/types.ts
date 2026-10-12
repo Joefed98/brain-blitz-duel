@@ -2227,7 +2227,7 @@ export interface SnipPuzzleData {
   type: "snip";
   /** Draws the level order and pin wobble — identical for everyone. */
   seed: number;
-  /** 2 = ten levels drawn by band from the 30 templates. Absent = fixed legacy order. */
+  /** 2 = ten levels drawn by band from the 30 templates; 3 = from the 60 (orchard elements). Absent = fixed legacy order. */
   snipRev?: number;
 }
 
