@@ -14,6 +14,8 @@ import { readdirSync, writeFileSync } from "node:fs";
 const DEFAULT_TIMEOUT_MS = 300_000;
 const TIMEOUT_OVERRIDES: Record<string, number> = {
   "snip-check.ts": 1_800_000,
+  // 22 games × ~25 s each in headless Chromium, plus starting a dev server.
+  "arcade-play-check.ts": 1_500_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);

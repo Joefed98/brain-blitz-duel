@@ -7,6 +7,9 @@ export function arcadeFeedback(options: { combo?: boolean } = {}) {
   let previousCascades = 0;
   let finished = false;
   return (state: object, over: boolean) => {
+    // Test hook (scripts/arcade-play-check.ts): headless runs observe each drawn frame's
+    // sim state here. Unset in the app, so this is one property read per frame.
+    (globalThis as { __arcadeProbe?: (state: object, over: boolean) => void }).__arcadeProbe?.(state, over);
     const s = state as Record<string, unknown>;
     const number = (key: string) => typeof s[key] === "number" ? s[key] as number : 0;
     const combo = number("combo") || (number("comboLive") ? 1 + number("streak") : 0);

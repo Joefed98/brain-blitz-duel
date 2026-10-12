@@ -62,6 +62,16 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   extra). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
   burst-swing-score, arcade-self-replay, ink-live, ink-live-bottom and orbit-camera
   take 100–140 s each. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
+- **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
+  `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
+  arcade-fx and reveal-score. It plays all 22 active arcade games in headless Chromium
+  (390 × 700, practice mode, 15 s of scripted taps and swipes each, about 10 minutes)
+  and fails if the sim tick or HUD timer stops, a console or page error appears, the
+  average frame time is far above the per-game baseline from main
+  (`scripts/fixtures/arcade-play-baseline.json`; rerecord with `--record` against main)
+  or a drawn object jumps further than it can move. Pass game ids to run only those.
+  It starts its own Vite dev server (or `--url=<origin>`) and needs the pre-installed
+  Chromium; run-checks gives it 1,500 s.
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
