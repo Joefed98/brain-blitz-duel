@@ -2128,6 +2128,7 @@ export function gradeSubmission(
         pops: run.pops,
         balloons: run.balloons,
         bullRev: run.bullRev,
+        ...(run.tuned ? { tuned: run.tuned, balloonPoints: run.balloonPoints } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

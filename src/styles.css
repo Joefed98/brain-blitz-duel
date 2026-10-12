@@ -706,41 +706,37 @@ body.game-lock {
   animation: countdown-number 1s ease-out both;
 }
 
-/* Fixed examples keep their visual demonstration. Their old first and last
+/* Fixed examples keep their visual demonstration inside the intro's IntroFit
+ * box (scaled to the room the text leaves). Their old first and last
  * instruction captions are superseded by the shared GOAL / HOW / SCORE card. */
-.round-intro-example,
-.round-intro-example > div {
-  display: contents;
-}
-
-.round-intro-example > div > * {
-  order: 3;
-}
-
-.round-intro-example > div > p:first-child,
-.round-intro-example > div > p:last-child {
+.round-intro-example > div > div > p:first-child,
+.round-intro-example > div > div > p:last-child {
   display: none;
+}
+
+.round-intro-example {
+  order: 3;
 }
 
 .round-intro-time {
   order: 4;
 }
 
-.round-intro-example > div > :not(p) {
-  transform: scale(0.82);
-  margin-block: -0.35rem;
-}
-
 .round-instructions {
   order: 1;
 }
 
-@media (min-height: 720px) {
-  .round-intro-example > div > :not(p) {
-    transform: scale(0.95);
-    margin-block: 0;
-  }
-}
+/* Round intro text steps (data-compact, set by RoundIntro when the text would
+ * otherwise squeeze the demo/example under its minimum or not fit at all). */
+.round-intro[data-compact="1"] .round-intro-title { font-size: 1.875rem; }
+.round-intro[data-compact="1"] .round-instructions { gap: 0.25rem; }
+.round-intro[data-compact="1"] .intro-goal > p:last-child { font-size: 1rem; }
+.round-intro[data-compact="1"] :is(.intro-how, .intro-score) :is(p, div) { font-size: 0.8125rem; line-height: 1.3; }
+.round-intro[data-compact="2"] .round-intro-title { font-size: 1.625rem; }
+.round-intro[data-compact="2"] .round-instructions { gap: 0.125rem; }
+.round-intro[data-compact="2"] .round-intro-content { gap: 0.25rem; }
+.round-intro[data-compact="2"] .intro-goal > p:last-child { font-size: 0.9375rem; }
+.round-intro[data-compact="2"] :is(.intro-how, .intro-score) :is(p, div) { font-size: 0.75rem; line-height: 1.25; }
 
 /* --- Waiting / loading dots -------------------------------------------- */
 
@@ -980,14 +976,15 @@ body.game-lock {
 
 /* Round intro: never taller than the viewport inside PhoneShell's unconstrained column
    (pad-safe top/bottom and the 2.75rem top bar), so the sticky READY footer stays on
-   screen at 375×667 and any extra content scrolls inside .round-intro-content. */
+   screen at 375×667. Nothing scrolls inside .round-intro-content: the demo/example
+   (IntroFit) gives up height and the text steps down (data-compact) instead. */
 .round-intro {
   max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(2rem, env(safe-area-inset-bottom)) - 2.75rem);
 }
 
-/* Intro demo: height-led so the intro never scrolls at 375×667. */
+/* Intro demo: its natural height; IntroFit scales it down to the room the text leaves. */
 .intro-demo {
-  height: clamp(120px, 26svh, 210px);
+  height: clamp(150px, 34svh, 230px);
   max-width: 100%;
 }
 

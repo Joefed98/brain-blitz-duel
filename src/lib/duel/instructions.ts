@@ -25,7 +25,7 @@ import { INK_BAND_CURVE } from "@/lib/arcade/inkBridge";
 import { MATCHUP_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
-import { RALLY_BAND_CURVE } from "@/lib/arcade/rally";
+import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
 import { SNAKE_BAND_CURVE } from "@/lib/arcade/snake";
 import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
 import { SNIP_BAND_CURVE } from "@/lib/arcade/snip";
@@ -39,7 +39,7 @@ import { BEAT_BAND_CURVE } from "@/lib/arcade/beat";
 import { SLICE_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
 import { SWING_BAND_CURVE } from "@/lib/arcade/swing";
-import { BULLSEYE_BAND_CURVE } from "@/lib/arcade/bullseye";
+import { BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
 import { bandHelp } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "./types";
 
@@ -603,7 +603,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to aim,", detail: "let go to throw." },
       { action: "Wind 2?", detail: "Aim two rings into the wind." },
-      { action: "Inner bull 12. Balloons 12,", detail: "but use the dart." },
+      { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3." },
       {
         action: "Touch and drag to aim:",
         detail: "the dotted path shows where the dart will land.",
@@ -629,11 +629,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       {
         action: "Balloons:",
-        detail: "on three of darts 3-10 a balloon drifts across the range. Pop it for 12 - that dart then scores nothing on the board.",
+        detail: "on three of darts 3-10 a balloon flies back and forth across the board itself, moving with it: +1 green (slowest), +2 blue (a little faster), +3 purple (fastest). A dart that passes through a balloon pops it and scores its value, then carries on and also scores the ring it lands in.",
         helpOnly: true,
       },
     ],
-    score: bandHelp("Your dart total: rings 10 in the centre down to 1, an inner bull or a balloon 12.", BULLSEYE_BAND_CURVE),
+    score: bandHelp("Your dart total: rings 10 in the centre down to 1 (an inner bull 12), plus +1, +2 or +3 for each balloon popped on the way in.", BULLSEYE_V4_BAND_CURVE),
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -698,7 +698,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Green L = laser:", detail: "one beam straight up from the paddle that hits the first 4 bricks above it.", helpOnly: true },
       { action: "Silver ×3 = three shots:", detail: "each tap fires an extra ball straight up; it vanishes at the first wall it hits.", helpOnly: true },
       { action: "Bronze ×2 = double balls", detail: "at once. There is one per board.", helpOnly: true },
-      { action: "Orange flame = Fireball:", detail: "for 5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
+      { action: "Orange flame = Fireball:", detail: "for 3.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
     score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
@@ -712,11 +712,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
       { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
       { action: "A gold ball drops in", detail: "every ten seconds - only gold balls score.", helpOnly: true },
-      { action: "Two pink target pads", detail: "sit on the far wall. A gold ball that hits one scores 3, and the pad moves somewhere new.", helpOnly: true },
+      { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one scores 3, and the pad moves somewhere new in its own half, so the two never overlap.", helpOnly: true },
       { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
       { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_BAND_CURVE),
+    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V4_BAND_CURVE),
   },
 
   steady: {
@@ -746,10 +746,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Pop bubbles in threes.",
     how: [
       { action: "Drag to aim,", detail: "let go to shoot." },
-      { action: "Rainbow Joker", detail: "matches any colour." },
+      { action: "Crown Joker", detail: "matches any colour." },
       { action: "Mines blast;", detail: "torpedoes clear a whole row." },
       { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
-      { action: "The rainbow Joker", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
+      { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
       { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
       { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
@@ -913,9 +913,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Split the atoms. Don't get hit.",
     how: [
-      { action: "◀ ▶ to move,", detail: "FIRE or tap to shoot up." },
+      { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
       { action: "Catch drops:", detail: "BURST, SHIELD and FREEZE." },
       { action: "An atom touching you", detail: "costs a life (3 lives)." },
+      { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
       { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
       { action: "Purple atoms: 1 in 2 drop a gold BURST icon", detail: "- triple shots until you lose a life.", helpOnly: true },
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "- it takes the next hit for you.", helpOnly: true },

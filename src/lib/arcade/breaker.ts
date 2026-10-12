@@ -101,6 +101,14 @@ export const BRK_REV = 2;
 export const BRK_POWER_FIRE = 3;
 export const BRK_FIRE_ROWS: readonly [number, number] = [2, 6];
 export const BRK_FIRE_TICKS = 5 * TICKS_PER_SECOND;
+/** brkRev 4 (Tuning B): the Fireball lasts 30 % less, 3.5 s. */
+export const BRK_FIRE_TICKS_V4 = Math.round(3.5 * TICKS_PER_SECOND);
+export const BRK_TUNE = 1;
+
+/** How long a caught Fireball lasts on this state's revision. */
+export function brkFireTicks(state: Pick<BrkState, "tune">): number {
+  return state.tune === BRK_TUNE ? BRK_FIRE_TICKS_V4 : BRK_FIRE_TICKS;
+}
 export const BRK_V2_LASER_BRICKS = 4;
 export const BRK_V2_SPAM_SHOTS = 3;
 /** Rows that can slide (inclusive), how far, how fast, and when each starts. */
@@ -190,6 +198,8 @@ export interface BrkState extends BandFields {
   /** brkRev 2: ticks of Fireball left, and Fireball capsules caught. */
   fire?: number;
   fireballs?: number;
+  /** brkRev 4 only (Tuning B): 1 = the 3.5 s Fireball. Absent on every earlier round. */
+  tune?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -591,7 +601,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         held = BRK_POWER_SPAM + 1;
         charges = v2 ? BRK_V2_SPAM_SHOTS : BRK_SPAM_SHOTS;
       } else if (capsule.kind === BRK_POWER_FIRE) {
-        fire = BRK_FIRE_TICKS;
+        fire = brkFireTicks(state);
         fireballs += 1;
       } else {
         held = BRK_POWER_LASER + 1;
@@ -685,6 +695,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   const values = Object.values(snapshot);
   // brkRev 2 only, so original checksums are unchanged.
   if (state.rev !== undefined) values.push(state.rev, state.fire ?? 0, state.fireballs ?? 0, ...(state.slide ?? []));
+  // brkRev 4 adds its marker last, so rev-2/3 checksums are unchanged.
+  if (state.tune !== undefined) values.push(state.tune);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -862,6 +874,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TUNED) return breakerTunedGame;
   if (rev === BRK_REV_BAND) return breakerBandGame;
   return rev === BRK_REV ? breakerGameV2 : breakerGame;
 }
@@ -883,3 +896,18 @@ function scoreBand(state: BrkState): number {
 }
 
 export const breakerBandGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameV2, init: (seed) => bandInit(breakerGameV2.init(seed)) };
+
+/* ================= Tuning B (brkRev 4): shorter Fireball ================= */
+
+/**
+ * brkRev 4 (Tuning B, Oct 2026): brkRev 3 play and bands with the Fireball cut
+ * from 5 s to 3.5 s. States keep `rev: 2` and add `tune: 1`.
+ */
+export const BRK_REV_TUNED = 4;
+// Bands: the brkRev 3 knots stand. scripts/arcade-skill-bands.ts --rev=current
+// (100 seeds) moved each level's median by at most 2 points.
+
+export const breakerTunedGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerGameV2,
+  init: (seed) => bandInit({ ...breakerGameV2.init(seed), tune: BRK_TUNE }),
+};

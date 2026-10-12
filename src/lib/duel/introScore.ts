@@ -127,7 +127,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
   skyline: "Points for each block and perfect drop, more for perfects in a row. Up to 150.",
   bintoss: `Points for each bucket and hoop. All ${BINTOSS_THROWS} in for 10 more, up to 150.`,
-  bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]}; inner bull or balloon ${BULLSEYE_INNER_BULL_POINTS}. Up to 150.`,
+  bullseye: `Rings ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to 150.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
   snake: "Points for each star you eat. Up to 150.",
   cross: "Points for each lane crossed, more for each full crossing. Up to 150.",

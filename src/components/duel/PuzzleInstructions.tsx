@@ -18,11 +18,13 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
   return (
     <section
       className={
-        overlay ? "flex w-full flex-col gap-4" : "round-instructions flex w-full flex-col gap-2"
+        overlay
+          ? "flex w-full flex-col gap-4"
+          : `round-instructions flex w-full flex-col gap-2 ${beforeScore ? "min-h-0 shrink" : "shrink-0"}`
       }
       aria-label={`${puzzleDef(type).name} instructions`}
     >
-      <div>
+      <div className="intro-goal shrink-0">
         <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Goal</p>
         <p
           className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}
@@ -30,7 +32,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
           {instructions.goal}
         </p>
       </div>
-      <div>
+      <div className="intro-how shrink-0">
         <p className="font-mono text-[10px] font-bold uppercase text-category-accent">How</p>
         <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
           {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
@@ -41,7 +43,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         </div>
       </div>
       {beforeScore}
-      <div>
+      <div className="intro-score shrink-0">
         <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Score</p>
         <p className="text-sm leading-snug text-muted-foreground">{overlay ? instructions.score : INTRO_SCORE[type]}</p>
       </div>

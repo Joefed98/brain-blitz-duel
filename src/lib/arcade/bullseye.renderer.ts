@@ -11,8 +11,8 @@ import {
   BULLSEYE_ARROWS, BULLSEYE_BOW_X, BULLSEYE_BOW_Y, BULLSEYE_CX, BULLSEYE_CY,
   BULLSEYE_DRIFT_FROM, BULLSEYE_FLIGHT_TICKS, BULLSEYE_GOLD, BULLSEYE_OUTER_R, BULLSEYE_RINGS,
   BULLSEYE_RING_STEP, BULLSEYE_TEXT, BULLSEYE_WIND_MAX, BULLSEYE_WORLD_H, BULLSEYE_WORLD_W,
-  BULLSEYE_BALLOON_R, BULLSEYE_INNER_BULL_DIV, BULLSEYE_REV,
-  bullseyeBalloonAt, bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
+  BULLSEYE_BALLOON_R, BULLSEYE_INNER_BULL_DIV, BULLSEYE_REV, BULLSEYE_TUNE,
+  bullseyeBalloonPos, bullseyeBalloonValue, bullseyeRingValues, bullseyeScalePct, bullseyeTargetDx, type BullseyeState,
 } from "./bullseye";
 import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -82,9 +82,16 @@ function drawInnerBull(ctx: CanvasRenderingContext2D, scalePct: number, dx: numb
 }
 
 const BALLOON_COLOURS = ["#E8384F", "#3B82F6", "#22C55E", "#A855F7"];
+/** bullRev 4: balloon colour by value, +1 green, +2 blue, +3 purple. */
+const VALUE_BALLOON_COLOURS: Readonly<Record<number, string>> = { 1: "#22C55E", 2: "#3B82F6", 3: "#A855F7" };
 
-/** Rev 2: a fairground balloon whose body is exactly the sim's pop circle. */
-function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string): void {
+function balloonColour(state: BullseyeState, arrow: number): string {
+  if (state.tune === BULLSEYE_TUNE) return VALUE_BALLOON_COLOURS[bullseyeBalloonValue(state, arrow)] ?? "#22C55E";
+  return BALLOON_COLOURS[arrow % BALLOON_COLOURS.length]!;
+}
+
+/** Rev 2 / bullRev 4: a fairground balloon whose body is exactly the sim's pop circle. */
+function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string, label = "12"): void {
   const r = BULLSEYE_BALLOON_R;
   ctx.save();
   // A short tied string below the knot (2 px: within the bounds rule).
@@ -103,14 +110,21 @@ function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, colour
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-  ctx.lineWidth = 1;
+  // A white rim (inside the 2 px bounds rule) keeps it readable over any ring colour.
+  ctx.strokeStyle = label === "12" ? "rgba(0, 0, 0, 0.35)" : "#FFFFFF";
+  ctx.lineWidth = label === "12" ? 1 : 1.5;
   ctx.stroke();
-  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.font = label === "12" ? "700 9px 'JetBrains Mono', ui-monospace, monospace" : "800 11px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  if (label !== "12") {
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = "round";
+    ctx.strokeText(label, x, y + 1);
+  }
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillText("12", x, y + 1);
+  ctx.fillText(label, x, y + 1);
   ctx.restore();
 }
 
@@ -256,23 +270,22 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
     if (state.rev === BULLSEYE_REV && bullseyeRingValues(state, shown)[0] === 10) drawInnerBull(ctx, bullseyeScalePct(shown), dx);
 
     const last = state.hits[state.hits.length - 1];
-    // Rev 2: this dart's balloon drifts until the dart lands; a popped one bursts.
-    const balloon = state.balloons?.[shown] ?? null;
-    const balloonColour = BALLOON_COLOURS[shown % BALLOON_COLOURS.length]!;
+    // Rev 2 / bullRev 4: this dart's balloon floats until the dart lands; a popped one bursts.
+    const tuned = state.tune === BULLSEYE_TUNE;
+    const balloonAt = bullseyeBalloonPos(state, shown, state.tick);
     const popped = last?.pop === 1 && last.arrow === shown;
-    if (balloon && !(popped && state.flightTick === 0)) {
-      const at = bullseyeBalloonAt(balloon, state.tick);
-      drawBalloon(ctx, at.x, at.y, balloonColour);
+    if (balloonAt && !(popped && state.flightTick === 0)) {
+      drawBalloon(ctx, balloonAt.x, balloonAt.y, balloonColour(state, shown), tuned ? `+${bullseyeBalloonValue(state, shown)}` : "12");
     }
     if (last?.pop === 1 && state.flightTick === 0 && !reducedMotion()) {
-      drawBalloonPop(ctx, last.x, last.y, BALLOON_COLOURS[last.arrow % BALLOON_COLOURS.length]!, landAge);
+      drawBalloonPop(ctx, last.x, last.y, balloonColour(state, last.arrow), landAge);
     }
     if (last && state.flightTick === 0) {
       // Stuck in at its exact sim point; flights wobble once on landing.
       const wobble = !reducedMotion() && landAge < 450
         ? Math.sin(landAge / 30) * 0.35 * (1 - landAge / 450) : 0;
-      // A dart that popped a balloon is gone with it; only board hits stay stuck in.
-      if (last.pop !== 1) drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
+      // Rev 2: a dart that popped a balloon is gone with it. bullRev 4: it carries on into the board.
+      if (last.pop !== 1 || tuned) drawDart(ctx, last.x, last.y, 0.45, flightColour(last.arrow), wobble);
       if (landAge < 500) {
         const u = landAge / 500;
         const pop = reducedMotion() ? 1 : 1 + 0.2 * Math.sin(Math.min(1, u * 4) * Math.PI);
@@ -284,11 +297,23 @@ export function drawBullseye(ctx: CanvasRenderingContext2D, state: BullseyeState
         ctx.font = "700 20px 'JetBrains Mono', ui-monospace, monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        ctx.fillText(String(last.value), 0, 0);
+        // bullRev 4: the ring's points at the dart, and the balloon's own +n beside them in its colour.
+        const bal = last.bal ?? 0;
+        ctx.fillText(String(last.value - bal), 0, 0);
+        if (bal > 0) {
+          ctx.font = "800 16px 'JetBrains Mono', ui-monospace, monospace";
+          ctx.fillStyle = balloonColour(state, last.arrow);
+          ctx.strokeStyle = "#FFFFFF";
+          ctx.lineWidth = 3;
+          ctx.lineJoin = "round";
+          ctx.strokeText(`+${bal}`, 0, -20);
+          ctx.fillText(`+${bal}`, 0, -20);
+        }
         ctx.restore();
       }
     }
-    successFrame(ctx,{id:'bullseye',tick:state.tick,count:state.flightTick===0?state.hits.filter(h=>h.ring===0).length:Math.max(0,state.hits.filter(h=>h.ring===0).length-(last?.ring===0?1:0)),enabled:state.flightTick===0&&last?.ring===0,colour:BULLSEYE_GOLD,width:BULLSEYE_WORLD_W,height:BULLSEYE_WORLD_H,point:{x:last?.x??BULLSEYE_CX,y:last?.y??BULLSEYE_CY,shape:'spark'}});
+    const isBull=(h:{ring:number;value:number;bal?:number})=>h.ring===0&&h.value-(h.bal??0)>=10;
+    successFrame(ctx,{id:'bullseye',tick:state.tick,count:state.flightTick===0?state.hits.filter(isBull).length:Math.max(0,state.hits.filter(isBull).length-(last&&isBull(last)?1:0)),enabled:state.flightTick===0&&!!last&&isBull(last),colour:BULLSEYE_GOLD,width:BULLSEYE_WORLD_W,height:BULLSEYE_WORLD_H,point:{x:last?.x??BULLSEYE_CX,y:last?.y??BULLSEYE_CY,shape:'spark'}});
     if (last && state.flightTick > 0) {
       const progress = (BULLSEYE_FLIGHT_TICKS - state.flightTick) / BULLSEYE_FLIGHT_TICKS;
       const x = BULLSEYE_BOW_X + (last.x - BULLSEYE_BOW_X) * progress;

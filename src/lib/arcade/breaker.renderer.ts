@@ -7,7 +7,8 @@ import {
   breakerGameFor,
   brkDestroyed,
   brkRowOffset,
-  BRK_FIRE_TICKS,
+  brkFireTicks,
+  BRK_REV_TUNED,
   BRK_POWER_FIRE,
   BRK_REV,
   BRK_REV_BAND,
@@ -258,8 +259,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   if ((state.fire ?? 0) > 0) {
     const fire = state.fire ?? 0;
     retroText(ctx, `FIREBALL ${Math.ceil(fire / 60)}`, BRK_WORLD_W - 14, 10, 12, FIRE, "right");
-    // The bar empties over the Fireball's 5 s.
-    pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / BRK_FIRE_TICKS), 3, FIRE);
+    // The bar empties over the Fireball's length (5 s; 3.5 s from brkRev 4).
+    pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / brkFireTicks(state)), 3, FIRE);
   }
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
 }
@@ -288,8 +289,10 @@ function inside(poly: [number, number][], x: number, y: number): boolean {
 export const breakerArtGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGame, draw };
 const breakerArtGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV), draw };
 const breakerArtGameBand: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_BAND), draw };
+const breakerArtGameTuned: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TUNED), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TUNED) return breakerArtGameTuned;
   if (rev === BRK_REV_BAND) return breakerArtGameBand;
   return rev === BRK_REV ? breakerArtGameV2 : breakerArtGame;
 }

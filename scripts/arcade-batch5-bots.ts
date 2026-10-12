@@ -18,7 +18,7 @@ import {
 } from "../src/lib/arcade/binToss";
 
 import {
-  bullseyeBalloonAt,
+  bullseyeBalloonPos,
   bullseyeRingValues,
   bullseyeScalePct,
   bullseyeSway,
@@ -177,7 +177,7 @@ function dartTarget(state: BullseyeState, t: number, balloons: boolean): { x: nu
   const arrow = state.arrowIndex;
   const land = t + BULLSEYE_FLIGHT_TICKS;
   const balloon = state.balloons?.[arrow] ?? null;
-  if (balloons && balloon) return { ...bullseyeBalloonAt(balloon, land), kind: "pop" };
+  if (balloons && balloon) return { ...bullseyeBalloonPos(state, arrow, land)!, kind: "pop" };
   const tdx = bullseyeTargetDx(arrow, land, state.driftPhase, state.driftDir);
   const values = bullseyeRingValues(state, arrow);
   const ring = values.indexOf(10);
