@@ -37,6 +37,9 @@ import {
   CROSS_LANES,
   CROSS_PLAYER_HALF_FP,
   CROSS_REV,
+  CROSS_REV2,
+  CROSS_CYCLE3_GAP_MIN_FP,
+  CROSS_CYCLE3_RIDERS,
   CROSS_RUN_TICKS,
   type CrossState,
 } from "../src/lib/arcade/cross";
@@ -114,7 +117,7 @@ section("legacy identity");
   const now = await legacyDigest(new URL("..", import.meta.url).pathname.replace(/\/$/, ""));
   assert.deepEqual(now, saved, "unstamped rounds must replay exactly as before");
   checks += saved.length;
-  console.log(`  ${saved.length} unstamped runs (cross, flip, slice, balltrack) identical to the pre-upgrade code`);
+  console.log(`  ${saved.length} unstamped and revision-2 runs (cross, flip, slice, balltrack) identical to the code that stored them`);
 }
 
 /* =============================== 2a. Jaywalk =============================== */
@@ -122,10 +125,11 @@ if (want("cross")) {
 section("Jaywalk crossRev 2");
 const cross2 = crossGameFor(CROSS_REV);
 ok(crossGameFor(undefined) !== cross2 && crossGameFor(undefined).init(5).rev === undefined, "unstamped Jaywalk keeps the original game");
-ok(cross2.init(5).rev === CROSS_REV, "rev-2 state carries the stamp");
+ok(cross2.init(5).rev === CROSS_REV && crossGameFor(CROSS_REV2).init(5).rev === CROSS_REV2, "each revision's state carries its stamp");
 ok(JSON.stringify(cross2.init(99)) === JSON.stringify(cross2.init(99)), "rev-2 courses are seeded");
 
 const CROSS_SEEDS = Array.from({ length: 24 }, (_, i) => 1 + i * 104_729);
+const cycleGaps: number[] = [];
 for (const seed of CROSS_SEEDS) {
   const s = cross2.init(seed);
   s.courses.forEach((course, index) => {
@@ -152,8 +156,24 @@ for (const seed of CROSS_SEEDS) {
       const car = course.lanes.filter((l) => !l.kind);
       ok(lane.blockW < Math.min(...car.map((l) => l.blockW)), "riders are narrower than any car");
       ok(lane.speed > Math.max(...car.map((l) => l.speed)), "riders are faster than the cars");
+      // crossRev 3: a few riders per lane at seeded, uneven gaps of at least 400 px.
+      const offs = lane.offsets ?? [];
+      ok(offs.length === CROSS_CYCLE3_RIDERS, "rev 3: riders listed per lane");
+      const gaps = offs.map((o, k) => ((k + 1 < offs.length ? offs[k + 1]! : lane.period) - o) - lane.blockW);
+      ok(gaps.every((g) => g >= CROSS_CYCLE3_GAP_MIN_FP), "rev 3: riders at least 400 px apart");
+      cycleGaps.push(...gaps);
     }
   });
+}
+ok(new Set(cycleGaps).size > cycleGaps.length / 2, "rev 3: rider gaps vary from the seed (no fixed rhythm)");
+{
+  // Riders now come far less often than on rev 2: compare passes per lane per second.
+  const rate = (lane: { speed: number; period: number; offsets?: number[] }) => ((lane.offsets?.length ?? 1) * lane.speed * 60) / lane.period;
+  const v2 = crossGameFor(CROSS_REV2).init(1).courses.flatMap((c) => c.lanes.filter((l) => l.kind === CROSS_KIND_CYCLE)).map(rate);
+  const v3 = cross2.init(1).courses.flatMap((c) => c.lanes.filter((l) => l.kind === CROSS_KIND_CYCLE)).map(rate);
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  ok(avg(v3) < avg(v2) / 2, "rev 3 riders arrive less than half as often as rev 2");
+  console.log(`  riders per second per cyclist lane: rev 2 ${avg(v2).toFixed(2)}, rev 3 ${avg(v3).toFixed(2)}; rev-3 gaps ${Math.round(Math.min(...cycleGaps) / 256)}–${Math.round(Math.max(...cycleGaps) / 256)} px`);
 }
 console.log(`  ${CROSS_SEEDS.length} seeds × ${CROSS_COURSES} crossings: fair early gaps, cyclists from 3, roadworks from 4, all passable`);
 

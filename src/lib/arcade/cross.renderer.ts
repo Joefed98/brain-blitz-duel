@@ -473,8 +473,14 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
       if (cycle) {
-        const jersey = RIDER_COLOURS[(lane + index + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
-        drawRider(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+        // crossRev 3 lanes hold a few riders at uneven offsets within one long period.
+        const offsets = laneDef.offsets ?? [0];
+        offsets.forEach((offset, k) => {
+          const rx = px(start + index * laneDef.period + offset);
+          if (rx > CROSS_BOARD_X + CROSS_BOARD_W || rx + px(laneDef.blockW) < CROSS_BOARD_X) return;
+          const jersey = RIDER_COLOURS[(lane + index * 3 + k + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
+          drawRider(ctx, rx, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+        });
         continue;
       }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;

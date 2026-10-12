@@ -30,7 +30,7 @@ import {
   bullseyeInit,
   bullseyeWinds,
 } from "@/lib/arcade/bullseye";
-import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV } from "@/lib/arcade/cross";
+import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV, CROSS_REV2 } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame } from "@/lib/arcade/hover";
 import { matchupCheckpoint, matchupGame } from "@/lib/arcade/matchup";
@@ -351,7 +351,8 @@ const GAMES: Game[] = [
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV3, encodeRev3Planets(orbitPlanets(seed))),
   },
-  { key: "cross/v2", game: crossGameFor(CROSS_REV), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV) },
+  { key: "cross/v2", game: crossGameFor(CROSS_REV2), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV2) },
+  { key: "cross/v3", game: crossGameFor(CROSS_REV), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV) },
   { key: "flip/v2", game: flipGameFor(FLIP_REV), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV) },
   { key: "slice/v2", game: sliceGameFor(SLICE_REV), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV) },
   { key: "bintoss/v2", game: binTossGameFor(BINTOSS_REV), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV) },
