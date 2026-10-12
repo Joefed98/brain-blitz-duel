@@ -94,7 +94,10 @@ export type PuzzleType =
   | "trail"
   | "dig"
   | "letterwheel"
-  | "snip";
+  | "snip"
+  | "measure"
+  | "checkout"
+  | "numline";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -521,6 +524,9 @@ export type PuzzleData =
   | BallTrackPuzzleData
   | NumberPyramidPuzzleData
   | TrailPuzzleData
+  | MeasurePuzzleData
+  | CheckoutPuzzleData
+  | NumlinePuzzleData
   | DigPuzzleData
   | WordSearchPuzzleData
   | LetterWheelPuzzleData
@@ -2321,6 +2327,90 @@ export interface TrailPuzzleData {
   givens: (number | null)[];
   /** Cell index for each step 1–36 — private until the reveal. */
   solution?: number[];
+}
+
+/** Brimful: four pouring puzzles in one round (120 s is a first guess, to tune after testing). */
+export const MEASURE_TIME_MS = 120_000;
+
+export interface MeasureBoardData {
+  /** Jug capacities in litres, left to right. */
+  caps: number[];
+  /** Litres in each jug at the start (and after Reset). */
+  start: number[];
+  /** True when Fill (from the tap) and Empty (down the drain) are available. */
+  tap: boolean;
+  /** "amount": `target` litres in any one jug. "split": every jug holds its `split` amount. */
+  goal: "amount" | "split";
+  target?: number;
+  split?: number[];
+}
+
+export interface MeasurePuzzleData {
+  type: "measure";
+  /** Rules revision; 1 = the first rules. */
+  measureRev: number;
+  boards: MeasureBoardData[];
+  /** Breadth-first minimum moves per board — private until the reveal. */
+  minMoves?: number[];
+  /** One shortest action list per board — private until the reveal. */
+  solutions?: string[];
+}
+
+/** Checkout: five darts boards in 90 s. */
+export const CHECKOUT_TIME_MS = 90_000;
+
+export interface CheckoutStageData {
+  /** The 20 wedge values clockwise from the top. */
+  wedges: number[];
+  /** Score to bring to exactly zero. */
+  target: number;
+  /** Most darts allowed. */
+  maxDarts: number;
+  /** When true the stage needs exactly `maxDarts` darts. */
+  exactDarts?: boolean;
+  /** Ring the last dart must land in: 2 = double, 3 = treble. */
+  finish: 2 | 3;
+  /** True when the board has a thin x4 ring. */
+  quad?: boolean;
+}
+
+export interface CheckoutPuzzleData {
+  type: "checkout";
+  /** Rules revision; 1 = the first rules. */
+  checkoutRev: number;
+  stages: CheckoutStageData[];
+  /** Fewest darts per stage (exhaustive search) — private until the reveal. */
+  minDarts?: number[];
+  /** One shortest route per stage ("wedge:ring,…", wedge 20 = bull) — private until the reveal. */
+  routes?: string[];
+}
+
+/** Ballpark: three lines of five numbers in 75 s. */
+export const NUMLINE_TIME_MS = 75_000;
+
+/** An exact value: (num ÷ den) + rootCoef × √root (rootCoef 0 when rational). */
+export interface NumlineValue {
+  num: number;
+  den: number;
+  rootCoef: number;
+  root: number;
+}
+
+export interface NumlineStageData {
+  /** Line end values; ticks are labelled only at the ends (and 0 when it lies inside). */
+  lo: number;
+  hi: number;
+  /** What each item shows, in play order. */
+  items: string[];
+}
+
+export interface NumlinePuzzleData {
+  type: "numline";
+  /** Rules revision; 1 = the first rules. */
+  numlineRev: number;
+  stages: NumlineStageData[];
+  /** Exact value of every item, stage by stage — private until the reveal. */
+  values?: NumlineValue[][];
 }
 
 /** Dig: 60 s of water flowing at 10 steps per second. */
