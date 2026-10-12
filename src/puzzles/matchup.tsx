@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -22,6 +24,8 @@ import {
   MATCHUP_RUN_TICKS,
   MATCHUP_SIZE,
   type MatchupState,
+  MATCHUP_WORLD_H,
+  MATCHUP_WORLD_W,
 } from "@/lib/arcade/matchup";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import {
@@ -332,42 +336,44 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: MATCHUP_BG }}
-        aria-label={gameDisplayName("matchup")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (busy()) return;
-          const cell = cellFrom(event);
-          if (!cell) return;
-          const pick = selected.current;
-          if (pick && trySwap(pick, cell)) {
+    <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H} background={ARCADE_ARENA_FILL.matchup}>
+      <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: MATCHUP_BG }}
+          aria-label={gameDisplayName("matchup")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (busy()) return;
+            const cell = cellFrom(event);
+            if (!cell) return;
+            const pick = selected.current;
+            if (pick && trySwap(pick, cell)) {
+              selected.current = null;
+              return;
+            }
+            selected.current = cell;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            const pick = selected.current;
+            if (!pick || busy()) return;
+            const cell = cellFrom(event);
+            if (!cell) return;
+            if (trySwap(pick, cell)) selected.current = null;
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
+          onPointerCancel={() => {
             selected.current = null;
-            return;
-          }
-          selected.current = cell;
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const pick = selected.current;
-          if (!pick || busy()) return;
-          const cell = cellFrom(event);
-          if (!cell) return;
-          if (trySwap(pick, cell)) selected.current = null;
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerCancel={() => {
-          selected.current = null;
-        }}
-      />
-    </div>
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

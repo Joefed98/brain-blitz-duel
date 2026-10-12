@@ -1,3 +1,4 @@
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
@@ -76,6 +77,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="orbit"
       label={gameDisplayName("orbit")}
       background="transparent"
+      arenaBackground={ARCADE_ARENA_FILL.orbit}
+      fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

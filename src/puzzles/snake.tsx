@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -24,6 +26,8 @@ import {
   SNAKE_RUN_TICKS,
   SNAKE_SWIPE_PX,
   type SnakeState,
+  SNAKE_WORLD_H,
+  SNAKE_WORLD_W,
 } from "@/lib/arcade/snake";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { ARCADE_CRASH_FREEZE_MS, type SnakePuzzleData } from "@/lib/duel/types";
@@ -240,43 +244,45 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: SNAKE_BG }}
-        aria-label={gameDisplayName("snake")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || snakeGame.isOver(state.current)) return;
-          anchor.current = { x: event.clientX, y: event.clientY };
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const from = anchor.current;
-          if (!from || locked || submitted.current || snakeGame.isOver(state.current)) return;
-          const dx = event.clientX - from.x;
-          const dy = event.clientY - from.y;
-          if (Math.abs(dx) < SNAKE_SWIPE_PX && Math.abs(dy) < SNAKE_SWIPE_PX) return;
-          const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0;
-          pending.current.push(dir);
-          anchor.current = { x: event.clientX, y: event.clientY };
-        }}
-        onPointerUp={(event) => {
-          anchor.current = null;
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-        }}
-        onPointerCancel={() => {
-          anchor.current = null;
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={SNAKE_WORLD_H} background={ARCADE_ARENA_FILL.snake}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: SNAKE_BG }}
+          aria-label={gameDisplayName("snake")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || snakeGame.isOver(state.current)) return;
+            anchor.current = { x: event.clientX, y: event.clientY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            const from = anchor.current;
+            if (!from || locked || submitted.current || snakeGame.isOver(state.current)) return;
+            const dx = event.clientX - from.x;
+            const dy = event.clientY - from.y;
+            if (Math.abs(dx) < SNAKE_SWIPE_PX && Math.abs(dy) < SNAKE_SWIPE_PX) return;
+            const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0;
+            pending.current.push(dir);
+            anchor.current = { x: event.clientX, y: event.clientY };
+          }}
+          onPointerUp={(event) => {
+            anchor.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          }}
+          onPointerCancel={() => {
+            anchor.current = null;
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

@@ -19,7 +19,13 @@
  *    or above 33.4 ms (under 30 fps) whatever the baseline says;
  *  - a tracked drawn object moves further between two frames than it physically can
  *    (per-game px-per-tick limits; respawns, new throws/levels and other listed
- *    resets are exempt).
+ *    resets are exempt);
+ *  - the arena layout is wrong at any of 375 × 667, 390 × 700, 390 × 844, 430 × 932
+ *    or a 1280 × 800 laptop window (checked once per game, before play): READY off
+ *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
+ *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
+ *    moving between sizes; the slot not painted the arena fill; the column not ending
+ *    6-8 px above the bottom; a control below the arena under 44 px or off screen.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
  *
@@ -40,7 +46,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { ARCADE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 const args = process.argv.slice(2);
@@ -255,6 +262,87 @@ async function main() {
   console.log(`Arcade play: ${results.length} of ${results.length} games covered 15 s of live play, advanced, timed, error-free, within frame-time and movement limits`);
 }
 
+/** Viewports the arena layout is proved at: four phones and a laptop window. */
+const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];
+
+const nextFrames = (page: import("playwright").Page) =>
+  page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+
+/** READY must be on screen without scrolling at every layout viewport. */
+async function readyFits(page: import("playwright").Page, problems: string[]): Promise<void> {
+  for (const [w, h] of LAYOUT_VIEWPORTS) {
+    await page.setViewportSize({ width: w, height: h });
+    await nextFrames(page);
+    const box = await page.getByRole("button", { name: /^Ready/ }).boundingBox();
+    if (!box || box.y < 0 || box.y + box.height > h + 0.5) problems.push(`layout ${w}x${h}: READY not fully on screen`);
+  }
+  await page.setViewportSize({ width: 390, height: 700 });
+  await nextFrames(page);
+}
+
+/**
+ * The live arena at every layout viewport: the world's aspect at the largest uniform
+ * scale that fits its slot, top-anchored at a fixed edge, controls 44 px or more.
+ */
+async function arenaFits(page: import("playwright").Page, game: string, problems: string[]): Promise<void> {
+  const spec = (ARCADE_FX_SPECS as Record<string, { width: number; height: number }>)[game];
+  const fill = (ARCADE_ARENA_FILL as Record<string, string>)[game];
+  if (!spec || !fill) {
+    problems.push(`layout: no world size or arena fill for ${game}`);
+    return;
+  }
+  const tops: number[] = [];
+  for (const [w, h] of LAYOUT_VIEWPORTS) {
+    await page.setViewportSize({ width: w, height: h });
+    await nextFrames(page);
+    const m = await page.evaluate(() => {
+      const box = (el: Element | null) => {
+        if (!el) return null;
+        const b = el.getBoundingClientRect();
+        return { x: b.x, y: b.y, w: b.width, h: b.height };
+      };
+      const stage = document.querySelector("[data-game-stage]");
+      const slot = stage?.querySelector("[data-arena-slot]") ?? null;
+      const arena = slot?.querySelector(":scope > [data-game-arena]") ?? null;
+      const canvas = arena ? (arena instanceof HTMLCanvasElement ? arena : arena.querySelector("canvas")) : null;
+      const below = slot ? [...(stage?.querySelectorAll("button") ?? [])].filter((b) => slot.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING && !slot.contains(b)) : [];
+      const pad = stage ? Number.parseFloat(getComputedStyle(stage).paddingBottom) : 0;
+      const doc = document.scrollingElement!;
+      return {
+        slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
+        fill: slot ? getComputedStyle(slot).backgroundColor : "", stageBottom: stage ? stage.getBoundingClientRect().bottom - pad : 0,
+        controls: below.map((b) => box(b)!), scroll: doc.scrollHeight - doc.clientHeight,
+      };
+    });
+    const at = `layout ${w}x${h}`;
+    if (m.slots !== 1 || !m.slot || !m.arena) {
+      problems.push(`${at}: expected one arena slot holding the arena (slots ${m.slots})`);
+      continue;
+    }
+    const { slot, arena } = m;
+    if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
+    if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
+    if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
+    if (arena.w < slot.w - 1 && arena.h < slot.h - 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the largest fit in ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
+    if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
+    if (Math.abs(arena.x - slot.x - (slot.w - arena.w) / 2) > 0.5) problems.push(`${at}: arena not centred across its slot`);
+    if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
+    const hex = fill.replace("#", "");
+    const rgb = `rgb(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)})`;
+    if (m.fill !== rgb) problems.push(`${at}: slot painted ${m.fill}, not the arena fill ${rgb}`);
+    const gap = h - m.stageBottom;
+    if (gap < 6 - 0.5 || gap > 8 + 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want 6-8)`);
+    for (const c of m.controls) {
+      if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
+      if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
+    }
+    tops.push(arena.y);
+  }
+  if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
+  await page.setViewportSize({ width: 390, height: 700 });
+  await nextFrames(page);
+}
+
 /** How long a live run may go without its sim tick changing before it counts as frozen. */
 const FROZEN_MS = 1000;
 /** Give up topping up play after this many restarts (a game that dies every second). */
@@ -312,8 +400,14 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
         w.__arcadeLog = { game: g, frames: [], errors: [] };
         w.__frameGaps = [];
       }, { src: EXTRACT, g: game });
+      if (segment === 0) await readyFits(page, problems);
       await ready.click();
       await page.waitForTimeout(400);
+      if (segment === 0) {
+        await arenaFits(page, game, problems);
+        // Resizing reallocates the canvas: frame gaps count from here.
+        await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
+      }
       const seg: Segment = { frames: [], gaps: [], liveMs: 0, timer: [], ended: false };
       const startAt = Date.now();
       const arena = await page.locator("[data-game-arena]").first().boundingBox();

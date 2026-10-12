@@ -14,6 +14,7 @@ import {
   type CanvasSize,
 } from "@/lib/arcade/engine";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
 export interface PointerPayload {
@@ -33,6 +34,13 @@ interface Props<S, C> {
   locked: boolean;
   worldW: number;
   worldH: number;
+  /**
+   * Arcade games: size the arena to the world's aspect at the largest uniform scale
+   * that fits (ArcadeArenaSlot), so the world is never stretched or cropped.
+   */
+  fitWorld?: boolean;
+  /** The fitted arena's slot colour when the canvas background is transparent. */
+  arenaBackground?: string;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -263,8 +271,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     }
   };
 
-  return (
-    <>
+  const arena = (
     <div
       ref={wrap}
       data-play-area=""
@@ -300,6 +307,13 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       />
       {props.overlay}
     </div>
+  );
+
+  return (
+    <>
+    {props.fitWorld ? (
+      <ArcadeArenaSlot width={props.worldW} height={props.worldH} background={props.arenaBackground ?? props.background}>{arena}</ArcadeArenaSlot>
+    ) : arena}
     {props.footer?.(push)}
     </>
   );
