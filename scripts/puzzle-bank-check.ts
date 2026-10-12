@@ -2,19 +2,31 @@
  * Precomputed puzzle banks (src/lib/duel/puzzleBank.server.ts) for Chroma
  * Lines, Tessellate, Polypotions, Topsy-Turvy, Lamplighter and Skid.
  *
- *   bun scripts/puzzle-bank-check.ts
+ *   bun scripts/puzzle-bank-check.ts          # quick: 2 rebuilt entries per bank
+ *   bun scripts/puzzle-bank-check.ts --full   # 8 rebuilt entries per bank
+ *   bun scripts/puzzle-bank-check.ts --part=2/4   # one of 4 disjoint parts (CI shards)
  *
  * For every bank:
  *   - the file is untouched since its build (entry count and SHA-256 match);
  *   - EVERY entry passes the game's verifier (the same acceptance rules as the
  *     live generator: uniqueness / solvability / proven minimum), in parallel;
  *   - no two entries share a public identity;
- *   - a spread sample of entries rebuilds identically from its fixed seed,
- *     and lower retry seeds for those entries really failed or duplicated;
+ *   - a sample of entries rebuilds identically from its fixed seed, and lower
+ *     retry seeds for those entries really failed or duplicated. Quick (the
+ *     default, and pull-request CI): the first entry plus the first entry that
+ *     needed a retry (or the last, if none did). Full (--full, CHECKS_FULL=1,
+ *     the manual full CI run): first, last and six evenly spaced entries;
  *   - the stored intro example equals the live seeded example.
  * Then the draw: seeded and reproducible, recent-avoidance, deep copies,
  * public-half keys, room start through buildRoomPuzzles, grading of each
  * stored solution, and the capped live fallback for an empty bank.
+ *
+ * --part=k/n splits the slow work so CI can spread it over n shards (2-core
+ * runners): part k verifies the entries whose index is k-1 mod n of every bank,
+ * rebuilds the sample, intro example and grading of the banks whose position in
+ * BANKED_TYPES is k-1 mod n, and the last part runs the draw, room start and
+ * fallback sections. Count, SHA-256, retry list and duplicate checks run in every
+ * part. Together the n parts check exactly what one whole run checks.
  *
  * The full byte-for-byte rebuild of all six banks takes ~20 minutes, so it is
  * the optional `puzzle-bank-rebuild-check.ts` (run-checks --include-optional).
@@ -48,6 +60,7 @@ import * as tubesFile from "../src/lib/duel/tubesBank.server";
 import * as gravityFile from "../src/lib/duel/gravityBank.server";
 import * as lightFile from "../src/lib/duel/lightUpBank.server";
 import * as slideFile from "../src/lib/duel/iceSlideBank.server";
+import { FULL_DEPTH } from "./check-depth";
 import { BANK_COUNT, entriesHash, liveIntroExample } from "./puzzle-bank-lib";
 import type { PuzzleData } from "../src/lib/duel/types";
 
@@ -65,10 +78,10 @@ const FACTS: Record<BankedType, { build?: { entries: number; sha256: string }; r
 
 /* ---------------- worker: verify a stride of one bank ---------------- */
 if (process.argv[2] === "--verify-worker") {
-  const [, , , type, worker, jobs] = process.argv;
+  const [, , , type, first, stride] = process.argv;
   const bank = bankFor(type as BankedType);
   const bad: string[] = [];
-  for (let i = Number(worker); i < bank.length; i += Number(jobs)) {
+  for (let i = Number(first); i < bank.length; i += Number(stride)) {
     const why = verifyBankedPuzzle(bank[i]!);
     if (why) bad.push(`${i}: ${why}`);
   }
@@ -82,11 +95,22 @@ const check = (ok: boolean, label: string) => {
   console.log(`${ok ? "PASS" : "FAIL"} ${label}`);
 };
 
+/** This run's share: --part=k/n (1-based k), or the whole check. */
+const partArg = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
+const [PART, PARTS] = partArg ? partArg.split("/").map(Number) as [number, number] : [1, 1];
+if (!(PARTS >= 1 && PART >= 1 && PART <= PARTS)) {
+  console.log(`FAIL bad --part=${partArg} (expected k/n with 1 <= k <= n)`);
+  process.exit(1);
+}
+const mine = (i: number) => i % PARTS === PART - 1;
+
+/** Verifies this part's entries (index k-1 mod n), striped over `jobs` worker processes. */
 function verifyAll(type: BankedType, jobs: number): Promise<string[]> {
   return Promise.all(
     Array.from({ length: jobs }, (_, worker) =>
       new Promise<string[]>((resolve, reject) => {
-        const child = spawn(process.execPath, [self, "--verify-worker", type, String(worker), String(jobs)], {
+        const first = PART - 1 + PARTS * worker;
+        const child = spawn(process.execPath, [self, "--verify-worker", type, String(first), String(PARTS * jobs)], {
           stdio: ["ignore", "pipe", "inherit"],
         });
         let out = "";
@@ -116,7 +140,10 @@ function solutionAnswer(puzzle: PuzzleData): string {
 const SAMPLE = 6;
 const jobs = Math.max(1, cpus().length);
 
-for (const type of BANKED_TYPES) {
+console.log(FULL_DEPTH ? "full depth: 8 rebuilt entries per bank" : "quick depth: first and first-retried entry rebuilt per bank (--full for 8)");
+if (PARTS > 1) console.log(`part ${PART}/${PARTS}: verifying entries ${PART - 1} mod ${PARTS}; rebuilding ${BANKED_TYPES.filter((_, b) => mine(b)).join(", ") || "no banks"}${PART === PARTS ? "; draw, room start and fallback" : ""}`);
+const share = PARTS > 1 ? ` in part ${PART}/${PARTS} (index ${PART - 1} mod ${PARTS})` : "";
+for (const [bankIndex, type] of BANKED_TYPES.entries()) {
   const t0 = performance.now();
   const bank = bankFor(type);
   const files = { build: FACTS[type].build, retries: FACTS[type].retries ?? [] };
@@ -125,14 +152,25 @@ for (const type of BANKED_TYPES) {
     `${type}: entry count and SHA-256 match the build stamp (file not hand-edited)`);
   check(files.retries.length === bank.length, `${type}: one retry index per entry`);
 
+  const tVerify = performance.now();
   const bad = await verifyAll(type, jobs);
-  check(bad.length === 0, `${type}: every entry passes verification${bad.length ? ` — ${bad.slice(0, 5).join("; ")}` : ""}`);
+  const verifyS = (performance.now() - tVerify) / 1000;
+  check(bad.length === 0, `${type}: every entry${share} passes verification${bad.length ? ` — ${bad.slice(0, 5).join("; ")}` : ""}`);
 
   const keys = new Set(bank.map((p) => bankKey(p)));
   check(keys.size === bank.length && !keys.has(null), `${type}: no duplicate boards`);
+  if (!mine(bankIndex)) {
+    console.log(`  ${type} done in ${((performance.now() - t0) / 1000).toFixed(1)} s (verify ${verifyS.toFixed(1)} s on ${jobs} workers; rebuild, intro and grading in another part)`);
+    continue;
+  }
 
-  // Rebuild a spread sample from fixed seeds: first, last and evenly spaced.
-  const sample = [...new Set([0, bank.length - 1, ...Array.from({ length: SAMPLE }, (_, k) => Math.floor(((k + 0.5) * bank.length) / SAMPLE))])];
+  // Rebuild a sample from fixed seeds. Full: first, last and evenly spaced. Quick: the
+  // first entry, plus the first that needed a retry so the retry rule is exercised.
+  const firstRetried = files.retries.findIndex((r) => r > 0);
+  const sample = FULL_DEPTH
+    ? [...new Set([0, bank.length - 1, ...Array.from({ length: SAMPLE }, (_, k) => Math.floor(((k + 0.5) * bank.length) / SAMPLE))])]
+    : [...new Set([0, firstRetried >= 0 ? firstRetried : bank.length - 1])];
+  const tRebuild = performance.now();
   let rebuilt = 0;
   let retriesOk = true;
   for (const index of sample) {
@@ -147,6 +185,7 @@ for (const type of BANKED_TYPES) {
   }
   check(rebuilt === sample.length, `${type}: ${rebuilt}/${sample.length} sampled entries rebuild identically from their fixed seeds`);
   check(retriesOk, `${type}: sampled entries use the first retry seed that gave a new verified board`);
+  const rebuildS = (performance.now() - tRebuild) / 1000;
 
   const live = liveIntroExample(type);
   const stored = bankedIntroExample(type);
@@ -156,11 +195,11 @@ for (const type of BANKED_TYPES) {
   // Grading: the stored solution replays to a full solve on the stored board.
   const graded = gradeAnswer({ ...bank[0]!, speedPar: SPEED_PAR_VERSION } as PuzzleData, solutionAnswer(bank[0]!), 30_000);
   check(graded.isCorrect && graded.score > 0, `${type}: stored solution grades as solved (score ${graded.score})`);
-  console.log(`  ${type} done in ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`  ${type} done in ${((performance.now() - t0) / 1000).toFixed(1)} s (verify ${verifyS.toFixed(1)} s on ${jobs} workers, rebuild of entries ${sample.join(", ")} ${rebuildS.toFixed(1)} s)`);
 }
 
 /* ---------------- the draw ---------------- */
-{
+if (PART === PARTS) {
   const type: BankedType = "tubes";
   const a = drawBankedPuzzle(type, 12345);
   const b = drawBankedPuzzle(type, 12345);
@@ -189,7 +228,7 @@ for (const type of BANKED_TYPES) {
 }
 
 /* ---------------- room start ---------------- */
-{
+if (PART === PARTS) {
   const categories = ["logic", "pattern"] as const;
   let banked = 0;
   let sameShape = true;
@@ -214,7 +253,7 @@ for (const type of BANKED_TYPES) {
 }
 
 /* ---------------- fallback ---------------- */
-{
+if (PART === PARTS) {
   const bank = bankFor("gravity") as PuzzleData[];
   const saved = bank.splice(0, bank.length);
   let ok = false;
