@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -243,50 +245,52 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ ...NO_SCROLL_STYLE, background: BEAT_BG }}
-        aria-label={gameDisplayName("beat")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || beatGame.isOver(state.current)) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          const lane = laneAt(event);
-          fingers.current.set(event.pointerId, lane);
-          swipeStarts.current.set(event.pointerId, { x: event.clientX, done: false });
-          pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: lane, b: 0, c: 0, d: 0 });
-        }}
-        onPointerMove={(event) => {
-          // Rev 2: a sideways flick of at least 24 px is one swipe, in the lane the finger went down in.
-          if (!data?.beatRev) return;
-          const start = swipeStarts.current.get(event.pointerId);
-          const lane = fingers.current.get(event.pointerId);
-          if (!start || start.done || lane === undefined || submitted.current) return;
-          const dx = event.clientX - start.x;
-          if (Math.abs(dx) < SWIPE_MIN_PX) return;
-          start.done = true;
-          pending.current.push({ t: 0, k: BEAT_INPUT_SWIPE, a: lane, b: dx > 0 ? 1 : 0, c: 0, d: 0 });
-        }}
-        onPointerUp={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          liftFinger(event.pointerId);
-        }}
-        onPointerCancel={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          liftFinger(event.pointerId);
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={BEAT_WORLD_W} height={BEAT_WORLD_H} background={ARCADE_ARENA_FILL.beat}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ ...NO_SCROLL_STYLE, background: BEAT_BG }}
+          aria-label={gameDisplayName("beat")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || beatGame.isOver(state.current)) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            const lane = laneAt(event);
+            fingers.current.set(event.pointerId, lane);
+            swipeStarts.current.set(event.pointerId, { x: event.clientX, done: false });
+            pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: lane, b: 0, c: 0, d: 0 });
+          }}
+          onPointerMove={(event) => {
+            // Rev 2: a sideways flick of at least 24 px is one swipe, in the lane the finger went down in.
+            if (!data?.beatRev) return;
+            const start = swipeStarts.current.get(event.pointerId);
+            const lane = fingers.current.get(event.pointerId);
+            if (!start || start.done || lane === undefined || submitted.current) return;
+            const dx = event.clientX - start.x;
+            if (Math.abs(dx) < SWIPE_MIN_PX) return;
+            start.done = true;
+            pending.current.push({ t: 0, k: BEAT_INPUT_SWIPE, a: lane, b: dx > 0 ? 1 : 0, c: 0, d: 0 });
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            liftFinger(event.pointerId);
+          }}
+          onPointerCancel={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            liftFinger(event.pointerId);
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -310,32 +312,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: BRK_BG }}
-        aria-label={gameDisplayName("breaker")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || game.isOver(state.current)) return;
-          // Any touch on the canvas: a tap fires a power-up, anything longer
-          // or further is a paddle drag.
-          if (!inPlayArea(event.clientX, event.clientY)) return;
-          if (dragPointer.current !== null) return;
-          dragPointer.current = event.pointerId;
-          downAt.current = { x: event.clientX, y: event.clientY, time: performance.now(), drag: false };
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={track}
-        onPointerUp={release}
-        onPointerCancel={release}
-      />
-    </div>
+    <ArcadeArenaSlot width={BRK_WORLD_W} height={BRK_WORLD_H} background={ARCADE_ARENA_FILL.breaker}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: BRK_BG }}
+          aria-label={gameDisplayName("breaker")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || game.isOver(state.current)) return;
+            // Any touch on the canvas: a tap fires a power-up, anything longer
+            // or further is a paddle drag.
+            if (!inPlayArea(event.clientX, event.clientY)) return;
+            if (dragPointer.current !== null) return;
+            dragPointer.current = event.pointerId;
+            downAt.current = { x: event.clientX, y: event.clientY, time: performance.now(), drag: false };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={track}
+          onPointerUp={release}
+          onPointerCancel={release}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

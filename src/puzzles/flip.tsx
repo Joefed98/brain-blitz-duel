@@ -1,3 +1,4 @@
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   flipCheckpoint,
@@ -44,6 +45,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="flip"
       label={gameDisplayName("flip")}
       background={FLIP_BG}
+      arenaBackground={ARCADE_ARENA_FILL.flip}
+      fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

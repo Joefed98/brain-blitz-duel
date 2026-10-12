@@ -1,3 +1,4 @@
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
@@ -46,6 +47,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="tilt"
       label={gameDisplayName("tilt")}
       background={TILT_BG}
+      arenaBackground={ARCADE_ARENA_FILL.tilt}
+      fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

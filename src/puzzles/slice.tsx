@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -232,30 +234,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div
-      ref={wrap}
-      data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden"
-      style={NO_SCROLL_STYLE}
-    >
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: SLICE_BG }}
-        aria-label={gameDisplayName("slice")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || sliceGame.isOver(state.current)) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          if (finger.current) return;
-          const point = worldPoint(event);
-          finger.current = { id: event.pointerId, ...point };
-          pending.current.push({ k: SLICE_INPUT_BEGIN, a: point.x, b: point.y, c: 0, d: 0 });
-        }}
-        onPointerMove={samplePointer}
-        onPointerUp={endPointer}
-        onPointerCancel={endPointer}
-      />
-    </div>
+    <ArcadeArenaSlot width={SLICE_WORLD_W} height={SLICE_WORLD_H} background={ARCADE_ARENA_FILL.slice}>
+      <div
+        ref={wrap}
+        data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden"
+        style={NO_SCROLL_STYLE}
+      >
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: SLICE_BG }}
+          aria-label={gameDisplayName("slice")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || sliceGame.isOver(state.current)) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            if (finger.current) return;
+            const point = worldPoint(event);
+            finger.current = { id: event.pointerId, ...point };
+            pending.current.push({ k: SLICE_INPUT_BEGIN, a: point.x, b: point.y, c: 0, d: 0 });
+          }}
+          onPointerMove={samplePointer}
+          onPointerUp={endPointer}
+          onPointerCancel={endPointer}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

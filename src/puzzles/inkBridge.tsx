@@ -1,3 +1,4 @@
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
@@ -81,6 +82,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         diagKey="inkbridge"
         label={gameDisplayName("inkbridge")}
         background={INK_ART_BG}
+        arenaBackground={ARCADE_ARENA_FILL.inkbridge}
+        fitWorld
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}

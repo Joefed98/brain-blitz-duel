@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -24,6 +26,8 @@ import {
   HOVER_REV,
   HOVER_RUN_TICKS,
   type HoverState,
+  HOVER_WORLD_H,
+  HOVER_WORLD_W,
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { HOVER_CRASH_FREEZE_MS, type HoverPuzzleData } from "@/lib/duel/types";
@@ -249,19 +253,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
-      <canvas
-        ref={canvas}
-        className="puzzle-board block h-full w-full rounded-xl"
-        style={{ background: "#000000" }}
-        aria-label={gameDisplayName("hover")}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (locked || submitted.current || hoverGame.isOver(state.current)) return;
-          pending.current += 1;
-        }}
-      />
-    </div>
+    <ArcadeArenaSlot width={HOVER_WORLD_W} height={HOVER_WORLD_H} background={ARCADE_ARENA_FILL.hover}>
+      <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+        <canvas
+          ref={canvas}
+          className="puzzle-board block h-full w-full rounded-xl"
+          style={{ background: "#000000" }}
+          aria-label={gameDisplayName("hover")}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (locked || submitted.current || hoverGame.isOver(state.current)) return;
+            pending.current += 1;
+          }}
+        />
+      </div>
+    </ArcadeArenaSlot>
   );
 }
 

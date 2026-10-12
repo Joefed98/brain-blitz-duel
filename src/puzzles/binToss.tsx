@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -30,6 +32,8 @@ import {
   BINTOSS_RUN_TICKS,
   BINTOSS_THROWS,
   BINTOSS_WAIT,
+  BINTOSS_WORLD_H,
+  BINTOSS_WORLD_W,
   type BinTossState,
   type BinTossGhost,
   type BinTossLandingPresentation,
@@ -93,6 +97,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const binTossGame = binTossGameFor(data?.binRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
+  const arenaBox = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
   const cancelZone = useRef<HTMLDivElement | null>(null);
@@ -289,7 +294,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
-    const box = node?.getBoundingClientRect();
+    const box = arenaBox.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     // Capped at 2: a 3× buffer on a tall phone starves the sim loop.
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -335,11 +340,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      data-game-arena="canvas" className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
+      className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
     >
+      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H} background={ARCADE_ARENA_FILL.bintoss}>
+      <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
       <canvas
         ref={canvas}
-        className="puzzle-board block min-h-0 w-full flex-1 rounded-t-xl"
+        className="puzzle-board block h-full w-full"
         style={{ background: BINTOSS_BG }}
         aria-label={gameDisplayName("bintoss")}
         onPointerDown={(event) => {
@@ -402,6 +409,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           }
         }}
       />
+      </div>
+      </ArcadeArenaSlot>
       <div
         ref={cancelZone}
         className={`flex h-[72px] shrink-0 items-center justify-center border-t text-center font-mono text-xs transition-colors ${

@@ -1,3 +1,5 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -14,10 +16,13 @@ import {
   unpackSnipCut,
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
+  SNIP_CONFIG,
+  SNIP_H,
   SNIP_REV3,
   type SnipState,
 } from "@/lib/arcade/snip";
 import { drawSnipArt, drawSnipOrchardExample, type SnipSwipe } from "@/lib/arcade/snip.renderer";
+import { COUNTRY_GRASS } from "@/lib/arcade/countryside.renderer";
 import { snipSounds } from "@/lib/fx/gameSounds";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { SNIP_TIME_MS, type SnipPuzzleData } from "@/lib/duel/types";
@@ -209,35 +214,37 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           {hud.eaten} picked · {hud.stars} leaves
         </span>
       </div>
-      <div
-        ref={board}
-        data-play-area
-        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
-        style={{ touchAction: "none" }}
-        aria-label={`${gameDisplayName("snip")} arena`}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          if (!active()) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          lastPoint.current = { x: event.clientX, y: event.clientY };
-        }}
-        onPointerMove={(event) => {
-          const previous = lastPoint.current;
-          if (!previous || !active()) return;
-          const from = toWorld(previous.x, previous.y);
-          const to = toWorld(event.clientX, event.clientY);
-          if (!from || !to) return;
-          const seg = pendingCut.current;
-          pendingCut.current = seg ? { ...seg, c: to.x, d: to.y } : { a: from.x, b: from.y, c: to.x, d: to.y };
-          swipes.current.push({ a: from.x, b: from.y, c: to.x, d: to.y, at: performance.now() });
-          if (swipes.current.length > 24) swipes.current.shift();
-          lastPoint.current = { x: event.clientX, y: event.clientY };
-        }}
-        onPointerUp={() => (lastPoint.current = null)}
-        onPointerCancel={() => (lastPoint.current = null)}
-      >
-        <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
-      </div>
+      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={SNIP_H} background={ARCADE_ARENA_FILL.snip}>
+        <div
+          ref={board}
+          data-play-area
+          data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
+          style={{ touchAction: "none" }}
+          aria-label={`${gameDisplayName("snip")} arena`}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            if (!active()) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            lastPoint.current = { x: event.clientX, y: event.clientY };
+          }}
+          onPointerMove={(event) => {
+            const previous = lastPoint.current;
+            if (!previous || !active()) return;
+            const from = toWorld(previous.x, previous.y);
+            const to = toWorld(event.clientX, event.clientY);
+            if (!from || !to) return;
+            const seg = pendingCut.current;
+            pendingCut.current = seg ? { ...seg, c: to.x, d: to.y } : { a: from.x, b: from.y, c: to.x, d: to.y };
+            swipes.current.push({ a: from.x, b: from.y, c: to.x, d: to.y, at: performance.now() });
+            if (swipes.current.length > 24) swipes.current.shift();
+            lastPoint.current = { x: event.clientX, y: event.clientY };
+          }}
+          onPointerUp={() => (lastPoint.current = null)}
+          onPointerCancel={() => (lastPoint.current = null)}
+        >
+          <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
+        </div>
+      </ArcadeArenaSlot>
       {dev ? <p className="truncate font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
     </div>
   );
