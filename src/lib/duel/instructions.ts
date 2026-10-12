@@ -168,6 +168,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
+      { action: "Don't guess:", detail: "a tap within 0.1 s of the gold is too fast to be real and is a false start too." },
     ],
     score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
   },

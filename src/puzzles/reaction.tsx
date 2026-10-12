@@ -1,9 +1,19 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
+import {
+  FLASH_FASTEST_MS,
+  TAP_LOG_MAX,
+  TAP_LOG_PREFIX,
+  TAP_REV,
+  decodeTapTimes,
+  encodeTapTimes,
+  replayFlash,
+  usesTapLog,
+} from "@/lib/duel/tapLog";
 import {
   REACTION_DECOY_MS,
   REACTION_MAX_FLASHES,
@@ -60,7 +70,7 @@ export function buildReaction(): ReactionPuzzleData {
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
     ]);
   }
-  return { type: "reaction", flashes, decoys };
+  return { type: "reaction", flashes, decoys, tapRev: TAP_REV };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -102,20 +112,21 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Teal, red or blue is a trap: tapping it, or tapping a dark screen, is a false start (−8 points). Score: 150 at
-        200 ms average or faster, −16 per 100 ms slower; a missed flash counts 1,200 ms.
+        Teal, red or blue is a trap: tapping it, tapping a dark screen, or tapping within {FLASH_FASTEST_MS} ms of the
+        gold (too fast to be a reaction) is a false start (−8 points). Score: 150 at 200 ms average or faster, −16 per
+        100 ms slower; a missed flash counts 1,200 ms.
       </p>
     </div>
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+/** Rounds stored before tap logs (no `tapRev`): the phone's own per-flash summary. */
+function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const flashes = puzzle.type === "reaction" ? puzzle.flashes : [];
   const decoys = puzzle.type === "reaction" ? puzzle.decoys : [];
   const key = `${phaseStartedAt}:${flashes.join(",")}`;
   const [times, setTimes] = useState<(number | null)[]>(() => flashes.map(() => null));
   const [falseStarts, setFalseStarts] = useState(0);
-  const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
   const [t, setT] = useState(() => serverNow() - phaseStartedAt);
   const submitted = useRef("");
@@ -191,18 +202,52 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
     setLastShown({ text: "False start", until: stamp + 900, bad: true });
   };
 
-  const surface =
-    liveIndex >= 0
-      ? "bg-primary"
-      : decoy
-        ? decoy.color === "teal"
-          ? "bg-opponent"
-          : decoy.color === "red"
-            ? "bg-destructive"
-            : "bg-reaction-blue"
-        : "bg-background";
-  const showLast = lastShown && t < lastShown.until;
+  return (
+    <ReactionArena
+      surface={surfaceFor(liveIndex, decoy)}
+      falseStarts={falseStarts}
+      lastShown={lastShown && t < lastShown.until ? lastShown : null}
+      live={liveIndex >= 0}
+      done={done}
+      decoy={decoy !== null}
+      onTap={handleTap}
+      inactive={locked || done}
+    />
+  );
+}
 
+function surfaceFor(liveIndex: number, decoy: { color: string } | null): string {
+  return liveIndex >= 0
+    ? "bg-primary"
+    : decoy
+      ? decoy.color === "teal"
+        ? "bg-opponent"
+        : decoy.color === "red"
+          ? "bg-destructive"
+          : "bg-reaction-blue"
+      : "bg-background";
+}
+
+function ReactionArena({
+  surface,
+  falseStarts,
+  lastShown,
+  live,
+  done,
+  decoy,
+  onTap,
+  inactive,
+}: {
+  surface: string;
+  falseStarts: number;
+  lastShown: { text: string; bad: boolean } | null;
+  live: boolean;
+  done: boolean;
+  decoy: boolean;
+  onTap: () => void;
+  inactive: boolean;
+}) {
+  const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   return (
     <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
@@ -212,15 +257,16 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
         type="button"
         aria-label="Reaction area"
         onPointerDown={(event) => {
-          handleTap();
-          if (locked || done) return;
+          const wasInactive = inactive;
+          onTap();
+          if (wasInactive) return;
           const rect = event.currentTarget.getBoundingClientRect();
           setRipple({ x: event.clientX - rect.left, y: event.clientY - rect.top, id: event.timeStamp });
         }}
         data-game-arena="tall" className={`relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
-        {liveIndex >= 0 ? null : showLast ? (
+        {live ? null : lastShown ? (
           <span
             className={`font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
           >
@@ -236,10 +282,125 @@ function Stage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: Puzz
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/**
+ * Tap-log rounds (`tapRev`): every tap is logged on the round clock and sent
+ * raw; what the phone shows comes from the same replay the server scores with.
+ */
+function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const flashes = puzzle.type === "reaction" ? puzzle.flashes : [];
+  const decoys = puzzle.type === "reaction" ? puzzle.decoys : [];
+  const key = `${phaseStartedAt}:${flashes.join(",")}`;
+  const taps = useRef<number[]>([]);
+  const [logLength, setLogLength] = useState(0);
+  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
+  const [t, setT] = useState(() => serverNow() - phaseStartedAt);
+  const submitted = useRef("");
+  const shownMisses = useRef(0);
+
+  useEffect(() => {
+    taps.current = [];
+    shownMisses.current = 0;
+    setLogLength(0);
+    setLastShown(null);
+  }, [key]);
+
+  // Frame-accurate local clock so the flash appears the moment it starts.
+  useEffect(() => {
+    let raf = 0;
+    const frame = () => {
+      setT(serverNow() - phaseStartedAt);
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [phaseStartedAt]);
+
+  const lastTap = taps.current[taps.current.length - 1] ?? 0;
+  const replay = useMemo(
+    () => replayFlash({ flashes }, taps.current, Math.max(t, lastTap)),
+    [flashes, logLength, t, lastTap], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const missedCount = replay.missed.filter(Boolean).length;
+
+  // A gold flash with no tap in 1.5 s shows the miss.
+  useEffect(() => {
+    if (missedCount <= shownMisses.current) return;
+    shownMisses.current = missedCount;
+    setLastShown({ text: "Missed", until: t + 900, bad: true });
+  }, [missedCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (flashes.length) onDraftAnswer?.(encodeTapTimes(taps.current));
+  }, [logLength]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (flashes.length === 0 || locked || submitted.current === key || !replay.done) return;
+    submitted.current = key;
+    const values = replay.times as number[];
+    onSubmit(encodeTapTimes(taps.current), { reactionAvgMs: reactionAverage(values, replay.falseStarts, flashes.length) });
+  }, [replay.done, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (puzzle.type !== "reaction") return null;
-  const { times, falseStarts } = parseAnswer(myAnswer);
-  const avg = times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null;
+
+  const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
+
+  const handleTap = () => {
+    if (locked || replay.done) return;
+    const log = taps.current;
+    // Whole ms on the round clock, never earlier than the tap before.
+    const stamp = Math.max(Math.round(serverNow() - phaseStartedAt), log[log.length - 1] ?? 0);
+    if (stamp < 0 || log.length >= TAP_LOG_MAX) return;
+    // Nothing counts once every flash is tapped or missed.
+    const before = replayFlash({ flashes }, log, stamp);
+    if (before.done) return;
+    const next = replayFlash({ flashes }, [...log, stamp], stamp);
+    taps.current = [...log, stamp];
+    setLogLength(taps.current.length);
+    const outcome = next.outcomes[next.outcomes.length - 1];
+    if (outcome === "hit") {
+      const ms = next.times.find((v, i) => v !== null && before.times[i] === null) ?? 0;
+      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false });
+    } else if (outcome === "false") {
+      puzzleReject();
+      setLastShown({ text: "False start", until: stamp + 900, bad: true });
+    }
+  };
+
+  return (
+    <ReactionArena
+      surface={surfaceFor(liveIndex, decoy)}
+      falseStarts={replay.falseStarts}
+      lastShown={lastShown && t < lastShown.until ? lastShown : null}
+      live={liveIndex >= 0}
+      done={replay.done}
+      decoy={decoy !== null}
+      onTap={handleTap}
+      inactive={locked || replay.done}
+    />
+  );
+}
+
+function Stage(props: PuzzleStageProps) {
+  return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
+}
+
+function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
+  if (puzzle.type !== "reaction") return null;
+  let times: number[];
+  let falseStarts: number;
+  if (usesTapLog(puzzle)) {
+    // The same replay the server scored; misses show as 1,200 ms.
+    const replay = myAnswer?.startsWith(TAP_LOG_PREFIX)
+      ? replayFlash(puzzle, decodeTapTimes(myAnswer, REACTION_ROUND_MS).times, REACTION_ROUND_MS)
+      : null;
+    times = replay ? replay.times.map((v) => v ?? REACTION_MISS_MS) : [];
+    falseStarts = replay?.falseStarts ?? 0;
+  } else {
+    ({ times, falseStarts } = parseAnswer(myAnswer));
+  }
+  const stored = usesTapLog(puzzle) ? myReactionAvgMs : null;
+  const avg = stored ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
   return (
     <>

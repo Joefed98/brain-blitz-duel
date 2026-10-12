@@ -87,10 +87,10 @@ All formulas from `scoring.ts`, `grade.ts`, and per-type files. Everything is cl
 
 | Game | Time limit | Complete / correct | Optimal / move bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
 |---|---|---|---|---|---|---|---|
-| Reaction Time | 60,000 ms (`REACTION_ROUND_MS`) | n/a (continuous) | n/a | average ≤ 200 ms: 150; else clamp(round(150 − 0.16 × (avg − 200)), 0, 150) | average of flash reaction times | −8 per false start | `scoring.ts scoreReaction`, `grade.ts` case "reaction" |
-| Stop Watch | 60,000 ms (`STOPWATCH_ROUND_MS`) | n/a (continuous) | n/a | average ≤ 20 ms: 150; else clamp(round(150 − 0.27 × (avg − 20)), 0, 150) | 10 attempts; a miss counts as 500 ms | none beyond the miss value in the average | `scoring.ts scoreStopWatch` |
+| Reaction Time | 60,000 ms (`REACTION_ROUND_MS`) | n/a (continuous) | n/a | average ≤ 200 ms: 150; else clamp(round(150 − 0.16 × (avg − 200)), 0, 150) | average of flash reaction times (`tapRev: 1`: worked out by the server from raw taps; a tap under 100 ms after the gold is a false start) | −8 per false start | `scoring.ts scoreReaction`, `grade.ts` case "reaction", `tapLog.ts replayFlash` |
+| Stop Watch | 60,000 ms (`STOPWATCH_ROUND_MS`) | n/a (continuous) | n/a | average ≤ 20 ms: 150; else clamp(round(150 − 0.27 × (avg − 20)), 0, 150) | 10 attempts; a miss counts as 500 ms (`tapRev: 1`: distances measured by the server from raw taps) | none beyond the miss value in the average | `scoring.ts scoreStopWatch`, `tapLog.ts replayBangOn` |
 | Don't Break the Chain | 45,000 ms (`CHAIN_TIME_MS`) | all 40 links: min(150, floor(3.5 × 40) + round(10 × ms ÷ 45,000)) = 140 + bonus | speed-only finish bonus (`CHAIN_FINISH_BONUS = 10`) | floor(3.5 × links) | 40 links (`CHAIN_LENGTH`) | the first wrong or momentum-lapse tap ends the chain at the current link count; no extra deduction | `chain.ts chainScore`, `grade.ts` case "chain" |
-| Number Hunt | 60,000 ms (`NUMHUNT_TIME_MS`) | all 24: clamp(130 + round(20 × ms ÷ limit) − 5 × errors, 0, 150) | speed only | clamp(5 × reached − 5 × errors, 0, 150) | 24 numbers (`NUMHUNT_COUNT`) | −5 per wrong tap (`NUMHUNT_ERROR_PENALTY`), finished and unfinished | `scoring.ts scoreNumberHunt` |
+| Number Hunt | 60,000 ms (`NUMHUNT_TIME_MS`) | all 24: clamp(130 + round(20 × ms ÷ limit) − 5 × errors, 0, 150) | speed only | clamp(5 × reached − 5 × errors, 0, 150) | 24 numbers (`NUMHUNT_COUNT`) | −5 per wrong tap (`NUMHUNT_ERROR_PENALTY`), finished and unfinished (`tapRev: 1`: reached, wrong taps and finish time from raw taps; before it an unfinished run sent no answer and scored 0) | `scoring.ts scoreNumberHunt`, `tapLog.ts replayAscend` |
 | Clay Shoot (engine) | registry 63,000 ms (`CLAYSHOOT_TIME_MS`); 60 s run (`CLAY_RUN_TICKS`) | n/a — one formula for any state | +10 for a perfect run (all 22 orange + 3 gold) | 5 × orange hits + 10 × gold hits (+10 if perfect), clamp 0–150 | 25 clays (22 orange, 3 gold) | none; missed clays just earn nothing | `arcade/clayShoot.ts clayScore` |
 | Whack-a-Target (engine) | 60 s run + 3,000 ms slack (`WHACK_RUN_TICKS`) | n/a — one formula | +15 for a perfect run (all targets hit) | floor((2 × 135 × hits + total) ÷ (2 × total)), i.e. round(135 × hits ÷ total), minus penalties | seeded number of targets per run | −3 wrong colour, −5 bomb, −3 empty hole; clamp 0–150 | `arcade/whack.ts whackScore` |
 
@@ -214,7 +214,7 @@ Maze Dash's file sets `category: "attention"`, so rooms draw it as attention eve
 
 ## 11. Versioned rules
 
-Older stored rounds keep their original grading. Only Chain, Colour Clash and Equation Balancing branch by version; a search of `src/lib/duel/*.ts` and `src/lib/arcade/*.ts` for legacy / version / revision / rev found nothing else.
+Older stored rounds keep their original grading. Chain, Colour Clash, Equation Balancing and (since 12 Oct) the Flash / Bang On / Ascend tap logs branch by version; a search of `src/lib/duel/*.ts` and `src/lib/arcade/*.ts` for legacy / version / revision / rev found nothing else.
 
 **Don't Break the Chain** (`chain.ts`). Version field `puzzle.rulesVersion` against `CHAIN_RULES_VERSION`; `chainRules()` also checks `puzzle.boards.length × CHAIN_BLOCK` and `puzzle.cycles` (absent = legacy single `cycle`).
 - Legacy (unversioned or a different version): length from the stored board count. 25 links → 6 per link; 30 links → 5 per link; bonus 0; momentum bands {10: 3000 ms, 18: 2500 ms, length: 2000 ms}; FASTER at [10, 18, 26].
@@ -234,6 +234,10 @@ Older stored rounds keep their original grading. Only Chain, Colour Clash and Eq
 - Legacy (3 stages): weights [30, 40, 50]; bonus base 30.
 - Current (4 stages, `EQUATION_STAGE_COUNT`): weights `EQUATION_STAGE_POINTS`; bonus base `EQUATION_SPEED_POINTS`.
 - Fully solved needs every stage correct; bonus = round(bonus base × ms ÷ `EQUATION_TIME_MS`).
+
+**Flash, Bang On and Ascend tap logs** (`tapLog.ts`, added 12 Oct 2026). Field `tapRev` against `TAP_REV` (1), set by `buildReaction`, `buildStopWatch` and `buildNumberHunt`.
+- `tapRev: 1`: the answer is a raw tap log (`log1:` prefix) and the server replays it (section 14). Flash adds the 100 ms floor; Bang On runs on the fixed watch schedule; Ascend sends its log at the buzzer too.
+- Unstamped: the original summary answers and grading, unchanged. The phone keeps the legacy Stage for unstamped rounds (`LegacyStage` in each puzzle file), so a room created before the change still plays and grades as it did.
 
 **Compatibility constants (not scoring versions):** Spatial Memory's `groupSize` (always 2) is kept for old stored puzzles; Wordsmith's `WORDSMITH_CENTRE_INDEX = 4` keeps old stored rings aligned.
 
@@ -286,13 +290,28 @@ Older stored rounds keep their original grading. Only Chain, Colour Clash and Eq
 
 ## 14. Trusted client inputs (not replayed or recomputed, beyond time left)
 
+**Updated 12 Oct 2026 (ruling D, the prerequisite for ranked play):** Flash, Bang On and Ascend are now server-verified. Rounds stamped `tapRev: 1` (`tapLog.ts TAP_REV`, set on every new puzzle) send every raw tap on the round clock, and the server works out the score from those taps and the stored puzzle. Older rounds keep their summary answers and original grading.
+
 | Game / field | What's trusted | Verification | Location |
 |---|---|---|---|
-| All rounds — `msRemaining` | the client's claimed time left | clamped to [0, limit] and checked against the server's clock + 1.5 s; over that, the server's value is used | `grade.ts trustedMsRemaining`, `submitAnswerFn` |
-| Reaction Time — per-flash times | each value clamped to [1, `REACTION_MISS_MS`], then averaged server-side | the values themselves are unverified (no server-side reaction capture); averaging and false-start maths are server-side | `grade.ts` case "reaction" |
-| Go/No-Go (retired) — `extra.correctCount` | as sent, clamped to [0, `GONOGO_ITEMS`] | no replay | `grade.ts` ~line 325 |
-| Go/No-Go (retired) — `extra.reactionAvgMs` | as sent, clamped to [0, 5000] | no recomputation | `grade.ts` ~lines 326–329 |
+| All rounds — `msRemaining` | the client's claimed time left | clamped to [0, limit] and checked against the server's clock + 1.5 s (`TIME_CLAIM_TOLERANCE_MS`); over that, the server's value is used | `grade.ts trustedMsRemaining`, `submitAnswerFn` |
+| Flash (`reaction`), `tapRev: 1` — answer `log1:t,t,…` | **only the tap times** (ms on the round clock, measured by the phone's server-synced clock) | the server replays the taps against the stored flash schedule (`replayFlash`): a tap counts for a gold flash from 100 ms (`FLASH_FASTEST_MS`) to 1,500 ms after it appears; every other tap (dark screen, decoy, faster than 100 ms, a second tap on gold) is a false start, except that false starts under 250 ms apart count once; an untapped flash is a miss (1,200 ms). The average, false starts and score are all server-side | `tapLog.ts replayFlash`, `grade.ts` case "reaction" |
+| Bang On (`stopwatch`), `tapRev: 1` — answer `log1:t,t,…` | **only the tap times** | watches run on a fixed schedule (watch 1 at 800 ms, each next one 600 ms after the last was stopped or ran out of passes), so the server knows when every watch started; it places the marker and the moving target at each tap from the stored watch spec (`markerState`, `targetCentre`) and measures the distance itself (`replayBangOn`, `watchStop`). Taps in the lead-in, between watches or after the last are ignored | `tapLog.ts replayBangOn`, `stopWatch.ts`, `grade.ts` case "stopwatch" |
+| Ascend (`numhunt`), `tapRev: 1` — answer `log1:n@t,…` | **only the tap times and which disc was tapped** | each tapped number is checked against the layout on screen at that moment (`ascendLayoutAt`: the 15 s moves). The next number clears; a later number, or one not on the board, is a wrong tap; a cleared number is ignored. Count reached, wrong taps and the finishing tap's time are all server-side. Time left is the phone's claim (receipt-checked as above) but never more than the log's own finishing tap allows; an unfinished run stores 0 | `tapLog.ts replayAscend`, `grade.ts` case "numhunt" |
+| Tap logs — repairs | nothing | the server repairs rather than rejects, and counts every repair on the round (`extra.repaired`, `clamped`, `dropped`, `reason`), as the arcade engine does: taps out of order are moved up to the tap before (never sorted into a better order); taps before the round, after it, after the server received the answer (+ 1.5 s), beyond 1,000 (`TAP_LOG_MAX`), or unreadable are dropped; a summary answer (no `log1:` prefix) is not read at all, so an old-format claim scores as no taps | `tapLog.ts readLog`, `grade.ts latestTapMs` |
+| Flash / Bang On / Ascend, unstamped rounds | per-flash times and false-start count; per-watch distances; count reached and error count | clamped only (the pre-12 Oct behaviour, kept so stored rounds grade as they did) | `grade.ts` legacy branches |
+| Go/No-Go (retired) — `extra.correctCount` | as sent, clamped to [0, `GONOGO_ITEMS`] | no replay | `grade.ts` case "gonogo" |
+| Go/No-Go (retired) — `extra.reactionAvgMs` | as sent, clamped to [0, 5000] | no recomputation | `grade.ts` case "gonogo" |
 | Every other type (standard, logic, arcade) | answer strings decoded and matched against stored content, or fully replayed (`replay*`, `verify*`, `decode*`) | full replay / verification | `grade.ts` other cases |
+
+**What remains client-timed (honestly).** The score can no longer be invented: the phone can't claim a reaction, distance, count or error total, only taps. But the taps themselves are still the phone's word:
+- **Timing.** Every tap time comes from the phone's clock (`serverNow()`, the shared clock calibrated against the server). The server holds the log to the round, to its own receipt time + 1.5 s, and to the rules (Flash's 100 ms floor); it can't tell a real 180 ms reaction from a plausible faked one, or a real Bang On stop from a well-timed fake. Fully server-timed reactions would need taps streamed to the server as they happen; that is the next step before money play.
+- **Omission.** A modified client can leave a tap out of its log (a false start, a wrong Ascend tap). The server then scores the run those remaining taps describe, which is a run the player could have played; it can't see a tap that was never sent. A wrong tap relabelled as a number that isn't on the board still counts as wrong.
+- **Floating point.** Bang On's moving targets use `Math.sin`; the phone and the server compute the same formula but on different JavaScript engines, so in a vanishingly rare case a displayed "+12 ms" could be 1 ms off the server's figure. Only the server's figure is stored and shown on the reveal.
+
+**Player-visible changes in `tapRev: 1` rounds:** Flash counts a tap within 100 ms of the gold as a false start (intro and help text updated). Bang On starts each watch exactly 600 ms after the last result instead of on the next screen frame (at most a frame earlier; not visible). Ascend now sends its log when the timer runs out, so an unfinished run earns the documented 5 per number reached − 5 per wrong tap; before, the phone sent nothing for an unfinished run and it scored 0.
+
+**Proof:** `scripts/tap-log-check.tsx` replays 36 honest runs recorded on main before the change (`scripts/fixtures/tap-log-honest-runs.json`, from the real phone Stages played in happy-dom by `scripts/tap-log-record.tsx`): every one still grades exactly as main stored it, and as a tap log scores the same with the same tie-break time (the 3 unfinished Ascend runs aside, as above). Today's phone Stages, played by the same scripted players, reproduce main's exact answers on unstamped puzzles and send logs the server scores identically on stamped ones (6 runs per game by default, all 12 with `TAP_LOG_PARITY=all`), and the reveal shows the server's figures. 381 tampered logs (summary answers, claimed counts, impossibly fast taps, reversed order, times beyond the round or after receipt, garbage, floods, relabelled wrong taps, inflated time left) never score above the honest run.
 
 ## 15. Dead code
 
@@ -302,7 +321,7 @@ Older stored rounds keep their original grading. Only Chain, Colour Clash and Eq
 | `UNFINISHED_CAP` | `scoring.ts` | exported but only used inside `scoreTubes()`; the export is unused outside the module |
 | `totalAnswerMs` | `scoring.ts` | exported but only used internally by `duelOutcome()`; the export is redundant |
 | `no_maths` / `add_maths` / `add_arcade` columns | `types.ts`, `selection.ts` | never read when starting a room — dead plumbing (section 13) |
-| `SubmitExtra.errors` | input type | accepted from the client but never read; errors are computed server-side per type |
+| `SubmitExtra.errors` | input type | accepted from the client but never read; errors are computed server-side per type (Ascend's phone still sends it; tap-log rounds count errors from the log) |
 
 ---
 
@@ -311,7 +330,7 @@ Older stored rounds keep their original grading. Only Chain, Colour Clash and Eq
 These are where the audit contradicts itself, contradicts earlier decisions, or looks wrong. The tables above follow the audit; nothing here has been changed in the app.
 
 1. **Rotation no longer matches the app brief.** Real rooms use the host's category multiselect: one round per selected category, round-robin. The "round 6 weighted draw (logic 35 / pattern 35 …)" only runs in a branch real rooms never reach, and the "never round 1" arcade rule sits in the same unused path. The add_maths / add_arcade toggles are dead. Decide what round 6 should be (with six default categories it's simply one round each, arcade included) and whether arcade may land in round 1; then clean up the dead path.
-2. **Trusted inputs: Stop Watch and Number Hunt are missing.** Earlier audits had both trusting the phone; this one lists only Reaction Time and says everything else is replayed. Confirm whether they now replay a tap log or were missed. Either way, Reaction Time still trusts per-flash times, which needs a replay before ranked or money play.
+2. **Trusted inputs: Stop Watch and Number Hunt are missing.** Earlier audits had both trusting the phone; this one lists only Reaction Time and says everything else is replayed. Confirm whether they now replay a tap log or were missed. Either way, Reaction Time still trusts per-flash times, which needs a replay before ranked or money play. **Resolved 12 Oct 2026:** all three were trusting phone summaries (`docs/scoring-audit-oct-2026.md`); `tapRev: 1` rounds now replay raw tap logs on the server (section 14). Tap timing is still the phone's.
 3. **Intro text bug:** Ball Track and Snip say "÷ 75 s"; both run 60 s. Fix the template data for those two.
 4. **Wavefront "inversion" is probably a false alarm.** `armourHits` most likely counts your hits on armoured ships (each takes 6–12 hits), not damage to you. Confirm with Lovable before treating it as a bug.
 5. **`scoreStroop` contradiction.** Section 15 says no scoring function is dead; the attention notes say `scoreStroop` is never called for Colour Clash. It's likely only reachable for old stored rounds or not at all — confirm and remove if unused.
