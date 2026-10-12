@@ -227,8 +227,11 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
       if (!shown) return;
       const b = box.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
-      const px = s.left - b.left + shown.x * s.width;
-      const py = s.top - b.top + shown.y * s.height;
+      // Rects are on-screen (after the intro's IntroFit scaling); the cursor canvas
+      // draws in the box's own unscaled pixels.
+      const k = b.width > 0 ? w / b.width : 1;
+      const px = (s.left - b.left + shown.x * s.width) * k;
+      const py = (s.top - b.top + shown.y * s.height) * k;
       const at = performance.now();
       trail.push({ x: px, y: py, at });
       while (trail.length && at - trail[0]!.at > TRAIL_MS) trail.shift();

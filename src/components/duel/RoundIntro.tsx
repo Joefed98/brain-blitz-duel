@@ -3,7 +3,7 @@ import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/l
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
@@ -15,6 +15,16 @@ import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
+import { IntroFit } from "./IntroFit";
+
+/**
+ * The demo or example is never squeezed below this height (px) while a smaller
+ * text step is left: past it the intro steps GOAL / HOW / SCORE down a size
+ * (data-compact 1, then 2) instead, so the text always fits above READY with
+ * no scrolling and the picture stays readable.
+ */
+const INTRO_VISUAL_MIN_PX = 110;
+const INTRO_COMPACT_STEPS = 2;
 
 interface RoundIntroProps {
   round: number;
@@ -107,8 +117,36 @@ export function RoundIntro({
 
   // Round music is owned by the room/practice round state, never by this screen.
 
+  // Fit: the text takes what it needs and the demo/example box (IntroFit) the
+  // rest. If that leaves the picture under INTRO_VISUAL_MIN_PX, or the text
+  // itself does not fit, step the text down one size and measure again.
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [compact, setCompact] = useState(0);
+  useLayoutEffect(() => setCompact(0), [type]);
+  useEffect(() => {
+    const reset = () => setCompact(0);
+    window.addEventListener("resize", reset);
+    return () => window.removeEventListener("resize", reset);
+  }, []);
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el || compact >= INTRO_COMPACT_STEPS) return;
+    const check = () => {
+      const fit = el.querySelector<HTMLElement>("[data-intro-fit]");
+      const natural = fit ? Number.parseFloat(fit.style.height) || 0 : 0;
+      const overflow = el.scrollHeight - el.clientHeight > 1;
+      const cramped = fit !== null && natural > 0 && fit.clientHeight + 1 < Math.min(natural, INTRO_VISUAL_MIN_PX);
+      if (overflow || cramped) setCompact((c) => Math.min(INTRO_COMPACT_STEPS, c + 1));
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    for (const child of Array.from(el.querySelectorAll("[data-intro-fit] > div"))) ro.observe(child);
+    return () => ro.disconnect();
+  }, [compact, counting, type, puzzleDemo]);
+
   return (
-    <div className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
+    <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
       <div className="category-header flex items-start justify-between">
         {practice && onBack ? (
           <Button
@@ -135,7 +173,7 @@ export function RoundIntro({
         {!practice && <RoundPips currentRound={round} outcomes={outcomes} totalRounds={totalRounds} />}
       </div>
 
-      <h1 className="w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
+      <h1 className="round-intro-title w-full min-w-0 whitespace-normal break-words text-center font-display text-[2.25rem] font-bold leading-none animate-pop-in sm:text-[2.75rem]">
         {puzzleName(type)}
       </h1>
       {practice ? <p className="text-center font-mono text-xs text-muted-foreground">Best: {deviceBest ?? "—"} · this device</p> : null}
@@ -151,32 +189,39 @@ export function RoundIntro({
         </div>
       ) : (
         <>
-          <div className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-y-auto overscroll-contain py-1">
+          <div ref={contentRef} className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-hidden py-1">
             {hasIntroDemo(type) ? (
               <PuzzleInstructions
                 type={type}
                 beforeScore={
-                  <div className="flex justify-center">
+                  <IntroFit>
                     <IntroDemo type={type} puzzle={puzzle} />
-                  </div>
+                  </IntroFit>
                 }
               />
             ) : puzzleDemo ? (
-              <PuzzleInstructions type={type} beforeScore={<PuzzleIntroDemo demo={puzzleDemo} />} />
+              <PuzzleInstructions
+                type={type}
+                beforeScore={
+                  <IntroFit>
+                    <PuzzleIntroDemo demo={puzzleDemo} />
+                  </IntroFit>
+                }
+              />
             ) : (
               <>
                 <PuzzleInstructions type={type} />
-                <div className="round-intro-example">
+                <IntroFit className="round-intro-example">
                   <Example />
-                </div>
+                </IntroFit>
               </>
             )}
             {introLine ? (
-              <p className="font-mono text-sm font-bold uppercase tracking-widest text-primary">
+              <p className="shrink-0 font-mono text-sm font-bold uppercase tracking-widest text-primary">
                 {introLine}
               </p>
             ) : null}
-            <p className="round-intro-time text-xs text-muted-foreground">
+            <p className="round-intro-time shrink-0 text-xs text-muted-foreground">
               You have {seconds} seconds
             </p>
           </div>
@@ -193,6 +238,8 @@ export function RoundIntro({
               {!dataReady ? "Loading words…" : ready ? "Ready ✓" : "Ready"}
             </Button>
 
+            {/* The ready count only takes a row when there is someone to wait for. */}
+            {activeCount > 1 ? (
             <p className="flex h-5 items-center gap-1.5 font-mono text-xs text-muted-foreground">
               {activeCount > 1 ? (
                 ready && twoPlayer && readyCount < activeCount ? (
@@ -206,6 +253,7 @@ export function RoundIntro({
                 )
               ) : null}
             </p>
+            ) : null}
           </div>
         </>
       )}
