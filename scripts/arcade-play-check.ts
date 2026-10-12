@@ -177,7 +177,12 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const results: Result[] = [];
   try {
-    for (const game of games) results.push(await playOne(browser, origin, game, baseline[game]));
+    for (const [index, game] of games.entries()) {
+      const r = await playOne(browser, origin, game, baseline[game]);
+      results.push(r);
+      // Progress as each game finishes (the full summary follows at the end).
+      console.log(`[${index + 1}/${games.length}] ${r.ok ? "ok  " : "FAIL"} ${game}${r.problems.length ? `: ${r.problems[0]}` : ""}`);
+    }
   } finally {
     await browser.close();
     if (proc?.pid) try { process.kill(-proc.pid); } catch { /* already gone */ }
