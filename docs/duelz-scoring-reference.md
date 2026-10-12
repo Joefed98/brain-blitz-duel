@@ -57,6 +57,7 @@ All formulas from `scoring.ts`, `grade.ts`, and per-type files. Everything is cl
 | Tile Grid | 100,000 ms | all 15 tiles in a valid grid: 130 + SPEED(20), cap 150 | speed only | not all valid: 8 × tiles in valid words, cap 150 | 15 tiles | none | `tileGrid.ts scoreTileGrid`, `grade.ts` case "tilegrid" |
 | Word Slide | `WS_TIME_MS` (par-based) | all 5 rows: 100 + SPEED(30) + MOVES(20, moves, par), cap 150 | MOVES full at par, 0 at 2 × par | fewer than 5 rows: 22 × rows, cap 150 | 5 rows | none | `scoring.ts scoreWordSlide` |
 | Word Search | 120,000 ms | all found: 130 + round(20 × ms ÷ limit), cap 150 | speed only | not all: 20 × found, **cap 120** | 6 words | `_wrong` parameter unused — wrong picks are free | `wordSearch.ts scoreWordSearch` |
+| Letterfall (engine) | 93,000 ms registry; 90 s run (`WF_RUN_TICKS`) | floor(150 × min(points, par) ÷ par), par 30 (first guess; `?dev=1` shows points and par) | none (stamped `speedPar: 1`, `wordfallRev: 1`) | same formula; the run ends early if a column overflows | word points 1/2/4/7/11 for 3/4/5/6/7+ letters (Qu = 2) | none | `arcade/wordfall.ts wordfallScore` |
 | Letter Wheel | 100,000 ms | all slots: 130 + round(20 × ms ÷ limit), cap 150 | speed only | 15 per word (8-word boards) or 13 per word (9-word boards), cap 150 | 8 or 9 words | none | `letterWheel.ts scoreLetterWheel` |
 
 **Word oddities (as reported)**

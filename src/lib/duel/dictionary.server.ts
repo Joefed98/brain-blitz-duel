@@ -98,6 +98,11 @@ const BLOCKED = new Set([
   ...PROFANITY_WORDS,
 ]);
 
+/** True for a word every game refuses (the blocklist plus the profanity list). */
+export function isBlockedWord(word: string): boolean {
+  return BLOCKED.has(word);
+}
+
 interface Dictionary {
   all: Set<string>;
   common: string[];

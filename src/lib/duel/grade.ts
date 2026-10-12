@@ -47,6 +47,8 @@ import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
 import { decodeWhackRun, replayWhackRun } from "./whack";
 import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
+import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
+import { ensureWordfallDict } from "./wordfallDict.server";
 import { decodeClayRun, replayClayRun } from "./clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
@@ -1367,6 +1369,44 @@ export function gradeSubmission(
         desyncTick: run.desyncTick,
         inputs: decodeTenDropRun(answer).events.length,
         claimedScore: decodeTenDropRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "wordfall": {
+      ensureWordfallDict();
+      const replayStart = performance.now();
+      const run = replayWordfallRun(puzzle.seed, answer, puzzle.wordfallRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.finished;
+      correctCount = run.words;
+      errors = run.invalid;
+      score = run.score;
+      const sent = decodeWordfallRun(answer, puzzle.wordfallRev);
+      extraDetail = {
+        points: run.points,
+        par: run.par,
+        words: run.words,
+        cleared: run.cleared,
+        invalid: run.invalid,
+        submits: run.submits,
+        taps: run.taps,
+        longest: run.longest,
+        best: run.best,
+        overflow: run.overflow,
+        survived: run.survived,
+        finished: run.finished,
+        endedSeconds: run.endedSeconds,
+        wordfallRev: puzzle.wordfallRev ?? 1,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: sent.events.length,
+        claimedScore: sent.claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

@@ -6,6 +6,7 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame } from "@/lib/arcade/introDemo";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
+import { preloadGameData } from "@/lib/duel/gamePreload";
 import { getIntroDemoFn } from "@/lib/duel/introDemo.functions";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -85,7 +86,8 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
     // so a frame never shows code art that the art is about to replace.
     let cancelled = false;
     let frame = 0;
-    void preloadGameArt(type).then(() => {
+    // Letterfall's demo replays words, so it also waits for its dictionary.
+    void Promise.all([preloadGameArt(type), preloadGameData(type)]).then(() => {
       if (cancelled) return;
       if (!source.live) {
         drawTick(1);

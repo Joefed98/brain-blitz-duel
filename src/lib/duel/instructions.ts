@@ -779,6 +779,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "2 points per metre climbed, up to 150.",
   },
+  wordfall: {
+    goal: "Clear falling letter tiles by making words before a column overflows.",
+    how: [
+      { action: "Tap touching tiles", detail: "(any of 8 directions, each tile once) to spell a word along the path." },
+      { action: "Tap the last tile again or Enter", detail: "to submit. A real word of 3+ letters clears its tiles; tiles above fall." },
+      { action: "Not a word?", detail: "The tiles shake and the chain clears - no penalty." },
+      { action: "Tiles drop faster", detail: "every 18 seconds; Qu counts as two letters.", helpOnly: true },
+      { action: "If a new tile can't fit", detail: "into a full column, the run ends.", helpOnly: true },
+    ],
+    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11; score = 150 × points ÷ par (30), capped at 150.",
+  },
   tendrop: {
     goal: "Make the running total hit the target exactly.",
     how: [

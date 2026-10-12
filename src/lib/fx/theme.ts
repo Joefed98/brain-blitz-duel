@@ -47,6 +47,7 @@ const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   wordsearch: "music_word_2",
   tilegrid: "music_word_3",
   wordslide: "music_word_3",
+  wordfall: "music_word_2",
   target: "music_number_1",
   equation: "music_number_1",
   balance: "music_number_2",

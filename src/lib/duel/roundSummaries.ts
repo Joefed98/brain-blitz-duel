@@ -2,6 +2,7 @@ import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { WF_PAR } from "@/lib/arcade/wordfall";
 import {
   checkPatternAnswer,
   decodePatternAnswers,
@@ -90,6 +91,7 @@ import {
   BEAT_TIME_MS,
   WHACK_TIME_MS,
   TENDROP_TIME_MS,
+  WORDFALL_TIME_MS,
   CLAYSHOOT_TIME_MS,
   TENTS_TIME_MS,
   SHIKAKU_TIME_MS,
@@ -158,6 +160,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   beat: BEAT_TIME_MS,
   whack: WHACK_TIME_MS,
   tendrop: TENDROP_TIME_MS,
+  wordfall: WORDFALL_TIME_MS,
   clayshoot: CLAYSHOOT_TIME_MS,
   tents: TENTS_TIME_MS,
   shikaku: SHIKAKU_TIME_MS,
@@ -1250,6 +1253,21 @@ const tenDropSummary: SummaryBuilder = (result) => {
   };
 };
 
+const wordfallSummary: SummaryBuilder = (result) => {
+  const points = Number(result.extra?.["points"] ?? 0);
+  const par = Number(result.extra?.["par"] ?? WF_PAR);
+  const words = Number(result.extra?.["words"] ?? 0);
+  const best = Array.isArray(result.extra?.["best"]) ? (result.extra["best"] as unknown[]).map(String) : [];
+  const overflow = result.extra?.["overflow"] === true;
+  return {
+    summary: `${words} word${words === 1 ? "" : "s"} · ${points} / ${par} points`,
+    detail: [
+      ...(best.length ? [`Best: ${best.slice(0, 3).join(", ")}`] : []),
+      ...(overflow ? ["A column overflowed"] : []),
+    ],
+  };
+};
+
 const clayShootSummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 25);
@@ -1632,6 +1650,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   beat: beatSummary,
   whack: whackSummary,
   tendrop: tenDropSummary,
+  wordfall: wordfallSummary,
   clayshoot: clayShootSummary,
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
@@ -1738,6 +1757,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   beat: () => null,
   whack: () => null,
   tendrop: () => null,
+  wordfall: () => null,
   clayshoot: () => null,
   wavefront: () => null,
   bastion: () => null,

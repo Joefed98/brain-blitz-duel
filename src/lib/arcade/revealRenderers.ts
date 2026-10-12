@@ -42,6 +42,9 @@ import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
 import { tenDropGame, TD_H, TD_W } from "./tenDrop";
+import { wordfallGame, WF_H, WF_W } from "./wordfall";
+import { wordfallArtGame } from "./wordfall.renderer";
+import { loadWordfallDict, wordfallDictReady } from "./wordfallDict";
 import { colourClashGame } from "./colourClash";
 
 import { replayHoverRun } from "@/lib/duel/hover";
@@ -69,6 +72,7 @@ import { replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { replayWhackRun } from "@/lib/duel/whack";
 import { replayClayRun } from "@/lib/duel/clayShoot";
 import { replayTenDropRun } from "@/lib/duel/tenDrop";
+import { replayWordfallRun } from "@/lib/duel/wordfall";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
 
@@ -220,5 +224,19 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   tendrop: simple(GOLD, TD_W, TD_H, tenDropGame, (p, a) => replayTenDropRun(seedOf(p), a)),
+  wordfall: {
+    accent: "#D4A84A",
+    worldW: WF_W,
+    worldH: WF_H,
+    drawFinal: (ctx, puzzle, answer) => {
+      if (puzzle.type !== "wordfall") return null;
+      // The final well needs the word list; without it (a cold reload) draw the start well and fetch it.
+      const state = wordfallDictReady()
+        ? replayWordfallRun(puzzle.seed, answer, puzzle.wordfallRev).state
+        : (void loadWordfallDict().catch(() => undefined), wordfallGame.init(puzzle.seed));
+      wordfallArtGame.draw(ctx, state, { width: WF_W, height: WF_H });
+      return null;
+    },
+  },
   stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? clashVariantOf(p) : 0)),
 };

@@ -8,6 +8,7 @@
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
+import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 import { BAND_SPECS } from "./bandParts";
@@ -439,6 +440,24 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: b(r, "perfect") ? "finish" : "time",
   }),
+  wordfall: (r, s) => {
+    const best = Array.isArray(r["best"]) ? (r["best"] as unknown[]).map(String).slice(0, 5) : [];
+    const par = n(r, "par") || WF_PAR;
+    return {
+      axis: { value: Math.min(n(r, "points"), par), max: par, label: "Word points" },
+      lines: [
+        `${n(r, "points")} / ${par} word points → ${s}`,
+        best.length ? `Best: ${best.join(" · ")}` : "No words found",
+        ...(b(r, "overflow") ? [`A column overflowed at ${sec(n(r, "endedSeconds"))}`] : []),
+      ],
+      tiles: [
+        { label: "Words", value: String(n(r, "words")) },
+        { label: "Longest", value: n(r, "longest") ? `${n(r, "longest")} letters` : "—" },
+        { label: b(r, "overflow") ? "Overflowed" : "Survived", value: b(r, "overflow") ? sec(n(r, "endedSeconds")) : "90 s" },
+      ],
+      outcome: n(r, "points") >= par ? "finish" : b(r, "overflow") ? "crash" : "time",
+    };
+  },
   tendrop: (r, s) => {
     const done = n(r, "cleared") >= 10;
     return {

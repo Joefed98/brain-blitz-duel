@@ -93,6 +93,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   unblock: "Gridlock",
   wavefront: "Wavefront",
   whack: "Bonk",
+  wordfall: "Letterfall",
   wordhunt: "Forage",
   ladder: "Word Ladder",
   wordmatch: "Word Match",

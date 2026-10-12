@@ -57,6 +57,7 @@ import {
   generateSwerve,
   generateWhack,
   generateTenDrop,
+  generateWordfall,
   generateClayShoot,
   generateWavefront,
   generateBastion,
@@ -172,6 +173,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "beat") return generateBeat();
   if (type === "whack") return generateWhack();
   if (type === "tendrop") return generateTenDrop();
+  if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
