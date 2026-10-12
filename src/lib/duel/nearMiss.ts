@@ -66,6 +66,16 @@ export function nearMiss(
         ? `${left} brick${left === 1 ? "" : "s"} left to clear`
         : null;
     }
+    case "measure":
+      return remaining("solved", 4, "puzzle");
+    case "checkout": {
+      const solved = number("solved");
+      return solved !== null && solved >= 0 && solved < 5
+        ? `${5 - solved} board${5 - solved === 1 ? "" : "s"} short of all five`
+        : null;
+    }
+    case "numline":
+      return remaining("placed", 15, "number");
     case "bubble": {
       const left = number("bubblesLeft");
       return extra["cleared"] !== true && left !== null && left > 0

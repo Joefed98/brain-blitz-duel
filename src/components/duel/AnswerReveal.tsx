@@ -241,6 +241,10 @@ export function AnswerReveal({
           </p>
         ) : null}
         <StoredScore score={myScore} />
+        {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
+        {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
+          <p className="shrink-0 text-center font-mono text-sm text-primary">{nearMiss(puzzle.type, myExtra)}</p>
+        ) : null}
         <div ref={solvedBoard} className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal

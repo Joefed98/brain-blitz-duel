@@ -71,6 +71,9 @@ import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
+import { gradeMeasureBoards, scoreMeasure } from "./measure";
+import { gradeCheckoutStages, scoreCheckout } from "./checkout";
+import { gradeNumlineItems, NUMLINE_FULL_ERROR, numlineAccuracy, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
@@ -1731,6 +1734,43 @@ export function gradeSubmission(
       correctCount = trCorrectTiles(puzzle.givens, path, puzzle.solution ?? []);
       score = scoreTrail(complete, ms, timeLimitMs, correctCount);
       extraDetail = { complete, prefix, correctTiles: correctCount, drawn: path.filter((cell) => cell >= 0).length };
+      break;
+    }
+    case "measure": {
+      // Each board's action list is replayed on the stored jugs; the minimums are the server's own.
+      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer);
+      const solved = results.filter((r) => r.solved).length;
+      isCorrect = solved === puzzle.boards.length;
+      correctCount = solved;
+      score = scoreMeasure(results, ms, timeLimitMs);
+      extraDetail = { solved, measureRev: puzzle.measureRev, boards: results };
+      break;
+    }
+    case "checkout": {
+      // Every stage's darts are re-added against the stored board, target and finishing ring.
+      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer);
+      const solved = results.filter((r) => r.solved).length;
+      isCorrect = solved === puzzle.stages.length;
+      correctCount = solved;
+      score = scoreCheckout(results, ms, timeLimitMs);
+      extraDetail = { solved, fewest: results.filter((r) => r.fewest).length, checkoutRev: puzzle.checkoutRev, stages: results };
+      break;
+    }
+    case "numline": {
+      // Placements are measured against the stored exact values; the client sends positions only.
+      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer);
+      const placed = results.filter((r) => r.placed).length;
+      // Finished = every number placed; accuracy decides the score.
+      isCorrect = placed === results.length;
+      correctCount = placed;
+      score = scoreNumline(results, ms, timeLimitMs);
+      extraDetail = {
+        placed,
+        withinFull: results.filter((r) => r.error !== null && r.error <= NUMLINE_FULL_ERROR).length,
+        accuracy: Math.round(numlineAccuracy(results) * 10) / 10,
+        numlineRev: puzzle.numlineRev,
+        errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
+      };
       break;
     }
     case "numpyramid": {
