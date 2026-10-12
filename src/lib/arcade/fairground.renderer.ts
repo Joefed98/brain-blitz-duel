@@ -11,7 +11,8 @@
  */
 import type { CanvasSize } from "./engine";
 import { artReady, drawArtSprite } from "./sprites.renderer";
-import { reducedMotion } from "./art.renderer";
+import { artHash, reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 export const FAIR_SKY_TOP = "#0D1838";
 export const FAIR_SKY_MID = "#3B2C63";
@@ -54,9 +55,26 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
   g.addColorStop(1, FAIR_HORIZON);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size.width, horizon);
+  // Stars in the dark upper sky, and a warm glow along the horizon.
+  const s = frame.scale;
+  ctx.save();
+  ctx.fillStyle = FAIR_CREAM;
+  for (let i = 0; i < 40; i++) {
+    const h = artHash(i, 17);
+    const y = ((h >>> 8) % 1000) / 1000 * horizon * 0.5;
+    ctx.globalAlpha = (0.15 + (h % 5) * 0.08) * (1 - y / (horizon * 0.55));
+    const d = (h % 7 === 0 ? 1.6 : 1) * Math.max(0.6, s);
+    ctx.fillRect(((h >>> 18) % 1000) / 1000 * size.width, y, d, d);
+  }
+  ctx.globalAlpha = 1;
+  const glow = ctx.createLinearGradient(0, horizon - 90 * s, 0, horizon);
+  glow.addColorStop(0, "rgba(240,138,60,0)");
+  glow.addColorStop(1, "rgba(255,190,110,0.28)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, horizon - 90 * s, size.width, 90 * s);
+  ctx.restore();
 
   // Silhouettes: a big wheel and a row of tents, faint, on the horizon.
-  const s = frame.scale;
   ctx.save();
   ctx.globalAlpha = 0.18;
   ctx.fillStyle = FAIR_SILHOUETTE;
@@ -96,6 +114,27 @@ function sky(ctx: CanvasRenderingContext2D, size: CanvasSize, horizon: number, f
     ctx.closePath();
     ctx.fill();
     ctx.fillRect(tx - 0.8 * s, horizon - th - 8 * s, 1.6 * s, 8 * s);
+  }
+  ctx.lineWidth = Math.max(1, 1.4 * s);
+  ctx.beginPath();
+  ctx.arc(wx, wy, wr * 0.62, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  // Warm lamps round the wheel rim and over each tent door, softly lit.
+  ctx.save();
+  ctx.fillStyle = FAIR_BULB;
+  for (let i = 0; i < 16; i++) {
+    const a = (i * Math.PI) / 8 + Math.PI / 16;
+    ctx.globalAlpha = 0.16 + (i % 3) * 0.06;
+    ctx.beginPath();
+    ctx.arc(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr, Math.max(0.8, 1.4 * s), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const t of tents) {
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath();
+    ctx.ellipse(size.width * t, horizon - 6 * s, 9 * s, 6 * s, 0, Math.PI, 0);
+    ctx.fill();
   }
   ctx.restore();
 
@@ -146,23 +185,39 @@ function counter(ctx: CanvasRenderingContext2D, size: CanvasSize, top: number, s
   }
   ctx.fillStyle = FAIR_WOOD_LIGHT;
   ctx.fillRect(0, top, size.width, Math.max(2, 3 * scale));
+  ctx.fillStyle = "rgba(255,236,200,0.45)";
+  ctx.fillRect(0, top, size.width, Math.max(0.75, scale));
   ctx.fillStyle = FAIR_WOOD_DARK;
   const plank = 48 * scale;
   if (!art) for (let x = plank; x < size.width; x += plank) ctx.fillRect(Math.round(x), top + 4 * scale, 1, size.height - top);
   ctx.globalAlpha = 0.35;
   ctx.fillRect(0, top + 3 * scale, size.width, Math.max(1, 2 * scale));
   ctx.globalAlpha = 1;
+  // Shadow under the lip, and brass nail heads along it.
+  const shade = ctx.createLinearGradient(0, top + 3 * scale, 0, top + 14 * scale);
+  shade.addColorStop(0, "rgba(30,16,6,0.35)");
+  shade.addColorStop(1, "rgba(30,16,6,0)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, top + 3 * scale, size.width, 11 * scale);
+  for (let x = 12 * scale; x < size.width; x += 40 * scale) {
+    ctx.fillStyle = "#6E4A1E";
+    ctx.beginPath();
+    ctx.arc(x, top + 8 * scale, Math.max(1, 1.8 * scale), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,226,160,0.7)";
+    ctx.beginPath();
+    ctx.arc(x - 0.4 * scale, top + 7.6 * scale, Math.max(0.5, 0.8 * scale), 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-function canopy(ctx: CanvasRenderingContext2D, size: CanvasSize, bottom: number): void {
+function canopyCloth(ctx: CanvasRenderingContext2D, width: number, bottom: number): void {
   const stripe = 18;
   const scallop = Math.min(6, bottom / 2);
   const body = bottom - scallop;
-  for (let x = 0, i = 0; x < size.width; x += stripe, i++) {
+  for (let x = 0, i = 0; x < width; x += stripe, i++) {
     ctx.fillStyle = i % 2 ? FAIR_CREAM : FAIR_RED;
     ctx.fillRect(x, 0, stripe, body);
-    ctx.beginPath();
-    ctx.arc(x + stripe / 2, body, stripe / 2, 0, Math.PI);
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, body, stripe, scallop);
@@ -170,8 +225,29 @@ function canopy(ctx: CanvasRenderingContext2D, size: CanvasSize, bottom: number)
     ctx.beginPath();
     ctx.ellipse(x + stripe / 2, body, stripe / 2, scallop, 0, 0, Math.PI);
     ctx.fill();
+    // Each scallop's lower curve in shadow, so the cloth reads as folded.
+    ctx.strokeStyle = "rgba(60,10,10,0.3)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x + stripe / 2, body, stripe / 2 - 0.5, scallop - 0.5, 0, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
     ctx.restore();
   }
+  // Cloth shading: darker at the top seam, a soft fold line in every stripe.
+  if (body > 0) {
+    const g = ctx.createLinearGradient(0, 0, 0, body);
+    g.addColorStop(0, "rgba(20,8,8,0.32)");
+    g.addColorStop(1, "rgba(20,8,8,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, body);
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    for (let x = 0; x < width; x += stripe) ctx.fillRect(x + stripe - 1, 0, 1, body);
+  }
+}
+
+function canopyBulbs(ctx: CanvasRenderingContext2D, width: number, bottom: number): void {
+  const scallop = Math.min(6, bottom / 2);
+  const body = bottom - scallop;
   // String of warm bulbs along the canopy, twinkling slowly.
   const t = fairClock();
   const y = Math.max(2.5, body - 3.5);
@@ -180,9 +256,9 @@ function canopy(ctx: CanvasRenderingContext2D, size: CanvasSize, bottom: number)
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, y);
-  ctx.lineTo(size.width, y);
+  ctx.lineTo(width, y);
   ctx.stroke();
-  for (let x = 11, i = 0; x < size.width; x += 22, i++) {
+  for (let x = 11, i = 0; x < width; x += 22, i++) {
     const glow = t === 0 ? 1 : 0.6 + 0.4 * Math.sin(t / 900 + i * 1.7);
     ctx.globalAlpha = 0.25 * glow;
     ctx.fillStyle = FAIR_BULB;
@@ -193,8 +269,46 @@ function canopy(ctx: CanvasRenderingContext2D, size: CanvasSize, bottom: number)
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 0.8 * glow;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
+}
+
+const layers = new Map<string, ArtCanvas | null>();
+
+/** Device pixels per CSS px under the current transform. */
+function deviceScale(ctx: CanvasRenderingContext2D): number {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  return t ? Math.max(0.5, Math.min(3, Math.hypot(t.a, t.b))) : 1;
+}
+
+/**
+ * A cached canvas-size layer painted once per key by `paint` (CSS px), or
+ * painted straight onto ctx where no offscreen canvas exists (SSR, Node checks).
+ */
+function fairLayer(ctx: CanvasRenderingContext2D, key: string, w: number, h: number, paint: (c: CanvasRenderingContext2D) => void): void {
+  const k = deviceScale(ctx);
+  const pw = Math.max(1, Math.round(w * k));
+  const ph = Math.max(1, Math.round(h * k));
+  const id = `${key}@${pw}x${ph}`;
+  let layer = layers.get(id);
+  if (layer === undefined) {
+    if (layers.size >= 8) layers.clear();
+    const canvas = artCanvas(pw, ph);
+    const c = canvas ? artContext(canvas) : null;
+    if (canvas && c) {
+      c.scale(pw / w, ph / h);
+      paint(c as CanvasRenderingContext2D);
+    }
+    layer = canvas && c ? canvas : null;
+    layers.set(id, layer);
+  }
+  if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, w, h);
+  else paint(ctx);
 }
 
 /**
@@ -214,14 +328,22 @@ export function fairScreen(
   const frame = fairTransform(size, worldW, worldH);
   const counterTop = frame.offsetY + counterWorldY * frame.scale;
   ctx.save();
-  sky(ctx, size, counterTop, frame, tents);
-  counter(ctx, size, counterTop, frame.scale);
+  // Sky, silhouettes, bunting and counter are static: one cached layer per size (and counter art state).
+  const art = artReady("fairground", "counter") ? 1 : 0;
+  fairLayer(ctx, `stall|${counterTop.toFixed(2)}|${frame.scale.toFixed(4)}|${frame.offsetY.toFixed(2)}|${tents.join(",")}|${art}`, size.width, size.height, (c) => {
+    sky(c, size, counterTop, frame, tents);
+    counter(c, size, counterTop, frame.scale);
+  });
   ctx.save();
   ctx.translate(frame.offsetX, frame.offsetY);
   ctx.scale(frame.scale, frame.scale);
   drawWorld(frame);
   ctx.restore();
-  canopy(ctx, size, Math.max(frame.offsetY, FAIR_CANOPY_WORLD * frame.scale));
+  const canopyBottom = Math.max(frame.offsetY, FAIR_CANOPY_WORLD * frame.scale);
+  if (canopyBottom > 0) {
+    fairLayer(ctx, `canopy|${canopyBottom.toFixed(2)}`, size.width, Math.ceil(canopyBottom), (c) => canopyCloth(c, size.width, canopyBottom));
+    canopyBulbs(ctx, size.width, canopyBottom);
+  }
   ctx.restore();
   return frame;
 }

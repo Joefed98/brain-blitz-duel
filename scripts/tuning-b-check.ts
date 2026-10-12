@@ -275,11 +275,23 @@ section("Arena fill below the arena");
     slice: "#70492F", bintoss: "#B37A41", bullseye: "#BB8044", bubble: "#06172E", flip: "#2A2A32", swing: "#4F0C08",
     snip: "#408B37", tilt: "#AC8353", balltrack: "#7E5C38", matchup: "#0B0B0F",
   };
+  /**
+   * Fills changed on purpose after Tuning B, each with the change that made it. Every other game
+   * must keep its Tuning B fill above.
+   * - cross: Polish F (Oct 2026) moved Jaywalk to the Real World daylight palette; its bottom edge
+   *   is now grass, so the fill is REAL_GRASS_DARK (#6FA851) instead of the night road's #0B0B0F.
+   */
+  const changed: Record<string, { from: string; to: string }> = {
+    cross: { from: "#0B0B0F", to: "#6FA851" },
+  };
   const none = new Set(["hover", "tilt", "flip", "inkbridge", "junction", "skyline"]);
   ok(Object.keys(ARCADE_ARENA_FILL).length === 22, "22 arcade games");
   for (const [game, fill] of Object.entries(ARCADE_ARENA_FILL)) {
     if (none.has(game)) ok(fill === ARENA_NO_FILL, `${game}: no fill (page colour)`);
-    else ok(fill === before[game], `${game}: fill unchanged (${fill})`);
+    else if (changed[game]) {
+      ok(before[game] === changed[game].from, `${game}: deliberate change starts from its Tuning B fill (${before[game]})`);
+      ok(fill === changed[game].to, `${game}: fill is the deliberate ${changed[game].to} (${fill})`);
+    } else ok(fill === before[game], `${game}: fill unchanged (${fill})`);
   }
 }
 

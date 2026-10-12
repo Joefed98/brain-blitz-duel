@@ -60,14 +60,75 @@ export function seaSprite(
   return sprites.get(id)!;
 }
 
-/** Underwater depth gradient with soft light rays from above. */
-export function seaUnderwater(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+const layers = new Map<string, ArtCanvas | null>();
+/**
+ * Cached full-size layer (`w` × `h` CSS px at `dpr`), painted once per key by
+ * `paint(ctx)` in CSS px; painted straight onto ctx where no offscreen canvas
+ * exists (SSR, Node checks).
+ */
+export function seaLayer(
+  ctx: CanvasRenderingContext2D,
+  key: string,
+  w: number,
+  h: number,
+  dpr: number,
+  paint: (c: CanvasRenderingContext2D) => void,
+): void {
+  const pw = Math.max(1, Math.round(w * dpr));
+  const ph = Math.max(1, Math.round(h * dpr));
+  const id = `${key}@${pw}x${ph}`;
+  let layer = layers.get(id);
+  if (layer === undefined) {
+    if (layers.size >= 6) layers.clear();
+    const canvas = artCanvas(pw, ph);
+    const c = canvas ? artContext(canvas) : null;
+    if (canvas && c) {
+      c.scale(pw / w, ph / h);
+      paint(c as CanvasRenderingContext2D);
+    }
+    layer = canvas && c ? canvas : null;
+    layers.set(id, layer);
+  }
+  if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, w, h);
+  else paint(ctx);
+}
+
+/** Static deep water: depth gradient, caustic shimmer near the surface and drifting specks. */
+export function seaWater(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, SEA_SHALLOW);
   g.addColorStop(0.45, SEA_MID);
   g.addColorStop(1, SEA_DEEP);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
+  // Caustic net: soft light ripples fading with depth.
+  ctx.save();
+  ctx.lineCap = "round";
+  for (let i = 0; i < 46; i++) {
+    const x = ((i * 89) % 101) / 101 * w;
+    const y = (((i * 37) % 53) / 53) * h * 0.42;
+    const len = w * (0.05 + ((i * 13) % 7) / 100);
+    ctx.globalAlpha = 0.1 * (1 - y / (h * 0.5));
+    ctx.strokeStyle = "#D8F0FF";
+    ctx.lineWidth = 1 + (i % 3) * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + len * 0.5, y + (i % 2 ? 4 : -4), x + len, y + (i % 3) - 1);
+    ctx.stroke();
+  }
+  // Marine snow: fine still specks through the water.
+  ctx.fillStyle = "#CFE8F5";
+  for (let i = 0; i < 70; i++) {
+    ctx.globalAlpha = 0.08 + (i % 4) * 0.04;
+    const x = ((i * 157) % 199) / 199 * w;
+    const y = ((i * 71) % 211) / 211 * h;
+    ctx.fillRect(x, y, i % 5 === 0 ? 1.6 : 1, i % 5 === 0 ? 1.6 : 1);
+  }
+  ctx.restore();
+}
+
+/** Soft light rays from above, swaying on the presentation clock. */
+export function seaRays(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const t = seaClock();
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -89,45 +150,98 @@ export function seaUnderwater(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.restore();
 }
 
+/** Underwater depth gradient with soft light rays from above (uncached). */
+export function seaUnderwater(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  seaWater(ctx, w, h);
+  seaRays(ctx, w, h);
+}
+
 /** A swaying kelp frond rooted at (x, bottom), `height` tall. */
 export function seaKelp(ctx: CanvasRenderingContext2D, x: number, bottom: number, height: number, width: number, phase: number): void {
   const t = seaClock();
-  ctx.save();
-  ctx.strokeStyle = "#2F6B3A";
-  ctx.lineWidth = Math.max(2, width);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(x, bottom);
-  const segs = 6;
+  const segs = 8;
+  const pts: [number, number][] = [[x, bottom]];
   for (let i = 1; i <= segs; i++) {
     const f = i / segs;
     const sway = Math.sin(t * 0.9 + phase + f * 2.4) * width * 1.6 * f;
-    ctx.lineTo(x + sway, bottom - height * f);
+    pts.push([x + sway, bottom - height * f]);
   }
-  ctx.stroke();
-  ctx.fillStyle = "#3E8A4A";
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // Blades first so the stem sits over their roots: dark blade, lit midrib.
   for (let i = 1; i < segs; i++) {
-    const f = i / segs;
-    const sway = Math.sin(t * 0.9 + phase + f * 2.4) * width * 1.6 * f;
+    const [px, py] = pts[i]!;
+    const side = i % 2 ? 1 : -1;
+    const len = width * (3.2 - (i / segs) * 1.2);
+    const tipX = px + side * len;
+    const tipY = py - len * 0.55;
+    ctx.fillStyle = i % 3 === 0 ? "#2C6A36" : "#3E8A4A";
     ctx.beginPath();
-    ctx.ellipse(x + sway + (i % 2 ? width : -width), bottom - height * f, width * 1.1, width * 0.45, i % 2 ? -0.5 : 0.5, 0, Math.PI * 2);
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + side * len * 0.5, py - len * 0.65, tipX, tipY);
+    ctx.quadraticCurveTo(px + side * len * 0.6, py + len * 0.05, px, py + width * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(170,230,150,0.35)";
+    ctx.lineWidth = Math.max(0.6, width * 0.18);
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + side * len * 0.5, py - len * 0.45, tipX, tipY);
+    ctx.stroke();
+  }
+  const stem = () => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0]![0], pts[0]![1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i]![0], pts[i]![1]);
+  };
+  stem();
+  ctx.strokeStyle = "#1F4D29";
+  ctx.lineWidth = Math.max(2, width * 1.2);
+  ctx.stroke();
+  stem();
+  ctx.strokeStyle = "#3F7F45";
+  ctx.lineWidth = Math.max(1, width * 0.5);
+  ctx.stroke();
+  // Gas floats along the stem.
+  ctx.fillStyle = "#5FA05A";
+  for (let i = 2; i < segs; i += 2) {
+    const [px, py] = pts[i]!;
+    ctx.beginPath();
+    ctx.arc(px, py, Math.max(1.2, width * 0.55), 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 }
 
-/** A small coral fan rooted at (x, bottom). */
+/** A small branching coral rooted at (x, bottom): thick base, forked arms, lit tips. */
 export function seaCoral(ctx: CanvasRenderingContext2D, x: number, bottom: number, s: number, colour: string): void {
   ctx.save();
-  ctx.strokeStyle = colour;
   ctx.lineCap = "round";
-  ctx.lineWidth = Math.max(1.5, s * 0.14);
-  ctx.beginPath();
-  for (const [dx, dy] of [[-0.6, -0.8], [0, -1], [0.55, -0.75], [-0.25, -0.5], [0.3, -0.45]] as const) {
-    ctx.moveTo(x, bottom);
-    ctx.quadraticCurveTo(x + dx * s * 0.3, bottom - s * 0.4, x + dx * s, bottom + dy * s);
+  const arms = [[-0.6, -0.8], [0, -1], [0.55, -0.75], [-0.25, -0.5], [0.3, -0.45]] as const;
+  const draw = (stroke: string, width: number, dx: number) => {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    for (const [ax, ay] of arms) {
+      const ex = x + ax * s, ey = bottom + ay * s;
+      ctx.moveTo(x + dx, bottom);
+      ctx.quadraticCurveTo(x + ax * s * 0.3 + dx, bottom - s * 0.4, ex + dx, ey);
+      // A short fork near each tip.
+      ctx.moveTo(x + ax * s * 0.75 + dx, bottom + ay * s * 0.75);
+      ctx.lineTo(ex + (ax >= 0 ? 0.18 : -0.18) * s + dx, ey + s * 0.08);
+    }
+    ctx.stroke();
+  };
+  draw("rgba(40,10,20,0.35)", Math.max(2, s * 0.2), 1);
+  draw(colour, Math.max(1.5, s * 0.15), 0);
+  draw("rgba(255,235,225,0.28)", Math.max(0.6, s * 0.05), -s * 0.03);
+  ctx.fillStyle = "rgba(255,240,230,0.7)";
+  for (const [ax, ay] of arms) {
+    ctx.beginPath();
+    ctx.arc(x + ax * s, bottom + ay * s, Math.max(0.8, s * 0.07), 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.stroke();
   ctx.restore();
 }
 
