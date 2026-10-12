@@ -22,7 +22,7 @@ import { junctionBandParts, JUNC_BAND_CURVE, JUNC_REV_BAND } from "./junction";
 import { breakerBandParts, BRK_BAND_CURVE, BRK_REV_BAND } from "./breaker";
 import { tiltBandParts, TILT_BAND_CURVE, TILT_REV_BAND } from "./tilt";
 import { orbitBandParts, ORBIT_BAND_CURVE } from "./orbitRev3";
-import { ORBIT_REV_BAND } from "./orbit";
+import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "./orbit";
 import { beatBandParts, BEAT_BAND_CURVE, BEAT_REV_BAND } from "./beat";
 import { sliceBandParts, SLICE_BAND_CURVE, SLICE_REV_BAND } from "./slice";
 import { burstBandParts, BURST_BAND_CURVE, BURST_REV_BAND } from "./burst";
@@ -89,7 +89,7 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, .
   junction: ["junctionRev", JUNC_REV_BAND],
   breaker: ["brkRev", BRK_REV_BAND],
   tilt: ["tiltRev", TILT_REV_BAND],
-  orbit: ["orbitRev", ORBIT_REV_BAND],
+  orbit: ["orbitRev", ORBIT_REV_BAND, ORBIT_REV_TUNED],
   beat: ["beatRev", BEAT_REV_BAND],
   slice: ["sliceRev", SLICE_REV_BAND],
   burst: ["burstRev", BURST_REV_BAND],

@@ -40,8 +40,8 @@ import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND } from "../../src/
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND } from "../../src/lib/arcade/orbit";
-import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initBandFrom, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
+import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initBandFrom, initRev4From, initTunedFrom, orbitRev3Game, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
@@ -132,10 +132,11 @@ export const GAMES: GameSpec[] = [
     type: "orbit",
     live: ORBIT_REV4,
     next: ORBIT_REV_BAND,
+    tuned: ORBIT_REV_TUNED,
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
     gameFor: (rev, seed) => {
-      const start = rev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
+      const start = rev === ORBIT_REV_TUNED ? initTunedFrom : rev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,

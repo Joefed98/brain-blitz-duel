@@ -42,6 +42,8 @@ export const ORBIT_REV3 = 3;
 export const ORBIT_REV4 = 4;
 /** Rev 5 (Oct 2026 score bands): rev-4 play (planets and any holes from the puzzle), scored on the shared band curve; see orbitRev3.ts. */
 export const ORBIT_REV_BAND = 5;
+/** Rev 6 (Tuning A): rev-5 courses and bands; a 1 s fly-in after a black hole and an earlier end to a missed hop (orbitRev3.ts). */
+export const ORBIT_REV_TUNED = 6;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
@@ -519,7 +521,9 @@ function isOver(state: OrbitState): boolean {
 }
 
 export function orbitCanSetCheckpoint(state: OrbitState): boolean {
-  return state.ended === 0 && state.flying === 0 && state.checkpoint < 0 && state.respawns > 0;
+  // orbitRev 6: not while flying in from a black hole (rev-3 states only; older states have no warp).
+  const warp = (state as { warp?: number }).warp ?? 0;
+  return state.ended === 0 && state.flying === 0 && warp === 0 && state.checkpoint < 0 && state.respawns > 0;
 }
 
 function step(state: OrbitState, input: ArcadeInputEvent | null): OrbitState {
@@ -687,8 +691,10 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   let checksum = 0x811c9dc5;
   const values = Object.values(snap);
   // Rev 4 folds its black-hole counters in; older states never have them, so their sums are unchanged.
-  const holes = state as { jumps?: number; skipped?: number };
+  const holes = state as { jumps?: number; skipped?: number; tuned?: number; warp?: number };
   if (holes.jumps !== undefined) values.push(holes.jumps, holes.skipped ?? 0);
+  // orbitRev 6 folds in its fly-in after those.
+  if (holes.tuned) values.push(holes.tuned, holes.warp ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

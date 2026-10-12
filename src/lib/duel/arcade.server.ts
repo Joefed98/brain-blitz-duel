@@ -14,7 +14,7 @@ import { SWING_REV_BAND } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { BRK_REV_BAND } from "@/lib/arcade/breaker";
 import { WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { RALLY_REV_BAND } from "@/lib/arcade/rally";
 import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -196,11 +196,11 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
-  // Rev 5 (Oct 2026 score bands): the rev-4 rules with the course's proved black holes
-  // (scripts/orbit-hole-bank.ts), or none when the course has no proved holes.
+  // Rev 6 (Tuning A): the rev-5 band rules with the course's proved black holes
+  // (scripts/orbit-hole-bank.ts), or none, plus the 1 s fly-in after a hole and a quicker end to a miss.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  return { type: "orbit", seed, orbitRev: ORBIT_REV_BAND, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV_TUNED, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 
 export function generateSnip(): SnipPuzzleData {
