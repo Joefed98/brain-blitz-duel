@@ -139,9 +139,13 @@ const BUILDERS: Record<string, Builder> = {
   },
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
-    lines: [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
+    lines:
+      n(r, "rallyRev") === 2
+        ? [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold · ${n(r, "targetHits")} targets → ${s}`]
+        : [`${n(r, "hits")} hits · ${n(r, "goldHits")} gold → ${s}`],
     tiles: [
       { label: "Gold hits", value: String(n(r, "goldHits")) },
+      ...(n(r, "rallyRev") === 2 ? [{ label: "Targets", value: String(n(r, "targetHits")) }] : []),
       { label: "All hits", value: String(n(r, "hits")) },
       { label: "Paddle", value: `${n(r, "paddleWidth")} px` },
     ],
@@ -187,6 +191,7 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Perfects", value: String(n(r, "perfect")) },
       { label: "Best combo", value: String(n(r, "maxCombo")) },
       { label: "Holds", value: `${n(r, "holdsDone")} / ${n(r, "holds")}` },
+      ...(n(r, "swipes") > 0 ? [{ label: "Swipes", value: `${n(r, "swipesHit")} / ${n(r, "swipes")}` }] : []),
     ],
     outcome: "time",
   }),
@@ -255,14 +260,25 @@ const BUILDERS: Record<string, Builder> = {
     const rev = n(r, "rev");
     const current = levels < total ? levels + 1 : total;
     let phase = "";
-    if (rev === 3 && levels < total) {
-      phase = current <= 4 ? " (Standard)" : current <= 8 ? " (Moving Pot)" : " (Live)";
+    // Which kind of level the run stopped on, in plain words.
+    if (rev >= 3 && levels < total) {
+      phase = current <= 4 ? `, stopped on level ${current}: still pot` : current <= 8 ? `, stopped on level ${current}: moving pot` : `, stopped on level ${current}: live drawing`;
     }
+    const starLevels = n(r, "starLevels");
+    const bonus = 2 * n(r, "stars");
     return {
       axis: { value: levels, max: 10, label: "Levels" },
-      lines: [head(`${levels} / ${total} levels${phase}`, s, done)],
+      lines:
+        starLevels > 0
+          ? [
+              done && s >= 130 ? `10 / 10 levels → 130 · time +${Math.max(0, s - 130 - bonus)}` : `${levels} / ${total} levels${phase} → ${11 * levels}`,
+              `${n(r, "stars")} / ${starLevels} gold stars → +${bonus}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${levels} / ${total} levels${phase}`, s, done)],
       tiles: [
         { label: "Levels", value: String(levels) },
+        ...(starLevels > 0 ? [{ label: "Gold stars", value: `${n(r, "stars")} / ${starLevels}` }] : []),
         { label: "Fails", value: String(n(r, "fails")) },
       ],
       outcome: done ? "finish" : "time",

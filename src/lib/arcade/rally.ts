@@ -12,6 +12,7 @@
 import {
   clampInt,
   inputRange,
+  isqrt,
   px,
   rngBelow,
   setLength,
@@ -67,6 +68,35 @@ export const RALLY_INPUT_RANGES: readonly InputRange[] = [
   inputRange(ARCADE_INPUT_DRAG, [0, RALLY_WORLD_W]),
 ];
 
+/* ------------------- Rev 2: wall targets and a bumper -------------------- */
+
+/**
+ * Targets-and-bumper revision (stored as puzzle.rallyRev = 2). The opening and
+ * the gold-ball schedule are drawn exactly as before; the new draws continue
+ * the PRNG stream after them, before play starts.
+ */
+export const RALLY_REV = 2;
+/** Two target pads live on the far wall at a time, 44 px wide. */
+export const RALLY_TARGETS_LIVE = 2;
+export const RALLY_TARGET_W = 44;
+/** A struck pad moves to the next spot on its seeded list (enough for any run). */
+export const RALLY_TARGET_SPOTS = 48;
+/** Points for a gold ball striking a target pad. */
+export const RALLY_TARGET_POINTS = 3;
+/** The bumper: a round post, radius 14 px, from 30 s; balls bounce off it like a mirror. */
+export const RALLY_BUMPER_R = 14;
+export const RALLY_BUMPER_FROM = 30 * TICKS_PER_SECOND;
+/** Bumper centre band, whole px: clear of the walls, the HUD and the paddle. */
+export const RALLY_BUMPER_X_MIN = 90;
+export const RALLY_BUMPER_X_SPAN = 211;
+export const RALLY_BUMPER_Y_MIN = 220;
+export const RALLY_BUMPER_Y_SPAN = 141;
+
+/** Left edge (px) of the target pad at a spot index. */
+export function rallyTargetLeft(spots: readonly number[], index: number): number {
+  return spots[index % spots.length] ?? RALLY_WALL;
+}
+
 export function rallyPaddleW(hits: number): number {
   return Math.max(RALLY_PADDLE_MIN_W, RALLY_PADDLE_START_W - RALLY_PADDLE_SHRINK * hits);
 }
@@ -105,6 +135,16 @@ export interface RallyState {
   golds: RallyBall[];
   dead: boolean;
   endedTick: number;
+  /** Rev 2 only: the stamp, the seeded pad spots, the spot each live pad is on, targets struck and the bumper. */
+  rev?: number;
+  spots?: number[];
+  live?: number[];
+  targetHits?: number;
+  bumper?: { x: number; y: number };
+  bounces?: number;
+  /** Rev 2 only, render only: the tick and spot of the last target strike. */
+  struckTick?: number;
+  struckLeft?: number;
 }
 
 /** Total returns, which is what shrinks the paddle. */
@@ -191,6 +231,15 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 
   const next: RallyState = { ...state, tick, aimX, paddleX };
   let { speed, hits, goldHits, rng } = next;
+  // Rev 2 only: live pads, strikes and the bumper (absent, so untouched, on older rounds).
+  const rev2 = state.rev === RALLY_REV;
+  const spots = state.spots ?? [];
+  const live = rev2 ? [...(state.live ?? [])] : null;
+  let targetHits = state.targetHits ?? 0;
+  let bounces = state.bounces ?? 0;
+  let struckTick = state.struckTick ?? 0;
+  let struckLeft = state.struckLeft ?? 0;
+  const bumper = rev2 && tick >= RALLY_BUMPER_FROM ? (state.bumper ?? null) : null;
   const top = (RALLY_HUD_H + RALLY_WALL) * 256;
   const leftWall = RALLY_WALL * 256;
   const rightWall = (RALLY_WORLD_W - RALLY_WALL) * 256;
@@ -222,10 +271,48 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
       y += sy;
       if (y - RALLY_BALL_R_FP < top) {
         y = top + RALLY_BALL_R_FP;
+        // Rev 2: a gold ball striking a live pad on the far wall scores it; the pad moves on.
+        if (gold && live) {
+          const bx = px(x);
+          for (let k = 0; k < live.length; k++) {
+            const left = rallyTargetLeft(spots, live[k]!);
+            if (bx + RALLY_BALL_R >= left && bx - RALLY_BALL_R <= left + RALLY_TARGET_W) {
+              targetHits += 1;
+              struckTick = tick;
+              struckLeft = left;
+              live[k] = Math.max(...live) + 1;
+              break;
+            }
+          }
+        }
         const turned = nudge(rng, speed, vx, -vy);
         rng = turned.rng;
         vx = turned.vx;
         vy = turned.vy;
+      }
+
+      // Rev 2: the bumper reflects the ball like a mirror about the contact normal, speed kept.
+      if (bumper) {
+        const dx = x - bumper.x * 256;
+        const dy = y - bumper.y * 256;
+        const reach = (RALLY_BUMPER_R + RALLY_BALL_R) * 256;
+        if (Math.abs(dx) < reach && Math.abs(dy) < reach) {
+          const d = isqrt(dx * dx + dy * dy);
+          if (d < reach) {
+            const nx = d > 0 ? Math.trunc((dx * 1024) / d) : 0;
+            const ny = d > 0 ? Math.trunc((dy * 1024) / d) : -1024;
+            x = bumper.x * 256 + Math.trunc((nx * reach) / 1024);
+            y = bumper.y * 256 + Math.trunc((ny * reach) / 1024);
+            const vn = Math.trunc((vx * nx + vy * ny) / 1024);
+            if (vn < 0) {
+              let out = setLength(vx - Math.trunc((2 * vn * nx) / 1024), vy - Math.trunc((2 * vn * ny) / 1024), speed);
+              if (Math.abs(out.vy) < RALLY_MIN_VY) out = setLength(out.vx, out.vy < 0 ? -RALLY_MIN_VY : RALLY_MIN_VY, speed);
+              vx = out.vx;
+              vy = out.vy;
+              bounces += 1;
+            }
+          }
+        }
       }
 
       if (vy > 0 && y + RALLY_BALL_R_FP >= RALLY_PADDLE_Y_FP && y < RALLY_PADDLE_Y_FP + 4 * 256) {
@@ -274,13 +361,26 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
   next.hits = hits;
   next.goldHits = goldHits;
   next.rng = rng;
+  if (rev2) {
+    next.live = live!;
+    next.targetHits = targetHits;
+    next.bounces = bounces;
+    next.struckTick = struckTick;
+    next.struckLeft = struckLeft;
+  }
   if (next.dead || tick >= RALLY_RUN_TICKS) next.endedTick = tick;
   return next;
 }
 
 function score(state: RallyState): number {
   // Only gold-ball hits score; the blue ball scores nothing but losing it ends the run.
+  if (state.rev === RALLY_REV) return rallyRev2Score(state.goldHits, state.targetHits ?? 0);
   return clampInt(Math.floor(RALLY_GOLD_POINTS * state.goldHits), 0, 150);
+}
+
+/** Rev 2: floor(2.5 × gold-ball hits) + 3 per far-wall target the gold ball strikes, up to 150. */
+export function rallyRev2Score(goldHits: number, targetHits: number): number {
+  return clampInt(Math.floor(RALLY_GOLD_POINTS * goldHits) + RALLY_TARGET_POINTS * targetHits, 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -324,7 +424,10 @@ export function rallyCheckpointState(state: RallyState): RallyCheckpointState {
 export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   const snapshot = rallyCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // Rev 2 folds its own counters in; older states never have them, so their sums are unchanged.
+  if (state.rev === RALLY_REV) values.push(state.targetHits ?? 0, state.bounces ?? 0, ...(state.live ?? []));
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -402,3 +505,41 @@ export const rallyGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: RALLY_INPUT_RANGES,
 };
+
+function initRev2(seed: number): RallyState {
+  const base = init(seed);
+  let rng = base.rng;
+  // Even spots in the left half, odd in the right: the two live pads are always
+  // consecutive spots, so they never overlap.
+  const spots: number[] = [];
+  const half = Math.trunc(RALLY_WORLD_W / 2);
+  const span = half - RALLY_WALL - RALLY_TARGET_W - 4;
+  for (let i = 0; i < RALLY_TARGET_SPOTS; i++) {
+    const draw = rngBelow(rng, span + 1);
+    rng = draw.state;
+    spots.push(i % 2 === 0 ? RALLY_WALL + draw.value : half + 4 + draw.value);
+  }
+  const bx = rngBelow(rng, RALLY_BUMPER_X_SPAN);
+  const by = rngBelow(bx.state, RALLY_BUMPER_Y_SPAN);
+  rng = by.state;
+  return {
+    ...base,
+    rng,
+    rev: RALLY_REV,
+    spots,
+    live: Array.from({ length: RALLY_TARGETS_LIVE }, (_, i) => i),
+    targetHits: 0,
+    bounces: 0,
+    bumper: { x: RALLY_BUMPER_X_MIN + bx.value, y: RALLY_BUMPER_Y_MIN + by.value },
+    struckTick: 0,
+    struckLeft: 0,
+  };
+}
+
+/** Targets-and-bumper revision. */
+export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, init: initRev2 };
+
+/** Takes puzzle.rallyRev; anything else is the original game. */
+export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  return rev === RALLY_REV ? rallyRev2Game : rallyGame;
+}

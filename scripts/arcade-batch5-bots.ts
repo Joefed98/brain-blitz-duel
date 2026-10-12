@@ -36,6 +36,16 @@ import {
   type BullseyeState,
 } from "../src/lib/arcade/bullseye";
 
+import { ARCADE_INPUT_DRAG } from "../src/lib/arcade/engine";
+import { rallyPaddleW, rallyTotalHits, RALLY_BALL_R, RALLY_PADDLE_Y, RALLY_WALL, RALLY_WORLD_W, type RallyState } from "../src/lib/arcade/rally";
+import { BEAT_INPUT_RELEASE, BEAT_INPUT_SWIPE, BEAT_INPUT_TAP, type BeatState } from "../src/lib/arcade/beat";
+import {
+  INK_INPUT_DROP_AGAIN,
+  INK_INPUT_LIFT,
+  INK_INPUT_RELEASE,
+  INK_INPUT_STROKE,
+  type InkState,
+} from "../src/lib/arcade/inkBridge";
 export interface BotRun<S> {
   events: ArcadeInputEvent[];
   state: S;
@@ -199,4 +209,141 @@ export function playFlightpath(
     }
     return null; // try again next tick (the sway moves on)
   }, checkpoint, opts.init);
+}
+
+/* ================================== Rally ================================== */
+
+
+/** Where a falling ball meets the paddle line (walls folded in), and how many ticks away. */
+function rallyLanding(b: { x: number; y: number; vx: number; vy: number }): { x: number; t: number } | null {
+  if (b.vy <= 0) return null;
+  const t = ((RALLY_PADDLE_Y - RALLY_BALL_R) * 256 - b.y) / b.vy;
+  if (t < 0) return null;
+  const lo = (RALLY_WALL + RALLY_BALL_R) * 256;
+  const w = (RALLY_WORLD_W - RALLY_WALL - RALLY_BALL_R) * 256 - lo;
+  let x = b.x + b.vx * t - lo;
+  x = ((x % (2 * w)) + 2 * w) % (2 * w);
+  if (x > w) x = 2 * w - x;
+  return { x: (x + lo) / 256, t };
+}
+
+/**
+ * A tracking paddle: meets whichever ball lands first (the blue one when both
+ * are close), hitting gold balls a little off-centre (`steer`, in paddle
+ * half-widths) to send them back at an angle.
+ */
+export function playRally(
+  game: ArcadeGame<RallyState, ArcadeInputEvent | null>,
+  seed: number,
+  checkpoint: (s: RallyState) => unknown,
+  steer = 0,
+): BotRun<RallyState> {
+  return runWith(game, seed, (s, t) => {
+    const cands: { x: number; t: number; blue: boolean }[] = [];
+    const main = rallyLanding(s);
+    if (main) cands.push({ ...main, blue: true });
+    for (const g of s.golds) {
+      const l = rallyLanding(g);
+      if (l) cands.push({ ...l, blue: false });
+    }
+    cands.sort((a, b) => a.t - b.t);
+    let aim = cands[0];
+    const blue = cands.find((c) => c.blue);
+    if (aim && !aim.blue && blue && blue.t - aim.t < 25) aim = blue;
+    if (!aim) return null;
+    const half = rallyPaddleW(rallyTotalHits(s)) / 2;
+    const off = aim.blue ? 0 : steer * half * (aim.x < RALLY_WORLD_W / 2 ? -1 : 1);
+    return { t, k: ARCADE_INPUT_DRAG, a: Math.round(aim.x + off), b: 0, c: 0, d: 0 };
+  }, checkpoint);
+}
+
+/* ================================== Tempo ================================== */
+
+
+/**
+ * A perfect player: taps each note on its tick, releases each hold on its
+ * tail tick, swipes each swipe note the right way on its tick. One input per
+ * tick, so a clash moves the later input on by a tick (still Perfect).
+ * `wrongSwipes` swipes the wrong way instead, `tapSwipes` taps swipe notes.
+ */
+export function playTempo(
+  game: ArcadeGame<BeatState, ArcadeInputEvent | null>,
+  seed: number,
+  checkpoint: (s: BeatState) => unknown,
+  opts: { wrongSwipes?: boolean; tapSwipes?: boolean } = {},
+): BotRun<BeatState> {
+  const chart = game.init(seed).chart;
+  const plan = new Map<number, ArcadeInputEvent>();
+  const put = (t: number, k: number, a: number, b = 0) => {
+    let at = t;
+    while (plan.has(at)) at++;
+    plan.set(at, { t: at, k, a, b, c: 0, d: 0 });
+  };
+  const wants: { t: number; k: number; a: number; b: number }[] = [];
+  chart.ticks.forEach((t, i) => {
+    const lane = chart.lanes[i]!;
+    const swipe = chart.swipes?.[i] ?? 0;
+    if (swipe && !opts.tapSwipes) {
+      const right = swipe > 0 ? 1 : 0;
+      wants.push({ t, k: BEAT_INPUT_SWIPE, a: lane, b: opts.wrongSwipes ? 1 - right : right });
+    } else wants.push({ t, k: BEAT_INPUT_TAP, a: lane, b: 0 });
+    if ((chart.holds[i] ?? 0) > 0) wants.push({ t: t + chart.holds[i]!, k: BEAT_INPUT_RELEASE, a: lane, b: 0 });
+  });
+  wants.sort((x, y) => x.t - y.t || x.k - y.k);
+  for (const w of wants) put(w.t, w.k, w.a, w.b);
+  return runWith(game, seed, (_s, t) => plan.get(t) ?? null, checkpoint);
+}
+
+/* ============================== Rainbow Bridge ============================== */
+
+
+/**
+ * Draws each level's proved line — the gold-star line when `stars` and the level
+ * has one, else the reference — releases on its proved tick (a moving pot waits
+ * for its phase), and draws the live strokes on live levels. `failFrom` drops
+ * the coin away (DROP AGAIN) from that level on.
+ */
+export function playInk(
+  game: ArcadeGame<InkState, ArcadeInputEvent | null>,
+  seed: number,
+  checkpoint: (s: InkState) => unknown,
+  opts: { stars: boolean; failFrom?: number },
+): BotRun<InkState> {
+  type Step = { ev: Omit<ArcadeInputEvent, "t">; after?: number; release?: { t0: number; period: number } };
+  let queue: Step[] = [];
+  let planned = -1;
+  return runWith(game, seed, (s) => {
+    const failing = opts.failFrom !== undefined && s.level >= opts.failFrom;
+    if (s.dropping) {
+      if (failing) return { t: 0, k: INK_INPUT_DROP_AGAIN, a: 1, b: 0, c: 0, d: 0 };
+      const next = queue[0];
+      if (!next || s.dropTicks < (next.after ?? 0)) return null;
+      queue.shift();
+      return { t: 0, ...next.ev };
+    }
+    const key = s.level * 10 + s.fails;
+    if (planned !== key) {
+      planned = key;
+      const lvl = s.list[s.level]!;
+      const useStar = opts.stars && lvl.star && lvl.starRef;
+      const lines = useStar ? lvl.starRef! : lvl.ref;
+      const t0 = useStar ? (lvl.starT0 ?? 0) : lvl.refT0;
+      queue = [];
+      for (const pts of lines) {
+        queue.push({ ev: { k: INK_INPUT_STROKE, a: pts[0]!, b: pts[1]!, c: 1, d: 0 } });
+        for (let i = 2; i < pts.length; i += 2) queue.push({ ev: { k: INK_INPUT_STROKE, a: pts[i]!, b: pts[i + 1]!, c: 0, d: 0 } });
+      }
+      queue.push({ ev: { k: INK_INPUT_RELEASE, a: 1, b: 0, c: 0, d: 0 }, release: { t0, period: lvl.slideAmp ? lvl.slidePeriod : 0 } });
+      for (const live of lvl.liveRef ?? []) {
+        queue.push({ after: live.tick, ev: { k: INK_INPUT_STROKE, a: live.pts[0]!, b: live.pts[1]!, c: 1, d: 0 } });
+        for (let i = 2; i < live.pts.length; i += 2) queue.push({ after: live.tick, ev: { k: INK_INPUT_STROKE, a: live.pts[i]!, b: live.pts[i + 1]!, c: 0, d: 0 } });
+        queue.push({ after: live.tick, ev: { k: INK_INPUT_LIFT, a: 1, b: 0, c: 0, d: 0 } });
+      }
+    }
+    const next = queue[0];
+    if (!next) return null;
+    if (next.release && next.release.period > 0 && (s.tick + 1 - (next.release.t0 + 1)) % next.release.period !== 0) return null;
+    queue.shift();
+    return { t: 0, ...next.ev };
+  }, checkpoint);
 }

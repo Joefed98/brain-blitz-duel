@@ -15,7 +15,27 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { legacyDigest } from "./arcade-batch5-legacy";
-import { playFlightpath, playSwish } from "./arcade-batch5-bots";
+import { playFlightpath, playInk, playRally, playSwish, playTempo } from "./arcade-batch5-bots";
+import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
+import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
+import { buildArcadeReveal } from "../src/lib/arcade/reveal";
+import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
+import { encodeBeatRun, replayBeatRun } from "../src/lib/duel/beat";
+import {
+  rallyCheckpoint,
+  rallyGame,
+  rallyGameFor,
+  rallyTargetLeft,
+  RALLY_BALL_R,
+  RALLY_BUMPER_FROM,
+  RALLY_BUMPER_R,
+  RALLY_PADDLE_Y,
+  RALLY_REV,
+  RALLY_TARGET_W,
+  RALLY_WALL,
+  RALLY_WORLD_W,
+} from "../src/lib/arcade/rally";
+import { encodeRallyRun, replayRallyRun } from "../src/lib/duel/rally";
 import {
   bullseyeCheckpoint,
   bullseyeGame,
@@ -53,7 +73,7 @@ import {
   BINTOSS_RIM_Y,
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
-import { generateBinToss, generateBullseye } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateRally } from "../src/lib/duel/arcade.server";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -196,6 +216,118 @@ if (want("bullseye")) {
   ok(Math.abs(after - before) / N <= 10, "rev 2 stays within 10 points of the original for the same thrower");
 }
 
+/* ================================ 2c. Rally ================================ */
+if (want("rally")) {
+  section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
+  const game = rallyGameFor(RALLY_REV);
+  ok(generateRally().rallyRev === RALLY_REV, "new rounds are stamped rallyRev 2");
+  ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
+  for (const seed of SEEDS(200, 7919)) {
+    const a = game.init(seed);
+    const legacy = rallyGame.init(seed);
+    ok(JSON.stringify(a) === JSON.stringify(game.init(seed)), `seed ${seed}: pads and bumper are seeded`);
+    ok(JSON.stringify(a.entries) === JSON.stringify(legacy.entries) && a.vx === legacy.vx && a.vy === legacy.vy, `seed ${seed}: opening and gold schedule drawn exactly as before`);
+    for (let k = 0; k + 1 < a.spots!.length; k++) {
+      const l0 = rallyTargetLeft(a.spots!, k), l1 = rallyTargetLeft(a.spots!, k + 1);
+      ok(Math.abs(l0 - l1) >= RALLY_TARGET_W && l0 >= RALLY_WALL && Math.max(l0, l1) + RALLY_TARGET_W <= RALLY_WORLD_W - RALLY_WALL, `seed ${seed}: live pads ${k}/${k + 1} sit on the wall and never overlap`);
+    }
+    const b = a.bumper!;
+    ok(b.y + RALLY_BUMPER_R + 2 * RALLY_BALL_R + 60 < RALLY_PADDLE_Y && b.x - RALLY_BUMPER_R > RALLY_WALL + 2 * RALLY_BALL_R && b.x + RALLY_BUMPER_R < RALLY_WORLD_W - RALLY_WALL - 2 * RALLY_BALL_R, `seed ${seed}: the bumper leaves room to the walls and above the paddle`);
+  }
+  // The bumper is not there before 30 s: a tracking run's bounces all come after it appears.
+  {
+    const run = playRally(game, 77, rallyCheckpoint);
+    const events = new Map(run.events.map((e) => [e.t, e]));
+    let s = game.init(77);
+    while (!game.isOver(s) && s.tick < RALLY_BUMPER_FROM - 1) s = game.step(s, events.get(s.tick + 1) ?? null);
+    ok(s.tick === RALLY_BUMPER_FROM - 1 && (s.bounces ?? 0) === 0, "no bumper bounce before 30 s");
+  }
+  const runs = Number(process.env.BATCH5_RALLY_RUNS ?? 16);
+  let reached = 0, targets = 0, bounces = 0;
+  for (const seed of SEEDS(runs, 15_485_863)) {
+    const run = playRally(game, seed, rallyCheckpoint);
+    const score = game.score(run.state);
+    const replay = replayRallyRun(seed, encodeRallyRun({ seed, claimedScore: score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints as never }), RALLY_REV);
+    ok(!replay.flagged && replay.score === score, `seed ${seed}: server replay agrees (${replay.score})`);
+    if (replay.score === 150) reached++;
+    targets += replay.targetHits;
+    bounces += replay.bounces;
+  }
+  console.log(`  ${runs} tracking-bot runs: ${reached} reach 150; ${targets} targets struck, ${bounces} bumper bounces`);
+  ok(reached > 0, "150 is reachable on rev 2 through the server replay");
+  ok(targets > 0 && bounces > 0, "targets and the bumper come into play");
+  ok(/up to 150/.test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("2.5"), "Rally intro states 2.5 a gold hit and the 150 cap");
+}
+
+/* ================================ 2d. Tempo ================================ */
+if (want("beat")) {
+  section("Tempo beatRev 2 (swipe notes in the second half)");
+  const game = beatGameFor(BEAT_REV);
+  ok(generateBeat().beatRev === BEAT_REV, "new rounds are stamped beatRev 2");
+  ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
+  let swipeTotal = 0;
+  for (const seed of SEEDS(200, 7919)) {
+    const a = game.init(seed);
+    const legacy = beatGame.init(seed);
+    const { ticks, lanes, holds, swipes } = a.chart;
+    ok(JSON.stringify({ ticks, lanes, holds }) === JSON.stringify(legacy.chart), `seed ${seed}: the notes are exactly the original chart`);
+    ok(JSON.stringify(a) === JSON.stringify(game.init(seed)), `seed ${seed}: swipe notes are seeded`);
+    swipes!.forEach((d, i) => {
+      if (!d) return;
+      ok(ticks[i]! >= BEAT_SWIPE_FROM && holds[i] === 0 && ticks[i - 1] !== ticks[i] && ticks[i + 1] !== ticks[i], `seed ${seed}: swipe note ${i} is a single tap note in the second half`);
+    });
+    swipeTotal += beatSwipeCount(a);
+  }
+  console.log(`  ${(swipeTotal / 200).toFixed(1)} swipe notes per chart on average`);
+  const runs = Number(process.env.BATCH5_TEMPO_RUNS ?? 8);
+  for (const seed of SEEDS(runs, 15_485_863)) {
+    const replayOf = (run: ReturnType<typeof playTempo>) =>
+      replayBeatRun(seed, encodeBeatRun({ seed, claimedScore: game.score(run.state), events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints as never }), BEAT_REV);
+    const perfect = replayOf(playTempo(game, seed, beatCheckpoint));
+    ok(!perfect.flagged && perfect.score === 150 && perfect.misses === 0 && perfect.swipesHit === perfect.swipes, `seed ${seed}: every note perfect (swipes included) scores 150 through the server replay`);
+    const wrong = replayOf(playTempo(game, seed, beatCheckpoint, { wrongSwipes: true }));
+    ok(!wrong.flagged && wrong.misses === wrong.swipes && wrong.swipesHit === 0, `seed ${seed}: a swipe the wrong way is a miss`);
+    const tapped = replayOf(playTempo(game, seed, beatCheckpoint, { tapSwipes: true }));
+    ok(!tapped.flagged && tapped.misses === tapped.swipes && tapped.swipesHit === 0, `seed ${seed}: a tap does not hit a swipe note`);
+  }
+  console.log(`  ${runs} perfect runs score 150; wrong-way swipes and taps on swipe notes are misses`);
+}
+
+/* ============================ 2e. Rainbow Bridge ============================ */
+if (want("inkbridge")) {
+  section("Rainbow Bridge inkRev 4 (optional gold stars)");
+  const game = inkBridgeGameFor(INK_REV4);
+  ok(generateInkBridge().inkRev === INK_REV4, "new rounds are stamped inkRev 4");
+  ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
+  const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
+  for (const seed of seeds) {
+    const a = game.init(seed);
+    const b = inkBridgeGameFor(INK_REV3).init(seed);
+    const strip = (list: typeof a.list) => list.map(({ star: _s, starRef: _r, starT0: _t, ...rest }) => rest);
+    ok(JSON.stringify(strip(a.list)) === JSON.stringify(b.list) && a.rng === b.rng, `seed ${seed}: the ten levels are exactly inkRev 3's`);
+    const starred = a.list.map((l, i) => (l.star ? i : -1)).filter((i) => i >= 0);
+    ok(starred.length === INK_STAR_LEVELS && starred.every((i) => i < 8), `seed ${seed}: four gold stars, all on levels 1-8 (${starred.map((i) => i + 1).join(",")})`);
+    const proof = inkStarCheck(seed);
+    ok(proof.proved === proof.stars, `seed ${seed}: every star's own line pots the coin through it within the level's ink`);
+    ok(proof.offRoute === proof.stars, "every star sits off the easy reference route");
+  }
+  const runs = Number(process.env.BATCH5_INK_RUNS ?? 4);
+  for (const seed of SEEDS(runs, 15_485_863)) {
+    const replayOf = (run: ReturnType<typeof playInk>) =>
+      replayInkBridgeRun(seed, encodeInkBridgeRun({ seed, claimedScore: game.score(run.state), events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints as never }), INK_REV4);
+    const plain = replayOf(playInk(game, seed, inkCheckpoint, { stars: false }));
+    ok(!plain.flagged && plain.levels === INK_LEVELS && plain.stars === 0, `seed ${seed}: all ten levels without a single star (stars are never needed)`);
+    const full = replayOf(playInk(game, seed, inkCheckpoint, { stars: true }));
+    ok(!full.flagged && full.levels === INK_LEVELS && full.stars === INK_STAR_LEVELS && full.score === 150, `seed ${seed}: all levels and stars score 150 through the server replay (${full.score})`);
+    const partial = replayOf(playInk(game, seed, inkCheckpoint, { stars: true, failFrom: 9 }));
+    ok(!partial.flagged && partial.levels === 9 && partial.score === INK_V4_PARTIAL_MAX, `seed ${seed}: nine levels and every star = the intro's ${INK_V4_PARTIAL_MAX}`);
+    const reveal = buildArcadeReveal("inkbridge", partial as never, partial.score);
+    ok(reveal && !JSON.stringify(reveal).includes("Standard") && JSON.stringify(reveal).includes("live drawing"), "the reveal explains the level kind in plain words");
+  }
+  console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
+  ok(INTRO_SCORE.inkbridge.includes("up to 150") && INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and the partial maximum");
+}
+
 /* ============================ 3. Intro text rules ============================ */
 section("intro text");
 const BATCH = ["bintoss", "bullseye", "rally", "beat", "inkbridge", "orbit"] as const;
@@ -211,5 +343,6 @@ for (const type of BATCH.filter(want)) {
 const words = (type: (typeof BATCH)[number]) => JSON.stringify(PUZZLE_INSTRUCTIONS[type]) + INTRO_SCORE[type];
 if (want("bintoss")) ok(!/\bbins?\b/i.test(words("bintoss")), 'Swish says "bucket", never "bin"');
 if (want("bullseye")) ok(!/\barrows?\b/i.test(words("bullseye")), 'Flightpath says "darts", never "arrows"');
+if (want("inkbridge")) ok(!/\brounds?\b/i.test(words("inkbridge")), 'Rainbow Bridge says "levels", never "rounds"');
 
 console.log(`arcade batch 5: ${checks} checks passed`);

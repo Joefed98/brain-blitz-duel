@@ -1061,7 +1061,7 @@ export function gradeSubmission(
     }
     case "rally": {
       const replayStart = performance.now();
-      const run = replayRallyRun(puzzle.seed, answer);
+      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1072,6 +1072,8 @@ export function gradeSubmission(
       extraDetail = {
         hits: run.hits,
         goldHits: run.goldHits,
+        targetHits: run.targetHits,
+        rallyRev: run.rallyRev,
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1175,7 +1177,7 @@ export function gradeSubmission(
     }
     case "beat": {
       const replayStart = performance.now();
-      const run = replayBeatRun(puzzle.seed, answer);
+      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1192,6 +1194,10 @@ export function gradeSubmission(
         misses: run.misses,
         strays: run.strays,
         maxCombo: run.maxCombo,
+        holds: run.holds,
+        holdsDone: run.holdsDone,
+        swipes: run.swipes,
+        swipesHit: run.swipesHit,
         clean: run.clean,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
@@ -1498,6 +1504,8 @@ export function gradeSubmission(
         levels: run.levels,
         total: run.total,
         fails: run.fails,
+        stars: run.stars,
+        starLevels: run.starLevels,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1885,7 +1893,7 @@ export function gradeSubmission(
         innerBulls: run.innerBulls,
         pops: run.pops,
         balloons: run.balloons,
-        bullRev: puzzle.bullRev ?? 0,
+        bullRev: run.bullRev,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

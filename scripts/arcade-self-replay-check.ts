@@ -20,7 +20,7 @@ import {
   type InputRange,
 } from "@/lib/arcade/engine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
-import { beatCheckpoint, beatGame } from "@/lib/arcade/beat";
+import { beatCheckpoint, beatGame, beatGameFor, BEAT_REV } from "@/lib/arcade/beat";
 import { binTossCheckpoint, binTossGame } from "@/lib/arcade/binToss";
 import { brkCheckpoint, breakerGame } from "@/lib/arcade/breaker";
 import { bubCheckpoint, bubbleGame, bubbleGameFor, BUB_REV } from "@/lib/arcade/bubble";
@@ -37,7 +37,7 @@ import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV, CROSS_REV2 } from 
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
 import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV, MATCHUP_REV2 } from "@/lib/arcade/matchup";
-import { rallyCheckpoint, rallyGame } from "@/lib/arcade/rally";
+import { rallyCheckpoint, rallyGame, rallyGameFor, RALLY_REV } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame } from "@/lib/arcade/skyline";
 import { sliceCheckpoint, sliceGame, sliceGameFor, SLICE_REV } from "@/lib/arcade/slice";
@@ -98,7 +98,7 @@ import { encodeRev3Planets, initRev3From, orbitRev3Game, ORBIT_REV3_WORLD_W } fr
 import { ORBIT_REV3_BANK } from "@/lib/duel/orbitRev3Bank.server";
 import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
-import { inkBridgeGameFor, INK_REV3 } from "@/lib/arcade/inkBridge";
+import { inkBridgeGameFor, INK_REV3, INK_REV4 } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV } from "@/lib/arcade/swing";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -375,8 +375,11 @@ const GAMES: Game[] = [
     encode: encodeBullseyeRun,
     replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV),
   },
+  { key: "rally/v2", game: rallyGameFor(RALLY_REV), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV) },
+  { key: "beat/v2", game: beatGameFor(BEAT_REV), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV) },
   { key: "bintoss/v3", game: binTossGameFor(BINTOSS_REV3), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV3) },
   { key: "ink/v3", game: inkBridgeGameFor(INK_REV3), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV3) },
+  { key: "ink/v4", game: inkBridgeGameFor(INK_REV4), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV4) },
   { key: "swing/v3", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },

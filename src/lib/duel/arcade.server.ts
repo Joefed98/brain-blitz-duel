@@ -1,7 +1,7 @@
 import { SLICE_REV } from "@/lib/arcade/slice";
 import { FLIP_REV } from "@/lib/arcade/flip";
 import { CROSS_REV } from "@/lib/arcade/cross";
-import { INK_REV3 } from "@/lib/arcade/inkBridge";
+import { INK_REV4 } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV } from "@/lib/arcade/snake";
 import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
@@ -9,6 +9,8 @@ import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { RALLY_REV } from "@/lib/arcade/rally";
+import { BEAT_REV } from "@/lib/arcade/beat";
 import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V3_BANK } from "./swingBank.server";
@@ -105,7 +107,7 @@ export function generateBreaker(): BreakerPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed() };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -121,7 +123,7 @@ export function generateBubble(): BubblePuzzleData {
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed() };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -169,7 +171,7 @@ export function generateJunction(): JunctionPuzzleData {
 }
 
 export function generateInkBridge(): InkBridgePuzzleData {
-  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV3 };
+  return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV4 };
 }
 
 export function generateBurst(): BurstPuzzleData {

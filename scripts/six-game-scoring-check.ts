@@ -14,7 +14,7 @@ import { tiltGame, TILT_MAX_MAZES } from "../src/lib/arcade/tilt";
 import { breakerGame, BRK_BRICKS } from "../src/lib/arcade/breaker";
 import { bubbleGame, bubbleRev2Game } from "../src/lib/arcade/bubble";
 import { swingGame, swingMetres, SWING_FINISH_M } from "../src/lib/arcade/swing";
-import { inkScoreOf, INK_LEVELS } from "../src/lib/arcade/inkBridge";
+import { inkRev4Score, inkScoreOf, INK_LEVELS, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
 import { orbitGame, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { orbitRev3Game } from "../src/lib/arcade/orbitRev3";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -72,7 +72,7 @@ for (const [type, text] of [["balltrack", "30"], ["junction", "lose 4"], ["rally
 for (const [type, text] of [["matchup", MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × dart total − 20"], ["junction", "−4"], ["skyline", "3 × perfect drops"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
 // Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
-const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: BINTOSS_V3_PARTIAL_MAX, breaker: 128, bubble: 99, inkbridge: 99, orbit: 117, swing: 130, tilt: 90 } as const;
+const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: BINTOSS_V3_PARTIAL_MAX, breaker: 128, bubble: 99, inkbridge: INK_V4_PARTIAL_MAX, orbit: 117, swing: 130, tilt: 90 } as const;
 for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
   eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
 }
@@ -130,7 +130,9 @@ eq(binTossGame.score({ ...binTossGame.init(1), baskets: BINTOSS_THROWS - 1 }), 9
 // binRev 3: nine in plus all three hoop bonuses.
 eq(binTossGameFor(BINTOSS_REV3).score({ ...binTossGameFor(BINTOSS_REV3).init(1), baskets: BINTOSS_THROWS - 1, swishes: 3 }), SPLIT_PARTIAL_MAX.bintoss, "Swish rev 3 partial max");
 eq(tiltGame.score({ ...tiltGame.init(1), mazes: TILT_MAX_MAZES - 1 }), SPLIT_PARTIAL_MAX.tilt, "Tilt partial max");
-eq(inkScoreOf(INK_LEVELS - 1, 0), SPLIT_PARTIAL_MAX.inkbridge, "Rainbow Bridge partial max");
+eq(inkScoreOf(INK_LEVELS - 1, 0), 99, "Rainbow Bridge partial max (inkRev 3 and older)");
+// inkRev 4: nine levels plus every gold star.
+eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge, "Rainbow Bridge rev 4 partial max");
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }

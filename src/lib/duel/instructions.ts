@@ -656,13 +656,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   rally: {
     goal: "Keep the rally going.",
     how: [
-      { action: "Drag to move the paddle", detail: "along the bottom." },
-      { action: "Every hit", detail: "makes the paddle smaller and the ball faster." },
-      { action: "A gold ball drops in", detail: "every ten seconds - only gold hits score." },
-      { action: "Miss the blue ball", detail: "and the run is over." },
+      { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
+      { action: "Only gold balls score:", detail: "each paddle hit." },
+      { action: "Gold on a pink wall pad:", detail: "+3." },
+      { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
+      { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
+      { action: "A gold ball drops in", detail: "every ten seconds - only gold balls score.", helpOnly: true },
+      { action: "Two pink target pads", detail: "sit on the far wall. A gold ball that hits one scores 3, and the pad moves somewhere new.", helpOnly: true },
+      { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
+      { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: "floor(2.5 × gold-ball hits), capped at 150. The blue ball scores nothing.",
+    score: "floor(2.5 × gold-ball hits) + 3 per pink target a gold ball hits, capped at 150. The blue ball scores nothing.",
   },
+
   steady: {
     goal: "Stay inside the track.",
     how: [
@@ -703,13 +709,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Tap the notes in time.",
     how: [
       { action: "Tap a lane", detail: "as its note reaches the line." },
-      { action: "Closer is better", detail: "- perfect, good, or just OK." },
-      { action: "A tap with no note", detail: "costs nothing." },
-      { action: "Notes with a tail are holds", detail: "- press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss." },
-      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it." },
+      { action: "Tail notes:", detail: "hold, let go at the end." },
+      { action: "Arrow notes:", detail: "swipe that way on the line." },
+      { action: "Closer is better", detail: "- perfect, good, or just OK.", helpOnly: true },
+      { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
+      { action: "Notes with a tail are holds", detail: "- press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
+      { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
+      { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2, up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
+    score: "Perfect 1, good 0.75, OK 0.25, miss −2 (swipe notes the same), up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
   },
+
   ricochet: {
     goal: "Climb the shaft by leaping wall to wall.",
     how: [
@@ -814,16 +824,21 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "2 per car through, −1 per car that gives up, +4 per ambulance waved through, −4 if one has to stop, +40 for surviving the minute. Clamp 0-150.",
   },
   inkbridge: {
-    goal: "Draw a path so the coin rolls into the pot.",
+    goal: "Roll the coin into the pot.",
     how: [
-      { action: "Rounds 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot." },
-      { action: "Rounds 5-8", detail: "The pot moves! Time your release so the coin rolls into it." },
-      { action: "Rounds 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin." },
-      { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live rounds." },
-      { action: "Three failed drops", detail: "and you're out." },
+      { action: "Draw a line,", detail: "then tap RELEASE to drop." },
+      { action: "Levels 9-10:", detail: "keep drawing as the coin falls." },
+      { action: "Gold star:", detail: "roll through it for +2." },
+      { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
+      { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
+      { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
+      { action: "Gold stars:", detail: "four of levels 1-8 have one, on a harder route. Roll the coin through it and into the pot for 2 bonus points. You never need it to finish the level.", helpOnly: true },
+      { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
+      { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
     ],
-    score: "11 per level; all ten = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: "11 per level and 2 per gold star, up to 130. All ten levels = 130 + up to 20 for speed (the full 20 if you finish with at least half the time left) + gold stars, up to 150.",
   },
+
   burst: {
     goal: "Split every atom - big ones split into smaller atoms.",
     how: [

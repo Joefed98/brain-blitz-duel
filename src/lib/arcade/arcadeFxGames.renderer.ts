@@ -310,6 +310,20 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       at: (s) => ({ x: s.paddleX, y: RALLY_PADDLE_Y - 10 }),
       label: () => "GOLD!",
     },
+    {
+      // Rev 2: the gold ball struck a far-wall target.
+      kind: "perfect",
+      count: (s) => s.targetHits ?? 0,
+      at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
+      label: () => "TARGET!",
+    },
+    {
+      // Rev 2: a ball came off the bumper.
+      kind: "pop",
+      count: (s) => s.bounces ?? 0,
+      at: (s) => (s.bumper ? { x: s.bumper.x, y: s.bumper.y - 20 } : null),
+      label: () => "BOING",
+    },
   ],
 };
 
@@ -326,6 +340,13 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       every: 10,
       at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y }),
       label: (_s, n) => `COMBO ${n}`,
+    },
+    {
+      // Rev 2: a swipe note swiped the right way in time.
+      kind: "pop",
+      count: (s) => s.swipesHit ?? 0,
+      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y - 20 }),
+      label: () => "SWIPE!",
     },
     {
       kind: "final",
@@ -537,6 +558,16 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
       count: (s) => s.levels,
       when: (s) => s.levels < INK_LEVELS,
       label: (_s, n) => `LEVEL ${n}!`,
+    },
+    {
+      // Rev 4: the coin potted through the level's gold star.
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => {
+        const lvl = s.list[Math.max(0, s.level - 1)];
+        return lvl?.star ? { x: lvl.star.x, y: lvl.star.y } : null;
+      },
+      label: () => "GOLD STAR!",
     },
     {
       kind: "final",

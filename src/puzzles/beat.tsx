@@ -14,7 +14,8 @@ import {
 } from "@/lib/arcade/engine";
 import {
   beatCheckpoint,
-  beatGame,
+  beatGameFor,
+  BEAT_INPUT_SWIPE,
   BEAT_EIGHTH_TICKS,
   BEAT_BG,
   BEAT_CHECKPOINT_INTERVAL,
@@ -40,6 +41,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Fixed intro still: a note arriving at the hit line. */
+/** Rev 2: the sideways finger travel (screen px) that counts as a swipe. */
+const SWIPE_MIN_PX = 24;
+
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
@@ -66,7 +70,7 @@ function IntroExample() {
         <rect x={120} y={40} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[3]} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap the lane as its note meets the line.
+        Tap the lane as its note meets the line; arrow notes are swipes.
       </p>
     </div>
   );
@@ -75,6 +79,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BeatPuzzleData | null = puzzle.type === "beat" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const beatGame = beatGameFor(data?.beatRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -85,6 +90,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   /** Which lane each finger went down in, so its release is sent for that lane. */
   const fingers = useRef(new Map<number, number>());
+  /** Rev 2: where each finger went down (screen px) and whether it has already swiped. */
+  const swipeStarts = useRef(new Map<number, { x: number; done: boolean }>());
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
   useNoTouchScroll(wrap);
@@ -228,6 +235,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const liftFinger = (pointerId: number) => {
     const lane = fingers.current.get(pointerId);
     fingers.current.delete(pointerId);
+    swipeStarts.current.delete(pointerId);
     if (lane === undefined || submitted.current) return;
     pending.current.push({ t: 0, k: BEAT_INPUT_RELEASE, a: lane, b: 0, c: 0, d: 0 });
   };
@@ -251,7 +259,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           event.currentTarget.setPointerCapture(event.pointerId);
           const lane = laneAt(event);
           fingers.current.set(event.pointerId, lane);
+          swipeStarts.current.set(event.pointerId, { x: event.clientX, done: false });
           pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: lane, b: 0, c: 0, d: 0 });
+        }}
+        onPointerMove={(event) => {
+          // Rev 2: a sideways flick of at least 24 px is one swipe, in the lane the finger went down in.
+          if (!data?.beatRev) return;
+          const start = swipeStarts.current.get(event.pointerId);
+          const lane = fingers.current.get(event.pointerId);
+          if (!start || start.done || lane === undefined || submitted.current) return;
+          const dx = event.clientX - start.x;
+          if (Math.abs(dx) < SWIPE_MIN_PX) return;
+          start.done = true;
+          pending.current.push({ t: 0, k: BEAT_INPUT_SWIPE, a: lane, b: dx > 0 ? 1 : 0, c: 0, d: 0 });
         }}
         onPointerUp={(event) => {
           if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -272,7 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "beat") return null;
-  const result = replayBeatRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBeatRun(puzzle.seed, myAnswer ?? "", puzzle.beatRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -291,6 +311,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         best combo {result.maxCombo} · {result.holdsDone} / {result.holds} holds
+        {result.swipes > 0 ? ` · ${result.swipesHit} / ${result.swipes} swipes` : ""}
       </p>
     </div>
   );

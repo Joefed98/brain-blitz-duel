@@ -79,6 +79,28 @@ export const BEAT_INPUT_RANGES: readonly InputRange[] = [
   inputRange(BEAT_INPUT_RELEASE, [0, BEAT_LANES - 1]),
 ];
 
+/* --------------------------- Rev 2: swipe notes --------------------------- */
+
+/**
+ * Swipe-note revision (stored as puzzle.beatRev = 2). The chart (ticks, lanes,
+ * holds) is built exactly as before; then, continuing the same PRNG stream,
+ * some single tap notes in the second half become swipe notes. Nothing else
+ * changes: same windows, same points.
+ */
+export const BEAT_REV = 2;
+/** A swipe: kind 11, `a` = lane 0…3, `b` = 0 for left, 1 for right. */
+export const BEAT_INPUT_SWIPE = 11;
+/** Swipe notes only from 30 s, on about this share of eligible notes. */
+export const BEAT_SWIPE_FROM = 1800;
+export const BEAT_SWIPE_PERCENT = 25;
+export const BEAT_SWIPE_LEFT = -1;
+export const BEAT_SWIPE_RIGHT = 1;
+
+export const BEAT_V2_INPUT_RANGES: readonly InputRange[] = [
+  ...BEAT_INPUT_RANGES,
+  inputRange(BEAT_INPUT_SWIPE, [0, BEAT_LANES - 1], [0, 1]),
+];
+
 /* ================================ Chart ================================ */
 
 export interface BeatChart {
@@ -86,6 +108,8 @@ export interface BeatChart {
   lanes: number[];
   /** Tail length in ticks for a hold note, 0 for a tap note. */
   holds: number[];
+  /** Rev 2 only: −1 swipe left, +1 swipe right, 0 for any other note. */
+  swipes?: number[];
 }
 
 /** The whole chart, built once from the seed. */
@@ -174,6 +198,10 @@ function buildChart(seed: number): { rng: number; chart: BeatChart } {
 /* ================================ State ================================ */
 
 export interface BeatState {
+  /** Rev 2 only: the stamp, and swipe notes judged so far (hit, and missed or wrong way). */
+  rev?: number;
+  swipesHit?: number;
+  swipesMissed?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -265,6 +293,7 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
       judged[cursor] = BEAT_JUDGE_MISS;
       next.misses += 1;
       next.combo = 0;
+      if (state.chart.swipes && state.chart.swipes[cursor]) next.swipesMissed = (next.swipesMissed ?? 0) + 1;
     }
     cursor += 1;
   }
@@ -329,6 +358,8 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
     ) {
       if (state.chart.lanes[index] !== lane) continue;
       if ((judged ?? state.judged)[index] !== BEAT_JUDGE_NONE) continue;
+      // Rev 2: a tap never takes a swipe note.
+      if (state.chart.swipes && state.chart.swipes[index]) continue;
       const distance = Math.abs(ticks[index]! - tick);
       if (distance < bestDistance) {
         bestDistance = distance;
@@ -366,6 +397,53 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
       next.judgeAge = 0;
     } else {
       // A tap with no note anywhere near it costs nothing.
+      next.strays += 1;
+    }
+  }
+
+  // Rev 2: a swipe takes the nearest swipe note in its lane; the wrong way is a miss.
+  if (state.rev === BEAT_REV && input && input.k === BEAT_INPUT_SWIPE) {
+    const lane = clampInt(input.a, 0, BEAT_LANES - 1);
+    const dir = input.b === 1 ? BEAT_SWIPE_RIGHT : BEAT_SWIPE_LEFT;
+    const swipes = state.chart.swipes ?? [];
+    let bestIndex = -1;
+    let bestDistance = BEAT_OK_TICKS + 1;
+    for (let index = cursor; index < ticks.length && ticks[index]! - tick <= BEAT_OK_TICKS; index++) {
+      if (state.chart.lanes[index] !== lane || !swipes[index]) continue;
+      if ((judged ?? state.judged)[index] !== BEAT_JUDGE_NONE) continue;
+      const distance = Math.abs(ticks[index]! - tick);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+    if (bestIndex >= 0) {
+      const verdict = swipes[bestIndex] === dir ? beatJudge(bestDistance) : BEAT_JUDGE_MISS;
+      judged ??= [...state.judged];
+      judged[bestIndex] = verdict;
+      if (verdict === BEAT_JUDGE_MISS) {
+        next.misses += 1;
+        next.combo = 0;
+        next.swipesMissed = (next.swipesMissed ?? 0) + 1;
+      } else {
+        if (verdict === BEAT_JUDGE_PERFECT) {
+          next.perfect += 1;
+          next.tenths += BEAT_PERFECT_TENTHS;
+        } else if (verdict === BEAT_JUDGE_GOOD) {
+          next.good += 1;
+          next.tenths += BEAT_GOOD_TENTHS;
+        } else {
+          next.ok += 1;
+          next.tenths += BEAT_OK_TENTHS;
+        }
+        next.combo += 1;
+        next.maxCombo = Math.max(next.maxCombo, next.combo);
+        next.swipesHit = (next.swipesHit ?? 0) + 1;
+      }
+      next.lastJudge = verdict;
+      next.lastLane = lane;
+      next.judgeAge = 0;
+    } else {
       next.strays += 1;
     }
   }
@@ -425,7 +503,10 @@ export function beatCheckpointState(state: BeatState): BeatCheckpointState {
 export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   const snapshot = beatCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // Rev 2 folds its own counters in; older states never have them, so their sums are unchanged.
+  if (state.rev === BEAT_REV) values.push(state.swipesHit ?? 0, state.swipesMissed ?? 0);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -558,3 +639,35 @@ export const beatGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: BEAT_INPUT_RANGES,
 };
+
+/** Swipe notes: single tap notes from 30 s whose tick no other note shares. */
+function initRev2(seed: number): BeatState {
+  const base = init(seed);
+  let rng = base.rng;
+  const { ticks, holds } = base.chart;
+  const swipes = ticks.map(() => 0);
+  for (let i = 0; i < ticks.length; i++) {
+    if (ticks[i]! < BEAT_SWIPE_FROM || holds[i]! > 0) continue;
+    if (ticks[i - 1] === ticks[i] || ticks[i + 1] === ticks[i]) continue;
+    const roll = rngBelow(rng, 100);
+    rng = roll.state;
+    if (roll.value >= BEAT_SWIPE_PERCENT) continue;
+    const dir = rngBelow(rng, 2);
+    rng = dir.state;
+    swipes[i] = dir.value === 0 ? BEAT_SWIPE_LEFT : BEAT_SWIPE_RIGHT;
+  }
+  return { ...base, rng, rev: BEAT_REV, chart: { ...base.chart, swipes }, swipesHit: 0, swipesMissed: 0 };
+}
+
+/** Swipe-note revision. */
+export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, init: initRev2, inputRanges: BEAT_V2_INPUT_RANGES };
+
+/** Takes puzzle.beatRev; anything else is the original game. */
+export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  return rev === BEAT_REV ? beatRev2Game : beatGame;
+}
+
+/** Swipe notes in the chart (0 on older rounds). */
+export function beatSwipeCount(state: BeatState): number {
+  return (state.chart.swipes ?? []).filter((d) => d !== 0).length;
+}

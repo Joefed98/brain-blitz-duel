@@ -2009,6 +2009,8 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
+  /** 2 = far-wall targets and a bumper from 30 s. Absent on rounds stored before it. */
+  rallyRev?: number;
 }
 
 export interface SteadyPuzzleData {
@@ -2085,6 +2087,8 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
+  /** 2 = swipe notes in the second half. Absent on rounds stored before it. */
+  beatRev?: number;
 }
 
 /* ============================== Tile Grid =============================== */
@@ -2199,7 +2203,7 @@ export interface JunctionPuzzleData {
 
 export interface InkBridgePuzzleData {
   type: "inkbridge";
-  /** 2 = white birds, fewer on levels 6–10. Absent = original blocks. */
+  /** 2 = white birds, fewer on levels 6–10; 3 = Rainbow Bridge (moving pot, live levels); 4 = that plus optional gold stars. Absent = original blocks. */
   inkRev?: number;
   /** Draws the drops and bucket moves — identical for everyone. */
   seed: number;

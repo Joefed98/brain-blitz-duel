@@ -10,7 +10,6 @@ import {
   INK_INPUT_RESET,
   INK_INPUT_DROP_AGAIN,
   INK_INPUT_STROKE,
-  INK_REV3,
   INK_STEP_PX,
   INK_WORLD_H,
   INK_WORLD_W,
@@ -61,7 +60,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const lastSent = useRef<{ payload: InkPayload; penDown: number; lifts: number } | null>(null);
   const [reject, setReject] = useState<{ label: string; at: number } | null>(null);
   const reduced = useReducedMotion();
-  // Rounds 9–10 only: whether the current level is live (drawing continues while the ball falls).
+  // Levels 9–10 only: whether the current level is live (drawing continues while the ball falls).
   const liveLevelRef = useRef(false);
   const liveDroppingRef = useRef(false);
   const [liveLevel, setLiveLevel] = useState(false);
@@ -94,7 +93,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         encodeRun={encodeInkBridgeRun}
         inputKind={INK_INPUT_STROKE}
         tickInput={(state) => {
-          const live = data?.inkRev === INK_REV3 && inkIsLive(state.level, data.inkRev);
+          const live = inkIsLive(state.level, data?.inkRev);
           liveLevelRef.current = live;
           liveDroppingRef.current = live && state.dropping === 1;
           if (live !== liveLevel) setLiveLevel(live);
@@ -162,12 +161,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function inkBridgeLine(r: { levels: number; total: number; score: number }, rev?: number): string {
-  if (r.levels >= r.total) return `All ${r.total} levels`;
-  if (rev !== 3) return `Level ${r.levels}`;
-  const base = `Level ${r.levels + 1}`;
-  const phase = r.levels < 4 ? "Standard" : r.levels < 8 ? "Moving Pot" : "Live";
-  return `${base} (${phase})`;
+export function inkBridgeLine(r: { levels: number; total: number; score: number; stars?: number; starLevels?: number }, rev?: number): string {
+  const stars = r.starLevels ? ` · ${r.stars ?? 0} / ${r.starLevels} gold stars` : "";
+  if (r.levels >= r.total) return `All ${r.total} levels${stars}`;
+  if (rev === undefined || rev < 3) return `Level ${r.levels}${stars}`;
+  // Which kind of level the run stopped on, in plain words.
+  const kind = r.levels < 4 ? "the pot stands still" : r.levels < 8 ? "the pot moves" : "live drawing";
+  return `Stopped on level ${r.levels + 1} (${kind})${stars}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {

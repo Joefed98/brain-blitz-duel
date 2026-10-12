@@ -9,6 +9,7 @@ import type { InputDiag } from "@/lib/arcade/engine";
 import {
   rallyCheckpoint,
   rallyGame,
+  rallyGameFor,
   rallyPaddleW,
   rallySurvived,
   rallyTotalHits,
@@ -98,6 +99,11 @@ export function decodeRallyRun(raw: string): RallyRun {
 export interface RallyResult {
   hits: number;
   goldHits: number;
+  /** Rev 2: far-wall targets the gold ball struck, and bumper bounces (0 on older rounds). */
+  targetHits: number;
+  bounces: number;
+  /** The revision the run was played on (0 = unstamped). */
+  rallyRev: number;
   paddleWidth: number;
   survived: boolean;
   endedSeconds: number;
@@ -114,7 +120,7 @@ export interface RallyResult {
 }
 
 /** The single place a Rally score is worked out. */
-export function replayRallyRun(seed: number, raw: string): RallyResult {
+export function replayRallyRun(seed: number, raw: string, rev?: number | null): RallyResult {
   const run = decodeRallyRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, RALLY_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < RALLY_RUN_TICKS;
@@ -124,7 +130,7 @@ export function replayRallyRun(seed: number, raw: string): RallyResult {
   const lastTick = clientLag ? endTick : RALLY_RUN_TICKS;
   const clientCheckpoints = new Map((run.checkpoints ?? []).map((item) => [item.tick, item]));
 
-  let state = rallyGame.init(seed);
+  let state = rallyGameFor(rev).init(seed);
   let reached = 0;
   let desyncTick: number | null = null;
   const serverCheckpoints: RallyCheckpoint[] = [];
@@ -152,6 +158,9 @@ export function replayRallyRun(seed: number, raw: string): RallyResult {
   const result: RallyResult = {
     hits: state.hits,
     goldHits: state.goldHits,
+    targetHits: state.targetHits ?? 0,
+    bounces: state.bounces ?? 0,
+    rallyRev: state.rev ?? 0,
     paddleWidth: rallyPaddleW(rallyTotalHits(state)),
     survived: rallySurvived(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

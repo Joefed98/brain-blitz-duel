@@ -104,6 +104,8 @@ export interface BullseyeResult {
   innerBulls: number;
   pops: number;
   balloons: number;
+  /** The revision the run was played on (0 = unstamped). */
+  bullRev: number;
   /** Arrows in the gold or red rings. */
   inner: number;
   hits: BullseyeHit[];
@@ -169,6 +171,7 @@ export function replayBullseyeRun(
     innerBulls: bullseyeInnerBulls(state),
     pops: bullseyePops(state),
     balloons: (state.balloons ?? []).filter(Boolean).length,
+    bullRev: state.rev ?? 0,
     hits: state.hits,
     finished: bullseyeFinished(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

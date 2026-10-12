@@ -19,6 +19,7 @@ import {
 import {
   rallyCheckpoint,
   rallyGame,
+  rallyGameFor,
   RALLY_BALL,
   RALLY_BG,
   RALLY_CHECKPOINT_INTERVAL,
@@ -49,9 +50,12 @@ function IntroExample() {
         <path d="M40 16 L120 70" stroke="rgba(255,255,255,0.25)" strokeDasharray="4 4" />
         <circle cx={120} cy={74} r={6} fill={RALLY_BALL} />
         <rect x={96} y={100} width={50} height={8} rx={3} fill={RALLY_GOLD} />
+        <rect x={30} y={6} width={26} height={4} fill="#FF6FD8" />
+        <rect x={104} y={6} width={26} height={4} fill="#FF6FD8" />
+        <circle cx={70} cy={50} r={7} fill="none" stroke="#B49CFF" strokeWidth={2} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Gold balls join every ten seconds and score double.
+        Gold balls join every ten seconds; hit the pink pads on the far wall with them.
       </p>
     </div>
   );
@@ -64,7 +68,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<RallyState>(rallyGame.init(seed));
+  const state = useRef<RallyState>(rallyGameFor(data?.rallyRev).init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof rallyCheckpoint>[]>([]);
   const wanted = useRef<number | null>(null);
@@ -96,7 +100,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     });
 
   useEffect(() => {
-    state.current = rallyGame.init(seed);
+    state.current = rallyGameFor(data?.rallyRev).init(seed);
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
@@ -259,7 +263,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "rally") return null;
-  const result = replayRallyRun(puzzle.seed, myAnswer ?? "");
+  const result = replayRallyRun(puzzle.seed, myAnswer ?? "", puzzle.rallyRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -271,7 +275,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         />
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down) ·{" "}
+        {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down)
+        {puzzle.rallyRev ? ` + ${result.targetHits} target${result.targetHits === 1 ? "" : "s"} × 3` : ""} ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
