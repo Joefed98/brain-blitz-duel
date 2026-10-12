@@ -121,27 +121,34 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (w && w.o.key === o.key && w.hi === i - 1) w.hi = i;
         else windows.push({ lo: i, hi: i, o });
       });
-      const opts: { angle: number; value: number; o: Outcome }[] = [];
+      const opts: { angle: number; value: number; o: Outcome; sensible: boolean }[] = [];
       for (const w of windows) {
         if (w.o.bank && !human.chance(BANK_SEE[level]!)) continue;
         const a = w.o.after;
         const removed = before - bubRemaining(a);
         let value = removed;
+        let sensible = removed > 0;
         if (a.cleared) value += 40;
         if (a.dead) value -= 60;
         if (removed <= 0) {
           // Nothing popped: a bubble placed by its own colour sets up the next pop.
           const landed = a.grid.findIndex((v, i) => v !== 0 && s.grid[i] === 0);
-          if (landed >= 0 && !bubIsSpecial(holding)) value += 0.8 * (groupSize(a.grid, landed) - 1);
-          else if (bubIsSpecial(holding)) value -= 2; // a wasted special
+          const touching = landed >= 0 && !bubIsSpecial(holding) ? groupSize(a.grid, landed) - 1 : 0;
+          value += 0.8 * touching;
+          if (touching > 0) sensible = true;
+          if (bubIsSpecial(holding)) value -= 2; // a wasted special
         }
         // A field creeping down to the shooter line worries everyone.
         const gap = clearance(a);
         if (gap < 90) value -= (90 - gap) / 15;
         // Each bounce makes a shot harder to judge, so players lean towards simpler ones.
         value -= 0.5 * w.o.bounces;
-        opts.push({ angle: (ANGLES[w.lo]! + ANGLES[w.hi]!) / 2, value, o: w.o });
+        opts.push({ angle: (ANGLES[w.lo]! + ANGLES[w.hi]!) / 2, value, o: w.o, sensible });
       }
+      // Colours are plain to see: everyone only weighs shots that pop something or join their own
+      // colour (anything else only by a slip), unless there is no such shot.
+      const sensibleOpts = opts.filter((o) => o.sensible);
+      if (sensibleOpts.length && !human.slip(0.5)) opts.splice(0, opts.length, ...sensibleOpts);
       if (opts.length === 0) return null;
       const special = bubIsSpecial(holding);
       const choice = opts[human.pick(opts.map((o) => o.value), special ? 1.4 : 1)]!;

@@ -93,23 +93,25 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const plan = shape.map(([r, at]) => [r, at + d] as [number, number]);
       if (plan.some(([, at]) => at > SNIP_LEVEL_TICKS - 2)) return false;
       const res = tryPlan(from, plan);
+      if ((globalThis as any).SDBG2) console.log("    try", JSON.stringify(plan), res.fed, res.leaf, from.level, from.levelTick);
       return res.fed && (!needLeaf || res.leaf);
     };
     const d0 = lo - first;
-    let start = -1;
+    let start: number | null = null;
     for (let d = d0; d <= d0 + span; d += stepT) {
       if (ok(d)) {
         start = d;
         break;
       }
     }
-    if (start < 0) return null;
+    if (start === null) return null;
     let end = start;
     for (let k = 0; k < 6; k++) {
       if (!ok(end + stepT)) break;
       end += stepT;
     }
     const mid = Math.round((start + end) / 2);
+    if ((globalThis as any).SDBG) console.log("   window", lo, start - d0, end - d0, JSON.stringify(shape));
     return shape.map(([r, at]) => [r, at + mid] as [number, number]);
   };
 
@@ -167,6 +169,19 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       shape = proof.fast.plan.map(([r, at]) => [r, at] as [number, number]);
       timed = timeShape(s, shape, lo, 150, false);
     }
+    if (!timed && !believe) {
+      // The remembered shape does not fit this swing: work out another (other proved
+      // shapes for the level, then the same order with the later cuts spaced differently).
+      const alts: Plan[] = [];
+      for (const p of Object.values(PROOFS[String(s.template)] ?? {})) for (const q of [p.fast, p.leaf]) if (q) alts.push(q.plan);
+      for (const f of [0.5, 1.6, 2.4]) alts.push(shape.map(([r, at], i) => [r, Math.round(shape[0]![1] + (at - shape[0]![1]) * f) + i * 2] as [number, number]));
+      for (const alt of alts) {
+        timed = timeShape(s, alt, lo, 120, false, 4);
+        if (timed) break;
+      }
+      wantLeaf = false;
+    }
+    if ((globalThis as any).SDBG) console.log("  plan tpl", s.template, "timed", !!timed, "leaf", wantLeaf, "believe", believe, "ready", ready);
     // Spread cuts to the player's own pace.
     plan = timed ?? shape.map(([r, at]) => [r, at + Math.max(0, lo - shape[0]![1])] as [number, number]);
     for (let i = 1; i < plan.length; i++) if (plan[i]![1] - plan[i - 1]![1] < GAP[level]) plan[i]![1] = plan[i - 1]![1] + GAP[level];
@@ -192,6 +207,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const pts = (k: number) => (k < n ? [rope.x[k]! / 256, rope.y[k]! / 256] : [seen.sx / 256, seen.sy / 256]) as [number, number];
     let bestK = 1;
     let bestD = -1;
+    let clear = 80;
     for (let k = 1; k < n - 1; k++) {
       const [x0, y0] = pts(k);
       const [x1, y1] = pts(k + 1);
@@ -208,6 +224,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       if (score > bestD) {
         bestD = score;
         bestK = k;
+        clear = Math.min(dmin, 80);
       }
     }
     const [x0, y0] = pts(bestK);
@@ -216,7 +233,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const cy = (y0 + y1) / 2 + human.aim(WORLD_PER_PX);
     let ang = Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2 + human.normal() * 0.25;
     if (Math.cos(ang) < 0) ang += Math.PI; // swipe left-to-right-ish
-    const half = (40 + 10 * human.u()) / 2;
+    // A firm stroke across it, kept short of any other rope nearby.
+    const half = Math.max(16, Math.min(50, clear - 10)) * (0.85 + 0.3 * human.u());
     return {
       k: SNIP_INPUT_CUT,
       a: Math.round(cx - Math.cos(ang) * half),
@@ -231,6 +249,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     (s: SnipState) => {
       history.push(s);
       if (s.level !== levelSeen) {
+        if ((globalThis as any).SDBG) console.log("L", levelSeen, "tpl", history.at(-2)?.template, "out", s.lastOutcome, "plan", JSON.stringify(plan), "believe", believe, "cuts", s.cuts);
         levelSeen = s.level;
         planLevel(s);
       }
@@ -240,7 +259,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       if (pendingCheck && s.levelTick >= pendingCheck.at) {
         const rope = pendingCheck.rope;
         pendingCheck = null;
-        if (s.ropes[rope]?.alive) retryAt = s.levelTick + 1;
+        if (s.ropes[rope]?.alive) { retryAt = s.levelTick + 1; if ((globalThis as any).SDBG) console.log("  miss", s.levelTick); }
         else {
           next += 1;
           retime(s);
@@ -268,7 +287,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       retryAt = -1;
       fireAt = Infinity;
       pendingCheck = { rope, at: s.levelTick + human.reactTicks() };
-      return swipe(view, rope);
+      if ((globalThis as any).SDBG) console.log("   cut", rope, "at", s.levelTick + 1, "plan", JSON.stringify(plan));
+      const sw = swipe(view, rope);
+      if ((globalThis as any).SDBG) console.log("   swipe", JSON.stringify(sw), "rope", s.ropes[rope]!.x.map((x, i) => [Math.round(x / 256), Math.round(s.ropes[rope]!.y[i]! / 256)]).join(" "), "lagged", view.levelTick, s.levelTick);
+      return sw;
     },
     init,
   );

@@ -1,21 +1,19 @@
 /**
  * Hover: a flappy-style tapper. A tap sets the disc's climb to a fixed kick, so
- * every arc rises ~63 px over ~18 ticks, and its top is nearly flat. A player
- * who knows the game threads each barrier near the top of an arc: they set up
- * a "key" tap about 18 ticks before the barrier's middle reaches the disc, made
- * from the height that puts the arc's top a little above the gap's middle (or
- * through a gold star they chose to go for: a high star wants the arc's top on
- * it, a low star wants the dip, i.e. the key tap, right on it). To arrive at
- * that height on time they place one set-up tap beforehand (the ideal set-up
- * tap is computed exactly, standing in for experience). Between barriers they
+ * every arc rises ~63 px over ~18 ticks and its top is nearly flat. A player
+ * who knows the game threads each barrier on one arc: as a barrier comes up
+ * they settle on their last one or two taps before it (a set-up tap and the
+ * key tap) so that the arc carries the disc through the gap with the most room
+ * (or through a gold star they chose to go for). That plan is the ideal one
+ * for the barrier as they see it, computed exactly from the disc's own
+ * (predictable) motion; it stands in for experience. Far from a barrier they
  * just keep the disc bobbing around the height they will need.
  *
  * Every tap is an anticipated moment: it is committed about a reaction time
  * before it is due and lands with the level's timing jitter, wider on the fast
  * late course and on sliding gaps. The barrier ahead is seen late (tracking
- * lag); a sliding gap is extrapolated from how it was moving, with an error
- * that grows with how far ahead it has to be judged (the extrapolation also
- * misses a reversal). Two-gap barriers: the nearer-looking gap (blurred pick).
+ * lag); where a sliding gap will be at the pass is judged with an error that
+ * grows with how far ahead it has to be judged. Two-gap barriers: the nearer-looking gap (blurred pick).
  * Slips: now and then a tap goes well off its moment.
  */
 import {
@@ -26,6 +24,7 @@ import {
   HOVER_PILLAR_W,
   HOVER_SCROLL_MAX,
   HOVER_SCROLL_START,
+  HOVER_STAR_R,
   HOVER_TERMINAL,
   HOVER_WORLD_BOTTOM,
   hoverGapTop,
@@ -38,33 +37,49 @@ import { driveTaps, type SkillBot } from "../bot";
 
 /** Chance of deciding to go for a gold star (each one sits near a lip: a risky line). */
 const STAR_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
+/** Least room (px) to the gap's edges a player accepts to brush a star (risk appetite). */
+const STAR_ROOM: Record<string, number> = { average: 10, good: 10, great: 10, near: 10 };
 /** Read error on where a sliding gap will be, px per tick ahead (1 world px = 1 phone px). */
 const READ: Record<string, number> = { average: 0.3, good: 0.2, great: 0.13, near: 0.08 };
 /** Fastest deliberate tapping: 8 ticks apart (7.5 taps a second). */
 const MIN_TAP_GAP = 8;
-/** The set-up/key pair is planned within this many ticks of the key tap. */
+/** The last taps before a barrier are planned once its entry is this close (ticks). */
 const APPROACH = 50;
-/** How far (ticks) the key tap may slide off its ideal moment to suit the disc's height. */
-const KEY_SLACK = 6;
 
 const FP = 256;
 const clampV = (v: number) => Math.max(-HOVER_TERMINAL, Math.min(HOVER_TERMINAL, v));
 
-/** rise[j]: height change j+1 ticks into a tap (the tap tick is j = 0), fixed-point (negative = up). */
+/** RISE[j]: height change j+1 ticks into a tap (the tap tick is j = 0), fixed-point (negative = up). */
 const RISE = (() => {
   const out: number[] = [];
   let v = HOVER_IMPULSE;
   let y = 0;
-  for (let j = 0; j < 160; j++) {
+  for (let j = 0; j < 200; j++) {
     if (j > 0) v = clampV(v + HOVER_GRAVITY);
     y += v;
     out.push(y);
   }
   return out;
 })();
-/** Ticks from a tap to its arc's top, and the arc's height. */
-const APEX_TICKS = RISE.indexOf(Math.min(...RISE));
 const ARC = -Math.min(...RISE);
+const FLOOR = HOVER_WORLD_BOTTOM - HOVER_DISC_R - 6 * FP;
+const CEIL = HOVER_DISC_R + 6 * FP;
+
+interface Target {
+  idx: number;
+  /** Ticks from now until the disc overlaps the barrier, until its middle, until it is clear. */
+  entry: number;
+  centre: number;
+  exit: number;
+  /** Allowed disc-centre range in the gap (as perceived at the pass). */
+  lo: number;
+  hi: number;
+  /** How fast a sliding gap moves through the pass (fixed-point per tick; 0 when still). */
+  slope: number;
+  /** A star being chased: its height at the pass. */
+  star: number | null;
+  scale: number;
+}
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
@@ -74,16 +89,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const history: HoverState[] = [];
   /** Per barrier: chosen gap (0/1), star decision, and the slide-read error draw. */
   const choice = new Map<number, { gap: number; star: boolean; readErr: number }>();
-  const keyDone = new Set<number>();
-  const setupDone = new Set<number>();
-  let pendingSetup = -1;
   let pending: number | null = null;
-  let pendingKey = -1;
   let lastTap = -100;
   const init = game.init(seed) as HoverState;
 
-  /** What the human wants for the barrier ahead, from the perceived state. */
-  const target = (s: HoverState, seen: HoverState) => {
+  const target = (s: HoverState, seen: HoverState, t: number): Target | null => {
     let idx = -1;
     for (let i = seen.gates; i < seen.pillars.length; i++) {
       const p = seen.pillars[i]!;
@@ -92,7 +102,6 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         break;
       }
     }
-    const speedFrac = (hoverScroll(s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
     if (idx < 0) return null;
     const p = seen.pillars[idx]!;
     let c = choice.get(idx);
@@ -106,12 +115,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       c = { gap, star: p.starDy !== undefined && human.chance(STAR_TRY[level]!), readErr: human.normal() };
       choice.set(idx, c);
     }
-    // When (as perceived) the barrier's middle reaches the disc.
+    // Timing of the pass as perceived (lagged view, scrolled on at the speed seen); offsets from now.
     const speed = hoverScroll(seen.gates);
-    const passTick = seen.tick + (pillarX(p, seen.distance) + HOVER_PILLAR_W / 2 - HOVER_DISC_X) / speed;
+    const left = pillarX(p, seen.distance);
+    const at = (dx: number) => seen.tick + dx / speed - t;
+    const entry = Math.ceil(at(left - (HOVER_DISC_X + HOVER_DISC_R)));
+    const exit = Math.floor(at(left + HOVER_PILLAR_W - (HOVER_DISC_X - HOVER_DISC_R)));
+    const centre = Math.round(at(left + HOVER_PILLAR_W / 2 - HOVER_DISC_X));
     let top: number;
     let h: number;
     let moving = false;
+    let slope = 0;
     if (c.gap === 1 && p.gap2Top !== undefined) {
       top = p.gap2Top;
       h = p.gap2H ?? 0;
@@ -120,37 +134,99 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       top = hoverGapTop(p, seen.tick);
       if (p.movePhase !== undefined) {
         moving = true;
-        // Linear extrapolation of the slide from the lagged view, plus a read error growing with time ahead.
-        const v = hoverGapTop(p, seen.tick) - hoverGapTop(p, seen.tick - 1);
-        const until = Math.max(0, passTick - seen.tick);
-        top += v * until + c.readErr * READ[level]! * until * FP;
+        // The slide is regular and in view, so its position at the pass is judged from the
+        // lagged view, with a read error growing with how far ahead that is.
+        const until = Math.max(0, centre + t - seen.tick);
+        top = hoverGapTop(p, seen.tick + until) + c.readErr * READ[level]! * until * FP;
+        slope = (hoverGapTop(p, seen.tick + until + 3) - hoverGapTop(p, seen.tick + until - 3)) / 6;
       }
     }
-    const scale = 1 + 0.4 * speedFrac + (moving ? 0.3 : 0);
-    // Default: the arc's top a few px above the gap's middle, key tap APEX_TICKS before the pass.
-    let keyY = top + h / 2 - 3 * FP + ARC;
-    let keyTick = passTick - APEX_TICKS;
-    if (c.star && p.starDy !== undefined) {
-      const starY = top + ((hoverStarY(p, seen.tick) ?? 0) - hoverGapTop(p, seen.tick));
-      if (p.starDy < h / 2) keyY = Math.max(top + HOVER_DISC_R + 2 * FP, starY - 2 * FP) + ARC;
-      else {
-        // Dip onto the star: the key tap is made at the star as the barrier's middle arrives.
-        keyY = Math.min(top + h - HOVER_DISC_R - 3 * FP, starY + 2 * FP);
-        keyTick = passTick;
-      }
-    }
-    return { idx, keyY, keyTick: Math.round(keyTick), scale };
+    const star = c.star && p.starDy !== undefined ? top + ((hoverStarY(p, seen.tick) ?? 0) - hoverGapTop(p, seen.tick)) : null;
+    const speedFrac = (hoverScroll(s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
+    return { idx, entry, centre, exit, lo: top + HOVER_DISC_R, hi: top + h - HOVER_DISC_R, slope, star, scale: 1 + 0.4 * speedFrac + (moving ? 0.3 : 0) };
   };
 
-  /** The disc's height over the next n ticks without a tap, from the true state (own motion is predictable). */
-  const fall = (y: number, vy: number, n: number): number[] => {
-    const out: number[] = [];
-    for (let k = 0; k < n; k++) {
+  /**
+   * The ideal plan for the barrier ahead: no tap, one tap at u, or a set-up tap at P then
+   * the key tap at u, scored by the least room to the gap's edges while overlapping (and,
+   * when chasing a star, whether the disc touches it). Returns the first tap's offset
+   * (-1: no tap needed yet) and the plan's room.
+   */
+  const plan = (s: HoverState, tg: Target): { first: number; room: number } => {
+    const N = Math.max(tg.exit + 2, 2);
+    const traj: number[] = [];
+    let y = s.y;
+    let vy = s.vy;
+    for (let k = 0; k < N; k++) {
       vy = clampV(vy + HOVER_GRAVITY);
       y += vy;
-      out.push(y);
+      traj.push(y);
     }
-    return out;
+    const before = (k: number) => (k === 0 ? s.y : traj[k - 1]!);
+    const reach = HOVER_DISC_R + HOVER_STAR_R - 2 * FP;
+    const E = Math.max(0, tg.entry);
+    const value = (room: number, starY: number | null, taps: number) =>
+      room - taps * 0.3 * FP + (tg.star !== null && starY !== null && Math.abs(starY - tg.star) <= reach && room > STAR_ROOM[level]! * FP ? 1000 * FP : 0);
+    // Room along an explicit path over the overlap window.
+    const roomOf = (path: (k: number) => number) => {
+      let r = Infinity;
+      for (let k = E; k <= tg.exit; k++) {
+        const yk = path(k) - tg.slope * (k - tg.centre);
+        r = Math.min(r, yk - tg.lo, tg.hi - yk);
+      }
+      return r;
+    };
+    let floorOk = N;
+    for (let k = 0; k < N; k++)
+      if (traj[k]! > FLOOR) {
+        floorOk = k;
+        break;
+      }
+    let best = { first: -1, v: -Infinity, room: -Infinity };
+    // A: no tap.
+    const noTapRoom = floorOk >= N ? roomOf((k) => traj[k]!) : -Infinity;
+    if (floorOk >= N) {
+      const room = noTapRoom;
+      best = { first: -1, v: value(room, tg.centre >= 0 ? traj[Math.min(N - 1, tg.centre)]! : null, 0), room };
+    }
+    // Window extremes of an arc started at u (relative), for u at or before entry.
+    const ext = (u: number) => {
+      let mn = Infinity;
+      let mx = -Infinity;
+      for (let k = E; k <= tg.exit; k++) {
+        const r = RISE[k - u]! - tg.slope * (k - tg.centre);
+        if (r < mn) mn = r;
+        if (r > mx) mx = r;
+      }
+      return { mn, mx };
+    };
+    const uMax = Math.min(tg.exit, floorOk);
+    for (let u = 0; u <= uMax; u++) {
+      const inside = u > E;
+      const { mn, mx } = inside ? { mn: 0, mx: 0 } : ext(u);
+      const starAt = (yu: number) => (tg.centre >= u ? yu + RISE[tg.centre - u]! : null);
+      // B: one tap at u.
+      const yu1 = before(u);
+      // Inside the barrier a tap is only made to save the pass (it would throw the disc high for the next one).
+      if (yu1 - ARC > CEIL && (!inside || noTapRoom < 3 * FP)) {
+        const room = inside ? roomOf((k) => (k < u ? traj[k]! : yu1 + RISE[k - u]!)) : Math.min(yu1 + mn - tg.lo, tg.hi - (yu1 + mx));
+        // A tap inside the barrier only ever saves the pass; nobody hops up mid-gap for a star.
+        const v = value(room, inside ? null : starAt(yu1), 1);
+        if (v > best.v) best = { first: u, v, room };
+      }
+      // C: set-up at P, key at u (key at or before entry).
+      if (inside) continue;
+      for (let P = 0; P <= u - MIN_TAP_GAP; P++) {
+        const yp = before(P);
+        if (yp - ARC <= CEIL) continue;
+        const yu = yp + RISE[u - 1 - P]!;
+        if (yu > FLOOR || yu - ARC <= CEIL) continue;
+        const room = Math.min(yu + mn - tg.lo, tg.hi - (yu + mx));
+        const v = value(room, starAt(yu), 2);
+        if (v > best.v) best = { first: P, v, room };
+      }
+    }
+    return { first: best.first, room: best.room };
   };
 
   const commit = (due: number, t: number, scale: number) => {
@@ -162,79 +238,36 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   return driveTaps(game, (s: HoverState, t) => {
     history.push(s);
     const seen = history[Math.max(0, history.length - 1 - lag)]!;
-    const tg = target(s, seen);
-    if (tg && !keyDone.has(tg.idx) && tg.keyTick - t < -KEY_SLACK - 1 && pendingKey !== tg.idx) keyDone.add(tg.idx);
-    if (pending === null && tg && t - lastTap >= MIN_TAP_GAP) {
-      const untilKey = tg.keyTick - t;
-      const traj = fall(s.y, s.vy, Math.max(60, untilKey + KEY_SLACK + 2));
-      /** Ticks until the untouched disc dips to `low` (or is well below it and losing its climb). */
-      const dipK = (low: number) => {
-        for (let k = 0; k < traj.length; k++) {
-          const y = k === 0 ? s.y : traj[k - 1]!;
-          const vy = k === 0 ? s.vy : traj[k]! - traj[k - 1]!;
-          if ((y >= low && vy >= 0) || (y >= low + 25 * FP && vy > -3 * FP)) return k;
-        }
-        return -1;
-      };
+    if (pending === null && t - lastTap >= MIN_TAP_GAP) {
+      const tg = target(s, seen, t);
       let due = -1;
-      let key = false;
-      let setup = false;
-      if (!keyDone.has(tg.idx) && untilKey <= APPROACH) {
-        // Approach: the ideal (set-up tap, key tick) pair. The key may slide a few ticks off the
-        // barrier's middle; one set-up tap brings the disc to the key height on time.
-        const floor = HOVER_WORLD_BOTTOM - HOVER_DISC_R - 8 * FP;
-        let safeUntil = 0;
-        while (safeUntil < traj.length && traj[safeUntil]! < floor) safeUntil++;
-        const heightBefore = (P: number, u: number) => {
-          if (P < 0) return u <= 0 ? s.y : traj[u - 1]!;
-          return (P === 0 ? s.y : traj[P - 1]!) + RISE[u - 1 - P]!;
-        };
-        let best = { P: -1, u: -1, cost: Infinity };
-        for (let u = Math.max(0, untilKey - KEY_SLACK); u <= untilKey + KEY_SLACK; u++) {
-          const shift = Math.abs(u - untilKey) * 1.5 * FP;
-          if (safeUntil >= u) {
-            const c = Math.abs(heightBefore(-1, u) - tg.keyY) + shift;
-            if (c < best.cost) best = { P: -1, u, cost: c };
-          }
-          if (setupDone.has(tg.idx)) continue;
-          for (let P = 0; P <= Math.min(u - MIN_TAP_GAP, safeUntil); P++) {
-            const c = Math.abs(heightBefore(P, u) - tg.keyY) + shift;
-            if (c < best.cost) best = { P, u, cost: c };
+      if (tg) {
+        // Cruise height: dips where the arc's top would sit a little above the gap's middle (or on the star).
+        const apex = tg.star ?? (tg.lo + tg.hi) / 2 - 3 * FP;
+        const low = Math.min(FLOOR - 20 * FP, apex + ARC);
+        let cruise = false;
+        if (tg.entry <= APPROACH) {
+          const p = plan(s, tg);
+          if (p.room < -10 * FP && tg.entry > 2) cruise = true;
+          else due = p.first >= 0 ? t + p.first : -1;
+        } else cruise = true;
+        if (cruise) {
+          let y = s.y;
+          let vy = s.vy;
+          for (let k = 0; k <= commitLead; k++) {
+            if ((y >= low && vy >= 0) || (y >= low + 25 * FP && vy > -3 * FP)) {
+              due = t + k;
+              break;
+            }
+            vy = clampV(vy + HOVER_GRAVITY);
+            y += vy;
           }
         }
-        const climb = best.u < 0 || (best.cost > 25 * FP && (best.P < 0 ? heightBefore(-1, Math.max(0, best.u)) : heightBefore(best.P, best.u)) > tg.keyY);
-        if (climb && !setupDone.has(tg.idx)) {
-          // Too low for one set-up tap: keep climbing first.
-          const k = dipK(Math.min(tg.keyY, floor - 20 * FP));
-          if (k >= 0) due = t + k;
-        } else if (best.P >= 0) {
-          due = t + best.P;
-          setup = true;
-        } else {
-          due = t + Math.max(0, best.u);
-          key = true;
-        }
-      } else if (!keyDone.has(tg.idx)) {
-        // Cruise: keep bobbing so the dips sit at the key height.
-        const k = dipK(tg.keyY);
-        if (k >= 0) due = t + k;
-      } else if (s.vy > 0) {
-        // After the key tap: only catch the disc if it would drop out through the gap.
-        const k = dipK(tg.keyY + 10 * FP);
-        if (k >= 0) due = t + k;
-      }
-      if (due >= 0 && due - t <= commitLead) {
-        pending = commit(due, t, tg.scale);
-        pendingKey = key ? tg.idx : -1;
-        pendingSetup = setup ? tg.idx : -1;
+        if (due >= 0 && due - t <= commitLead) pending = commit(due, t, tg.scale);
       }
     }
     if (pending !== null && t >= pending && t - lastTap >= MIN_TAP_GAP) {
       pending = null;
-      if (pendingKey >= 0) keyDone.add(pendingKey);
-      if (pendingSetup >= 0) setupDone.add(pendingSetup);
-      pendingSetup = -1;
-      pendingKey = -1;
       lastTap = t;
       return true;
     }

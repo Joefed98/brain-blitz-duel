@@ -47,6 +47,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const plan = new Plan();
   let key = "";
   let cpPlanned = false;
+  /** Holes the player has gone for once already. */
+  const burnt = new Set<number>();
   const init = game.init(seed) as OrbitRev3State;
 
   const planOrbit = (s: OrbitRev3State, t: number, first: boolean) => {
@@ -62,7 +64,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     /** Windows found so far: [start delay, length, kind]. */
     const windows: [number, number, Kind][] = [];
     const hasHole = (s.holes ?? []).some((h) => h.from === s.cur);
-    const tryHole = hasHole && human.chance(HOLE_TRY[level]!);
+    // A hole they already died going for is left alone; with no respawn in hand they gamble half as often.
+    const safety = s.checkpoint >= 0 && s.respawns > 0 ? 1 : 0.5;
+    const tryHole = hasHole && !burnt.has(s.cur) && human.chance(HOLE_TRY[level]! * safety);
+    if (tryHole) burnt.add(s.cur);
     let skips = human.chance(HESITATE[level]!) ? 1 : 0;
     let chosen: [number, number, Kind] | null = null;
     for (let d = 0; d <= maxScan && !chosen; d++) {
@@ -95,7 +100,6 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     let tapD = mid + human.timingMs(readScale) / (1000 / 60) + human.timingMs(1) / (1000 / 60);
     if (human.slip(0.3)) tapD += (human.chance(0.5) ? 1 : -1) * lap * (0.06 + 0.1 * human.u());
     tapD = Math.max(0, Math.round(tapD));
-    if (process.env.ODBG) console.log("plan", t, s.cur, JSON.stringify(chosen), "ready", ready, "tapD", tapD, "flight", flight, windows.slice(0, 6).map((w) => w.join(":")).join(" "));
     plan.at(t + tapD, { k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
     // Checkpoint: once some progress is made and this hop looks hard (narrow or belted), or just felt like it.
     if (!cpPlanned && s.checkpoint < 0 && s.cur >= 4) {
