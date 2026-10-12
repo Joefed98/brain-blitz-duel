@@ -1,0 +1,261 @@
+[
+ {
+  "game": "wavefront",
+  "seed": 1,
+  "score": 42,
+  "replayScore": 42,
+  "stateHash": 2525567687
+ },
+ {
+  "game": "breaker",
+  "seed": 1,
+  "score": 107,
+  "replayScore": 107,
+  "stateHash": 568611766
+ },
+ {
+  "game": "burst",
+  "seed": 1,
+  "score": 9,
+  "replayScore": 9,
+  "stateHash": 4280298578
+ },
+ {
+  "game": "wavefront",
+  "seed": 77,
+  "score": 62,
+  "replayScore": 62,
+  "stateHash": 2775348642
+ },
+ {
+  "game": "breaker",
+  "seed": 77,
+  "score": 70,
+  "replayScore": 70,
+  "stateHash": 4244547471
+ },
+ {
+  "game": "burst",
+  "seed": 77,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2006565978
+ },
+ {
+  "game": "wavefront",
+  "seed": 4242,
+  "score": 8,
+  "replayScore": 8,
+  "stateHash": 179507243
+ },
+ {
+  "game": "breaker",
+  "seed": 4242,
+  "score": 124,
+  "replayScore": 124,
+  "stateHash": 3586294358
+ },
+ {
+  "game": "burst",
+  "seed": 4242,
+  "score": 15,
+  "replayScore": 15,
+  "stateHash": 1456390963
+ },
+ {
+  "game": "wavefront",
+  "seed": 90210,
+  "score": 60,
+  "replayScore": 60,
+  "stateHash": 1583039328
+ },
+ {
+  "game": "breaker",
+  "seed": 90210,
+  "score": 117,
+  "replayScore": 117,
+  "stateHash": 2611221044
+ },
+ {
+  "game": "burst",
+  "seed": 90210,
+  "score": 11,
+  "replayScore": 11,
+  "stateHash": 4173913099
+ },
+ {
+  "game": "wavefront",
+  "seed": 123457,
+  "score": 29,
+  "replayScore": 29,
+  "stateHash": 3000793164
+ },
+ {
+  "game": "breaker",
+  "seed": 123457,
+  "score": 91,
+  "replayScore": 91,
+  "stateHash": 2189083668
+ },
+ {
+  "game": "burst",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3365515210
+ },
+ {
+  "game": "wavefront",
+  "seed": 31337,
+  "score": 13,
+  "replayScore": 13,
+  "stateHash": 1604633229
+ },
+ {
+  "game": "breaker",
+  "seed": 31337,
+  "score": 111,
+  "replayScore": 111,
+  "stateHash": 3912970044
+ },
+ {
+  "game": "burst",
+  "seed": 31337,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2323324925
+ },
+ {
+  "game": "swing/0",
+  "seed": 296564899,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1353183623
+ },
+ {
+  "game": "swing/0",
+  "seed": 1499332260,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1619974071
+ },
+ {
+  "game": "swing/0",
+  "seed": 720939650,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3750341242
+ },
+ {
+  "game": "swing/0",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2124318517
+ },
+ {
+  "game": "swing/0",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1089462836
+ },
+ {
+  "game": "swing/2",
+  "seed": 296564899,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2541345906
+ },
+ {
+  "game": "swing/2",
+  "seed": 1499332260,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3331043017
+ },
+ {
+  "game": "swing/2",
+  "seed": 720939650,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 2877616919
+ },
+ {
+  "game": "swing/2",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 231269414
+ },
+ {
+  "game": "swing/2",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 627176166
+ },
+ {
+  "game": "swing/3",
+  "seed": 296564899,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 152841036
+ },
+ {
+  "game": "swing/3",
+  "seed": 1499332260,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3347136154
+ },
+ {
+  "game": "swing/3",
+  "seed": 720939650,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3519288952
+ },
+ {
+  "game": "swing/3",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 4094373398
+ },
+ {
+  "game": "swing/3",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 596685555
+ },
+ {
+  "game": "swing/2/proof",
+  "seed": 296564899,
+  "score": 140,
+  "replayScore": 140,
+  "stateHash": 745611836
+ },
+ {
+  "game": "swing/2/proof",
+  "seed": 1499332260,
+  "score": 140,
+  "replayScore": 140,
+  "stateHash": 4099948743
+ },
+ {
+  "game": "swing/3/proof",
+  "seed": 296564899,
+  "score": 140,
+  "replayScore": 140,
+  "stateHash": 3492192365
+ },
+ {
+  "game": "swing/3/proof",
+  "seed": 1499332260,
+  "score": 140,
+  "replayScore": 140,
+  "stateHash": 175279360
+ }
+]

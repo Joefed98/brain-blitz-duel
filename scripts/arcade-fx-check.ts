@@ -54,13 +54,13 @@ const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
 const { hoverRev2Game } = await import("../src/lib/arcade/hover");
-const { breakerArtGame } = await import("../src/lib/arcade/breaker.renderer");
+const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
 const { snakeRev3Game } = await import("../src/lib/arcade/snake");
-const { burstArtGame } = await import("../src/lib/arcade/burst.renderer");
-const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
+const { burstArtGameFor } = await import("../src/lib/arcade/burst.renderer");
+const { wavefrontArtGameFor } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
 const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
 const { crossArtGameFor } = await import("../src/lib/arcade/cross.renderer");
@@ -73,7 +73,7 @@ const { bullseyeGame } = await import("../src/lib/arcade/bullseye");
 const { bubbleArtGame } = await import("../src/lib/arcade/bubble.renderer");
 const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
-const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
+const { swingArtGameFor } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
 const { tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
 const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
@@ -103,12 +103,12 @@ const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
-  breaker: breakerArtGame as AnyGame,
+  breaker: breakerArtGameFor(2) as AnyGame,
   rally: rallyArtGame as AnyGame,
   beat: beatArtGame as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGame as AnyGame,
-  wavefront: wavefrontArtGame as AnyGame,
+  burst: burstArtGameFor(2) as AnyGame,
+  wavefront: wavefrontArtGameFor(2) as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: skylineArtGame as AnyGame,
   cross: crossArtGameFor(3) as AnyGame,
@@ -119,7 +119,7 @@ const GAMES: Record<string, AnyGame> = {
   bullseye: { ...bullseyeGame, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
   flip: flipArtGameFor(2) as AnyGame,
-  swing: swingArtGame as AnyGame,
+  swing: swingArtGameFor(4) as AnyGame,
   snip: snipArtGame as AnyGame,
   tilt: tiltArtGame as AnyGame,
   balltrack: {
@@ -234,6 +234,8 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
     (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),
+    (s) => ({ ...s, fireballs: (s.fireballs ?? 0) + 1, fire: 300 }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 8) === (s.slide ?? [3])[0] && i % 8 === 0 ? 0 : b)) }),
     (s) => ({
       ...s,
       bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 8 ? 0 : b)),
@@ -251,12 +253,15 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   burst: [
     (s) => ({ ...s, cleared: s.cleared + 1 }),
+    (s) => ({ ...s, freezes: (s.freezes ?? 0) + 1, freeze: 180 }),
     (s) => ({ ...s, ended: 1, lives: 3, cleared: 4 }),
   ],
   wavefront: [
     (s) => ({ ...s, saucers: s.saucers + 1 }),
     (s) => ({ ...s, wavesCleared: s.wavesCleared + 1 }),
-    (s) => ({ ...s, wavesCleared: 5 }),
+    (s) => ({ ...s, diversDown: (s.diversDown ?? 0) + 1 }),
+    (s) => ({ ...s, boss: s.boss ?? { x: 131, dir: 1, hp: 30, fireIn: 60 }, bossHits: (s.bossHits ?? 0) + 6 }),
+    (s) => ({ ...s, bossKilled: 1 }),
   ],
   orbit: [(s) => ({ ...s, best: s.best + 10 }), (s) => ({ ...s, finished: 1 })],
   skyline: [(s) => ({ ...s, perfects: s.perfects + 1 }), (s) => ({ ...s, placed: s.placed + 10 })],
@@ -317,6 +322,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, rocks: (s.rocks ?? []).map((r: any, i: number) => (i === 0 ? { ...r, phase: 3 } : r)) }),
+    (s) => ({ ...s, x: (s.jets?.[0]?.x ?? 0) + 40 * 256 }),
     (s) => ({ ...s, ended: 1, maxX: s.maxX + 600 * 256 * 40 }),
   ],
   snip: [

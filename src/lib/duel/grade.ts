@@ -59,6 +59,7 @@ import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
+import { SWING_REV } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
@@ -1032,7 +1033,7 @@ export function gradeSubmission(
     case "breaker": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayBreakerRun(puzzle.seed, answer);
+      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1047,6 +1048,7 @@ export function gradeSubmission(
         totalHits: run.totalHits,
         losses: run.losses,
         powerUps: run.powerUps,
+        ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1300,7 +1302,7 @@ export function gradeSubmission(
     }
     case "wavefront": {
       const replayStart = performance.now();
-      const run = replayWavefrontRun(puzzle.seed, answer);
+      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1314,6 +1316,7 @@ export function gradeSubmission(
         saucers: run.saucers,
         armourHits: run.armourHits,
         wavesCleared: run.wavesCleared,
+        ...(puzzle.wavRev ? { wavRev: puzzle.wavRev, bossHits: run.bossHits, bossKilled: run.bossKilled, rammed: run.rammed } : {}),
         lives: run.lives,
         survived: run.survived,
         endedSeconds: run.endedSeconds,
@@ -1511,7 +1514,7 @@ export function gradeSubmission(
     }
     case "burst": {
       const replayStart = performance.now();
-      const run = replayBurstRun(puzzle.seed, answer);
+      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1525,6 +1528,7 @@ export function gradeSubmission(
         cleared: run.cleared,
         lives: run.lives,
         livesLost: run.livesLost,
+        ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -1608,6 +1612,8 @@ export function gradeSubmission(
         metres: run.metres,
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
+        // swingRev 4: stars taken (of starTotal) and what ended the run (1 dragon, 2 stalactite, 3 lava jet).
+        ...(puzzle.swingRev === SWING_REV ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

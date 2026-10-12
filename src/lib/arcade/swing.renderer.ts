@@ -11,8 +11,17 @@ import type { CanvasSize } from "./engine";
 import {
   swingGame,
   swingGameFor,
+  swingJetAt,
   swingMetres,
+  SWING_CHASE_REACH,
   SWING_FINISH_M,
+  SWING_JET_BUBBLE,
+  SWING_JET_ERUPT,
+  SWING_JET_HALF_W,
+  SWING_REV,
+  SWING_ROCK_HALF_H,
+  SWING_ROCK_HALF_W,
+  SWING_ROCK_WARN,
   SWING_GOLD,
   SWING_WORLD_H,
   SWING_WORLD_W,
@@ -177,6 +186,66 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     else drawGrapplerDragon(ctx, x, dragon.y / FP, phase);
   }
 
+  // swingRev 4: loose stalactites. Hanging, they look cracked; warning, they shake and throw a
+  // shadow on the lava below; falling, the rock fills its 18 × 32 hit box.
+  for (const r of state.rocks ?? []) {
+    if (r.phase === 3) continue;
+    const x = sx(r.x);
+    if (x < -30 || x > SWING_WORLD_W + 30) continue;
+    const hw = SWING_ROCK_HALF_W / FP;
+    const hh = SWING_ROCK_HALF_H / FP;
+    const floorY = lerpAt(state.floor, r.x) / FP;
+    let cy = r.phase === 2 ? r.y / FP : r.top / FP + hh;
+    let shake = 0;
+    if (r.phase === 1 && !still) shake = Math.sin(state.tick * 2.3) * 1.5;
+    if (r.phase >= 1) {
+      // Shadow on the lava: grows and darkens as the drop nears.
+      const k = r.phase === 1 ? r.t / SWING_ROCK_WARN : 1;
+      ctx.fillStyle = `rgba(0,0,0,${0.35 + 0.35 * k})`;
+      ctx.beginPath();
+      ctx.ellipse(x, floorY - 2, hw * (0.6 + 0.8 * k), 3 + 2 * k, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,77,94,${0.4 + 0.4 * k})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.moveTo(x, cy + hh + 2);
+      ctx.lineTo(x, floorY - 6);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (r.phase === 2 && !still) {
+      ctx.fillStyle = "rgba(255,200,160,0.18)";
+      ctx.fillRect(x - hw + 3, cy - hh - 18, hw * 2 - 6, 18);
+    }
+    cy = Math.round(cy);
+    const left = x - hw + shake;
+    ctx.fillStyle = r.phase === 0 ? "#4A3A3E" : "#6A5258";
+    ctx.strokeStyle = r.phase === 0 ? "rgba(255,170,120,0.45)" : "#FF4D5E";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(left, cy - hh);
+    ctx.lineTo(left + hw * 2, cy - hh);
+    ctx.lineTo(left + hw * 1.4, cy + hh * 0.3);
+    ctx.lineTo(left + hw, cy + hh);
+    ctx.lineTo(left + hw * 0.6, cy + hh * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.beginPath();
+    ctx.moveTo(left + hw * 0.7, cy - hh + 3);
+    ctx.lineTo(left + hw * 1.1, cy - hh * 0.2);
+    ctx.lineTo(left + hw * 0.9, cy + hh * 0.2);
+    ctx.stroke();
+  }
+
+  // swingRev 4: the chasing dragon, its jaws on the catch line.
+  if ((state.chaseX ?? 0) !== 0) {
+    const x = sx((state.chaseX ?? 0) + SWING_CHASE_REACH - 32 * FP);
+    if (x > -40 && x < SWING_WORLD_W + 40) drawGrapplerDragonV3(ctx, x, (state.chaseY ?? 0) / FP, still ? 0 : Math.floor(state.tick / 6));
+  }
+
   // Distance posts every 100 m; 500 m is a gold gate.
   for (let m = 100; m <= SWING_FINISH_M; m += 100) {
     const x = sx(START_X + m * METRE);
@@ -288,6 +357,49 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.stroke();
   ctx.shadowBlur = 0;
 
+  // swingRev 4 lava jets: bubbles on the surface during the warning, then a molten column
+  // as tall and as wide as the sim's jet.
+  for (const jet of state.jets ?? []) {
+    const x = sx(jet.x);
+    if (x < -30 || x > SWING_WORLD_W + 30) continue;
+    const floorY = lerpAt(state.floor, jet.x) / FP;
+    const { h, bubbling } = swingJetAt(jet, state.tick);
+    const half = SWING_JET_HALF_W / FP;
+    if (bubbling) {
+      const c = (state.tick + jet.phase) % jet.period;
+      const k = (c - (jet.period - SWING_JET_ERUPT - SWING_JET_BUBBLE)) / SWING_JET_BUBBLE;
+      ctx.fillStyle = "rgba(255,220,140,0.9)";
+      for (let b = 0; b < 4; b++) {
+        const age = still ? 0.5 : ((state.tick * 0.07 + b * 0.27) % 1);
+        ctx.globalAlpha = (1 - age) * (0.5 + 0.5 * k);
+        ctx.beginPath();
+        ctx.arc(x + (b - 1.5) * 6, floorY - 2 - age * 10 * k, 1.5 + 2 * k, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = `rgba(255,120,40,${0.3 + 0.5 * k})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, floorY, half, 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (h > 0) {
+      const top = floorY - h / FP;
+      const g = ctx.createLinearGradient(0, top, 0, floorY);
+      g.addColorStop(0, "#FFE08A");
+      g.addColorStop(0.3, "#FF8A2A");
+      g.addColorStop(1, "#C3260F");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(x - half, floorY);
+      ctx.lineTo(x - half + 2, top + 6);
+      ctx.quadraticCurveTo(x, top - 4, x + half - 2, top + 6);
+      ctx.lineTo(x + half, floorY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   // Embers rising.
   if (!still) {
     for (let k = 0; k < 18; k++) {
@@ -306,9 +418,13 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   }
 
   // Anchors: iron rings bolted in the rock.
+  const starAt = new Set(state.starAnchors ?? []);
+  const taken = new Set(state.starsTaken ?? []);
   state.anchors.forEach((a, i) => {
     const x = sx(a.x);
     if (x < -20 || x > SWING_WORLD_W + 20) return;
+    // swingRev 4: a gold star around each star anchor until it is taken.
+    if (starAt.has(i) && !taken.has(i)) drawStar(ctx, x, a.y / FP, 11, still ? 0 : state.tick);
     const flash = i === state.rope && state.tick - state.grabTick < 12;
     // Art pilot (Cave & Lava): anchor sprite at the ring's size; the gold grab flash stays code-drawn.
     if (!flash && drawArtSprite(ctx, "cavelava", "anchor", x - 6, a.y / FP - 6, 12, 12)) return;
@@ -384,11 +500,73 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.fill();
   drawGrapplerHood(ctx,fx,fy);
 
+  // swingRev 4 edge warnings: the dragon behind (off the left edge) and a shadow ahead (off the right).
+  if (state.rev === SWING_REV && state.ended === 0) {
+    const chase = state.chaseX ?? 0;
+    if (chase !== 0) {
+      const behind = Math.max(0, Math.trunc((state.x - chase - SWING_CHASE_REACH) / (40 * FP)));
+      if (sx(chase + SWING_CHASE_REACH) < 0) {
+        ctx.fillStyle = behind < 4 ? "#FF4D5E" : "rgba(255,77,94,0.75)";
+        ctx.beginPath();
+        ctx.moveTo(4, state.y / FP);
+        ctx.lineTo(16, state.y / FP - 9);
+        ctx.lineTo(16, state.y / FP + 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.font = "700 11px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.textAlign = "left";
+        ctx.fillText(`DRAGON ${behind} m`, 20, state.y / FP + 4);
+      }
+    }
+    for (const r of state.rocks ?? []) {
+      if (r.phase !== 1 || sx(r.x) <= SWING_WORLD_W - 4) continue;
+      const y = lerpAt(state.floor, r.x) / FP - 18;
+      ctx.fillStyle = "#FF4D5E";
+      ctx.beginPath();
+      ctx.moveTo(SWING_WORLD_W - 4, y);
+      ctx.lineTo(SWING_WORLD_W - 16, y - 8);
+      ctx.lineTo(SWING_WORLD_W - 16, y + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = "800 12px 'JetBrains Mono', ui-monospace, monospace";
+      ctx.textAlign = "right";
+      ctx.fillText("!", SWING_WORLD_W - 18, y + 4);
+    }
+  }
+
   ctx.restore();
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
   successHud(ctx,'swing',state.tick,14,26,()=>ctx.fillText(`${Math.min(SWING_FINISH_M,swingMetres(state))} / ${SWING_FINISH_M} m`,14,26));
+  if (state.rev === SWING_REV) {
+    ctx.fillStyle = SWING_GOLD;
+    ctx.textAlign = "right";
+    const label = `${state.stars ?? 0} / ${(state.starAnchors ?? []).length}`;
+    ctx.fillText(label, SWING_WORLD_W - 14, 26);
+    drawStar(ctx, SWING_WORLD_W - 22 - ctx.measureText(label).width, 20, 8, 0);
+    ctx.textAlign = "left";
+  }
+  ctx.restore();
+}
+
+/** A five-point gold star centred on an anchor ring (outer radius r), slowly twinkling. */
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number): void {
+  ctx.save();
+  ctx.globalAlpha = 0.85 + 0.15 * Math.sin(tick * 0.12);
+  ctx.fillStyle = "#FFD84A";
+  ctx.strokeStyle = "#8A5A10";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let p = 0; p < 10; p++) {
+    const rad = p % 2 === 0 ? r : r * 0.45;
+    const a = -Math.PI / 2 + (p * Math.PI) / 5;
+    if (p === 0) ctx.moveTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+    else ctx.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -396,7 +574,9 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
 export const swingArtGame = { ...swingGame, draw: drawSwingArt };
 const dragonArtGameV2 = { ...swingGameFor(2), draw: drawSwingArt };
 const dragonArtGameV3 = { ...swingGameFor(3), draw: drawSwingArt };
+const chaseArtGameV4 = { ...swingGameFor(SWING_REV), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV) return chaseArtGameV4;
   if (rev === 3) return dragonArtGameV3;
   if (rev === 2) return dragonArtGameV2;
   return swingArtGame;

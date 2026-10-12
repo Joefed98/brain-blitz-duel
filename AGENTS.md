@@ -38,7 +38,7 @@
 - RoomChat owns portalled bounded compact/expanded message sheets and keyboard geometry; room state supplies only chat availability and header time, and gesture blockers exempt data-scrollable. Why: chat scroll stays independent of game/page layouts.
 
 - Pipeline BFS is presentation-only; scenery and Grappler art are private renderers. Why: paint cannot alter grading.
-- Grappler swingRev selects dragons; courses come from the server-only proved bank by seed, live proof only as fallback. Why: legacy replay, fast starts.
+- Grappler swingRev selects the rules (2/3 fixed dragons, 4 the chasing dragon, stalactites, lava jets and star anchors); courses come from the server-only proved bank by seed (swingRev 4: SWING_V4_BANK, every course proved to 500 m with all 10 stars), live proof only as fallback. Why: legacy replay, fast starts, a provable 150.
 
 - Refresh icons/Bonk cache original footprint art for replay parity.
 - letterShuffle keeps IDs; practiceBest is local; puzzleReject/useSolveFlourish/nearMiss paint existing verdicts/facts only, never grading/audio/phases.
