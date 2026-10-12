@@ -327,7 +327,7 @@ if (want("hover")) {
   ok(game.init(5).rev === HOVER_REV, "rev-2 state carries the stamp");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "rev-2 courses are seeded");
   ok(hoverGame.init(5).totalGates === 42 && HOVER_REACHABLE_GATES === 42 && hoverGame.init(5).pillars.length === 45, "45 barriers are built and a clean run reaches 42 (the text says 42)");
-  ok(/\b42 barriers\b/.test(INTRO_SCORE.hover) && PUZZLE_INSTRUCTIONS.hover.score.includes("42"), "intro and help say 42 barriers");
+  ok(/barrier/.test(INTRO_SCORE.hover) && PUZZLE_INSTRUCTIONS.hover.score.includes("42 barriers"), "intro names barriers; help says 42 barriers");
   for (const seed of SEEDS(200, 7919)) {
     const s = game.init(seed);
     const legacy = hoverGame.init(seed);
@@ -496,7 +496,7 @@ if (want("bubble")) {
     const s = game.init(1);
     const last = s.grid.findIndex((v) => v > 0);
     ok(game.score({ ...s, grid: s.grid.map((v, i) => (i === last ? v : 0)) }) === BUB_V2_PARTIAL_MAX, `a part-cleared field scores up to ${BUB_V2_PARTIAL_MAX}`);
-    ok(/up to 99\b/.test(INTRO_SCORE.bubble), "the intro states the 99 partial maximum");
+    ok(/up to 150/.test(INTRO_SCORE.bubble) && !/\b99\b/.test(INTRO_SCORE.bubble), "the intro states 150 and no 99 cap (score bands, bubbleRev 3; stored rev-2 rounds keep 99)");
     ok(game.score({ ...s, cleared: true, endedTick: 1 }) === 150, "a full clear early scores 150");
   }
   // Real play: replay identity, balance against the original, and a 150 through the server replay.

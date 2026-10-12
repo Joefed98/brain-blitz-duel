@@ -253,7 +253,7 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-ok(/Up to 150/.test(crossIntro) && /2 points/.test(crossIntro) && /plus 4/.test(crossIntro), "Jaywalk intro states 2 per lane, 4 per crossing, up to 150");
+ok(/Up to 150/.test(crossIntro) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to 150 (score bands, crossRev 4)");
 }
 
 /* =============================== 2b. Roofbound =============================== */
@@ -326,7 +326,7 @@ for (const seed of FLIP_SEEDS) {
 }
 ok(flipCracked > 0, "the winning runs stood on crumbling tiles and flipped off in time");
 console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEEDS.length} seeds (survived 60 s, all 10 stars; ${flipCracked} crumbling tiles survived)`);
-ok(/130/.test(INTRO_SCORE.flip) && /2/.test(INTRO_SCORE.flip) && /150/.test(INTRO_SCORE.flip), "Roofbound intro states 130 + 2 per star, 150");
+ok(/gold star/.test(INTRO_SCORE.flip) && /minute for 10 more/.test(INTRO_SCORE.flip), "Roofbound intro states seconds, stars and the 10 for the minute (score bands, flipRev 3)");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */
@@ -454,7 +454,7 @@ section("Ball Tracker btRev 2");
   const earliest = lastRelease + BT_STEP_TICKS * (minMoves + 1);
   ok(earliest === BT_LAST_LAND_MIN, `the last marble lands no earlier than tick ${earliest}`);
   ok(btScoreOfV2(BT_BALLS, earliest) === 150 && btScoreOf(BT_BALLS, 0, earliest) === BT_LEGACY_PERFECT_MAX, "rev 2 perfect max 150; original stays 135");
-  ok(INTRO_SCORE.balltrack.includes(`for up to 150; otherwise up to ${btScoreOfV2(BT_BALLS - 1, earliest)}`), "Ball Tracker intro states the true maximums");
+  ok(INTRO_SCORE.balltrack.includes("up to 150") && !/otherwise up to/.test(INTRO_SCORE.balltrack), "Ball Tracker intro states 150 and no partial cap (score bands, btRev 3)");
   console.log(`  occupied turns and switch points work; ${Math.ceil(BALL_TRACK_BANK.length / 4)} banked playbooks still prove their courses (perfect runs score ${minScore}–${maxScore} under rev 2; earliest last landing tick ${BT_LAST_LAND_MIN}, last release ${lastRelease})`);
 }
 }

@@ -31,6 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -108,7 +109,7 @@ export interface HoverPillar {
   starDy?: number;
 }
 
-export interface HoverState {
+export interface HoverState extends BandFields {
   tick: number;
   /** Disc centre, fixed-point. */
   y: number;
@@ -516,9 +517,9 @@ export const hoverGame: ArcadeGame<HoverState> = {
   key: "hover",
   runTicks: HOVER_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
 };
 
@@ -527,5 +528,24 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_BAND) return hoverBandGame;
   return rev === HOVER_REV ? hoverRev2Game : hoverGame;
 }
+
+/* ================= Oct 2026 score bands (hoverRev 3) ================= */
+
+/** Score-band revision (puzzle.hoverRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const HOVER_REV_BAND = 3;
+/** Barriers count 3 and gold stars 2; 140 at every barrier and star; lasting the minute adds 10. */
+export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70, 100, 125, 136, 138, 140]);
+export function hoverBandParts(state: HoverState): BandParts {
+  const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
+  const finished = hoverSurvived(state);
+  return { units, points: bandPoints(HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
+}
+
+function scoreBand(state: HoverState): number {
+  return bandTotal(hoverBandParts(state), Boolean(state.acted));
+}
+
+export const hoverBandGame: ArcadeGame<HoverState> = { ...hoverRev2Game, init: (seed) => bandInit(hoverRev2Game.init(seed)) };

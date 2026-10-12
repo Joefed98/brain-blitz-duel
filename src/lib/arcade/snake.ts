@@ -29,6 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -101,7 +102,7 @@ export function snakeStepTicks(eaten: number): number {
 
 /* ================================ State ================================ */
 
-export interface SnakeState {
+export interface SnakeState extends BandFields {
   tick: number;
   rng: number;
   /** Cell indices, head first. */
@@ -607,9 +608,9 @@ export const snakeGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = {
   key: "snake",
   runTicks: SNAKE_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: SNAKE_INPUT_RANGES,
 };
@@ -621,6 +622,25 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_BAND) return snakeBandGame;
   if (rev === SNAKE_REV) return snakeRev3Game;
   return rev === SNAKE_REV2 ? snakeRev2Game : snakeGame;
 }
+
+/* ================= Oct 2026 score bands (snakeRev 4) ================= */
+
+/** Score-band revision (puzzle.snakeRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const SNAKE_REV_BAND = 4;
+/** Stars eaten; 150 at 38 (the best near-perfect simulated runs ate 38–39). */
+export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 125, 145, 150]);
+
+export function snakeBandParts(state: SnakeState): BandParts {
+  const units = Math.max(0, state.eaten);
+  return { units, points: bandPoints(SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
+}
+
+function scoreBand(state: SnakeState): number {
+  return bandTotal(snakeBandParts(state), Boolean(state.acted));
+}
+
+export const snakeBandGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeRev3Game, init: (seed) => bandInit(snakeRev3Game.init(seed)) };

@@ -37,6 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -305,7 +306,7 @@ export interface MatchupAnimStep {
   ticks: number;
 }
 
-export interface MatchupState {
+export interface MatchupState extends BandFields {
   tick: number;
   rng: number;
   /** Row-major, row 0 at the top. */
@@ -849,7 +850,9 @@ function step(state: MatchupState, input: ArcadeInputEvent | null): MatchupState
 }
 
 /** The par a round scores against: matchupRev 2 has its own. */
-export function matchupParRaw(state: Pick<MatchupState, "rev">): number {
+export function matchupParRaw(state: Pick<MatchupState, "rev" | "band">): number {
+  // Score-band rounds (matchupRev 4) reach 150 at the band curve's top.
+  if (state.band) return bandTop(MATCHUP_BAND_CURVE);
   if (state.rev === MATCHUP_REV) return MATCHUP_V3_PAR_RAW;
   return state.rev === MATCHUP_REV2 ? MATCHUP_V2_PAR_RAW : MATCHUP_PAR_RAW;
 }
@@ -1345,9 +1348,9 @@ export const matchupGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = {
   key: "matchup",
   runTicks: MATCHUP_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: MATCHUP_INPUT_RANGES,
 };
@@ -1359,6 +1362,25 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_BAND) return matchupBandGame;
   if (rev === MATCHUP_REV) return matchupRev3Game;
   return rev === MATCHUP_REV2 ? matchupRev2Game : matchupGame;
 }
+
+/* ================= Oct 2026 score bands (matchupRev 4) ================= */
+
+/** Score-band revision (puzzle.matchupRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const MATCHUP_REV_BAND = 4;
+/** Match points; 150 at 1,300 (rev 3 needed 5,500). */
+export const MATCHUP_BAND_CURVE = bandCurve([0, 560, 760, 980, 1150, 1300], [0, 70, 100, 125, 145, 150]);
+
+export function matchupBandParts(state: MatchupState): BandParts {
+  const units = Math.max(0, state.raw);
+  return { units, points: bandPoints(MATCHUP_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
+}
+
+function scoreBand(state: MatchupState): number {
+  return bandTotal(matchupBandParts(state), Boolean(state.acted));
+}
+
+export const matchupBandGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupRev3Game, init: (seed) => bandInit(matchupRev3Game.init(seed)) };

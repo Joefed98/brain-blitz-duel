@@ -30,6 +30,8 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { speedBonusCurve } from "../duel/speedPar";
+import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -117,7 +119,7 @@ export function bubCellY(row: number, descents: number): number {
 
 /* ================================ State ================================ */
 
-export interface BubState {
+export interface BubState extends BandFields {
   tick: number;
   rng: number;
   /** BUB_MAX_ROWS × BUB_COLS, 0 empty, otherwise a colour 1…5. */
@@ -202,8 +204,11 @@ function init(seed: number): BubState {
 /**
  * bubbleRev 2: the original field and queue, then special slots drawn from the
  * PRNG continuing after the queue. Slots are distinct and every block gets one.
+ * bubbleRev 3 (score bands) draws the same way with rarer specials: one Joker
+ * in each block of BUB_V3_JOKER_BLOCK shots and a single mine or torpedo (its
+ * kind drawn too) in the first BUB_SPECIAL_BLOCK shots.
  */
-function initRev2(seed: number): BubState {
+function initRev2(seed: number, v3 = false): BubState {
   const base = init(seed);
   let rng = base.rng;
   const queue = [...base.queue];
@@ -219,10 +224,18 @@ function initRev2(seed: number): BubState {
       return;
     }
   };
-  for (let from = BUB_SPECIAL_FROM; from < BUB_QUEUE; from += BUB_JOKER_BLOCK) {
+  if (v3) {
+    for (let from = BUB_SPECIAL_FROM; from < BUB_QUEUE; from += BUB_V3_JOKER_BLOCK) {
+      place(BUB_JOKER, from, Math.min(BUB_QUEUE, from + BUB_V3_JOKER_BLOCK));
+    }
+    const kind = rngBelow(rng, 2);
+    rng = kind.state;
+    place(kind.value === 0 ? BUB_BOMB : BUB_LINE, BUB_SPECIAL_FROM, BUB_SPECIAL_FROM + BUB_SPECIAL_BLOCK);
+  }
+  for (let from = BUB_SPECIAL_FROM; !v3 && from < BUB_QUEUE; from += BUB_JOKER_BLOCK) {
     place(BUB_JOKER, from, Math.min(BUB_QUEUE, from + BUB_JOKER_BLOCK));
   }
-  for (let from = BUB_SPECIAL_FROM; from < BUB_QUEUE; from += BUB_SPECIAL_BLOCK) {
+  for (let from = BUB_SPECIAL_FROM; !v3 && from < BUB_QUEUE; from += BUB_SPECIAL_BLOCK) {
     const to = Math.min(BUB_QUEUE, from + BUB_SPECIAL_BLOCK);
     place(BUB_BOMB, from, to);
     place(BUB_LINE, from, to);
@@ -798,17 +811,54 @@ export const bubbleGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   key: "bubble",
   runTicks: BUB_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BUB_INPUT_RANGES,
 };
 
 /** bubbleRev 2 (Joker, Bomb and Torpedo in the queue). Same step and score; init seeds the specials. */
-export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: initRev2 };
+export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: (seed) => initRev2(seed) };
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_BAND) return bubbleBandGame;
   return rev === BUB_REV ? bubbleRev2Game : bubbleGame;
 }
+
+/* ================= Oct 2026 score bands (bubbleRev 3) ================= */
+
+/**
+ * Score-band revision (puzzle.bubbleRev = 3): rev-2 play with rarer specials
+ * (states keep rev 2, so specials resolve and fold into the checksum exactly
+ * as before), scored on the shared band curve (scoreBands.ts).
+ */
+export const BUB_REV_BAND = 3;
+/** bubbleRev 3: one Joker in each block of 22 shots (one every 20–25 on average, was 15). */
+export const BUB_V3_JOKER_BLOCK = 22;
+/** Bubbles cleared from the fixed field; 140 at all of it (the 99 cap is gone); clearing it adds up to 10 for speed. */
+export const BUB_BAND_CURVE = bandCurve([0, 36, 50, 60, 64, 66, 67], [0, 70, 100, 120, 132, 138, 140]);
+
+export function bubbleBandParts(state: BubState): BandParts {
+  const start = Math.max(1, state.startCount);
+  const units = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
+  const finished = Boolean(state.cleared);
+  // The curve's knots are in bubbles of the fixed field (67); scale in case it ever differs.
+  const scaled = Math.floor((units * bandTop(BUB_BAND_CURVE)) / start);
+  return {
+    units,
+    points: bandPoints(BUB_BAND_CURVE, scaled),
+    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS), BUB_RUN_TICKS) : 0,
+    penalty: 0,
+    finished,
+    text: finished ? "Field cleared" : `${units} / ${start} bubbles cleared`,
+    bonusText: "Field cleared",
+  };
+}
+
+function scoreBand(state: BubState): number {
+  return bandTotal(bubbleBandParts(state), Boolean(state.acted));
+}
+
+export const bubbleBandGame: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: (seed) => bandInit(initRev2(seed, true)) };

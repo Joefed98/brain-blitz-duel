@@ -9,6 +9,7 @@ import {
   BURST_COLOURS,
   BURST_ICON_FREEZE,
   BURST_REV,
+  BURST_REV_BAND,
   BURST_FLOOR_Y,
   BURST_LIVES,
   BURST_RADIUS,
@@ -302,7 +303,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
 
 export const burstArtGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, draw };
 const burstArtGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV), draw };
+const burstArtGameBand: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BAND), draw };
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_BAND) return burstArtGameBand;
   return rev === BURST_REV ? burstArtGameV2 : burstArtGame;
 }

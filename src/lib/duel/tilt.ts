@@ -4,6 +4,8 @@ import {
   tiltCheckpoint,
   tiltGame,
   tiltRev2Game,
+  tiltBandGame,
+  TILT_REV_BAND,
   TILT_REV,
   TILT_CHECKPOINT_INTERVAL,
   TILT_CHECKPOINT_KEYS,
@@ -29,6 +31,14 @@ const runRev2 = makeArcadeRun<TiltState, TiltCheckpoint>({
   keys: TILT_CHECKPOINT_KEYS,
   interval: TILT_CHECKPOINT_INTERVAL,
 });
+/** tiltRev 3: rev-2 play on the Oct 2026 score bands. */
+const runBand = makeArcadeRun<TiltState, TiltCheckpoint>({
+  tag: "tilt",
+  game: tiltBandGame,
+  checkpoint: tiltCheckpoint,
+  keys: TILT_CHECKPOINT_KEYS,
+  interval: TILT_CHECKPOINT_INTERVAL,
+});
 
 export type TiltResult = FlatReplay<TiltState, TiltCheckpoint> & ReturnType<typeof tiltExtra>;
 
@@ -37,6 +47,6 @@ export const decodeTiltRun = run.decode;
 
 /** The single place a Tilt score is worked out. */
 export function replayTiltRun(seed: number, raw: string, rev?: number | null): TiltResult {
-  const result = (rev === TILT_REV ? runRev2 : run).replay(seed, raw);
+  const result = (rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
   return { ...result, ...tiltExtra(result.state) };
 }

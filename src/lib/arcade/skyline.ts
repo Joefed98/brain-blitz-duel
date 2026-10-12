@@ -14,6 +14,7 @@ import {
   TICKS_PER_SECOND,
   type CanvasSize,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import type { ArcadeGame } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -54,7 +55,7 @@ export interface SkylineBlock {
   w: number;
 }
 
-export interface SkylineState {
+export interface SkylineState extends BandFields {
   tick: number;
   rng: number;
   /** Bottom-up: index 0 is the base block. */
@@ -344,9 +345,9 @@ export const skylineGame: ArcadeGame<SkylineState> = {
   key: "skyline",
   runTicks: SKYLINE_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
 };
 
@@ -430,5 +431,24 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_BAND) return skylineBandGame;
   return rev === SKYLINE_REV ? skylineRev2Game : skylineGame;
 }
+
+/* ================= Oct 2026 score bands (skylineRev 3) ================= */
+
+/** Score-band revision (puzzle.skylineRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const SKYLINE_REV_BAND = 3;
+/** Blocks and perfect drops count 5 each and streak points 2; 150 at 600. */
+export const SKYLINE_BAND_CURVE = bandCurve([0, 100, 165, 280, 480, 600], [0, 70, 100, 125, 145, 150]);
+
+export function skylineBandParts(state: SkylineState): BandParts {
+  const units = 5 * state.placed + 5 * state.perfects + 2 * (state.streakPoints ?? 0);
+  return { units, points: bandPoints(SKYLINE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.placed} blocks · ${state.perfects} perfect · +${state.streakPoints ?? 0} streak` };
+}
+
+function scoreBand(state: SkylineState): number {
+  return bandTotal(skylineBandParts(state), Boolean(state.acted));
+}
+
+export const skylineBandGame: ArcadeGame<SkylineState> = { ...skylineRev2Game, init: (seed) => bandInit(skylineRev2Game.init(seed)) };

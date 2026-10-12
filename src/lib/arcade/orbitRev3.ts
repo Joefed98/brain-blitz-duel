@@ -18,6 +18,8 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { speedBonusCurve } from "../duel/speedPar";
 import { ANG_QUARTER } from "./trig";
 import {
   FP,
@@ -531,7 +533,7 @@ export function orbitFlightHitsHole(hole: OrbitHole, x0: number, y0: number, x1:
   return false;
 }
 
-export interface OrbitRev3State {
+export interface OrbitRev3State extends BandFields {
   /** Marks this as a rev3 layout for orbitCamera.ts and shared drawing helpers. */
   rev: 3;
   /** Rev 4 only: the black holes, jumps taken, planets skipped by them, and the last jump tick (render). */
@@ -924,9 +926,9 @@ export const orbitRev3Game: ArcadeGame<OrbitRev3State, ArcadeInputEvent | null> 
   key: "orbit",
   runTicks: ORBIT_REV3_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: ORBIT_REV3_INPUT_RANGES,
 };
@@ -958,3 +960,30 @@ export function decodeRev3Planets(rows: readonly OrbitRev3CompactPlanet[]): Plan
   }));
 }
 
+/* ================= Oct 2026 score bands (orbitRev 5) ================= */
+
+/** Furthest planet reached; 140 at all 40 (the 117 partial cap is gone); reaching the sun adds up to 10 for speed. */
+export const ORBIT_BAND_CURVE = bandCurve([0, 12, 20, 30, 36, 39, 40], [0, 70, 100, 125, 135, 138, 140]);
+
+/** orbitRev 5 start: the rev-4 course (planets and any holes from the puzzle), band-stamped. */
+export function initBandFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return bandInit(initRev4From(planets, worldW, holes));
+}
+
+export function orbitBandParts(state: OrbitRev3State): BandParts {
+  const finished = Boolean(state.finished);
+  const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
+  return {
+    units,
+    points: bandPoints(ORBIT_BAND_CURVE, units),
+    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS), ORBIT_REV3_RUN_TICKS) : 0,
+    penalty: 0,
+    finished,
+    text: finished ? "Sun reached" : `${units} / ${ORBIT_TOTAL} planets`,
+    bonusText: "Sun reached",
+  };
+}
+
+function scoreBand(state: OrbitRev3State): number {
+  return bandTotal(orbitBandParts(state), Boolean(state.acted));
+}

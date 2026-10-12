@@ -22,8 +22,8 @@ import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
-import { initRev3From, initRev4From, decodeOrbitHoles, decodeRev3Planets, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
+import { initBandFrom, initRev3From, initRev4From, decodeOrbitHoles, decodeRev3Planets, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -54,10 +54,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
   const game = useMemo(() => {
     if (devPlanet) return { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) };
-    if (data?.orbitRev === ORBIT_REV4 && data.planets) {
+    if ((data?.orbitRev === ORBIT_REV4 || data?.orbitRev === ORBIT_REV_BAND) && data.planets) {
       const planets = decodeRev3Planets(data.planets);
       const holes = decodeOrbitHoles(data.holes ?? []);
-      return { ...orbitRev3ArtGame, init: () => initRev4From(planets, ORBIT_REV3_WORLD_W, holes) } as unknown as typeof orbitArtGame;
+      const start = data.orbitRev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
+      return { ...orbitRev3ArtGame, init: () => start(planets, ORBIT_REV3_WORLD_W, holes) } as unknown as typeof orbitArtGame;
     }
     if (data?.orbitRev === ORBIT_REV3 && data.planets) {
       const planets = decodeRev3Planets(data.planets);

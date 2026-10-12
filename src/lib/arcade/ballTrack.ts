@@ -6,6 +6,7 @@
 
 import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ================================ Config ================================ */
 
@@ -139,7 +140,7 @@ export interface BtBall {
 
 export interface BtMark { cell: number; colour: number; tick: number; ok: number }
 
-export interface BtState {
+export interface BtState extends BandFields {
   tick: number;
   /** Per cell: 1 = straight turned vertical. */
   vert: number[];
@@ -474,13 +475,44 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
     runTicks: BT_RUN_TICKS,
     course,
     rotatable,
-    init: () => (rev === BT_REV
-      ? { ...btInit(course), rev: BT_REV, sw: 0, turned: BT_KIND.map(() => -1000), rideHomes: 0, switchHomes: 0 }
-      : btInit(course)),
-    step: (state, input) => btStep(course, rotatable, state, input),
+    init: () => {
+      // btRev 3 (score bands) plays the rev-2 rules.
+      const state = rev === BT_REV || rev === BT_REV_BAND
+        ? { ...btInit(course), rev: BT_REV, sw: 0, turned: BT_KIND.map(() => -1000), rideHomes: 0, switchHomes: 0 }
+        : btInit(course);
+      return rev === BT_REV_BAND ? bandInit(state) : state;
+    },
+    step: bandStep((state, input) => btStep(course, rotatable, state, input)),
     isOver: btOver,
-    score: btScore,
+    score: bandScoreOf(btScore, scoreBand),
     draw: (ctx, state) => btDraw(ctx, course, state, rotatable),
     inputRanges: BT_INPUT_RANGES,
   };
+}
+
+/* ================= Oct 2026 score bands (btRev 3) ================= */
+
+/** Score-band revision (puzzle.btRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BT_REV_BAND = 3;
+/** Marbles home; 140 at all 30 (the 126 partial cap is gone); all home adds up to 10 for speed over the landing window. */
+export const BT_BAND_CURVE = bandCurve([0, 10, 19, 26, 28, 29, 30], [0, 32, 70, 104, 126, 138, 140]);
+
+export function btBandParts(state: BtState): BandParts {
+  const units = clampInt(state.home, 0, BT_BALLS);
+  const finished = units >= BT_BALLS;
+  const window = BT_RUN_TICKS - BT_LAST_LAND_MIN;
+  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, Math.min(BT_RUN_TICKS, state.lastLand));
+  return {
+    units,
+    points: bandPoints(BT_BAND_CURVE, units),
+    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, left, window) : 0,
+    penalty: 0,
+    finished,
+    text: `${units} / ${BT_BALLS} marbles home`,
+    bonusText: "All home",
+  };
+}
+
+function scoreBand(state: BtState): number {
+  return bandTotal(btBandParts(state), Boolean(state.acted));
 }

@@ -2265,7 +2265,7 @@ export interface OrbitPuzzleData {
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
-  /** Rev 4 only: three proved black holes, [from, to, x, y] each (orbitHoleBank.server.ts). */
+  /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
 }
 

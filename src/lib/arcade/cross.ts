@@ -19,6 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -431,7 +432,7 @@ function rollCourseV2(rng: number, index: number, rev = CROSS_REV2): { rng: numb
 
 /* ================================ State ================================ */
 
-export interface CrossState {
+export interface CrossState extends BandFields {
   /** crossRev 2 only; absent on stored original rounds. */
   rev?: number;
   tick: number;
@@ -864,9 +865,9 @@ export const crossGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
   key: "cross",
   runTicks: CROSS_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: CROSS_INPUT_RANGES,
 };
@@ -883,6 +884,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_BAND) return crossBandGame;
   return rev === CROSS_REV ? crossRev3Game : rev === CROSS_REV2 ? crossRev2Game : crossGame;
 }
 
@@ -897,3 +899,22 @@ export function crossKindCrossed(state: Pick<CrossState, "courses" | "crossings"
   count(state.courses[Math.min(state.crossings, CROSS_COURSES - 1)], clampInt(state.reached, 0, CROSS_LANES));
   return total;
 }
+
+/* ================= Oct 2026 score bands (crossRev 4) ================= */
+
+/** Score-band revision (puzzle.crossRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const CROSS_REV_BAND = 4;
+/** Each lane crossed counts 1 and each full crossing 2 more; 150 at 77 (seven crossings). */
+export const CROSS_BAND_CURVE = bandCurve([0, 41, 50, 59, 66, 77], [0, 70, 100, 125, 145, 150]);
+
+export function crossBandParts(state: CrossState): BandParts {
+  const lanes = crossTotalLanes(state);
+  const units = lanes + 2 * state.crossings;
+  return { units, points: bandPoints(CROSS_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${lanes} lanes · ${state.crossings} crossings` };
+}
+
+function scoreBand(state: CrossState): number {
+  return bandTotal(crossBandParts(state), Boolean(state.acted));
+}
+
+export const crossBandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = { ...crossRev3Game, init: (seed) => bandInit(crossRev3Game.init(seed)) };

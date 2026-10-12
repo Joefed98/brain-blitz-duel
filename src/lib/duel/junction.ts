@@ -5,6 +5,8 @@ import {
   junctionGame,
   junctionRev2Game,
   JUNC_REV,
+  JUNC_REV_BAND,
+  junctionGameFor,
   JUNC_CHECKPOINT_INTERVAL,
   JUNC_CHECKPOINT_KEYS,
   type JuncCheckpoint,
@@ -28,6 +30,14 @@ const runRev2 = makeArcadeRun<JuncState, JuncCheckpoint>({
   keys: JUNC_CHECKPOINT_KEYS,
   interval: JUNC_CHECKPOINT_INTERVAL,
 });
+/** Oct 2026 score-band revision. */
+const runBand = makeArcadeRun<JuncState, JuncCheckpoint>({
+  tag: "junction",
+  game: junctionGameFor(JUNC_REV_BAND),
+  checkpoint: juncCheckpoint,
+  keys: JUNC_CHECKPOINT_KEYS,
+  interval: JUNC_CHECKPOINT_INTERVAL,
+});
 
 export interface JunctionResult extends FlatReplay<JuncState, JuncCheckpoint> {
   cleared: number;
@@ -47,7 +57,7 @@ export const decodeJunctionRun = run.decode;
 
 /** The single place a Junction score is worked out. */
 export function replayJunctionRun(seed: number, raw: string, rev?: number | null): JunctionResult {
-  const result = (rev === JUNC_REV ? runRev2 : run).replay(seed, raw);
+  const result = (rev === JUNC_REV_BAND ? runBand : rev === JUNC_REV ? runRev2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

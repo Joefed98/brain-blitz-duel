@@ -8,6 +8,7 @@ import {
   SWING_REEL_UP,
   swingCheckpoint,
   SWING_REV,
+  SWING_REV_BAND,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
@@ -102,7 +103,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      {puzzle.swingRev === SWING_REV && (
+      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND) && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
