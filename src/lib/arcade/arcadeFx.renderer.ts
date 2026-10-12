@@ -195,6 +195,16 @@ export interface ArcadeFxEvent<S> {
   when?: (state: S) => boolean;
   /** Override the theme colour for this event. */
   colour?: (state: S) => string | undefined;
+  /**
+   * Also blink a two-colour neon border round the edge of the world (three
+   * quick pulses). Edge only, never over the play area.
+   */
+  neon?: boolean;
+  /**
+   * Also race a colour band along the top and bottom edges (a light chase) for
+   * a wave or stage clear. Edge only, never over the play area.
+   */
+  sweep?: boolean;
 }
 
 export interface ArcadeFxSpec<S> {
@@ -348,6 +358,8 @@ interface Memory {
   shakeMs: number;
   edgeAt: number;
   edgeColour: string;
+  neonAt: number;
+  sweepAt: number;
   seed: number;
 }
 
@@ -398,6 +410,8 @@ function freshMemory(tick: number, counts: number[]): Memory {
     shakeMs: 0,
     edgeAt: -Infinity,
     edgeColour: "#FFFFFF",
+    neonAt: -Infinity,
+    sweepAt: -Infinity,
     seed: 1,
   };
 }
@@ -519,7 +533,13 @@ function spawn<S>(
     m.edgeAt = now;
     m.edgeColour = event.kind === "perfect" ? colour : theme.primary;
   }
+  if (event.neon) m.neonAt = now;
+  if (event.sweep && !still) m.sweepAt = now;
 }
+
+/** Neon border pulse and edge colour sweep: how long each runs, ms. */
+export const ARCADE_FX_NEON_MS = 900;
+export const ARCADE_FX_SWEEP_MS = 800;
 
 /** Reads the declared counters and fires whatever rose since the last frame on this canvas. */
 function observe<S extends { tick: number }>(
@@ -690,7 +710,12 @@ function paint<S>(
   if (m.rings.length) m.rings = m.rings.filter((r) => now - r.born < r.life);
   const flashAge = now - m.flashAt;
   const edgeAge = now - m.edgeAt;
-  if (!m.particles.length && !m.pops.length && !m.rings.length && flashAge > 260 && edgeAge > 600)
+  const neonAge = now - m.neonAt;
+  const sweepAge = now - m.sweepAt;
+  if (
+    !m.particles.length && !m.pops.length && !m.rings.length && flashAge > 260 && edgeAge > 600 &&
+    neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS
+  )
     return;
 
   ctx.save();
@@ -712,6 +737,37 @@ function paint<S>(
       ctx.globalAlpha = Math.sin(Math.PI * p) * 0.22 * (1 - i / 2);
       ctx.lineWidth = 3 + i * 4;
       ctx.strokeRect(clip.x + 3, clip.y + 3, clip.w - 6, clip.h - 6);
+    }
+  }
+
+  // Neon border pulse: three quick blinks alternating the world's two neon
+  // colours, a thin bright line with a softer halo, inside the edge only.
+  if (neonAge >= 0 && neonAge < (still ? 300 : ARCADE_FX_NEON_MS)) {
+    const p = neonAge / ARCADE_FX_NEON_MS;
+    const blink = still ? 0.5 : Math.abs(Math.sin(Math.PI * 3 * p)) * (1 - p * 0.6);
+    const colour = still || Math.floor(p * 3) % 2 === 0 ? theme.primary : theme.secondary;
+    ctx.strokeStyle = colour;
+    ctx.globalAlpha = 0.28 * blink;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(clip.x + 4, clip.y + 4, clip.w - 8, clip.h - 8);
+    ctx.globalAlpha = 0.85 * blink;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(clip.x + 2, clip.y + 2, clip.w - 4, clip.h - 4);
+  }
+  // Colour sweep: a three-colour band races left to right along the top edge
+  // and right to left along the bottom edge, 5 px deep.
+  if (!still && sweepAge >= 0 && sweepAge < ARCADE_FX_SWEEP_MS) {
+    const p = sweepAge / ARCADE_FX_SWEEP_MS;
+    const band = clip.w * 0.45;
+    const colours = [theme.primary, theme.secondary, theme.highlight];
+    const head = -band + p * (clip.w + band);
+    ctx.globalAlpha = 0.9 * Math.sin(Math.PI * p);
+    for (let i = 0; i < colours.length; i++) {
+      ctx.fillStyle = colours[i]!;
+      const seg = band / colours.length;
+      const x = head + i * seg;
+      ctx.fillRect(clip.x + x, clip.y, seg + 1, 5);
+      ctx.fillRect(clip.x + clip.w - x - seg, clip.y + clip.h - 5, seg + 1, 5);
     }
   }
 

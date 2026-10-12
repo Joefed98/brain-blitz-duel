@@ -45,7 +45,8 @@ assert.match(readFileSync("src/puzzles/rotatingRings.tsx", "utf8"), /ring \{sele
 // Arcade controls stay below the fitted arena (ArcadeArenaSlot), in fixed rows the
 // slot never takes: Fission's pad, Rainbow Bridge's tools, Orbit's checkpoint button.
 const arcadeRows = [
-  { file: "burst", row: /data-game-controls="pad" className="grid h-\[72px\] shrink-0[^"]*grid-cols-3[^"]*gap-3/, button: /className="h-14 w-full/g, count: 3, width: (w: number) => (w - 8 - 2 * 12) / 3, tall: 56 },
+  // Tuning B: Fission has no FIRE button (a tap on the arena fires); two 76px arrows, 16px apart, raised 12px.
+  { file: "burst", row: /data-game-controls="pad" className="grid h-\[88px\] shrink-0[^"]*grid-cols-2[^"]*gap-4[^"]*pb-3/, button: /className="h-\[76px\] w-full/g, count: 2, width: (w: number) => (w - 8 - 16) / 2, tall: 76 },
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
   { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-12 shrink-0/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
 ];

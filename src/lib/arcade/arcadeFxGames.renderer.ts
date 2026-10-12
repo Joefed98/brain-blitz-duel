@@ -239,6 +239,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       every: 7,
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
+      sweep: true,
     },
     // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
     {
@@ -247,6 +248,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) - 16 }),
       label: () => "GOLD STAR!",
       colour: () => "#FFD84A",
+      neon: true,
     },
     {
       kind: "pop",
@@ -329,6 +331,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
       label: () => "FIREBALL!",
       colour: () => "#FF6A2B",
+      neon: true,
     },
     {
       kind: "pop",
@@ -339,8 +342,8 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       },
       label: () => "MOVING TARGET!",
     },
-    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!" },
-    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!" },
+    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", sweep: true },
+    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", neon: true, sweep: true },
   ],
 };
 
@@ -357,6 +360,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       every: 10,
       at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 8 }),
       label: (_s, n) => `RALLY ${n}`,
+      sweep: true,
     },
     {
       kind: "pop",
@@ -370,6 +374,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       count: (s) => s.targetHits ?? 0,
       at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
       label: () => "TARGET!",
+      neon: true,
     },
     {
       // Rev 2: a ball came off the bumper.
@@ -394,6 +399,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       every: 10,
       at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y }),
       label: (_s, n) => `COMBO ${n}`,
+      neon: true,
     },
     {
       // Rev 2: a swipe note swiped the right way in time.
@@ -406,6 +412,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       kind: "final",
       count: (s) => (s.chart.ticks.length > 0 && s.maxCombo >= s.chart.ticks.length ? 1 : 0),
       label: () => "FULL COMBO!",
+      sweep: true,
     },
   ],
 };
@@ -431,6 +438,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       every: 10,
       at: snakeHead,
       label: (_s, n) => `${n} STARS`,
+      sweep: true,
     },
     // snakeRev 2: a rock landed and the meteor's head was clear of it (original rounds have no rocks).
     {
@@ -456,6 +464,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       when: (s) => !s.dead,
       at: snakeHead,
       label: () => "SHOWER DODGED!",
+      neon: true,
     },
     {
       kind: "final",
@@ -473,7 +482,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
   height: BURST_FLOOR_Y,
   fit: "world",
   events: [
-    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED` },
+    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED`, sweep: true },
     // burstRev 2: a FREEZE icon caught (original rounds keep 0).
     {
       kind: "perfect",
@@ -481,6 +490,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
       at: (s) => ({ x: s.x / 256, y: BURST_FLOOR_Y - 60 }),
       label: () => "FREEZE!",
       colour: () => "#9FE8FF",
+      neon: true,
     },
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
@@ -504,12 +514,14 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       count: (s) => s.saucers,
       at: (s) => ({ x: px(s.saucerX), y: 70 }),
       label: () => "SAUCER!",
+      neon: true,
     },
     {
       kind: "clear",
       count: (s) => s.wavesCleared,
       at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
+      sweep: true,
     },
     // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
     {

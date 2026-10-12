@@ -169,3 +169,23 @@ the old `rev` and gains only `band`/`acted` (and Tilt's best maze progress), whi
   with no checkpoint desync and score exactly their band breakdown; every curve's rules; idle runs score 0; Coral Pop's queue.
 - `scripts/arcade-self-replay-check.ts` covers all 22 band revisions alongside the stored ones; the batch 1–5 legacy digests
   still pass.
+
+## Tuning B (12 Oct 2026): later gameplay revisions on the bands
+
+Three games changed play after the band pass. Each is a new stamp; the band revisions above (and everything older) replay
+and score exactly as before. `scripts/arcade-skill-bands.ts --rev=current` measures a game's current revision against its
+band revision with the same simulated players and seeds (100 seeds for Breaker and Rally, 60 for Flightpath):
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Flightpath | bullRev 4 | Three value balloons (+1 green, +2 blue, +3 purple) fly back and forth across the board, faster by value; a dart through one pops it, adds its value and still scores its ring. Knots refitted: 75 → 70, 82 → 100, 92 → 125, 101 → 145, 112 → 150 | 68 | 100 | 125 | 142 |
+| Breaker | brkRev 4 | Fireball 3.5 s (was 5 s). Knots unchanged: no level moved more than 2 points | 69 | 104 | 129 | 142 |
+| Rally | rallyRev 4 | Each +3 pad moves within its own half of the far wall, so the two never overlap. Pads spread across the wall are easier to reach, so knots refitted: 105 → 70, 139 → 100, 154 → 125, 195 → 145, 240 → 150 | 70 | 100 | 125 | 144 |
+
+Before refitting, the bullRev 3 curve put bullRev 4 at 76 / 101 / 117 / 141, and the rallyRev 3 curve put rallyRev 4 at
+75 / 109 / 124 / 146.
+
+States keep the band revision's `rev` and add `tune: 1` (folded into the checkpoint checksum last, so older sums are
+unchanged). `puzzleUsesBands` treats a stamp at or above the band revision as banded. Proofs: `scripts/tuning-b-check.ts`
+(new rules, 150 through the server replay, pads never overlapping, the Fireball length), `scripts/arcade-self-replay-check.ts`
+(the three new revisions), and the existing batch-3/5 and score-band checks for the older revisions.

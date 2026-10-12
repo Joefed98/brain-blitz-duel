@@ -69,15 +69,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { k: BURST_INPUT_FIRE, a: 0, b: fireFlip.current, c: 0 };
   };
 
-  /** FIRE presses wait here and go out on the next tick. */
-  const firePending = useRef(false);
-  const tickAll = (state: BurstState): PointerPayload | null => {
-    if (firePending.current) {
-      firePending.current = false;
-      return fire();
-    }
-    return tickInput(state);
-  };
+  // Tuning B: no FIRE button. A tap anywhere on the arena fires (the stage's
+  // pointer-down below), sending the same BURST_INPUT_FIRE event the button
+  // did, so the input log format and every replay are unchanged.
 
   return (
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
@@ -97,15 +91,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
-      tickInput={tickAll}
+      tickInput={tickInput}
       pointer={(kind) => kind === "down" ? fire() : null}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
-    <div data-game-controls="pad" className="grid h-[72px] shrink-0 touch-none select-none grid-cols-3 items-center gap-3 bg-background/60">
-      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['◀'] active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
-      <ArcadeControlButton type="button" aria-label="Fire" disabled={locked} className="h-14 w-full p-0 text-xs font-bold before:content-['FIRE']" onPressStart={() => { firePending.current = true; }} />
-      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-14 w-full border-2 border-primary/70 bg-background/40 p-0 text-xl text-primary before:content-['▶'] active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
+    {/* Two large arrows (76 px tall, half the width each), raised 12 px off the bottom edge. */}
+    <div data-game-controls="pad" className="grid h-[88px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4 bg-background/60 pb-3">
+      <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-[76px] w-full border-2 border-primary/70 bg-background/40 p-0 text-3xl text-primary before:content-['◀'] active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
+      <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-[76px] w-full border-2 border-primary/70 bg-background/40 p-0 text-3xl text-primary before:content-['▶'] active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
     </div>
     </div>
   );

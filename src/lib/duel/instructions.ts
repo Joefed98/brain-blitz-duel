@@ -746,10 +746,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Pop bubbles in threes.",
     how: [
       { action: "Drag to aim,", detail: "let go to shoot." },
-      { action: "Rainbow Joker", detail: "matches any colour." },
+      { action: "Crown Joker", detail: "matches any colour." },
       { action: "Mines blast;", detail: "torpedoes clear a whole row." },
       { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
-      { action: "The rainbow Joker", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
+      { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
       { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
       { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
@@ -913,9 +913,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   burst: {
     goal: "Split the atoms. Don't get hit.",
     how: [
-      { action: "◀ ▶ to move,", detail: "FIRE or tap to shoot up." },
+      { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
       { action: "Catch drops:", detail: "BURST, SHIELD and FREEZE." },
       { action: "An atom touching you", detail: "costs a life (3 lives)." },
+      { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
       { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
       { action: "Purple atoms: 1 in 2 drop a gold BURST icon", detail: "- triple shots until you lose a life.", helpOnly: true },
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "- it takes the next hit for you.", helpOnly: true },
