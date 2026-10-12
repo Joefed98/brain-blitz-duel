@@ -524,7 +524,7 @@ for (const type of (["skyline", "tilt", "junction", "snip"] as const).filter(wan
 }
 if (want("skyline")) ok(/up to 150/i.test(INTRO_SCORE.skyline), "High Rise intro states the 150 maximum the bot reaches");
 if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && `${l.action} ${l.detail}`.includes("up to 12 s each")), "Scrumper intro says up to 12 s each");
-if (want("junction")) ok(/up to 150/i.test(INTRO_SCORE.junction), "Junction intro states the 150 maximum the bot reaches");
-if (want("tilt")) ok(INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && /up to 150/.test(INTRO_SCORE.tilt), "Tilt intro states the real partial maximum and the 150");
+if (want("junction")) ok(/minute for 10 more/i.test(INTRO_SCORE.junction), "Junction intro states the 10 for lasting the minute (score bands)");
+if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && /up to 150/.test(INTRO_SCORE.tilt), "Tilt intro states the 150 and no partial cap (score bands)");
 
 console.log(`arcade batch 4: ${checks} checks passed`);

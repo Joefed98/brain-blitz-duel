@@ -20,6 +20,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ARCADE_REVEAL_TYPES, buildArcadeReveal } from "@/lib/arcade/reveal";
 import { crossGame, crossTotalLanes, CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { bubbleGame, bubRemaining } from "@/lib/arcade/bubble";
+import { puzzleUsesBands } from "@/lib/arcade/bandParts";
 import { generatePuzzle, gradeAnswer } from "@/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, RETIRED_PUZZLE_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -150,16 +151,23 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
       const reveal = (stored.extra as Record<string, unknown> | null)?.["reveal"] as { lines: string[] } | undefined;
       if (ARCADE_REVEAL_TYPES.includes(type)) {
         const first = reveal?.lines[0] ?? "";
-        const ok = type === "cross"
+        // Oct 2026 score-band rounds: the breakdown ends on the stored total (scoreBands.ts bandLines).
+        const banded = puzzleUsesBands(puzzle as unknown as { type: string } & Record<string, unknown>);
+        const ok = banded ? (reveal?.lines.at(-1) ?? "").endsWith(`→ ${stored.score}`) : (type === "cross"
           ? crossBreakdownMatches(reveal?.lines ?? [], stored.score)
-          : first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`);
+          : first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`));
         if (!ok) failures.push(`${type}: stored ${stored.score}, breakdown "${reveal?.lines.join("; ") ?? "missing"}"`);
-        if (type === "cross" && reveal) {
+        if (banded && reveal) {
           for (const line of reveal.lines) {
             if (!html.includes(line)) failures.push(`${type}: stored breakdown not rendered: "${line}"`);
           }
         }
-        if (type === "bubble") {
+        if (type === "cross" && reveal && !banded) {
+          for (const line of reveal.lines) {
+            if (!html.includes(line)) failures.push(`${type}: stored breakdown not rendered: "${line}"`);
+          }
+        }
+        if (type === "bubble" && !banded) {
           const extra = stored.extra as Record<string, unknown>;
           if (!bubbleBreakdownMatches(extra, stored.score)) failures.push(`bubble: percentage does not match stored board counters (${stored.score})`);
           for (const line of reveal?.lines ?? []) {

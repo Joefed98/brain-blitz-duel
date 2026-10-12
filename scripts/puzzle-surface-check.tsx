@@ -14,7 +14,7 @@ import type { PuzzleType } from "../src/lib/duel/types";
 
 // DOM parsing only: Happy DOM does not compute layout. Never label this a fit test.
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, d]) => !d.retired && !d.arcadeRun && d.category !== "arcade");
-assert.equal(active.length, 42);
+assert.equal(active.length, 45);
 assert.equal(surfaceState("bg-card ring-2 ring-primary"), "selected");
 assert.equal(surfaceState("bg-primary"), "active");
 assert.equal(surfaceState("text-destructive"), "error");
@@ -64,6 +64,9 @@ const risks: Record<string, string> = {
   letterwheel: "Crossword/wheel split; radial letter nodes retain geometry; short-screen check needed.",
   numpyramid: "Height-fitted pyramid and bank; small cells and fixed drag ghost need device checks.",
   trail: "Six-by-six sequential board; fixed small reveal grids and given slots preserved.",
+  measure: "Two or three glass jugs on one litre scale, height-fitted; four-row reveal needs short-screen checks.",
+  checkout: "Square fitted dartboard plus ring and action rows; wedge numbers and 44px controls need device checks.",
+  numline: "Full-width drag line with magnifier above the finger; three-line reveal needs short-screen checks.",
 };
 const window = new Window();
 const root = window.document.createElement("div");
@@ -120,10 +123,10 @@ for (const [key, definition] of active) {
     records.push({ key, name: definition.name, viewport: `${width}x${height}`, result: "PASS markup/geometry invariants; rendered fit UNVERIFIED", coverage: phaseCounts.join("; "), exception: MEANINGFUL_SURFACE_GAMES.has(key) ? "Meaningful fills/objects retained; shared edge, text and selection only" : "Shared surfaces; existing control dimensions retained", sizing: risks[key] });
   }
 }
-assert.equal(phases, 336);
+assert.equal(phases, 360);
 mkdirSync("/tmp/puzzle-polish", { recursive: true });
 writeFileSync("/tmp/puzzle-polish/audit.json", JSON.stringify(records, null, 2));
-const lines = ["# Duelz puzzle surface audit", "", "42 active non-engine games; 390×700 and 375×667; 336 live/static-intro/recorded-intro-stage/reveal markup checks.", "", "**PASS means markup/geometry invariants, not rendered no-scroll.** No browser tests ran. Happy DOM parses markup but does not calculate layout; these dimensions label the source/geometry review only. Font wrapping, fit, actual touch behaviour, drag animation and performance await device checks.", "", "## Shared coverage and exceptions", "", "All games share the PhoneShell presentation scope for play, recorded Stage demos, static examples and reveals. The adapter changes surface roles only: no elements, layout classes, path coordinates, text or game handlers are replaced. Existing in-puzzle command heights are preserved to avoid layout changes. Meaningful coloured/physical objects retain fills and shapes. Dense grid/keypad/radial targets keep their original hit ownership; isolated commands receive a 44px halo only when it does not intersect other controls. Existing errors remain the only errors. No new drag or drop verdicts are introduced.", "", "Compact glyphs and inline fonts may remain below 14px. Sudoku box edges, Shikaku partition edges, maze walls, rings, tubes, balance beams, tower discs and specialised SVG symbols are intentionally not generic rectangular tiles. Some reveal lists already use a scroll container; this pass does not claim to remove those existing layout risks.", "", "## Per-game results", "", "| Game | Size | Audit result | Applied roles | Difference / reason | Sizing review |", "|---|---|---|---|---|---|"];
+const lines = ["# Duelz puzzle surface audit", "", "45 active non-engine games; 390×700 and 375×667; 360 live/static-intro/recorded-intro-stage/reveal markup checks.", "", "**PASS means markup/geometry invariants, not rendered no-scroll.** No browser tests ran. Happy DOM parses markup but does not calculate layout; these dimensions label the source/geometry review only. Font wrapping, fit, actual touch behaviour, drag animation and performance await device checks.", "", "## Shared coverage and exceptions", "", "All games share the PhoneShell presentation scope for play, recorded Stage demos, static examples and reveals. The adapter changes surface roles only: no elements, layout classes, path coordinates, text or game handlers are replaced. Existing in-puzzle command heights are preserved to avoid layout changes. Meaningful coloured/physical objects retain fills and shapes. Dense grid/keypad/radial targets keep their original hit ownership; isolated commands receive a 44px halo only when it does not intersect other controls. Existing errors remain the only errors. No new drag or drop verdicts are introduced.", "", "Compact glyphs and inline fonts may remain below 14px. Sudoku box edges, Shikaku partition edges, maze walls, rings, tubes, balance beams, tower discs and specialised SVG symbols are intentionally not generic rectangular tiles. Some reveal lists already use a scroll container; this pass does not claim to remove those existing layout risks.", "", "## Per-game results", "", "| Game | Size | Audit result | Applied roles | Difference / reason | Sizing review |", "|---|---|---|---|---|---|"];
 for (const row of records) lines.push(`| ${row["name"]} | ${row["viewport"]} | ${row["result"]} | ${row["coverage"]} | ${row["exception"]} | ${row["sizing"]} |`);
 writeFileSync("/tmp/puzzle-polish/audit.md", lines.join("\n") + "\n");
 console.log(`PASS: ${active.length} games, ${records.length} size-labelled source audits, ${phases} phase markup/invariant checks. Rendered no-scroll remains UNVERIFIED.`);

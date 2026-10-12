@@ -1,13 +1,13 @@
 /** Formula, schedule and intro/reveal regressions for the six Oct 6 scoring changes; no identity proof here. */
 import { readFileSync } from "node:fs";
-import { btCheckpoint, btScoreOf, btScoreOfV2, BT_BALLS, BT_DROP_TICKS, BT_LAST_LAND_MIN, BT_REV, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
+import { btCheckpoint, btScoreOf, btScoreOfV2, BT_BALLS, BT_DROP_TICKS, BT_LAST_LAND_MIN, BT_REV, BT_REV_BAND, BT_RUN_TICKS, makeBallTrackGame } from "../src/lib/arcade/ballTrack";
 import { decodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { encodeBallTrackRun, replayBallTrackRun } from "../src/lib/duel/ballTrack";
-import { matchupGame, matchupRev2Game, matchupRev3Game, MATCHUP_PAR_RAW, MATCHUP_V2_PAR_RAW, MATCHUP_V3_PAR_RAW } from "../src/lib/arcade/matchup";
-import { juncScoreOf } from "../src/lib/arcade/junction";
-import { rallyGame } from "../src/lib/arcade/rally";
-import { skylineGame } from "../src/lib/arcade/skyline";
-import { bullseyeScoreFor, BULLSEYE_RING_VALUES } from "../src/lib/arcade/bullseye";
+import { matchupGame, matchupRev2Game, matchupRev3Game, matchupGameFor, MATCHUP_PAR_RAW, MATCHUP_V2_PAR_RAW, MATCHUP_V3_PAR_RAW, MATCHUP_REV_BAND } from "../src/lib/arcade/matchup";
+import { juncScoreOf, junctionGameFor, JUNC_REV_BAND } from "../src/lib/arcade/junction";
+import { rallyGame, rallyGameFor, RALLY_REV_BAND } from "../src/lib/arcade/rally";
+import { skylineGame, skylineGameFor, SKYLINE_REV_BAND } from "../src/lib/arcade/skyline";
+import { bullseyeGameFor, bullseyeScoreFor, BULLSEYE_REV_BAND, BULLSEYE_RING_VALUES } from "../src/lib/arcade/bullseye";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { binTossGame, binTossGameFor, BINTOSS_REV3, BINTOSS_THROWS, BINTOSS_V3_PARTIAL_MAX } from "../src/lib/arcade/binToss";
 import { tiltGame, tiltRev2Game, TILT_MAX_MAZES, TILT_V2_STARS } from "../src/lib/arcade/tilt";
@@ -67,16 +67,13 @@ for (const home of [0, 15, 29, 30]) {
   eq(reveal?.lines[0]?.startsWith(`${home} / 30 home`), true, "Ball Track breakdown");
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
-// Batch 4 (Oct 2026): Junction junctionRev 2 and High Rise skylineRev 2 intros state the new points.
-for (const [type, text] of [["balltrack", "30"], ["junction", "±4"], ["rally", "2.5"], ["skyline", "+1 per perfect"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
-// Formula detail lives in the "?" help since the intro was shortened (first-run audit, 11 Oct).
-for (const [type, text] of [["matchup", MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")], ["bullseye", "1.7 × dart total − 20"], ["junction", "−4"], ["skyline", "per perfect drop"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
-// Ruling B (11 Oct): the eight 130 / 150 split games state both parts in one line.
-// Each split intro shows the real partial maximum: the score one unit short of a clear (Grappler rounds to 130).
+// Oct 2026 score bands: intros describe the band rules in plain words (the exact knots live in the "?" help).
+for (const [type, text] of [["balltrack", "all 30 home"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
+for (const [type, text] of [["matchup", "1,300"], ["bullseye", "inner bull or a balloon 12"], ["junction", "−4"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.5 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
+// The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
+for (const type of ["balltrack", "bintoss", "breaker", "bubble", "inkbridge", "orbit", "swing", "tilt"] as const) eq(/otherwise up to \d+/.test(INTRO_SCORE[type]), false, `${type} intro has no partial cap`);
+// The legacy split figures still hold for stored rounds (they replay on their original rules).
 const SPLIT_PARTIAL_MAX = { balltrack: 126, bintoss: BINTOSS_V3_PARTIAL_MAX, breaker: 128, bubble: 99, inkbridge: INK_V4_PARTIAL_MAX, orbit: 117, swing: 130, tilt: 115 } as const;
-for (const [type, max] of Object.entries(SPLIT_PARTIAL_MAX) as [keyof typeof SPLIT_PARTIAL_MAX, number][]) {
-  eq(INTRO_SCORE[type].includes(` for up to 150; otherwise up to ${max}.`), true, `${type} intro states the split with partial max ${max}`);
-}
 eq(btScoreOf(BT_BALLS - 1, 0), SPLIT_PARTIAL_MAX.balltrack, "Ball Tracker partial max");
 // btRev 2: the full-clear speed bonus is timed over the window the last marble can land in
 // (tick 3180 to 3600), so a perfect, fast run reaches 150; the partial maximum stays 126.
@@ -139,15 +136,52 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-for (const [type, goal] of [["balltrack", "Get all 30 marbles home"], ["bintoss", "Sink all 10 buckets"], ["breaker", "Clear all 80 bricks"], ["inkbridge", "Finish all 10 levels"], ["swing", "Reach 500 metres"], ["tilt", "Finish all 4 mazes"]] as const) {
-  eq(INTRO_SCORE[type].includes(`${goal} for up to 150`), true, `${type} intro goal`);
+for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to 150"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to 150"], ["inkbridge", "All 10 levels quickly: up to 150"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
+  eq(INTRO_SCORE[type].includes(goal), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
 for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);
 eq(INTRO_SCORE.snip.includes("for 130"), false, "Scrumper intro: a full clear is not a flat 130");
-eq(INTRO_SCORE.snip.includes("10 points for each apple") && INTRO_SCORE.snip.includes("3 for each leaf"), true, "Scrumper intro points");
+eq(INTRO_SCORE.snip.includes("each apple and leaf"), true, "Scrumper intro points");
+eq(PUZZLE_INSTRUCTIONS.snip.score.includes("Each apple counts 10 and each leaf 2"), true, "Scrumper help points");
 for (const type of ["balltrack", "snip"] as const) eq(/75 s|÷ \d+ s/.test(PUZZLE_INSTRUCTIONS[type].score), false, `${type} help has no seconds divisor`);
+// Oct 2026 score bands for the six games: each formula against an independent straight-line reading of its knots.
+const line = (units: readonly number[], points: readonly number[], a: number) => {
+  if (a <= 0) return 0;
+  for (let i = 1; i < units.length; i++) if (a <= units[i]!) return points[i - 1]! + Math.floor(((points[i]! - points[i - 1]!) * (a - units[i - 1]!)) / (units[i]! - units[i - 1]!));
+  return points.at(-1)!;
+};
+const acted = { band: 1, acted: 1 } as const;
+const btBand = makeBallTrackGame(first.course, BT_REV_BAND);
+const bt0 = btBand.init(1);
+for (let home = 0; home <= BT_BALLS; home++) for (const lastLand of [BT_LAST_LAND_MIN, 3390, 3391, 3500, BT_RUN_TICKS]) {
+  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, lastLand);
+  const bonus = home >= BT_BALLS ? (2 * left >= BT_RUN_TICKS - BT_LAST_LAND_MIN ? 10 : Math.round((20 * left) / (BT_RUN_TICKS - BT_LAST_LAND_MIN))) : 0;
+  eq(btBand.score({ ...bt0, ...acted, home, lastLand }), clamp(line([0, 10, 19, 26, 28, 29, 30], [0, 32, 70, 104, 126, 138, 140], home) + bonus), "Ball Tracker band");
+}
+eq(btBand.score({ ...bt0, ...acted, home: BT_BALLS, lastLand: BT_LAST_LAND_MIN }), 150, "Ball Tracker band: a fast full clear is 150");
+eq(btBand.score({ ...bt0, ...acted, home: BT_BALLS - 1, lastLand: BT_LAST_LAND_MIN }), 138, "Ball Tracker band: one short is 138");
+eq(btBand.score({ ...bt0, home: 7, lastLand: 3000 }), 0, "Ball Tracker band: no input scores 0");
+const mBand = matchupGameFor(MATCHUP_REV_BAND);
+const m0 = mBand.init(1);
+for (let raw = 0; raw <= 2000; raw += 3) eq(mBand.score({ ...m0, ...acted, raw }), clamp(line([0, 560, 760, 980, 1150, 1300], [0, 70, 100, 125, 145, 150], raw)), "Gemstone band");
+const jBand = junctionGameFor(JUNC_REV_BAND);
+const j0 = jBand.init(1);
+for (let cars = 0; cars <= 90; cars += 3) for (const bus of [0, 5]) for (const gave of [0, 1, 50]) for (const through of [0, 4]) for (const stopped of [0, 4]) for (const ended of [0, 1, 2]) {
+  const u = Math.max(0, 2 * (cars - bus) + 3 * bus - gave + 4 * (through - stopped));
+  eq(jBand.score({ ...j0, ...acted, cleared: cars, busCleared: bus, gaveUp: gave, ambThrough: through, ambStopped: stopped, ended }), clamp(line([0, 50, 89, 108, 118, 130], [0, 40, 70, 100, 120, 140], u) + (ended === 1 ? 10 : 0)), "Junction band");
+}
+const rBand = rallyGameFor(RALLY_REV_BAND);
+const r0 = rBand.init(1);
+for (let goldHits = 0; goldHits <= 60; goldHits++) for (const targetHits of [0, 3, 10]) eq(rBand.score({ ...r0, ...acted, goldHits, targetHits }), clamp(line([0, 100, 130, 155, 185, 220], [0, 70, 100, 125, 145, 150], 5 * goldHits + 6 * targetHits)), "Rally band");
+const sBand = skylineGameFor(SKYLINE_REV_BAND);
+const s0 = sBand.init(1);
+for (let placed = 0; placed <= 80; placed += 2) for (let perfects = 0; perfects <= placed; perfects += 5) for (const streakPoints of [0, 7]) eq(sBand.score({ ...s0, ...acted, placed, perfects, streakPoints }), clamp(line([0, 100, 165, 280, 480, 600], [0, 70, 100, 125, 145, 150], 5 * placed + 5 * perfects + 2 * streakPoints)), "High Rise band");
+const bBand = bullseyeGameFor(BULLSEYE_REV_BAND);
+const b0 = bBand.init(1);
+for (let total = 0; total <= 120; total++) eq(bBand.score({ ...b0, ...acted, total }), clamp(line([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150], total)), "Flightpath band");
+for (const [score, total] of [[150, 110], [70, 72]] as const) eq(bBand.score({ ...b0, ...acted, total }), score, "Flightpath band anchor");
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
 eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== BT_BALLS"), true, "Old Ball Track demo rejected");
 for (const type of ["matchup", "junction", "rally", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
-console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed; Bullseye anchors 100→150, 90→133, 70→99, 50→65`);
+console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);

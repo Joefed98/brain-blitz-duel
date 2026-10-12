@@ -93,6 +93,9 @@ import { clayShootPuzzle } from "@/puzzles/clayShoot";
 import { numberPyramidPuzzle } from "@/puzzles/numberPyramid";
 import { trailPuzzle } from "@/puzzles/trail";
 import { digPuzzle } from "@/puzzles/dig";
+import { measurePuzzle } from "@/puzzles/measure";
+import { checkoutPuzzle } from "@/puzzles/checkout";
+import { numlinePuzzle } from "@/puzzles/numline";
 
 import type { PuzzleDefinition } from "@/puzzles/types";
 
@@ -266,6 +269,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   numpyramid: numberPyramidPuzzle,
   dig: digPuzzle,
   trail: trailPuzzle,
+  measure: measurePuzzle,
+  checkout: checkoutPuzzle,
+  numline: numlinePuzzle,
 };
 
 export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(

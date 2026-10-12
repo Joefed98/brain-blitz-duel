@@ -15,9 +15,32 @@ import {
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
 } from "@/lib/arcade/tilt";
-import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
+import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
+import { WAV_BAND_CURVE } from "@/lib/arcade/wavefront";
+import { FLIP_BAND_CURVE } from "@/lib/arcade/flip";
+import { INK_BAND_CURVE } from "@/lib/arcade/inkBridge";
+import { MATCHUP_BAND_CURVE } from "@/lib/arcade/matchup";
+import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
+import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
+import { RALLY_BAND_CURVE } from "@/lib/arcade/rally";
+import { SNAKE_BAND_CURVE } from "@/lib/arcade/snake";
+import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
+import { SNIP_BAND_CURVE } from "@/lib/arcade/snip";
+import { HOVER_BAND_CURVE } from "@/lib/arcade/hover";
+import { SKYLINE_BAND_CURVE } from "@/lib/arcade/skyline";
+import { JUNC_BAND_CURVE } from "@/lib/arcade/junction";
+import { BRK_BAND_CURVE } from "@/lib/arcade/breaker";
+import { TILT_BAND_CURVE } from "@/lib/arcade/tilt";
+import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
+import { BEAT_BAND_CURVE } from "@/lib/arcade/beat";
+import { SLICE_BAND_CURVE } from "@/lib/arcade/slice";
+import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
+import { SWING_BAND_CURVE } from "@/lib/arcade/swing";
+import { BULLSEYE_BAND_CURVE } from "@/lib/arcade/bullseye";
+import { bandHelp } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -168,6 +191,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Wait.", detail: "" },
       { action: "Don't tap the other colours,", detail: "or you'll get a false start." },
+      { action: "Don't guess:", detail: "a tap within 0.1 s of the gold is too fast to be real and is a false start too." },
     ],
     score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
   },
@@ -523,7 +547,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
       { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: `Barriers: ${HOVER_V2_GATES_SCORE} × barriers passed ÷ ${HOVER_REACHABLE_GATES} (all a clean run reaches). Gold stars: ${HOVER_V2_STARS_SCORE} × stars ÷ ${HOVER_STARS}. Up to 150.`,
+    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_BAND_CURVE, "Lasting the minute adds 10."),
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -545,7 +569,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
       { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
     ],
-    score: `${SKYLINE_V2_BLOCK_POINTS} per block stacked + ${SKYLINE_V2_PERFECT_POINTS} per perfect drop (rounded down), plus ${SKYLINE_STREAK_POINTS} for each perfect drop from the ${SKYLINE_STREAK_FROM}rd in a row. Capped at 150.`,
+    score: bandHelp("Each block and each perfect drop counts 5, and each streak point 2 (a streak point for each perfect drop from the 3rd in a row).", SKYLINE_BAND_CURVE),
   },
   bintoss: {
     goal: "Throw the ball into the bucket.",
@@ -572,7 +596,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
     ],
-    score: "10 per bucket and 3 per hoop bonus, up to 130. All ten in = 130 + up to 20 for speed (the full 20 if you finish with at least half the time left) + hoop bonuses, up to 150.",
+    score: bandHelp("Each bucket counts 10 and each hoop bonus 3.", BINTOSS_BAND_CURVE, "All ten in adds 10."),
   },
   bullseye: {
     goal: "Hit the centre - ten darts.",
@@ -609,7 +633,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         helpOnly: true,
       },
     ],
-    score: "Each dart scores its ring (10 in the centre down to 1), 12 for the inner bull or a balloon. Score = clamp(floor(1.7 × dart total − 20), 0, 150). Unthrown darts add 0.",
+    score: bandHelp("Your dart total: rings 10 in the centre down to 1, an inner bull or a balloon 12.", BULLSEYE_BAND_CURVE),
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -623,7 +647,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: `3 in a line = 10, 4 = 25, 5 = 50; a special scores 10 for each gem it clears. clamp(floor(150 × match points ÷ ${MATCHUP_V3_PAR_RAW.toLocaleString("en-GB")}), 0, 150).`,
+    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_BAND_CURVE),
   },
   snake: {
     goal: "Eat the stars; don't crash.",
@@ -637,7 +661,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
-    score: "5 points per star eaten, up to 150.",
+    score: bandHelp("Each star eaten counts 1.", SNAKE_BAND_CURVE),
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -648,7 +672,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
       { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
     ],
-    score: "2 × total lanes crossed + 4 × crossings completed, up to 150. No clean-crossing bonus.",
+    score: bandHelp("Each lane crossed counts 1 and each full crossing 2 more.", CROSS_BAND_CURVE),
   },
   dual: {
     goal: "Keep both runners alive.",
@@ -677,7 +701,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Orange flame = Fireball:", detail: "for 5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
-    score: "130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
   rally: {
     goal: "Keep the rally going.",
@@ -692,7 +716,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
       { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: "floor(2.5 × gold-ball hits) + 3 per pink target a gold ball hits, capped at 150. The blue ball scores nothing.",
+    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_BAND_CURVE),
   },
 
   steady: {
@@ -716,7 +740,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
       { action: "One finger-down-to-up path counts together", detail: "- curves too, up to about three-quarters of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
-    score: "floor(235 × combo-weighted slices ÷ (3 × foods available)) −10 per chilli; capped at 150. A chilli also ends the combo.",
+    score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_BAND_CURVE),
   },
   bubble: {
     goal: "Pop bubbles in threes.",
@@ -726,10 +750,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Mines blast;", detail: "torpedoes clear a whole row." },
       { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
       { action: "The rainbow Joker", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
-      { action: "Specials come in the queue:", detail: `a Joker every ${BUB_JOKER_BLOCK} shots or so, a mine and a torpedo every ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
+      { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
       { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
-    score: `Clear the field = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise ${BUB_V2_PARTIAL} × share of starting bubbles cleared.`,
+    score: bandHelp("Each bubble cleared from the field counts 1.", BUB_BAND_CURVE, "Clearing the field adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -743,7 +767,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: "Perfect 1, good 0.75, OK 0.25, miss −2 (swipe notes the same), up to 150. Holds score only after both ends are judged; mistimed releases miss the whole note.",
+    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_BAND_CURVE),
   },
 
   ricochet: {
@@ -807,7 +831,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
       { action: "The boss slides side to side and fires in patterns.", detail: "Its bar shows the 36 hits it can take; every hit counts, and destroying it ends the run.", helpOnly: true },
     ],
-    score: "Points for every ship, armour hit, saucer, wave cleared and boss hit, plus a big bonus for destroying the boss. 150 needs every wave plus the boss.",
+    score: bandHelp("Ships, armour hits and boss hits count 1, saucers 5 and cleared waves 15.", WAV_BAND_CURVE, "Destroying the boss adds 10."),
   },
   bastion: {
     goal: "Defend the base.",
@@ -843,7 +867,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
       { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
-    score: "floor(130 × (seconds survived ÷ 60)²) + 2 per gold star (10 on the course): the full minute plus every star = 150.",
+    score: bandHelp("Each half second you last counts 1 and each gold star 3.", FLIP_BAND_CURVE, "Lasting the full minute adds 10."),
   },
   parry: {
     goal: "Block every arrow with the gong shield.",
@@ -868,7 +892,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads - give them green before they reach the line.", helpOnly: true },
       { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: `${JUNC_V2_CAR_POINTS} per car through, ${JUNC_V2_BUS_POINTS} per bus, −1 per driver who gives up, +4 per ambulance waved through, −4 if one has to stop, +${JUNC_V2_SURVIVE_BONUS} for surviving the minute. Clamp 0-150.`,
+    score: bandHelp("Each car counts 2 and each bus 3; an ambulance through +4, one stopped −4; a driver who gives up −1.", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
   },
   inkbridge: {
     goal: "Roll the coin into the pot.",
@@ -883,7 +907,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
       { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
     ],
-    score: "11 per level and 2 per gold star, up to 130. All ten levels = 130 + up to 20 for speed (the full 20 if you finish with at least half the time left) + gold stars, up to 150.",
+    score: bandHelp("Each level counts 10 and each gold star 2.", INK_BAND_CURVE, "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
 
   burst: {
@@ -897,7 +921,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "- it takes the next hit for you.", helpOnly: true },
       { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "- every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
     ],
-    score: "150 needs the full 90 s run with no life lost and four or more waves cleared. Otherwise 2 per atom destroyed or split, −9 per life lost, up to 130.",
+    score: bandHelp("Each atom hit counts 1; each life lost takes 5 off.", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
   },
   orbit: {
     goal: "Fly planet to planet to the sun.",
@@ -910,7 +934,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing.", helpOnly: true },
       { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out orbiting a planet 5 or 6 further on; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
     ],
-    score: "3 per planet reached (planets skipped by a black hole count); reach the sun (planet 40) = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: bandHelp("Each planet reached counts 1.", ORBIT_BAND_CURVE, "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
 
   snip: {
@@ -925,7 +949,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
       { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
     ],
-    score: "10 per apple collected, +3 for each level's single leaf; collect all ten for up to 20 for speed: the full 20 if you finish with at least half the time left. Cap 150.",
+    score: bandHelp("Each apple counts 10 and each leaf 2.", SNIP_BAND_CURVE, "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
   swing: {
     goal: "Swing the ninja to the 500 m line.",
@@ -940,7 +964,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ten star anchors hang high in the gaps.", detail: "Grab one to take its star; they are optional.", helpOnly: true },
       { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
-    score: "Distance: 120 × metres ÷ 500. Stars: 1 each, up to 10. Unfinished runs score up to 130; reaching 500 m adds 20, so 500 m with all 10 stars scores 150.",
+    score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_BAND_CURVE, "Reaching 500 m adds 10."),
   },
   tilt: {
     goal: "Roll each marble into its own cup.",
@@ -953,7 +977,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the end of side passages. Roll either marble over one to collect it.`, helpOnly: true },
       { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: `${TILT_V2_MAZE_POINTS} per maze and ${TILT_V2_STAR_POINTS} per bonus star. Finish all four mazes for up to ${TILT_V2_FINISH_BONUS} more for speed: the full ${TILT_V2_FINISH_BONUS} if you finish with at least half the time left. Capped at 150; without finishing all four, at most ${TILT_V2_PARTIAL_MAX}.`,
+    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",
@@ -991,6 +1015,33 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Complete path = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 5 per player tile in its correct cell; wrong tiles = 0, no penalty.",
   },
+  measure: {
+    goal: "Measure out exactly the target amount using the jugs.",
+    how: [
+      { action: "Tap a jug, then another jug to pour.", detail: "It pours until the first is empty or the second is full." },
+      { action: "Fill and Empty", detail: "use the tap and the drain. Puzzle 4 has neither: make the split shown on the jugs." },
+      { action: "Every pour, fill and empty is a move.", detail: "Reset starts the puzzle again; moves keep counting." },
+    ],
+    score: "25 per solved puzzle + up to 5 for moves (full 5 at the fewest possible, none at twice that). Solve all four for up to 30 more for speed: the full 30 if you finish with at least half the time left. The puzzle you are on scores nothing until solved.",
+  },
+  checkout: {
+    goal: "Score exactly the target with your darts, finishing in the right ring.",
+    how: [
+      { action: "Tap a number, then x1, x2 or x3", detail: "to throw a dart there. Outer bull = 25, inner bull = 50 (a double)." },
+      { action: "Hit zero exactly", detail: "and land the last dart in the ring shown (double or treble). Then tap Throw." },
+      { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back." },
+    ],
+    score: "Boards score 18, 20, 22, 24 and 26 (110 in all), +2 for each one solved in the fewest darts possible (the four-dart board always counts). Solve all five for up to 30 more for speed: the full 30 if you finish with at least half the time left.",
+  },
+  numline: {
+    goal: "Place each number where it belongs on the line.",
+    how: [
+      { action: "Drag the marker along the line,", detail: "then tap Place. A magnifier shows where your finger is." },
+      { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines; only the ends are labelled." },
+      { action: "No calculator needed:", detail: "estimate fractions, percentages, powers and roots." },
+    ],
+    score: "Up to 8 per number: full 8 within 2% of the line, falling evenly to 0 at 15% away. Place all 15 for up to 30 more for speed (the full 30 with at least half the time left), multiplied by your accuracy share (points ÷ 120).",
+  },
   numpyramid: {
     goal: "Complete four pyramids: every cell is the sum of the two below it.",
     how: [
@@ -1010,7 +1061,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
       { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
     ],
-    score: "round(130 × marbles home ÷ 30). All 30 home = 130 + up to 20 for speed, timed from the earliest the last marble can land (53 s): the full 20 if it lands by 56.5 s, then less until 0 at 60 s. Wrong cups cost nothing.",
+    score: bandHelp("Each marble home counts 1.", BT_BAND_CURVE, "All 30 home adds up to 10 for speed: the full 10 if the last marble lands by 56.5 s, falling to 0 at the buzzer."),
   },
   wordsearch: {
     goal: "Find the six hidden words from the category.",

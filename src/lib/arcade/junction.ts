@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -142,7 +143,7 @@ export interface JuncCar {
   kind?: number;
 }
 
-export interface JuncState {
+export interface JuncState extends BandFields {
   tick: number;
   rng: number;
   arrivals: JuncArrival[];
@@ -535,9 +536,9 @@ export const junctionGame: ArcadeGame<JuncState, ArcadeInputEvent | null> = {
   key: "junction",
   runTicks: JUNC_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: JUNC_INPUT_RANGES,
 };
@@ -879,10 +880,29 @@ export function juncApproachAtV2(x: number, y: number, builds: readonly number[]
 export const junctionRev2Game: ArcadeGame<JuncState, ArcadeInputEvent | null> = {
   ...junctionGame,
   init: initV2,
-  step: stepV2,
-  score: scoreV2,
+  step: bandStep(stepV2),
+  score: bandScoreOf(scoreV2, scoreBand),
   inputRanges: JUNC_INPUT_RANGES_V2,
 };
 export function junctionGameFor(rev?: number | null): ArcadeGame<JuncState, ArcadeInputEvent | null> {
+  if (rev === JUNC_REV_BAND) return junctionBandGame;
   return rev === JUNC_REV ? junctionRev2Game : junctionGame;
 }
+
+/* ================= Oct 2026 score bands (junctionRev 3) ================= */
+
+/** Score-band revision (puzzle.junctionRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const JUNC_REV_BAND = 3;
+/** Cars 2, buses 3, ±4 an ambulance, −1 a driver who gave up; 140 at 130; lasting the minute adds 10 (was 20). */
+export const JUNC_BAND_CURVE = bandCurve([0, 50, 89, 108, 118, 130], [0, 40, 70, 100, 120, 140]);
+export function junctionBandParts(state: JuncState): BandParts {
+  const units = Math.max(0, JUNC_V2_CAR_POINTS * (state.cleared - (state.busCleared ?? 0)) + JUNC_V2_BUS_POINTS * (state.busCleared ?? 0) - state.gaveUp + AMB_POINTS * (state.ambThrough - state.ambStopped));
+  const finished = state.ended === 1;
+  return { units, points: bandPoints(JUNC_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.cleared} through (${state.busCleared ?? 0} buses) · ${state.gaveUp} gave up · ambulances +${state.ambThrough} / −${state.ambStopped}`, bonusText: "Lasted the minute" };
+}
+
+function scoreBand(state: JuncState): number {
+  return bandTotal(junctionBandParts(state), Boolean(state.acted));
+}
+
+export const junctionBandGame: ArcadeGame<JuncState, ArcadeInputEvent | null> = { ...junctionRev2Game, init: (seed) => bandInit(junctionRev2Game.init(seed)) };

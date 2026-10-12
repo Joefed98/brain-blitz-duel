@@ -11,6 +11,8 @@ import { MATCHUP_PAR_RAW } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
 import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
+import { BAND_SPECS } from "./bandParts";
+import { bandLines } from "./scoreBands";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -505,5 +507,10 @@ export const ARCADE_REVEAL_TYPES = Object.keys(BUILDERS);
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;
-  return builder(run as Run, score);
+  const data = builder(run as Run, score);
+  // Oct 2026 score-band rounds: same axis and tiles, breakdown lines from the band rules.
+  const state = (run as Run)["state"] as { band?: number; acted?: number } | undefined;
+  const band = BAND_SPECS[type];
+  if (band && state && typeof state === "object" && state.band) return { ...data, lines: bandLines(band.parts(state), score, Boolean(state.acted)) };
+  return data;
 }

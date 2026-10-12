@@ -40,6 +40,8 @@ export const ORBIT_TOTAL = 40;
 export const ORBIT_REV3 = 3;
 /** Rev 4: a rev-3 bank course plus black holes (puzzle.holes); see orbitRev3.ts. */
 export const ORBIT_REV4 = 4;
+/** Rev 5 (Oct 2026 score bands): rev-4 play (planets and any holes from the puzzle), scored on the shared band curve; see orbitRev3.ts. */
+export const ORBIT_REV_BAND = 5;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */

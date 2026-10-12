@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -169,7 +170,7 @@ export interface BurstIcon {
   kind: number;
 }
 
-export interface BurstState {
+export interface BurstState extends BandFields {
   /** burstRev 2 only (absent on original rounds). */
   rev?: number;
   /** burstRev 2: ticks of freeze left (every atom stopped) and FREEZE icons caught. */
@@ -659,9 +660,9 @@ export const burstGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   key: "burst",
   runTicks: BURST_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: BURST_INPUT_RANGES,
 };
@@ -670,5 +671,24 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_BAND) return burstBandGame;
   return rev === BURST_REV ? burstGameV2 : burstGame;
 }
+
+/* ================= Oct 2026 score bands (burstRev 3) ================= */
+
+/** Score-band revision (puzzle.burstRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const BURST_REV_BAND = 3;
+/** Atoms hit, minus 5 a life lost; 140 at 100; lasting the 90 s adds 10 (no 130 cap, no 150 shortcut). */
+export const BURST_BAND_CURVE = bandCurve([0, 55, 76, 88, 100], [0, 70, 100, 125, 140]);
+export function burstBandParts(state: BurstState): BandParts {
+  const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
+  const finished = state.ended === 1;
+  return { units, points: bandPoints(BURST_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
+}
+
+function scoreBand(state: BurstState): number {
+  return bandTotal(burstBandParts(state), Boolean(state.acted));
+}
+
+export const burstBandGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameV2, init: (seed) => bandInit(burstGameV2.init(seed)) };

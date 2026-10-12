@@ -106,6 +106,30 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 // Letterfall's replay checks words: install the same list the server grades with.
 import "@/lib/duel/wordfallDict.server";
 
+import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
+import { WAV_REV_BAND } from "@/lib/arcade/wavefront";
+import { FLIP_REV_BAND } from "@/lib/arcade/flip";
+import { INK_REV_BAND } from "@/lib/arcade/inkBridge";
+import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
+import { BUB_REV_BAND } from "@/lib/arcade/bubble";
+import { CROSS_REV_BAND } from "@/lib/arcade/cross";
+import { RALLY_REV_BAND } from "@/lib/arcade/rally";
+import { SNAKE_REV_BAND } from "@/lib/arcade/snake";
+import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
+import { SNIP_REV_BAND } from "@/lib/arcade/snip";
+import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
+import { HOVER_REV_BAND } from "@/lib/arcade/hover";
+import { JUNC_REV_BAND } from "@/lib/arcade/junction";
+import { BRK_REV_BAND } from "@/lib/arcade/breaker";
+import { TILT_REV_BAND } from "@/lib/arcade/tilt";
+import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
+import { initBandFrom } from "@/lib/arcade/orbitRev3";
+import { BEAT_REV_BAND } from "@/lib/arcade/beat";
+import { SLICE_REV_BAND } from "@/lib/arcade/slice";
+import { BURST_REV_BAND } from "@/lib/arcade/burst";
+import { SWING_REV_BAND } from "@/lib/arcade/swing";
+import { BULLSEYE_REV_BAND, bullseyeInitFor } from "@/lib/arcade/bullseye";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
 const INTERVAL = 300;
@@ -414,6 +438,57 @@ const GAMES: Game[] = [
   { key: "ink/v4", game: inkBridgeGameFor(INK_REV4), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV4) },
   { key: "swing/v3", game: swingGameFor(SWING_REV_V3), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_V3) },
   { key: "swing/v4", game: swingGameFor(SWING_REV), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV) },
+  // Oct 2026 score bands: every active arcade game's band revision (same play as the live revision, new score).
+  { key: "wavefront/band", game: wavefrontGameFor(WAV_REV_BAND), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_BAND) },
+  { key: "flip/band", game: flipGameFor(FLIP_REV_BAND), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, FLIP_REV_BAND) },
+  { key: "ink/band", game: inkBridgeGameFor(INK_REV_BAND), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_BAND) },
+  { key: "matchup/band", game: matchupGameFor(MATCHUP_REV_BAND), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_BAND) },
+  { key: "bubble/band", game: bubbleGameFor(BUB_REV_BAND), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_BAND) },
+  { key: "cross/band", game: crossGameFor(CROSS_REV_BAND), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_BAND) },
+  { key: "rally/band", game: rallyGameFor(RALLY_REV_BAND), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_BAND) },
+  { key: "snake/band", game: snakeGameFor(SNAKE_REV_BAND), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_BAND) },
+  { key: "bintoss/band", game: binTossGameFor(BINTOSS_REV_BAND), checkpoint: binTossCheckpoint, mode: "events", rate: 15, encode: encodeBinTossRun, replay: (seed: number, raw: string) => replayBinTossRun(seed, raw, BINTOSS_REV_BAND) },
+  { key: "snip/band", game: snipGameFor(SNIP_REV_BAND), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_BAND) },
+  { key: "skyline/band", game: skylineGameFor(SKYLINE_REV_BAND), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV_BAND) },
+  { key: "hover/band", game: hoverGameFor(HOVER_REV_BAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_BAND) },
+  { key: "junction/band", game: junctionGameFor(JUNC_REV_BAND), checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: (seed: number, raw: string) => replayJunctionRun(seed, raw, JUNC_REV_BAND) },
+  { key: "breaker/band", game: breakerGameFor(BRK_REV_BAND), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_BAND) },
+  { key: "tilt/band", game: tiltGameFor(TILT_REV_BAND), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BAND) },
+  { key: "beat/band", game: beatGameFor(BEAT_REV_BAND), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_BAND) },
+  { key: "slice/band", game: sliceGameFor(SLICE_REV_BAND), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_BAND) },
+  { key: "burst/band", game: burstGameFor(BURST_REV_BAND), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, BURST_REV_BAND) },
+  { key: "swing/band", game: swingGameFor(SWING_REV_BAND), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BAND) },
+  {
+    key: "balltrack/band",
+    game: makeBallTrackGame(btCourse(0), BT_REV_BAND),
+    gameFor: (seed: number) => makeBallTrackGame(btCourse(seed), BT_REV_BAND),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btCourse(run.seed), run, BT_REV_BAND),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btCourse(seed), seed, raw, BT_REV_BAND),
+  },
+  {
+    key: "orbit/band",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initBandFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed))) }),
+    seedFor: (n: number) => ORBIT_HOLE_BANK[n % ORBIT_HOLE_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_BAND, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
+  },
+  {
+    key: "bullseye/band",
+    game: bullseyeGameFor(BULLSEYE_REV_BAND),
+    checkpoint: bullseyeCheckpoint,
+    init: (seed: number) => bullseyeInitFor(seed, bullseyeWinds(seed), BULLSEYE_REV_BAND),
+    mode: "events",
+    rate: 25,
+    encode: encodeBullseyeRun,
+    replay: (seed: number, raw: string) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), BULLSEYE_REV_BAND),
+  },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },

@@ -5,6 +5,7 @@ import {
   burstGame,
   burstGameFor,
   BURST_REV,
+  BURST_REV_BAND,
   BURST_CHECKPOINT_INTERVAL,
   BURST_CHECKPOINT_KEYS,
   BURST_LIVES,
@@ -28,6 +29,14 @@ const runV2 = makeArcadeRun<BurstState, BurstCheckpoint>({
   keys: BURST_CHECKPOINT_KEYS,
   interval: BURST_CHECKPOINT_INTERVAL,
 });
+/** Oct 2026 score-band revision. */
+const runBand = makeArcadeRun<BurstState, BurstCheckpoint>({
+  tag: "burst",
+  game: burstGameFor(BURST_REV_BAND),
+  checkpoint: burstCheckpoint,
+  keys: BURST_CHECKPOINT_KEYS,
+  interval: BURST_CHECKPOINT_INTERVAL,
+});
 
 export interface BurstResult extends FlatReplay<BurstState, BurstCheckpoint> {
   wave: number;
@@ -46,7 +55,7 @@ export const decodeBurstRun = run.decode;
 
 /** The single place a Burst score is worked out. */
 export function replayBurstRun(seed: number, raw: string, rev?: number | null): BurstResult {
-  const result = (rev === BURST_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

@@ -42,7 +42,7 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 | Fill-In, Cryptex, Unscramble Ladder, Mini Crossword | To build (medium/low) | | |
 | Longest Word / Word Association Chain / Reverse Definitions / Homophone Match / Speed Typing / Crossword Sprint | Bank | | |
 
-## Number — 6 active
+## Number — 9 active
 
 | Game (id) | Status | Description | Time |
 |---|---|---|---|
@@ -51,9 +51,12 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 | Counterweight (balance) | Built | Three scales: hang kettlebells on numbered notches on a brass beam so it balances; fixed weights are dark iron with a lock; the beam tilts toward the heavier side. 120 + up to 30 speed. | 90 s |
 | Integer Pyramid (numpyramid) | Built | Four pyramids; fill each cell so it's the sum of the two below. All four + up to 30 speed. | 120 s |
 | Trail (trail) | Built | 10 fixed numbers; place the other 26 to make a continuous number trail (tap an empty cell next to the trail's end). 5 per correct tile, any position. | 120 s |
+| Brimful (measure) | Built | Four pouring puzzles: get exactly the target in one jug (tap and drain), or make a stated split with no tap on puzzle 4. True minimums by breadth-first search. 25 per puzzle + up to 5 for moves, +30 speed when all four are solved. `measureRev` 1. 120 s is a first guess, to tune after testing. | 120 s |
+| Checkout (checkout) | Built | Darts maths on five changing boards (standard, shuffled, uneven values, x4 ring with a treble finish, two negative wedges with exactly four darts). Routes and fewest darts proved by exhaustive search. 18–26 per board, +2 for fewest darts, +30 speed when all five are solved. `checkoutRev` 1. | 90 s |
+| Ballpark (numline) | Built | Three lines of five numbers or expressions to drag into place (0–1, 0–100, then −50–50 or 0–1,000). Up to 8 per number by accuracy (full within 2%, none at 15%); the speed part scales with accuracy. `numlineRev` 1. | 75 s |
 | Tenfall (tendrop) | Built (engine) | Arcade-engine game: make tens to clear ten targets; ×2 / −2 modifier tiles; gold freeze on each target. 13 per target + early-clear bonus. | 90 s |
 | Sum Hunt (sumhunt), Number Sequence (numseq), Percent Sprint (pctsprint), Chain Calculation (chaincalc) | Retired | | |
-| Equation Fill, Checkout, Merge Target | To build (high) | | |
+| Equation Fill, Merge Target | To build (high) | | |
 | Change Up, Cages, Magic Square, Prime Rush | To build (medium/low) | | |
 | Calc-grid / Mental Math Sprint | Bank | | |
 
@@ -180,16 +183,16 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 
 | Category | Active in rooms | Retired |
 |---|---|---|
-| Word | 6 | 3 |
-| Number | 6 | 4 |
+| Word | 7 | 3 |
+| Number | 9 | 4 |
 | Memory (dormant) | 0 | 4 |
 | Speed | 6 | 1 |
 | Attention | 7 | 0 |
 | Pattern | 7 | 3 |
 | Logic | 14 | 2 |
 | Arcade | 22 | 9 |
-| **Total** | **68** | **26** |
+| **Total** | **72** | **26** |
 
-94 built. Target: at least six strong games per category (Word and Number are at six; Memory is empty). Guiding rule: aim for around 40 outstanding games with radically different skill profiles rather than 100 variations.
+97 built. Target: at least six strong games per category (Word is at six, Number at nine; Memory is empty). Guiding rule: aim for around 40 outstanding games with radically different skill profiles rather than 100 variations.
 
 **To confirm in the Claude Code scoring audit:** Operator stage points, the arcade 130 / 150 split, tries rewards (Lightbender, Safe Cracker), changed values (Forage 2× word points, Tally 30 / 45 / 55), and the "rest are checks" items in scoring reference section 16. Free mistakes in Lookout, Tents and Trees, Trail, Matchmaker, Interloper and Ball Tracker stay unpenalised by design (ruled 10 Oct).

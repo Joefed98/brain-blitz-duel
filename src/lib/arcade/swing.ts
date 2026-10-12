@@ -17,6 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { ANG_PER_RAD, iatan2, icos, isin, isqrt, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -418,7 +419,7 @@ export function swingJetAt(jet: SwingJet, tick: number): { h: number; bubbling: 
 
 /* ================================ State ================================ */
 
-export interface SwingState extends Body {
+export interface SwingState extends Body, BandFields {
   dragons?: SwingDragon[];
   /** swingRev 4 only (absent on older rounds). */
   rev?: number;
@@ -918,9 +919,9 @@ export const swingGame: ArcadeGame<SwingState, ArcadeInputEvent | null> = {
   key: "swing",
   runTicks: SWING_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: SWING_INPUT_RANGES,
 };
@@ -929,8 +930,27 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_BAND) return swingBandGame;
   if (rev === SWING_REV) return chaseGameV4;
   if (rev === SWING_REV_V3) return dragonGameV3;
   if (rev === SWING_REV_V2) return dragonGameV2;
   return swingGame;
 }
+
+/* ================= Oct 2026 score bands (swingRev 5) ================= */
+
+/** Score-band revision (puzzle.swingRev = 5): rev-4 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const SWING_REV_BAND = 5;
+/** Metres count 1 and stars 5; 140 at 500 m with all ten stars; reaching 500 m adds 10. */
+export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 70, 100, 125, 136, 138, 140]);
+export function swingBandParts(state: SwingState): BandParts {
+  const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
+  const finished = swingMetres(state) >= SWING_FINISH_M;
+  return { units, points: bandPoints(SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
+}
+
+function scoreBand(state: SwingState): number {
+  return bandTotal(swingBandParts(state), Boolean(state.acted));
+}
+
+export const swingBandGame: typeof swingGame = { ...chaseGameV4, init: (seed) => bandInit(chaseGameV4.init(seed)) };

@@ -1,19 +1,12 @@
-import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
-import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
-import { BINTOSS_THROWS, BINTOSS_V3_PARTIAL_MAX } from "@/lib/arcade/binToss";
+import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
-import { INK_LEVELS, INK_V4_PARTIAL_MAX } from "@/lib/arcade/inkBridge";
+import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
-import { TILT_MAX_MAZES, TILT_V2_PARTIAL_MAX } from "@/lib/arcade/tilt";
-import { RALLY_GOLD_POINTS, RALLY_TARGET_POINTS } from "@/lib/arcade/rally";
-import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
-import { BUB_V2_PARTIAL_MAX } from "@/lib/arcade/bubble";
-import { HOVER_REACHABLE_GATES, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
-import { SKYLINE_STREAK_FROM, SKYLINE_STREAK_POINTS, SKYLINE_V2_BLOCK_POINTS, SKYLINE_V2_PERFECT_POINTS } from "@/lib/arcade/skyline";
+import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
 
 /**
@@ -44,14 +37,6 @@ const fewestMoves = (finish: string, notFinished: string) =>
 const arcadeFinish = (progress: string, finish: string) =>
   `Points per ${progress}. ${finish}: ${COMPLETE}, more if you're quick.`;
 
-/**
- * Arcade 130 / 150 split: a full clear scores up to 150; partial runs are capped at 130,
- * or lower where the per-unit points stop short (partialMax; the six-game scoring check
- * proves each figure against the sim).
- */
-const arcadeSplit = (progress: string, goal: string, partialMax: number = COMPLETE) =>
-  `Points for ${progress}. ${goal} for up to 150; otherwise up to ${partialMax}.`;
-
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
   `Points for ${counts}.${penalty ? ` ${penalty}.` : ""}`;
@@ -75,6 +60,11 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   balance: "The scales score 20, 40 and 60. Balance all three for 120, more if you're quick.",
   numpyramid: "30 for each pyramid you finish, more if you're quick. Bricks right still score.",
   trail: standard("Complete the path", "5 per tile in place"),
+  measure: "25 per puzzle, +5 for fewest moves, +30 speed if all four are solved",
+  // "board" for the brief's "stage": the intro wording check rejects "stage".
+  checkout: "18-26 per board, +2 for fewest darts, +30 speed if all five are solved",
+  // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
+  numline: "Up to 8 per number for accuracy; speed points grow with accuracy",
   tendrop: "13 points for each target you hit. Clear all ten quickly for extra points.",
   numseq: "20 points for each sequence. Get all five quickly for extra points.",
   chaincalc: "Get it right quickly for the most points.",
@@ -131,28 +121,28 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
   // Arcade
-  hover: `Up to ${HOVER_V2_GATES_SCORE} for all ${HOVER_REACHABLE_GATES} barriers, plus up to ${HOVER_V2_STARS_SCORE} for gold stars.`,
-  skyline: `${SKYLINE_V2_BLOCK_POINTS} per block, ${SKYLINE_V2_PERFECT_POINTS} per perfect drop, +${SKYLINE_STREAK_POINTS} per perfect from ${SKYLINE_STREAK_FROM} in a row. Up to 150.`,
-  bintoss: arcadeSplit("each bucket and hoop", `Sink all ${BINTOSS_THROWS} buckets`, BINTOSS_V3_PARTIAL_MAX),
+  hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
+  skyline: "Points for each block and perfect drop, more for perfects in a row. Up to 150.",
+  bintoss: `Points for each bucket and hoop. All ${BINTOSS_THROWS} in for 10 more, up to 150.`,
   bullseye: `Rings score ${BULLSEYE_RING_VALUES[0]} in the centre down to ${BULLSEYE_RING_VALUES[BULLSEYE_RING_VALUES.length - 1]}; inner bull or balloon ${BULLSEYE_INNER_BULL_POINTS}. Up to 150.`,
   matchup: "Match lines of three or more; longer lines score far more. Up to 150.",
-  snake: `${SNAKE_PELLET_POINTS} points for each star you eat. Up to 150.`,
-  cross: `${CROSS_LANE_POINTS} points for each lane crossed, plus ${CROSS_CROSSING_POINTS} for each full crossing. Up to 150.`,
-  breaker: arcadeSplit("each brick", `Clear all ${BRK_BRICKS} bricks`, 128),
-  rally: `${RALLY_GOLD_POINTS} per gold-ball hit, ${RALLY_TARGET_POINTS} per pink target, up to 150. Blue scores nothing.`,
-  bubble: arcadeSplit("each bubble", "Clear the whole field", BUB_V2_PARTIAL_MAX),
+  snake: "Points for each star you eat. Up to 150.",
+  cross: "Points for each lane crossed, more for each full crossing. Up to 150.",
+  breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to 150.`,
+  rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to 150.",
+  bubble: "Points for each bubble cleared. Clear the whole field quickly for up to 150.",
   slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
-  beat: "Points for each note you hit in time. Missed note: lose 2.",
-  wavefront: "150 needs every wave plus the boss. Points for ships, armour, saucers, waves and the boss.",
-  flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
-  junction: `${JUNC_V2_CAR_POINTS} per car, ${JUNC_V2_BUS_POINTS} per bus, ±4 per ambulance, ${JUNC_V2_SURVIVE_BONUS} for lasting the minute. Up to 150.`,
-  inkbridge: arcadeSplit("each level and star", `Finish all ${INK_LEVELS} levels`, INK_V4_PARTIAL_MAX),
-  burst: "150: all 90 s, no life lost, 4+ waves cleared. Else 2 an atom, −9 a life, up to 130.",
-  orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
-  snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. All ${SNIP_CONFIG.levels} quickly: up to 150.`,
-  swing: arcadeSplit("distance and stars", `Reach ${SWING_FINISH_M} metres`),
-  tilt: arcadeSplit("each maze and star", `Finish all ${TILT_MAX_MAZES} mazes`, TILT_V2_PARTIAL_MAX),
-  balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),
+  beat: "Points for each note hit in time; every note Perfect for 150. A miss costs a little.",
+  wavefront: "Points for ships, saucers, waves and boss hits. Destroy the boss for 10 more.",
+  flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
+  junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
+  inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to 150.`,
+  burst: "Points for each atom; a lost life costs a few. Last the 90 s for 10 more.",
+  orbit: "Points for each planet you reach. Reach the sun quickly for up to 150.",
+  snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to 150.`,
+  swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
+  tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to 150.`,
+  balltrack: `Points for each marble home. Get all ${BT_BALLS} home quickly for up to 150.`,
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",
   steady: "Start on 150. Touching the edge: lose 5.",

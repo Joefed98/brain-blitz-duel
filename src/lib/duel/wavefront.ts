@@ -5,6 +5,7 @@ import {
   wavefrontGame,
   wavefrontGameFor,
   WAV_REV,
+  WAV_REV_BAND,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -23,6 +24,14 @@ const run = makeArcadeRun<WavState, WavCheckpoint>({
 const runV2 = makeArcadeRun<WavState, WavCheckpoint>({
   tag: "wavefront",
   game: wavefrontGameFor(WAV_REV),
+  checkpoint: wavCheckpoint,
+  keys: WAV_CHECKPOINT_KEYS,
+  interval: WAV_CHECKPOINT_INTERVAL,
+});
+/** Oct 2026 score-band revision. */
+const runBand = makeArcadeRun<WavState, WavCheckpoint>({
+  tag: "wavefront",
+  game: wavefrontGameFor(WAV_REV_BAND),
   checkpoint: wavCheckpoint,
   keys: WAV_CHECKPOINT_KEYS,
   interval: WAV_CHECKPOINT_INTERVAL,
@@ -49,7 +58,7 @@ export const decodeWavefrontRun = run.decode;
 
 /** The single place a Wavefront score is worked out. */
 export function replayWavefrontRun(seed: number, raw: string, rev?: number | null): WavefrontResult {
-  const result = (rev === WAV_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

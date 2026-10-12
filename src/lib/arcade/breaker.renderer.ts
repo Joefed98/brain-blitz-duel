@@ -10,6 +10,7 @@ import {
   BRK_FIRE_TICKS,
   BRK_POWER_FIRE,
   BRK_REV,
+  BRK_REV_BAND,
   BRK_ROWS,
   BRK_SLIDE_AMP,
   brkPaddleColumn,
@@ -286,7 +287,9 @@ function inside(poly: [number, number][], x: number, y: number): boolean {
 
 export const breakerArtGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGame, draw };
 const breakerArtGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV), draw };
+const breakerArtGameBand: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_BAND), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_BAND) return breakerArtGameBand;
   return rev === BRK_REV ? breakerArtGameV2 : breakerArtGame;
 }

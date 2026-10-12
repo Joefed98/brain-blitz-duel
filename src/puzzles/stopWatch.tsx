@@ -1,10 +1,21 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
 import { randInt } from "@/lib/duel/random";
+import { markerState, targetCentre } from "@/lib/duel/stopWatch";
+import {
+  TAP_LOG_MAX,
+  TAP_LOG_PREFIX,
+  TAP_REV,
+  decodeTapTimes,
+  encodeTapTimes,
+  replayBangOn,
+  usesTapLog,
+} from "@/lib/duel/tapLog";
 import {
   STOPWATCH_GAP_MS,
+  STOPWATCH_LEAD_IN_MS,
   STOPWATCH_MISS_MS,
   STOPWATCH_ROUND_MS,
   type StopWatchPuzzleData,
@@ -13,45 +24,12 @@ import {
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
+export { markerState, targetCentre } from "@/lib/duel/stopWatch";
+
 /** First watch starts this long after the round opens. */
-const LEAD_IN_MS = 800;
+const LEAD_IN_MS = STOPWATCH_LEAD_IN_MS;
 const MARKER_W = 6;
 const HIDE_FROM = 2 / 3;
-
-/** Marker position, completed right-edge count, direction and current traversal duration. */
-export function markerState(
-  spec: StopWatchSpec,
-  elapsed: number,
-): { pos: number; pass: number; dir: 1 | -1; sweepMs: number } {
-  const durations = spec.passSweepMs ?? Array.from({ length: spec.passes }, () => spec.sweepMs);
-  let remaining = Math.max(0, elapsed);
-  let pass = 0;
-  if (spec.wrap) {
-    while (pass < spec.passes && remaining >= (durations[pass] ?? spec.sweepMs)) {
-      remaining -= durations[pass] ?? spec.sweepMs;
-      pass += 1;
-    }
-    const sweepMs = durations[Math.min(pass, spec.passes - 1)] ?? spec.sweepMs;
-    const frac = pass >= spec.passes ? 1 : Math.min(1, remaining / sweepMs);
-    return { pos: frac, pass, dir: 1, sweepMs };
-  }
-  while (pass < spec.passes) {
-    const sweepMs = durations[pass] ?? spec.sweepMs;
-    if (remaining < sweepMs) return { pos: remaining / sweepMs, pass, dir: 1, sweepMs };
-    remaining -= sweepMs;
-    pass += 1;
-    if (pass >= spec.passes) return { pos: 1, pass, dir: 1, sweepMs };
-    if (remaining < sweepMs) return { pos: 1 - remaining / sweepMs, pass, dir: -1, sweepMs };
-    remaining -= sweepMs;
-  }
-  return { pos: 1, pass, dir: 1, sweepMs: durations.at(-1) ?? spec.sweepMs };
-}
-
-export function targetCentre(spec: StopWatchSpec, elapsed: number): number {
-  if (!spec.moving) return spec.centre;
-  const angle = 2 * Math.PI * (elapsed / spec.moving.cycleMs + spec.moving.phase);
-  return spec.centre + Math.sin(angle) * spec.moving.amplitude;
-}
 
 function isHidden(spec: StopWatchSpec, pos: number): boolean {
   return spec.hidden && pos > HIDE_FROM;
@@ -79,6 +57,7 @@ export function buildStopWatch(): StopWatchPuzzleData {
       if (accelerating) spec.passSweepMs = Array.from({ length: index + 2 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
       return spec;
     }),
+    tapRev: TAP_REV,
   };
 }
 
@@ -167,7 +146,8 @@ function IntroExample() {
 
 type Cursor = { index: number; startAt: number; result: number | null; signed: number | null; shownUntil: number };
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+/** Rounds stored before tap logs (no `tapRev`): the phone's own distance summary. */
+function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const watches = puzzle.type === "stopwatch" ? (puzzle.watches ?? []) : [];
   const key = `${phaseStartedAt}:${watches.map((w) => w.centre).join(",")}`;
   const [errors, setErrors] = useState<number[]>([]);
@@ -179,9 +159,6 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     shownUntil: 0,
   });
   const submitted = useRef("");
-  const barRef = useRef<HTMLDivElement | null>(null);
-  const markerRef = useRef<HTMLSpanElement | null>(null);
-  const targetRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     setErrors([]);
@@ -222,32 +199,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
     onSubmit(errors.join(","), { reactionAvgMs: avg });
   }, [done, now, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The marker glides: positioned every frame from the watch's start time.
-  useEffect(() => {
-    if (!live || !spec) return;
-    let raf = 0;
-    const frame = () => {
-      const bar = barRef.current;
-      const el = markerRef.current;
-      const target = targetRef.current;
-      const elapsed = serverNow() - cursor.startAt;
-      const { pos } = markerState(spec, elapsed);
-      if (bar && el) {
-        el.style.transform = spec.vertical
-          ? `translate3d(0, ${-(pos * bar.clientHeight - MARKER_W / 2)}px, 0)`
-          : `translate3d(${pos * bar.clientWidth - MARKER_W / 2}px, 0, 0)`;
-        el.style.opacity = isHidden(spec, pos) ? "0" : "1";
-      }
-      if (bar && target && spec.moving) {
-        const centre = targetCentre(spec, elapsed);
-        if (spec.vertical) target.style.bottom = `${(centre - spec.half) * 100}%`;
-        else target.style.left = `${(centre - spec.half) * 100}%`;
-      }
-      raf = requestAnimationFrame(frame);
-    };
-    raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
-  }, [live, cursor.index, cursor.startAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { barRef, markerRef, targetRef } = useMarkerGlide(live, spec, cursor.startAt, cursor.index);
 
   if (puzzle.type !== "stopwatch" || !spec) return null;
 
@@ -276,47 +228,222 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const passesLeft = Math.max(0, spec.passes - currentPass);
 
   return (
+    <WatchView
+      index={cursor.index}
+      count={watches.length}
+      spec={spec}
+      live={live}
+      refs={{ barRef, markerRef, targetRef }}
+      passesLeft={passesLeft}
+      result={cursor.result === null ? "none" : cursor.signed === null ? "missed" : "stopped"}
+      status={done && now >= cursor.shownUntil ? "All ten done" : label}
+      errors={errors}
+      onTap={handleTap}
+    />
+  );
+}
+
+function useMarkerGlide(live: boolean, spec: StopWatchSpec | undefined, startAt: number, index: number) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const markerRef = useRef<HTMLSpanElement | null>(null);
+  const targetRef = useRef<HTMLSpanElement | null>(null);
+  // The marker glides: positioned every frame from the watch's start time.
+  useEffect(() => {
+    if (!live || !spec) return;
+    let raf = 0;
+    const frame = () => {
+      const bar = barRef.current;
+      const el = markerRef.current;
+      const target = targetRef.current;
+      const elapsed = serverNow() - startAt;
+      const { pos } = markerState(spec, elapsed);
+      if (bar && el) {
+        el.style.transform = spec.vertical
+          ? `translate3d(0, ${-(pos * bar.clientHeight - MARKER_W / 2)}px, 0)`
+          : `translate3d(${pos * bar.clientWidth - MARKER_W / 2}px, 0, 0)`;
+        el.style.opacity = isHidden(spec, pos) ? "0" : "1";
+      }
+      if (bar && target && spec.moving) {
+        const centre = targetCentre(spec, elapsed);
+        if (spec.vertical) target.style.bottom = `${(centre - spec.half) * 100}%`;
+        else target.style.left = `${(centre - spec.half) * 100}%`;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [live, index, startAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { barRef, markerRef, targetRef };
+}
+
+function WatchView({
+  index,
+  count,
+  spec,
+  live,
+  refs,
+  passesLeft,
+  result,
+  status,
+  errors,
+  onTap,
+}: {
+  index: number;
+  count: number;
+  spec: StopWatchSpec;
+  live: boolean;
+  refs: ReturnType<typeof useMarkerGlide>;
+  passesLeft: number;
+  /** The result on show for the current watch, if any. */
+  result: "none" | "missed" | "stopped";
+  status: string;
+  errors: number[];
+  onTap: () => void;
+}) {
+  const showing = result !== "none";
+  return (
     <div
       role="button"
       tabIndex={0}
       aria-label="Stop the marker"
-      onPointerDown={handleTap}
+      onPointerDown={onTap}
       data-polish="stopwatch" data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        Watch {Math.min(cursor.index + 1, watches.length)} / {watches.length}
+        Watch {Math.min(index + 1, count)} / {count}
       </p>
       <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-center" : ""}`}>
         <Bar
-          key={cursor.index}
+          key={index}
           spec={spec}
           marker={null}
-          barRef={live ? barRef : undefined}
-          markerRef={live ? markerRef : undefined}
-          targetRef={live && spec.moving ? targetRef : undefined}
+          barRef={live ? refs.barRef : undefined}
+          markerRef={live ? refs.markerRef : undefined}
+          targetRef={live && spec.moving ? refs.targetRef : undefined}
           passesLeft={passesLeft}
         />
       </div>
       <p data-game-controls="status"
         className={`font-mono text-3xl font-bold tabular-nums ${
-          cursor.result !== null ? (cursor.signed === null ? "text-warn" : "text-primary") : "text-muted-foreground"
+          showing ? (result === "missed" ? "text-warn" : "text-primary") : "text-muted-foreground"
         }`}
       >
-        {done && now >= cursor.shownUntil ? "All ten done" : label}
+        {status}
       </p>
       <div data-game-controls="history" className="stopwatch-history grid h-16 w-full grid-cols-3 gap-2" aria-label="Recent results">
-        {errors.slice(cursor.result === null ? -3 : -4, cursor.result === null ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} className="flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (cursor.result === null ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
+        {errors.slice(!showing ? -3 : -4, !showing ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} className="flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (!showing ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
       </div>
     </div>
   );
 }
 
+function resultLabel(signed: number | null): string {
+  return signed === null ? "Missed" : `${signed >= 0 ? "+" : "−"}${Math.abs(signed)} ms`;
+}
+
+/**
+ * Tap-log rounds (`tapRev`): every tap is logged on the round clock and sent
+ * raw. Watches run on the fixed schedule the server replays (each starts 600 ms
+ * after the last was stopped or ran out), and what the phone shows comes from
+ * that same replay.
+ */
+function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const watches = puzzle.type === "stopwatch" ? (puzzle.watches ?? []) : [];
+  const key = `${phaseStartedAt}:${watches.map((w) => w.centre).join(",")}`;
+  const taps = useRef<number[]>([]);
+  const [logLength, setLogLength] = useState(0);
+  const submitted = useRef("");
+
+  useEffect(() => {
+    taps.current = [];
+    setLogLength(0);
+  }, [key]);
+
+  const rel = now - phaseStartedAt;
+  const lastTap = taps.current[taps.current.length - 1] ?? 0;
+  const upTo = Math.max(rel, lastTap);
+  const replay = useMemo(
+    () => replayBangOn(watches, taps.current, upTo),
+    [watches, logLength, upTo], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const results = replay.results;
+  const last = results[results.length - 1];
+  const errors = results.map((r) => r.distance ?? STOPWATCH_MISS_MS);
+  const current = replay.current;
+  // Between watches the one just settled stays on screen with its result.
+  const showingResult = !!last && (!current || upTo < current.start);
+  const shownIndex = showingResult ? results.length - 1 : (current?.index ?? 0);
+  const spec = watches[shownIndex];
+  const start = current?.start ?? STOPWATCH_LEAD_IN_MS;
+  const live = !!spec && !showingResult && !!current;
+  const done = !current && watches.length > 0;
+
+  useEffect(() => {
+    if (watches.length) onDraftAnswer?.(encodeTapTimes(taps.current));
+  }, [logLength]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!done || locked || submitted.current === key || !last) return;
+    if (upTo < last.at + STOPWATCH_GAP_MS) return;
+    submitted.current = key;
+    const avg = Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
+    onSubmit(encodeTapTimes(taps.current), { reactionAvgMs: avg });
+  }, [done, now, locked, key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refs = useMarkerGlide(live, spec, phaseStartedAt + start, shownIndex);
+
+  if (puzzle.type !== "stopwatch" || !spec) return null;
+
+  const handleTap = () => {
+    if (locked) return;
+    const log = taps.current;
+    // Whole ms on the round clock, never earlier than the tap before.
+    const stamp = Math.max(Math.round(serverNow() - phaseStartedAt), log[log.length - 1] ?? 0);
+    if (stamp < 0 || log.length >= TAP_LOG_MAX) return;
+    // Nothing counts after the last watch.
+    if (!replayBangOn(watches, log, stamp).current) return;
+    taps.current = [...log, stamp];
+    setLogLength(taps.current.length);
+  };
+
+  const waiting = !showingResult && upTo < start;
+  const label = showingResult ? resultLabel(last!.signed) : waiting ? "Get ready" : "Tap to stop";
+  const currentPass = live ? markerState(spec, Math.max(0, upTo - start)).pass : spec.passes;
+  const passesLeft = Math.max(0, spec.passes - currentPass);
+
+  return (
+    <WatchView
+      index={shownIndex}
+      count={watches.length}
+      spec={spec}
+      live={live}
+      refs={refs}
+      passesLeft={passesLeft}
+      result={showingResult ? (last!.signed === null ? "missed" : "stopped") : "none"}
+      status={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? "All ten done" : label}
+      errors={errors}
+      onTap={handleTap}
+    />
+  );
+}
+
+function Stage(props: PuzzleStageProps) {
+  return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "stopwatch") return null;
-  const parsed = (myAnswer ?? "")
-    .split(",")
-    .map((v) => Number.parseInt(v, 10))
-    .filter((v) => Number.isFinite(v));
+  // Tap logs are replayed exactly as the server scored them; older rounds list their distances.
+  const parsed = usesTapLog(puzzle)
+    ? myAnswer?.startsWith(TAP_LOG_PREFIX)
+      ? replayBangOn(puzzle.watches, decodeTapTimes(myAnswer, STOPWATCH_ROUND_MS).times, STOPWATCH_ROUND_MS).results.map(
+          (r) => r.distance ?? STOPWATCH_MISS_MS,
+        )
+      : []
+    : (myAnswer ?? "")
+        .split(",")
+        .map((v) => Number.parseInt(v, 10))
+        .filter((v) => Number.isFinite(v));
   const errors = Array.from({ length: puzzle.watches?.length ?? 5 }, (_, i) => parsed[i] ?? STOPWATCH_MISS_MS);
   const avg = Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
 

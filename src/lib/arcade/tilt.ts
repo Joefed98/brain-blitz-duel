@@ -19,6 +19,7 @@ import {
 } from "./engine";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
+import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -244,7 +245,7 @@ export interface TiltChaser {
   vy: number;
 }
 
-export interface TiltState {
+export interface TiltState extends BandFields {
   tick: number;
   rng: number;
   level: number;
@@ -277,6 +278,9 @@ export interface TiltState {
   starTick?: number;
   /** Marbles that reached their own cup (both colours, every maze). */
   cupped?: number;
+  /** tiltRev 3 (score bands) only: best progress towards the exit(s) in the maze being played (0–29) and which maze that was. */
+  prog?: number;
+  progMaze?: number;
 }
 
 const cache = new Map<number, { list: Maze[]; rng: number }>();
@@ -689,9 +693,9 @@ export const tiltGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   key: "tilt",
   runTicks: TILT_RUN_TICKS,
   init,
-  step,
+  step: bandStep(step),
   isOver,
-  score,
+  score: bandScoreOf(score, scoreBand),
   draw,
   inputRanges: TILT_INPUT_RANGES,
 };
@@ -985,7 +989,80 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
   return cellCentre(m, c);
 }
 
-export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: stepRev2, score: scoreRev2 };
+export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_BAND) return tiltBandGame;
   return rev === TILT_REV ? tiltRev2Game : tiltGame;
 }
+
+/* ================= Oct 2026 score bands (tiltRev 3) ================= */
+
+/** Score-band revision (puzzle.tiltRev = 3): rev-2 play unchanged, scored on the shared band curve (scoreBands.ts). */
+export const TILT_REV_BAND = 3;
+/** Progress through the maze being played counts up to 29 (each finished maze 30); stars 5. */
+export const TILT_BAND_PROGRESS = 29;
+/** Mazes 30, progress in the current maze up to 29, stars 5; 140 at all four mazes and eight stars; finishing adds up to 10 for speed. */
+export const TILT_BAND_CURVE = bandCurve([0, 60, 102, 120, 130, 145, 160], [0, 35, 70, 95, 110, 135, 140]);
+
+/** Distances to each marble's exit and from its start, per maze (mazes are fixed per seed). */
+const exitDist = new WeakMap<Maze, { a: number[]; a0: number; b: number[] | null; b0: number }>();
+function tiltExitDist(m: Maze) {
+  let d = exitDist.get(m);
+  if (!d) {
+    const a = bfsFrom(m, m.exit).dist;
+    const two = (m.start2 ?? -1) >= 0 && (m.exit2 ?? -1) >= 0;
+    const b = two ? bfsFrom(m, m.exit2!).dist : null;
+    d = { a, a0: Math.max(1, a[m.start] ?? 1), b, b0: b ? Math.max(1, b[m.start2!] ?? 1) : 1 };
+    exitDist.set(m, d);
+  }
+  return d;
+}
+
+/** Progress (0–29) of the marbles in the maze being played: share of the start-to-exit distance covered, averaged over marbles. */
+export function tiltMazeProgress(s: TiltState): number {
+  const m = s.list[s.level];
+  if (!m || s.mazes >= TILT_MAX_MAZES) return 0;
+  const d = tiltExitDist(m);
+  const share = (home: number | undefined, x: number, y: number, dist: number[], d0: number) => {
+    if (home) return 1;
+    const c = cellOf(m, x, y);
+    const left = c >= 0 ? dist[c]! : 0;
+    return left < 0 ? 0 : Math.max(0, Math.min(1, (d0 - left) / d0));
+  };
+  const pa = share(s.aHome, s.x, s.y, d.a, d.a0);
+  const pb = d.b && s.b ? share(s.bHome, s.b.x, s.b.y, d.b, d.b0) : null;
+  const p = pb === null ? pa : (pa + pb) / 2;
+  return Math.max(0, Math.min(TILT_BAND_PROGRESS, Math.floor(TILT_BAND_PROGRESS * p)));
+}
+
+/** Keeps the best progress in the current maze (reset when a maze is finished). */
+function tiltTrack(_prev: TiltState, next: TiltState): TiltState {
+  const same = next.progMaze === next.mazes;
+  const best = same ? (next.prog ?? 0) : 0;
+  const now = tiltMazeProgress(next);
+  if (same && now <= best) return next;
+  return { ...next, prog: Math.max(best, now), progMaze: next.mazes };
+}
+
+export function tiltBandParts(state: TiltState): BandParts {
+  const mazes = clampInt(state.mazes, 0, TILT_MAX_MAZES);
+  const prog = mazes < TILT_MAX_MAZES && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_BAND_PROGRESS) : 0;
+  const stars = clampInt(state.stars ?? 0, 0, TILT_V2_STARS);
+  const units = 30 * mazes + prog + TILT_V2_STAR_POINTS * stars;
+  const finished = mazes >= TILT_MAX_MAZES;
+  return {
+    units,
+    points: bandPoints(TILT_BAND_CURVE, units),
+    bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, TILT_RUN_TICKS - clampInt(state.endedTick, 0, TILT_RUN_TICKS), TILT_RUN_TICKS) : 0,
+    penalty: 0,
+    finished,
+    text: `${mazes} / ${TILT_MAX_MAZES} mazes${finished ? "" : ` + ${Math.round((100 * prog) / TILT_BAND_PROGRESS)}% of the next`} · ${stars} stars`,
+    bonusText: "All four mazes",
+  };
+}
+
+function scoreBand(state: TiltState): number {
+  return bandTotal(tiltBandParts(state), Boolean(state.acted));
+}
+
+export const tiltBandGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, init: (seed) => bandInit(initRev2(seed)) };
