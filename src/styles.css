@@ -1149,12 +1149,13 @@ body.game-lock {
 
 /*
  * Arcade arena slot (ArcadeArenaSlot). The slot takes all the height from the
- * arena's fixed top edge down to the controls below it (or the bottom padding),
- * painted in the arena's background. Its data-game-arena child is the world
+ * arena's fixed top edge down to the controls below it (or the bottom padding).
+ * Its data-game-arena child is the world
  * rectangle: the game's world aspect (--arena-w / --arena-h) at the largest
  * uniform scale that fits the slot, top-anchored and centred across. Every phone
  * therefore shows the same world, undistorted; games map pointers through that
- * box, so world coordinates and input logs are unchanged.
+ * box, so world coordinates and input logs are unchanged. Spare height below the
+ * arena is painted --arena-fill (::after, the arena's width); spare width stays page.
  */
 [data-arena-slot] {
   container-type: size;
@@ -1175,6 +1176,13 @@ body.game-lock {
   height: min(100cqh, 100cqw * var(--arena-h) / var(--arena-w));
   min-height: 0;
   max-height: none;
+}
+[data-arena-slot]::after {
+  content: "";
+  flex: 1 1 0;
+  width: min(100cqw, 100cqh * var(--arena-w) / var(--arena-h));
+  min-height: 0;
+  background: var(--arena-fill);
 }
 .game-column [data-stage-column] > [data-arena-slot] {
   flex-grow: 1;

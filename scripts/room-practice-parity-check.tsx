@@ -49,7 +49,7 @@ for (const [key, definition] of active) {
     const style = (slot.getAttribute("style") ?? "").replace(/\s/g, "");
     assert.ok(style.includes(`--arena-w:${world.width}`) && style.includes(`--arena-h:${world.height}`), `${key}: slot world ${style}`);
     const fill = (ARCADE_ARENA_FILL as Record<string, string>)[key]!;
-    assert.ok(style.toLowerCase().includes(`background:${fill.toLowerCase()}`), `${key}: slot fill ${style}`);
+    assert.ok(style.toLowerCase().includes(`--arena-fill:${fill.toLowerCase()}`), `${key}: slot fill ${style}`);
     assert.equal([...slot.children].filter((c) => c.hasAttribute("data-game-arena")).length, 1, `${key}: one arena in the slot`);
     assert.equal(host.querySelectorAll("[data-game-arena]").length, 1, `${key}: no arena outside the slot`);
     assert.equal(slot.querySelectorAll("[data-game-controls], button").length, 0, `${key}: controls sit below the slot`);

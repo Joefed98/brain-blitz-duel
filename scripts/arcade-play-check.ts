@@ -24,7 +24,7 @@
  *    or a 1280 × 800 laptop window (checked once per game, before play): READY off
  *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
  *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
- *    moving between sizes; the slot not painted the arena fill; the column not ending
+ *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
  *    6-8 px above the bottom; a control below the arena under 44 px or off screen.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
@@ -310,7 +310,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
       const doc = document.scrollingElement!;
       return {
         slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
-        fill: slot ? getComputedStyle(slot).backgroundColor : "", stageBottom: stage ? stage.getBoundingClientRect().bottom - pad : 0,
+        fill: slot ? getComputedStyle(slot, "::after").backgroundColor : "",
+        fillW: slot ? Number.parseFloat(getComputedStyle(slot, "::after").width) : 0, stageBottom: stage ? stage.getBoundingClientRect().bottom - pad : 0,
         controls: below.map((b) => box(b)!), scroll: doc.scrollHeight - doc.clientHeight,
       };
     });
@@ -329,7 +330,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
     const hex = fill.replace("#", "");
     const rgb = `rgb(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)})`;
-    if (m.fill !== rgb) problems.push(`${at}: slot painted ${m.fill}, not the arena fill ${rgb}`);
+    if (m.fill !== rgb) problems.push(`${at}: space below the arena painted ${m.fill}, not the arena fill ${rgb}`);
+    if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: fill below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
     const gap = h - m.stageBottom;
     if (gap < 6 - 0.5 || gap > 8 + 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want 6-8)`);
     for (const c of m.controls) {
