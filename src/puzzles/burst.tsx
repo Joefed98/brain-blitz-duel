@@ -5,7 +5,6 @@ import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
 import {
   burstCheckpoint,
-  burstGame,
   BURST_BG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_COLOURS,
@@ -13,13 +12,14 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
+  BURST_REV,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
 } from "@/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { BURST_TIME_MS, type BurstPuzzleData } from "@/lib/duel/types";
-import { burstArtGame } from "@/lib/arcade/burst.renderer";
+import { burstArtGameFor } from "@/lib/arcade/burst.renderer";
 import { burstSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 
@@ -89,7 +89,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={BURST_WORLD_W}
       worldH={BURST_FLOOR_Y}
-      game={burstArtGame}
+      game={burstArtGameFor(data?.burstRev)}
       sounds={burstSounds}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
@@ -114,7 +114,7 @@ export function burstLine(r: { wave: number; score: number; hits: number; livesL
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "burst") return null;
-  const result = replayBurstRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBurstRun(puzzle.seed, myAnswer ?? "", puzzle.burstRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -132,7 +132,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1 }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

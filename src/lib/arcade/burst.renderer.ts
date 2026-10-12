@@ -5,7 +5,10 @@ import { BURST_FX } from "./arcadeFxGames.renderer";
 import {
   burstCeiling,
   burstGame,
+  burstGameFor,
   BURST_COLOURS,
+  BURST_ICON_FREEZE,
+  BURST_REV,
   BURST_FLOOR_Y,
   BURST_LIVES,
   BURST_RADIUS,
@@ -41,6 +44,9 @@ const BEAM = "#4BFF7A";
 const WALL = "#B49CFF";
 const SHIP = "#FFD84A";
 const SHIELD = "#3DFFE0";
+/** burstRev 2 FREEZE: ice blue icon, frost on frozen atoms. */
+const ICE = "#9FE8FF";
+const SNOWFLAKE = ["X..X..X.", ".X.X.X..", "..XXX...", "XXXXXXX.", "..XXX...", ".X.X.X..", "X..X..X."];
 
 /** Full collision-disc atoms. Bloom is cached and clipped inside the disc. */
 function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string, tier: number, bloom = true): void {
@@ -203,6 +209,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   for (const icon of state.icons) {
     const x = icon.x / FP;
     const y = icon.y / FP;
+    if (icon.kind === BURST_ICON_FREEZE) {
+      sprite(ctx, SNOWFLAKE, x - 7, y - 7, 2, ICE, 8);
+      continue;
+    }
     if (icon.kind === 1) {
       sprite(ctx, ["..XXXX..", ".X....X.", "X..XX..X", "X.X..X.X", "X..XX..X", ".X....X.", "..XXXX.."], x - ICON_HALF, y - 7, 2, SHIELD);
     } else {
@@ -225,6 +235,29 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
       ctx.globalAlpha = .65 * (1 - age / 8);
       ctx.fillStyle = RETRO_WHITE; ctx.beginPath(); ctx.arc(x, y, r - .6, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
+  }
+  // burstRev 2: every atom frozen in place — an ice glaze inside each disc, thawing out over the last second.
+  const freeze = state.freeze ?? 0;
+  if (freeze > 0) {
+    const glaze = Math.min(1, freeze / 60);
+    for (const ball of state.balls) {
+      const r = BURST_RADIUS[ball.size] ?? 8;
+      const x = ball.x / FP, y = ball.y / FP;
+      ctx.globalAlpha = 0.45 * glaze;
+      ctx.fillStyle = ICE;
+      ctx.beginPath(); ctx.arc(x, y, r - 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.9 * glaze;
+      ctx.strokeStyle = RETRO_WHITE;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.5, y - r * 0.2); ctx.lineTo(x - r * 0.1, y - r * 0.55);
+      ctx.moveTo(x + r * 0.15, y + r * 0.5); ctx.lineTo(x + r * 0.5, y + r * 0.1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.18 * glaze;
+    pixelRect(ctx, 0, ceil, BURST_WORLD_W, 4, ICE);
+    pixelRect(ctx, 0, BURST_FLOOR_Y - 6, BURST_WORLD_W, 4, ICE);
+    ctx.globalAlpha = 1;
   }
   successFrame(ctx,{id:'burst',tick:state.tick,count:0,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
@@ -261,9 +294,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 8, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 14, 20, 10, RETRO_WHITE);
+  if (freeze > 0) retroText(ctx, `FREEZE ${Math.ceil(freeze / 60)}`, 14, 34, 10, ICE);
   for (let i = 0; i < BURST_LIVES; i++) {
     sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
   }
 }
 
 export const burstArtGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, draw };
+const burstArtGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV), draw };
+/** The art game for a stored burstRev; cached so the stage sees one object per revision. */
+export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  return rev === BURST_REV ? burstArtGameV2 : burstArtGame;
+}

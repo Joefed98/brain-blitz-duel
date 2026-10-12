@@ -1,5 +1,8 @@
 # Full check suite (scripts/run-checks.ts) split into parallel shards.
 # Shard lists: .github/ci/shards.ts. Free plan: keep runs rare and short.
+# Pull requests run the slow checks at quick depth (snip-check's sampled search,
+# puzzle-bank-check's 2-entry rebuild sample); Actions → Checks → Run workflow
+# with "full" ticked runs them at full depth (CHECKS_FULL=1).
 name: Checks
 
 on:
@@ -12,6 +15,12 @@ on:
       - ".lovable/**"
   workflow_dispatch:
     inputs:
+      full:
+        description: >-
+          Full depth: snip-check's full template search and puzzle-bank-check's
+          8-entry rebuild sample (about 6 extra minutes on the d shard)
+        type: boolean
+        default: true
       record_arcade_baseline:
         description: >-
           Only record arcade-play-check's frame-time baseline on this runner (uploaded
@@ -38,29 +47,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(inputs.record_arcade_baseline && '["play"]' || '["snip","play","a","b","c"]') }}
+        # Keys must match .github/ci/shards.ts. Recording the baseline is one job
+        # (all 22 games, one at a time, as each play group plays them).
+        shard: ${{ fromJSON(inputs.record_arcade_baseline && '["play"]' || '["play1","play2","play3","play4","play5","a","b","c","d"]') }}
+    env:
+      CHECKS_FULL: ${{ inputs.full && '1' || '' }}
     steps:
       - uses: actions/checkout@v5
 
-      # The play shard only does work once scripts/arcade-play-check.ts exists
-      # (it lands with #16); until then the job stops here, costing ~1 minute.
-      - name: Plan
-        id: plan
-        run: |
-          if [ "${{ matrix.shard }}" = play ] && [ ! -f scripts/arcade-play-check.ts ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            printf '## Checks — play\n\n| Check | Result | Time |\n| --- | --- | --- |\n| arcade-play-check.ts | ⏭️ skipped (not in this branch yet) | — |\n' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: oven-sh/setup-bun@v2
-        if: steps.plan.outputs.run == 'true'
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
       - uses: actions/cache@v4
-        if: steps.plan.outputs.run == 'true'
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
@@ -70,7 +69,6 @@ jobs:
       # Lovable). Point them at the public registry for the install only (same
       # versions and integrity hashes), then restore the lockfile exactly.
       - name: Install dependencies
-        if: steps.plan.outputs.run == 'true'
         run: |
           cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
           sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
@@ -83,17 +81,27 @@ jobs:
       # PLAYWRIGHT_CHROMIUM.
       - name: Playwright version
         id: pw
-        if: steps.plan.outputs.run == 'true' && matrix.shard == 'play'
+        if: startsWith(matrix.shard, 'play')
         run: echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v4
-        if: steps.plan.outputs.run == 'true' && matrix.shard == 'play'
+        if: startsWith(matrix.shard, 'play')
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
+      # Vite's pre-bundled dependencies: roughly halves the dev server's first page
+      # load in each play job. Vite re-bundles by itself if the lockfile or config
+      # changed. Frame times are sampled only during play, after loading.
+      - uses: actions/cache@v4
+        if: startsWith(matrix.shard, 'play')
+        with:
+          path: node_modules/.vite
+          key: vite-deps-${{ runner.os }}-${{ hashFiles('bun.lock', 'vite.config.ts', 'package.json') }}
+          restore-keys: vite-deps-${{ runner.os }}-
+
       - name: Install Chromium
-        if: steps.plan.outputs.run == 'true' && matrix.shard == 'play'
+        if: startsWith(matrix.shard, 'play')
         run: |
           bunx playwright install --with-deps chromium
           echo "PLAYWRIGHT_CHROMIUM=$(bun -e 'import("playwright").then(m => console.log(m.chromium.executablePath()))')" >> "$GITHUB_ENV"
@@ -105,7 +113,7 @@ jobs:
       # leaves only the check's absolute under-30-fps ceiling. Limits are never
       # loosened. This edits the CI checkout only.
       - name: Arcade play baseline for this runner
-        if: steps.plan.outputs.run == 'true' && matrix.shard == 'play'
+        if: startsWith(matrix.shard, 'play')
         run: |
           if [ "${{ inputs.record_arcade_baseline }}" = true ] || [ ! -f .github/ci/arcade-play-baseline.json ]; then
             echo '{}' > scripts/fixtures/arcade-play-baseline.json
@@ -118,12 +126,12 @@ jobs:
           printf '> arcade-play-check frame time: %s.\n\n' "$note" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run checks (${{ matrix.shard }})
-        if: steps.plan.outputs.run == 'true' && !inputs.record_arcade_baseline
+        if: ${{ !inputs.record_arcade_baseline }}
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
 
       - name: Record arcade play baseline
-        if: steps.plan.outputs.run == 'true' && inputs.record_arcade_baseline
+        if: inputs.record_arcade_baseline
         run: |
           status=0
           bun scripts/arcade-play-check.ts --record || status=$?

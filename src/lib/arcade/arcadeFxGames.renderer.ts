@@ -31,8 +31,16 @@ import {
   BRK_WORLD_H,
   BRK_WORLD_W,
   brkDestroyed,
+  brkRowOffset,
   type BrkState,
 } from "./breaker";
+
+/** brkRev 2: bricks destroyed in the sliding rows (original boards have none, so 0). */
+function brkSlideDestroyed(s: BrkState): number {
+  let n = 0;
+  for (const row of s.slide ?? []) for (let c = 0; c < BRK_COLS; c++) if ((s.bricks[row * BRK_COLS + c] ?? 0) <= 0) n += 1;
+  return n;
+}
 import { RALLY_PADDLE_Y, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
 import {
@@ -285,6 +293,23 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 90 }),
       label: (_s, n) => `${n} BRICKS`,
     },
+    // brkRev 2: a Fireball caught, and a brick knocked out of a sliding row.
+    {
+      kind: "perfect",
+      count: (s) => s.fireballs ?? 0,
+      at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
+      label: () => "FIREBALL!",
+      colour: () => "#FF6A2B",
+    },
+    {
+      kind: "pop",
+      count: brkSlideDestroyed,
+      at: (s) => {
+        const row = (s.slide ?? [])[0] ?? 0;
+        return { x: BRK_WORLD_W / 2 + brkRowOffset(s, row, s.tick), y: BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
+      },
+      label: () => "MOVING TARGET!",
+    },
     { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!" },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!" },
   ],
@@ -399,6 +424,14 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
   fit: "world",
   events: [
     { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED` },
+    // burstRev 2: a FREEZE icon caught (original rounds keep 0).
+    {
+      kind: "perfect",
+      count: (s) => s.freezes ?? 0,
+      at: (s) => ({ x: s.x / 256, y: BURST_FLOOR_Y - 60 }),
+      label: () => "FREEZE!",
+      colour: () => "#9FE8FF",
+    },
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
       kind: "final",
@@ -428,7 +461,29 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
     },
-    { kind: "final", count: (s) => (s.wavesCleared >= 5 ? 1 : 0), label: () => "ALL WAVES!" },
+    // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
+    {
+      kind: "pop",
+      count: (s) => s.diversDown ?? 0,
+      at: (s) => {
+        const b = s.bursts.at(-1);
+        return b ? { x: b.x, y: b.y - 18 } : { x: s.shipX, y: WAV_SHIP_Y - 60 };
+      },
+      label: () => "DIVER DOWN!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.bossHits ?? 0,
+      every: 6,
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      label: (_s, n) => `BOSS HIT ×${n}`,
+    },
+    {
+      kind: "final",
+      count: (s) => (s.rev !== undefined ? (s.bossKilled ?? 0) : s.wavesCleared >= 5 ? 1 : 0),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 108 }),
+      label: (s) => (s.rev !== undefined ? "BOSS DOWN!" : "ALL WAVES!"),
+    },
   ],
 };
 
@@ -737,10 +792,30 @@ export const SWING_FX: ArcadeFxSpec<SwingState> = {
       count: (s) => (s.ended === 0 ? Math.floor(swingMetres(s) / 100) : 0),
       label: (_s, n) => `${n * 100} M`,
     },
+    // swingRev 4 success moments (older rounds keep these at 0): a star, a dodged stalactite, a jet passed, the dragon outrun.
+    {
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: (s) => `STAR ${s.stars ?? 0}!`,
+      colour: () => "#FFD84A",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.rocks ?? []).filter((r) => r.phase === 3).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: () => "DODGED!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.jets ?? []).filter((j) => j.x < s.x - 20 * 256).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + 26 }),
+      label: () => "OVER THE LAVA!",
+    },
     {
       kind: "final",
       count: (s) => (s.ended === 1 && swingMetres(s) >= SWING_FINISH_M ? 1 : 0),
-      label: () => "500 M!",
+      label: (s) => ((s.chaseX ?? 0) !== 0 ? "500 M! DRAGON OUTRUN!" : "500 M!"),
     },
   ],
 };

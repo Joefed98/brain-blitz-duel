@@ -1264,9 +1264,13 @@ const wavefrontSummary: SummaryBuilder = (result) => {
   const saucers = Number(result.extra?.["saucers"] ?? 0);
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const head = `Wave ${wave} · ${shapes} shape${shapes === 1 ? "" : "s"} · ${saucers} saucer${saucers === 1 ? "" : "s"}`;
+  const head = `Wave ${wave} · ${shapes} ship${shapes === 1 ? "" : "s"} · ${saucers} saucer${saucers === 1 ? "" : "s"}`;
+  // wavRev 2: the run ends early when the boss goes down.
+  const bossDown = Number(result.extra?.["bossKilled"] ?? 0) > 0;
   return {
-    summary: survived ? `${head} · survived` : `${head} · destroyed at ${ended.toFixed(1)}s`,
+    summary: bossDown
+      ? `Boss destroyed at ${ended.toFixed(1)}s · ${shapes} ships`
+      : survived ? `${head} · survived` : `${head} · destroyed at ${ended.toFixed(1)}s`,
     detail: [
       `${Number(result.extra?.["wavesCleared"] ?? 0)} waves cleared · ${Number(result.extra?.["armourHits"] ?? 0)} armour hits`,
     ],

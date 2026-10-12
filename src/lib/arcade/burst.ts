@@ -61,6 +61,21 @@ const DEFLECT_FROM_WAVE = 3;
 const DEFLECT_MIN_VY = 2 * FP;
 const COS15 = 989;
 const SIN15 = 265;
+/**
+ * burstRev 2 (Oct 2026): half the BURST and SHIELD drops (BURST from 1 in 2 purple
+ * atoms instead of every one, SHIELD from 1 in 8 blue atoms instead of 1 in 4) and
+ * a FREEZE drop (1 in 12 green atoms) that stops every atom for 3 s. All rolls come
+ * from the seeded generator in the state. Unstamped rounds keep the original drops.
+ */
+export const BURST_REV = 2;
+export const BURST_V2_BURST_ODDS = 2;
+export const BURST_V2_SHIELD_ODDS = 8;
+export const BURST_V2_FREEZE_ODDS = 12;
+export const BURST_FREEZE_TICKS = 3 * TICKS_PER_SECOND;
+/** Icon kinds: 0 BURST (gold), 1 SHIELD (teal), 2 FREEZE (ice blue, burstRev 2). */
+export const BURST_ICON_FREEZE = 2;
+/** burstRev 2: without the flawless finish the score stops at 130, so only that finish scores 150. */
+export const BURST_V2_PARTIAL_MAX = 130;
 /** A move event with c = 1 puts the figure exactly at x (1:1 finger follow). */
 export const BURST_MOVE_SNAP = 1;
 
@@ -150,11 +165,16 @@ export interface BurstShot {
 export interface BurstIcon {
   x: number;
   y: number;
-  /** 0 BURST shots (gold), 1 SHIELD (teal). */
+  /** 0 BURST shots (gold), 1 SHIELD (teal), 2 FREEZE (burstRev 2). */
   kind: number;
 }
 
 export interface BurstState {
+  /** burstRev 2 only (absent on original rounds). */
+  rev?: number;
+  /** burstRev 2: ticks of freeze left (every atom stopped) and FREEZE icons caught. */
+  freeze?: number;
+  freezes?: number;
   tick: number;
   rng: number;
   waves: BurstSpawn[][];
@@ -224,6 +244,10 @@ function init(seed: number): BurstState {
     popTick: -100,
     popSize: 0,
   };
+}
+
+function initV2(seed: number): BurstState {
+  return { ...init(seed), rev: BURST_REV, freeze: 0, freezes: 0 };
 }
 
 function isOver(state: BurstState): boolean {
@@ -297,9 +321,11 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     }
   }
 
-  // Balls bounce.
+  // Balls bounce (burstRev 2: not while frozen).
   const ceil = burstCeiling(s.wave) * FP;
-  for (const ball of s.balls) {
+  const frozen = (s.freeze ?? 0) > 0;
+  if (frozen) s.freeze = (s.freeze ?? 0) - 1;
+  for (const ball of frozen ? [] : s.balls) {
     const r = BURST_RADIUS[ball.size]! * FP;
     ball.vy += GRAVITY;
     ball.y += ball.vy;
@@ -353,7 +379,15 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     if (hit >= 0) {
       const ball = s.balls[hit]!;
       s.hits += 1;
-      if (ball.size === 0) s.icons.push({ x: ball.x, y: ball.y, kind: 0 });
+      if (s.rev === BURST_REV) {
+        // Seeded drops: BURST from 1 in 2 L, SHIELD from 1 in 8 M, FREEZE from 1 in 12 S.
+        const odds = ball.size === 0 ? BURST_V2_BURST_ODDS : ball.size === 1 ? BURST_V2_SHIELD_ODDS : ball.size === 2 ? BURST_V2_FREEZE_ODDS : 0;
+        if (odds > 0) {
+          const roll = rngBelow(s.rng, odds);
+          s.rng = roll.state;
+          if (roll.value === 0) s.icons.push({ x: ball.x, y: ball.y, kind: ball.size === 2 ? BURST_ICON_FREEZE : ball.size });
+        }
+      } else if (ball.size === 0) s.icons.push({ x: ball.x, y: ball.y, kind: 0 });
       else if (ball.size === 1) {
         const roll = rngBelow(s.rng, SHIELD_ODDS);
         s.rng = roll.state;
@@ -382,7 +416,10 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     const near = Math.abs(icon.x - s.x) <= (PLAYER_HALF_W + ICON_HALF) * FP;
     if (near && icon.y + ICON_HALF * FP >= top) {
       if (icon.kind === 1) s.shield = 1;
-      else s.burst = 1;
+      else if (icon.kind === BURST_ICON_FREEZE) {
+        s.freeze = BURST_FREEZE_TICKS;
+        s.freezes = (s.freezes ?? 0) + 1;
+      } else s.burst = 1;
     }
     else if (icon.y - ICON_HALF * FP < BURST_FLOOR_Y * FP) falling.push(icon);
   }
@@ -423,7 +460,14 @@ export function burstScoreOf(hits: number, livesLost: number, cleared: number, e
   return clampInt(HIT_POINTS * hits - LIFE_COST * livesLost, 0, 150);
 }
 
+/** burstRev 2: the same points, but 150 only for a finished run with no life lost and 4+ waves cleared. */
+export function burstScoreV2(hits: number, livesLost: number, cleared: number, ended: boolean): number {
+  if (ended && livesLost === 0 && cleared >= TOP_UP_WAVES) return 150;
+  return clampInt(HIT_POINTS * hits - LIFE_COST * livesLost, 0, BURST_V2_PARTIAL_MAX);
+}
+
 function score(state: BurstState): number {
+  if (state.rev === BURST_REV) return burstScoreV2(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
   return burstScoreOf(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
 }
 
@@ -468,6 +512,8 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
     rng: state.rng | 0,
   };
   const values = [...Object.values(snap), state.nextWaveAt, state.burstLeft, state.burstNext, state.shield];
+  // burstRev 2 only, so original checksums are unchanged.
+  if (state.rev !== undefined) values.push(state.rev, state.freeze ?? 0, state.freezes ?? 0);
   for (const ball of state.balls) values.push(ball.size, ball.x, ball.y, ball.vx, ball.vy);
   for (const shot of state.shots) values.push(shot.x, shot.top, shot.short);
   for (const icon of state.icons) values.push(icon.x, icon.y, icon.kind);
@@ -619,3 +665,10 @@ export const burstGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: BURST_INPUT_RANGES,
 };
+
+const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, init: initV2 };
+
+/** The game for a stored burstRev (absent = the original drops). */
+export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  return rev === BURST_REV ? burstGameV2 : burstGame;
+}

@@ -59,6 +59,11 @@ export function swingSounds(): GameSounds<SwingState> {
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) playSound("arc_grapple");
+        // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_pickup", 0.9);
+        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) playSound("arc_siren", 0.6);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) playSound("arc_clank", 0.5);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) playSound("arc_wood_knock", 0.5);
       }
       prev = state;
     },
@@ -73,10 +78,14 @@ export function wavefrontSounds(): GameSounds<WavState> {
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
         if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
-        // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
+        // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_shape_pop", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
+        // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
+        if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) playSound("arc_retro_hit", 0.7, 1, true);
+        if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) playSound("stage_complete", 0.8);
+        if ((state.divers ?? []).length > (prev.divers ?? []).length) playSound("arc_retro_blip", 0.5, 1, true);
       }
       prev = state;
     },
@@ -198,6 +207,8 @@ export function breakerSounds(): GameSounds<BrkState> {
       if (prev && state.tick > prev.tick) {
         if (state.losses > prev.losses) playSound("arc_retro_explode");
         if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
+        // brkRev 2: Fireball lit.
+        if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         // Laser fired: the beam timer jumps to full; one instance per fired ball.
         if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
@@ -243,6 +254,8 @@ export function burstSounds(): GameSounds<BurstState> {
         else if (state.lives < prev.lives) playSound("arc_lose_life");
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
+        // burstRev 2: a FREEZE icon caught.
+        if ((state.freezes ?? 0) > (prev.freezes ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
       }
       prev = state;

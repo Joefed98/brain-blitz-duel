@@ -3,7 +3,17 @@
  * extremes and centre) proves the mouth is reachable and finds the most stars;
  * then the self-replay proof for Snip only.
  *
- *   bun scripts/snip-check.ts [runs] [templateIndex | replay]
+ *   bun scripts/snip-check.ts [runs] [templateIndex | replay]   # quick (default, PR CI)
+ *   bun scripts/snip-check.ts --full [runs] [templateIndex | replay]
+ *
+ * Full (--full, CHECKS_FULL=1, the manual full CI run; ~11 min): every template at
+ * all three wobbles on the fine cut-time grid. Quick (~2 min): every one-pin
+ * template and the hardest templates (QUICK_FULL_SEARCH) get that full search;
+ * every other template is searched at the wobble centre and one extreme
+ * (alternating by template, so both extremes are covered) on a coarser grid, and
+ * falls back to the fine grid at any wobble where the coarse grid finds no win,
+ * so quick mode only fails a template the full search would also fail. Bands and
+ * the 200-run self-replay are the same in both modes.
  */
 import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -25,10 +35,12 @@ import {
   type SnipState,
 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
+import { depthArgs, FULL_DEPTH } from "./check-depth";
 import { cutFor } from "./snip-check-lib";
 
-const RUNS = Number(process.argv[2] ?? 200);
-const ONLY = process.argv[3];
+const ARGS = depthArgs();
+const RUNS = Number(ARGS[0] ?? 200);
+const ONLY = ARGS[1];
 let failures = 0;
 const fail = (m: string) => {
   failures++;
@@ -52,11 +64,18 @@ function playLevel(t: number, jit: number, plan: [number, number][]): number {
 }
 
 const SPAN = 240;
+/**
+ * Searched in full even in quick mode: the multi-pin templates with the lowest win
+ * rate in the full search of 12 Oct 2026 (Slalom ~1 %, Low anchor ~2 % of tried cut
+ * plans), where a coarse grid could miss the few winning cuts.
+ */
+const QUICK_FULL_SEARCH = ["Slalom", "Low anchor"];
 const PERMS: Record<number, number[][]> = {
   1: [[0]],
   2: [[0, 1], [1, 0]],
   3: [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]],
 };
+console.log(FULL_DEPTH ? "full depth: every template, all wobbles, fine grid" : "quick depth (--full for the full search)");
 // The 30 snipRev-3 orchard templates (30–59) are proven by stored plans in arcade-batch4-check.
 const BRUTE_FORCE_TEMPLATES = 30;
 for (let t = 0; t < BRUTE_FORCE_TEMPLATES; t++) {
@@ -64,10 +83,11 @@ for (let t = 0; t < BRUTE_FORCE_TEMPLATES; t++) {
   const tpl = SNIP_CONFIG.templates[t]!;
   const n = tpl.pins.length;
   const step = n === 1 ? 2 : n === 2 ? 5 : 12;
-  const line: string[] = [];
-  let worst = 99;
-  let worstStars = 99;
-  for (const jit of [-SNIP_CONFIG.pinJitter, 0, SNIP_CONFIG.pinJitter]) {
+  const thorough = FULL_DEPTH || n === 1 || QUICK_FULL_SEARCH.includes(tpl.name);
+  const coarse = n === 2 ? 10 : 24;
+  const J = SNIP_CONFIG.pinJitter;
+  const wobbles = thorough ? [-J, 0, J] : [0, t % 2 ? J : -J];
+  const search = (jit: number, gap: number) => {
     let best = -1;
     let wins = 0;
     let tries = 0;
@@ -82,13 +102,22 @@ for (let t = 0; t < BRUTE_FORCE_TEMPLATES; t++) {
           }
           return;
         }
-        for (let at = from; at <= SPAN; at += step) go(k + 1, at + 1, [...plan, [perm[k]!, at]]);
+        for (let at = from; at <= SPAN; at += gap) go(k + 1, at + 1, [...plan, [perm[k]!, at]]);
       };
       go(0, 1, []);
     }
-    worst = Math.min(worst, wins);
-    worstStars = Math.min(worstStars, best);
-    line.push(`wobble ${jit}: ${wins}/${tries} win, best ${best}/${tpl.stars.length}★`);
+    return { best, wins, tries };
+  };
+  const line: string[] = [];
+  let worst = 99;
+  let worstStars = 99;
+  for (const jit of wobbles) {
+    let gap = thorough ? step : coarse;
+    let res = search(jit, gap);
+    if (res.wins === 0 && gap !== step) res = search(jit, (gap = step));
+    worst = Math.min(worst, res.wins);
+    worstStars = Math.min(worstStars, res.best);
+    line.push(`wobble ${jit}: ${res.wins}/${res.tries} win${gap !== step ? ` (grid ${gap})` : ""}, best ${res.best}/${tpl.stars.length}★`);
   }
   if (worst <= 0) fail(`template ${t} ${tpl.name} unsolvable at some wobble`);
   if (worstStars < tpl.stars.length) console.log(`  note: ${tpl.name} not every star proven reachable`);

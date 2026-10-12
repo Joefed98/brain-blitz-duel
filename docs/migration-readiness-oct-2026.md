@@ -292,7 +292,7 @@ Hanoi (`tower`, ~250–365 ms worst) is now the largest single cost. The Bun ESM
 | **Gridlock** (`unblock`) | DB table `unblock_bank` (live, LRU draw over 100) + fallback `unblockBank.server.ts` | DB rows: **not measurable from here** (Lovable DB); file fallback **400** (15–22 moves) | 65 KB |
 | **Bomb Defusal** (`bomb`, v2) | `bombBank.server.ts` `BOMB_V2_BANK` | **300** | 252 KB |
 | **Orbit** (`orbit`, rev 3) | `orbitRev3Bank.server.ts` `ORBIT_REV3_BANK` (+ `orbitRev3Course.server.ts`) | **504** | 727 KB |
-| **Grappler** (`swing`, v3) | `swingBank.server.ts` `SWING_V3_BANK` (live `proveSwingSeed` only as a fallback) | **504** | 17 KB |
+| **Grappler** (`swing`, v4) | `swingBankV4.server.ts` `SWING_V4_BANK` (live `proveSwingSeed` only as a fallback) | **300** | 13 KB |
 | Ball Tracker | `ballTrackBank.server.ts` | 400 | 392 KB |
 | Integer Pyramid | `numberPyramidBank.server.ts` | 400 | 300 KB |
 | Lookout | `wordSearchBank.server.ts` | 500 | 214 KB |
