@@ -89,6 +89,7 @@ export type PuzzleType =
   | "balltrack"
   | "wordsearch"
   | "tendrop"
+  | "wordfall"
   | "clayshoot"
   | "numpyramid"
   | "trail"
@@ -511,6 +512,7 @@ export type PuzzleData =
   | WhackPuzzleData
   | TenDropPuzzleData
   | ClayShootPuzzleData
+  | WordfallPuzzleData
   | TentsPuzzleData
   | ShikakuPuzzleData
   | LightUpPuzzleData
@@ -2045,6 +2047,19 @@ export interface TenDropPuzzleData {
   type: "tendrop";
   /** Draws every target and tile queue — identical for everyone. */
   seed: number;
+}
+
+/** Letterfall: a fixed 90-second run on the arcade engine, plus clock slack. */
+export const WORDFALL_TIME_MS = 93_000;
+
+export interface WordfallPuzzleData {
+  type: "wordfall";
+  /** Draws the letter queue and drop columns — identical for everyone. */
+  seed: number;
+  /** Gameplay revision (1 = the original rules). */
+  wordfallRev?: number;
+  /** Speed-par stamp (set on every new puzzle by generatePuzzle). */
+  speedPar?: number;
 }
 
 export interface ClayShootPuzzleData {

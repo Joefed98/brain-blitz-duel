@@ -8,6 +8,7 @@ import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { prepareRoundMusic, startMusic, stopMusic, stopMusicIf } from "@/lib/sound";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
+import { preloadGameData } from "@/lib/duel/gamePreload";
 
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
@@ -86,6 +87,8 @@ export function RoundIntro({
   // demo (which waits for them) and the round itself draw the art from frame one.
   useEffect(() => {
     void preloadGameArt(type);
+    // Letterfall's dictionary: fetched as its intro begins, never with the main bundle.
+    void preloadGameData(type);
   }, [type]);
 
   // Intro bed: restarts on each intro, never during the 3-2-1 (late arrivals skip it).

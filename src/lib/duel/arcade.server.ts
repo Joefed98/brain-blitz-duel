@@ -21,6 +21,7 @@ import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSe
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V4_BANK } from "./swingBankV4.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
+import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
@@ -48,6 +49,7 @@ import type {
   BeatPuzzleData,
   WhackPuzzleData,
   TenDropPuzzleData,
+  WordfallPuzzleData,
   ClayShootPuzzleData,
   WavefrontPuzzleData,
   BastionPuzzleData,
@@ -134,6 +136,11 @@ export function generateBeat(): BeatPuzzleData {
 
 export function generateTenDrop(): TenDropPuzzleData {
   return { type: "tendrop", seed: arcadeSeed() };
+}
+
+/** Letterfall: the seed draws the letter queue and drop columns; stamped rev 1 and speed-par 1. */
+export function generateWordfall(): WordfallPuzzleData {
+  return { type: "wordfall", seed: arcadeSeed(), wordfallRev: WORDFALL_REV, speedPar: 1 };
 }
 
 export function generateClayShoot(): ClayShootPuzzleData {

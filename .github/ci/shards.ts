@@ -88,6 +88,7 @@ export const SHARDS: Record<string, string[]> = {
     "trail-check.ts",
     "whack-check.ts",
     "word-game-tuning-check.ts",
+    "wordfall-check.ts",
     "wordsearch-check.ts",
     "puzzle-bank-check.ts@3/4",
   ],

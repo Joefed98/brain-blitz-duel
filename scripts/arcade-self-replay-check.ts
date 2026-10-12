@@ -1,7 +1,7 @@
 /**
  * Self-replay proof for every arcade-engine game: all 22 active arcade games
  * (each on the revision live rooms stamp today, plus the legacy rules stored
- * rounds still replay on), Colour Clash, and the retired games kept for practice. Each run drives the sim exactly the
+ * rounds still replay on), Colour Clash, Letterfall, and the retired games kept for practice. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
  * go through recordInput/recordTap, and the sim reads its input for each tick
  * from the recorded log only. The submitted string is that log, unmodified.
@@ -101,6 +101,10 @@ import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
 import { inkBridgeGameFor, INK_REV3, INK_REV4 } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
+import { wordfallCheckpoint, wordfallGame } from "@/lib/arcade/wordfall";
+import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
+// Letterfall's replay checks words: install the same list the server grades with.
+import "@/lib/duel/wordfallDict.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RUNS = Number(process.argv[2] ?? 40);
@@ -413,6 +417,8 @@ const GAMES: Game[] = [
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },
+  // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.
+  { key: "wordfall", game: wordfallGame, checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: encodeWordfallRun, replay: (seed: number, raw: string) => replayWordfallRun(seed, raw) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

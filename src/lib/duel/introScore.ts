@@ -66,6 +66,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   letterwheel: standard("Find every word", "points for each word"),
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
   groups: "Points for each group. Find all four quickly for extra points.",
+  wordfall: "Longer words score more; reach the target for 150. Overflow a column and the run ends",
   wordmatch: "Get all eight right for 100, more if you're quick. Otherwise 13 per pair.",
 
   // Number

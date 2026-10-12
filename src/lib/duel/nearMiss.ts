@@ -44,6 +44,13 @@ export function nearMiss(
       return remaining("mazes", 4, "maze");
     case "balltrack":
       return remaining("home", 30, "marble");
+    case "wordfall": {
+      const points = number("points"),
+        par = number("par");
+      if (points === null || par === null || par <= 0 || points < 0 || points >= par) return null;
+      const left = par - points;
+      return `${left} word point${left === 1 ? "" : "s"} short of 150`;
+    }
     case "tendrop":
       return remaining("cleared", 10, "target");
     case "wavefront":

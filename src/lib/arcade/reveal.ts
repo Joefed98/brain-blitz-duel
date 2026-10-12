@@ -437,6 +437,24 @@ const BUILDERS: Record<string, Builder> = {
     ],
     outcome: b(r, "perfect") ? "finish" : "time",
   }),
+  wordfall: (r, s) => {
+    const best = Array.isArray(r["best"]) ? (r["best"] as unknown[]).map(String).slice(0, 5) : [];
+    const par = n(r, "par") || 45;
+    return {
+      axis: { value: Math.min(n(r, "points"), par), max: par, label: "Word points" },
+      lines: [
+        `${n(r, "points")} / ${par} word points → ${s}`,
+        best.length ? `Best: ${best.join(" · ")}` : "No words found",
+        ...(b(r, "overflow") ? [`A column overflowed at ${sec(n(r, "endedSeconds"))}`] : []),
+      ],
+      tiles: [
+        { label: "Words", value: String(n(r, "words")) },
+        { label: "Longest", value: n(r, "longest") ? `${n(r, "longest")} letters` : "—" },
+        { label: b(r, "overflow") ? "Overflowed" : "Survived", value: b(r, "overflow") ? sec(n(r, "endedSeconds")) : "90 s" },
+      ],
+      outcome: n(r, "points") >= par ? "finish" : b(r, "overflow") ? "crash" : "time",
+    };
+  },
   tendrop: (r, s) => {
     const done = n(r, "cleared") >= 10;
     return {

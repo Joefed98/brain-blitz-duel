@@ -8,7 +8,7 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 68 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 69 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Memory is dormant). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
@@ -30,7 +30,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`*Bank.server.ts`, built by `scripts/*-bank.ts`), shared rules (`<game>.ts`, imported
   by both phone and server), grading (`grade.ts`), scoring (`scoring.ts`,
   `stagedRounds.ts`, `speedPar.ts`), display names (`gameNames.ts`), dictionary
-  (`dictionary.server.ts`, server-only SCOWL British list).
+  (`dictionary.server.ts`, server-only SCOWL British list; Letterfall alone ships an exact
+  packed copy to the phone, `arcade/wordfallWords.data.ts`, rebuilt by `scripts/wordfall-dict.ts`).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.
@@ -99,7 +100,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
   puzzle-bank-check part ~65 s (whole ~5 min CI, ~4 min on 4 local cores); arcade-fx,
   arcade-self-replay, ink-live-bottom and orbit-camera ~60–70 s; burst-swing-score and
-  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
+  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. wordfall-check (Letterfall dictionary, plan, a 20-seed bot proving par through the server replay, identity proof) takes ~6 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
 - **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
   `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
   arcade-fx and reveal-score. It plays all 22 active arcade games in headless Chromium

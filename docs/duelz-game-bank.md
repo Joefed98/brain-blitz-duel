@@ -25,7 +25,7 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 
 ---
 
-## Word (core) — 6 active
+## Word (core) — 7 active
 
 | Game (id) | Status | Description | Time |
 |---|---|---|---|
@@ -35,6 +35,7 @@ Legend: **Built** = live and drawn in rooms · **Retired** = practice only, neve
 | Slider (wordslide) | Built | Slide letters so all five rows are words; a padlock locks a solved row. 100 + 30 speed + 20 moves; 22 per valid row otherwise. | 100 s |
 | Lookout (wordsearch) | Built | Find the themed hidden words in a 10×10 grid; found words get a strike-through and fill a chip below. 20 per word; wrong picks cost nothing. | 120 s |
 | Roundabout (letterwheel) | Built | Drag across a letter wheel to fill a small crossword; Shuffle rearranges the wheel. Per-word credit plus speed. | 100 s |
+| Letterfall (wordfall) | Built (engine) | Arcade-engine word game in the toybox world: a 6×9 well starts with 3 rows of letter tiles; seeded tiles drop into seeded columns (1.6 s → 0.8 s over five 18 s phases). Tap touching tiles (8 directions) to chain a word, tap the last again or Enter; a real word of 3+ letters clears and tiles above fall, a non-word shakes at no cost; a tile that can't enter a full column ends the run. Word points 1/2/4/7/11 for 3/4/5/6/7+ letters; floor(150 × min(points, 45) ÷ 45). The phone loads an exact copy of the SCOWL list (own chunk) when Letterfall starts. | 90 s |
 | Word Ladder (ladder) | Retired | One letter at a time between two words (retired 6 Oct). | |
 | Groups (groups) / Word Match (wordmatch) | Retired | | |
 | Compound Words, Swapword, Word Drop | To build (high) | See the master plan's new-games table. | |

@@ -1,4 +1,4 @@
-import type { ArcadeFxGame } from "./arcadeFxGames.renderer";
+import type { ArcadeFxGame, EngineFxGame } from "./arcadeFxGames.renderer";
 
 /**
  * The colour below each arcade arena when the screen is taller than the fitted
@@ -28,4 +28,10 @@ export const ARCADE_ARENA_FILL: Record<ArcadeFxGame, string> = {
   tilt: "#AC8353",
   balltrack: "#7E5C38",
   matchup: "#0B0B0F",
+};
+
+/** The same for engine games outside the Arcade category (ENGINE_GAME_WORLDS). */
+export const ENGINE_ARENA_FILL: Record<EngineFxGame, string> = {
+  // Letterfall: the toybox tabletop's edge colour.
+  wordfall: "#2A1C14",
 };

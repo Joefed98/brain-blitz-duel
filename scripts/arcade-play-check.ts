@@ -1,7 +1,8 @@
 /**
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
- * For each of the 22 active arcade games it opens /practice at 390 × 700, starts
+ * For each of the 22 active arcade games, plus the engine games of other categories
+ * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
  * that ends early by game-over is restarted (a fresh practice run) and play continues.
  * It fails if:
@@ -25,7 +26,8 @@
  *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
  *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
  *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
- *    6-8 px above the bottom; a control below the arena under 44 px or off screen.
+ *    6-8 px above the bottom; a control below the arena under 44 px or off screen;
+ *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
  *
@@ -46,8 +48,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { ARCADE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
+import { ARCADE_FX_SPECS, ARCADE_GAME_WORLDS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_ARENA_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 const args = process.argv.slice(2);
@@ -152,6 +154,8 @@ const EXTRACT = String.raw`
       P.push(["runner", 0, y + s.warpY]);
       break;
     }
+    // Letterfall: every tile, falling or settled (drops enter from above the well; ids are stable).
+    case "wordfall": s.well.forEach((stack, c) => stack.forEach((t) => P.push(["t" + t.id, c * 60, fp(t.y)]))); reset = s.words + ":" + s.over; break;
     case "balltrack": for (const b of s.balls) if (b.cell >= 0 && b.from >= 0) { const p = m.bt.btArtBallPoint(s, b, m.btRot); P.push(["m" + b.id, p.x, p.y]); } break;
     default: break; // beat, bullseye, matchup: no continuous movers
   }
@@ -220,7 +224,7 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = Object.keys(ARCADE_GAME_WORLDS).filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = [...Object.keys(ARCADE_GAME_WORLDS), ...Object.keys(ENGINE_GAME_WORLDS)].filter((g) => ONLY.length === 0 || ONLY.includes(g));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {
@@ -285,8 +289,8 @@ async function readyFits(page: import("playwright").Page, problems: string[]): P
  * scale that fits its slot, top-anchored at a fixed edge, controls 44 px or more.
  */
 async function arenaFits(page: import("playwright").Page, game: string, problems: string[]): Promise<void> {
-  const spec = (ARCADE_FX_SPECS as Record<string, { width: number; height: number }>)[game];
-  const fill = (ARCADE_ARENA_FILL as Record<string, string>)[game];
+  const spec = ({ ...ARCADE_FX_SPECS, ...ENGINE_FX_SPECS } as Record<string, { width: number; height: number }>)[game];
+  const fill = ({ ...ARCADE_ARENA_FILL, ...ENGINE_ARENA_FILL } as Record<string, string>)[game];
   if (!spec || !fill) {
     problems.push(`layout: no world size or arena fill for ${game}`);
     return;
@@ -313,6 +317,7 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
         fill: slot ? getComputedStyle(slot, "::after").backgroundColor : "",
         fillW: slot ? Number.parseFloat(getComputedStyle(slot, "::after").width) : 0, stageBottom: stage ? stage.getBoundingClientRect().bottom - pad : 0,
         controls: below.map((b) => box(b)!), scroll: doc.scrollHeight - doc.clientHeight,
+        touch: [canvas, stage?.querySelector("[data-play-area]") ?? null].map((el) => (el ? getComputedStyle(el).touchAction : "missing")),
       };
     });
     const at = `layout ${w}x${h}`;
@@ -322,6 +327,7 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     }
     const { slot, arena } = m;
     if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
+    if (game in ENGINE_GAME_WORLDS && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
     if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
     if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
     if (arena.w < slot.w - 1 && arena.h < slot.h - 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the largest fit in ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
