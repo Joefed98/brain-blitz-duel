@@ -217,16 +217,20 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   };
 }
 
-/** The single place an answer is checked and scored. */
+/**
+ * The single place an answer is checked and scored. `receivedMsRemaining` is the
+ * server's own time left when a room answer arrived (tap logs are held to it).
+ */
 export function gradeAnswer(
   puzzle: PuzzleData,
   answer: string,
   msRemaining: number,
   extra?: SubmitExtra,
+  receivedMsRemaining?: number,
 ): Graded {
   return withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
     if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
-    return gradeSubmission(puzzle, answer, msRemaining, extra);
+    return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
 }
