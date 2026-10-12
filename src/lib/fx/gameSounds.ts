@@ -18,7 +18,7 @@ import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
 import type { BtState } from "@/lib/arcade/ballTrack";
-import type { JuncState } from "@/lib/arcade/junction";
+import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import type { SkylineState } from "@/lib/arcade/skyline";
 import type { InkState } from "@/lib/arcade/inkBridge";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
@@ -59,6 +59,11 @@ export function swingSounds(): GameSounds<SwingState> {
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) playSound("arc_grapple");
+        // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_pickup", 0.9);
+        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) playSound("arc_siren", 0.6);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) playSound("arc_clank", 0.5);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) playSound("arc_wood_knock", 0.5);
       }
       prev = state;
     },
@@ -73,10 +78,14 @@ export function wavefrontSounds(): GameSounds<WavState> {
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
         if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
-        // Shapes and the armour block destroyed this frame (bursts carry the kill tick).
+        // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
         if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
         else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_shape_pop", 0.7);
         if (state.lives < prev.lives) playSound("arc_lose_life");
+        // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
+        if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) playSound("arc_retro_hit", 0.7, 1, true);
+        if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) playSound("stage_complete", 0.8);
+        if ((state.divers ?? []).length > (prev.divers ?? []).length) playSound("arc_retro_blip", 0.5, 1, true);
       }
       prev = state;
     },
@@ -198,6 +207,8 @@ export function breakerSounds(): GameSounds<BrkState> {
       if (prev && state.tick > prev.tick) {
         if (state.losses > prev.losses) playSound("arc_retro_explode");
         if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
+        // brkRev 2: Fireball lit.
+        if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         // Laser fired: the beam timer jumps to full; one instance per fired ball.
         if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
@@ -243,6 +254,8 @@ export function burstSounds(): GameSounds<BurstState> {
         else if (state.lives < prev.lives) playSound("arc_lose_life");
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
+        // burstRev 2: a FREEZE icon caught.
+        if ((state.freezes ?? 0) > (prev.freezes ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
       }
       prev = state;
@@ -336,7 +349,9 @@ export function tiltSounds(): GameSounds<TiltState> {
       if (prev && state.tick > prev.tick) {
         if (state.caught && !prev.caught) playSound("arc_crash");
         if (state.mazes > prev.mazes) playSound("arc_marble_clink");
-        else if (state.level === prev.level) {
+        else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) playSound("arc_marble_clink", 0.7);
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_leaf_collect", 0.8);
+        if (state.mazes === prev.mazes && state.level === prev.level) {
           if (state.gate && !prev.gate) playSound("arc_latch");
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
           const hitY = Math.abs(prev.vy) > TILT_KNOCK_SPEED && state.vy === 0;
@@ -384,6 +399,9 @@ export function junctionSounds(): GameSounds<JuncState> {
         }
         const known = new Set(prev.cars.map((c) => c.id));
         if (state.cars.some((c) => c.amb && !known.has(c.id))) playSound("arc_siren", 0.5);
+        // junctionRev 2: a new road opens; a bus clears the junction.
+        if (state.rev && Math.trunc(state.tick / JUNC_BUILD_EVERY) > Math.trunc(prev.tick / JUNC_BUILD_EVERY) && state.tick <= JUNC_BUILDS * JUNC_BUILD_EVERY) playSound("arc_clank", 0.7);
+        if ((state.busCleared ?? 0) > (prev.busCleared ?? 0)) playSound("arc_honk", 0.4);
         if (state.ended === 2 && prev.ended === 0) playSound("arc_crash");
         else if (state.ended === 1 && prev.ended === 0) playSound("stage_complete");
       }
@@ -401,6 +419,8 @@ export function skylineSounds(): GameSounds<SkylineState> {
         if (state.blocks.length > prev.blocks.length) {
           playSound("arc_clank", 0.8, 1, true);
           if (state.perfectTick === state.tick) playSound("correct");
+          // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
+          if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) playSound("arc_retro_coin", 0.7);
         }
         if (state.missed && !prev.missed) playSound("arc_crash");
       }
@@ -476,6 +496,8 @@ export function snipSounds(): GameSounds<SnipState> {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (state.cuts > prev.cuts) playSound("arc_rope_cut", 0.8, 1, true);
+        // snipRev 3: a springy branch bounce.
+        if ((state.springHits ?? 0) > (prev.springHits ?? 0)) playSound("arc_bounce", 0.7);
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
         if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_leaf_collect");

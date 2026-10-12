@@ -70,6 +70,17 @@ export interface SkylineState {
   /** The tick of the last perfect drop, for the render-only gold flash. */
   perfectTick: number;
   endedTick: number;
+  /** skylineRev 2 only (absent on stored original rounds). */
+  rev?: number;
+  /** Perfect drops in a row right now, and the longest run so far. */
+  streak?: number;
+  bestStreak?: number;
+  /** Streak bonus points earned (1 per perfect drop that is 3rd or later in a row). */
+  streakPoints?: number;
+  /** Perfect drops made while a gust was blowing (feedback only; not scored). */
+  gustPerfects?: number;
+  /** Seeded gusts, packed per gust as [start tick, end tick, direction ±1]; they blow only once WIND_FROM blocks are placed. */
+  gusts?: number[];
 }
 
 /** Slide speed after this many blocks placed. */
@@ -139,12 +150,20 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
       w: width,
       dir,
     };
+    if (state.rev === SKYLINE_REV) {
+      const streak = perfect ? (state.streak ?? 0) + 1 : 0;
+      next.streak = streak;
+      next.bestStreak = Math.max(state.bestStreak ?? 0, streak);
+      next.streakPoints = (state.streakPoints ?? 0) + (streak >= SKYLINE_STREAK_FROM ? SKYLINE_STREAK_POINTS : 0);
+      next.gustPerfects = (state.gustPerfects ?? 0) + (perfect && skylineGustAt(state, tick) !== 0 ? 1 : 0);
+    }
     if (tick >= SKYLINE_RUN_TICKS) return { ...next, endedTick: tick };
     return next;
   }
 
   const speed = skylineSpeed(state.placed);
   let x = state.x + state.dir * speed;
+  if (state.rev === SKYLINE_REV) x += skylineGustAt(state, tick) * SKYLINE_GUST_SPEED;
   let dir = state.dir;
   if (x <= 0) {
     x = 0;
@@ -159,6 +178,7 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
 }
 
 function score(state: SkylineState): number {
+  if (state.rev === SKYLINE_REV) return skylineRev2Score(state.placed, state.perfects, state.streakPoints ?? 0);
   return clampInt(Math.floor(SKYLINE_BLOCK_POINTS * state.placed + SKYLINE_PERFECT_POINTS * state.perfects), 0, 150);
 }
 
@@ -201,7 +221,10 @@ export function skylineCheckpointState(state: SkylineState): SkylineCheckpointSt
 export function skylineCheckpoint(state: SkylineState): SkylineCheckpoint {
   const snapshot = skylineCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // skylineRev 2: the streak folds into the checksum; the encoded fields are unchanged.
+  if (state.rev === SKYLINE_REV) values.push(state.streak ?? 0, state.streakPoints ?? 0, state.gustPerfects ?? 0);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -326,3 +349,86 @@ export const skylineGame: ArcadeGame<SkylineState> = {
   score,
   draw,
 };
+
+/* ====================== skylineRev 2: wind and streaks ====================== */
+
+/**
+ * Stored as puzzle.skylineRev. From the 20th block the top of the tower flies a
+ * flag; seeded gusts (all the same strength, either way) push the sliding block
+ * while they blow, and the flag starts waving a second before each one. Perfect
+ * drops in a row build a streak: every perfect drop from the third in a row
+ * scores a bonus. Unstamped rounds keep the original rules and score.
+ */
+export const SKYLINE_REV = 2;
+/** Gusts blow (and the flag flies) once this many blocks are placed. */
+export const SKYLINE_WIND_FROM = 20;
+/** Every gust pushes the sliding block this much per tick (1.25 px), on top of its slide. */
+export const SKYLINE_GUST_SPEED = 320;
+/** The flag starts waving this many ticks before a gust blows. */
+export const SKYLINE_GUST_WARN_TICKS = 60;
+export const SKYLINE_GUST_MIN_TICKS = 90;
+export const SKYLINE_GUST_MAX_TICKS = 150;
+/** Calm between gusts (from the end of one to the start of the next). */
+export const SKYLINE_CALM_MIN_TICKS = 150;
+export const SKYLINE_CALM_MAX_TICKS = 300;
+/** Streak bonus: each perfect drop that is at least the 3rd in a row adds this. */
+export const SKYLINE_STREAK_FROM = 3;
+export const SKYLINE_STREAK_POINTS = 1;
+/** Rev-2 scoring: per block and per perfect drop (streak points on top), capped at 150. */
+export const SKYLINE_V2_BLOCK_POINTS = 2.5;
+export const SKYLINE_V2_PERFECT_POINTS = 2.5;
+
+export function skylineRev2Score(placed: number, perfects: number, streakPoints: number): number {
+  return clampInt(Math.floor(SKYLINE_V2_BLOCK_POINTS * placed + SKYLINE_V2_PERFECT_POINTS * perfects) + streakPoints, 0, 150);
+}
+
+/** The seeded gust schedule for a run, [start, end, dir] per gust, from its own stream. */
+export function skylineGusts(seed: number): number[] {
+  let rng = (seed ^ 0x2f6b_a7c3) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const out: number[] = [];
+  let t = 120 + draw(SKYLINE_CALM_MAX_TICKS - SKYLINE_CALM_MIN_TICKS + 1);
+  while (t < SKYLINE_RUN_TICKS) {
+    const len = SKYLINE_GUST_MIN_TICKS + draw(SKYLINE_GUST_MAX_TICKS - SKYLINE_GUST_MIN_TICKS + 1);
+    const dir = draw(2) === 0 ? -1 : 1;
+    out.push(t, t + len, dir);
+    t += len + SKYLINE_CALM_MIN_TICKS + draw(SKYLINE_CALM_MAX_TICKS - SKYLINE_CALM_MIN_TICKS + 1);
+  }
+  return out;
+}
+
+/** The gust direction blowing on `tick` (0 when calm or before the flag is up). */
+export function skylineGustAt(state: SkylineState, tick: number): number {
+  if (state.rev !== SKYLINE_REV || state.placed < SKYLINE_WIND_FROM) return 0;
+  const g = state.gusts ?? [];
+  for (let k = 0; k < g.length; k += 3) if (tick >= g[k]! && tick < g[k + 1]!) return g[k + 2]!;
+  return 0;
+}
+
+/** Render only: the flag's state on `tick` — 0 hanging still, ±1 streaming that way (warning or blowing). */
+export function skylineFlagAt(state: SkylineState, tick: number): number {
+  if (state.rev !== SKYLINE_REV || state.placed < SKYLINE_WIND_FROM) return 0;
+  const g = state.gusts ?? [];
+  for (let k = 0; k < g.length; k += 3) if (tick >= g[k]! - SKYLINE_GUST_WARN_TICKS && tick < g[k + 1]!) return g[k + 2]!;
+  return 0;
+}
+
+const gustCache = new Map<number, number[]>();
+function initRev2(seed: number): SkylineState {
+  let gusts = gustCache.get(seed | 0);
+  if (!gusts) {
+    gusts = skylineGusts(seed);
+    if (gustCache.size > 16) gustCache.clear();
+    gustCache.set(seed | 0, gusts);
+  }
+  return { ...init(seed), rev: SKYLINE_REV, streak: 0, bestStreak: 0, streakPoints: 0, gustPerfects: 0, gusts };
+}
+
+export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
+export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  return rev === SKYLINE_REV ? skylineRev2Game : skylineGame;
+}

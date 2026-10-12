@@ -18,6 +18,7 @@ import {
   type InputRange,
 } from "./engine";
 import { icos, isin, TRIG_ONE } from "./trig";
+import { speedBonusCurve } from "../duel/speedPar";
 
 /* ============================== Constants ============================== */
 
@@ -70,6 +71,12 @@ export interface Maze {
   crevice: number;
   gateDir: number;
   lock: number;
+  /** tiltRev 2 only: bonus-star cells (dead-end detours off every route). */
+  stars?: number[];
+  /** tiltRev 2, maze 3 on: the amber marble's start cell and its own exit (cup) side; -1 when one marble. */
+  start2?: number;
+  exit2?: number;
+  exitDir2?: number;
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -211,7 +218,7 @@ function openNeighbour(n: number, inside: number[], wallR: number[], wallD: numb
   return wall ? -1 : nc;
 }
 
-function canPass(m: Maze, c: number, d: number, gateShut = false): boolean {
+function canPass(m: Maze, c: number, d: number, gateShut = false, which = 0): boolean {
   if (gateShut && m.crevice >= 0) {
     const nb = cellStep(m, m.crevice, m.gateDir);
     if ((c === m.crevice && d === m.gateDir) || (c === nb && d === (m.gateDir + 2) % 4)) return false;
@@ -219,7 +226,8 @@ function canPass(m: Maze, c: number, d: number, gateShut = false): boolean {
   const i = (c % m.n) + DX[d]!;
   const j = Math.trunc(c / m.n) + DY[d]!;
   const outside = i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i];
-  if (outside) return c === m.exit && d === m.exitDir;
+  // Each marble leaves only through its own cup's exit (the amber one, which = 1, through exit2).
+  if (outside) return which === 1 ? c === m.exit2 && d === m.exitDir2 : c === m.exit && d === m.exitDir;
   return openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0;
 }
 
@@ -256,6 +264,19 @@ export interface TiltState {
   ended: number;
   endedTick: number;
   list: Maze[];
+  /** tiltRev 2 only (absent on stored original rounds). */
+  rev?: number;
+  /** The blue marble is in its cup (two-marble mazes); the amber marble (null when none) and whether it is in its cup. */
+  aHome?: number;
+  b?: TiltChaser | null;
+  bHome?: number;
+  /** Bonus stars collected over the run, and this maze's star flags. */
+  stars?: number;
+  starGot?: number[];
+  /** Tick the last star was taken (render only reads it). */
+  starTick?: number;
+  /** Marbles that reached their own cup (both colours, every maze). */
+  cupped?: number;
 }
 
 const cache = new Map<number, { list: Maze[]; rng: number }>();
@@ -277,7 +298,7 @@ function chaserFor(m: Maze): TiltChaser | null {
 }
 
 /** One tick of tilt physics with per-axis wall stops; returns the body's cell afterwards. */
-function moveBody(m: Maze, b: { x: number; y: number; vx: number; vy: number }, angle: number, gateShut: boolean): number {
+function moveBody(m: Maze, b: { x: number; y: number; vx: number; vy: number }, angle: number, gateShut: boolean, which = 0): number {
   const r = m.br;
   b.vx += Math.trunc((GRAVITY * isin(angle)) / TRIG_ONE);
   b.vy += Math.trunc((GRAVITY * icos(angle)) / TRIG_ONE);
@@ -287,10 +308,10 @@ function moveBody(m: Maze, b: { x: number; y: number; vx: number; vy: number }, 
   if (c >= 0) {
     const i = c % m.n;
     let nx = b.x + b.vx;
-    if (b.vx > 0 && nx + r > (i + 1) * m.cs && !canPass(m, c, 0, gateShut)) {
+    if (b.vx > 0 && nx + r > (i + 1) * m.cs && !canPass(m, c, 0, gateShut, which)) {
       nx = (i + 1) * m.cs - r;
       b.vx = 0;
-    } else if (b.vx < 0 && nx - r < i * m.cs && !canPass(m, c, 2, gateShut)) {
+    } else if (b.vx < 0 && nx - r < i * m.cs && !canPass(m, c, 2, gateShut, which)) {
       nx = i * m.cs + r;
       b.vx = 0;
     }
@@ -300,10 +321,10 @@ function moveBody(m: Maze, b: { x: number; y: number; vx: number; vy: number }, 
   if (c >= 0) {
     const j = Math.trunc(c / m.n);
     let ny = b.y + b.vy;
-    if (b.vy > 0 && ny + r > (j + 1) * m.cs && !canPass(m, c, 1, gateShut)) {
+    if (b.vy > 0 && ny + r > (j + 1) * m.cs && !canPass(m, c, 1, gateShut, which)) {
       ny = (j + 1) * m.cs - r;
       b.vy = 0;
-    } else if (b.vy < 0 && ny - r < j * m.cs && !canPass(m, c, 3, gateShut)) {
+    } else if (b.vy < 0 && ny - r < j * m.cs && !canPass(m, c, 3, gateShut, which)) {
       ny = j * m.cs + r;
       b.vy = 0;
     }
@@ -451,6 +472,8 @@ export function tiltExtra(s: TiltState) {
     survivedSeconds: s.tick / 60,
     caught: s.caught === 1,
     secondsLeft: s.mazes >= TILT_MAX_MAZES ? Math.max(0, TILT_RUN_TICKS - s.endedTick) / 60 : 0,
+    stars: s.stars ?? 0,
+    totalStars: tiltTotalStars(s),
   };
 }
 
@@ -505,7 +528,10 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
     rng: state.rng | 0,
   };
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snap)) {
+  const values = Object.values(snap);
+  // tiltRev 2: the amber marble, cups and stars fold into the checksum; encoded fields are unchanged.
+  if (state.rev === TILT_REV) values.push(state.b ? (state.b.x ^ Math.imul(state.b.y, 31)) | 0 : 0, state.aHome ?? 0, state.bHome ?? 0, state.stars ?? 0);
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -669,3 +695,297 @@ export const tiltGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: TILT_INPUT_RANGES,
 };
+
+/* ====================== tiltRev 2: stars and two marbles ====================== */
+
+/**
+ * Stored as puzzle.tiltRev. The same seeded mazes as the original, then (from
+ * its own PRNG stream) two bonus stars per maze in dead-end detours off every
+ * route, and from maze 3 an amber marble with its own amber cup at a second
+ * exit: each marble leaves only through its own cup, and the maze is done when
+ * both are in. The red chaser stays in maze 2 only. Unstamped rounds keep the
+ * original rules and score.
+ */
+export const TILT_REV = 2;
+export const TILT_STARS_PER_MAZE = 2;
+/** The amber marble joins from this maze (1-based). */
+export const TILT_TWO_FROM = 3;
+/** Rev-2 scoring: per maze, per star, and the finish bonus (full with half the time left). */
+export const TILT_V2_MAZE_POINTS = 25;
+export const TILT_V2_STAR_POINTS = 5;
+export const TILT_V2_FINISH_BONUS = 30;
+export const TILT_V2_STARS = TILT_MAX_MAZES * TILT_STARS_PER_MAZE;
+/** Most a run that does not finish all four mazes can score: three mazes and every star. */
+export const TILT_V2_PARTIAL_MAX = TILT_V2_MAZE_POINTS * (TILT_MAX_MAZES - 1) + TILT_V2_STAR_POINTS * TILT_V2_STARS;
+
+export function tiltRev2Score(mazes: number, stars: number, finishTick: number): number {
+  const bonus = mazes >= TILT_MAX_MAZES ? speedBonusCurve(TILT_V2_FINISH_BONUS, TILT_RUN_TICKS - finishTick, TILT_RUN_TICKS) : 0;
+  return clampInt(TILT_V2_MAZE_POINTS * mazes + TILT_V2_STAR_POINTS * stars + bonus, 0, 150);
+}
+
+function bfsFrom(m: Maze, from: number): { dist: number[]; parent: number[] } {
+  const dist = new Array<number>(m.n * m.n).fill(-1);
+  const parent = new Array<number>(m.n * m.n).fill(-1);
+  dist[from] = 0;
+  const queue = [from];
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q]!;
+    for (let d = 0; d < 4; d++) {
+      const nc = openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d);
+      if (nc >= 0 && dist[nc]! < 0) {
+        dist[nc] = dist[c]! + 1;
+        parent[nc] = c;
+        queue.push(nc);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+function routeCells(parent: number[], to: number): Set<number> {
+  const out = new Set<number>();
+  for (let c = to; c >= 0; c = parent[c]!) out.add(c);
+  return out;
+}
+
+/** Integer angle of a cell centre about the disc centre, in 1/360 turns (for spacing the two cups). */
+function cellBearing(m: Maze, c: number): number {
+  const x = 2 * (c % m.n) + 1 - m.n;
+  const y = 2 * Math.trunc(c / m.n) + 1 - m.n;
+  // Octant-based pseudo-angle, integer only: 0..359 increasing clockwise from +x.
+  const ax = Math.abs(x);
+  const ay = Math.abs(y);
+  const t = ax + ay === 0 ? 0 : Math.trunc((90 * ay) / (ax + ay));
+  if (x >= 0 && y >= 0) return t;
+  if (x < 0 && y >= 0) return 180 - t;
+  if (x < 0) return 180 + t;
+  return 360 - t;
+}
+
+function decorate(m: Maze, index: number, draw: (n: number) => number): Maze {
+  const out: Maze = { ...m, stars: [], start2: -1, exit2: -1, exitDir2: -1 };
+  const a = bfsFrom(m, m.start);
+  const routes = routeCells(a.parent, m.exit);
+  const used = new Set<number>([m.start, m.exit, ...m.pits]);
+  if (index + 1 >= TILT_TWO_FROM) {
+    // No chaser once the amber marble joins: two marbles and two cups are enough to read.
+    out.crevice = -1;
+    out.gateDir = -1;
+    out.lock = -1;
+    const n = m.n;
+    const inCell = (i: number, j: number) => i >= 0 && j >= 0 && i < n && j < n && m.inside[j * n + i] === 1;
+    // The amber marble starts off the blue route, among the nearest such cells to the centre.
+    let near = Infinity;
+    for (let c = 0; c < n * n; c++) if (m.inside[c] && !used.has(c) && !routes.has(c) && a.dist[c]! >= 2) near = Math.min(near, a.dist[c]!);
+    const starts: number[] = [];
+    for (let c = 0; c < n * n; c++) {
+      if (!m.inside[c] || used.has(c) || routes.has(c)) continue;
+      if (a.dist[c]! >= 2 && a.dist[c]! <= near + 3) starts.push(c);
+    }
+    const start2 = starts.length ? starts[draw(starts.length)]! : m.start;
+    const b = bfsFrom(m, start2);
+    const exitBearing = cellBearing(m, m.exit);
+    let best = -1;
+    let bestDir = -1;
+    let bestScore = -1;
+    for (let c = 0; c < n * n; c++) {
+      if (!m.inside[c] || used.has(c) || c === start2) continue;
+      for (let d = 0; d < 4; d++) {
+        if (inCell((c % n) + DX[d]!, Math.trunc(c / n) + DY[d]!)) continue;
+        let sep = Math.abs(cellBearing(m, c) - exitBearing);
+        if (sep > 180) sep = 360 - sep;
+        // At least a quarter turn from the blue cup, then the shortest trip from the amber start.
+        const score = Math.min(sep, 90) * 1000 - b.dist[c]!;
+        if (score > bestScore) {
+          bestScore = score;
+          best = c;
+          bestDir = d;
+        }
+        break;
+      }
+    }
+    out.start2 = start2;
+    out.exit2 = best;
+    out.exitDir2 = bestDir;
+    for (const c of routeCells(b.parent, best)) routes.add(c);
+    used.add(start2);
+    used.add(best);
+  }
+  if (m.crevice >= 0 && out.crevice >= 0) {
+    used.add(m.crevice);
+    used.add(m.lock);
+  }
+  // Stars: dead ends off every route, the longest detours first among a seeded pick.
+  const ends: { c: number; hops: number }[] = [];
+  for (let c = 0; c < m.n * m.n; c++) {
+    if (!m.inside[c] || used.has(c) || routes.has(c)) continue;
+    let open = 0;
+    for (let d = 0; d < 4; d++) if (openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0) open += 1;
+    if (open !== 1) continue;
+    let hops = 0;
+    for (let x = c; x >= 0 && !routes.has(x); x = a.parent[x]!) hops += 1;
+    ends.push({ c, hops });
+  }
+  // Short real detours: two or more cells off the route, the shortest few first.
+  const far = ends.filter((e) => e.hops >= 2).sort((x, y) => x.hops - y.hops || x.c - y.c);
+  const pool = (far.length >= TILT_STARS_PER_MAZE ? far : ends).slice(0, 4);
+  for (let k = 0; k < TILT_STARS_PER_MAZE && pool.length; k++) out.stars!.push(pool.splice(draw(pool.length), 1)[0]!.c);
+  return out;
+}
+
+const cacheRev2 = new Map<number, Maze[]>();
+
+function startPos2(m: Maze) {
+  return cellCentre(m, m.start2!);
+}
+
+function initRev2(seed: number): TiltState {
+  const s = init(seed);
+  let list = cacheRev2.get(seed | 0);
+  if (!list) {
+    let rng = (seed ^ 0x7a11_5eed) | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    list = s.list.map((m, i) => decorate(m, i, draw));
+    if (cacheRev2.size > 16) cacheRev2.clear();
+    cacheRev2.set(seed | 0, list);
+  }
+  return enterMaze({ ...s, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000 }, 0);
+}
+
+/** Puts the marbles at a maze's starts (rev 2). */
+function enterMaze(s: TiltState, level: number): TiltState {
+  const m = s.list[level]!;
+  const pos = startPos(m);
+  const two = (m.start2 ?? -1) >= 0;
+  return {
+    ...s,
+    level,
+    x: pos.x,
+    y: pos.y,
+    vx: 0,
+    vy: 0,
+    aHome: 0,
+    b: two ? { ...startPos2(m), vx: 0, vy: 0 } : null,
+    bHome: 0,
+    chaser: chaserFor(m),
+    gate: 0,
+    starGot: (m.stars ?? []).map(() => 0),
+  };
+}
+
+function touches(m: Maze, body: { x: number; y: number }, other: { x: number; y: number }): boolean {
+  const dx = other.x - body.x;
+  const dy = other.y - body.y;
+  const reach = 2 * m.br;
+  return Math.abs(dx) < reach && Math.abs(dy) < reach && (dx / 16) ** 2 + (dy / 16) ** 2 < (reach / 16) ** 2;
+}
+
+function stepRev2(state: TiltState, input: ArcadeInputEvent | null): TiltState {
+  if (isOver(state)) return state;
+  const tick = state.tick + 1;
+  let s: TiltState = { ...state, tick };
+  if (input !== null && input.k === TILT_INPUT_DRAG) {
+    if (input.c !== s.lastC) s.lastC = input.c;
+    else s.angle = (s.angle + (input.a - s.lastA) * ANG_PER_PX) & 65535;
+    s.lastA = input.a;
+  }
+  const m = s.list[s.level]!;
+  const gateShut = s.gate === 0;
+  const end = () => {
+    s.ended = 2;
+    s.endedTick = tick;
+    return s;
+  };
+  // Blue marble (the original ball fields), then the amber one; each leaves only through its own cup.
+  const live: { x: number; y: number }[] = [];
+  if (!s.aHome) {
+    const ball = { x: s.x, y: s.y, vx: s.vx, vy: s.vy };
+    moveBody(m, ball, s.angle, gateShut, 0);
+    s.x = ball.x;
+    s.y = ball.y;
+    s.vx = ball.vx;
+    s.vy = ball.vy;
+  }
+  if (s.b && !s.bHome) {
+    const ball = { ...s.b };
+    moveBody(m, ball, s.angle, gateShut, 1);
+    s.b = ball;
+  }
+  if (s.chaser && s.gate) {
+    const ch = { ...s.chaser };
+    const cc = moveBody(m, ch, s.angle, false);
+    s.chaser = cc < 0 || inPit(m, cc, ch.x, ch.y) ? null : ch;
+  }
+  if (!s.aHome) {
+    const now = cellOf(m, s.x, s.y);
+    if (now < 0) {
+      s.aHome = 1;
+      s.cupped = (s.cupped ?? 0) + 1;
+    } else if (inPit(m, now, s.x, s.y)) return end();
+    else {
+      live.push({ x: s.x, y: s.y });
+      if (now === m.lock && s.gate === 0) s.gate = 1;
+    }
+  }
+  if (s.b && !s.bHome) {
+    const now = cellOf(m, s.b.x, s.b.y);
+    if (now < 0) {
+      s.bHome = 1;
+      s.cupped = (s.cupped ?? 0) + 1;
+    } else if (inPit(m, now, s.b.x, s.b.y)) return end();
+    else live.push({ x: s.b.x, y: s.b.y });
+  }
+  // Stars: a live marble's centre within a third of a cell of the star's cell centre.
+  const stars = m.stars ?? [];
+  if (stars.length) {
+    const got = [...(s.starGot ?? [])];
+    const q = Math.trunc(m.cs / 3);
+    for (let k = 0; k < stars.length; k++) {
+      if (got[k]) continue;
+      const p = cellCentre(m, stars[k]!);
+      if (live.some((ball) => Math.abs(ball.x - p.x) < q && Math.abs(ball.y - p.y) < q)) {
+        got[k] = 1;
+        s.stars = (s.stars ?? 0) + 1;
+        s.starTick = tick;
+      }
+    }
+    s.starGot = got;
+  }
+  if (s.chaser && live.some((ball) => touches(m, ball, s.chaser!))) {
+    s.caught = 1;
+    return end();
+  }
+  if (s.aHome && (!s.b || s.bHome)) {
+    s.mazes += 1;
+    if (s.mazes >= TILT_MAX_MAZES) {
+      s.ended = 1;
+      s.endedTick = tick;
+      return s;
+    }
+    s = enterMaze(s, s.level + 1);
+  }
+  return endAtTime(s, tick);
+}
+
+function scoreRev2(state: TiltState): number {
+  return tiltRev2Score(state.mazes, state.stars ?? 0, state.endedTick);
+}
+
+/** Bonus stars on the four mazes of a rev-2 state (0 on original rounds). */
+export function tiltTotalStars(state: TiltState): number {
+  return state.rev === TILT_REV ? state.list.reduce((n, m) => n + (m.stars?.length ?? 0), 0) : 0;
+}
+
+/** Render/bots: cell-centre position of a cell in a maze, FP. */
+export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
+  return cellCentre(m, c);
+}
+
+export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: stepRev2, score: scoreRev2 };
+export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  return rev === TILT_REV ? tiltRev2Game : tiltGame;
+}

@@ -41,28 +41,44 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into parallel shards (`.github/ci/shards.ts`; Snip has
-  its own). Each job's summary lists every check by name with pass / fail / timeout.
-  PRs that change only `docs/**`, `screenshots/**`, `*.md` or `.lovable/**` skip it; it
-  can also be started by hand (Actions → Checks → Run workflow). Free plan, 2,000
-  minutes a month, so:
+  request open/push/reopen, split into nine parallel jobs (`.github/ci/shards.ts`: `a`–`d`,
+  and `play1`–`play5` for arcade-play-check). Each job's summary lists every check by name
+  with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
+  `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
+  - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
+    checks: snip-check searches every template but the full cut-time grid only for the
+    one-pin and hardest templates (~90 s on CI instead of ~8 min), and puzzle-bank-check
+    rebuilds 2 sampled entries per bank instead of 8 (it still verifies every entry and
+    checks the SHA-256 and duplicates). **Full depth is one click:** Actions → Checks →
+    Run workflow (on the branch) with "full" ticked (the default), or locally
+    `bun scripts/snip-check.ts --full`, `bun scripts/run-checks.ts --full <filter>`
+    (`CHECKS_FULL=1`). Use full depth after changing Snip's sim or templates, or a
+    banked generator or verifier.
+  - Split checks: an entry `<file>@<k>/<n>` in `shards.ts` runs part k of n
+    (`--part=k/n`). puzzle-bank-check's every-entry verification is split over `a`–`d`
+    (one part each, under 90 s on a 2-core runner); arcade-play-check's 22 games over
+    `play1`–`play5`. Together the parts check exactly what one whole run does.
   - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
     or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
   - When done, open or update the PR and let Actions run the suite. Don't watch the run
     unless asked.
   - Push fixes in as few commits as possible: every push triggers a full run (a newer
     push cancels the one in progress).
-  - arcade-play-check (headless Chromium) has its own `play` shard, which installs
-    Playwright's Chromium. CI never compares frame times with the local fixture: it
-    uses `.github/ci/arcade-play-baseline.json`, recorded on a CI runner (Actions →
-    Checks → Run workflow with "record arcade baseline", then commit the artifact),
-    and until that file exists it applies only the absolute under-30-fps ceiling.
-    Never loosen the limits to get green.
+  - arcade-play-check (headless Chromium) runs in the `play1`–`play5` jobs, which install
+    Playwright's Chromium. Each job plays its games one at a time, as a whole run and the
+    baseline recording do, so the per-game frame-time comparison is unchanged. CI never
+    compares frame times with the local fixture: it uses
+    `.github/ci/arcade-play-baseline.json`, recorded on a CI runner (Actions → Checks →
+    Run workflow with "record arcade baseline", one job playing all 22 games; then commit
+    the artifact's file there). Without that file it applies only the absolute
+    under-30-fps ceiling. Re-record after a change that should alter frame times on
+    purpose. Never loosen the limits to get green.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
   (each `scripts/*-check.ts(x)` in its own `bun` process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
-  belt check; `--json=<path>` saves results; extra args filter by filename).
+  belt check; `--full` runs full depth; `--json=<path>` saves results; extra args filter
+  by filename, and `<file>@<k>/<n>` runs one part).
 - One check: `bun scripts/<name>-check.ts`.
 - A check fails if it exits non-zero, times out, or prints a FAIL summary.
 - Install deps first. Many checks import server functions (`@tanstack/react-start`) or
@@ -77,19 +93,22 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- **Baseline:** whatever the latest green PR run of the Checks workflow reports (93
-  routine checks as of 12 Oct 2026; the two `--include-optional` checks never run in
-  CI). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
-  burst-swing-score, arcade-self-replay, ink-live, ink-live-bottom and orbit-camera
-  take 100–140 s each. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
+- **Baseline:** whatever the latest green PR run of the Checks workflow reports (95
+  routine checks as of 12 Oct 2026, with arcade-batch4-check and arcade-batch5-check; the two `--include-optional` checks never run in
+  CI). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
+  (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
+  puzzle-bank-check part ~65 s (whole ~5 min CI, ~4 min on 4 local cores); arcade-fx,
+  arcade-self-replay, ink-live-bottom and orbit-camera ~60–70 s; burst-swing-score and
+  reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
 - **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
   `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
   arcade-fx and reveal-score. It plays all 22 active arcade games in headless Chromium
-  (390 × 700, practice mode, 15 s of scripted taps and swipes each, about 10 minutes)
+  (390 × 700, practice mode, 15 s of scripted taps and swipes each, about 10–12 minutes)
   and fails if the sim tick or HUD timer stops, a console or page error appears, the
   average frame time is far above the per-game baseline from main
   (`scripts/fixtures/arcade-play-baseline.json`; rerecord with `--record` against main)
-  or a drawn object jumps further than it can move. Pass game ids to run only those.
+  or a drawn object jumps further than it can move. Pass game ids to run only those, or
+  `--part=k/n` for one CI group (`play4` holds flip, Roofbound).
   It starts its own Vite dev server (or `--url=<origin>`) and needs the pre-installed
   Chromium; run-checks gives it 1,500 s.
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it

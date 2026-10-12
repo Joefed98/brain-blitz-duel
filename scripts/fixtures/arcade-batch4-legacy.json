@@ -1,0 +1,212 @@
+[
+ {
+  "game": "snip",
+  "seed": 1,
+  "score": 26,
+  "replayScore": 26,
+  "stateHash": 2073960846
+ },
+ {
+  "game": "snip/v2",
+  "seed": 1,
+  "score": 22,
+  "replayScore": 22,
+  "stateHash": 1604689419
+ },
+ {
+  "game": "junction",
+  "seed": 1,
+  "score": 24,
+  "replayScore": 24,
+  "stateHash": 1519141962
+ },
+ {
+  "game": "tilt",
+  "seed": 1,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 3161820958
+ },
+ {
+  "game": "skyline",
+  "seed": 1,
+  "score": 48,
+  "replayScore": 48,
+  "stateHash": 3131914906
+ },
+ {
+  "game": "snip",
+  "seed": 77,
+  "score": 26,
+  "replayScore": 26,
+  "stateHash": 3895283217
+ },
+ {
+  "game": "snip/v2",
+  "seed": 77,
+  "score": 6,
+  "replayScore": 6,
+  "stateHash": 526608429
+ },
+ {
+  "game": "junction",
+  "seed": 77,
+  "score": 13,
+  "replayScore": 13,
+  "stateHash": 3623417266
+ },
+ {
+  "game": "tilt",
+  "seed": 77,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1686275947
+ },
+ {
+  "game": "skyline",
+  "seed": 77,
+  "score": 64,
+  "replayScore": 64,
+  "stateHash": 2729178332
+ },
+ {
+  "game": "snip",
+  "seed": 4242,
+  "score": 42,
+  "replayScore": 42,
+  "stateHash": 1860372626
+ },
+ {
+  "game": "snip/v2",
+  "seed": 4242,
+  "score": 39,
+  "replayScore": 39,
+  "stateHash": 948605627
+ },
+ {
+  "game": "junction",
+  "seed": 4242,
+  "score": 8,
+  "replayScore": 8,
+  "stateHash": 1441867788
+ },
+ {
+  "game": "tilt",
+  "seed": 4242,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 95742166
+ },
+ {
+  "game": "skyline",
+  "seed": 4242,
+  "score": 58,
+  "replayScore": 58,
+  "stateHash": 671920425
+ },
+ {
+  "game": "snip",
+  "seed": 90210,
+  "score": 29,
+  "replayScore": 29,
+  "stateHash": 1542959857
+ },
+ {
+  "game": "snip/v2",
+  "seed": 90210,
+  "score": 16,
+  "replayScore": 16,
+  "stateHash": 1993126979
+ },
+ {
+  "game": "junction",
+  "seed": 90210,
+  "score": 12,
+  "replayScore": 12,
+  "stateHash": 409537241
+ },
+ {
+  "game": "tilt",
+  "seed": 90210,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 34790346
+ },
+ {
+  "game": "skyline",
+  "seed": 90210,
+  "score": 41,
+  "replayScore": 41,
+  "stateHash": 476463856
+ },
+ {
+  "game": "snip",
+  "seed": 123457,
+  "score": 16,
+  "replayScore": 16,
+  "stateHash": 1172124214
+ },
+ {
+  "game": "snip/v2",
+  "seed": 123457,
+  "score": 15,
+  "replayScore": 15,
+  "stateHash": 3178847272
+ },
+ {
+  "game": "junction",
+  "seed": 123457,
+  "score": 8,
+  "replayScore": 8,
+  "stateHash": 2313401935
+ },
+ {
+  "game": "tilt",
+  "seed": 123457,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 4196133358
+ },
+ {
+  "game": "skyline",
+  "seed": 123457,
+  "score": 56,
+  "replayScore": 56,
+  "stateHash": 2987213642
+ },
+ {
+  "game": "snip",
+  "seed": 31337,
+  "score": 49,
+  "replayScore": 49,
+  "stateHash": 3914703736
+ },
+ {
+  "game": "snip/v2",
+  "seed": 31337,
+  "score": 9,
+  "replayScore": 9,
+  "stateHash": 3079755686
+ },
+ {
+  "game": "junction",
+  "seed": 31337,
+  "score": 9,
+  "replayScore": 9,
+  "stateHash": 2711055520
+ },
+ {
+  "game": "tilt",
+  "seed": 31337,
+  "score": 0,
+  "replayScore": 0,
+  "stateHash": 1426599727
+ },
+ {
+  "game": "skyline",
+  "seed": 31337,
+  "score": 56,
+  "replayScore": 56,
+  "stateHash": 2532170458
+ }
+]

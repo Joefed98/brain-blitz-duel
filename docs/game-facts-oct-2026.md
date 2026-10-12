@@ -866,19 +866,26 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 93,000 ms (93 s); sim run 90 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 8×10 bricks = 80 (`BRK_BRICKS`); 10–15 three-hit, 20–30 two-hit bricks
-- **Revision:** `speedPar: 1` only
-- **Input:** Drag paddle; tap anywhere fires a held laser or ×5
+- **Revision:** `brkRev: 2` (`BRK_REV`, Oct 2026): one ×2 (was two), a Fireball brick, laser stops after 4 bricks (was the whole column), ×3 shots (was ×5), two seeded sliding rows; unstamped = original rules
+- **Input:** Drag paddle; tap anywhere fires a held laser or ×3 (×5 on unstamped rounds)
 - **Scoring:** `score()` in `src/lib/arcade/breaker.ts`, replayed on the server by `src/lib/duel/breaker.ts` from `src/lib/duel/grade.ts`
-- **Tuning:** Run 90 s; power bricks: 1 laser, 1 ×5 (5 shots), 2 ×2; max 8 balls; ball speed 1024 → cap 1920 (+26 per brick, +51 every 10 s); relaunch 3 s; 130 × destroyed ÷ 80; all = `finishScore()`
+- **Tuning:** Run 90 s; brkRev 2 power bricks: 1 laser (rows 0–2), 1 ×3 (rows 0–4), 1 ×2 (rows 6–9), 1 Fireball (rows 2–6, 5 s of smashing through bricks); sliding rows from rows 3–7, ±22 px on a 6 s triangle wave, from 30 s and 60 s; max 8 balls; ball speed 1024 → cap 1920 (+26 per brick, +51 every 10 s); relaunch 3 s; 130 × destroyed ÷ 80; all = `finishScore()`
 - **Intro text:**
   - GOAL: “Clear the wall.”
   - HOW:
-    - “Drag to move the paddle anywhere on the board.”
-    - “Keep the ball up - it gets faster with bricks and with time.”
-    - “Darker blue bricks take 2 or 3 hits - each hit cracks them down a tier.”
-    - “Four starred power-up bricks drop a capsule gold = laser, silver = ×5 balls, bronze = ×2 balls (works at once).”
-    - “Tap anywhere to fire a laser or ×5 you've caught; any other touch moves the paddle.”
-  - SCORE: “130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.”
+    - “Drag the paddle; tap to fire a power-up.”
+    - “Catch power-ups: laser, ×3, ×2, Fireball.”
+    - “From 30 s, two rows slide side to side.”
+    - “Keep the ball up - it gets faster with bricks and with time. Losing the last ball costs 3 seconds.” (help only)
+    - “Cracked bricks take 2 or 3 hits - each hit cracks them further.” (help only)
+    - “Four starred bricks drop a capsule. Tap anywhere to fire a laser or ×3 you've caught; any longer touch moves the paddle.” (help only)
+    - “Green L = laser: one beam straight up from the paddle that hits the first 4 bricks above it.” (help only)
+    - “Silver ×3 = three shots: each tap fires an extra ball straight up; it vanishes at the first wall it hits.” (help only)
+    - “Bronze ×2 = double balls at once. There is one per board.” (help only)
+    - “Orange flame = Fireball: for 5 seconds your balls smash straight through bricks without bouncing.” (help only)
+    - “Sliding rows: one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.” (help only)
+  - SCORE (intro): “Points for each brick. Clear all 80 bricks for up to 150; otherwise up to 128.”
+  - SCORE (help): “130 × bricks destroyed ÷ 80; all 80 = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.”
 
 #### Coral Pop (`bubble`)
 
@@ -903,18 +910,22 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 93,000 ms (93 s); sim run 90 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 390×620 world; atoms in 4 sizes (radius 32/22/14/8)
-- **Revision:** `speedPar: 1` only
+- **Revision:** `burstRev: 2` (`BURST_REV`, Oct 2026): BURST from 1 in 2 purple atoms (was every one), SHIELD from 1 in 8 blue (was 1 in 4), FREEZE from 1 in 12 green (stops every atom for 3 s); partial score capped at 130; unstamped = original rules
 - **Input:** Hold ◀ ▶ to move; tap arena or FIRE
-- **Scoring:** `burstScoreOf()` in `src/lib/arcade/burst.ts`, replayed on the server by `src/lib/duel/burst.ts` from `src/lib/duel/grade.ts`
-- **Tuning:** Run 90 s; 3 lives; up to 41 waves; BURST = 3 short shots; shield from a blue atom 1 in 4; 2 per hit, −9 per life; 150 when the run ends with no life lost and ≥ 4 waves cleared
+- **Scoring:** `burstScoreV2()` (burstRev 2) / `burstScoreOf()` in `src/lib/arcade/burst.ts`, replayed on the server by `src/lib/duel/burst.ts` from `src/lib/duel/grade.ts`
+- **Tuning:** Run 90 s; 3 lives; up to 41 waves; BURST = 3 short shots; 2 per hit, −9 per life; 150 when the run ends with no life lost and ≥ 4 waves cleared; burstRev 2 otherwise up to 130 (unstamped: up to 150)
 - **Intro text:**
-  - GOAL: “Split every atom - big ones split into smaller atoms.”
+  - GOAL: “Split the atoms. Don't get hit.”
   - HOW:
-    - “Hold ◀ or ▶ to move, tap the arena or FIRE to shoot straight up.”
-    - “Split a purple atom and catch the gold icon for triple BURST shots until you lose a life.”
-    - “Blue atoms sometimes drop a teal SHIELD - it takes the next hit for you.”
-    - “Don't let an atom touch you - three touches and you're out.”
-  - SCORE: “2 per atom destroyed or split, −9 per life lost. Clear four waves without losing a life for 150.”
+    - “◀ ▶ to move, FIRE or tap to shoot up.”
+    - “Catch drops: BURST, SHIELD and FREEZE.”
+    - “An atom touching you costs a life (3 lives).”
+    - “Big atoms split into smaller ones; the smallest pop.” (help only)
+    - “Purple atoms: 1 in 2 drop a gold BURST icon - triple shots until you lose a life.” (help only)
+    - “Blue atoms: 1 in 8 drop a teal SHIELD - it takes the next hit for you.” (help only)
+    - “Green atoms: 1 in 12 drop an ice-blue FREEZE - every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.” (help only)
+  - SCORE (intro): “150: all 90 s, no life lost, 4+ waves cleared. Else 2 an atom, −9 a life, up to 130.”
+  - SCORE (help): “150 needs the full 90 s run with no life lost and four or more waves cleared. Otherwise 2 per atom destroyed or split, −9 per life lost, up to 130.”
 
 #### Flightpath (`bullseye`)
 
@@ -958,26 +969,32 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
-- **Board and items:** Course to 500 m (40 px a metre)
-- **Revision:** `swingRev: 3` (`SWING_REV`): 3–5 dragons 64×44 px at 350–500 m; rev 2 = 4–6 dragons 40×28
+- **Board and items:** Course to 500 m (40 px a metre); swingRev 4: 10 star anchors, 8 falling stalactites, 8 lava jets, a chasing dragon from 200 m
+- **Revision:** `swingRev: 4` (`SWING_REV`, Oct 2026): no fixed dragons; the dragon appears 400 px behind at 200 m and flies 4 px a tick; stalactites shake and cast a shadow 1 s before falling (triggered 280–480 px ahead); jets bubble 1 s, then erupt 150–250 px for 40 ticks on 200–280-tick seeded cycles; rev 3 = 3–5 dragons 64×44 px at 350–500 m; rev 2 = 4–6 dragons 40×28
 - **Input:** Hold to grab, release to fly; swipe up / down to reel
-- **Scoring:** `score()` in `src/lib/arcade/swing.ts`, replayed on the server by `src/lib/duel/swing.ts` from `src/lib/duel/grade.ts`
-- **Tuning:** Bank: 504 proved seeds; reach 220 px; 130 × m ÷ 500; 500 m = `finishScore()`
+- **Scoring:** `swingScoreV4()` (swingRev 4) / `score()` in `src/lib/arcade/swing.ts`, replayed on the server by `src/lib/duel/swing.ts` from `src/lib/duel/grade.ts`
+- **Tuning:** Bank: `swingBankV4.server.ts` (`SWING_V4_BANK`), every course proved to 500 m with all 10 stars; reach 220 px; swingRev 4: 120 × m ÷ 500 + 1 a star (130 max unfinished), 500 m adds 20 (no speed bonus: the dragon sets the pace); rev 2/3: 130 × m ÷ 500, 500 m = `finishScore()`
 - **Intro text:**
-  - GOAL: “Swing the ninja to the 500 m finish.”
+  - GOAL: “Swing the ninja to the 500 m line.”
   - HOW:
-    - “Hold to grab an anchor and swing, let go to fly.”
-    - “Stuck? Keep swinging - every pass gets you higher. Swipe up to shorten the rope for speed.”
-    - “Don't touch the spikes or fall into the lava.”
-    - “Watch out for dragons near the end. Touching one ends the run.”
-  - SCORE: “130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.”
+    - “Hold to grab and swing, let go to fly.”
+    - “From 200 m a dragon chases you: keep going.”
+    - “Grab star anchors for bonus stars.”
+    - “Stuck? Keep swinging - every pass gets you higher. Swipe up to shorten the rope for speed, down to let it out.” (help only)
+    - “The dragon flies at a steady pace behind you. Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.” (help only)
+    - “Loose stalactites shake and cast a shadow on the lava about a second before they fall. Don't be under one.” (help only)
+    - “Lava bubbles before it jets up. Don't be over a jet when it erupts.” (help only)
+    - “Ten star anchors hang high in the gaps. Grab one to take its star; they are optional.” (help only)
+    - “Don't touch the spikes or fall into the lava.” (help only)
+  - SCORE (intro): “Points for distance and stars. Reach 500 metres for up to 150; otherwise up to 130.”
+  - SCORE (help): “Distance: 120 × metres ÷ 500. Stars: 1 each, up to 10. Unfinished runs score up to 130; reaching 500 m adds 20, so 500 m with all 10 stars scores 150.”
 
 #### High Rise (`skyline`)
 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 390×560; start block 200 px wide
-- **Revision:** `speedPar: 1` only
+- **Revision:** `speedPar: 1`; `skylineRev: 2` (Oct 2026 batch 4): from block 20 the top block flies a flag and seeded gusts (1.5–2.5 s, either way, one strength: 1.25 px a tick) nudge the sliding block, the flag waving from 1 s before each; perfect drops from the 3rd in a row add 1 each (streak). Rev-2 score: floor(2.5 × blocks + 2.5 × perfects) + streak points, cap 150. Unstamped rounds keep the rules below.
 - **Input:** Tap to drop
 - **Scoring:** `score()` in `src/lib/arcade/skyline.ts`, replayed on the server by `src/lib/duel/skyline.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Slide speed 768 → 1536 (+26 per block); perfect tolerance 3 px, grows 6 px; floor(2.5 × blocks + 3 × perfects), cap 150 (`SKYLINE_PAR`, `SKYLINE_POINTS_CAP`, `SKYLINE_SURVIVE_BONUS` are defined but unused by the scorer)
@@ -1028,9 +1045,9 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
-- **Board and items:** Four-way junction, 390×620
-- **Revision:** `speedPar: 1` only
-- **Input:** Tap a corner light
+- **Board and items:** Four-way junction, 390×620 (eight-way by 48 s on `junctionRev: 2`)
+- **Revision:** `speedPar: 1`; `junctionRev: 2` (Oct 2026 batch 4): a one-way diagonal road is built into a corner at 12, 24, 36 and 48 s (seeded order), each with its own light by its stop line; lights, stop lines and lane arrows share a colour per road; buses (70 px) from 6 s on the main roads; diagonal and turning traffic needs the middle to itself. Rev-2 score: 2 per car, 3 per bus, −1 give-up, ±4 ambulance, +20 survive, cap 150. Unstamped rounds keep the rules below.
+- **Input:** Tap a corner light (rev 2: tap a light or its lane)
 - **Scoring:** `juncScoreOf()` in `src/lib/arcade/junction.ts`, replayed on the server by `src/lib/duel/junction.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Arrivals every 1.4 → 0.5 s; patience 6 → 4 s; turning cars from 30 s (1 s indicator); ambulances from 20 s every 15 s at 1.3× speed; 2 per car, −1 give-up, ±4 ambulance, +40 survive
 - **Intro text:**
@@ -1135,7 +1152,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** 1260×560 world, 360 px view; 10 levels from 30 templates
-- **Revision:** `snipRev: 2` (`SNIP_REV`): 3 easy + 4 medium + 3 hard drawn from `SNIP_BANDS`; unstamped = fixed legacy order
+- **Revision:** `snipRev: 2` (`SNIP_REV`): 3 easy + 4 medium + 3 hard drawn from `SNIP_BANDS`; `snipRev: 3` (`SNIP_REV3`, Oct 2026 batch 4): the same plan from `SNIP_BANDS_V3` over 60 templates, the 30 new ones with springy branches, sloped planks, gutters, a sliding basket and wasp nests (2–4 ropes on medium/hard); unstamped = fixed legacy order
 - **Input:** Swipe to cut ropes
 - **Scoring:** `snipScore()` in `src/lib/arcade/snip.ts`, replayed on the server by `src/lib/duel/snip.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Level cap 12 s inside a 60 s run; rest fail after 30 ticks; 10 per apple, 3 per leaf, all ten + up to 20 (par curve); cap 150
@@ -1208,7 +1225,7 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 - **Category / status:** Arcade · Active
 - **Time limit:** registry 93,000 ms (93 s); sim run 90 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
 - **Board and items:** Circular maze; 4 mazes of size 9, 11, 11, 13
-- **Revision:** `speedPar: 1` only
+- **Revision:** `speedPar: 1`; `tiltRev: 2` (Oct 2026 batch 4): same mazes plus two bonus stars per maze in dead-end detours; from maze 3 an amber marble with its own amber cup (each marble leaves only through its own cup; red chaser in maze 2 only); larger rimmed cups. Rev-2 score: 25 per maze + 5 per star, all four + up to 30 (par curve), cap 150; unfinished maximum 115. Unstamped rounds keep the rules below.
 - **Input:** Drag left / right to spin
 - **Scoring:** `score()` in `src/lib/arcade/tilt.ts`, replayed on the server by `src/lib/duel/tilt.ts` from `src/lib/duel/grade.ts`
 - **Tuning:** Run 90 s; red chaser behind a padlocked gate from maze 2; 30 per maze; all four = `finishScore()`
@@ -1223,20 +1240,25 @@ Core categories (always drawn): Logic, Pattern, Speed, Attention, Word. Opt-in: 
 #### Wavefront (`wavefront`)
 
 - **Category / status:** Arcade · Active
-- **Time limit:** registry 63,000 ms (63 s); sim run 60 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`)
-- **Board and items:** 6×5 formation (30 ships)
-- **Revision:** `speedPar: 1` only
+- **Time limit:** registry 93,000 ms (93 s); wavRev 2 sim run 90 s (registry − 3 s `ARCADE_PHASE_SLACK_MS`); unstamped rounds ran 60 s on a 63 s clock
+- **Board and items:** 6×5 formation (30 ships) a wave; wavRev 2: 5 waves, then a boss (128×48, 36 hits)
+- **Revision:** `wavRev: 2` (`WAV_REV`, Oct 2026): 90 s, continuous waves (2 s fly-in with a WAVE n banner), divers from wave 3, final boss; unstamped = original 60 s rules
 - **Input:** Drag to move (auto-fire)
-- **Scoring:** `wavScoreOf()` in `src/lib/arcade/wavefront.ts`, replayed on the server by `src/lib/duel/wavefront.ts` from `src/lib/duel/grade.ts`
-- **Tuning:** 3 lives; armour from wave 2 (4/6/8/10 cells, 6/8/10/12 hits); saucer every 15 s (5 pts) drops 5 pierce shots × 3 enemies; 15 per wave; par 248 raw = 150
+- **Scoring:** `wavScoreV2()` (wavRev 2) / `wavScoreOf()` in `src/lib/arcade/wavefront.ts`, replayed on the server by `src/lib/duel/wavefront.ts` from `src/lib/duel/grade.ts`
+- **Tuning:** 3 lives; armour from wave 2 (4/6/8/10 cells, 6/8/10/12 hits); saucer every 15 s (5 pts) drops 5 pierce shots × 3 enemies; 15 per wave; divers every 160 ticks on wave 3 (−20 a wave, min 100; 1 at a time on wave 3, 2 from wave 4); boss fires a seeded pattern every second; boss hit 1, kill 40; wavRev 2 par 309 raw = 150 (every wave plus the boss); unstamped par 248
 - **Intro text:**
-  - GOAL: “Shoot down the formation before it reaches you.”
+  - GOAL: “Five waves and a boss in 90 s.”
   - HOW:
-    - “Drag to move - you fire automatically.”
-    - “Dodge the red bolts. Three hits and you're out.”
-    - “From wave 2, a grey armoured block takes 6-12 hits - every hit counts.”
-    - “Shoot the saucer and catch its drop: 5 laser shots that pierce up to 3 enemies.”
-  - SCORE: “Points for ships, armour hits, saucers and waves. Clearing wave 5 perfectly scores 150.”
+    - “Drag to move; you fire on your own.”
+    - “Dodge red bolts and divers: 3 lives.”
+    - “After wave 5, shoot down the boss.”
+    - “The run lasts 90 seconds. Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.” (help only)
+    - “From wave 3, ships peel off and dive at you, then fly back to their place. Shoot them on the way; one that rams you costs a life.” (help only)
+    - “From wave 2, a grey armoured ship takes 6-12 hits - every hit counts.” (help only)
+    - “Shoot the saucer and catch its drop: 5 laser shots that pierce up to 3 enemies.” (help only)
+    - “The boss slides side to side and fires in patterns. Its bar shows the 36 hits it can take; every hit counts, and destroying it ends the run.” (help only)
+  - SCORE (intro): “Points for ships, armour, saucers, waves and the boss. 150 needs every wave plus the boss.”
+  - SCORE (help): “Points for every ship, armour hit, saucer, wave cleared and boss hit, plus a big bonus for destroying the boss. 150 needs every wave plus the boss.”
 
 ## Retired games
 

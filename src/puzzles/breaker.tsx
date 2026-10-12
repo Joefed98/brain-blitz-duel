@@ -1,7 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
-import { breakerArtGame } from "@/lib/arcade/breaker.renderer";
+import { breakerArtGameFor } from "@/lib/arcade/breaker.renderer";
 import { breakerSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -21,7 +21,8 @@ import {
   BRK_TAP_MS,
   BRK_TAP_PX,
   brkCheckpoint,
-  breakerGame,
+  breakerGameFor,
+  BRK_REV,
   BRK_BG,
   BRK_CHECKPOINT_INTERVAL,
   BRK_GOLD,
@@ -74,11 +75,13 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BreakerPuzzleData | null = puzzle.type === "breaker" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const game = breakerGameFor(data?.brkRev);
+  const art = breakerArtGameFor(data?.brkRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<BrkState>(breakerGame.init(seed));
+  const state = useRef<BrkState>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof brkCheckpoint>[]>([]);
   /** The latest finger position, and the last one the sim was told about. */
@@ -103,19 +106,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const encode = (): string =>
     appendClientCounters(
       encodeRaw(),
-      arcadeCounters("breaker", state.current, breakerGame.score(state.current)),
+      arcadeCounters("breaker", state.current, game.score(state.current)),
     );
   const encodeRaw = (): string =>
     encodeBreakerRun({
       seed,
-      claimedScore: breakerGame.score(state.current),
+      claimedScore: game.score(state.current),
       events: events.current,
       endTick: state.current.tick,
       checkpoints: checkpoints.current,
     });
 
   useEffect(() => {
-    state.current = breakerGame.init(seed);
+    state.current = game.init(seed);
     events.current = [];
     checkpoints.current = [];
     wanted.current = null;
@@ -124,7 +127,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     dragPointer.current = null;
     submitted.current = false;
     forceRedraw((n) => n + 1);
-  }, [seed]);
+  }, [seed, game]);
 
   useEffect(() => {
     if (!data) return;
@@ -148,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const delta = time - last;
       last = time;
 
-      if (!breakerGame.isOver(state.current) && !lockedRef.current) {
+      if (!game.isOver(state.current) && !lockedRef.current) {
         accumulator += delta;
         let ticks = Math.floor(accumulator / TICK_MS);
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
@@ -167,7 +170,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               c: 0,
               d: 0,
             };
-            recordInput(events.current, applied, breakerGame.inputRanges);
+            recordInput(events.current, applied, game.inputRanges);
           } else {
             const target = wanted.current;
             if (target !== null && target !== sent.current) {
@@ -180,23 +183,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 d: 0,
               };
               sent.current = target;
-              recordInput(events.current, applied, breakerGame.inputRanges);
+              recordInput(events.current, applied, game.inputRanges);
             }
           }
-          state.current = breakerGame.step(
+          state.current = game.step(
             state.current,
             inputAt(events.current, state.current.tick + 1),
           );
           if (state.current.tick % BRK_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(brkCheckpoint(state.current));
           }
-          if (breakerGame.isOver(state.current)) break;
+          if (game.isOver(state.current)) break;
         }
       }
 
-      reportArcadeTick(state.current.tick, breakerGame.isOver(state.current));
-      feedback(state.current, breakerGame.isOver(state.current));
-      sounds.frame(state.current, !breakerGame.isOver(state.current) && !lockedRef.current);
+      reportArcadeTick(state.current.tick, game.isOver(state.current));
+      feedback(state.current, game.isOver(state.current));
+      sounds.frame(state.current, !game.isOver(state.current) && !lockedRef.current);
       // A held-down touch that has outlasted the tap window becomes a drag.
       const down = downAt.current;
       if (down && !down.drag && time - down.time >= BRK_TAP_MS) {
@@ -207,7 +210,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) breakerArtGame.draw(context, state.current, size);
+      if (size && context) art.draw(context, state.current, size);
 
       frameTiming.rendered();
 
@@ -216,7 +219,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         draftRef.current?.(encode());
       }
 
-      if (breakerGame.isOver(state.current)) finish();
+      if (game.isOver(state.current)) finish();
       frameTiming.end();
     };
 
@@ -267,7 +270,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const track = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (locked || submitted.current || breakerGame.isOver(state.current)) return;
+    if (locked || submitted.current || game.isOver(state.current)) return;
     if (dragPointer.current !== event.pointerId) return;
     const down = downAt.current;
     if (!down) return;
@@ -293,7 +296,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         Math.hypot(event.clientX - down.x, event.clientY - down.y) < BRK_TAP_PX &&
         !locked &&
         !submitted.current &&
-        !breakerGame.isOver(state.current) &&
+        !game.isOver(state.current) &&
         state.current.held > 0
       ) {
         presses.current.push(0);
@@ -319,7 +322,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         aria-label={gameDisplayName("breaker")}
         onPointerDown={(event) => {
           event.preventDefault();
-          if (locked || submitted.current || breakerGame.isOver(state.current)) return;
+          if (locked || submitted.current || game.isOver(state.current)) return;
           // Any touch on the canvas: a tap fires a power-up, anything longer
           // or further is a paddle drag.
           if (!inPlayArea(event.clientX, event.clientY)) return;
@@ -338,7 +341,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "breaker") return null;
-  const result = replayBreakerRun(puzzle.seed, myAnswer ?? "");
+  const result = replayBreakerRun(puzzle.seed, myAnswer ?? "", puzzle.brkRev);
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -370,7 +373,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1 }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

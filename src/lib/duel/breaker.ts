@@ -11,7 +11,7 @@ import {
   brkBricksLeft,
   brkDestroyed,
   brkCheckpoint,
-  breakerGame,
+  breakerGameFor,
   BRK_CHECKPOINT_INTERVAL,
   BRK_INPUT_RANGES,
   BRK_RUN_TICKS,
@@ -133,6 +133,8 @@ export interface BreakerResult {
   totalHits: number;
   losses: number;
   powerUps: number;
+  /** brkRev 2: Fireball capsules caught (0 on original rounds). */
+  fireballs: number;
   cleared: boolean;
   endedSeconds: number;
   score: number;
@@ -148,7 +150,8 @@ export interface BreakerResult {
 }
 
 /** The single place a Breaker score is worked out. */
-export function replayBreakerRun(seed: number, raw: string): BreakerResult {
+export function replayBreakerRun(seed: number, raw: string, rev?: number | null): BreakerResult {
+  const breakerGame = breakerGameFor(rev);
   const run = decodeBreakerRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BRK_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BRK_RUN_TICKS;
@@ -190,6 +193,7 @@ export function replayBreakerRun(seed: number, raw: string): BreakerResult {
     totalHits: brkTotalHits(state),
     losses: state.losses,
     powerUps: state.powerUps,
+    fireballs: state.fireballs ?? 0,
     cleared: state.cleared,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

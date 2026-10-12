@@ -1917,6 +1917,8 @@ export interface SkylinePuzzleData {
   type: "skyline";
   /** Decides which side the first block slides in from. */
   seed: number;
+  /** Rules revision (2 = wind gusts from block 20 and the perfect-streak bonus); absent = original rules. */
+  skylineRev?: number;
 }
 
 /* =========================== Bin Toss / Bullseye ========================= */
@@ -2003,6 +2005,8 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball); absent = original rules. */
+  brkRev?: number;
 }
 
 export interface RallyPuzzleData {
@@ -2141,14 +2145,16 @@ export interface BalancePuzzleData {
 
 /* ========================== Wavefront / Bastion ========================== */
 
-/** Each run is a fixed 60 seconds; the round clock adds three of slack. */
-export const WAVEFRONT_TIME_MS = 63_000;
+/** Wavefront (wavRev 2) runs 90 seconds and Bastion 60; the round clock adds three of slack. */
+export const WAVEFRONT_TIME_MS = 93_000;
 export const BASTION_TIME_MS = 63_000;
 
 export interface WavefrontPuzzleData {
   type: "wavefront";
   /** Draws every wave and enemy shot — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = 90 s, continuous waves, divers, boss); absent = original 60 s rules. */
+  wavRev?: number;
 }
 
 export interface BastionPuzzleData {
@@ -2199,6 +2205,8 @@ export interface JunctionPuzzleData {
   type: "junction";
   /** Draws every car arrival — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = diagonal roads every 12 s, lights at their lanes, buses); absent = original rules. */
+  junctionRev?: number;
 }
 
 export interface InkBridgePuzzleData {
@@ -2216,6 +2224,8 @@ export interface BurstPuzzleData {
   type: "burst";
   /** Draws every wave — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = halved BURST/SHIELD drops and the FREEZE drop); absent = original rules. */
+  burstRev?: number;
 }
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
@@ -2229,7 +2239,7 @@ export interface SnipPuzzleData {
   type: "snip";
   /** Draws the level order and pin wobble — identical for everyone. */
   seed: number;
-  /** 2 = ten levels drawn by band from the 30 templates. Absent = fixed legacy order. */
+  /** 2 = ten levels drawn by band from the 30 templates; 3 = from the 60 (orchard elements). Absent = fixed legacy order. */
   snipRev?: number;
 }
 
@@ -2260,6 +2270,8 @@ export interface TiltPuzzleData {
   type: "tilt";
   /** Draws every maze — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups); absent = original rules. */
+  tiltRev?: number;
 }
 
 export interface HotFloorPuzzleData {

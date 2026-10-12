@@ -120,7 +120,6 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       <span className="absolute right-1.5 top-1 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
         Demo
       </span>
-      {type === "swing" && <span className="absolute inset-x-2 bottom-2 text-center text-sm text-foreground">Watch out for dragons near the end.</span>}
     </div>
   );
 }

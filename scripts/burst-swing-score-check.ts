@@ -1,5 +1,5 @@
 import { burstScoreOf } from "@/lib/arcade/burst";
-import { swingGameFor, SWING_REV, SWING_REV_V2, SWING_DRAGON_HALF_W, SWING_DRAGON_HALF_H, SWING_DRAGON_HALF_W_V2, SWING_DRAGON_HALF_H_V2, swingMetres, swingCheckpoint } from '@/lib/arcade/swing';
+import { swingGameFor, SWING_REV_V3, SWING_REV_V2, SWING_DRAGON_HALF_W, SWING_DRAGON_HALF_H, SWING_DRAGON_HALF_W_V2, SWING_DRAGON_HALF_H_V2, swingMetres, swingCheckpoint } from '@/lib/arcade/swing';
 import { proveSwingSeed } from '@/lib/duel/swingProof.server';
 import { encodeSwingRun, replaySwingRun } from '@/lib/duel/swing';
 
@@ -24,7 +24,7 @@ const count = Number(process.argv[2] ?? 10);
 let verified = 0;
 for (let i = 0; i < count; i++) {
   const seed = 20261009 + i * 7919;
-  const game = swingGameFor(SWING_REV);
+  const game = swingGameFor(SWING_REV_V3);
   const state = game.init(seed);
   check('legacy has no dragons', swingGameFor().init(seed).dragons === undefined);
   check('seed identical', JSON.stringify(state) === JSON.stringify(game.init(seed)));
@@ -40,7 +40,7 @@ for (let i = 0; i < count; i++) {
   check('3–5 dragons (swingRev 3)', (state.dragons?.length ?? 0) >= 3 && (state.dragons?.length ?? 0) <= 5);
   check('swingRev 3 dragon box is 64×44', (state.dragons ?? []).every(d => d.hw === SWING_DRAGON_HALF_W && d.hh === SWING_DRAGON_HALF_H));
   check('last 150m only', (state.dragons ?? []).every(d => d.x >= (3000 + 350 * 40) * 256 && d.x < (3000 + 500 * 40) * 256));
-  const witness = proveSwingSeed(seed);
+  const witness = proveSwingSeed(seed, SWING_REV_V3);
   if (!witness) { console.log(`Search rejected seed ${seed}; generator will not return it`); continue; }
   const events = new Map(witness.map(e => [e.t, e]));
   let s = state;
@@ -50,7 +50,7 @@ for (let i = 0; i < count; i++) {
     if (s.tick % 300 === 0) checkpoints.push(swingCheckpoint(s));
   }
   const raw = encodeSwingRun({ seed, claimedScore: game.score(s), events: witness, endTick: s.tick, checkpoints });
-  const replay = replaySwingRun(seed, raw, SWING_REV);
+  const replay = replaySwingRun(seed, raw, SWING_REV_V3);
   check('500m within 60s', swingMetres(s) >= 500 && s.ended === 1 && s.tick <= 3600);
   check('server replay identical', !replay.flagged && JSON.stringify(s) === JSON.stringify(replay.state));
   const d = state.dragons?.[0];
@@ -103,7 +103,7 @@ const sampleSize = Math.max(count, 200);
 let proved = 0;
 for (let i = 0; i < sampleSize; i++) {
   const seed = 90210001 + i * 104729;
-  if (proveSwingSeed(seed, SWING_REV)) proved++;
+  if (proveSwingSeed(seed, SWING_REV_V3)) proved++;
 }
 console.log(`swingRev 3 beam-search proof pass rate: ${proved}/${sampleSize} (${((proved / sampleSize) * 100).toFixed(1)}%).`);
 

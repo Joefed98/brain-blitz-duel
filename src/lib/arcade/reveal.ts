@@ -9,6 +9,7 @@ import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
 import { MATCHUP_PAR_RAW } from "./matchup";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
+import { WAV_BOSS_HP, WAV_V2_WAVES } from "./wavefront";
 
 export interface ArcadeRevealTile {
   label: string;
@@ -70,10 +71,15 @@ const BUILDERS: Record<string, Builder> = {
   },
   skyline: (r, s) => ({
     axis: { value: n(r, "blocks"), max: null, label: "Blocks stacked" },
-    lines: [`${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`],
+    lines: [
+      n(r, "skylineRev") > 0
+        ? `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect · +${n(r, "streakPoints")} streak → ${s}`
+        : `${n(r, "blocks")} blocks · ${n(r, "perfects")} perfect → ${s}`,
+    ],
     tiles: [
       { label: "Blocks", value: String(n(r, "blocks")) },
       { label: "Perfect drops", value: String(n(r, "perfects")) },
+      ...(n(r, "skylineRev") > 0 ? [{ label: "Best streak", value: String(n(r, "bestStreak")) }] : []),
     ],
     outcome: ended(r, false),
   }),
@@ -127,12 +133,13 @@ const BUILDERS: Record<string, Builder> = {
   breaker: (r, s) => {
     const done = b(r, "cleared");
     return {
-      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks" },
+      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks destroyed" },
       lines: [head(`${n(r, "destroyed")} / 80 bricks`, s, done)],
       tiles: [
         { label: "Power-ups", value: String(n(r, "powerUps")) },
         { label: "Balls lost", value: String(n(r, "losses")) },
-        { label: "Brick hits", value: String(n(r, "totalHits")) },
+        // Hits this run landed (was the wall's total hit points, e.g. 130 for 6 bricks destroyed).
+        { label: "Brick hits", value: String(n(r, "hits")) },
       ],
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
@@ -220,6 +227,23 @@ const BUILDERS: Record<string, Builder> = {
     outcome: ended(r, false),
   }),
   wavefront: (r, s) => {
+    if (n(r, "wavRev") > 0) {
+      // wavRev 2: five waves, then the boss.
+      const killed = n(r, "bossKilled") > 0;
+      return {
+        axis: { value: n(r, "wavesCleared"), max: WAV_V2_WAVES, label: "Waves" },
+        lines: [
+          `${n(r, "wavesCleared")} / ${WAV_V2_WAVES} waves · ${n(r, "shapesDown")} ships · ${n(r, "armourHits")} armour hits`,
+          `Boss: ${n(r, "bossHits")} / ${WAV_BOSS_HP} hits${killed ? " · destroyed" : ""} → ${s}`,
+        ],
+        tiles: [
+          { label: "Boss", value: killed ? "Destroyed" : `${n(r, "bossHits")} / ${WAV_BOSS_HP}` },
+          { label: "Saucers", value: String(n(r, "saucers")) },
+          { label: "Lives left", value: String(n(r, "lives")) },
+        ],
+        outcome: killed ? "finish" : ended(r, false),
+      };
+    }
     const done = n(r, "wavesCleared") >= 5;
     return {
       axis: { value: n(r, "wavesCleared"), max: 5, label: "Waves" },
@@ -246,8 +270,13 @@ const BUILDERS: Record<string, Builder> = {
   }),
   junction: (r, s) => ({
     axis: { value: n(r, "cleared"), max: null, label: "Cars cleared" },
-    lines: [`${n(r, "cleared")} cars cleared → ${s}`],
+    lines: [
+      n(r, "junctionRev") > 0
+        ? `${n(r, "cleared")} through (${n(r, "busCleared")} buses, ${n(r, "diagCleared")} from the new roads) → ${s}`
+        : `${n(r, "cleared")} cars cleared → ${s}`,
+    ],
     tiles: [
+      ...(n(r, "junctionRev") > 0 ? [{ label: "Buses through", value: String(n(r, "busCleared")) }] : []),
       { label: "Ambulances through", value: String(n(r, "ambThrough")) },
       { label: "Gave up", value: String(n(r, "gaveUp")) },
     ],
@@ -286,10 +315,18 @@ const BUILDERS: Record<string, Builder> = {
   },
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
-    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} atoms → ${s}`],
+    lines:
+      n(r, "burstRev") > 0
+        ? [
+            s === 150 && n(r, "livesLost") === 0
+              ? `Full 90 s, no life lost, ${n(r, "cleared")} waves cleared → 150`
+              : `${n(r, "hits")} atoms × 2 − ${n(r, "livesLost")} lives × 9 (up to 130) → ${s}`,
+          ]
+        : [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} atoms → ${s}`],
     tiles: [
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
+      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
     outcome: ended(r, false),
   }),
@@ -311,8 +348,22 @@ const BUILDERS: Record<string, Builder> = {
     const done = metres >= 500;
     return {
       axis: { value: Math.min(500, metres), max: 500, label: "Metres" },
-      lines: [head(`${Math.min(500, metres)} m`, s, done), ...(n(r, "dragonTotal") > 0 ? ["Watch out for dragons near the end."] : [])],
-      tiles: [{ label: done ? "Finished at" : b(r, "survived") ? "Survived" : "Fell at", value: sec(n(r, "survivedSeconds")) }],
+      lines:
+        n(r, "swingRev") > 0
+          ? [
+              `${Math.min(500, metres)} m → ${Math.min(120, Math.round((120 * Math.min(500, metres)) / 500))}`,
+              `${n(r, "stars")} / ${n(r, "starTotal")} stars → ${n(r, "stars")}${done ? " · 500 m reached +20" : ""}`,
+              `Total → ${s}`,
+            ]
+          : [head(`${Math.min(500, metres)} m`, s, done)],
+      tiles: [
+        {
+          label: done ? "Finished at" : b(r, "survived") ? "Survived" : n(r, "cause") === 1 ? "Caught at" : "Fell at",
+          value: sec(n(r, "survivedSeconds")),
+        },
+        ...(n(r, "swingRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starTotal")}` }] : []),
+        ...(n(r, "cause") > 0 ? [{ label: "Ended by", value: ["", "the dragon", "a stalactite", "a lava jet"][n(r, "cause")] ?? "" }] : []),
+      ],
       outcome: done ? "finish" : ended(r, false),
     };
   },
@@ -332,9 +383,10 @@ const BUILDERS: Record<string, Builder> = {
     const done = n(r, "mazes") >= 4;
     return {
       axis: { value: n(r, "mazes"), max: 4, label: "Mazes" },
-      lines: [head(`${n(r, "mazes")} / 4 mazes`, s, done)],
+      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / 4 mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
       tiles: [
         { label: "Mazes", value: `${n(r, "mazes")} / 4` },
+        ...(n(r, "tiltRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "totalStars")}` }] : []),
         { label: b(r, "caught") ? "Caught at" : b(r, "survived") ? "Time" : "Pit at", value: sec(n(r, "survivedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),

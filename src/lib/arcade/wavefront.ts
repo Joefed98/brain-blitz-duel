@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
 
@@ -101,6 +102,57 @@ const DROP_DELAY_MIN = 10;
 const DROP_DELAY_SPAN = 21;
 export const WAV_DROP_R = 8;
 
+/* ======================= wavRev 2 (Oct 2026) ======================= */
+/*
+ * A 90 s run of WAV_V2_WAVES continuous waves and a final boss. When a wave is
+ * cleared the next formation flies in from the top over a 2 s breather (no march,
+ * no enemy fire); from wave 3 ships peel off and dive at the player on a seeded
+ * curve, leave through the bottom and fly back to their slot from the top. After
+ * the last wave a boss with WAV_BOSS_HP hits flies in, slides side to side and
+ * fires a seeded pattern; every hit and the kill score, and the kill ends the run.
+ * Unstamped rounds keep the original 60 s rules.
+ */
+export const WAV_REV = 2;
+export const WAV_V2_RUN_SECONDS = 90;
+export const WAV_V2_RUN_TICKS = WAV_V2_RUN_SECONDS * TICKS_PER_SECOND;
+/** Formation waves before the boss. */
+export const WAV_V2_WAVES = 5;
+export const WAV_BREATHER_TICKS = 2 * TICKS_PER_SECOND;
+/** How far above its place a formation (or the boss) starts its fly-in, px. */
+const ENTRY_DIST = START_Y + WAV_ROWS * PITCH_Y;
+export const WAV_DIVE_FROM_WAVE = 3;
+export const WAV_DIVE_TICKS = 150;
+export const WAV_RETURN_TICKS = 90;
+/** Ticks between dives: 160 on wave 3, 20 fewer each wave after, never under 100. */
+export function wavDiveEvery(wave: number): number {
+  return Math.max(100, 160 - 20 * (wave - WAV_DIVE_FROM_WAVE));
+}
+/** At most one ship dives at a time on wave 3, two from wave 4. */
+export function wavMaxDivers(wave: number): number {
+  return wave >= WAV_DIVE_FROM_WAVE + 1 ? 2 : 1;
+}
+export const WAV_BOSS_W = 128;
+export const WAV_BOSS_H = 48;
+export const WAV_BOSS_Y = 84;
+export const WAV_BOSS_HP = 36;
+export const WAV_BOSS_FIRE_EVERY = 60;
+const BOSS_MIN_X = 12;
+const BOSS_MAX_X = WAV_WORLD_W - 12 - WAV_BOSS_W;
+/** Points (raw) for the kill, more than every possible saucer, so 150 needs the kill. */
+export const WAV_POINTS_BOSS = 40;
+/** A perfect wavRev-2 run: every ship, every armour hit, every wave, every boss hit and the kill. */
+export const WAV_PAR_V2 = (() => {
+  let raw = 0;
+  for (let wave = 1; wave <= WAV_V2_WAVES; wave++) {
+    raw += WAV_SHAPES + WAV_POINTS_WAVE;
+    if (wave >= 2) {
+      const [cells, hits] = WAV_ARMOUR_BY_WAVE[Math.min(wave - 2, WAV_ARMOUR_BY_WAVE.length - 1)]!;
+      raw += hits - cells;
+    }
+  }
+  return raw + WAV_BOSS_HP + WAV_POINTS_BOSS;
+})();
+
 export const WAV_INPUT_RANGES: readonly InputRange[] = [
   inputRange(ARCADE_INPUT_DRAG, [0, WAV_WORLD_W]),
 ];
@@ -138,7 +190,43 @@ export interface WavBurst {
   c: number;
 }
 
+/** wavRev 2: a ship that left its formation cell to dive. Positions in 1/256 px (centre). */
+export interface WavDiver {
+  cell: number;
+  /** Ticks since the dive began; past WAV_DIVE_TICKS it is flying home. */
+  t: number;
+  x: number;
+  y: number;
+  /** Where it left its slot and where it aims (1/256 px), and its seeded sway (px, signed). */
+  x0: number;
+  y0: number;
+  tx: number;
+  sway: number;
+}
+
+/** wavRev 2: the final boss. x is its left edge in whole px. */
+export interface WavBoss {
+  x: number;
+  dir: number;
+  hp: number;
+  fireIn: number;
+}
+
 export interface WavState {
+  /** wavRev 2 only (absent on original rounds). */
+  rev?: number;
+  /** wavRev 2: fly-in ticks left (formation or boss), the formation's resting fy, divers, the dive timer. */
+  enter?: number;
+  fyTarget?: number;
+  divers?: WavDiver[];
+  diveIn?: number;
+  /** wavRev 2: the boss (once the last wave is cleared), hits on it, and 1 once it is destroyed. */
+  boss?: WavBoss | null;
+  bossHits?: number;
+  bossKilled?: number;
+  /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
+  rammed?: number;
+  diversDown?: number;
   tick: number;
   rng: number;
   aimX: number;
@@ -247,6 +335,30 @@ function init(seed: number): WavState {
   };
 }
 
+function initV2(seed: number): WavState {
+  const s = init(seed);
+  // The first formation flies in too.
+  return {
+    ...s,
+    rev: WAV_REV,
+    enter: WAV_BREATHER_TICKS,
+    fyTarget: START_Y,
+    fy: START_Y - ENTRY_DIST,
+    divers: [],
+    diveIn: 0,
+    boss: null,
+    bossHits: 0,
+    bossKilled: 0,
+    rammed: 0,
+    diversDown: 0,
+  };
+}
+
+/** Where a diver is drawn and collides: its centre in whole px. */
+export function wavDiverCentre(d: WavDiver): { x: number; y: number } {
+  return { x: Math.trunc(d.x / FP), y: Math.trunc(d.y / FP) };
+}
+
 function isOver(state: WavState): boolean {
   return state.ended !== 0;
 }
@@ -270,13 +382,27 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     drop: state.drop ? { ...state.drop } : null,
     bursts: state.bursts.filter((b) => tick - b.t < 24),
   };
+  const v2 = state.rev === WAV_REV;
+  const runTicks = v2 ? WAV_V2_RUN_TICKS : WAV_RUN_TICKS;
+  if (v2) {
+    s.divers = (state.divers ?? []).map((d) => ({ ...d }));
+    s.boss = state.boss ? { ...state.boss } : null;
+  }
   if (input && input.k === ARCADE_INPUT_DRAG) s.aimX = clampInt(input.a, 0, WAV_WORLD_W);
   s.shipX = clampInt(s.aimX, SHIP_MIN_X, SHIP_MAX_X);
   if (s.invuln > 0) s.invuln -= 1;
 
+  // wavRev 2 fly-in: the formation (or boss) glides down from above; nothing marches or fires.
+  const entering = v2 && (s.enter ?? 0) > 0;
+  if (entering) {
+    s.enter = (s.enter ?? 0) - 1;
+    s.fy = (s.fyTarget ?? START_Y) - Math.trunc((ENTRY_DIST * (s.enter ?? 0)) / WAV_BREATHER_TICKS);
+  }
+  const away = new Set<number>((s.divers ?? []).map((d) => d.cell));
+
   // Formation march.
-  s.stepIn -= 1;
-  if (s.stepIn <= 0) {
+  if (!entering) s.stepIn -= 1;
+  if (!entering && s.stepIn <= 0) {
     let lc = WAV_COLS;
     let rc = -1;
     s.shapes.forEach((code, i) => {
@@ -309,8 +435,106 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.fireIn = WAV_FIRE_EVERY;
   }
 
+  // wavRev 2 divers: start on the seeded timer, fly the curve, come home from the top.
+  if (v2 && !entering && !s.boss) {
+    s.diveIn = (s.diveIn ?? 0) - 1;
+    if (s.wave >= WAV_DIVE_FROM_WAVE && (s.diveIn ?? 0) <= 0) {
+      s.diveIn = wavDiveEvery(s.wave);
+      const pool: number[] = [];
+      s.shapes.forEach((code, i) => {
+        if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i)) pool.push(i);
+      });
+      if (pool.length > 1 && (s.divers ?? []).length < wavMaxDivers(s.wave)) {
+        const pick = rngBelow(s.rng, pool.length);
+        const sway = rngBelow(pick.state, 81);
+        const lead = rngBelow(sway.state, 61);
+        s.rng = lead.state;
+        const cell = pool[pick.value]!;
+        const box = wavShapeBox(s, cell);
+        const x0 = (box.x + WAV_CELL / 2) * FP;
+        const y0 = (box.y + WAV_CELL / 2) * FP;
+        s.divers!.push({
+          cell,
+          t: 0,
+          x: x0,
+          y: y0,
+          x0,
+          y0,
+          tx: clampInt(s.shipX + lead.value - 30, WAV_CELL, WAV_WORLD_W - WAV_CELL) * FP,
+          sway: sway.value - 40,
+        });
+        away.add(cell);
+      }
+    }
+    const flying: WavDiver[] = [];
+    for (const d of s.divers ?? []) {
+      d.t += 1;
+      if (s.shapes[d.cell] === 0) continue;
+      if (d.t <= WAV_DIVE_TICKS) {
+        // Down past the ship's line on a sine sway toward the aim point, then off the bottom.
+        const exitY = (WAV_WORLD_H + WAV_CELL) * FP;
+        d.y = d.y0 + Math.trunc(((exitY - d.y0) * d.t) / WAV_DIVE_TICKS);
+        const sway = Math.trunc((d.sway * FP * isin(Math.trunc((32768 * d.t) / WAV_DIVE_TICKS))) / TRIG_ONE);
+        d.x = d.x0 + Math.trunc(((d.tx - d.x0) * d.t) / WAV_DIVE_TICKS) + sway;
+      } else {
+        // Home from above to wherever its slot is now.
+        const k = d.t - WAV_DIVE_TICKS;
+        const box = wavShapeBox(s, d.cell);
+        const hx = (box.x + WAV_CELL / 2) * FP;
+        const hy = (box.y + WAV_CELL / 2) * FP;
+        const fromY = -WAV_CELL * FP;
+        d.x = d.tx + Math.trunc(((hx - d.tx) * k) / WAV_RETURN_TICKS);
+        d.y = fromY + Math.trunc(((hy - fromY) * k) / WAV_RETURN_TICKS);
+        if (k >= WAV_RETURN_TICKS) {
+          away.delete(d.cell);
+          continue;
+        }
+      }
+      // Ramming the player costs a life; the diver is destroyed with no points.
+      const c = wavDiverCentre(d);
+      if (
+        Math.abs(c.x - s.shipX) < (WAV_SHIP_W + WAV_CELL) / 2 &&
+        Math.abs(c.y - WAV_SHIP_Y) < (WAV_SHIP_H + WAV_CELL) / 2
+      ) {
+        if (s.invuln === 0) {
+          s.lives -= 1;
+          s.invuln = INVULN_TICKS;
+        }
+        s.shapes[d.cell] = 0;
+        s.rammed = (s.rammed ?? 0) + 1;
+        s.bursts.push({ x: c.x, y: c.y, t: tick, c: 0 });
+        continue;
+      }
+      flying.push(d);
+    }
+    s.divers = flying;
+  }
+
+  // wavRev 2 boss: slides side to side and fires its seeded pattern once it has arrived.
+  if (v2 && s.boss) {
+    const boss = s.boss;
+    if (!entering) {
+      boss.x += boss.dir;
+      if (boss.x <= BOSS_MIN_X || boss.x >= BOSS_MAX_X) boss.dir = -boss.dir;
+      boss.fireIn -= 1;
+      if (boss.fireIn <= 0) {
+        boss.fireIn = WAV_BOSS_FIRE_EVERY;
+        const pattern = rngBelow(s.rng, 3);
+        s.rng = pattern.state;
+        const muzzle = (WAV_BOSS_Y + WAV_BOSS_H) * FP;
+        const guns =
+          pattern.value === 0
+            ? [8, WAV_BOSS_W / 2, WAV_BOSS_W - 8]
+            : pattern.value === 1
+              ? [8, WAV_BOSS_W - 8]
+              : [clampInt(s.shipX - boss.x, 8, WAV_BOSS_W - 8)];
+        for (const gx of guns) if (s.reds.length < MAX_RED) s.reds.push({ x: (boss.x + gx) * FP, y: muzzle });
+      }
+    }
+  }
+
   // Saucer.
-  if (tick % SAUCER_EVERY === 0 && tick < WAV_RUN_TICKS && s.saucerDir === 0) {
+  if (tick % SAUCER_EVERY === 0 && tick < runTicks && s.saucerDir === 0) {
     const side = rngBelow(s.rng, 2);
     s.rng = side.state;
     s.saucerDir = side.value === 0 ? 1 : -1;
@@ -332,7 +556,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     let hit = false;
     for (let i = 0; i < WAV_SHAPES && !hit; i++) {
       const code = s.shapes[i] ?? 0;
-      if (code === 0) continue;
+      if (code === 0 || away.has(i)) continue;
       if (code === WAV_ARMOUR_CODE && bolt.a) continue;
       const box = wavShapeBox(s, i);
       if (
@@ -371,6 +595,45 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
           t: tick,
           c: (code - 1) % 3,
         });
+      }
+    }
+    // wavRev 2: divers in flight, then the boss.
+    if (!hit && v2) {
+      for (const d of s.divers ?? []) {
+        if (s.shapes[d.cell] === 0) continue;
+        const c = wavDiverCentre(d);
+        if (
+          bolt.x + 2 * FP > (c.x - WAV_CELL / 2) * FP &&
+          bolt.x - 2 * FP < (c.x + WAV_CELL / 2) * FP &&
+          bolt.y < (c.y + WAV_CELL / 2) * FP &&
+          bolt.y + WAV_BOLT_H * FP > (c.y - WAV_CELL / 2) * FP
+        ) {
+          hit = true;
+          const code = s.shapes[d.cell]!;
+          s.shapes[d.cell] = 0;
+          s.shapesDown += 1;
+          s.waveKills += 1;
+          s.diversDown = (s.diversDown ?? 0) + 1;
+          s.bursts.push({ x: c.x, y: c.y, t: tick, c: (code - 1) % 3 });
+          break;
+        }
+      }
+    }
+    if (!hit && v2 && s.boss && !entering && (s.boss.hp ?? 0) > 0) {
+      const boss = s.boss;
+      if (
+        bolt.x + 2 * FP > boss.x * FP &&
+        bolt.x - 2 * FP < (boss.x + WAV_BOSS_W) * FP &&
+        bolt.y < (WAV_BOSS_Y + WAV_BOSS_H) * FP &&
+        bolt.y + WAV_BOLT_H * FP > WAV_BOSS_Y * FP
+      ) {
+        hit = true;
+        boss.hp -= 1;
+        s.bossHits = (s.bossHits ?? 0) + 1;
+        if (boss.hp <= 0) {
+          s.bossKilled = 1;
+          s.bursts.push({ x: boss.x + WAV_BOSS_W / 2, y: WAV_BOSS_Y + WAV_BOSS_H / 2, t: tick, c: 4 });
+        }
       }
     }
     if (!hit && s.saucerDir !== 0) {
@@ -413,7 +676,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   }
 
   // Enemy fire from any shape in the lowest two occupied rows, chosen from the seed.
-  s.redIn -= 1;
+  if (!entering && !s.boss) s.redIn -= 1;
   if (s.redIn <= 0) {
     let lowest = -1;
     s.shapes.forEach((code, i) => {
@@ -421,7 +684,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     });
     const shooters: number[] = [];
     s.shapes.forEach((code, i) => {
-      if (code !== 0 && code !== WAV_ARMOUR_CODE && Math.trunc(i / WAV_COLS) >= lowest - 1)
+      if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i) && Math.trunc(i / WAV_COLS) >= lowest - 1)
         shooters.push(i);
     });
     let volley = 1;
@@ -441,7 +704,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
       const box = wavShapeBox(s, index);
       s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
     }
-    s.redIn = Math.max(RED_MIN, s.redBase - Math.trunc((s.redBase * tick) / (2 * WAV_RUN_TICKS)));
+    s.redIn = Math.max(RED_MIN, s.redBase - Math.trunc((s.redBase * tick) / (2 * runTicks)));
   }
   const redsKept: WavBolt[] = [];
   for (const red of s.reds) {
@@ -462,8 +725,36 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   }
   s.reds = redsKept;
 
-  // Wave cleared.
-  if (s.shapes.every((code) => code === 0)) {
+  // Wave cleared (wavRev 2: the next formation, or the boss, flies in).
+  if (v2 && !s.boss && s.shapes.every((code) => code === 0)) {
+    s.wavesCleared += 1;
+    s.wave += 1;
+    s.divers = [];
+    s.diveIn = wavDiveEvery(s.wave);
+    s.enter = WAV_BREATHER_TICKS;
+    s.waveBase = Math.max(WAV_STEP_MIN, Math.trunc((s.waveBase * 85) / 100));
+    s.redBase = Math.max(RED_MIN, Math.trunc((s.redBase * 80) / 100));
+    s.redSpeed = Math.min(RED_SPEED_CAP, Math.trunc((s.redSpeed * 115) / 100));
+    s.waveKills = 0;
+    s.stepIn = stepEvery(s);
+    s.redIn = s.redBase;
+    s.armour = null;
+    if (s.wave > WAV_V2_WAVES) {
+      // The boss: the formation grid stays empty from here on.
+      s.boss = { x: Math.trunc((WAV_WORLD_W - WAV_BOSS_W) / 2), dir: 1, hp: WAV_BOSS_HP, fireIn: WAV_BOSS_FIRE_EVERY };
+    } else {
+      const next = newShapes(s.rng);
+      s.rng = next.rng;
+      s.shapes = next.shapes;
+      const armour = placeArmour(s.rng, s.shapes, s.wave);
+      s.rng = armour.rng;
+      s.armour = armour.armour;
+      s.fx = START_X;
+      s.fyTarget = Math.min(MAX_START_Y, START_Y + (s.wave - 1) * PITCH_Y);
+      s.fy = s.fyTarget - ENTRY_DIST;
+      s.dir = 1;
+    }
+  } else if (!v2 && s.shapes.every((code) => code === 0)) {
     s.wavesCleared += 1;
     s.wave += 1;
     const next = newShapes(s.rng);
@@ -493,7 +784,10 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.lives = Math.max(0, s.lives);
     s.ended = 2;
     s.endedTick = tick;
-  } else if (tick >= WAV_RUN_TICKS) {
+  } else if (v2 && s.bossKilled) {
+    s.ended = 1;
+    s.endedTick = tick;
+  } else if (tick >= runTicks) {
     s.ended = 1;
     s.endedTick = tick;
   }
@@ -506,7 +800,16 @@ export function wavScoreOf(shapesDown: number, saucers: number, waves: number, a
   return clampInt(Math.floor((150 * raw) / WAV_PAR), 0, 150);
 }
 
+/** wavRev 2: the same points plus every boss hit and 40 for the kill, against WAV_PAR_V2. */
+export function wavScoreV2(shapesDown: number, saucers: number, waves: number, armourHits: number, bossHits: number, bossKilled: number): number {
+  const raw =
+    shapesDown + armourHits + WAV_POINTS_SAUCER * saucers + WAV_POINTS_WAVE * waves + bossHits + WAV_POINTS_BOSS * bossKilled;
+  return clampInt(Math.floor((150 * raw) / WAV_PAR_V2), 0, 150);
+}
+
 function score(state: WavState): number {
+  if (state.rev === WAV_REV)
+    return wavScoreV2(state.shapesDown, state.saucers, state.wavesCleared, state.armourHits, state.bossHits ?? 0, state.bossKilled ?? 0);
   return wavScoreOf(state.shapesDown, state.saucers, state.wavesCleared, state.armourHits);
 }
 
@@ -605,6 +908,16 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
   for (const b of [...state.bolts, ...state.reds]) {
     checksum ^= (b.x ^ Math.imul(b.y, 31) ^ ((b.p ?? 0) << 3)) | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  // wavRev 2 only, so original checksums are unchanged.
+  if (state.rev !== undefined) {
+    const extra = [state.rev, state.enter ?? 0, state.diveIn ?? 0, state.bossHits ?? 0, state.bossKilled ?? 0, state.rammed ?? 0, state.diversDown ?? 0];
+    if (state.boss) extra.push(state.boss.x, state.boss.dir, state.boss.hp, state.boss.fireIn);
+    for (const d of state.divers ?? []) extra.push(d.cell, d.t, d.x, d.y);
+    for (const value of extra) {
+      checksum ^= value | 0;
+      checksum = Math.imul(checksum, 0x01000193) >>> 0;
+    }
   }
   return { ...snap, checksum };
 }
@@ -817,3 +1130,14 @@ export const wavefrontGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: WAV_INPUT_RANGES,
 };
+
+const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontGame,
+  runTicks: WAV_V2_RUN_TICKS,
+  init: initV2,
+};
+
+/** The game for a stored wavRev (absent = the original 60 s rules). */
+export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  return rev === WAV_REV ? wavefrontGameV2 : wavefrontGame;
+}

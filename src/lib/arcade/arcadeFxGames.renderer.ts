@@ -31,8 +31,16 @@ import {
   BRK_WORLD_H,
   BRK_WORLD_W,
   brkDestroyed,
+  brkRowOffset,
   type BrkState,
 } from "./breaker";
+
+/** brkRev 2: bricks destroyed in the sliding rows (original boards have none, so 0). */
+function brkSlideDestroyed(s: BrkState): number {
+  let n = 0;
+  for (const row of s.slide ?? []) for (let c = 0; c < BRK_COLS; c++) if ((s.bricks[row * BRK_COLS + c] ?? 0) <= 0) n += 1;
+  return n;
+}
 import { RALLY_PADDLE_Y, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
 import {
@@ -46,7 +54,7 @@ import {
   type SnakeState,
 } from "./snake";
 import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossKindCrossed,
@@ -58,7 +66,7 @@ import {
   CROSS_WORLD_W,
   type CrossState,
 } from "./cross";
-import { JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
+import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { WAV_SHIP_Y, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
@@ -285,6 +293,23 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 90 }),
       label: (_s, n) => `${n} BRICKS`,
     },
+    // brkRev 2: a Fireball caught, and a brick knocked out of a sliding row.
+    {
+      kind: "perfect",
+      count: (s) => s.fireballs ?? 0,
+      at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
+      label: () => "FIREBALL!",
+      colour: () => "#FF6A2B",
+    },
+    {
+      kind: "pop",
+      count: brkSlideDestroyed,
+      at: (s) => {
+        const row = (s.slide ?? [])[0] ?? 0;
+        return { x: BRK_WORLD_W / 2 + brkRowOffset(s, row, s.tick), y: BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
+      },
+      label: () => "MOVING TARGET!",
+    },
     { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!" },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!" },
   ],
@@ -420,6 +445,14 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
   fit: "world",
   events: [
     { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED` },
+    // burstRev 2: a FREEZE icon caught (original rounds keep 0).
+    {
+      kind: "perfect",
+      count: (s) => s.freezes ?? 0,
+      at: (s) => ({ x: s.x / 256, y: BURST_FLOOR_Y - 60 }),
+      label: () => "FREEZE!",
+      colour: () => "#9FE8FF",
+    },
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
       kind: "final",
@@ -449,7 +482,29 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
     },
-    { kind: "final", count: (s) => (s.wavesCleared >= 5 ? 1 : 0), label: () => "ALL WAVES!" },
+    // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
+    {
+      kind: "pop",
+      count: (s) => s.diversDown ?? 0,
+      at: (s) => {
+        const b = s.bursts.at(-1);
+        return b ? { x: b.x, y: b.y - 18 } : { x: s.shipX, y: WAV_SHIP_Y - 60 };
+      },
+      label: () => "DIVER DOWN!",
+    },
+    {
+      kind: "streak",
+      count: (s) => s.bossHits ?? 0,
+      every: 6,
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      label: (_s, n) => `BOSS HIT ×${n}`,
+    },
+    {
+      kind: "final",
+      count: (s) => (s.rev !== undefined ? (s.bossKilled ?? 0) : s.wavesCleared >= 5 ? 1 : 0),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 108 }),
+      label: (s) => (s.rev !== undefined ? "BOSS DOWN!" : "ALL WAVES!"),
+    },
   ],
 };
 
@@ -511,6 +566,20 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
       label: () => null,
     },
     { kind: "streak", count: (s) => s.placed, every: 10, label: (_s, n) => `${n} FLOORS` },
+    // skylineRev 2 (original rounds keep these counters at 0 / undefined).
+    { kind: "combo", count: (s) => (s.streakPoints ? s.streak ?? 0 : 0), min: SKYLINE_STREAK_FROM, label: (_s, n) => `STREAK ×${n}` },
+    {
+      kind: "pop",
+      count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
+      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.3 }),
+      label: () => "FLAG UP: WATCH THE WIND!",
+    },
+    {
+      kind: "perfect",
+      count: (s) => s.gustPerfects ?? 0,
+      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.36 }),
+      label: () => "PERFECT IN THE WIND!",
+    },
   ],
 };
 
@@ -555,6 +624,19 @@ export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
       label: () => "AMBULANCE THROUGH!",
     },
     { kind: "streak", count: (s) => s.cleared, every: 10, label: (_s, n) => `${n} CLEARED` },
+    // junctionRev 2 (original rounds keep these at 0): a new diagonal road, a bus through, the new roads' traffic.
+    {
+      kind: "pop",
+      count: (s) => (s.rev ? Math.min(JUNC_BUILDS, Math.trunc(s.tick / JUNC_BUILD_EVERY)) : 0),
+      at: (s) => {
+        const ap = (s.builds ?? [])[Math.max(0, Math.min(JUNC_BUILDS, Math.trunc(s.tick / JUNC_BUILD_EVERY)) - 1)] ?? 4;
+        const [x, y] = JUNC_LIGHT_AT_V2[ap]!;
+        return { x, y: y - 26 };
+      },
+      label: (_s, n) => (n >= JUNC_BUILDS ? "EIGHT-WAY JUNCTION!" : "NEW ROAD!"),
+    },
+    { kind: "pop", count: (s) => s.busCleared ?? 0, at: () => ({ x: JUNC_WORLD_W / 2, y: JUNC_WORLD_H / 2 - 50 }), label: () => "BUS THROUGH!" },
+    { kind: "streak", count: (s) => s.diagCleared ?? 0, every: 5, label: (_s, n) => `${n} FROM THE NEW ROADS` },
   ],
 };
 
@@ -784,10 +866,30 @@ export const SWING_FX: ArcadeFxSpec<SwingState> = {
       count: (s) => (s.ended === 0 ? Math.floor(swingMetres(s) / 100) : 0),
       label: (_s, n) => `${n * 100} M`,
     },
+    // swingRev 4 success moments (older rounds keep these at 0): a star, a dodged stalactite, a jet passed, the dragon outrun.
+    {
+      kind: "perfect",
+      count: (s) => s.stars ?? 0,
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: (s) => `STAR ${s.stars ?? 0}!`,
+      colour: () => "#FFD84A",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.rocks ?? []).filter((r) => r.phase === 3).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 - 22 }),
+      label: () => "DODGED!",
+    },
+    {
+      kind: "pop",
+      count: (s) => (s.ended === 0 ? (s.jets ?? []).filter((j) => j.x < s.x - 20 * 256).length : 0),
+      at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + 26 }),
+      label: () => "OVER THE LAVA!",
+    },
     {
       kind: "final",
       count: (s) => (s.ended === 1 && swingMetres(s) >= SWING_FINISH_M ? 1 : 0),
-      label: () => "500 M!",
+      label: (s) => ((s.chaseX ?? 0) !== 0 ? "500 M! DRAGON OUTRUN!" : "500 M!"),
     },
   ],
 };
@@ -817,15 +919,29 @@ export const SNIP_FX: ArcadeFxSpec<SnipState> = {
       kind: "clear",
       count: (s) => s.eaten,
       when: (s) => s.eaten < SNIP_CONFIG.levels,
-      label: (_s, n) => `LEVEL ${n}!`,
+      label: (s, n) => snipClearLabel(s) ?? `LEVEL ${n}!`,
     },
     {
       kind: "final",
       count: (s) => (s.eaten >= SNIP_CONFIG.levels ? 1 : 0),
       label: () => "ALL 10 APPLES!",
     },
+    // snipRev 3 (springy branches exist only there): each bounce off one.
+    { kind: "pop", count: (s) => s.springHits ?? 0, at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - 16 }), label: () => "BOING!" },
   ],
 };
+
+/** snipRev 3: the level just fed names the orchard element it beat (older templates have none). */
+function snipClearLabel(s: SnipState): string | null {
+  const tpl = SNIP_CONFIG.templates[s.order[Math.max(0, s.level - 1)] ?? -1];
+  if (!tpl) return null;
+  if (tpl.slide) return "CAUGHT IN THE BASKET!";
+  if (tpl.nests) return "PAST THE WASPS!";
+  if (tpl.springs) return "BOUNCED IN!";
+  if (tpl.gutters) return "DOWN THE GUTTER!";
+  if (tpl.planks) return "ROLLED IN!";
+  return null;
+}
 
 /* ================================ Toybox ================================ */
 
@@ -846,8 +962,28 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
       count: (s) => (s.mazes >= TILT_MAX_MAZES ? 1 : 0),
       label: () => "ALL 4 MAZES!",
     },
+    // tiltRev 2 (original rounds keep these at 0 / undefined): a bonus star, the first marble in its cup.
+    { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAt(s), label: () => "BONUS STAR!" },
+    {
+      kind: "pop",
+      count: (s) => (s.b ? (s.aHome ?? 0) + (s.bHome ?? 0) : 0),
+      when: (s) => !(s.aHome && s.bHome),
+      at: () => ({ x: TILT_WORLD_W / 2, y: 60 }),
+      label: (s) => (s.aHome ? "BLUE IN! NOW THE AMBER" : "AMBER IN! NOW THE BLUE"),
+    },
   ],
 };
+
+/** World point of the marble nearest the last star taken (rotated maze frame → screen), tiltRev 2. */
+function tiltMarbleAt(s: TiltState): { x: number; y: number } {
+  const m = s.list[Math.min(s.level, s.list.length - 1)]!;
+  const o = (m.n * m.cs) / 2;
+  const a = (s.angle / 65536) * Math.PI * 2;
+  const ball = !s.aHome || !s.b ? { x: s.x, y: s.y } : s.b;
+  const lx = (ball.x - o) / 256;
+  const ly = (ball.y - o) / 256;
+  return { x: 220 + Math.cos(a) * lx - Math.sin(a) * ly, y: 254 + Math.sin(a) * lx + Math.cos(a) * ly };
+}
 
 export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   game: "balltrack",
