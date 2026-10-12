@@ -107,7 +107,7 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
-import { WAV_REV_BAND } from "@/lib/arcade/wavefront";
+import { WAV_REV_BAND, WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND } from "@/lib/arcade/flip";
 import { INK_REV_BAND } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
@@ -122,12 +122,12 @@ import { HOVER_REV_BAND } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND } from "@/lib/arcade/breaker";
 import { TILT_REV_BAND } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
-import { initBandFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { initBandFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
 import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND } from "@/lib/arcade/slice";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
-import { SWING_REV_BAND } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -478,6 +478,20 @@ const GAMES: Game[] = [
     rate: 25,
     encode: encodeOrbitRun,
     replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_BAND, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
+  },
+  // Tuning A (Oct 2026): the revisions that changed play on the band curve.
+  { key: "wavefront/shapes", game: wavefrontGameFor(WAV_REV_SHAPES), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_SHAPES) },
+  { key: "swing/tuned", game: swingGameFor(SWING_REV_TUNED), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_TUNED) },
+  {
+    key: "orbit/tuned",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initTunedFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed))) }),
+    seedFor: (n: number) => ORBIT_HOLE_BANK[n % ORBIT_HOLE_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_TUNED, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
   },
   {
     key: "bullseye/band",

@@ -19,7 +19,7 @@ export function ArcadeArenaSlot({ width, height, background, drop, children }: {
   /** The arena's own colour, painted below it on tall screens. */
   background: string;
   /** Px the slot (and so the arena) starts below the fixed top edge; Tilt only (TILT_ARENA_DROP). */
-  drop?: number;
+  drop?: number | undefined;
   children: ReactNode;
 }) {
   return (
