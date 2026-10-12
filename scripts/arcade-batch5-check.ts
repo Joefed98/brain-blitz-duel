@@ -16,10 +16,10 @@ import { readFileSync } from "node:fs";
 
 import { legacyDigest } from "./arcade-batch5-legacy";
 import { playFlightpath, playInk, playRally, playSwish, playTempo } from "./arcade-batch5-bots";
-import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_REV_BAND, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
-import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
+import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_REV_BAND, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../src/lib/duel/beat";
 import {
   rallyCheckpoint,
@@ -31,6 +31,7 @@ import {
   RALLY_BUMPER_R,
   RALLY_PADDLE_Y,
   RALLY_REV,
+  RALLY_REV_BAND,
   RALLY_TARGET_W,
   RALLY_WALL,
   RALLY_WORLD_W,
@@ -48,6 +49,7 @@ import {
   BULLSEYE_CX,
   BULLSEYE_CY,
   BULLSEYE_REV,
+  BULLSEYE_REV_BAND,
 } from "../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../src/lib/duel/bullseye";
 import {
@@ -65,6 +67,7 @@ import {
   BINTOSS_HOOP_HALF,
   BINTOSS_REV2,
   BINTOSS_REV3,
+  BINTOSS_REV_BAND,
   BINTOSS_SPIN_HALF,
   BINTOSS_SPIN_THICK,
   BINTOSS_THROWS,
@@ -74,7 +77,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
@@ -107,7 +110,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok(generateBinToss().binRev === BINTOSS_REV3, "new rounds are stamped binRev 3");
+  ok(generateBinToss().binRev === BINTOSS_REV_BAND, "new rounds are stamped binRev 4 (rev 3 play on the score bands)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");
@@ -161,7 +164,7 @@ if (want("bintoss")) {
     ok(partialReplay.score === BINTOSS_V3_PARTIAL_MAX, `seed ${seed}: 9 buckets + every hoop = the intro's ${BINTOSS_V3_PARTIAL_MAX}`);
   }
   console.log(`  ${runs} bot runs reach ${best}; one miss caps at ${BINTOSS_V3_PARTIAL_MAX}`);
-  ok(INTRO_SCORE.bintoss.includes("up to 150") && INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states 150 and the partial maximum");
+  ok(INTRO_SCORE.bintoss.includes("up to 150") && !INTRO_SCORE.bintoss.includes(`up to ${BINTOSS_V3_PARTIAL_MAX}`), "Swish intro states 150 and no 99 cap (score bands)");
 }
 
 /* ============================== 2b. Flightpath ============================== */
@@ -169,7 +172,7 @@ if (want("bullseye")) {
   section("Flightpath bullRev 2 (inner bull, drifting balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV);
   const generated = generateBullseye();
-  ok(generated.bullRev === BULLSEYE_REV, "new rounds are stamped bullRev 2");
+  ok(generated.bullRev === BULLSEYE_REV_BAND, "new rounds are stamped bullRev 3 (rev 2 play on the score bands)");
   ok(bullseyeGameFor(undefined) === bullseyeGame && bullseyeInit(5).balloons === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = bullseyeInitRev2(seed, bullseyeWinds(seed));
@@ -226,7 +229,7 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(generateRally().rallyRev === RALLY_REV, "new rounds are stamped rallyRev 2");
+  ok(generateRally().rallyRev === RALLY_REV_BAND, "new rounds are stamped rallyRev 3 (rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -262,14 +265,14 @@ if (want("rally")) {
   console.log(`  ${runs} tracking-bot runs: ${reached} reach 150; ${targets} targets struck, ${bounces} bumper bounces`);
   ok(reached > 0, "150 is reachable on rev 2 through the server replay");
   ok(targets > 0 && bounces > 0, "targets and the bumper come into play");
-  ok(/up to 150/.test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("2.5"), "Rally intro states 2.5 a gold hit and the 150 cap");
+  ok(/up to 150/i.test(INTRO_SCORE.rally) && INTRO_SCORE.rally.includes("pink target"), "Rally intro states gold hits, targets and the 150 cap (score bands)");
 }
 
 /* ================================ 2d. Tempo ================================ */
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(generateBeat().beatRev === BEAT_REV, "new rounds are stamped beatRev 2");
+  ok(generateBeat().beatRev === BEAT_REV_BAND, "new rounds are stamped beatRev 3 (rev 2 play on the score bands)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {
@@ -303,7 +306,7 @@ if (want("beat")) {
 if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
-  ok(generateInkBridge().inkRev === INK_REV4, "new rounds are stamped inkRev 4");
+  ok(generateInkBridge().inkRev === INK_REV_BAND, "new rounds are stamped inkRev 5 (rev 4 play on the score bands)");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {
@@ -331,7 +334,7 @@ if (want("inkbridge")) {
     ok(reveal && !JSON.stringify(reveal).includes("Standard") && JSON.stringify(reveal).includes("live drawing"), "the reveal explains the level kind in plain words");
   }
   console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
-  ok(INTRO_SCORE.inkbridge.includes("up to 150") && INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and the partial maximum");
+  ok(INTRO_SCORE.inkbridge.includes("up to 150") && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and no partial cap (score bands)");
 }
 
 /* ================================ 2f. Orbit ================================ */
@@ -342,12 +345,14 @@ if (want("orbit")) {
     let stamped = 0;
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
-      if (p.orbitRev === ORBIT_REV4) {
+      // Score bands (Oct 2026): every bank course is stamped orbitRev 5 (rev-4 play), with its holes when it has them.
+      ok(p.orbitRev === ORBIT_REV_BAND && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 5 and ship their planets");
+      if ((p.holes?.length ?? 0) > 0) {
         stamped++;
-        ok(p.holes?.length === 3 && p.planets?.length === ORBIT_TOTAL + 1, "rev-4 rounds ship their planets and three holes");
+        ok(p.holes?.length === 3, "courses with holes ship all three");
       }
     }
-    ok(stamped > 0, `new rounds are stamped orbitRev 4 when the course has holes (${stamped} / 40)`);
+    ok(stamped > 0, `new rounds carry holes when the course has them (${stamped} / 40)`);
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const tap = (t: number) => ({ t, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 });
@@ -431,7 +436,7 @@ if (want("orbit")) {
     }
   }
   console.log(`  ${runs} courses: witness runs take all three holes and score 150; normal routes unaffected; checkpoints work across a jump`);
-  ok(/up to 150/.test(INTRO_SCORE.orbit) && /up to 117/.test(INTRO_SCORE.orbit), "Orbit intro maximums: 150 for the sun, 117 one planet short");
+  ok(/up to 150/.test(INTRO_SCORE.orbit) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: 150 for the sun, no partial cap (score bands)");
 }
 
 /* ============================ 3. Intro text rules ============================ */

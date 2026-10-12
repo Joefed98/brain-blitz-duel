@@ -631,8 +631,8 @@ export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, Arcade
 
 /** Score-band revision (puzzle.snakeRev = 4): rev-3 play unchanged, scored on the shared band curve (scoreBands.ts). */
 export const SNAKE_REV_BAND = 4;
-/** Stars eaten; 150 at 40. */
-export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 40], [0, 70, 100, 125, 145, 150]);
+/** Stars eaten; 150 at 38 (the best near-perfect simulated runs ate 38–39). */
+export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 125, 145, 150]);
 
 export function snakeBandParts(state: SnakeState): BandParts {
   const units = Math.max(0, state.eaten);

@@ -174,6 +174,8 @@ Maze Dash's file sets `category: "attention"`, so rooms draw it as attention eve
 
 ## 10. Arcade — 22 active
 
+> **Oct 2026 score bands:** new rounds of all 22 games are stamped with a band revision and score on the shared band curves (`src/lib/arcade/scoreBands.ts`, `bandParts.ts`); see `docs/arcade-score-bands-oct-2026.md` for every formula and the measured bands. The table below describes the earlier revisions, which stored rounds still replay on.
+
 `category: "arcade"` files minus `RETIRED_TYPES`: 31 files, 9 retired (Bastion, Swerve, Dual, Ricochet, Steady, Sort Rush, Parry, Hot Floor, Rooftop Run), 22 active. All scoring lives in `src/lib/arcade/*.ts`. The server replays the input log and uses the sim's own score; the phone's score is only compared to flag mismatches.
 
 | Game (key) | Run | Sim counters | Score formula | Finish bonus | Cap | File + function |

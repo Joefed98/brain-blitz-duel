@@ -546,7 +546,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
       { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: bandHelp("Each barrier counts 3 and each gold star 2.", HOVER_BAND_CURVE, "Lasting the minute adds 10."),
+    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_BAND_CURVE, "Lasting the minute adds 10."),
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
