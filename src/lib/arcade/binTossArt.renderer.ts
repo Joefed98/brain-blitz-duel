@@ -40,6 +40,21 @@ export function drawRubberBall(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.quadraticCurveTo(0, r * 0.7, r, -r * 0.2);
   ctx.stroke();
   ctx.restore();
+  // Lamp-fixed shading over the spinning ball: lit upper left, shaded edge, one glint (inside r).
+  ctx.save();
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+  g.addColorStop(0, "rgba(255,210,200,0.45)");
+  g.addColorStop(0.45, "rgba(255,255,255,0)");
+  g.addColorStop(1, "rgba(40,0,6,0.45)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number, lean: number, trolley: boolean): void {
@@ -54,6 +69,18 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
       ctx.beginPath();
       ctx.arc(wx, FLOOR + 8, 4, 0, Math.PI * 2);
       ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,240,220,0.25)";
+    ctx.fillRect(centre - half - 3, FLOOR, half * 2 + 6, 1);
+    ctx.strokeStyle = "#4A4038";
+    ctx.lineWidth = 0.8;
+    for (const wx of [centre - half + 6, centre + half - 6]) {
+      ctx.beginPath();
+      ctx.moveTo(wx - 3, FLOOR + 8);
+      ctx.lineTo(wx + 3, FLOOR + 8);
+      ctx.moveTo(wx, FLOOR + 5);
+      ctx.lineTo(wx, FLOOR + 11);
+      ctx.stroke();
     }
     ctx.fillStyle = TIN_MID;
     for (const wx of [centre - half + 6, centre + half - 6]) {
@@ -94,18 +121,50 @@ function drawBucket(ctx: CanvasRenderingContext2D, centre: number, half: number,
     ctx.lineTo(half, -h * (1 - f) + 1.5);
     ctx.stroke();
   }
+  // Polished streak down the lit side, a darker foot and a rivet column on the side seam.
+  ctx.fillStyle = "rgba(255,255,255,0.32)";
+  ctx.fillRect(-half * 0.42, -h, Math.max(2, half * 0.12), h);
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.fillRect(-half * 0.24, -h, Math.max(1, half * 0.05), h);
+  const foot = ctx.createLinearGradient(0, -h * 0.3, 0, 0);
+  foot.addColorStop(0, "rgba(20,22,28,0)");
+  foot.addColorStop(1, "rgba(20,22,28,0.3)");
+  ctx.fillStyle = foot;
+  ctx.fillRect(-half, -h * 0.3, half * 2, h * 0.3);
+  ctx.fillStyle = "#5E6469";
+  for (const f of [0.12, 0.36, 0.64, 0.9]) {
+    const ry = -h * (1 - f);
+    const rx = half * 0.62 - (half * 0.62 - (half - 4) * 0.62) * f;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 1.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
   ctx.strokeStyle = TIN_DARK;
   ctx.lineWidth = 1;
   ctx.stroke(body);
-  ctx.fillStyle = "#1A1D24";
+  // Open mouth: dark inside, lit at the back wall, then the rolled rim with its highlight.
+  const mouth = ctx.createLinearGradient(0, -h - 3.2, 0, -h + 3.2);
+  mouth.addColorStop(0, "#3A3F46");
+  mouth.addColorStop(1, "#111318");
+  ctx.fillStyle = mouth;
   ctx.beginPath();
   ctx.ellipse(0, -h, half - 1, 3.2, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = TIN_LIGHT;
+  ctx.strokeStyle = TIN_DARK;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.ellipse(0, -h, half - 1, 3.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = TIN_LIGHT;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.ellipse(0, -h - 0.3, half - 1, 3.2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.ellipse(0, -h - 0.3, half - 1, 3.2, 0, Math.PI * 0.55, Math.PI * 0.95);
   ctx.stroke();
   ctx.restore();
 }
@@ -178,12 +237,25 @@ function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: 
   const thick = px(BINTOSS_SPIN_THICK) * 2;
   ctx.save();
   ctx.lineCap = "round";
-  ctx.strokeStyle = flash > 0 ? HOOP_GOLD : "#5B2A86";
+  // The capsule: a dark edge, the painted paddle inside it and a lit top line, all within the sim's capsule.
+  ctx.strokeStyle = flash > 0 ? "#9A6A10" : "#2E1247";
   ctx.lineWidth = thick;
   ctx.beginPath();
   ctx.moveTo(px(bar.x0), px(bar.y0));
   ctx.lineTo(px(bar.x1), px(bar.y1));
   ctx.stroke();
+  ctx.strokeStyle = flash > 0 ? HOOP_GOLD : "#5B2A86";
+  ctx.lineWidth = Math.max(1, thick - 2);
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(0, -thick * 0.18);
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = thick * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(px(bar.x0), px(bar.y0));
+  ctx.lineTo(px(bar.x1), px(bar.y1));
+  ctx.stroke();
+  ctx.restore();
   // Painted stripes along the paddle.
   ctx.strokeStyle = HOOP_WHITE;
   ctx.lineWidth = thick * 0.35;
@@ -193,9 +265,17 @@ function drawSpinner(ctx: CanvasRenderingContext2D, state: BinTossState, index: 
   ctx.lineTo(px(bar.x1), px(bar.y1));
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = HOOP_GOLD;
+  ctx.fillStyle = "#7A4A10";
   ctx.beginPath();
   ctx.arc(px(pivot.x), px(pivot.y), thick * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = HOOP_GOLD;
+  ctx.beginPath();
+  ctx.arc(px(pivot.x), px(pivot.y), thick * 0.36, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFF4C2";
+  ctx.beginPath();
+  ctx.arc(px(pivot.x) - thick * 0.1, px(pivot.y) - thick * 0.1, thick * 0.12, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
