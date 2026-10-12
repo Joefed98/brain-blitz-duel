@@ -15,7 +15,7 @@ import { wordSearchPuzzle } from "../src/puzzles/wordSearch";
 
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, definition]) => !definition.retired);
 const LOCKED_SHELL = /no-overscroll h-full overflow-hidden/;
-for (const [width, height] of [[390, 700], [375, 667]] as const) {
+for (const [width, height] of [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const) {
   const header = <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact />;
   for (const [type] of active) {
     const markup = renderToStaticMarkup(
