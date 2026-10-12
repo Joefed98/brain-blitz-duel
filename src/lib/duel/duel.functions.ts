@@ -779,7 +779,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
 
     const { gradeAnswer } = await import("./generate.server");
     const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
-      gradeAnswer(puzzle, data.answer, trustedMs, data.extra);
+      gradeAnswer(puzzle, data.answer, trustedMs, data.extra, Number.isFinite(startedAt) ? serverMs : undefined);
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,

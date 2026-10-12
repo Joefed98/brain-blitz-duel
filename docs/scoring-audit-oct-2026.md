@@ -91,6 +91,8 @@ Nothing changed in grading. What the server trusts today (`src/lib/duel/grade.ts
 
 A short note was added to `CLAUDE.md`: Flash needs server-verifiable timing before ranked play (Phase 3, before ratings).
 
+**Resolved 12 Oct 2026:** Flash, Bang On and Ascend rounds stamped `tapRev: 1` now send raw tap logs and the server computes every reaction, false start, distance, count and wrong tap itself (`src/lib/duel/tapLog.ts`; `docs/duelz-scoring-reference.md` section 14). Tap timing is still the phone's.
+
 ---
 
 ## Fixes

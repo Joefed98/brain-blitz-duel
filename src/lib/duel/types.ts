@@ -255,6 +255,8 @@ export interface ReactionPuzzleData {
   flashes: number[];
   /** Seeded decoy pulses before the gold flashes: start time and colour. */
   decoys: { at: number; color: "teal" | "red" | "blue" }[];
+  /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
+  tapRev?: number;
 }
 
 export interface WordLadderPuzzleData {
@@ -441,6 +443,8 @@ export interface NumberHuntPuzzleData {
   /** Initial positions plus the seeded positions used at 15, 30 and 45 seconds. */
   spots: HuntSpot[];
   layouts: HuntSpot[][];
+  /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep "reached,errors" summaries. */
+  tapRev?: number;
 }
 
 export type PuzzleData =
@@ -852,10 +856,14 @@ export interface StopWatchSpec {
 export interface StopWatchPuzzleData {
   type: "stopwatch";
   watches: StopWatchSpec[];
+  /** Tap-log answers on the fixed watch schedule (tapLog.ts TAP_REV); unstamped rounds keep distance summaries. */
+  tapRev?: number;
 }
 
 export const STOPWATCH_ATTEMPTS = 10;
 export const STOPWATCH_ROUND_MS = 60_000;
+/** The first watch starts this long after the round opens. */
+export const STOPWATCH_LEAD_IN_MS = 800;
 /** Pause between one watch's result and the next watch starting. */
 export const STOPWATCH_GAP_MS = 600;
 /** Recorded when a watch is never stopped. */
