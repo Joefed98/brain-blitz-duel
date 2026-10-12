@@ -40,8 +40,28 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 
 ## Checks
 
-- Run all: `bun scripts/run-checks.ts` (each `scripts/*-check.ts(x)` in its own `bun`
-  process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
+- **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
+  request open/push/reopen, split into parallel shards (`.github/ci/shards.ts`; Snip has
+  its own). Each job's summary lists every check by name with pass / fail / timeout.
+  PRs that change only `docs/**`, `screenshots/**`, `*.md` or `.lovable/**` skip it; it
+  can also be started by hand (Actions → Checks → Run workflow). Free plan, 2,000
+  minutes a month, so:
+  - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
+    or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
+  - When done, open or update the PR and let Actions run the suite. Don't watch the run
+    unless asked.
+  - Push fixes in as few commits as possible: every push triggers a full run (a newer
+    push cancels the one in progress).
+  - arcade-play-check (headless Chromium) has its own `play` shard, which installs
+    Playwright's Chromium. CI never compares frame times with the local fixture: it
+    uses `.github/ci/arcade-play-baseline.json`, recorded on a CI runner (Actions →
+    Checks → Run workflow with "record arcade baseline", then commit the artifact),
+    and until that file exists it applies only the absolute under-30-fps ceiling.
+    Never loosen the limits to get green.
+  - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
+    shard in `.github/ci/shards.ts` if it is slow.
+- Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
+  (each `scripts/*-check.ts(x)` in its own `bun` process; 300 s limit, `snip-check.ts` 1,800 s; `--include-optional` adds the deep Orbit
   belt check; `--json=<path>` saves results; extra args filter by filename).
 - One check: `bun scripts/<name>-check.ts`.
 - A check fails if it exits non-zero, times out, or prints a FAIL summary.
@@ -57,9 +77,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- Baseline (12 Oct 2026, full deps, batch-1 and batch-2 arcade upgrades merged): 93 of 93
-  pass, 0 fail, 0 timeout (the default run; the two `--include-optional` checks are
-  extra). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
+- **Baseline:** whatever the latest green PR run of the Checks workflow reports (93
+  routine checks as of 12 Oct 2026; the two `--include-optional` checks never run in
+  CI). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
   burst-swing-score, arcade-self-replay, ink-live, ink-live-bottom and orbit-camera
   take 100–140 s each. new-types checks seeded bank draws and takes ~10 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set.
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
@@ -106,6 +126,7 @@ see `docs/scoring-audit-oct-2026.md`.
 
 - **Prompt reports must list every check by name** with pass / fail / timeout, never
   just a count.
+  For the full suite, cite (or link) the PR's Checks run rather than a local run.
 - **Joe does all device and phone testing.** Don't claim something works on a phone;
   say what was verified in code and checks.
 - **Lovable and Claude Code must never edit at the same time.** Agree who holds the
