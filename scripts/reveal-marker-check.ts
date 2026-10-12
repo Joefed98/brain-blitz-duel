@@ -1,4 +1,5 @@
 /** Drawing-only regression; no browser, simulation stepping or identity proof. */
+import { canvasStub } from './canvas-stub';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { hoverGame } from '../src/lib/arcade/hover';
@@ -13,13 +14,7 @@ import { rallyGame } from '../src/lib/arcade/rally';
 import { rallyArtGame, rallyRevealGame } from '../src/lib/arcade/rally.renderer';
 function context() {
   const colours = new Set<string>();
-  const gradient = { addColorStop() {} };
-  const base = { canvas: {}, getTransform: () => ({ a: 1, b: 0 }), createLinearGradient: () => gradient,
-    createRadialGradient: () => gradient, createPattern: () => null, measureText: () => ({ width: 40 }) };
-  const ctx = new Proxy(base as unknown as CanvasRenderingContext2D, {
-    get(t, k) { return Reflect.get(t, k) ?? (() => {}); },
-    set(t, k, v) { if (k === 'fillStyle') colours.add(String(v)); return Reflect.set(t, k, v); },
-  });
+  const ctx = canvasStub({}, (k, v) => { if (k === 'fillStyle') colours.add(String(v)); });
   return { ctx, colours };
 }
 function check<S>(name: string, state: S, live: { draw(c: CanvasRenderingContext2D, s: S, size: {width:number;height:number}): void }, reveal: typeof live, forbidden: string[]) {
