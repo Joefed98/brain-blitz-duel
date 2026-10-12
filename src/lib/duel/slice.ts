@@ -8,7 +8,8 @@ import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
   sliceCheckpoint,
-  sliceGame,
+  sliceGameFor,
+  sliceMayoCount,
   sliceTotalDiscs,
   SLICE_CHECKPOINT_INTERVAL,
   SLICE_INPUT_RANGES,
@@ -97,6 +98,9 @@ export interface SliceResult {
   totalDiscs: number;
   bonuses: number;
   bombsHit: number;
+  /** sliceRev 2: mayonnaise bottles cut, and whether the round had them at all. */
+  mayo: number;
+  mayoOn: boolean;
   finished: boolean;
   endedSeconds: number;
   score: number;
@@ -112,7 +116,8 @@ export interface SliceResult {
 }
 
 /** The single place a Slice score is worked out. */
-export function replaySliceRun(seed: number, raw: string): SliceResult {
+export function replaySliceRun(seed: number, raw: string, rev?: number | null): SliceResult {
+  const sliceGame = sliceGameFor(rev);
   const run = decodeSliceRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SLICE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SLICE_RUN_TICKS;
@@ -153,6 +158,8 @@ export function replaySliceRun(seed: number, raw: string): SliceResult {
     bonuses: state.bonuses,
     bestMult: state.bestMult,
     bombsHit: state.bombsHit,
+    mayo: sliceMayoCount(state),
+    mayoOn: state.rev !== undefined,
     finished: state.tick >= SLICE_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

@@ -17,7 +17,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   crossCheckpoint,
-  crossGame,
+  crossGameFor,
   crossPaused,
   CROSS_BG,
   CROSS_BLOCK,
@@ -49,14 +49,20 @@ function IntroExample() {
         style={{ background: CROSS_BG, borderRadius: 10 }}
       >
         <rect x="10" y="8" width="160" height="14" fill={CROSS_GOAL} />
-        <rect x="10" y="30" width="45" height="22" fill={CROSS_BLOCK} />
-        <rect x="120" y="30" width="45" height="22" fill={CROSS_BLOCK} />
-        <rect x="10" y="60" width="30" height="22" fill={CROSS_BLOCK} />
-        <rect x="95" y="60" width="50" height="22" fill={CROSS_BLOCK} />
+        <rect x="10" y="26" width="160" height="22" fill="rgba(46,160,96,0.35)" />
+        <rect x="10" y="27" width="160" height="1.5" fill="#F5F5F5" />
+        <rect x="10" y="45.5" width="160" height="1.5" fill="#F5F5F5" />
+        <circle cx="34" cy="41" r="4" fill="none" stroke="#D7DCE3" strokeWidth="1.5" />
+        <circle cx="48" cy="41" r="4" fill="none" stroke="#D7DCE3" strokeWidth="1.5" />
+        <path d="M34 41 L39 33 L46 33 L48 41 M42 31 L39 37" stroke="#C6F432" strokeWidth="2" fill="none" />
+        <rect x="10" y="60" width="62" height="8" fill="#F7F7F8" />
+        <path d="M78 60 L82 52 L86 60 Z M120 60 L124 52 L128 60 Z" fill="#FF7A1A" />
+        <rect x="118" y="60" width="52" height="8" fill="#F7F7F8" />
+        <rect x="95" y="76" width="45" height="12" fill={CROSS_BLOCK} />
         <circle cx="86" cy="96" r="10" fill={CROSS_PLAYER} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Swipe up into the gaps until you reach the far kerb.
+        Hop up through the gaps. Mind the bikes and find the gap in the cones.
       </p>
     </div>
   );
@@ -65,6 +71,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: CrossPuzzleData | null = puzzle.type === "cross" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const crossGame = crossGameFor(data?.crossRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -257,7 +264,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "cross") return null;
-  const result = replayCrossRun(puzzle.seed, myAnswer ?? "");
+  const result = replayCrossRun(puzzle.seed, myAnswer ?? "", puzzle.crossRev);
   const moves = decodeCrossRun(myAnswer ?? "").events.length;
 
   return (

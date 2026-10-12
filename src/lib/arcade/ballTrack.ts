@@ -4,7 +4,8 @@
  * to the next row (or the tray in the fixed bottom row). Balls drop every 103 ticks. The server replays the tap log.
  */
 
-import { finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
+import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
+import { speedBonusCurve } from "../duel/speedPar";
 
 /* ================================ Config ================================ */
 
@@ -21,6 +22,16 @@ export const BT_HOPPER_COL = 3;
 export const BT_CHECKPOINT_INTERVAL = 300;
 
 export const BT_K_ROTATE = 12;
+
+/**
+ * btRev 2 (stored as puzzle.btRev): tubes turn even with a marble inside (it
+ * rides the turn and leaves by the new exit), and every tray drop in the bottom
+ * row is a switch point: tap it to send marbles on along the row instead. Same
+ * tap input (cell index); rounds without btRev replay on the original rules.
+ */
+export const BT_REV = 2;
+/** Render only: a turned tube (and any marble in it) swings round over this many ticks. */
+export const BT_TURN_TICKS = 8;
 
 /** Side bits. */
 export const N = 1, E = 2, S = 4, W = 8;
@@ -91,10 +102,17 @@ export function btEventCountdown(course: BtCourse, tick: number): number | null 
 }
 const SLOT = 100;
 
+/** Rev 2: true when the switch point at this bottom-row column sends marbles on (its tray drop is shut). */
+export function btSwitchedOn(sw: number | undefined, col: number): boolean {
+  return ((sw ?? 0) >> col) & 1 ? true : false;
+}
+
 /** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
-export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse, tick = 0): { cell: number; fromAbove: boolean } {
+export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse, tick = 0, sw = 0): { cell: number; fromAbove: boolean } {
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  const down = r === BT_ROWS - 1 ? c > 0 && (course ? btTraysAt(course, tick)[c]! : -1) >= 0 : BT_KIND[cell] === 2 ? !fromAbove : vertical;
+  const down = r === BT_ROWS - 1
+    ? c > 0 && (course ? btTraysAt(course, tick)[c]! : -1) >= 0 && !btSwitchedOn(sw, c)
+    : BT_KIND[cell] === 2 ? !fromAbove : vertical;
   if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
@@ -115,6 +133,8 @@ export interface BtBall {
   /** Earliest tick the ball may move on. */
   at: number;
   steps: number;
+  /** btRev 2: 1 = rode a tube turn, 2 = passed a switch point (absent on original rounds). */
+  via?: number;
 }
 
 export interface BtMark { cell: number; colour: number; tick: number; ok: number }
@@ -132,6 +152,13 @@ export interface BtState {
   actions: number;
   landings: BtMark[];
   falls: BtMark[];
+  /** btRev 2 only (absent on original rounds): the stamp, switch-point bits per bottom column, last turn tick per cell. */
+  rev?: number;
+  sw?: number;
+  turned?: number[];
+  /** Rev 2 success counters: marbles home after riding a turn / after passing a switch point. */
+  rideHomes?: number;
+  switchHomes?: number;
 }
 
 export function btInit(_course: BtCourse): BtState {
@@ -152,12 +179,25 @@ export function btInit(_course: BtCourse): BtState {
 
 const keep = <T,>(list: T[], item: T) => [...list.slice(-11), item];
 
+const BOTTOM = (BT_ROWS - 1) * BT_COLS;
+
 export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, input: ArcadeInputEvent | null): BtState {
   const s: BtState = { ...prev, tick: prev.tick + 1, vert: [...prev.vert], balls: prev.balls.map((b) => ({ ...b })) };
   const t = s.tick;
+  const v2 = s.rev === BT_REV;
 
-  if (input && input.k === BT_K_ROTATE && rotatable.has(input.a) && !s.balls.some((b) => b.cell === input.a)) {
+  if (input && input.k === BT_K_ROTATE && rotatable.has(input.a) && (v2 || !s.balls.some((b) => b.cell === input.a))) {
     s.vert[input.a] = s.vert[input.a] ? 0 : 1;
+    s.actions++;
+    if (v2) {
+      s.turned = [...(s.turned ?? [])];
+      s.turned[input.a] = t;
+      for (const b of s.balls) if (b.cell === input.a) b.via = (b.via ?? 0) | 1;
+    }
+  } else if (v2 && input && input.k === BT_K_ROTATE && input.a > BOTTOM && input.a < BOTTOM + BT_COLS &&
+      (btTraysAt(course, t)[input.a - BOTTOM] ?? -1) >= 0) {
+    // A switch point: only where a tray drop is live right now.
+    s.sw = (s.sw ?? 0) ^ (1 << (input.a - BOTTOM));
     s.actions++;
   }
 
@@ -172,7 +212,11 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
     if (ball.cell >= SLOT) {
       const col = ball.cell - SLOT;
       const tray = btTraysAt(course, t)[col]!;
-      if (tray === ball.colour) s.home++;
+      if (tray === ball.colour) {
+        s.home++;
+        if (v2 && (ball.via ?? 0) & 1) s.rideHomes = (s.rideHomes ?? 0) + 1;
+        if (v2 && (ball.via ?? 0) & 2) s.switchHomes = (s.switchHomes ?? 0) + 1;
+      }
       else if (tray < 0) s.lost++;
       else s.wrong++;
       s.lastLand = t;
@@ -180,7 +224,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       removed.add(ball.id);
       continue;
     }
-    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1, course, t);
+    const next = ball.cell < 0 ? { cell: BT_HOPPER_COL, fromAbove: true } : btNext(ball.cell, ball.above === 1, s.vert[ball.cell] === 1, course, t, s.sw);
     if (next.cell === PIT) {
       s.falls = keep(s.falls, { cell: ball.cell, colour: ball.colour, tick: t, ok: 0 });
       s.lost++;
@@ -189,6 +233,8 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       continue;
     }
     if (next.cell < SLOT && s.balls.some((b) => b.id !== ball.id && !removed.has(b.id) && b.cell === next.cell)) continue; // waits behind
+    if (v2 && ball.cell > BOTTOM && ball.cell < BOTTOM + BT_COLS && next.cell < SLOT &&
+        (btTraysAt(course, t)[ball.cell - BOTTOM] ?? -1) >= 0) ball.via = (ball.via ?? 0) | 2;
     ball.from = ball.cell;
     ball.cell = next.cell;
     ball.above = next.fromAbove ? 1 : 0;
@@ -205,9 +251,32 @@ export function btOver(s: BtState): boolean {
 }
 
 /** Perfect-run speed bonus: round(20 × (run ticks − last landing) ÷ run ticks). */
-export function btSpeedBonus(home: number, lastLand: number): number {
+export function btSpeedBonus(home: number, lastLand: number, rev?: number | null): number {
   if (home !== BT_BALLS) return 0;
+  if (rev === BT_REV) return btScoreOfV2(home, lastLand) - 130;
   return finishScore(BT_RUN_TICKS, lastLand) - 130;
+}
+
+/**
+ * The earliest tick the last marble can land: it is released at tick 2988 and
+ * needs at least 12 sixteen-tick steps (hopper, row 1, down column 5 to its cup).
+ * Under the original rules the speed bonus is measured against the 60 s run, so a
+ * perfect run tops out at 130 + 5 (BT_LEGACY_PERFECT_MAX). arcade-batch1-check
+ * proves both figures.
+ */
+export const BT_LAST_LAND_MIN = 3180;
+export const BT_LEGACY_PERFECT_MAX = 135;
+
+/**
+ * btRev 2: all home = 130 + the 50 % par speed bonus measured over the window the
+ * last marble can actually land in (tick 3180 to the buzzer): the full 20 if it
+ * lands within the first half of that window, then an even fall to 0 at 60 s.
+ */
+export function btScoreOfV2(home: number, lastLand = BT_RUN_TICKS): number {
+  if (home < BT_BALLS) return Math.max(0, Math.min(130, Math.round((130 * home) / BT_BALLS)));
+  const window = BT_RUN_TICKS - BT_LAST_LAND_MIN;
+  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, Math.min(BT_RUN_TICKS, lastLand));
+  return clampInt(130 + speedBonusCurve(20, left, window), 0, 150);
 }
 
 /** round(130 × home ÷ ball count); all home = 130 + speed bonus; wrong trays have no penalty. */
@@ -217,6 +286,7 @@ export function btScoreOf(home: number, _wrong: number, lastLand = BT_RUN_TICKS)
 }
 
 export function btScore(s: BtState): number {
+  if (s.rev === BT_REV) return btScoreOfV2(s.home, s.lastLand);
   return btScoreOf(s.home, s.wrong, s.lastLand);
 }
 
@@ -230,6 +300,8 @@ export interface BtCheckpoint {
 export function btCheckpoint(s: BtState): BtCheckpoint {
   const snap = { tick: s.tick, next: s.next, home: s.home, wrong: s.wrong, lost: s.lost, flying: s.balls.length };
   const values: number[] = [...Object.values(snap), s.actions, s.lastLand, ...s.vert];
+  // Rev 2 also folds the switch points in (same encoded keys).
+  if (s.rev === BT_REV) values.push(s.sw ?? 0);
   for (const b of s.balls) values.push(b.id, b.cell, b.at, b.above, b.steps);
   let checksum = 0x811c9dc5;
   for (const v of values) {
@@ -294,7 +366,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   const rot = rotatable ?? new Set(btRotatable(course));
   ctx.fillStyle = BG;
   ctx.fillRect(0, gridY, BT_W, BT_ROWS * BT_TILE);
-  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0 ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0 && !btSwitchedOn(s.sw, cell % BT_COLS) ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
   // Two parallel lines per piece: gold rotatable tubes and grey fixed tubes.
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
@@ -394,15 +466,17 @@ export const BT_INPUT_RANGES = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_ROWS - 
 
 export type BtGame = ArcadeGame<BtState, ArcadeInputEvent | null> & { course: BtCourse; rotatable: Set<number> };
 
-/** One game per stored course; the seed is unused because the course is the content. */
-export function makeBallTrackGame(course: BtCourse): BtGame {
+/** One game per stored course (and puzzle.btRev); the seed is unused because the course is the content. */
+export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame {
   const rotatable = new Set(btRotatable(course));
   return {
     key: "balltrack",
     runTicks: BT_RUN_TICKS,
     course,
     rotatable,
-    init: () => btInit(course),
+    init: () => (rev === BT_REV
+      ? { ...btInit(course), rev: BT_REV, sw: 0, turned: BT_KIND.map(() => -1000), rideHomes: 0, switchHomes: 0 }
+      : btInit(course)),
     step: (state, input) => btStep(course, rotatable, state, input),
     isOver: btOver,
     score: btScore,

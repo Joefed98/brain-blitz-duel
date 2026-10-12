@@ -4,9 +4,10 @@ import { FLIP_FX } from "./arcadeFxGames.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
-  flipGame, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_FLOOR_Y,
-  FLIP_GAP, FLIP_RED, FLIP_SPIKE, FLIP_WORLD_H, FLIP_WORLD_W,
-  type FlipState,
+  flipCrackTick, flipGame, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
+  FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
+  FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
+  type FlipSeg, type FlipState,
 } from "./flip";
 import { flipSurfaceLine } from "./flip.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -28,11 +29,27 @@ const POOL_DEPTH = 40;
 const SINK_MS = 420;
 const sinkFrames = new WeakMap<CanvasRenderingContext2D, { segs: FlipState["segs"]; endedTick: number; startedAt: number }>();
 
+/** The runner box (half-width and height, px) for the state's revision; art stays inside it. */
+function runnerBox(state: FlipState): { half: number; h: number } {
+  return state.rev === FLIP_REV
+    ? { half: FLIP_RUNNER_HALF_PX_V2, h: FLIP_RUNNER_H_PX_V2 }
+    : { half: FLIP_RUNNER_HALF_PX, h: FLIP_RUNNER_H_PX };
+}
+
+/** A crumble tile that has broken by this tick (render reads of sim state only). */
+function crumbleBroken(state: FlipState, index: number): boolean {
+  const first = flipCrackTick(state, index);
+  return first !== null && state.tick - first >= FLIP_CRUMBLE_TICKS;
+}
+
 /** Presentation clock only: the ended simulation tick deliberately stays frozen. */
 export function flipPoolSink(ctx: CanvasRenderingContext2D, state: FlipState, still: boolean, now = performance.now()): number | null {
-  const hit = state.ended === 2 && state.flipT === 0 ? state.segs.find(seg =>
-    seg.side === state.side && state.x + 12 * FP >= seg.x0 && state.x - 12 * FP <= seg.x1) : undefined;
-  if (hit?.kind !== FLIP_GAP) {
+  const half = runnerBox(state).half * FP;
+  const index = state.ended === 2 && state.flipT === 0 ? state.segs.findIndex(seg =>
+    seg.side === state.side && state.x + half >= seg.x0 && state.x - half <= seg.x1 &&
+    (seg.kind !== FLIP_CRUMBLE || crumbleBroken(state, state.segs.indexOf(seg)))) : -1;
+  const hit = index >= 0 ? state.segs[index] : undefined;
+  if (hit?.kind !== FLIP_GAP && hit?.kind !== FLIP_CRUMBLE) {
     sinkFrames.delete(ctx);
     return null;
   }
@@ -45,10 +62,10 @@ export function flipPoolSink(ctx: CanvasRenderingContext2D, state: FlipState, st
   return Math.max(0, Math.min(1, (now - frame.startedAt) / SINK_MS));
 }
 
-function runnerY(side: number, flipT: number): number {
-  const target = side === 0 ? FLIP_FLOOR_Y - 14 : FLIP_CEIL_Y + 14;
+function runnerY(side: number, flipT: number, lift = 14): number {
+  const target = side === 0 ? FLIP_FLOOR_Y - lift : FLIP_CEIL_Y + lift;
   if (flipT <= 0) return target;
-  const from = side === 0 ? FLIP_CEIL_Y + 14 : FLIP_FLOOR_Y - 14;
+  const from = side === 0 ? FLIP_CEIL_Y + lift : FLIP_FLOOR_Y - lift;
   const f = 1 - Math.min(FLIP_ARC_TICKS, flipT) / FLIP_ARC_TICKS;
   return from + (target - from) * f * f * (3 - 2 * f);
 }
@@ -111,24 +128,15 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
       }
     }
   }
-  // Basalt fractures in the near wall.
-  ctx.strokeStyle = MATERIAL.seam;
-  ctx.lineWidth = 0.8;
-  const scroll = still ? 0 : cam * 0.65;
-  const first = Math.floor(scroll / 38) - 1;
-  for (let k = first; k < first + 13; k++) {
-    const h = artHash(k, side + 908);
-    const x = k * 38 - scroll;
-    const y = at(x) + outward * (10 + h % 70);
+  // A few soft strata bands instead of crack lines, so nothing reads as a fracture or bolt.
+  ctx.fillStyle = "rgba(255,255,255,0.025)";
+  for (let band = 0; band < 3; band++) {
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 12, y + outward * 18);
-    ctx.lineTo(x + 8, y + outward * 37);
-    ctx.lineTo(x + 24, y + outward * 57);
-    ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
+    const off = 36 + band * 46;
+    flipSurfaceLine(ctx, (x) => at(x) + outward * off, 0, FLIP_WORLD_W);
+    reverseLine(ctx, (x) => at(x) + outward * (off + 14), 0, FLIP_WORLD_W);
+    ctx.closePath();
+    ctx.fill();
   }
   // Spouts sit only between all obstacle spans, and erupt away from the band.
   for (let k = Math.floor(cam / 115) - 1; k < Math.floor(cam / 115) + 5; k++) {
@@ -148,9 +156,6 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     ctx.moveTo(x - 4, y);
     ctx.quadraticCurveTo(x - 8, y + outward * height, x + 3, y + outward * (height - 6));
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     ctx.globalAlpha = 1;
   }
   // Low-contrast particles behind the action; reduced motion fixes their phase.
@@ -217,9 +222,6 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
     ctx.lineTo(tip + slot * 0.1, at(tip) + inward * height * 0.4);
     ctx.lineTo(tip, at(tip) + inward * height * 0.86);
     ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     ctx.globalAlpha = 0.55;
     ctx.strokeStyle = MATERIAL.mineral;
     ctx.lineWidth = 0.7;
@@ -229,9 +231,6 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
       ctx.lineTo(tip + sign * slot * 0.13, at(tip) + inward * height * 0.48);
       ctx.lineTo(tip + sign * slot * 0.06, at(tip) + inward * height * 0.7);
       ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
     }
     ctx.restore();
   }
@@ -289,13 +288,39 @@ function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
   const upright = state.side === 0 ? 0 : Math.PI;
   const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
+  const box = runnerBox(state);
+  const big = state.rev === FLIP_REV;
   ctx.save();
-  // Clip before rotation so tumbling limbs never enlarge the 24 × 28 runner.
+  // Clip before rotation so tumbling limbs never enlarge the runner's collision box.
   ctx.beginPath();
-  ctx.rect(RUNNER_X - 12, y - 14, 24, 28);
+  ctx.rect(RUNNER_X - box.half, y - box.h / 2, box.half * 2, box.h);
   ctx.clip();
+  if (big && !(dead && sink === null)) {
+    // Rev 2: a soft lamp-lit backing inside the box so the runner stands out from the rock.
+    const halo = ctx.createRadialGradient(RUNNER_X, y, 2, RUNNER_X, y, box.h / 2);
+    halo.addColorStop(0, "rgba(255,228,161,0.32)");
+    halo.addColorStop(1, "rgba(255,228,161,0)");
+    ctx.fillStyle = halo;
+    ctx.fillRect(RUNNER_X - box.half, y - box.h / 2, box.half * 2, box.h);
+  }
   ctx.translate(RUNNER_X, y + (sink ?? 0) * 32 * (state.side === 0 ? 1 : -1));
   ctx.rotate(angle);
+  // The original figure was drawn for a 24 × 28 box; rev 2 scales it up to fill its 32 × 36 box.
+  if (big) ctx.scale(1.65, 1.65);
+  if (big) {
+    // Dark outline pass first so the gold reads against lava and rock alike.
+    ctx.strokeStyle = MATERIAL.obsidian;
+    ctx.lineWidth = 4.2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, -6.5, 3.4, 0, Math.PI * 2);
+    ctx.moveTo(0, -3); ctx.lineTo(0, 3);
+    ctx.moveTo(0, -3); ctx.lineTo(-5, 2);
+    ctx.moveTo(0, -3); ctx.lineTo(5, 1);
+    ctx.moveTo(0, 3); ctx.lineTo(-3, 9);
+    ctx.moveTo(0, 3); ctx.lineTo(3, 9);
+    ctx.stroke();
+  }
   // Swing's small gold head/torso/limbs, with compact gravity boots.
   ctx.strokeStyle = dead && sink === null ? FLIP_RED : MATERIAL.figure;
   ctx.fillStyle = ctx.strokeStyle;
@@ -325,6 +350,84 @@ function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, 
   ctx.globalAlpha = 1;
   ctx.fillStyle = MATERIAL.lamp;
   ctx.fillRect(2, -8, 2, 1.5);
+  ctx.restore();
+}
+
+/** Rev 2 star: glowing yellow (never orange like the spikes), centred where the runner stands. */
+function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number, still: boolean): void {
+  const r = FLIP_STAR_R;
+  const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(tick / 8);
+  const glow = ctx.createRadialGradient(x, y, 1, x, y, r * 2.2);
+  glow.addColorStop(0, `rgba(255,236,110,${0.45 + pulse * 0.25})`);
+  glow.addColorStop(1, "rgba(255,236,110,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const reach = k % 2 === 0 ? r : r * 0.45;
+    const a = -Math.PI / 2 + (k * Math.PI) / 5;
+    if (k === 0) ctx.moveTo(x + Math.cos(a) * reach, y + Math.sin(a) * reach);
+    else ctx.lineTo(x + Math.cos(a) * reach, y + Math.sin(a) * reach);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "#FFE84A";
+  ctx.fill();
+  ctx.strokeStyle = "#FFFBE0";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
+
+/**
+ * Rev 2 crumbling tile, on the rock side of the rail in its exact x-span: intact
+ * stone slabs, then (after first contact) growing cracks and a shiver, then gone
+ * (drawn as the lava pool beneath, with chunks falling away).
+ */
+function drawCrumble(ctx: CanvasRenderingContext2D, state: FlipState, index: number, seg: FlipSeg, a: number, b: number,
+  inward: number, at: Surface, still: boolean): void {
+  const first = flipCrackTick(state, index);
+  const age = first === null ? -1 : state.tick - first;
+  if (age >= FLIP_CRUMBLE_TICKS) {
+    drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
+    const fall = age - FLIP_CRUMBLE_TICKS;
+    if (!still && fall < 40) {
+      ctx.save();
+      ctx.globalAlpha = 1 - fall / 40;
+      ctx.fillStyle = "#8C8178";
+      for (let k = 0; k < 6; k++) {
+        const h = artHash(seg.x0 >> 8, k + 11);
+        const x = a + ((b - a) * ((h % 90) + 5)) / 100;
+        ctx.fillRect(x, at(x) - inward * (4 + fall * (0.8 + (h % 5) * 0.2)), 4, 3);
+      }
+      ctx.restore();
+    }
+    return;
+  }
+  const p = age < 0 ? 0 : age / FLIP_CRUMBLE_TICKS;
+  const shake = still || age < 0 ? 0 : Math.sin(state.tick * 2.3) * p * 1.2;
+  ctx.save();
+  ctx.beginPath();
+  flipSurfaceLine(ctx, at, a, b);
+  reverseLine(ctx, (x) => at(x) - inward * 12, a, b);
+  ctx.closePath();
+  ctx.clip();
+  ctx.translate(shake, 0);
+  const slab = 22;
+  for (let x = a - 2; x < b + 2; x += slab) {
+    const h = artHash(seg.x0 >> 8, Math.round((x - a) / slab));
+    ctx.fillStyle = h % 2 ? "#6E655E" : "#7C726A";
+    ctx.fillRect(x, Math.min(at(x), at(x + slab)) - 14, slab - 1.5, 30);
+  }
+  // Cracks: faint hairlines before contact so the tile reads as fragile, then glowing and growing.
+  ctx.strokeStyle = age < 0 ? "rgba(30,24,20,0.55)" : `rgba(255,140,60,${0.5 + p * 0.5})`;
+  ctx.lineWidth = age < 0 ? 0.8 : 1 + p;
+  ctx.beginPath();
+  for (let x = a + 8; x < b - 4; x += 18) {
+    const h = artHash(seg.x0 >> 8, Math.round(x));
+    const len = 4 + (age < 0 ? 2 : p * 10);
+    ctx.moveTo(x, at(x) - inward * 1);
+    ctx.lineTo(x + ((h % 7) - 3), at(x) - inward * len);
+  }
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -370,7 +473,8 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
         if (!seg) continue;
         const a = toScreen(seg.x0);
         if (a > FLIP_WORLD_W) break;
-        if (seg.side !== side || seg.kind !== FLIP_GAP) continue;
+        const open = seg.kind === FLIP_GAP || (seg.kind === FLIP_CRUMBLE && crumbleBroken(state, i));
+        if (seg.side !== side || !open) continue;
         flipSurfaceLine(ctx, at, from, Math.max(from, a));
         from = Math.max(from, toScreen(seg.x1));
       }
@@ -396,7 +500,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.stroke();
   }
 
-  const y = runnerY(state.side, state.flipT) + state.warpY;
+  const y = runnerY(state.side, state.flipT, runnerBox(state).h / 2) + state.warpY;
   const sink = flipPoolSink(ctx, state, still);
   // Headlamp and tiny flip sparks are non-colliding light, behind solid objects.
   ctx.save();
@@ -422,7 +526,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     for (let k = 1; k <= 6; k++) {
       ctx.globalAlpha = 0.45 * (1 - k / 7);
       ctx.fillStyle = MATERIAL.hot;
-      const previousY = runnerY(state.side, Math.min(FLIP_ARC_TICKS, state.flipT + k)) + state.warpY;
+      const previousY = runnerY(state.side, Math.min(FLIP_ARC_TICKS, state.flipT + k), runnerBox(state).h / 2) + state.warpY;
       ctx.fillRect(RUNNER_X - 7 - k * 3, previousY + (k % 3 - 1) * 2, 1.3, 1.3);
     }
   }
@@ -436,17 +540,33 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     if (b < 0) continue;
     const inward = seg.side === 0 ? -1 : 1;
     const at = seg.side === 0 ? floorAt : ceilAt;
-    if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
+    if (seg.kind === FLIP_CRUMBLE) drawCrumble(ctx, state, i, seg, a, b, inward, at, still);
+    else if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
     else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? SPIKE_HEIGHT : OVERHANG_DEPTH, seg.x0 ^ state.warpFloor, pulse);
+  }
+  // Rev 2 stars not yet taken, at the runner's standing height on their surface.
+  if (state.stars) {
+    const lift = runnerBox(state).h / 2;
+    state.stars.forEach((star, i) => {
+      if ((state.got ?? 0) & (1 << i)) return;
+      const x = toScreen(star.x);
+      if (x < -20 || x > FLIP_WORLD_W + 20) return;
+      const surface = star.side === 0 ? floorAt(x) - lift : ceilAt(x) + lift;
+      drawStar(ctx, x, surface, state.tick, still);
+    });
   }
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
   drawFigure(ctx, state, y, still, sink);
-  successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-(FLIP_ARC_TICKS-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-14:14),shape:'pixel'}});
+  successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-(FLIP_ARC_TICKS-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
   ctx.restore();
 }
 
 /** Play, intro demo and stored-run reveal share this renderer. */
 export const flipArtGame = { ...flipGame, draw: drawFlipArt };
+/** The art game for a stored puzzle.flipRev (play, demos and reveals). */
+export function flipArtGameFor(rev?: number | null) {
+  return { ...flipGameFor(rev), draw: drawFlipArt };
+}

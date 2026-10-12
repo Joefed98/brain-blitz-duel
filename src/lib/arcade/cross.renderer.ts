@@ -11,7 +11,13 @@ import { px, type CanvasSize } from "./engine";
 import {
   crossColumnCentreFp,
   crossCourse,
+  CROSS_COL_W,
+  CROSS_COLS,
+  CROSS_KIND_CYCLE,
+  CROSS_KIND_ROADWORKS,
+  type CrossLane,
   crossGame,
+  crossGameFor,
   crossLaneCentre,
   crossLaneTop,
   crossPaused,
@@ -212,6 +218,150 @@ export function drawVehicle(ctx: CanvasRenderingContext2D, x: number, y: number,
   ctx.fillRect(tx - dir * 4 - 2, y + h - 9, 4, 7);
 }
 
+/** A side-on cyclist filling exactly its collision box: thin frame, two wheels, hi-vis rider. */
+function drawRider(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number, jersey: string): void {
+  const wheelR = Math.min(w * 0.22, h * 0.2);
+  const groundY = y + h - wheelR;
+  const rear = dir > 0 ? x + wheelR : x + w - wheelR;
+  const front = dir > 0 ? x + w - wheelR : x + wheelR;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  // Wheels: dark tyres with light rims.
+  for (const cx of [rear, front]) {
+    ctx.strokeStyle = "#0B0B0F";
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.arc(cx, groundY, wheelR - 1.3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "#D7DCE3";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // Frame: seat post, top tube, fork.
+  const seatX = rear + dir * wheelR * 0.9;
+  const barX = front - dir * wheelR * 0.35;
+  const frameY = groundY - wheelR * 1.1;
+  ctx.strokeStyle = "#2ED3B7";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(rear, groundY);
+  ctx.lineTo(seatX, frameY);
+  ctx.lineTo(barX, frameY);
+  ctx.lineTo(front, groundY);
+  ctx.moveTo(seatX, frameY);
+  ctx.lineTo((rear + front) / 2, groundY);
+  ctx.lineTo(barX, frameY);
+  ctx.stroke();
+  // Rider: leaning torso, arm to the bars, helmet.
+  const hipY = frameY - 2;
+  const shoulderX = seatX + dir * (w * 0.32);
+  const shoulderY = y + h * 0.3;
+  ctx.strokeStyle = jersey;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(seatX, hipY);
+  ctx.lineTo(shoulderX, shoulderY);
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(shoulderX, shoulderY);
+  ctx.lineTo(barX, frameY - 2);
+  ctx.moveTo(seatX, hipY);
+  ctx.lineTo((rear + front) / 2 + dir * 2, groundY - 2);
+  ctx.stroke();
+  ctx.fillStyle = jersey;
+  ctx.beginPath();
+  ctx.arc(shoulderX + dir * 3, y + Math.max(4, h * 0.14), Math.max(3.5, h * 0.12), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(front - dir * 1 - 1.5, frameY - 3, 3, 3);
+  ctx.restore();
+}
+
+const RIDER_COLOURS = ["#C6F432", "#FF8A3C", "#F080AB", "#7FD8FF"] as const;
+
+/** Green cycle lane: tinted surface, solid edge lines and painted bike symbols. */
+function drawCycleLane(ctx: CanvasRenderingContext2D, top: number): void {
+  ctx.fillStyle = "rgba(46, 160, 96, 0.28)";
+  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.fillStyle = "rgba(245,245,245,0.75)";
+  ctx.fillRect(CROSS_BOARD_X, top + 2, CROSS_BOARD_W, 2);
+  ctx.fillRect(CROSS_BOARD_X, top + CROSS_LANE_H - 4, CROSS_BOARD_W, 2);
+  ctx.strokeStyle = "rgba(245,245,245,0.22)";
+  ctx.lineWidth = 1.5;
+  for (let x = CROSS_BOARD_X + 40; x < CROSS_BOARD_X + CROSS_BOARD_W - 20; x += 120) {
+    const cy = top + CROSS_LANE_H / 2 + 4;
+    ctx.beginPath();
+    ctx.arc(x - 8, cy, 5, 0, Math.PI * 2);
+    ctx.arc(x + 8 + 5, cy, 5, 0, Math.PI * 2);
+    ctx.moveTo(x - 8, cy);
+    ctx.lineTo(x - 2, cy - 8);
+    ctx.lineTo(x + 6, cy - 8);
+    ctx.lineTo(x + 13, cy);
+    ctx.stroke();
+  }
+}
+
+/** Closed lane: hatched surface, striped barriers over each closed run, a cone on every closed column. */
+function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLane): void {
+  const closed = new Set(lane.closed ?? []);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.clip();
+  ctx.fillStyle = "rgba(255,170,40,0.07)";
+  ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+  ctx.restore();
+  const centre = (col: number) => px(crossColumnCentreFp(col));
+  // A closed column means the walker's centre cannot stand there: barrier edges sit
+  // 10 px past the last closed centre, so the walker's disc just touches them.
+  const edge = CROSS_COL_W / 2 - 3;
+  for (let col = 0; col < CROSS_COLS; col++) {
+    if (!closed.has(col) || closed.has(col - 1)) continue;
+    let end = col;
+    while (closed.has(end + 1)) end += 1;
+    const x0 = col === 0 ? CROSS_BOARD_X : centre(col) - edge;
+    const x1 = end === CROSS_COLS - 1 ? CROSS_BOARD_X + CROSS_BOARD_W : centre(end) + edge;
+    const by = top + CROSS_LANE_H / 2 - 7;
+    if (!drawArtSprite(ctx, "realworld", "barrier", x0, by, x1 - x0, 14)) {
+      ctx.save();
+      roundRect(ctx, x0, by, x1 - x0, 14, 3);
+      ctx.clip();
+      ctx.fillStyle = "#F7F7F8";
+      ctx.fillRect(x0, by, x1 - x0, 14);
+      ctx.fillStyle = "#E5383B";
+      for (let sx = x0 - 14; sx < x1; sx += 14) {
+        ctx.beginPath();
+        ctx.moveTo(sx, by + 14);
+        ctx.lineTo(sx + 7, by);
+        ctx.lineTo(sx + 14, by);
+        ctx.lineTo(sx + 7, by + 14);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    for (let c = col; c <= end; c++) {
+      const cx = centre(c);
+      const base = top + CROSS_LANE_H - 7;
+      if (drawArtSprite(ctx, "realworld", "cone", cx - 8, base - 20, 16, 20)) continue;
+      ctx.fillStyle = "#FF7A1A";
+      ctx.beginPath();
+      ctx.moveTo(cx - 7, base);
+      ctx.lineTo(cx - 2, base - 19);
+      ctx.lineTo(cx + 2, base - 19);
+      ctx.lineTo(cx + 7, base);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(cx - 4.5, base - 10, 9, 3);
+      ctx.fillStyle = "#3A3A44";
+      ctx.fillRect(cx - 8, base - 1, 16, 2);
+    }
+  }
+}
+
 /** Gold stick figure inside the player disc (radius 16), facing the last move. */
 function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, stride: number, angle: number): void {
   ctx.save();
@@ -309,12 +459,24 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     }
     const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;
+    if (laneDef.kind === CROSS_KIND_ROADWORKS) {
+      drawRoadworks(ctx, top, laneDef);
+      continue;
+    }
+    const cycle = laneDef.kind === CROSS_KIND_CYCLE;
+    if (cycle) drawCycleLane(ctx, top);
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
     const count = Math.ceil((CROSS_BOARD_W * 256) / laneDef.period) + 2;
-    const speeds = course.lanes.map((l) => l.speed).sort((a, b) => a - b);
+    // Lorries: the fastest third of this crossing's car lanes (cyclist lanes and roadworks excluded).
+    const speeds = course.lanes.filter((l) => !l.kind).map((l) => l.speed).sort((a, b) => a - b);
     const lorry = laneDef.speed >= (speeds[Math.floor((speeds.length * 2) / 3)] ?? Infinity);
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
+      if (cycle) {
+        const jersey = RIDER_COLOURS[(lane + index + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
+        drawRider(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+        continue;
+      }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
       drawVehicle(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, colour, lorry);
     }
@@ -388,4 +550,8 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const crossArtGame = { ...crossGame, draw: drawCrossArt };
+/** The art game for a stored puzzle.crossRev (play, demos and reveals). */
+export function crossArtGameFor(rev?: number | null) {
+  return { ...crossGameFor(rev), draw: drawCrossArt };
+}
 export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize) => drawCrossArt(ctx, state, size, false) };

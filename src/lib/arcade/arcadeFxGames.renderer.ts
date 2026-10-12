@@ -37,7 +37,17 @@ import {
 } from "./snake";
 import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
 import { SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
-import { CROSS_HUD_H, CROSS_WORLD_H, CROSS_WORLD_W, type CrossState } from "./cross";
+import {
+  crossColumnCentreFp,
+  crossKindCrossed,
+  crossLaneCentre,
+  CROSS_HUD_H,
+  CROSS_KIND_CYCLE,
+  CROSS_KIND_ROADWORKS,
+  CROSS_WORLD_H,
+  CROSS_WORLD_W,
+  type CrossState,
+} from "./cross";
 import { JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { WAV_SHIP_Y, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
@@ -51,7 +61,24 @@ import {
   swingMetres,
   type SwingState,
 } from "./swing";
-import { FLIP_WORLD_H, FLIP_WORLD_W, type FlipState } from "./flip";
+import {
+  flipCrackTick,
+  flipStarsTaken,
+  FLIP_CRUMBLE_TICKS,
+  FLIP_STARS,
+  FLIP_WORLD_H,
+  FLIP_WORLD_W,
+  type FlipState,
+} from "./flip";
+
+/** Rev 2: crumble tiles the runner touched that broke with it safely elsewhere. */
+function flipEscapes(s: FlipState): number {
+  if (s.ended === 2) return 0;
+  const cracks = s.cracks ?? [];
+  let n = 0;
+  for (let k = 0; k < cracks.length; k += 2) if (s.tick - (flipCrackTick(s, cracks[k]!) ?? s.tick) >= FLIP_CRUMBLE_TICKS) n += 1;
+  return n;
+}
 import { BINTOSS_THROWS, BINTOSS_WORLD_H, BINTOSS_WORLD_W, type BinTossState } from "./binToss";
 import {
   BULLSEYE_ARROWS,
@@ -61,7 +88,7 @@ import {
   BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "./bullseye";
-import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMultiplier, type SliceState } from "./slice";
+import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, type SliceState } from "./slice";
 import { BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
@@ -359,6 +386,19 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       at: () => ({ x: CROSS_WORLD_W / 2, y: CROSS_HUD_H + 30 }),
       label: (s) => (s.hitThisCrossing ? "ACROSS!" : "CLEAN CROSSING!"),
     },
+    // crossRev 2: past a cyclist lane or through the roadworks (original courses have neither).
+    {
+      kind: "pop",
+      count: (s) => crossKindCrossed(s, CROSS_KIND_CYCLE),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      label: () => "PAST THE BIKES!",
+    },
+    {
+      kind: "pop",
+      count: (s) => crossKindCrossed(s, CROSS_KIND_ROADWORKS),
+      at: (s) => ({ x: px(crossColumnCentreFp(s.col)), y: crossLaneCentre(s.lane) - 20 }),
+      label: () => "THROUGH THE CONES!",
+    },
   ],
 };
 
@@ -418,6 +458,15 @@ export const SLICE_FX: ArcadeFxSpec<SliceState> = {
     { kind: "perfect", count: (s) => s.frenzyFrom.length, label: () => "SAUCY!" },
     { kind: "perfect", count: (s) => s.slowFrom.length, label: () => "SIMMER!" },
     { kind: "streak", count: (s) => s.slices, every: 25, label: (_s, n) => `${n} SLICED` },
+    // sliceRev 2: the mayonnaise bottle, and a big gathered cut (4+ foods in one frame).
+    { kind: "perfect", count: sliceMayoCount, label: () => "SQUEEZE!" },
+    {
+      kind: "combo",
+      count: (s) => s.slices,
+      minDelta: 4,
+      at: (s) => (s.strokeX >= 0 ? { x: s.strokeX, y: s.strokeY } : null),
+      label: (_s, _n, d) => `${d} IN ONE!`,
+    },
   ],
 };
 
@@ -528,6 +577,14 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       label: (_s, n) => `${n * 10} SECONDS`,
     },
     { kind: "final", count: (s) => (s.ended === 1 ? 1 : 0), label: () => "SURVIVED!" },
+    // flipRev 2 only (original rounds have no stars or crumbling tiles).
+    { kind: "pop", count: flipStarsTaken, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 }), label: () => "+STAR" },
+    {
+      kind: "perfect",
+      count: (s) => (flipStarsTaken(s) >= FLIP_STARS ? 1 : 0),
+      label: () => "ALL 10 STARS!",
+    },
+    { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
   ],
 };
 
@@ -616,6 +673,9 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
     { kind: "final", count: (s) => (s.home >= BT_BALLS ? 1 : 0), label: () => "ALL 30 HOME!" },
+    // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
+    { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
+    { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
   ],
 };
 

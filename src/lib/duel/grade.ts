@@ -950,7 +950,7 @@ export function gradeSubmission(
     }
     case "cross": {
       const replayStart = performance.now();
-      const run = replayCrossRun(puzzle.seed, answer);
+      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1114,7 +1114,7 @@ export function gradeSubmission(
     }
     case "slice": {
       const replayStart = performance.now();
-      const run = replaySliceRun(puzzle.seed, answer);
+      const run = replaySliceRun(puzzle.seed, answer, puzzle.sliceRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1128,6 +1128,7 @@ export function gradeSubmission(
         bestMult: run.bestMult,
         bonuses: run.bonuses,
         bombsHit: run.bombsHit,
+        ...(run.mayoOn ? { mayo: run.mayo } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1401,7 +1402,7 @@ export function gradeSubmission(
     }
     case "flip": {
       const replayStart = performance.now();
-      const run = replayFlipRun(puzzle.seed, answer);
+      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1412,6 +1413,7 @@ export function gradeSubmission(
       extraDetail = {
         survivedSeconds: run.survivedSeconds,
         survived: run.survived,
+        ...(run.starsTotal > 0 ? { stars: run.stars, starsTotal: run.starsTotal } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1731,7 +1733,7 @@ export function gradeSubmission(
     case "balltrack": {
       // The full input log is replayed against the stored course.
       const replayStart = performance.now();
-      const run = replayBallTrackRun(puzzle.course, puzzle.seed, answer);
+      const run = replayBallTrackRun(puzzle.course, puzzle.seed, answer, puzzle.btRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.perfect;

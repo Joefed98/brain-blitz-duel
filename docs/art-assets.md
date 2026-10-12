@@ -101,6 +101,7 @@ file is trimmed to its visible content and stored as an optimised PNG.
 | `src/assets/arcade/kitchen/*.png` | Not added | | Food Kit `Previews/*.png` are 3D renders. |
 | `src/assets/arcade/underwater/{crab,starfish,fish,jellyfish,shell}.png` | Not added | | Fish Pack has fish only (`PNG/Default/fish_*.png`). |
 | `src/assets/arcade/orchard/leaf.png` | Not added | | Foliage Pack has no single leaf. |
+| `src/assets/arcade/realworld/cone.png`, `barrier.png` | Not added | | Jaywalk roadworks (crossRev 2) look these up in `ART_WORLDS.realworld` and draw code cones and striped barriers when they are missing. If added: Racing Pack `PNG/Objects/` cone (e.g. `cone_straight.png`), trimmed, drawn into a 16 × 20 box on each closed column; a red-white barrier (e.g. `barrier_red_white.png`), trimmed, long side horizontal, stretched over each closed run at 14 px tall. Real World is staying on code art for now (below). |
 
 Total added to the app bundle: 4 files, 7,775 bytes (about 7.6 KB). Each is under Vite's 4 KB inline limit, so they ship as base64 inside the `PhoneShell` chunk (about 10.5 KB).
 

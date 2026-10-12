@@ -77,9 +77,47 @@ export const CROSS_SWIPE_PX = 24;
 /** The breather on the kerb between one crossing and the next. */
 export const CROSS_PAUSE_TICKS = TICKS_PER_SECOND;
 
+/* ------------------------- crossRev 2 (Oct 2026) ------------------------- */
+
+/**
+ * Stored as puzzle.crossRev. Rev 2 keeps the scoring, lives, timing and input
+ * encoding and changes only the generated courses: fair early crossings,
+ * cyclist lanes from crossing 3 and roadworks from crossing 4. Rounds without
+ * crossRev replay on the original courses.
+ */
+export const CROSS_REV = 2;
+export const CROSS_KIND_CYCLE = 1;
+export const CROSS_KIND_ROADWORKS = 2;
+/** Crossings 1–2 (indices 0–1): every lane's gaps stay open this long at any column. */
+export const CROSS_FAIR_COURSES = 2;
+export const CROSS_FAIR_WINDOW_TICKS = 90;
+export const CROSS_FAIR_BLOCK_SPAN_FP = 8_192;
+export const CROSS_FAIR_GAP_MIN_FP = 36_864;
+/** A straight-up walker who stands at least this long in every lane can cross. */
+export const CROSS_FAIR_DWELL_TICKS = 24;
+/** Cyclist lanes: one from crossing 3, two from crossing 6. Narrow, fast riders. */
+export const CROSS_CYCLE_FROM = 2;
+export const CROSS_CYCLE_TWO_FROM = 5;
+export const CROSS_CYCLE_BLOCK_MIN_FP = 8_192;
+export const CROSS_CYCLE_BLOCK_SPAN_FP = 2_048;
+/** Added on top of the fastest car speed for the crossing. */
+export const CROSS_CYCLE_SPEED_MIN_FP = 64;
+export const CROSS_CYCLE_SPEED_SPAN_FP = 100;
+export const CROSS_CYCLE_GAP_MIN_FP = 28_672;
+export const CROSS_CYCLE_GAP_SPAN_FP = 16_384;
+/** Roadworks: one closed lane from crossing 4; from crossing 7 a chicane of two, one traffic lane apart. */
+export const CROSS_ROADWORKS_FROM = 3;
+export const CROSS_ROADWORKS_TWO_FROM = 6;
+/** Half-column positions left open through the cones. */
+export const CROSS_ROADWORKS_OPENING = 3;
+
 /* ============================== Course ================================= */
 
 export interface CrossLane {
+  /** crossRev 2 only: CROSS_KIND_CYCLE or CROSS_KIND_ROADWORKS; absent = cars. */
+  kind?: number;
+  /** crossRev 2 roadworks only: columns closed by cones and barriers. */
+  closed?: number[];
   /** +1 moves right, −1 moves left. */
   dir: number;
   /** Fixed-point units a tick. */
@@ -100,6 +138,7 @@ function mod(value: number, m: number): number {
 
 /** True when the player's disc at this column centre touches a block. */
 export function crossBlocked(lane: CrossLane, centreFp: number, rel: number): boolean {
+  if (lane.kind === CROSS_KIND_ROADWORKS) return false;
   const left = centreFp - CROSS_PLAYER_HALF_FP;
   const span = CROSS_PLAYER_HALF_FP * 2;
   const u = mod(left - lane.dir * lane.speed * rel - lane.phase, lane.period);
@@ -147,14 +186,21 @@ export function crossPassable(course: CrossCourse): boolean {
         continue;
       }
       consider(lane, col, 0);
-      if (col > 0) consider(lane, col - 1, 0);
-      if (col < CROSS_COLS - 1) consider(lane, col + 1, 0);
-      consider(lane, col, CROSS_HOP_TICKS);
+      if (col > 0 && !crossClosed(course, lane, col - 1)) consider(lane, col - 1, 0);
+      if (col < CROSS_COLS - 1 && !crossClosed(course, lane, col + 1)) consider(lane, col + 1, 0);
+      if (!crossClosed(course, lane + 1, col)) consider(lane, col, CROSS_HOP_TICKS);
     }
     if (arrived) return true;
     frontier = next;
   }
   return false;
+}
+
+/** True when roadworks close this column of a lane (1…9); kerbs are never closed. */
+export function crossClosed(course: CrossCourse, lane: number, col: number): boolean {
+  if (lane < 1 || lane > CROSS_LANES) return false;
+  const closed = course.lanes[lane - 1]?.closed;
+  return !!closed && closed.includes(col);
 }
 
 export function crossSpeedFor(base: number, index: number): number {
@@ -208,9 +254,145 @@ function rollCourse(rng: number, index: number): { rng: number; course: CrossCou
   return { rng: state, course: { lanes } };
 }
 
+/** A car lane drawn from the rev-2 stream: fair (wide, slow-blocked) on crossings 1–2. */
+function rollCarLaneV2(rng: number, index: number): { rng: number; lane: CrossLane } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const dir = draw(2) === 0 ? 1 : -1;
+  const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + draw(CROSS_SPEED_SPAN_FP), index);
+  const fair = index < CROSS_FAIR_COURSES;
+  const blockW = CROSS_BLOCK_MIN_FP + draw(fair ? CROSS_FAIR_BLOCK_SPAN_FP : CROSS_BLOCK_SPAN_FP);
+  let gap = (fair ? CROSS_FAIR_GAP_MIN_FP : CROSS_GAP_MIN_FP) + draw(CROSS_GAP_SPAN_FP);
+  // The gap must clear the walker's disc and still stay open for the fair window.
+  if (fair) gap = Math.max(gap, CROSS_PLAYER_HALF_FP * 2 + CROSS_FAIR_WINDOW_TICKS * speed);
+  const period = blockW + gap;
+  return { rng: state, lane: { dir, speed, blockW, period, phase: draw(period) } };
+}
+
+function rollCycleLaneV2(rng: number, index: number): { rng: number; lane: CrossLane } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const dir = draw(2) === 0 ? 1 : -1;
+  // Always quicker than the fastest car this crossing can roll.
+  const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + CROSS_SPEED_SPAN_FP, index) +
+    CROSS_CYCLE_SPEED_MIN_FP + draw(CROSS_CYCLE_SPEED_SPAN_FP);
+  const blockW = CROSS_CYCLE_BLOCK_MIN_FP + draw(CROSS_CYCLE_BLOCK_SPAN_FP);
+  const period = blockW + CROSS_CYCLE_GAP_MIN_FP + draw(CROSS_CYCLE_GAP_SPAN_FP);
+  return { rng: state, lane: { kind: CROSS_KIND_CYCLE, dir, speed, blockW, period, phase: draw(period) } };
+}
+
+/** A closed lane: no traffic, cones on every column but one opening away from the middle. */
+function roadworksLane(openFrom: number): CrossLane {
+  const closed: number[] = [];
+  for (let col = 0; col < CROSS_COLS; col++)
+    if (col < openFrom || col >= openFrom + CROSS_ROADWORKS_OPENING) closed.push(col);
+  return { kind: CROSS_KIND_ROADWORKS, closed, dir: 1, speed: 0, blockW: 0, period: 1 << 20, phase: 0 };
+}
+
+/**
+ * Up-only walker proof for the fair crossings: starting at rel 0 on the middle
+ * column, hopping only forward and standing at least CROSS_FAIR_DWELL_TICKS in
+ * each lane, the goal kerb is still reachable.
+ */
+export function crossFairPassable(course: CrossCourse): boolean {
+  const col = CROSS_COLS >> 1;
+  const centre = crossColumnCentreFp(col);
+  // Per lane, the set of ticks the walker can be standing there (dwell counted).
+  let ready = new Set<number>();
+  for (let rel = CROSS_FAIR_DWELL_TICKS; rel <= CROSS_SEARCH_TICKS; rel++) ready.add(rel);
+  for (let lane = 1; lane <= CROSS_LANES; lane++) {
+    const laneDef = course.lanes[lane - 1];
+    if (!laneDef || crossClosed(course, lane, col)) return false;
+    const next = new Set<number>();
+    for (const start of [...ready].sort((a, b) => a - b)) {
+      const land = start + CROSS_HOP_TICKS;
+      let ok = true;
+      for (let rel = land; rel < land + CROSS_FAIR_DWELL_TICKS && ok; rel++)
+        if (crossBlocked(laneDef, centre, rel)) ok = false;
+      if (!ok) continue;
+      // Standing on: every later tick while the lane stays clear is a hop-off point.
+      for (let rel = land + CROSS_FAIR_DWELL_TICKS; rel <= CROSS_SEARCH_TICKS && !crossBlocked(laneDef, centre, rel); rel++) {
+        if (next.has(rel)) break;
+        next.add(rel);
+      }
+    }
+    if (next.size === 0) return false;
+    ready = next;
+  }
+  return true;
+}
+
+function rollCourseV2(rng: number, index: number): { rng: number; course: CrossCourse } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  for (let attempt = 0; attempt < 40; attempt++) {
+    // Which lanes (0-based) close for roadworks and which carry cyclists.
+    const special = new Map<number, CrossLane>();
+    /** The traffic lane inside a chicane stays a car lane. */
+    let between = -1;
+    if (index >= CROSS_ROADWORKS_FROM) {
+      const two = index >= CROSS_ROADWORKS_TWO_FROM;
+      const first = 1 + draw(two ? CROSS_LANES - 3 : CROSS_LANES - 2);
+      // Openings sit to one side of the middle column so the walker must sidestep.
+      const side = draw(2);
+      const span = (CROSS_COLS >> 1) - CROSS_ROADWORKS_OPENING;
+      const open = side === 0 ? draw(span + 1) : (CROSS_COLS >> 1) + 1 + draw(span + 1);
+      special.set(first, roadworksLane(open));
+      if (two) {
+        const other = side === 0 ? (CROSS_COLS >> 1) + 1 + draw(span + 1) : draw(span + 1);
+        special.set(first + 2, roadworksLane(other));
+        between = first + 1;
+      }
+    }
+    const cycles = index >= CROSS_CYCLE_TWO_FROM ? 2 : index >= CROSS_CYCLE_FROM ? 1 : 0;
+    for (let k = 0; k < cycles; k++) {
+      let lane = draw(CROSS_LANES);
+      while (special.has(lane) || lane === between) lane = (lane + 1) % CROSS_LANES;
+      const rolled = rollCycleLaneV2(state, index);
+      state = rolled.rng;
+      special.set(lane, rolled.lane);
+    }
+    const lanes: CrossLane[] = [];
+    for (let lane = 0; lane < CROSS_LANES; lane++) {
+      const fixed = special.get(lane);
+      if (fixed) {
+        lanes.push(fixed);
+        continue;
+      }
+      const rolled = rollCarLaneV2(state, index);
+      state = rolled.rng;
+      lanes.push(rolled.lane);
+    }
+    const course = { lanes };
+    const fair = index >= CROSS_FAIR_COURSES || crossFairPassable(course);
+    if (fair && crossPassable(course)) return { rng: state, course };
+  }
+  // A last resort: wide, slow car lanes (the fair rules), still deterministic.
+  const lanes: CrossLane[] = [];
+  for (let lane = 0; lane < CROSS_LANES; lane++) {
+    const period = CROSS_BLOCK_MIN_FP + CROSS_FAIR_GAP_MIN_FP + CROSS_GAP_SPAN_FP;
+    lanes.push({ dir: lane % 2 === 0 ? 1 : -1, speed: CROSS_SPEED_MIN_FP, blockW: CROSS_BLOCK_MIN_FP, period, phase: lane * 9_000 });
+  }
+  return { rng: state, course: { lanes } };
+}
+
 /* ================================ State ================================ */
 
 export interface CrossState {
+  /** crossRev 2 only; absent on stored original rounds. */
+  rev?: number;
   tick: number;
   rng: number;
   courses: CrossCourse[];
@@ -242,10 +424,14 @@ export interface CrossState {
 }
 
 function init(seed: number): CrossState {
+  return initFor(seed, rollCourse);
+}
+
+function initFor(seed: number, roll: (rng: number, index: number) => { rng: number; course: CrossCourse }): CrossState {
   let rng = seed | 0;
   const courses: CrossCourse[] = [];
   for (let index = 0; index < CROSS_COURSES; index++) {
-    const rolled = rollCourse(rng, index);
+    const rolled = roll(rng, index);
     rng = rolled.rng;
     courses.push(rolled.course);
   }
@@ -299,16 +485,21 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
 
   if (!paused && hop === 0 && input && input.k === CROSS_INPUT_MOVE) {
     const move = clampInt(input.a, 0, 3);
+    // Roadworks (crossRev 2) refuse a move onto a coned-off cell; original courses have none.
+    const here = crossCourse({ ...state, crossings });
     if (move === 0) {
-      hop = CROSS_HOP_TICKS;
-      hopDir = 1;
+      if (!crossClosed(here, lane + 1, col)) {
+        hop = CROSS_HOP_TICKS;
+        hopDir = 1;
+      }
     } else if (move === 1) {
-      if (lane > 0) {
+      if (lane > 0 && !crossClosed(here, lane - 1, col)) {
         hop = CROSS_HOP_TICKS;
         hopDir = -1;
       }
-    } else if (move === 2) col = Math.max(0, col - 1);
-    else col = Math.min(CROSS_COLS - 1, col + 1);
+    } else if (move === 2) {
+      if (!crossClosed(here, lane, col - 1)) col = Math.max(0, col - 1);
+    } else if (!crossClosed(here, lane, col + 1)) col = Math.min(CROSS_COLS - 1, col + 1);
   }
 
   if (hop > 0) {
@@ -624,3 +815,25 @@ export const crossGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: CROSS_INPUT_RANGES,
 };
+
+const crossRev2Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossGame,
+  init: (seed: number) => ({ ...initFor(seed, rollCourseV2), rev: CROSS_REV }),
+};
+
+/** Takes puzzle.crossRev; anything else is the original traffic. */
+export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  return rev === CROSS_REV ? crossRev2Game : crossGame;
+}
+
+/** Lanes of one kind crossed so far (render/effects only; a pure read of state). */
+export function crossKindCrossed(state: Pick<CrossState, "courses" | "crossings" | "reached">, kind: number): number {
+  let total = 0;
+  const count = (course: CrossCourse | undefined, upTo: number) => {
+    for (let lane = 1; lane <= upTo; lane++) if (course?.lanes[lane - 1]?.kind === kind) total += 1;
+  };
+  for (let index = 0; index < state.crossings; index++)
+    count(state.courses[Math.min(index, CROSS_COURSES - 1)], CROSS_LANES);
+  count(state.courses[Math.min(state.crossings, CROSS_COURSES - 1)], clampInt(state.reached, 0, CROSS_LANES));
+  return total;
+}

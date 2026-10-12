@@ -8,8 +8,9 @@ import { BALLTRACK_FX } from "./arcadeFxGames.renderer";
  */
 import {
   BT_BALLS, BT_COLS, BT_CORNER, BT_H, BT_HOPPER_COL, BT_HOPPER_H, BT_KIND, BT_PALETTE,
-  BT_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_W, E, N, S, W,
-  btBallPoint, btEventCountdown, btRotatable, btTraysAt, type BtCourse, type BtState,
+  BT_REV, BT_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
+  btBallPoint, btEventCountdown, btRotatable, btSwitchedOn, btTraysAt, rowDir,
+  type BtBall, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
   TOY_BRASS, TOY_INK, TOY_OAK, TOY_WOOD_DARK, TOY_WOOD_DEEP,
@@ -58,6 +59,59 @@ function tubePath(ctx: CanvasRenderingContext2D, cell: number, mask: number) {
   }
 }
 
+/**
+ * Rev 2 turn animation: the eased turn progress of a tube (1 when settled) and
+ * the swing direction (+1 clockwise) that carries a marble's entry end to the
+ * upstream side, so a riding marble keeps rolling the way it was going.
+ */
+function turnOf(s: BtState, cell: number): { u: number; sign: number } {
+  const since = s.tick - (s.turned?.[cell] ?? -1000);
+  const k = Math.max(0, Math.min(1, since / BT_TURN_TICKS));
+  const d = rowDir(Math.floor(cell / BT_COLS));
+  const toVertical = s.vert[cell] === 1;
+  return { u: k * k * (3 - 2 * k), sign: toVertical ? (d > 0 ? 1 : -1) : (d > 0 ? -1 : 1) };
+}
+
+/** Where a marble is drawn: rev 2 marbles in a tube turned since they entered swing round with it. */
+function ballPoint(s: BtState, b: BtBall, rot: Set<number>) {
+  const p = btBallPoint(s, b);
+  if (s.rev !== BT_REV || b.cell < 0 || b.cell >= SLOT || !rot.has(b.cell)) return p;
+  const enteredVertical = b.above === 1;
+  if (enteredVertical === (s.vert[b.cell] === 1)) return p;
+  const c = cellCentre(b.cell);
+  const { u, sign } = turnOf(s, b.cell);
+  const a = sign * (Math.PI / 2) * u;
+  const dx = p.x - c.x, dy = p.y - c.y;
+  return { x: c.x + dx * Math.cos(a) - dy * Math.sin(a), y: c.y + dx * Math.sin(a) + dy * Math.cos(a) };
+}
+
+/** Rev 2 switch point badge on a live bottom-row drop: ↓ drops into the tray, → sends marbles on. */
+function drawSwitch(ctx: CanvasRenderingContext2D, cell: number, on: boolean) {
+  const { x, y } = cellCentre(cell);
+  ctx.save();
+  ctx.fillStyle = on ? "#2B1A0E" : "#3A2614";
+  ctx.strokeStyle = on ? "#FFD27A" : "#FFF1CF";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, y, 19, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.translate(x, y);
+  if (on) ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = on ? "#FFD27A" : "#FFFFFF";
+  ctx.beginPath();
+  ctx.moveTo(-4, -12);
+  ctx.lineTo(4, -12);
+  ctx.lineTo(4, 1);
+  ctx.lineTo(11, 1);
+  ctx.lineTo(0, 13);
+  ctx.lineTo(-11, 1);
+  ctx.lineTo(-4, 1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, r: number) {
   ctx.beginPath();
   const s = BT_SYMBOLS[kind % BT_SYMBOLS.length];
@@ -82,7 +136,12 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   ctx.fillRect(0, 0, BT_W, gridY);
   ctx.fillRect(0, gridY + BT_ROWS * BT_TILE, BT_W, BT_TRAY_H);
 
-  const maskOf = (cell: number) => (cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0 ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  const v2 = s.rev === BT_REV;
+  const liveDrop = (cell: number) => cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0;
+  const maskOf = (cell: number) => (liveDrop(cell) && !btSwitchedOn(s.sw, cell % BT_COLS) ? N | S : BT_KIND[cell] === 2 ? BT_CORNER[cell]! : s.vert[cell] ? N | S : E | W);
+  // Rev 2: tubes mid-turn are drawn on their own, swung back by the part of the turn still to come.
+  const turning = new Set<number>();
+  if (v2) for (const cell of rot) if (turnOf(s, cell).u < 1) turning.add(cell);
   ctx.lineCap = "butt";
   ctx.lineJoin = "round";
   // Wooden channels: dark rim, wood bed, centre groove — same widths as the sim's tubes.
@@ -97,9 +156,25 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
       ctx.strokeStyle = colour;
       ctx.lineWidth = width;
       ctx.beginPath();
-      for (let cell = 0; cell < BT_KIND.length; cell++) if (BT_KIND[cell] && rot.has(cell) === movable) tubePath(ctx, cell, maskOf(cell));
+      for (let cell = 0; cell < BT_KIND.length; cell++) if (BT_KIND[cell] && rot.has(cell) === movable && !turning.has(cell)) tubePath(ctx, cell, maskOf(cell));
       ctx.stroke();
     }
+  }
+  for (const cell of turning) {
+    const { x, y } = cellCentre(cell);
+    const { u, sign } = turnOf(s, cell);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-sign * (Math.PI / 2) * (1 - u));
+    ctx.translate(-x, -y);
+    for (const [width, colour] of [[BALL_R * 3 + 6, TOY_WOOD_DEEP], [BALL_R * 3, CHANNEL_SWITCH], [BALL_R * 2, "#C47A48"], [3, GROOVE]] as [number, string][]) {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      tubePath(ctx, cell, maskOf(cell));
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   // Switches: a brass pin at each rotatable paddle's centre.
   for (const cell of rot) {
@@ -111,6 +186,11 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     ctx.strokeStyle = SWITCH_EDGE;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+  }
+
+  if (v2) for (let col = 1; col < BT_COLS; col++) {
+    const cell = (BT_ROWS - 1) * BT_COLS + col;
+    if (liveDrop(cell)) drawSwitch(ctx, cell, btSwitchedOn(s.sw, col));
   }
 
   // Wooden cups, each carved with its symbol; same slide/flash timing as before.
@@ -218,7 +298,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     }
   }
   for (const b of s.balls) {
-    const p = btBallPoint(s, b);
+    const p = ballPoint(s, b, rot);
     toyMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, 0, b.colour);
   }
   const lastHome=[...s.landings].reverse().find(m=>m.ok);

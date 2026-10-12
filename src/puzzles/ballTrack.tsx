@@ -15,6 +15,7 @@ import {
   BT_H,
   BT_HOPPER_H,
   BT_K_ROTATE,
+  BT_REV,
   BT_PALETTE,
   BT_ROWS,
   BT_TILE,
@@ -84,7 +85,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BallTrackPuzzleData | null = puzzle.type === "balltrack" ? puzzle : null;
   const course = data?.course ?? PRACTICE_COURSE;
   const seed = data?.seed ?? 1;
-  const game = useMemo(() => makeBallTrackGame(course), [course]);
+  const rev = data?.btRev;
+  const game = useMemo(() => makeBallTrackGame(course, rev), [course, rev]);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -238,7 +240,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
           if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
           const cell = row * BT_COLS + col;
-          if (!game.rotatable.has(cell)) return;
+          // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
+          const switchPoint = rev === BT_REV && row === BT_ROWS - 1 && col > 0;
+          if (!game.rotatable.has(cell) && !switchPoint) return;
           push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
         }}
       >
@@ -256,7 +260,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "balltrack") return null;
-  const result = replayBallTrackRun(puzzle.course, puzzle.seed, myAnswer ?? "");
+  const result = replayBallTrackRun(puzzle.course, puzzle.seed, myAnswer ?? "", puzzle.btRev);
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">

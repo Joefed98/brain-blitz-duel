@@ -132,6 +132,8 @@ const BUILDERS: Record<string, Builder> = {
       { label: "Best combo", value: `×${n(r, "bestMult")}` },
       { label: "Ketchup / mustard", value: String(n(r, "bonuses")) },
       { label: "Chillies", value: String(n(r, "bombsHit")) },
+      // sliceRev 2 rounds only: mayonnaise bottles cut.
+      ...(("mayoOn" in r ? b(r, "mayoOn") : "mayo" in r) ? [{ label: "Mayo", value: String(n(r, "mayo")) }] : []),
     ],
     outcome: "time",
   }),
@@ -201,8 +203,14 @@ const BUILDERS: Record<string, Builder> = {
   },
   flip: (r, s) => ({
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
-    lines: [`${sec(n(r, "survivedSeconds"))} survived → ${s}`],
-    tiles: [{ label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) }],
+    lines: n(r, "starsTotal") > 0
+      ? [`${sec(n(r, "survivedSeconds"))} survived + ${n(r, "stars")} stars × 2 → ${s}`]
+      : [`${sec(n(r, "survivedSeconds"))} survived → ${s}`],
+    tiles: [
+      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      // flipRev 2 rounds only: stars taken.
+      ...(n(r, "starsTotal") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "starsTotal")}` }] : []),
+    ],
     outcome: b(r, "survived") ? "finish" : "crash",
   }),
   junction: (r, s) => ({
