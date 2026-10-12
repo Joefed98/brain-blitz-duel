@@ -16,8 +16,8 @@
  * first frame a canvas sees never fires, so a one-frame reveal backdrop stays
  * still.
  *
- * Budget: at most ARCADE_FX_MAX_PARTICLES particles and ARCADE_FX_MAX_POPS text
- * pops per canvas, positions computed in closed form from age (no per-frame
+ * Budget: at most ARCADE_FX_MAX_PARTICLES particles, ARCADE_FX_MAX_LIGHTS
+ * lights and ARCADE_FX_MAX_POPS text pops per canvas, positions computed in closed form from age (no per-frame
  * integration or allocation), no shadowBlur, glow from one cached sprite per
  * colour. Shake is at most ARCADE_FX_SHAKE_PX world pixels and is reserved for
  * clear/final moments; reduced motion turns off shake, flash and movement.
@@ -163,6 +163,58 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
 };
 
 /**
+ * Success-text colours, one per arcade game (keyed by puzzle type id), in that
+ * game's own world colours: neon on the Retro screens, lava orange in Cave &
+ * Lava, sea blues under water and so on. The fill is bright and the outline
+ * near-black (contrast at least 7:1, checked by arcade-fx-check), so the text
+ * reads on any part of the game's background. An event's own `colour` (a gold
+ * star, a fireball) still wins for its text.
+ */
+export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: string }> = {
+  // Retro: neon.
+  hover: { fill: "#3DFFE0", outline: "#000000" },
+  breaker: { fill: "#7DF9FF", outline: "#000000" },
+  rally: { fill: "#4BFF7A", outline: "#000000" },
+  beat: { fill: "#FF6BFF", outline: "#000000" },
+  snake: { fill: "#B6FF3D", outline: "#000000" },
+  burst: { fill: "#FFE14A", outline: "#000000" },
+  // Space: starlight and gold.
+  wavefront: { fill: "#8FDFFF", outline: "#05081A" },
+  orbit: { fill: "#FFE58A", outline: "#05081A" },
+  // Real World: road-sign yellow, signal green, rainbow gold.
+  skyline: { fill: "#FFC93C", outline: "#1B2433" },
+  cross: { fill: "#FFE04A", outline: "#1B2433" },
+  junction: { fill: "#5BE38E", outline: "#13241A" },
+  inkbridge: { fill: "#FFD54B", outline: "#24333C" },
+  // Kitchen: tomato and butter.
+  slice: { fill: "#FF9F70", outline: "#2A170E" },
+  // Fairground: bulb gold and candy pink.
+  bintoss: { fill: "#FFD27A", outline: "#1B1330" },
+  bullseye: { fill: "#FF9BB0", outline: "#1B1330" },
+  // Underwater: sea blues.
+  bubble: { fill: "#7FE3FF", outline: "#06172E" },
+  // Cave & Lava: lava orange.
+  flip: { fill: "#FF9A45", outline: "#1A0B06" },
+  swing: { fill: "#FF8A3C", outline: "#1A0B06" },
+  // Orchard: harvest gold.
+  snip: { fill: "#F7CD5A", outline: "#2E3B1C" },
+  // Toybox: polished brass and toy blue.
+  tilt: { fill: "#FFCB5C", outline: "#2B1A0E" },
+  balltrack: { fill: "#8CCBFF", outline: "#2B1A0E" },
+  wordfall: { fill: "#FFCB5C", outline: "#2B1A0E" },
+  // Gemstone: gem pink.
+  matchup: { fill: "#FF8FE0", outline: "#1A1030" },
+};
+
+/**
+ * The success-text colours for a spec's game id; revision ids carry a number
+ * suffix (orbit3) and share their game's colours.
+ */
+export function arcadeFxTextColours(game: string): { fill: string; outline: string } | undefined {
+  return ARCADE_FX_TEXT_COLOURS[game] ?? ARCADE_FX_TEXT_COLOURS[game.replace(/\d+$/, "")];
+}
+
+/**
  * pop      — a single success: small burst and a rising "+1" style pop.
  * perfect  — a precise success (perfect drop, bullseye): bigger burst, ring glow.
  * streak   — a run of successes reached a milestone: banner pop-up and edge glow.
@@ -205,6 +257,18 @@ export interface ArcadeFxEvent<S> {
    * a wave or stage clear. Edge only, never over the play area.
    */
   sweep?: boolean;
+  /**
+   * Also release a short burst of soft coloured lights (glow orbs that spread
+   * from `at` and fade within ARCADE_FX_LIGHTS_MS), cycling these colours.
+   */
+  lights?: readonly string[];
+  /** Scale the pop/banner text (1 = the kind's default size). */
+  textScale?: number;
+  /**
+   * While this event's text is up, give the arena a slight pulsing glow round
+   * its edges, alternating these colours. Edge only, never over the play area.
+   */
+  arenaGlow?: readonly string[];
 }
 
 export interface ArcadeFxSpec<S> {
@@ -230,6 +294,9 @@ export interface ArcadeFxSpec<S> {
 export const ARCADE_FX_MAX_PARTICLES = 40;
 export const ARCADE_FX_MAX_POPS = 4;
 export const ARCADE_FX_SHAKE_PX = 2;
+/** Light-burst budget per canvas and how long one burst lasts. */
+export const ARCADE_FX_MAX_LIGHTS = 14;
+export const ARCADE_FX_LIGHTS_MS = 750;
 
 interface FxTiming {
   particles: number;
@@ -334,6 +401,17 @@ interface Pop {
   size: number;
   colour: string;
   banner: boolean;
+  outline: string;
+}
+
+interface Light {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  born: number;
+  radius: number;
+  colour: string;
 }
 
 interface Ring {
@@ -351,6 +429,7 @@ interface Memory {
   particles: Particle[];
   pops: Pop[];
   rings: Ring[];
+  lights: Light[];
   flashAt: number;
   flashAlpha: number;
   flashColour: string;
@@ -360,6 +439,9 @@ interface Memory {
   edgeColour: string;
   neonAt: number;
   sweepAt: number;
+  arenaAt: number;
+  arenaMs: number;
+  arenaColours: readonly string[];
   seed: number;
 }
 
@@ -403,6 +485,7 @@ function freshMemory(tick: number, counts: number[]): Memory {
     particles: [],
     pops: [],
     rings: [],
+    lights: [],
     flashAt: -Infinity,
     flashAlpha: 0,
     flashColour: "#FFFFFF",
@@ -412,6 +495,9 @@ function freshMemory(tick: number, counts: number[]): Memory {
     edgeColour: "#FFFFFF",
     neonAt: -Infinity,
     sweepAt: -Infinity,
+    arenaAt: -Infinity,
+    arenaMs: 0,
+    arenaColours: [],
     seed: 1,
   };
 }
@@ -449,6 +535,7 @@ function spawn<S>(
   const colour = event.colour?.(state) ?? (event.kind === "pop" ? theme.primary : theme.highlight);
   const seed = (m.seed = (m.seed + 1) | 0);
   const big = event.kind === "clear" || event.kind === "final";
+  const textColours = arcadeFxTextColours(spec.game);
 
   const n = still ? Math.min(3, t.particles) : t.particles;
   for (let i = 0; i < n; i++) {
@@ -499,10 +586,16 @@ function spawn<S>(
       y: banner ? spec.height * (big ? 0.4 : 0.24) : point.y - 10,
       born: now,
       life: t.popLife,
-      size: t.popSize,
-      colour: big ? theme.highlight : colour,
+      size: t.popSize * (event.textScale ?? 1),
+      colour: event.colour?.(state) ?? textColours?.fill ?? (big ? theme.highlight : colour),
       banner,
+      outline: textColours?.outline ?? theme.outline,
     });
+    if (event.arenaGlow?.length) {
+      m.arenaAt = now;
+      m.arenaMs = t.popLife;
+      m.arenaColours = event.arenaGlow;
+    }
     // A banner replaces an older banner so pop-ups never stack into a wall of text.
     if (banner) {
       for (let i = m.pops.length - 2; i >= 0; i--) if (m.pops[i]!.banner) m.pops.splice(i, 1);
@@ -528,6 +621,27 @@ function spawn<S>(
   if (t.shake > 0 && !still && spec.shake !== false) {
     m.shakeAt = now;
     m.shakeMs = t.shake;
+  }
+  if (event.lights?.length) {
+    // Soft lights spread from the event in an even ring with a little seeded
+    // jitter; with reduced motion they glow in place and fade.
+    const lights = still ? 3 : 7;
+    const reach = big ? 0.55 * Math.min(spec.width, spec.height) : 70;
+    for (let i = 0; i < lights; i++) {
+      const angle = (i / lights) * Math.PI * 2 + hash(seed, i + 811) * 0.7;
+      const dist = still ? 0 : reach * (0.6 + hash(seed, i + 911) * 0.4);
+      m.lights.push({
+        x: point.x,
+        y: point.y,
+        dx: Math.cos(angle) * dist,
+        dy: Math.sin(angle) * dist * 0.8,
+        born: now + (still ? 0 : hash(seed, i + 1011) * 90),
+        radius: (big ? 26 : 16) * (0.8 + hash(seed, i + 1111) * 0.4),
+        colour: event.lights[i % event.lights.length]!,
+      });
+    }
+    if (m.lights.length > ARCADE_FX_MAX_LIGHTS)
+      m.lights.splice(0, m.lights.length - ARCADE_FX_MAX_LIGHTS);
   }
   if (event.kind !== "pop") {
     m.edgeAt = now;
@@ -611,6 +725,21 @@ function glowSprite(colour: string): CanvasImageSource | null {
   if (glowCache.size > 24) glowCache.clear();
   glowCache.set(colour, sprite);
   return sprite;
+}
+
+/**
+ * A soft round glow from the shared cached sprite (no shadowBlur), for
+ * renderers' own light touches. Sets globalAlpha; callers save/restore.
+ */
+export function drawFxGlow(
+  ctx: CanvasRenderingContext2D,
+  colour: string,
+  x: number,
+  y: number,
+  radius: number,
+  alpha: number,
+): void {
+  drawGlow(ctx, colour, x, y, radius, alpha);
 }
 
 function drawGlow(
@@ -708,13 +837,16 @@ function paint<S>(
   if (m.particles.length) m.particles = m.particles.filter((p) => now - p.born < p.life);
   if (m.pops.length) m.pops = m.pops.filter((p) => now - p.born < p.life);
   if (m.rings.length) m.rings = m.rings.filter((r) => now - r.born < r.life);
+  if (m.lights.length) m.lights = m.lights.filter((l) => now - l.born < ARCADE_FX_LIGHTS_MS);
   const flashAge = now - m.flashAt;
   const edgeAge = now - m.edgeAt;
   const neonAge = now - m.neonAt;
   const sweepAge = now - m.sweepAt;
+  const arenaAge = now - m.arenaAt;
   if (
-    !m.particles.length && !m.pops.length && !m.rings.length && flashAge > 260 && edgeAge > 600 &&
-    neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS
+    !m.particles.length && !m.pops.length && !m.rings.length && !m.lights.length && flashAge > 260 && edgeAge > 600 &&
+    neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS &&
+    arenaAge > m.arenaMs
   )
     return;
 
@@ -754,6 +886,20 @@ function paint<S>(
     ctx.lineWidth = 2.5;
     ctx.strokeRect(clip.x + 2, clip.y + 2, clip.w - 4, clip.h - 4);
   }
+  // Arena glow: a slight pulsing glow inside the arena's edges while a success
+  // text is up, alternating its colours; under reduced motion it holds steady.
+  if (arenaAge >= 0 && arenaAge < m.arenaMs && m.arenaColours.length) {
+    const p = arenaAge / m.arenaMs;
+    const fade = p < 0.1 ? p / 0.1 : p > 0.7 ? (1 - p) / 0.3 : 1;
+    const pulse = still ? 0.6 : 0.55 + 0.45 * Math.sin(arenaAge / 110);
+    const colour = still ? m.arenaColours[0]! : m.arenaColours[Math.floor(arenaAge / 220) % m.arenaColours.length]!;
+    ctx.strokeStyle = colour;
+    for (const [inset, width, alpha] of [[7, 14, 0.07], [4, 8, 0.12], [1.5, 3, 0.3]] as const) {
+      ctx.globalAlpha = alpha * pulse * fade;
+      ctx.lineWidth = width;
+      ctx.strokeRect(clip.x + inset, clip.y + inset, clip.w - inset * 2, clip.h - inset * 2);
+    }
+  }
   // Colour sweep: a three-colour band races left to right along the top edge
   // and right to left along the bottom edge, 5 px deep.
   if (!still && sweepAge >= 0 && sweepAge < ARCADE_FX_SWEEP_MS) {
@@ -776,6 +922,17 @@ function paint<S>(
   for (const r of m.rings) {
     const p = (now - r.born) / r.life;
     drawGlow(ctx, r.colour, r.x, r.y, r.radius * (still ? 0.8 : 0.5 + p * 0.7), 0.55 * (1 - p));
+  }
+  for (const l of m.lights) {
+    const p = (now - l.born) / ARCADE_FX_LIGHTS_MS;
+    if (p < 0) continue;
+    // Ease out: the lights fly fast, then hang and fade.
+    const e = 1 - (1 - p) * (1 - p);
+    const alpha = (p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85) * 0.85;
+    const x = l.x + l.dx * e;
+    const y = l.y + l.dy * e;
+    drawGlow(ctx, l.colour, x, y, l.radius * (1 + p * 0.5), alpha);
+    drawGlow(ctx, "#FFFFFF", x, y, l.radius * 0.35, alpha * 0.7);
   }
   ctx.globalCompositeOperation = previous;
   for (const r of m.rings) {
@@ -821,7 +978,7 @@ function paint<S>(
     ctx.globalAlpha = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
     ctx.font = `700 ${size}px ${theme.font}`;
     ctx.lineWidth = Math.max(2, size / 5);
-    ctx.strokeStyle = theme.outline;
+    ctx.strokeStyle = pop.outline;
     // Keep the whole text inside the arena, wherever the event happened (an edge or the top).
     const half = ctx.measureText(pop.text).width / 2 + ctx.lineWidth;
     const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
@@ -933,11 +1090,12 @@ export function withArcadeFx<S extends { tick: number }, R extends unknown[]>(
 export function arcadeFxStats(
   ctx: object,
   game: string,
-): { particles: number; pops: number; rings: number; shaking: boolean } {
+): { particles: number; pops: number; rings: number; lights: number; shaking: boolean } {
   const m = memories.get(ctx)?.get(game);
-  if (!m) return { particles: 0, pops: 0, rings: 0, shaking: false };
+  if (!m) return { particles: 0, pops: 0, rings: 0, lights: 0, shaking: false };
   const now = clock();
   return {
+    lights: m.lights.filter((l) => now - l.born < ARCADE_FX_LIGHTS_MS).length,
     particles: m.particles.filter((p) => now - p.born < p.life).length,
     pops: m.pops.filter((p) => now - p.born < p.life).length,
     rings: m.rings.filter((r) => now - r.born < r.life).length,

@@ -1,5 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
-import { arcadeFx } from "./arcadeFx.renderer";
+import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { ORBIT_FX, ORBIT3_FX } from "./arcadeFxGames.renderer";
 /**
  * Orbit art pass. Render only: reads OrbitState and never mutates it. Every
@@ -99,27 +99,78 @@ function planetLook(p: Planet, i: number, lobe: number) {
   };
 }
 
+/** Mix a #RRGGBB colour towards white (amt > 0) or black (amt < 0). */
+function tint(hex: string, amt: number): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const to = amt > 0 ? 255 : 0;
+  const k = Math.abs(amt);
+  const ch = (v: number) => Math.round(v + (to - v) * k);
+  return `rgb(${ch((n >> 16) & 255)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
+}
+
 function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: ReturnType<typeof planetLook>): void {
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.clip();
-  ctx.fillStyle = look.colour;
+  // Tuning D: a lit-to-shadow base instead of a flat fill.
+  const base = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.05, x, y, r);
+  base.addColorStop(0, tint(look.colour, 0.28));
+  base.addColorStop(0.55, look.colour);
+  base.addColorStop(1, tint(look.colour, -0.35));
+  ctx.fillStyle = base;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
   // Any ring detail stays inside the planet's collision circle.
   if (look.ring) drawRingHalf(ctx, x, y, r, look.tilt, true);
   if (look.type === 1) {
-    // Gas bands.
-    ctx.globalAlpha = 0.22;
-    for (let b = 0; b < 5; b++) {
-      ctx.fillStyle = b % 2 ? "#000000" : "#FFFFFF";
-      const by = y - r + ((b + 0.5) * 2 * r) / 5 + (((look.h >>> (b * 3)) % 5) - 2);
-      ctx.fillRect(x - r, by - r * 0.12, r * 2, r * 0.2);
+    // Gas bands: wavy, alternating light and dark, under the planet's tilt.
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(look.tilt * 0.5);
+    for (let b = 0; b < 7; b++) {
+      const by = -r + ((b + 0.5) * 2 * r) / 7 + (((look.h >>> (b * 3)) % 5) - 2) * 0.6;
+      const wave = r * 0.08 * ((((look.h >>> (b * 2 + 1)) % 3) - 1) || 1);
+      ctx.globalAlpha = b % 2 ? 0.22 : 0.18;
+      ctx.fillStyle = b % 2 ? tint(look.colour, -0.5) : tint(look.colour, 0.55);
+      ctx.beginPath();
+      ctx.moveTo(-r, by - r * 0.07);
+      ctx.quadraticCurveTo(0, by - r * 0.07 + wave, r, by - r * 0.07);
+      ctx.lineTo(r, by + r * 0.07);
+      ctx.quadraticCurveTo(0, by + r * 0.07 + wave, -r, by + r * 0.07);
+      ctx.closePath();
+      ctx.fill();
     }
+    // A storm eye on about half the gas giants.
+    if ((look.h >>> 17) & 1) {
+      const sx = r * ((((look.h >>> 19) % 7) - 3) / 8);
+      const sy = r * (0.25 + ((look.h >>> 22) % 3) * 0.1);
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = tint(look.colour, -0.45);
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, r * 0.24, r * 0.11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = tint(look.colour, 0.5);
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, r * 0.14, r * 0.055, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
     ctx.globalAlpha = 1;
   } else if (look.type === 0) {
+    // Mottled lowlands under the craters.
+    ctx.fillStyle = tint(look.colour, -0.4);
+    for (let c = 0; c < 3; c++) {
+      const a = ((look.h >>> (c * 7 + 3)) % 64) * (Math.PI / 32);
+      const d = r * (0.15 + ((look.h >>> (c * 5 + 1)) % 4) * 0.15);
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(a) * d, y + Math.sin(a) * d, r * 0.42, r * 0.26, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     // Craters.
-    for (let c = 0; c < 4; c++) {
+    for (let c = 0; c < 6; c++) {
       const a = ((look.h >>> (c * 5)) % 64) * (Math.PI / 32);
       const d = r * (0.2 + ((look.h >>> (c * 4 + 2)) % 5) * 0.12);
       const cr = r * (0.12 + ((look.h >>> (c * 3 + 1)) % 3) * 0.05);
@@ -133,6 +184,15 @@ function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
       ctx.fill();
     }
   } else {
+    // Polar caps.
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(x, y - r * 0.98, r * 0.62, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(x, y + r * 1.02, r * 0.5, r * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
     // Ice streaks.
     ctx.strokeStyle = "rgba(255,255,255,0.35)";
     ctx.lineWidth = Math.max(1, r * 0.08);
@@ -152,7 +212,175 @@ function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   shade.addColorStop(1, "rgba(0,0,0,0.75)");
   ctx.fillStyle = shade;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  // Atmosphere: a thin lit rim just inside the edge, and a soft highlight.
+  ctx.strokeStyle = tint(look.colour, 0.6);
+  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = Math.max(1, r * 0.09);
+  ctx.beginPath();
+  ctx.arc(x, y, r - ctx.lineWidth / 2, Math.PI * 0.75, Math.PI * 1.75);
+  ctx.stroke();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.42, y - r * 0.48, r * 0.2, r * 0.1, -0.7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
   if (look.ring) drawRingHalf(ctx, x, y, r, look.tilt, false);
+  ctx.restore();
+}
+
+/* ===================== Tuning D: backdrop and ship effects ===================== */
+
+/** World units per nebula tile; the tile is baked at 2× and tiles seamlessly. */
+const NEBULA_TILE = 512;
+let nebulaTile: HTMLCanvasElement | null | undefined;
+
+/** Soft purple, blue and teal clouds plus a dust of faint far stars, baked once. */
+function nebulaSprite(): HTMLCanvasElement | null {
+  if (nebulaTile !== undefined) return nebulaTile;
+  if (typeof document === "undefined") return (nebulaTile = null);
+  const canvas = document.createElement("canvas");
+  canvas.width = NEBULA_TILE * 2;
+  canvas.height = NEBULA_TILE * 2;
+  const c = canvas.getContext("2d");
+  if (!c) return (nebulaTile = null);
+  c.scale(2, 2);
+  const T = NEBULA_TILE;
+  const clouds = [
+    [80, 120, 190, "120,72,210", 0.2],
+    [330, 70, 150, "50,96,220", 0.16],
+    [420, 330, 210, "34,150,170", 0.13],
+    [170, 400, 170, "170,70,190", 0.12],
+    [260, 230, 120, "90,120,255", 0.12],
+    [470, 480, 140, "120,72,210", 0.14],
+    [30, 300, 110, "40,170,190", 0.1],
+  ] as const;
+  for (const [cx, cy, r, rgb, a] of clouds)
+    for (const dx of [-T, 0, T])
+      for (const dy of [-T, 0, T]) {
+        const g = c.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, r);
+        g.addColorStop(0, `rgba(${rgb},${a})`);
+        g.addColorStop(0.5, `rgba(${rgb},${(a * 0.45).toFixed(3)})`);
+        g.addColorStop(1, `rgba(${rgb},0)`);
+        c.fillStyle = g;
+        c.fillRect(cx + dx - r, cy + dy - r, r * 2, r * 2);
+      }
+  // Far star dust: tiny, dim, some faintly coloured.
+  for (let i = 0; i < 260; i++) {
+    const h = Math.imul(i * 2654435761 + 977, 0x85ebca6b) >>> 0;
+    const x = h % T;
+    const y = (h >>> 9) % T;
+    c.globalAlpha = 0.15 + ((h >>> 3) % 40) / 100;
+    c.fillStyle = h % 7 === 0 ? "#9CC8FF" : h % 11 === 0 ? "#FFE3B0" : "#FFFFFF";
+    const size = (h >>> 20) % 5 === 0 ? 1 : 0.6;
+    c.fillRect(x, y, size, size);
+  }
+  return (nebulaTile = canvas);
+}
+
+/** The nebula tiled over the view, parallaxed slower than the stars. */
+function drawNebula(ctx: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number): void {
+  const tile = nebulaSprite();
+  if (!tile) return;
+  const T = NEBULA_TILE;
+  const ox = -(((camX * 0.12) % T) + T) % T;
+  const oy = -(((camY * 0.12) % T) + T) % T;
+  for (let x = ox; x < w; x += T) for (let y = oy; y < h; y += T) ctx.drawImage(tile, x, y, T, T);
+}
+
+/** A bright star's four-point glint with a soft glow (one cached sprite). */
+function drawGlint(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, alpha: number): void {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  drawFxGlow(ctx, "#BFD8FF", x, y, size * 3, alpha * 0.5);
+  ctx.globalAlpha = alpha * 0.8;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x - size * 2, y - 0.4, size * 4, 0.8);
+  ctx.fillRect(x - 0.4, y - size * 2, 0.8, size * 4);
+  ctx.restore();
+}
+
+interface ShipMemory {
+  tick: number;
+  captured: number;
+  capturedAt: number;
+  points: { x: number; y: number; tick: number }[];
+}
+const shipMemories = new WeakMap<object, ShipMemory>();
+const TRAIL_POINTS = 16;
+const CAPTURE_GLOW_MS = 700;
+
+function presentationNow(): number {
+  return typeof performance !== "undefined" ? performance.now() : 0;
+}
+
+/**
+ * Per-canvas memory of the ship's last drawn world positions (for its trail)
+ * and of the moment the capture counter last rose (for the catch glow). A
+ * rewind or the first frame a canvas sees starts fresh and never fires.
+ * Presentation only: never written to state.
+ */
+function observeShip(ctx: object, state: { tick: number; captured: number; x: number; y: number }): ShipMemory {
+  let m = shipMemories.get(ctx);
+  const x = state.x / FP;
+  const y = state.y / FP;
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, captured: state.captured, capturedAt: -Infinity, points: [{ x, y, tick: state.tick }] };
+    shipMemories.set(ctx, m);
+    return m;
+  }
+  if (state.tick === m.tick) return m;
+  if (state.captured > m.captured) m.capturedAt = presentationNow();
+  m.captured = state.captured;
+  m.tick = state.tick;
+  const last = m.points[m.points.length - 1];
+  // A respawn or a black-hole jump teleports the ship: start the trail again.
+  if (last && Math.hypot(x - last.x, y - last.y) > 40) m.points = [];
+  m.points.push({ x, y, tick: state.tick });
+  while (m.points.length > TRAIL_POINTS || (m.points[0] && state.tick - m.points[0].tick > 24)) m.points.shift();
+  return m;
+}
+
+/** A tapering cool-white trail through the ship's recent positions. */
+function drawShipTrail(ctx: CanvasRenderingContext2D, m: ShipMemory, camX: number, camY: number, dead: boolean): void {
+  const pts = m.points;
+  if (pts.length < 2 || dead) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1]!;
+    const b = pts[i]!;
+    const k = i / (pts.length - 1);
+    ctx.globalAlpha = 0.5 * k * k;
+    ctx.strokeStyle = k > 0.7 ? "#DDF0FF" : "#7FB8FF";
+    ctx.lineWidth = 0.6 + 2.6 * k;
+    ctx.beginPath();
+    ctx.moveTo(a.x - camX, a.y - camY);
+    ctx.lineTo(b.x - camX, b.y - camY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** The soft glow round the planet just caught: a bloom and a ring easing outwards. */
+function drawCaptureGlow(ctx: CanvasRenderingContext2D, m: ShipMemory, x: number, y: number, r: number, colour: string, still: boolean): void {
+  const age = presentationNow() - m.capturedAt;
+  if (!(age >= 0 && age < CAPTURE_GLOW_MS)) return;
+  const p = age / CAPTURE_GLOW_MS;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  drawFxGlow(ctx, colour, x, y, r * (still ? 2 : 1.6 + 0.8 * p), 0.55 * (1 - p));
+  drawFxGlow(ctx, "#FFFFFF", x, y, r * 1.2, 0.25 * (1 - p));
+  ctx.globalCompositeOperation = "source-over";
+  if (!still) {
+    ctx.globalAlpha = 0.6 * (1 - p);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 3 + 16 * (1 - (1 - p) * (1 - p)), 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -267,6 +495,7 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
 }
 
 function drawStars(ctx: CanvasRenderingContext2D, cam: number, t: number, still: boolean): void {
+  drawNebula(ctx, 0, cam, ORBIT_WORLD_W, ORBIT_WORLD_H);
   const layers = [
     { par: 0.15, gap: 60, size: 1, alpha: 0.35 },
     { par: 0.4, gap: 40, size: 1.5, alpha: 0.55 },
@@ -285,6 +514,10 @@ function drawStars(ctx: CanvasRenderingContext2D, cam: number, t: number, still:
         const twinkle = still ? 1 : 0.75 + 0.25 * Math.sin(t * 2 + (h % 97));
         ctx.globalAlpha = layer.alpha * (0.5 + ((h >>> 20) % 50) / 100) * twinkle;
         ctx.fillRect(sx, sy, layer.size, layer.size);
+        if (li === 2 && h % 3 === 0) {
+          drawGlint(ctx, sx + 1, sy + 1, 1.6, twinkle);
+          ctx.fillStyle = "#FFFFFF";
+        }
       }
     }
   });
@@ -397,6 +630,9 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   const uy = hy / len;
   const sx = state.x / FP;
   const sy = state.y / FP - cam;
+  const ship = observeShip(ctx, state);
+  drawCaptureGlow(ctx, ship, here.x / FP, here.y / FP - cam, here.r / FP, state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour, still);
+  drawShipTrail(ctx, ship, 0, cam, state.ended === 2);
 
   // Trail along the straight flight already flown.
   if (state.flying > 0) {
@@ -513,6 +749,7 @@ function rev3PlanetSprite(planets: Planet[], p: Planet, i: number, lobe: number,
 function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean): void {
   // Same seeded hashed layout as rev1/2's drawStars, parallaxed at 0.3x in both axes
   // since rev3 scrolls sideways as well as vertically.
+  drawNebula(ctx, cam.x, cam.y, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   const par = 0.3;
   const gap = 46;
   const camX = cam.x * par;
@@ -531,6 +768,10 @@ function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: nu
       ctx.globalAlpha = (0.25 + ((h >>> 20) % 60) / 100) * twinkle;
       const size = 1 + ((h >>> 2) % 2) * 0.5;
       ctx.fillRect(sx, sy, size, size);
+      if (h % 13 === 0) {
+        drawGlint(ctx, sx + size / 2, sy + size / 2, 1.5, twinkle);
+        ctx.fillStyle = "#FFFFFF";
+      }
     }
   }
   ctx.globalAlpha = 1;
@@ -713,6 +954,9 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   const uy = hy / len;
   const sx = state.x / FP - cam.x;
   const sy = state.y / FP - cam.y;
+  const ship = observeShip(ctx, state);
+  drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour, still);
+  drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
 
   if (state.flying > 0) {
     const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);

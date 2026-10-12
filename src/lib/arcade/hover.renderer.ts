@@ -90,17 +90,23 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     const duration = reducedMotion() ? 9 : 18;
     const age = passedBy / px(hoverScroll(index + 1));
     const flash = index < state.gates && age >= 0 && age < duration ? 1 - age / duration : 0;
+    // Tuning D: one white pulse while the saucer passes through, from its nose
+    // reaching the barrier until just after its tail clears it (crash excluded).
+    const through = px(state.distance - (pillar.x0 - (HOVER_DISC_X + HOVER_DISC_R)));
+    const span = width + 2 * px(HOVER_DISC_R) + 10;
+    const live = index < state.gates || (index === state.gates && !state.crashed);
+    const pulse = live && through >= 0 && through < span ? Math.sin((Math.PI * through) / span) : 0;
     const top = px(hoverGapTop(pillar, state.tick));
     const bottom = top + px(pillar.gapH);
-    drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom");
+    drawPipe(ctx, left, 0, width, top, colour, bloom, flash, "bottom", pulse);
     if (pillar.gap2Top !== undefined) {
       // hoverRev 2 two-gap barrier: a middle block between the upper and lower gaps.
       const top2 = px(pillar.gap2Top);
       const bottom2 = top2 + px(pillar.gap2H ?? 0);
-      drawPipe(ctx, left, bottom, width, top2 - bottom, colour, bloom, flash, "both");
-      drawPipe(ctx, left, bottom2, width, HOVER_WORLD_H - bottom2, colour, bloom, flash, "top");
+      drawPipe(ctx, left, bottom, width, top2 - bottom, colour, bloom, flash, "both", pulse);
+      drawPipe(ctx, left, bottom2, width, HOVER_WORLD_H - bottom2, colour, bloom, flash, "top", pulse);
       drawForkArrows(ctx, left + width / 2 - 3, bottom, top2);
-    } else drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top");
+    } else drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top", pulse);
     if (pillar.movePhase !== undefined) drawSlideRail(ctx, left, width, pillar, state.tick);
     drawStar(ctx, state, pillar, index, left + width / 2);
   });
@@ -191,6 +197,8 @@ function drawPipe(
   bloom: number,
   flash: number,
   capAt: "top" | "bottom" | "both",
+  /** 0…1: the white pass-through pulse (Tuning D), inside the barrier's own rectangle. */
+  pulse = 0,
 ): void {
   if (h <= 0) return;
   const stamp = barrierSprite(w, colour);
@@ -211,6 +219,15 @@ function drawPipe(
   if (flash > 0) {
     ctx.globalAlpha = flash * 0.34;
     pixelRect(ctx, x, y, w, h, colour);
+    ctx.globalAlpha = 1;
+  }
+  if (pulse > 0.01) {
+    // White wash over the whole barrier, brightest on the lips the saucer slips between.
+    ctx.globalAlpha = pulse * 0.42;
+    pixelRect(ctx, x, y, w, h, RETRO_WHITE);
+    ctx.globalAlpha = pulse * 0.9;
+    for (const end of capAt === "both" ? (["top", "bottom"] as const) : [capAt])
+      pixelRect(ctx, x, end === "bottom" ? y + h - 4 : y, w, 4, RETRO_WHITE);
     ctx.globalAlpha = 1;
   }
   ctx.restore();

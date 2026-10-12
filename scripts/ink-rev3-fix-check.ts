@@ -4,6 +4,7 @@
  * layout is rare, and Undo before release refunds the capped first line so it can be redrawn.
  * Usage: bun scripts/ink-rev3-fix-check.ts [seeds=40]
  */
+import { canvasStub } from "./canvas-stub";
 import {
   inkBridgeGameFor,
   INK_REV3,
@@ -15,23 +16,12 @@ import {
 
 let drawnBirds = 0;
 let currentBlocks: { x0: number; x1: number; y: number }[] = [];
-const ctxStub: any = new Proxy(
-  {},
-  {
-    get(_t, key) {
-      if (key === "drawImage")
-        return (_img: unknown, x: number, y: number) => {
-          if (currentBlocks.some((b) => x >= b.x0 - 0.5 && x <= b.x1 && Math.abs(y - b.y) < 0.5)) drawnBirds++;
-        };
-      if (key === "createLinearGradient") return () => ({ addColorStop() {} });
-      if (key === "measureText") return () => ({ width: 10 });
-      return () => {};
-    },
-    set() {
-      return true;
-    },
+const ctxStub: any = canvasStub({
+  drawImage: (_img: unknown, x: number, y: number) => {
+    if (currentBlocks.some((b) => x >= b.x0 - 0.5 && x <= b.x1 && Math.abs(y - b.y) < 0.5)) drawnBirds++;
   },
-);
+  measureText: () => ({ width: 10 }),
+});
 (globalThis as any).OffscreenCanvas = class {
   constructor(public width: number, public height: number) {}
   getContext() {
