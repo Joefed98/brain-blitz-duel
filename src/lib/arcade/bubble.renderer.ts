@@ -149,9 +149,13 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
 
 /**
  * bubbleRev 2 specials, each with its own look and none of the creature
- * symbols: a pearl Joker ringed with all five colours, a black sea mine (Bomb)
- * with a red light, and a teal Torpedo bubble with a white torpedo pointing both
- * ways. All drawn inside the bubble circle (the collision bound).
+ * symbols, all drawn inside the bubble circle (the collision bound):
+ *  - Joker: a thick five-colour rainbow ring round a white pearl with a violet
+ *    four-point sparkle (unlike the starfish's five points).
+ *  - Mine: a black naval sea mine with round-tipped horns and a red light, on an
+ *    amber warning bubble.
+ *  - Torpedo: a silver torpedo side-on (red-banded nose, cross fins, propeller)
+ *    with arrowheads at both ends of the bubble: it clears the whole row.
  */
 function paintSpecial(value: number) {
   return (c: CanvasRenderingContext2D, size: number) => {
@@ -161,89 +165,135 @@ function paintSpecial(value: number) {
     c.arc(r, r, r - 0.5, 0, Math.PI * 2);
     c.clip();
     if (value === BUB_JOKER) {
-      const g = c.createRadialGradient(r * 0.7, r * 0.65, r * 0.1, r, r, r);
-      g.addColorStop(0, "#FFFFFF");
-      g.addColorStop(1, "#DCD6F2");
-      c.fillStyle = g;
-      c.fillRect(0, 0, size, size);
+      // Rainbow ring: one band per colour, bright and even.
       BUB_PALETTE.forEach((colour, i) => {
         const a0 = -Math.PI / 2 + (i * 2 * Math.PI) / BUB_PALETTE.length;
         c.fillStyle = colour;
         c.beginPath();
         c.moveTo(r, r);
-        c.arc(r, r, r, a0, a0 + (2 * Math.PI) / BUB_PALETTE.length);
+        c.arc(r, r, r, a0 - 0.02, a0 + (2 * Math.PI) / BUB_PALETTE.length + 0.02);
         c.closePath();
         c.fill();
       });
-      c.fillStyle = "#FFFFFF";
+      const pearl = c.createRadialGradient(r * 0.82, r * 0.78, r * 0.05, r, r, r * 0.62);
+      pearl.addColorStop(0, "#FFFFFF");
+      pearl.addColorStop(1, "#E7E2FA");
+      c.fillStyle = pearl;
+      c.beginPath();
+      c.arc(r, r, r * 0.6, 0, Math.PI * 2);
+      c.fill();
+      // A four-point sparkle (not the starfish's five points) with two small glints: wild.
+      const sparkle = (cx: number, cy: number, outer: number, inner: number) => {
+        c.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 4;
+          const d = i % 2 === 0 ? outer : inner;
+          c.lineTo(cx + Math.cos(a) * d, cy + Math.sin(a) * d);
+        }
+        c.closePath();
+      };
+      c.fillStyle = "#5B3FD0";
+      sparkle(r, r, r * 0.46, r * 0.12);
+      c.fill();
+      sparkle(r + r * 0.3, r - r * 0.3, r * 0.14, r * 0.04);
+      c.fill();
+      sparkle(r - r * 0.28, r + r * 0.3, r * 0.1, r * 0.03);
+      c.fill();
+    } else if (value === BUB_BOMB) {
+      const warn = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
+      warn.addColorStop(0, "#FFC46B");
+      warn.addColorStop(1, "#E0662A");
+      c.fillStyle = warn;
+      c.fillRect(0, 0, size, size);
+      // Horns with round tips, then the black body over their roots.
+      c.strokeStyle = "#141519";
+      c.fillStyle = "#141519";
+      c.lineWidth = Math.max(1.5, r * 0.15);
+      c.lineCap = "round";
+      for (let i = 0; i < 8; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 4;
+        c.beginPath();
+        c.moveTo(r + Math.cos(a) * r * 0.4, r + Math.sin(a) * r * 0.4);
+        c.lineTo(r + Math.cos(a) * r * 0.72, r + Math.sin(a) * r * 0.72);
+        c.stroke();
+        c.beginPath();
+        c.arc(r + Math.cos(a) * r * 0.76, r + Math.sin(a) * r * 0.76, r * 0.11, 0, Math.PI * 2);
+        c.fill();
+      }
+      const body = c.createRadialGradient(r * 0.8, r * 0.78, r * 0.05, r, r, r * 0.55);
+      body.addColorStop(0, "#4A4E58");
+      body.addColorStop(1, "#141519");
+      c.fillStyle = body;
       c.beginPath();
       c.arc(r, r, r * 0.52, 0, Math.PI * 2);
       c.fill();
-      // A sparkle: the Joker plays any colour.
-      c.fillStyle = "#2A2350";
+      // Red light with a glint.
+      c.fillStyle = "#FF2E2E";
       c.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = -Math.PI / 2 + (i * Math.PI) / 4;
-        const d = i % 2 === 0 ? r * 0.4 : r * 0.13;
-        c.lineTo(r + Math.cos(a) * d, r + Math.sin(a) * d);
-      }
-      c.closePath();
+      c.arc(r, r, r * 0.17, 0, Math.PI * 2);
       c.fill();
-    } else if (value === BUB_BOMB) {
-      c.fillStyle = "#3A1E22";
-      c.fillRect(0, 0, size, size);
-      c.fillStyle = "#14161B";
+      c.fillStyle = "rgba(255,255,255,0.85)";
       c.beginPath();
-      c.arc(r, r, r * 0.66, 0, Math.PI * 2);
-      c.fill();
-      // Mine spikes, inside the rim.
-      c.strokeStyle = "#14161B";
-      c.lineWidth = Math.max(1.5, r * 0.18);
-      c.lineCap = "round";
-      c.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = (i * Math.PI) / 4;
-        c.moveTo(r + Math.cos(a) * r * 0.6, r + Math.sin(a) * r * 0.6);
-        c.lineTo(r + Math.cos(a) * r * 0.86, r + Math.sin(a) * r * 0.86);
-      }
-      c.stroke();
-      c.fillStyle = "#FF3B3B";
-      c.beginPath();
-      c.arc(r, r - r * 0.18, r * 0.17, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = "rgba(255,255,255,0.35)";
-      c.beginPath();
-      c.arc(r - r * 0.25, r - r * 0.3, r * 0.12, 0, Math.PI * 2);
+      c.arc(r - r * 0.06, r - r * 0.06, r * 0.06, 0, Math.PI * 2);
       c.fill();
     } else {
-      const g = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
-      g.addColorStop(0, "#7EE6F2");
-      g.addColorStop(1, "#128AA0");
-      c.fillStyle = g;
+      const sea = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
+      sea.addColorStop(0, "#2E7FA8");
+      sea.addColorStop(1, "#0D3550");
+      c.fillStyle = sea;
       c.fillRect(0, 0, size, size);
-      // Torpedo body with a fin, and arrowheads both ways: it clears the whole row.
-      c.fillStyle = "#FFFFFF";
+      // Arrowheads at both edges: it clears left and right.
+      c.fillStyle = "#FFE14D";
+      for (const side of [-1, 1]) {
+        c.beginPath();
+        c.moveTo(r + side * r * 0.86, r);
+        c.lineTo(r + side * r * 0.64, r - r * 0.26);
+        c.lineTo(r + side * r * 0.64, r + r * 0.26);
+        c.closePath();
+        c.fill();
+      }
+      // Torpedo, nose left: tail fins, body, nose band, propeller.
+      const top = r - r * 0.17, h = r * 0.34;
+      const left = r - r * 0.56, right = r + r * 0.34;
+      c.fillStyle = "#8E98A6";
       c.beginPath();
-      c.ellipse(r, r, r * 0.42, r * 0.17, 0, 0, Math.PI * 2);
+      c.moveTo(right - r * 0.06, top + h * 0.15);
+      c.lineTo(right + r * 0.16, top - r * 0.14);
+      c.lineTo(right + r * 0.16, top + h + r * 0.14);
+      c.lineTo(right - r * 0.06, top + h * 0.85);
+      c.closePath();
       c.fill();
+      const metal = c.createLinearGradient(0, top, 0, top + h);
+      metal.addColorStop(0, "#F2F5F8");
+      metal.addColorStop(0.55, "#B8C1CC");
+      metal.addColorStop(1, "#6E7884");
+      c.fillStyle = metal;
       c.beginPath();
-      c.moveTo(r - r * 0.92, r);
-      c.lineTo(r - r * 0.62, r - r * 0.24);
-      c.lineTo(r - r * 0.62, r + r * 0.24);
-      c.closePath();
-      c.moveTo(r + r * 0.92, r);
-      c.lineTo(r + r * 0.62, r - r * 0.24);
-      c.lineTo(r + r * 0.62, r + r * 0.24);
+      c.moveTo(left + h / 2, top);
+      c.lineTo(right, top);
+      c.lineTo(right, top + h);
+      c.lineTo(left + h / 2, top + h);
+      c.arc(left + h / 2, r, h / 2, Math.PI / 2, Math.PI * 1.5);
       c.closePath();
       c.fill();
-      c.fillStyle = "#0B4652";
-      c.fillRect(r - r * 0.06, r - r * 0.17, r * 0.12, r * 0.34);
+      c.fillStyle = "#E23B3B";
+      c.fillRect(left + h * 0.62, top, r * 0.1, h);
+      c.fillStyle = "#3C434D";
+      c.fillRect(right, r - r * 0.06, r * 0.12, r * 0.12);
+      c.fillRect(right + r * 0.1, r - r * 0.16, r * 0.05, r * 0.32);
     }
     c.restore();
-    c.strokeStyle = "rgba(255,255,255,0.85)";
+    c.strokeStyle = "rgba(255,255,255,0.9)";
     c.lineWidth = Math.max(1, r * 0.1);
     c.beginPath();
-    c.arc(r, r, r - c.lineWidth, 0, Math.PI * 2);
+    c.arc(r, r, r - c.lineWidth / 2 - 0.5, 0, Math.PI * 2);
+    c.stroke();
+    // Rim highlight, as on the colour bubbles.
+    c.strokeStyle = "rgba(255,255,255,0.7)";
+    c.lineWidth = Math.max(1, r * 0.1);
+    c.lineCap = "round";
+    c.beginPath();
+    c.arc(r, r, r * 0.8, Math.PI * 1.12, Math.PI * 1.42);
     c.stroke();
   };
 }
@@ -279,7 +329,7 @@ function paintBubble(value: number) {
 
 /** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const key = bubIsSpecial(value) ? `bub-special${value}` : `bub${value}${creatureArtReady() ? "-art" : ""}`;
+  const key = bubIsSpecial(value) ? `bub-special2-${value}` : `bub${value}${creatureArtReady() ? "-art" : ""}`;
   const sprite = seaSprite(key, radius * 2 * dpr, paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;

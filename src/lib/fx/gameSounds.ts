@@ -159,6 +159,8 @@ export function snakeSounds(): GameSounds<SnakeState> {
         // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
         else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) playSound("arc_retro_hit", 0.7);
         else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) playSound("arc_retro_note", 0.5, 0.7);
+        // snakeRev 3 meteor shower: a low alarm as the three shadows appear.
+        if ((state.showerDone ?? 0) > (prev.showerDone ?? 0)) playSound("arc_retro_note", 0.7, 0.5, true);
       }
       prev = state;
     },

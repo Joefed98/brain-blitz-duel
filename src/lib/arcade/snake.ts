@@ -67,7 +67,17 @@ export const SNAKE_INPUT_TURN = 4;
 export const SNAKE_INPUT_RANGES: readonly InputRange[] = [inputRange(SNAKE_INPUT_TURN, [0, 3])];
 
 /** Rule revision stamped on new rounds (puzzle.snakeRev); absent = original rules. */
-export const SNAKE_REV = 2;
+export const SNAKE_REV = 3;
+/** snakeRev 2: asteroids only (shipped in #15). snakeRev 3 adds the meteor shower. */
+export const SNAKE_REV2 = 2;
+/** snakeRev 3 meteor shower: at 20 stars, 3 rocks land at once on fixed squares. */
+export const SNAKE_SHOWER_STARS = 20;
+export const SNAKE_SHOWER_ROCKS = 3;
+/** Shower moments: one every 4 s from 16 s, each nudged by up to ±0.5 s from the seed. */
+export const SNAKE_SHOWER_SLOT_FIRST = 16 * TICKS_PER_SECOND;
+export const SNAKE_SHOWER_SLOT_EVERY = 4 * TICKS_PER_SECOND;
+/** Rock cap with the shower: the 8 asteroids plus the 3 shower rocks. */
+export const SNAKE_ROCK_MAX_V3 = 11;
 /** Asteroids (snakeRev 2): at most this many rocks in a run. */
 export const SNAKE_ROCK_MAX = 8;
 /** The first rock is earned at this meteor length, then one more every SNAKE_ROCK_EVERY stars. */
@@ -122,6 +132,14 @@ export interface SnakeState {
   rockLandTick?: number;
   /** Why a rock ended the run: 1 = the head moved into it, 2 = it landed on the head; 0 = it did not. */
   rockHit?: number;
+  /** snakeRev 3 only: the shower's three squares and its possible landing ticks (room-wide). */
+  showerCells?: number[];
+  showerSlots?: number[];
+  /** The next shower moment not yet decided; the shower's falling squares (or empty) and their landing tick; 1 once it has fallen. */
+  showerSlot?: number;
+  showerWarn?: number[];
+  showerLandTick?: number;
+  showerDone?: number;
 }
 
 export interface SnakeRockSlot {
@@ -221,13 +239,54 @@ function initRev2(seed: number): SnakeState {
   return {
     ...base,
     rng: schedule.rng,
-    rev: SNAKE_REV,
+    rev: SNAKE_REV2,
     rockSlots: schedule.slots,
     rockSlot: 0,
     rocks: [],
     rockWarn: -1,
     rockLandTick: 0,
     rockHit: 0,
+  };
+}
+
+/**
+ * snakeRev 3: the asteroid schedule, then the shower — three squares that are
+ * off the border, not in the star queue, and clear of (not touching) every
+ * asteroid square and each other — and its possible moments. Drawn from the PRNG
+ * continuing after the asteroids, so the rev-2 schedule is untouched.
+ */
+function initRev3(seed: number): SnakeState {
+  const base = initRev2(seed);
+  let rng = base.rng;
+  const stars = new Set(base.queue);
+  const taken = (base.rockSlots ?? []).map((slot) => slot.cell);
+  const cells: number[] = [];
+  for (let attempt = 0; attempt < 400 && cells.length < SNAKE_SHOWER_ROCKS; attempt++) {
+    const drawn = rngBelow(rng, (SNAKE_ROWS - 2) * (SNAKE_COLS - 2));
+    rng = drawn.state;
+    const row = 1 + Math.trunc(drawn.value / (SNAKE_COLS - 2));
+    const col = 1 + (drawn.value % (SNAKE_COLS - 2));
+    const candidate = cellOf(row, col);
+    if (stars.has(candidate)) continue;
+    const near = [...taken, ...cells].some((cell) => Math.abs(snakeRow(cell) - row) <= 1 && Math.abs(snakeCol(cell) - col) <= 1);
+    if (!near) cells.push(candidate);
+  }
+  const slots: number[] = [];
+  for (let at = SNAKE_SHOWER_SLOT_FIRST; at + SNAKE_ROCK_SLOT_JITTER < SNAKE_RUN_TICKS; at += SNAKE_SHOWER_SLOT_EVERY) {
+    const jitter = rngBelow(rng, 2 * SNAKE_ROCK_SLOT_JITTER + 1);
+    rng = jitter.state;
+    slots.push(at - SNAKE_ROCK_SLOT_JITTER + jitter.value);
+  }
+  return {
+    ...base,
+    rng,
+    rev: SNAKE_REV,
+    showerCells: cells,
+    showerSlots: slots,
+    showerSlot: 0,
+    showerWarn: [],
+    showerLandTick: 0,
+    showerDone: 0,
   };
 }
 
@@ -252,7 +311,7 @@ export function snakeReversal(dir: number, next: number): boolean {
 }
 
 function step(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
-  return state.rev === SNAKE_REV ? stepRev2(state, input) : stepV1(state, input);
+  return state.rev === SNAKE_REV2 || state.rev === SNAKE_REV ? stepRev2(state, input) : stepV1(state, input);
 }
 
 /** The original rules, byte for byte; snakeRev 2 runs them and then its rocks. */
@@ -352,13 +411,48 @@ function stepRev2(state: SnakeState, input: ArcadeInputEvent | null): SnakeState
   while (slot < slots.length && next.tick >= (slots[slot]?.tick ?? 0) - SNAKE_ROCK_WARN_TICKS) {
     const due = slots[slot]!;
     slot += 1;
-    if (warn < 0 && snakeRocksEarned(next.eaten) > landed.length) {
+    // Shower rocks (rev 3) do not count against the asteroids a meteor has earned.
+    const showerCells = next.showerCells ?? [];
+    const asteroids = showerCells.length > 0 ? landed.filter((cell) => !showerCells.includes(cell)).length : landed.length;
+    if (warn < 0 && snakeRocksEarned(next.eaten) > asteroids) {
       warn = due.cell;
       landTick = due.tick;
     }
   }
   next = { ...next, rocks: landed, rockSlot: slot, rockWarn: warn, rockLandTick: landTick };
+  if (next.rev === SNAKE_REV) next = stepShower(next);
   return next;
+}
+
+/**
+ * snakeRev 3 meteor shower: the first shower moment whose 2 s warning starts once
+ * the meteor has 20 stars drops all three rocks on their fixed squares together.
+ * One shower a run; a shower rock on the head ends the run, on the body does nothing.
+ */
+function stepShower(state: SnakeState): SnakeState {
+  let warn = state.showerWarn ?? [];
+  let landTick = state.showerLandTick ?? 0;
+  let done = state.showerDone ?? 0;
+  let slot = state.showerSlot ?? 0;
+  let rocks = state.rocks ?? [];
+  if (warn.length > 0 && state.tick >= landTick) {
+    rocks = [...rocks, ...warn];
+    const hitHead = warn.includes(state.body[0] ?? -1);
+    warn = [];
+    landTick = 0;
+    if (hitHead) return { ...state, rocks, showerWarn: [], showerLandTick: 0, rockHit: 2, dead: true, endedTick: state.tick };
+  }
+  const slots = state.showerSlots ?? [];
+  while (slot < slots.length && state.tick >= (slots[slot] ?? 0) - SNAKE_ROCK_WARN_TICKS) {
+    const due = slots[slot]!;
+    slot += 1;
+    if (!done && state.eaten >= SNAKE_SHOWER_STARS && (state.showerCells ?? []).length > 0) {
+      warn = [...(state.showerCells ?? [])];
+      landTick = due;
+      done = 1;
+    }
+  }
+  return { ...state, rocks, showerSlot: slot, showerWarn: warn, showerLandTick: landTick, showerDone: done };
 }
 
 function score(state: SnakeState): number {
@@ -408,7 +502,10 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   const snapshot = snakeCheckpointState(state);
   let checksum = 0x811c9dc5;
   // snakeRev 2 folds its rock state into the checksum; the encoded fields stay the same.
-  const extra = state.rev === SNAKE_REV ? [state.rockSlot ?? 0, state.rockWarn ?? -1, ...(state.rocks ?? [])] : [];
+  const extra =
+    state.rev === SNAKE_REV2 || state.rev === SNAKE_REV ? [state.rockSlot ?? 0, state.rockWarn ?? -1, ...(state.rocks ?? [])] : [];
+  // snakeRev 3 adds the shower's progress.
+  if (state.rev === SNAKE_REV) extra.push(state.showerSlot ?? 0, state.showerDone ?? 0, state.showerLandTick ?? 0, ...(state.showerWarn ?? []));
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -519,8 +616,11 @@ export const snakeGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = {
 
 /** snakeRev 2 (asteroids). Same step and score; init adds the room's rock schedule. */
 export const snakeRev2Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, init: initRev2 };
+/** snakeRev 3 (asteroids and the 20-star meteor shower). */
+export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, init: initRev3 };
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
-  return rev === SNAKE_REV ? snakeRev2Game : snakeGame;
+  if (rev === SNAKE_REV) return snakeRev3Game;
+  return rev === SNAKE_REV2 ? snakeRev2Game : snakeGame;
 }

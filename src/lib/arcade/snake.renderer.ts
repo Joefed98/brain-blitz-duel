@@ -234,7 +234,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   if (state.rev) {
     const rocks = state.rocks?.length ?? 0;
     const falling = (state.rockWarn ?? -1) >= 0;
-    retroText(ctx, falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, SNAKE_WORLD_W - 14, 22, 8, falling && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
+    const shower = (state.showerWarn ?? []).length > 0;
+    retroText(ctx, shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, SNAKE_WORLD_W - 14, 22, 8, (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
   }
 }
 
@@ -244,10 +245,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
  * from the state; the rock fills its cell, the head's collision square.
  */
 function drawRocks(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boolean): void {
-  const warn = state.rockWarn ?? -1;
-  if (warn >= 0) {
+  // snakeRev 3: the meteor shower's three shadows use the same warning as a single rock.
+  const falling: [number, number][] = [];
+  if ((state.rockWarn ?? -1) >= 0) falling.push([state.rockWarn!, state.rockLandTick ?? 0]);
+  for (const cell of state.showerWarn ?? []) falling.push([cell, state.showerLandTick ?? 0]);
+  for (const [warn, landTick] of falling) {
     const p = point(warn);
-    const left = Math.max(0, (state.rockLandTick ?? 0) - state.tick);
+    const left = Math.max(0, landTick - state.tick);
     const k = 1 - Math.min(1, left / SNAKE_ROCK_WARN_TICKS);
     const half = SNAKE_CELL / 2 - 1;
     ctx.fillStyle = `rgba(255,59,92,${0.16 + 0.34 * k})`;

@@ -111,7 +111,48 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
-import { matchupParRaw, MATCHUP_WORLD_H, MATCHUP_WORLD_W, type MatchupState } from "./matchup";
+import {
+  matchupIsJackpot,
+  matchupParRaw,
+  MATCHUP_BOARD_X,
+  MATCHUP_BOARD_Y,
+  MATCHUP_CELL_PX,
+  MATCHUP_SIZE,
+  MATCHUP_WORLD_H,
+  MATCHUP_WORLD_W,
+  type MatchupState,
+} from "./matchup";
+
+/**
+ * Where Gemstone's last clear happened: the middle of the cells it cleared. Without
+ * an `at`, effects fall back to the world centre, which is the gem at column 4,
+ * row 4, so every cascade used to sparkle on that one gem.
+ */
+function matchupClearPoint(s: MatchupState): { x: number; y: number } {
+  const cells = s.lastCleared;
+  const centre = (index: number) => ({
+    x: MATCHUP_BOARD_X + ((index % MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+    y: MATCHUP_BOARD_Y + (Math.floor(index / MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+  });
+  if (cells.length === 0) return centre(0);
+  let x = 0, y = 0;
+  for (const index of cells) {
+    const p = centre(index);
+    x += p.x;
+    y += p.y;
+  }
+  return { x: x / cells.length, y: y / cells.length };
+}
+
+/** A Jackpot gem's cell on the board (matchupRev 2+), else the last clear. */
+function matchupJackpotPoint(s: MatchupState): { x: number; y: number } {
+  const index = s.cells.findIndex((kind) => matchupIsJackpot(kind));
+  if (index < 0) return matchupClearPoint(s);
+  return {
+    x: MATCHUP_BOARD_X + ((index % MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+    y: MATCHUP_BOARD_Y + (Math.floor(index / MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+  };
+}
 
 /** Which world each active arcade game belongs to (docs/duelz-game-bank.md). */
 export const ARCADE_GAME_WORLDS = {
@@ -326,6 +367,20 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
         return { x: SNAKE_BOARD_X + snakeCol(rock) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(rock) * SNAKE_CELL - 6 };
       },
       label: () => "DODGED!",
+    },
+    // snakeRev 3 meteor shower: a banner as its shadows appear, a pop when all three land clear of the head.
+    {
+      kind: "streak",
+      count: (s) => s.showerDone ?? 0,
+      at: snakeHead,
+      label: () => "METEOR SHOWER!",
+    },
+    {
+      kind: "perfect",
+      count: (s) => ((s.showerCells ?? []).length > 0 && (s.rocks ?? []).includes(s.showerCells![0]!) ? 1 : 0),
+      when: (s) => !s.dead,
+      at: snakeHead,
+      label: () => "SHOWER DODGED!",
     },
     {
       kind: "final",
@@ -748,12 +803,13 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
       kind: "combo",
       count: (s) => s.cascades,
       when: (s) => s.lastSteps >= 3,
+      at: matchupClearPoint,
       label: (s) => `CASCADE ×${s.lastSteps}`,
     },
-    { kind: "perfect", count: (s) => s.bestLine, min: 5, label: (_s, n) => `${n} IN A LINE!` },
-    // matchupRev 2: a Jackpot gem made (5 and an L/T in one swap) and one set off.
-    { kind: "perfect", count: (s) => s.jackpots ?? 0, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF" },
-    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, label: () => "JACKPOT!" },
+    { kind: "perfect", count: (s) => s.bestLine, min: 5, at: matchupClearPoint, label: (_s, n) => `${n} IN A LINE!` },
+    // matchupRev 2+: a Jackpot gem made (5 and an L/T in one swap) and one set off.
+    { kind: "perfect", count: (s) => s.jackpots ?? 0, at: matchupJackpotPoint, label: () => "JACKPOT GEM!", colour: () => "#FFFFFF" },
+    { kind: "combo", count: (s) => s.jackpotsFired ?? 0, at: matchupClearPoint, label: () => "JACKPOT!" },
     {
       kind: "final",
       count: (s) => (s.raw >= matchupParRaw(s) ? 1 : 0),

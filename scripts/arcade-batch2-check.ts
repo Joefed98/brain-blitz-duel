@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { legacyDigest } from "./arcade-batch2-legacy";
+import { rev2Digest } from "./arcade-batch2-rev2-legacy";
 import {
   snakeCheckpoint,
   snakeCol,
@@ -28,7 +29,11 @@ import {
   SNAKE_COLS,
   SNAKE_INPUT_TURN,
   SNAKE_REV,
+  SNAKE_REV2,
   SNAKE_ROCK_MAX,
+  SNAKE_ROCK_MAX_V3,
+  SNAKE_SHOWER_ROCKS,
+  SNAKE_SHOWER_STARS,
   SNAKE_ROCK_WARN_TICKS,
   SNAKE_ROWS,
   SNAKE_RUN_TICKS,
@@ -84,8 +89,9 @@ import {
   MATCHUP_JACKPOT,
   MATCHUP_REV,
   MATCHUP_SIZE,
-  MATCHUP_V2_PAR_RAW,
-  MATCHUP_V2_STEP_TICKS,
+  MATCHUP_REV2,
+  matchupParRaw,
+  matchupV3StepTicks,
   type MatchupState,
 } from "../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
@@ -112,13 +118,22 @@ section("legacy identity");
   checks += saved.length;
   console.log(`  ${saved.length} unstamped runs (matchup, bubble, snake, hover) identical to the pre-upgrade code`);
 }
+section("rev-2 identity (Gemstone matchupRev 2, Meteor snakeRev 2 as shipped in #15)");
+{
+  const saved = JSON.parse(readFileSync(new URL("./fixtures/arcade-batch2-rev2-legacy.json", import.meta.url), "utf8"));
+  const now = await rev2Digest(new URL("..", import.meta.url).pathname.replace(/\/$/, ""));
+  assert.deepEqual(now, saved, "rev-2 rounds must replay exactly as before");
+  checks += saved.length;
+  console.log(`  ${saved.length} rev-2 runs identical to the code before matchupRev 3 / snakeRev 3`);
+}
 
 /* ================================ 2a. Meteor ================================ */
 if (want("snake")) {
-  section("Meteor snakeRev 2");
+  section("Meteor snakeRev 3 (asteroids + 20-star meteor shower)");
   const game = snakeGameFor(SNAKE_REV);
+  ok(snakeGameFor(SNAKE_REV2).init(5).rev === SNAKE_REV2 && snakeGameFor(SNAKE_REV2).init(5).showerCells === undefined, "rev-2 rounds keep asteroids without a shower");
   ok(snakeGameFor(undefined) === snakeGame && snakeGame.init(5).rev === undefined, "unstamped Meteor keeps the original game");
-  ok(game.init(5).rev === SNAKE_REV, "rev-2 state carries the stamp");
+  ok(game.init(5).rev === SNAKE_REV, "the state carries the current stamp");
   ok(JSON.stringify(game.init(99)) === JSON.stringify(game.init(99)), "rev-2 rock schedule is seeded");
   ok(JSON.stringify(game.init(99).queue) === JSON.stringify(snakeGame.init(99).queue), "rev 2 keeps the original star queue");
   ok(snakeRocksEarned(6) === 0 && snakeRocksEarned(7) === 1 && snakeRocksEarned(11) === 1 && snakeRocksEarned(12) === 2 && snakeRocksEarned(500) === SNAKE_ROCK_MAX, "rocks earned from length 10, then every 5 stars, max 8");
@@ -157,6 +172,7 @@ if (want("snake")) {
     const plan = (s: SnakeState): number => {
       const blocked = new Set<number>(s.rocks ?? []);
       if (avoidShadow && (s.rockWarn ?? -1) >= 0) blocked.add(s.rockWarn!);
+      if (avoidShadow) for (const cell of s.showerWarn ?? []) blocked.add(cell);
       // Body cells free up as the tail moves: cell at index i is free after (length - i) steps.
       const freeAt = new Map<number, number>();
       s.body.forEach((cell, i) => freeAt.set(cell, s.body.length - i));
@@ -212,6 +228,7 @@ if (want("snake")) {
   let best = { seed: 0, score: -1 };
   let rocksSeen = 0;
   let total = 0;
+  let showers = 0;
   const RUNS = SEEDS(30, 15_485_863);
   for (const seed of RUNS) {
     const run = playSnake(seed);
@@ -223,13 +240,53 @@ if (want("snake")) {
     if (run.score > best.score) best = { seed, score: run.score };
     // Every rock that landed did so on its seeded slot square at its seeded tick.
     const slotCells = new Map((run.state.rockSlots ?? []).map((slot) => [slot.cell, slot.tick]));
-    for (const rock of run.state.rocks ?? []) ok(slotCells.has(rock), "every landed rock is on a slot square");
+    for (const rock of run.state.rocks ?? []) ok(slotCells.has(rock) || (run.state.showerCells ?? []).includes(rock), "every landed rock is on a slot or shower square");
+    ok((run.state.rocks ?? []).length <= SNAKE_ROCK_MAX_V3, `at most ${SNAKE_ROCK_MAX_V3} rocks`);
+    if ((run.state.showerCells ?? []).every((cell) => (run.state.rocks ?? []).includes(cell))) showers += 1;
   }
+  ok(showers > 0, `the bot meets the meteor shower (${showers} of ${RUNS.length} runs)`);
   ok(rocksSeen > 0, "the bot meets real rocks");
-  ok(best.score === 150, `150 is reachable on snakeRev 2 through the server replay (best ${best.score} on seed ${best.seed})`);
+  ok(best.score === 150, `150 is reachable on snakeRev 3 through the server replay (best ${best.score} on seed ${best.seed})`);
   console.log(`  bot: mean ${(total / RUNS.length).toFixed(1)}, best ${best.score} (seed ${best.seed}), ${rocksSeen} rocks landed over ${RUNS.length} runs`);
 
-  // Head-only collisions, built directly on a rev-2 state.
+  // The shower's squares and moments, from the seed only.
+  for (const seed of SEEDS(200, 7919)) {
+    const s = game.init(seed);
+    const stars = new Set(s.queue);
+    const cells = s.showerCells ?? [];
+    const slotCells = (s.rockSlots ?? []).map((slot) => slot.cell);
+    ok(cells.length === SNAKE_SHOWER_ROCKS, `seed ${seed}: three shower squares`);
+    cells.forEach((cell, i) => {
+      const r = snakeRow(cell), c = snakeCol(cell);
+      ok(!stars.has(cell), "a shower square never holds a star");
+      ok(r > 0 && r < SNAKE_ROWS - 1 && c > 0 && c < SNAKE_COLS - 1, "shower squares are off the border");
+      for (const other of [...slotCells, ...cells.slice(i + 1)])
+        ok(Math.max(Math.abs(snakeRow(other) - r), Math.abs(snakeCol(other) - c)) >= 2, "shower squares touch no rock square or each other");
+    });
+    for (const t of s.showerSlots ?? []) ok(t - SNAKE_ROCK_WARN_TICKS > 0 && t < SNAKE_RUN_TICKS, "every shower moment has a full warning inside the run");
+    ok(JSON.stringify(s.rockSlots) === JSON.stringify(snakeGameFor(SNAKE_REV2).init(seed).rockSlots), "rev 3 keeps the rev-2 asteroid schedule");
+  }
+  ok(SNAKE_ROCK_MAX_V3 === SNAKE_ROCK_MAX + SNAKE_SHOWER_ROCKS, "rock cap = 8 asteroids + 3 shower rocks = 11");
+  {
+    const base = game.init(4242);
+    const due = base.showerSlots![0]!;
+    const far = cellAway(base.showerCells![0]!);
+    let s: SnakeState = { ...base, eaten: SNAKE_SHOWER_STARS - 1, tick: due - SNAKE_ROCK_WARN_TICKS - 1, body: [far, ...base.body.slice(1)] };
+    s = game.step(s, null);
+    ok((s.showerWarn ?? []).length === 0, "no shower before 20 stars");
+    s = { ...base, eaten: SNAKE_SHOWER_STARS, tick: due - SNAKE_ROCK_WARN_TICKS - 1, sinceMove: 0, body: [far, ...base.body.slice(1)] };
+    s = game.step(s, null);
+    ok(JSON.stringify(s.showerWarn) === JSON.stringify(base.showerCells) && s.showerLandTick === due, "at 20 stars, three shadows appear 2 s before the seeded moment");
+    let landed = { ...s, tick: due - 1, sinceMove: 0, body: [far, ...base.body.slice(1)] } as SnakeState;
+    landed = game.step(landed, null);
+    ok(!landed.dead && base.showerCells!.every((cell) => (landed.rocks ?? []).includes(cell)), "all three shower rocks land together");
+    const onHead = game.step({ ...s, tick: due - 1, sinceMove: 0, body: [base.showerCells![1]!, ...base.body.slice(1)] }, null);
+    ok(onHead.dead && onHead.rockHit === 2, "a shower rock landing on the head ends the run");
+    const again = { ...landed, eaten: 40, showerSlot: 0, tick: base.showerSlots![1]! - SNAKE_ROCK_WARN_TICKS - 1 } as SnakeState;
+    ok((game.step(again, null).showerWarn ?? []).length === 0, "the shower comes only once");
+  }
+
+  // Head-only collisions, built directly on a rev-3 state.
   {
     const base = game.init(4242);
     const head = base.body[0]!;
@@ -467,10 +524,10 @@ if (want("bubble")) {
 
 /* =============================== 2d. Gemstone =============================== */
 if (want("matchup")) {
-  section("Gemstone matchupRev 2");
+  section("Gemstone matchupRev 3 (constant play at the original fall speed)");
   const game = matchupGameFor(MATCHUP_REV);
   ok(matchupGameFor(undefined) === matchupGame && matchupGame.init(5).rev === undefined, "unstamped Gemstone keeps the original game");
-  ok(game.init(5).rev === MATCHUP_REV, "rev-2 state carries the stamp");
+  ok(game.init(5).rev === MATCHUP_REV && matchupGameFor(MATCHUP_REV2).init(5).rev === MATCHUP_REV2, "the state carries the current stamp; rev-2 rounds keep rev 2");
   ok(JSON.stringify(game.init(5).queues) === JSON.stringify(matchupGame.init(5).queues), "rev 2 keeps the same board and refill queues");
 
   // A board with no lines where swapping (2,2)<->(3,2) makes a 5-line in row 3 and a 3-line down column 2 (a T).
@@ -505,7 +562,7 @@ if (want("matchup")) {
     s = game.step(s, { t: s.tick + 1, k: MATCHUP_INPUT_SWAP, a: r, b: c, c: nr, d: c });
     ok(s.jackpotsFired === 1, "swapping a Jackpot sets it off");
     ok(s.raw - before >= 10 * Math.max(colourCount, MATCHUP_SIZE + 7), `it clears its colour plus a cross (+${s.raw - before} points)`);
-    ok(s.raw - before < MATCHUP_V2_PAR_RAW / 10, "one Jackpot is worth well under a tenth of the par (it cannot make 150 alone)");
+    ok(s.raw - before < matchupParRaw(s) / 10, "one Jackpot is worth well under a tenth of the par (it cannot make 150 alone)");
   }
   // Constant play: swaps land while a cascade is still to resolve, and replay identically.
   {
@@ -529,8 +586,8 @@ if (want("matchup")) {
       }
     }
     ok(pendingSwaps > 0, `swaps are accepted while gems are still clearing (${pendingSwaps} in the sample)`);
-    ok(best === 150, "150 is reachable on matchupRev 2 through the server replay");
-    // Cascade steps resolve MATCHUP_V2_STEP_TICKS apart, on sim ticks.
+    ok(best === 150, "150 is reachable on matchupRev 3 through the server replay");
+    // Cascade steps wait for the previous step's original-speed fall (rev 3), on sim ticks.
     let s = game.init(4242);
     let lastStep = -1;
     for (const e of playMatchup(game, 4242, 40).events) {
@@ -538,7 +595,7 @@ if (want("matchup")) {
         const serial = s.resolveSerial ?? 0;
         s = game.step(s, null);
         if ((s.resolveSerial ?? 0) > serial) {
-          if (lastStep >= 0) ok(s.tick - lastStep >= MATCHUP_V2_STEP_TICKS, "cascade steps are spaced on the sim clock");
+          if (lastStep >= 0) ok(s.tick - lastStep >= matchupV3StepTicks(1, false), "cascade steps wait for the original fall");
           lastStep = s.tick;
         }
       }
@@ -550,11 +607,11 @@ if (want("matchup")) {
     const N = 8;
     let v1 = 0, v2 = 0;
     for (const seed of SEEDS(N, 7919)) {
-      v1 += playMatchup(matchupGame, seed, 60).score;
-      v2 += playMatchup(game, seed, 60).score;
+      v1 += playMatchup(matchupGame, seed, 66).score;
+      v2 += playMatchup(game, seed, 66).score;
     }
-    console.log(`  swap bot (1 s think), ${N} seeds: original mean ${(v1 / N).toFixed(1)}, rev 2 mean ${(v2 / N).toFixed(1)} (par ${MATCHUP_V2_PAR_RAW})`);
-    ok(Math.abs(v2 - v1) / N <= 15, "at the same pace rev 2 stays within 15 points of the original (rebalanced par)");
+    console.log(`  swap bot (1.1 s think), ${N} seeds: original mean ${(v1 / N).toFixed(1)}, rev 3 mean ${(v2 / N).toFixed(1)} (par ${matchupParRaw(game.init(1))})`);
+    ok(Math.abs(v2 - v1) / N <= 15, "at the same pace rev 3 stays within 15 points of the original (rebalanced par)");
   }
 }
 
