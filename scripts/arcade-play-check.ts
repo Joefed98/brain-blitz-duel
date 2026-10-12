@@ -57,15 +57,17 @@ const EXTRACT = String.raw`
   let reset = "";
   switch (game) {
     case "hover": P.push(["disc", 0, fp(s.y)]); reset = s.crashed; break;
-    case "breaker": P.push(["paddle", s.paddleX, 0]); s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
-    case "rally": P.push(["paddle", s.paddleX, 0], ["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
+    // Listed exception: finger-driven paddles and ships sit under the finger by design (the sim
+    // sets them to the drag x, so a new touch elsewhere moves them at once); only physics bodies are tracked.
+    case "breaker": s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
+    case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
     case "burst": P.push(["player", fp(s.x), 0]); s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.wave + ":" + s.lives; break;
-    case "wavefront": P.push(["ship", s.shipX, 0]); reset = s.lives + ":" + s.wave; break;
+    case "wavefront": break; // the ship is finger-driven (see breaker); invaders step on a grid
     case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur; break;
     case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
-    case "bubble": P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents; break;
+    case "bubble": if (s.flightColour) P.push(["shot", fp(s.x), fp(s.y)]); reset = s.shots + ":" + s.descents + ":" + s.flightColour; break;
     case "swing": P.push(["player", fp(s.x), fp(s.y)]); reset = s.ended; break;
     case "snip": P.push(["candy", fp(s.sx), fp(s.sy)]); reset = s.eaten + ":" + s.level; break;
     case "tilt": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.level + ":" + s.mazes + ":" + s.caught; break;
