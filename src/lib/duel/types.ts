@@ -2254,6 +2254,8 @@ export interface TiltPuzzleData {
   type: "tilt";
   /** Draws every maze — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups); absent = original rules. */
+  tiltRev?: number;
 }
 
 export interface HotFloorPuzzleData {

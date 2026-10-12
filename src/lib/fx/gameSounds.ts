@@ -336,7 +336,9 @@ export function tiltSounds(): GameSounds<TiltState> {
       if (prev && state.tick > prev.tick) {
         if (state.caught && !prev.caught) playSound("arc_crash");
         if (state.mazes > prev.mazes) playSound("arc_marble_clink");
-        else if (state.level === prev.level) {
+        else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) playSound("arc_marble_clink", 0.7);
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_leaf_collect", 0.8);
+        if (state.mazes === prev.mazes && state.level === prev.level) {
           if (state.gate && !prev.gate) playSound("arc_latch");
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
           const hitY = Math.abs(prev.vy) > TILT_KNOCK_SPEED && state.vy === 0;

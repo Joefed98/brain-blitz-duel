@@ -1,3 +1,4 @@
+import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
@@ -1409,7 +1410,9 @@ const tiltSummary: SummaryBuilder = (result) => {
         : survived
           ? `${head} · survived`
           : `${head} · ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
-    detail: ["30 per maze · all four = 130 + up to 20 for time left", "Same mazes for everyone"],
+    detail: result.extra?.["tiltRev"]
+      ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars · ${TILT_V2_MAZE_POINTS} per maze, ${TILT_V2_STAR_POINTS} per star, all four + up to ${TILT_V2_FINISH_BONUS} for time left`, "Same mazes for everyone"]
+      : ["30 per maze · all four = 130 + up to 20 for time left", "Same mazes for everyone"],
   };
 };
 

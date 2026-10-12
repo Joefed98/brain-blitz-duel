@@ -1622,7 +1622,7 @@ export function gradeSubmission(
     }
     case "tilt": {
       const replayStart = performance.now();
-      const run = replayTiltRun(puzzle.seed, answer);
+      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1632,6 +1632,7 @@ export function gradeSubmission(
       score = run.score;
       extraDetail = {
         mazes: run.mazes,
+        ...(puzzle.tiltRev ? { tiltRev: puzzle.tiltRev, stars: run.stars, totalStars: run.totalStars } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

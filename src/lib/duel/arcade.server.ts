@@ -7,6 +7,7 @@ import { BUB_REV } from "@/lib/arcade/bubble";
 import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { SKYLINE_REV } from "@/lib/arcade/skyline";
+import { TILT_REV } from "@/lib/arcade/tilt";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
@@ -204,7 +205,7 @@ export function generateSwing(): SwingPuzzleData {
 }
 
 export function generateTilt(): TiltPuzzleData {
-  return { type: "tilt", seed: arcadeSeed() };
+  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

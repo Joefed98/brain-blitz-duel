@@ -6,6 +6,14 @@ import {
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
 } from "@/lib/arcade/skyline";
+import {
+  TILT_STARS_PER_MAZE,
+  TILT_TWO_FROM,
+  TILT_V2_FINISH_BONUS,
+  TILT_V2_MAZE_POINTS,
+  TILT_V2_PARTIAL_MAX,
+  TILT_V2_STAR_POINTS,
+} from "@/lib/arcade/tilt";
 import { BUB_JOKER_BLOCK, BUB_SPECIAL_BLOCK, BUB_V2_PARTIAL } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
@@ -841,13 +849,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "130 × metres ÷ 500; reaching 500 m = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
   },
   tilt: {
-    goal: "Roll the ball into the blue cup.",
+    goal: "Roll each marble into its own cup.",
     how: [
-      { action: "Drag left or right to spin the maze", detail: "- the ball always rolls down." },
-      { action: "Each escape brings a harder maze.", detail: "Dark holes end the run." },
-      { action: "From maze 2 the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends." },
+      { action: "Drag left or right", detail: "to spin the maze." },
+      { action: "Gold stars sit off the route:", detail: "bonus detours." },
+      { action: `From maze ${TILT_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
+      { action: "Marbles always roll down.", detail: "Each finished maze brings a harder one; dark holes end the run.", helpOnly: true },
+      { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
+      { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the end of side passages. Roll either marble over one to collect it.`, helpOnly: true },
+      { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free - it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: "Four mazes, 30 each. All four = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left.",
+    score: `${TILT_V2_MAZE_POINTS} per maze and ${TILT_V2_STAR_POINTS} per bonus star. Finish all four mazes for up to ${TILT_V2_FINISH_BONUS} more for speed: the full ${TILT_V2_FINISH_BONUS} if you finish with at least half the time left. Capped at 150; without finishing all four, at most ${TILT_V2_PARTIAL_MAX}.`,
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",

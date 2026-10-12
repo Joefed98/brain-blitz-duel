@@ -1,15 +1,15 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { tiltArtGame } from "@/lib/arcade/tiltArt.renderer";
+import { tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
 
 import {
   tiltCheckpoint,
-  tiltGame,
   TILT_BG,
   TILT_CHECKPOINT_INTERVAL,
   TILT_GOLD,
   TILT_RED,
+  TILT_REV,
   TILT_TEAL,
   TILT_WORLD_H,
   TILT_WORLD_W,
@@ -33,7 +33,7 @@ function IntroExample() {
           <circle cx={95} cy={100} r={6} fill={TILT_GOLD} />
         </g>
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Spin the maze so the ball rolls into the blue cup.</p>
+      <p className="text-center text-xs text-muted-foreground">Spin the maze so each marble rolls into its own cup. Gold stars are bonus detours.</p>
     </div>
   );
 }
@@ -52,7 +52,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={TILT_WORLD_W}
       worldH={TILT_WORLD_H}
       renderAtCanvasSize
-      game={tiltArtGame}
+      game={tiltArtGameFor(data?.tiltRev)}
       sounds={tiltSounds}
       checkpoint={tiltCheckpoint}
       interval={TILT_CHECKPOINT_INTERVAL}
@@ -75,12 +75,17 @@ export function tiltLine(r: { mazes: number; survived: boolean; survivedSeconds:
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tilt") return null;
-  const result = replayTiltRun(puzzle.seed, myAnswer ?? "");
+  const result = replayTiltRun(puzzle.seed, myAnswer ?? "", puzzle.tiltRev);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {tiltLine(result)}
       </p>
+      {result.totalStars > 0 && (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.stars} / {result.totalStars} bonus stars
+        </p>
+      )}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same mazes for everyone</p>
     </div>
   );
@@ -93,7 +98,7 @@ export const tiltPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: TILT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "tilt", seed: 1 }) satisfies TiltPuzzleData,
+  generate: () => ({ type: "tilt", seed: 1, tiltRev: TILT_REV }) satisfies TiltPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

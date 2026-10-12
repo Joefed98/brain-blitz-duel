@@ -76,7 +76,7 @@ const { bubbleRev2Game } = await import("../src/lib/arcade/bubble");
 const { flipArtGameFor } = await import("../src/lib/arcade/flipArt.renderer");
 const { swingArtGame } = await import("../src/lib/arcade/swing.renderer");
 const { snipArtGame } = await import("../src/lib/arcade/snip.renderer");
-const { tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
+const { tiltRev2ArtGame: tiltArtGame } = await import("../src/lib/arcade/tiltArt.renderer");
 const { btArtDraw } = await import("../src/lib/arcade/ballTrackArt.renderer");
 const { makeBallTrackGame } = await import("../src/lib/arcade/ballTrack");
 const { BALL_TRACK_BANK } = await import("../src/lib/duel/ballTrackBank.server");
@@ -331,7 +331,12 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, eaten: s.eaten + 1 }),
     (s) => ({ ...s, eaten: 10 }),
   ],
-  tilt: [(s) => ({ ...s, mazes: s.mazes + 1 }), (s) => ({ ...s, mazes: 4 })],
+  tilt: [
+    (s) => ({ ...s, mazes: s.mazes + 1 }),
+    (s) => ({ ...s, mazes: 4 }),
+    (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
+    (s) => ({ ...s, b: { x: s.x, y: s.y, vx: 0, vy: 0 }, aHome: 1, bHome: 0 }),
+  ],
   balltrack: [
     (s) => ({ ...s, home: s.home + 5 }),
     (s) => ({ ...s, home: 30 }),

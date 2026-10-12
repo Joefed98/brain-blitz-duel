@@ -786,8 +786,28 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
       count: (s) => (s.mazes >= TILT_MAX_MAZES ? 1 : 0),
       label: () => "ALL 4 MAZES!",
     },
+    // tiltRev 2 (original rounds keep these at 0 / undefined): a bonus star, the first marble in its cup.
+    { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAt(s), label: () => "BONUS STAR!" },
+    {
+      kind: "pop",
+      count: (s) => (s.b ? (s.aHome ?? 0) + (s.bHome ?? 0) : 0),
+      when: (s) => !(s.aHome && s.bHome),
+      at: () => ({ x: TILT_WORLD_W / 2, y: 60 }),
+      label: (s) => (s.aHome ? "BLUE IN! NOW THE AMBER" : "AMBER IN! NOW THE BLUE"),
+    },
   ],
 };
+
+/** World point of the marble nearest the last star taken (rotated maze frame → screen), tiltRev 2. */
+function tiltMarbleAt(s: TiltState): { x: number; y: number } {
+  const m = s.list[Math.min(s.level, s.list.length - 1)]!;
+  const o = (m.n * m.cs) / 2;
+  const a = (s.angle / 65536) * Math.PI * 2;
+  const ball = !s.aHome || !s.b ? { x: s.x, y: s.y } : s.b;
+  const lx = (ball.x - o) / 256;
+  const ly = (ball.y - o) / 256;
+  return { x: 220 + Math.cos(a) * lx - Math.sin(a) * ly, y: 254 + Math.sin(a) * lx + Math.cos(a) * ly };
+}
 
 export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   game: "balltrack",

@@ -34,6 +34,22 @@ import {
   type SkylineState,
 } from "../src/lib/arcade/skyline";
 import { encodeSkylineRun, replaySkylineRun } from "../src/lib/duel/skyline";
+import {
+  tiltCheckpoint,
+  tiltGame,
+  tiltGameFor,
+  tiltRev2Score,
+  tiltTotalStars,
+  TILT_MAX_MAZES,
+  TILT_REV,
+  TILT_RUN_TICKS,
+  TILT_STARS_PER_MAZE,
+  TILT_TWO_FROM,
+  TILT_V2_PARTIAL_MAX,
+  type TiltState,
+} from "../src/lib/arcade/tilt";
+import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
+import { playTilt } from "./tilt-bot";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -161,9 +177,77 @@ if (want("skyline")) {
   ok(stale.state.rev === undefined, "an unstamped replay never picks up the new rules");
 }
 
+
+/* ================================= 2b. Tilt ================================= */
+if (want("tilt")) {
+  section("Tilt tiltRev 2 (bonus stars, two marbles from maze 3, rimmed cups)");
+  const game = tiltGameFor(TILT_REV);
+  ok(tiltGameFor(undefined) === tiltGame && tiltGame.init(5).rev === undefined, "unstamped Tilt keeps the original game");
+  ok(game.init(5).rev === TILT_REV, "the state carries the stamp");
+  ok(JSON.stringify(game.init(99)) === JSON.stringify(game.init(99)), "stars, amber starts and cups are seeded");
+  const DX = [1, 0, -1, 0];
+  const DY = [0, 1, 0, -1];
+  for (const seed of SEEDS(30)) {
+    const v1 = tiltGame.init(seed);
+    const s0 = game.init(seed);
+    ok(s0.list.length === TILT_MAX_MAZES, "four mazes");
+    s0.list.forEach((m, i) => {
+      const o = v1.list[i]!;
+      ok(JSON.stringify([m.n, m.wallR, m.wallD, m.pits, m.start, m.exit, m.exitDir]) === JSON.stringify([o.n, o.wallR, o.wallD, o.pits, o.start, o.exit, o.exitDir]), `seed ${seed} maze ${i + 1}: same walls, holes and blue cup as the original`);
+      ok((m.stars ?? []).length === TILT_STARS_PER_MAZE, `seed ${seed} maze ${i + 1}: ${TILT_STARS_PER_MAZE} stars`);
+      for (const c of m.stars ?? []) {
+        let open = 0;
+        for (let d = 0; d < 4; d++) {
+          const ni = (c % m.n) + DX[d]!;
+          const nj = Math.trunc(c / m.n) + DY[d]!;
+          if (ni < 0 || nj < 0 || ni >= m.n || nj >= m.n || !m.inside[nj * m.n + ni]) continue;
+          const nc = nj * m.n + ni;
+          const wall = d === 0 ? m.wallR[c] : d === 1 ? m.wallD[c] : d === 2 ? m.wallR[nc] : m.wallD[nc];
+          if (!wall) open += 1;
+        }
+        ok(open === 1 && !m.pits.includes(c) && c !== m.start && c !== m.start2 && c !== m.exit && c !== m.exit2, "each star sits at the end of a side passage, never on a hole, start or cup cell");
+      }
+      const two = i + 1 >= TILT_TWO_FROM;
+      ok(two ? (m.start2 ?? -1) >= 0 && (m.exit2 ?? -1) >= 0 && m.exit2 !== m.exit && m.crevice < 0 : (m.start2 ?? -1) < 0, `seed ${seed} maze ${i + 1}: ${two ? "two marbles, two cups, no chaser" : "one marble"}`);
+      if (two) ok(!m.pits.includes(m.start2!) && !m.pits.includes(m.exit2!) && m.start2 !== m.start, "the amber marble starts on its own safe cell and its cup is not on a hole");
+      if (i === 1) ok(m.crevice === o.crevice, "maze 2 keeps the original red chaser");
+    });
+    ok(tiltTotalStars(s0) === TILT_MAX_MAZES * TILT_STARS_PER_MAZE, "eight stars in all");
+  }
+  // Each marble leaves only through its own cup: put the blue marble at the amber exit, rolling out.
+  {
+    const s0 = game.init(4242);
+    const m = s0.list[2]!;
+    const at = { x: (m.exit2! % m.n) * m.cs + (m.cs >> 1), y: Math.trunc(m.exit2! / m.n) * m.cs + (m.cs >> 1) };
+    const angle = [16384, 0, 49152, 32768][m.exitDir2!]!;
+    let s: TiltState = { ...s0, level: 2, x: at.x, y: at.y, vx: 0, vy: 0, angle, b: { x: (m.start2! % m.n) * m.cs + (m.cs >> 1), y: Math.trunc(m.start2! / m.n) * m.cs + (m.cs >> 1), vx: 0, vy: 0 }, aHome: 0, bHome: 0, chaser: null, starGot: [0, 0] };
+    for (let k = 0; k < 120; k++) s = game.step(s, null);
+    ok(!s.aHome && s.level === 2, "the blue marble cannot leave through the amber cup's gap");
+    let t: TiltState = { ...s, b: { x: at.x, y: at.y, vx: 0, vy: 0 } };
+    for (let k = 0; k < 120 && !t.bHome; k++) t = game.step(t, null);
+    ok(t.bHome === 1, "the amber marble drops into its own cup");
+  }
+  // Scoring: the partial maximum stays at or under 130; 150 needs all four mazes.
+  ok(TILT_V2_PARTIAL_MAX <= 130, `unfinished maximum ${TILT_V2_PARTIAL_MAX} ≤ 130`);
+  ok(tiltRev2Score(TILT_MAX_MAZES - 1, TILT_MAX_MAZES * TILT_STARS_PER_MAZE, TILT_RUN_TICKS) === TILT_V2_PARTIAL_MAX, "three mazes and every star scores exactly the stated partial maximum");
+  ok(tiltRev2Score(TILT_MAX_MAZES, 0, TILT_RUN_TICKS) < 150, "150 needs more than finishing at the buzzer");
+  let best = 0;
+  for (const seed of [1, 77, 5]) {
+    const run = playTilt(game, seed, { horizon: 36 });
+    const score = game.score(run.state);
+    const raw = encodeTiltRun({ seed, claimedScore: score, events: run.events, endTick: run.state.tick, checkpoints: run.checkpoints });
+    const replay = replayTiltRun(seed, raw, TILT_REV);
+    ok(replay.score === score && !replay.flagged && JSON.stringify(replay.state) === JSON.stringify(run.state), `seed ${seed}: server replay agrees (${score}, ${run.state.mazes} mazes, ${run.state.stars} stars)`);
+    ok(run.state.mazes === TILT_MAX_MAZES, `seed ${seed}: the bot (4°/tick drags) finishes all four mazes`);
+    best = Math.max(best, replay.score);
+  }
+  ok(best === 150, "150 is reachable on tiltRev 2 through the server replay");
+  void tiltCheckpoint;
+}
+
 /* ============================ 3. Intro text rules ============================ */
 section("intro text");
-for (const type of (["skyline"] as const).filter(want)) {
+for (const type of (["skyline", "tilt"] as const).filter(want)) {
   const help = PUZZLE_INSTRUCTIONS[type];
   const intro = help.how.filter((line) => !line.helpOnly);
   ok(intro.length <= 3, `${type}: intro HOW has at most three lines (${intro.length})`);
@@ -173,5 +257,6 @@ for (const type of (["skyline"] as const).filter(want)) {
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters (${INTRO_SCORE[type].length})`);
 }
 if (want("skyline")) ok(/up to 150/i.test(INTRO_SCORE.skyline), "High Rise intro states the 150 maximum the bot reaches");
+if (want("tilt")) ok(INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && /up to 150/.test(INTRO_SCORE.tilt), "Tilt intro states the real partial maximum and the 150");
 
 console.log(`arcade batch 4: ${checks} checks passed`);

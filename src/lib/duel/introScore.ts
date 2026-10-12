@@ -7,7 +7,7 @@ import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
-import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
+import { TILT_MAX_MAZES, TILT_V2_MAZE_POINTS, TILT_V2_PARTIAL_MAX, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { RALLY_GOLD_POINTS } from "@/lib/arcade/rally";
 import { SNAKE_PELLET_POINTS } from "@/lib/arcade/snake";
 import { BUB_V2_PARTIAL_MAX } from "@/lib/arcade/bubble";
@@ -149,7 +149,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
   snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),
-  tilt: arcadeSplit("each maze", `Finish all ${TILT_MAX_MAZES} mazes`, 90),
+  tilt: `${TILT_V2_MAZE_POINTS} per maze, ${TILT_V2_STAR_POINTS} per star; finish all ${TILT_MAX_MAZES} fast for up to 150. Otherwise up to ${TILT_V2_PARTIAL_MAX}.`,
   balltrack: arcadeSplit("each marble home", `Get all ${BT_BALLS} marbles home`, 126),
   swerve: arcadeOpen("each coin you collect"),
   dual: "The longer both runners survive, the more you score. The full minute is 150.",

@@ -305,9 +305,10 @@ const BUILDERS: Record<string, Builder> = {
     const done = n(r, "mazes") >= 4;
     return {
       axis: { value: n(r, "mazes"), max: 4, label: "Mazes" },
-      lines: [head(`${n(r, "mazes")} / 4 mazes`, s, done)],
+      lines: [n(r, "tiltRev") > 0 ? `${n(r, "mazes")} / 4 mazes · ${n(r, "stars")} / ${n(r, "totalStars")} stars → ${s}` : head(`${n(r, "mazes")} / 4 mazes`, s, done)],
       tiles: [
         { label: "Mazes", value: `${n(r, "mazes")} / 4` },
+        ...(n(r, "tiltRev") > 0 ? [{ label: "Stars", value: `${n(r, "stars")} / ${n(r, "totalStars")}` }] : []),
         { label: b(r, "caught") ? "Caught at" : b(r, "survived") ? "Time" : "Pit at", value: sec(n(r, "survivedSeconds")) },
       ],
       outcome: done ? "finish" : ended(r, false),
