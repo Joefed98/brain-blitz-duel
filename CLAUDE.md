@@ -57,7 +57,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- Baseline (11 Oct 2026, full deps, after the batch-1 arcade upgrades): 88 of 88
+- Baseline (12 Oct 2026, full deps, batch-1 arcade upgrades merged with main): 92 of 92
   pass, 0 fail, 0 timeout (the default run; the two `--include-optional` checks are
   extra). Slowest: snip-check ~660 s (1,800 s limit); puzzle-bank ~200 s;
   burst-swing-score, arcade-self-replay, ink-live, ink-live-bottom and orbit-camera
