@@ -145,7 +145,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   flip: "Up to 130 for lasting the full minute, plus 2 for each gold star. Up to 150.",
   junction: "2 per car, 4 per ambulance, 40 for lasting the minute. A stopped ambulance: lose 4.",
   inkbridge: arcadeSplit("each level", `Finish all ${INK_LEVELS} levels`, 99),
-  burst: "Points for each atom you destroy or split. Clear four waves without losing a life for 150.",
+  burst: "150: all 90 s, no life lost, 4+ waves cleared. Else 2 an atom, −9 a life, up to 130.",
   orbit: arcadeSplit("each planet you reach", "Reach the sun", 117),
   snip: `${SNIP_CONFIG.pointsPerSweet} points for each apple and ${SNIP_CONFIG.pointsPerStar} for each leaf. Collect all ${SNIP_CONFIG.levels} quickly for more.`,
   swing: arcadeSplit("how far you swing", `Reach ${SWING_FINISH_M} metres`),

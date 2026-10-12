@@ -8,6 +8,8 @@ import { MATCHUP_REV } from "@/lib/arcade/matchup";
 import { SNIP_REV } from "@/lib/arcade/snip";
 import { BINTOSS_REV } from "@/lib/arcade/binToss";
 import { SWING_REV } from "@/lib/arcade/swing";
+import { BURST_REV } from "@/lib/arcade/burst";
+import { BRK_REV } from "@/lib/arcade/breaker";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
 import { orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -101,7 +103,7 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed() };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV };
 }
 
 export function generateRally(): RallyPuzzleData {
@@ -173,7 +175,7 @@ export function generateInkBridge(): InkBridgePuzzleData {
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed() };
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV };
 }
 
 export function generateOrbit(): OrbitPuzzleData {

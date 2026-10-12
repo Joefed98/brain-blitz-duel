@@ -112,12 +112,13 @@ const BUILDERS: Record<string, Builder> = {
   breaker: (r, s) => {
     const done = b(r, "cleared");
     return {
-      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks" },
+      axis: { value: n(r, "destroyed"), max: 80, label: "Bricks destroyed" },
       lines: [head(`${n(r, "destroyed")} / 80 bricks`, s, done)],
       tiles: [
         { label: "Power-ups", value: String(n(r, "powerUps")) },
         { label: "Balls lost", value: String(n(r, "losses")) },
-        { label: "Brick hits", value: String(n(r, "totalHits")) },
+        // Hits this run landed (was the wall's total hit points, e.g. 130 for 6 bricks destroyed).
+        { label: "Brick hits", value: String(n(r, "hits")) },
       ],
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
@@ -255,10 +256,18 @@ const BUILDERS: Record<string, Builder> = {
   },
   burst: (r, s) => ({
     axis: { value: Math.max(1, n(r, "wave")), max: null, label: "Waves" },
-    lines: [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} atoms → ${s}`],
+    lines:
+      n(r, "burstRev") > 0
+        ? [
+            s === 150 && n(r, "livesLost") === 0
+              ? `Full 90 s, no life lost, ${n(r, "cleared")} waves cleared → 150`
+              : `${n(r, "hits")} atoms × 2 − ${n(r, "livesLost")} lives × 9 (up to 130) → ${s}`,
+          ]
+        : [`Wave ${Math.max(1, n(r, "wave"))} · ${n(r, "hits")} atoms → ${s}`],
     tiles: [
       { label: "Atoms", value: String(n(r, "hits")) },
       { label: "Lives lost", value: String(n(r, "livesLost")) },
+      ...(n(r, "burstRev") > 0 ? [{ label: "Waves cleared", value: String(n(r, "cleared")) }, { label: "Freezes", value: String(n(r, "freezes")) }] : []),
     ],
     outcome: ended(r, false),
   }),

@@ -22,7 +22,7 @@ import {
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { beatCheckpoint, beatGame } from "@/lib/arcade/beat";
 import { binTossCheckpoint, binTossGame } from "@/lib/arcade/binToss";
-import { brkCheckpoint, breakerGame } from "@/lib/arcade/breaker";
+import { brkCheckpoint, breakerGame, breakerGameFor, BRK_REV } from "@/lib/arcade/breaker";
 import { bubCheckpoint, bubbleGame, bubbleGameFor, BUB_REV } from "@/lib/arcade/bubble";
 import {
   bullseyeCheckpoint,
@@ -73,7 +73,7 @@ import { juncCheckpoint, junctionGame } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { inkBridgeGame, inkCheckpoint } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
-import { burstCheckpoint, burstGame } from "@/lib/arcade/burst";
+import { burstCheckpoint, burstGame, burstGameFor, BURST_REV } from "@/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
@@ -235,6 +235,7 @@ const GAMES: Game[] = [
     encode: encodeBreakerRun,
     replay: replayBreakerRun,
   },
+  { key: "breaker/v2", game: breakerGameFor(BRK_REV), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV) },
   {
     key: "rally",
     game: rallyGame,
@@ -313,6 +314,7 @@ const GAMES: Game[] = [
   { key: "junction", game: junctionGame, checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: replayJunctionRun },
   { key: "inkbridge", game: inkBridgeGame, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: replayInkBridgeRun },
   { key: "burst", game: burstGame, checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: replayBurstRun },
+  { key: "burst/v2", game: burstGameFor(BURST_REV), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, BURST_REV) },
   { key: "orbit", game: orbitGame, checkpoint: orbitCheckpoint, mode: "events", rate: 25, encode: encodeOrbitRun, replay: replayOrbitRun },
   { key: "swing", game: swingGame, checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: replaySwingRun },
   { key: "tilt", game: tiltGame, checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: replayTiltRun },

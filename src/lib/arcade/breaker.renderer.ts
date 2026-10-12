@@ -4,7 +4,14 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { BREAKER_FX } from "./arcadeFxGames.renderer";
 import {
   breakerGame,
+  breakerGameFor,
   brkDestroyed,
+  brkRowOffset,
+  BRK_FIRE_TICKS,
+  BRK_POWER_FIRE,
+  BRK_REV,
+  BRK_ROWS,
+  BRK_SLIDE_AMP,
   brkPaddleColumn,
   BRK_BALL_R,
   BRK_BRICK_H,
@@ -57,7 +64,23 @@ const RAINBOW = [
   "#5CD0FF", // Blue
   "#C59CFF", // Violet
 ];
-const powerColour = (power: number): string => power === BRK_POWER_LASER ? LASER : BRK_POWER_COLOURS[power] ?? PADDLE;
+/** brkRev 2 Fireball: flame orange. */
+const FIRE = "#FF6A2B";
+const powerColour = (power: number): string =>
+  power === BRK_POWER_LASER ? LASER : power === BRK_POWER_FIRE ? FIRE : BRK_POWER_COLOURS[power] ?? PADDLE;
+/** Capsule text says what it holds: ×2 balls, ×5 (×3 on brkRev 2) shots, L laser; the Fireball draws a flame. */
+function capsuleLabel(state: BrkState, kind: number): string {
+  if (kind === BRK_POWER_MULTI) return "x2";
+  if (kind === BRK_POWER_SPAM) return state.rev === BRK_REV ? "x3" : "x5";
+  return "L";
+}
+/** A small pixel flame centred on (cx, cy), inside a 10 × 10 box. */
+function pixelFlame(ctx: CanvasRenderingContext2D, cx: number, cy: number, colour: string): void {
+  const rows = ["..X..", ".XX..", ".XXX.", "XXXX.", "XX.XX", ".XXX."];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) if (row[x] === "X") pixelRect(ctx, cx - 5 + x * 2, cy - 6 + y * 2, 2, 2, colour);
+  });
+}
 const BURST_MS = 320;
 
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
@@ -104,10 +127,12 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
   retroScreen(ctx, size, BRK_WORLD_W, BRK_WORLD_H, "stretch", (c) => arcadeFx(c, BREAKER_FX, state, () => drawWorld(c, state, ctx)));
 }
 
-function brickXY(index: number) {
+/** A brick's top-left in world px; brkRev 2 sliding rows carry their sim offset at the drawn tick. */
+function brickXY(index: number, state?: BrkState) {
+  const row = Math.trunc(index / BRK_COLS);
   return {
-    x: BRK_WALL_X + (index % BRK_COLS) * BRK_BRICK_W,
-    y: BRK_WALL_Y + Math.trunc(index / BRK_COLS) * BRK_ROW_PITCH,
+    x: BRK_WALL_X + (index % BRK_COLS) * BRK_BRICK_W + (state ? brkRowOffset(state, row, state.tick) : 0),
+    y: BRK_WALL_Y + row * BRK_ROW_PITCH,
   };
 }
 
@@ -136,9 +161,22 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   pixelRect(ctx, BRK_WALL - 2, BRK_HUD_H + BRK_WALL - 2, 2, BRK_WORLD_H, wallColour);
   pixelRect(ctx, BRK_WORLD_W - BRK_WALL, BRK_HUD_H + BRK_WALL - 2, 2, BRK_WORLD_H, wallColour);
 
+  // brkRev 2: a faint rail under each sliding row, end stops at its full sweep; bricks clip at the walls.
+  for (const row of state.slide ?? []) {
+    const y = BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H + 1;
+    pixelRect(ctx, BRK_WALL, y, BRK_WORLD_W - 2 * BRK_WALL, 2, "rgba(255,255,255,0.12)");
+    for (const x of [BRK_WALL_X - BRK_SLIDE_AMP, BRK_WORLD_W - BRK_WALL_X + BRK_SLIDE_AMP - 2])
+      if (x >= BRK_WALL && x <= BRK_WORLD_W - BRK_WALL - 2) pixelRect(ctx, x, y - 2, 2, 4, "rgba(255,255,255,0.3)");
+  }
+  ctx.save();
+  if (state.slide) {
+    ctx.beginPath();
+    ctx.rect(BRK_WALL, BRK_HUD_H + BRK_WALL, BRK_WORLD_W - 2 * BRK_WALL, BRK_WORLD_H);
+    ctx.clip();
+  }
   state.bricks.forEach((left, index) => {
     if (left <= 0) return;
-    const { x, y } = brickXY(index);
+    const { x, y } = brickXY(index, state);
     const power = (state.gold[index] ?? 0) - 1;
     const colour = brickColour(state, index, left);
     const taken = (state.maxHp[index] ?? 1) - left;
@@ -147,15 +185,22 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     if (sprite) {
       ctx.drawImage(sprite, x, y);
     }
+    if (power === BRK_POWER_FIRE) pixelFlame(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2 + 1, FIRE);
   });
+  ctx.restore();
 
   for (const d of m.deaths) {
-    const { x, y } = brickXY(d.index);
+    const { x, y } = brickXY(d.index, state);
     const colour = brickColour(state, d.index, state.maxHp[d.index] ?? 1);
     retroBurst(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, (now - d.at) / BURST_MS, colour, 16);
   }
 
-  if (state.beam > 0) {
+  if (state.beam > 0 && state.beamTop !== undefined) {
+    // brkRev 2: a single beam from the paddle centre up to the last brick it struck.
+    const x = state.beamX ?? state.paddleX;
+    const top = state.beamTop;
+    for (const dx of [-5, 0, 5]) pixelRect(ctx, x + dx - 1, top, 2, BRK_PADDLE_Y - top, LASER, bloom);
+  } else if (state.beam > 0) {
     const col = brkPaddleColumn(state.paddleX);
     const left = BRK_WALL_X + col * BRK_BRICK_W + 6;
     const width = BRK_BRICK_W - 12;
@@ -169,15 +214,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const cx = px(capsule.x);
     const cy = px(capsule.y);
     pixelRect(ctx, cx - BRK_CAPSULE_W / 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, colour, bloom);
-    retroText(
-      ctx,
-      capsule.kind === BRK_POWER_MULTI ? "2" : capsule.kind === BRK_POWER_SPAM ? "5" : "L",
-      cx,
-      cy - 3,
-      8,
-      "#000000",
-      "center",
-    );
+    if (capsule.kind === BRK_POWER_FIRE) {
+      // Fireball capsule: dark-red body, flame on it, pulsing rim.
+      pixelRect(ctx, cx - BRK_CAPSULE_W / 2 + 2, cy - BRK_CAPSULE_H / 2 + 2, BRK_CAPSULE_W - 4, BRK_CAPSULE_H - 4, "#5A1206");
+      pixelFlame(ctx, cx, cy + 1, "#FFD84A");
+      continue;
+    }
+    retroText(ctx, capsuleLabel(state, capsule.kind), cx, cy - 3, 7, "#000000", "center");
   }
 
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
@@ -190,7 +233,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   state.balls.forEach((ball, i) => {
     const bx = px(ball.x);
     const by = px(ball.y);
-    const colour = state.pause > 0 ? "rgba(255,216,74,0.45)" : ball.spam === 1 ? PADDLE : "#BFF6FF";
+    const burning = (state.fire ?? 0) > 0 && state.pause === 0;
+    const colour = state.pause > 0 ? "rgba(255,216,74,0.45)" : burning ? FIRE : ball.spam === 1 ? PADDLE : "#BFF6FF";
     if (state.pause === 0) drawRetroTrail(ctx, retroTrail(key, state.tick, `b${i}`, bx, by, 6), BRK_BALL_R, colour);
     retroBall(ctx, bx, by, BRK_BALL_R, colour, state.pause > 0 ? colour : RETRO_WHITE);
   });
@@ -210,6 +254,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   }
 
   successHud(ctx,'breaker',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`, RETRO_WHITE);});
+  if ((state.fire ?? 0) > 0) {
+    const fire = state.fire ?? 0;
+    retroText(ctx, `FIREBALL ${Math.ceil(fire / 60)}`, BRK_WORLD_W - 14, 10, 12, FIRE, "right");
+    // The bar empties over the Fireball's 5 s.
+    pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / BRK_FIRE_TICKS), 3, FIRE);
+  }
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
 }
 
@@ -235,3 +285,8 @@ function inside(poly: [number, number][], x: number, y: number): boolean {
 }
 
 export const breakerArtGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGame, draw };
+const breakerArtGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV), draw };
+/** The art game for a stored brkRev; one cached object per revision. */
+export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  return rev === BRK_REV ? breakerArtGameV2 : breakerArtGame;
+}

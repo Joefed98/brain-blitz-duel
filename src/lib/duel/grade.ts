@@ -1032,7 +1032,7 @@ export function gradeSubmission(
     case "breaker": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayBreakerRun(puzzle.seed, answer);
+      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1047,6 +1047,7 @@ export function gradeSubmission(
         totalHits: run.totalHits,
         losses: run.losses,
         powerUps: run.powerUps,
+        ...(puzzle.brkRev ? { brkRev: puzzle.brkRev, fireballs: run.fireballs } : {}),
         cleared: run.cleared,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1511,7 +1512,7 @@ export function gradeSubmission(
     }
     case "burst": {
       const replayStart = performance.now();
-      const run = replayBurstRun(puzzle.seed, answer);
+      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1525,6 +1526,7 @@ export function gradeSubmission(
         cleared: run.cleared,
         lives: run.lives,
         livesLost: run.livesLost,
+        ...(puzzle.burstRev ? { burstRev: puzzle.burstRev, freezes: run.freezes } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

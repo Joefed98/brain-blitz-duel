@@ -11,7 +11,7 @@ import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.rend
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
-import { breakerArtGame as breakerGame } from "./breaker.renderer";
+import { breakerArtGameFor } from "./breaker.renderer";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
 import { sliceGame } from "./slice";
 import { sliceArtGame } from "./slice.renderer";
@@ -26,7 +26,7 @@ import { flipArtGame as flipGame } from "./flipArt.renderer";
 import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.renderer";
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
 import { BURST_FLOOR_Y } from "./burst";
-import { burstArtGame as burstGame } from "./burst.renderer";
+import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
@@ -120,7 +120,16 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : []),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined)),
-  breaker: simple(GOLD, 390, 620, breakerGame, (p, a) => replayBreakerRun(seedOf(p), a)),
+  breaker: {
+    accent: GOLD,
+    worldW: 390,
+    worldH: 620,
+    drawFinal: (ctx, p, a) => {
+      const rev = p.type === "breaker" ? p.brkRev : undefined;
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: 620 });
+      return null;
+    },
+  },
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a), undefined, rallyRevealGame),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined)),
@@ -138,7 +147,16 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined)),
-  burst: simple("#2ED3B7", 390, BURST_FLOOR_Y, burstGame, (p, a) => replayBurstRun(seedOf(p), a)),
+  burst: {
+    accent: "#2ED3B7",
+    worldW: 390,
+    worldH: BURST_FLOOR_Y,
+    drawFinal: (ctx, p, a) => {
+      const rev = p.type === "burst" ? p.burstRev : undefined;
+      burstArtGameFor(rev).draw(ctx, replayBurstRun(seedOf(p), a, rev).state, { width: 390, height: BURST_FLOOR_Y });
+      return null;
+    },
+  },
   orbit: {
     accent: GOLD,
     worldW: 390,

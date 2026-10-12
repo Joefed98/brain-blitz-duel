@@ -85,6 +85,43 @@ export const BRK_CAPSULE_H = 10;
 /** Spam fires five balls; laser fires once. */
 export const BRK_SPAM_SHOTS = 5;
 
+/**
+ * brkRev 2 (Oct 2026). Unstamped rounds keep every original rule.
+ *  - One double-ball brick per board (was two) and a new Fireball brick (rows 2–6):
+ *    for 5 s every ball smashes straight through bricks, destroying each it touches
+ *    outright without bouncing.
+ *  - Weaker laser: the beam stops after the first 4 bricks it hits (was the whole column).
+ *  - Weaker ×5: the silver capsule now holds 3 shots (×3).
+ *  - Sliding rows: two seeded rows (from rows 3–7) slide side to side by up to
+ *    half a brick, one from 30 s and one from 60 s, on a fixed 6 s triangle wave.
+ */
+export const BRK_REV = 2;
+export const BRK_POWER_FIRE = 3;
+export const BRK_FIRE_ROWS: readonly [number, number] = [2, 6];
+export const BRK_FIRE_TICKS = 5 * TICKS_PER_SECOND;
+export const BRK_V2_LASER_BRICKS = 4;
+export const BRK_V2_SPAM_SHOTS = 3;
+/** Rows that can slide (inclusive), how far, how fast, and when each starts. */
+export const BRK_SLIDE_ROWS: readonly [number, number] = [3, 7];
+export const BRK_SLIDE_AMP = BRK_BRICK_W / 2;
+export const BRK_SLIDE_PERIOD = 6 * TICKS_PER_SECOND;
+export const BRK_SLIDE_STARTS: readonly number[] = [30 * TICKS_PER_SECOND, 60 * TICKS_PER_SECOND];
+
+/** A row's horizontal offset in whole px at a tick: 0 until it starts, then a slow triangle wave. */
+export function brkRowOffset(state: { slide?: number[] }, row: number, tick: number): number {
+  const slot = state.slide ? state.slide.indexOf(row) : -1;
+  if (slot < 0) return 0;
+  const start = BRK_SLIDE_STARTS[slot] ?? 0;
+  if (tick < start) return 0;
+  const q = BRK_SLIDE_PERIOD / 4;
+  const p = (tick - start) % BRK_SLIDE_PERIOD;
+  // Out to +amp, back through 0 to −amp, back to 0: continuous, at most 1 px a tick.
+  const sign = slot === 0 ? 1 : -1;
+  if (p < q) return sign * Math.trunc((BRK_SLIDE_AMP * p) / q);
+  if (p < 3 * q) return sign * Math.trunc((BRK_SLIDE_AMP * (2 * q - p)) / q);
+  return sign * Math.trunc((BRK_SLIDE_AMP * (p - 4 * q)) / q);
+}
+
 /** A tap (fires a held power-up): under 150 ms and under 10 px of movement. */
 export const BRK_TAP_MS = 150;
 export const BRK_TAP_PX = 10;
@@ -144,6 +181,13 @@ export interface BrkCapsule {
 }
 
 export interface BrkState {
+  /** brkRev 2 only (absent on original rounds). */
+  rev?: number;
+  /** brkRev 2: the two sliding rows (first slides from 30 s, second from 60 s). */
+  slide?: number[];
+  /** brkRev 2: ticks of Fireball left, and Fireball capsules caught. */
+  fire?: number;
+  fireballs?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -163,6 +207,9 @@ export interface BrkState {
   charges: number;
   /** Ticks the laser beam is still drawn for. */
   beam: number;
+  /** brkRev 2: where the short beam was fired (paddle x) and the top of the last brick it struck, px. */
+  beamX?: number;
+  beamTop?: number;
   /** The last drag position the phone reported, in whole pixels. */
   aimX: number;
   paddleX: number;
@@ -210,6 +257,14 @@ function brickCentre(index: number): { x: number; y: number } {
 }
 
 function init(seed: number): BrkState {
+  return initRev(seed, undefined);
+}
+
+function initV2(seed: number): BrkState {
+  return initRev(seed, BRK_REV);
+}
+
+function initRev(seed: number, rev: number | undefined): BrkState {
   let rng = seed | 0;
   const bricks = new Array<number>(BRK_BRICKS).fill(1);
   const gold = new Array<number>(BRK_BRICKS).fill(0);
@@ -236,7 +291,9 @@ function init(seed: number): BrkState {
   placePower(BRK_POWER_LASER, BRK_LASER_ROWS);
   placePower(BRK_POWER_SPAM, BRK_SPAM_ROWS);
   placePower(BRK_POWER_MULTI, BRK_MULTI_ROWS);
-  placePower(BRK_POWER_MULTI, BRK_MULTI_ROWS);
+  // brkRev 2: one double-ball brick, and a Fireball brick in its place.
+  if (rev === BRK_REV) placePower(BRK_POWER_FIRE, BRK_FIRE_ROWS);
+  else placePower(BRK_POWER_MULTI, BRK_MULTI_ROWS);
 
   // Seeded hit points on the plain bricks: 3-hit first, then 2-hit.
   const placeHp = (hp: number, min: number, max: number): void => {
@@ -256,12 +313,25 @@ function init(seed: number): BrkState {
   placeHp(2, BRK_HP2_MIN, BRK_HP2_MAX);
   const maxHp = bricks.slice();
 
+  // brkRev 2: two distinct sliding rows from the seed.
+  let slide: number[] | undefined;
+  if (rev === BRK_REV) {
+    const span = BRK_SLIDE_ROWS[1] - BRK_SLIDE_ROWS[0] + 1;
+    const a = rngBelow(rng, span);
+    const b = rngBelow(a.state, span - 1);
+    rng = b.state;
+    const first = BRK_SLIDE_ROWS[0] + a.value;
+    const second = BRK_SLIDE_ROWS[0] + (b.value >= a.value ? b.value + 1 : b.value);
+    slide = [first, second];
+  }
+
   const paddleX = Math.round(BRK_WORLD_W / 2);
   const first = launch(rng, BRK_SPEED_START);
   const ball = restBall(paddleX);
   ball.vx = first.vx;
   ball.vy = first.vy;
   return {
+    ...(rev === BRK_REV && slide ? { rev, slide, fire: 0, fireballs: 0 } : {}),
     tick: 0,
     rng: first.rng,
     bricks,
@@ -299,6 +369,20 @@ export function brkBrickAt(xPx: number, yPx: number): number {
   return row * BRK_COLS + col;
 }
 
+/** brkRev 2: the brick under a point, with sliding rows shifted by their offset at `tick`. */
+export function brkBrickAtV2(state: { slide?: number[] }, xPx: number, yPx: number, tick: number): number {
+  if (yPx < BRK_WALL_Y) return -1;
+  const row = Math.trunc((yPx - BRK_WALL_Y) / BRK_ROW_PITCH);
+  if (row < 0 || row >= BRK_ROWS) return -1;
+  const withinRow = yPx - (BRK_WALL_Y + row * BRK_ROW_PITCH);
+  if (withinRow < 0 || withinRow > BRK_BRICK_H) return -1;
+  const local = xPx - BRK_WALL_X - brkRowOffset(state, row, tick);
+  if (local < 0) return -1;
+  const col = Math.trunc(local / BRK_BRICK_W);
+  if (col >= BRK_COLS) return -1;
+  return row * BRK_COLS + col;
+}
+
 /** The brick column the paddle is standing under. */
 export function brkPaddleColumn(paddleX: number): number {
   return clampInt(Math.trunc((paddleX - BRK_WALL_X) / BRK_BRICK_W), 0, BRK_COLS - 1);
@@ -326,6 +410,9 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   let capsules = state.capsules.map((capsule) => ({ ...capsule }));
   let { hits, losses, powerUps, held, charges, rng } = next;
   let beam = Math.max(0, state.beam - 1);
+  const v2 = state.rev === BRK_REV;
+  let fire = Math.max(0, (state.fire ?? 0) - 1);
+  let fireballs = state.fireballs ?? 0;
   let speed = brkSpeedFp(hits, tick);
 
   const breakBrick = (index: number): void => {
@@ -338,13 +425,35 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
       const kind = (state.gold[index] ?? 0) - 1;
       if (kind >= 0) {
         const centre = brickCentre(index);
+        if (v2) centre.x += brkRowOffset(state, Math.trunc(index / BRK_COLS), tick);
         capsules.push({ x: centre.x * 256, y: centre.y * 256, kind });
       }
     }
   };
 
+  /** Fireball: the brick goes in one touch, every hit it had left counted. */
+  const smashBrick = (index: number): void => {
+    while ((bricks[index] ?? 0) > 0) breakBrick(index);
+  };
+
   // A tap fires whatever is held: the laser once, or one of the five balls.
-  if (press !== null && held === BRK_POWER_LASER + 1) {
+  if (press !== null && held === BRK_POWER_LASER + 1 && v2) {
+    // brkRev 2: the beam rises from the paddle centre and stops after four bricks.
+    let struck = 0;
+    let top = BRK_HUD_H + BRK_WALL;
+    for (let row = BRK_ROWS - 1; row >= 0 && struck < BRK_V2_LASER_BRICKS; row--) {
+      const index = brkBrickAtV2(state, paddleX, BRK_WALL_Y + row * BRK_ROW_PITCH + Math.trunc(BRK_BRICK_H / 2), tick);
+      if (index < 0 || (bricks[index] ?? 0) <= 0) continue;
+      breakBrick(index);
+      struck += 1;
+      if (struck === BRK_V2_LASER_BRICKS) top = BRK_WALL_Y + row * BRK_ROW_PITCH;
+    }
+    next.beamX = paddleX;
+    next.beamTop = top;
+    held = 0;
+    charges = 0;
+    beam = 12;
+  } else if (press !== null && held === BRK_POWER_LASER + 1) {
     const col = brkPaddleColumn(paddleX);
     for (let row = BRK_ROWS - 1; row >= 0; row--) breakBrick(row * BRK_COLS + col);
     held = 0;
@@ -416,12 +525,15 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
           }
         }
 
-        const brick = brkBrickAt(px(x), px(y));
+        const brick = v2 ? brkBrickAtV2(state, px(x), px(y), tick) : brkBrickAt(px(x), px(y));
         if (brick >= 0 && (bricks[brick] ?? 0) > 0) {
-          breakBrick(brick);
-          const rescaled = setLength(vx, -vy, speed);
-          vx = rescaled.vx;
-          vy = rescaled.vy;
+          if (v2 && fire > 0) smashBrick(brick);
+          else {
+            breakBrick(brick);
+            const rescaled = setLength(vx, -vy, speed);
+            vx = rescaled.vx;
+            vy = rescaled.vy;
+          }
         }
 
         // The paddle: caught only while falling onto its top edge.
@@ -475,7 +587,10 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         balls = balls.concat(extra);
       } else if (capsule.kind === BRK_POWER_SPAM) {
         held = BRK_POWER_SPAM + 1;
-        charges = BRK_SPAM_SHOTS;
+        charges = v2 ? BRK_V2_SPAM_SHOTS : BRK_SPAM_SHOTS;
+      } else if (capsule.kind === BRK_POWER_FIRE) {
+        fire = BRK_FIRE_TICKS;
+        fireballs += 1;
       } else {
         held = BRK_POWER_LASER + 1;
         charges = 1;
@@ -498,6 +613,10 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   next.beam = beam;
   next.rng = rng;
   next.speed = speed;
+  if (v2) {
+    next.fire = fire;
+    next.fireballs = fireballs;
+  }
   next.cleared = bricks.every((left) => left <= 0);
   if (next.cleared || tick >= BRK_RUN_TICKS) next.endedTick = tick;
   return next;
@@ -561,7 +680,10 @@ export function brkCheckpointState(state: BrkState): BrkCheckpointState {
 export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   const snapshot = brkCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  const values = Object.values(snapshot);
+  // brkRev 2 only, so original checksums are unchanged.
+  if (state.rev !== undefined) values.push(state.rev, state.fire ?? 0, state.fireballs ?? 0, ...(state.slide ?? []));
+  for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -733,3 +855,10 @@ export const breakerGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 };
 
 export { isqrt };
+
+const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGame, init: initV2 };
+
+/** The game for a stored brkRev (absent = the original board and power-ups). */
+export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  return rev === BRK_REV ? breakerGameV2 : breakerGame;
+}

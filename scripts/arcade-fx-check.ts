@@ -54,12 +54,12 @@ const sprites = await import("../src/lib/arcade/sprites.renderer");
 
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
 const { hoverRev2Game } = await import("../src/lib/arcade/hover");
-const { breakerArtGame } = await import("../src/lib/arcade/breaker.renderer");
+const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
 const { snakeArtGame } = await import("../src/lib/arcade/snake.renderer");
 const { snakeRev3Game } = await import("../src/lib/arcade/snake");
-const { burstArtGame } = await import("../src/lib/arcade/burst.renderer");
+const { burstArtGameFor } = await import("../src/lib/arcade/burst.renderer");
 const { wavefrontArtGame } = await import("../src/lib/arcade/wavefront.renderer");
 const { orbitArtGame } = await import("../src/lib/arcade/orbit.renderer");
 const { skylineArtGame } = await import("../src/lib/arcade/skyline.renderer");
@@ -103,11 +103,11 @@ const course = BALL_TRACK_BANK[0]!.course;
 const btGame = makeBallTrackGame(course, 2);
 const GAMES: Record<string, AnyGame> = {
   hover: { ...hoverArtGame, init: hoverRev2Game.init } as AnyGame,
-  breaker: breakerArtGame as AnyGame,
+  breaker: breakerArtGameFor(2) as AnyGame,
   rally: rallyArtGame as AnyGame,
   beat: beatArtGame as AnyGame,
   snake: { ...snakeArtGame, init: snakeRev3Game.init } as AnyGame,
-  burst: burstArtGame as AnyGame,
+  burst: burstArtGameFor(2) as AnyGame,
   wavefront: wavefrontArtGame as AnyGame,
   orbit: orbitArtGame as AnyGame,
   skyline: skylineArtGame as AnyGame,
@@ -234,6 +234,8 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),
     (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (i < 10 ? 0 : b)) }),
+    (s) => ({ ...s, fireballs: (s.fireballs ?? 0) + 1, fire: 300 }),
+    (s) => ({ ...s, bricks: s.bricks.map((b: number, i: number) => (Math.trunc(i / 8) === (s.slide ?? [3])[0] && i % 8 === 0 ? 0 : b)) }),
     (s) => ({
       ...s,
       bricks: s.bricks.map((b: number, i: number) => (i >= s.bricks.length - 8 ? 0 : b)),
@@ -251,6 +253,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
   ],
   burst: [
     (s) => ({ ...s, cleared: s.cleared + 1 }),
+    (s) => ({ ...s, freezes: (s.freezes ?? 0) + 1, freeze: 180 }),
     (s) => ({ ...s, ended: 1, lives: 3, cleared: 4 }),
   ],
   wavefront: [

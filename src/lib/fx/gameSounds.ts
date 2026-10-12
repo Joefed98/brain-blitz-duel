@@ -198,6 +198,8 @@ export function breakerSounds(): GameSounds<BrkState> {
       if (prev && state.tick > prev.tick) {
         if (state.losses > prev.losses) playSound("arc_retro_explode");
         if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
+        // brkRev 2: Fireball lit.
+        if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         // Laser fired: the beam timer jumps to full; one instance per fired ball.
         if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
@@ -243,6 +245,8 @@ export function burstSounds(): GameSounds<BurstState> {
         else if (state.lives < prev.lives) playSound("arc_lose_life");
         if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
         if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
+        // burstRev 2: a FREEZE icon caught.
+        if ((state.freezes ?? 0) > (prev.freezes ?? 0)) playSound("arc_retro_coin", 0.8);
         if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
       }
       prev = state;

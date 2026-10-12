@@ -2001,6 +2001,8 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball); absent = original rules. */
+  brkRev?: number;
 }
 
 export interface RallyPuzzleData {
@@ -2210,6 +2212,8 @@ export interface BurstPuzzleData {
   type: "burst";
   /** Draws every wave — identical for everyone. */
   seed: number;
+  /** Rules revision (2 = halved BURST/SHIELD drops and the FREEZE drop); absent = original rules. */
+  burstRev?: number;
 }
 
 /** Orbit and Swing: fixed 60-second runs; the round clock adds three of slack. */
