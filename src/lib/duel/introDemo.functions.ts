@@ -1,4 +1,4 @@
-import { SWING_REV, SWING_REV_BAND } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { chainDemoCompatible } from "./chain";
@@ -64,7 +64,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND) return null;
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND) return null;
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED) return null;
     return demo;
   });
 

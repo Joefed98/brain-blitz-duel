@@ -51,7 +51,7 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND } from "../../
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND } from "../../src/lib/arcade/bullseye";
@@ -150,6 +150,7 @@ export const GAMES: GameSpec[] = [
     type: "swing",
     live: SWING_REV,
     next: SWING_REV_BAND,
+    tuned: SWING_REV_TUNED,
     // Rooms pick a proved course from the bank by the room seed.
     seedFor: (n) => SWING_V4_BANK[roomSeed(n) % SWING_V4_BANK.length]!.seed,
     gameFor: (rev) => swingGameFor(rev ?? undefined),

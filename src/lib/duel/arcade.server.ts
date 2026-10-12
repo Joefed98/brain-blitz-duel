@@ -10,7 +10,7 @@ import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
 import { TILT_REV_BAND } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SWING_REV_BAND } from "@/lib/arcade/swing";
+import { SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { BRK_REV_BAND } from "@/lib/arcade/breaker";
 import { WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
@@ -212,11 +212,11 @@ export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
   if (SWING_V4_BANK.length > 0) {
     const index = ((roomSeed % SWING_V4_BANK.length) + SWING_V4_BANK.length) % SWING_V4_BANK.length;
-    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_BAND };
+    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_TUNED };
   }
   for (let attempt = 0; attempt < 8; attempt++) {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
-    if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV_BAND };
+    if (proveSwingSeed(seed, SWING_REV_TUNED)) return { type: "swing", seed, swingRev: SWING_REV_TUNED };
   }
   throw new Error("Could not verify a safe Grappler course; try again.");
 }

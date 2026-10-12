@@ -106,6 +106,22 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     return c;
   };
 
+  /** swingRev 6: the stars taken when this plan started; touch stars taken since that the player wants. */
+  let originTaken = 0;
+  const pickups = (b: SwingState) => {
+    if (!b.starSpots) return 0;
+    let n = 0;
+    for (const i of (b.starsTaken ?? []).slice(originTaken)) {
+      let c = starChoice.get(10_000 + i);
+      if (c === undefined) {
+        c = human.chance(STAR_CHASE[level]!);
+        starChoice.set(10_000 + i, c);
+      }
+      if (c) n++;
+    }
+    return n;
+  };
+
   /** What a press from body state b would take, and how good it looks: forward progress, a swing clear of the floor, a wanted star. */
   const grabAt = (b: SwingState, from: number, ropeAnchor: number): { j: number; v: number } => {
     const j = nearest(b);
@@ -116,7 +132,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (a.y + len + RADIUS > floorAt(b, a.x) - 12 * FP) return { j: -1, v: -Infinity };
-    return { j, v: (a.x - from) / FP + (wantStar(b, j) ? STAR_PULL : 0) };
+    return { j, v: (a.x - from) / FP + (wantStar(b, j) ? STAR_PULL : 0) + pickups(b) * STAR_PULL };
   };
 
   /** Own timing spread (ticks) for a press `start` ticks into a flight, and where in a window they aim. */
@@ -167,6 +183,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   /** On a rope: the release tick (delay from now) whose flight offers the best grab, robust to a tick or two either side. */
   const planRelease = (s: SwingState): { d: number; grab: { start: number; len: number } } | null => {
+    originTaken = (s.starsTaken ?? []).length;
     const ropeAnchor = s.rope;
     const from = s.anchors[ropeAnchor]?.x ?? s.x;
     let rope = s;
@@ -216,6 +233,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   /** Flying: the grab tick (delay from now) in the best window whose swing keeps the ninja alive. */
   const planGrab = (s: SwingState, ropeAnchor: number): { start: number; len: number } | null => {
+    originTaken = (s.starsTaken ?? []).length;
     const from = s.anchors[Math.max(0, ropeAnchor)]?.x ?? s.x;
     const { vals, states } = flightGrabs(s, from, ropeAnchor);
     const wins = windowsOf(vals, lag + 2).sort((a, b) => b.value - a.value);

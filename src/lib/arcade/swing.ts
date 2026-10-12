@@ -433,6 +433,9 @@ export interface SwingState extends Body, BandFields {
   stars?: number;
   starsTaken?: number[];
   cause?: number;
+  /** swingRev 6 only: set on the revision; its stars are touch pickups at these [x, y] centres (1/256 px), not anchors. */
+  tuned?: number;
+  starSpots?: [number, number][];
   tick: number;
   rng: number;
   camX: number;
@@ -628,6 +631,18 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   let dead = moveBody(s, s);
   s.camX = s.x - LEAD;
   if (s.x > s.maxX) s.maxX = s.x;
+  // swingRev 6: a star is taken by touching it (the ninja's disc over the star's), on a rope or flying.
+  if (s.starSpots && !dead) {
+    s.starSpots.forEach(([x, y], i) => {
+      if ((s.starsTaken ?? []).includes(i)) return;
+      const dx = s.x - x;
+      const dy = s.y - y;
+      if (dx * dx + dy * dy <= SWING_STAR_TOUCH * SWING_STAR_TOUCH) {
+        s.starsTaken = [...(s.starsTaken ?? []), i];
+        s.stars = (s.stars ?? 0) + 1;
+      }
+    });
+  }
   if (s.rev === SWING_REV && !dead) {
     const cause = stepHazards(s, tick);
     if (cause > 0) {
@@ -669,7 +684,7 @@ function stepHazards(s: SwingState, tick: number): number {
       rock.t = 0;
     } else if (rock.phase === 1) {
       rock.t += 1;
-      if (rock.t >= SWING_ROCK_WARN) {
+      if (rock.t >= (s.tuned ? SWING_ROCK_WARN_V6 : SWING_ROCK_WARN)) {
         rock.phase = 2;
         rock.t = 0;
         rock.y = rock.top + SWING_ROCK_HALF_H;
@@ -718,7 +733,7 @@ export function swingExtra(s: SwingState) {
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
     ...(s.dragons ? { dragonTotal: s.dragons.length } : {}),
-    ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: (s.starAnchors ?? []).length, cause: s.cause ?? 0 } : {}),
+    ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: swingStarTotal(s), cause: s.cause ?? 0 } : {}),
   };
 }
 
@@ -769,6 +784,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
   if (state.rev !== undefined) {
     values.push(state.rev, state.chaseX ?? 0, state.chaseY ?? 0, state.stars ?? 0, state.cause ?? 0);
     for (const r of state.rocks ?? []) values.push(r.phase, r.t, r.y);
+    // swingRev 6 only, after every rev-4 value.
+    if (state.tuned) values.push(state.tuned, ...(state.starsTaken ?? []));
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -930,6 +947,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_TUNED) return swingTunedGame;
   if (rev === SWING_REV_BAND) return swingBandGame;
   if (rev === SWING_REV) return chaseGameV4;
   if (rev === SWING_REV_V3) return dragonGameV3;
@@ -954,3 +972,136 @@ function scoreBand(state: SwingState): number {
 }
 
 export const swingBandGame: typeof swingGame = { ...chaseGameV4, init: (seed) => bandInit(chaseGameV4.init(seed)) };
+
+/* ================= Tuning A (swingRev 6, Oct 2026) ================= */
+/*
+ * Rev-5 play (same cavern, anchors, chasing dragon, lava jets and band curve)
+ * with two changes, only on states that carry `tuned`:
+ *  - stars are touch pickups: SWING_STARS of them, each worth what a star
+ *    anchor was (5 band units). The anchors that carried stars stay as plain
+ *    anchors, so the course's proofs and the dragon are unchanged. Each star
+ *    sits on a line proved from a standard swing in its gap (swing, let go,
+ *    grab the next anchor, swing on and reach the one after), at a seeded
+ *    height: high at the top of a flight, low at the bottom of a swing, or on
+ *    a risky line dipping toward the lava;
+ *  - a loose stalactite crumbles for SWING_ROCK_WARN_V6 (2 s) before it drops,
+ *    and starts that a second's flight (SWING_CHASE_PACE × 60) further ahead.
+ */
+export const SWING_REV_TUNED = 6;
+export const SWING_ROCK_WARN_V6 = 120;
+/** How much further ahead a rev-6 stalactite starts to crumble (1/256 px): the extra second at a typical 6 px a tick. */
+export const SWING_ROCK_LEAD_V6 = 360 * FP;
+/** A star pickup's radius, and the centre distance at which the ninja's disc touches it (1/256 px). */
+export const SWING_STAR_R = 11 * FP;
+export const SWING_STAR_TOUCH = SWING_STAR_R + RADIUS;
+/** How far from any anchor ring a star sits, at least (so it never reads as one), 1/256 px. */
+const STAR_CLEAR_OF_ANCHOR = 30 * FP;
+
+/** Stars on the course: pickups on swingRev 6, star anchors on rev 4/5. */
+export function swingStarTotal(s: SwingState): number {
+  return s.starSpots ? s.starSpots.length : (s.starAnchors ?? []).length;
+}
+
+type Line = { swing: [number, number][]; flight: [number, number][] };
+
+/**
+ * Proved lines through the gap before anchor `j`: from a standard swing on
+ * anchor j - 1, a release whose flight grabs j, and from that grab a release
+ * that reaches j + 1 (the probe shape of starTakeable). Each line's body
+ * centres, on the ropes and in the air. At most `max` lines.
+ */
+function provedLines(c: Course, j: number, max: number): Line[] {
+  const i = j - 1;
+  const a = c.anchors[i]!;
+  const s = c.anchors[j]!;
+  const next = c.anchors[j + 1];
+  if (!next) return [];
+  const spikes = c.spikes.filter((sp) => sp.x > a.x - 400 * FP && sp.x < next.x + 400 * FP);
+  const view = { ...c, spikes };
+  const start: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: 130 * FP, th: 55000 * SUB, om: 0, grabLen: 130 * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
+  ropePos(start, a);
+  const swing = { ...start };
+  const swingPts: [number, number][] = [];
+  const out: Line[] = [];
+  for (let r = 0; r < 400 && out.length < max; r++) {
+    if (moveBody(swing, view)) break;
+    if (swing.pumps > 4) break;
+    swingPts.push([swing.x, swing.y]);
+    if (r % 3) continue;
+    const fly = { ...swing };
+    detach(fly, a);
+    const flightPts: [number, number][] = [];
+    for (let t = 0; t < 90; t++) {
+      if (moveBody(fly, view)) break;
+      flightPts.push([fly.x, fly.y]);
+      if (t % 2 || nearestAhead(c.anchors, fly, 0) !== j) continue;
+      const on = { ...fly };
+      attach(on, j, s);
+      const onPts: [number, number][] = [];
+      let leads = false;
+      for (let k = 0; k < 240 && !leads; k++) {
+        if (moveBody(on, view)) break;
+        onPts.push([on.x, on.y]);
+        if (k % 3) continue;
+        const off = { ...on };
+        detach(off, s);
+        const offPts: [number, number][] = [];
+        for (let u = 0; u < 90; u++) {
+          if (moveBody(off, view)) break;
+          offPts.push([off.x, off.y]);
+          if (nearestAhead(c.anchors, off, j + 1) === j + 1 && off.x < next.x) {
+            leads = true;
+            out.push({ swing: [...swingPts, ...onPts], flight: [...flightPts, ...offPts] });
+            break;
+          }
+        }
+      }
+      break;
+    }
+  }
+  return out;
+}
+
+const v6Cache = new Map<number, SwingState>();
+function initV6(seed: number): SwingState {
+  const cached = v6Cache.get(seed | 0);
+  if (cached) return { ...cached, rocks: cached.rocks!.map((r) => ({ ...r })) };
+  const v4 = initV4(seed);
+  // Its own stream, so every rev-4 draw (and the stored rng) is unchanged.
+  let rng = (seed ^ 0x57a25eed) | 0;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const course: Course = { ceil: v4.ceil, floor: v4.floor, anchors: v4.anchors, spikes: v4.spikes, rng: 0 };
+  // Never over a lava jet's column: a star there would be a trap rather than a risk.
+  const clearOfAnchors = ([x, y]: [number, number]) =>
+    v4.anchors.every((a) => Math.abs(a.x - x) > STAR_CLEAR_OF_ANCHOR || Math.abs(a.y - y) > STAR_CLEAR_OF_ANCHOR) &&
+    (v4.jets ?? []).every((jet) => Math.abs(jet.x - x) > SWING_JET_HALF_W + SWING_STAR_TOUCH);
+  const spots: [number, number][] = [];
+  for (const j of [...(v4.starAnchors ?? [])].sort((p, q) => p - q)) {
+    const lines = provedLines(course, j, 4);
+    if (lines.length === 0) continue;
+    // High: the top of a flight. Low: the bottom of a swing. Risky: a flight's lowest point, near the lava.
+    const kind = draw(3);
+    const pool: [number, number][] = [];
+    for (const line of lines) {
+      const pts = (kind === 1 ? line.swing : line.flight).filter(clearOfAnchors);
+      if (pts.length === 0) continue;
+      let best = pts[0]!;
+      for (const p of pts) if (kind === 0 ? p[1] < best[1] : p[1] > best[1]) best = p;
+      pool.push(best);
+    }
+    if (pool.length === 0) continue;
+    spots.push(pool[draw(pool.length)]!);
+  }
+  const tuned: SwingState = {
+    ...v4,
+    tuned: 1,
+    starAnchors: [],
+    starSpots: spots,
+    rocks: v4.rocks!.map((r) => ({ ...r, trigger: r.trigger + SWING_ROCK_LEAD_V6 })),
+  };
+  if (v6Cache.size > 16) v6Cache.clear();
+  v6Cache.set(seed | 0, tuned);
+  return { ...tuned, rocks: tuned.rocks!.map((r) => ({ ...r })) };
+}
+
+export const swingTunedGame: typeof swingGame = { ...swingBandGame, init: (seed) => bandInit(initV6(seed)) };
