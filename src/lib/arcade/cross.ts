@@ -85,7 +85,17 @@ export const CROSS_PAUSE_TICKS = TICKS_PER_SECOND;
  * cyclist lanes from crossing 3 and roadworks from crossing 4. Rounds without
  * crossRev replay on the original courses.
  */
-export const CROSS_REV = 2;
+export const CROSS_REV2 = 2;
+/**
+ * crossRev 3 (current): as rev 2, but each cyclist lane carries a few riders at
+ * seeded, uneven spacing (CROSS_CYCLE3_*), so they come far less often and never
+ * on a fixed rhythm.
+ */
+export const CROSS_REV = 3;
+export const CROSS_CYCLE3_RIDERS = 3;
+/** Gap between one rider's tail and the next rider's nose, px × 256: 400–960 px. */
+export const CROSS_CYCLE3_GAP_MIN_FP = 102_400;
+export const CROSS_CYCLE3_GAP_SPAN_FP = 143_360;
 export const CROSS_KIND_CYCLE = 1;
 export const CROSS_KIND_ROADWORKS = 2;
 /** Crossings 1–2 (indices 0–1): every lane's gaps stay open this long at any column. */
@@ -118,6 +128,8 @@ export interface CrossLane {
   kind?: number;
   /** crossRev 2 roadworks only: columns closed by cones and barriers. */
   closed?: number[];
+  /** crossRev 3 cyclists only: each rider's start within the period (blockW wide each). */
+  offsets?: number[];
   /** +1 moves right, −1 moves left. */
   dir: number;
   /** Fixed-point units a tick. */
@@ -142,6 +154,14 @@ export function crossBlocked(lane: CrossLane, centreFp: number, rel: number): bo
   const left = centreFp - CROSS_PLAYER_HALF_FP;
   const span = CROSS_PLAYER_HALF_FP * 2;
   const u = mod(left - lane.dir * lane.speed * rel - lane.phase, lane.period);
+  if (lane.offsets) {
+    // Uneven riders: the disc's span [u, u + span) against each rider, wrapping at the period.
+    for (const start of lane.offsets) {
+      const d = mod(u - start, lane.period);
+      if (d < lane.blockW || d + span > lane.period) return true;
+    }
+    return false;
+  }
   return u < lane.blockW || u + span > lane.period;
 }
 
@@ -273,6 +293,27 @@ function rollCarLaneV2(rng: number, index: number): { rng: number; lane: CrossLa
   return { rng: state, lane: { dir, speed, blockW, period, phase: draw(period) } };
 }
 
+/** crossRev 3: a few riders per lane, spaced unevenly from the seed (no fixed rhythm). */
+function rollCycleLaneV3(rng: number, index: number): { rng: number; lane: CrossLane } {
+  let state = rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const dir = draw(2) === 0 ? 1 : -1;
+  const speed = crossSpeedFor(CROSS_SPEED_MIN_FP + CROSS_SPEED_SPAN_FP, index) +
+    CROSS_CYCLE_SPEED_MIN_FP + draw(CROSS_CYCLE_SPEED_SPAN_FP);
+  const blockW = CROSS_CYCLE_BLOCK_MIN_FP + draw(CROSS_CYCLE_BLOCK_SPAN_FP);
+  const offsets: number[] = [];
+  let at = 0;
+  for (let k = 0; k < CROSS_CYCLE3_RIDERS; k++) {
+    offsets.push(at);
+    at += blockW + CROSS_CYCLE3_GAP_MIN_FP + draw(CROSS_CYCLE3_GAP_SPAN_FP);
+  }
+  return { rng: state, lane: { kind: CROSS_KIND_CYCLE, dir, speed, blockW, period: at, phase: draw(at), offsets } };
+}
+
 function rollCycleLaneV2(rng: number, index: number): { rng: number; lane: CrossLane } {
   let state = rng;
   const draw = (bound: number) => {
@@ -330,7 +371,7 @@ export function crossFairPassable(course: CrossCourse): boolean {
   return true;
 }
 
-function rollCourseV2(rng: number, index: number): { rng: number; course: CrossCourse } {
+function rollCourseV2(rng: number, index: number, rev = CROSS_REV2): { rng: number; course: CrossCourse } {
   let state = rng;
   const draw = (bound: number) => {
     const r = rngBelow(state, bound);
@@ -360,7 +401,7 @@ function rollCourseV2(rng: number, index: number): { rng: number; course: CrossC
     for (let k = 0; k < cycles; k++) {
       let lane = draw(CROSS_LANES);
       while (special.has(lane) || lane === between) lane = (lane + 1) % CROSS_LANES;
-      const rolled = rollCycleLaneV2(state, index);
+      const rolled = rev >= CROSS_REV ? rollCycleLaneV3(state, index) : rollCycleLaneV2(state, index);
       state = rolled.rng;
       special.set(lane, rolled.lane);
     }
@@ -427,14 +468,28 @@ function init(seed: number): CrossState {
   return initFor(seed, rollCourse);
 }
 
-function initFor(seed: number, roll: (rng: number, index: number) => { rng: number; course: CrossCourse }): CrossState {
-  let rng = seed | 0;
-  const courses: CrossCourse[] = [];
-  for (let index = 0; index < CROSS_COURSES; index++) {
-    const rolled = roll(rng, index);
-    rng = rolled.rng;
-    courses.push(rolled.course);
+/**
+ * Proven courses per (revision, seed). Proving them is slow (passability searches),
+ * and a stage may call init more than once for one run; the courses are read-only.
+ */
+const courseCache = new Map<string, { rng: number; courses: CrossCourse[] }>();
+
+function initFor(seed: number, roll: (rng: number, index: number) => { rng: number; course: CrossCourse }, key = "1"): CrossState {
+  const id = `${key}:${seed | 0}`;
+  let built = courseCache.get(id);
+  if (!built) {
+    let rng = seed | 0;
+    const courses: CrossCourse[] = [];
+    for (let index = 0; index < CROSS_COURSES; index++) {
+      const rolled = roll(rng, index);
+      rng = rolled.rng;
+      courses.push(rolled.course);
+    }
+    built = { rng, courses };
+    if (courseCache.size >= 16) courseCache.clear();
+    courseCache.set(id, built);
   }
+  const { rng, courses } = built;
   return {
     tick: 0,
     rng,
@@ -818,12 +873,17 @@ export const crossGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 const crossRev2Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
   ...crossGame,
-  init: (seed: number) => ({ ...initFor(seed, rollCourseV2), rev: CROSS_REV }),
+  init: (seed: number) => ({ ...initFor(seed, (rng, index) => rollCourseV2(rng, index, CROSS_REV2), "2"), rev: CROSS_REV2 }),
 };
 
-/** Takes puzzle.crossRev; anything else is the original traffic. */
+const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
+  ...crossGame,
+  init: (seed: number) => ({ ...initFor(seed, (rng, index) => rollCourseV2(rng, index, CROSS_REV), "3"), rev: CROSS_REV }),
+};
+
+/** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
-  return rev === CROSS_REV ? crossRev2Game : crossGame;
+  return rev === CROSS_REV ? crossRev3Game : rev === CROSS_REV2 ? crossRev2Game : crossGame;
 }
 
 /** Lanes of one kind crossed so far (render/effects only; a pure read of state). */

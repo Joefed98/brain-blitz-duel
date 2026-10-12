@@ -567,6 +567,14 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
 /** Play, intro demo and stored-run reveal share this renderer. */
 export const flipArtGame = { ...flipGame, draw: drawFlipArt };
 /** The art game for a stored puzzle.flipRev (play, demos and reveals). */
-export function flipArtGameFor(rev?: number | null) {
-  return { ...flipGameFor(rev), draw: drawFlipArt };
+const flipArtGames = new Map<number, typeof flipArtGame>();
+/**
+ * One cached object per revision: stages reset the run whenever their `game` prop
+ * changes identity, so a fresh object per render would restart the sim every frame.
+ */
+export function flipArtGameFor(rev?: number | null): typeof flipArtGame {
+  const key = rev ?? 0;
+  let game = flipArtGames.get(key);
+  if (!game) flipArtGames.set(key, (game = { ...flipGameFor(rev), draw: drawFlipArt }));
+  return game;
 }

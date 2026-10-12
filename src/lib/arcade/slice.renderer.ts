@@ -243,7 +243,13 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
 }
 export const sliceArtGame={...sliceGame,draw:drawSliceArt};
 /** The art game for a stored puzzle.sliceRev (play, demos and reveals). */
-export function sliceArtGameFor(rev?:number|null){return {...sliceGameFor(rev),draw:drawSliceArt};}
+const sliceArtGames=new Map<number,typeof sliceArtGame>();
+/** One cached object per revision (stages reset the run when `game` changes identity). */
+export function sliceArtGameFor(rev?:number|null):typeof sliceArtGame{
+  const key=rev??0;let game=sliceArtGames.get(key);
+  if(!game)sliceArtGames.set(key,(game={...sliceGameFor(rev),draw:drawSliceArt}));
+  return game;
+}
 
 /** Rev 2 squeeze: a creamy swirl at the pull point while foods gather (presentation only). */
 function drawSqueeze(ctx:CanvasRenderingContext2D,state:SliceState,still:boolean):void {

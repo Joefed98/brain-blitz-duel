@@ -473,8 +473,14 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     for (let index = -1; index <= count; index++) {
       const x = px(start + index * laneDef.period);
       if (cycle) {
-        const jersey = RIDER_COLOURS[(lane + index + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
-        drawRider(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+        // crossRev 3 lanes hold a few riders at uneven offsets within one long period.
+        const offsets = laneDef.offsets ?? [0];
+        offsets.forEach((offset, k) => {
+          const rx = px(start + index * laneDef.period + offset);
+          if (rx > CROSS_BOARD_X + CROSS_BOARD_W || rx + px(laneDef.blockW) < CROSS_BOARD_X) return;
+          const jersey = RIDER_COLOURS[(lane + index * 3 + k + 8) % RIDER_COLOURS.length] ?? RIDER_COLOURS[0];
+          drawRider(ctx, rx, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, jersey);
+        });
         continue;
       }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
@@ -551,7 +557,12 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const crossArtGame = { ...crossGame, draw: drawCrossArt };
 /** The art game for a stored puzzle.crossRev (play, demos and reveals). */
-export function crossArtGameFor(rev?: number | null) {
-  return { ...crossGameFor(rev), draw: drawCrossArt };
+const crossArtGames = new Map<number, typeof crossArtGame>();
+/** One cached object per revision (stages reset the run when `game` changes identity). */
+export function crossArtGameFor(rev?: number | null): typeof crossArtGame {
+  const key = rev ?? 0;
+  let game = crossArtGames.get(key);
+  if (!game) crossArtGames.set(key, (game = { ...crossGameFor(rev), draw: drawCrossArt }));
+  return game;
 }
 export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize) => drawCrossArt(ctx, state, size, false) };
