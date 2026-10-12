@@ -1,7 +1,7 @@
 /**
  * Shared arcade success layer + art pipeline checks (presentation only).
  *
- *  1. All 22 active arcade games: seeded random inputs, every frame drawn through
+ *  1. All 22 arcade games with a world (21 active, Junction practice only): seeded random inputs, every frame drawn through
  *     the game's real renderer (which now runs the shared effects layer). Drawing
  *     must never change state (deep-equal before/after every draw), and the run
  *     with drawing must end in exactly the state of the same run without drawing.
@@ -252,6 +252,7 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, goldHits: s.goldHits + 1 }),
     (s) => ({ ...s, targetHits: (s.targetHits ?? 0) + 1, struckLeft: 60, struckTick: s.tick + 1 }),
     (s) => ({ ...s, bounces: (s.bounces ?? 0) + 1 }),
+    (s) => ({ ...s, hits: s.hits + 1 }),
   ],
   beat: [(s) => ({ ...s, combo: s.combo + 10 }), (s) => ({ ...s, swipesHit: (s.swipesHit ?? 0) + 1, lastLane: 2 }), (s) => ({ ...s, maxCombo: s.chart.ticks.length })],
   snake: [
@@ -403,9 +404,135 @@ for (const [name, game] of Object.entries(GAMES)) {
       stats.particles + stats.pops + stats.rings > 0,
       `${name} event ${i} (${event.kind}): effect fired`,
     );
+    if (event.lights?.length) {
+      assert.ok(stats.lights > 0, `${name} event ${i} (${event.kind}): light burst fired`);
+      assert.ok(stats.lights <= fx.ARCADE_FX_MAX_LIGHTS, `${name}: light cap`);
+      checks += 2;
+    }
     assert.equal(JSON.stringify(base), frozen, `${name}: drawing changed state`);
     checks += 3;
   });
+}
+
+/* ------------------------ Tuning D success effects ------------------------ */
+// Breaker: every success text is slightly smaller and, while it is up, the arena glows cool white and blue.
+// Fission (wave clear) and Hover (every 7 barriers): cool purple, green and blue lights.
+// Rally: lights on every paddle hit and on the bonus moments.
+{
+  for (const event of specs.BREAKER_FX.events) {
+    assert.ok(event.textScale !== undefined && event.textScale < 1 && event.textScale >= 0.75, `breaker ${event.kind}: slightly smaller text`);
+    assert.deepEqual(event.arenaGlow, specs.BREAKER_ARENA_GLOW, `breaker ${event.kind}: cool arena glow`);
+    checks += 2;
+  }
+  const burstClear = specs.BURST_FX.events.find((e) => e.kind === "clear");
+  assert.deepEqual(burstClear?.lights, specs.COOL_LIGHTS, "fission: cool lights on a wave clear");
+  const hoverZone = specs.HOVER_FX.events.find((e) => e.every === 7);
+  assert.deepEqual(hoverZone?.lights, specs.COOL_LIGHTS, "hover: cool lights every 7 barriers");
+  const rallyHit = specs.RALLY_FX.events.find((e) => e.label?.({} as never, 1, 1) === null);
+  assert.ok(rallyHit?.lights?.length, "rally: lights on every paddle hit");
+  assert.ok(specs.RALLY_FX.events.filter((e) => e.lights === specs.RALLY_BONUS_LIGHTS).length >= 2, "rally: lights on gold and target hits");
+  checks += 4;
+  // Light bursts: capped, short, and they glow in place without moving under reduced motion.
+  const c = createCanvas(390, 620).getContext("2d") as unknown as CanvasRenderingContext2D;
+  const lit: Parameters<typeof fx.arcadeFx<{ tick: number; n: number }>>[1] = {
+    game: "lights", world: "retro", width: 390, height: 620, fit: "world",
+    events: [{ kind: "clear", count: (s) => s.n, lights: specs.COOL_LIGHTS, textScale: 0.8, arenaGlow: specs.BREAKER_ARENA_GLOW }],
+  };
+  fx.arcadeFx(c, lit, { tick: 1, n: 0 }, () => {});
+  for (let i = 0; i < 12; i++) fx.arcadeFx(c, lit, { tick: 2 + i, n: 1 + i }, () => {});
+  const stats = fx.arcadeFxStats(c, "lights");
+  assert.ok(stats.lights > 0 && stats.lights <= fx.ARCADE_FX_MAX_LIGHTS, "light cap under spam");
+  clock += fx.ARCADE_FX_LIGHTS_MS + 200;
+  fx.arcadeFx(c, lit, { tick: 40, n: 13 - 1 }, () => {});
+  assert.equal(fx.arcadeFxStats(c, "lights").lights, 0, "lights are gone within ARCADE_FX_LIGHTS_MS");
+  assert.ok(fx.ARCADE_FX_LIGHTS_MS <= 900, "light bursts stay short");
+  checks += 3;
+  // The arena glow is edge strokes only (no fill over the play area) and ends with its text.
+  const g = createCanvas(390, 620).getContext("2d") as unknown as CanvasRenderingContext2D;
+  let strokes = 0;
+  let fills = 0;
+  const stroke = g.strokeRect.bind(g);
+  const fillRect = g.fillRect.bind(g);
+  g.strokeRect = (...a: Parameters<typeof g.strokeRect>) => { strokes++; stroke(...a); };
+  g.fillRect = (...a: Parameters<typeof g.fillRect>) => { fills++; fillRect(...a); };
+  const glow: typeof lit = { ...lit, game: "arena", world: "space", events: [{ kind: "pop", count: (s) => s.n, arenaGlow: specs.BREAKER_ARENA_GLOW }] };
+  fx.arcadeFx(g, glow, { tick: 1, n: 0 }, () => {});
+  fx.arcadeFx(g, glow, { tick: 2, n: 1 }, () => {});
+  clock += 200;
+  strokes = 0;
+  fills = 0;
+  fx.arcadeFx(g, glow, { tick: 3, n: 1 }, () => {});
+  assert.ok(strokes >= 3, "arena glow strokes the edges while the text is up");
+  assert.equal(fills, 0, "arena glow never fills the play area");
+  clock += 2000;
+  strokes = 0;
+  fx.arcadeFx(g, glow, { tick: 4, n: 1 }, () => {});
+  assert.equal(strokes, 0, "arena glow ends with its text");
+  checks += 3;
+}
+
+/* --------------- Success-text colours: one per game, readable --------------- */
+{
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    }) as [number, number, number];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const allSpecs = [
+    ...Object.values(specs.ARCADE_FX_SPECS),
+    ...Object.values(specs.ENGINE_FX_SPECS),
+    specs.ORBIT3_FX,
+  ] as { game: string }[];
+  const types = [...Object.keys(specs.ARCADE_GAME_WORLDS), ...Object.keys(specs.ENGINE_GAME_WORLDS)];
+  for (const type of types) {
+    const colours = fx.ARCADE_FX_TEXT_COLOURS[type];
+    assert.ok(colours, `${type}: has a success-text colour in ARCADE_FX_TEXT_COLOURS`);
+    assert.match(colours!.fill, /^#[0-9A-F]{6}$/i, `${type}: fill is #RRGGBB`);
+    assert.match(colours!.outline, /^#[0-9A-F]{6}$/i, `${type}: outline is #RRGGBB`);
+    assert.ok(contrast(colours!.fill, colours!.outline) >= 7, `${type}: text fill/outline contrast ≥ 7:1`);
+    checks += 4;
+  }
+  for (const spec of allSpecs) {
+    assert.ok(fx.arcadeFxTextColours(spec.game), `${spec.game}: spec resolves a success-text colour`);
+    checks++;
+  }
+  assert.equal(
+    Object.keys(fx.ARCADE_FX_TEXT_COLOURS).filter((k) => !types.includes(k)).length,
+    0,
+    "no stray success-text colours",
+  );
+  // Worlds differ: lava games are not the sea game's colour, and not the old one shared colour.
+  assert.notEqual(fx.ARCADE_FX_TEXT_COLOURS.swing!.fill, fx.ARCADE_FX_TEXT_COLOURS.bubble!.fill);
+  assert.ok(new Set(Object.values(fx.ARCADE_FX_TEXT_COLOURS).map((c) => c.fill)).size >= 10, "per-game colours, not one shared colour");
+  // The text is painted in its game's colour (an event's own colour still wins).
+  const c = createCanvas(390, 620).getContext("2d") as unknown as CanvasRenderingContext2D;
+  const painted: { text: string; fill: string; outline: string }[] = [];
+  const fillText = c.fillText.bind(c);
+  c.fillText = (text: string, x: number, y: number) => {
+    painted.push({ text, fill: String(c.fillStyle).toUpperCase(), outline: String(c.strokeStyle).toUpperCase() });
+    fillText(text, x, y);
+  };
+  const spec: Parameters<typeof fx.arcadeFx<{ tick: number; n: number; m: number }>>[1] = {
+    game: "swing", world: "cavelava", width: 390, height: 620, fit: "world",
+    events: [
+      { kind: "pop", count: (s) => s.n, label: () => "A" },
+      { kind: "pop", count: (s) => s.m, label: () => "B", colour: () => "#123456" },
+    ],
+  };
+  fx.arcadeFx(c, spec, { tick: 1, n: 0, m: 0 }, () => {});
+  fx.arcadeFx(c, spec, { tick: 2, n: 1, m: 1 }, () => {});
+  const a = painted.find((p) => p.text === "A");
+  const b = painted.find((p) => p.text === "B");
+  assert.equal(a?.fill, fx.ARCADE_FX_TEXT_COLOURS.swing!.fill.toUpperCase(), "text uses the game's colour");
+  assert.equal(a?.outline, fx.ARCADE_FX_TEXT_COLOURS.swing!.outline.toUpperCase(), "text uses the game's outline");
+  assert.equal(b?.fill, "#123456", "an event's own colour wins for its text");
+  checks += 6;
 }
 
 /* ---------------------------- Director unit tests ---------------------------- */
@@ -436,7 +563,7 @@ const unit = (
   frame({ tick: 5, n: 9, m: 9 });
   assert.deepEqual(
     fx.arcadeFxStats(c, "unit"),
-    { particles: 0, pops: 0, rings: 0, shaking: false },
+    { particles: 0, pops: 0, rings: 0, lights: 0, shaking: false },
     "first frame never fires",
   );
   frame({ tick: 6, n: 10, m: 9 });

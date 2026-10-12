@@ -1,5 +1,5 @@
 import { reducedMotion } from "./art.renderer";
-import { arcadeFx } from "./arcadeFx.renderer";
+import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { RALLY_FX } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
@@ -42,9 +42,10 @@ import {
 } from "./retro.renderer";
 
 const COURT = "#1F6F8B";
-const COURT_DIM = "#0E3442";
-const FLOOR_A = "#04121A";
-const FLOOR_B = "#061821";
+// Tuning D: a near-black court so the ball, paddle and lights carry the screen.
+const COURT_DIM = "#06141A";
+const FLOOR_A = "#020507";
+const FLOOR_B = "#04080B";
 const PADDLE = "#3DFFE0";
 const GOLD = "#FFD84A";
 const PAD = "#FF6FD8";
@@ -88,23 +89,23 @@ function courtLayer(ctx: CanvasRenderingContext2D): ArtCanvas | null {
   }
   // Neon grid, brighter towards the paddle.
   for (let y = top + tile; y < RALLY_WORLD_H; y += tile) {
-    c.fillStyle = `rgba(31,111,139,${(0.1 + 0.25 * ((y - top) / (RALLY_WORLD_H - top))).toFixed(3)})`;
+    c.fillStyle = `rgba(31,111,139,${(0.06 + 0.16 * ((y - top) / (RALLY_WORLD_H - top))).toFixed(3)})`;
     c.fillRect(left, Math.round(y), right - left, 1);
   }
   for (let x = left + tile; x < right; x += tile) {
-    c.fillStyle = "rgba(31,111,139,0.16)";
+    c.fillStyle = "rgba(31,111,139,0.09)";
     c.fillRect(Math.round(x), top, 1, RALLY_WORLD_H - top);
   }
   // Centre line, centre circle and the two service boxes.
   const mid = Math.round((top + RALLY_PADDLE_Y) / 2);
-  c.fillStyle = `${COURT}AA`;
+  c.fillStyle = `${COURT}88`;
   for (let x = left + 6; x < right - 6; x += 16) c.fillRect(x, mid - 1, 8, 2);
   const ring = 34;
   for (let a = 0; a < 48; a++) {
     const ang = (a / 48) * Math.PI * 2;
     c.fillRect(Math.round(RALLY_WORLD_W / 2 + Math.cos(ang) * ring) - 1, Math.round(mid + Math.sin(ang) * ring) - 1, 2, 2);
   }
-  c.fillStyle = `${COURT}55`;
+  c.fillStyle = `${COURT}40`;
   const box = 96;
   c.fillRect(Math.round(RALLY_WORLD_W / 2) - 1, mid + 1, 2, box);
   c.fillRect(left + 30, mid + box, right - left - 60, 2);
@@ -184,10 +185,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
 
   if (state.rev === RALLY_REV) {
     for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);
-    // The pad that was just struck flashes where it was.
+    // The pad that was just struck flashes where it was, under a fading pink light.
     if ((state.struckTick ?? 0) > 0 && state.tick - (state.struckTick ?? 0) < 18 && !reducedMotion()) {
       const left = state.struckLeft ?? 0;
-      retroBurst(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, (state.tick - (state.struckTick ?? 0)) / 18, PAD, 22);
+      const p = (state.tick - (state.struckTick ?? 0)) / 18;
+      lightUp(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, PAD, 46 + 24 * p, 0.75 * (1 - p));
+      retroBurst(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, p, PAD, 22);
     }
     const bumper = state.bumper;
     if (bumper) {
@@ -205,6 +208,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   }
 
   const width = rallyPaddleW(rallyTotalHits(state));
+  // Tuning D: the paddle lights up on every hit (presentation clock, never sim state).
+  const hitAge = retroEventAge(key, "rally-hit", false);
+  if (!reducedMotion() && hitAge < 260) {
+    const p = hitAge / 260;
+    lightUp(ctx, state.paddleX, RALLY_PADDLE_Y + RALLY_PADDLE_H / 2, heat === RETRO_WHITE ? PADDLE : heat, width * 0.75 + 12 * p, 0.6 * (1 - p));
+  }
   retroPaddle(ctx, state.paddleX - width / 2, RALLY_PADDLE_Y, width, RALLY_PADDLE_H, PADDLE, "#0E4A44", bloom);
 
   state.golds.forEach((ball, i) => {
@@ -231,12 +240,28 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   }
 }
 
-/** Marks bumper bounces on the presentation clock so the bumper flashes (render memory only). */
+/** A soft additive light from the shared glow sprite; drawing only. */
+function lightUp(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string, radius: number, alpha: number): void {
+  if (alpha <= 0.01) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  drawFxGlow(ctx, colour, x, y, radius, alpha);
+  drawFxGlow(ctx, "#FFFFFF", x, y, radius * 0.35, alpha * 0.6);
+  ctx.restore();
+}
+
+/** Marks bumper bounces and paddle hits on the presentation clock so they flash (render memory only). */
 const lastBounces = new WeakMap<CanvasRenderingContext2D, number>();
+const lastHits = new WeakMap<CanvasRenderingContext2D, { tick: number; hits: number }>();
 function drawTracked(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   const before = lastBounces.get(ctx) ?? state.bounces ?? 0;
   lastBounces.set(ctx, state.bounces ?? 0);
   retroEventAge(ctx, "rally-bumper", (state.bounces ?? 0) > before);
+  const hits = rallyTotalHits(state);
+  const seen = lastHits.get(ctx);
+  // A rewind (new run or replay) or the first frame never fires.
+  lastHits.set(ctx, { tick: state.tick, hits });
+  retroEventAge(ctx, "rally-hit", !!seen && state.tick > seen.tick && hits > seen.hits);
   draw(ctx, state, size);
 }
 

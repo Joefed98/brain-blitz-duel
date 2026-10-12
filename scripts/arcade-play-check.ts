@@ -40,7 +40,7 @@
  *   bun scripts/arcade-play-check.ts                 # all 21 games (and Letterfall)
  *   bun scripts/arcade-play-check.ts cross flip      # only these game ids
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
- *   bun scripts/arcade-play-check.ts --record        # rewrite the frame-time baseline
+ *   bun scripts/arcade-play-check.ts --record        # play the same way, judge liveness, rewrite the frame-time baseline
  *   bun scripts/arcade-play-check.ts --url=http://127.0.0.1:5174
  *
  * Needs the pre-installed Chromium (/opt/pw-browsers/chromium, or PLAYWRIGHT_CHROMIUM);
@@ -166,7 +166,7 @@ const EXTRACT = String.raw`
 
 const INIT = String.raw`
 window.__arcadeLog = null;
-// Frame sampler independent of the game (works on code without the probe hook, e.g. main for --record).
+// Frame sampler independent of the game's probe hook (frame times come from here, the sim tick from the probe).
 window.__frameGaps = null;
 (function sample(last) {
   requestAnimationFrame((t) => { if (window.__frameGaps) window.__frameGaps.push(t - last); sample(t); });
@@ -254,7 +254,9 @@ async function main() {
   for (const r of results) {
     console.log(`${r.ok ? "ok  " : "FAIL"} ${r.game.padEnd(10)} runs ${String((r as Result & { runs?: number }).runs ?? 0).padStart(2)} · ticks ${String(r.ticks).padStart(4)} · timer ${r.timer[0]}→${r.timer[1]} s · frame ${r.meanFrameMs.toFixed(1)} ms (baseline ${baseline[r.game]?.toFixed(1) ?? "—"}) · max step ${r.maxStep.toFixed(1)} px/tick${r.maxStepAt ? ` (${r.maxStepAt})` : ""}${r.problems.length ? `\n       ${r.problems.join("\n       ")}` : ""}`);
   }
-  if (RECORD) {
+  if (RECORD && results.some((r) => !r.ok)) {
+    console.log(`FAIL: not recording the frame-time baseline: ${results.filter((r) => !r.ok).map((r) => r.game).join(", ")} failed (a baseline needs every game live)`);
+  } else if (RECORD) {
     const next = { ...baseline };
     for (const r of results) next[r.game] = Math.round(r.meanFrameMs * 10) / 10;
     writeFileSync(BASELINE_PATH, JSON.stringify(next, null, 1) + "\n");
@@ -458,7 +460,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       const first = seg.frames[0];
       // Live play: from the first drawn frame to game-over (or the end of input).
       seg.liveMs = first ? (firstOver ?? seg.frames[seg.frames.length - 1]!).t - first.t : 0;
-      if (!RECORD && seg.frames.length < 2) {
+      if (seg.frames.length < 2) {
         problems.push(`segment ${segment + 1}: no frames observed: the game's draw loop never ran`);
         break;
       }
@@ -486,7 +488,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       if (version !== want) problems.push(`word list not cached on the device (IndexedDB version ${version}, want ${want})`);
     }
     result.meanFrameMs = mean(segments.flatMap((sg) => sg.gaps));
-    if (!RECORD) judge(result, segments, liveTotal, base, game);
+    judge(result, segments, liveTotal, base, game);
   } catch (e) {
     problems.push(`harness: ${String((e as Error).message ?? e).split("\n")[0]}`);
   } finally {
@@ -554,11 +556,13 @@ function judge(result: Result, segments: Segment[], liveTotal: number, base: num
   });
   if (timerDrop < Math.floor(required / 2))
     problems.push(`HUD timer counted down only ${timerDrop} s over ${(liveTotal / 1000).toFixed(1)} s of live play`);
+  (result as Result & { runs: number }).runs = segments.length;
+  // Recording measures frame times (and movement) without judging them; every liveness rule above still applies.
+  if (RECORD) return;
   if (result.meanFrameMs > 33.4) problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms (under 30 fps)`);
   if (base !== undefined && result.meanFrameMs > base * 1.5 + 4)
     problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms vs baseline ${base.toFixed(1)} ms`);
   if (result.maxStep > limit) problems.push(`${result.maxStepAt} moved ${result.maxStep.toFixed(1)} px in one tick (limit ${limit})`);
-  (result as Result & { runs: number }).runs = segments.length;
 }
 
 await main();

@@ -234,6 +234,16 @@ export function arcadeWorldOf(type: string): ArcadeWorld | null {
 
 /* ================================ Retro ================================ */
 
+/** Tuning D: the cool light burst (purple, green, blue) for wave and zone moments. */
+export const COOL_LIGHTS = ["#B48CFF", "#5CFFB4", "#5CB8FF"] as const;
+/** Tuning D: while a Breaker success text is up, the arena glows cool white and blue. */
+export const BREAKER_ARENA_GLOW = ["#EAF4FF", "#6FB8FF"] as const;
+/** Breaker's success text runs this much smaller than the shared default. */
+export const BREAKER_TEXT_SCALE = 0.8;
+/** Tuning D: Rally's lights, on paddle hits and on bonus targets. */
+export const RALLY_HIT_LIGHTS = ["#3DFFE0", "#EAFBFF", "#5CB8FF"] as const;
+export const RALLY_BONUS_LIGHTS = ["#FF6FD8", "#FFD84A", "#FFFFFF"] as const;
+
 export const HOVER_FX: ArcadeFxSpec<HoverState> = {
   game: "hover",
   world: "retro",
@@ -249,6 +259,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
       sweep: true,
+      lights: COOL_LIGHTS,
     },
     // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
     {
@@ -313,6 +324,9 @@ function lowestClearedRow(s: BrkState): { x: number; y: number } {
   return { x: BRK_WORLD_W / 2, y: BRK_WALL_Y };
 }
 
+/** Every Breaker success text: slightly smaller, and the arena glows while it is up. */
+const BREAKER_TEXT = { textScale: BREAKER_TEXT_SCALE, arenaGlow: BREAKER_ARENA_GLOW } as const;
+
 export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
   game: "breaker",
   world: "retro",
@@ -325,6 +339,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       count: (s) => s.powerUps,
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 80 }),
       label: () => "POWER-UP!",
+      ...BREAKER_TEXT,
     },
     {
       kind: "streak",
@@ -332,6 +347,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       every: 10,
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 90 }),
       label: (_s, n) => `${n} BRICKS`,
+      ...BREAKER_TEXT,
     },
     // brkRev 2: a Fireball caught, and a brick knocked out of a sliding row.
     {
@@ -339,6 +355,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       count: (s) => s.fireballs ?? 0,
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
       label: () => "FIREBALL!",
+      ...BREAKER_TEXT,
       colour: () => "#FF6A2B",
       neon: true,
     },
@@ -350,9 +367,10 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
         return { x: BRK_WORLD_W / 2 + brkRowOffset(s, row, s.tick), y: BRK_WALL_Y + row * BRK_ROW_PITCH + BRK_BRICK_H / 2 };
       },
       label: () => "MOVING TARGET!",
+      ...BREAKER_TEXT,
     },
-    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", sweep: true },
-    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", neon: true, sweep: true },
+    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", sweep: true, ...BREAKER_TEXT },
+    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", neon: true, sweep: true, ...BREAKER_TEXT },
   ],
 };
 
@@ -370,12 +388,14 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 8 }),
       label: (_s, n) => `RALLY ${n}`,
       sweep: true,
+      lights: RALLY_HIT_LIGHTS,
     },
     {
       kind: "pop",
       count: (s) => s.goldHits,
       at: (s) => ({ x: s.paddleX, y: RALLY_PADDLE_Y - 10 }),
       label: () => "GOLD!",
+      lights: RALLY_BONUS_LIGHTS,
     },
     {
       // Rev 2: the gold ball struck a far-wall target.
@@ -384,6 +404,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
       label: () => "TARGET!",
       neon: true,
+      lights: RALLY_BONUS_LIGHTS,
     },
     {
       // Rev 2: a ball came off the bumper.
@@ -391,6 +412,15 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       count: (s) => s.bounces ?? 0,
       at: (s) => (s.bumper ? { x: s.bumper.x, y: s.bumper.y - 20 } : null),
       label: () => "BOING",
+      lights: ["#B49CFF", "#FFFFFF"],
+    },
+    {
+      // Tuning D: every paddle hit lights up where the ball left the paddle (no text).
+      kind: "pop",
+      count: (s) => s.hits,
+      at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 4 }),
+      label: () => null,
+      lights: RALLY_HIT_LIGHTS,
     },
   ],
 };
@@ -491,7 +521,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
   height: BURST_FLOOR_Y,
   fit: "world",
   events: [
-    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED`, sweep: true },
+    { kind: "clear", count: (s) => s.cleared, label: (_s, n) => `WAVE ${n} CLEARED`, sweep: true, lights: COOL_LIGHTS },
     // burstRev 2: a FREEZE icon caught (original rounds keep 0).
     {
       kind: "perfect",

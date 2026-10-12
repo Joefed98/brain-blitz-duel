@@ -16,6 +16,7 @@ import {
 } from "./bullseye";
 import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import {
   FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairChangeAge, fairPennant, fairScreen, fairTransform,
 } from "./fairground.renderer";
@@ -41,7 +42,11 @@ export function drawDart(
   ctx.closePath();
   ctx.fill();
   // Barrel with knurl lines.
-  ctx.fillStyle = "#23262C";
+  const barrel = ctx.createLinearGradient(-2, 0, 2, 0);
+  barrel.addColorStop(0, "#4A505A");
+  barrel.addColorStop(0.4, "#23262C");
+  barrel.addColorStop(1, "#15171B");
+  ctx.fillStyle = barrel;
   ctx.fillRect(-2, 8, 4, 9);
   ctx.fillStyle = "#8C939E";
   for (let k = 10; k < 17; k += 2) ctx.fillRect(-2, k, 4, 0.7);
@@ -110,6 +115,22 @@ function drawBalloon(ctx: CanvasRenderingContext2D, x: number, y: number, colour
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
+  // Shaded far edge and a soft gloss streak (inside the circle).
+  const edge = ctx.createRadialGradient(x - r * 0.2, y - r * 0.25, r * 0.4, x, y, r);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(1, "rgba(0,0,0,0.28)");
+  ctx.fillStyle = edge;
+  ctx.fill();
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = Math.max(1, r * 0.12);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.7, Math.PI * 1.15, Math.PI * 1.4);
+  ctx.stroke();
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
   // A white rim (inside the 2 px bounds rule) keeps it readable over any ring colour.
   ctx.strokeStyle = label === "12" ? "rgba(0, 0, 0, 0.35)" : "#FFFFFF";
   ctx.lineWidth = label === "12" ? 1 : 1.5;
@@ -148,6 +169,13 @@ function drawBalloonPop(ctx: CanvasRenderingContext2D, x: number, y: number, col
   ctx.restore();
 }
 
+const boardSprites = new Map<string, ArtCanvas | null>();
+
+/**
+ * The board on its hay bale with the lamp glow behind it, cached per size,
+ * ring values and device scale and blitted at the drifted centre (the sprite
+ * is painted at the same world size, so every ring keeps its sim radius).
+ */
 function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, values: readonly number[], drifting: boolean): void {
   const outer = (BULLSEYE_OUTER_R * scalePct) / 100;
   const cx = BULLSEYE_CX + dx;
@@ -167,25 +195,91 @@ function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, 
       ctx.fill();
     }
   }
-  // Hay bale under the board.
+  ctx.restore();
+  const half = Math.ceil(outer * 1.9);
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = t ? Math.max(0.1, Math.hypot(t.a, t.b)) : 1;
+  const px = Math.max(1, Math.round(half * 2 * k));
+  const id = `${scalePct}|${values.join(",")}|${px}`;
+  let sprite = boardSprites.get(id);
+  if (sprite === undefined) {
+    if (boardSprites.size >= 12) boardSprites.clear();
+    const canvas = artCanvas(px, px);
+    const c = canvas ? artContext(canvas) : null;
+    if (canvas && c) {
+      c.scale(px / (half * 2), px / (half * 2));
+      paintBoard(c as CanvasRenderingContext2D, half, half, scalePct, values);
+    }
+    sprite = canvas && c ? canvas : null;
+    boardSprites.set(id, sprite);
+  }
+  if (sprite) ctx.drawImage(sprite as CanvasImageSource, cx - half, cy - half, half * 2, half * 2);
+  else paintBoard(ctx, cx, cy, scalePct, values);
+  // Ring values are drawn live, never cached, so they always use the loaded web font.
+  ctx.save();
+  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let index = 0; index < BULLSEYE_RINGS; index++) {
+    const o = (BULLSEYE_RING_STEP * (index + 1) * scalePct) / 100;
+    const inner = index === 0 ? 0 : (BULLSEYE_RING_STEP * index * scalePct) / 100;
+    const value = values[index] ?? 0;
+    ctx.fillStyle = flightpathInk(value);
+    ctx.fillText(String(value), cx, cy - Math.max(8, (o + inner) / 2));
+  }
+  ctx.restore();
+}
+
+function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number, scalePct: number, values: readonly number[]): void {
+  const outer = (BULLSEYE_OUTER_R * scalePct) / 100;
+  ctx.save();
+  // A warm stall lamp lighting the wall behind the board (background only).
+  const spot = ctx.createRadialGradient(cx, cy, outer * 0.6, cx, cy, outer * 1.9);
+  spot.addColorStop(0, "rgba(255,214,140,0.22)");
+  spot.addColorStop(1, "rgba(255,214,140,0)");
+  ctx.fillStyle = spot;
+  ctx.fillRect(cx - outer * 1.9, cy - outer * 1.9, outer * 3.8, outer * 3.8);
+  // Hay bale under the board: lit top, loose straw, two twine bands and a shaded base.
   const bw = outer * 2.1;
   const bTop = cy + outer * 0.35;
   const bBot = cy + outer + 26;
-  ctx.fillStyle = "#C9A24A";
-  ctx.fillRect(cx - bw / 2, bTop, bw, bBot - bTop);
-  ctx.strokeStyle = "rgba(120, 86, 30, 0.6)";
+  const bh = bBot - bTop;
+  const hay = ctx.createLinearGradient(0, bTop, 0, bBot);
+  hay.addColorStop(0, "#DDB85C");
+  hay.addColorStop(0.55, "#C9A24A");
+  hay.addColorStop(1, "#A9853A");
+  ctx.fillStyle = hay;
+  ctx.fillRect(cx - bw / 2, bTop, bw, bh);
   ctx.lineWidth = 1;
-  for (let i = 0; i < 9; i++) {
-    const sx = cx - bw / 2 + 6 + ((i * 37) % Math.max(1, bw - 12));
-    const sy = bTop + 5 + ((i * 23) % Math.max(1, bBot - bTop - 10));
-    ctx.beginPath();
+  ctx.beginPath();
+  for (let i = 0; i < 46; i++) {
+    const sx = cx - bw / 2 + 3 + ((i * 37) % Math.max(1, bw - 14));
+    const sy = bTop + 3 + ((i * 23) % Math.max(1, bh - 6));
+    const len = 6 + (i % 4) * 2;
     ctx.moveTo(sx, sy);
-    ctx.lineTo(sx + 8, sy + 2 - (i % 3));
-    ctx.stroke();
+    ctx.lineTo(sx + len, sy + 2 - (i % 4));
   }
-  ctx.fillStyle = "#6E4A1E";
-  ctx.fillRect(cx - bw / 2 + bw * 0.22, bTop, 3, bBot - bTop);
-  ctx.fillRect(cx + bw / 2 - bw * 0.22 - 3, bTop, 3, bBot - bTop);
+  ctx.strokeStyle = "rgba(120, 86, 30, 0.55)";
+  ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i < 30; i++) {
+    const sx = cx - bw / 2 + 5 + ((i * 53) % Math.max(1, bw - 16));
+    const sy = bTop + 2 + ((i * 29) % Math.max(1, bh - 5));
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + 7, sy - 1 + (i % 3));
+  }
+  ctx.strokeStyle = "rgba(255, 236, 170, 0.45)";
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 240, 190, 0.35)";
+  ctx.fillRect(cx - bw / 2, bTop, bw, 1.5);
+  ctx.fillStyle = "rgba(70, 45, 10, 0.3)";
+  ctx.fillRect(cx - bw / 2, bBot - 3, bw, 3);
+  for (const tx of [cx - bw / 2 + bw * 0.22, cx + bw / 2 - bw * 0.22 - 3]) {
+    ctx.fillStyle = "#6E4A1E";
+    ctx.fillRect(tx, bTop, 3, bh);
+    ctx.fillStyle = "rgba(255, 220, 160, 0.35)";
+    ctx.fillRect(tx, bTop, 1, bh);
+  }
   // Wooden board: a 2 px wood rim beyond the outer ring.
   ctx.fillStyle = FAIR_WOOD;
   ctx.beginPath();
@@ -219,17 +313,26 @@ function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, 
     ctx.bezierCurveTo(cx - outer / 3, gy + 3, cx + outer / 3, gy - 3, cx + outer + 2, gy + 1);
     ctx.stroke();
   }
+  // Lamp light from the upper left and a worn, shaded edge (all inside the rim).
+  ctx.globalAlpha = 1;
+  const lamp = ctx.createRadialGradient(cx - outer * 0.4, cy - outer * 0.45, outer * 0.1, cx, cy, outer + 2);
+  lamp.addColorStop(0, "rgba(255,248,225,0.2)");
+  lamp.addColorStop(0.55, "rgba(255,248,225,0)");
+  lamp.addColorStop(0.88, "rgba(20,10,4,0)");
+  lamp.addColorStop(1, "rgba(20,10,4,0.32)");
+  ctx.fillStyle = lamp;
+  ctx.fillRect(cx - outer - 2, cy - outer - 2, outer * 2 + 4, outer * 2 + 4);
   ctx.restore();
-  ctx.font = "700 9px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  for (let index = 0; index < BULLSEYE_RINGS; index++) {
-    const o = (BULLSEYE_RING_STEP * (index + 1) * scalePct) / 100;
-    const inner = index === 0 ? 0 : (BULLSEYE_RING_STEP * index * scalePct) / 100;
-    const value = values[index] ?? 0;
-    ctx.fillStyle = flightpathInk(value);
-    ctx.fillText(String(value), cx, cy - Math.max(8, (o + inner) / 2));
+  // Wire between rings: a fine lit line just inside each dark ring edge.
+  ctx.strokeStyle = "rgba(255, 245, 225, 0.35)";
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  for (let ring = 1; ring <= BULLSEYE_RINGS; ring++) {
+    const radius = (BULLSEYE_RING_STEP * ring * scalePct) / 100 - 1;
+    ctx.moveTo(cx + radius, cy);
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   }
+  ctx.stroke();
   ctx.restore();
 }
 

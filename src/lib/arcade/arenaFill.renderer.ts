@@ -20,7 +20,7 @@ export const ARCADE_ARENA_FILL: Record<ArcadeFxGame, string> = {
   wavefront: "#07070C",
   orbit: "#06060F",
   skyline: ARENA_NO_FILL,
-  cross: "#0B0B0F",
+  cross: "#6FA851",
   junction: ARENA_NO_FILL,
   inkbridge: ARENA_NO_FILL,
   slice: "#70492F",

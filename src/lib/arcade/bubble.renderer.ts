@@ -42,8 +42,10 @@ import {
   seaDeviceScale,
   seaKelp,
   seaNow,
+  seaLayer,
+  seaRays,
   seaSprite,
-  seaUnderwater,
+  seaWater,
   SEA_BRASS,
   SEA_BRASS_DARK,
   SEA_GOLD,
@@ -349,25 +351,71 @@ function paintBubble(value: number) {
     c.beginPath();
     c.arc(r, r, r - 0.5, 0, Math.PI * 2);
     c.fill();
+    // Glass depth: a shaded lower edge and a soft glow through the centre.
+    const shade = c.createRadialGradient(r * 0.8, r * 0.72, r * 0.2, r, r, r);
+    shade.addColorStop(0, "rgba(255,255,255,0.16)");
+    shade.addColorStop(0.62, "rgba(255,255,255,0)");
+    shade.addColorStop(1, "rgba(4,16,34,0.34)");
+    c.fillStyle = shade;
+    c.beginPath();
+    c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+    c.fill();
     c.strokeStyle = "rgba(255,255,255,0.55)";
     c.lineWidth = Math.max(1, r * 0.08);
     c.beginPath();
     c.arc(r, r, r - c.lineWidth, 0, Math.PI * 2);
     c.stroke();
     drawCreature(c, bubCreature(value), r, r + r * 0.04, r);
-    // Rim highlight.
+    // Rim highlight, a round glint and the reflected light low on the far side.
     c.strokeStyle = "rgba(255,255,255,0.85)";
     c.lineWidth = Math.max(1, r * 0.12);
     c.lineCap = "round";
     c.beginPath();
     c.arc(r, r, r * 0.74, Math.PI * 1.1, Math.PI * 1.45);
     c.stroke();
+    c.fillStyle = "rgba(255,255,255,0.9)";
+    c.beginPath();
+    c.arc(r * 0.62, r * 0.42, Math.max(0.8, r * 0.07), 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "rgba(255,255,255,0.35)";
+    c.lineWidth = Math.max(0.8, r * 0.07);
+    c.beginPath();
+    c.arc(r, r, r * 0.8, Math.PI * 0.15, Math.PI * 0.5);
+    c.stroke();
   };
+}
+
+/** The cached reef layer: water, shaded margin rock up to the walls, coral and stones on the floor. */
+function paintReef(c: CanvasRenderingContext2D, w: number, h: number, margin: number): void {
+  seaWater(c, w, h);
+  // Margin rock: darker towards the screen edge, ending exactly at the wall line the bubbles bounce off.
+  for (const [x0, x1] of [[0, margin], [w, w - margin]] as const) {
+    const g = c.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, "rgba(2,10,22,0.45)");
+    g.addColorStop(1, "rgba(2,10,22,0.12)");
+    c.fillStyle = g;
+    c.fillRect(Math.min(x0, x1), 0, margin, h);
+    c.fillStyle = "rgba(150,200,235,0.16)";
+    c.fillRect(x1 - (x1 > x0 ? 1 : 0), 0, 1, h);
+  }
+  seaCoral(c, margin * 0.55, h, margin * 0.8, "#E0705A");
+  seaCoral(c, w - margin * 0.45, h, margin * 0.7, "#E58FB4");
+  // A few rounded stones at the foot of each wall.
+  for (const [x, s] of [[margin * 0.2, 0.5], [margin * 0.95, 0.35], [w - margin * 0.15, 0.45], [w - margin * 0.9, 0.3]] as const) {
+    c.fillStyle = "#0E2238";
+    c.beginPath();
+    c.ellipse(x, h, margin * s, margin * s * 0.6, 0, Math.PI, 0);
+    c.fill();
+    c.fillStyle = "rgba(160,200,230,0.14)";
+    c.beginPath();
+    c.ellipse(x - margin * s * 0.2, h - margin * s * 0.35, margin * s * 0.45, margin * s * 0.12, 0, 0, Math.PI * 2);
+    c.fill();
+  }
 }
 
 /** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const key = bubIsSpecial(value) ? `bub-special2-${value}` : `bub${value}${creatureArtReady() ? "-art" : ""}`;
+  const key = bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}`;
   const sprite = seaSprite(key, radius * 2 * dpr, paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
@@ -459,7 +507,11 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   const Y = (y: number) => y * sy;
 
   ctx.save();
-  seaUnderwater(ctx, size.width, size.height);
+  // Water, margin rock and coral are one cached layer; rays, drifting bubbles and kelp move over it.
+  const margin = X(BUB_WALL);
+  const floor = size.height;
+  seaLayer(ctx, "bubble-reef", size.width, size.height, dpr, (c) => paintReef(c, size.width, size.height, margin));
+  seaRays(ctx, size.width, size.height);
 
   // Rising background bubbles (margins and open water, behind everything).
   if (!reducedMotion()) {
@@ -474,27 +526,25 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     }
   }
 
-  // Kelp and coral in the side margins only.
-  const margin = X(BUB_WALL);
-  const floor = size.height;
+  // Kelp in the side margins only.
   seaKelp(ctx, margin * 0.45, floor, size.height * 0.42, Math.max(2, margin * 0.16), 0);
   seaKelp(ctx, size.width - margin * 0.5, floor, size.height * 0.34, Math.max(2, margin * 0.16), 2.1);
-  seaCoral(ctx, margin * 0.55, floor, margin * 0.8, "#E0705A");
-  seaCoral(ctx, size.width - margin * 0.45, floor, margin * 0.7, "#E58FB4");
 
-  // Rock ledge from the top down to the sim ceiling line.
+  // Rock ledge from the top down to the sim ceiling line: shaded stone, a lit lip, pebbles and barnacles.
   const ceiling = Y(BUB_TOP + state.descents * BUB_ROW_H);
-  ctx.fillStyle = "#2A2F38";
+  const bumps = 14;
+  const lip: [number, number][] = [];
+  for (let i = bumps; i >= 0; i--) lip.push([(i / bumps) * size.width, ceiling - (((i * 53) % 7) / 7) * Y(5)]);
+  const rock = ctx.createLinearGradient(0, 0, 0, ceiling);
+  rock.addColorStop(0, "#1C2028");
+  rock.addColorStop(0.75, "#2A2F38");
+  rock.addColorStop(1, "#353B46");
+  ctx.fillStyle = rock;
   ctx.beginPath();
   ctx.moveTo(0, 0);
   ctx.lineTo(size.width, 0);
   ctx.lineTo(size.width, ceiling);
-  const bumps = 14;
-  for (let i = bumps; i >= 0; i--) {
-    const x = (i / bumps) * size.width;
-    const dip = (((i * 53) % 7) / 7) * Y(5);
-    ctx.lineTo(x, ceiling - dip);
-  }
+  for (const [x, y] of lip) ctx.lineTo(x, y);
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = "#3B424D";
@@ -505,6 +555,32 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.ellipse(x, y, X(14), Y(5), 0, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.fillStyle = "rgba(120,140,160,0.18)";
+  for (let i = 0; i < 9; i++) {
+    const x = ((i * 0.13 + 0.05) % 1) * size.width;
+    const y = (((i * 41) % 10) / 10) * Math.max(2, ceiling - Y(10)) + Y(4);
+    ctx.beginPath();
+    ctx.ellipse(x - X(3), y - Y(1.5), X(8), Y(2), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Barnacles hanging just above the lip (inside the rock, never below the ceiling).
+  ctx.fillStyle = "#C9C2B0";
+  for (let i = 0; i < 12; i++) {
+    const x = ((i * 37 + 11) % 97) / 97 * size.width;
+    const y = ceiling - Y(9) - ((i * 5) % 4) * Y(2);
+    if (y < Y(4)) continue;
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(1, 2.2 * rs), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "rgba(160,190,215,0.35)";
+  ctx.lineWidth = Math.max(1, 1.5 * rs);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  lip.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
+  ctx.stroke();
 
   // Shooter line, faint.
   ctx.strokeStyle = "rgba(245,197,66,0.28)";
@@ -637,21 +713,39 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     }
   }
 
-  // Diver's bubble gun.
+  // Diver's bubble gun: riveted brass base and the brass cradle ring.
   const gx = X(BUB_SHOOTER_X);
   const gy = Y(BUB_SHOOTER_Y);
   ctx.fillStyle = SEA_BRASS_DARK;
   ctx.beginPath();
   ctx.roundRect(gx - 26 * rs, gy + 12 * sy, 52 * rs, 14 * sy, 5 * rs);
   ctx.fill();
-  ctx.fillStyle = SEA_BRASS;
+  const brass = ctx.createLinearGradient(0, gy + 14 * sy, 0, gy + 23 * sy);
+  brass.addColorStop(0, "#F0D58A");
+  brass.addColorStop(0.45, SEA_BRASS);
+  brass.addColorStop(1, "#9A7A30");
+  ctx.fillStyle = brass;
   ctx.beginPath();
   ctx.roundRect(gx - 22 * rs, gy + 14 * sy, 44 * rs, 9 * sy, 4 * rs);
   ctx.fill();
-  ctx.strokeStyle = SEA_BRASS;
-  ctx.lineWidth = Math.max(1.5, 3 * rs);
+  ctx.fillStyle = SEA_BRASS_DARK;
+  for (const dx of [-17, -6, 6, 17]) {
+    ctx.beginPath();
+    ctx.arc(gx + dx * rs, gy + 18.5 * sy, Math.max(0.8, 1.3 * rs), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = SEA_BRASS_DARK;
+  ctx.lineWidth = Math.max(2.5, 4.5 * rs);
   ctx.beginPath();
   ctx.arc(gx, gy, (BUB_R + 2) * rs, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+  ctx.strokeStyle = SEA_BRASS;
+  ctx.lineWidth = Math.max(1.5, 3 * rs);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,240,200,0.6)";
+  ctx.lineWidth = Math.max(0.6, rs);
+  ctx.beginPath();
+  ctx.arc(gx, gy, (BUB_R + 1) * rs, Math.PI * 0.3, Math.PI * 0.7);
   ctx.stroke();
   const holding = bubNextColour(state, 0);
   if (holding) blitBubble(ctx, holding, gx, gy, radius, dpr);
@@ -665,6 +759,10 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   ctx.strokeStyle = SEA_BRASS;
   ctx.lineWidth = Math.max(1, 1.5 * rs);
   ctx.stroke();
+  ctx.fillStyle = "rgba(200,235,255,0.14)";
+  ctx.beginPath();
+  ctx.roundRect(gx + 34 * rs, qy - 7 * rs, 60 * rs, 5 * rs, 2.5 * rs);
+  ctx.fill();
   for (let ahead = 1; ahead <= 3; ahead++) {
     const value = bubNextColour(state, ahead);
     if (value) blitBubble(ctx, value, gx + (30 + ahead * 20 - 6) * rs, qy, 8 * rs, dpr);

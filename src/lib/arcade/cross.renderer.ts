@@ -21,7 +21,6 @@ import {
   crossLaneCentre,
   crossLaneTop,
   crossPaused,
-  CROSS_BG,
   CROSS_BLOCK,
   CROSS_BLOCK_COLOURS,
   CROSS_BOARD_W,
@@ -41,6 +40,15 @@ import {
   type CrossState,
 } from "./cross";
 import { artHash, reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+
+// Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
+// realworld.renderer re-exports drawVehicle from this module).
+const REAL_ASPHALT = "#555B64";
+const REAL_GRASS = "#86BF63";
+const REAL_GRASS_DARK = "#6FA851";
+const REAL_INK = "#1E2630";
+const REAL_KERB = "#C9CDD3";
 
 function mod(value: number, m: number): number {
   const r = value % m;
@@ -115,18 +123,22 @@ function texture(ctx: CanvasRenderingContext2D) {
   };
   found = {
     asphalt: make((c) => {
-      c.fillStyle = "#121218";
+      c.fillStyle = REAL_ASPHALT;
       c.fillRect(0, 0, 64, 64);
-      for (let k = 0; k < 160; k++) {
+      for (let k = 0; k < 220; k++) {
         const h = artHash(k, 3);
-        c.fillStyle = h % 2 ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.35)";
+        c.fillStyle = h % 3 === 0 ? "rgba(255,255,255,0.09)" : "rgba(20,24,30,0.22)";
         c.fillRect(h % 64, (h >>> 6) % 64, 1 + ((h >>> 12) % 2), 1);
       }
     }),
     paving: make((c) => {
-      c.fillStyle = "#3A3A44";
+      c.fillStyle = "#BCC1C8";
       c.fillRect(0, 0, 64, 64);
-      c.strokeStyle = "rgba(0,0,0,0.35)";
+      for (let k = 0; k < 8; k++) {
+        c.fillStyle = k % 2 ? "rgba(255,255,255,0.12)" : "rgba(60,66,76,0.08)";
+        c.fillRect((k % 4) * 16, Math.floor(k / 4) * 32 + (k % 2) * 16, 16, 16);
+      }
+      c.strokeStyle = "rgba(70,76,88,0.45)";
       c.lineWidth = 1;
       for (let y = 0; y <= 64; y += 16) {
         c.beginPath();
@@ -140,8 +152,8 @@ function texture(ctx: CanvasRenderingContext2D) {
           c.stroke();
         }
       }
-      c.fillStyle = "rgba(255,255,255,0.04)";
-      c.fillRect(0, 0, 64, 2);
+      c.fillStyle = "rgba(255,255,255,0.18)";
+      c.fillRect(0, 0, 64, 1);
     }),
   };
   patterns.set(ctx, found);
@@ -283,12 +295,12 @@ const RIDER_COLOURS = ["#C6F432", "#FF8A3C", "#F080AB", "#7FD8FF"] as const;
 
 /** Green cycle lane: tinted surface, solid edge lines and painted bike symbols. */
 function drawCycleLane(ctx: CanvasRenderingContext2D, top: number): void {
-  ctx.fillStyle = "rgba(46, 160, 96, 0.28)";
+  ctx.fillStyle = "rgba(46, 160, 96, 0.42)";
   ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
-  ctx.fillStyle = "rgba(245,245,245,0.75)";
+  ctx.fillStyle = "rgba(250,250,250,0.85)";
   ctx.fillRect(CROSS_BOARD_X, top + 2, CROSS_BOARD_W, 2);
   ctx.fillRect(CROSS_BOARD_X, top + CROSS_LANE_H - 4, CROSS_BOARD_W, 2);
-  ctx.strokeStyle = "rgba(245,245,245,0.22)";
+  ctx.strokeStyle = "rgba(250,250,250,0.5)";
   ctx.lineWidth = 1.5;
   for (let x = CROSS_BOARD_X + 40; x < CROSS_BOARD_X + CROSS_BOARD_W - 20; x += 120) {
     const cy = top + CROSS_LANE_H / 2 + 4;
@@ -310,7 +322,7 @@ function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLa
   ctx.beginPath();
   ctx.rect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
   ctx.clip();
-  ctx.fillStyle = "rgba(255,170,40,0.07)";
+  ctx.fillStyle = "rgba(255,170,40,0.12)";
   ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
   ctx.restore();
   const centre = (col: number) => px(crossColumnCentreFp(col));
@@ -368,10 +380,32 @@ function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing:
   ctx.translate(x, y);
   ctx.rotate(angle);
   const side = facing === 2 ? -1 : facing === 3 ? 1 : 0;
-  ctx.strokeStyle = CROSS_PLAYER;
-  ctx.fillStyle = CROSS_PLAYER;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  // Dark outline under the whole figure so it reads on paving and asphalt alike (inside the 16 px disc).
+  const limbs = () => {
+    ctx.beginPath();
+    ctx.moveTo(0, -5);
+    ctx.lineTo(0, 4);
+    ctx.moveTo(0, -2);
+    ctx.lineTo(-6 + side * 2 - stride * 3, 2);
+    ctx.moveTo(0, -2);
+    ctx.lineTo(6 + side * 2 + stride * 3, 2);
+    ctx.moveTo(0, 4);
+    ctx.lineTo(-4 + side * 2 + stride * 4, 13);
+    ctx.moveTo(0, 4);
+    ctx.lineTo(4 + side * 2 - stride * 4, 13);
+  };
+  ctx.strokeStyle = REAL_INK;
+  ctx.fillStyle = REAL_INK;
+  ctx.lineWidth = 5.5;
+  limbs();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(side * 1.5, -9, 5.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = CROSS_PLAYER;
+  ctx.fillStyle = CROSS_PLAYER;
   ctx.lineWidth = 3;
   // Head.
   ctx.beginPath();
@@ -402,6 +436,115 @@ function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing:
   ctx.restore();
 }
 
+/* ------------------------------ Cached road layer ------------------------------ */
+
+const roadLayers = new WeakMap<object, { key: string; canvas: ArtCanvas | null }>();
+
+/** Grass with mown stripes and blades, over the given world rectangle. */
+function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  const g = c.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, REAL_GRASS);
+  g.addColorStop(1, REAL_GRASS_DARK);
+  c.fillStyle = g;
+  c.fillRect(x, y, w, h);
+  c.fillStyle = "rgba(255,255,255,0.05)";
+  for (let sx = x; sx < x + w; sx += 36) c.fillRect(sx, y, 18, h);
+  c.save();
+  c.beginPath();
+  c.rect(x, y, w, h);
+  c.clip();
+  c.lineWidth = 1;
+  for (let k = 0; k < Math.ceil((w * h) / 60); k++) {
+    const r = artHash(k, 41);
+    const bx = x + (r % 1000) / 1000 * w;
+    const by = y + ((r >>> 10) % 1000) / 1000 * h;
+    c.strokeStyle = r % 3 ? "rgba(40,90,30,0.35)" : "rgba(210,240,170,0.35)";
+    c.beginPath();
+    c.moveTo(bx, by);
+    c.lineTo(bx + ((r >>> 20) % 3) - 1, by - 3);
+    c.stroke();
+  }
+  c.restore();
+}
+
+/** The static scene for one crossing, in world units. */
+function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>): void {
+  paintGrass(c, 0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+  // Pavements: paving slabs with a kerb stone along the road edge.
+  const pavement = (top: number, finish: boolean) => {
+    c.fillStyle = tex.paving ?? "#BCC1C8";
+    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_KERB_H);
+    const kerbY = finish ? top + CROSS_KERB_H - 5 : top;
+    c.fillStyle = REAL_KERB;
+    c.fillRect(CROSS_BOARD_X, kerbY, CROSS_BOARD_W, 5);
+    c.fillStyle = "rgba(255,255,255,0.45)";
+    c.fillRect(CROSS_BOARD_X, kerbY, CROSS_BOARD_W, 1);
+    c.fillStyle = "rgba(60,66,76,0.35)";
+    for (let x = CROSS_BOARD_X + CROSS_COL_W; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W * 2) c.fillRect(x, kerbY, 1, 5);
+    c.fillStyle = "rgba(30,38,48,0.4)";
+    c.fillRect(CROSS_BOARD_X, finish ? kerbY + 4 : kerbY + 4, CROSS_BOARD_W, 1);
+    // Grass edge shadow onto the pavement's outer side.
+    c.fillStyle = "rgba(30,50,20,0.18)";
+    c.fillRect(CROSS_BOARD_X, finish ? top : top + CROSS_KERB_H - 2, CROSS_BOARD_W, 2);
+  };
+  pavement(CROSS_HUD_H, true);
+  pavement(CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H, false);
+
+  for (let lane = 1; lane <= CROSS_LANES; lane++) {
+    const top = crossLaneTop(lane);
+    c.fillStyle = tex.asphalt ?? REAL_ASPHALT;
+    c.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
+    // Wheel tracks: two faint darker bands where the tyres run.
+    c.fillStyle = "rgba(20,24,30,0.1)";
+    c.fillRect(CROSS_BOARD_X, top + 10, CROSS_BOARD_W, 6);
+    c.fillRect(CROSS_BOARD_X, top + CROSS_LANE_H - 16, CROSS_BOARD_W, 6);
+    // Patch repairs and cracks, fixed per lane.
+    for (let k = 0; k < 2; k++) {
+      const r = artHash(lane, k + 7);
+      const x = CROSS_BOARD_X + (r % (CROSS_BOARD_W - 40));
+      c.fillStyle = "rgba(30,34,40,0.08)";
+      c.fillRect(x, top + 6 + ((r >>> 9) % 20), 22 + ((r >>> 14) % 18), 12);
+    }
+    // Dashed lane marking on the upper edge.
+    if (lane < CROSS_LANES) {
+      c.fillStyle = "rgba(244,246,248,0.8)";
+      for (let x = CROSS_BOARD_X + 6; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 34)
+        c.fillRect(x, top - 1, Math.min(16, CROSS_BOARD_X + CROSS_BOARD_W - x), 2);
+    }
+    const laneDef = course.lanes[lane - 1];
+    if (!laneDef) continue;
+    if (laneDef.kind === CROSS_KIND_ROADWORKS) drawRoadworks(c, top, laneDef);
+    else if (laneDef.kind === CROSS_KIND_CYCLE) drawCycleLane(c, top);
+  }
+  // Solid edge lines at the kerbs.
+  c.fillStyle = "rgba(250,250,250,0.85)";
+  c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + 1, CROSS_BOARD_W, 2);
+  c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H - 3, CROSS_BOARD_W, 2);
+}
+
+/** Draws the crossing's cached scene (or paints it directly where no offscreen canvas exists); returns the layer. */
+function roadLayer(ctx: CanvasRenderingContext2D, course: ReturnType<typeof crossCourse>, tex: ReturnType<typeof texture>): ArtCanvas | null {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = t ? Math.max(0.1, Math.hypot(t.a, t.b)) : 1;
+  const pw = Math.max(1, Math.round(CROSS_WORLD_W * k));
+  const ph = Math.max(1, Math.round(CROSS_WORLD_H * k));
+  const key = `${pw}x${ph}|${tex.asphalt ? 1 : 0}`;
+  let found = roadLayers.get(course);
+  if (!found || found.key !== key) {
+    const canvas = artCanvas(pw, ph);
+    const c = canvas ? artContext(canvas) : null;
+    if (canvas && c) {
+      c.scale(pw / CROSS_WORLD_W, ph / CROSS_WORLD_H);
+      paintRoad(c as CanvasRenderingContext2D, course, texture(c as CanvasRenderingContext2D));
+    }
+    found = { key, canvas: canvas && c ? canvas : null };
+    roadLayers.set(course, found);
+  }
+  if (found.canvas) ctx.drawImage(found.canvas as CanvasImageSource, 0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
+  else paintRoad(ctx, course, tex);
+  return found.canvas;
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
   arcadeFx(ctx, CROSS_FX, state, () => drawCrossArtWorld(ctx, state, size, crashIndicator), size);
@@ -417,7 +560,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   const tex = texture(ctx);
 
   ctx.save();
-  ctx.fillStyle = CROSS_BG;
+  ctx.fillStyle = REAL_GRASS_DARK;
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -429,42 +572,21 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   const cx = px(crossColumnCentreFp(state.col));
   const memory = remember(state, cx, cy);
 
-  // Pavement strips: start (bottom) and finish (top).
-  const pavement = (top: number, finish: boolean) => {
-    ctx.fillStyle = tex.paving ?? "#3A3A44";
-    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_KERB_H);
-    ctx.fillStyle = "#8A8F99";
-    ctx.fillRect(CROSS_BOARD_X, finish ? top + CROSS_KERB_H - 3 : top, CROSS_BOARD_W, 3);
-    if (finish) {
-      const age = state.tick - memory.pulseTick;
-      if (age >= 0 && age < 45) {
-        const p = age / 45;
-        ctx.fillStyle = `rgba(245,184,46,${(still ? 0.35 : 0.5 * Math.sin(p * Math.PI * 3) ** 2) * (1 - p)})`;
-        ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_KERB_H);
-      }
-    }
-  };
-  pavement(CROSS_HUD_H, true);
-  pavement(CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H, false);
+  // Verges, pavements, road surface, markings and roadworks: one cached layer per crossing.
+  const layer = roadLayer(ctx, course, tex);
+  // Finish pavement pulse after a clean crossing.
+  const age = state.tick - memory.pulseTick;
+  if (age >= 0 && age < 45) {
+    const p = age / 45;
+    ctx.fillStyle = `rgba(245,184,46,${(still ? 0.35 : 0.5 * Math.sin(p * Math.PI * 3) ** 2) * (1 - p)})`;
+    ctx.fillRect(CROSS_BOARD_X, CROSS_HUD_H, CROSS_BOARD_W, CROSS_KERB_H);
+  }
 
   for (let lane = 1; lane <= CROSS_LANES; lane++) {
     const top = crossLaneTop(lane);
-    ctx.fillStyle = tex.asphalt ?? "#121218";
-    ctx.fillRect(CROSS_BOARD_X, top, CROSS_BOARD_W, CROSS_LANE_H);
-    // Faint dashed lane marking on the upper edge.
-    if (lane < CROSS_LANES) {
-      ctx.fillStyle = "rgba(220,224,232,0.22)";
-      for (let x = CROSS_BOARD_X + 6; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 34)
-        ctx.fillRect(x, top - 1, Math.min(16, CROSS_BOARD_X + CROSS_BOARD_W - x), 2);
-    }
     const laneDef = course.lanes[lane - 1];
-    if (!laneDef) continue;
-    if (laneDef.kind === CROSS_KIND_ROADWORKS) {
-      drawRoadworks(ctx, top, laneDef);
-      continue;
-    }
+    if (!laneDef || laneDef.kind === CROSS_KIND_ROADWORKS) continue;
     const cycle = laneDef.kind === CROSS_KIND_CYCLE;
-    if (cycle) drawCycleLane(ctx, top);
     const start = mod(laneDef.dir * laneDef.speed * rel + laneDef.phase, laneDef.period);
     const count = Math.ceil((CROSS_BOARD_W * 256) / laneDef.period) + 2;
     // Lorries: the fastest third of this crossing's car lanes (cyclist lanes and roadworks excluded).
@@ -484,17 +606,23 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
         continue;
       }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
-      drawVehicle(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, colour, lorry);
+      // Daylight: no headlight beams, so nothing drawn reaches past the collision box.
+      drawVehicle(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, colour, lorry, false);
     }
   }
-  // Solid edge lines at the kerbs.
-  ctx.fillStyle = "rgba(245,245,245,0.35)";
-  ctx.fillRect(CROSS_BOARD_X, CROSS_LANES_Y, CROSS_BOARD_W, 1.5);
-  ctx.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H - 1.5, CROSS_BOARD_W, 1.5);
 
-  ctx.fillStyle = CROSS_BG;
-  ctx.fillRect(0, CROSS_HUD_H, CROSS_BOARD_X, CROSS_WORLD_H - CROSS_HUD_H);
-  ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, CROSS_HUD_H, CROSS_WORLD_W - CROSS_BOARD_X - CROSS_BOARD_W, CROSS_WORLD_H - CROSS_HUD_H);
+  // Verges either side of the board, over any vehicle overhanging the road ends.
+  const sideW = CROSS_BOARD_X;
+  const sideH = CROSS_WORLD_H - CROSS_HUD_H;
+  for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) {
+    if (layer) {
+      const k = layer.width / CROSS_WORLD_W;
+      ctx.drawImage(layer as CanvasImageSource, x * k, CROSS_HUD_H * k, sideW * k, sideH * k, x, CROSS_HUD_H, sideW, sideH);
+    } else {
+      ctx.fillStyle = REAL_GRASS;
+      ctx.fillRect(x, CROSS_HUD_H, sideW, sideH);
+    }
+  }
 
   // Tumbling figure where the hit happened.
   const hitAge = state.tick - state.hitTick;
@@ -522,16 +650,24 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   }
 
   for (let i = 0; i < CROSS_LIVES; i++) {
-    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(255,255,255,0.18)";
+    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(20,40,20,0.28)";
     ctx.beginPath();
     ctx.arc(CROSS_WORLD_W - 22 - i * 18, 18, 6, 0, Math.PI * 2);
     ctx.fill();
+    if (i < state.lives) {
+      ctx.strokeStyle = REAL_INK;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
   }
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = "#F7F7F8";
+  ctx.fillStyle = "#FFFFFF";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  successHud(ctx,'cross',state.tick,14,10,()=>ctx.fillText(`Crossings ${state.crossings}`,14,10));
+  ctx.strokeStyle = REAL_INK;
+  ctx.lineWidth = 3.5;
+  ctx.lineJoin = "round";
+  successHud(ctx,'cross',state.tick,14,10,()=>{ctx.strokeText(`Crossings ${state.crossings}`,14,10);ctx.fillText(`Crossings ${state.crossings}`,14,10);});
 
   successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:CROSS_WORLD_H,point:{x:cx,y:CROSS_HUD_H+CROSS_KERB_H/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
   if (hitAge < 20 && !state.dead && crashIndicator) {

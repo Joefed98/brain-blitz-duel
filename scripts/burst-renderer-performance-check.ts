@@ -1,4 +1,5 @@
 /** No browser, native raster dependency, simulation replay or identity proof. */
+import { canvasStub } from "./canvas-stub";
 import assert from "node:assert/strict";
 import { burstGame } from "../src/lib/arcade/burst";
 import { burstArtGame, BURST_FX_ENEMY_THRESHOLD, BURST_FX_SHOT_THRESHOLD } from "../src/lib/arcade/burst.renderer";
@@ -7,13 +8,10 @@ import { FX_PARTICLE_LIMIT } from "../src/lib/fx/limits";
 let allocations = 0;
 function context() {
   const stats = { rects: 0, blits: 0, liveBlur: 0, depth: 0 };
-  const target = { canvas: {}, getTransform: () => ({ a: 2, b: 0 }),
+  const ctx = canvasStub({ getTransform: () => ({ a: 2, b: 0, c: 0, d: 2, e: 0, f: 0 }),
     fillRect: () => stats.rects++, drawImage: () => stats.blits++,
-    save: () => stats.depth++, restore: () => stats.depth-- };
-  const ctx = new Proxy(target as unknown as CanvasRenderingContext2D, {
-    get(t, key) { return Reflect.get(t, key) ?? (() => {}); },
-    set(t, key, value) { if (key === "shadowBlur" && value > 0) stats.liveBlur++; return Reflect.set(t, key, value); },
-  });
+    save: () => stats.depth++, restore: () => stats.depth-- },
+    (key, value) => { if (key === "shadowBlur" && (value as number) > 0) stats.liveBlur++; });
   return { ctx, stats };
 }
 class FakeCanvas {
