@@ -1,4 +1,4 @@
-import { SWING_REV, SWING_REV_BAND } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { chainDemoCompatible } from "./chain";
@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
-import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND } from "@/lib/arcade/orbit";
+import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { CLASH_REV } from "@/lib/arcade/colourClash";
 
@@ -50,7 +50,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     const demo = (row as IntroDemoRow | null) ?? null;
     if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
-    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND) return null;
+    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED) return null;
 
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
@@ -64,7 +64,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND) return null;
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND) return null;
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED) return null;
     return demo;
   });
 

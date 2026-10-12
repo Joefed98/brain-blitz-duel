@@ -23,6 +23,10 @@ import {
   SWING_ROCK_HALF_H,
   SWING_ROCK_HALF_W,
   SWING_ROCK_WARN,
+  SWING_ROCK_WARN_V6,
+  SWING_REV_TUNED,
+  SWING_STAR_R,
+  swingStarTotal,
   SWING_GOLD,
   SWING_WORLD_H,
   SWING_WORLD_W,
@@ -199,9 +203,20 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     let cy = r.phase === 2 ? r.y / FP : r.top / FP + hh;
     let shake = 0;
     if (r.phase === 1 && !still) shake = Math.sin(state.tick * 2.3) * 1.5;
-    if (r.phase >= 1) {
+    const warnTicks = state.tuned ? SWING_ROCK_WARN_V6 : SWING_ROCK_WARN;
+    if (r.phase === 1 && state.tuned) {
+      // swingRev 6: no warning line; grit and chips crumble off the stalactite, more as the drop nears.
+      drawCrumble(ctx, x, r.top / FP + hh * 2, floorY, r.t / warnTicks, r.t, r.x, still);
+    }
+    if (r.phase >= 1 && state.tuned) {
+      const k = r.phase === 1 ? r.t / warnTicks : 1;
+      ctx.fillStyle = `rgba(0,0,0,${0.25 + 0.35 * k})`;
+      ctx.beginPath();
+      ctx.ellipse(x, floorY - 2, hw * (0.6 + 0.8 * k), 3 + 2 * k, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (r.phase >= 1) {
       // Shadow on the lava: grows and darkens as the drop nears.
-      const k = r.phase === 1 ? r.t / SWING_ROCK_WARN : 1;
+      const k = r.phase === 1 ? r.t / warnTicks : 1;
       ctx.fillStyle = `rgba(0,0,0,${0.35 + 0.35 * k})`;
       ctx.beginPath();
       ctx.ellipse(x, floorY - 2, hw * (0.6 + 0.8 * k), 3 + 2 * k, 0, 0, Math.PI * 2);
@@ -418,6 +433,15 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.globalAlpha = 1;
   }
 
+  // swingRev 6: star pickups, taken by touching them.
+  const spotsTaken = new Set(state.starSpots ? (state.starsTaken ?? []) : []);
+  (state.starSpots ?? []).forEach(([wx, wy], i) => {
+    if (spotsTaken.has(i)) return;
+    const x = sx(wx);
+    if (x < -20 || x > SWING_WORLD_W + 20) return;
+    drawStar(ctx, x, wy / FP, SWING_STAR_R / FP, still ? 0 : state.tick + i * 17);
+  });
+
   // Anchors: iron rings bolted in the rock.
   const starAt = new Set(state.starAnchors ?? []);
   const taken = new Set(state.starsTaken ?? []);
@@ -543,10 +567,35 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   if (state.rev === SWING_REV) {
     ctx.fillStyle = SWING_GOLD;
     ctx.textAlign = "right";
-    const label = `${state.stars ?? 0} / ${(state.starAnchors ?? []).length}`;
+    const label = `${state.stars ?? 0} / ${swingStarTotal(state)}`;
     ctx.fillText(label, SWING_WORLD_W - 14, 26);
     drawStar(ctx, SWING_WORLD_W - 22 - ctx.measureText(label).width, 20, 8, 0);
     ctx.textAlign = "left";
+  }
+  ctx.restore();
+}
+
+/**
+ * swingRev 6 stalactite warning: chips and grit break off the stalactite's tip
+ * and fall to the lava, a few at first and a shower just before it drops (k
+ * 0 → 1). Positions are a closed form of the warning tick; presentation only.
+ */
+function drawCrumble(ctx: CanvasRenderingContext2D, x: number, tipY: number, floorY: number, k: number, t: number, seed: number, still: boolean): void {
+  const count = 3 + Math.floor(k * 10);
+  ctx.save();
+  for (let n = 0; n < count; n++) {
+    const h = artHash(seed, n + 1) / 4294967296;
+    // Each chip leaves every 30 ticks or so on its own beat, falling under gravity.
+    const life = 30;
+    const age = still ? 6 + n * 3 : (t + Math.floor(h * life)) % life;
+    const fall = 0.12 * age * age;
+    const cy = tipY + fall;
+    if (cy > floorY - 4) continue;
+    const cx = x + (artHash(seed, n + 50) / 4294967296 - 0.5) * 12 + (artHash(seed, n + 90) / 4294967296 - 0.5) * age * 0.3;
+    const size = n % 3 === 0 ? 4 : 2.4;
+    ctx.globalAlpha = 0.9 - age / (life * 1.6);
+    ctx.fillStyle = n % 3 === 0 ? "#6A5258" : "#B89A8E";
+    ctx.fillRect(cx - size / 2, cy - size / 2, size, size);
   }
   ctx.restore();
 }
@@ -577,7 +626,9 @@ const dragonArtGameV2 = { ...swingGameFor(2), draw: drawSwingArt };
 const dragonArtGameV3 = { ...swingGameFor(3), draw: drawSwingArt };
 const chaseArtGameV4 = { ...swingGameFor(SWING_REV), draw: drawSwingArt };
 const bandArtGameV5 = { ...swingGameFor(SWING_REV_BAND), draw: drawSwingArt };
+const tunedArtGameV6 = { ...swingGameFor(SWING_REV_TUNED), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_TUNED) return tunedArtGameV6;
   if (rev === SWING_REV_BAND) return bandArtGameV5;
   if (rev === SWING_REV) return chaseArtGameV4;
   if (rev === 3) return dragonArtGameV3;

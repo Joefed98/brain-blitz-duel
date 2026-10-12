@@ -627,6 +627,7 @@ function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize)
     if (!m.inside[c]) continue;
     for (let d = 0; d < 4; d++) {
       if (c === m.exit && d === m.exitDir) continue;
+      if (c === m.exit2 && d === m.exitDir2) continue;
       const open = openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0;
       if (open) continue;
       const i = (c % m.n) + DX[d]!;
@@ -1066,3 +1067,38 @@ function scoreBand(state: TiltState): number {
 }
 
 export const tiltBandGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, init: (seed) => bandInit(initRev2(seed)) };
+
+/* ============== Tuning A: every cup reachable (Oct 2026) ============== */
+
+/**
+ * Can this marble (0 blue, 1 amber) roll from its start to its own cup? A
+ * breadth-first search over the maze's cells with the sim's own canPass (the
+ * chaser's gate counted shut, pits avoided), leaving the maze only through the
+ * marble's own exit. Mazes without an amber marble pass for it.
+ */
+export function tiltCupReachable(m: Maze, which: 0 | 1): boolean {
+  const start = which === 1 ? (m.start2 ?? -1) : m.start;
+  if (start < 0) return which === 1;
+  const seen = new Set<number>([start]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const c = queue.shift()!;
+    for (let d = 0; d < 4; d++) {
+      if (!canPass(m, c, d, true, which)) continue;
+      const i = (c % m.n) + DX[d]!;
+      const j = Math.trunc(c / m.n) + DY[d]!;
+      // canPass only lets a marble out of the maze through its own cup's exit.
+      if (i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i]) return true;
+      const nc = j * m.n + i;
+      if (seen.has(nc) || m.pits.includes(nc)) continue;
+      seen.add(nc);
+      queue.push(nc);
+    }
+  }
+  return false;
+}
+
+/** True when every maze a seed deals on the live revision has both cups reachable (the server deals only such seeds). */
+export function tiltSeedCupsReachable(seed: number): boolean {
+  return tiltBandGame.init(seed).list.every((m) => tiltCupReachable(m, 0) && tiltCupReachable(m, 1));
+}

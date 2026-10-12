@@ -8,3 +8,8 @@ export const APP_NAME = "Duelz";
 export const APP_TAGLINE = "Play skill games live with friends.";
 export const APP_DESCRIPTION = `${APP_TAGLINE} Everyone plays the same games at the same moment, and the highest score wins.`;
 export const APP_TITLE = `${APP_NAME} — Live skill games with friends`;
+/**
+ * The app logo (black square, yellow lightning bolt): the PWA icon, the touch icon and
+ * the High Rise flag all draw this one file, so a new logo needs only a new file here.
+ */
+export const APP_LOGO_URL = "/icon-512.png";

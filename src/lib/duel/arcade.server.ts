@@ -7,14 +7,14 @@ import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_BAND } from "@/lib/arcade/matchup";
 import { SNIP_REV_BAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
-import { TILT_REV_BAND } from "@/lib/arcade/tilt";
+import { tiltSeedCupsReachable, TILT_REV_BAND } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SWING_REV_BAND } from "@/lib/arcade/swing";
+import { SWING_REV_TUNED } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { BRK_REV_TUNED } from "@/lib/arcade/breaker";
-import { WAV_REV_BAND } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_BAND } from "@/lib/arcade/orbit";
+import { WAV_REV_SHAPES } from "@/lib/arcade/wavefront";
+import { ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { RALLY_REV_TUNED } from "@/lib/arcade/rally";
 import { BEAT_REV_BAND } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -152,7 +152,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_BAND };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_SHAPES };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -196,11 +196,11 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
-  // Rev 5 (Oct 2026 score bands): the rev-4 rules with the course's proved black holes
-  // (scripts/orbit-hole-bank.ts), or none when the course has no proved holes.
+  // Rev 6 (Tuning A): the rev-5 band rules with the course's proved black holes
+  // (scripts/orbit-hole-bank.ts), or none, plus the 1 s fly-in after a hole and a quicker end to a miss.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  return { type: "orbit", seed, orbitRev: ORBIT_REV_BAND, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV_TUNED, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 
 export function generateSnip(): SnipPuzzleData {
@@ -212,17 +212,21 @@ export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
   if (SWING_V4_BANK.length > 0) {
     const index = ((roomSeed % SWING_V4_BANK.length) + SWING_V4_BANK.length) % SWING_V4_BANK.length;
-    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_BAND };
+    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_TUNED };
   }
   for (let attempt = 0; attempt < 8; attempt++) {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
-    if (proveSwingSeed(seed)) return { type: "swing", seed, swingRev: SWING_REV_BAND };
+    if (proveSwingSeed(seed, SWING_REV_TUNED)) return { type: "swing", seed, swingRev: SWING_REV_TUNED };
   }
   throw new Error("Could not verify a safe Grappler course; try again.");
 }
 
 export function generateTilt(): TiltPuzzleData {
-  return { type: "tilt", seed: arcadeSeed(), tiltRev: TILT_REV_BAND };
+  // Every cup reachable: the mazes' spanning-tree carve already guarantees it (tilt-cups-check
+  // proves it on 20,000 seeds); this re-deal only guards against a future maze change.
+  let seed = arcadeSeed();
+  for (let k = 0; k < 20 && !tiltSeedCupsReachable(seed); k++) seed = arcadeSeed();
+  return { type: "tilt", seed, tiltRev: TILT_REV_BAND };
 }
 
 export function generateHotFloor(): HotFloorPuzzleData {

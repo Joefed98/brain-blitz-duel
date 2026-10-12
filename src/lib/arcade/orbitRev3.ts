@@ -11,6 +11,7 @@ import {
   clampInt,
   finishScore,
   inputRange,
+  isqrt,
   rngBelow,
   TICKS_PER_SECOND,
   type ArcadeGame,
@@ -541,6 +542,9 @@ export interface OrbitRev3State extends BandFields {
   jumps?: number;
   skipped?: number;
   holeTick?: number;
+  /** orbitRev 6 only: set on the revision, and the fly-in ticks left after a black hole. */
+  tuned?: number;
+  warp?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -621,7 +625,7 @@ function isOver(state: OrbitRev3State): boolean {
 }
 
 export function orbitRev3CanSetCheckpoint(state: OrbitRev3State): boolean {
-  return state.ended === 0 && state.flying === 0 && state.checkpoint < 0 && state.respawns > 0;
+  return state.ended === 0 && state.flying === 0 && !(state.warp ?? 0) && state.checkpoint < 0 && state.respawns > 0;
 }
 
 function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent | null): OrbitRev3State {
@@ -650,7 +654,14 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     s.ended = 2;
     s.endedTick = tick;
   };
-  if (s.flying === 0) {
+  if ((s.warp ?? 0) > 0) {
+    // orbitRev 6: flying in from outside the orbit after a black hole; taps do nothing until it is in orbit.
+    s.warp = s.warp! - 1;
+    s.angle = (s.angle + here.dir * phaseRate(here, s.angle)) & 65535;
+    const pos = orbitWarpPos(here, s.angle, s.warp);
+    s.x = pos.x;
+    s.y = pos.y;
+  } else if (s.flying === 0) {
     if (!respawned && input !== null && input.k === ORBIT_INPUT_TAP && innerLobe(here, s.angle)) {
       die();
       if (s.ended) return s;
@@ -695,7 +706,9 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.holeTick = tick;
       s.cur = hole.to;
       s.angle = 3 * ANG_QUARTER;
-      const pos = orbitPos(to, s.angle);
+      // orbitRev 6: the rocket comes out beside the target and flies into its orbit over ORBIT_WARP_TICKS.
+      if (s.tuned) s.warp = ORBIT_WARP_TICKS;
+      const pos = s.tuned ? orbitWarpPos(to, s.angle, ORBIT_WARP_TICKS) : orbitPos(to, s.angle);
       s.x = pos.x;
       s.y = pos.y;
       s.vx = 0;
@@ -718,7 +731,7 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
         s.endedTick = tick;
         s.finished = 1;
       }
-    } else if (outsideWorld(worldW, here, s.x, s.y) || s.flying >= FLIGHT_MAX) die();
+    } else if (outsideWorld(worldW, here, s.x, s.y) || s.flying >= FLIGHT_MAX || (s.tuned && orbitPastReach(s))) die();
     else s.flying += 1;
     if (respawned) s.camY = s.planets[s.cur]!.y - VIEW_ANCHOR;
   }
@@ -986,4 +999,59 @@ export function orbitBandParts(state: OrbitRev3State): BandParts {
 
 function scoreBand(state: OrbitRev3State): number {
   return bandTotal(orbitBandParts(state), Boolean(state.acted));
+}
+
+/* ================= Tuning A (orbitRev 6, Oct 2026) ================= */
+/*
+ * Rev-5 play and band curve with two changes, both only on states that carry
+ * `tuned` (older rounds never do):
+ *  - after a black hole the rocket comes out ORBIT_WARP_OUT outside the
+ *    target's orbit and eases into it over ORBIT_WARP_TICKS (1 s), turning
+ *    with the orbit; taps and the checkpoint wait until it is in orbit;
+ *  - a missed hop ends as soon as the rocket is further from where it let go
+ *    than any point that could still catch it (the next two planets' capture
+ *    areas and the black holes beside the planet it left), instead of flying
+ *    on toward planets further up the course for up to 190 ticks.
+ */
+export const ORBIT_WARP_TICKS = 60;
+/** How far outside its orbit the rocket comes out of a black hole, 1/256 px (inside a belt's 50 px clearance). */
+export const ORBIT_WARP_OUT = 40 * FP;
+
+/** Where the fly-in puts the rocket with `left` ticks to go: its orbit point pushed out by an eased share of ORBIT_WARP_OUT. */
+export function orbitWarpPos(p: Planet, angle: number, left: number): { x: number; y: number } {
+  const pos = orbitPos(p, angle);
+  const dx = pos.x - p.x;
+  const dy = pos.y - p.y;
+  const len = isqrt(dx * dx + dy * dy);
+  if (len === 0 || left <= 0) return pos;
+  // Quadratic ease: fast at first, settling gently into the orbit.
+  const out = Math.trunc((ORBIT_WARP_OUT * left * left) / (ORBIT_WARP_TICKS * ORBIT_WARP_TICKS));
+  return { x: pos.x + Math.trunc((dx * out) / len), y: pos.y + Math.trunc((dy * out) / len) };
+}
+
+/** The furthest any point that can capture the rocket reaches from planet p's centre, 1/256 px. */
+function captureReach(p: Planet): number {
+  if (p.kind === ORBIT_EIGHT) return orbitLobes(p) + Math.trunc(orbitExtent(p) / 2) + FP;
+  return p.ring + FP;
+}
+
+/**
+ * True once the free-flying rocket is further from its release point than
+ * every planet or hole that could still catch it: a straight flight only gets
+ * further from all of them after that, so nothing can catch it any more.
+ */
+export function orbitPastReach(s: OrbitRev3State): boolean {
+  const dist = (x: number, y: number) => isqrt((x - s.releaseX) * (x - s.releaseX) + (y - s.releaseY) * (y - s.releaseY));
+  let reach = 0;
+  for (let j = s.cur + 1; j <= s.cur + ORBIT_LOOKAHEAD && j < s.planets.length; j++) {
+    const p = s.planets[j]!;
+    reach = Math.max(reach, dist(p.x, p.y) + captureReach(p));
+  }
+  for (const h of s.holes ?? []) if (h.from === s.cur) reach = Math.max(reach, dist(h.x, h.y) + ORBIT_HOLE_R + FP);
+  return dist(s.x, s.y) > reach;
+}
+
+/** orbitRev 6 start: the band start plus the tuning marker. */
+export function initTunedFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return { ...initBandFrom(planets, worldW, holes), tuned: 1, warp: 0 };
 }

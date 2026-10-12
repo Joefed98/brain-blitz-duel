@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
 import { installSoundUnlock } from "../lib/sound";
-import { APP_DESCRIPTION, APP_NAME, APP_TITLE } from "../lib/brand";
+import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 
 function NotFoundComponent() {
   return (
@@ -108,8 +108,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "icon", href: "/icon-512.png", type: "image/png", sizes: "512x512" },
-      { rel: "apple-touch-icon", href: "/icon-512.png" },
+      { rel: "icon", href: APP_LOGO_URL, type: "image/png", sizes: "512x512" },
+      { rel: "apple-touch-icon", href: APP_LOGO_URL },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),

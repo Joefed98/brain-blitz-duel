@@ -79,7 +79,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_TUNED, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
@@ -347,8 +347,8 @@ if (want("orbit")) {
     let stamped = 0;
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
-      // Score bands (Oct 2026): every bank course is stamped orbitRev 5 (rev-4 play), with its holes when it has them.
-      ok(p.orbitRev === ORBIT_REV_BAND && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 5 and ship their planets");
+      // Score bands (Oct 2026) then Tuning A: every bank course is stamped orbitRev 6 (rev-5 bands, fly-in), with its holes when it has them.
+      ok(p.orbitRev === ORBIT_REV_TUNED && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 6 and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");

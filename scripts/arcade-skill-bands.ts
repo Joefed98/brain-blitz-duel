@@ -10,7 +10,9 @@
  *
  * --rev=live (default) uses the revision rooms stamped before the Oct 2026
  * score-band pass, --rev=next the one stamped after it, --rev=both both (same
- * human, same seed: score-only revisions replay the identical log).
+ * human, same seed: score-only revisions replay the identical log), --rev=tuned
+ * the later revision a tuning pass stamps on the same band curve (Tuning A:
+ * Wavefront, Orbit, Grappler, Tilt).
  * --rev=current measures a later gameplay revision (a game's `current`, Tuning B)
  * against its band revision: the band revision is reported as "live", today's
  * revision as "next".
@@ -32,7 +34,7 @@ import { UNITS } from "./arcade-skill-bands/units";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 30);
-const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current";
+const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned";
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
@@ -43,7 +45,7 @@ const ONLY = args.filter((a) => !a.startsWith("--"));
 export interface RunRecord {
   type: string;
   rev: number | null;
-  which: "live" | "next";
+  which: "live" | "next" | "tuned";
   level: SkillLevel;
   seed: number;
   score: number;
@@ -66,7 +68,7 @@ async function loadBot(type: string): Promise<SkillBot | null> {
 
 const CHECKPOINT_EVERY = 300;
 
-function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next", level: SkillLevel, seed: number): RunRecord & { raw: string } {
+function playOne(spec: GameSpec, bot: SkillBot, rev: number | null, which: "live" | "next" | "tuned", level: SkillLevel, seed: number): RunRecord & { raw: string } {
   const started = performance.now();
   const game = spec.gameFor(rev, seed);
   const human = new Human(spec.type, seed, level);
@@ -111,12 +113,16 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     console.error(`${spec.type}: no bot yet`);
     return [];
   }
-  const revs: ["live" | "next", number | null][] = [];
-  if (REV_MODE === "current") {
+  const revs: ["live" | "next" | "tuned", number | null][] = [];
+  if (REV_MODE === "tuned") {
+    // The revision rooms stamp today when a later tuning pass changed play on the band curve (Tuning A).
+    if (spec.tuned === undefined) console.error(`${spec.type}: no tuned revision`);
+    else revs.push(["tuned", spec.tuned]);
+  } else if (REV_MODE === "current") {
     if (spec.current === undefined || spec.next === undefined) console.error(`${spec.type}: no current revision past the band revision`);
     else revs.push(["live", spec.next], ["next", spec.current]);
   } else if (REV_MODE !== "next") revs.push(["live", spec.live]);
-  if (REV_MODE !== "live" && REV_MODE !== "current") {
+  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned") {
     if (spec.next === undefined) console.error(`${spec.type}: no next revision`);
     else revs.push(["next", spec.next]);
   }

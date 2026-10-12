@@ -37,8 +37,9 @@ export function proveSwingSeed(seed: number, rev = SWING_REV): ArcadeInputEvent[
  * Used by the bank build (a banked course must be finishable) and the batch-3
  * check (a banked course with a 10-star finish proves 150).
  */
-export function proveSwingSeedV4(seed: number, opts: { beam?: number; starWeight?: number } = {}): { log: ArcadeInputEvent[]; stars: number; ticks: number } | null {
-  const game = swingGameFor(SWING_REV);
+export function proveSwingSeedV4(seed: number, opts: { beam?: number; starWeight?: number; rev?: number } = {}): { log: ArcadeInputEvent[]; stars: number; ticks: number } | null {
+  // swingRev 6 (touch stars) runs the same search on its own game.
+  const game = swingGameFor(opts.rev ?? SWING_REV);
   const width = opts.beam ?? 120;
   const starWeight = opts.starWeight ?? 600;
   type Node = { state: SwingState; log: ArcadeInputEvent[]; rank: number };

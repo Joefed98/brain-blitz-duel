@@ -10,7 +10,7 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
-import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND } from "../../src/lib/arcade/wavefront";
+import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES } from "../../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND } from "../../src/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
@@ -40,8 +40,8 @@ import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TUNED } f
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND } from "../../src/lib/arcade/orbit";
-import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initBandFrom, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
+import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initBandFrom, initRev4From, initTunedFrom, orbitRev3Game, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
@@ -51,7 +51,7 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND } from "../../
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
@@ -63,6 +63,8 @@ export interface GameSpec {
   live: number | null;
   /** Revision stamped after it (undefined while the pass is being measured). */
   next?: number;
+  /** A later revision on the same band curve that changed play (Tuning A), when there is one. */
+  tuned?: number;
   /**
    * Revision rooms stamp today, when a later gameplay change (Tuning B, Oct 2026)
    * moved past `next`; `--rev=current` measures it against `next`.
@@ -116,7 +118,7 @@ export const GAMES: GameSpec[] = [
     encode: (run, rev, seed) => encodeBallTrackRun(btCourse(seed), run, rev),
     replay: (seed, raw, rev) => replayBallTrackRun(btCourse(seed), seed, raw, rev),
   },
-  simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun),
+  { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES },
   simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun),
   simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun),
   simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun),
@@ -135,10 +137,11 @@ export const GAMES: GameSpec[] = [
     type: "orbit",
     live: ORBIT_REV4,
     next: ORBIT_REV_BAND,
+    tuned: ORBIT_REV_TUNED,
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
     gameFor: (rev, seed) => {
-      const start = rev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
+      const start = rev === ORBIT_REV_TUNED ? initTunedFrom : rev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,
@@ -152,6 +155,7 @@ export const GAMES: GameSpec[] = [
     type: "swing",
     live: SWING_REV,
     next: SWING_REV_BAND,
+    tuned: SWING_REV_TUNED,
     // Rooms pick a proved course from the bank by the room seed.
     seedFor: (n) => SWING_V4_BANK[roomSeed(n) % SWING_V4_BANK.length]!.seed,
     gameFor: (rev) => swingGameFor(rev ?? undefined),

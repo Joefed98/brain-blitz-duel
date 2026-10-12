@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { BandCurve, BandParts } from "./scoreBands";
 import { btBandParts, BT_BAND_CURVE, BT_REV_BAND } from "./ballTrack";
-import { wavefrontBandParts, WAV_BAND_CURVE, WAV_REV_BAND } from "./wavefront";
+import { wavefrontBandParts, WAV_BAND_CURVE, WAV_REV_BAND, WAV_REV_SHAPES } from "./wavefront";
 import { flipBandParts, FLIP_BAND_CURVE, FLIP_REV_BAND } from "./flip";
 import { inkBridgeBandParts, INK_BAND_CURVE, INK_REV_BAND } from "./inkBridge";
 import { matchupBandParts, MATCHUP_BAND_CURVE, MATCHUP_REV_BAND } from "./matchup";
@@ -22,11 +22,11 @@ import { junctionBandParts, JUNC_BAND_CURVE, JUNC_REV_BAND } from "./junction";
 import { breakerBandParts, BRK_BAND_CURVE, BRK_REV_BAND } from "./breaker";
 import { tiltBandParts, TILT_BAND_CURVE, TILT_REV_BAND } from "./tilt";
 import { orbitBandParts, ORBIT_BAND_CURVE } from "./orbitRev3";
-import { ORBIT_REV_BAND } from "./orbit";
+import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "./orbit";
 import { beatBandParts, BEAT_BAND_CURVE, BEAT_REV_BAND } from "./beat";
 import { sliceBandParts, SLICE_BAND_CURVE, SLICE_REV_BAND } from "./slice";
 import { burstBandParts, BURST_BAND_CURVE, BURST_REV_BAND } from "./burst";
-import { swingBandParts, SWING_BAND_CURVE, SWING_REV_BAND } from "./swing";
+import { swingBandParts, SWING_BAND_CURVE, SWING_REV_BAND, SWING_REV_TUNED } from "./swing";
 import { bullseyeBandParts, BULLSEYE_BAND_CURVE, BULLSEYE_REV_BAND } from "./bullseye";
 
 export interface BandSpec {
@@ -68,10 +68,13 @@ export const BAND_SPECS: Record<string, BandSpec> = {
   bullseye: { parts: bullseyeBandParts, curve: BULLSEYE_BAND_CURVE, kind: "open" },
 };
 
-/** The puzzle field and revision that stamp each game's score bands. */
-export const BAND_STAMPS: Record<string, readonly [field: string, rev: number]> = {
+/**
+ * The puzzle field and revision that stamp each game's score bands, then any
+ * later revisions that changed play but still score on the same bands.
+ */
+export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, ...later: number[]]> = {
   balltrack: ["btRev", BT_REV_BAND],
-  wavefront: ["wavRev", WAV_REV_BAND],
+  wavefront: ["wavRev", WAV_REV_BAND, WAV_REV_SHAPES],
   flip: ["flipRev", FLIP_REV_BAND],
   inkbridge: ["inkRev", INK_REV_BAND],
   matchup: ["matchupRev", MATCHUP_REV_BAND],
@@ -86,21 +89,23 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number]> 
   junction: ["junctionRev", JUNC_REV_BAND],
   breaker: ["brkRev", BRK_REV_BAND],
   tilt: ["tiltRev", TILT_REV_BAND],
-  orbit: ["orbitRev", ORBIT_REV_BAND],
+  orbit: ["orbitRev", ORBIT_REV_BAND, ORBIT_REV_TUNED],
   beat: ["beatRev", BEAT_REV_BAND],
   slice: ["sliceRev", SLICE_REV_BAND],
   burst: ["burstRev", BURST_REV_BAND],
-  swing: ["swingRev", SWING_REV_BAND],
+  swing: ["swingRev", SWING_REV_BAND, SWING_REV_TUNED],
   bullseye: ["bullRev", BULLSEYE_REV_BAND],
 };
 
 /**
  * True when a stored puzzle was dealt on the Oct 2026 score bands: the band
- * revision or a later one (Tuning B's bullRev 4, brkRev 4 and rallyRev 4 keep
- * the bands), never an earlier one.
+ * revision or a later one (Tuning B's bullRev 4, brkRev 4 and rallyRev 4, and
+ * Tuning A's wavRev 4, orbitRev 6 and swingRev 6 keep the bands), never an earlier one.
  */
 export function puzzleUsesBands(puzzle: { type: string } & Record<string, unknown>): boolean {
   const stamp = BAND_STAMPS[puzzle.type];
+  // The band revision or any later one: Tuning B's (bullRev 4, brkRev 4, rallyRev 4) and
+  // Tuning A's (listed after the band stamp above) all keep the bands.
   const rev = stamp ? puzzle[stamp[0]] : undefined;
-  return Boolean(stamp && typeof rev === "number" && rev >= stamp[1]);
+  return Boolean(stamp && typeof rev === "number" && (rev >= stamp[1] || stamp.slice(1).includes(rev)));
 }
