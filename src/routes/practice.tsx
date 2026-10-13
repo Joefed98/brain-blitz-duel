@@ -54,7 +54,7 @@ import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
 import { APP_NAME } from "@/lib/brand";
-import { noteSignatureSubmit } from "@/lib/fx/signature";
+import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 
 export const Route = createFileRoute("/practice")({
@@ -105,6 +105,18 @@ function useTicker(active: boolean): number {
   return now;
 }
 
+/** The signature verdict for a graded practice run. */
+function practiceVerdict(graded: Graded) {
+  return {
+    type: graded.puzzle.type,
+    arcade: puzzleDef(graded.puzzle.type).category === "arcade",
+    correct: graded.isCorrect,
+    score: graded.score,
+    msRemaining: graded.msRemaining,
+    timeLimitMs: puzzleTimeLimitMs(graded.puzzle),
+  };
+}
+
 function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
   // A new version reloads only on the list, never mid-run (lib/appUpdate).
@@ -123,6 +135,8 @@ function PracticeScreen() {
   const draftAnswer = useRef("");
   /** The run whose round ended early (submitted); its music stops at once. */
   const [endedKey, setEndedKey] = useState("");
+  /** When the beat fires, the reveal waits for it to finish (Date.now() clock). */
+  const [revealAt, setRevealAt] = useState<number | null>(null);
   // Letterfall's word list starts downloading (or loads from the device cache) as soon as
   // the game list is shown, so the run never waits for it.
   useEffect(() => {
@@ -176,6 +190,7 @@ function PracticeScreen() {
       setDeviceBest(readPracticeBest(next));
       setNewBest(false);
       setGraded(null);
+      setRevealAt(null);
       setPuzzle(null);
       setStage("loading");
       recorder.current?.finish();
@@ -200,6 +215,7 @@ function PracticeScreen() {
     setType(null);
     setSealed("");
     setGraded(null);
+    setRevealAt(null);
     setStartedAt(0);
     setHelpOpen(false);
     setStage("list");
@@ -210,20 +226,7 @@ function PracticeScreen() {
   const clockStart = stage === "puzzle" ? startedAt + prepMs : null;
   const timeLimitMs = puzzleTimeLimitMs(puzzle ?? undefined);
   // The shared signature beat, once this run's graded verdict lands.
-  const signatureVerdict = useMemo(
-    () =>
-      graded
-        ? {
-            type: graded.puzzle.type,
-            arcade: puzzleDef(graded.puzzle.type).category === "arcade",
-            correct: graded.isCorrect,
-            score: graded.score,
-            msRemaining: graded.msRemaining,
-            timeLimitMs: puzzleTimeLimitMs(graded.puzzle),
-          }
-        : null,
-    [graded],
-  );
+  const signatureVerdict = useMemo(() => (graded ? practiceVerdict(graded) : null), [graded]);
   useSignatureVerdict(graded ? stateKey : null, signatureVerdict);
   const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
   const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
@@ -279,11 +282,36 @@ function PracticeScreen() {
         setDeviceBest(record.best);
         setNewBest(record.improved);
       }
+      // When the beat fires (a solve, a 120+ run) the board stays until it has finished
+      // (at most 2 s from the solve; a tap skips the wait); otherwise the reveal is at once.
+      const holdUntil = signatureHoldUntil(practiceVerdict({ ...(rest as Graded), extra }));
+      if (holdUntil !== null) {
+        setRevealAt(holdUntil);
+        return;
+      }
       setStartedAt(Date.now());
       setStage("reveal");
     },
     [puzzle, sealed, clockDeadline, timeLimitMs, stopRecording, stateKey],
   );
+
+  const holding = stage === "puzzle" && revealAt !== null;
+  const showReveal = useCallback(() => {
+    setRevealAt(null);
+    setStartedAt(Date.now());
+    setStage("reveal");
+  }, []);
+  useEffect(() => {
+    if (!holding || revealAt === null) return;
+    const timer = window.setTimeout(showReveal, Math.max(0, revealAt - Date.now()));
+    // A tap anywhere goes to the reveal at once.
+    const skip = () => showReveal();
+    document.addEventListener("pointerdown", skip, true);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", skip, true);
+    };
+  }, [holding, revealAt, showReveal]);
 
   // Round music: the one owner is this practice round state (useRoundMusic).
   // It starts as the 3-2-1 begins (or at the game, when Ready skipped it) and
@@ -549,9 +577,9 @@ function PracticeScreen() {
         timer={
           puzzleShowsTimer(puzzle) ? (
             <TimerBar
-              msRemaining={runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
+              msRemaining={holding ? 0 : runMs !== null ? arcadeMsRemaining(runMs) : msRemaining}
               totalMs={runMs ?? timeLimitMs}
-              active={clockActive}
+              active={clockActive && !holding}
             />
           ) : undefined
         }
@@ -561,6 +589,8 @@ function PracticeScreen() {
           ) : undefined
         }
         stageRef={recordArea}
+        locked={holding}
+        held={holding}
         overlay={
           <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
         }
