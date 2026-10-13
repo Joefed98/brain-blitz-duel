@@ -1,9 +1,10 @@
-/** Wrap the unchanged clay renderer: gold-clay rewards are presentation only. */
+/** Pull! art game: the polished scenery/clay/bird art (clayShootArt.renderer.ts) plus gold-clay rewards; presentation only. */
 import { clayGameFor, clayView, CLAY_H, CLAY_W, CLAY_HIT, CLAY_KIND_GOLD, type ClayState } from './clayShoot';
 import type { CanvasSize } from './engine';
+import { drawClayArt } from './clayShootArt.renderer';
 import { successFrame, SUCCESS_ACCENTS } from './success.renderer';
 export function drawClaySuccess(ctx:CanvasRenderingContext2D,state:ClayState,size:CanvasSize):void {
-  clayGameFor(state.rev).draw(ctx,state,size);
+  drawClayArt(ctx,state,size);
   const {scaleX,scaleY}=clayView(size);
   let latest=-1;
   for(let i=0;i<state.status.length;i++)if(state.status[i]===CLAY_HIT&&(latest<0||(state.doneTick[i]??0)>(state.doneTick[latest]??0)))latest=i;

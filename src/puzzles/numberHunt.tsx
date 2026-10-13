@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
 import { randInt } from "@/lib/duel/random";
@@ -22,6 +22,9 @@ import {
   type HuntSpot,
   type NumberHuntPuzzleData,
 } from "@/lib/duel/types";
+
+import { fireAscendFinish } from "@/components/puzzles/numberHuntFx";
+import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -76,7 +79,8 @@ function Circle({
 }) {
   return (
     <span
-      className={`flex items-center justify-center rounded-full border-2 font-mono font-bold ${
+      data-disc={wrong ? "wrong" : done ? "done" : "todo"}
+      className={`ascend-disc flex items-center justify-center rounded-full border-2 font-mono font-bold ${
         wrong
           ? "border-warn bg-warn/25 text-warn"
           : done
@@ -135,6 +139,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
   const [flash, setFlash] = useState<number | null>(null);
   const [moveFlash, setMoveFlash] = useState(-1);
   const submitted = useRef("");
+  const arenaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setNext(0);
@@ -172,6 +177,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
     if (done === spots.length && submitted.current !== key) {
       submitted.current = key;
       const remaining = Math.max(0, NUMHUNT_TIME_MS - (serverNow() - phaseStartedAt));
+      fireAscendFinish(arenaRef.current, spots);
       onSubmit(`${done},${errors},${Math.round(NUMHUNT_TIME_MS - remaining)}`, { errors });
     }
   };
@@ -186,6 +192,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
       locked={locked}
       elapsed={Math.max(0, now - phaseStartedAt)}
       onTap={handleTap}
+      arenaRef={arenaRef}
     />
   );
 }
@@ -199,6 +206,7 @@ function AscendBoard({
   locked,
   elapsed,
   onTap,
+  arenaRef,
 }: {
   spots: HuntSpot[];
   next: number;
@@ -208,7 +216,11 @@ function AscendBoard({
   locked: boolean;
   elapsed: number;
   onTap: (index: number) => void;
+  arenaRef: RefObject<HTMLDivElement | null>;
 }) {
+  const spotsRef = useRef(spots);
+  spotsRef.current = spots;
+  useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -220,7 +232,7 @@ function AscendBoard({
         </span>
       </div>
 
-      <div data-game-arena="tall" className={`relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
+      <div ref={arenaRef} data-game-arena="tall" className={`ascend-board relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
         {spots.map((spot, index) => (
           <button
             key={index}
@@ -256,6 +268,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
   const [flash, setFlash] = useState<number | null>(null);
   const [moveFlash, setMoveFlash] = useState(-1);
   const submitted = useRef("");
+  const arenaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     taps.current = [];
@@ -300,6 +313,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     if (outcome === "wrong") setFlash(index);
     if (after.finishedAt !== null && submitted.current !== key) {
       submitted.current = key;
+      fireAscendFinish(arenaRef.current, spots);
       onSubmit(encodeNumberTaps(taps.current), { errors: after.errors });
     }
   };
@@ -314,6 +328,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       locked={locked}
       elapsed={Math.max(0, now - phaseStartedAt)}
       onTap={handleTap}
+      arenaRef={arenaRef}
     />
   );
 }
@@ -329,7 +344,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <>
-      <div className="relative h-64 w-full rounded-2xl border border-border bg-muted/10">
+      <div className="ascend-board relative h-64 w-full rounded-2xl border border-border bg-muted/10">
         {puzzle.spots.map((spot, index) => (
           <span
             key={index}
@@ -340,8 +355,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           </span>
         ))}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
-        <p className="font-mono text-lg font-bold text-primary">
+      <div className="ascend-reveal-result flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-4">
+        <p className="text-center font-mono text-base font-bold text-primary">
           {finished
             ? `Finished with ${errors} ${errors === 1 ? "error" : "errors"} · ${(
                 elapsedMs / 1000

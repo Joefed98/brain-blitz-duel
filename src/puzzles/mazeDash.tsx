@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useId, useMemo, useRef } from "react";
+
+import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
 
@@ -18,6 +20,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
+import { playMazeTrace } from "./labyrinthArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GOLD = "var(--primary)";
@@ -33,7 +36,48 @@ function starPoints(cx: number, cy: number, outer: number, inner: number): strin
   return points.join(" ");
 }
 
-/** Thin wall lines on the card colour, with the drawn route over the top. */
+type Wall = { x1: number; y1: number; x2: number; y2: number };
+
+/**
+ * The maze itself, memoised so a route step never redraws it: a flagstone floor
+ * (pattern, deterministic), then every wall three times for depth — a drop shadow,
+ * the stone body and a thin lit top edge. Walls sit on the same grid lines as before.
+ */
+const MazeWalls = memo(function MazeWalls({ cells, cols, rows }: { cells: number[]; cols: number; rows: number }) {
+  const id = useId().replace(/:/g, "");
+  const walls: Wall[] = [];
+  cells.forEach((mask, cell) => {
+    const col = cell % cols;
+    const row = Math.floor(cell / cols);
+    if (!(mask & MAZE_N)) walls.push({ x1: col, y1: row, x2: col + 1, y2: row });
+    if (!(mask & MAZE_W)) walls.push({ x1: col, y1: row, x2: col, y2: row + 1 });
+    if (!(mask & MAZE_S) && row === rows - 1)
+      walls.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
+    if (!(mask & MAZE_E) && col === cols - 1)
+      walls.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
+  });
+  const d = walls.map((w) => `M${w.x1} ${w.y1}L${w.x2} ${w.y2}`).join("");
+  return (
+    <g>
+      <defs>
+        <pattern id={`maze-floor-${id}`} width="2" height="2" patternUnits="userSpaceOnUse">
+          <rect width="2" height="2" fill="var(--maze-floor)" />
+          <rect width="1" height="1" fill="var(--maze-floor-alt)" />
+          <rect x="1" y="1" width="1" height="1" fill="var(--maze-floor-alt)" />
+          <circle cx="0.3" cy="0.7" r="0.05" fill="var(--maze-floor-speck)" />
+          <circle cx="1.65" cy="0.35" r="0.06" fill="var(--maze-floor-speck)" />
+          <circle cx="1.2" cy="1.6" r="0.04" fill="var(--maze-floor-speck)" />
+        </pattern>
+      </defs>
+      <rect width={cols} height={rows} fill={`url(#maze-floor-${id})`} />
+      <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
+      <path d={d} stroke="var(--maze-wall)" strokeWidth={0.13} strokeLinecap="square" fill="none" />
+      <path d={d} transform="translate(-0.018 -0.025)" stroke="var(--maze-wall-top)" strokeWidth={0.04} strokeLinecap="square" fill="none" opacity={0.75} />
+    </g>
+  );
+});
+
+/** Stone walls on a flagstone floor, with the drawn route over the top. */
 function MazeBoard({
   cells,
   cols = MAZE_COLS,
@@ -63,22 +107,11 @@ function MazeBoard({
 
   const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
 
-  const walls: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  cells.forEach((mask, cell) => {
-    const col = cell % cols;
-    const row = Math.floor(cell / cols);
-    if (!(mask & MAZE_N)) walls.push({ x1: col, y1: row, x2: col + 1, y2: row });
-    if (!(mask & MAZE_W)) walls.push({ x1: col, y1: row, x2: col, y2: row + 1 });
-    if (!(mask & MAZE_S) && row === rows - 1)
-      walls.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
-    if (!(mask & MAZE_E) && col === cols - 1)
-      walls.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
-  });
-
   return (
     <div
       ref={box}
-      className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full touch-none select-none rounded-lg bg-card p-1"
+      className="maze-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full touch-none select-none rounded-lg bg-card p-1"
+      data-maze-board=""
       style={{ touchAction: "none" }}
       onPointerDown={(event) => {
         if (!onCell) return;
@@ -100,15 +133,20 @@ function MazeBoard({
       onPointerCancel={() => onRelease?.()}
     >
       <svg viewBox={`0 0 ${cols} ${rows}`} className="h-full w-full" aria-hidden="true">
+        <MazeWalls cells={cells} cols={cols} rows={rows} />
+        {/* Start pad and exit tile: clear ends, drawn on the floor under the route. */}
+        <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) + 0.08} width={0.84} height={0.84} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
+        <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) + 0.08} width={0.84} height={0.84} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />
         {ghost && ghost.length > 1 && (
           <polyline
             points={ghost.map(centre).join(" ")}
             fill="none"
-            stroke="var(--muted-foreground)"
-            strokeWidth={0.22}
+            stroke="var(--maze-start)"
+            strokeWidth={0.2}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.45}
+            strokeDasharray="0.35 0.25"
+            opacity={0.75}
           />
         )}
         {path.length > 1 && (
@@ -121,24 +159,11 @@ function MazeBoard({
             strokeLinejoin="round"
           />
         )}
-        {walls.map((wall, index) => (
-          <line
-            key={index}
-            x1={wall.x1}
-            y1={wall.y1}
-            x2={wall.x2}
-            y2={wall.y2}
-            stroke="var(--muted-foreground)"
-            strokeWidth={0.07}
-            opacity={0.55}
-            strokeLinecap="square"
-          />
-        ))}
         <circle
           cx={(start % cols) + 0.5}
           cy={Math.floor(start / cols) + 0.5}
           r={0.18}
-          fill="var(--muted-foreground)"
+          fill="var(--maze-start)"
         />
         {/* Goal: a gold star flag marking the exit cell. */}
         <polygon
@@ -200,6 +225,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const exit = isMaze ? puzzle.exit : MAZE_CELLS - 1;
   const [path, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
   const submitted = useRef(false);
+  const arenaRef = useRef<HTMLDivElement>(null);
+  const trace = useRef<(route: number[]) => void>(() => undefined);
+  trace.current = (route) => {
+    const board = arenaRef.current?.querySelector("[data-maze-board]");
+    if (board) playMazeTrace(board, route, MAZE_COLS, Math.ceil(cells.length / MAZE_COLS) || MAZE_COLS);
+  };
+  useEffect(() => registerFxPreview("maze", () => trace.current(path.length > 1 ? path : (puzzle.type === "maze" ? puzzle.solution ?? [] : []))), [path, puzzle]);
 
   const solved = path[path.length - 1] === exit;
   const wasted = useMemo(() => {
@@ -220,6 +252,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     if (locked || submitted.current || !solved) return;
     submitted.current = true;
     playCorrect();
+    // Finish effect: a glowing line traces the route (display only, never awaited).
+    trace.current(path);
     onSubmit(encodeMazePath(path));
   }, [solved, path, locked, onSubmit]);
 
@@ -263,12 +297,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   if (!isMaze) return null;
 
   return (
-    <div data-stage-column="1" className="flex min-h-0 flex-1 flex-col gap-1">
+    <div data-stage-column="1" data-polish="maze" className="flex min-h-0 flex-1 flex-col gap-1">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         squares <span className="text-primary">{path.length}</span> · wasted {wasted}
       </p>
 
-      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
+      <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
       </div>
 
@@ -299,7 +333,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190 }}>
+      <div className="maze-reveal-board">
         <MazeBoard
           cells={puzzle.cells}
           start={puzzle.start}
