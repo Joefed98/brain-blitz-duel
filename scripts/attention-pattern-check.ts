@@ -1,7 +1,7 @@
 /** Focused generator and symbol checks for the Oct 2 Attention/Pattern tuning. */
 import { generateIntruder } from "../src/lib/duel/intruder.server";
 import { INTRUDER_CHANGE_COUNTS, COUNTUP_STAGE_SIZES } from "../src/lib/duel/types";
-import { buildCountUp, countUpSceneValid, countUpVisibleShare } from "../src/puzzles/countUp";
+import { COUNTUP_STAGE_COUNTS_REV1, buildCountUp, countUpSceneValid, countUpVisibleShare } from "../src/puzzles/countUp";
 import { directionalChevronPoints } from "../src/puzzles/laser";
 
 function check(ok: boolean, message: string): void {
@@ -30,7 +30,9 @@ for (let round = 0; round < 100; round += 1) {
     check(stage.shapes.length === COUNTUP_STAGE_SIZES[index], `Count Up stage ${index + 1} shape count`);
     check(countUpSceneValid(stage), `Count Up stage ${index + 1} containment/visibility`);
     const targets = stage.shapes.filter((shape) => shape.shape === stage.targetShape && shape.colour === stage.targetColour);
-    check(targets.length >= 6 && targets.length <= 14, `Count Up stage ${index + 1} answer range`);
+    // countRev 1 (13 Oct 2026): seven values per tray, 5–11, 7–13, 9–15.
+    const [lo, hi] = COUNTUP_STAGE_COUNTS_REV1[index]!;
+    check(targets.length >= lo && targets.length <= hi, `Count Up stage ${index + 1} answer range`);
     for (const target of targets) minimumVisibility = Math.min(minimumVisibility, countUpVisibleShare(target, stage.shapes));
   });
 }

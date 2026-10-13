@@ -35,7 +35,35 @@ function anyBalanced(scale: BalanceScale): boolean {
   return go(0);
 }
 
-function buildScale(loose: number, fixedCount: number): { scale: BalanceScale; solution: number[] } {
+/**
+ * Distinct balanced arrangements of the tray (equal weights swapped count once).
+ * Counterweight balanceRev 1 (13 Oct 2026) keeps only small scales with exactly
+ * one, so hanging weights at random rarely balances them.
+ */
+export function balancedArrangements(scale: BalanceScale): number {
+  const free = Array.from({ length: BAL_PEGS }, (_, p) => p).filter((p) => !scale.fixed.some((f) => f.peg === p));
+  const placement: Placement = scale.tray.map(() => null);
+  const used = new Set<number>();
+  const seen = new Set<string>();
+  const go = (i: number) => {
+    if (i === scale.tray.length) {
+      if (scaleSolved(scale, placement)) seen.add(placement.map((peg, k) => `${peg}:${scale.tray[k]}`).sort().join(","));
+      return;
+    }
+    for (const peg of free) {
+      if (used.has(peg)) continue;
+      used.add(peg);
+      placement[i] = peg;
+      go(i + 1);
+      used.delete(peg);
+    }
+    placement[i] = null;
+  };
+  go(0);
+  return seen.size;
+}
+
+function buildScale(loose: number, fixedCount: number, unique = false): { scale: BalanceScale; solution: number[] } {
   for (let attempt = 0; attempt < 20000; attempt++) {
     const pegs = shuffled(Array.from({ length: BAL_PEGS }, (_, p) => p)).slice(0, loose + fixedCount);
     const fixed = pegs.slice(0, fixedCount).map((peg) => ({ peg, w: randInt(1, 9) }));
@@ -46,6 +74,7 @@ function buildScale(loose: number, fixedCount: number): { scale: BalanceScale; s
     // The loose weights must not already sit on one side only trivially: require both sides used.
     const sides = new Set([...pegs].map((p) => p < 4));
     if (sides.size < 2 || !anyBalanced(scale)) continue;
+    if (unique && balancedArrangements(scale) !== 1) continue;
     // Shuffle the tray order so the solution isn't the tray order.
     const order = shuffled(tray.map((_, i) => i));
     return {
@@ -59,7 +88,8 @@ function buildScale(loose: number, fixedCount: number): { scale: BalanceScale; s
   };
 }
 
+/** Counterweight. The two small scales have exactly one balanced arrangement (balanceRev 1, stamped by moveLimits.server.ts). */
 export function generateBalance(): BalancePuzzleData {
-  const built = [buildScale(2, 1), buildScale(3, 2), buildScale(4, 3)];
+  const built = [buildScale(2, 1, true), buildScale(3, 2, true), buildScale(4, 3)];
   return { type: "balance", scales: built.map((b) => b.scale), solutions: built.map((b) => b.solution) };
 }

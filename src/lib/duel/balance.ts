@@ -66,7 +66,8 @@ export function encodeBalance(placements: Placement[]): string {
 }
 
 export function decodeBalance(raw: string, scales: BalanceScale[]): Placement[] {
-  const parts = typeof raw === "string" ? raw.split("|") : [];
+  // balanceRev 1 answers end with "#" and the hang counts (moveLimits.ts); stored rounds never contain "#".
+  const parts = typeof raw === "string" ? raw.split("#")[0]!.split("|") : [];
   return scales.map((scale, s) => {
     const cells = (parts[s] ?? "").split(",");
     return scale.tray.map((_, i) => {
