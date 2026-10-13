@@ -1,0 +1,22 @@
+/* Speed & Attention polish (c), 13 Oct 2026: presentation only. */
+
+/*
+ * Pull! (clayshoot): the sky keeps the engine world's true aspect (360 x 400) at the
+ * largest size that fits, and the HUD + sky block is centred in the column. The board's
+ * pointer mapping reads its own box, so world coordinates are unchanged.
+ * 26px = the HUD line (12px) + pips (6px) + two 4px gaps.
+ */
+.game-column [data-polish="clayshoot"][data-stage-column] {
+  container-type: size;
+  justify-content: center;
+}
+.game-column [data-polish="clayshoot"][data-stage-column] > [data-game-arena="canvas"] {
+  flex: 0 0 auto;
+  align-self: center;
+  width: min(100cqw, calc((100cqh - 26px) * 0.9));
+  aspect-ratio: 360 / 400;
+  max-height: none;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 18px rgba(0, 0, 0, 0.35);
+}

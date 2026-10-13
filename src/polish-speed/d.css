@@ -1,0 +1,47 @@
+/* Speed & Attention polish (d), 13 Oct 2026: presentation only. */
+
+/* ---- Bonk (whack) ---- */
+/* Banner + hit line + square board, centred as one block between the top bar and the column bottom. */
+.game-column [data-polish="whack"][data-stage-column] > [data-game-arena] {
+  height: min(100cqw, calc(100cqh - 84px));
+}
+.game-column [data-polish="whack"][data-stage-column] > [data-game-arena] > .puzzle-board {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: none;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 10px 24px -12px rgb(0 0 0 / 0.7);
+}
+/* Fixed intro still: same meadow and burrows as the live board. */
+div.bonk-example {
+  background:
+    radial-gradient(circle at 20% 30%, rgb(255 255 255 / 0.05) 0 1px, transparent 1.5px) 0 0 / 9px 11px,
+    linear-gradient(180deg, #36552a, #27401f);
+  border-radius: 10px;
+  padding: 3px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+div.bonk-example .bonk-burrow {
+  background:
+    radial-gradient(ellipse 47% 45% at 50% 50%, #050405 0 40%, #131114 72%, #2a1e15 96%, transparent 100%),
+    radial-gradient(ellipse 49.5% 48% at 50% 50%, #8c6640 0, #6e4c30 70%, #4a3221 96%, transparent 100%);
+  box-shadow: inset 0 -1.5px 0 rgb(196 154 104 / 0.55);
+}
+
+/* ---- Mixed Signals (stroop) ---- */
+/* The arena keeps the world's true 390:560 aspect (no stretch), as large as fits, a small
+   equal-ish gap above it and the usual 12px down to the arrow pad. */
+.game-column [data-polish="stroop"][data-stage-column] { justify-content: flex-start; }
+.game-column [data-polish="stroop"][data-stage-column] > [data-game-arena] {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 8px;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100cqw * 560 / 390);
+  aspect-ratio: 390 / 560;
+  align-self: center;
+}

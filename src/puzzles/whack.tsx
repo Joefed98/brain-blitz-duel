@@ -1,5 +1,6 @@
 import { BonkIcon } from "@/components/puzzles/BonkIcon";
-import { whackArtGame } from "@/lib/arcade/whack.renderer";
+import { drawBonkFinale, whackArtGame } from "@/lib/arcade/whack.renderer";
+import { END_OF_RUN_FX_SCORE, playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -73,6 +74,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitted = useRef(false);
   const [hud, setHud] = useState({ hits: 0, wrong: 0, next: 0, red: false, flash: false });
   useNoTouchScroll(wrap);
+
+  /** End-of-run finale over the board (presentation only; never delays the submit). */
+  const fireFinale = () => {
+    const node = board.current;
+    if (!node) return;
+    const box = node.getBoundingClientRect();
+    if (box.width < 1) return;
+    const lift = Math.round(box.height * 0.22);
+    soundCue("whack.finale");
+    playOverlayFx({
+      rect: new DOMRect(box.left, box.top - lift, box.width, box.height + lift),
+      ms: 1100,
+      draw: ({ ctx, ms, reduced }) => drawBonkFinale(ctx, ms, box.width, box.height, lift, reduced),
+    });
+  };
+  useEffect(() => registerFxPreview("whack", fireFinale), []);
 
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
@@ -199,6 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (whackGame.isOver(state.current) && !submitted.current) {
         submitted.current = true;
         submitRef.current(encode());
+        if (whackGame.score(state.current) >= END_OF_RUN_FX_SCORE) fireFinale();
       }
       frameTiming.end();
     };
@@ -211,7 +229,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const total = state.current.schedule.total;
 
   return (
-    <div ref={wrap} data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
+    <div ref={wrap} data-stage-column="2" data-polish="whack" className="flex min-h-0 w-full flex-1 flex-col gap-2" style={NO_SCROLL_STYLE}>
       <Banner red={hud.red} flash={hud.flash} />
       <p className="text-center font-mono text-sm text-muted-foreground">
         Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}

@@ -1,6 +1,7 @@
-import { EagleIcon } from "@/components/puzzles/refreshIcons";
+import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { Button } from "@/components/ui/button";
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { prefersReducedMotion } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
@@ -17,6 +18,7 @@ import {
   type SymbolScanStage,
 } from "@/lib/duel/types";
 
+import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Compass order, so "adjacent" directions are simply the neighbours here. */
@@ -31,6 +33,8 @@ function CellBox({
   onClick,
   disabled,
   label,
+  index = 0,
+  flown = false,
 }: {
   dir: ArrowDir;
   state: CellState;
@@ -38,6 +42,10 @@ function CellBox({
   onClick?: () => void;
   disabled?: boolean;
   label?: string;
+  /** Seeds the cell's fixed cloud wisp (display only). */
+  index?: number;
+  /** The eagle has taken off (finish effect): its cell shows empty sky. */
+  flown?: boolean;
 }) {
   const style =
     state === "selected"
@@ -48,17 +56,24 @@ function CellBox({
           ? "border-warn bg-warn/10 text-warn"
           : state === "missed"
             ? "border-warn border-dashed text-warn"
-            : "border-border eagle-sky text-foreground";
+            : "border-border text-foreground";
   const Tag = onClick ? Button : "div";
   return (
     <Tag
       {...(onClick ? { type: "button" as const, onClick, disabled, "aria-label": label, "aria-pressed": state === "selected" } : {})}
-      className={`eagle-cell min-w-0 p-0 flex aspect-square w-full items-center justify-center rounded-lg border ${style}`}
-      style={size ? { width: size, height: size } : undefined}
+      className={`eagle-cell eye-cell min-w-0 p-0 flex aspect-square w-full items-center justify-center rounded-lg border ${style}${flown ? " eye-flown" : ""}`}
+      data-eye-state={state}
+      style={{ ...(size ? { width: size, height: size } : {}), ...cloudStyle(index) }}
     >
       <EagleIcon dir={dir} size={size ? Math.round(size * 0.66) : 32} />
     </Tag>
   );
+}
+
+/** Fixed per-cell cloud wisp position (deterministic by index, never random). */
+function cloudStyle(index: number): Record<string, string> {
+  const h = (index * 2654435761) >>> 0;
+  return { "--eye-cloud-x": `${18 + (h % 64)}%`, "--eye-cloud-y": `${14 + ((h >>> 8) % 70)}%` };
 }
 
 /** Fixed intro grid — arrows in cells 2 and 7 (1-based) match the target. */
@@ -71,7 +86,7 @@ function IntroExample() {
     <div className="flex flex-col items-center gap-4">
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Target</span>
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
+        <div className="eye-target flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
           <EagleIcon dir={EXAMPLE_TARGET} size={30} />
         </div>
       </div>
@@ -79,6 +94,7 @@ function IntroExample() {
         {EXAMPLE_CELLS.map((dir, index) => (
           <CellBox
             key={index}
+            index={index}
             dir={dir}
             size={40}
             state={EXAMPLE_MATCHES.includes(index) ? "selected" : "plain"}
@@ -101,7 +117,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const stageRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [gridSide, setGridSide] = useState(280);
+  const [flown, setFlown] = useState(false);
+  const takeoff = useRef<() => void>(() => undefined);
+  useEffect(() => registerFxPreview("symscan", () => takeoff.current()), []);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -128,9 +148,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const frozen = locked || done.current;
   const selected = selections[stage] ?? [];
 
+  /** Finish effect: the eagles facing the target take off (display only, never awaited). */
+  takeoff.current = () => {
+    const grid = gridRef.current;
+    const area = stageRef.current;
+    if (!grid || !area) return;
+    const kids = Array.from(grid.children);
+    const birds = current.cells.flatMap((dir, i) => (dir === current.target && kids[i] ? [{ cell: kids[i]!, dir }] : []));
+    playEagleTakeoff(area, birds);
+    if (!prefersReducedMotion()) setFlown(true);
+  };
+
   const advance = (all: number[][]) => {
     if (stage >= STAGE_COUNT - 1) {
       done.current = true;
+      takeoff.current();
       onSubmit(joinStages(all.map((sel) => [...sel].sort((a, b) => a - b).join(","))));
       return;
     }
@@ -140,19 +172,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const toggle = (index: number) => {
     if (frozen) return;
     const nextSel = selected.includes(index) ? selected.filter((i) => i !== index) : [...selected, index];
+    soundCue(selected.includes(index) ? "symscan.unmark" : "symscan.mark");
     const all = selections.map((sel, i) => (i === stage ? nextSel : sel));
     setSelections(all);
   };
 
   return (
-    <div ref={stageRef} data-stage-column="0" className="flex min-h-0 flex-1 flex-col items-center">
+    <div ref={stageRef} data-stage-column="0" data-polish="symscan" className="flex min-h-0 flex-1 flex-col items-center">
       <div ref={topRef} className="flex w-full shrink-0 flex-col items-center gap-2">
         <StageProgress stage={stage} />
         <div className="flex items-center gap-3">
           <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Grid {stage + 1} of 3 · target
           </span>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
+          <div className="eye-target flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
             <EagleIcon dir={current.target} size={30} />
           </div>
         </div>
@@ -160,13 +193,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden pt-2">
         <div
-          className="grid shrink-0 gap-1"
+          ref={gridRef}
+          className="eye-grid grid shrink-0 gap-1"
           style={{ width: gridSide, height: gridSide, gridTemplateColumns: `repeat(${current.cols}, minmax(0, 1fr))` }}
         >
           {current.cells.map((dir, index) => (
             <CellBox
               key={`${stage}-${index}`}
+              index={index}
               dir={dir}
+              flown={flown && dir === current.target}
               state={selected.includes(index) ? "selected" : "plain"}
               onClick={() => toggle(index)}
               disabled={frozen}
@@ -190,35 +226,56 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  const [shown, setShown] = useState<number | null>(null);
   if (puzzle.type !== "symscan") return null;
   const parts = splitStages(myAnswer);
+  const grids = puzzle.stages.map((stage, s) => {
+    const targets = puzzle.targets?.[s] ?? matchesOf(stage);
+    const selected = parseSelection(parts[s] ?? "");
+    return { stage, targets, selected, result: scanStageResult(s, selected, targets) };
+  });
+  // One grid at a time, large enough to read; the first grid with a slip opens first.
+  const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
+  const grid = grids[open]!;
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      {puzzle.stages.map((stage, s) => {
-        const targets = puzzle.targets?.[s] ?? matchesOf(stage);
-        const selected = parseSelection(parts[s] ?? "");
-        const result = scanStageResult(s, selected, targets);
-        const size = Math.floor(240 / stage.cols);
-        return (
-          <div key={s} className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-3 py-3">
-            <div className="flex items-center gap-2 text-primary">
+    <div className="eye-reveal flex w-full flex-col items-center gap-2">
+      <div
+        className="eye-reveal-grid grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${grid.stage.cols}, minmax(0, 1fr))` }}
+        aria-label={`Grid ${open + 1}`}
+      >
+        {grid.stage.cells.map((dir, index) => {
+          const isTarget = grid.targets.includes(index);
+          const isSelected = grid.selected.includes(index);
+          const state: CellState = isTarget ? (isSelected ? "target" : "missed") : isSelected ? "wrong" : "plain";
+          return <CellBox key={`${open}-${index}`} index={index} dir={dir} state={state} />;
+        })}
+      </div>
+      <div className="flex w-full flex-col gap-1" role="tablist" aria-label="Grids">
+        {grids.map(({ stage, result }, s) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            aria-selected={s === open}
+            onClick={() => {
+              soundCue("symscan.revealGrid");
+              setShown(s);
+            }}
+            className={`eye-reveal-row flex min-h-11 w-full items-center gap-2 rounded-xl border px-3 text-left ${
+              s === open ? "border-primary/70 bg-card" : "border-transparent bg-card/60"
+            }`}
+          >
+            <span className="flex shrink-0 items-center gap-1.5 text-primary">
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
               <EagleIcon dir={stage.target} size={20} />
-            </div>
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${stage.cols}, minmax(0, 1fr))` }}>
-              {stage.cells.map((dir, index) => {
-                const isTarget = targets.includes(index);
-                const isSelected = selected.includes(index);
-                const state: CellState = isTarget ? (isSelected ? "target" : "missed") : isSelected ? "wrong" : "plain";
-                return <CellBox key={index} dir={dir} size={size} state={state} />;
-              })}
-            </div>
-            <p className={`font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
+            </span>
+            <span className={`ml-auto font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
               {result.found} / {result.targets} found{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
-            </p>
-          </div>
-        );
-      })}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
