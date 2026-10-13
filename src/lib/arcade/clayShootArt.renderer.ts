@@ -5,9 +5,12 @@
  * clouds are pre-rendered sprites that drift from state.tick. No Math.random anywhere.
  *
  * Bounds (rule 3): a flying clay fills exactly the sim's drawn footprint (ellipse
- * rx = clayRadius, ry = 0.55 r); a bird stays inside CLAY_BIRD_RX × CLAY_BIRD_RY + 2 px.
+ * rx = clayRadius, ry = 0.55 r) inside a shot-zone ring at the sim hit radius (orange 30, gold 24);
+ * a bird stays inside CLAY_BIRD_RX × CLAY_BIRD_RY + 2 px. Flying clays and birds are drawn one tick
+ * ahead, where the sim judges a tap made on this frame.
  */
 import {
+  clayGameFor,
   clayView,
   CLAY_BIRD_FLYING,
   CLAY_BIRD_STARTLED,
@@ -409,6 +412,20 @@ function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold: boole
   }
 }
 
+/** Shot zone: a faint disc and rim at exactly the sim's hit radius (orange 30, gold 24). */
+function drawShotZone(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean): void {
+  const r = gold ? CLAY_CONFIG.goldHitRadius : CLAY_CONFIG.orangeHitRadius;
+  c.beginPath();
+  c.arc(x, y, r, 0, TAU);
+  c.fillStyle = gold ? "rgba(255,222,120,0.10)" : "rgba(255,255,255,0.08)";
+  c.fill();
+  c.beginPath();
+  c.arc(x, y, r - 0.6, 0, TAU);
+  c.lineWidth = 1.2;
+  c.strokeStyle = gold ? "rgba(255,226,140,0.55)" : "rgba(255,255,255,0.42)";
+  c.stroke();
+}
+
 const SHARD_TICKS = 26;
 
 function drawShatter(c: CanvasRenderingContext2D, state: ClayState, i: number, age: number, still: boolean): void {
@@ -580,15 +597,17 @@ function drawBird(c: CanvasRenderingContext2D, flap: number): void {
   wing(flap, "#FFFFFF", "#1E222A");
 }
 
-function drawBirds(c: CanvasRenderingContext2D, state: ClayState, still: boolean): void {
+function drawBirds(c: CanvasRenderingContext2D, state: ClayState, still: boolean, ahead: number): void {
   const birds = state.birds;
   if (!birds || !state.birdX || !state.birdY || !state.birdStatus || !state.birdDoneTick) return;
   const tick = state.tick;
   for (let i = 0; i < birds.launch.length; i++) {
     const status = state.birdStatus[i];
     if (status !== CLAY_BIRD_FLYING && status !== CLAY_BIRD_STARTLED) continue;
-    const px = state.birdX[i]! / 256;
-    const py = state.birdY[i]! / 256;
+    // A flying bird is drawn where the next tick judges a tap (see drawClayArt).
+    const lead = status === CLAY_BIRD_FLYING && ahead ? 1 : 0;
+    const px = (state.birdX[i]! + birds.vx[i]! * lead) / 256;
+    const py = (state.birdY[i]! + birds.vy[i]! * lead) / 256;
     const startledAge = status === CLAY_BIRD_STARTLED ? tick - state.birdDoneTick[i]! : -1;
     const period = startledAge >= 0 ? 7 : 14;
     const flap = still ? 0.6 : Math.cos((((tick + i * 7) % period) / period) * TAU);
@@ -662,12 +681,23 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
   }
   ctx.globalAlpha = 1;
 
-  drawBirds(ctx, state, still);
+  const ahead = clayGameFor(state.rev).isOver(state) ? 0 : 1;
+  drawBirds(ctx, state, still, ahead);
 
+  // Clays are drawn where the next sim tick will judge a tap made now (a tap is applied on
+  // the tick after the frame it was made on), each with its shot zone: the sim's hit
+  // radius, so the drawn edge is the hit edge.
+  for (let i = 0; i < state.status.length; i++) {
+    if (state.status[i] !== CLAY_FLYING) continue;
+    const gold = state.schedule.kind[i] === CLAY_KIND_GOLD;
+    const vy = state.vy[i]! + CLAY_CONFIG.gravity * ahead;
+    drawShotZone(ctx, (state.x[i]! + state.schedule.vx[i]! * ahead) / 256, (state.y[i]! + vy * ahead) / 256, gold);
+  }
   for (let i = 0; i < state.status.length; i++) {
     const st = state.status[i];
     if (st === CLAY_FLYING) {
-      drawClay(ctx, state.x[i]! / 256, state.y[i]! / 256, state.schedule.kind[i] === CLAY_KIND_GOLD, i, tick, k, still);
+      const vy = state.vy[i]! + CLAY_CONFIG.gravity * ahead;
+      drawClay(ctx, (state.x[i]! + state.schedule.vx[i]! * ahead) / 256, (state.y[i]! + vy * ahead) / 256, state.schedule.kind[i] === CLAY_KIND_GOLD, i, tick, k, still);
     } else if (st === CLAY_HIT) {
       const age = tick - state.doneTick[i]!;
       if (age >= 0 && age < SHARD_TICKS) drawShatter(ctx, state, i, age, still);

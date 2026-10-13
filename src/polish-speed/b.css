@@ -126,3 +126,10 @@ svg.tally-glyph { filter: drop-shadow(0 1.5px 1.2px rgba(0, 0, 0, 0.5)); }
 @media (prefers-reduced-motion: reduce) {
   .pairmatch-flipper { transition-property: none; }
 }
+
+/* Main's centred column (layout 2) adds auto margins to every arena; this column is already
+   centred as a whole above, so the chain board keeps no auto margins of its own. */
+.game-column.game-column-centred [data-polish="chain"][data-stage-column] > [data-game-arena][data-game-arena] {
+  margin-top: 0;
+  margin-bottom: 0;
+}

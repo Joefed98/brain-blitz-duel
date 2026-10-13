@@ -15,6 +15,12 @@
   overflow: hidden;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 10px 24px -12px rgb(0 0 0 / 0.7);
 }
+/* Main's centred column (layout 2) puts auto margins on every arena, which would push the
+   banner and hit line away from the board; the block is centred as a whole instead. */
+.game-column.game-column-centred [data-polish="whack"][data-stage-column] > [data-game-arena][data-game-arena] {
+  margin-top: 0;
+  margin-bottom: 0;
+}
 /* Fixed intro still: same meadow and burrows as the live board. */
 div.bonk-example {
   background:
@@ -44,4 +50,16 @@ div.bonk-example .bonk-burrow {
   max-height: calc(100cqw * 560 / 390);
   aspect-ratio: 390 / 560;
   align-self: center;
+}
+
+/* Main's centred column (layout 2): the arena takes auto margins above and below and the
+   arrow pad keeps its 12px minimum, so a 12px spacer at the top of the column evens the gaps
+   (12 + spare/2 above, spare/2 + 12 below). */
+.game-column.game-column-centred [data-polish="stroop"][data-stage-column] > [data-game-arena][data-game-arena] {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.game-column.game-column-centred [data-polish="stroop"][data-stage-column]::before {
+  content: "";
+  flex: 0 0 12px;
 }

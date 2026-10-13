@@ -108,11 +108,12 @@ type PreviewMap = Record<string, () => void>;
 
 /**
  * Dev server only: lets the screenshot tool fire a game's completion effect on the
- * live board (`window.__duelzFxPreview.<gameId>()`). Never present in a production build.
+ * live board through a window preview map keyed by game id. The build replaces
+ * import.meta.env.DEV with false, so production keeps only an empty function.
  */
 export function registerFxPreview(game: string, fire: () => void): () => void {
-  const env = (import.meta as { env?: { DEV?: boolean } }).env;
-  if (!env?.DEV || typeof window === "undefined") return () => undefined;
+  // Plain import.meta.env.DEV so Vite replaces it with false and the build drops the rest.
+  if (!import.meta.env.DEV || typeof window === "undefined") return () => undefined;
   const w = window as unknown as { __duelzFxPreview?: PreviewMap };
   const map = (w.__duelzFxPreview ??= {});
   map[game] = fire;

@@ -1,8 +1,11 @@
 /**
  * Mixed Signals (Colour Clash) art (Polish, 13 Oct 2026). Presentation only: wraps the
- * sim's game object with a new draw that reads state and never writes it. Geometry
- * mirrors the sim's original draw (390 × 560 world: banner 65,10 260×44; lanes from
- * x 16, 358 px across, y 66–472; gates y 472, 22 tall; labels y 512; status y 548).
+ * sim's game object with a new draw that reads state and never writes it. 390 × 560 world:
+ * banner 65,10 260×44; lanes y 66–472; gates y 472, 22 tall; labels y 512; status y 548.
+ * Lanes and gates sit on the sim's own lane grid (a tap at x picks lane
+ * floor(x × lanes ÷ 390)), so a tap on a drawn gate picks that gate's lane and a tap just
+ * past its edge picks the neighbour. The sim's original draw used x 16–374, which put a
+ * few px of each drawn gate in the next lane.
  * Static scenery (backdrop, lane wells, gate glows, banner panels) is painted once per
  * device scale into cached layers; text is drawn live. The falling word is drawn in its
  * exact ink colour on a neutral plate with a neutral dark outline: no glow ever tints it.
@@ -24,8 +27,9 @@ import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 const FP = 256;
-const LEFT = 16;
-const LANES_W = 358;
+/** The sim's lane grid: lane k spans [k × 390 ÷ lanes, (k + 1) × 390 ÷ lanes). */
+const LEFT = 0;
+const LANES_W = CLASH_WORLD_W;
 const WELL_TOP = 66;
 const GATE_Y = 472;
 const GATE_H = 22;
@@ -33,15 +37,15 @@ const BG = "#07070D";
 const GLOW = 14;
 const WASH = 34;
 
-/** Lane well x and width (the sim's original lane rectangles). */
+/** Lane well x and width: inside the sim lane, 1 px in from each boundary. */
 export function clashLaneRect(lane: number, lanes: number): { x: number; w: number } {
   const laneW = LANES_W / lanes;
-  return { x: LEFT + lane * laneW, w: laneW - 2 };
+  return { x: LEFT + lane * laneW + 1, w: laneW - 2 };
 }
-/** Gate rectangle in world px (unchanged from the sim's draw). */
+/** Gate rectangle in world px: inside the sim lane, 2 px in from each boundary. */
 export function clashGateRect(lane: number, lanes: number): { x: number; y: number; w: number; h: number } {
   const laneW = LANES_W / lanes;
-  return { x: LEFT + lane * laneW + 4, y: GATE_Y, w: laneW - 10, h: GATE_H };
+  return { x: LEFT + lane * laneW + 2, y: GATE_Y, w: laneW - 4, h: GATE_H };
 }
 
 const layers = new Map<string, ArtCanvas | null>();
@@ -99,11 +103,11 @@ function paintBackdrop(c: Ctx, lanes: number): void {
     for (let y = 120; y < GATE_Y - 40; y += 64) { c.beginPath(); c.moveTo(cx - 8, y); c.lineTo(cx, y + 7); c.lineTo(cx + 8, y); c.stroke(); }
     // Gate socket: a dark recess the glowing gate sits in.
     const g = clashGateRect(lane, lanes);
-    c.fillStyle = "#020205"; roundRect(c, g.x - 3, g.y - 3, g.w + 6, g.h + 6, 6); c.fill();
+    c.fillStyle = "#020205"; roundRect(c, g.x - 2, g.y - 3, g.w + 4, g.h + 6, 6); c.fill();
     c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = 1; c.stroke();
   }
   // Base plate under the gates, where the names sit.
-  c.fillStyle = "rgba(255,255,255,0.025)"; c.fillRect(LEFT, GATE_Y + GATE_H + 4, LANES_W - 2, 26);
+  c.fillStyle = "rgba(255,255,255,0.025)"; c.fillRect(LEFT + 1, GATE_Y + GATE_H + 4, LANES_W - 2, 26);
 }
 
 /** One gate: solid colour bar, a glow halo and a short wash up the lane, all pre-blurred once. */

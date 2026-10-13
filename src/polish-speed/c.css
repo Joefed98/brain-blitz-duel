@@ -20,3 +20,11 @@
   overflow: hidden;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 18px rgba(0, 0, 0, 0.35);
 }
+
+/* Main's centred column (layout 2) puts auto margins on every arena, which would split the HUD
+   line and pips from the sky. The block is already centred as a whole (justify-content above),
+   so the sky keeps no margins of its own. */
+.game-column.game-column-centred [data-polish="clayshoot"][data-stage-column] > [data-game-arena][data-game-arena] {
+  margin-top: 0;
+  margin-bottom: 0;
+}
