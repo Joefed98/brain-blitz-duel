@@ -8,6 +8,9 @@ export const ROUNDABOUT_PRESENTATION = "oct10-roundabout-balance";
 /** Polish B rescaled/centred these boards; older coordinate demos are rejected. */
 export const POLISH_B_DEMOS = new Set(["maze", "pairmatch", "unblock", "blockparty", "gravity", "tiles", "laser", "lightsout", "sudoku", "flow", "safe", "bomb", "nonogram", "shikaku", "lightup"]);
 export const POLISH_B_PRESENTATION = "oct10-polish-b";
+/** Word polish (13 Oct 2026) re-centred these boards; older coordinate demos are rejected. */
+export const WORD_POLISH_DEMOS = new Set(["wordsmith", "tilegrid", "wordslide", "letterwheel", "strikeout", "swapword", "codeword"]);
+export const WORD_POLISH_PRESENTATION = "oct13-word-polish";
 /** Logic polish (13 Oct 2026) centred and resized these boards; older coordinate demos are rejected. */
 export const LOGIC_POLISH_DEMOS = new Set(["lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup"]);
 export const LOGIC_POLISH_PRESENTATION = "oct13-logic-polish";
@@ -15,11 +18,12 @@ export const LOGIC_POLISH_PRESENTATION = "oct13-logic-polish";
 export const NUMBER_POLISH_DEMOS = new Set(["target", "equation", "balance", "numpyramid", "trail", "measure", "checkout", "numline"]);
 export const NUMBER_POLISH_PRESENTATION = "oct13-number-polish";
 export function puzzlePresentation(type: string): string {
+  if (WORD_POLISH_DEMOS.has(type)) return WORD_POLISH_PRESENTATION;
   if (LOGIC_POLISH_DEMOS.has(type)) return LOGIC_POLISH_PRESENTATION;
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
@@ -27,7 +31,7 @@ export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (typeof log !== "object" || log === null || !("presentation" in log)) return false;
   return log.presentation === puzzlePresentation(type);
 }
-export const WORDSMITH_PRESENTATION = "oct8-atom-orbit";
+export const WORDSMITH_PRESENTATION = WORD_POLISH_PRESENTATION;
 
 /** A tile can be used once; re-tapping removes only that occurrence. */
 export function toggleWordsmithTile(selected: readonly number[], index: number): number[] {

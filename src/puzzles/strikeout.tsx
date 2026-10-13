@@ -21,6 +21,7 @@ import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/F
 import { KeypadAction, LetterKeypad, type KeyTone } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
+import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -80,7 +81,8 @@ function Row({
         <span
           key={i}
           data-so-tile={`${rowIndex}-${i}`}
-          className={`flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
+          data-so-look={looks[i] ?? "hidden"}
+          className={`so-tile flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
           style={{ width: side, height: side, fontSize: `calc(${side} * 0.55)` }}
         >
           {ch || "\u00a0"}
@@ -186,6 +188,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, locked]);
 
+  // Solved: the tiles flip gold row by row (display only; the answer is already in).
+  useWordFinish(!!view?.done, () => {
+    wordCue("strikeout.finish");
+    const steps: FinishStep[] = [];
+    for (let r = 0; r < SO_ROWS; r++)
+      for (let i = 0; i < SO_LEN; i++)
+        steps.push({ el: board.current?.querySelector(`[data-so-tile="${r}-${i}"]`), keyframes: goldFlip("X"), delay: r * 150 + i * 35, duration: 420 });
+    return playFinish(steps);
+  });
+
   // Newly revealed tiles flip in.
   useLayoutEffect(() => {
     const rows = view?.rows ?? null;
@@ -248,12 +260,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     return "plain";
   };
 
-  const tileSize = "min(48px, calc((100cqw - 40px) / 5), calc((100cqh - 44px) / 5))";
+  // As large as the arena allows (row rings and gaps: 40px across, 44px down, plus 16px breathing room).
+  const tileSize = "min(72px, calc((100cqw - 40px) / 5), calc((100cqh - 60px) / 5))";
 
   return (
     <div
       ref={root}
       data-stage-column="1"
+      data-word-polish="strikeout"
       className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1"
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
@@ -313,7 +327,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const solvedRows = state.revealed.filter((r) => r.every(Boolean)).length;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
+    <div data-word-reveal="strikeout" className="flex w-full flex-col items-center gap-2">
       <Strikes used={state.strikes} />
       <div className="flex flex-col gap-1">
         {words.map((w, ri) => {
@@ -322,7 +336,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
             <Row
               key={ri}
               rowIndex={ri}
-              tile={30}
+              tile={34}
               letters={[...w]}
               looks={[...w].map((_, i): TileLook => (solved ? "solved" : state.revealed[ri]![i] ? "shown" : "missed"))}
             />
