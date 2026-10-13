@@ -18,6 +18,8 @@ import {
   practiceGradeFn,
 } from "@/lib/duel/practice.functions";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
+import { practiceUpdateGate, useUpdateGate } from "@/lib/appUpdate";
+import { APP_BUILD_ID } from "@/lib/appVersion";
 import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/SaveDemoButton";
 import {
   PUZZLE_REGISTRY,
@@ -103,6 +105,8 @@ function useTicker(active: boolean): number {
 
 function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
+  // A new version reloads only on the list, never mid-run (lib/appUpdate).
+  useUpdateGate(practiceUpdateGate(stage));
   const [type, setType] = useState<PuzzleType | null>(null);
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
   const [sealed, setSealed] = useState("");
@@ -235,6 +239,7 @@ function PracticeScreen() {
           sealed,
           answer,
           msRemaining: remaining,
+          clientVersion: APP_BUILD_ID,
           extra: {
             reactionAvgMs: meta?.reactionAvgMs,
             correctCount: meta?.correctCount,
