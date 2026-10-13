@@ -26,6 +26,8 @@ import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
 import { RoundResult } from "@/components/duel/RoundResult";
+import { RoundHighlight } from "@/components/replay/RoundHighlight";
+import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
 import { RoomChat } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
@@ -826,6 +828,7 @@ function DuelScreen() {
               busy={rematchBusy}
               onPlayAgain={() => void handlePlayAgain()}
               onLeave={() => void handleLeave()}
+              playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
             />
             <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
@@ -856,6 +859,7 @@ function DuelScreen() {
             isHost={canPlayAgain}
             onPlayAgain={() => void handlePlayAgain()}
             onHome={() => void handleLeave()}
+            playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
           />
           <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
@@ -945,6 +949,15 @@ function DuelScreen() {
             autoSeconds={autoSeconds}
             finalRound={round >= duel.round_count}
             continueState={continueState}
+            highlight={
+              <RoundHighlight
+                roomId={duel.id}
+                round={round}
+                active={phase === "result"}
+                players={table.length}
+                msLeft={NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))}
+              />
+            }
           />
           <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
@@ -972,6 +985,15 @@ function DuelScreen() {
           autoSeconds={autoSeconds}
           finalRound={round >= duel.round_count}
           continueState={continueState}
+          highlight={
+            <RoundHighlight
+              roomId={duel.id}
+              round={round}
+              active={phase === "result"}
+              players={3}
+              msLeft={NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))}
+            />
+          }
         />
         <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>

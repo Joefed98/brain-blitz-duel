@@ -18,7 +18,8 @@ export const SHARDS: Record<string, string[]> = {
   play3: ["arcade-play-check.ts@3/5"],
   // beat-hold-browser-check (real practice and room screens in Chromium) rides here for the browser.
   play4: ["arcade-play-check.ts@4/5", "beat-hold-browser-check.tsx"],
-  play5: ["arcade-play-check.ts@5/5"],
+  // play5 also plays stored rounds through the replay player (replay-play-check, ~2-3 min with its dev server).
+  play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],
   a: [
     "arcade-fixes-check.ts",
     "arcade-fx-check.ts",
@@ -133,6 +134,10 @@ export const SHARDS: Record<string, string[]> = {
     "tubes-safe-bomb-check.ts",
     "wordsmith-variable-check.tsx",
     "puzzle-bank-check.ts@4/4",
+    // Round replays (Oct 2026): fixture replays and moments (~10 s), the serve-after-close gate, results/podium flow.
+    "replay-check.ts",
+    "replay-access-check.ts",
+    "replay-flow-check.tsx",
   ],
 };
 

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PracticeRouteImport } from './routes/practice'
+import { Route as ReplayLabRouteImport } from './routes/replay-lab'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const PracticeRoute = PracticeRouteImport.update({
   path: '/practice',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReplayLabRoute = ReplayLabRouteImport.update({
+  id: '/replay-lab',
+  path: '/replay-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DuelCodeRoute = DuelCodeRouteImport.update({
   id: '/duel/$code',
   path: '/duel/$code',
@@ -32,30 +38,34 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/replay-lab': typeof ReplayLabRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/replay-lab': typeof ReplayLabRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/replay-lab': typeof ReplayLabRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/practice' | '/duel/$code'
+  fullPaths: '/' | '/practice' | '/replay-lab' | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practice' | '/duel/$code'
-  id: '__root__' | '/' | '/practice' | '/duel/$code'
+  to: '/' | '/practice' | '/replay-lab' | '/duel/$code'
+  id: '__root__' | '/' | '/practice' | '/replay-lab' | '/duel/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PracticeRoute: typeof PracticeRoute
+  ReplayLabRoute: typeof ReplayLabRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PracticeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/replay-lab': {
+      id: '/replay-lab'
+      path: '/replay-lab'
+      fullPath: '/replay-lab'
+      preLoaderRoute: typeof ReplayLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/duel/$code': {
       id: '/duel/$code'
       path: '/duel/$code'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PracticeRoute: PracticeRoute,
+  ReplayLabRoute: ReplayLabRoute,
   DuelCodeRoute: DuelCodeRoute,
 }
 export const routeTree = rootRouteImport
