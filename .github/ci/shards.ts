@@ -111,6 +111,7 @@ export const SHARDS: Record<string, string[]> = {
     "ink-live-check.ts",
     "ink-rev3-fix-check.ts",
     "laser-tower-maze-check.ts",
+    "logic-polish-check.tsx",
     "number-pyramid-check.ts",
     "orbit-outside-belt-check.ts",
     "orbit-rev3-replay-check.ts",

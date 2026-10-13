@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -13,6 +13,7 @@ import { TENTS_TIME_MS, type TentsPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Clean flat trees; pine or round is picked from the cell position (cosmetic only). */
@@ -37,15 +38,21 @@ function TreeIcon({ cell }: { cell: number }) {
   );
 }
 
-/** Striped canvas tent in gold (or the reveal colour). */
+/** Striped canvas tent in gold (or the reveal colour), with a lantern at the door. */
 function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
   return (
-    <svg viewBox="0 0 20 20" className="h-[70%] w-[70%]" aria-hidden="true">
+    <svg viewBox="0 0 20 20" className="logic-tent h-[74%] w-[74%]" aria-hidden="true">
       <ellipse cx="10" cy="17.6" rx="8" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />
       <polygon points="10,2.6 18.4,17 1.6,17" fill={colour} />
-      <path d="M10 2.6 7.2 17M10 2.6 12.8 17" stroke="var(--guest-ink)" strokeOpacity="0.28" strokeWidth="1.3" />
-      <polygon points="10,8.4 12.4,17 7.6,17" fill="var(--guest-ink)" opacity="0.7" />
+      {/* Canvas stripes, darker panels between lighter ones. */}
+      <path d="M10 2.6 5.6 17h-1.8ZM10 2.6 14.4 17h1.8Z" fill="var(--guest-ink)" opacity="0.18" />
+      <path d="M10 2.6 1.6 17h1.4Z" fill="#FFFFFF" opacity="0.3" />
+      <path d="M10 2.6 7.2 17M10 2.6 12.8 17" stroke="var(--guest-ink)" strokeOpacity="0.28" strokeWidth="1.1" />
+      <polygon points="10,8.4 12.4,17 7.6,17" fill="var(--guest-ink)" opacity="0.72" />
+      <circle className="logic-lantern" cx="10" cy="14.6" r="1.4" fill="#FFD66B" />
+      <path d="M1.2 17.2h17.6" stroke="var(--guest-ink)" strokeOpacity="0.45" strokeWidth="0.8" />
       <path d="M10 2.6V1" stroke="var(--sign-ink)" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M10 1.1 12.2 1.8 10 2.4Z" fill="#E5533D" />
     </svg>
   );
 }
@@ -72,6 +79,8 @@ function Board({
   flash,
   countSize = 18,
   gap = 2,
+  pitched,
+  dimDone = true,
 }: {
   size: number;
   trees: readonly number[];
@@ -83,13 +92,17 @@ function Board({
   flash?: number | null;
   countSize?: number;
   gap?: number;
+  /** The cell where a tent was just pitched (it pops up). */
+  pitched?: number | null;
+  /** Live play dims a sign once its line is complete; the reveal keeps every sign at full contrast. */
+  dimDone?: boolean;
 }) {
   const treeSet = new Set(trees);
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
   const { rows, cols } = lineCounts(tents, size);
   return (
     <div
-      className="grid w-full"
+      className="logic-camp grid w-full"
       style={{
         gridTemplateColumns: `${countSize}px repeat(${size}, minmax(0, 1fr))`,
         gap,
@@ -99,8 +112,8 @@ function Board({
       {colCounts.map((count, c) => (
         <span
           key={`c${c}`}
-          className={`camp-sign mx-auto mb-px w-[78%] text-center font-mono text-sm font-bold ${
-            count >= 0 && cols[c] === count ? "opacity-40" : ""
+          className={`camp-sign logic-sign mx-auto mb-px w-[78%] text-center font-mono text-sm font-bold ${
+            dimDone && count >= 0 && cols[c] === count ? "opacity-40" : ""
           }`}
         >
           {count < 0 ? "?" : count}
@@ -109,8 +122,8 @@ function Board({
       {Array.from({ length: size }, (_, r) => [
         <span
           key={`r${r}`}
-          className={`camp-sign my-[12%] flex items-center justify-center font-mono text-sm font-bold ${
-            (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "opacity-40" : ""
+          className={`camp-sign logic-sign my-[12%] flex items-center justify-center font-mono text-sm font-bold ${
+            dimDone && (rowCounts[r] ?? -1) >= 0 && rows[r] === rowCounts[r] ? "opacity-40" : ""
           }`}
         >
           {(rowCounts[r] ?? -1) < 0 ? "?" : rowCounts[r]}
@@ -119,13 +132,15 @@ function Board({
           const cell = r * size + c;
           const tree = treeSet.has(cell);
           const mark = marks[cell] ?? 0;
+          const tentIndex = mark === 1 ? tents.indexOf(cell) : 0;
           return (
             <button
               key={cell}
               type="button"
               disabled={!onTap || tree}
               onClick={onTap && !tree ? () => onTap(cell) : undefined}
-              className={`flex aspect-square items-center justify-center rounded-md border border-border camp-cell ${flash === cell ? "animate-shake" : ""}`}
+              style={{ "--logic-i": tentIndex, "--logic-grass": (cell * 37) % 7 } as CSSProperties}
+              className={`flex aspect-square items-center justify-center rounded-md border border-border camp-cell logic-camp-cell ${flash === cell ? "animate-shake" : ""} ${pitched === cell && mark === 1 ? "logic-tent-pitch" : ""}`}
               aria-label={tree ? "Tree" : mark === 1 ? "Tent" : mark === 2 ? "Grass" : "Empty"}
             >
               {tree ? (
@@ -168,10 +183,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     new Array(size * size).fill(0),
   );
   const [flash, setFlash] = useState<number | null>(null);
+  const [pitched, setPitched] = useState<number | null>(null);
   const submitted = useRef(false);
 
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
   const encoded = encodeTents(tents);
+  const solving = useSolveFx("tents", Boolean(data && tentsLayoutValid(data, tents)));
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -192,6 +209,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (locked || submitted.current) return;
     buzz(8);
     const nextMark = (((marks[cell] ?? 0) + 1) % 3) as Mark;
+    soundCue(nextMark === 1 ? "tents.pitch" : nextMark === 2 ? "tents.grass" : "tents.clear");
+    setPitched(nextMark === 1 ? cell : null);
     if (nextMark === 1 && tents.some((tent) => tentsTouch(tent, cell, size))) {
       setFlash(cell);
       window.setTimeout(() => setFlash(null), 450);
@@ -200,22 +219,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   };
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3">
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
-      </p>
-       <div data-game-arena="fixed" className="w-full">
-        <Board
-          size={size}
-          trees={data.trees}
-          rowCounts={data.rowCounts}
-          colCounts={data.colCounts}
-          marks={marks}
-          onTap={locked ? undefined : tap}
-          flash={flash}
-          countSize={12}
-          gap={1}
-        />
+    <div data-logic-stage="tents" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
+        </p>
+        <div className="logic-tents-fit logic-camp-frame">
+          <Board
+            size={size}
+            trees={data.trees}
+            rowCounts={data.rowCounts}
+            colCounts={data.colCounts}
+            marks={marks}
+            onTap={locked ? undefined : tap}
+            flash={flash}
+            pitched={pitched}
+            countSize={16}
+            gap={1}
+          />
+        </div>
       </div>
     </div>
   );
@@ -237,35 +260,39 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const trees = puzzle.trees.length;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex w-full justify-center gap-3">
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 180 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-          <Board
-            size={puzzle.size}
-            trees={puzzle.trees}
-            rowCounts={puzzle.rowCounts}
-            colCounts={puzzle.colCounts}
-            marks={solvedMarks}
-            countSize={12}
-            gap={1}
-          />
-        </div>
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 180 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <Board
-            size={puzzle.size}
-            trees={puzzle.trees}
-            rowCounts={puzzle.rowCounts}
-            colCounts={puzzle.colCounts}
-            marks={myMarks}
-            tentColour={(cell) => (solution.has(cell) ? "var(--primary)" : "var(--destructive)")}
-            countSize={12}
-            gap={1}
-          />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-pair">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+            <Board
+              size={puzzle.size}
+              trees={puzzle.trees}
+              rowCounts={puzzle.rowCounts}
+              colCounts={puzzle.colCounts}
+              marks={solvedMarks}
+              countSize={14}
+              gap={1}
+              dimDone={false}
+            />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
+            <Board
+              size={puzzle.size}
+              trees={puzzle.trees}
+              rowCounts={puzzle.rowCounts}
+              colCounts={puzzle.colCounts}
+              marks={myMarks}
+              tentColour={(cell) => (solution.has(cell) ? "var(--primary)" : "var(--destructive)")}
+              countSize={14}
+              gap={1}
+              dimDone={false}
+            />
+          </div>
         </div>
       </div>
-      <p className="font-mono text-base text-primary">
+      <p className="logic-reveal-text text-center font-mono text-primary">
         {correct === trees && wrong === 0
           ? `${correct} / ${trees}`
           : `${correct} / ${trees} tents`}
