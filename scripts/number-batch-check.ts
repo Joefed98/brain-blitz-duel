@@ -84,10 +84,16 @@ const PRIVATE: Record<(typeof TYPES)[number], string[]> = {
 };
 const REV_KEY = { measure: "measureRev", checkout: "checkoutRev", numline: "numlineRev" } as const;
 const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
+// The Oct 2026 puzzle score shape (puzzleScoreRev 1) lines; stored rounds keep their old scoring (anchors below).
 const SCORE_LINES = {
-  measure: "25 per puzzle, +5 for fewest moves, +30 speed if all four are solved",
-  checkout: "18-26 per board, +2 for fewest darts, +30 speed if all five are solved",
-  numline: "Up to 8 per number for accuracy; speed points grow with accuracy",
+  measure: "30, 35, 45 for puzzles 1-3; all four for 120, more for few moves and speed",
+  checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
+  numline: "Up to 8 per number for accuracy (120 for all 15), more if quick; far-off ones lose 1",
+};
+/** The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). */
+const storedCopy = <T extends object>(puzzle: T): T => {
+  const { puzzleScoreRev: _rev, ...rest } = puzzle as T & { puzzleScoreRev?: number };
+  return rest as T;
 };
 for (const type of TYPES) {
   const def = puzzleDef(type);
@@ -504,8 +510,12 @@ const anchors: string[] = [];
     nothing: grade(p, "", LIMIT.measure),
   };
   ok(scores.perfect === 150, `measure perfect ${scores.perfect}`);
-  ok(scores.minimumFinish === 100, `measure minimum finish ${scores.minimumFinish}`);
-  ok(scores.bestUnfinished === 90, `measure best unfinished ${scores.bestUnfinished}`);
+  ok(scores.minimumFinish === 120, `measure minimum finish ${scores.minimumFinish}`);
+  ok(scores.bestUnfinished === 110, `measure best unfinished ${scores.bestUnfinished}`);
+  // Stored rounds (no score stamp) keep 25 per puzzle + move points + 30 speed.
+  const stored = storedCopy(p);
+  ok(grade(stored, slow.join("|"), 0) === 100, `measure stored minimum finish ${grade(stored, slow.join("|"), 0)}`);
+  ok(grade(stored, unfinished, LIMIT.measure) === 90, `measure stored best unfinished ${grade(stored, unfinished, LIMIT.measure)}`);
   ok(scores.nothing === 0, `measure nothing ${scores.nothing}`);
   ok(
     scores.minimumFinish > scores.bestUnfinished,
@@ -556,10 +566,14 @@ const anchors: string[] = [];
   };
   ok(scores.perfect === 150, `checkout perfect ${scores.perfect}`);
   ok(
-    scores.minimumFinish >= 110 && scores.minimumFinish <= 120,
+    scores.minimumFinish >= 120 && scores.minimumFinish <= 135,
     `checkout minimum finish ${scores.minimumFinish}`,
   );
-  ok(scores.bestUnfinished === 100, `checkout best unfinished ${scores.bestUnfinished}`);
+  ok(scores.bestUnfinished === 110, `checkout best unfinished ${scores.bestUnfinished}`);
+  // Stored rounds keep 18-26 per board + 2 for fewest darts + 30 speed.
+  const storedMin = grade(storedCopy(p), longest.join("|"), 0);
+  ok(storedMin >= 110 && storedMin <= 120, `checkout stored minimum finish ${storedMin}`);
+  ok(grade(storedCopy(p), unfinished, LIMIT.checkout) === 100, "checkout stored best unfinished");
   ok(scores.nothing === 0, `checkout nothing ${scores.nothing}`);
   ok(
     scores.minimumFinish > scores.bestUnfinished,
@@ -593,7 +607,8 @@ const anchors: string[] = [];
     carelessFinish: grade(p, truths.map((t) => (t > 5000 ? 0 : 10_000)).join(","), LIMIT.numline),
   };
   ok(scores.perfect === 150, `numline perfect ${scores.perfect}`);
-  ok(scores.bestUnfinished === 112, `numline best unfinished ${scores.bestUnfinished}`);
+  ok(scores.bestUnfinished === 110, `numline best unfinished ${scores.bestUnfinished}`);
+  ok(grade(storedCopy(p), truths.slice(0, 14).join(","), LIMIT.numline) === 112, "numline stored best unfinished 112");
   ok(scores.nothing === 0, `numline nothing ${scores.nothing}`);
   ok(scores.carelessFinish <= 3, `numline careless fast finish earns ${scores.carelessFinish}`);
   let rng = 7;
@@ -607,12 +622,19 @@ const anchors: string[] = [];
       ),
     );
     const ms = Math.floor(next() * LIMIT.numline);
+    // Stored rounds: placing another item never lowers the score. New rounds: only a wild placement
+    // (25 % or more off the line) can, by its 1-point cost.
     let previous = -1;
+    let previousStored = -1;
     for (let k = 0; k <= 15; k++) {
       const score = grade(p, placements.slice(0, k).join(","), ms);
-      ok(score >= previous, `numline: placing item ${k} lowered the score ${previous} → ${score}`);
+      const storedScore = grade(storedCopy(p), placements.slice(0, k).join(","), ms);
+      const wild = k > 0 && Math.abs(placements[k - 1]! - truths[k - 1]!) >= 0.25 * NUMLINE_SCALE;
+      ok(score >= previous - (wild ? 1 : 0), `numline: placing item ${k} lowered the score ${previous} → ${score}`);
+      ok(storedScore >= previousStored, `numline stored: placing item ${k} lowered the score ${previousStored} → ${storedScore}`);
       ok(score >= 0 && score <= 150, `numline: score ${score} outside 0-150`);
       previous = score;
+      previousStored = storedScore;
     }
   }
   ok(

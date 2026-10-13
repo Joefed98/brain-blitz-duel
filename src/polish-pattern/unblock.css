@@ -1,0 +1,108 @@
+/* Pattern polish: unblock (Gridlock) — car park, cars, slides and the exit drive-out. Presentation only. */
+
+/* ---- Lot: kerb + tarmac around the measured 7 × 7 grid ------------------ */
+.unblock-lot {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 3.4%;
+  overflow: hidden; /* the gold car drives out through the gap and is gone */
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  isolation: isolate;
+}
+.unblock-lot-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* The grid box is exactly the 7 × 7 bays (the drag maths measures it). */
+.unblock-grid { position: absolute; inset: 4.5%; }
+
+/* ---- Cars ---------------------------------------------------------------- */
+.unblock-car { z-index: 1; }
+.unblock-car--gold { z-index: 2; }
+.unblock-car-art { display: block; width: 100%; height: 100%; overflow: visible; }
+.unblock-car-lift { opacity: 0; transition: opacity 120ms ease-out; }
+.unblock-car.is-lifted .unblock-car-lift { opacity: 0.4; }
+.unblock-car.is-lifted { z-index: 40; }
+
+.unblock-ghost {
+  border: 2px dashed rgba(233, 228, 210, 0.55);
+  border-radius: 12%;
+  background: rgba(233, 228, 210, 0.07);
+}
+.unblock-ghost--gold {
+  border-color: color-mix(in oklab, var(--primary) 80%, transparent);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+
+/* ---- Arena: as large as fits, centred between the header and the controls - */
+.game-column [data-polish="unblock"] > [data-game-arena].unblock-arena {
+  flex: 0 0 auto;
+  height: min(100cqw, calc(100cqh - 88px));
+  container-type: size;
+}
+.game-column [data-polish="unblock"] > .unblock-arena > .unblock-lot { width: min(100cqw, 100cqh); }
+.game-column [data-polish="unblock"] > [data-game-controls] { flex: 0 0 auto; }
+
+/* ---- Completion: the gold car drives out with a speed streak ------------- */
+.unblock-car--escape {
+  animation: unblock-drive 760ms both;
+}
+@keyframes unblock-drive {
+  0% { transform: translateX(0); animation-timing-function: ease-out; }
+  14% { transform: translateX(-4%); animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5); }
+  100% { transform: translateX(var(--escape, 130%)); }
+}
+.unblock-exit-fx { position: absolute; pointer-events: none; z-index: 3; }
+.unblock-streak {
+  position: absolute;
+  /* Trails behind the car's tail, which starts at --lane-from. */
+  left: calc(var(--lane-from, 50%) - 44%);
+  width: 44%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 75%, transparent) 60%, #fff6d6);
+  transform-origin: 100% 50%;
+  opacity: 0;
+  animation: unblock-streak 820ms cubic-bezier(0.55, 0, 0.85, 0.6) 90ms both;
+}
+@keyframes unblock-streak {
+  0% { opacity: 0; transform: translateX(0) scaleX(0); }
+  25% { opacity: 0.95; }
+  65% { opacity: 0.9; transform: translateX(55%) scaleX(1); }
+  100% { opacity: 0; transform: translateX(100%) scaleX(0.35); }
+}
+.unblock-exit-burst {
+  position: absolute;
+  right: -10%;
+  top: -25%;
+  width: 46%;
+  height: 150%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 70%, transparent), transparent);
+  opacity: 0;
+  animation: unblock-burst 900ms ease-out 260ms both;
+}
+@keyframes unblock-burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+/* Reduced motion: no drive; the gold car and exit lane simply glow. */
+@media (prefers-reduced-motion: reduce) {
+  .unblock-lot[data-celebrate="on"] .unblock-car--gold { box-shadow: 0 0 0 2px var(--primary), 0 0 18px var(--primary); border-radius: 18%; }
+  .unblock-car--escape, .unblock-streak, .unblock-exit-burst { animation: none; }
+}
+
+/* ---- Reveal: the board as large as the space allows ---------------------- */
+.answer-reveal-content > .unblock-reveal { flex: 1 1 0; min-height: 0; }
+.unblock-reveal-space {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 160px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.unblock-reveal-board { width: min(100cqw, 100cqh, 380px); }
+.unblock-reveal > p { flex-shrink: 0; }

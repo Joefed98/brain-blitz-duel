@@ -279,3 +279,18 @@ code before this change, `scripts/fixtures/arcade-tuning-e-legacy.json`). Median
 - **Scrumper**: every tall template has stored human-paced winning plans at pin wobble −10, 0 and +10
   (`scripts/fixtures/snip-rev5-proofs.json`); the slowest ten-level mix takes 34.7 s with them, and a run bot scores 150
   through the server replay. Hard crook levels cannot be won without the catch (no rope-only plan feeds the apple).
+
+## Scrumper bank growth (13 Oct 2026): snipRev 6
+
+The same tall game as snipRev 5 (rules, physics, timing, scoring and curve unchanged) dealing from a bigger bank so
+regular players see fewer repeats: 41 → 67 tall levels (easy 6 → 10, medium 16 → 26, hard 19 → 31), 26 new ones,
+all picker's-crook levels (cut, catch, cut) mixed with springy branches, planks, gutters, wasp nests and sliding
+baskets. Still 2 easy / 3 medium / 5 hard a run. Across ten rooms a regular player now meets about 47 repeat levels
+in 100, against 62 on snipRev 5. Every new level has stored human-paced plans at pin wobble −10, 0 and +10
+(`scripts/fixtures/snip-rev6-proofs.json`); the slowest ten-level mix takes 42.6 s with them. snipRev 5 rounds replay
+on their own bank (`scripts/snip-bank6-check.ts` replays 12 real snipRev 5 runs recorded on main). Medians (p10–p90)
+from `bun scripts/arcade-skill-bands.ts snip --rev=bank --seeds=60`, snipRev 5 → snipRev 6, same players and seeds:
+
+| Game | Stamp | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|
+| Scrumper | snipRev 5 → 6 | 70 (41–113) → 73 (38–100) | 108 (76–134) → 102 (82–135) | 134 (97–137) → 132 (91–136) | 136 (125–145) → 135 (107–145) |

@@ -28,7 +28,7 @@ import { snakeCheckpoint, snakeGameFor, SNAKE_REV, SNAKE_REV_BAND, SNAKE_REV_TAL
 import { encodeSnakeRun, replaySnakeRun } from "../../src/lib/duel/snake";
 import { binTossCheckpoint, binTossGameFor, BINTOSS_REV3, BINTOSS_REV_BAND } from "../../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../../src/lib/duel/binToss";
-import { snipCheckpoint, snipGameFor, SNIP_REV3, SNIP_REV_BAND, SNIP_REV_TALL } from "../../src/lib/arcade/snip";
+import { snipCheckpoint, snipGameFor, SNIP_REV3, SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_TALL } from "../../src/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "../../src/lib/duel/snip";
 import { hoverCheckpoint, hoverGameFor, HOVER_REV, HOVER_REV_BAND, HOVER_REV_TUNEC, HOVER_REV_TALL } from "../../src/lib/arcade/hover";
 import { encodeHoverRun, replayHoverRun } from "../../src/lib/duel/hover";
@@ -74,6 +74,8 @@ export interface GameSpec {
   tunec?: number;
   /** The Tuning E revision (Oct 2026, taller worlds), measured with `--rev=e` against the one rooms stamped before it. */
   tunee?: number;
+  /** A later bank-only revision (Scrumper snipRev 6, Oct 2026), measured with `--rev=bank` against `tunee`. */
+  bank?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -131,7 +133,7 @@ export const GAMES: GameSpec[] = [
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL },
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
-  { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL },
+  { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL, bank: SNIP_REV_BANK6 },
   { ...simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true), tunec: HOVER_REV_TUNEC, tunee: HOVER_REV_TALL },
   { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),

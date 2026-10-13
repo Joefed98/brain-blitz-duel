@@ -2,7 +2,8 @@
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
  * For each of the 21 active arcade games (Junction is practice only since Tuning C), plus the engine games of other categories
- * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall), it opens /practice at 390 × 700, starts
+ * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall) and the engine games that draw their own
+ * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!; no arena-layout proof), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
  * that ends early by game-over is restarted (a fresh practice run) and play continues.
  * It fails if:
@@ -58,14 +59,15 @@ const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
-const ONLY = args.filter((a) => !a.startsWith("--"));
 /**
- * Opt-in engine games outside the arcade worlds, played only when named on the command line
- * (never in the default list, CI shards or baselines). Tenfall (tendrop) keeps its own
- * stretched board, so the arena-slot layout proof is skipped for it; play, timer, errors,
- * frame time (absolute ceiling only: no baseline) and movement are checked as for any game.
+ * Engine games of other categories that draw in their own canvas or board rather than an
+ * arcade world (Tenfall, Mixed Signals, Bonk, Pull!). They run on the same engine and feed
+ * the same per-frame probe (arcadeFeedback), so every play rule applies (sim tick and HUD
+ * timer advance, no errors, frame time, READY on screen); only the arcade-world arena
+ * layout proof is skipped, as they have no world spec or arena fill.
  */
-const OPT_IN = ["tendrop"];
+const ENGINE_PLAY_GAMES = ["tendrop", "stroop", "whack", "clayshoot"] as const;
+const ONLY = args.filter((a) => !a.startsWith("--"));
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PLAY_MS = 15_000;
@@ -166,7 +168,7 @@ const EXTRACT = String.raw`
     // Letterfall: every tile, falling or settled (drops enter from above the well; ids are stable).
     case "wordfall": s.well.forEach((stack, c) => stack.forEach((t) => P.push(["t" + t.id, c * 60, fp(t.y)]))); reset = s.words + ":" + s.over; break;
     case "balltrack": for (const b of s.balls) if (b.cell >= 0 && b.from >= 0) { const p = m.bt.btArtBallPoint(s, b, m.btRot); P.push(["m" + b.id, p.x, p.y]); } break;
-    // Tenfall (opt-in): every falling tile (ids are stable; a new target clears the lanes).
+    // Tenfall: every falling tile (ids are stable; a new target clears the lanes).
     case "tendrop": s.tiles.forEach((t) => P.push(["t" + t.id, t.col * 90, fp(t.y)])); reset = s.stage; break;
     default: break; // beat, bullseye, matchup: no continuous movers
   }
@@ -235,7 +237,7 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...OPT_IN.filter((g) => ONLY.includes(g))].filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...ENGINE_PLAY_GAMES].filter((g) => ONLY.length === 0 || ONLY.includes(g));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {
@@ -426,7 +428,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       await ready.click();
       await page.waitForTimeout(400);
       if (segment === 0) {
-        if (!OPT_IN.includes(game)) await arenaFits(page, game, problems);
+        if (!(ENGINE_PLAY_GAMES as readonly string[]).includes(game)) await arenaFits(page, game, problems);
         // Resizing reallocates the canvas: frame gaps count from here.
         await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
       }

@@ -1,0 +1,94 @@
+/* Pattern polish: blockparty (Tessellate) — pegboard, bevelled pieces, snaps and the completion shine.
+   Presentation only. */
+
+/* ---- Board ---------------------------------------------------------------- */
+.bp-board {
+  border-radius: 3.7%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  isolation: isolate;
+}
+.bp-board-art, .bp-pieces-art, .bp-solve-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.bp-ghost {
+  border-radius: 12%;
+  background: color-mix(in oklab, currentColor 18%, transparent);
+}
+.bp-ghost.bp-ghost--blocked { background: color-mix(in oklab, var(--warn, #f59e0b) 12%, transparent); }
+
+/* A placed piece clicks into its wells. */
+.bp-piece, .bp-piece-lock { transform-box: fill-box; transform-origin: 50% 50%; }
+.bp-piece--snap { animation: bp-snap 260ms cubic-bezier(0.25, 0.9, 0.3, 1.2) both; }
+@keyframes bp-snap {
+  0% { transform: scale(1.1); opacity: 0.75; }
+  55% { transform: scale(0.97); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.bp-snap-ring { opacity: 0; animation: bp-snap-ring 320ms ease-out both; }
+@keyframes bp-snap-ring {
+  0% { opacity: 0.85; stroke-width: 9px; }
+  100% { opacity: 0; stroke-width: 1px; }
+}
+
+/* ---- Tray ------------------------------------------------------------------ */
+.block-party-tray {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, #1c1d26, #15161d);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.bp-glyph-turn { animation: bp-turn 180ms cubic-bezier(0.25, 0.9, 0.3, 1.15) both; }
+.bp-glyph-flip { animation: bp-flip 180ms ease-out both; }
+@keyframes bp-turn { from { transform: rotate(-90deg) scale(0.9); } to { transform: none; } }
+@keyframes bp-flip { from { transform: scaleX(-0.2); } to { transform: none; } }
+
+/* ---- Completion: shine from the pegs outwards as the pieces lock tight ----- */
+.bp-peg-ring {
+  fill: none;
+  stroke: #fff3c2;
+  stroke-width: 6px;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: bp-peg-ring 560ms ease-out both;
+}
+@keyframes bp-peg-ring {
+  0% { opacity: 0.95; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+.bp-shine-cell { opacity: 0; mix-blend-mode: screen; animation: bp-shine 420ms ease-out both; }
+@keyframes bp-shine {
+  0% { opacity: 0; }
+  35% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.bp-piece-lock { animation: bp-lock 380ms cubic-bezier(0.3, 0.7, 0.3, 1) both; }
+@keyframes bp-lock {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+.bp-board[data-celebrate="on"] { animation: bp-board-glow 1100ms ease-out both; }
+@keyframes bp-board-glow {
+  0%, 100% { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05); }
+  45% { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 2px color-mix(in oklab, var(--primary) 80%, transparent), 0 0 22px color-mix(in oklab, var(--primary) 45%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-piece--snap, .bp-snap-ring, .bp-glyph-turn, .bp-glyph-flip, .bp-peg-ring, .bp-piece-lock, .bp-board[data-celebrate="on"] { animation: none; }
+  .bp-peg-ring, .bp-snap-ring { display: none; }
+  /* A short, still fade of gold over the board instead of the travelling shine. */
+  .bp-shine-cell { animation: bp-shine-still 600ms ease-out both !important; animation-delay: 0ms !important; }
+  @keyframes bp-shine-still { 0% { opacity: 0.5; } 100% { opacity: 0; } }
+}
+
+/* ---- Reveal: both boards as large as the space allows ---------------------- */
+.answer-reveal-content > .bp-reveal { min-height: 0; }
+.bp-reveal-space { width: 100%; container-type: inline-size; }
+.bp-reveal-pair { display: flex; align-items: flex-start; justify-content: center; gap: 12px; }
+.bp-reveal-board { width: min(calc(50cqw - 8px), 230px); }
+.bp-reveal > p { flex-shrink: 0; }

@@ -4,6 +4,7 @@
  * the server matches each against the stored crossword.
  */
 
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { LetterWheelSlot } from "./types";
 
@@ -61,6 +62,11 @@ export function scoreLetterWheel(
   msRemaining: number,
   timeLimitMs: number,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: 120 + PAR(30); unfinished 110 × words ÷ (words on the board − 1).
+    if (totalSlots > 0 && slots >= totalSlots) return finishParts(timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0);
+    return partialParts((110 * Math.max(0, slots)) / Math.max(1, totalSlots - 1));
+  }
   const pointsPerWord = totalSlots === 8 ? 15 : 13;
   const base = pointsPerWord * Math.max(0, slots);
   if (totalSlots > 0 && slots >= totalSlots) {

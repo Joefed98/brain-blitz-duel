@@ -1,0 +1,1087 @@
+/*
+ * Logic polish (13 Oct 2026): drawing, animation and layout only for Blackout, Box Six,
+ * Hanoi, Polypotions, Safe Cracker, Bomb Defusal, Mosaic, Colour Flood, Tents and Trees,
+ * Shikaku and Lamplighter. No hit target changes size: every drawn cell is the element
+ * the game already counts as the tap or the cell. Completion effects are keyed off
+ * [data-logic-solved] (set for at most 1.2 s from the solve moment by useSolveFx).
+ */
+
+/* ------------------------------------------------------------------ layout */
+/* The play block (status line + board) is centred between the top bar and the controls:
+   the arena takes all spare height and centres its content, and the 12px it keeps above
+   matches the 12px it leaves before the controls, so the two gaps are equal. */
+.game-column [data-logic-stage] {
+  justify-content: flex-start;
+}
+.game-column [data-logic-stage] > [data-game-arena="logic"] {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  width: 100%;
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.game-column [data-logic-stage] > [data-game-arena="logic"]:has(+ [data-game-controls]) {
+  padding-top: 12px;
+}
+.logic-status {
+  flex: none;
+  height: 20px;
+  line-height: 20px;
+}
+/* A square board under a 20px status line (+8px gap), as large as the arena allows. */
+.logic-square {
+  width: min(100cqw, calc(100cqh - 28px));
+  aspect-ratio: 1;
+  flex: none;
+}
+.logic-square-bare {
+  width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  flex: none;
+}
+
+/* Reveal: the board takes the room the score lines leave, never scrolling. */
+.logic-reveal {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.logic-reveal-board {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.logic-reveal-text {
+  flex: none;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* Reduced motion: moves snap, and every completion effect becomes one soft, still glow
+   over the play area (opacity only) instead of its moving version. */
+.logic-calm-glow {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-stage] *:not(.logic-calm-glow),
+  .logic-reveal * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  [data-logic-solved] > .logic-calm-glow {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--primary) 30%, transparent), transparent);
+    animation: logic-calm-glow 1000ms ease-in-out both;
+  }
+}
+@keyframes logic-calm-glow {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+
+/* ---------------------------------------------------------------- Blackout */
+.logic-bulb-panel {
+  border-radius: 14px;
+  padding: 3%;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #17181E, #0E0F13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.logic-bulb {
+  border-radius: 22%;
+  background: radial-gradient(circle at 50% 45%, #1D1F26 0 52%, #121318 72%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 -2px 4px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.logic-bulb:active:not(:disabled) {
+  transform: scale(0.95);
+}
+.logic-bulb-art {
+  position: absolute;
+  inset: 7%;
+  width: 86%;
+  height: 86%;
+  overflow: visible;
+  pointer-events: none;
+}
+.logic-bulb-lit,
+.logic-bulb-halo {
+  transition: opacity 160ms ease-out;
+}
+.lightsout-bulb-off .logic-bulb-lit,
+.lightsout-bulb-off .logic-bulb-halo {
+  transition-duration: 240ms;
+}
+/* A press flickers the filament as it warms or cools. */
+.logic-bulb-press .logic-bulb-art {
+  animation: logic-bulb-flicker 180ms ease-out;
+}
+@keyframes logic-bulb-flicker {
+  0% { filter: brightness(1.6); }
+  40% { filter: brightness(0.8); }
+  100% { filter: none; }
+}
+.logic-bulb-number > span {
+  min-width: 1.5em;
+  padding: 0 0.15em;
+  border-radius: 999px;
+  background: rgba(11, 11, 15, 0.82);
+  color: #FFD978;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 0 0 1px rgba(245, 184, 46, 0.55);
+}
+/* Completion: every bulb flashes on once, then fades through a soft glow to dark. */
+[data-logic-solved] .logic-bulb .logic-bulb-lit,
+[data-logic-solved] .logic-bulb .logic-bulb-halo {
+  animation: logic-bulb-solve 1000ms ease-out var(--logic-delay, 0ms) both;
+}
+@keyframes logic-bulb-solve {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  30% { opacity: 1; }
+  60% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+/* Reveal flourish (shared hook) now fades the drawn glow instead of a yellow square. */
+[data-solve-flourish="lightsout"] .lightsout-bulb.logic-bulb {
+  animation: none;
+}
+
+/* ----------------------------------------------------------------- Box Six */
+.logic-sudoku-frame {
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 22px rgba(0, 0, 0, 0.5);
+}
+.logic-sudoku-frame > .logic-sudoku {
+  width: 100%;
+  height: 100%;
+}
+.logic-sudoku > .logic-sudoku-cell {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.14));
+  transition: background-color 120ms ease;
+}
+.logic-sudoku > .logic-sudoku-cell.bg-muted\/40 {
+  background-image: linear-gradient(180deg, rgba(46, 211, 183, 0.1), rgba(46, 211, 183, 0.05));
+}
+.logic-sudoku-digit {
+  display: inline-block;
+  line-height: 1;
+}
+.logic-sudoku-given {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+/* Entries in gold, mistakes in red, givens in ink: the shared cell surface repaints the
+   button's text colour, so the digit carries its own. */
+.logic-sudoku-cell.text-primary .logic-sudoku-digit {
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(245, 184, 46, 0.35);
+}
+.logic-sudoku-cell.text-destructive .logic-sudoku-digit {
+  color: var(--destructive);
+}
+.logic-sudoku-pop {
+  animation: logic-sudoku-pop 170ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes logic-sudoku-pop {
+  from { transform: scale(0.55); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+/* Completion: the digits light up row by row, then box by box. */
+.logic-sudoku-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(245, 184, 46, 0.45), rgba(245, 184, 46, 0.12) 70%);
+}
+[data-logic-solved] .logic-sudoku-cell::after {
+  animation:
+    logic-sudoku-light 300ms ease-out calc(var(--logic-row) * 55ms) 1 none,
+    logic-sudoku-light 300ms ease-out calc(600ms + var(--logic-box) * 55ms) 1 none;
+}
+[data-logic-solved] .logic-sudoku-digit {
+  animation:
+    logic-sudoku-glow 300ms ease-out calc(var(--logic-row) * 55ms) 1 none,
+    logic-sudoku-glow 300ms ease-out calc(600ms + var(--logic-box) * 55ms) 1 none;
+}
+@keyframes logic-sudoku-light {
+  0% { opacity: 0; }
+  35% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes logic-sudoku-glow {
+  35% { color: #FFF3C4; text-shadow: 0 0 10px rgba(245, 184, 46, 0.9); }
+}
+.game-column [data-logic-stage="sudoku"] [data-game-controls="numbers"] .grid-cols-6 > button {
+  min-height: 44px;
+  height: 52px;
+  font-size: 20px;
+}
+.game-column [data-logic-stage="sudoku"] [data-game-controls="numbers"] .grid-cols-2 > button {
+  min-height: 44px;
+}
+.logic-sudoku-key {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* ------------------------------------------------------------------- Hanoi */
+.logic-hanoi-stage {
+  width: 100%;
+  flex: none;
+}
+.logic-hanoi-reveal {
+  width: min(100cqw, 340px);
+  height: min(100cqh, 210px);
+}
+.logic-hanoi-post {
+  left: 50%;
+  width: 10px;
+  height: 100%;
+  transform: translateX(-50%);
+  background:
+    repeating-linear-gradient(180deg, rgba(60, 34, 14, 0.22) 0 1px, transparent 1px 7px),
+    linear-gradient(90deg, var(--wood-dark), var(--wood-light) 40%, var(--wood) 68%, var(--wood-dark));
+  box-shadow: 2px 0 3px rgba(0, 0, 0, 0.35);
+}
+.logic-hanoi[style] .logic-hanoi-post {
+  width: clamp(6px, calc(var(--hanoi-ring) * 0.55), 12px);
+}
+.logic-hanoi-base {
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, rgba(60, 34, 14, 0.18) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, var(--wood-light), var(--wood) 45%, var(--wood-dark));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 3px 4px rgba(0, 0, 0, 0.5);
+}
+.logic-hanoi-base-gold {
+  background:
+    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.55) 45%, transparent 60%),
+    linear-gradient(180deg, #FFE08A, #F5B82E 45%, #B9800F);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 10px rgba(245, 184, 46, 0.35), 0 3px 4px rgba(0, 0, 0, 0.5);
+}
+/* Rings: a lit top band, a shaded lower edge and the dark hole the post runs through. */
+.logic-hanoi .logic-hanoi-ring {
+  border-radius: 999px;
+  background-image:
+    radial-gradient(ellipse 7% 70% at 50% 55%, rgba(0, 0, 0, 0.45), transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.12) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.32) 100%);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 2px 3px rgba(0, 0, 0, 0.45);
+}
+.logic-hanoi .logic-hanoi-ring.hanoi-lifted {
+  box-shadow: 0 0 12px 2px color-mix(in oklab, var(--primary) 65%, transparent), inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+}
+.logic-hanoi-hover {
+  animation: logic-hanoi-hover 1.1s ease-in-out infinite alternate;
+}
+@keyframes logic-hanoi-hover {
+  from { transform: translateY(1px); }
+  to { transform: translateY(-3px); }
+}
+.logic-hanoi-drop {
+  animation: logic-hanoi-drop 220ms cubic-bezier(0.3, 1.4, 0.55, 1);
+}
+@keyframes logic-hanoi-drop {
+  from { transform: translateY(-160%); }
+  to { transform: none; }
+}
+/* Completion: rings on the gold post light up bottom to top; a sparkle rises off the top. */
+[data-logic-solved] .logic-hanoi-target .logic-hanoi-ring {
+  animation: logic-hanoi-light 420ms ease-out calc(var(--logic-i, 0) * 65ms) 1 none;
+}
+@keyframes logic-hanoi-light {
+  40% { filter: brightness(1.45) saturate(1.2); box-shadow: 0 0 14px 3px rgba(255, 225, 140, 0.75), inset 0 -2px 0 rgba(0, 0, 0, 0.2); }
+}
+.logic-hanoi-sparkle {
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+.logic-hanoi-sparkle > i {
+  position: absolute;
+  left: -4px;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  background: radial-gradient(circle, #FFF8DC 0 25%, rgba(245, 184, 46, 0.9) 45%, transparent 70%);
+  border-radius: 50%;
+}
+[data-logic-solved] .logic-hanoi-sparkle > i {
+  animation: logic-hanoi-rise 600ms ease-out 520ms 1 both;
+}
+[data-logic-solved] .logic-hanoi-sparkle > i:nth-child(2) { --logic-x: -10px; animation-delay: 580ms; }
+[data-logic-solved] .logic-hanoi-sparkle > i:nth-child(3) { --logic-x: 9px; animation-delay: 540ms; width: 6px; height: 6px; }
+@keyframes logic-hanoi-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--logic-x, 0px), -56px) scale(1.2); }
+}
+
+/* -------------------------------------------------------------- Polypotions */
+[data-logic-stage="tubes"] .tubes-play-board {
+  height: min(calc(100cqh - 28px), 620px);
+}
+[data-logic-stage="tubes"] .tubes-play-layer {
+  height: calc(min(calc((min(calc(100cqh - 28px), 620px) / 2 - 36px) / 6), calc((100cqw - 32px) / 5 - 16px)) + 4px);
+}
+.logic-potions-reveal {
+  width: min(100cqw, 300px);
+  height: min(100cqh, 230px);
+}
+/* Glass: a thick rim, a cool edge, a long highlight down the left and a lit base. */
+.logic-flask.flask {
+  background:
+    radial-gradient(120% 40% at 50% 100%, rgba(200, 225, 255, 0.1), transparent 70%),
+    linear-gradient(90deg, rgba(200, 225, 255, 0.1) 0, rgba(255, 255, 255, 0.02) 45%, rgba(200, 225, 255, 0.08) 85%, rgba(200, 225, 255, 0.16));
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.28), inset -2px 0 0 rgba(0, 0, 0, 0.25), 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+.logic-flask-rim {
+  position: absolute;
+  top: -3px;
+  left: -4px;
+  right: -4px;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(230, 240, 255, 0.55), rgba(200, 225, 255, 0.18));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.logic-flask-shine {
+  position: absolute;
+  top: 8%;
+  bottom: 10%;
+  left: 18%;
+  width: 12%;
+  max-width: 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.08) 70%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+.logic-liquid {
+  position: relative;
+}
+/* Liquid: a gloss on the left, depth on the right. */
+.logic-potion.potion-layer {
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 10%, rgba(255, 255, 255, 0.07) 28%, transparent 55%, rgba(0, 0, 0, 0.2));
+  overflow: visible;
+}
+.logic-potion-surface {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.1));
+  transform-origin: 50% 100%;
+  animation: logic-potion-wobble 2.4s ease-in-out var(--logic-wobble, 0s) infinite alternate;
+  pointer-events: none;
+}
+@keyframes logic-potion-wobble {
+  from { transform: skewY(-3deg) scaleY(0.8); }
+  to { transform: skewY(3deg) scaleY(1.1); }
+}
+/* A pour: the arriving layers fill up from below. */
+.logic-potion-fill {
+  transform-origin: 50% 100%;
+  animation: logic-potion-fill 240ms ease-out both;
+}
+@keyframes logic-potion-fill {
+  from { transform: scaleY(0.1); filter: brightness(1.35); }
+  to { transform: none; filter: none; }
+}
+/* Completion: corks pop on each full flask in turn and the liquid shimmers. */
+[data-logic-solved] .logic-cork {
+  animation: logic-cork-pop 380ms cubic-bezier(0.3, 1.7, 0.5, 1) calc(var(--logic-i, 0) * 80ms) both;
+}
+@keyframes logic-cork-pop {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-9px) rotate(-8deg); }
+  100% { transform: none; }
+}
+.logic-liquid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.55) 48%, transparent 66%);
+  background-size: 100% 300%;
+}
+[data-logic-solved] .logic-liquid::after {
+  animation: logic-potion-shimmer 480ms ease-in-out calc(100ms + var(--logic-i, 0) * 80ms) 1 none;
+}
+@keyframes logic-potion-shimmer {
+  0% { opacity: 1; background-position: 0 100%; }
+  100% { opacity: 1; background-position: 0 0; }
+}
+
+/* ------------------------------------------------------------ Safe Cracker */
+.logic-safe-card {
+  flex: none;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, white), var(--card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.logic-safe-clue {
+  font-size: clamp(19px, 3.6cqh, 22px);
+}
+.logic-safe-vault {
+  flex: none;
+  perspective: 1100px;
+}
+/* Heavy steel door: brushed face, bevel, rivets and a hinge down the left. */
+[data-logic-stage] .logic-safe-door.safe-metal-panel {
+  min-height: 152px;
+}
+.logic-safe-door.safe-metal-panel {
+  padding: 6px 14px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 80% at 30% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(180deg, #4A4F5A, #2A2E36 55%, #1C1F25);
+  border-color: #5C626E;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 4px rgba(0, 0, 0, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.55);
+  transform-origin: 0 50%;
+  transition: transform 520ms cubic-bezier(0.45, 0, 0.2, 1) 430ms, box-shadow 520ms ease 430ms;
+  z-index: 1;
+}
+.logic-safe-door.logic-safe-door-open {
+  transform: rotateY(-34deg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 12px 8px 22px rgba(0, 0, 0, 0.6);
+}
+.logic-safe-hinge {
+  position: absolute;
+  left: -5px;
+  top: 18%;
+  bottom: 18%;
+  width: 5px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(180deg, #8A909C 0 30%, transparent 30% 70%, #8A909C 70% 100%);
+}
+.logic-rivet {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #E3E6EC, #7B818D 60%, #2A2D33);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+.logic-rivet[data-corner="tl"] { top: 6px; left: 6px; }
+.logic-rivet[data-corner="tr"] { top: 6px; right: 6px; }
+.logic-rivet[data-corner="bl"] { bottom: 6px; left: 6px; }
+.logic-rivet[data-corner="br"] { bottom: 6px; right: 6px; }
+/* Behind the door: gold light and bars, seen only when it swings open. */
+.logic-safe-inside {
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 60%, #FFE9A8, #F5B82E 40%, #7A5208 100%);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 300ms ease 430ms;
+}
+.logic-safe-door-open ~ .logic-safe-inside,
+.logic-safe-vault:has(.logic-safe-door-open) .logic-safe-inside {
+  opacity: 1;
+}
+.logic-safe-inside > i {
+  position: absolute;
+  bottom: 14%;
+  width: 26%;
+  height: 18%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #FFF1BF, #E2A21F 60%, #A86F0A);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+.logic-safe-inside > i:nth-child(1) { left: 14%; }
+.logic-safe-inside > i:nth-child(2) { left: 42%; }
+.logic-safe-inside > i:nth-child(3) { left: 28%; bottom: 34%; }
+/* Brass drums: a cylinder with the next and previous digits rolling past. */
+.logic-drum.safe-dial-drum {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 26%, rgba(255, 255, 255, 0.28) 46%, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.55)),
+    linear-gradient(90deg, #8C6A2A, #E9C77A 30%, #C99A3E 60%, #7A5A20);
+  border-color: #5E4718;
+  color: #20170A;
+  box-shadow: inset 0 0 0 1px rgba(255, 236, 180, 0.35), 0 2px 3px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.45);
+}
+.logic-drum.logic-drum-gold {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px rgba(255, 236, 180, 0.45), 0 0 8px rgba(245, 184, 46, 0.45);
+}
+.logic-drum.logic-drum-wrong {
+  border-color: var(--warn);
+  color: #4A0E0E;
+}
+.logic-drum-live {
+  width: clamp(46px, 9cqh, 58px);
+  height: clamp(56px, 11cqh, 72px);
+  font-size: clamp(28px, 6cqh, 36px);
+}
+.logic-drum-digit {
+  position: relative;
+  display: block;
+  line-height: 1;
+}
+.logic-drum-ghost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.6em;
+  line-height: 1;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.logic-drum-ghost-top { top: -0.15em; }
+.logic-drum-ghost-bottom { bottom: -0.15em; }
+.logic-drum:not(.logic-drum-live) .logic-drum-ghost { display: none; }
+.logic-roll-up { animation: logic-roll-up 130ms ease-out; }
+.logic-roll-down { animation: logic-roll-down 130ms ease-out; }
+@keyframes logic-roll-up {
+  from { transform: translateY(55%); opacity: 0.3; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes logic-roll-down {
+  from { transform: translateY(-55%); opacity: 0.3; }
+  to { transform: none; opacity: 1; }
+}
+/* Completion: each drum clicks into place in turn, then the door swings open. */
+[data-logic-solved] .logic-drum-live {
+  animation: logic-drum-lock 220ms ease-out calc(var(--logic-i, 0) * 95ms) 1 none;
+}
+@keyframes logic-drum-lock {
+  0% { transform: none; }
+  45% { transform: translateY(3px); box-shadow: inset 0 0 0 2px var(--primary), 0 0 12px rgba(245, 184, 46, 0.8); }
+  100% { transform: none; }
+}
+
+/* ------------------------------------------------------------ Bomb Defusal */
+.logic-bomb-board {
+  flex: 1 1 auto;
+  min-height: 196px;
+  max-height: 330px;
+}
+/* Casing: a dark metal box with a hazard-striped lip and a bevelled inner panel. */
+.logic-bomb.bomb-plate {
+  border-color: #3A3D45;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 7px),
+    linear-gradient(155deg, #23252C, #121318);
+  box-shadow:
+    0 0 0 3px #15161A,
+    0 0 0 5px transparent,
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 2px 10px rgba(0, 0, 0, 0.6),
+    0 8px 18px rgba(0, 0, 0, 0.5);
+}
+.logic-bomb.bomb-plate::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: -2px;
+  height: 4px;
+  border-radius: 0 0 3px 3px;
+  background: repeating-linear-gradient(135deg, #F5B82E 0 6px, #17181C 6px 12px);
+  opacity: 0.85;
+  pointer-events: none;
+}
+.logic-bomb-serial {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+/* LED timer: red seven-segment style digits behind smoked glass, with a fizzing fuse. */
+.logic-bomb-led-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.logic-bomb-led {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #1A0606, #0A0202);
+  color: #FF3B30;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px rgba(255, 59, 48, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(255, 80, 70, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.8);
+  font-variant-numeric: tabular-nums;
+}
+.logic-bomb-spark {
+  position: absolute;
+  left: -7px;
+  top: -5px;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+}
+.logic-bomb-spark > i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFF6C8 0 25%, #FFB020 45%, transparent 70%);
+  animation: logic-fuse 420ms ease-out infinite;
+}
+.logic-bomb-spark > i:nth-child(2) { animation-delay: 140ms; --logic-x: 4px; }
+.logic-bomb-spark > i:nth-child(3) { animation-delay: 280ms; --logic-x: -4px; }
+@keyframes logic-fuse {
+  0% { transform: translate(0, 0) scale(0.8); opacity: 1; }
+  100% { transform: translate(var(--logic-x, 1px), -7px) scale(0.2); opacity: 0; }
+}
+/* DEFUSE pressed: the timer freezes (blinks twice) and the spark dies. */
+.logic-bomb-frozen .logic-bomb-spark > i {
+  animation: logic-fuse-die 360ms ease-out 1 both;
+}
+@keyframes logic-fuse-die {
+  0% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}
+.logic-bomb-frozen .logic-bomb-led {
+  animation: logic-led-freeze 640ms steps(1, end) 1;
+}
+@keyframes logic-led-freeze {
+  0%, 50% { opacity: 1; }
+  25%, 75% { opacity: 0.25; }
+}
+/* Wires: round insulation with a highlight, screwed to brass terminals. */
+.logic-wire {
+  position: relative;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.12) 35%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+}
+.logic-wire-cut.logic-wire-left { border-top-right-radius: 1px; border-bottom-right-radius: 1px; }
+.logic-wire-cut.logic-wire-right { border-top-left-radius: 1px; border-bottom-left-radius: 1px; }
+.logic-wire-cut.logic-wire-left::after,
+.logic-wire-cut.logic-wire-right::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  width: 4px;
+  background: #D98A3D;
+  border-radius: 1px;
+}
+.logic-wire-cut.logic-wire-left::after { right: -3px; }
+.logic-wire-cut.logic-wire-right::after { left: -3px; }
+.logic-wire-snap.logic-wire-left { transform-origin: 0 50%; animation: logic-wire-recoil 220ms ease-out; }
+.logic-wire-snap.logic-wire-right { transform-origin: 100% 50%; animation: logic-wire-recoil 220ms ease-out; }
+@keyframes logic-wire-recoil {
+  from { transform: scaleX(1.18); }
+  60% { transform: scaleX(0.96); }
+  to { transform: none; }
+}
+.logic-wire-sparks {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.logic-wire-sparks > i {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #FFD36A;
+  box-shadow: 0 0 4px #FFB020;
+  animation: logic-wire-spark 300ms ease-out both;
+}
+.logic-wire-sparks > i:nth-child(1) { --logic-x: -12px; --logic-y: -8px; }
+.logic-wire-sparks > i:nth-child(2) { --logic-x: 12px; --logic-y: -9px; }
+.logic-wire-sparks > i:nth-child(3) { --logic-x: -9px; --logic-y: 8px; }
+.logic-wire-sparks > i:nth-child(4) { --logic-x: 10px; --logic-y: 7px; }
+@keyframes logic-wire-spark {
+  from { transform: none; opacity: 1; }
+  to { transform: translate(var(--logic-x), var(--logic-y)) scale(0.3); opacity: 0; }
+}
+.logic-terminal {
+  flex: none;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6D5320, #E2C27A 45%, #8A6A28);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+}
+.logic-terminal-left { margin-right: 1px; }
+.logic-terminal-right { margin-left: 1px; }
+/* Caps: domed buttons that sink when pressed. */
+.logic-bomb-cap {
+  background-image: radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.28) 100%);
+  transition: transform 100ms ease;
+}
+.logic-bomb-cap:active:not(:disabled) { transform: scale(0.92); }
+.logic-bomb-cap-press { animation: logic-cap-press 200ms ease-out; }
+@keyframes logic-cap-press {
+  40% { transform: scale(0.88); filter: brightness(0.85); }
+}
+/* Reveal lamp: red, turning green on a verified defuse. */
+.logic-bomb-lamp {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFB3AE, #E5302A 55%, #6E0E0B);
+  box-shadow: 0 0 8px rgba(229, 48, 42, 0.7);
+}
+.logic-bomb-lamp-green {
+  background: radial-gradient(circle at 35% 35%, #D9FFE9, #2FD27A 55%, #0B5A2F);
+  box-shadow: 0 0 10px rgba(47, 210, 122, 0.85);
+  animation: logic-lamp-green 700ms ease-out both;
+}
+@keyframes logic-lamp-green {
+  0% { background: radial-gradient(circle at 35% 35%, #FFB3AE, #E5302A 55%, #6E0E0B); box-shadow: 0 0 8px rgba(229, 48, 42, 0.7); }
+  45% { transform: scale(1.35); }
+  100% { transform: none; }
+}
+/* Wire rows share the panel height evenly (unchanged row targets, up to 26px each). */
+[data-logic-stage="bomb"] .bomb-wire-index { line-height: 1; }
+[data-logic-stage="bomb"] .bomb-plate > div:nth-of-type(2) { gap: 2px; padding-block: 2px; overflow: hidden; justify-content: space-evenly; }
+[data-logic-stage="bomb"] .bomb-plate > div:nth-of-type(2) > button { flex: 1 1 0; min-height: 0; max-height: 26px; }
+
+/* ------------------------------------------------------------------ Mosaic */
+.logic-nono-fit {
+  width: min(100cqw, calc((100cqh - 80px) / 0.86));
+  flex: none;
+}
+.logic-nono-pair {
+  display: flex;
+  width: min(100cqw, 420px);
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+}
+/* Tiles: recessed grout when empty, a glazed tile with a bevel when filled. */
+.logic-nono > .logic-nono-cell {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(255, 255, 255, 0.03));
+}
+.logic-nono > .logic-nono-cell.bg-primary {
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.08) 38%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.22) 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 1px 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+.logic-nono > .logic-nono-cell {
+  position: relative;
+}
+.logic-nono-pop {
+  animation: logic-nono-pop 170ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes logic-nono-pop {
+  from { transform: scale(0.7); }
+  to { transform: none; }
+}
+.logic-nono-tick {
+  animation: logic-nono-tick 140ms ease-out;
+}
+@keyframes logic-nono-tick {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+.logic-nono-reveal > span {
+  font-size: 12px !important;
+  line-height: 1.15;
+}
+.logic-nono-reveal > .nono-clue-row {
+  padding-right: 4px;
+}
+/* Completion: the picture fills with colour in a diagonal sweep, then a small bounce. */
+.logic-nono > .logic-nono-cell.bg-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.2)),
+    hsl(var(--logic-hue, 40) 78% 58%);
+}
+[data-logic-solved] .logic-nono > .logic-nono-cell.bg-primary::after {
+  animation: logic-nono-colour 820ms ease-out calc(var(--logic-diag, 0) * 28ms) 1 none;
+}
+@keyframes logic-nono-colour {
+  0% { opacity: 0; transform: scale(0.6); }
+  22% { opacity: 1; transform: none; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+[data-logic-solved] .logic-nono-frame {
+  animation: logic-nono-bounce 360ms cubic-bezier(0.3, 1.5, 0.5, 1) 520ms 1 none;
+}
+@keyframes logic-nono-bounce {
+  0% { transform: none; }
+  45% { transform: scale(1.035); }
+  100% { transform: none; }
+}
+
+/* ------------------------------------------------------------ Colour Flood */
+.logic-flood-frame {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+/* Wet paint: one continuous gloss over the whole board, so joined cells stay seamless. */
+.logic-flood-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 22% 8%, rgba(255, 255, 255, 0.22), transparent 55%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.1), transparent 35%, transparent 70%, rgba(0, 0, 0, 0.16));
+  mix-blend-mode: soft-light;
+}
+.logic-flood > .flood-wet {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.24));
+}
+/* Paint pots: a glossy dome of each colour; the current colour sits pressed in. */
+.logic-paint-pot {
+  border-radius: 50%;
+  background-image: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.65) 0 10%, rgba(255, 255, 255, 0.12) 32%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.28) 100%);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 3px 6px rgba(0, 0, 0, 0.45);
+  transition: transform 110ms ease;
+}
+.logic-paint-pot:active { transform: scale(0.9); }
+.logic-paint-pot-current {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--background), 0 0 0 5px rgba(242, 244, 247, 0.85);
+}
+/* Completion: the final colour ripples across the board from the top-left corner. */
+[data-logic-solved] .logic-flood > .flood-tile {
+  animation: logic-flood-wave 520ms ease-out calc(var(--logic-diag, 0) * 24ms) 1 none !important;
+}
+@keyframes logic-flood-wave {
+  0% { filter: none; }
+  40% { filter: brightness(1.35) saturate(1.1); }
+  100% { filter: none; }
+}
+[data-logic-solved] .logic-flood-sheen {
+  background:
+    radial-gradient(circle at 0 0, transparent 0, rgba(255, 255, 255, 0.5) 6%, transparent 14%),
+    radial-gradient(120% 70% at 22% 8%, rgba(255, 255, 255, 0.22), transparent 55%);
+  background-size: 300% 300%, 100% 100%;
+  background-repeat: no-repeat;
+  animation: logic-flood-sweep 1100ms ease-out 1 both;
+}
+@keyframes logic-flood-sweep {
+  from { background-size: 0% 0%, 100% 100%; }
+  to { background-size: 420% 420%, 100% 100%; }
+}
+
+/* Two reveal boards side by side, as wide as the reveal allows. */
+.logic-pair {
+  display: flex;
+  width: min(100cqw, 420px);
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* --------------------------------------------------------- Tents and Trees */
+.logic-tents-fit {
+  width: min(100cqw, calc(100cqh - 44px));
+  flex: none;
+}
+.logic-camp-frame {
+  border-radius: 10px;
+  padding: 4px;
+  background:
+    radial-gradient(140% 90% at 50% 0%, rgba(120, 190, 110, 0.08), transparent 60%),
+    linear-gradient(180deg, #16201A, #0F1612);
+  box-shadow: inset 0 0 0 1px rgba(120, 190, 110, 0.12), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+/* Grass: a lit top, darker roots and a few blades, varied per cell. */
+.logic-camp > .logic-camp-cell {
+  background-image:
+    radial-gradient(1px 3px at calc(20% + var(--logic-grass) * 8%) 70%, rgba(150, 215, 130, 0.35), transparent),
+    radial-gradient(1px 3px at calc(70% - var(--logic-grass) * 5%) 35%, rgba(150, 215, 130, 0.3), transparent),
+    radial-gradient(1px 2px at 45% 85%, rgba(150, 215, 130, 0.25), transparent),
+    linear-gradient(180deg, rgba(160, 220, 140, 0.1), rgba(0, 0, 0, 0.18));
+  border-color: rgba(120, 190, 110, 0.18);
+}
+/* Wooden signposts: a plank with grain, nail heads and a short post. */
+.logic-camp > .logic-sign {
+  position: relative;
+  background:
+    repeating-linear-gradient(90deg, rgba(40, 22, 8, 0.18) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, #7E5430, #5A3A20 60%, #3E2814);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.logic-tent {
+  overflow: visible;
+}
+.logic-tent-pitch .logic-tent {
+  transform-origin: 50% 88%;
+  animation: logic-tent-pitch 240ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes logic-tent-pitch {
+  from { transform: scale(0.2, 0.05); }
+  to { transform: none; }
+}
+.logic-lantern {
+  opacity: 0;
+}
+/* Completion: the tents pop up in turn and their lanterns glow. */
+[data-logic-solved] .logic-tent {
+  transform-origin: 50% 88%;
+  animation: logic-tent-bounce 380ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--logic-i, 0) * 55ms) 1 none;
+}
+@keyframes logic-tent-bounce {
+  0% { transform: none; }
+  40% { transform: scale(1.18, 1.22) translateY(-6%); }
+  100% { transform: none; }
+}
+[data-logic-solved] .logic-lantern {
+  animation: logic-lantern 600ms ease-out calc(300ms + var(--logic-i, 0) * 25ms) 1 both;
+}
+@keyframes logic-lantern {
+  0% { opacity: 0; filter: none; }
+  30% { opacity: 1; filter: drop-shadow(0 0 2px #FFD66B) drop-shadow(0 0 4px #FFB020); }
+  100% { opacity: 0; filter: drop-shadow(0 0 2px #FFD66B); }
+}
+[data-logic-solved] .logic-camp-cell:has(.logic-lantern) {
+  animation: logic-camp-glow 600ms ease-out calc(300ms + var(--logic-i, 0) * 25ms) 1 none;
+}
+@keyframes logic-camp-glow {
+  30% { box-shadow: inset 0 0 12px rgba(255, 200, 90, 0.55); }
+}
+
+/* ----------------------------------------------------------------- Shikaku */
+.logic-glass-frame {
+  border-radius: 8px;
+  padding: 3px;
+  background: linear-gradient(180deg, #2A2C33, #15161B);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+/* Unclaimed squares: smoky glass in dark leading. */
+.logic-glass > .logic-glass-cell {
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.18));
+}
+/* A claimed rectangle: a pane of gold glass with a lead edge and a sheen. */
+.logic-glass > .logic-pane {
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.04) 40%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.16) 100%) !important;
+  box-shadow: 0 0 0 1px rgba(10, 10, 14, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  animation: logic-pane-set 180ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes logic-pane-set {
+  from { transform: scale(0.9); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+.logic-glass-clue {
+  color: #FFFFFF;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+/* Completion: the panes flash in different colours, like stained glass in sunlight. */
+[data-logic-solved] .logic-glass > .logic-pane {
+  animation: logic-pane-stained 700ms ease-out calc(var(--logic-i, 0) * 28ms) 1 both;
+}
+@keyframes logic-pane-stained {
+  0% { background-color: color-mix(in oklab, var(--primary) 35%, transparent); border-color: var(--primary); }
+  30%, 70% { background-color: hsl(var(--logic-hue) 85% 55% / 0.78); border-color: hsl(var(--logic-hue) 90% 72%); filter: brightness(1.15); }
+  100% { background-color: color-mix(in oklab, var(--primary) 35%, transparent); border-color: var(--primary); }
+}
+
+/* ------------------------------------------------------------- Lamplighter */
+.logic-lamp-frame {
+  border-radius: 8px;
+  padding: 3px;
+  background: linear-gradient(180deg, #1E1A14, #110F0B);
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 130, 0.08), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+/* Walls: dark stone blocks; numbers stay bright and clear. */
+.logic-lamps > .logic-wall {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 40%, rgba(0, 0, 0, 0.28)),
+    linear-gradient(90deg, transparent 49%, rgba(0, 0, 0, 0.22) 49% 51%, transparent 51%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.logic-lamps > .logic-wall > span:first-child {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+/* Lit squares: warm light pooling from the beams. */
+.logic-lamps > .logic-lamp-cell.lightup-cell-lit {
+  background-image: radial-gradient(circle at 50% 50%, rgba(255, 214, 120, 0.3), rgba(245, 184, 46, 0.08) 70%);
+  box-shadow: inset 0 0 10px rgba(255, 190, 80, 0.4);
+}
+.logic-lamps .lightup-beam {
+  background: linear-gradient(90deg, rgba(255, 226, 150, 0.85), rgba(245, 184, 46, 0.85));
+  box-shadow: 0 0 6px rgba(255, 200, 90, 0.65);
+}
+.logic-lamps .logic-lamp.bg-primary {
+  background: radial-gradient(circle at 40% 35%, #FFFBEA, #FFE08A 35%, #F5B82E 70%, #C68412);
+  box-shadow: 0 0 10px 2px rgba(255, 200, 90, 0.8), 0 0 22px rgba(255, 180, 60, 0.45) !important;
+}
+.logic-lamps-small .logic-lamp.bg-primary {
+  box-shadow: 0 0 5px 1px rgba(255, 200, 90, 0.8) !important;
+}
+/* A new lamp: its light spreads out along the beams, square by square. */
+.logic-light-in {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 240, 190, 0.85), rgba(255, 200, 90, 0.3) 70%);
+  animation: logic-light-in 320ms ease-out both;
+}
+@keyframes logic-light-in {
+  0% { opacity: 0; }
+  35% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Completion: the lamps glow warm in a wave and the light spreads across the room. */
+.logic-lamp-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 236, 170, 0.75), rgba(255, 190, 80, 0.25) 75%);
+}
+[data-logic-solved] .logic-lamp-cell::after {
+  animation: logic-light-in 560ms ease-out calc(var(--logic-diag, 0) * 38ms) 1 none;
+}
+[data-logic-solved] .logic-lamp.bg-primary {
+  animation: logic-lamp-swell 520ms ease-out calc(var(--logic-diag, 0) * 38ms) 1 none;
+}
+@keyframes logic-lamp-swell {
+  40% { transform: scale(1.3); filter: brightness(1.3); }
+}

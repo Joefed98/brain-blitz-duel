@@ -3,8 +3,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
 
-import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
-import { useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { hapticTick } from "@/components/puzzles/GridDrag";
+import { TilesFrame } from "@/components/puzzles/pattern/tilesBoard";
 import {
   decodeTileMoves,
   encodeTileMoves,
@@ -16,11 +16,10 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import {
   TILES_COUNT,
-  TILES_SIZE,
-  TILES_SLIDE_MS,
   TILES_TIME_MS,
   type TilesPuzzleData,
 } from "@/lib/duel/types";
+import { useSolveMoment } from "@/lib/fx/patternFx";
 import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -35,57 +34,6 @@ function tileFill(value: number): string {
   const step = (value - 1) % TILE_GRADIENT_STOPS;
   const hue = 215 - (step / (TILE_GRADIENT_STOPS - 1)) * 175;
   return `hsl(${hue.toFixed(0)} 52% 58%)`;
-}
-
-function Frame({
-  frame,
-  cell,
-  onTile,
-}: {
-  frame: number[];
-  cell: number;
-  onTile?: ((tile: number) => void) | undefined;
-}) {
-  const board = useRef<HTMLDivElement | null>(null);
-  useNoTouchScroll(board);
-  return (
-    <div
-      ref={board}
-      className="puzzle-board grid gap-1.5 rounded-xl border-2 border-border bg-card p-1.5"
-      style={{ gridTemplateColumns: `repeat(${TILES_SIZE}, ${cell}px)` }}
-      aria-label={`${gameDisplayName("tiles")} frame`}
-    >
-      {frame.map((value, index) =>
-        value === 0 ? (
-          <span key={index} className="rounded-lg bg-background/40" style={{ height: cell }} />
-        ) : (
-          <button
-            key={index}
-            type="button"
-            data-pointer-index={value}
-            disabled={!onTile}
-            aria-label={`Tile ${value}`}
-            onPointerDown={(event) => {
-              if (!onTile) return;
-              event.preventDefault();
-              const hit = pointerElementIndex(event.currentTarget);
-              if (hit !== null) onTile(hit);
-            }}
-            className="flex items-center justify-center rounded-lg font-display font-bold text-white"
-            style={{
-              height: cell,
-              background: tileFill(value),
-              ["--tile-fill" as string]: tileFill(value),
-              fontSize: Math.round(cell * 0.42),
-              transition: `transform ${TILES_SLIDE_MS}ms ease-out`,
-            }}
-          >
-            {value}
-          </button>
-        ),
-      )}
-    </div>
-  );
 }
 
 const EXAMPLE_FRAME = [1, 2, 3, 0];
@@ -153,6 +101,7 @@ function Stage({
   const [moves, setMoves] = useStageState<number[]>(stateKey, "tileMoves", () => []);
   const submitted = useRef(false);
   const replay = useMemo(() => (data ? replayTiles(data.frame, moves) : null), [data, moves]);
+  const celebrate = useSolveMoment(replay?.solved ?? false, "tiles.solve");
 
   useEffect(() => {
     onDraftAnswer?.(encodeTileMoves(moves));
@@ -190,7 +139,9 @@ function Stage({
 
   return (
     <div data-stage-column="3" data-polish="tiles" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <Frame frame={replay.frame} cell={86} onTile={slide} />
+      <div data-game-arena="board" className="tiles-arena">
+        <TilesFrame frame={replay.frame} onTile={slide} celebrate={celebrate} />
+      </div>
       <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
       </p>
@@ -214,7 +165,7 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "tiles") return null;
   const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? ""));
   const elapsed =
@@ -222,13 +173,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const min = puzzle.minMoves ?? 0;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <Frame frame={solvedFrame()} cell={56} />
+    <div className="tiles-reveal flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
+      <div className="tiles-reveal-space">
+        <TilesFrame frame={solvedFrame()} variant="reveal" />
+      </div>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
-          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)
+          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)
           : `${replay.inPlace} / ${TILES_COUNT} in place`}
       </p>
     </div>

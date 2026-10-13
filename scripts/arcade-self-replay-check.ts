@@ -86,7 +86,7 @@ import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
-import { clashCheckpoint, colourClashGame, colourClashRev3Game } from "@/lib/arcade/colourClash";
+import { clashCheckpoint, colourClashGame, colourClashRev3Game, colourClashRev4Game } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import { snipCheckpoint, snipGameFor, SNIP_REV, SNIP_REV3 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
@@ -116,7 +116,7 @@ import { CROSS_REV_BAND } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SNIP_REV_BAND, SNIP_REV_TALL } from "@/lib/arcade/snip";
+import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
@@ -531,7 +531,9 @@ const GAMES: Game[] = [
   { key: "skyline/tall", game: skylineGameFor(SKYLINE_REV_TALL), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV_TALL) },
   { key: "snake/tall", game: snakeGameFor(SNAKE_REV_TALL), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_TALL) },
   { key: "snip/tall", game: snipGameFor(SNIP_REV_TALL), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_TALL) },
+  { key: "snip/bank6", game: snipGameFor(SNIP_REV_BANK6), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_BANK6) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
+  { key: "stroop", game: colourClashRev4Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 4) },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },
   // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.

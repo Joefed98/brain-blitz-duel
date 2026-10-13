@@ -5,6 +5,7 @@
  * the same timed tap list through replayChain.
  */
 
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import {
   CHAIN_BLOCK,
@@ -73,6 +74,11 @@ export function chainBoardIndex(links: number, puzzle?: ChainPuzzleData): number
 export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleData): number {
   const rules = chainRules(puzzle);
   const count = Math.max(0, Math.min(rules.length, Math.floor(links)));
+  if (scoreRev1()) {
+    // Rev 1: all links = 120 + PAR(30); otherwise 110 × links ÷ (links − 1) of the chain, so one short is 110.
+    if (count === rules.length) return finishParts(speedBonusCurve(30, msRemaining, CHAIN_TIME_MS));
+    return partialParts(Math.floor((110 * count) / Math.max(1, rules.length - 1)));
+  }
   const bonus = count === rules.length
     ? speedBonusCurve(rules.bonus, msRemaining, CHAIN_TIME_MS) : 0;
   return Math.min(150, Math.floor(rules.points * count) + bonus);

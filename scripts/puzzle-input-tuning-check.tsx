@@ -7,7 +7,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
-import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, POLISH_B_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, POLISH_B_PRESENTATION, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
 import { shuffleLetterOrder } from "../src/components/puzzles/letterShuffle";
 import { applyPuzzleSurfaces } from "../src/components/puzzles/usePuzzleSurfaces";
 import { WORDSMITH_SIZES, type PuzzleType } from "../src/lib/duel/types";
@@ -45,7 +45,9 @@ assert.equal(puzzleInputDemoCompatible("wordsmith", { presentation: PUZZLE_INPUT
 assert.equal(puzzleInputDemoCompatible("wordsmith", { presentation: WORDSMITH_PRESENTATION }), true);
 // Sudoku joined the Polish B demo set: only recordings stamped with that presentation replay.
 assert.equal(puzzleInputDemoCompatible("sudoku", {}), false);
-assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: POLISH_B_PRESENTATION }), true);
+// Logic polish (13 Oct 2026) moved Sudoku's board again: Polish B recordings no longer replay.
+assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: POLISH_B_PRESENTATION }), false);
+assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: LOGIC_POLISH_PRESENTATION }), true);
 
 const css = readFileSync("src/styles.css", "utf8");
 assert.match(css, /\.game-screen,[\s\S]*?canvas,\s*button,[\s\S]*?-webkit-tap-highlight-color: transparent !important/);
