@@ -96,6 +96,9 @@ export const SHARDS: Record<string, string[]> = {
   ],
   c: [
     "arcade-batch1-check.ts",
+    "category-pool-check.ts",
+    "help-scroll-check.tsx",
+    "signature-beat-check.ts",
     "arcade-check.ts",
     "arcade-correction-check.ts",
     "arcade-drag-check.ts",

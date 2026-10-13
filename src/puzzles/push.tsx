@@ -262,7 +262,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const pushPuzzle: PuzzleDefinition = {
   key: "push",
   name: gameDisplayName("push"),
-  category: "logic",
+  category: "pattern",
   timeLimitMs: PUSH_TIME_MS,
   revealMs: 8_000,
   generate: () =>

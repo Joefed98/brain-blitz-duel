@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -52,6 +52,8 @@ import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
 import { APP_NAME } from "@/lib/brand";
+import { noteSignatureSubmit } from "@/lib/fx/signature";
+import { useSignatureVerdict } from "@/lib/fx/useSignature";
 
 export const Route = createFileRoute("/practice")({
   ssr: false,
@@ -203,6 +205,22 @@ function PracticeScreen() {
   const durationMs = puzzleDurationMs(puzzle ?? undefined);
   const clockStart = stage === "puzzle" ? startedAt + prepMs : null;
   const timeLimitMs = puzzleTimeLimitMs(puzzle ?? undefined);
+  // The shared signature beat, once this run's graded verdict lands.
+  const signatureVerdict = useMemo(
+    () =>
+      graded
+        ? {
+            type: graded.puzzle.type,
+            arcade: puzzleDef(graded.puzzle.type).category === "arcade",
+            correct: graded.isCorrect,
+            score: graded.score,
+            msRemaining: graded.msRemaining,
+            timeLimitMs: puzzleTimeLimitMs(graded.puzzle),
+          }
+        : null,
+    [graded],
+  );
+  useSignatureVerdict(graded ? stateKey : null, signatureVerdict);
   const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
   const msRemaining = clockDeadline === null ? timeLimitMs : Math.max(0, clockDeadline - now);
   const runMs = stage === "puzzle" ? puzzleRunMs(puzzle ?? undefined) : null;
@@ -211,6 +229,7 @@ function PracticeScreen() {
     async (answer: string, meta?: SubmitMeta) => {
       if (!puzzle || grading.current) return;
       grading.current = true;
+      noteSignatureSubmit(puzzle.type);
       setEndedKey(stateKey);
       stopWarning10();
       stopRecording();

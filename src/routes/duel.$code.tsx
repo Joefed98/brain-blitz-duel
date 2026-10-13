@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
@@ -114,6 +114,8 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { roomInvite } from "@/lib/duel/roomLink";
+import { noteSignatureSubmit } from "@/lib/fx/signature";
+import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
@@ -358,6 +360,23 @@ function DuelScreen() {
     ]),
   );
 
+  // The shared signature beat, once this player's stored verdict lands.
+  const signatureVerdict = useMemo(
+    () =>
+      puzzle && myResult
+        ? {
+            type: puzzle.type,
+            arcade: puzzleDef(puzzle.type).category === "arcade",
+            correct: myResult.is_correct,
+            score: myResult.score,
+            msRemaining: myResult.ms_remaining,
+            timeLimitMs,
+          }
+        : null,
+    [puzzle, myResult, timeLimitMs],
+  );
+  useSignatureVerdict(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
+
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
     if (!duel || !me || !puzzle || duel.status !== "in_progress" || phase !== "puzzle") return;
@@ -365,6 +384,7 @@ function DuelScreen() {
     const key = `${duel.id}-${round}`;
     if (timeoutSubmitted.current === key) return;
     timeoutSubmitted.current = key;
+    noteSignatureSubmit(puzzle.type);
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
@@ -545,6 +565,7 @@ function DuelScreen() {
       round: roundNumber,
     } = latest.current;
     if (!room || !player || !current || mine) return;
+    noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
     buzz(15);
