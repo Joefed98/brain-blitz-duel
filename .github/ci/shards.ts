@@ -100,6 +100,7 @@ export const SHARDS: Record<string, string[]> = {
     "category-pool-check.ts",
     "help-scroll-check.tsx",
     "signature-beat-check.ts",
+    "beat-hold-check.tsx",
     "arcade-check.ts",
     "arcade-correction-check.ts",
     "arcade-drag-check.ts",

@@ -4,6 +4,7 @@ import {
   perfectBurst,
   recentSignatureSubmit,
   scheduleSignature,
+  signatureHoldUntil,
   signatureTierForVerdict,
   type SignatureVerdict,
 } from "./signature";
@@ -23,6 +24,18 @@ export function useSignatureVerdict(key: string | null, verdict: SignatureVerdic
     const solvedAt = recentSignatureSubmit(verdict.type);
     if (tier && solvedAt !== null) scheduleSignature(tier, solvedAt);
   }, [key, verdict]);
+}
+
+/**
+ * Rooms and practice: until when this round's solved board is held on screen
+ * for the beat (signatureHoldUntil), worked out once per round (`key`) when the
+ * verdict first lands; null for no hold.
+ */
+export function useSignatureHold(key: string | null, verdict: SignatureVerdict | null): number | null {
+  const hold = useRef<{ key: string; until: number | null } | null>(null);
+  if (!key || !verdict) return null;
+  if (hold.current?.key !== key) hold.current = { key, until: signatureHoldUntil(verdict) };
+  return hold.current.until;
 }
 
 /** The reveal: a stored 150 gets one short gold burst on the score element. */

@@ -115,7 +115,7 @@ import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { roomInvite } from "@/lib/duel/roomLink";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
-import { useSignatureVerdict } from "@/lib/fx/useSignature";
+import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 
@@ -387,6 +387,11 @@ function DuelScreen() {
     [puzzle, myResult, timeLimitMs],
   );
   useSignatureVerdict(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
+  // After a solve the locked board stays at full brightness (no Locked card yet)
+  // until the beat has finished, at most 2 s from the solve; then it dims as before.
+  // The hold is on the phone's own clock (the beat's), re-checked on every tick.
+  const holdUntil = useSignatureHold(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
+  const boardHeld = holdUntil !== null && Date.now() < holdUntil;
 
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
@@ -1044,12 +1049,13 @@ function DuelScreen() {
           ) : undefined
         }
         locked={!!myResult}
+        held={boardHeld}
         overlay={
           <>
             {puzzle && (
               <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
             )}
-            {myResult && (
+            {myResult && !boardHeld && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                 <span className="animate-stamp-in rounded-lg border-2 border-primary px-4 py-2 font-display text-lg font-bold uppercase tracking-[0.2em] text-primary">
                   Locked
