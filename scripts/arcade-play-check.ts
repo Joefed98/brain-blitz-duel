@@ -168,6 +168,8 @@ const EXTRACT = String.raw`
     // Letterfall: every tile, falling or settled (drops enter from above the well; ids are stable).
     case "wordfall": s.well.forEach((stack, c) => stack.forEach((t) => P.push(["t" + t.id, c * 60, fp(t.y)]))); reset = s.words + ":" + s.over; break;
     case "balltrack": for (const b of s.balls) if (b.cell >= 0 && b.from >= 0) { const p = m.bt.btArtBallPoint(s, b, m.btRot); P.push(["m" + b.id, p.x, p.y]); } break;
+    // Tenfall: every falling tile (ids are stable; a new target clears the lanes).
+    case "tendrop": s.tiles.forEach((t) => P.push(["t" + t.id, t.col * 90, fp(t.y)])); reset = s.stage; break;
     default: break; // beat, bullseye, matchup: no continuous movers
   }
   return { P, reset: String(reset) };

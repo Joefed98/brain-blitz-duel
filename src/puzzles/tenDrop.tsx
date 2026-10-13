@@ -36,27 +36,66 @@ import { encodeTenDropRun, replayTenDropRun } from "@/lib/duel/tenDrop";
 import { TENDROP_TIME_MS, type TenDropPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { drawTenDrop } from "@/lib/arcade/tenDrop.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
-function Hud({ target, total, flash }: { target: number; total: number; flash: "" | "red" | "gold" }) {
+/** Toybox look (Number polish, Oct 2026): the HUD plank, its pegs and the effects. Presentation only. */
+const TD_CSS = `
+.game-column-centred [data-polish="tendrop"][data-stage-column] > [data-game-arena][data-play-area].td-board { margin-top: 0; margin-bottom: 0; }
+[data-polish="tendrop"] .td-hud { background: linear-gradient(180deg, #5A3A20, #3E2716); border: 2px solid #2B1A0E; border-bottom: 3px solid #D4A84A; border-radius: 12px 12px 0 0; box-shadow: inset 0 1px 0 rgba(255,230,180,0.25); }
+[data-polish="tendrop"] .td-label { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; line-height: 1; color: rgba(255,244,222,0.85); }
+[data-polish="tendrop"] .td-total { color: #F7CF63; display: inline-block; }
+[data-polish="tendrop"] .td-total[data-flash="red"] { color: #FF8A73; animation: td-shake 240ms ease-out; }
+[data-polish="tendrop"] .td-plaque { background: linear-gradient(180deg, #FBEFD5, #E9D2A4); color: #2B1A0E; border: 2px solid #9C7444; border-radius: 10px; box-shadow: 0 2px 0 #2B1A0E, inset 0 1px 0 rgba(255,255,255,0.6); transition: background-color 200ms; }
+[data-polish="tendrop"] .td-plaque[data-hit="1"] { background: linear-gradient(180deg, #FFE08A, #F2B63C); border-color: #8A6420; }
+[data-polish="tendrop"] .td-bump { display: inline-block; animation: td-bump 200ms ease-out; }
+[data-polish="tendrop"] .td-peg { width: 10px; height: 10px; border-radius: 50%; background: #2B1A0E; box-shadow: inset 0 1px 2px rgba(0,0,0,0.7), 0 1px 0 rgba(255,230,180,0.18); }
+[data-polish="tendrop"] .td-peg[data-on="1"] { background: radial-gradient(circle at 35% 35%, #FFF1B8, #D4A84A 60%, #8A6420); box-shadow: 0 0 0 1px #2B1A0E; }
+[data-polish="tendrop"] .td-peg[data-new="1"] { animation: td-peg 240ms ease-out; }
+[data-polish="tendrop"] .td-board { border-radius: 0 0 12px 12px; overflow: hidden; background: #C99A62; box-shadow: 0 0 0 2px #2B1A0E; }
+[data-polish="tendrop"][data-solve="1"] .td-plaque { animation: td-glint 900ms ease-out; }
+[data-polish="tendrop"][data-solve="1"] .td-peg { animation: td-glint 900ms ease-out; }
+@keyframes td-bump { from { transform: scale(1.2); } to { transform: scale(1); } }
+@keyframes td-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes td-peg { from { transform: scale(1.6); } to { transform: scale(1); } }
+@keyframes td-glint { 0% { box-shadow: 0 0 0 0 rgba(255,217,120,0.9); transform: scale(1); } 30% { box-shadow: 0 0 14px 4px rgba(255,217,120,0.8); transform: scale(1.06); } 100% { box-shadow: 0 0 0 0 rgba(255,217,120,0); transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="tendrop"] .td-total[data-flash="red"], [data-polish="tendrop"] .td-bump, [data-polish="tendrop"] .td-peg[data-new="1"],
+  [data-polish="tendrop"][data-solve="1"] .td-plaque, [data-polish="tendrop"][data-solve="1"] .td-peg { animation: none; }
+  [data-polish="tendrop"][data-solve="1"] .td-plaque { box-shadow: 0 0 0 3px #FFD978; }
+}
+.td-intro-tile { background: linear-gradient(180deg, #FBEFD5, #E9D2A4); color: #2B1A0E; border: 2px solid #9C7444; box-shadow: 0 2px 0 rgba(43,26,14,0.5); }
+.td-intro-plaque { background: linear-gradient(180deg, #FBEFD5, #E9D2A4); color: #2B1A0E; border: 2px solid #9C7444; }
+.td-intro-plaque[data-hit="1"] { background: linear-gradient(180deg, #FFE08A, #F2B63C); border-color: #8A6420; }
+`;
+
+function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
   return (
-    <div className="relative h-14 w-full shrink-0 font-mono font-bold leading-none">
-      <div
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-4xl text-primary"
-        aria-label={`Running total ${total}`}
-      >
-        {total}
+    <div className="td-hud relative flex h-14 w-full shrink-0 items-center justify-between gap-2 px-3 font-mono font-bold leading-none">
+      <div className="flex w-[84px] flex-col items-start gap-1">
+        <span className="td-label">TOTAL</span>
+        <span className="td-total text-3xl" data-flash={flash === "red" ? "red" : undefined} aria-label={`Running total ${total}`}>
+          <span key={total} className="td-bump">{total}</span>
+        </span>
       </div>
       <div
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md px-2 text-4xl transition-colors ${
-          flash === "gold" ? "bg-primary text-primary-foreground" : "text-foreground"
-        }`}
+        className="td-plaque absolute left-1/2 top-1/2 flex min-w-[84px] -translate-x-1/2 -translate-y-1/2 items-baseline justify-center px-3 py-0.5 text-[34px]"
+        data-hit={flash === "gold" ? "1" : undefined}
         aria-label={`Target ${target}`}
       >
-        {target}
+        <span key={target} className="td-bump">{target}</span>
+      </div>
+      <div className="flex flex-col items-end gap-1" aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>
+        <span className="td-label">{cleared}/{TD_TARGETS}</span>
+        <div className="grid grid-cols-5 gap-1">
+          {Array.from({ length: TD_TARGETS }, (_, i) => (
+            <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -75,15 +114,14 @@ function IntroExample() {
   const total = step === 0 ? 0 : EXAMPLE_TOTALS[step - 1]!;
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={`rounded-lg px-3 font-mono text-3xl font-bold ${step >= 3 ? "bg-primary text-primary-foreground" : ""}`}>20</div>
+      <PolishStyle id="tendrop" css={TD_CSS} />
+      <div className="td-intro-plaque rounded-lg px-3 font-mono text-3xl font-bold" data-hit={step >= 3 ? "1" : undefined}>20</div>
       <div className="font-mono text-xl font-bold text-primary">{total}</div>
       <div className="flex gap-2">
         {EXAMPLE.map((label, i) => (
           <div
             key={label + i}
-            className={`flex h-11 w-12 items-center justify-center rounded-lg border font-mono text-lg font-bold transition-opacity ${
-              label.startsWith("×") ? "border-primary text-primary" : "border-border text-foreground"
-            } ${i < step ? "opacity-20" : ""}`}
+            className={`td-intro-tile flex h-11 w-12 items-center justify-center rounded-lg font-mono text-lg font-bold transition-opacity ${i < step ? "opacity-20" : ""}`}
           >
             {label}
           </div>
@@ -159,6 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let seenCleared = 0;
     let seenResets = 0;
     let seenRefused = 0;
+    let seenLogTick = 0;
     let shownKey = "";
 
     const loop = (time: number) => {
@@ -186,14 +225,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (s.cleared > seenCleared) {
         seenCleared = s.cleared;
         playCorrect();
+        soundCue("tendrop.clear");
       }
       if (s.resets > seenResets) {
         seenResets = s.resets;
         playWrong();
+        soundCue("tendrop.reset");
       }
       if (s.refused > seenRefused) {
         seenRefused = s.refused;
         playTick();
+        soundCue("tendrop.refused");
+      }
+      for (const entry of s.log) {
+        const e = unpackTdLog(entry);
+        if (e.tick <= seenLogTick) continue;
+        seenLogTick = e.tick;
+        if (e.code === TD_LOG_APPLIED) soundCue("tendrop.apply");
       }
       const flash: "" | "red" | "gold" =
         tenDropHolding(s) ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";
@@ -228,10 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           node.height = height * ratio;
         }
         const ctx = node.getContext("2d");
-        if (ctx) {
-          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-          tenDropGame.draw(ctx, s, { width, height });
-        }
+        if (ctx) drawTenDrop(ctx, s, { width, height }, ratio, time);
       }
 
       frameTiming.rendered();
@@ -251,15 +296,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
+  const solveFx = useSolveFx(hud.cleared >= TD_TARGETS, "tendrop.solve");
+
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-polish="tendrop" data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
-      <Hud {...hud} />
+    <div ref={wrap} data-polish="tendrop" data-solve={solveFx ? "1" : undefined} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
+      <PolishStyle id="tendrop" css={TD_CSS} />
+      <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} />
       <div
         ref={board}
         data-play-area
-        data-game-arena="canvas" className="relative min-h-0 w-full flex-1"
+        data-game-arena="canvas" className="td-board relative min-h-0 w-full flex-1"
         style={{ touchAction: "none" }}
         aria-label={`${gameDisplayName("tendrop")} board`}
         onPointerDown={(event) => {
