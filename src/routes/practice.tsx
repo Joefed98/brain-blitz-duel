@@ -135,7 +135,7 @@ function PracticeScreen() {
   const draftAnswer = useRef("");
   /** The run whose round ended early (submitted); its music stops at once. */
   const [endedKey, setEndedKey] = useState("");
-  /** After a solve, the reveal waits for the signature beat to finish (Date.now() clock). */
+  /** When the beat fires, the reveal waits for it to finish (Date.now() clock). */
   const [revealAt, setRevealAt] = useState<number | null>(null);
   // Letterfall's word list starts downloading (or loads from the device cache) as soon as
   // the game list is shown, so the run never waits for it.
@@ -282,8 +282,8 @@ function PracticeScreen() {
         setDeviceBest(record.best);
         setNewBest(record.improved);
       }
-      // After a solve the board stays until the signature beat has finished (at
-      // most 2 s from the solve; a tap skips the wait); otherwise the reveal is at once.
+      // When the beat fires (a solve, a 120+ run) the board stays until it has finished
+      // (at most 2 s from the solve; a tap skips the wait); otherwise the reveal is at once.
       const holdUntil = signatureHoldUntil(practiceVerdict({ ...(rest as Graded), extra }));
       if (holdUntil !== null) {
         setRevealAt(holdUntil);

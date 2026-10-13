@@ -19,11 +19,12 @@
  * over the game region, below the timer bar). prefers-reduced-motion keeps only
  * a soft gold fade with a still logo.
  *
- * Letting it be seen (13 Oct 2026): after a solve the shared frame holds the
+ * Letting it be seen (13 Oct 2026): whenever the beat fires (a solve, a
+ * no-finish run of 120+, an arcade run that earns it) the shared frame holds the
  * board until the beat has finished (signatureHoldUntil, at most
- * SIGNATURE_HOLD_MAX_MS from the solve): rooms keep the locked board at full
- * brightness, practice waits before showing the reveal (a tap skips the wait).
- * Unsolved and timed-out rounds, and reduced motion, are never held.
+ * SIGNATURE_HOLD_MAX_MS from the solve or run's end): rooms keep the locked
+ * board at full brightness, practice waits before showing the reveal (a tap
+ * skips the wait). Rounds with no beat, and reduced motion, are never held.
  */
 import { APP_LOGO_URL } from "@/lib/brand";
 import { BAND_SPECS } from "@/lib/arcade/bandParts";
@@ -45,7 +46,7 @@ export const PERFECT_MS = 500;
 export const SIGNATURE_MIN_SCORE = 120;
 /** A verdict this late after the solve moment no longer gets a beat (the reveal has moved on). */
 export const SIGNATURE_LATE_MS = 4000;
-/** The longest the shared frame holds a solved board for the beat, from the solve moment (ms). */
+/** The longest the shared frame holds the board for the beat, from the solve or run's end (ms). */
 export const SIGNATURE_HOLD_MAX_MS = 2000;
 
 export const SIGNATURE_CUES: Record<SignatureTier, string> = {
@@ -152,17 +153,17 @@ export function recentSignatureSubmit(type: PuzzleType): number | null {
   return Date.now() - lastSubmit.at <= SIGNATURE_LATE_MS ? lastSubmit.at : null;
 }
 
-/** The last finish-game arcade beat scheduled (its start), for signatureHoldUntil. */
+/** The last arcade beat scheduled (its start), for signatureHoldUntil. */
 let arcadeBeat: { type: PuzzleType; startsAt: number; scheduledAt: number } | null = null;
 
 /**
- * Until when the shared frame should hold this player's solved board on screen
- * so the beat is seen (Date.now() clock), or null for no hold: the beat's end,
- * capped at SIGNATURE_HOLD_MAX_MS after the noted solve moment. Only a solve
- * holds: a correct puzzle verdict before the buzzer (not the no-finish games,
- * which run to the buzzer), or an arcade finish game whose run reached the
- * finish. Unsolved and timed-out rounds, a verdict with no recent submit on this
- * phone, and reduced motion get none.
+ * Until when the shared frame should hold this player's board on screen so the
+ * beat is seen (Date.now() clock), or null for no hold: the beat's end, capped at
+ * SIGNATURE_HOLD_MAX_MS after the noted submit moment (the solve, or the run's
+ * end). Every round whose beat fires holds: a solved puzzle, a no-finish game's
+ * run of 120+, an arcade run that earned the beat (finish reached, or an open
+ * run of 120+). Rounds with no beat (unsolved, below 120), a verdict with no
+ * recent submit on this phone (a reload mid-round) and reduced motion get none.
  */
 export function signatureHoldUntil(verdict: SignatureVerdict, now = Date.now()): number | null {
   if (prefersReducedMotion()) return null;
@@ -173,11 +174,7 @@ export function signatureHoldUntil(verdict: SignatureVerdict, now = Date.now()):
     const beat = arcadeBeat;
     if (beat && beat.type === verdict.type && now - beat.scheduledAt <= SIGNATURE_LATE_MS)
       startsAt = beat.startsAt;
-  } else if (
-    !NO_FINISH_TYPES.has(verdict.type) &&
-    verdict.msRemaining > 0 &&
-    signatureTierForVerdict(verdict) !== null
-  ) {
+  } else if (signatureTierForVerdict(verdict) !== null) {
     startsAt = Math.max(solvedAt + SIGNATURE_DELAY_MS, now);
   }
   if (startsAt === null) return null;
@@ -196,8 +193,7 @@ export function signatureArcadeRunOver(state: object): void {
   const tier = signatureTierForArcadeRun(game.type, state, game.runMs);
   if (!tier) return;
   const at = Date.now();
-  if (BAND_SPECS[game.type]?.kind === "finish")
-    arcadeBeat = { type: game.type, startsAt: at + SIGNATURE_DELAY_MS, scheduledAt: at };
+  arcadeBeat = { type: game.type, startsAt: at + SIGNATURE_DELAY_MS, scheduledAt: at };
   scheduleSignature(tier, at);
 }
 

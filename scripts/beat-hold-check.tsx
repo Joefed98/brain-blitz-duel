@@ -1,11 +1,13 @@
 /**
- * Letting completion effects be seen (13 Oct 2026): after a solve the shared
- * frame holds the board until the signature beat has finished (at most 2 s from
- * the solve). Rooms keep the locked board at full brightness (no Locked card)
+ * Letting completion effects be seen (13 Oct 2026): whenever the signature beat
+ * fires (a solve, a no-finish run of 120+, an arcade run that earns it) the shared
+ * frame holds the board until the beat has finished (at most 2 s from the solve
+ * or run's end). Rooms keep the locked board at full brightness (no Locked card)
  * until then and dim it as before; practice shows the reveal once the beat ends,
  * and a tap anywhere goes to it at once. The answer still leaves at the solve
- * moment with the same time; unsolved, timed-out, no-finish and reduced-motion
- * rounds are never held.
+ * moment with the same time; rounds with no beat (unsolved, below 120), rounds
+ * reloaded mid-round and reduced motion are never held. The browser side is
+ * beat-hold-browser-check.
  */
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -78,11 +80,17 @@ ok(holdFor() === beatEnd, `solve, verdict at 0.3 s → held to the beat's end ($
 ok(holdFor({ msRemaining: 60_000 }) === beatEnd, "fast solve → held to the beat's end");
 ok(holdFor({}, 1500) === SIGNATURE_HOLD_MAX_MS, "late verdict (beat 1.5–2.1 s) → capped at 2 s");
 ok(holdFor({}, 2100) === null, "verdict after 2 s → no hold");
-// Unsolved, timed out, no-finish games, reduced motion: never held.
+// Unsolved and timed out: never held.
 ok(holdFor({ correct: false, score: 90 }) === null, "unsolved → no hold");
-ok(holdFor({ msRemaining: 0 }) === null, "timed out → no hold");
-for (const type of NO_FINISH_TYPES)
-  ok(holdFor({ type, correct: true, score: 140, msRemaining: 5_000 }) === null, `${type} → no hold`);
+ok(holdFor({ correct: false, score: 60, msRemaining: 0 }) === null, "timed out unsolved → no hold");
+// No-finish games: the run ends at the buzzer; 120+ fires the beat and holds, below 120 does not.
+for (const type of NO_FINISH_TYPES) {
+  ok(
+    holdFor({ type, correct: false, score: 120, msRemaining: 0 }) === beatEnd,
+    `${type}: 120 at the end → held to the beat's end`,
+  );
+  ok(holdFor({ type, correct: false, score: 119, msRemaining: 0 }) === null, `${type}: 119 → no hold`);
+}
 reduced = true;
 ok(holdFor() === null, "reduced motion → no wait");
 reduced = false;
@@ -115,7 +123,21 @@ const arcadeHold = (key: string, finished: boolean, kind: "finish" | "open") => 
 };
 ok(arcadeHold("__finishA", true, "finish") === beatEnd, "arcade finish reached → held to the beat's end");
 ok(arcadeHold("__finishB", false, "finish") === null, "arcade finish not reached → no hold");
-ok(arcadeHold("__openA", false, "open") === null, "arcade open run (ends at the buzzer) → no hold");
+ok(arcadeHold("__openA", false, "open") === beatEnd, "arcade open run of 120+ → held to the beat's end");
+specs["__openLow"] = { parts: parts(false, 119), curve: [], kind: "open" };
+{
+  const release = setSignatureGame({ type: "__openLow" as never, arcade: true, runMs: 60_000 });
+  const endAt = (clock += 10_000);
+  signatureArcadeRunOver({ band: 1, acted: 1, tick: 3600 });
+  noteSignatureSubmit("__openLow" as never);
+  clock = endAt + 400;
+  ok(
+    signatureHoldUntil(verdict({ type: "__openLow" as never, arcade: true }) as never) === null,
+    "arcade open run of 119 → no hold",
+  );
+  release();
+  delete specs["__openLow"];
+}
 
 Date.now = realNow;
 globalThis.setTimeout = realSetTimeout;
@@ -198,5 +220,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "PASS: beat hold: solved boards held to the beat's end (1.6 s, capped at 2 s), unsolved/timed-out/no-finish/reduced-motion/reloaded rounds and arcade runs without a finish never held, rooms undimmed with no Locked card until then, practice reveal after the beat with tap-to-skip, submission time unchanged",
+  `PASS: beat hold: every beat holds the board to its end (1.6 s, capped at 2 s): solves, ${NO_FINISH_TYPES.size} no-finish games at 120+, arcade finish and 120+ open runs; unsolved, below-120, reloaded and reduced-motion rounds never held; rooms undimmed with no Locked card until then, practice reveal after the beat with tap-to-skip, submission time unchanged`,
 );

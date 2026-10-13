@@ -27,7 +27,7 @@ export function useSignatureVerdict(key: string | null, verdict: SignatureVerdic
 }
 
 /**
- * Rooms and practice: until when this round's solved board is held on screen
+ * Rooms and practice: until when this round's board is held on screen
  * for the beat (signatureHoldUntil), worked out once per round (`key`) when the
  * verdict first lands; null for no hold.
  */

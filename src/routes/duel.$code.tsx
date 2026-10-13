@@ -387,8 +387,9 @@ function DuelScreen() {
     [puzzle, myResult, timeLimitMs],
   );
   useSignatureVerdict(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
-  // After a solve the locked board stays at full brightness (no Locked card yet)
-  // until the beat has finished, at most 2 s from the solve; then it dims as before.
+  // Whenever the beat fires (a solve, a 120+ run) the locked board stays at full
+  // brightness (no Locked card yet) until the beat has finished, at most 2 s from
+  // the solve or run's end; then it dims as before.
   // The hold is on the phone's own clock (the beat's), re-checked on every tick.
   const holdUntil = useSignatureHold(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
   const boardHeld = holdUntil !== null && Date.now() < holdUntil;

@@ -16,7 +16,8 @@ export const SHARDS: Record<string, string[]> = {
   play1: ["arcade-play-check.ts@1/5"],
   play2: ["arcade-play-check.ts@2/5"],
   play3: ["arcade-play-check.ts@3/5"],
-  play4: ["arcade-play-check.ts@4/5"],
+  // beat-hold-browser-check (real practice and room screens in Chromium) rides here for the browser.
+  play4: ["arcade-play-check.ts@4/5", "beat-hold-browser-check.tsx"],
   play5: ["arcade-play-check.ts@5/5"],
   a: [
     "arcade-fixes-check.ts",
