@@ -193,6 +193,36 @@ const SNIP_TALL_SOURCES: readonly SnipTemplate[] = [...SNIP_SOURCES.slice(30, 60
  * gutters, wasp nests and sliding baskets, from scripts/snip-crook-design.ts.
  */
 const SNIP_BANK6_SOURCES: readonly SnipTemplate[] = [
+  // Easy (4).
+  { name: "Springy catch", sweet: [177, 199], pins: [[318, 104, 0]], platforms: [], hooks: [[205, 311, 106]], mouth: [244, 568], stars: [[374, 266]], springs: [[244, 433, 344, 401]] }, // worst fast 215 ticks, cuts 2
+  { name: "Plank vine", sweet: [331, 195], pins: [[332, 48, 0]], platforms: [], hooks: [[348, 325, 106]], mouth: [317, 565], stars: [[331, 373]], planks: [[179, 520, 259, 485]] }, // worst fast 102 ticks, cuts 2
+  { name: "Branch drop", sweet: [387, 179], pins: [[327, 91, 0]], platforms: [], hooks: [[273, 322, 73]], mouth: [318, 570], stars: [[251, 391]], springs: [[300, 397, 404, 425]] }, // worst fast 187 ticks, cuts 2
+  { name: "First crook", sweet: [269, 183], pins: [[274, 52, 0]], platforms: [], hooks: [[283, 356, 69]], mouth: [292, 595], stars: [[282, 307]], nests: [[177, 504, 22]] }, // worst fast 119 ticks, cuts 2
+  // Medium (10).
+  { name: "Crook and nest", sweet: [363, 197], pins: [[316, 92, 0]], platforms: [], hooks: [[372, 314, 65]], mouth: [373, 562], stars: [[399, 351]], nests: [[354, 446, 20]] }, // worst fast 166 ticks, cuts 2
+  { name: "Swinging basket", sweet: [362, 175], pins: [[256, 59, 0], [380, 59, 0]], platforms: [], hooks: [[195, 284, 91]], mouth: [198, 577], stars: [[225, 211]], slide: [45, 259], nests: [[383, 386, 21]], springs: [[201, 392, 293, 410]] }, // worst fast 235 ticks, cuts 3
+  { name: "Plank basket", sweet: [153, 140], pins: [[295, 91, 0]], platforms: [], hooks: [[363, 353, 109]], mouth: [269, 595], stars: [[392, 466]], slide: [54, 254], nests: [[159, 559, 21]], planks: [[213, 418, 321, 426]] }, // worst fast 138 ticks, cuts 2
+  { name: "Nest hop", sweet: [215, 214], pins: [[327, 84, 0]], platforms: [], hooks: [[277, 356, 92]], mouth: [310, 586], stars: [[395, 242]], nests: [[347, 423, 23]] }, // worst fast 177 ticks, cuts 2
+  { name: "Low vine", sweet: [197, 189], pins: [[248, 70, 0]], platforms: [], hooks: [[266, 378, 81]], mouth: [251, 576], stars: [[297, 196]], nests: [[326, 501, 21]], planks: [[172, 410, 258, 397]] }, // worst fast 126 ticks, cuts 2
+  { name: "Branch bounce", sweet: [304, 173], pins: [[256, 52, 0]], platforms: [], hooks: [[202, 285, 70]], mouth: [135, 581], stars: [[193, 344]], nests: [[326, 403, 20]], springs: [[316, 389, 401, 401]] }, // worst fast 157 ticks, cuts 2
+  { name: "Pair over planks", sweet: [189, 180], pins: [[213, 46, 0], [162, 79, 0]], platforms: [], hooks: [[193, 380, 73]], mouth: [314, 569], stars: [[165, 449]], nests: [[245, 427, 24]], planks: [[183, 511, 278, 541]] }, // worst fast 247 ticks, cuts 3
+  { name: "Two nests", sweet: [212, 180], pins: [[241, 64, 0]], platforms: [], hooks: [[251, 293, 63]], mouth: [232, 566], stars: [[251, 345]], nests: [[288, 425, 24], [208, 427, 24]] }, // worst fast 186 ticks, cuts 2
+  { name: "Quick vine", sweet: [360, 207], pins: [[355, 41, 0]], platforms: [], hooks: [[364, 356, 100]], mouth: [370, 582], stars: [[360, 310]], nests: [[205, 546, 23]] }, // worst fast 82 ticks, cuts 2
+  { name: "Crook gutter run", sweet: [210, 142], pins: [[198, 47, 0], [208, 64, 0]], platforms: [], hooks: [[197, 354, 81]], mouth: [149, 584], stars: [[213, 292]], gutters: [[318, 554, 215, 591]], nests: [[198, 478, 23]] }, // worst fast 269 ticks, cuts 3
+  // Hard (13).
+  { name: "Bough and plank", sweet: [211, 194], pins: [[337, 56, 0], [136, 55, 0]], platforms: [], hooks: [[154, 370, 109]], mouth: [228, 582], stars: [[88, 207]], nests: [[302, 426, 21]], springs: [[173, 412, 258, 396]], planks: [[227, 481, 331, 491]] }, // worst fast 304 ticks, cuts 3
+  { name: "Three-rope crook", sweet: [332, 211], pins: [[229, 91, 0], [275, 80, 0], [363, 106, 0]], platforms: [], hooks: [[135, 359, 109]], mouth: [165, 578], stars: [[143, 222]], nests: [[354, 540, 20]], planks: [[131, 453, 239, 440]] }, // worst fast 303 ticks, cuts 4
+  { name: "Nest ramp", sweet: [172, 141], pins: [[122, 41, 0], [217, 57, 0]], platforms: [], hooks: [[312, 356, 78]], mouth: [382, 577], stars: [[308, 436]], nests: [[169, 397, 21]], planks: [[197, 521, 294, 487]] }, // worst fast 220 ticks, cuts 3
+  { name: "Gutter ladder", sweet: [326, 175], pins: [[212, 81, 0]], platforms: [], hooks: [[160, 296, 78], [146, 425, 110]], mouth: [184, 587], stars: [[172, 373]], gutters: [[206, 381, 309, 416]], nests: [[262, 394, 22]] }, // worst fast 262 ticks, cuts 3
+  { name: "Twin crooks", sweet: [281, 208], pins: [[235, 79, 0]], platforms: [], hooks: [[232, 346, 88], [251, 442, 81]], mouth: [254, 573], stars: [[225, 300]], gutters: [[263, 392, 354, 434]], nests: [[159, 478, 21]] }, // worst fast 188 ticks, cuts 3
+  { name: "Crook and bough", sweet: [169, 218], pins: [[207, 41, 0]], platforms: [], hooks: [[195, 312, 72], [160, 415, 95]], mouth: [151, 591], stars: [[174, 454]], nests: [[270, 533, 23]], springs: [[132, 492, 223, 480]] }, // worst fast 296 ticks, cuts 3
+  { name: "Hornet gutter", sweet: [338, 216], pins: [[397, 57, 0], [237, 67, 0]], platforms: [], hooks: [[169, 354, 71]], mouth: [212, 592], stars: [[157, 232]], gutters: [[179, 419, 285, 476]], nests: [[394, 482, 22], [383, 404, 20]] }, // worst fast 353 ticks, cuts 3
+  { name: "Nest gap", sweet: [270, 158], pins: [[226, 70, 0]], platforms: [], hooks: [[221, 330, 83], [196, 419, 98]], mouth: [195, 568], stars: [[212, 265]], nests: [[132, 463, 21], [338, 471, 20]], planks: [[354, 549, 430, 517]] }, // worst fast 222 ticks, cuts 3
+  { name: "Wasp pair", sweet: [348, 198], pins: [[351, 100, 0], [275, 96, 0]], platforms: [], hooks: [[360, 369, 79]], mouth: [360, 591], stars: [[246, 218]], nests: [[242, 394, 21], [309, 423, 23]], planks: [[175, 507, 271, 479]] }, // worst fast 229 ticks, cuts 3
+  { name: "Three wasps", sweet: [240, 163], pins: [[311, 90, 0]], platforms: [], hooks: [[250, 281, 104], [217, 448, 61]], mouth: [233, 569], stars: [[354, 183]], nests: [[156, 538, 22], [285, 420, 22], [333, 478, 22]] }, // worst fast 324 ticks, cuts 3
+  { name: "Sliding crooks", sweet: [295, 220], pins: [[258, 85, 0]], platforms: [], hooks: [[235, 324, 83], [247, 432, 78]], mouth: [262, 580], stars: [[248, 365]], slide: [76, 301], nests: [[142, 381, 22], [309, 391, 24]] }, // worst fast 222 ticks, cuts 3
+  { name: "Branch basket", sweet: [191, 142], pins: [[223, 110, 0], [391, 53, 0]], platforms: [], hooks: [[200, 379, 78]], mouth: [152, 590], stars: [[194, 463]], slide: [42, 227], nests: [[138, 512, 21]], springs: [[266, 492, 363, 524], [211, 390, 290, 387]] }, // worst fast 367 ticks, cuts 3
+  { name: "Long gutter", sweet: [283, 186], pins: [[271, 98, 0]], platforms: [], hooks: [[275, 361, 76], [297, 463, 105]], mouth: [357, 577], stars: [[271, 420]], gutters: [[211, 499, 114, 548]], nests: [[185, 470, 23]] }, // worst fast 394 ticks, cuts 3
 ];
 export const SNIP_TALL_FIRST = 60;
 const tallIds = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_TALL_FIRST + from + i);
@@ -1140,9 +1170,9 @@ export const SNIP_REV_BANK6 = 6;
 export const SNIP_BANK6_FIRST = SNIP_TALL_FIRST + SNIP_TALL_SOURCES.length;
 const bank6Ids = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_BANK6_FIRST + from + i);
 export const SNIP_BANDS_V6 = {
-  easy: [...SNIP_BANDS_TALL.easy],
-  medium: [...SNIP_BANDS_TALL.medium],
-  hard: [...SNIP_BANDS_TALL.hard],
+  easy: [...SNIP_BANDS_TALL.easy, ...bank6Ids(0, 3)],
+  medium: [...SNIP_BANDS_TALL.medium, ...bank6Ids(4, 13)],
+  hard: [...SNIP_BANDS_TALL.hard, ...bank6Ids(14, 26)],
 };
 
 /** The ten-level order for a snipRev-6 seed. */
