@@ -36,7 +36,7 @@ export const NO_SELECT_STYLE = {
 const CONTROL = "button, a, input, textarea, select, [role='button']";
 
 /** Identical round geometry: mode-specific text cannot resize the game region. */
-export function GameLayout({ label, title, help, progress, timer, beforeGame, children, overlay, stageRef, locked = false }: {
+export function GameLayout({ label, title, help, progress, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   label: ReactNode;
   title: ReactNode;
   help: ReactNode;
@@ -47,6 +47,8 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
   overlay?: ReactNode;
   stageRef?: Ref<HTMLDivElement>;
   locked?: boolean;
+  /** A locked board held at full brightness while the signature beat plays (dims after). */
+  held?: boolean;
 }) {
   return (
     <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
@@ -60,7 +62,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
       {timer}
       {beforeGame}
       <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div data-game-stage className={`game-column game-column-centred flex min-h-0 flex-1 flex-col ${locked ? "pointer-events-none opacity-30 transition-opacity duration-200" : ""}`}>
+        <div data-game-stage className={`game-column game-column-centred flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
           <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
         </div>
         {overlay}
