@@ -26,7 +26,7 @@ import {
   SNAKE_RUN_TICKS,
   SNAKE_SWIPE_PX,
   type SnakeState,
-  SNAKE_WORLD_H,
+  snakeWorldHForRev,
   SNAKE_WORLD_W,
 } from "@/lib/arcade/snake";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
@@ -244,7 +244,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={SNAKE_WORLD_H} background={ARCADE_ARENA_FILL.snake}>
+    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={snakeWorldHForRev(data.snakeRev)} background={ARCADE_ARENA_FILL.snake}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

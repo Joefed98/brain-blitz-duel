@@ -82,6 +82,13 @@ export interface SkylineState extends BandFields {
   gustPerfects?: number;
   /** Seeded gusts, packed per gust as [start tick, end tick, direction ±1]; they blow only once WIND_FROM blocks are placed. */
   gusts?: number[];
+  /** skylineRev 4 only (Tuning E): the taller view's height in px (SKYLINE_TALL_H). Absent = SKYLINE_WORLD_H. */
+  worldH?: number;
+}
+
+/** The view height (px) a state is drawn in: Tuning E's taller view, or the original 560. Render only. */
+export function skylineWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? SKYLINE_WORLD_H;
 }
 
 /** Slide speed after this many blocks placed. */
@@ -225,6 +232,8 @@ export function skylineCheckpoint(state: SkylineState): SkylineCheckpoint {
   const values = Object.values(snapshot);
   // skylineRev 2: the streak folds into the checksum; the encoded fields are unchanged.
   if (state.rev === SKYLINE_REV) values.push(state.streak ?? 0, state.streakPoints ?? 0, state.gustPerfects ?? 0);
+  // skylineRev 4 (Tuning E): the taller view's height, last.
+  if (state.worldH) values.push(state.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -258,7 +267,7 @@ const BACKDROP = [
   [174, 44, 130], [216, 26, 200], [240, 38, 170], [276, 30, 230], [304, 42, 150], [344, 24, 190], [366, 30, 140],
 ] as const;
 
-function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number): void {
+function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number, SKYLINE_WORLD_H = 560): void {
   // Moves a fifth as much as the tower: shrinks a little and sinks a little.
   const k = 1 - (1 - zoom) * 0.2;
   ctx.save();
@@ -273,9 +282,10 @@ function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: numbe
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize): void {
-  const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / SKYLINE_WORLD_H);
+  const H = skylineWorldH(state);
+  const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / H);
   const offsetX = (size.width - SKYLINE_WORLD_W * scale) / 2;
-  const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;
+  const offsetY = (size.height - H * scale) / 2;
   const blockH = px(SKYLINE_BLOCK_H);
 
   ctx.save();
@@ -288,24 +298,24 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
   // about the bottom centre so the whole tower stays in shot, down to 0.45;
   // past that it scrolls. The zoom eases toward its target per canvas.
   const towerH = state.blocks.length * blockH;
-  const middle = SKYLINE_WORLD_H / 2;
+  const middle = H / 2;
   const target = towerH + blockH <= middle ? 1 : Math.max(SKYLINE_MIN_ZOOM, middle / (towerH + blockH));
   const prev = zoomMemo.get(ctx);
   const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * 0.12;
   zoomMemo.set(ctx, zoom);
-  const visibleH = SKYLINE_WORLD_H / zoom;
+  const visibleH = H / zoom;
   const camScroll = Math.max(0, towerH + blockH - visibleH * 0.5);
 
   // Faint city backdrop, parallaxing slower than the tower.
-  drawBackdrop(ctx, zoom, camScroll);
+  drawBackdrop(ctx, zoom, camScroll, H);
 
   ctx.save();
-  ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H);
+  ctx.translate(SKYLINE_WORLD_W / 2, H);
   ctx.scale(zoom, zoom);
-  ctx.translate(-SKYLINE_WORLD_W / 2, -SKYLINE_WORLD_H + camScroll);
+  ctx.translate(-SKYLINE_WORLD_W / 2, -H + camScroll);
 
   state.blocks.forEach((block, index) => {
-    const bottom = SKYLINE_WORLD_H - index * blockH;
+    const bottom = H - index * blockH;
     const top = bottom - blockH;
     ctx.fillStyle = SKYLINE_COLOURS[index % SKYLINE_COLOURS.length]!;
     ctx.fillRect(px(block.x), top, px(block.w), blockH);
@@ -315,14 +325,14 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
   });
 
   if (!state.missed) {
-    const bottom = SKYLINE_WORLD_H - state.blocks.length * blockH;
+    const bottom = H - state.blocks.length * blockH;
     ctx.fillStyle = SKYLINE_COLOURS[state.blocks.length % SKYLINE_COLOURS.length]!;
     ctx.fillRect(px(state.x), bottom - blockH, px(state.w), blockH);
   }
 
   if (state.perfectTick > 0 && state.tick - state.perfectTick < 12) {
     ctx.fillStyle = SKYLINE_FLASH;
-    ctx.fillRect(-SKYLINE_WORLD_W, SKYLINE_WORLD_H - state.blocks.length * blockH - 2, SKYLINE_WORLD_W * 3, 2);
+    ctx.fillRect(-SKYLINE_WORLD_W, H - state.blocks.length * blockH - 2, SKYLINE_WORLD_W * 3, 2);
   }
   ctx.restore();
 
@@ -335,7 +345,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSi
 
   if (state.missed) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
-    ctx.fillRect(0, 0, SKYLINE_WORLD_W, SKYLINE_WORLD_H);
+    ctx.fillRect(0, 0, SKYLINE_WORLD_W, H);
   }
 
   ctx.restore();
@@ -431,6 +441,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_TALL) return skylineTallGame;
   if (rev === SKYLINE_REV_BAND) return skylineBandGame;
   return rev === SKYLINE_REV ? skylineRev2Game : skylineGame;
 }
@@ -452,3 +463,21 @@ function scoreBand(state: SkylineState): number {
 }
 
 export const skylineBandGame: ArcadeGame<SkylineState> = { ...skylineRev2Game, init: (seed) => bandInit(skylineRev2Game.init(seed)) };
+
+/* ================= Tuning E (skylineRev 4, Oct 2026) ================= */
+
+/**
+ * skylineRev 4 (Tuning E): skylineRev 3 play and scoring unchanged (the sim is
+ * horizontal only), drawn in a taller view (390 × SKYLINE_TALL_H, the same for
+ * every player) so the arena fills a 390 × 844 phone down to the usual gap and
+ * shows more of the tower and sky before the camera zooms out. States add
+ * `worldH`, folded into the checkpoint checksum last.
+ */
+export const SKYLINE_REV_TALL = 4;
+export const SKYLINE_TALL_H = 735;
+export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, init: (seed) => ({ ...skylineBandGame.init(seed), worldH: SKYLINE_TALL_H }) };
+
+/** The view height (px) a stored round's skylineRev draws in. */
+export function skylineWorldHFor(rev?: number | null): number {
+  return rev === SKYLINE_REV_TALL ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
+}

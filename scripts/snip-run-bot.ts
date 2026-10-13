@@ -10,12 +10,16 @@
 import { readFileSync } from "node:fs";
 
 import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { snipCheckpoint, SNIP_CHECKPOINT_INTERVAL, SNIP_LEVEL_TICKS, type SnipState } from "../src/lib/arcade/snip";
+import { snipCheckpoint, SNIP_CHECKPOINT_INTERVAL, SNIP_CONFIG, SNIP_LEVEL_TICKS, type SnipState } from "../src/lib/arcade/snip";
 import { cutFor } from "./snip-check-lib";
 import { SNIP_CUT_GAP, SNIP_FIRST_CUT, type SnipPlan } from "./snip-solver";
 import type { SnipProofs } from "./snip-rev3-proofs";
 
-export const SNIP_PROOFS: SnipProofs = JSON.parse(readFileSync(new URL("./fixtures/snip-rev3-proofs.json", import.meta.url), "utf8"));
+export const SNIP_PROOFS: SnipProofs = {
+  ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev3-proofs.json", import.meta.url), "utf8")),
+  // Tuning E's tall templates (snipRev 5), keyed by their own indices (60 on).
+  ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev5-proofs.json", import.meta.url), "utf8")),
+};
 
 type Game = ArcadeGame<SnipState, ArcadeInputEvent | null>;
 
@@ -58,7 +62,8 @@ export function playSnipRun(game: Game, seed: number, opts: { leaves?: boolean; 
       if (p.leaf) plans.push(p.leaf.plan);
       if (p.fast) plans.push(p.fast.plan);
     }
-    const n = s.ropes.length;
+    // A crook's vine is one more rope, cut once it has caught the apple.
+    const n = s.ropes.length + (SNIP_CONFIG.templates[s.template]?.hooks?.length ?? 0);
     for (let k = 0; k < samples; k++) {
       const base = plans.length && r(2) === 0 ? plans[r(plans.length)]! : null;
       let plan: SnipPlan;

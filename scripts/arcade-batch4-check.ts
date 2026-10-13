@@ -395,7 +395,8 @@ if (want("snip")) {
   ok(snipGameFor(undefined) === snipGame && snipGame.init(5).rev === undefined, "unstamped Scrumper keeps the original game");
   ok(snipGameFor(SNIP_REV).init(5).rev === undefined && snipGameFor(SNIP_REV).init(5).order.every((t) => t < 30), "snipRev 2 keeps its 30 templates");
   ok(game.init(5).rev === SNIP_REV3, "the state carries the stamp");
-  ok(SNIP_CONFIG.templates.length === 60, "the bank has 60 templates");
+  // Tuning E appends its tall templates after these 60 (snipRev 5 only; rev 3 never draws them).
+  ok(SNIP_CONFIG.templates.length >= 60 && SNIP_CONFIG.templates.slice(0, 60).every((t) => !t.h && !t.hooks), "the orchard bank keeps its 60 templates");
   const fresh = (t: number) => t >= 30;
   const orchard = (t: number) => {
     const tpl = SNIP_CONFIG.templates[t]!;

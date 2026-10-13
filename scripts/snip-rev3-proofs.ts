@@ -17,7 +17,7 @@ export interface SnipProof {
 }
 export type SnipProofs = Record<string, Record<string, SnipProof>>;
 
-function one(t: number, samples: number): Record<string, SnipProof> {
+export function one(t: number, samples: number): Record<string, SnipProof> {
   const out: Record<string, SnipProof> = {};
   for (const jit of [-SNIP_CONFIG.pinJitter, 0, SNIP_CONFIG.pinJitter]) {
     let best: SnipProof = { fast: null, leaf: null };

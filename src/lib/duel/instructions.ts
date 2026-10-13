@@ -26,10 +26,10 @@ import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
 import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
-import { SNAKE_BAND_CURVE } from "@/lib/arcade/snake";
+import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V5_BAND_CURVE } from "@/lib/arcade/snake";
 import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
-import { SNIP_BAND_CURVE } from "@/lib/arcade/snip";
-import { HOVER_V4_BAND_CURVE } from "@/lib/arcade/hover";
+import { SNIP_V5_BAND_CURVE } from "@/lib/arcade/snip";
+import { HOVER_V5_BAND_CURVE } from "@/lib/arcade/hover";
 import { SKYLINE_BAND_CURVE } from "@/lib/arcade/skyline";
 import { JUNC_BAND_CURVE } from "@/lib/arcade/junction";
 import { BRK_BAND_CURVE } from "@/lib/arcade/breaker";
@@ -545,9 +545,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Later barriers", detail: "have two gaps, or slide." },
       { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
       { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
+      { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
       { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_V4_BAND_CURVE, "Lasting the minute adds 10."),
+    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_V5_BAND_CURVE, "Lasting the minute adds 10."),
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -567,6 +568,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
       { action: "Streak:", detail: `from the ${SKYLINE_STREAK_FROM}rd perfect drop in a row, every perfect drop scores ${SKYLINE_STREAK_POINTS} bonus point. A drop that isn't perfect resets the streak.`, helpOnly: true },
       { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+      { action: "Taller view:", detail: "you see more of the tower and sky before the camera pulls back.", helpOnly: true },
       { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
     ],
     score: bandHelp("Each block and each perfect drop counts 5, and each streak point 2 (a streak point for each perfect drop from the 3rd in a row).", SKYLINE_BAND_CURVE),
@@ -659,9 +661,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Rocks start at length 10:", detail: "one more every 5 stars, up to 8. Stars never appear on a rock.", helpOnly: true },
       { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 11 rocks.", helpOnly: true },
       { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
+      { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
-    score: bandHelp("Each star eaten counts 1.", SNAKE_BAND_CURVE),
+    score: bandHelp("Each star eaten counts 1.", SNAKE_V5_BAND_CURVE),
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -943,15 +946,18 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     goal: "Drop the apple into the basket.",
     how: [
       { action: "Swipe across a rope", detail: "to cut it. Order matters." },
-      { action: "Avoid wasp nests;", detail: "use planks and springs." },
+      { action: "Crooks catch falling apples:", detail: "cut the vine." },
+      { action: "Avoid wasp nests;", detail: "use planks and springs.", helpOnly: true },
       { action: "10 levels,", detail: "up to 12 s each." },
+      { action: "Picker's crooks:", detail: "a wooden pole with an iron hook open at the top. It snags the apple only when the apple falls freely down past its hook from above, then holds it on a green vine; swipe the vine to drop it again. Each crook catches once.", helpOnly: true },
       { action: "Time it with the swing.", detail: "Cut the last rope and the apple drops; the walls bounce it without losing speed, and the camera follows across the wider arena.", helpOnly: true },
       { action: "Orchard pieces:", detail: "the apple rolls along sloped planks and down tin gutters, bounces hard off springy green branches, and a touch on a wasp nest loses the level. Some baskets slide slowly side to side - drop it as one comes under.", helpOnly: true },
       { action: "Several ropes?", detail: "Which one you cut first decides which way the apple swings.", helpOnly: true },
       { action: "Don't let it settle", detail: "on a ledge or plank, or fly out the top or bottom.", helpOnly: true },
+      { action: "Taller levels:", detail: "two easy levels, three medium and five hard ones, many with several steps: a cut, a catch, another cut.", helpOnly: true },
       { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
     ],
-    score: bandHelp("Each apple counts 10 and each leaf 2.", SNIP_BAND_CURVE, "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: bandHelp("Each apple counts 10 and each leaf 2.", SNIP_V5_BAND_CURVE, "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
   swing: {
     goal: "Swing the ninja to the 500 m line.",

@@ -8,7 +8,7 @@
  *   bun scripts/snip-solver.ts <templateIndex> [samples]
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { snipGame, snipTestLevel, SNIP_CONFIG, SNIP_EATEN, SNIP_LEVEL_TICKS, type SnipState } from "../src/lib/arcade/snip";
+import { snipGame, snipTallGame, snipTestLevel, SNIP_CONFIG, SNIP_EATEN, SNIP_LEVEL_TICKS, type SnipState } from "../src/lib/arcade/snip";
 import { cutFor } from "./snip-check-lib";
 
 export const SNIP_FIRST_CUT = 24;
@@ -18,6 +18,8 @@ export const SNIP_CUT_GAP = 12;
 export type SnipPlan = [number, number][];
 
 export interface SnipPlay {
+  /** Planned cuts that found their rope alive (a crook's vine exists only after its catch). */
+  applied: number;
   eaten: boolean;
   /** Level tick the apple was fed (or the level ended). */
   tick: number;
@@ -29,17 +31,22 @@ export interface SnipPlay {
 export function playSnipLevel(template: number, jitter: number, plan: SnipPlan): SnipPlay {
   let s: SnipState = snipTestLevel(template, jitter);
   const log: ArcadeInputEvent[] = [];
+  const game = s.worldH ? snipTallGame : snipGame;
+  let applied = 0;
   for (let k = 0; k < SNIP_LEVEL_TICKS; k++) {
     const due = plan.find(([, at]) => at === s.levelTick + 1);
-    if (due && s.ropes[due[0]]?.alive) recordInput(log, cutFor(s, due[0]), snipGame.inputRanges);
+    if (due && s.ropes[due[0]]?.alive) {
+      recordInput(log, cutFor(s, due[0]), game.inputRanges);
+      applied += 1;
+    }
     const level = s.level;
     const eaten = s.eaten;
     const stars = s.stars;
     const at = s.levelTick + 1;
-    s = snipGame.step(s, inputAt(log, s.tick + 1));
-    if (s.level !== level) return { eaten: s.eaten > eaten, tick: at, star: s.stars > stars, outcome: s.lastOutcome };
+    s = game.step(s, inputAt(log, s.tick + 1));
+    if (s.level !== level) return { applied, eaten: s.eaten > eaten, tick: at, star: s.stars > stars, outcome: s.lastOutcome };
   }
-  return { eaten: false, tick: SNIP_LEVEL_TICKS, star: false, outcome: -1 };
+  return { applied, eaten: false, tick: SNIP_LEVEL_TICKS, star: false, outcome: -1 };
 }
 
 function rng(seed: number) {
@@ -72,7 +79,11 @@ export interface SnipSolution {
  * feed that also takes the golden leaf (null when none was found).
  */
 export function solveSnip(template: number, jitter: number, samples = 1500, seed = 1): { fast: SnipSolution | null; leaf: SnipSolution | null; wins: number; tries: number } {
-  const n = SNIP_CONFIG.templates[template]!.pins.length;
+  const tpl = SNIP_CONFIG.templates[template]!;
+  // A crook's vine is one more rope to cut, once it has caught the apple.
+  const n = tpl.pins.length + (tpl.hooks?.length ?? 0);
+  // Tall (Tuning E) plans must use every planned cut: no cut at a rope that is not there.
+  const strict = Boolean(tpl.h);
   const perms = permutations(n);
   const r = rng(seed * 7919 + template * 31 + jitter + 100);
   let fast: SnipSolution | null = null;
@@ -80,7 +91,7 @@ export function solveSnip(template: number, jitter: number, samples = 1500, seed
   let wins = 0;
   const consider = (plan: SnipPlan) => {
     const res = playSnipLevel(template, jitter, plan);
-    if (!res.eaten) return false;
+    if (!res.eaten || (strict && res.applied < plan.length)) return false;
     wins += 1;
     if (!fast || res.tick < fast.tick) fast = { plan, tick: res.tick, star: res.star };
     if (res.star && (!leaf || res.tick < leaf.tick)) leaf = { plan, tick: res.tick, star: true };

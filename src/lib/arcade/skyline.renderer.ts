@@ -1,14 +1,14 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { SKYLINE_FX } from "./arcadeFxGames.renderer";
+import { skylineFxFor } from "./arcadeFxGames.renderer";
 /**
  * Skyline art (Real World construction site). Render only: reads SkylineState,
  * never mutates it. Blocks fill exactly the sim's block rectangles; the camera
  * is the same render-only eased zoom/scroll as skyline.ts.
  */
 import { px, type CanvasSize } from "./engine";
-import { skylineFlagAt, skylineGustAt, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
-import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
+import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
+import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
 import { APP_LOGO_URL } from "@/lib/brand";
 import { realMemo, realNow, realNightSky, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP, REAL_LAMP_WASH } from "./realworld.renderer";
@@ -35,6 +35,7 @@ const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 function remember(ctx: CanvasRenderingContext2D, s: SkylineState): Memory {
   const m = realMemo(memories, ctx, s.tick, () => ({ tick: s.tick, len: s.blocks.length, x: s.x, w: s.w, missed: s.missed, chunks: [], placementTicks: new Array(s.blocks.length).fill(-1e9) }));
   const blockH = px(SKYLINE_BLOCK_H);
+  const SKYLINE_WORLD_H = skylineWorldH(s);
   const now = realNow();
   if (s.tick !== m.tick) {
     if (s.blocks.length > m.len) {
@@ -68,7 +69,7 @@ const BACKDROP = [
   [174, 44, 130], [216, 26, 200], [240, 38, 170], [276, 30, 230], [304, 42, 150], [344, 24, 190], [366, 30, 140],
 ] as const;
 
-function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number): void {
+function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: number, SKYLINE_WORLD_H: number): void {
   const k = 1 - (1 - zoom) * 0.2;
   ctx.save();
   ctx.globalAlpha = 0.65;
@@ -262,14 +263,14 @@ function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: nu
 }
 
 /** skylineRev 2: faint streaks across the sky while a gust actually blows (presentation only). */
-function drawGustLines(ctx: CanvasRenderingContext2D, dir: number, tick: number): void {
+function drawGustLines(ctx: CanvasRenderingContext2D, dir: number, tick: number, viewH = 560): void {
   if (dir === 0 || reducedMotion()) return;
   ctx.save();
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   for (let k = 0; k < 7; k++) {
-    const y = 70 + ((k * 67) % 360);
+    const y = 70 + ((k * 67) % (viewH - 200));
     const span = SKYLINE_WORLD_W + 120;
     const x = ((tick * 9 + k * 113) % span) - 60;
     const sx = dir > 0 ? x : SKYLINE_WORLD_W - x;
@@ -282,10 +283,11 @@ function drawGustLines(ctx: CanvasRenderingContext2D, dir: number, tick: number)
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
-  arcadeFx(ctx, SKYLINE_FX, state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
+  arcadeFx(ctx, skylineFxFor(state), state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
 }
 
 function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
+  const SKYLINE_WORLD_H = skylineWorldH(state);
   const scale = Math.min(size.width / SKYLINE_WORLD_W, size.height / SKYLINE_WORLD_H);
   const offsetX = (size.width - SKYLINE_WORLD_W * scale) / 2;
   const offsetY = (size.height - SKYLINE_WORLD_H * scale) / 2;
@@ -306,7 +308,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const visibleH = SKYLINE_WORLD_H / zoom;
   const camScroll = Math.max(0, towerH + blockH - visibleH * 0.5);
 
-  drawBackdrop(ctx, zoom, camScroll);
+  drawBackdrop(ctx, zoom, camScroll, SKYLINE_WORLD_H);
 
   ctx.save();
   ctx.translate(SKYLINE_WORLD_W / 2, SKYLINE_WORLD_H);
@@ -393,7 +395,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   }
   ctx.restore();
 
-  if (state.rev && !state.missed) drawGustLines(ctx, skylineGustAt(state, state.tick), state.tick);
+  if (state.rev && !state.missed) drawGustLines(ctx, skylineGustAt(state, state.tick), state.tick, SKYLINE_WORLD_H);
 
   const perfectTop=state.blocks.at(-1);
   if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:(px(perfectTop.x+perfectTop.w/2)-SKYLINE_WORLD_W/2)*zoom+SKYLINE_WORLD_W/2,y:SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH+camScroll)*zoom,shape:'spark',label:'PERFECT'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});

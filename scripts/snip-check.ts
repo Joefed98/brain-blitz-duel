@@ -26,6 +26,7 @@ import {
   snipTestLevel,
   SNIP_BANDS,
   SNIP_BANDS_V3,
+  SNIP_TALL_FIRST,
   SNIP_REV3,
   SNIP_REV,
   SNIP_CHECKPOINT_INTERVAL,
@@ -130,7 +131,8 @@ if (ONLY && ONLY !== "replay") process.exit(failures ? 1 : 0);
   const all = [...SNIP_BANDS.easy, ...SNIP_BANDS.medium, ...SNIP_BANDS.hard].sort((a, b) => a - b);
   if (all.join() !== Array.from({ length: BRUTE_FORCE_TEMPLATES }, (_, i) => i).join()) fail("rev-2 bands must cover the first 30 templates exactly once");
   const all3 = [...SNIP_BANDS_V3.easy, ...SNIP_BANDS_V3.medium, ...SNIP_BANDS_V3.hard].sort((a, b) => a - b);
-  if (all3.join() !== Array.from({ length: SNIP_CONFIG.templates.length }, (_, i) => i).join()) fail("rev-3 bands must cover every template exactly once");
+  // Tuning E's tall templates (SNIP_TALL_FIRST on) belong to snipRev 5 only.
+  if (all3.join() !== Array.from({ length: SNIP_TALL_FIRST }, (_, i) => i).join()) fail("rev-3 bands must cover the first 60 templates exactly once");
   for (let seed = 1; seed < 2000; seed += 7) {
     const o = snipLevelOrderV3(seed);
     const okBand = (i: number, band: readonly number[]) => band.includes(o[i]!);

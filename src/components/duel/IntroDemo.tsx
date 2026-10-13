@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
-import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
+import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
 import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame } from "@/lib/arcade/introDemo";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
@@ -45,6 +45,8 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
     return null;
   }, [demo, puzzle, type]);
 
+  const worldH = renderer ? revealWorldH(renderer, source?.puzzle ?? puzzle) : 0;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!renderer || !canvas || !source) return;
@@ -54,7 +56,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
     const scale = canvas.clientWidth / renderer.worldW;
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
-    const touches = source.live ? demoTouches(source.run, renderer.worldW, renderer.worldH) : [];
+    const touches = source.live ? demoTouches(source.run, renderer.worldW, worldH) : [];
 
     const drawTick = (tick: number) => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -76,7 +78,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
         ctx.lineWidth = 3;
         ctx.beginPath();
         const x = touch.x ?? renderer.worldW / 2;
-        const y = touch.y ?? renderer.worldH - 40;
+        const y = touch.y ?? worldH - 40;
         ctx.arc(x, y, 14 + age, 0, Math.PI * 2);
         ctx.stroke();
       }
@@ -110,13 +112,13 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [renderer, source, type]);
+  }, [renderer, source, type, worldH]);
 
   if (!renderer) return null;
   return (
     <div
       className="intro-demo relative overflow-hidden rounded-lg border border-border bg-background"
-      style={{ aspectRatio: `${renderer.worldW} / ${renderer.worldH}` }}
+      style={{ aspectRatio: `${renderer.worldW} / ${worldH}` }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" aria-label={`${gameDisplayName(type)} demo`} />
       <span className="absolute right-1.5 top-1 font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">

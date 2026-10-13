@@ -1,11 +1,11 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { SNAKE_FX } from "./arcadeFxGames.renderer";
+import { snakeFxFor } from "./arcadeFxGames.renderer";
 /** Eat and Grow's cached Retro Arcade meteor. Presentation only. */
 import {
-  snakeGame, snakeCol, snakeRow, SNAKE_BOARD_H, SNAKE_BOARD_W,
-  SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS, SNAKE_ROWS,
-  SNAKE_WORLD_H, SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, type SnakeState,
+  snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
+  SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
+  SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -30,7 +30,6 @@ const DEATH_MS = 650;
 const TAIL_SPARKS = 6;
 const LEVELS = 6;
 const stamps = new Map<string, ArtCanvas>();
-let grid: ArtCanvas | null = null;
 
 type Memory = { tick: number; rng: number; eaten: number; pellet: number; dead: boolean; eatAt: number; eatCell: number; deathAt: number };
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
@@ -131,22 +130,27 @@ function blit(ctx: CanvasRenderingContext2D, sprite: ArtCanvas | null, x: number
   else { ctx.fillStyle = fallback; ctx.fillRect(x - 9, y - 9, 18, 18); }
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D): void {
+/** The faint grid, one cached raster per row count (the original 20 rows or Tuning E's taller grid). */
+const grids = new Map<number, ArtCanvas | null>();
+function drawGrid(ctx: CanvasRenderingContext2D, rows: number): void {
+  const boardH = rows * SNAKE_CELL;
+  let grid = grids.get(rows) ?? null;
   if (!grid) {
-    const canvas = artCanvas(SNAKE_BOARD_W * SPRITE_RATIO, SNAKE_BOARD_H * SPRITE_RATIO);
+    const canvas = artCanvas(SNAKE_BOARD_W * SPRITE_RATIO, boardH * SPRITE_RATIO);
     const c = canvas && artContext(canvas);
     if (canvas && c) {
       c.scale(SPRITE_RATIO, SPRITE_RATIO);
       c.fillStyle = "rgba(75,255,122,0.07)";
-      for (let col = 0; col <= SNAKE_COLS; col++) c.fillRect(col * SNAKE_CELL, 0, 1, SNAKE_BOARD_H);
-      for (let row = 0; row <= SNAKE_ROWS; row++) c.fillRect(0, row * SNAKE_CELL, SNAKE_BOARD_W, 1);
+      for (let col = 0; col <= SNAKE_COLS; col++) c.fillRect(col * SNAKE_CELL, 0, 1, boardH);
+      for (let row = 0; row <= rows; row++) c.fillRect(0, row * SNAKE_CELL, SNAKE_BOARD_W, 1);
       c.strokeStyle = "rgba(75,255,122,0.35)";
       c.lineWidth = 1;
-      c.strokeRect(0.5, 0.5, SNAKE_BOARD_W - 1, SNAKE_BOARD_H - 1);
+      c.strokeRect(0.5, 0.5, SNAKE_BOARD_W - 1, boardH - 1);
       grid = canvas;
+      grids.set(rows, grid);
     }
   }
-  if (grid) ctx.drawImage(grid, SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, SNAKE_BOARD_H);
+  if (grid) ctx.drawImage(grid, SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, boardH);
 }
 
 function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): Memory {
@@ -173,10 +177,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const memo = memory(key, state, now);
   const age = now - memo.eatAt;
   const deathAge = now - memo.deathAt;
-  drawGrid(ctx);
+  const rows = snakeRowsOf(state);
+  const SNAKE_WORLD_H = snakeWorldHFor(rows);
+  drawGrid(ctx, rows);
   // Body decoration cannot spill beyond the playable grid.
   ctx.save();
-  ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, SNAKE_BOARD_H); ctx.clip();
+  ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, rows * SNAKE_CELL); ctx.clip();
   const pellet = point(state.pellet);
   blit(ctx, stamp("star"), pellet.x, pellet.y, PELLET);
   drawRocks(ctx, state, motion);
@@ -309,6 +315,6 @@ function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, d
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  retroScreen(ctx, size, SNAKE_WORLD_W, SNAKE_WORLD_H, "fit", c => arcadeFx(c, SNAKE_FX, state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, SNAKE_WORLD_W, snakeWorldHFor(snakeRowsOf(state)), "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };

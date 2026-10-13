@@ -9,7 +9,7 @@
 import type { ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
-import { HOVER_DISC_X, HOVER_WORLD_H, HOVER_WORLD_W, type HoverState } from "./hover";
+import { HOVER_DISC_X, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
 
 /** hoverRev 2: passed barriers of one kind (original courses have none, so these stay 0). */
 function hoverPassed(s: HoverState, kind: "twoGap" | "moving"): number {
@@ -48,13 +48,16 @@ import {
   SNAKE_BOARD_Y,
   SNAKE_CELL,
   SNAKE_WORLD_H,
+  SNAKE_TALL_H,
+  snakeRowsOf,
+  snakeWorldHFor,
   SNAKE_WORLD_W,
   snakeCol,
   snakeRow,
   type SnakeState,
 } from "./snake";
 import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossKindCrossed,
@@ -116,7 +119,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   const row = Math.floor(cell / BUB_COLS);
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
-import { SNIP_CONFIG, SNIP_H, snipCamera, type SnipState } from "./snip";
+import { SNIP_CONFIG, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, WF_H, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
@@ -647,7 +650,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
     {
       kind: "perfect",
       count: (s) => s.perfects,
-      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.42 }),
+      at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.42 }),
       label: () => null,
     },
     { kind: "streak", count: (s) => s.placed, every: 10, label: (_s, n) => `${n} FLOORS` },
@@ -656,13 +659,13 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
     {
       kind: "pop",
       count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
-      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.3 }),
+      at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.3 }),
       label: () => "FLAG UP: WATCH THE WIND!",
     },
     {
       kind: "perfect",
       count: (s) => s.gustPerfects ?? 0,
-      at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_WORLD_H * 0.36 }),
+      at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.36 }),
       label: () => "PERFECT IN THE WIND!",
     },
   ],
@@ -1040,6 +1043,8 @@ export const SNIP_FX: ArcadeFxSpec<SnipState> = {
 function snipClearLabel(s: SnipState): string | null {
   const tpl = SNIP_CONFIG.templates[s.order[Math.max(0, s.level - 1)] ?? -1];
   if (!tpl) return null;
+  // snipRev 5 crook levels: cut, caught, cut.
+  if (tpl.hooks) return "HOOKED AND DROPPED!";
   if (tpl.slide) return "CAUGHT IN THE BASKET!";
   if (tpl.nests) return "PAST THE WASPS!";
   if (tpl.springs) return "BOUNCED IN!";
@@ -1136,16 +1141,42 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
 };
 
 /** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */
+/**
+ * Tuning E (Oct 2026): a game whose world height depends on the stored round
+ * (High Rise, Meteor, Scrumper, Hover) draws through its spec at that height;
+ * events, colours and memory key are the spec's own. Cached per height.
+ */
+const specAtCache = new Map<string, ArcadeFxSpec<never>>();
+export function fxSpecAt<S>(spec: ArcadeFxSpec<S>, height: number): ArcadeFxSpec<S> {
+  if (height === spec.height) return spec;
+  const key = `${spec.game}:${height}`;
+  let hit = specAtCache.get(key) as ArcadeFxSpec<S> | undefined;
+  if (!hit) {
+    hit = { ...spec, height, ...(spec.clip ? { clip: { ...spec.clip, h: spec.clip.h + height - spec.height } } : {}) };
+    specAtCache.set(key, hit as unknown as ArcadeFxSpec<never>);
+  }
+  return hit;
+}
+export const hoverFxFor = (s: HoverState): ArcadeFxSpec<HoverState> => fxSpecAt(HOVER_FX, hoverWorldH(s));
+/** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
+export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
+export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
+export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s)));
+export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
+export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
+export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
+export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
+
 export const ARCADE_FX_SPECS = {
-  hover: HOVER_FX,
+  hover: HOVER_FX_TALL,
   breaker: BREAKER_FX,
   rally: RALLY_FX,
   beat: BEAT_FX,
-  snake: SNAKE_FX,
+  snake: SNAKE_FX_TALL,
   burst: BURST_FX,
   wavefront: WAVEFRONT_FX,
   orbit: ORBIT_FX,
-  skyline: SKYLINE_FX,
+  skyline: SKYLINE_FX_TALL,
   cross: CROSS_FX,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
@@ -1155,7 +1186,7 @@ export const ARCADE_FX_SPECS = {
   bubble: BUBBLE_FX,
   flip: FLIP_FX,
   swing: SWING_FX,
-  snip: SNIP_FX,
+  snip: SNIP_FX_TALL,
   tilt: TILT_FX,
   balltrack: BALLTRACK_FX,
   matchup: MATCHUP_FX,
