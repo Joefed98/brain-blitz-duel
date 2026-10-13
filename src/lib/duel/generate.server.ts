@@ -5,6 +5,7 @@
  */
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
+import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
 import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
@@ -117,10 +118,14 @@ export interface GenerateContext {
   recentBankKeys?: ReadonlySet<string> | undefined;
 }
 
-/** Every new puzzle is stamped with the speed-par scoring version; stored rounds without it keep the legacy curve. */
+/**
+ * Every new puzzle is stamped with the speed-par scoring version and the puzzle
+ * score shape (puzzleScoreRev.ts); stored rounds without them keep the legacy
+ * curve and shape.
+ */
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   const made = generateUnstamped(type, context);
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION } as unknown as PuzzleData;
+  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

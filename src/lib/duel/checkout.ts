@@ -9,6 +9,7 @@
  * exactly that many darts where the stage says so), the last dart landing in
  * the stage's finishing ring.
  */
+import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { CheckoutStageData } from "./types";
 
@@ -17,6 +18,8 @@ export const CHECKOUT_STAGES = 5;
 export const CHECKOUT_BULL = 20;
 export const CHECKOUT_BULL_VALUE = 25;
 export const CHECKOUT_WEIGHTS = [18, 20, 22, 24, 26] as const;
+/** Puzzle score rev 1 unfinished weights: the best four sum to 110. */
+export const CHECKOUT_REV1_WEIGHTS = [22, 24, 26, 28, 32] as const;
 export const CHECKOUT_MIN_DART_POINTS = 2;
 export const CHECKOUT_SPEED_POINTS = 30;
 /** The standard board, clockwise from the top. */
@@ -203,6 +206,12 @@ export function scoreCheckout(
   msRemaining: number,
   timeLimitMs: number,
 ): number {
+  if (scoreRev1()) {
+    const all = results.length === CHECKOUT_STAGES && results.every((r) => r.solved);
+    // Rev 1: all five = 120 + 3 per board in the fewest darts + PAR(15); otherwise 22 / 24 / 26 / 28 / 32 per board, any order (any four at most 110).
+    if (all) return finishParts(timeLimitMs > 0 ? speedBonusCurve(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs) : 0, 3 * results.filter((r) => r.fewest).length, "darts");
+    return partialParts(results.reduce((sum, r, i) => sum + (r.solved ? CHECKOUT_REV1_WEIGHTS[i] ?? 0 : 0), 0));
+  }
   const base = results.reduce(
     (sum, r, i) =>
       sum + (r.solved ? (CHECKOUT_WEIGHTS[i] ?? 0) + (r.fewest ? CHECKOUT_MIN_DART_POINTS : 0) : 0),

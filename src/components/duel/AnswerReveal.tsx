@@ -1,3 +1,4 @@
+import { storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useRef, useState } from "react";
 
@@ -258,6 +259,7 @@ export function AnswerReveal({
               myMsRemaining={myMsRemaining}
               timeLimitMs={puzzleTimeLimitMs(puzzle)}
               validRows={Array.isArray(myExtra?.["validRows"]) ? (myExtra["validRows"] as number[]) : undefined}
+              scoreParts={storedScoreParts(myExtra)}
             />
           ) : (
             <div className="flex justify-center">

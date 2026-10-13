@@ -4,9 +4,11 @@
 
 Every round scores 0–150. A room total is the sum of a player's round scores.
 
+**Puzzle score shape (13 Oct 2026, `puzzleScoreRev: 1`).** Sections 1–9, 11.1, 15 and 16 were rewritten for the new shape: every non-arcade game with a finish state now scores a finish as 120 plus up to 30 (all speed, or 15 efficiency + 15 speed) and caps unfinished credit at 110, counting only the player's own progress; Tenfall and Mixed Signals take `tenRev: 1` and `clashRev: 4`. Stored rounds grade exactly as before (`puzzle-score-rev-check`). Each table gives the new formula and the stored one. The fairness audit and the measured bands are in `docs/puzzle-score-bands-oct-2026.md`.
+
 ## What changed since the 11 Oct version
 
-- **Names and counts.** Every table uses the current display names. 74 active games (Word 10, Number 9, Speed 6, Attention 7, Pattern 7, Logic 14, Arcade 21) and 27 retired, against 68 / 26 in the 11 Oct version.
+- **Names and counts.** Every table uses the current display names. 74 active games (Word 10, Number 9, Speed 6, Attention 7, Pattern 7, Logic 14, Arcade 21; 73 since 13 Oct: Attention 6, Pattern 10, Logic 11, Interloper retired) and 27 retired, against 68 / 26 in the 11 Oct version.
 - **The 50 % par rule everywhere.** Every new puzzle is stamped `speedPar: 1`, and every speed or time bonus (Shape A / B / C, staged rounds, arcade finish bonuses) pays in full with half the time left, then falls evenly to 0. The old doc's `round(P × ms ÷ limit)` is the unstamped legacy curve only (section 2).
 - **New games.** Word: Strikeout, Cryptogrid, Swapword and Letterfall (12 Oct). Number: Brimful, Checkout and Ballpark (12 Oct). Formulas in sections 4 and 5.
 - **Trusted inputs.** Flash, Bang On and Ascend (`tapRev: 1`, 12 Oct) send raw tap logs and the server works out every reaction, distance, count and wrong tap (section 14). The section now also lists the smaller trusted fields found in this pass.
@@ -23,6 +25,7 @@ Every round scores 0–150. A room total is the sum of a player's round scores.
 | Rule | As coded | Location |
 |---|---|---|
 | Score range per round | 0–150 (`BASE_POINTS` 100, `MAX_SPEED_BONUS` 50, `MAX_ROUND_SCORE` 150) | `scoring.ts` |
+| Puzzle score shape (13 Oct 2026) | every new puzzle is stamped `puzzleScoreRev: 1` (`generatePuzzle`, `bankedIntroExample`); a non-arcade game with a finish state then scores **a finish = 120 + up to 30, unfinished credit at most 110** (section 2). Tenfall and Mixed Signals carry their own stamps (`tenRev: 1`, `clashRev: 4`). Unstamped stored rounds grade exactly as before | `puzzleScoreRev.ts`, `grade.ts gradeSubmission` |
 | Room size | 2–10 players (`MIN_PLAYERS`, `MAX_PLAYERS`) | `types.ts` |
 | Room total | sum of a slot's `round_results.score` | `scoring.ts totalScore()`, `totalScoreThrough()` |
 | Tie-break (2 players; 3+ use the same time in `standings()`) | higher total wins; equal totals → lower `totalAnswerMs` wins; still equal → draw. **Rooms stamped `tieRev: 1`** (every puzzle `buildRoomPuzzles` makes from 13 Oct 2026): each round adds the time actually used against its own limit, `min(limit, phase limit − ms_remaining)`; the limit is the puzzle's stored `timeLimitMs`, else the registry limit, and for arcade and engine rounds the run length (`puzzleRunMs`; ms_remaining there is stored against run + 3 s slack). Flash adds its `reaction_avg_ms`; a round with no answer adds its whole limit; Mixed Signals stores its finishing time from the sim's finishing tick (held to the receipt-checked claim; unfinished = the whole 75 s run); Bang On and Go/No-Go store 0 and so add their whole limit. A plain sum, not normalised: everyone in a room plays the same rounds. **Older rooms** (not every round stamped) keep the original sum over answered rounds of `reaction_avg_ms` if set, else `ROUND_MS (30,000) − ms_remaining` | `scoring.ts duelOutcome()`, `roundTimeUsedMs()`; `tieBreak.ts roomTieRounds()`; `scripts/tie-break-check.ts` |
@@ -31,6 +34,7 @@ Every round scores 0–150. A room total is the sum of a player's round scores.
 | Trusted time left | the claim is rounded and clamped to [0, limit] (NaN → 0); if it exceeds the server's own time left (clamped) + 1,500 ms (`TIME_CLAIM_TOLERANCE_MS`) the server's value is used, `clamped: true` is recorded and a warning logged. Server time left = limit − (now − (`phase_started_at` ?? `round_started_at`) − `puzzlePrepMs`); the limit is the puzzle's own `timeLimitMs` where it has one (Hanoi's five-ring variant), else the type's | `grade.ts trustedMsRemaining()`; `duel.functions.ts submitAnswerFn` |
 | Receipt time | the server's own time left is also passed to grading as `receivedMsRemaining`; tap logs are cut off at receipt + 1.5 s (`latestTapMs`) | `grade.ts` |
 | Stored time left | the grader's `storedMs`, not always the trusted value: Flash, Go/No-Go and Mixed Signals store 0 | `grade.ts` |
+| Stored breakdown | a `puzzleScoreRev: 1` grade stores its parts on the round as `extra.parts` (`{ kind: "finish", base: 120, efficiency?, measure?, speed }` or `{ kind: "partial", base }`); reveals that print a breakdown read it (`PuzzleRevealProps.scoreParts`) | `puzzleScoreRev.ts`, `AnswerReveal.tsx` |
 
 ## 2. Shared scoring helpers and notation
 
@@ -46,161 +50,179 @@ speedBonusCurve(max, left, limit):           (speedPar.ts)
 
 Outside grading (live counters, demos) the par curve is the default. Arcade finish bonuses (`finishScore`, `bandFinishSpeed`) call the same curve, so arcade replays follow the stamp too.
 
+**The puzzle score shape (`puzzleScoreRev: 1`, 13 Oct 2026).** `gradeSubmission` grades inside `withPuzzleScoreRev(puzzleScoreRevOf(puzzle))`; each scorer branches on `scoreRev1()`. Outside a grade the default is the stored (legacy) shape, so a check or display that calls a scorer directly gets the old numbers unless it wraps the call.
+
+```
+Finish (everything solved):         120 + up to 30                              (finishParts)
+  standard games:                    120 + PAR(30)
+  moves, tries, strikes, darts:      120 + up to 15 efficiency + PAR(15)
+    moves:    MOVES(15, moves, minimum or par)   full at the minimum, 0 at twice it
+    tries:    15 / 8 / 0 for try (or shot) 1 / 2 / 3      (TRY_EFFICIENCY)
+    strikes:  3 per strike left (15 with none used)
+    darts:    3 per board in the fewest darts
+Unfinished:                         clamp(credit, 0, 110)                       (partialParts)
+  counts only the player's own progress (never the starting state)
+  moves games: credit × wasteFactor(moves, minimum) = 1 up to the minimum, falling evenly to 0 at 4× it
+```
+
+So every finish (120 or more) beats every unfinished run (110 or less), and the 50 % par rule still sets the speed part.
+
 | Helper | As coded | Location |
 |---|---|---|
 | **PAR(P)** = `speedPoints(P, ms, limit)` | `speedBonusCurve(P, ms, limit)`; 0 if limit ≤ 0 | `scoring.ts` |
 | `speedBonus(ms, limit = ROUND_MS)` | `speedBonusCurve(50, clamp(ms, 0, limit), limit)` (retired games) | `scoring.ts` |
 | `reactionBonus(avgMs)` | `clamp(round((650 − avgMs) ÷ 10), 0, 50)` (Go/No-Go only) | `scoring.ts` |
 | **MOVES(B)** = `movesPoints(B, moves, min)` | `round(B × clamp(1 − (moves − min) ÷ min, 0, 1))`: full at the minimum, 0 at twice it; 0 if min ≤ 0 | `scoring.ts` |
-| **Shape A** = `standardComplete(ms, limit)` | `clamp(130 + PAR(20), 0, 150)`: 150 with half the time or more left | `scoring.ts` |
-| **Shape B / C** = `scoreSolvedMoves(...)` | `clamp(100 + MOVES(w.moves) + PAR(w.speed), 0, 150)`; `MOVES_SHAPE.B = {moves: 25, speed: 25}`, `C = {moves: 40, speed: 10}` (Colour Flood only) | `scoring.ts` |
-| `UNFINISHED_CAP` | 110; used only inside `scoreTubes` | `scoring.ts` |
+| **Shape A** = `standardComplete(ms, limit)` | rev 1: `finishParts(PAR(30))` = 120 + PAR(30); stored: `clamp(130 + PAR(20), 0, 150)` | `scoring.ts` |
+| **Shape B / C** = `scoreSolvedMoves(...)` | rev 1 (both shapes): `finishParts(PAR(15), MOVES(15), "moves")` = 120 + MOVES(15) + PAR(15); stored: `clamp(100 + MOVES(w.moves) + PAR(w.speed), 0, 150)` with `MOVES_SHAPE.B = {25, 25}`, `C = {40, 10}` (Colour Flood) | `scoring.ts` |
+| `finishParts(speed, efficiency?, measure?)` | min(150, 120 + efficiency + speed); records `extra.parts` | `puzzleScoreRev.ts` |
+| `partialParts(points)` / `unfinishedCredit` | clamp(round(points), 0, 110) (`PUZZLE_UNFINISHED_CAP`); records `extra.parts` | `puzzleScoreRev.ts` |
+| `wasteFactor(moves, min)` | clamp(1 − (moves − min) ÷ (3 × min), 0, 1); 1 when min ≤ 0 (`WASTE_ZERO_AT` 4) | `puzzleScoreRev.ts` |
+| `tryEfficiency(n)` | 15 / 8 / 0 for n = 1 / 2 / ≥ 3 (`TRY_EFFICIENCY`) | `puzzleScoreRev.ts` |
+| `UNFINISHED_CAP` | 110; used inside the stored `scoreTubes` (rev 1 uses `PUZZLE_UNFINISHED_CAP`) | `scoring.ts` |
 | `finishScore(runTicks, finishTick)` | `clampInt(130 + speedBonusCurve(20, left, max(1, runTicks)), 0, 150)`, left = clamp(runTicks − finishTick, 0, runTicks). Pre-band arcade revisions only | `arcade/engine.ts` |
 | Band scoring (arcade) | `bandOpen` (curve to 150), `bandFinishFlat` (curve to 140 + flat 10), `bandFinishSpeed` (curve to 140 + PAR(10) over a window); `BAND_PARTIAL_TOP` 140, `BAND_FINISH_BONUS` 10 (section 10) | `arcade/scoreBands.ts` |
-| Staged rounds | `scanStageResult` / `scoreSymbolScanStages`, `countStagePoints` / `scoreCountUpStages`, `scoreEquationStages`; stage weights `STAGE_WEIGHTS_3 = [30, 45, 55]` | `stagedRounds.ts` |
+| Staged rounds | `scanStageResult` / `scoreSymbolScanStages`, `countStagePoints` / `scoreCountUpStages`, `scoreEquationStages`; stage weights `STAGE_WEIGHTS_3 = [30, 45, 55]` (stored), `STAGE_WEIGHTS_3_REV1 = [25, 40, 45]`, `EQUATION_REV1_STAGE_POINTS = [20, 30, 35, 45]` | `stagedRounds.ts` |
 
-Notation: **ms** = trusted time left; **limit** = the game's registry time limit unless stated; **PAR(P)** is the par curve above on stamped rounds (linear on unstamped ones).
+Notation: **ms** = trusted time left; **limit** = the game's registry time limit unless stated; **PAR(P)** is the par curve above on stamped rounds (linear on unstamped ones). In sections 4–9, **New** is a `puzzleScoreRev: 1` round and **Stored** the formula unstamped rounds keep (the 13 Oct version of this document).
 
 ## 3. Score-check anchors enforced by scripts
 
 | Script | What it pins |
 |---|---|
-| `standard-scoring-check.ts` | Every Shape A game complete at half time = 150, every Shape B game at the minimum and half time = 150; `scoreSolvedMoves(20, 10, 0, L)` = 100; Colour Flood and Slider at par and half time = 150; named partials (Chroma Lines 11/12 → 110, Hanoi 8/9 → 98, Matchmaker 14/15 → 112, Double Take 5/6 → 100, Labyrinth 0.9 → 99, Tessellate 8 → 96, Skid 0.9 → 81, Topsy-Turvy 3 → 90, Jumbled 6 → 84, Turntable 7 → 84, Lightbender 5 lit → 75 and 3rd shot at half → 120, Safe Cracker 2nd try at half → 135, Heave 4/5 → 88, Polypotions 4 → 88 and 6 → 110, Bomb 3 → 75 and 4 → 75, Mosaic 90 % with 1 wrong → 94, Box Six 9/10 → 99, Colour Flood 180 → 101, Tents 11 → 110 and 14 → 110, finished at zero → 130, Shikaku 90 → 99, Slider 4 rows → 88, Interloper 4 + half → 108); staged anchors (Eagle Eye perfect at half → 150, at zero → 130; Tally exact at zero → 130, off by 1 on stage 3 → 108) |
-| `six-game-scoring-check.ts` | Formula identity over the input range for the pre-band Ball Tracker, Gemstone (revs 1–3), Junction, Rally, High Rise and Flightpath (anchors 100 → 150, 90 → 133, 70 → 99, 50 → 65; rings [10, 9, 8, 3, 2, 1]); band curves for six of them; legacy partial maxima kept for stored rounds; no intro or help states a partial cap or a "÷ N s" divisor; old Ball Tracker demos rejected |
+| `standard-scoring-check.ts` | Stored shape (unchanged anchors): every Shape A game complete at half time = 150, every Shape B game at the minimum and half time = 150, `scoreSolvedMoves(20, 10, 0, L)` = 100, the named partials (Chroma Lines 11/12 → 110, Hanoi 8/9 → 98, Matchmaker 14/15 → 112 …), staged anchors. New shape (`withPuzzleScoreRev(1)`): every standard game 150 at half time and 120 at the buzzer; every moves game 150 at the minimum and half time and 120 for the slowest, longest solve; tries 150 / 143 / 120; unfinished tops (Double Take 5 → 110, Labyrinth one step short → 110, Bomb 5 of 6 → 110, Ascend 23 → 110 …); starting states 0 (Hanoi, Pipeline, Colour Flood, Labyrinth, Exact with no step); Bang On all misses 0 and its 300 ms knee 74; staged anchors (Eagle Eye perfect 150 / 120, Tally exact 120, Operator best three 110); the default outside a grade is the stored shape |
+| `puzzle-score-rev-check.ts` (new, shard a) | **Legacy identity**: 8,366 stored-round answers (`scripts/fixtures/puzzle-score-legacy.json.gz`, recorded on main `eb143ad` before the change by `puzzle-score-legacy-record.ts`: 47 games × 3 seeds, unstamped and speedPar puzzles; empty drafts, spam, four solver levels and their unfinished states, at the buzzer, half and quarter time) grade exactly as main stored them: score, verdict, counts, errors, stored time and the whole stored extra (Mixed Signals' presentation-only `extra.reveal` excepted: #40 changed its bonus line on purpose). Every new puzzle is stamped. Tenfall `tenRev: 1` and Mixed Signals `clashRev: 4` runs score the same on the phone's own sim and the server's replay, unflagged, with finishes covered, and Mixed Signals' reveal bonus is the stored score above 120. Lightbender on the action log: a first-shot solve at half time 150, a second-shot solve at the buzzer 128, a solving layout never fired 110 unfinished. Quick fairness on 24 seeds per game: nothing scores 0, finishes 120–150 beat every unfinished run, unfinished ≤ 110, pure spam median ≤ 5 |
+| `six-game-scoring-check.ts` | Formula identity over the input range for the pre-band Ball Tracker, Gemstone (revs 1–3), Junction, Rally, High Rise and Flightpath; band curves; legacy partial maxima; no intro or help states a partial cap or a "÷ N s" divisor; old Ball Tracker demos rejected |
 | `reveal-score-check.tsx` | For every active and retired type the reveal's `data-reveal-score` equals the stored score; no stored row shows "Scoring…"; no Reveal computes its own score |
-| `arcade-score-bands-check.ts` | 22 band games (21 active + Junction): 88 pre-change runs replay to identical scores; the same logs on the band revisions score exactly their breakdown; curves start at 0, never fall, top at 140 + 10 or 150; one unit short of a finish is at most 12 below; doing nothing = 0 |
+| `arcade-score-bands-check.ts` | 22 band games: pre-change runs replay to identical scores; curves start at 0, never fall, top at 140 + 10 or 150; doing nothing = 0 |
 | `tap-log-check.tsx` | Flash, Bang On, Ascend: 36 honest runs recorded on main grade identically; tap logs score the same with the same tie-break time; phone parity in happy-dom; 381 tampered logs never beat the honest run |
-| `number-batch-check.ts` | Brimful, Checkout, Ballpark: same seed → same puzzle; BFS and exhaustive-search proofs; anchors through the server grader; finishing always beats not finishing; client extras never change a score |
-| `strikeout-check.ts`, `codeword-check.ts`, `swapword-check.ts` | Anchors (Strikeout perfect 150, minimum finish 124, best unfinished 88, nothing 0; Cryptogrid perfect 150, minimum finish 130, best unfinished below 130, all 1,000 boards unique; Swapword perfect 150, minimum finish ≥ 111, best unfinished ≤ 100 and below every finish) |
-| `wordfall-check.ts` | A scripted bot reaches par inside the 90 s run and the server replay scores it 150; dictionary, plan and replay identity |
+| `number-batch-check.ts` | Brimful, Checkout, Ballpark: same seed → same puzzle; BFS and exhaustive-search proofs; new-shape anchors (Brimful 150 / minimum finish 120 / best unfinished 110; Checkout 150 / 120–135 / 110; Ballpark 150 / best unfinished 110) and the stored ones on unstamped copies (100 / 90; 110–120 / 100; 112); placing a number never lowers the score (new rounds: unless it is 25 % or more off, by 1) |
+| `strikeout-check.ts`, `codeword-check.ts`, `swapword-check.ts` | New shape: Strikeout perfect 150, minimum finish 123, best unfinished 110; Cryptogrid 150 / 120 / one short 110; Swapword 150 / slow finish 120–135 / one swap short ≤ 110; nothing 0. Stored: Strikeout 124 / 88, Cryptogrid 130, Swapword ≥ 111 / ≤ 100; all 1,000 Cryptogrid boards unique |
+| `tubes-safe-bomb-check.ts` | Bomb v2 three-step strike: 66 on a new round (22 per step), 38 on a stored one |
+| `wordfall-check.ts` | A scripted bot reaches par inside the 90 s run and the server replay scores it 150 |
 | `timing-check.ts` | `trustedMsRemaining`: honest, 1.2 s behind, at the tolerance, impossible claim → server value, over the limit → limit, negative or NaN → 0 |
-| `room-rounds-check.ts` | Rotation: 6 rounds (7 with all seven categories), per-category spread, no repeated game, no category twice in a row, same seed → same room (1, 2, 4 and 7 categories) |
-| `intro-score-text-check.ts` | Intro SCORE lines fit two short lines; band intros say how to reach the top |
-| Arcade identity checks | `arcade-batch1`–`5-check`, `arcade-tuning-a-check`, `tuning-b-check`, `arcade-tuning-c-check`, `arcade-tuning-e-check`, `arcade-self-replay-check`: stored runs replay to the same score and state on their own revision; each new revision reaches 150 through the server replay |
+| `room-rounds-check.ts` | Rotation: rounds, per-category spread, no repeated game, no category twice in a row, same seed → same room |
+| `intro-score-text-check.ts` | Intro SCORE lines fit two short lines (90 characters) with no scoring terms; band intros say how to reach the top |
+| `arcade-play-check.ts` | Also plays Tenfall, Mixed Signals, Bonk and Pull! on the real practice screens (15 s live, tick and HUD timer advancing, no errors, frame time, READY on screen; no arcade-world layout proof) |
+| `tie-break-check.ts` | Mixed Signals' reveal bonus equals the bonus inside the stored score on clashRev 3, and on clashRev 4 is the score above 120 |
+| Arcade identity checks | `arcade-batch1`–`5-check`, `arcade-tuning-*`, `tuning-b-check`, `arcade-self-replay-check` (now also Mixed Signals clashRev 4): stored runs replay to the same score and state on their own revision |
+
+`scripts/puzzle-fairness.ts` (not a check) is the full audit behind these numbers: `docs/puzzle-score-bands-oct-2026.md`.
 
 ---
 
 ## 4. Word — 10 active
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Nucleus (`wordsmith`) | 100,000 ms (`WORDSMITH_TIME_MS`) | one formula: min(150, floor(2.5 × word points)); 60 points reaches 150 | none (no time term) | same formula; 0 words = 0 | 4+ letter words using the centre letter, no plurals; points 4 → 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15; `isCorrect` = points ≥ max(1, round(0.35 × board total)) | none; invalid words are skipped | `scoring.ts scoreWordsmith`; `wordsmith.server.ts gradeWordsmith` |
-| Forage (`wordhunt`) | 100,000 ms (`WORDHUNT_TIME_MS`) | one formula: min(150, 2 × word points); 75 points reaches 150 | none | same formula | 4+ letter paths, plurals allowed; points 4 → 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11; 35 % par sets `isCorrect` only | none | `scoring.ts scoreWordHunt`; `wordHunt.server.ts gradeWordHunt` |
-| Interlock (`tilegrid`) | 100,000 ms (`TG_TIME_MS`) | all 15 tiles in a valid grid: min(150, 130 + PAR(20)) | speed only | min(150, 8 × tiles inside at least one real word), even in an invalid grid (most 120) | 15 tiles, 7 × 7 board | none | `tileGrid.ts scoreTileGrid` |
-| Slider (`wordslide`) | 100,000 ms (`WS_TIME_MS`) | all 5 rows words: min(150, 100 + PAR(30) + MOVES(20, moves, par)) | MOVES full at par, 0 at twice par; par = the scramble's shift count (5–8), not a proven minimum; Undo and Reset count as moves | 22 per row that is any dictionary word | 5 rows of 5 letters | none beyond move points | `scoring.ts scoreWordSlide` |
-| Lookout (`wordsearch`) | 120,000 ms (`WORDSEARCH_TIME_MS`) | all 6 found: min(150, 130 + PAR(20)) | speed only | min(120, 20 × found) (most 100) | 6 words, 10 × 10 grid | none; wrong picks are free | `wordSearch.ts scoreWordSearch` |
-| Roundabout (`letterwheel`) | 100,000 ms (`LETTERWHEEL_TIME_MS`) | every slot found: min(150, 130 + PAR(20)) | speed only | 15 per word on 8-word boards, 13 on 9-word boards (most 105 / 104) | bank of 112 eight-word and 188 nine-word boards | none | `letterWheel.ts scoreLetterWheel` |
-| Strikeout (`strikeout`) | 100,000 ms (`STRIKEOUT_TIME_MS`) | all five revealed: min(150, 120 + 4 × strikes left + PAR(10)); at least 124 | up to 20 for unused strikes, plus speed | min(110, 20 × solved words + 2 × letters showing in unsolved words) (most 88) | 5 five-letter words; 5 strikes end the round (`SO_MAX_STRIKES`) | a strike for a letter not in the puzzle or a wrong real-word solve; non-word solves and repeated letters are free | `strikeout.ts scoreStrikeout` |
-| Cryptogrid (`codeword`) | 120,000 ms (`CODEWORD_TIME_MS`) | cracked: Shape A | speed only | min(110, round(110 × numbers right ÷ numbers to find)) | 1,000-board bank; 10–14 numbers to find (4 given) | none; wrong letters are free | `codeword.ts scoreCodeword` |
-| Swapword (`swapword`) | 120,000 ms (`SWAPWORD_TIME_MS`) | solved: min(150, 100 + MOVES(25, swaps, minimum) + PAR(25)) (Shape B); at least 111 | budget = minimum + 5 (minimum 9–12), so the moves term never falls below 11 | min(100, 5 × tiles put in place) (only tiles that started out of place; most 80) | 21 tiles, 3–5 start in place | the board locks when the budget runs out | `swapword.ts scoreSwapword` |
-| Letterfall (`wordfall`, engine) | 93,000 ms registry; 90 s run (`WF_RUN_TICKS` 5,400) | one formula: floor(150 × min(points, 30) ÷ 30) (5 a point); `isCorrect` = points ≥ 30 | none | same formula; a column overflow ends the run early | word points 3 → 1, 4 → 2, 5 → 4, 6 → 7, 7+ → 11 letters (Qu = 2); par `WF_PAR` 30 | none; a non-word only shakes | `arcade/wordfall.ts wordfallScore` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | Items | File + function |
+|---|---|---|---|---|---|---|
+| Nucleus (`wordsmith`) | 100,000 ms | no finish state: min(150, floor(2.5 × word points)) (unchanged) | same | same | 4+ letter words with the centre letter; points 4 → 1 … 9+ → 15 | `scoring.ts scoreWordsmith` |
+| Forage (`wordhunt`) | 100,000 ms | no finish state: min(150, 2 × word points) (unchanged) | same | same | 4+ letter paths | `scoring.ts scoreWordHunt` |
+| Interlock (`tilegrid`) | 100,000 ms | all 15 tiles in a valid grid: 120 + PAR(30) | 110 × tiles in a real word ÷ 15 | 130 + PAR(20); else 8 per tile in a word | 15 tiles | `tileGrid.ts scoreTileGrid` |
+| Slider (`wordslide`) | 100,000 ms | 120 + MOVES(15, moves, par) + PAR(15) | 27.5 per word row the player made (a row unchanged from the start doesn't count) × wasteFactor(moves, par) | 100 + PAR(30) + MOVES(20); else 22 per word row, start rows included | 5 rows; par = scramble shifts | `scoring.ts scoreWordSlide` |
+| Lookout (`wordsearch`) | 120,000 ms | 120 + PAR(30) | 22 per word − 2 per wrong pick beyond the first 5 | 130 + PAR(20); else min(120, 20 × found) | 6 words | `wordSearch.ts scoreWordSearch` |
+| Roundabout (`letterwheel`) | 100,000 ms | every slot: 120 + PAR(30); `isCorrect` = every slot found | 110 × words ÷ (slots − 1) | 130 + PAR(20); else 15 / 13 per word; `isCorrect` counted cells | 8 or 9 words | `letterWheel.ts scoreLetterWheel` |
+| Strikeout (`strikeout`) | 100,000 ms | 120 + 3 per strike left + PAR(15) (123–150) | 27.5 per solved word (four = 110); letters showing earn nothing | 120 + 4 per strike left + PAR(10); else min(110, 20 × words + 2 × letters showing) | 5 words, 5 strikes | `strikeout.ts scoreStrikeout` |
+| Cryptogrid (`codeword`) | 120,000 ms | 120 + PAR(30) | 110 × numbers right ÷ (numbers to find − 1) − 5 per wrong letter left | Shape A; else min(110, 110 × right ÷ to find), wrong letters free | 10–14 numbers to find | `codeword.ts scoreCodeword` |
+| Swapword (`swapword`) | 120,000 ms | 120 + MOVES(15, swaps, minimum) + PAR(15) | 110 × (tiles placed − tiles moved out of place) ÷ (tiles to place − 2) | Shape B (≥ 111); else min(100, 5 × placed) | 21 tiles; budget = minimum + 5 | `swapword.ts scoreSwapword` |
+| Letterfall (`wordfall`, engine) | 93,000 ms (90 s run) | no finish state: floor(150 × min(points, 30) ÷ 30) (unchanged) | same | same | par 30 word points | `arcade/wordfall.ts wordfallScore` |
 
 **Word notes**
-- Slider can score for doing nothing: about a fifth of generated grids start with 1–3 rows that are already words (any dictionary word counts), worth 22–66.
-- Finishing scores under 130 in Strikeout (≥ 124), Swapword (≥ 111) and Slider (≥ 100); every unfinished maximum is still lower.
-- Roundabout: `isCorrect` counts cells while the score counts word slots; if crossings filled every cell before every word were found, the round would be marked correct but score as unfinished.
-- Intro text: Strikeout's intro ("20 per word revealed") leaves out the 2 per letter showing (its "?" help has it); Letterfall's help doesn't say Qu counts as two letters. Everything else matches.
+- Slider: the generator no longer deals a row that is already a word (about a fifth of grids did; it redraws, and a grid with no word row draws exactly as before, so the fixed intro example is unchanged), and rev 1 credits only rows the player changed into words.
+- Roundabout: the phone only keeps words that fill a slot, so wrong traces never reach the server; random tracing that finds slot words is real progress (audit flag).
+- Strikeout: guessing letters in frequency order is how the game is played and still scores (audit flag); a random alphabet scores about 0.
 
 ## 5. Number — 9 active (not in the default room presets)
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Exact (`target`) | 75,000 ms (`TARGET_TIME_MS`) | distance 0: min(150, 130 + PAR(20)) | speed only | distance 1–10: 120 − (d − 1)(d + 2) ÷ 2 (120, 118, 115 … 66); over 10: max(0, round(66 − 0.6 × (d − 10))), 0 from 120 | six tiles, target 101–999; d = the closest number left after replaying the steps | none | `scoring.ts scoreTargetNumber`; `target.ts replayTargetSteps` |
-| Operator (`equation`) | 90,000 ms (`EQUATION_TIME_MS`) | each correct stage 25 / 30 / 35 / 40 (130); all four adds PAR(20) | speed only, all correct; divisor is the constant `EQUATION_TIME_MS` | sum of correct stages, any order | 4 equations, left to right, whole non-negative steps | none | `stagedRounds.ts scoreEquationStages` |
-| Counterweight (`balance`) | 90,000 ms (`BAL_TIME_MS`) | all 3 scales: min(150, 120 + PAR(30)) | speed only | cumulative, in order only: 1 scale → 20, 2 scales → 60; counting stops at the first unsolved scale | 3 scales | none | `balance.ts balanceSolvedCount`, `balanceRoundScore` |
-| Integer Pyramid (`numpyramid`) | 120,000 ms (`NUMPYRAMID_TIME_MS`) | all 4 pyramids: min(150, 120 + PAR(30)) | speed only | 30 × completed + round(30 × correct cells ÷ empty cells) on the active pyramid only | 4 pyramids of 5 rows, 2 decoy tiles each; any valid fill completes a pyramid | none | `numberPyramid.ts scoreNumberPyramid` |
-| Trail (`trail`) | 120,000 ms (`TRAIL_TIME_MS`) | path matches the solution: min(150, 130 + PAR(20)) | speed only | min(130, 5 × player tiles in their correct cell) (most 125) | 6 × 6, 36 cells, 10 fixed | none; wrong tiles score 0 | `trail.ts scoreTrail` |
-| Brimful (`measure`, measureRev 1) | 120,000 ms (`MEASURE_TIME_MS`) | all 4 solved: Σ(25 + move points) + PAR(30), cap 150 | move points per puzzle: 5 at the minimum, then round(5 × (2 × min − moves) ÷ min), 0 at twice the minimum | Σ(25 + move points) over puzzles solved in order; the first unsolved one ends grading (most 90) | 4 puzzles; minimums by breadth-first search | none | `measure.ts measureMovePoints`, `gradeMeasureBoards`, `scoreMeasure` |
-| Checkout (`checkout`, checkoutRev 1) | 90,000 ms (`CHECKOUT_TIME_MS`) | all 5: Σ(weight + 2 if fewest darts) + PAR(30), cap 150 (110 + 10 + 30) | +2 per board in the fewest darts (`CHECKOUT_MIN_DART_POINTS`); the exact-four-darts board always gets it | Σ over solved boards, any order (most 100) | 5 boards worth 18 / 20 / 22 / 24 / 26 | none; a wrong throw costs time | `checkout.ts gradeCheckoutStages`, `scoreCheckout` |
-| Ballpark (`numline`, numlineRev 1) | 75,000 ms (`NUMLINE_TIME_MS`) | all 15 placed: min(150, round(acc) + round(PAR(30) × acc ÷ 120)) | speed scaled by the accuracy share | round(acc); acc = Σ item points: 8 within 2 % of the line, falling evenly to 0 at 15 % | 3 lines × 5 numbers; `isCorrect` = all placed | none | `numline.ts numlineItemPoints`, `scoreNumline` |
-| Tenfall (`tendrop`, engine) | 93,000 ms registry; 90 s run (`TD_RUN_TICKS` 5,400) | all 10: 130 + speedBonusCurve(20, 5,400 − clear tick, 5,400), cap 150 (the full 20 when the last clears by 45 s) | early-clear bonus only; divisor is the run, not the registry limit | 13 × cleared | 10 targets | none; overshooting resets the total; refused tiles are free | `arcade/tenDrop.ts tenDropScore` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | Items | File + function |
+|---|---|---|---|---|---|---|
+| Exact (`target`) | 75,000 ms | distance 0: 120 + PAR(30) | d = distance of the closest number the player **made** (a step result still on the board); no step = 0. d 1–10: 110 − (d − 1)(d + 2) ÷ 2 (110 … 56); over 10: 56 − 0.6 × (d − 10) | 130 + PAR(20); 120 − (d − 1)(d + 2) ÷ 2; over 10: 66 − 0.6 × (d − 10); d counted starting tiles | 6 tiles, target 101–999 | `scoring.ts scoreTargetNumber`; `target.ts madeDistance` |
+| Operator (`equation`) | 90,000 ms | all four: 120 + PAR(30) | 20 / 30 / 35 / 45 per correct stage, any order (best three = 110) | 25 / 30 / 35 / 40 + PAR(20) on all four; 3-stage rounds 30 / 40 / 50 + 30 | 4 equations | `stagedRounds.ts scoreEquationStages` |
+| Counterweight (`balance`) | 90,000 ms | all three: 120 + PAR(30) | 20 / 35 / 75 per balanced scale, **any order** (any two ≤ 110) | 120 + PAR(30); else cumulative in order: 1 → 20, 2 → 60 | 3 scales | `balance.ts balanceRoundScore`, `balanceScalesSolved` |
+| Integer Pyramid (`numpyramid`) | 120,000 ms | all four: 120 + PAR(30) | 27.5 × (pyramids finished + share right on the **first unfinished** pyramid), at most 110; the phone's `active` is not read | 30 per pyramid + 30 × share on the phone's `active` pyramid; all four + PAR(30) | 4 pyramids | `numberPyramid.ts scoreNumberPyramid` |
+| Trail (`trail`) | 120,000 ms | 120 + PAR(30) | 110 × (player tiles in their right cell − player tiles in a wrong cell) ÷ (tiles to place − 1) | 130 + PAR(20); else min(130, 5 × right tiles) | 26 tiles to place | `trail.ts scoreTrail` |
+| Brimful (`measure`) | 120,000 ms | 120 + 15 × (Σ move points ÷ 20) + PAR(15) | 30 / 35 / 45 for puzzles 1–3 solved in order (three = 110) | Σ(25 + move points) + PAR(30) on all four | 4 puzzles; move points 5 at the minimum, 0 at twice it | `measure.ts scoreMeasure` |
+| Checkout (`checkout`) | 90,000 ms | 120 + 3 per board in the fewest darts + PAR(15) | 22 / 24 / 26 / 28 / 32 per board, any order (best four = 110) | 18–26 + 2 per fewest board + PAR(30) on all five | 5 boards | `checkout.ts scoreCheckout` |
+| Ballpark (`numline`) | 75,000 ms | all 15 placed: accuracy + round(PAR(30) × accuracy ÷ 120) (150 at full accuracy) | accuracy, at most 110 | item points 8 within 2 %, 0 at 15 %; no wild cost; unfinished up to 112 | 15 numbers; rev 1 item points: 8 within 2 %, 0 at 8 %, −1 at 25 % or more | `numline.ts numlineItemPoints`, `scoreNumline` |
+| Tenfall (`tendrop`, engine, `tenRev: 1`) | 93,000 ms (90 s run) | all 10: 120 + speedBonusCurve(30, 5,400 − clear tick, 5,400) | floor(110 × cleared ÷ 9) − 2 per reset beyond 5, 0–110 | 13 per target; all 10: 130 + PAR(20) | 10 targets | `arcade/tenDrop.ts tenDropScore` (rev in the sim state, `tenDropInit`) |
 
 **Number notes**
-- Doing nothing can score in Exact (distance is measured from the closest starting tile: about 3.5 % of boards score above 0, up to about 61) and Ballpark (unplaced numbers earn nothing, but wild placements earn accuracy points and no penalty).
-- Counterweight's intro and help ("20, 40 and 60 for scales 1, 2 and 3") read as per-scale credit; the code is cumulative and in order (1 → 20, 2 → 60, all 3 → 120 + speed), and a right third scale scores nothing if an earlier one is wrong (open item 5).
-- Integer Pyramid's partial credit goes to the pyramid the phone reports as active (`grade.ts` reads `active` from the answer).
-- Finishing scores under 130 in Counterweight and Integer Pyramid (≥ 120); their unfinished maximums (60, 90 + partial) are lower.
-- Tenfall's help says "up to 20 for clearing them early" without the half-time rule the other helps state.
+- Ballpark has no clean finish: "all placed" is its finish, scaled by accuracy, so a careless finish can score below a careful unfinished run (audit rule c does not apply to it). A placement 25 % or more off costs 1, so placing a number can lower the score by 1 on a new round.
+- Counterweight and Operator can be brute-forced: the two small scales balance by chance and only the final placement is sent; Operator flashes CORRECT per stage. Rising weights keep the brute-force share low (Counterweight: 55 for the two small scales); a real fix needs harder small scales, a placement log or a try limit (open item 15).
+- Tenfall's rev travels in the sim state (`scoreRev`), so the phone's claimed score matches the replay; checkpoints and play are unchanged.
 
 ## 6. Speed — 6 active
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Flash (`reaction`) | 60,000 ms (`REACTION_ROUND_MS`) | no finish state: average ≤ 200 ms → 150, else clamp(round(150 − 0.16 × (avg − 200)), 0, 150); then clamp(that − 8 × false starts, 0, 150) | none | average = round(sum ÷ flashes); each flash counts clamp(t, 1, 1,200) ms; a miss counts 1,200 ms (`REACTION_MISS_MS`) | 5–8 gold flashes, each up 1,500 ms (`REACTION_FLASH_MS`) | −8 per false start (counted from the tap log, false starts under 250 ms apart count once; capped at 99) | `scoring.ts scoreReaction`; `tapLog.ts replayFlash`; `grade.ts` case "reaction" |
-| Bang On (`stopwatch`) | 60,000 ms (`STOPWATCH_ROUND_MS`) | no finish state: average ≤ 20 ms → 150, else clamp(round(150 − 0.27 × (avg − 20)), 0, 150) | none | average of 10 distances, each capped at 500 ms; a miss counts 500 ms (`STOPWATCH_MISS_MS`) | 10 watches on a fixed schedule (first at 800 ms, each next 600 ms after the last stop or run-out) | none beyond the miss value | `scoring.ts scoreStopWatch`; `tapLog.ts replayBangOn`; `stopWatch.ts watchStop` |
-| Ascend (`numhunt`) | 60,000 ms (`NUMHUNT_TIME_MS`) | all 24: clamp(130 + PAR(20) − 5 × errors, 0, 150) | PAR(20); with a tap log, time left = min(claimed, 60,000 − finishing tap) | clamp(5 × reached − 5 × errors, 0, 150) (most unfinished = 115) | 24 numbers; untapped discs move every 15 s (4 layouts) | −5 per wrong tap (`NUMHUNT_ERROR_PENALTY`), finished or not; capped at 99 errors | `scoring.ts scoreNumberHunt`; `tapLog.ts replayAscend` |
-| Don't Break the Chain (`chain`) | 45,000 ms (`CHAIN_TIME_MS`) | all 40 links: min(150, floor(3.5 × 40) + PAR(10)) = 140 + PAR(10) | PAR(10) on the claimed time left; the divisor is the constant `CHAIN_TIME_MS` | min(150, floor(3.5 × links)) | 40 links; board reshuffles every 5; momentum windows 3,000 ms to link 13, 2,500 ms to 26, 2,000 ms to 40 (first tap untimed); FASTER at 10 / 20 / 30 | the first wrong tap (or a reused node) or a lapse ends the chain; no deduction | `chain.ts chainScore`, `replayChain`, `chainRules` |
-| Bonk (`whack`, engine) | 63,000 ms registry (`WHACK_TIME_MS`); 60 s run (`WHACK_RUN_TICKS` 3,600) | one formula: floor((270 × hits + total) ÷ (2 × total)) (= round(135 × hits ÷ total)) − penalties, clamp 0–150 | +15 when every target is hit (`WHACK_PERFECT_BONUS`), whatever the penalties; no time bonus | same formula; total ≤ 0 scores 0 | seeded target count; the rule flips 3–5 times; hedgehogs 10 % after 5 s | −3 wrong colour, −5 hedgehog, −3 empty burrow | `arcade/whack.ts whackScore` |
-| Pull! (`clayshoot`, engine) | 63,000 ms registry (`CLAYSHOOT_TIME_MS`); 60 s run (`CLAY_RUN_TICKS`) | one formula: clamp(5 × orange + 10 × gold + perfect − 10 × birds hit, 0, 150) | +10 perfect = all 22 orange + all 3 gold with no bird hit; no time bonus | same formula | 25 clays (22 orange, 3 gold); clayRev 3: 10–12 birds | −10 per bird hit; a shot landing on a clay never counts as a bird hit | `arcade/clayShoot.ts clayScore` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | Items | File + function |
+|---|---|---|---|---|---|---|
+| Flash (`reaction`) | 60,000 ms | no finish state (unchanged): average ≤ 200 ms → 150, else 150 − 0.16 × (avg − 200), − 8 per false start | — | same | 5–8 gold flashes | `scoring.ts scoreReaction` |
+| Bang On (`stopwatch`) | 60,000 ms | no finish state: 150 at ≤ 20 ms, −0.27 per ms above, down to 74 at 300 ms (`STOPWATCH_REV1_KNEE_MS`), then an even fall to 0 at the 500 ms miss value: **all misses = 0** | — | the same line all the way: all misses = 20 | 10 watches | `scoring.ts scoreStopWatch` |
+| Ascend (`numhunt`) | 60,000 ms | all 24: 120 + max(0, PAR(30) − 5 × wrong taps): never below 120 | 110 × reached ÷ 23 − 5 × wrong taps, 0–110 | 130 + PAR(20) − 5 × wrong (could fall below an unfinished run); else 5 × reached − 5 × wrong | 24 numbers | `scoring.ts scoreNumberHunt` |
+| Don't Break the Chain (`chain`) | 45,000 ms | all 40: 120 + PAR(30) (claimed time, `CHAIN_TIME_MS`) | floor(110 × links ÷ 39) | floor(3.5 × links); all 40: 140 + PAR(10) | 40 links | `chain.ts chainScore` |
+| Bonk (`whack`, engine) | 63,000 ms | no finish state (unchanged) | — | same | — | `arcade/whack.ts whackScore` |
+| Pull! (`clayshoot`, engine) | 63,000 ms | no finish state (unchanged) | — | same | — | `arcade/clayShoot.ts clayScore` |
 
 **Speed notes**
-- Bang On scores 20 for doing nothing (all misses → average 500 ms → 150 − 0.27 × 480 = 20). Flash all misses → 0.
-- Ascend: a finished run with 4+ wrong taps and little time left can score below an error-free unfinished run (110 < 115).
-- Flash: a tap 1,200–1,500 ms after the gold scores the same as a miss.
-- Don't Break the Chain's bonus uses the phone's claimed time left (held only by the 1.5 s receipt check), not its own replayed last tap; Ascend's tap log caps it.
-- Bonk and Pull! have no time bonus. Bonk's +15 is paid even with wrong taps.
-- All six intro SCORE lines match the code.
+- Bang On: tapping at a random moment in each watch averages about 226 ms off, scoring about 90 (an average simulated player is about 138 ms off, 116). Only the all-miss bottom was changed tonight, as asked; a curve that zeroes random taps would have to cut deep into average players' scores (open item 16).
+- Flash: tapping every coloured flash (gold and decoys alike) scores 75–100; the false-start cost (8) is small next to fast reactions (open item 16).
+- Ascend: a finish now always beats an unfinished run (the old formula could put a 4-wrong-tap finish under a clean 23).
 
-## 7. Attention — 7 active
+## 7. Attention — 6 active (Interloper retired 13 Oct, section 12)
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Mixed Signals (`stroop`, engine, clashRev 3) | 78,000 ms registry; 75 s run (`CLASH_REV3_RUN_TICKS` 4,500) | clamp(round(130 × correct ÷ 52) − 2 × wrong + bonus, 0, 150) | bonus = PAR(20) over ticks (run − finishing tick, run), paid once every word is sorted (correct + wrong ≥ 52); wrong gates don't block it | same formula, no bonus | 52 words; five 15 s phases (fall ticks 107 / 95 / 83 / 71 / 59); the rule swaps every 15 s; 3 lanes, 4 from 30 s | −2 per wrong gate; an unsorted word costs nothing | `arcade/colourClash.ts clashQueueScoreOf`; `duel/colourClash.ts replayColourClashRun` |
-| Eagle Eye (`symscan`) | 30,000 ms (`SYMSCAN_TIME_MS`) | per stage max(0, round(w × found ÷ targets) − 3 × wrong), w = 30 / 45 / 55; total min(150, sum + bonus) | PAR(20) only when all three stages are perfect (all found, none wrong) | per-stage share, each stage floored at 0 | 3 grids (5 / 6 / 7 columns, 5–9 targets each) | −3 per wrong tap within its stage | `stagedRounds.ts scanStageResult`, `scoreSymbolScanStages` |
-| Double Take (`spotdiff`) | 30,000 ms (`SPOT_TIME_MS`) | all 6: Shape A | PAR(20) | 20 per difference (most 100) | 6 differences (any cell of one counts) | none; wrong taps are free and unlimited | `scoring.ts scoreSpotDifference` |
-| Tally (`countup`) | 45,000 ms (`COUNTUP_TIME_MS`) | per stage: exact = w; off by 1 = round(0.6w) (18 / 27 / 33); off by 2 = round(0.3w) (9 / 14 / 17); else 0; total min(150, sum + bonus) | PAR(20) only when all three are exact | per-stage credit; blank = 0 | 3 trays, w = 30 / 45 / 55; the true count is worked out on the server from the stored scene | none beyond lost weight | `stagedRounds.ts countStagePoints`, `scoreCountUpStages` |
-| Labyrinth (`maze`) | 60,000 ms (`MAZE_TIME_MS`) | exit reached: Shape A | PAR(20) | clamp(round(110 × progress), 0, 110); progress = (furthest route index reached + 1) ÷ route length | 19 × 19 maze, route ≥ 70 cells (`MAZE_MIN_PATH`) | none; detours are free; the walk stops at the first wall jump | `scoring.ts scoreMaze`; `maze.ts verifyMazePath` |
-| Interloper (`intruder`) | 75,000 ms (`INTRUDER_TIME_MS` = 5 × 15,000) | all 5 boards right: Shape A | PAR(20) | 24 per board right; 12 for one of two changes (most 108) | 5 boards with 1 / 1 / 2 / 2 / 2 changes | no deduction, but only the first N taps per board are read (N = changes), so a wrong tap uses up a pick | `scoring.ts scoreIntruder`; `intruder.ts replayIntruder` |
-| Matchmaker (`pairmatch`) | 90,000 ms (`PAIR_TIME_MS`) | all 15 pairs: Shape A | PAR(20) | 8 per pair (most 112) | 15 pairs, 30 cards | none; wrong flips cost only time | `scoring.ts scorePairMatch`; `pairmatch.ts replayPairs` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | Items | File + function |
+|---|---|---|---|---|---|---|
+| Mixed Signals (`stroop`, engine, `clashRev: 4`) | 78,000 ms (75 s run) | all 52 sorted with at most 2 wrong gates: 120 + max(0, PAR(30) − 5 × wrong) over (run − finishing tick, run) | round(110 × right ÷ 52) − 2 × wrong, 0–110 | clashRev 3: round(130 × right ÷ 52) − 2 × wrong + PAR(20) once every word is sorted | 52 words; play identical to clashRev 3 | `arcade/colourClash.ts clashRev4ScoreOf`, `clashRev4Finished` |
+| Eagle Eye (`symscan`) | 30,000 ms | all three perfect: 120 + PAR(30) | per stage max(0, round(w × found ÷ targets) − 3 × wrong), w = 25 / 40 / 45 | w = 30 / 45 / 55 + PAR(20) when perfect | 3 grids | `stagedRounds.ts scanStageResult` |
+| Double Take (`spotdiff`) | 30,000 ms | all 6 found with at most 5 wrong taps: 120 + PAR(30) | 22 per difference − 5 per wrong tap, 0–110 | Shape A; else 20 per difference, wrong taps free | 6 differences | `scoring.ts scoreSpotDifference` |
+| Tally (`countup`) | 45,000 ms | all three exact: 120 + PAR(30) | per tray w / 60 % / 30 % for exact / off by 1 / off by 2, w = 25 / 40 / 45 | w = 30 / 45 / 55 + PAR(20) | 3 trays | `stagedRounds.ts countStagePoints` |
+| Labyrinth (`maze`) | 60,000 ms | exit: 120 + PAR(30) | 110 × (p − 0.05) ÷ 0.95 × wasteFactor(cells walked, route length); p = furthest route step beyond the start ÷ steps to the exit | Shape A; else 110 × (furthest index + 1) ÷ route length (the start cell scored 1–2) | 19 × 19 | `scoring.ts scoreMaze`; `grade.ts` |
+| Matchmaker (`pairmatch`) | 90,000 ms | 120 + PAR(30) | 110 × pairs ÷ 14 − 1 per mismatched try beyond 25 | Shape A; else 8 per pair (up to 112) | 15 pairs | `scoring.ts scorePairMatch` |
 
 **Attention notes**
-- Mixed Signals' reveal line "time bonus +N" uses `clashTimeBonusOf`, which is always linear (round(20 × left ÷ run)), while the score uses PAR(20): with 40 % of the run left the score adds 16 but the reveal says +8 (open item 4). The stored score is right.
-- Labyrinth scores 1–2 for doing nothing: the timeout submits the start cell, worth 1 ÷ route length of 110.
-- Matchmaker's unfinished maximum (112) sits above the usual 110; it is still below the 130 finish floor.
-- All seven intro SCORE lines match the code.
+- Double Take: wrong taps were free, so tapping every cell found all six and scored a finish. The lightest fix that passes rule b: each wrong tap costs 5 from unfinished credit, and all six with more than 5 wrong taps is not a finish. The phone still says "6 / 6 found"; the reveal shows the stored "Partly solved" (a phone-side tap budget display belongs to Attention polish).
+- Mixed Signals' reveal bonus line ("time bonus +N", `clashTimeBonusOf`) belongs to Room rules and trust and was left as it was; on clashRev 4 rounds its "+N" does not match the rev-4 rule (open item 4).
+- Tally: each tray's count is one of five values, so a blind guess in range often scores (audit flag; open item 15).
 
-## 8. Pattern — 7 active
+## 8. Pattern — 10 active (Pipeline, Chroma Lines and Heave moved from Logic, 13 Oct)
 
-At the buzzer the phone submits its draft answer with 0 ms left, and it is graded like any other answer, so a board's starting state is scored. Moves, presses, tilts, pours and pushes count cumulatively; Undo and Reset never give moves back.
+At the buzzer the phone submits its draft answer with 0 ms left, and it is graded like any other answer. Moves, presses, tilts, pours and pushes count cumulatively; Undo and Reset never give moves back. On new rounds the board's starting state never earns credit.
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Gridlock (`unblock`) | 60,000 ms (`UNBLOCK_TIME_MS`) | solved: Shape B | MOVES(25, moves, minimum) + PAR(25) | clamp(max(round(70 × p), 10 if any blocker cleared), 0, 70), p = 0.9 × blockers cleared from the gold car's lane ÷ blockers at the start, on the final state (most 63; the 10 floor never applies) | 1 gold car | none | `scoring.ts scoreUnblock`; `grade.ts` case "unblock" |
-| Tessellate (`blockparty`) | 60,000 ms (`BLOCK_TIME_MS`) | all 29 free cells covered: Shape A | PAR(20) | 12 per legal piece placed (`BLOCK_PIECE_POINTS`, most 96) | 9 pieces | none; illegal or overlapping placements are dropped | `scoring.ts scoreBlockParty`; `blockParty.ts verifyPlacements` |
-| Skid (`iceslide`) | 90,000 ms (`SLIDE_TIME_MS`) | solved: Shape B | MOVES(25) + PAR(25) | round(90 × (1 − best ÷ start)), best = fewest moves to the exit from the best state reached (`SLIDE_PARTIAL_POINTS` 90) | 1 ball | none | `scoring.ts scoreIceSlide` |
-| Topsy-Turvy (`gravity`) | 90,000 ms (`GRAV_TIME_MS`) | all 4 balls home: Shape B | MOVES(25, tilts, minimum) + PAR(25) | 30 per locked ball (`GRAV_LOCK_POINTS`; most 90, since 4 locked = solved) | 4 balls | none | `scoring.ts scoreGravity` |
-| Jumbled (`tiles`) | 60,000 ms (`TILES_TIME_MS`) | solved: Shape B | MOVES(25) + PAR(25) | 14 per tile in place, cap 90 | 8 tiles (3 × 3) | none | `scoring.ts scoreTiles` |
-| Turntable (`rings`) | 60,000 ms (`RINGS_TIME_MS`) | every spoke one colour: Shape B | MOVES(25, turns, minimum) + PAR(25) | 12 per aligned spoke (`RINGS_SPOKE_POINTS`, most 84) | 8 spokes | none | `scoring.ts scoreRings` |
-| Lightbender (`laser`) | 60,000 ms (`LASER_TIME_MS`) | all 6 gems lit, no bomb: 130 / 115 / 100 for shot 1 / 2 / 3 (`LASER_FIRE_BASE`) + PAR(20) | fewer shots = higher base | 15 per gem lit by the final placement (`LASER_GEM_POINTS`, most 90) | 6 gems, 3 shots | a bomb ends the beam (gems lit before it still count) | `scoring.ts scoreLaser`; `laser.ts verifyLaser` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | File + function |
+|---|---|---|---|---|---|
+| Gridlock (`unblock`) | 60,000 ms | 120 + MOVES(15) + PAR(15) | 110 × share of the gold car's blockers cleared × wasteFactor | Shape B; else round(70 × 0.9 × share) (most 63) | `scoring.ts scoreUnblock` |
+| Tessellate (`blockparty`) | 60,000 ms | 120 + PAR(30) | 110 × (pieces on their stored-solution cells − other legal pieces) ÷ 8 | Shape A; else 12 per legal piece (random drops scored ~96) | `scoring.ts scoreBlockParty`; `grade.ts` |
+| Skid (`iceslide`) | 90,000 ms | 120 + MOVES(15) + PAR(15) | 110 × (start − best) ÷ (start − 1) × wasteFactor, best = fewest moves to the exit from the best state reached | Shape B; else round(90 × (1 − best ÷ start)) | `scoring.ts scoreIceSlide` |
+| Topsy-Turvy (`gravity`) | 90,000 ms | 120 + MOVES(15, tilts) + PAR(15) | 110 × balls parked beyond the start ÷ 3 × wasteFactor | Shape B; else 30 per locked ball | `scoring.ts scoreGravity` |
+| Jumbled (`tiles`) | 60,000 ms | 120 + MOVES(15) + PAR(15) | 110 × (tiles the player put in place − start tiles moved out) ÷ (7 − tiles in place at the start) × wasteFactor | Shape B; else 14 per tile in place incl. the start (doing nothing scored 0–84) | `scoring.ts scoreTiles`; `grade.ts` |
+| Turntable (`rings`) | 60,000 ms | 120 + MOVES(15) + PAR(15) | 110 × spokes aligned beyond the start ÷ (7 − aligned at the start) × wasteFactor | Shape B; else 12 per aligned spoke | `scoring.ts scoreRings` |
+| Lightbender (`laser`) | 60,000 ms | all gems, no bomb: 120 + 15 / 8 / 0 for shot 1 / 2 / 3 + PAR(15) (shots are taken as an input; Room rules and trust moves them to a server-read log) | 22 per gem lit by the final placement (fired at least once) | 130 / 115 / 100 + PAR(20); else 15 per gem | `scoring.ts scoreLaser` |
+| Pipeline (`pipes`) | 120,000 ms | 120 + PAR(30) | 110 × (tiles joined to the source beyond the start ÷ (49 − start))² | Shape A; else the stepped 90 / 85 / … / 1.5 × j table (the start scored 2–21) | `scoring.ts scorePipes` |
+| Chroma Lines (`flow`) | 75,000 ms | 120 + PAR(30) | 110 × (pairs joined on their solution route − other joined pairs) ÷ pairs (every pair joined with cells empty = 110) | Shape A; else 10 per pair (up to 120) | `scoring.ts scoreFlow`; `grade.ts` |
+| Heave (`push`) | 120,000 ms | 120 + MOVES(15, pushes) + PAR(15) | 110 × crates the player brought home ÷ (crates − 1) × wasteFactor(pushes) | Shape B; else 110 × home ÷ crates | `scoring.ts scorePush` |
 
 **Pattern notes**
-- Lightbender's shot count comes from the phone: `verifyLaser` turns 0 into 3 and the draft claims max(1, shots), so the "never fired = 0" branch is unreachable and a solving layout left unfired at the buzzer scores as shot 1 (open item 6).
-- Jumbled's starting board often has tiles in place: doing nothing scored 0–84 (non-zero on 79 % of boards measured).
-- Gridlock's intro says "up to 70"; the most is 63 (the 0.9 factor in `grade.ts`).
+- Topsy-Turvy: a parked ball never moves again, so random tilting parks balls and sometimes solves. wasteFactor takes the partial credit to 0 for random tilting, but a random solve is still a finish (rule c), so random tilting can still score 120 on about one board in five (audit flag; open item 15).
+- Tessellate and Chroma Lines credit only placements on the stored solution (both banks prove a unique, or stored, solution); a different full tiling still finishes.
 
-## 9. Logic — 14 active
+## 9. Logic — 11 active
 
-| Game (id) | Time limit | Complete / correct | Move / speed bonus | Unfinished / wrong | Items / stages | Penalties | File + function |
-|---|---|---|---|---|---|---|---|
-| Pipeline (`pipes`) | 120,000 ms (`PIPES_TIME_MS`) | all connected, no leaks: Shape A | PAR(20) | j = tiles connected to the source: ≥ 48 → 90; 47 → 85; 27–46 → 85 − 5 × floor((46 − j) ÷ 2) (27 → 40); below 27 → round(1.5 × j) | 49 cells (7 × 7) | none (a cliff from 40 to 39 at 26) | `scoring.ts scorePipes` |
-| Blackout (`lightsout`) | 75,000 ms (`LIGHTS_TIME_MS`) | all off: Shape B | MOVES(25, every press including undone ones, minimum) + PAR(25) | 1 / 2 / 3 / 4 lights on → 85 / 75 / 60 / 50; else 5 per solution cell pressed an odd number of times, most 45 | 36 lights | none; extra presses cost only move points | `scoring.ts scoreLightsOut` |
-| Box Six (`sudoku`) | 90,000 ms (`SUDOKU_TIME_MS`) | solved: Shape A | PAR(20) | round(110 × correct blanks ÷ blanks) | 36 cells, 14–16 given | none; wrong digits are free | `scoring.ts scoreSudoku` |
-| Chroma Lines (`flow`) | 75,000 ms (`FLOW_TIME_MS`) | every pair joined and every open cell filled: Shape A | PAR(20) | 10 per pair joined (`FLOW_PAIR_POINTS`; up to 120 on a 12-pair board) | 10–12 pairs | none | `scoring.ts scoreFlow` |
-| Heave (`push`) | 120,000 ms (`PUSH_TIME_MS`) | solved: Shape B | MOVES(25, pushes, minimum) + PAR(25) | round(110 × crates home ÷ crates) | 4–5 crates | none | `scoring.ts scorePush` |
-| Hanoi (`tower`) | 90,000 ms (stored on the puzzle, `TOWER_TIME_MS`) | solved: Shape B | MOVES(25) + PAR(25) | round(110 × rings stacked correctly from the bottom of the gold post ÷ 9); rings home at the start count | 9 rings, 3 or 4 posts | none | `scoring.ts scoreTower` |
-| Polypotions (`tubes`) | 90,000 ms (`TUBES_TIME_MS`) | every flask empty or full of one colour: Shape B | MOVES(25, pours, minimum) + PAR(25) | 22 per corked flask, cap 110 (`UNFINISHED_CAP`) | 10 flasks | none | `scoring.ts scoreTubes` |
-| Safe Cracker (`safe`) | 75,000 ms (`SAFE_TIME_MS`) | opened on try 1 / 2 / 3: 130 / 115 / 100 (`SAFE_TRY_POINTS`) + PAR(20) | fewer tries = higher base | 15 per dial right on the last try (clamp 60, most 45) | 4 dials, 3 tries | none | `scoring.ts scoreSafe` |
-| Bomb Defusal (`bomb`, bombVersion 2) | 90,000 ms (stored on the puzzle, `BOMB_V2_TIME_MS`; registry 75,000) | defused: Shape A | PAR(20) | round(75 × correct leading steps ÷ 6): 0 / 13 / 25 / 38 / 50 / 63 | 6 steps; 300-bomb bank | the first wrong step ends the run | `scoring.ts scoreBomb`; `bomb.ts checkBombPlan` |
-| Mosaic (`nonogram`) | 120,000 ms (`NONO_TIME_MS`) | exact picture: Shape A | PAR(20) | clamp(round(110 × correct filled ÷ the picture's filled cells) − 5 × wrong, 0, 110) | 7 × 7, 18–30 filled | −5 per wrong cell | `scoring.ts scoreNonogram` |
-| Colour Flood (`flood`) | 60,000 ms (`FLOOD_TIME_MS`) | solved: Shape C, 100 + MOVES(40, moves, par) + PAR(10) | the heaviest move weight of any game | round(110 × region ÷ 196) | 196 cells (14 × 14) | none | `scoring.ts scoreFlood` |
-| Tents and Trees (`tents`) | 90,000 ms (`TENTS_TIME_MS`) | every tent right, none wrong: min(150, 130 + PAR(20)) | PAR(20) | min(110, 10 per tent on a solution cell) | 11–12 trees | none; wrong tents only block a perfect | `tents.ts scoreTents` |
-| Shikaku (`shikaku`) | 90,000 ms (`SHIKAKU_TIME_MS`) | all 100 cells covered: min(150, 130 + PAR(20)) | PAR(20) | round(110 × area of accepted rectangles ÷ 100); a rectangle counts when it holds one clue of matching area, even off the solution | 100 cells | none | `shikaku.ts scoreShikaku`, `acceptedRects` |
-| Lamplighter (`lightup`) | 90,000 ms (`LIGHTUP_TIME_MS`) | all lit, no clash, numbers satisfied: min(150, 130 + PAR(20)) | PAR(20) | max(0, round(110 × lit ÷ white cells) − 5 × clashing bulbs) (110 possible with a wall number wrong) | 58–63 white cells | −5 per clashing bulb | `lightUp.ts scoreLightUp` |
+| Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | File + function |
+|---|---|---|---|---|---|
+| Blackout (`lightsout`) | 75,000 ms | 120 + MOVES(15, presses) + PAR(15) | after a press, 1 / 2 / 3 / 4 lights left = 110 / 95 / 80 / 65; else 5 × (solution cells pressed an odd number of times − other cells pressed an odd number of times), 0–45 | Shape B; 85 / 75 / 60 / 50; else 5 per solution cell, most 45 (pressing every cell scored 45) | `scoring.ts scoreLightsOut` |
+| Box Six (`sudoku`) | 90,000 ms | 120 + PAR(30) | round(110 × correct ÷ blanks) − 5 per wrong digit | Shape A; else round(110 × correct ÷ blanks), wrong digits free | `scoring.ts scoreSudoku` |
+| Hanoi (`tower`) | 90,000 ms | 120 + MOVES(15) + PAR(15) | 110 × rings stacked from the bottom of the gold post beyond the start ÷ (8 − home at the start) × wasteFactor | Shape B; else 110 × rings home ÷ 9 incl. the start (49 for doing nothing on 40 % of boards) | `scoring.ts scoreTower` |
+| Polypotions (`tubes`) | 90,000 ms | 120 + MOVES(15, pours) + PAR(15) | 110 × flasks corked beyond the start ÷ (colours − 1) × wasteFactor | Shape B; else 22 per corked flask, cap 110 | `scoring.ts scoreTubes` |
+| Safe Cracker (`safe`) | 75,000 ms | 120 + 15 / 8 / 0 for try 1 / 2 / 3 + PAR(15) | 25 per dial right on the last try beyond the first | 130 / 115 / 100 + PAR(20); else 15 per dial | `scoring.ts scoreSafe` |
+| Bomb Defusal (`bomb`, v2) | 90,000 ms | 120 + PAR(30) | 22 per correct leading step (five of six = 110) | Shape A; else round(75 × steps ÷ 6); v1 25 per step | `scoring.ts scoreBomb` |
+| Mosaic (`nonogram`) | 120,000 ms | 120 + PAR(30) | round(110 × correct filled ÷ the picture's filled cells) − 5 × wrong (unchanged) | Shape A; same partial | `scoring.ts scoreNonogram` |
+| Colour Flood (`flood`) | 60,000 ms | 120 + MOVES(15, moves, par) + PAR(15) | 110 × cells flooded beyond the starting region ÷ (196 − start) × wasteFactor(moves, par) | Shape C: 100 + MOVES(40) + PAR(10); else 110 × region ÷ 196 | `scoring.ts scoreFlood` |
+| Tents and Trees (`tents`) | 90,000 ms | 120 + PAR(30) | 10 per tent on a solution cell − 10 per other tent | 130 + PAR(20); else min(110, 10 × right), wrong tents free | `tents.ts scoreTents` |
+| Shikaku (`shikaku`) | 90,000 ms | 120 + PAR(30) | 110 × (area of accepted rectangles on the unique solution − area of other accepted rectangles) ÷ 100 | 130 + PAR(20); else 110 × accepted area ÷ 100 | `shikaku.ts scoreShikaku`; `grade.ts` |
+| Lamplighter (`lightup`) | 90,000 ms | 120 + PAR(30) | 110 × bulbs on the solution ÷ (solution bulbs − 1) − 5 per other bulb | 130 + PAR(20); else 110 × lit ÷ whites − 5 per clash (lighting everything at random scored 110) | `lightUp.ts scoreLightUp`; `grade.ts` |
 
 **Logic notes**
-- Doing nothing scores in Pipeline (2–21, always above 0), Hanoi (0–49; 49 on 40 % of boards) and Colour Flood (1–11), because the start state is graded.
-- Chroma Lines' unfinished maximum (120) is above the 110 used elsewhere and within 10 of the 130 finish floor.
-- Intro text: Blackout leaves out the 5-per-press branch; Mosaic says "÷ cells" (the code divides by the picture's filled cells); Tents leaves out the 110 cap. The rest match.
+- Doing nothing now scores 0 everywhere: Pipeline, Hanoi and Colour Flood subtract the starting state.
+- Colour Flood and Polypotions: any colour sequence floods the board, and random legal pours solve about two boards in three (1.4–3.4× the minimum). A random solve is still a finish, so mashing scores 120+ (audit flag; open item 15: a move limit in the game).
+- The free mistakes ruled "keep by design" on 10 Oct failed rule b for Tents and Trees (tents around every tree scored 110), so wrong tents now cost 10; Lookout's wrong picks cost 2 beyond the first 5; Trail's wrong tiles count against; Matchmaker's mismatched tries cost 1 beyond 25.
 - The scorers scale by type constants (`PIPES_CELLS` 49, `FLOOD_CELLS` 196, `SHIKAKU_CELLS` 100, `TILES_COUNT`, `RINGS_SEGMENTS`), not the stored board's size; every board today has those sizes.
 
 ---
@@ -295,11 +317,13 @@ Older stored rounds always replay and grade on their own rules: every gameplay o
 | Game | Field (current) | What branches |
 |---|---|---|
 | Every game | `speedPar` (1) | stamped: the 50 % par speed curve; unstamped: the old linear `round(P × ms ÷ limit)`. No effect where a game has no time term (Nucleus, Forage, Letterfall, Flash, Bang On, Bonk, Pull!) |
+| Every game | `puzzleScoreRev` (1, 13 Oct 2026) | stamped: the puzzle score shape (section 2): a finish = 120 + up to 30, unfinished at most 110 and only the player's own progress, the per-game rules in sections 4–9 (Double Take's wrong-tap cost and 5-tap allowance, Counterweight any order, Integer Pyramid's server-picked pyramid, Roundabout's slot-count verdict, Bang On's all-miss 0, wasteFactor, start states subtracted …); the stored breakdown `extra.parts`. Unstamped: the 13 Oct shapes, byte for byte (`puzzle-score-rev-check`). No effect on arcade games or Interloper. Slider's generator also stops dealing word rows on new puzzles |
 | Flash, Bang On, Ascend | `tapRev` (1) | stamped: the answer is a raw tap log (`log1:`, up to 16,000 characters and 1,000 taps) replayed by the server (section 14); unstamped: the original summary answers ("t1,t2,…\|falseStarts"; "d1,…,d10"; "reached,errors,…") with clamps only. The phone keeps a `LegacyStage` for unstamped rounds. The legacy Ascend phone sent nothing for an unfinished run (0) |
 | Don't Break the Chain | `rulesVersion` (2) | legacy only when the version isn't 2 **and** the stored board count gives 25 or 30 links: 6 or 5 per link, no bonus, momentum {≤ 10: 3,000 ms, ≤ 18: 2,500, rest: 2,000}, FASTER at 10 / 18 / 26; any other unversioned board uses the current rules. No `cycles` → the single legacy `cycle` |
-| Mixed Signals (`stroop`) | `clashRev` (3), `queue` (52) | V3 (`clashRev` 3): 75 s, fall ticks [107, 95, 83, 71, 59]; V2 (`queue` 52): 60 s, [95, 77, 65, 41]; V1 (`queue` 18): 60 s, legacy curve round(180 × 0.88^phase); V0: 60 s open stream, score clamp(round(150 × correct ÷ items) − 2 × wrong, 0, 150), no bonus. V1–V3 use the 130 queue formula |
+| Mixed Signals (`stroop`) | `clashRev` (4), `queue` (52) | V4 (`clashRev` 4, 13 Oct 2026): V3's play, scored on the puzzle shape (section 7); V3 (`clashRev` 3): 75 s, fall ticks [107, 95, 83, 71, 59]; V2 (`queue` 52): 60 s, [95, 77, 65, 41]; V1 (`queue` 18): 60 s, legacy curve round(180 × 0.88^phase); V0: 60 s open stream, score clamp(round(150 × correct ÷ items) − 2 × wrong, 0, 150), no bonus. V1–V3 use the 130 queue formula |
 | Pull! | `clayRev` (3) | 3: 10–12 birds; 2: 3–4 birds; anything else: no birds, no bird penalty, perfect = all 25 clays |
 | Operator | stage count | 3 stored stages (legacy): 30 / 40 / 50 + speed 30; 4 stages: 25 / 30 / 35 / 40 + speed 20 (`EQUATION_STAGE_POINTS`, `EQUATION_SPEED_POINTS`) |
+| Tenfall | `tenRev` (1, 13 Oct 2026) | 1: the puzzle shape (all ten = 120 + PAR(30); else 110 × cleared ÷ 9 − 2 per reset beyond 5), carried in the sim state (`scoreRev`); missing: 13 per target, all ten 130 + PAR(20). Play and checkpoints are the same |
 | Bomb Defusal | `bombVersion` (2) | 2: six steps, 6–9 rule card, 90 s stored on the puzzle, partial round(75 × steps ÷ 6), drawn from the 300-bomb v2 bank; missing: 4 steps, 6 rules, 75 s, 25 per step up to 75. Very old rows grade from `required ?? sequence` |
 | Lightbender | stored pieces | old rounds may have fixed `splitters[]`; new ones a movable splitter (`splitterPieces: 1`). Scoring is the same |
 | Strikeout, Cryptogrid, Swapword, Letterfall, Brimful, Checkout, Ballpark | `strikeoutRev`, `codewordRev`, `swapwordRev`, `wordfallRev`, `measureRev`, `checkoutRev`, `numlineRev` (all 1) | markers only: nothing branches on them yet |
@@ -343,6 +367,7 @@ Never dealt in rooms; still playable in practice, and stored rounds replay and s
 
 | Game (id) | Cat | Time limit | Complete | Bonus | Unfinished / wrong | Items / notes | File + function |
 |---|---|---|---|---|---|---|---|
+| Interloper (`intruder`) | attention | 75,000 ms | all 5 boards right: 130 + PAR(20) (`scoreIntruder`; unchanged on every revision, including `puzzleScoreRev: 1`) | PAR(20) | 24 per board right, 12 for one of two changes | retired 13 Oct 2026 (Rotation and shared screens); only the first N taps per board are read | `scoring.ts scoreIntruder`; `intruder.ts replayIntruder` |
 | Groups (`groups`) | word | 90,000 ms | 4/4: 100 + speedBonus(ms, 90,000) | speed, on all 4 | 3 → 60, 2 → 40, 1 → 20 | 4 groups | `scoring.ts scoreGroups` |
 | Word Match (`wordmatch`) | word | 45,000 ms | all 8: 100 + speedBonus(ms, 45,000) | speed, on all 8 | min(90, 13 × correct) | 8 pairs | `scoring.ts scoreWordMatch` |
 | Word Ladder (`ladder`) | word | 60,000 ms | 100 + speedBonus(ms, 60,000) + 20 for a minimum-length path | +20 at minimum | 1 letter away → 75, 2 → 50, 3 → 25 | — | `scoring.ts scoreWordLadder` |
@@ -421,35 +446,37 @@ Junction before the bands: rev 2 = 2 × cars + 3 × buses − gave up ± 4 per a
 
 ## 15. Dead code and stale comments
 
+Tidied on 13 Oct 2026 (puzzle score pass): `scoreSymbolScan`, `scoreEquation` and `scoreCountUp` removed from `scoring.ts` (grading uses the `stagedRounds.ts` versions); `STROOP_ITEMS` and `REACTION_FALSE_START_MS` removed; comments fixed in `scoring.ts` (Reaction, Stop Watch, Mirror Match), `types.ts` (Ascend's 24 numbers, Mirror Match's five shapes), `grade.ts` (six differences) and `parry.ts` (two per arrow).
+
 | Item | Finding |
 |---|---|
-| `scoreSymbolScan`, `scoreEquation`, `scoreCountUp` (`scoring.ts`) | referenced nowhere outside `scoring.ts`; grading uses the `stagedRounds.ts` versions |
-| `scoreStroop` | removed 11 Oct (commit 3c05e01); only the unused constant `STROOP_ITEMS = 12` remains |
-| `UNFINISHED_CAP`, `totalAnswerMs`, `MOVES_SHAPE` | exported but used only inside `scoring.ts` |
+| `UNFINISHED_CAP`, `totalAnswerMs`, `MOVES_SHAPE` | exported but used only inside `scoring.ts` (kept: the stored shapes use them) |
 | `add_maths` / `add_arcade` / `no_maths` | database columns and generated types only |
-| `SubmitExtra.errors` | accepted, never read (Ascend's phone still sends it; tap-log rounds count errors from the log) |
-| `REACTION_FALSE_START_MS` (200) | declared as "added to the average", never used |
-| Stale comments | `scoring.ts` Reaction "50 at 650 ms" and Stop Watch "down to 50 at 400 ms" (real: 47); `types.ts` "twenty two-digit numbers" (24); `grade.ts` "three differences" (6); `scoring.ts` Mirror Match "three flips"; `parry.ts` "Five per arrow" (2); `registry.ts` comments on `CORE_CATEGORIES` ("always in the room draw") and `ARCADE_CATEGORY` ("one round at most, only when the host toggle is on") describe the old rotation |
+| `SubmitExtra.errors` | accepted, never read (Ascend's phone still sends it; tap-log rounds count errors from the log); kept so older phones still type-check |
+| Stale comments left for their owners | `registry.ts` `CORE_CATEGORIES` ("always in the room draw") and `ARCADE_CATEGORY` ("one round at most, only when the host toggle is on") describe the old rotation (Rotation and shared screens owns `registry.ts`) |
 
 ---
 
 ## 16. Open items
 
-Nothing here has been changed in the app. Each needs Joe's ruling or a small follow-up; none affects stored rounds.
+Nothing here has been changed in the app unless it says so. Each needs Joe's ruling or a small follow-up; none affects stored rounds.
 
 1. **Closed 13 Oct 2026** (`tieRev: 1`, section 1; `scripts/tie-break-check.ts`). ~~**Tie-break time uses a fixed 30 s.** `totalAnswerMs` adds `ROUND_MS − ms_remaining` with `ROUND_MS` = 30,000, not the game's own limit: rounds longer than 30 s can add a negative amount, and rounds stored with 0 ms left (Flash, Go/No-Go, Mixed Signals) add 30,000. It decides only ties on equal totals. Changing it would change past results' tie-breaks, so it needs a versioned rule.~~
-2. **Doing nothing scores** in Bang On (20), Labyrinth (1–2), Slider (22–66 on about a fifth of grids), Jumbled (up to 84), Hanoi (up to 49), Pipeline (2–21), Colour Flood (1–11), Exact (up to about 61 on 3.5 % of boards) and Ballpark (wild placements). Decide whether a start-state credit should be subtracted (a new stamp per game).
-3. **Free mistakes** still in place: Lookout, Tents and Trees, Trail, Matchmaker, Double Take, Box Six, Roundabout, Cryptogrid, Ball Tracker (wrong trays). Ruled "keep by design" on 10 Oct for Lookout, Tents, Trail, Matchmaker, Interloper and Ball Tracker; the others are new to the list. (Interloper now reads only the first N taps per board, so a wrong tap costs a pick.)
-4. **Closed 13 Oct 2026:** the reveal's "time bonus +N" is now the bonus inside the stored score (the score less the same run scored unfinished), on whatever curve scored it; no score change. ~~**Mixed Signals' reveal shows a linear time bonus** (`clashTimeBonusOf`) while the score uses the par curve. The stored score is right; the reveal's "+N" line is wrong whenever less than all the run is left. Display fix only.~~
-5. **Counterweight's intro and help** say "20, 40 and 60 for scales 1, 2 and 3"; the code gives 20 for one scale, 60 for two, and requires them in order. Fix the wording or the rule (a rule change needs a stamp).
-6. **Closed 13 Oct 2026** (`alogRev: 1`, section 14; `scripts/laser-log-check.tsx`). ~~**Lightbender's shot count is the phone's word.** The server can't see shots, only the final layout; an unfired solving layout scores as shot 1. Record shots as a log (like the tap logs) before ranked play.~~
-7. **Integer Pyramid's partial credit goes to the pyramid the phone names** (`active`). Low stakes (30 at most) but client-chosen.
-8. **Intro / help wording gaps:** Strikeout's intro (2 per letter showing), Blackout (the 5-per-press branch), Mosaic ("÷ cells" is ÷ the picture's filled cells), Tents (110 cap), Gridlock ("up to 70" is 63), Tenfall (half-time rule), Letterfall (Qu counts as two), Fission and Junction (penalties are units), Flightpath (ring values 10 / 9 / 8 / 3 / 2 / 1), Wavefront's intro (armour hits).
-9. **Roundabout's `isCorrect` counts cells while the score counts word slots.** Harmless unless crossings fill every cell before every word is found; then the round is marked correct but scored as unfinished.
-10. **Tap timing is still client-side** (section 14): fully server-timed taps need live streaming before money play.
-11. **Tries rewards** (Lightbender, Safe Cracker 130 / 115 / 100) stay as an intended efficiency reward; recorded so it stays a conscious choice.
-12. **Arcade calibration.** Gemstone (good 88, great 103, near 112), Hover and Grappler (deliberately ~10 % lower), Rainbow Bridge (fitted low) and Roofbound (good ≈ near) sit outside the target bands by design or because the bots can't play like people; re-fit after Joe's phone testing.
-13. **Orbit falls back to an unstamped round** if the proved course bank ever misses; that round would play and score on the original rules. The bank is never empty today.
-14. **Stale comments and dead helpers** (section 15): tidy in the next code change.
+2. ~~Doing nothing scores~~ **Closed 13 Oct** (`puzzleScoreRev: 1`): Bang On, Labyrinth, Slider, Jumbled, Hanoi, Pipeline, Colour Flood, Exact and Ballpark score 0 for doing nothing on new rounds.
+3. **Free mistakes.** Closed where they failed the spam rule (Double Take, Box Six, Tents and Trees, Lookout, Trail, Matchmaker, Cryptogrid, Lamplighter, Shikaku, Tessellate, Chroma Lines, Blackout). Roundabout keeps free misses (the phone sends only slot words; costing misses needs an attempt log); Ball Tracker unchanged (arcade).
+4. **Closed 13 Oct 2026:** the reveal's "time bonus +N" is now the bonus inside the stored score (the score less the same run scored unfinished), on whatever curve scored it; no score change. ~~**Mixed Signals' reveal shows a linear time bonus** (`clashTimeBonusOf`) while the score uses the par curve. The stored score is right; the reveal's "+N" line is wrong whenever less than all the run is left. Display fix only.~~ On clashRev 4 rounds (puzzle score shape) the bonus read the same way is the rev-4 finish bonus: PAR(30) less 5 per wrong gate, with at most 2 wrong.
+5. ~~Counterweight's intro and help~~ **Closed 13 Oct**: new rounds credit each scale in any order (20 / 35 / 75); intro and help say so.
+6. **Closed 13 Oct 2026** (`alogRev: 1`, section 14; `scripts/laser-log-check.tsx`). ~~**Lightbender's shot count is the phone's word.** The server can't see shots, only the final layout; an unfired solving layout scores as shot 1. Record shots as a log (like the tap logs) before ranked play.~~ On `puzzleScoreRev: 1` rounds `scoreLaser` takes the log's shot count as its tries measure (15 / 8 / 0), and a solving layout never fired scores the unfinished 22 per gem lit (at most 110), not a solve.
+7. ~~Integer Pyramid's partial credit goes to the pyramid the phone names~~ **Closed 13 Oct**: new rounds credit the first unfinished pyramid.
+8. **Intro / help wording gaps** (arcade only now): Fission and Junction (penalties are units), Flightpath (ring values 10 / 9 / 8 / 3 / 2 / 1), Wavefront's intro (armour hits), Letterfall (Qu counts as two). Every puzzle SCORE line and help was rewritten to the new numbers on 13 Oct.
+9. ~~Roundabout's `isCorrect` counts cells~~ **Closed 13 Oct**: new rounds count word slots.
+10. **Tap timing is still client-side** (section 14).
+11. **Tries rewards** (Lightbender shots, Safe Cracker tries) are now the efficiency part: 15 / 8 / 0.
+12. **Arcade calibration** (section 10.3).
+13. **Orbit falls back to an unstamped round** if the proved course bank ever misses.
+14. ~~Stale comments and dead helpers~~ **Mostly closed 13 Oct** (section 15).
+15. **Random play still pays in a few puzzles** (audit, `docs/puzzle-score-bands-oct-2026.md`): Colour Flood and Polypotions (random moves solve the board: a finish is a finish, so this needs a move or pour limit in the game), Topsy-Turvy (parked balls never move, random tilting solves about one board in five), Counterweight (the two small scales balance by chance; needs harder small scales or a placement log), Operator (stages flash CORRECT, so stages 1–2 can be brute-forced; needs a try limit), Tally (each count is one of five values; needs wider ranges). Each needs a gameplay change with its own UI (a moves-left counter, a lock), which belongs to the game's polish session.
+16. **No-finish games keep their formulas** (rule b flags): Bang On random taps score about 90 (only the all-miss bottom changed), Flash's tap-every-colour 75–100, Pull!'s mashing 15–30, Letterfall's random chains about 25. Each needs Joe's ruling on a steeper curve or a miss cost.
+17. **Mixed Signals' finish is 52 sorted with at most 2 wrong**: good simulated players (who average 3–5 wrong) rarely finish, so its good band sits about 25 below the others (section bands doc).
 
-**Closed since 11 Oct:** rotation rebuilt (note 1); Flash, Bang On and Ascend tap logs (note 2); the "÷ 75 s" intro text (note 3); Wavefront `armourHits` counts the player's hits (note 4, false alarm); `scoreStroop` removed (note 5); Operator 25 / 30 / 35 / 40 + 20 (note 6); Exact 75 s and Slider 100 s (note 8); Pipeline's step boundary (note 9: 27 → 40, 26 → 39); the arcade finish-bonus and 130 / 150 notes (notes 10–11, superseded by the bands); the Tents comment (note 14).
+**Closed since 11 Oct:** rotation rebuilt; Flash, Bang On and Ascend tap logs; the "÷ 75 s" intro text; Wavefront `armourHits`; `scoreStroop` removed; Operator 25 / 30 / 35 / 40 + 20; Exact 75 s and Slider 100 s; Pipeline's step boundary; the arcade finish-bonus and 130 / 150 notes; the Tents comment. **13 Oct:** the puzzle score shape (items 2, 5, 7, 9, most of 3 and 14).

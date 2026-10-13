@@ -160,7 +160,7 @@ function IntroExample() {
         {step === 3 ? "Placed: 0.5% off → 8 points" : "Drag, then Place"}
       </p>
       <p className="max-w-[270px] text-center text-xs text-muted-foreground">
-        Only the ends are labelled. Within 2% of the line scores all 8.
+        Only the ends are labelled. Within 2% of the line scores all 8; 8% off scores 0.
       </p>
     </div>
   );

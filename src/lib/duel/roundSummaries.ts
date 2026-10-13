@@ -1,3 +1,4 @@
+import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
@@ -24,7 +25,6 @@ import {
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
-  STROOP_ITEMS,
   TARGET_TIME_MS,
   UNBLOCK_TIME_MS,
   WORDHUNT_TIME_MS,
@@ -917,7 +917,9 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
     detail: [
       `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
       puzzle.bombVersion === 2
-        ? `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
+        ? puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV
+          ? `22 per correct step, five of six = 110`
+          : `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
         : `25 per correct step, up to 75`,
     ],
   };
@@ -961,7 +963,9 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           : "Time ran out";
   return {
     summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [ending, `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
+    detail: [ending, puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV && rules.bonus
+      ? `110 × links ÷ ${rules.length - 1}, rounded down · all ${rules.length} links = 120 + up to 30 for speed (full with half the time left)`
+      : `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
   };
 };
 

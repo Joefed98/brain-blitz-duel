@@ -286,6 +286,11 @@ export interface TenDropState {
   clearTick: number;
   /** Recent events, packed tick·64 + code·8 + extra (0–7). */
   log: number[];
+  /**
+   * Score revision (TEN_DROP_SCORE_REV; absent on stored runs): 1 = the Oct 2026
+   * puzzle shape. Scoring only: play, checkpoints and the replay are unchanged.
+   */
+  scoreRev?: number;
 }
 
 function init(seed: number): TenDropState {
@@ -412,9 +417,33 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
   return next;
 }
 
-/** 13 per target; all ten adds round(20 × (run ticks − clear tick) ÷ run ticks). Cap 150. */
-export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS): number {
+/** Tenfall's puzzle-shape score revision (stamped as `tenRev` on new puzzles). */
+export const TEN_DROP_SCORE_REV = 1;
+/** Rev 1: overshoots (resets) that cost nothing on an unfinished run. */
+export const TD_REV1_FREE_RESETS = 5;
+
+/** The run's starting state under a score revision (0 / absent = the original 13 per target). */
+export function tenDropInit(seed: number, scoreRev?: number): TenDropState {
+  const state = init(seed);
+  return scoreRev && scoreRev >= TEN_DROP_SCORE_REV ? { ...state, scoreRev } : state;
+}
+
+/**
+ * Original: 13 per target; all ten adds speedBonusCurve(20, run ticks − clear tick, run ticks). Cap 150.
+ * Rev 1: all ten = 120 + speedBonusCurve(30, …) (the full 30 when the last clears by 45 s);
+ * otherwise floor(110 × targets ÷ 9) − 2 per reset beyond 5, so nine is 110.
+ */
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0): number {
   const n = clampInt(cleared, 0, TD_TARGETS);
+  if (scoreRev >= TEN_DROP_SCORE_REV) {
+    if (n >= TD_TARGETS) {
+      const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
+      return clampInt(120 + speedBonusCurve(30, left, TD_RUN_TICKS), 0, 150);
+    }
+    // Overshoots beyond the first TD_REV1_FREE_RESETS cost 2 each, so mashing tiles earns about nothing.
+    const cost = 2 * Math.max(0, resets - TD_REV1_FREE_RESETS);
+    return clampInt(Math.floor((110 * n) / (TD_TARGETS - 1)) - cost, 0, 110);
+  }
   let total = n * TD_CONFIG.pointsPerTarget;
   if (n >= TD_TARGETS) {
     const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
@@ -424,7 +453,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS): number 
 }
 
 function score(state: TenDropState): number {
-  return tenDropScore(state.cleared, state.clearTick);
+  return tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets);
 }
 
 /* ============================= Checkpoints ============================= */

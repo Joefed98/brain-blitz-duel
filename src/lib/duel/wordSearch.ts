@@ -5,6 +5,7 @@
  * forwards or backwards. The client's idea of which words it found is never used.
  */
 
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { WordSearchPlacement } from "./types";
 
@@ -112,13 +113,22 @@ export function checkWordSearchPath(
  * All six found: 130 + round(20 × ms left ÷ registry limit), capped at 150.
  * Otherwise: 20 per word. Wrong selections never affect the score.
  */
+/** Lookout rev 1: wrong selections beyond this many cost WS_REV1_WRONG_PENALTY each (unfinished credit only). */
+export const WS_REV1_FREE_WRONG = 5;
+export const WS_REV1_WRONG_PENALTY = 2;
+
 export function scoreWordSearch(
   found: number,
   total: number,
-  _wrong: number,
+  wrong: number,
   msRemaining: number,
   timeLimitMs: number,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: 120 + PAR(30); unfinished 22 per word (five of six = 110), less 2 per wrong selection beyond the first 5.
+    if (found >= total && total > 0) return finishParts(timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0);
+    return partialParts((110 * Math.max(0, found)) / Math.max(1, total - 1) - WS_REV1_WRONG_PENALTY * Math.max(0, wrong - WS_REV1_FREE_WRONG));
+  }
   if (found >= total && total > 0) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));
     return Math.min(150, 130 + (timeLimitMs > 0 ? speedBonusCurve(20, ms, timeLimitMs) : 0));

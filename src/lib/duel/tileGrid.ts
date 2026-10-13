@@ -3,6 +3,8 @@
  * row-major, "" for empty. The answer is the grid as 49 characters ("." empty).
  * Dictionary checks happen only on the server.
  */
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
+
 
 export const TG_SIZE = 7;
 export const TG_CELLS = TG_SIZE * TG_SIZE;
@@ -104,6 +106,11 @@ export function fitsTray(cells: string[], tray: string[]): boolean {
  */
 export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number, speed: number): number {
   const n = Math.max(0, Math.min(TG_TILES, placed));
+  // Rev 1: the grader passes PAR(30); unfinished credit is 110 × tiles in a real word ÷ 15.
+  if (scoreRev1()) {
+    if (valid && n === TG_TILES) return finishParts(Math.max(0, Math.min(30, speed)));
+    return partialParts((110 * Math.max(0, Math.min(TG_TILES, wordTiles))) / TG_TILES);
+  }
   if (valid && n === TG_TILES) return Math.min(150, 130 + Math.max(0, Math.min(20, speed)));
   return Math.min(150, 8 * Math.max(0, Math.min(TG_TILES, wordTiles)));
 }

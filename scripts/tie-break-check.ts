@@ -242,8 +242,9 @@ let clashOk = true;
 let bonusOk = true;
 let bonusDiffers = 0;
 for (let seed = 1; seed <= 12; seed++) {
-  // Stamped speedPar like every live round, so the score uses the par curve.
-  const puzzle = { ...buildStroop(), seed, speedPar: 1 };
+  // Stamped speedPar like every live round, so the score uses the par curve. Pinned to clashRev 3 (the
+  // score this test was written for); clashRev 4 (puzzle score shape) is checked just below.
+  const puzzle = { ...buildStroop(), clashRev: 3, seed, speedPar: 1 };
   let s = colourClashRev3Game.init(seed);
   const events: ArcadeInputEvent[] = [];
   const cps: ReturnType<typeof clashCheckpoint>[] = [];
@@ -279,6 +280,14 @@ for (let seed = 1; seed <= 12; seed++) {
     console.log(`  seed ${seed}: reveal ${JSON.stringify(line)} replay ${replay.timeBonus} vs score ${fresh.score} − ${unfinished}`);
   }
   if (clashTimeBonusOf(replay.state) !== replay.timeBonus) bonusDiffers++;
+  // clashRev 4 (same play): a finish is 120 + the time bonus, and the reveal's "+N" is the score above 120.
+  const fresh4 = gradeAnswer({ ...puzzle, clashRev: 4, tieRev: TIE_REV } as unknown as PuzzleData, raw, claimed);
+  const line4 = (fresh4.extra as { reveal?: { lines: string[] } }).reveal?.lines.find((l) => l.startsWith("time bonus"));
+  const want4 = fresh4.isCorrect ? `time bonus +${fresh4.score - 120}` : undefined;
+  if (want4 !== undefined ? line4 !== want4 || fresh4.score < 120 : !line4?.includes("—")) {
+    bonusOk = false;
+    console.log(`  seed ${seed}: clashRev 4 reveal ${JSON.stringify(line4)} vs score ${fresh4.score}`);
+  }
 }
 check(clashOk, "Mixed Signals: stamped rounds store the finishing time from the sim's finishing tick (older rounds 0), score unchanged");
 check(bonusOk, "Mixed Signals: the reveal's time bonus equals the bonus inside the stored score");
