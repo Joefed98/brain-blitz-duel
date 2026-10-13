@@ -23,8 +23,8 @@ import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 
 import "../src/lib/duel/wordfallDict.server";
-import { gradeAnswer } from "../src/lib/duel/generate.server";
-import type { PuzzleData } from "../src/lib/duel/types";
+import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
+import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { makeStepper, replayToEnd, REPLAY_TYPES } from "../src/lib/replay/steppers";
 import { ReplayTimeline } from "../src/lib/replay/timeline";
 import { runAtTick } from "../src/lib/arcade/introDemo";
@@ -134,6 +134,26 @@ const covered = new Set(today.runs.map((r) => r.type));
 for (const type of REPLAY_TYPES)
   ok(covered.has(type), `${type}: no stored fixture run on today's revision`);
 
+/**
+ * Today's revisions: for every game, a stored run carries exactly the revision
+ * stamps the live room generator puts on a new puzzle now (generatePuzzle).
+ * puzzleScoreRev is the puzzle-scoring stamp; engine replays don't read it.
+ */
+const stamps = (p: PuzzleData) =>
+  JSON.stringify(
+    Object.entries(p as unknown as Record<string, unknown>)
+      .filter(([k]) => /Rev$/.test(k) && k !== "puzzleScoreRev")
+      .sort(),
+  );
+const currentLines: string[] = [];
+for (const type of REPLAY_TYPES) {
+  const live = stamps(generatePuzzle(type as PuzzleType));
+  const run = today.runs.find((r) => r.type === type && stamps(r.puzzle) === live);
+  ok(run !== undefined, `${type}: no stored run on the revision rooms stamp today (${live})`);
+  if (run && ["tendrop", "stroop", "snip"].includes(type))
+    currentLines.push(`${type} ${live} → ${run.score}`);
+}
+
 const quiet = <T>(fn: () => T): T => {
   const error = console.error;
   console.error = () => {};
@@ -218,5 +238,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `Replays: ${checks} checks passed — ${cases.length} stored runs (${today.runs.length} on today's revisions, all ${REPLAY_TYPES.length} replayable games) replay to the server's final state and the stored score; seeks match; ${moment.summary} (${ticksStepped} ticks, ${seconds.toFixed(1)} s)`,
+  `Replays: ${checks} checks passed — ${cases.length} stored runs (${today.runs.length} in replay-runs.json, every one of the ${REPLAY_TYPES.length} replayable games on the revision rooms stamp today: ${currentLines.join("; ")}) replay to the server's final state and the stored score; seeks match; ${moment.summary} (${ticksStepped} ticks, ${seconds.toFixed(1)} s)`,
 );

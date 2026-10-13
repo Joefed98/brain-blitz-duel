@@ -15,8 +15,8 @@
  *
  * Needs the pre-installed Chromium (/opt/pw-browsers/chromium or
  * PLAYWRIGHT_CHROMIUM). Starts its own Vite dev server unless --url=<origin>.
- * Not run in CI (no browser on the check shards): run-checks lists it as
- * optional; run it locally after a replay change.
+ * CI runs it in the play5 job, which installs Playwright's Chromium (and caches
+ * Vite's pre-bundled dependencies) for arcade-play-check.
  *
  *   bun scripts/replay-play-check.ts [game ids…] [--url=http://127.0.0.1:5181]
  */
@@ -26,8 +26,17 @@ import { existsSync } from "node:fs";
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const GAMES = args.filter((a) => !a.startsWith("--"));
-const PLAY = GAMES.length ? GAMES : ["wavefront", "matchup", "orbit", "snip", "wordfall"];
-const CHROMIUM = process.env["PLAYWRIGHT_CHROMIUM"] ?? "/opt/pw-browsers/chromium";
+// Today's revisions with main's polished renderers: Tenfall tenRev 1, Mixed Signals clashRev 4,
+// Scrumper snipRev 6, Pull! (shot zones, one-tick-ahead drawing) and Gemstone.
+const PLAY = GAMES.length ? GAMES : ["tendrop", "stroop", "snip", "clayshoot", "matchup"];
+const CHROMIUM =
+  [
+    process.env["PLAYWRIGHT_CHROMIUM"],
+    "/opt/pw-browsers/chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+  ].find((path): path is string => Boolean(path && existsSync(path))) ??
+  "/opt/pw-browsers/chromium";
 const PORT = 5183;
 const NOISE =
   /ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_REFUSED|status of 404|Failed to load resource/;

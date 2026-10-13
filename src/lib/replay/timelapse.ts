@@ -151,7 +151,7 @@ export interface TimelapsePlan {
   frames: string[];
   total: number;
   min: number | null;
-  /** Milliseconds per frame, so the whole time-lapse runs 5–10 s. */
+  /** Milliseconds per frame, so the whole time-lapse runs 5–10 s (results screen: within its time left). */
   frameMs: number;
 }
 
@@ -163,6 +163,8 @@ export function planTimelapse(
   puzzle: PuzzleData,
   answer: string | null,
   isCorrect: boolean,
+  /** The time it may take in all (the results screen's time left); the podium leaves it out. */
+  budgetMs?: number,
 ): TimelapsePlan | null {
   const spec = TIMELAPSE[puzzle.type];
   if (!spec || !answer) return null;
@@ -170,7 +172,11 @@ export function planTimelapse(
   const tokens = spec.tokens(answer);
   if (tokens.length < 2) return null;
   const frames = Array.from({ length: tokens.length + 1 }, (_, k) => spec.prefix(tokens, k));
-  // Evenly spaced: about 7.5 s in all, inside 5–10 s, but never slower than 0.6 s a move.
-  const frameMs = Math.max(TIMELAPSE_MIN_MS / frames.length, Math.min(600, 7_500 / frames.length));
+  // Evenly spaced: about 7.5 s in all, inside 5–10 s, but never slower than 0.6 s a move;
+  // on the results screen never longer than the time it has left.
+  const frameMs =
+    budgetMs === undefined
+      ? Math.max(TIMELAPSE_MIN_MS / frames.length, Math.min(600, 7_500 / frames.length))
+      : Math.min(600, Math.max(0, Math.min(7_500, budgetMs)) / frames.length);
   return { spec, tokens, frames, total: spec.moves(tokens.length), min: spec.min(puzzle), frameMs };
 }

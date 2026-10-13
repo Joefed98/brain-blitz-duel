@@ -54,21 +54,60 @@ export interface HighlightClip {
 export const SLOW_SPEED = 0.5;
 
 /**
- * Clips of 3–5 s around each picked moment (one moment alone gets a longer
- * lead-in), half speed for half a second either side of the key tick.
+ * The results screen moves on 8 s after it opens (the room's auto-advance), so the
+ * whole highlight fits in about 7.5 s: two moments of about 3.7 s each, or one
+ * of about 7.3 s, never longer than the time the screen has left.
  */
-export function planHighlight(picked: readonly Moment[], endTick: number): HighlightClip[] {
-  const lead = picked.length === 1 ? 210 : 150;
-  const tail = picked.length === 1 ? 75 : 60;
-  return picked.map((moment) => {
-    const start = Math.max(0, moment.tick - lead);
-    const end = Math.min(endTick, moment.tick + tail);
-    const slowFrom = Math.max(start, moment.tick - 30);
-    const slowTo = Math.min(end, moment.tick + 30);
-    const slow = slowTo - slowFrom;
-    const seconds = (end - start - slow) / 60 + slow / (60 * SLOW_SPEED);
-    return { moment, start, end, slowFrom, slowTo, seconds };
-  });
+export const HIGHLIGHT_BUDGET_S = 7.5;
+/** Below this much time left a highlight isn't started at all (the slim bar shows instead). */
+export const HIGHLIGHT_MIN_S = 1.5;
+
+function clipAround(
+  moment: Moment,
+  endTick: number,
+  lead: number,
+  tail: number,
+  slowHalf: number,
+): HighlightClip {
+  const start = Math.max(0, moment.tick - lead);
+  const end = Math.min(endTick, moment.tick + tail);
+  const slowFrom = Math.max(start, moment.tick - slowHalf);
+  const slowTo = Math.min(end, moment.tick + slowHalf);
+  const slow = slowTo - slowFrom;
+  const seconds = (end - start - slow) / 60 + slow / (60 * SLOW_SPEED);
+  return { moment, start, end, slowFrom, slowTo, seconds };
+}
+
+const total = (clips: readonly HighlightClip[]) => clips.reduce((s, c) => s + c.seconds, 0);
+
+/**
+ * Clips around the picked moments (at most two), half speed either side of
+ * each key tick, fitted inside `budgetS` seconds: a second moment that doesn't
+ * fit is dropped (the heavier one stays), then the lead-in is shortened.
+ */
+export function planHighlight(
+  picked: readonly Moment[],
+  endTick: number,
+  budgetS = HIGHLIGHT_BUDGET_S,
+): HighlightClip[] {
+  const budget = Math.min(HIGHLIGHT_BUDGET_S, budgetS);
+  if (budget < HIGHLIGHT_MIN_S || picked.length === 0) return [];
+  const two = picked.slice(0, 2);
+  if (two.length === 2) {
+    const clips = two.map((m) => clipAround(m, endTick, 135, 45, 21));
+    if (total(clips) <= budget + 1e-9) return clips;
+  }
+  // One moment: the heavier (then the earlier) of the picks, with a longer lead-in when there is time.
+  const one = [...two].sort((a, b) => b.weight - a.weight || a.tick - b.tick)[0]!;
+  const tail = budget >= 3 ? 75 : 20;
+  const slowHalf = budget >= 3 ? 30 : 10;
+  // seconds = (lead + tail − 2·slowHalf) / 60 + 2·slowHalf / 30
+  const lead = Math.max(
+    10,
+    Math.min(300, Math.floor((budget - (2 * slowHalf) / 30) * 60 - tail + 2 * slowHalf)),
+  );
+  const clip = clipAround(one, endTick, lead, tail, slowHalf);
+  return clip.seconds <= budget + 1e-9 ? [clip] : [];
 }
 
 /** The podium's play of the game: one longer clip (about 10–15 s), slowed for 1.5 s around the key tick. */
@@ -89,7 +128,14 @@ export function planPlayOfTheGame(moment: Moment, endTick: number): HighlightCli
 }
 
 /** No moment fired: the run's last few seconds stand in, captioned with the score. */
-export function finalMomentsClip(endTick: number, game: string, caption: string): HighlightClip {
+export function finalMomentsClip(
+  endTick: number,
+  game: string,
+  caption: string,
+  budgetS = HIGHLIGHT_BUDGET_S,
+): HighlightClip | null {
+  if (budgetS < HIGHLIGHT_MIN_S) return null;
+  const length = Math.round(Math.min(4, budgetS) * 60);
   const moment: Moment = {
     game,
     id: "final",
@@ -99,7 +145,7 @@ export function finalMomentsClip(endTick: number, game: string, caption: string)
     caption,
     at: null,
   };
-  const start = Math.max(0, endTick - 240);
+  const start = Math.max(0, endTick - length);
   return {
     moment,
     start,

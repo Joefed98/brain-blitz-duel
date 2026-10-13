@@ -36,9 +36,10 @@ import { tiltArtGame } from "@/lib/arcade/tiltArt.renderer";
 import { btArtDraw } from "@/lib/arcade/ballTrackArt.renderer";
 import { whackArtGame } from "@/lib/arcade/whack.renderer";
 import { clayArtGameFor } from "@/lib/arcade/clayShoot.renderer";
-import { tenDropGame } from "@/lib/arcade/tenDrop";
+import { drawTenDrop } from "@/lib/arcade/tenDrop.renderer";
 import { wordfallArtGame } from "@/lib/arcade/wordfall.renderer";
-import { colourClashGame } from "@/lib/arcade/colourClash";
+import { clashVariantOf } from "@/lib/arcade/colourClash";
+import { colourClashArtGameFor } from "@/lib/arcade/colourClash.renderer";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Size = { width: number; height: number };
@@ -80,9 +81,19 @@ const SIMPLE: Record<string, (p: PuzzleData) => Draw> = {
   tilt: () => tiltArtGame.draw as Draw,
   whack: () => whackArtGame.draw as Draw,
   clayshoot: (p) => clayArtGameFor(rev(p, "clayRev")).draw as Draw,
-  tendrop: () => tenDropGame.draw as Draw,
+  // Number polish (#47): the live Tenfall board draws through drawTenDrop on the presentation clock.
+  tendrop: () =>
+    ((ctx, state, size) =>
+      drawTenDrop(
+        ctx,
+        state,
+        size,
+        typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1),
+        performance.now(),
+      )) as Draw,
   wordfall: () => wordfallArtGame.draw as Draw,
-  stroop: () => colourClashGame.draw as Draw,
+  // Speed & Attention polish (#48): Mixed Signals draws on the sim's lane grid through its art game.
+  stroop: (p) => colourClashArtGameFor(clashVariantOf(p as never)).draw as Draw,
 };
 
 export function makePlaybackDrawer(puzzle: PuzzleData): PlaybackDrawer | null {

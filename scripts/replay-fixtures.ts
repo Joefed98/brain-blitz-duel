@@ -12,7 +12,7 @@
  *   bun scripts/replay-fixtures.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import "../src/lib/duel/wordfallDict.server";
 import {
@@ -126,6 +126,44 @@ function greedy(type: string, puzzle: PuzzleData, game: any): string {
   return `${seed}|${game.score(state)}|${encodeInputEvents(events)}|${state.tick}|`;
 }
 
+/**
+ * Tenfall: taps the visible tile that lands the running total exactly on the
+ * target, else the one that gets closest without passing it (a reaction's
+ * worth of ticks between taps). Logged through recordInput like the phone.
+ */
+function tenfallBot(puzzle: PuzzleData, game: any): string {
+  const seed = (puzzle as any).seed as number;
+  const ranges = (game.inputRanges ?? []) as readonly InputRange[];
+  const events: ArcadeInputEvent[] = [];
+  let state = game.init(seed);
+  let wait = 0;
+  while (!game.isOver(state) && state.tick < game.runTicks) {
+    const t = state.tick + 1;
+    if (wait > 0) wait -= 1;
+    else {
+      const target = state.plan.targets[state.stage];
+      let best: { col: number; y: number; gap: number } | null = null;
+      for (const tile of state.tiles) {
+        const top = tile.y / 256;
+        if (top < 0 || top > TD_H - TD_CONFIG.tileH) continue;
+        const result = tdApply(tile.tile, state.total);
+        if (result === null || target === undefined || result > target || result === state.total)
+          continue;
+        const gap = target - result;
+        if (!best || gap < best.gap)
+          best = { col: tile.col, y: Math.round(top + TD_CONFIG.tileH / 2), gap };
+      }
+      if (best) {
+        recordInput(events, { t, k: TD_INPUT_TAP, a: best.col, b: best.y, c: 0, d: 0 }, ranges);
+        wait = 14;
+      }
+    }
+    state = game.step(state, inputAt(events, t));
+  }
+  return `${seed}|${game.score(state)}|${encodeInputEvents(events)}|${state.tick}|`;
+}
+import { tdApply, TD_CONFIG, TD_H, TD_INPUT_TAP } from "../src/lib/arcade/tenDrop";
+
 /* Letterfall: the scripted word-finding bot from scripts/wordfall-check.ts (section 3), unchanged in play. */
 const PREFIXES = (() => {
   const set = new Set<string>();
@@ -233,16 +271,22 @@ import {
   type WordfallState,
 } from "../src/lib/arcade/wordfall";
 
-// The five scripted games' sims, imported directly for driving.
-import { whackGame } from "../src/lib/arcade/whack";
-import { clayGameFor } from "../src/lib/arcade/clayShoot";
-import { tenDropGame } from "../src/lib/arcade/tenDrop";
-import { wordfallGameFor } from "../src/lib/arcade/wordfall";
-import { clashVariantOf, colourClashGameFor } from "../src/lib/arcade/colourClash";
+/**
+ * --add=tendrop,stroop,snip appends fresh runs for those games (a new revision on
+ * main) to the existing file and keeps every stored run already there, so older
+ * revisions stay covered.
+ */
+const ADD =
+  process.argv
+    .find((a) => a.startsWith("--add="))
+    ?.slice(6)
+    .split(",")
+    .filter(Boolean) ?? null;
+const FIXTURE_URL = new URL("./fixtures/replay-runs.json", import.meta.url);
 
 async function main() {
   const out: FixtureRun[] = [];
-  for (const type of REPLAY_TYPES) {
+  for (const type of ADD ?? REPLAY_TYPES) {
     const puzzle = generatePuzzle(type as PuzzleType);
     const spec = GAME_BY_TYPE.get(type as never);
     let answer: string;
@@ -280,18 +324,14 @@ async function main() {
         seed,
       );
     } else {
-      const p = puzzle as any;
-      const game =
-        type === "whack"
-          ? whackGame
-          : type === "clayshoot"
-            ? clayGameFor(p.clayRev)
-            : type === "tendrop"
-              ? tenDropGame
-              : type === "wordfall"
-                ? wordfallGameFor(p.wordfallRev)
-                : colourClashGameFor(clashVariantOf(p));
-      answer = type === "wordfall" ? wordfallBot(puzzle, game) : greedy(type, puzzle, game);
+      // The server's own start state for the stored revision (Tenfall tenRev 1 rides in it).
+      const game = replayGameFor(puzzle)!;
+      answer =
+        type === "wordfall"
+          ? wordfallBot(puzzle, game)
+          : type === "tendrop"
+            ? tenfallBot(puzzle, game)
+            : greedy(type, puzzle, game);
     }
     // Fixture runs carry no checkpoints, so the server logs a desync per run; that log is noise here.
     const error = console.error;
@@ -300,12 +340,25 @@ async function main() {
     console.error = error;
     out.push({
       type,
-      label: spec ? "great bot, today's revision" : "scripted, today's revision",
+      label: `${spec ? "great bot" : "scripted"}, today's revision${ADD ? ` (added ${new Date().toISOString().slice(0, 10)})` : ""}`,
       puzzle,
       answer: graded.answer ?? answer,
       score: graded.score,
     });
     console.log(`${type.padEnd(10)} score ${graded.score}`);
+  }
+  if (ADD) {
+    const existing = JSON.parse(readFileSync(FIXTURE_URL, "utf8")) as {
+      recorded: string;
+      runs: FixtureRun[];
+      puzzles: unknown[];
+    };
+    writeFileSync(
+      FIXTURE_URL,
+      JSON.stringify({ ...existing, runs: [...existing.runs, ...out] }) + "\n",
+    );
+    console.log(`appended ${out.length} runs`);
+    return;
   }
   // Two solved puzzle rounds for the time-lapse (the stored answer is the puzzle's own minimum solution).
   const puzzles: {
@@ -330,7 +383,7 @@ async function main() {
     console.log(`${type.padEnd(10)} score ${graded.score} (time-lapse fixture)`);
   }
   writeFileSync(
-    new URL("./fixtures/replay-runs.json", import.meta.url),
+    FIXTURE_URL,
     JSON.stringify({ recorded: new Date().toISOString().slice(0, 10), runs: out, puzzles }) + "\n",
   );
   console.log(`wrote ${out.length} runs`);

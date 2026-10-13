@@ -65,7 +65,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   balltrack: (p, a) => replayBallTrackRun(p.course, p.seed, a, p.btRev),
   whack: (p, a) => replayWhackRun(p.seed, a),
   clayshoot: (p, a) => replayClayRun(p.seed, a, p.clayRev),
-  tendrop: (p, a) => replayTenDropRun(p.seed, a),
+  tendrop: (p, a) => replayTenDropRun(p.seed, a, p.tenRev),
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),
   stroop: (p, a) => replayColourClashRun(p.seed, a, clashVariantOf(p)),
 };

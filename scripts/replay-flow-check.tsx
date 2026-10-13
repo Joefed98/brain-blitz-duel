@@ -12,7 +12,8 @@
  *     and host controls, and only adds the highlight / play-of-the-game props;
  *     the full-run viewer opens only on a tap (never on its own).
  *  3. The highlight fits the results screen: the clips run 3–5 s each and the
- *     whole highlight 8–12 s for two moments; the slim bar takes over before
+ *     whole highlight about 7.5 s, inside the 8 s results screen and never past
+ *     its time left; a stale-version reload ends the panels; the slim bar takes over before
  *     the table and Continue would leave a short phone's screen.
  *
  *   bun scripts/replay-flow-check.tsx
@@ -28,8 +29,17 @@ import { RoundResultsTable } from "../src/components/duel/RoundResultsTable";
 import { ReplayBoundary } from "../src/components/replay/ReplayBoundary";
 import { highlightPx } from "../src/components/replay/RoundHighlight";
 import type { Standing } from "../src/lib/duel/scoring";
-import { planHighlight, planPlayOfTheGame } from "../src/lib/replay/pick";
+import {
+  finalMomentsClip,
+  HIGHLIGHT_BUDGET_S,
+  HIGHLIGHT_MIN_S,
+  planHighlight,
+  planPlayOfTheGame,
+} from "../src/lib/replay/pick";
+import { planTimelapse } from "../src/lib/replay/timelapse";
+import { NEXT_ROUND_AUTO_MS, type PuzzleData } from "../src/lib/duel/types";
 import type { Moment } from "../src/lib/replay/moments";
+import { runTimelapseChecks } from "./replay-timelapse-lib";
 
 const failures: string[] = [];
 let checks = 0;
@@ -264,6 +274,23 @@ ok(
   "the full-run viewer must open only on a tap",
 );
 
+// The dev-only replay lab: unreachable in production (a plain import.meta.env.DEV, never cast,
+// so Vite folds it and drops the lab; the route answers not-found). Verified on the build output
+// on 13 Oct 2026: the route's beforeLoad compiles to an unconditional notFound and the fixture is absent.
+const lab = readFileSync("src/routes/replay-lab.tsx", "utf8");
+ok(
+  /beforeLoad: \(\) => \{\s*if \(!import\.meta\.env\.DEV\) throw notFound\(\);/.test(lab),
+  "replay-lab: production must answer not-found",
+);
+ok(
+  !/import\.meta as|\(import\.meta[^)]*\) as|import\.meta\.env as/.test(lab),
+  "replay-lab: a cast on import.meta stops Vite removing the dev check",
+);
+ok(
+  /import\.meta\.env\.DEV\s*\?\s*import\.meta\.glob\(/.test(lab),
+  "replay-lab: the fixture loads only through a dev-only glob",
+);
+
 /* 3: timing and fit */
 const m = (tick: number): Moment => ({
   game: "hover",
@@ -274,17 +301,75 @@ const m = (tick: number): Moment => ({
   caption: "ZONE 2",
   at: null,
 });
+// The results screen moves on after NEXT_ROUND_AUTO_MS (8 s): the highlight fits inside it.
+ok(
+  HIGHLIGHT_BUDGET_S <= NEXT_ROUND_AUTO_MS / 1000 - 0.4,
+  `highlight budget ${HIGHLIGHT_BUDGET_S} s does not fit the ${NEXT_ROUND_AUTO_MS / 1000} s results screen`,
+);
 const two = planHighlight([m(900), m(2400)], 3600);
 const total = two.reduce((s, c) => s + c.seconds, 0);
 ok(
-  two.every((c) => c.seconds >= 3 && c.seconds <= 5),
-  `highlight clips run ${two.map((c) => c.seconds.toFixed(1)).join(", ")} s (3–5 s each)`,
+  two.length === 2 && two.every((c) => c.seconds >= 3 && c.seconds <= 4),
+  `two-moment clips run ${two.map((c) => c.seconds.toFixed(2)).join(", ")} s (about 3.7 s each)`,
 );
-ok(total >= 8 && total <= 12, `a two-moment highlight runs ${total.toFixed(1)} s (8–12 s)`);
+ok(
+  total >= 7 && total <= HIGHLIGHT_BUDGET_S,
+  `a two-moment highlight runs ${total.toFixed(2)} s (about 7.5 s, at most ${HIGHLIGHT_BUDGET_S})`,
+);
 const one = planHighlight([m(1200)], 3600)[0]!;
 ok(
-  one.seconds >= 3 && one.seconds <= 6.5,
-  `a one-moment highlight runs ${one.seconds.toFixed(1)} s`,
+  one.seconds >= 6 && one.seconds <= HIGHLIGHT_BUDGET_S,
+  `a one-moment highlight runs ${one.seconds.toFixed(2)} s`,
+);
+// With less time left (a late fetch, a slow first pass) it shrinks: one moment, a shorter lead, or nothing.
+for (const left of [7.5, 6, 4.5, 3, 2, 1.6, 1.2, 0, -3]) {
+  const plan = planHighlight([{ ...m(900), weight: 40 }, m(2400)], 3600, left);
+  const secs = plan.reduce((s, c) => s + c.seconds, 0);
+  ok(secs <= Math.max(0, left) + 1e-9, `${left} s left: the highlight runs ${secs.toFixed(2)} s`);
+  ok(
+    left < HIGHLIGHT_MIN_S ? plan.length === 0 : plan.length >= 1,
+    `${left} s left: ${plan.length} clips`,
+  );
+  if (plan.length === 1)
+    ok(plan[0]!.moment.weight === 40, `${left} s left: the heavier moment must stay`);
+  const fallback = finalMomentsClip(3600, "hover", "90 points", left);
+  ok(
+    fallback === null ? left < HIGHLIGHT_MIN_S : fallback.seconds <= left + 1e-9,
+    `${left} s left: the stand-in clip runs ${fallback?.seconds} s`,
+  );
+}
+const lapse = planTimelapse(
+  { type: "tower", minMoves: 7 } as unknown as PuzzleData,
+  "0>2,0>1,2>1,0>2,1>0,1>2,0>2",
+  true,
+  4000,
+);
+ok(
+  lapse !== null && lapse.frames.length * lapse.frameMs <= 4000 + 1e-6,
+  `a time-lapse with 4 s left runs ${lapse ? (lapse.frames.length * lapse.frameMs).toFixed(0) : "-"} ms`,
+);
+// A stale-version reload (lib/appUpdate) on the results or final screen ends the panel: it never claims the gate or holds a submission.
+for (const file of files)
+  ok(
+    !/\b(useUpdateGate|claimGate|trackSubmission)\b/.test(readFileSync(file, "utf8")),
+    `${file}: holds the stale-version reload`,
+  );
+for (const file of [
+  "src/components/replay/RoundHighlight.tsx",
+  "src/components/replay/PlayOfTheGame.tsx",
+]) {
+  const text = readFileSync(file, "utf8");
+  ok(
+    /useAppUpdateStatus\(\) === "updating"/.test(text),
+    `${file}: does not end on a stale-version reload`,
+  );
+}
+ok(
+  /if \(!winner \|\| updating\) return null;/.test(highlightSource) &&
+    /if \(!chosen \|\| done \|\| updating\) return null;/.test(
+      readFileSync("src/components/replay/PlayOfTheGame.tsx", "utf8"),
+    ),
+  "the highlight and the play of the game render nothing once the reload starts",
 );
 const potg = planPlayOfTheGame(m(2000), 3600);
 ok(
@@ -309,11 +394,16 @@ ok(
   "slim bar on a short phone with a full room, picture otherwise",
 );
 
+/* 4: the time-lapse still drives every reveal board it supports */
+const lapse4 = runTimelapseChecks();
+checks += lapse4.checks;
+failures.push(...lapse4.failures);
+
 if (failures.length) {
   console.log(failures.join("\n"));
   console.log(`FAIL: ${failures.length} of ${checks} replay flow checks`);
   process.exit(1);
 }
 console.log(
-  `Replay flow: ${checks} checks passed — results and podium keep Continue, Play again, Leave and the host's controls with or without a replay panel (and with a failing one); no replay code calls a room action or timer; highlight 8–12 s, play of the game 10–15 s; the panel never pushes Continue off screen`,
+  `Replay flow: ${checks} checks passed — results and podium keep Continue, Play again, Leave and the host's controls with or without a replay panel (and with a failing one); no replay code calls a room action or timer; highlight within the 8 s results screen (about 7.5 s), ends on a stale-version reload, play of the game 10–15 s; the panel never pushes Continue off screen; time-lapse boards driven: ${lapse4.driven.join(", ")}`,
 );

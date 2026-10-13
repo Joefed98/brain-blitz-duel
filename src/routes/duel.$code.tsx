@@ -949,6 +949,7 @@ function DuelScreen() {
                 round={round}
                 active={phase === "result"}
                 players={table.length}
+                msLeft={NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))}
               />
             }
           />
@@ -984,6 +985,7 @@ function DuelScreen() {
               round={round}
               active={phase === "result"}
               players={3}
+              msLeft={NEXT_ROUND_AUTO_MS - (now - (phaseStart ?? now))}
             />
           }
         />

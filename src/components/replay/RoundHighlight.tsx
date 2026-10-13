@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { momentCard } from "@/lib/replay/cards";
 import { soundCue, SHARED_CUES } from "@/lib/replay/cues";
-import { finalMomentsClip, planHighlight } from "@/lib/replay/pick";
+import { useAppUpdateStatus } from "@/lib/appUpdate";
+import {
+  finalMomentsClip,
+  HIGHLIGHT_BUDGET_S,
+  HIGHLIGHT_MIN_S,
+  planHighlight,
+} from "@/lib/replay/pick";
 import { pickMoments } from "@/lib/replay/moments";
 import { roundReplayFn } from "@/lib/replay/replay.functions";
 import type { ReplayRound } from "@/lib/replay/replay.server";
@@ -39,6 +45,23 @@ function useHighlightPx(players: number): number {
   return highlightPx(players, typeof window === "undefined" ? 800 : window.innerHeight);
 }
 
+/** Margin kept before the results screen moves on, so the last frame isn't cut mid-moment. */
+const END_MARGIN_S = 0.4;
+
+/**
+ * Seconds the results screen has left, counted from the value the room gave
+ * when the panel mounted (server clock) on this device's monotonic clock.
+ */
+function useSecondsLeft(msLeft: number | undefined): () => number {
+  const at = useRef<{ ms: number; t: number } | null>(null);
+  if (at.current === null)
+    at.current = {
+      ms: msLeft ?? HIGHLIGHT_BUDGET_S * 1000 + 500,
+      t: typeof performance === "undefined" ? 0 : performance.now(),
+    };
+  return () => (at.current!.ms - (performance.now() - at.current!.t)) / 1000 - END_MARGIN_S;
+}
+
 /**
  * Results-screen highlight (fetches the round once it has closed for everyone).
  * Display only and never in the way: it sits above the table, plays once on its
@@ -50,11 +73,14 @@ export function RoundHighlight({
   round,
   active,
   players,
+  msLeft,
 }: {
   roomId: string;
   round: number;
   active: boolean;
   players: number;
+  /** Milliseconds before the results screen moves on (the room's auto-advance less the time already shown; the room passes it). */
+  msLeft?: number;
 }) {
   const fetchRound = useServerFn(roundReplayFn);
   const { data } = useQuery({
@@ -67,42 +93,79 @@ export function RoundHighlight({
   if (!active || !data || !data.ok || !data.data) return null;
   return (
     <ReplayBoundary>
-      <RoundHighlightView round={data.data} players={players} />
+      <RoundHighlightView
+        round={data.data}
+        players={players}
+        {...(msLeft !== undefined ? { msLeft } : {})}
+      />
     </ReplayBoundary>
   );
 }
 
 /** The highlight for one closed round's data (also used by the replay lab). */
-export function RoundHighlightView({ round, players }: { round: ReplayRound; players: number }) {
+export function RoundHighlightView({
+  round,
+  players,
+  msLeft,
+}: {
+  round: ReplayRound;
+  players: number;
+  msLeft?: number;
+}) {
   const px = useHighlightPx(players);
+  const secondsLeft = useSecondsLeft(msLeft);
+  // A stale-version reload starting on this screen ends whatever the panel was playing.
+  const updating = useAppUpdateStatus() === "updating";
   const winner = round.winner;
-  if (!winner) return null;
+  if (!winner || updating) return null;
   const type = round.puzzle.type;
-  if (canReplay(type) && winner.answer) return <ArcadeHighlight round={round} px={px} />;
+  if (canReplay(type) && winner.answer)
+    return <ArcadeHighlight round={round} px={px} secondsLeft={secondsLeft} />;
   const card = momentCard(round.puzzle, winner.answer, winner.extra);
   if (card) return px > 0 ? <CardHighlight round={round} /> : null;
   const plan = planTimelapse(round.puzzle, winner.answer, winner.isCorrect);
-  if (plan) return px > 0 ? <TimelapseHighlight round={round} px={px} /> : null;
+  if (plan)
+    return px > 0 && secondsLeft() >= HIGHLIGHT_MIN_S ? (
+      <TimelapseHighlight round={round} px={px} secondsLeft={secondsLeft} />
+    ) : null;
   return null;
 }
 
-function ArcadeHighlight({ round, px }: { round: ReplayRound; px: number }) {
+function ArcadeHighlight({
+  round,
+  px,
+  secondsLeft,
+}: {
+  round: ReplayRound;
+  px: number;
+  secondsLeft: () => number;
+}) {
   const winner = round.winner!;
   const analysis = useRoundAnalysis(round.puzzle, winner.answer);
   const [stage, setStage] = useState<"play" | "done">("play");
+  // The stale-version reload (lib/appUpdate) may fire on the results screen: once it
+  // starts, the highlight and the full-run player simply end; nothing waits for them.
+  const updating = useAppUpdateStatus() === "updating";
   const [caption, setCaption] = useState<string | null>(null);
   const [watching, setWatching] = useState(false);
   const clips = useMemo(() => {
     if (analysis.status !== "ready") return [];
+    // Fitted inside the time the results screen has left (about 7.5 s at most).
+    const budget = Math.min(HIGHLIGHT_BUDGET_S, secondsLeft());
     const picked = pickMoments(analysis.moments, 2);
-    if (picked.length) return planHighlight(picked, analysis.timeline.endTick);
-    return [
-      finalMomentsClip(analysis.timeline.endTick, round.puzzle.type, `${winner.score} points`),
-    ];
-  }, [analysis, round.puzzle.type, winner.score]);
+    if (picked.length) return planHighlight(picked, analysis.timeline.endTick, budget);
+    const fallback = finalMomentsClip(
+      analysis.timeline.endTick,
+      round.puzzle.type,
+      `${winner.score} points`,
+      budget,
+    );
+    return fallback ? [fallback] : [];
+  }, [analysis, round.puzzle.type, winner.score]); // eslint-disable-line react-hooks/exhaustive-deps
+  const playing = analysis.status === "ready" && clips.length > 0 && stage === "play" && !updating;
   useEffect(() => {
-    if (analysis.status === "ready") soundCue(SHARED_CUES.highlightStart);
-  }, [analysis.status]);
+    if (playing) soundCue(SHARED_CUES.highlightStart);
+  }, [playing]);
   if (analysis.status === "none") return null;
   const name = winner.name;
   const watch = analysis.status === "ready" && (
@@ -117,7 +180,9 @@ function ArcadeHighlight({ round, px }: { round: ReplayRound; px: number }) {
   );
   if (
     stage === "done" ||
+    updating ||
     analysis.status === "loading" ||
+    clips.length === 0 ||
     (px === 0 && analysis.status === "ready")
   ) {
     // The slim bar: one line, so a full room on a short phone keeps the table and Continue in view.
@@ -131,7 +196,7 @@ function ArcadeHighlight({ round, px }: { round: ReplayRound; px: number }) {
         action={analysis.status === "ready" ? watch : null}
         testId="highlight-done"
       >
-        {watching && analysis.status === "ready" ? (
+        {watching && !updating && analysis.status === "ready" ? (
           <FullRunViewer
             timeline={analysis.timeline}
             drawer={analysis.drawer}
@@ -194,11 +259,26 @@ function CardHighlight({ round }: { round: ReplayRound }) {
   );
 }
 
-function TimelapseHighlight({ round, px }: { round: ReplayRound; px: number }) {
+function TimelapseHighlight({
+  round,
+  px,
+  secondsLeft,
+}: {
+  round: ReplayRound;
+  px: number;
+  secondsLeft: () => number;
+}) {
   const winner = round.winner!;
+  // Fitted inside the time the results screen has left, like the arcade highlight.
   const plan = useMemo(
-    () => planTimelapse(round.puzzle, winner.answer, winner.isCorrect)!,
-    [round.puzzle, winner.answer, winner.isCorrect],
+    () =>
+      planTimelapse(
+        round.puzzle,
+        winner.answer,
+        winner.isCorrect,
+        Math.min(HIGHLIGHT_BUDGET_S, secondsLeft()) * 1000,
+      )!,
+    [round.puzzle, winner.answer, winner.isCorrect], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const [done, setDone] = useState(false);
   if (done) return null;

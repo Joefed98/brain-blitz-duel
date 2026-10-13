@@ -7,14 +7,20 @@ version stamps. Every replay is rebuilt from what a round already stores: the pu
 ## What players see
 
 - **Results screen** (`phase === "result"`): a panel above the table with the round winner's
-  highlight. Arcade and engine rounds play the winner's top one or two moments (3–5 s each,
-  half speed for half a second either side of the key tick, the moment's caption under it;
-  8–12 s in all, about 6 s for a single moment), with **Skip**, then a slim bar with
-  **Watch \<name\>'s run** (the full run: play / pause, Slow, 1x, 2x, a seek bar, Close).
-  Flash, Bang On, Nucleus and Forage show a **moment card**; puzzles with a stored ordered
-  move list show a **time-lapse**. Nothing is forced: the panel plays once, Continue, the host's
-  controls and every timer are untouched, and the room moves on when it always did (the
-  results screen still auto-advances after 8 s, so a highlight can be cut short).
+  highlight. The results screen moves on 8 s after it opens, so the highlight fits inside it:
+  at most two moments, about 7.5 s together (about 3.7 s each, half speed for 0.35 s either
+  side of the key tick; one moment alone runs about 7.3 s), and never longer than the time the
+  screen has left when the replay is ready (`planHighlight`'s budget, from the room's own
+  clock; under 1.5 s left it doesn't start). The moment's caption sits under it, with **Skip**,
+  then a slim bar with **Watch \<name\>'s run** (the full run: play / pause, Slow, 1x, 2x, a seek
+  bar, Close). Flash, Bang On, Nucleus and Forage show a **moment card**; puzzles with a stored
+  ordered move list show a **time-lapse**, fitted to the same budget. Nothing is forced: the
+  panel plays once, Continue, the host's controls and every timer are untouched, and the room
+  moves on when it always did.
+- **Stale-version reload** (#39, `lib/appUpdate`): the results, standings and final screens
+  allow it. The replay panels never claim the update gate or hold a submission; once the
+  reload starts ("Updating…"), the highlight, the full-run player and the play of the game
+  simply end, and the page reload takes them away.
 - **Podium** (multi-player `Podium` and two-player `FinalResult`): the **play of the game**, the
   single best candidate across every round, played once (10–15 s for an arcade moment,
   5–10 s for a time-lapse, 6 s for a card) with Skip. Not shown after a "Finish now" ending.
@@ -48,8 +54,8 @@ in slices and never holds a frame; if it takes over 2.5 s, or the first 40 frame
 over 28 ms, the panel shows a still of the moment's tick with its caption instead.
 
 Replayable: the 22 arcade games (Junction included, practice only) plus Letterfall, Tenfall,
-Bonk, Pull! and Mixed Signals. `replay-check` proves, for all 27 on today's revision and the
-232 older-revision runs in the score-band and Tuning A/C/E fixtures, that the stepper's final
+Bonk, Pull! and Mixed Signals. `replay-check` proves, for every game on the revision rooms stamp today
+(Tenfall tenRev 1, Mixed Signals clashRev 4 and Scrumper snipRev 6 included) and the older-revision runs in the score-band and Tuning A/C/E fixtures, that the stepper's final
 state is deep-equal to the server replay's, on the same tick, with the stored score.
 
 ## Moments
@@ -217,7 +223,8 @@ From the winner's stored answer and `round_results.extra` (`src/lib/replay/cards
 The time-lapse hands the game's own `Reveal` component growing prefixes of the stored move
 list, read-only (no game file is edited), with a move counter against the minimum where the
 puzzle stores one. Stored lists carry no times, so moves are spaced evenly (about 7.5 s in all,
-never under 5 s or over 10 s, at most 0.6 s a move). Wired today: Gridlock, Slider, Hanoi,
+never under 5 s or over 10 s, at most 0.6 s a move; on the results screen within the time it has
+left). Wired today: Gridlock, Slider, Hanoi,
 Labyrinth, Polypotions, Topsy-Turvy, Colour Flood, Turntable, Strikeout and Heave (Gridlock and
 Heave draw the player's board only when told the answer was right, so they time-lapse only
 solved rounds). The remaining puzzles are wired to the timestamped puzzle action log that Room
@@ -288,12 +295,21 @@ No audio yet; every replay effect dispatches a named cue. See docs/sound-cues/re
   refused), and a source scan.
 - `replay-flow-check` (shard d): results and podium screens keep Continue / Play again / Leave
   with a panel, or a failing one; no replay code calls a room action or timer; timings; fit.
-- `replay-play-check` (local only, `CI_SKIP`: needs headless Chromium, which only the play
-  shards install): five stored runs in the replay lab's player at 1x, 2x and after a seek, frame
-  time, stored score; Continue and Play again on screen and on top with the panels up.
+- `replay-play-check` (CI shard **play5**, which installs Playwright's Chromium and caches
+  Vite's dependencies): five stored runs (Tenfall tenRev 1, Mixed Signals clashRev 4, Scrumper
+  snipRev 6, Pull!, Gemstone by default) in the replay lab's player with main's polished
+  renderers at 1x, 2x and after a seek, frame time, stored score; Continue and Play again on
+  screen and on top with the panels up.
+- `replay-flow-check` also renders each time-lapse puzzle's own (polished) Reveal with growing
+  prefixes of a move list and fails if its board stops changing with the moves.
 
 Fixtures: `scripts/fixtures/replay-runs.json`, rebuilt by `bun scripts/replay-fixtures.ts`
 (the skill-band bots at "great" on today's revisions, greedy drivers for Bonk, Pull!, Tenfall
 and Mixed Signals, the Letterfall bot from wordfall-check, and two solved puzzle rounds).
+Revisions that reach main later get stored runs appended with
+`bun scripts/replay-fixtures.ts --add=<types>` (13 Oct 2026: Tenfall tenRev 1, Mixed Signals
+clashRev 4, Scrumper snipRev 6), and `replay-check` fails unless every game has a stored run on
+the revision stamps the live generator puts on a new puzzle.
 Development lab: `/replay-lab?view=results|podium|player|timelapse|card&game=<id>` (dev server
-only).
+only: in a production build the route's `beforeLoad` compiles to an unconditional not-found, the
+lab chunk is a stub and the fixture isn't bundled).

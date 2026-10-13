@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
+import { useAppUpdateStatus } from "@/lib/appUpdate";
 import { preloadGameData } from "@/lib/duel/gamePreload";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { analyseRound, scanInSlices } from "@/lib/replay/analyse";
@@ -58,6 +59,8 @@ interface Chosen {
 export function PlayOfTheGameView({ rounds }: { rounds: ReplayRound[] }) {
   const [chosen, setChosen] = useState<Chosen | null>(null);
   const [done, setDone] = useState(false);
+  // The final screen allows the stale-version reload too: once it starts, the play simply ends.
+  const updating = useAppUpdateStatus() === "updating";
 
   useEffect(() => {
     let cancelled = false;
@@ -140,7 +143,7 @@ export function PlayOfTheGameView({ rounds }: { rounds: ReplayRound[] }) {
     };
   }, [rounds]);
 
-  if (!chosen || done) return null;
+  if (!chosen || done || updating) return null;
   const finish = () => {
     soundCue(SHARED_CUES.playOfTheGameEnd);
     setDone(true);

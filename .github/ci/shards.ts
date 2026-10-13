@@ -17,7 +17,8 @@ export const SHARDS: Record<string, string[]> = {
   play2: ["arcade-play-check.ts@2/5"],
   play3: ["arcade-play-check.ts@3/5"],
   play4: ["arcade-play-check.ts@4/5"],
-  play5: ["arcade-play-check.ts@5/5"],
+  // play5 also plays stored rounds through the replay player (replay-play-check, ~2-3 min with its dev server).
+  play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],
   a: [
     "arcade-fixes-check.ts",
     "arcade-fx-check.ts",
@@ -145,12 +146,7 @@ export const OPTIONAL = ["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuil
 
 /**
  * Checks CI can't run (they need network or a secret Actions doesn't have),
- * mapped to the reason. On 12 Oct 2026 every routine check passed with
- * networking disabled, and none reads a secret; the one entry is the replay
- * playback check, which needs a browser the check shards don't install.
+ * mapped to the reason. Empty: on 12 Oct 2026 every routine check passed with
+ * networking disabled, and none reads a secret.
  */
-export const CI_SKIP: Record<string, string> = {
-  // Round replays: plays five stored runs in the replay player in headless Chromium, which only the
-  // play shards install; run it locally after a replay change (bun scripts/replay-play-check.ts).
-  "replay-play-check.ts": "needs headless Chromium (only the play shards install it); run locally",
-};
+export const CI_SKIP: Record<string, string> = {};

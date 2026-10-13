@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { Podium } from "@/components/duel/Podium";
@@ -18,7 +18,7 @@ import type { ReplayRound } from "@/lib/replay/replay.server";
  * play of the game and the full-run player, fed with the stored fixture runs
  * (scripts/fixtures/replay-runs.json) instead of a live room. Used by
  * scripts/replay-play-check.ts and for the PR screenshots. Not linked anywhere;
- * production builds render nothing here.
+ * production builds answer it with the not-found page.
  *
  *   /replay-lab?view=results&game=wavefront
  *   /replay-lab?view=podium
@@ -27,6 +27,11 @@ import type { ReplayRound } from "@/lib/replay/replay.server";
  */
 export const Route = createFileRoute("/replay-lab")({
   ssr: false,
+  // Development only: a production build answers this address with the app's not-found
+  // page. A plain `import.meta.env.DEV` (no cast) so Vite folds it to false and drops the lab.
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound();
+  },
   component: ReplayLab,
 });
 
@@ -128,7 +133,8 @@ function ReplayLab() {
   if (!import.meta.env.DEV) return null;
   if (!fixture) return <p className="p-4 font-mono text-xs">Loading fixtures…</p>;
 
-  const run = fixture.runs.find((r) => r.type === game) ?? fixture.runs[0]!;
+  // The newest stored run for the game (runs on a later revision are appended).
+  const run = [...fixture.runs].reverse().find((r) => r.type === game) ?? fixture.runs[0]!;
   const arcadeRound = (r: FixtureFile["runs"][number], round: number): ReplayRound => ({
     round,
     puzzle: r.puzzle,

@@ -61,7 +61,7 @@ import { tiltGameFor } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGame } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
-import { tenDropGame } from "@/lib/arcade/tenDrop";
+import { tenDropGame, tenDropInit } from "@/lib/arcade/tenDrop";
 import { wordfallGameFor } from "@/lib/arcade/wordfall";
 import { clashVariantOf, colourClashGameFor } from "@/lib/arcade/colourClash";
 
@@ -178,7 +178,12 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   }),
   whack: () => ({ game: whackGame as AnyGame }),
   clayshoot: (p) => ({ game: clayGameFor(rev(p, "clayRev")) as AnyGame }),
-  tendrop: () => ({ game: tenDropGame as AnyGame, endAlwaysStops: true }),
+  // tenRev 1 (puzzle score shape) rides in the start state, as replayTenDropRun's tenDropInit puts it.
+  tendrop: (p) => ({
+    game: tenDropGame as AnyGame,
+    init: () => tenDropInit(seedOf(p), rev(p, "tenRev")),
+    endAlwaysStops: true,
+  }),
   wordfall: (p) => ({ game: wordfallGameFor(rev(p, "wordfallRev")) as AnyGame, needsDict: true }),
   stroop: (p) => ({ game: colourClashGameFor(clashVariantOf(p as never)) as AnyGame }),
 };

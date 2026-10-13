@@ -15,9 +15,9 @@ sizing a sound; "instant" means a one-shot at that moment.
 
 | Cue | Trigger | Length |
 |---|---|---|
-| `shared.highlight.start` | The results-screen highlight has replayed the winner's run and starts playing | the whole highlight, 8–12 s (about 6 s for one moment) |
-| `shared.highlight.clip` | Each highlight clip (and the play of the game's clip) begins | the clip, 3–5 s (10–15 s on the podium) |
-| `shared.slowmo` | Playback enters the half-speed stretch around a moment's key tick | 1 s on the results screen (0.5 s of sim either side), 3 s on the podium |
+| `shared.highlight.start` | The results-screen highlight has replayed the winner's run and starts playing | the whole highlight, about 7.5 s at most (two moments of about 3.7 s, or one of about 7.3 s; shorter when the results screen has less time left) |
+| `shared.highlight.clip` | Each highlight clip (and the play of the game's clip) begins | the clip, about 3.7 s (up to 7.3 s for a single moment; 10–15 s on the podium) |
+| `shared.slowmo` | Playback enters the half-speed stretch around a moment's key tick | 1.4 s on the results screen for two moments (0.35 s of sim either side; 2 s for one moment), 3 s on the podium |
 | `shared.slowmo.end` | Playback leaves the half-speed stretch | instant |
 | `shared.highlight.skip` | Skip tapped on a highlight, card or time-lapse | instant |
 | `shared.highlight.end` | The highlight finished on its own | instant |
@@ -26,7 +26,7 @@ sizing a sound; "instant" means a one-shot at that moment.
 | `shared.replay.seek` | The seek bar moved the playback | instant |
 | `shared.replay.close` | The full-run player closed | instant |
 | `shared.momentcard` | A moment card (Flash, Bang On, Nucleus, Forage) appears | the pop-in, about 0.4 s; the card stays up until the screen moves on (6 s on the podium) |
-| `shared.timelapse.start` | A puzzle time-lapse starts | 5–10 s |
+| `shared.timelapse.start` | A puzzle time-lapse starts | about 7.5 s, within the results screen's time left (5–10 s on the podium) |
 | `shared.timelapse.move` | Each move of a time-lapse lands on the board | instant, every 25–600 ms (about 7.5 s ÷ moves) |
 | `shared.timelapse.end` | The time-lapse reached the winner's last move | instant (the final board holds 1.5 s) |
 | `shared.playofthegame` | The podium picked the play of the game and starts it | 10–15 s (arcade), 5–10 s (time-lapse), 6 s (card) |
