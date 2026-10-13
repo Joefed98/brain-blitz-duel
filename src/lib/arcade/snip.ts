@@ -209,14 +209,13 @@ const SNIP_BANK6_SOURCES: readonly SnipTemplate[] = [
   { name: "Two nests", sweet: [212, 180], pins: [[241, 64, 0]], platforms: [], hooks: [[251, 293, 63]], mouth: [232, 566], stars: [[251, 345]], nests: [[288, 425, 24], [208, 427, 24]] }, // worst fast 186 ticks, cuts 2
   { name: "Quick vine", sweet: [360, 207], pins: [[355, 41, 0]], platforms: [], hooks: [[364, 356, 100]], mouth: [370, 582], stars: [[360, 310]], nests: [[205, 546, 23]] }, // worst fast 82 ticks, cuts 2
   { name: "Crook gutter run", sweet: [210, 142], pins: [[198, 47, 0], [208, 64, 0]], platforms: [], hooks: [[197, 354, 81]], mouth: [149, 584], stars: [[213, 292]], gutters: [[318, 554, 215, 591]], nests: [[198, 478, 23]] }, // worst fast 269 ticks, cuts 3
-  // Hard (13).
+  // Hard (12).
   { name: "Bough and plank", sweet: [211, 194], pins: [[337, 56, 0], [136, 55, 0]], platforms: [], hooks: [[154, 370, 109]], mouth: [228, 582], stars: [[88, 207]], nests: [[302, 426, 21]], springs: [[173, 412, 258, 396]], planks: [[227, 481, 331, 491]] }, // worst fast 304 ticks, cuts 3
   { name: "Three-rope crook", sweet: [332, 211], pins: [[229, 91, 0], [275, 80, 0], [363, 106, 0]], platforms: [], hooks: [[135, 359, 109]], mouth: [165, 578], stars: [[143, 222]], nests: [[354, 540, 20]], planks: [[131, 453, 239, 440]] }, // worst fast 303 ticks, cuts 4
   { name: "Nest ramp", sweet: [172, 141], pins: [[122, 41, 0], [217, 57, 0]], platforms: [], hooks: [[312, 356, 78]], mouth: [382, 577], stars: [[308, 436]], nests: [[169, 397, 21]], planks: [[197, 521, 294, 487]] }, // worst fast 220 ticks, cuts 3
   { name: "Gutter ladder", sweet: [326, 175], pins: [[212, 81, 0]], platforms: [], hooks: [[160, 296, 78], [146, 425, 110]], mouth: [184, 587], stars: [[172, 373]], gutters: [[206, 381, 309, 416]], nests: [[262, 394, 22]] }, // worst fast 262 ticks, cuts 3
   { name: "Twin crooks", sweet: [281, 208], pins: [[235, 79, 0]], platforms: [], hooks: [[232, 346, 88], [251, 442, 81]], mouth: [254, 573], stars: [[225, 300]], gutters: [[263, 392, 354, 434]], nests: [[159, 478, 21]] }, // worst fast 188 ticks, cuts 3
   { name: "Crook and bough", sweet: [169, 218], pins: [[207, 41, 0]], platforms: [], hooks: [[195, 312, 72], [160, 415, 95]], mouth: [151, 591], stars: [[174, 454]], nests: [[270, 533, 23]], springs: [[132, 492, 223, 480]] }, // worst fast 296 ticks, cuts 3
-  { name: "Hornet gutter", sweet: [338, 216], pins: [[397, 57, 0], [237, 67, 0]], platforms: [], hooks: [[169, 354, 71]], mouth: [212, 592], stars: [[157, 232]], gutters: [[179, 419, 285, 476]], nests: [[394, 482, 22], [383, 404, 20]] }, // worst fast 353 ticks, cuts 3
   { name: "Nest gap", sweet: [270, 158], pins: [[226, 70, 0]], platforms: [], hooks: [[221, 330, 83], [196, 419, 98]], mouth: [195, 568], stars: [[212, 265]], nests: [[132, 463, 21], [338, 471, 20]], planks: [[354, 549, 430, 517]] }, // worst fast 222 ticks, cuts 3
   { name: "Wasp pair", sweet: [348, 198], pins: [[351, 100, 0], [275, 96, 0]], platforms: [], hooks: [[360, 369, 79]], mouth: [360, 591], stars: [[246, 218]], nests: [[242, 394, 21], [309, 423, 23]], planks: [[175, 507, 271, 479]] }, // worst fast 229 ticks, cuts 3
   { name: "Three wasps", sweet: [240, 163], pins: [[311, 90, 0]], platforms: [], hooks: [[250, 281, 104], [217, 448, 61]], mouth: [233, 569], stars: [[354, 183]], nests: [[156, 538, 22], [285, 420, 22], [333, 478, 22]] }, // worst fast 324 ticks, cuts 3
@@ -1172,7 +1171,7 @@ const bank6Ids = (from: number, to: number) => Array.from({ length: to - from + 
 export const SNIP_BANDS_V6 = {
   easy: [...SNIP_BANDS_TALL.easy, ...bank6Ids(0, 3)],
   medium: [...SNIP_BANDS_TALL.medium, ...bank6Ids(4, 13)],
-  hard: [...SNIP_BANDS_TALL.hard, ...bank6Ids(14, 26)],
+  hard: [...SNIP_BANDS_TALL.hard, ...bank6Ids(14, 25)],
 };
 
 /** The ten-level order for a snipRev-6 seed. */
