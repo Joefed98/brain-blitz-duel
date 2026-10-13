@@ -22,6 +22,9 @@ import {
   type StopWatchSpec,
 } from "@/lib/duel/types";
 
+import { registerFxPreview } from "@/components/puzzles/speedFx";
+import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 export { markerState, targetCentre } from "@/lib/duel/stopWatch";
@@ -80,8 +83,11 @@ function Bar({
   return (
     <div
       ref={barRef}
-      className={`relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-20 w-full"}`}
+      data-bangon-face=""
+      data-vertical={vertical ? "" : undefined}
+      className={`bangon-face relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-20 w-full"}`}
     >
+      <span aria-hidden="true" className="bangon-ticks" />
       {spec.hidden && !vertical && (
         <span
           className="absolute inset-y-0 right-0 border-l border-dashed border-muted-foreground/50 bg-muted/40"
@@ -90,7 +96,7 @@ function Bar({
       )}
       <span
         ref={targetRef}
-        className={`absolute ${vertical ? "inset-x-0" : "inset-y-0"} bg-primary/45`}
+        className={`bangon-target absolute ${vertical ? "inset-x-0" : "inset-y-0"} bg-primary/45`}
         style={
           vertical
             ? { bottom: `${(spec.centre - spec.half) * 100}%`, height: `${spec.half * 200}%` }
@@ -104,13 +110,13 @@ function Bar({
       {markerRef ? (
         <span
           ref={markerRef}
-          className={`absolute rounded-full bg-foreground will-change-transform ${vertical ? "inset-x-0 bottom-0" : "inset-y-0 left-0"}`}
+          className={`bangon-marker absolute rounded-full bg-foreground will-change-transform ${vertical ? "inset-x-0 bottom-0" : "inset-y-0 left-0"}`}
           style={vertical ? { height: MARKER_W } : { width: MARKER_W }}
         />
       ) : (
         marker !== null && (
           <span
-            className={`absolute rounded-full bg-foreground ${vertical ? "inset-x-0" : "inset-y-0"}`}
+            className={`bangon-marker absolute rounded-full bg-foreground ${vertical ? "inset-x-0" : "inset-y-0"}`}
             style={
               vertical
                 ? { height: MARKER_W, bottom: `${marker * 100}%`, transform: "translateY(50%)" }
@@ -119,6 +125,7 @@ function Bar({
           />
         )
       )}
+      <span aria-hidden="true" className="bangon-crystal" />
       <span
         aria-label={`${passesLeft} passes left`}
         className={`absolute right-2 top-2 z-10 font-mono text-sm font-bold tabular-nums ${passesLeft === 1 ? "text-warn" : "text-foreground"}`}
@@ -239,6 +246,8 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       status={done && now >= cursor.shownUntil ? "All ten done" : label}
       errors={errors}
       onTap={handleTap}
+      runKey={key}
+      fxScore={done && now >= cursor.shownUntil ? localBangOnScore(errors, watches.length) : null}
     />
   );
 }
@@ -287,6 +296,8 @@ function WatchView({
   status,
   errors,
   onTap,
+  runKey = "",
+  fxScore = null,
 }: {
   index: number;
   count: number;
@@ -299,10 +310,24 @@ function WatchView({
   status: string;
   errors: number[];
   onTap: () => void;
+  /** Identifies the run, so the end-of-run effect plays once per run. */
+  runKey?: string;
+  /** The phone's local score once all ten are done (read-only), else null. */
+  fxScore?: number | null;
 }) {
   const showing = result !== "none";
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const flashed = useRef("");
+  // End of run: the watch faces flash gold in turn when the local score reaches the threshold.
+  useEffect(() => {
+    if (fxScore === null || !bangOnEarnsGoldFaces(fxScore) || flashed.current === runKey) return;
+    flashed.current = runKey;
+    fireBangOnGoldFaces(rootRef.current);
+  }, [fxScore, runKey]);
+  useEffect(() => registerFxPreview("stopwatch", () => fireBangOnGoldFaces(rootRef.current)), []);
   return (
     <div
+      ref={rootRef}
       role="button"
       tabIndex={0}
       aria-label="Stop the marker"
@@ -331,7 +356,7 @@ function WatchView({
         {status}
       </p>
       <div data-game-controls="history" className="stopwatch-history grid h-16 w-full grid-cols-3 gap-2" aria-label="Recent results">
-        {errors.slice(!showing ? -3 : -4, !showing ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} className="flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (!showing ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
+        {errors.slice(!showing ? -3 : -4, !showing ? undefined : -1).map((ms, i, list) => <span key={errors.length - list.length + i} data-bangon-face="" className="bangon-card flex flex-col items-center justify-center rounded-md border border-border bg-card px-1 font-mono text-sm text-foreground"><span className="text-muted-foreground">{errors.length - list.length + i + (!showing ? 1 : 0)}</span><span>{ms >= STOPWATCH_MISS_MS ? "Missed" : `${ms} ms off`}</span></span>)}
       </div>
     </div>
   );
@@ -423,6 +448,8 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       status={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? "All ten done" : label}
       errors={errors}
       onTap={handleTap}
+      runKey={key}
+      fxScore={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? localBangOnScore(errors, watches.length) : null}
     />
   );
 }
@@ -449,15 +476,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
   return (
     <>
-      <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1">
+      <div className="grid w-full grid-cols-1 justify-items-center gap-y-0.5">
         {errors.map((ms, index) => (
-          <p key={index} className="font-mono text-sm tabular-nums text-foreground">
+          <p key={index} className="whitespace-nowrap font-mono text-base leading-6 tabular-nums text-foreground">
             Watch {index + 1} - {ms >= STOPWATCH_MISS_MS ? "missed (500 ms)" : `${ms} ms off`}
           </p>
         ))}
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
+      <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
+        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
       </div>
     </>

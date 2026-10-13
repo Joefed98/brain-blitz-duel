@@ -29,16 +29,16 @@ function IntroExample() {
           aria-hidden="true"
         >
           <line
-            x1={33}
-            y1={41.5}
+            x1={31}
+            y1={37}
             x2={94}
-            y2={41.5}
+            y2={37}
             stroke="var(--primary)"
             strokeWidth={2}
             strokeDasharray="4 3"
           />
           <polyline
-            points="88,36 96,41.5 88,47"
+            points="88,31.5 96,37 88,42.5"
             fill="none"
             stroke="var(--primary)"
             strokeWidth={2}
@@ -101,10 +101,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const min = puzzle.minMoves ?? 0;
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div className="unblock-reveal flex w-full flex-col items-center gap-3">
       {vehicles.length > 0 && (
-        <div style={{ width: 220 }}>
-          <UnblockBoard vehicles={vehicles} size={220} />
+        <div className="unblock-reveal-space">
+          <div className="unblock-reveal-board">
+            <UnblockBoard vehicles={vehicles} />
+          </div>
         </div>
       )}
       {!available && (

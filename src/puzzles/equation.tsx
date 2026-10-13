@@ -1,7 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
@@ -64,20 +65,66 @@ export function buildEquation(): EquationPuzzleData {
   return { type: "equation", stages: built.map((b) => b.stage), operators: built.map((b) => b.ops) };
 }
 
-function OperatorSlot({ value, onClick }: { value: Operator | null; onClick?: (() => void) | undefined }) {
+/* Operator polish (13 Oct 2026): drawing, animation and sound cues only; answers and submit untouched. */
+const OPERATOR_CSS = `
+[data-polish="equation"] .op-board { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 14px 10px; border-radius: 16px; overflow: hidden;
+  background: radial-gradient(110% 60% at 50% 45%, rgba(61,220,132,.07), transparent 65%), repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, rgba(255,255,255,.02) 0 1px, transparent 1px 24px), linear-gradient(180deg, #16161e, #0f0f15);
+  box-shadow: inset 0 0 0 1px rgba(61,220,132,.16), inset 0 1px 0 rgba(255,255,255,.05), 0 6px 18px rgba(0,0,0,.35); }
+[data-polish="equation"] .op-caption { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #a9a9b4; }
+[data-polish="equation"] .op-equation { position: relative; width: 100%; color: #f4f4f7; border-radius: 14px;
+  background: linear-gradient(180deg, #23232c, #1a1a22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.07), inset 0 -4px 0 rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.35);
+  transition: box-shadow 200ms ease-out; }
+[data-polish="equation"] .op-equation[data-enter="true"] { animation: op-enter 240ms cubic-bezier(.2,.9,.3,1) both; }
+[data-polish="equation"] .op-equation[data-correct="true"] { box-shadow: inset 0 0 0 2px #3DDC84, inset 0 -4px 0 rgba(0,0,0,.3), 0 0 18px rgba(61,220,132,.30); }
+[data-polish="equation"] .op-goal { color: #F5B82E; text-shadow: 0 0 14px rgba(245,184,46,.25); }
+[data-polish="equation"] .op-slot { position: relative; overflow: visible; border-radius: 12px !important; border: 0 !important; color: #8f8f9b !important;
+  background: linear-gradient(180deg, #0c0c11, #14141b) !important; box-shadow: inset 0 2px 5px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.06) !important; }
+[data-polish="equation"] .op-slot::before { content: ""; position: absolute; inset: 7px; border-radius: 8px; border: 2px dashed rgba(255,255,255,.16); pointer-events: none; }
+[data-polish="equation"] .op-slot[data-filled="true"]::before { display: none; }
+[data-polish="equation"] .op-slot:disabled { opacity: 1; }
+[data-polish="equation"] .op-chip { position: absolute; inset: 3px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-family: var(--font-mono); font-size: 28px; color: #1a1406;
+  background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: inset 0 1px 0 rgba(255,244,200,.7), inset 0 -3px 0 rgba(120,80,0,.35), 0 2px 5px rgba(0,0,0,.45); }
+[data-polish="equation"] .op-chip[data-drop="true"] { animation: op-drop 200ms cubic-bezier(.3,1.4,.5,1) both; }
+[data-polish="equation"] .op-equation[data-correct="true"] .op-chip { background: linear-gradient(180deg, #7bf0b0, #3DDC84 60%, #24b566); box-shadow: inset 0 1px 0 rgba(220,255,236,.7), inset 0 -3px 0 rgba(0,90,40,.35), 0 0 10px rgba(61,220,132,.45); }
+[data-polish="equation"] .op-pad { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+[data-polish="equation"] .op-key { display: flex; height: 64px; align-items: center; justify-content: center; border-radius: 14px; font-family: var(--font-mono); font-size: 32px; font-weight: 700; color: #f4f4f7;
+  background: linear-gradient(180deg, #2b2b35 0%, #20202a 55%, #1a1a22 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.09), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -4px 0 rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.35); }
+[data-polish="equation"] .op-key:disabled { opacity: .5; }
+@keyframes op-enter { from { opacity: 0; translate: 28px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes op-drop { 0% { translate: 0 -14px; scale: 1.3; opacity: .3; } 70% { translate: 0 1px; scale: .96; opacity: 1; } 100% { translate: 0 0; scale: 1; } }
+
+/* Solve: the four equations tick green one after another. */
+[data-polish="equation"] .op-finale { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 12px; pointer-events: none;
+  background: #101016; animation: op-fade 160ms ease-out both; }
+[data-polish="equation"] .op-finale-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 10px; font-family: var(--font-mono); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: #d4d4dc; background: #1b1b23; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); animation: op-row 520ms ease-out both; animation-delay: calc(var(--i) * 150ms); }
+[data-polish="equation"] .op-tick { display: flex; width: 26px; height: 26px; flex: none; align-items: center; justify-content: center; border-radius: 50%; font-size: 16px; color: #0b2a17; background: #3DDC84; box-shadow: 0 0 12px rgba(61,220,132,.6);
+  animation: op-tick 300ms cubic-bezier(.3,1.6,.5,1) both; animation-delay: calc(var(--i) * 150ms + 120ms); }
+@keyframes op-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes op-row { 0% { opacity: 0; translate: -12px 0; } 30% { opacity: 1; translate: 0 0; color: #d4d4dc; } 55%, 100% { opacity: 1; translate: 0 0; color: #7bf0b0; box-shadow: inset 0 0 0 1px rgba(61,220,132,.55), 0 0 12px rgba(61,220,132,.18); } }
+@keyframes op-tick { from { scale: 0; opacity: 0; } to { scale: 1; opacity: 1; } }
+
+.game-column [data-polish="equation"][data-stage-column] { padding-top: 12px; }
+.game-column [data-polish="equation"][data-stage-column] > [data-game-arena] { flex: 1 1 0; max-height: none; min-height: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="equation"] :is(.op-equation, .op-chip, .op-finale, .op-tick) { animation: none !important; transition: none; }
+  [data-polish="equation"] .op-finale-row { animation: none; color: #7bf0b0; box-shadow: inset 0 0 0 1px rgba(61,220,132,.55); }
+}
+`;
+
+function OperatorSlot({ value, onClick, fresh }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean }) {
   return (
     <Button
       variant="ghost"
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`equation-slot flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border font-mono text-xl font-bold ${
-        value
-          ? "border-primary/70 bg-primary/15 text-primary"
-          : "border-dashed border-border bg-card text-muted-foreground"
-      }`}
+      data-filled={value ? "true" : undefined}
+      aria-label={value ? `Operator ${display(value)}` : "Empty operator slot"}
+      className="equation-slot op-slot flex h-14 w-14 shrink-0 items-center justify-center font-bold"
     >
-      {value ? display(value) : "▢"}
+      {value ? <span className="op-chip" data-drop={fresh ? "true" : undefined}>{display(value)}</span> : null}
     </Button>
   );
 }
@@ -87,9 +134,9 @@ function IntroExample() {
     <div className="flex flex-col items-center gap-3">
       <div className="flex items-center gap-1.5 font-mono text-xl font-bold tabular-nums">
         <span>7</span>
-        <OperatorSlot value={null} />
+        <IntroSlot />
         <span>3</span>
-        <OperatorSlot value={null} />
+        <IntroSlot />
         <span>2</span>
         <span>= 20</span>
       </div>
@@ -97,6 +144,20 @@ function IntroExample() {
         answer <span className="font-bold text-primary">7 + 3 × 2 = 20</span>
       </p>
     </div>
+  );
+}
+
+/** The intro's empty slot, drawn exactly as before (the shared intro frame is not restyled). */
+function IntroSlot() {
+  return (
+    <Button
+      variant="ghost"
+      type="button"
+      disabled
+      className="equation-slot flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-card font-mono text-xl font-bold text-muted-foreground"
+    >
+      ▢
+    </Button>
   );
 }
 
@@ -109,6 +170,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     Array(Math.max(0, (data?.stages[0]?.numbers.length ?? 1) - 1)).fill(null),
   );
   const done = useRef(false);
+  // Presentation only: the slot that just took an operator, whether a stage has advanced, and the finale.
+  const [dropped, setDropped] = useState<{ index: number; n: number } | null>(null);
+  const [entered, setEntered] = useState(false);
+  const [finale, setFinale] = useState<string[] | null>(null);
+  const finaleOn = useSolveFx(finale !== null, "equation.solve", 1200);
 
   const total = data?.stages.length ?? 4;
   const current = data?.stages[Math.min(stage, total - 1)];
@@ -125,6 +191,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
+  useEffect(() => {
+    if (holding) soundCue("equation.correct");
+  }, [holding]);
 
   if (!data || !current) return null;
   const frozen = locked || done.current || holding;
@@ -136,10 +205,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     if (stage >= total - 1) {
       done.current = true;
       onSubmit(joinStages(next, total));
+      // Display only: every equation right means the whole puzzle is solved.
+      if (data.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, next[i] ?? ""))) setFinale(next);
       return;
     }
     const nextStage = stage + 1;
     setStage(nextStage);
+    setEntered(true);
+    setDropped(null);
+    soundCue("equation.advance");
     const nextNumbers = data.stages[nextStage]?.numbers;
     if (nextNumbers) setSlots(Array(nextNumbers.length - 1).fill(null));
   };
@@ -151,6 +225,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     const next = [...slots];
     next[index] = op;
     setSlots(next);
+    setDropped((d) => ({ index, n: (d?.n ?? 0) + 1 }));
+    soundCue("equation.drop");
   };
 
   const clearSlot = (index: number) => {
@@ -164,43 +240,66 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
 
   return (
     <div data-polish="equation" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
-      <div data-game-arena="fixed" className="flex flex-col items-center gap-3">
+      <PolishStyle id="equation" css={OPERATOR_CSS} />
+      <div data-game-arena="fixed" className="op-board">
         <StageProgress stage={stage} total={total} />
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="op-caption">
           Equation {stage + 1} of {total} · left to right
         </p>
-        <div className="polish-equation flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-3 rounded-lg bg-card px-2 py-4 font-mono text-[32px] font-bold tabular-nums">
+        <div
+          key={stage}
+          data-enter={entered ? "true" : undefined}
+          data-correct={holding || finale ? "true" : undefined}
+          className="polish-equation op-equation flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-3 px-2 py-4 font-mono text-[32px] font-bold tabular-nums"
+        >
           {current.numbers.map((n, index) => (
             <span key={index} className="flex items-center gap-1">
               <span>{n}</span>
               {index < current.numbers.length - 1 && (
-                <OperatorSlot value={slots[index] ?? null} onClick={frozen ? undefined : () => clearSlot(index)} />
+                <OperatorSlot
+                  key={dropped?.index === index ? `drop-${dropped.n}` : "slot"}
+                  value={slots[index] ?? null}
+                  fresh={dropped?.index === index}
+                  onClick={frozen ? undefined : () => clearSlot(index)}
+                />
               )}
             </span>
           ))}
-          <span className="text-primary">= {current.target}</span>
+          <span className="op-goal">= {current.target}</span>
         </div>
         <StageCorrect visible={holding} />
-        <div className="grid grid-cols-4 gap-2">
-          {OPERATORS.map((op) => (
-            <Button
-              key={op}
-              variant="ghost"
-      type="button"
-              disabled={frozen}
-              onClick={() => tapOperator(op)}
-              className="tap-target flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-card font-mono text-3xl font-bold text-foreground disabled:opacity-50"
-            >
-              {display(op)}
-            </Button>
-          ))}
-        </div>
+        {finaleOn && finale && (
+          <div className="op-finale" aria-hidden="true">
+            {data.stages.map((st, i) => (
+              <div key={i} className="op-finale-row" style={{ "--i": i } as CSSProperties}>
+                <span><Line numbers={st.numbers} ops={parseOperators(finale[i] ?? "")} /> = {st.target}</span>
+                <span className="op-tick">✓</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div data-game-controls="operators" data-equation-pad className="op-pad">
+        {OPERATORS.map((op) => (
+          <Button
+            key={op}
+            variant="ghost"
+            type="button"
+            disabled={frozen}
+            onClick={() => tapOperator(op)}
+            aria-label={`Operator ${display(op)}`}
+            className="press op-key"
+          >
+            {display(op)}
+          </Button>
+        ))}
       </div>
 
       <Button
         data-game-controls="submit"
         variant="ghost"
-      type="button"
+        type="button"
         onClick={() => !frozen && advance(slots)}
         disabled={frozen}
         className="tap-target w-full rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground transition-opacity disabled:opacity-40"
@@ -228,24 +327,38 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
   );
 }
 
+const OPERATOR_REVEAL_CSS = `
+.op-reveal { display: flex; min-height: 0; width: 100%; flex: 1 1 auto; flex-direction: column; justify-content: center; gap: 8px; }
+.op-reveal-row { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 2px; padding: 8px 10px 9px; border-radius: 14px;
+  background: linear-gradient(180deg, #1c1c25, #15151c); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), inset 0 -3px 0 rgba(0,0,0,.25); }
+.op-reveal-row[data-ok="true"] { box-shadow: inset 3px 0 0 #3DDC84, inset 0 0 0 1px rgba(61,220,132,.22), inset 0 -3px 0 rgba(0,0,0,.25); }
+.op-reveal-row[data-ok="false"] { box-shadow: inset 3px 0 0 #ff7a70, inset 0 0 0 1px rgba(255,122,112,.22), inset 0 -3px 0 rgba(0,0,0,.25); }
+.op-reveal-label { font-size: 14px; color: #b4b4be; }
+.op-reveal-label .ok { color: #5fe69c; font-weight: 700; }
+.op-reveal-label .bad { color: #ff7a70; font-weight: 700; }
+.op-reveal-line { text-align: center; font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: #F5B82E; }
+.op-reveal-mine { text-align: center; font-family: var(--font-mono); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: #ff7a70; }
+`;
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "equation") return null;
   const parts = splitStages(myAnswer, puzzle.stages.length);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col justify-center gap-2">
+    <div className="op-reveal">
+      <PolishStyle id="equation-reveal" css={OPERATOR_REVEAL_CSS} />
       {puzzle.stages.map((stage, i) => {
         const mine = parseOperators(parts[i] ?? "");
         const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "");
         return (
-          <div key={i} className="flex w-full flex-col items-center gap-1 rounded-lg bg-card px-2 py-2">
-            <p className="text-sm text-muted-foreground">
-              Equation {i + 1} · <span className={ok ? "text-primary" : "text-warn"}>{ok ? "✓" : mine.length < stage.numbers.length - 1 ? (mine.length ? "Incomplete ✗" : "Skipped ✗") : "✗"}</span>
+          <div key={i} className="op-reveal-row" data-ok={ok ? "true" : "false"}>
+            <p className="op-reveal-label">
+              Equation {i + 1} · <span className={ok ? "ok" : "bad"}>{ok ? "✓" : mine.length < stage.numbers.length - 1 ? (mine.length ? "Incomplete ✗" : "Skipped ✗") : "✗"}</span>
             </p>
-            <p className="text-center font-mono text-lg font-bold tabular-nums text-primary">
+            <p className="op-reveal-line">
               <Line numbers={stage.numbers} ops={puzzle.operators?.[i] ?? []} /> = {stage.target}
             </p>
             {!ok && mine.length === stage.numbers.length - 1 && (
-              <p className="text-center font-mono text-base font-bold tabular-nums text-warn">
+              <p className="op-reveal-mine">
                 <Line numbers={stage.numbers} ops={mine} /> ✗
               </p>
             )}

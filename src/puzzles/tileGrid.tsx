@@ -22,11 +22,14 @@ import { playLock, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
+import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
+/** Reveal: two 7×7 grids side by side in 343px (375 phone), letters 14px. */
+const REVEAL_CELL = 22;
 
-function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
+function MiniGrid({ cells, cell = 20, font }: { cells: string[]; cell?: number; font?: number }) {
   return (
     <div
       className="grid rounded-md border border-border bg-card p-0.5"
@@ -36,7 +39,7 @@ function MiniGrid({ cells, cell = 20 }: { cells: string[]; cell?: number }) {
         <span
           key={i}
           className={`word-letter-tile flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
-          style={{ height: cell, fontSize: Math.round(cell * 0.6) }}
+          style={{ height: cell, fontSize: font ?? Math.round(cell * 0.6) }}
         >
           {letter}
         </span>
@@ -87,6 +90,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const submitted = useRef(false);
   const boardSpace = useRef<HTMLDivElement | null>(null);
   const [cellSize, setCellSize] = useState(40);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
     const space = boardSpace.current;
@@ -144,6 +148,22 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     [cells, verdicts],
   );
 
+  // A valid grid on Done: its words light up one after another (display only).
+  useWordFinish(finished, () => {
+    wordCue("tilegrid.finish");
+    const words = runs.filter((run) => run.word.length >= 2);
+    const gap = Math.min(240, 560 / Math.max(1, words.length - 1));
+    const steps: FinishStep[] = words.flatMap((run, k) =>
+      run.cells.map((cell, j) => ({
+        el: boardSpace.current?.querySelector(`[data-tg-cell="${cell}"]`),
+        keyframes: goldPulse(1.1),
+        delay: Math.round(k * gap + j * 30),
+        duration: 480,
+      })),
+    );
+    return playFinish(steps);
+  });
+
   if (!data) return null;
   const frozen = locked || submitted.current;
   const inTray = tray.map((_, i) => i).filter((i) => !placed.includes(i));
@@ -193,6 +213,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (bad.size === 0 && runs.length > 0 && placedCount(cells) >= 3) {
       submitted.current = true;
       playLock();
+      setFinished(true);
       onSubmit(encoded);
       return;
     }
@@ -202,9 +223,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div data-polish="tilegrid" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
-      <FoundWordMoment value={accepted} />
-      <div ref={boardSpace} data-game-arena="board" className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+    <div data-polish="tilegrid" data-word-polish="tilegrid" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1">
+      <div className="word-moment-float top-0">
+        <FoundWordMoment value={accepted} />
+      </div>
+      <div ref={boardSpace} data-game-arena="board" data-word-first="" className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
         style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
@@ -215,6 +238,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           return (
             <span
               key={i}
+              data-tg-cell={i}
               onClick={() => {
                 if (frozen) return;
                 if (tile !== null) tapPlaced(tile);
@@ -241,7 +265,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div onClick={(event) => {
         if (selected === null || event.target !== event.currentTarget || placed.indexOf(selected) < 0) return;
         returnToTray(selected);
-      }} data-game-controls="tray" className="interlock-tray grid w-full shrink-0 grid-cols-8 justify-items-center">
+      }} data-game-controls="tray" data-word-controls-first="" className="interlock-tray grid w-full shrink-0 grid-cols-8 justify-items-center">
         {inTray.map((tile) => (
           <span
             key={tile}
@@ -284,16 +308,16 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const mine = decodeTileGrid(myAnswer ?? "");
   const count = placedCount(mine);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
+    <div data-word-reveal="tilegrid" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex flex-wrap justify-center gap-3">
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <MiniGrid cells={mine} />
+          <MiniGrid cells={mine} cell={REVEAL_CELL} font={14} />
         </div>
         {puzzle.solution && (
           <div className="flex flex-col items-center gap-1">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">One solution</span>
-            <MiniGrid cells={puzzle.solution} />
+            <MiniGrid cells={puzzle.solution} cell={REVEAL_CELL} font={14} />
           </div>
         )}
       </div>

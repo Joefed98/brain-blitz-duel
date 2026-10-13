@@ -18,6 +18,7 @@ import { buzz } from "@/lib/motion";
 import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
+import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -38,6 +39,7 @@ function Grid({
   letters,
   look,
   onCell,
+  numbers = true,
 }: {
   size: number;
   cells: readonly number[];
@@ -45,6 +47,8 @@ function Grid({
   letters: readonly string[];
   look: (n: number) => CellLook;
   onCell?: ((n: number) => void) | undefined;
+  /** Corner numbers (the reveal shows the letters alone). */
+  numbers?: boolean;
 }) {
   return (
     <div
@@ -64,9 +68,11 @@ function Grid({
             className={`relative flex items-center justify-center rounded-sm font-display font-bold ${CELL[look(n)]}`}
             style={{ fontSize: `calc(100cqw / ${size} * 0.52)` }}
           >
-            <span className="absolute left-0.5 top-0 font-mono font-normal leading-none text-muted-foreground" style={{ fontSize: `calc(100cqw / ${size} * 0.24)` }}>
-              {n}
-            </span>
+            {numbers ? (
+              <span className="absolute left-0.5 top-0 font-mono font-normal leading-none text-muted-foreground" style={{ fontSize: `calc(100cqw / ${size} * 0.24)` }}>
+                {n}
+              </span>
+            ) : null}
             {letters[n - 1] || " "}
           </div>
         ),
@@ -187,6 +193,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solved, locked]);
 
+  // Cracked: the decoded letters flip across the grid in a diagonal wave (display only).
+  useWordFinish(solved, () => {
+    wordCue("codeword.finish");
+    const size = data?.size ?? 1;
+    const cells = gridRef.current?.firstElementChild?.children;
+    const step = 640 / Math.max(1, 2 * (size - 1));
+    const steps: FinishStep[] = (data?.cells ?? []).flatMap((n, i) =>
+      n === 0 ? [] : [{ el: cells?.[i], keyframes: goldFlip("Y"), delay: Math.round((Math.floor(i / size) + (i % size)) * step), duration: 460 }],
+    );
+    return playFinish(steps);
+  });
+
   if (!data) return null;
   const done = locked || solved || submitted.current;
 
@@ -234,9 +252,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const placed = new Set(letters.filter(Boolean));
 
   return (
-    <div ref={root} data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
+    <div ref={root} data-stage-column="1" data-word-polish="codeword" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
       <div data-game-arena="codeword" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 360px)", aspectRatio: "1 / 1" }}>
+        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 420px)", aspectRatio: "1 / 1" }}>
           <Grid
             size={data.size}
             cells={data.cells}
@@ -278,11 +296,12 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const given = new Set(puzzle.givens.map((g) => g.n));
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <div style={{ width: 224, height: 224 }}>
+    <div data-word-reveal="codeword" className="flex w-full flex-col items-center gap-2">
+      <div style={{ width: 264, height: 264 }}>
         <Grid
           size={puzzle.size}
           cells={puzzle.cells}
+          numbers={false}
           letters={[...solution]}
           look={(n) => (given.has(n) ? "given" : mine[n - 1] === solution[n - 1] ? "right" : "wrong")}
         />
@@ -290,7 +309,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
       <p className="font-mono text-base text-primary">
         {tally.solved ? `Cracked · ${(elapsed / 1000).toFixed(1)}s` : `${tally.correct} / ${tally.hidden} letters decoded`}
       </p>
-      {!tally.solved ? <p className="text-xs text-muted-foreground">Red squares: letters you missed or got wrong.</p> : null}
+      {!tally.solved ? <p className="text-sm text-muted-foreground">Red squares: letters you missed or got wrong.</p> : null}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { fx } from "@/lib/fx";
 import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
+import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -102,6 +103,14 @@ function Board({
     </div>
   );
 }
+
+/**
+ * The figure-eight as one loop of cells (row × 6 + col), crossing at cell 21;
+ * the two spurs (17, 32) join the wave beside their neighbours.
+ */
+const FIGURE_EIGHT: readonly (readonly number[])[] = [
+  [18], [19], [20], [21], [22], [23, 17], [29], [35], [34], [33, 32], [27], [15], [9], [3], [2], [1], [0], [6], [12],
+];
 
 /** Fixed example: one word row, two tiles to swap. */
 function IntroExample() {
@@ -190,6 +199,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, locked, left]);
 
+  // Solved: a gold wave runs once round the figure-eight (display only).
+  useWordFinish(result.solved, () => {
+    wordCue("swapword.finish");
+    const steps: FinishStep[] = FIGURE_EIGHT.flatMap((cells, i) =>
+      cells.map((cell) => ({
+        el: boardRef.current?.querySelector(`[data-sw-tile="${SW_TILE_CELLS.indexOf(cell)}"]`),
+        keyframes: goldPulse(1.12),
+        delay: i * 48,
+        duration: 300,
+      })),
+    );
+    return playFinish(steps);
+  });
+
   if (!data) return null;
   const board = replaySwapword(data.start, swaps, data.maxSwaps).board;
   const done = locked || submitted.current || result.solved || result.over || left === 0;
@@ -246,11 +269,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     else doSwap(selected, p.tile);
   };
 
-  const boardSide = "min(100cqw, 100cqh, 336px)";
+  // As large as the arena allows (to 400px on big phones).
+  const boardSide = "min(100cqw, 100cqh, 400px)";
   const ghostLook = drag ? looks[drag.tile] ?? 0 : 0;
 
   return (
-    <div ref={root} data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1" style={NO_SCROLL_STYLE}>
+    <div ref={root} data-stage-column="2" data-word-polish="swapword" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1" style={NO_SCROLL_STYLE}>
       <div className="flex h-10 shrink-0 items-center gap-2" aria-live="polite">
         <span
           className={`flex items-center gap-2 rounded-full border-2 px-4 py-1 font-display text-lg font-bold ${left <= 3 ? "border-destructive text-destructive" : "border-primary text-primary"}`}
@@ -309,14 +333,14 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const inPlace = marks.filter((m) => m === 2).length;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <Board letters={solution} looks={looks} side={216} />
+    <div data-word-reveal="swapword" className="flex w-full flex-col items-center gap-2">
+      <Board letters={solution} looks={looks} side={252} />
       <p className="font-mono text-base text-primary">
         {run.solved
           ? `Solved · ${run.swaps} swaps (min ${puzzle.minSwaps}) · ${(elapsed / 1000).toFixed(1)}s`
           : `${inPlace} / ${SW_TILES} in place · ${run.swaps} swaps`}
       </p>
-      {!run.solved ? <p className="text-xs text-muted-foreground">Red-edged tiles were not in place on your board.</p> : null}
+      {!run.solved ? <p className="text-sm text-muted-foreground">Red-edged tiles were not in place on your board.</p> : null}
     </div>
   );
 }

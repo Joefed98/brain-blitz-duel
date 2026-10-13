@@ -1,5 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
+import { drawClayFinalBurst } from '@/lib/arcade/clayShootArt.renderer';
+import { END_OF_RUN_FX_SCORE, playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -42,6 +44,45 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
+/**
+ * End-of-run effect for a strong run (phone score >= END_OF_RUN_FX_SCORE): a last burst of
+ * clay fragments that turns into gold sparkle over the sky. Overlay canvas only; it never
+ * touches the sim, the run string or its submission.
+ */
+function fireClayFinale(board: HTMLElement | null): void {
+  if (!board) return;
+  const rect = board.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return;
+  soundCue("clayshoot.finalBurst");
+  let sparkled = false;
+  playOverlayFx({
+    rect,
+    ms: 1100,
+    draw: ({ ctx, ms, width, height, reduced }) => {
+      if (!sparkled && ms >= 380) {
+        sparkled = true;
+        soundCue("clayshoot.goldSparkle");
+      }
+      drawClayFinalBurst(ctx, ms, width, height, reduced);
+    },
+  });
+}
+
+function IntroBird({ x, y, up }: { x: number; y: number; up: boolean }) {
+  const tipY = up ? -9 : 8;
+  return (
+    <g transform={`translate(${x} ${y})`} stroke="rgba(14,20,32,0.85)" strokeWidth="1" strokeLinejoin="round">
+      <path d={`M2 -1 Q0 ${tipY * 0.7} -6 ${tipY} Q-3 ${tipY * 0.45} -3 0Z`} fill="#C9D0DA" transform="translate(1.5 -0.5)" />
+      <path d="M-6 -1.5 L-13 -3.2 L-11.2 0.5 L-13 3.5 L-6 2.2Z" fill="#F8F9FB" />
+      <ellipse cx="0" cy="0.5" rx="7.5" ry="3.8" fill="#F8F9FB" />
+      <circle cx="7.4" cy="-1.3" r="3.1" fill="#F8F9FB" />
+      <path d="M10 -2.3 L13.6 -0.8 L10 0.2Z" fill="#EFA531" strokeWidth="0.6" />
+      <circle cx="8.2" cy="-2.1" r="0.9" fill="#0B0B0F" stroke="none" />
+      <path d={`M2 -1 Q0 ${tipY * 0.7} -6 ${tipY} Q-3 ${tipY * 0.45} -3 0Z`} fill="#FFFFFF" />
+    </g>
+  );
+}
+
 /** Intro: one clay crosses, one tap shatters it. */
 function IntroExample() {
   const [t, setT] = useState(0);
@@ -56,10 +97,29 @@ function IntroExample() {
   const shot = t >= 40;
   return (
     <svg viewBox="0 0 200 110" width={200} height={110} aria-hidden="true" className="rounded-lg">
-      <rect width={200} height={110} fill="#2B5378" />
+      <defs>
+        <linearGradient id="clay-intro-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#1C4774" />
+          <stop offset="0.6" stopColor="#3A78AE" />
+          <stop offset="0.9" stopColor="#9CC4E0" />
+        </linearGradient>
+        <linearGradient id="clay-intro-clay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFA766" />
+          <stop offset="0.5" stopColor={CLAY_ORANGE} />
+          <stop offset="1" stopColor="#A9481A" />
+        </linearGradient>
+      </defs>
+      <rect width={200} height={110} fill="url(#clay-intro-sky)" />
+      <circle cx={172} cy={18} r={18} fill="rgba(255,236,190,0.22)" />
+      <circle cx={172} cy={18} r={7} fill="#FFF6DE" opacity={0.9} />
+      <path d="M0 98 Q20 92 40 96 T80 95 T120 96 T160 94 T200 96 V110 H0Z" fill="#2D573B" />
+      <rect y={101} width={200} height={9} fill="#4A7436" />
       <path d="M10 100 Q100 -60 190 100" fill="none" stroke="rgba(255,255,255,0.3)" strokeDasharray="4 4" />
       {!shot ? (
-        <ellipse cx={x} cy={y} rx={9} ry={5} fill={CLAY_ORANGE} />
+        <g>
+          <ellipse cx={x} cy={y} rx={9} ry={5} fill="url(#clay-intro-clay)" stroke="rgba(90,30,5,0.55)" strokeWidth={0.7} />
+          <ellipse cx={x - 2.5} cy={y - 1.7} rx={3.6} ry={1.3} fill="rgba(255,255,255,0.55)" />
+        </g>
       ) : (
         [0, 1, 2, 3, 4, 5].map((k) => {
           const a = (k * Math.PI) / 3;
@@ -68,14 +128,8 @@ function IntroExample() {
         })
       )}
       {t >= 36 ? <circle cx={x} cy={y} r={14} fill="none" stroke="#F5B82E" strokeWidth={2} opacity={shot ? 1 - (t - 40) / 20 : 1} /> : null}
-      <g transform="translate(154 32)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
-        <ellipse rx="8" ry="4" />
-        <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
-      </g>
-      <g transform="translate(130 50)" fill="#F7F7F8" stroke="#0B0B0F" strokeWidth="1">
-        <ellipse rx="8" ry="4" />
-        <path d="M-4 0 Q-11 -8 -14 0 Q-9 2 -3 2M3 0 Q9 -8 13 0 Q8 2 2 2" />
-      </g>
+      <IntroBird x={154} y={32} up={t % 8 < 4} />
+      <IntroBird x={130} y={50} up={(t + 3) % 8 < 4} />
     </svg>
   );
 }
@@ -158,6 +212,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback();
     let seenHits = 0;
+    let seenGold = 0;
+    let seenBirds = 0;
     let shownKey = "";
 
     const loop = (time: number) => {
@@ -184,7 +240,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       if (s.hits > seenHits) {
         for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
+        soundCue(s.goldHits > seenGold ? "clayshoot.goldShatter" : "clayshoot.shatter");
         seenHits = s.hits;
+        seenGold = s.goldHits;
+      }
+      if ((s.birdHits ?? 0) > seenBirds) {
+        seenBirds = s.birdHits ?? 0;
+        soundCue("clayshoot.birdStartle");
       }
       const key = `${s.status.join("")}:${s.birdHits ?? 0}`;
       if (key !== shownKey) {
@@ -238,6 +300,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (game.isOver(s) && !submitted.current) {
         submitted.current = true;
         submitRef.current(encode());
+        // Presentation only, after the run is submitted: never delays or alters it.
+        if (game.score(s) >= END_OF_RUN_FX_SCORE) fireClayFinale(board.current);
       }
       frameTiming.end();
     };
@@ -246,10 +310,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data, game]);
 
+  useEffect(() => registerFxPreview("clayshoot", () => fireClayFinale(board.current)), []);
+
   if (!data) return null;
 
   return (
-    <div ref={wrap} data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
+    <div ref={wrap} data-stage-column="1" data-polish="clayshoot" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
         <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
       </p>

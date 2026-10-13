@@ -1,0 +1,157 @@
+/* Speed & Attention polish (a), 13 Oct 2026: presentation only. */
+/* Flash (reaction), Bang On (stopwatch), Ascend (numhunt). No sizes of anything the
+   game counts as a tap change; textures are static CSS (deterministic, no per-frame work). */
+
+/* ------------------------------------------------------------ arena centring (all three) */
+/* Equal spacers above the play block and between it and the bottom controls (or the column
+   bottom), so the gaps match; the arena grows first, the spacers share what is left. */
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column] {
+  justify-content: flex-start;
+  gap: 0;
+}
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column]::before,
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column]::after {
+  content: "";
+  display: block;
+  flex: 1 1 0;
+  min-height: 10px;
+}
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column]::before { order: 0; }
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column] > :first-child { order: 1; margin-bottom: 12px; }
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column] > [data-game-arena] { order: 2; margin-top: 0; }
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column]::after { order: 3; }
+.game-column :is([data-polish="reaction"], [data-polish="stopwatch"], [data-polish="numhunt"])[data-stage-column] > [data-game-controls] { order: 4; margin-top: 0; }
+/* Boards that fill: the arena takes the space up to the column, then the spacers split the rest. */
+.game-column :is([data-polish="reaction"], [data-polish="numhunt"])[data-stage-column] > [data-game-arena] {
+  flex: 1000 1 auto;
+  max-height: none;
+}
+/* Flash: the false-start row keeps its height, so the arena never jumps when it appears. */
+.game-column [data-polish="reaction"][data-stage-column] > :first-child { min-height: 20px; }
+/* Bang On: label, face, then the status and results at the bottom. */
+.game-column [data-polish="stopwatch"][data-stage-column] > :first-child { margin-bottom: 16px; }
+.game-column [data-polish="stopwatch"][data-stage-column] > [data-game-controls="status"] { margin-bottom: 12px; }
+.game-column [data-polish="stopwatch"][data-stage-column] > [data-game-controls="history"] { order: 5; }
+.game-column [data-polish="stopwatch"] .bangon-face:not([data-vertical]) { height: 112px; }
+
+/* ------------------------------------------------------------ Flash */
+.flash-arena { isolation: isolate; }
+.flash-arena > :not(.flash-art) { z-index: 1; }
+.flash-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+/* Dark wait surface: a recessed glass screen, a neutral vignette and a fine scanline
+   texture. Neutral greys only, so nothing here can read as a cue. */
+.flash-arena[data-flash-cue="idle"] .flash-art {
+  background:
+    radial-gradient(ellipse 75% 65% at 50% 46%, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.55) 100%),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 0 1px, rgba(255, 255, 255, 0) 1px 4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 0 0 1px rgba(0, 0, 0, 0.35), inset 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+/* Gold and decoys share one treatment (only the colour differs): a soft centre light and a
+   gentle edge falloff that keeps the colour fully saturated across the middle. */
+.flash-arena:is([data-flash-cue="gold"], [data-flash-cue="decoy"]) .flash-art {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(ellipse 130% 110% at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.22) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+}
+/* The surface switches instantly: never fade a reaction cue in. */
+.flash-arena, .flash-art { transition: none !important; }
+.flash-wait { letter-spacing: 0.22em; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); }
+.flash-readout { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55); }
+.flash-reveal-avg { background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 85%, white), var(--card)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.35); }
+
+/* ------------------------------------------------------------ Bang On */
+/* The face: brushed-metal bezel ring (drawn outside the face, so the track keeps its size),
+   a recessed dial, minute ticks, and a crystal highlight over everything. */
+.bangon-face {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 70%, black), var(--card) 35%, color-mix(in oklab, var(--card) 88%, white));
+  border-color: rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 0 0 3px #3a3a46,
+    0 0 0 4px rgba(255, 255, 255, 0.16),
+    0 -1px 0 4px rgba(255, 255, 255, 0.08),
+    0 8px 18px rgba(0, 0, 0, 0.55),
+    inset 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+[data-game-arena] > .bangon-face:not([data-vertical]) { width: calc(100% - 8px); margin-inline: 4px; }
+.bangon-ticks, .bangon-crystal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.bangon-ticks {
+  background:
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.34) 0 1px, rgba(255, 255, 255, 0) 1px 10%) top / 100% 11px no-repeat,
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0) 1px 5%) top / 100% 6px no-repeat,
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.34) 0 1px, rgba(255, 255, 255, 0) 1px 10%) bottom / 100% 11px no-repeat,
+    repeating-linear-gradient(to right, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0) 1px 5%) bottom / 100% 6px no-repeat;
+}
+.bangon-face[data-vertical] .bangon-ticks {
+  background:
+    repeating-linear-gradient(to top, rgba(255, 255, 255, 0.34) 0 1px, rgba(255, 255, 255, 0) 1px 10%) left / 11px 100% no-repeat,
+    repeating-linear-gradient(to top, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0) 1px 5%) left / 6px 100% no-repeat,
+    repeating-linear-gradient(to top, rgba(255, 255, 255, 0.34) 0 1px, rgba(255, 255, 255, 0) 1px 10%) right / 11px 100% no-repeat,
+    repeating-linear-gradient(to top, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0) 1px 5%) right / 6px 100% no-repeat;
+}
+/* Crystal: a faint diagonal glare on the upper part and a bright rim, low enough that the
+   zone and marker read exactly as before. */
+.bangon-crystal {
+  z-index: 5;
+  background: linear-gradient(172deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.05) 30%, rgba(255, 255, 255, 0.015) 48%, rgba(255, 255, 255, 0) 62%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+.bangon-face[data-vertical] .bangon-crystal {
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.05) 28%, rgba(255, 255, 255, 0.015) 46%, rgba(255, 255, 255, 0) 60%);
+}
+.bangon-target { box-shadow: inset 1px 0 0 color-mix(in oklab, var(--primary) 80%, transparent), inset -1px 0 0 color-mix(in oklab, var(--primary) 80%, transparent); }
+.bangon-face[data-vertical] .bangon-target { box-shadow: inset 0 1px 0 color-mix(in oklab, var(--primary) 80%, transparent), inset 0 -1px 0 color-mix(in oklab, var(--primary) 80%, transparent); }
+.bangon-marker { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 8px rgba(255, 255, 255, 0.35); z-index: 2; }
+.bangon-card {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 86%, white), var(--card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 3px 8px rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+}
+.bangon-reveal-avg { background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 85%, white), var(--card)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.35); }
+
+/* ------------------------------------------------------------ Ascend */
+/* Board: a dark felt with a fine seeded-free dot weave and an inner vignette. */
+.ascend-board {
+  background:
+    radial-gradient(ellipse 120% 100% at 50% 40%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.45) 100%),
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, rgba(255, 255, 255, 0) 1.5px) 0 0 / 14px 14px,
+    linear-gradient(to bottom, color-mix(in oklab, var(--card) 70%, var(--background)), var(--background));
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+/* Discs: same 44 px footprint and border, now domed with a gloss highlight and a drop shadow. */
+.ascend-disc { position: relative; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45); }
+.ascend-disc[data-disc="todo"] {
+  background: radial-gradient(circle at 35% 28%, color-mix(in oklab, var(--card) 60%, white) 0%, var(--card) 48%, color-mix(in oklab, var(--card) 70%, black) 100%);
+  border-color: color-mix(in oklab, var(--border) 70%, white);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.55), inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+}
+.ascend-disc[data-disc="done"] {
+  background: radial-gradient(circle at 35% 28%, #FFE7A6 0%, var(--primary) 50%, #C98A12 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 -2px 3px rgba(120, 70, 0, 0.35);
+  text-shadow: none;
+}
+.ascend-disc[data-disc="wrong"] { box-shadow: 0 0 10px color-mix(in oklab, var(--warn) 60%, transparent); }
+.ascend-disc::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  top: 8%;
+  width: 64%;
+  height: 38%;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.ascend-reveal-result { background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 85%, white), var(--card)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.35); }

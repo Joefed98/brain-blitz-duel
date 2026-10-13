@@ -1,8 +1,10 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { Button } from "@/components/ui/button";
+import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
+import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
@@ -19,6 +21,55 @@ const NO_TOUCH: CSSProperties = {
 };
 const GAP = 4;
 
+/*
+ * Number polish (13 Oct 2026): a worn footpath over mossy ground, stepping stones on each step and
+ * carved milestones for the fixed numbers. Display only: every tile is exactly its cell (the hit box),
+ * and the art classes avoid the shared surface adapter's tile and route selectors.
+ */
+const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E${[
+  "4,5,.9,000,.22", "11,2,.6,fff,.08", "19,7,1.1,000,.18", "28,4,.7,fff,.1", "33,12,1,000,.2", "7,15,.7,fff,.09",
+  "15,18,1.2,000,.16", "24,14,.6,fff,.1", "30,22,.9,000,.2", "3,26,1.1,000,.18", "12,29,.7,fff,.08", "21,27,1,000,.2",
+  "27,33,.6,fff,.1", "34,30,.8,000,.16", "8,34,.9,000,.14", "18,33,.6,fff,.09",
+].map((d) => { const [x, y, r, c, a] = d.split(","); return `%3Ccircle cx='${x}' cy='${y}' r='${r}' fill='%23${c}' fill-opacity='${a}'/%3E`; }).join("")}%3C/svg%3E")`;
+const TR_CSS = `
+.tr-ground { border-radius: 6px; background-color: #1f2a1c; background-image: ${GRAIN}, radial-gradient(circle at 30% 25%, rgba(120,150,80,.22), rgba(120,150,80,0) 60%), linear-gradient(160deg, #263322 0%, #1c2619 60%, #161e13 100%); box-shadow: inset 0 1px 0 rgba(190,220,150,.08), inset 0 -2px 3px rgba(0,0,0,.35); }
+.tr-cell { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-family: var(--font-mono); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.tr-milestone { background-color: #67635c; background-image: ${GRAIN}, linear-gradient(165deg, #8a857c 0%, #66615a 50%, #4b4741 100%); color: #f8f3ea; box-shadow: inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -3px 0 rgba(0,0,0,.36), 0 2px 0 rgba(0,0,0,.45); text-shadow: 0 -1px 0 rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.12); }
+.tr-step { display: flex; align-items: center; justify-content: center; border-radius: 46% 54% 50% 50% / 52% 46% 54% 48%; background-color: #d9d0bd; background-image: ${GRAIN}, linear-gradient(160deg, #eee6d4 0%, #d4c9b2 55%, #b3a68b 100%); color: #231c12; box-shadow: inset 1px 2px 0 rgba(255,255,255,.55), inset -1px -2px 0 rgba(80,64,40,.35), 0 2px 3px rgba(0,0,0,.5); }
+.tr-step.tr-wrong { background-color: #efc3b8; background-image: linear-gradient(160deg, #f6d6ce, #e1a596); color: #560c0c; box-shadow: inset 0 0 0 2px #c0262d, 0 2px 3px rgba(0,0,0,.5); }
+.tr-end { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary); }
+.tr-cell.tr-end { box-shadow: inset 0 0 0 2px var(--primary); }
+.tr-pop { animation: tr-pop 200ms cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes tr-pop { from { opacity: 0; transform: scale(.55); } to { opacity: 1; transform: none; } }
+.tr-seg { transform-box: fill-box; transform-origin: 0% 50%; }
+.tr-draw { animation: tr-draw 190ms ease-out both; }
+@keyframes tr-draw { from { transform: scaleX(0); } to { transform: none; } }
+.tr-glow { pointer-events: none; animation: tr-glow-out 1150ms linear both; }
+.tr-step { position: relative; }
+.tr-lit .tr-step::after { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 0 2px #ffd56e, 0 0 10px 2px rgba(255,196,72,.65); opacity: 0; animation: tr-rim 1000ms ease-out var(--tr-delay, 0ms) both; }
+@keyframes tr-rim { 0% { opacity: 0; } 15% { opacity: 1; } 60% { opacity: .85; } 100% { opacity: 0; } }
+@keyframes tr-glow-out { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
+.tr-glow .tr-seg { animation: tr-glow-in 150ms ease-out both; }
+@keyframes tr-glow-in { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: none; } }
+.game-column [data-polish="trail"] > .tr-spacer { flex: 1 1 0 !important; min-height: 0; margin: 0 !important; }
+.tr-label { color: #d9d2c4; }
+@media (prefers-reduced-motion: reduce) {
+  .tr-pop, .tr-draw, .tr-glow, .tr-glow .tr-seg { animation: none; }
+  .tr-lit .tr-step::after { animation: none; opacity: .8; }
+}
+`;
+
+/** A capsule from a to b (cell-centre coordinates), drawn as a rect rotated about a. */
+function Capsule({ a, b, width, className, fill, delay }: { a: { x: number; y: number }; b: { x: number; y: number }; width: number; className: string; fill: string; delay?: number }) {
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+  return (
+    <g transform={`translate(${a.x} ${a.y}) rotate(${angle})`}>
+      <rect className={className} x={-width / 2} y={-width / 2} width={len + width} height={width} rx={width / 2} fill={fill} style={delay !== undefined ? { animationDelay: `${delay}ms` } : undefined} />
+    </g>
+  );
+}
+
 function Grid({
   size,
   givens,
@@ -27,6 +78,9 @@ function Grid({
   marks,
   shakeCell,
   endCell,
+  gap = GAP,
+  glow = false,
+  animate = true,
 }: {
   size: number;
   givens: readonly (number | null)[];
@@ -36,57 +90,61 @@ function Grid({
   marks?: readonly number[];
   shakeCell?: number | null;
   endCell?: number | undefined;
+  gap?: number;
+  /** Completion: a glowing line draws the whole path from 1 to 36. */
+  glow?: boolean;
+  animate?: boolean;
 }) {
   const stepOf = new Map<number, number>();
   path.forEach((c, i) => { if (c >= 0) stepOf.set(c, i + 1); });
   const end = endCell ?? path[path.length - 1];
   const centre = (c: number) => ({
-    x: (c % size) * (cell + GAP) + cell / 2,
-    y: Math.floor(c / size) * (cell + GAP) + cell / 2,
+    x: (c % size) * (cell + gap) + cell / 2,
+    y: Math.floor(c / size) * (cell + gap) + cell / 2,
   });
-  const span = size * cell + (size - 1) * GAP;
+  const span = size * cell + (size - 1) * gap;
+  const segments = path.slice(1).flatMap((c, i) => {
+    const previous = path[i];
+    return previous === undefined || previous < 0 || c < 0 ? [] : [{ from: previous, to: c, i }];
+  });
+  const draw = animate ? "tr-seg tr-draw" : "tr-seg";
+  const disc = cell < 34 ? 0.9 : 0.74;
+  const font = Math.max(12, Math.round(cell * 0.4));
+  // The ground layer never changes for a board size: build it once per size.
+  const ground = useMemo(
+    () => Array.from({ length: size * size }, (_, c) => <div key={c} className="tr-ground" style={{ width: cell, height: cell }} />),
+    [size, cell],
+  );
+  const layer: CSSProperties = { display: "grid", gridTemplateColumns: `repeat(${size}, ${cell}px)`, gap };
   return (
-    <div className="relative" style={{ width: span, height: span }}>
-      <svg className="pointer-events-none absolute inset-0" width={span} height={span}>
-        {path.slice(1).map((c, i) => {
-          const previous = path[i];
-          if (previous === undefined || previous < 0 || c < 0) return null;
-          const a = centre(previous);
-          const b = centre(c);
-          return (
-            <line
-              key={i}
-              x1={a.x}
-              y1={a.y}
-              x2={b.x}
-              y2={b.y}
-              stroke="var(--primary)"
-              strokeOpacity={0.65}
-              strokeWidth={Math.max(6, cell * 0.22)}
-              strokeLinecap="round"
-            />
-          );
-        })}
+    <div className={`relative${glow ? " tr-lit" : ""}`} style={{ width: span, height: span }}>
+      <PolishStyle id="trail" css={TR_CSS} />
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={layer}>{ground}</div>
+      <svg aria-hidden className="pointer-events-none absolute inset-0" width={span} height={span}>
+        {segments.map((s) => <Capsule key={`e${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.42} className={draw} fill="#4a3a26" />)}
+        {segments.map((s) => <Capsule key={`t${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.3} className={draw} fill="#8f7451" />)}
       </svg>
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${size}, ${cell}px)`, gap: GAP }}>
+      {/* Completion glow runs along the footpath, under the stones, so every number stays readable. */}
+      {glow && (
+        <svg aria-hidden className="tr-glow pointer-events-none absolute inset-0" width={span} height={span}>
+          {segments.map((s) => <Capsule key={`h${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.62} className="tr-seg" fill="rgba(255,196,72,.45)" delay={s.i * 16} />)}
+          {segments.map((s) => <Capsule key={`c${s.i}`} a={centre(s.from)} b={centre(s.to)} width={Math.max(4, cell * 0.2)} className="tr-seg" fill="#ffe7a3" delay={s.i * 16} />)}
+        </svg>
+      )}
+      <div className="relative" style={layer}>
         {givens.map((g, c) => {
           const step = stepOf.get(c);
           const wrong = marks !== undefined && step !== undefined && marks[step - 1] !== c;
-          const cls =
-            g != null
-              ? "trail-given bg-foreground text-background"
-              : step !== undefined
-                ? `trail-entered border-2 bg-card text-primary ${wrong ? "border-destructive text-destructive" : "border-primary"}`
-                : "trail-empty border border-border bg-muted/20";
+          const isEnd = c === end && marks === undefined;
           return (
             <div
               key={c}
-              className={`relative flex items-center justify-center rounded-md font-mono font-bold ${cls} ${
-                c === end && marks === undefined ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
-              } ${shakeCell === c ? "animate-shake" : ""}`}
-              style={{ width: cell, height: cell, fontSize: cell * 0.4 }}
+              className={`tr-cell ${g != null ? "tr-milestone" : ""} ${isEnd && g != null ? "tr-end" : ""} ${shakeCell === c ? "animate-shake" : ""}`}
+              style={{ width: cell, height: cell, fontSize: font }}
             >
-              {g ?? step ?? ""}
+              {g != null ? g : step !== undefined ? (
+                <span key={`${c}:${step}`} className={`tr-step ${animate ? "tr-pop" : ""} ${wrong ? "tr-wrong" : ""} ${isEnd ? "tr-end" : ""}`} style={{ width: Math.round(cell * disc), height: Math.round(cell * disc), ["--tr-delay" as string]: `${(step - 1) * 16}ms` }}>{step}</span>
+              ) : ""}
             </div>
           );
         })}
@@ -117,6 +175,7 @@ function IntroExample() {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
+  const column = useGameColumnLayout();
   const data: TrailPuzzleData | null = puzzle.type === "trail" ? puzzle : null;
   const startCell = data ? data.givens.indexOf(1) : 0;
   const [path, setPath] = useStageState<number[]>(stateKey ?? "trail", "trailPath", () => [startCell]);
@@ -166,12 +225,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     onSubmit(trEncode(slots));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [complete, locked]);
+  // Sound cue for each new trail segment (the segment's draw animation); never on the first render.
+  const steps = slots.filter((c) => c >= 0).length;
+  const lastSteps = useRef(steps);
+  useEffect(() => {
+    if (steps > lastSteps.current) soundCue("trail.step");
+    lastSteps.current = steps;
+  }, [steps]);
+  const glow = useSolveFx(complete, "trail.solve", 1150);
 
   if (!data) return null;
   const busy = locked || complete;
   // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
   const fit = Math.min(space.w - 8, space.h - 84);
-  const cell = Math.max(44, Math.min(60, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
+  const cell = Math.max(44, Math.min(68, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
 
   const refuse = (c: number) => {
     if (lastRefused.current === c) return;
@@ -278,6 +345,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 pt-1 select-none"
       style={NO_TOUCH}
     >
+      {column && <div className="tr-spacer" aria-hidden />}
       <p className="shrink-0 font-mono text-sm text-muted-foreground">
         {slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length} / 26
       </p>
@@ -291,8 +359,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         onPointerCancel={cancel}
         onPointerLeave={cancel}
       >
-        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} />
+        <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
       </div>
+      {column && <div className="tr-spacer" aria-hidden />}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
         <Button variant="outline"
           type="button"
@@ -318,20 +387,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
+  // Fit both boards to the space the shared reveal frame gives (side by side or stacked, whichever is larger).
+  const root = useRef<HTMLDivElement | null>(null);
+  const [space, setSpace] = useState({ w: 343, h: 440 });
+  useEffect(() => {
+    const host = root.current?.parentElement;
+    if (!host) return;
+    const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });
+    const ro = new ResizeObserver(read);
+    ro.observe(host); read();
+    return () => ro.disconnect();
+  }, []);
   if (puzzle.type !== "trail") return null;
   const solution = puzzle.solution ?? [];
   const mine = trDecode(myAnswer ?? "", puzzle.givens.length);
   const correctTiles = trCorrectTiles(puzzle.givens, mine, solution);
+  const gap = 3;
+  const extra = 28 + (dev ? 30 : 0);
+  const side = Math.min(Math.floor(((space.w - 12) / 2 - 5 * gap) / 6), Math.floor((space.h - 22 - extra - 8 - 5 * gap) / 6));
+  const stacked = Math.min(Math.floor((space.w - 8 - 5 * gap) / 6), Math.floor(((space.h - 44 - extra - 16) / 2 - 5 * gap) / 6));
+  const cell = Math.max(24, Math.min(44, Math.max(side, stacked)));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <div className="flex w-full justify-center gap-3">
+    <div ref={root} className="flex w-full flex-col items-center gap-2">
+      <div className={`flex w-full items-center justify-center gap-3 ${side >= stacked ? "" : "flex-col gap-1.5"}`}>
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={solution} cell={24} marks={solution} />
+          <span className="tr-label text-xs uppercase tracking-widest">Solution</span>
+          <Grid size={TR_SIZE} givens={puzzle.givens} path={solution} cell={cell} gap={gap} marks={solution} animate={false} />
         </div>
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={24} marks={solution} />
+          <span className="tr-label text-xs uppercase tracking-widest">Yours</span>
+          <Grid size={TR_SIZE} givens={puzzle.givens} path={mine} cell={cell} gap={gap} marks={solution} animate={false} />
         </div>
       </div>
       <p className="font-mono text-base text-primary">{`${correctTiles} / 26 tiles correct`}</p>

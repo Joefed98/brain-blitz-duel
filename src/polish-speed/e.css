@@ -1,0 +1,134 @@
+/* Speed & Attention polish (e), 13 Oct 2026: presentation only. */
+/* Eagle Eye (symscan), Double Take (spotdiff), Labyrinth (maze). */
+
+:root {
+  --eye-feather: #0F1418;
+  --eye-shadow: #04070A;
+  --eye-sky-top: #22374A;
+  --eye-sky-low: #121B24;
+  --eye-cloud: rgba(214, 232, 247, 0.075);
+
+  --dt-wall: #1E1A24;
+  --dt-wall-stripe: #262030;
+  --dt-wall-dot: rgba(255, 214, 236, 0.06);
+  --dt-shelf: #8A5A34;
+  --dt-shelf-top: #B98252;
+  --dt-shelf-edge: #4A2D18;
+  --dt-shelf-shadow: rgba(0, 0, 0, 0.42);
+  --dt-jar: rgba(220, 235, 255, 0.04);
+  --dt-jar-edge: rgba(220, 235, 255, 0.13);
+  --dt-jar-lid: rgba(201, 150, 96, 0.55);
+  --dt-jar-shine: rgba(255, 255, 255, 0.1);
+  --dt-gloss: #FFFFFF;
+  --dt-shade: #17141D;
+  --dt-missed: var(--warn);
+
+  --maze-floor: #1A1F26;
+  --maze-floor-alt: #1D232B;
+  --maze-floor-speck: rgba(255, 255, 255, 0.05);
+  --maze-wall: #8E9AA8;
+  --maze-wall-top: #C9D2DC;
+  --maze-wall-shadow: rgba(0, 0, 0, 0.6);
+  --maze-start: #4FC3B5;
+  --maze-start-floor: rgba(79, 195, 181, 0.18);
+  --maze-exit-floor: rgba(245, 184, 46, 0.22);
+}
+
+/* ------------------------------------------------------------------ */
+/* Arena centring: play block centred between the top bar and the      */
+/* controls (controls at the column bottom), equal gaps.               */
+/* ------------------------------------------------------------------ */
+.game-column [data-stage-column][data-polish="symscan"] > :first-child,
+.game-column [data-stage-column][data-polish="maze"] > :first-child {
+  margin-top: auto;
+}
+.game-column [data-stage-column][data-polish="symscan"] > [data-game-controls],
+.game-column [data-stage-column][data-polish="maze"] > [data-game-controls] {
+  margin-top: auto;
+}
+/* The grid is sized in JS to fit; never clip its bottom row (the old cap was 8px short). */
+.game-column [data-stage-column][data-polish="symscan"] > [data-game-arena] {
+  max-height: none;
+}
+.game-column [data-stage-column][data-polish="spotdiff"] > [data-game-arena] {
+  flex: 1 1 auto;
+  max-height: calc(150cqw + 24px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Eagle Eye                                                           */
+/* ------------------------------------------------------------------ */
+.eye-cell {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(38% 16% at var(--eye-cloud-x, 50%) var(--eye-cloud-y, 30%), var(--eye-cloud), transparent 70%),
+    linear-gradient(160deg, var(--eye-sky-top), var(--eye-sky-low));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+.eye-cell.eye-cell[data-eye-state="plain"] { border-color: rgba(150, 196, 230, 0.24); }
+.eye-cell.eye-cell[data-eye-state="selected"],
+.eye-cell.eye-cell[data-eye-state="target"] {
+  background:
+    radial-gradient(60% 60% at 50% 45%, color-mix(in srgb, var(--primary) 26%, transparent), transparent 75%),
+    linear-gradient(160deg, color-mix(in srgb, var(--primary) 22%, var(--eye-sky-top)), color-mix(in srgb, var(--primary) 12%, var(--eye-sky-low)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent), 0 0 10px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+.eye-cell.eye-cell[data-eye-state="wrong"] {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--warn) 16%, var(--eye-sky-top)), color-mix(in srgb, var(--warn) 8%, var(--eye-sky-low)));
+}
+.eye-cell[aria-pressed="true"] .eye-eagle { animation: eye-pick 200ms cubic-bezier(.2, .9, .3, 1.3) both; }
+@keyframes eye-pick { from { transform: scale(.82); } to { transform: scale(1); } }
+.eye-cell .eye-eagle { transition: opacity 140ms ease-out; }
+.eye-flown .eye-eagle { opacity: 0; }
+.eye-target {
+  background: radial-gradient(70% 70% at 50% 40%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 80%), linear-gradient(160deg, var(--eye-sky-top), var(--eye-sky-low));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+/* Reveal: one readable grid plus the three result rows, inside 375x667. */
+.eye-reveal-grid {
+  width: clamp(180px, calc(100dvh - 380px), 360px);
+  max-width: 100%;
+}
+.eye-reveal-row { transition: border-color 120ms, background-color 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .eye-cell[aria-pressed="true"] .eye-eagle { animation: none; }
+  .eye-cell .eye-eagle, .eye-reveal-row { transition: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Double Take                                                         */
+/* ------------------------------------------------------------------ */
+.dt-panel { background: var(--dt-wall); }
+.dt-arena { background: linear-gradient(180deg, #2A2230, #1A1620); }
+.dt-ring-found { animation: dt-ring-in 260ms cubic-bezier(.2, .9, .3, 1.25) both; transform-box: fill-box; transform-origin: center; }
+@keyframes dt-ring-in { from { transform: scale(1.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.dt-reveal-panels { flex: 0 0 auto; }
+@media (prefers-reduced-motion: reduce) {
+  .dt-ring-found { animation: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Labyrinth                                                           */
+/* ------------------------------------------------------------------ */
+.maze-board {
+  background: linear-gradient(160deg, #2A313B, #161B21);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.maze-exit-glow { animation: maze-exit-pulse 1600ms ease-in-out infinite; }
+@keyframes maze-exit-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.maze-reveal-board { width: clamp(160px, calc(100dvh - 300px), 420px); max-width: 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .maze-exit-glow { animation: none; }
+}
+
+/* Main's centred column (layout 2) adds auto margins to every arena; these columns centre
+   their play block themselves (auto margins on the first child and the controls, or
+   justify-content), so the arena keeps no auto margins of its own. */
+.game-column.game-column-centred :is([data-polish="symscan"], [data-polish="maze"], [data-polish="spotdiff"])[data-stage-column] > [data-game-arena][data-game-arena] {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.game-column.game-column-centred :is([data-polish="symscan"], [data-polish="maze"])[data-stage-column] > [data-game-arena][data-game-arena]:first-child {
+  margin-top: auto;
+}

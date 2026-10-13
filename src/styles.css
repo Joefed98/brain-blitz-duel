@@ -1,11 +1,18 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./polish-logic/logic.css";
 @import "./polish-b/a.css";
 @import "./polish-b/b.css";
 @import "./polish-b/c.css";
 @import "./polish-b/d.css";
 @import "./polish-b/feel-b.css";
+@import "./polish-speed/a.css";
+@import "./polish-speed/b.css";
+@import "./polish-speed/c.css";
+@import "./polish-speed/d.css";
+@import "./polish-speed/e.css";
+@import "./polish-pattern/index.css";
 
 /*
  * Duelz design system — dark competitive esports feel.

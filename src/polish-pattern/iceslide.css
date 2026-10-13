@@ -1,0 +1,286 @@
+/* Pattern polish: iceslide (Skid). Presentation only. */
+
+/* ---------- Arena: the square board as large as fits, the block centred. ---------- */
+.game-column [data-polish="iceslide"] > [data-game-arena="board"] {
+  flex: 0 1 auto;
+  height: min(100cqw, calc(100cqh - 156px));
+  min-height: 0;
+}
+.game-column [data-polish="iceslide"] .ice-stage-square {
+  width: min(100cqw, calc(100cqh - 156px));
+  height: min(100cqw, calc(100cqh - 156px));
+  flex: 0 0 auto;
+}
+
+/* ---------- The rink ---------- */
+.ice-board.ice-rink {
+  background: #cfe6f3;
+  border-radius: 6px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 0 0 1px rgba(160, 205, 230, 0.5), 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.ice-rink::after {
+  /* Rim: a soft inner shade so the sheet reads as a recessed slab of ice. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), inset 0 0 14px rgba(40, 110, 160, 0.28);
+}
+.ice-sheet-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+.ice-scratch path { stroke: #fff; stroke-width: 0.35; opacity: 0.75; fill: none; stroke-linecap: round; }
+.ice-scratch-fine path { stroke: #8cbedb; stroke-width: 0.22; opacity: 0.55; fill: none; stroke-linecap: round; }
+.ice-board .ice-board-grid { position: relative; z-index: 1; background: transparent; }
+
+.ice-glints { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.ice-glint {
+  position: absolute;
+  width: calc(10px * var(--s, 1));
+  height: calc(10px * var(--s, 1));
+  margin: calc(-5px * var(--s, 1)) 0 0 calc(-5px * var(--s, 1));
+  background:
+    linear-gradient(90deg, transparent 42%, #fff 50%, transparent 58%),
+    linear-gradient(0deg, transparent 42%, #fff 50%, transparent 58%);
+  clip-path: polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
+  opacity: 0;
+  animation: ice-twinkle 4.2s ease-in-out infinite;
+}
+@keyframes ice-twinkle { 0%, 70%, 100% { opacity: 0; } 82% { opacity: 0.95; } }
+
+/* ---------- Cells ---------- */
+.ice-tile {
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(110, 165, 200, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.ice-tile > * { grid-area: 1 / 1; }
+
+/* Walls: dark frozen stone, snow-capped, bevelled. */
+.ice-rock {
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, #f6fbff 0, #e1eef7 16%, transparent 17%),
+    linear-gradient(160deg, #3d4f63 18%, #223040 60%, #131b25);
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    inset 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 1px 1.5px rgba(10, 30, 50, 0.45);
+}
+
+/* Holes: deep, dark, rimmed with crushed ice. */
+.ice-hole {
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #01050a 0 42%, #0a1f31 64%, #2c5878 84%, #a9cfe6 100%);
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85), 0 1px 3px rgba(0, 35, 70, 0.45), inset 0 3px 5px rgba(0, 0, 0, 0.8);
+}
+
+/* Thin ice: clouded, greyer, cracked from an impact point. */
+.ice-tile.ice-thin {
+  background: radial-gradient(circle at 48% 52%, rgba(120, 160, 190, 0.55), rgba(150, 190, 215, 0.35) 70%);
+  box-shadow: inset 0 0 0 1px rgba(80, 120, 150, 0.35), inset 0 0 6px rgba(60, 100, 135, 0.35);
+}
+.ice-crack { overflow: visible; }
+.ice-crack-shine { stroke: #fff; stroke-width: 0.9; opacity: 0.8; fill: none; stroke-linecap: round; }
+.ice-crack-line { stroke: #1f4560; stroke-width: 0.45; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ice-crack-core { fill: #fff; stroke: #1f4560; stroke-width: 0.3; }
+
+/* Broken thin ice: a jagged hole. */
+.ice-tile.ice-gone { background: rgba(120, 165, 195, 0.35); }
+.ice-broken { display: block; width: 100%; height: 100%; }
+.ice-broken svg { overflow: visible; }
+.ice-broken-pit { fill: #0b1e2e; stroke: #e9f6fd; stroke-width: 0.5; stroke-linejoin: round; }
+.ice-broken-deep { fill: #01050a; opacity: 0.85; }
+.ice-shard { fill: #f3fbff; stroke: #7fb2d1; stroke-width: 0.2; }
+.ice-broken.is-fresh .ice-broken-pit,
+.ice-broken.is-fresh .ice-broken-deep { transform-origin: 50% 50%; transform-box: fill-box; animation: ice-break-open 260ms cubic-bezier(.2, .9, .3, 1.2) both; }
+.ice-broken.is-fresh .ice-shard { transform-box: fill-box; transform-origin: 50% 50%; animation: ice-shard-fly 480ms ease-out both; }
+.ice-broken.is-fresh .s1 { --dx: -1.6px; --dy: -1.8px; }
+.ice-broken.is-fresh .s2 { --dx: 1.8px; --dy: -1.4px; }
+.ice-broken.is-fresh .s3 { --dx: 1.6px; --dy: 1.8px; }
+.ice-broken.is-fresh .s4 { --dx: -1.8px; --dy: 1.4px; }
+@keyframes ice-break-open { from { transform: scale(0.35); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@keyframes ice-shard-fly {
+  0% { transform: scale(1.6) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(50deg); opacity: 1; }
+}
+
+/* One-way: a chevron etched into the ice (groove + light lip). */
+.ice-etch polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ice-etch-light { stroke: #fff; stroke-width: 1.7; opacity: 0.95; }
+.ice-etch-groove { stroke: #2a5d80; stroke-width: 1.5; }
+.ice-etch-tip { stroke: #2a5d80; stroke-width: 0.7; opacity: 0.45; }
+
+/* Portals: colour-matched swirling pairs. */
+.ice-portal {
+  position: relative;
+  width: 82%;
+  height: 82%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0b0618 0 30%, color-mix(in srgb, var(--portal) 55%, #120820) 62%, var(--portal) 76%, color-mix(in srgb, var(--portal) 30%, #fff) 86%, transparent 88%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--portal) 70%, transparent);
+}
+.ice-portal-swirl {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 12%, color-mix(in srgb, var(--portal) 40%, #fff) 20%, transparent 32% 45%, color-mix(in srgb, var(--portal) 40%, #fff) 53%, transparent 65% 78%, color-mix(in srgb, var(--portal) 40%, #fff) 86%, transparent 98%);
+  -webkit-mask: radial-gradient(circle, transparent 0 26%, #000 34% 66%, transparent 72%);
+  mask: radial-gradient(circle, transparent 0 26%, #000 34% 66%, transparent 72%);
+  opacity: 0.85;
+  animation: ice-portal-spin 2.6s linear infinite;
+}
+@keyframes ice-portal-spin { to { transform: rotate(360deg); } }
+.ice-portal.is-flaring { animation: ice-portal-flare 450ms ease-out both; }
+@keyframes ice-portal-flare {
+  0% { transform: scale(1); box-shadow: 0 0 6px var(--portal); }
+  30% { transform: scale(1.12); box-shadow: 0 0 0 2px #fff, 0 0 14px 4px var(--portal); }
+  100% { transform: scale(1); box-shadow: 0 0 6px color-mix(in srgb, var(--portal) 70%, transparent); }
+}
+
+/* Exit: glowing gold. */
+.ice-tile.ice-goal {
+  position: relative;
+  border-radius: 4px;
+  background: radial-gradient(circle at 50% 45%, #ffe9a6, var(--ice-exit) 55%, #c98a0e);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65), inset 0 -2px 3px rgba(120, 70, 0, 0.45), 0 0 8px 1px rgba(245, 184, 46, 0.7);
+}
+.ice-tile.ice-goal::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 6px;
+  box-shadow: 0 0 10px 3px rgba(255, 210, 90, 0.85);
+  opacity: 0.3;
+  animation: ice-goal-glow 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ice-goal-glow { 50% { opacity: 1; } }
+.ice-exit-door path { fill: none; stroke: #3a2600; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.ice-start { width: 30%; height: 30%; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff, #9cc6df); box-shadow: 0 0 0 1px rgba(30, 80, 115, 0.5); }
+
+/* The ball: a glossy blue puck-ball with a reflection on the ice. */
+.ice-ball {
+  display: block;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #d6efff 0, #5fb0ec 18%, var(--ice-player) 52%, #03264a 100%);
+  box-shadow: 0 2px 3px rgba(0, 30, 60, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+span.ice-player.ice-ball { background: radial-gradient(circle at 34% 30%, #d6efff 0, #5fb0ec 18%, var(--ice-player) 52%, #03264a 100%); }
+
+/* ---------- Frost trail ---------- */
+.ice-trail { z-index: 4; opacity: 1; }
+.ice-trail.is-fading { opacity: 0; transition: opacity 380ms ease-out; }
+.ice-trail path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ice-trail-haze { stroke: rgba(120, 185, 225, 0.45); stroke-width: 0.56; }
+.ice-trail-core { stroke: #fff; stroke-width: 0.22; opacity: 0.95; }
+
+/* ---------- Fall into a hole ---------- */
+.ice-fall {
+  position: absolute;
+  z-index: 5;
+  width: calc((100% - 22px) / 12 * 0.8);
+  height: calc((100% - 22px) / 12 * 0.8);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 34% 30%, #5fb0ec 0, var(--ice-player) 50%, #01101f 100%);
+  transform: translate(-50%, -50%);
+  animation: ice-fall 400ms cubic-bezier(.5, 0, .9, .6) both;
+}
+@keyframes ice-fall {
+  from { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: brightness(1); }
+  to { transform: translate(-50%, -50%) scale(0.15) rotate(160deg); opacity: 0; filter: brightness(0.3); }
+}
+
+/* ---------- Completion: the ice frosts over and shatters into glints ---------- */
+.ice-solve { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.ice-solve-frost {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at var(--ex) var(--ey), rgba(255, 236, 170, 0.9) 0 6%, rgba(255, 255, 255, 0.85) 14%, rgba(235, 247, 255, 0.55) 40%, rgba(220, 240, 252, 0.2) 75%);
+  opacity: 0;
+  transform-origin: var(--ex) var(--ey);
+  animation: ice-frost-over 1100ms ease-out both;
+}
+@keyframes ice-frost-over {
+  0% { opacity: 0; transform: scale(0.2); }
+  30% { opacity: 0.95; transform: scale(1.15); }
+  55% { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+.ice-solve-ring {
+  position: absolute;
+  left: var(--ex);
+  top: var(--ey);
+  width: 14%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid #ffd970;
+  box-shadow: 0 0 12px 3px rgba(255, 210, 90, 0.8);
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  animation: ice-solve-ring 760ms ease-out both;
+}
+@keyframes ice-solve-ring {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.4); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.2); }
+}
+.ice-solve-shard {
+  position: absolute;
+  width: calc(18px * var(--s, 1));
+  height: calc(18px * var(--s, 1));
+  margin: calc(-9px * var(--s, 1)) 0 0 calc(-9px * var(--s, 1));
+  background: radial-gradient(circle, #fff 0 18%, rgba(190, 230, 255, 0.9) 30%, transparent 62%);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0;
+  animation: ice-shatter-glint 620ms ease-out both;
+}
+@keyframes ice-shatter-glint {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  35% { opacity: 1; transform: scale(1.3) rotate(30deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(80deg); }
+}
+.ice-rink.is-solving .ice-goal { box-shadow: inset 0 0 0 1px #fff, 0 0 16px 5px rgba(255, 210, 90, 0.95); }
+.ice-rink.is-solving .ice-ball { box-shadow: 0 0 0 2px #ffe08a, 0 0 12px 4px rgba(255, 210, 90, 0.9); }
+
+/* ---------- Reveal: the board as large as the space allows ---------- */
+.answer-reveal-content > .ice-reveal { flex: 1 1 auto; min-height: 0; }
+.ice-reveal > p { flex: 0 0 auto; }
+.ice-reveal-space {
+  flex: 1 1 auto;
+  min-height: 160px;
+  width: 100%;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ice-reveal-square { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-glint, .ice-portal-swirl, .ice-tile.ice-goal::before { animation: none; }
+  .ice-broken.is-fresh .ice-broken-pit, .ice-broken.is-fresh .ice-broken-deep, .ice-broken.is-fresh .ice-shard { animation: none; }
+  .ice-broken.is-fresh .ice-shard { transform: translate(var(--dx), var(--dy)); }
+  .ice-portal.is-flaring { animation: none; box-shadow: 0 0 0 2px #fff, 0 0 12px 3px var(--portal); }
+  .ice-trail.is-fading { transition: none; }
+  .ice-fall { animation: ice-fade-out 200ms linear both; }
+  .ice-solve-ring, .ice-solve-shard { display: none; }
+  .ice-solve-frost { animation: ice-fade-out 900ms linear both; transform: none; opacity: 0.6; }
+  @keyframes ice-fade-out { from { opacity: 0.6; } to { opacity: 0; } }
+}

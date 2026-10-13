@@ -7,6 +7,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
 import { wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { buzz } from "@/lib/motion";
+import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -56,8 +57,9 @@ function Grid({
         return (
           <div
             key={cell}
+            data-ws-cell={cell}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
-            style={{ fontSize: small ? 9 : "clamp(14px, 5cqw, 22px)" }}
+            style={{ fontSize: small ? "max(9px, 5.6cqw)" : "clamp(14px, 5cqw, 22px)" }}
           >
             {grid[cell]}
           </div>
@@ -67,7 +69,7 @@ function Grid({
         {foundPaths.map((path, i) => {
           const a = path[0], b = path.at(-1);
           if (a === undefined || b === undefined) return null;
-          return <line key={i} x1={a % size + 0.5} y1={Math.floor(a / size) + 0.5} x2={b % size + 0.5} y2={Math.floor(b / size) + 0.5} stroke="var(--primary-foreground)" strokeWidth={0.06} strokeLinecap="round" opacity={0.7} />;
+          return <line key={i} data-ws-line="" x1={a % size + 0.5} y1={Math.floor(a / size) + 0.5} x2={b % size + 0.5} y2={Math.floor(b / size) + 0.5} stroke="var(--primary-foreground)" strokeWidth={0.06} strokeLinecap="round" opacity={0.7} />;
         })}
       </svg>
     </div>
@@ -104,6 +106,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const start = useRef<number | null>(null);
   const current = useRef<number[]>([]);
   const submitted = useRef(false);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const size = data?.size ?? WS_SIZE;
   const total = data?.wordCount ?? WS_WORDS;
   const encoded = wsEncode(selections);
@@ -153,10 +156,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     },
   });
 
+  // All six found: every found word glows in the grid together (display only).
+  useWordFinish(total > 0 && found.length >= total, () => {
+    wordCue("wordsearch.finish");
+    const root = stageRef.current;
+    const cells = new Set(found.flatMap((f) => f.cells));
+    const steps: FinishStep[] = [...cells].map((cell) => ({
+      el: root?.querySelector(`[data-ws-cell="${cell}"]`),
+      keyframes: goldPulse(1.06),
+      delay: 0,
+      duration: 900,
+    }));
+    root?.querySelectorAll("[data-ws-line]").forEach((line) =>
+      steps.push({
+        el: line,
+        keyframes: [{ opacity: 0.7 }, { opacity: 1, strokeWidth: 0.14, offset: 0.4 }, { opacity: 0.7 }],
+        delay: 0,
+        duration: 900,
+      }),
+    );
+    return playFinish(steps);
+  });
+
   if (!data) return null;
   const gold = new Set(found.flatMap((f) => f.cells));
   return (
-    <div data-polish="wordsearch" data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
+    <div ref={stageRef} data-polish="wordsearch" data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
       <div className="flex shrink-0 flex-col items-center">
         <p className="font-display text-2xl font-bold leading-tight text-foreground">{data.category}</p>
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
@@ -188,11 +213,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const all = verdict.found.length === placements.length && placements.length > 0;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <div style={{ width: 210, containerType: "inline-size" }}>
+    <div data-word-reveal="wordsearch" className="flex w-full flex-col items-center gap-2">
+      <div style={{ width: "min(100%, 256px)", containerType: "inline-size" }}>
         <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={verdict.found.map(i => placements[i]?.cells ?? [])} missedPath={missed} small />
       </div>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 font-mono text-xs uppercase tracking-widest">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 font-mono text-sm uppercase tracking-wider">
         {placements.map((p, i) => (
           <span key={p.word} className={foundSet.has(i) ? "text-primary" : "text-destructive"}>
             {p.word}

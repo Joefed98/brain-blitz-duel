@@ -1,7 +1,8 @@
-import { SweetIcon, SWEET_NAMES } from "@/components/puzzles/refreshIcons";
+import { SWEET_NAMES } from "@/components/puzzles/refreshIcons";
+import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect, playWrong } from "@/lib/sound";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { pick, shuffled } from "@/lib/duel/random";
 import {
@@ -18,6 +19,7 @@ import {
   type StroopColour,
 } from "@/lib/duel/types";
 
+import { ShopBackdrop, SweetArt, playDifferenceGlow } from "./doubleTakeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const COLOURS: Record<Exclude<StroopColour, "YELLOW">, string> = {
@@ -73,7 +75,7 @@ function cellsApart(a: number, b: number): number {
   return Math.max(Math.abs(ac - bc), Math.abs(ar - br));
 }
 
-function shapePath(kind: SpotShapeKind, fill: string) { return <SweetIcon kind={kind} fill={fill}/>; }
+function shapePath(kind: SpotShapeKind, fill: string) { return <SweetArt kind={kind} fill={fill}/>; }
 
 /** Translate saved labels at display time; never rewrite generated or stored differences. */
 function sweetLabel(label: string): string {
@@ -97,9 +99,21 @@ function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }
   return <g transform={turns}>{shapePath(shape.kind, colour)}</g>;
 }
 
+/** The sweets of one picture; re-rendered only when the picture itself changes. */
+const SweetLayer = memo(function SweetLayer({ shapes, size }: { shapes: SpotShape[]; size: number }) {
+  return (
+    <g pointerEvents="none">
+      {shapes.map((shape) => (
+        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={size} />
+      ))}
+    </g>
+  );
+});
+
 function Panel({
   shapes,
   found = [],
+  missed = [],
   wrongCell,
   onTap,
   height,
@@ -110,6 +124,8 @@ function Panel({
   shapes: SpotShape[];
   /** Cells ringed in gold. */
   found?: number[];
+  /** Reveal only: differences not found, ringed dashed in the warning colour. */
+  missed?: number[];
   wrongCell?: number | null;
   onTap?: (cell: number) => void;
   height?: number;
@@ -125,17 +141,34 @@ function Panel({
       width="100%"
       preserveAspectRatio="xMidYMid meet"
       {...(height ? { height } : {})}
-      className={`sweet-panel block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
+      className={`sweet-panel dt-panel block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
       style={{ touchAction: "manipulation" }}
+      data-dt-panel=""
     >
-      {shapes.map((shape) => (
-        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={shapeSize} />
-      ))}
+      <ShopBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} />
+      <SweetLayer shapes={shapes} size={shapeSize} />
+      {missed.map((cell) => {
+        const { x, y } = cellCentre(cell);
+        return (
+          <ellipse
+            key={`m${cell}`}
+            cx={x}
+            cy={y}
+            rx={CELL_W / 2 - 2}
+            ry={CELL_H / 2 - 2}
+            fill="none"
+            stroke="var(--dt-missed)"
+            strokeWidth="2.5"
+            strokeDasharray="5 3.5"
+          />
+        );
+      })}
       {found.map((cell) => {
         const { x, y } = cellCentre(cell);
         return (
           <ellipse
             key={`f${cell}`}
+            className="dt-ring-found"
             cx={x}
             cy={y}
             rx={CELL_W / 2 - 2}
@@ -143,6 +176,7 @@ function Panel({
             fill="none"
             stroke="var(--primary)"
             strokeWidth="2.5"
+            style={{ filter: "drop-shadow(0 0 2px var(--primary))" }}
           />
         );
       })}
@@ -289,6 +323,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const [taps, setTaps] = useState<number[]>([]);
   const [wrong, setWrong] = useState<number | null>(null);
   const submitted = useRef("");
+  const arenaRef = useRef<HTMLDivElement>(null);
+  const glow = useRef<() => void>(() => undefined);
+  glow.current = () => {
+    if (arenaRef.current) playDifferenceGlow(arenaRef.current, groups.flat(), { cols: SPOT_COLS, cell: CELL_W, width: PANEL_W, height: PANEL_H });
+  };
+  useEffect(() => registerFxPreview("spotdiff", () => glow.current()), []);
 
   useEffect(() => {
     setTaps([]);
@@ -307,6 +347,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     const timeUp = now >= phaseStartedAt + SPOT_TIME_MS - 400;
     if (foundGroups.length < total && !timeUp) return;
     submitted.current = key;
+    // Finish effect when all six are found (display only, never awaited).
+    if (foundGroups.length >= total) glow.current();
     onSubmit(taps.join(","));
   }, [foundGroups.length, total, locked, now, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -324,21 +366,24 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     const hit = groups.some((g) => g.includes(cell));
     if (hit) {
       playCorrect();
+      soundCue("spotdiff.found");
       setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
     } else {
       playWrong();
+      soundCue("spotdiff.miss");
       setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
       setWrong(cell);
     }
   };
 
   return (
-    <div data-stage-column="2" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
+    <div data-stage-column="2" data-polish="spotdiff" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
       <p className="shrink-0 font-mono text-sm uppercase tracking-widest text-primary">
         {foundGroups.length} / {total} found
       </p>
       <div
-        data-game-arena="tall" className={`flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
+        ref={arenaRef}
+        data-game-arena="tall" className={`dt-arena flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
           wrong !== null ? "animate-shake" : ""
         }`}
       >
@@ -377,24 +422,26 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .map((v) => Number.parseInt(v, 10))
     .filter((v) => Number.isFinite(v));
   const found = differences.filter((d) => d.cells.some((cell) => taps.includes(cell)));
+  const foundCells = found.flatMap((d) => d.cells);
+  const missedCells = cells.filter((cell) => !foundCells.includes(cell));
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={puzzle.top} found={cells} fitHeight />
+      {/* Side by side: each picture is larger than when stacked on a short phone. */}
+      <div className="dt-reveal-panels dt-arena flex w-full flex-row gap-1 overflow-hidden rounded-2xl border border-border bg-card p-1">
+        <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
+          <Panel shapes={puzzle.top} found={foundCells} missed={missedCells} />
         </div>
-        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={puzzle.bottom} found={cells} fitHeight />
+        <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
+          <Panel shapes={puzzle.bottom} found={foundCells} missed={missedCells} />
         </div>
       </div>
-      <div className="flex w-full flex-col gap-1">
+      <div className="flex w-full flex-col gap-0.5">
         {differences.map((difference, index) => {
           const got = found.includes(difference);
           return (
-            <div key={index} className="flex items-center justify-between text-base">
-              <span className="text-muted-foreground">{sweetLabel(difference.label)}</span>
+            <div key={index} className="flex items-center justify-between text-base leading-6">
+              <span className="text-foreground/80">{sweetLabel(difference.label)}</span>
               <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                 {got ? "✓" : "✗"}
               </span>

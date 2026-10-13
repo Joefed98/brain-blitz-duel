@@ -1,7 +1,9 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
+import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageState } from "@/lib/duel/stageState";
@@ -53,10 +55,31 @@ export function countUpQuestion(colour: GlyphColour, shape: SceneShape): string 
 }
 
 const STAR_POINTS = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
-/** Same geometry as the shared glyph, with a thin dark outline and a soft shadow. */
+
+/**
+ * Shared bevel for the tray items (Polish, 13 Oct 2026; display only). The gradient is
+ * centred so it reads the same at any item rotation: a lit middle and a shaded rim.
+ */
+function TallyDefs() {
+  return (
+    <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
+      <defs>
+        <radialGradient id="tally-bevel" cx="0.5" cy="0.5" r="0.62">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.22" />
+          <stop offset="0.38" stopColor="#fff" stopOpacity="0.08" />
+          <stop offset="0.72" stopColor="#000" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.32" />
+        </radialGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/** Same geometry as the shared glyph, with a thin dark outline, a bevel and a soft shadow. */
 function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour: GlyphColour; size: number }) {
   const fill = TALLY_FILL[colour] ?? GLYPH_COLOURS[colour];
   const common = { fill, stroke: "var(--tally-outline)", strokeWidth: 0.9, strokeLinejoin: "round" as const };
+  const bevel = { fill: "url(#tally-bevel)" };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="tally-glyph shrink-0">
       {shape === "circle" && <circle cx="12" cy="12" r="9.5" {...common} />}
@@ -64,6 +87,11 @@ function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour: GlyphC
       {shape === "triangle" && <polygon points="12,2.5 22,21 2,21" {...common} />}
       {shape === "star" && <polygon points={STAR_POINTS} {...common} />}
       {shape === "hexagon" && <polygon points="12,2 20.7,7 20.7,17 12,22 3.3,17 3.3,7" {...common} />}
+      {shape === "circle" && <circle cx="12" cy="12" r="9.1" {...bevel} />}
+      {shape === "square" && <rect x="2.9" y="2.9" width="18.2" height="18.2" rx="1.7" {...bevel} />}
+      {shape === "triangle" && <polygon points="12,3.4 21.3,20.6 2.7,20.6" {...bevel} />}
+      {shape === "star" && <polygon points={STAR_POINTS} {...bevel} />}
+      {shape === "hexagon" && <polygon points="12,2.5 20.3,7.3 20.3,16.7 12,21.5 3.7,16.7 3.7,7.3" {...bevel} />}
     </svg>
   );
 }
@@ -89,9 +117,10 @@ function Field({
 }) {
   return (
     <div
-       className="tally-tray relative w-full overflow-hidden rounded-lg border"
+       className={`tally-tray relative w-full overflow-hidden rounded-lg border ${play ? "tally-tray-in" : ""}`}
        style={{ height: play ? "100%" : height }}
     >
+      <TallyDefs />
       {shapes.map((item, index) => {
         const lit =
           highlight !== undefined &&
@@ -160,6 +189,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  useEffect(
+    () => registerFxPreview("countup", () => fireTallyFinish(spaceRef.current?.querySelector(".tally-tray") ?? null, answersRef.current.map((a, i) => parseCount(a) ?? i + 7))),
+    [],
+  );
+  // The next tray slides onto the shelf (CSS, display only).
+  useEffect(() => {
+    if (stage > 0 && stage < STAGE_COUNT) soundCue("countup.trayIn");
+  }, [stage]);
 
   const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
   if (!data || !current) return null;
@@ -176,6 +215,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
     setAnswers(next);
     if (stage >= STAGE_COUNT - 1) {
       done.current = true;
+      // Finish effect fires synchronously, then the answers are submitted exactly as before.
+      fireTallyFinish(spaceRef.current?.querySelector(".tally-tray") ?? null, next.map((a) => parseCount(a)));
       onSubmit(joinStages(next));
     } else {
       setStage(stage + 1);
@@ -183,8 +224,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   };
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <StageProgress stage={stage} />
+    <div data-polish="countup" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <NumberEntry
         label={`${stage + 1} / 3 · ${countUpQuestion(current.targetColour, current.targetShape)}`}
         resetKey={`stage-${stage}`}
@@ -195,6 +235,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
         compactKeypad
         onSubmit={submitStage}
       >
+        <StageProgress stage={stage} />
         <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
           {cellSize > 0 && (
             <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
@@ -208,30 +249,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "countup") return null;
   const parts = splitStages(myAnswer);
+  // Compact rows (Polish, 13 Oct 2026): a small tray beside each question, so all three
+  // stages fit one phone screen. The answer line renders the same text as before.
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div data-polish-reveal="countup" className="flex w-full flex-col gap-2">
       {puzzle.stages.map((stage, i) => {
         const truth = puzzle.counts?.[i] ?? null;
         const given = parseCount(parts[i] ?? "");
         const exact = truth !== null && given === truth;
         const near = truth !== null && !exact && countStagePoints(i, given, truth) > 0;
         return (
-          <div key={i} className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-3 py-3">
-            <p className="font-display text-base font-bold">{countUpQuestion(stage.targetColour, stage.targetShape)}</p>
-            <Field
-              shapes={stage.shapes}
-              cols={stage.cols}
-              rows={stage.rows}
-              highlight={{ shape: stage.targetShape, colour: stage.targetColour }}
-              height={Math.round(28 * stage.rows)}
-              size={16}
-            />
-            <p className="font-mono text-base font-bold">
-              <span className="text-primary">Answer {truth ?? "—"}</span>
-              <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
-                {" · "}you {given ?? "—"} {exact ? "✓" : near ? "~" : "✗"}
-              </span>
-            </p>
+          <div key={i} className="tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 py-2">
+            <div className="w-[112px] shrink-0">
+              <Field
+                shapes={stage.shapes}
+                cols={stage.cols}
+                rows={stage.rows}
+                highlight={{ shape: stage.targetShape, colour: stage.targetColour }}
+                height={Math.round(9.7 * stage.rows)}
+                size={10}
+              />
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="font-display text-sm font-bold leading-snug">{countUpQuestion(stage.targetColour, stage.targetShape)}</p>
+              <p className="font-mono text-base font-bold leading-snug">
+                <span className="text-primary">Answer {truth ?? "—"}</span>
+                <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
+                  {" · "}you {given ?? "—"} {exact ? "✓" : near ? "~" : "✗"}
+                </span>
+              </p>
+            </div>
           </div>
         );
       })}
