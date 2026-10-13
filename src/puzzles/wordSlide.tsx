@@ -26,8 +26,12 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 const CELL = 56;
+/** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
+const MAX_CELL = 72;
+const cellFor = (width: number) => Math.max(CELL, Math.min(MAX_CELL, Math.floor((width - 92) / WS_SIZE)));
 const GAP = 4;
 
 function Board({
@@ -38,6 +42,7 @@ function Board({
   onPointerDown,
   locked,
   onLock,
+  shut = false,
 }: {
   grid: string[];
   cell: number;
@@ -46,6 +51,8 @@ function Board({
   onPointerDown?: (event: React.PointerEvent) => void;
   locked?: Set<number>;
   onLock?: (row: number) => void;
+  /** Solved: every padlock is drawn shut (display only). */
+  shut?: boolean;
 }) {
   const board = (
     <div
@@ -76,23 +83,25 @@ function Board({
   );
   if (!onLock) return board;
   return (
-    <div data-game-arena="fixed" className="flex shrink-0 items-start gap-1">
+    <div data-game-arena="fixed" data-word-first="" className="flex shrink-0 items-start gap-1">
       {board}
       <div className="flex flex-col p-1.5" style={{ gap: GAP }}>
         {Array.from({ length: WS_SIZE }, (_, row) => {
           const isLocked = locked?.has(row) ?? false;
           const can = isLocked || good.has(row);
+          const drawnShut = isLocked || shut;
           return (
             <button
               key={row}
+              data-slide-lock={row}
               type="button"
               aria-label={isLocked ? `Unlock row ${row + 1}` : `Lock row ${row + 1}`}
               disabled={!can}
               onClick={() => onLock(row)}
-              className={`flex w-11 shrink-0 items-center justify-center rounded-lg ${isLocked ? "bg-primary/20 text-primary" : "text-foreground"} disabled:opacity-60`}
+              className={`slide-lock flex w-11 shrink-0 items-center justify-center rounded-lg ${drawnShut ? "bg-primary/20 text-primary" : "text-foreground"} disabled:opacity-60`}
               style={{ height: cell }}
             >
-              {isLocked ? <Lock className="h-7 w-7" /> : <LockOpen className="h-7 w-7" />}
+              {drawnShut ? <Lock className="h-7 w-7" /> : <LockOpen className="h-7 w-7" />}
             </button>
           );
         })}
@@ -136,10 +145,22 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [verdicts, setVerdicts] = useState<Record<string, boolean>>({});
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const submitted = useRef(false);
+  const [finished, setFinished] = useState(false);
+  const [cell, setCell] = useState(CELL);
   const board = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
   const lastShift = useRef<SlideShift | null>(null);
   useNoTouchScroll(root);
+
+  useEffect(() => {
+    const node = root.current;
+    if (!node) return;
+    const measure = () => setCell(cellFor(node.clientWidth));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const replay = useMemo(() => (data ? replayWordSlide(data.grid, tokens) : null), [data, tokens]);
   const encoded = tokens.join(",");
@@ -169,6 +190,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (rowWords.length && rowWords.every((w) => verdicts[w] === true)) {
       submitted.current = true;
       playSound("pz_padlock");
+      setFinished(true);
       onSubmit(encoded);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,7 +208,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const shift = lastShift.current;
     lastShift.current = null;
     if (!shift || !board.current || prefersReducedMotion()) return;
-    const offset = -(CELL + GAP) * shift.dir;
+    const offset = -(cell + GAP) * shift.dir;
     for (let k = 0; k < WS_SIZE; k++) {
       if (shift.axis === "c" && lockedRows.has(k)) continue;
       const index = shift.axis === "r" ? shift.index * WS_SIZE + k : k * WS_SIZE + shift.index;
@@ -195,6 +217,28 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       el?.animate([{ transform: from }, { transform: "none" }], { duration: WS_SHIFT_MS, easing: "ease-out" });
     }
   }, [tokens]);
+
+  // All five rows are words: the padlocks click shut down the rows in a cascade (display only).
+  useWordFinish(finished, () => {
+    wordCue("wordslide.finish");
+    const steps: FinishStep[] = [];
+    for (let row = 0; row < WS_SIZE; row++) {
+      steps.push({
+        el: root.current?.querySelector(`[data-slide-lock="${row}"]`),
+        keyframes: [
+          { transform: "scale(1)", filter: "none" },
+          { transform: "scale(0.8)", offset: 0.3 },
+          { transform: "scale(1.15)", filter: "drop-shadow(0 0 6px var(--primary))", offset: 0.6 },
+          { transform: "scale(1)", filter: "none" },
+        ],
+        delay: row * 170,
+        duration: 320,
+      });
+      for (let col = 0; col < WS_SIZE; col++)
+        steps.push({ el: board.current?.querySelector(`[data-cell="${row * WS_SIZE + col}"]`), keyframes: goldPulse(1.05), delay: row * 170 + 80 + col * 20, duration: 380 });
+    }
+    return playFinish(steps);
+  });
 
   if (!data || !replay) return null;
   const frozen = locked || submitted.current;
@@ -237,10 +281,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
 
   return (
-    <div ref={root} data-polish="wordslide" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
-      <FoundWordMoment value={accepted} />
-      <Board grid={replay.grid} cell={CELL} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
-      <div data-game-controls="status" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+    <div ref={root} data-polish="wordslide" data-word-polish="wordslide" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3" style={NO_SCROLL_STYLE}>
+      <div className="word-moment-float top-0">
+        <FoundWordMoment value={accepted} />
+      </div>
+      <Board grid={replay.grid} cell={cell} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} shut={finished} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
+      <div data-game-controls="status" data-word-controls-first="" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>Moves <span className="text-primary">{replay.moves}</span></span>
       </div>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">

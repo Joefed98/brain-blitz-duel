@@ -10,6 +10,7 @@ import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -44,6 +45,7 @@ function Crossword({
         return (
           <div
             key={cell}
+            data-lw-cell={cell}
             className={`word-letter-tile flex items-center justify-center rounded-sm font-mono font-bold ${
               ch ? "bg-primary text-primary-foreground" : miss ? "bg-card text-muted-foreground ring-1 ring-inset ring-destructive" : "bg-card"
             }`}
@@ -136,6 +138,7 @@ function Wheel({
     <div
       ref={ref}
       data-play-area
+      data-lw-wheel=""
       className={`relative aspect-square h-full max-h-full select-none rounded-full bg-card ${shake ? "animate-shake" : ""}`}
       style={{ touchAction: "none", overscrollBehavior: "none", WebkitUserSelect: "none" }}
       onPointerDown={(e) => {
@@ -223,6 +226,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const [order, setOrder] = useState(() => Array.from({ length: data?.letters.length ?? 0 }, (_, i) => i));
   const submitted = useRef(false);
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   const wheel = data?.letters ?? "";
   const slotCount = data?.slots.length ?? 0;
@@ -240,6 +244,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     onSubmit(encoded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filledCount, locked]);
+
+  // Crossword complete: the wheel spins once, then the crossword lights corner to corner (display only).
+  useWordFinish(slotCount > 0 && filledCount >= slotCount, () => {
+    wordCue("letterwheel.finish");
+    const root = stageRef.current;
+    const cols = data?.cols ?? 1;
+    const rows = data?.rows ?? 1;
+    const spin = [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }];
+    const counter = [{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }];
+    const steps: FinishStep[] = [{ el: root?.querySelector("[data-lw-wheel]"), keyframes: spin, delay: 0, duration: 700, easing: "cubic-bezier(.45,0,.25,1)" }];
+    root?.querySelectorAll("[data-lw-wheel] .letter-shuffle-tile").forEach((el) =>
+      steps.push({ el, keyframes: counter, delay: 0, duration: 700, easing: "cubic-bezier(.45,0,.25,1)" }),
+    );
+    const step = 420 / Math.max(1, rows + cols - 2);
+    root?.querySelectorAll<HTMLElement>("[data-lw-cell]").forEach((el) => {
+      const cell = Number(el.dataset["lwCell"]);
+      steps.push({ el, keyframes: goldPulse(1.08), delay: 420 + Math.round((Math.floor(cell / cols) + (cell % cols)) * step), duration: 340 });
+    });
+    return playFinish(steps);
+  });
 
   if (!data) return null;
   const done = locked || filledCount >= slotCount;
@@ -287,8 +311,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   };
 
   return (
-    <div data-polish="letterwheel" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
-      <div data-arena-part="letterwheel-board" className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
+    <div ref={stageRef} data-polish="letterwheel" data-word-polish="letterwheel" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
+      <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{
             width: `min(334px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
@@ -306,7 +330,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
         <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
-      <div data-game-controls="actions" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
+      <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span className="text-primary">{filledCount}</span> / {slotCount} words
         </span>
@@ -334,9 +358,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const missed = new Map([...all].filter(([c]) => !mine.has(c)));
   const complete = v.totalCells > 0 && v.cells >= v.totalCells;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  const px = Math.floor(200 / Math.max(puzzle.cols, puzzle.rows));
+  // As large as one 375×667 screen allows: up to 300px wide, 250px tall, 34px cells.
+  const px = Math.floor(Math.min(300 / puzzle.cols, 250 / puzzle.rows, 34));
   return (
-    <div className="flex w-full flex-col items-center gap-2">
+    <div data-word-reveal="letterwheel" className="flex w-full flex-col items-center gap-2">
       <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
         <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} />
       </div>

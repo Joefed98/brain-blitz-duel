@@ -15,6 +15,8 @@ import {
 } from "@/lib/duel/types";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { scoreWordHunt } from "@/lib/duel/scoring";
+import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
   word: string;
@@ -145,6 +147,7 @@ export function WordHuntPuzzle({
   const livePath = useRef<number[]>([]);
   const foundRef = useRef<Found[]>([]);
   const submitted = useRef(false);
+  const [runEnded, setRunEnded] = useState(false);
   foundRef.current = found;
 
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
@@ -152,8 +155,22 @@ export function WordHuntPuzzle({
   const lockIn = useCallback(() => {
     if (submitted.current) return;
     submitted.current = true;
+    setRunEnded(true);
     onSubmit(foundRef.current.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
   }, [onSubmit]);
+
+  // A run worth 120+ on this phone's count: a ripple runs out across the letter grid (display only).
+  useWordFinish(runEnded && scoreWordHunt(points) >= WORD_FINISH_SCORE, () => {
+    wordCue("wordhunt.finish");
+    const mid = (N - 1) / 2;
+    const steps: FinishStep[] = [...(gridRef.current?.children ?? [])].map((el, cell) => ({
+      el,
+      keyframes: goldPulse(1.1),
+      delay: rippleDelay(cell, N, mid, mid, 150),
+      duration: 460,
+    }));
+    return playFinish(steps);
+  });
 
   // The round runs the full minute; the traced words go in just before it ends.
   useEffect(() => {

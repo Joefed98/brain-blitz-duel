@@ -112,6 +112,7 @@ export const SHARDS: Record<string, string[]> = {
     "room-practice-parity-check.tsx",
     "shikaku-lightup-check.ts",
     "six-game-scoring-check.ts",
+    "word-polish-check.ts",
     "puzzle-bank-check.ts@1/4",
   ],
   d: [
