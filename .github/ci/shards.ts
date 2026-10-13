@@ -120,6 +120,7 @@ export const SHARDS: Record<string, string[]> = {
     "puzzle-bank-check.ts@1/4",
   ],
   d: [
+    "app-update-check.tsx",
     "arcade-self-replay-check.ts",
     "logic-grid-check.ts",
     "orbit-legacy-replay-check.ts",

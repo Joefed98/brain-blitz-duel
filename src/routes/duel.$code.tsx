@@ -117,6 +117,7 @@ import { roomInvite } from "@/lib/duel/roomLink";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -224,6 +225,16 @@ function DuelScreen() {
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
+  // A new version reloads only between rounds and lands back here (lib/appUpdate).
+  useUpdateGate(
+    roomUpdateGate({
+      loading: state.loading,
+      notFound: state.notFound,
+      member: !!me,
+      status: duel?.status,
+      phase: duel?.phase,
+    }),
+  );
   // Accepted ?dev=1 key enables presentation-only readouts (layout overlay) in rooms too.
   useDemoKey();
 
