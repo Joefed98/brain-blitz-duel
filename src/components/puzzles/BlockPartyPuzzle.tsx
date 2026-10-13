@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  BlockArtDefs,
+  BlockBoardArt,
+  BlockPiecesArt,
+  BlockSolveFx,
+  PieceArt,
+  pegDistances,
+  SHINE_STEP_MS,
+} from "@/components/puzzles/pattern/blockPartyArt";
+import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
+
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import {
   gridColRowAt,
@@ -48,35 +59,44 @@ function PieceGlyph({
   colour,
   cell,
   onCellPointerDown,
+  turn,
 }: {
   offsets: Offsets;
   colour: string;
   cell: number;
   onCellPointerDown?:
     ((event: React.PointerEvent<HTMLDivElement>, row: number, col: number) => void) | undefined;
+  /** The tap that just changed this piece's pose, for a short turn animation. */
+  turn?: "turn" | "flip" | undefined;
 }) {
   const { rows, cols } = offsetsSize(offsets);
   return (
     <div
-      className="relative"
+      className={`relative ${turn === "turn" ? "bp-glyph-turn" : turn === "flip" ? "bp-glyph-flip" : ""}`}
       style={{ width: cols * cell, height: rows * cell, touchAction: "none" }}
       aria-hidden="true"
     >
+      {/* The hit cells (unchanged geometry), then the art beneath them. */}
       {offsets.map(([r, c], index) => (
         <div
           key={index}
           onPointerDown={onCellPointerDown ? (event) => onCellPointerDown(event, r, c) : undefined}
-          className="absolute rounded-[3px]"
+          className="absolute z-[1]"
           style={{
             left: c * cell,
             top: r * cell,
             width: cell - 2,
             height: cell - 2,
-            background: colour,
-            opacity: 0.8,
           }}
         />
       ))}
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+        viewBox={`0 0 ${cols * 100} ${rows * 100}`}
+        aria-hidden="true"
+      >
+        <PieceArt cells={offsets} colour={colour} />
+      </svg>
     </div>
   );
 }
@@ -88,64 +108,43 @@ export function BlockBoard({
   size,
   children,
   boardRef,
+  snap,
+  celebrate,
 }: {
   blockers: number[];
   placements: BlockPlacement[];
   size?: number;
   children?: React.ReactNode;
   boardRef?: React.Ref<HTMLDivElement>;
+  /** Stage only: pieces click into place as they land. */
+  snap?: boolean;
+  /** Stage only: the completion shine is running. */
+  celebrate?: boolean;
 }) {
+  const wave = useMemo(() => {
+    if (!celebrate) return null;
+    const distance = pegDistances(blockers);
+    return new Map(
+      placements.map((placement) => [
+        placement.piece,
+        60 + (Math.min(...placement.cells.map((cell) => distance[cell] ?? 1)) - 1) * SHINE_STEP_MS,
+      ]),
+    );
+  }, [celebrate, blockers, placements]);
   return (
-    <div
-      ref={boardRef}
-      className="relative aspect-square w-full rounded-xl border border-border bg-card/60"
-      style={size ? { width: size, height: size } : undefined}
-    >
-      <div className="absolute inset-0 grid grid-cols-6 grid-rows-6" aria-hidden="true">
-        {Array.from({ length: N * N }, (_, i) => (
-          <div key={i} className="border border-border/30" />
-        ))}
+    <BlockArtDefs>
+      <div
+        ref={boardRef}
+        className="bp-board relative aspect-square w-full"
+        data-celebrate={celebrate ? "on" : undefined}
+        style={size ? { width: size, height: size } : undefined}
+      >
+        <BlockBoardArt blockers={blockers} />
+        <BlockPiecesArt placements={placements} colourFor={pieceColour} snap={snap} wave={wave} />
+        {celebrate && <BlockSolveFx blockers={blockers} />}
+        {children}
       </div>
-
-      {placements.map((placement) =>
-        placement.cells.map((cell) => (
-          <div
-            key={`${placement.piece}-${cell}`}
-            className="absolute rounded-[4px]"
-            style={{
-              left: pct(cell % N),
-              top: pct(Math.floor(cell / N)),
-              width: pct(1),
-              height: pct(1),
-              padding: 2,
-            }}
-          >
-            <div
-              className="h-full w-full rounded-[4px]"
-              style={{ background: pieceColour(placement.piece), opacity: 0.85 }}
-            />
-          </div>
-        )),
-      )}
-
-      {blockers.map((cell) => (
-        <div
-          key={`peg-${cell}`}
-          className="absolute flex items-center justify-center"
-          style={{
-            left: pct(cell % N),
-            top: pct(Math.floor(cell / N)),
-            width: pct(1),
-            height: pct(1),
-          }}
-          aria-hidden="true"
-        >
-           <span className="block h-5 w-5 max-h-[80%] max-w-[80%] rounded-full bg-primary block-party-peg" />
-        </div>
-      ))}
-
-      {children}
-    </div>
+    </BlockArtDefs>
   );
 }
 
@@ -194,6 +193,10 @@ export function BlockPartyPuzzle({
   );
 
   const covered = placed.reduce((sum, entry) => sum + entry.cells.length, 0);
+  const celebrating = useSolveMoment(covered >= BLOCK_FREE_CELLS, "blockparty.solve");
+  const [turned, setTurned] = useState<{ piece: number; kind: "turn" | "flip"; n: number } | null>(
+    null,
+  );
 
   const lockIn = useCallback(
     (final: BlockPlacement[]) => {
@@ -260,6 +263,12 @@ export function BlockPartyPuzzle({
         const double =
           previous && previous.piece === info.item.piece && Date.now() - previous.at < 300;
         lastTap.current = { piece: info.item.piece, at: Date.now() };
+        setTurned((current) => ({
+          piece: info.item.piece,
+          kind: double ? "flip" : "turn",
+          n: (current?.n ?? 0) + 1,
+        }));
+        soundCue(double ? "blockparty.flip" : "blockparty.turn");
         setPose((current) => {
           const state = current[info.item.piece] ?? { rot: 0, flip: false };
           return {
@@ -289,6 +298,7 @@ export function BlockPartyPuzzle({
         { piece: info.item.piece, cells },
       ];
       setPlaced(next);
+      soundCue("blockparty.place");
       if (next.reduce((sum, entry) => sum + entry.cells.length, 0) >= BLOCK_FREE_CELLS) {
         setTimeout(() => lockIn(next), 200);
       }
@@ -362,6 +372,8 @@ export function BlockPartyPuzzle({
           placements={placed}
           boardRef={boardRef}
           size={boardSize}
+          snap
+          celebrate={celebrating}
         >
           {ghost && draggedPiece !== undefined && (
             <>
@@ -369,8 +381,8 @@ export function BlockPartyPuzzle({
                 <div
                   key={`ghost-${cell}`}
                   aria-hidden="true"
-                  className={`pointer-events-none absolute rounded-[4px] border-2 border-dashed ${
-                    ghost.legal ? "border-current bg-primary/10" : "border-warn/70 bg-warn/10"
+                  className={`bp-ghost pointer-events-none absolute border-2 border-dashed ${
+                    ghost.legal ? "border-current" : "bp-ghost--blocked border-warn/70 bg-warn/10"
                   }`}
                   style={{
                     left: pct(cell % N),
@@ -413,14 +425,15 @@ export function BlockPartyPuzzle({
       {/* Tray: every remaining piece, at a reduced scale. */}
       <div
         ref={trayRef}
-        data-game-controls="tray" className="grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl bg-card/60 px-2.5 py-2.5"
+        data-game-controls="tray" className="block-party-tray grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl px-2.5 py-2.5"
       >
         {inTray.length === 0 ? (
           <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
             board full
           </p>
         ) : (
-          inTray.map((piece) => {
+          <BlockArtDefs>
+          {inTray.map((piece) => {
             const dragging = drag.drag?.item.piece === piece && drag.drag.item.from === "tray";
             const dragInfo = dragging ? drag.drag : null;
             const offsets = offsetsFor(piece);
@@ -439,12 +452,15 @@ export function BlockPartyPuzzle({
                     dragInfo
                       ? {
                           ...liftStyle(dragInfo.dx, dragInfo.dy, reduced),
+                          boxShadow: undefined,
                           transform: `translate3d(${dragInfo.dx}px, ${dragInfo.dy - (reduced ? 0 : 6)}px, 0) scale(${boardCell / trayCell})`,
                         }
                       : { touchAction: "none" }
                   }
                 >
                   <PieceGlyph
+                    key={turned?.piece === piece ? `t${turned.n}` : "rest"}
+                    turn={turned?.piece === piece ? turned.kind : undefined}
                     offsets={offsets}
                     colour={pieceColour(piece)}
                     cell={trayCell}
@@ -455,7 +471,8 @@ export function BlockPartyPuzzle({
                 </div>
               </div>
             );
-          })
+          })}
+          </BlockArtDefs>
         )}
       </div>
     </div>
