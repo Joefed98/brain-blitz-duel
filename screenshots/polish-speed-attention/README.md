@@ -1,6 +1,6 @@
 # Speed & Attention polish: before and after (13 Oct 2026)
 
-One contact sheet per game and phone size. Each sheet has a **before** row (`main` at eb143ad) and an **after** row (this branch), with four columns: intro, mid-play, completion effect and reveal.
+One contact sheet per game and phone size. Each sheet has a **before** row (`main` at eb143ad) and an **after** row (this branch, re-captured after merging main with #39–#42, #44, #46, #47 and #49), with four columns: intro, mid-play, completion effect and reveal.
 
 ## How the shots were taken
 
@@ -29,7 +29,7 @@ The play area is the stage's content blocks other than `[data-game-controls]`. A
 | Don't Break the Chain | 12 / 0 → 12 / 12 | 12 / 35 → 24 / 24 | 12 / 63 → 38 / 38 |
 | Bonk | 0 / 92 → 46 / 46 | 0 / 254 → 127 / 127 | 0 / 302 → 151 / 151 |
 | Pull! | 0 / 0 → 55 / 55 | 0 / 121 → 135 / 135 | 0 / 149 → 157 / 157 |
-| Mixed Signals | 0 / 12 → 8 / 12 | 0 / 12 → 8 / 12 | 0 / 12 → 8 / 12 |
+| Mixed Signals | 0 / 12 → 12 / 12 | 0 / 12 → 62 / 62 | 0 / 12 → 77 / 77 |
 | Eagle Eye | 0 / 12 → 26 / 26 | 0 / 12 → 107 / 107 | 0 / 12 → 131 / 131 |
 | Double Take | 0 / 0 → 0 / 0 | 0 / 119 → 48 / 48 | 0 / 147 → 62 / 62 |
 | Tally | 0 / 415 → 32 / 32 | 0 / 430 → 113 / 113 | 0 / 470 → 137 / 137 |
