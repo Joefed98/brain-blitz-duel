@@ -16,11 +16,12 @@ function cssVar(name: string, fallback: string): string {
  */
 export function playMazeTrace(board: Element, path: number[], cols: number, rows: number): void {
   const svg = board.querySelector("svg") ?? board;
-  if (path.length < 2) return;
+  const route = path.filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < cols * rows);
+  if (route.length < 2) return;
   const rect = svg.getBoundingClientRect();
   const cw = rect.width / cols;
   const ch = rect.height / rows;
-  const pts = path.map((cell) => ({ x: ((cell % cols) + 0.5) * cw, y: (Math.floor(cell / cols) + 0.5) * ch }));
+  const pts = route.map((cell) => ({ x: ((cell % cols) + 0.5) * cw, y: (Math.floor(cell / cols) + 0.5) * ch }));
   const gold = cssVar("--primary", "#F5B82E");
   soundCue("maze.trace");
   playOverlayFx({
@@ -30,7 +31,7 @@ export function playMazeTrace(board: Element, path: number[], cols: number, rows
       const drawn = reduced ? 1 : easeOut(Math.min(1, ms / 750));
       const alpha = reduced ? Math.max(0, 1 - ms / 1100) : ms < 850 ? 1 : Math.max(0, 1 - (ms - 850) / 250);
       const segs = (pts.length - 1) * drawn;
-      const whole = Math.floor(segs);
+      const whole = Math.min(pts.length - 1, Math.max(0, Math.floor(segs)));
       const frac = segs - whole;
       ctx.save();
       ctx.globalAlpha = alpha;
