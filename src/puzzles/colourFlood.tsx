@@ -179,7 +179,7 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
   const replay = replayFlood(puzzle.grid, decodeFloodMoves(myAnswer ?? ""));
   const elapsed =
@@ -193,7 +193,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
          {replay.solved
-           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C")
+           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C", scoreParts)
           : `${replay.region} / ${FLOOD_CELLS} cells`}
       </p>
     </div>

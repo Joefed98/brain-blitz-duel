@@ -341,17 +341,21 @@ export function gradeSudokuGrid(
   givens: number[],
   solution: number[],
   raw: string,
-): { solved: boolean; correct: number; total: number } {
+): { solved: boolean; correct: number; total: number; wrong: number } {
   const grid = decodeSudoku(raw);
   const blanks: number[] = [];
   for (let cell = 0; cell < SUDOKU_CELLS; cell++) if (!(givens[cell] ?? 0)) blanks.push(cell);
 
   let correct = 0;
-  for (const cell of blanks) if (grid[cell] && grid[cell] === solution[cell]) correct += 1;
+  let wrong = 0;
+  for (const cell of blanks) {
+    if (grid[cell] && grid[cell] === solution[cell]) correct += 1;
+    else if (grid[cell]) wrong += 1;
+  }
 
   const respectsGivens = givens.every((given, cell) => !given || grid[cell] === given);
   const solved = respectsGivens && correct === blanks.length;
-  return { solved, correct, total: blanks.length };
+  return { solved, correct, total: blanks.length, wrong };
 }
 
 /**

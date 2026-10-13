@@ -703,13 +703,9 @@ export const REACTION_MAX_FLASHES = 8;
 /** A gold flash lasts until tapped or this long; a miss records this value. */
 export const REACTION_FLASH_MS = 1_500;
 export const REACTION_MISS_MS = 1_200;
-/** Added to the average for every false start. */
-export const REACTION_FALSE_START_MS = 200;
 /** How long a decoy pulse stays on screen. */
 export const REACTION_DECOY_MS = 600;
 
-/** Colour Clash: a run of twelve items across eight colours. */
-export const STROOP_ITEMS = 12;
 /** Every run holds at least this many of each instruction. */
 export const STROOP_MIN_PER_INSTRUCTION = 4;
 /** Never more than this many of the same instruction in a row. */
@@ -764,7 +760,7 @@ export const SPOT_ONE_POINTS = 15;
 /** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
 export const ROTATION_COLS = 5;
 
-/** Number Hunt: twenty two-digit numbers over one minute. */
+/** Ascend (Number Hunt): 24 numbers over one minute. */
 export const NUMHUNT_COUNT = 24;
 export const NUMHUNT_TIME_MS = 60_000;
 export const NUMHUNT_CIRCLE_PX = 42;
@@ -926,7 +922,7 @@ export const COUNTUP_MAX_COUNT = 12;
 /*  Mirror Match                                                               */
 /* -------------------------------------------------------------------------- */
 
-/** A run of three flips in one round. */
+/** Five shapes in one round. */
 export const MIRMATCH_ITEMS = 5;
 export const MIRMATCH_TIME_MS = 60_000;
 
@@ -2067,6 +2063,8 @@ export interface TenDropPuzzleData {
   type: "tendrop";
   /** Draws every target and tile queue — identical for everyone. */
   seed: number;
+  /** Score revision (1 = the Oct 2026 puzzle shape: 120 + speed, 110 for nine). Absent = 13 per target. */
+  tenRev?: number;
 }
 
 /** Letterfall: a fixed 90-second run on the arcade engine, plus clock slack. */

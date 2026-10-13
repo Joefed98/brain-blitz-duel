@@ -214,7 +214,7 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "tiles") return null;
   const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? ""));
   const elapsed =
@@ -228,7 +228,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
-          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)
+          ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)
           : `${replay.inPlace} / ${TILES_COUNT} in place`}
       </p>
     </div>

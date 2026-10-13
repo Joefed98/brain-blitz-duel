@@ -30,6 +30,7 @@ export const SHARDS: Record<string, string[]> = {
     "iceslide-portals-check.ts",
     "ink-live-bottom-check.ts",
     "orbit-checkpoint-check.ts",
+    "puzzle-score-rev-check.ts",
     "puzzle-surface-check.tsx",
     "reveal-score-check.tsx",
     "rings5-check.ts",

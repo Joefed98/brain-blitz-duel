@@ -172,7 +172,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        All 49 connected = 130 + up to 20 for speed. You have 120 seconds.
+        All 49 connected = 120 + up to 30 for speed. You have 120 seconds.
       </p>
     </div>
   );

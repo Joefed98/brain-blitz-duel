@@ -66,9 +66,9 @@ import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
-import { clashVariantOf } from "@/lib/arcade/colourClash";
+import { clashRev4Finished, clashVariantOf, CLASH_REV } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
-import { decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
+import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
 import { decodeBallTrackRun, replayBallTrackRun } from "./ballTrack";
 import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } from "./trail";
@@ -90,7 +90,7 @@ import { validateLadder } from "./wordLadder.server";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeSumPaths, replaySumHunt, sumHuntRoundScore, SH_STAGES } from "./sumHunt";
-import { balanceRoundScore, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
+import { balanceRoundScore, balanceScalesSolved, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
@@ -107,6 +107,10 @@ import {
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
+import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
+import { solvedFrame } from "./tiles";
+import { sortedTubeCount } from "./tubes";
+import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
 import { decodeStrikeout, encodeStrikeout, replayStrikeout, scoreStrikeout, soTally } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
@@ -126,6 +130,7 @@ import {
   scoreReaction,
   scoreRound,
   scoreSpotDifference,
+  SPOT_REV1_WRONG_LIMIT,
   scoreStopWatch,
   scoreBlockParty,
   scoreMirrorMatch,
@@ -168,7 +173,6 @@ import {
   STOPWATCH_MISS_MS,
   MIRMATCH_ITEMS,
   SPIN_ITEMS,
-  STROOP_ITEMS,
   INTRUDER_BOARDS,
   WORDMATCH_ITEMS,
   FLOW_PAIRS,
@@ -251,6 +255,24 @@ export function gradeSubmission(
   rawExtra?: SubmitExtra,
   receivedMsRemaining?: number,
 ): Graded {
+  // The score shape follows the stored stamp (puzzleScoreRev.ts); unstamped rounds grade as they always did.
+  const rev = puzzleScoreRevOf(puzzle);
+  return withPuzzleScoreRev(rev, () => {
+    takeScoreParts();
+    const graded = gradeUnderRev(puzzle, rawAnswer, msRemaining, rawExtra, receivedMsRemaining);
+    const parts = takeScoreParts();
+    if (rev >= PUZZLE_SCORE_REV && parts) graded.extra = { ...(graded.extra ?? {}), parts };
+    return graded;
+  });
+}
+
+function gradeUnderRev(
+  puzzle: PuzzleData,
+  rawAnswer: string,
+  msRemaining: number,
+  rawExtra?: SubmitExtra,
+  receivedMsRemaining?: number,
+): Graded {
   const extra = rawExtra ?? {};
   const tapLog = usesTapLog(puzzle);
   // Arcade runs carry a full input log (one event a tick at most), so they get a
@@ -291,7 +313,7 @@ export function gradeSubmission(
       const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
       isCorrect = verdict.valid;
       correctCount = verdict.placed;
-      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs));
+      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
       break;
     }
@@ -306,11 +328,14 @@ export function gradeSubmission(
     }
     case "balance": {
       // The server recomputes every torque; any balanced arrangement counts.
-      const solved = balanceSolvedCount(puzzle.scales, decodeBalance(answer, puzzle.scales));
-      correctCount = solved;
-      isCorrect = solved === BAL_SCALES;
-      score = balanceRoundScore(solved, ms, timeLimitMs);
-      extraDetail = { solved };
+      const placements = decodeBalance(answer, puzzle.scales);
+      const solved = balanceSolvedCount(puzzle.scales, placements);
+      // Rev 1 credits every balanced scale in any order.
+      const scales = scoreRev1() ? balanceScalesSolved(puzzle.scales, placements) : undefined;
+      correctCount = scales ? scales.filter(Boolean).length : solved;
+      isCorrect = scales ? correctCount === BAL_SCALES : solved === BAL_SCALES;
+      score = balanceRoundScore(solved, ms, timeLimitMs, scales);
+      extraDetail = scales ? { solved, scales } : { solved };
       break;
     }
     case "wordslide": {
@@ -319,7 +344,11 @@ export function gradeSubmission(
       const rows = markedRowsSolved(replay.grid);
       isCorrect = rows === WS_MARKED_ROWS.length;
       correctCount = rows;
-      score = scoreWordSlide(rows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
+      // Rev 1: an unfinished grid earns only the word rows the player made (a row still as it started is not counted).
+      const madeRows = scoreRev1() && !isCorrect
+        ? WS_MARKED_ROWS.filter((r) => markedRowWord(replay.grid, r) !== markedRowWord(puzzle.grid, r) && checkWordSlideRow(markedRowWord(replay.grid, r)).valid).length
+        : rows;
+      score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
         validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
       break;
@@ -404,7 +433,10 @@ export function gradeSubmission(
       const replay = replayColourClashRun(puzzle.seed, answer, clashVariantOf(puzzle));
       revealRun = replay;
       correctCount = replay.correct;
-      isCorrect = replay.correct >= replay.total;
+      // clashRev 4: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
+      isCorrect = puzzle.clashRev === CLASH_REV
+        ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
+        : replay.correct >= replay.total;
       score = replay.score;
       storedMs = 0;
       extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
@@ -457,7 +489,7 @@ export function gradeSubmission(
       break;
     }
     case "spotdiff": {
-      // The phone sends every cell it tapped; the three differences live
+      // The phone sends every cell it tapped; the six differences live
       // server-side, so only the stored answers decide the score.
       const tapped = answer
         .split(",")
@@ -465,8 +497,12 @@ export function gradeSubmission(
         .filter((v) => Number.isFinite(v));
       const differences = puzzle.differences ?? [];
       correctCount = differences.filter((d) => d.cells.some((c) => tapped.includes(c))).length;
-      isCorrect = correctCount >= SPOT_DIFFERENCES;
-      score = scoreSpotDifference(correctCount, ms, timeLimitMs);
+      const diffCells = new Set(differences.flatMap((d) => d.cells));
+      const wrongTaps = new Set(tapped.filter((c) => !diffCells.has(c))).size;
+      score = scoreSpotDifference(correctCount, ms, timeLimitMs, wrongTaps);
+      // Rev 1: all six with more than SPOT_REV1_WRONG_LIMIT wrong taps is not a finish.
+      isCorrect = correctCount >= SPOT_DIFFERENCES && (!scoreRev1() || wrongTaps <= SPOT_REV1_WRONG_LIMIT);
+      if (scoreRev1()) errors = wrongTaps;
       break;
     }
     case "symscan": {
@@ -548,7 +584,8 @@ export function gradeSubmission(
       // The client sends its steps; every one is replayed and re-checked here
       // and the final value is worked out from the tiles, never trusted.
       const replay = replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(answer));
-      const distance = replay.distance ?? Number.MAX_SAFE_INTEGER;
+      // Rev 1: only numbers the player made count (no step, no credit).
+      const distance = scoreRev1() ? madeDistance(puzzle.tiles, puzzle.target, replay) : replay.distance ?? Number.MAX_SAFE_INTEGER;
       isCorrect = distance === 0;
       score = scoreTargetNumber(distance, ms, timeLimitMs);
       extraDetail = {
@@ -570,7 +607,7 @@ export function gradeSubmission(
         // lane — a cheap count, so no solver ever runs during a room.
         const before = blockingCars(puzzle.vehicles);
         const after = blockingCars(replay.vehicles);
-        if (before > 0) progress = Math.max(0, (before - after) / before) * 0.9;
+        if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }
       score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
@@ -581,7 +618,13 @@ export function gradeSubmission(
       // Only placements that are legal together count towards the coverage.
       const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer));
       isCorrect = verdict.solved;
-      score = scoreBlockParty(verdict.solved, ms, verdict.legal.length, timeLimitMs);
+      // Rev 1: an unfinished board earns only pieces placed where the stored solution has a piece of that shape.
+      const solutionCells = new Set((puzzle.solution ?? []).map((p) => [...p.cells].sort((a, b) => a - b).join(",")));
+      const credited = scoreRev1() && puzzle.solution?.length
+        ? verdict.legal.filter((p) => solutionCells.has([...p.cells].sort((a, b) => a - b).join(","))).length
+        : verdict.legal.length;
+      // Rev 1: legal pieces off the solution count against, so dropping pieces at random earns about 0.
+      score = scoreBlockParty(verdict.solved, ms, scoreRev1() ? 2 * credited - verdict.legal.length : credited, timeLimitMs);
       extraDetail = {
         solved: verdict.solved,
         covered: verdict.covered,
@@ -606,7 +649,9 @@ export function gradeSubmission(
       const correctTaps = (puzzle.solution ?? []).filter(
         (cell) => (counts.get(cell) ?? 0) % 2 === 1,
       ).length;
-      score = scoreLightsOut(isCorrect, actions.filter((cell) => cell >= 0).length, min, ms, leftOn, correctTaps, timeLimitMs);
+      const solutionSet = new Set(puzzle.solution ?? []);
+      const wrongStanding = [...counts].filter(([cell, n]) => n % 2 === 1 && !solutionSet.has(cell)).length;
+      score = scoreLightsOut(isCorrect, actions.filter((cell) => cell >= 0).length, min, ms, leftOn, correctTaps, timeLimitMs, wrongStanding);
       extraDetail = {
         presses: actions.filter((cell) => cell >= 0).length,
         minPresses: min,
@@ -621,7 +666,8 @@ export function gradeSubmission(
       const verdict = gradePipesBoard(puzzle.source, board);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
-      score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs);
+      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
+      score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
       extraDetail = { solved: verdict.solved, connected: verdict.connected };
       break;
     }
@@ -630,7 +676,8 @@ export function gradeSubmission(
       const verdict = gradeSudokuGrid(puzzle.givens, puzzle.solution ?? [], answer);
       isCorrect = verdict.solved;
       correctCount = verdict.correct;
-      score = scoreSudoku(verdict.solved, verdict.correct, verdict.total, ms, timeLimitMs);
+      score = scoreSudoku(verdict.solved, verdict.correct, verdict.total, ms, timeLimitMs, verdict.wrong);
+      if (scoreRev1()) errors = verdict.wrong;
       extraDetail = { solved: verdict.solved, correct: verdict.correct, total: verdict.total };
       break;
     }
@@ -641,7 +688,12 @@ export function gradeSubmission(
       const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
-      score = scoreFlow(verdict.solved, verdict.pairsJoined, ms, puzzle.pairs.length, timeLimitMs);
+      // Rev 1: an unfinished board earns only pairs joined along their (unique) solution route.
+      const routeKey = (path: number[]) => [...path].sort((a, b) => a - b).join(",");
+      // Pairs joined off their route count against, so random lines earn about 0.
+      const onRoute = verdict.joined.filter((ok, i) => ok && puzzle.solution?.[i] && routeKey(paths[i] ?? []) === routeKey(puzzle.solution[i]!)).length;
+      const credited = scoreRev1() && puzzle.solution?.length ? 2 * onRoute - verdict.pairsJoined : verdict.pairsJoined;
+      score = scoreFlow(verdict.solved, credited, ms, puzzle.pairs.length, timeLimitMs);
       extraDetail = {
         solved: verdict.solved,
         pairsJoined: verdict.pairsJoined,
@@ -665,7 +717,9 @@ export function gradeSubmission(
           .map((state) => slideDistance(board, state))
           .filter((value): value is number => value !== null);
         if (startDistance && startDistance > 0 && best.length > 0) {
-          progress = Math.max(0, 1 - Math.min(...best) / startDistance);
+          progress = scoreRev1()
+            ? Math.max(0, (startDistance - Math.min(...best)) / Math.max(1, startDistance - 1))
+            : Math.max(0, 1 - Math.min(...best) / startDistance);
         }
       }
       isCorrect = replay.solved;
@@ -691,7 +745,7 @@ export function gradeSubmission(
         : cratesOnTargets(replay.state.crates, puzzle.targets);
       isCorrect = replay.solved;
       correctCount = replay.pushes;
-      score = scorePush(replay.solved, replay.pushes, min, ms, home, puzzle.targets.length, timeLimitMs);
+      score = scorePush(replay.solved, replay.pushes, min, ms, home, puzzle.targets.length, timeLimitMs, cratesOnTargets(puzzle.crates, puzzle.targets));
       extraDetail = {
         solved: replay.solved,
         pushes: replay.pushes,
@@ -735,6 +789,7 @@ export function gradeSubmission(
         timeLimitMs,
         replay.correctFromBottom,
         puzzle.discs,
+        scoreRev1() ? replayTower(puzzle.start ?? [], puzzle.targetPeg, puzzle.discs, []).correctFromBottom : 0,
       );
       extraDetail = {
         solved: replay.solved,
@@ -757,7 +812,13 @@ export function gradeSubmission(
       );
       isCorrect = verdict.solved;
       correctCount = verdict.walked;
-      score = scoreMaze(verdict.solved, verdict.progress, ms, timeLimitMs);
+      // Rev 1: progress counts route steps beyond the start cell, so standing still is 0.
+      const routeLength = Math.max(2, (puzzle.solution ?? []).length);
+      // Cells walked beyond the route discount it as in the moves games (0 at 4× the route), so scribbling earns about 0.
+      const progress = scoreRev1()
+        ? Math.max(0, (verdict.progress * routeLength - 1) / (routeLength - 1)) * wasteFactor(verdict.walked, routeLength)
+        : verdict.progress;
+      score = scoreMaze(verdict.solved, progress, ms, timeLimitMs);
       extraDetail = {
         solved: verdict.solved,
         progress: Math.round(verdict.progress * 100),
@@ -770,7 +831,8 @@ export function gradeSubmission(
       const replay = replayTubes(puzzle.tubes, decodeTubeMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.moves;
-      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs);
+      const colours = new Set(puzzle.tubes.flat()).size;
+      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs, colours, sortedTubeCount(puzzle.tubes));
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
@@ -827,7 +889,8 @@ export function gradeSubmission(
       const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer));
       isCorrect = replay.solved;
       correctCount = replay.tilts;
-      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs);
+      const lockedAtStart = scoreRev1() ? replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, []).locked : 0;
+      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs, lockedAtStart, puzzle.starts.length);
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,
@@ -884,7 +947,7 @@ export function gradeSubmission(
       const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
       isCorrect = replay.solved;
       correctCount = replay.pairs;
-      score = scorePairMatch(replay.solved, replay.pairs, ms, timeLimitMs);
+      score = scorePairMatch(replay.solved, replay.pairs, ms, timeLimitMs, replay.tries);
       extraDetail = {
         solved: replay.solved,
         pairs: replay.pairs,
@@ -898,7 +961,7 @@ export function gradeSubmission(
       const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.region;
-      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs);
+      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
@@ -927,7 +990,15 @@ export function gradeSubmission(
       const replay = replayTiles(puzzle.frame, decodeTileMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.inPlace;
-      score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms, timeLimitMs);
+      if (scoreRev1()) {
+        // Rev 1: only tiles the player put in place, not ones that started there.
+        const goal = solvedFrame();
+        const startIn = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i]).length;
+        // Tiles that started in place and were moved out count against, so random slides earn about 0.
+        const displaced = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i] && replay.frame[i] !== v).length;
+        const placed = replay.frame.filter((v, i) => v !== 0 && v === goal[i] && puzzle.frame[i] !== v).length - displaced;
+        score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn);
+      } else score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
@@ -941,7 +1012,8 @@ export function gradeSubmission(
       const replay = replayRings(puzzle.segments, puzzle.pattern, decodeRingTaps(answer));
       isCorrect = replay.solved;
       correctCount = replay.aligned;
-      score = scoreRings(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.aligned, ms, timeLimitMs);
+      const alignedAtStart = scoreRev1() ? replayRings(puzzle.segments, puzzle.pattern, []).aligned : 0;
+      score = scoreRings(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.aligned, ms, timeLimitMs, alignedAtStart);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
@@ -1352,7 +1424,7 @@ export function gradeSubmission(
     }
     case "tendrop": {
       const replayStart = performance.now();
-      const run = replayTenDropRun(puzzle.seed, answer);
+      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1837,7 +1909,16 @@ export function gradeSubmission(
       const solved = covered === puzzle.size * puzzle.size;
       isCorrect = solved;
       correctCount = covered;
-      score = scoreShikaku(solved, ms, timeLimitMs, covered);
+      if (scoreRev1() && !solved && puzzle.solution?.length) {
+        // Rev 1: area of rectangles on the (unique) solution, less the area of other accepted rectangles.
+        const key = (r: { r0: number; c0: number; r1: number; c1: number }) => `${r.r0},${r.c0},${r.r1},${r.c1}`;
+        const sol = new Set(puzzle.solution.map(key));
+        const accepted = acceptedRects(rects, puzzle.clues, puzzle.size);
+        const area = (r: { r0: number; c0: number; r1: number; c1: number }) => (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1);
+        const right = accepted.filter((r) => sol.has(key(r))).reduce((sum, r) => sum + area(r), 0);
+        const wrongArea = accepted.filter((r) => !sol.has(key(r))).reduce((sum, r) => sum + area(r), 0);
+        score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea);
+      } else score = scoreShikaku(solved, ms, timeLimitMs, covered);
       extraDetail = { solved, covered, rects: rects.length };
       break;
     }
@@ -1872,7 +1953,8 @@ export function gradeSubmission(
       const complete = trComplete(puzzle.givens, path) && prefix === puzzle.givens.length;
       isCorrect = complete;
       correctCount = trCorrectTiles(puzzle.givens, path, puzzle.solution ?? []);
-      score = scoreTrail(complete, ms, timeLimitMs, correctCount);
+      const placedTiles = path.filter((cell, i) => cell >= 0 && puzzle.givens[cell] === null && i < puzzle.givens.length).length;
+      score = scoreTrail(complete, ms, timeLimitMs, correctCount, puzzle.givens.filter((g) => g === null).length, placedTiles - correctCount);
       extraDetail = { complete, prefix, correctTiles: correctCount, drawn: path.filter((cell) => cell >= 0).length };
       break;
     }
@@ -1925,7 +2007,8 @@ export function gradeSubmission(
         return { complete, correctCells, emptyCells, placed: Object.keys(placements).length };
       });
       const completed = boards.filter((board) => board.complete).length;
-      const active = boards[decoded.active];
+      // Rev 1: partial credit goes to the first unfinished pyramid (they are played in order); the phone's `active` is not read.
+      const active = scoreRev1() ? boards.find((b) => !b.complete) : boards[decoded.active];
       isCorrect = completed === puzzle.pyramids.length;
       correctCount = boards.reduce((sum, board) => sum + board.correctCells, 0);
       score = scoreNumberPyramid(completed, isCorrect, ms, active && !active.complete ? active.correctCells : 0, active?.emptyCells ?? 0, timeLimitMs);
@@ -1975,7 +2058,8 @@ export function gradeSubmission(
       // Each submitted word is matched against the stored crossword.
       const words = lwDecode(answer);
       const v = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, words);
-      isCorrect = v.totalCells > 0 && v.cells >= v.totalCells;
+      // Rev 1: correct means every word slot found, the same measure the score uses.
+      isCorrect = scoreRev1() ? puzzle.slots.length > 0 && v.slots.length >= puzzle.slots.length : v.totalCells > 0 && v.cells >= v.totalCells;
       correctCount = v.slots.length;
       errors = v.wrong;
       score = scoreLetterWheel(v.slots.length, puzzle.slots.length, ms, timeLimitMs);
@@ -2021,7 +2105,9 @@ export function gradeSubmission(
       const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;
       isCorrect = run.solved;
       correctCount = placed;
-      score = scoreSwapword(run.solved, run.swaps, puzzle.minSwaps, placed, ms, timeLimitMs);
+      const toPlace = [...puzzle.start].filter((ch, t) => ch !== solution[t]).length;
+      const displaced = [...puzzle.start].filter((ch, t) => ch === solution[t] && run.board[t] !== solution[t]).length;
+      score = scoreSwapword(run.solved, run.swaps, puzzle.minSwaps, scoreRev1() ? placed - displaced : placed, ms, timeLimitMs, toPlace);
       extraDetail = { solved: run.solved, swaps: run.swaps, minSwaps: puzzle.minSwaps, placed, tilesLeft: left, swapwordRev: puzzle.swapwordRev };
       break;
     }
@@ -2033,7 +2119,12 @@ export function gradeSubmission(
       isCorrect = solved;
       correctCount = status.lit.size;
       errors = status.clashing.size;
-      score = scoreLightUp(solved, ms, timeLimitMs, status.lit.size, status.whites, status.clashing.size);
+      if (scoreRev1() && !solved && puzzle.solution?.length) {
+        // Rev 1: credit for bulbs on the (unique) solution, less 5 per other bulb, so lighting everything at random earns nothing.
+        const sol = new Set(puzzle.solution);
+        const right = bulbs.filter((b) => sol.has(b)).length;
+        score = scoreLightUp(false, ms, timeLimitMs, right, Math.max(1, sol.size - 1), bulbs.length - right);
+      } else score = scoreLightUp(solved, ms, timeLimitMs, status.lit.size, status.whites, status.clashing.size);
       extraDetail = { solved, lit: status.lit.size, whites: status.whites, clashing: status.clashing.size, bulbs: bulbs.length };
       break;
     }

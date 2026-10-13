@@ -225,7 +225,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "gravity") return null;
   const mine = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(myAnswer ?? ""));
   const best = decodeGravityTilts(puzzle.solution ?? "");
@@ -248,7 +248,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       <p className="font-mono text-base text-muted-foreground">{mine.locked} / 4 balls locked</p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
-          {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, timeLimitMs)}
+          {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, timeLimitMs, "B", scoreParts)}
         </p>
       ) : null}
     </div>

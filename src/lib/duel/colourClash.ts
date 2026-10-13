@@ -2,7 +2,7 @@ import { clashCheckpoint, clashTimeBonusOf, colourClashGameFor, CLASH_CHECKPOINT
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
 const opts = { tag: "stroop", checkpoint: clashCheckpoint, keys: CLASH_CHECKPOINT_KEYS, interval: CLASH_CHECKPOINT_INTERVAL } as const;
-const runs = [0, 1, 2, 3].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
+const runs = [0, 1, 2, 3, 4].map((variant) => makeArcadeRun<ClashState, ClashCheckpoint>({ ...opts, game: colourClashGameFor(variant) }));
 export const encodeColourClashRun = runs[3]!.encode;
 export const decodeColourClashRun = runs[3]!.decode;
 export interface ColourClashResult extends FlatReplay<ClashState, ClashCheckpoint> { correct: number; wrong: number; missed: number; total: number; queue: number; timeBonus: number; finished: boolean }

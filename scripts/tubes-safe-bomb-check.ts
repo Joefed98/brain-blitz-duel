@@ -146,7 +146,11 @@ assert(v2Graded.isCorrect && v2Graded.score === 150, `v2 graded complete ${v2Gra
 const v2Short = drawn.sequence!.split(",");
 // Repeating the first action as step 4 is a strike after three correct steps.
 const v2Partial3 = gradeAnswer(drawn, [...v2Short.slice(0, 3), v2Short[0]!].join(","), 0);
-assert(v2Partial3.score === 38 && !v2Partial3.isCorrect, `v2 three-step strike ${v2Partial3.score}`);
+// New rounds carry the Oct 2026 puzzle score shape (puzzleScoreRev 1: 22 per step); stored rounds keep round(75 × 3 ÷ 6).
+assert(v2Partial3.score === 66 && !v2Partial3.isCorrect, `v2 three-step strike ${v2Partial3.score}`);
+const { puzzleScoreRev: _rev, ...drawnStored } = drawn as BombPuzzleData & { puzzleScoreRev?: number };
+const v2Stored3 = gradeAnswer(drawnStored as BombPuzzleData, [...v2Short.slice(0, 3), v2Short[0]!].join(","), 0);
+assert(v2Stored3.score === 38 && !v2Stored3.isCorrect, `v2 stored three-step strike ${v2Stored3.score}`);
 const v1 = generateBombPanel(1).puzzle;
 const v1Steps = v1.sequence!.split(",");
 const v1Two = gradeAnswer(v1, [...v1Steps.slice(0, 2), v1Steps[3]!].join(","), 0);

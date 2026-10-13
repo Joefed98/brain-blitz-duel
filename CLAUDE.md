@@ -140,7 +140,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 2. **Version-stamp every gameplay change.** Any change to rules, generation, physics,
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
-   `sliceRev`, `tapRev`, `bombVersion`, `rulesVersion`). Unstamped/older rounds must replay and score exactly as before.
+   `sliceRev`, `tapRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`). Unstamped/older rounds must replay and score exactly as before.
    Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.

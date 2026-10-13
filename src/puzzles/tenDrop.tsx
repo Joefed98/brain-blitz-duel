@@ -16,6 +16,7 @@ import {
   tenDropCheckpoint,
   tenDropGame,
   tenDropHolding,
+  tenDropInit,
   tdView,
   unpackTdLog,
   TD_CHECKPOINT_INTERVAL,
@@ -103,12 +104,14 @@ const LOG_NAMES: Record<number, string> = {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: TenDropPuzzleData | null = puzzle.type === "tendrop" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  // The stored score revision rides in the sim state, so the phone's claim matches the server's replay.
+  const scoreRev = data?.tenRev;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<TenDropState>(tenDropGame.init(seed));
+  const state = useRef<TenDropState>(tenDropInit(seed, scoreRev));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof tenDropCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
@@ -137,12 +140,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     );
 
   useEffect(() => {
-    state.current = tenDropGame.init(seed);
+    state.current = tenDropInit(seed, scoreRev);
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
     submitted.current = false;
-  }, [seed]);
+  }, [seed, scoreRev]);
 
   useEffect(() => {
     if (!data) return;
