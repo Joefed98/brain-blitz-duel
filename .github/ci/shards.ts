@@ -122,6 +122,10 @@ export const SHARDS: Record<string, string[]> = {
     "tubes-safe-bomb-check.ts",
     "wordsmith-variable-check.tsx",
     "puzzle-bank-check.ts@4/4",
+    // Round replays (Oct 2026): fixture replays and moments (~10 s), the serve-after-close gate, results/podium flow.
+    "replay-check.ts",
+    "replay-access-check.ts",
+    "replay-flow-check.tsx",
   ],
 };
 
@@ -132,7 +136,12 @@ export const OPTIONAL = ["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuil
 
 /**
  * Checks CI can't run (they need network or a secret Actions doesn't have),
- * mapped to the reason. Empty: on 12 Oct 2026 every routine check passed with
- * networking disabled, and none reads a secret.
+ * mapped to the reason. On 12 Oct 2026 every routine check passed with
+ * networking disabled, and none reads a secret; the one entry is the replay
+ * playback check, which needs a browser the check shards don't install.
  */
-export const CI_SKIP: Record<string, string> = {};
+export const CI_SKIP: Record<string, string> = {
+  // Round replays: plays five stored runs in the replay player in headless Chromium, which only the
+  // play shards install; run it locally after a replay change (bun scripts/replay-play-check.ts).
+  "replay-play-check.ts": "needs headless Chromium (only the play shards install it); run locally",
+};

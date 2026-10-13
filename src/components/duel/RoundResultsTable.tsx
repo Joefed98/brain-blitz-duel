@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   VERDICT_LABEL,
@@ -23,6 +23,8 @@ interface RoundResultsTableProps {
   autoSeconds: number;
   finalRound: boolean;
   continueState: ContinueState;
+  /** Replays: the round winner's highlight (display only; never blocks Continue). */
+  highlight?: ReactNode;
 }
 
 export function RoundResultsTable({
@@ -33,6 +35,7 @@ export function RoundResultsTable({
   autoSeconds,
   finalRound,
   continueState,
+  highlight,
 }: RoundResultsTableProps) {
   const ordered = roundResultOrder(rows, times);
   const topScore = Math.max(0, ...ordered.map((row) => row.roundScore));
@@ -65,6 +68,8 @@ export function RoundResultsTable({
           {finalRound ? "Final round" : "This round"}
         </span>
       </header>
+
+      {highlight}
 
       <ol
         className="grid min-h-0 flex-1 gap-1.5"

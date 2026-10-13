@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { puzzleName } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -24,6 +24,8 @@ interface FinalResultProps {
   onPlayAgain: () => void;
   isHost: boolean;
   onHome: () => void;
+  /** Replays: the play of the game panel (display only; never blocks Play again or Home). */
+  playOfTheGame?: ReactNode;
 }
 
 export function FinalResult({
@@ -39,6 +41,7 @@ export function FinalResult({
   onPlayAgain,
   isHost,
   onHome,
+  playOfTheGame,
 }: FinalResultProps) {
   const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
   const headlineColor =
@@ -93,6 +96,8 @@ export function FinalResult({
             </p>
           </div>
         </div>
+
+        {playOfTheGame}
 
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           {breakdown.map((row, i) => (

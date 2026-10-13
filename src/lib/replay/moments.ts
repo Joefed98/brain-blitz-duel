@@ -1,0 +1,498 @@
+/**
+ * Replay moments (display only): the success moments each engine game fires
+ * today, detected from SIM STATE while a stored round is re-simulated — never
+ * from live drawing state — plus near-misses and final-second saves where the
+ * sim defines them. One table gives every moment a weight, so rarer and harder
+ * moments rank higher across games (a boss kill above a 5-in-a-line above a
+ * streak banner). Picking is deterministic: weight, then the earlier tick, then
+ * the table order.
+ *
+ * Source of the arcade rows: the success-event declarations in
+ * arcadeFxGames.renderer.ts (`ARCADE_FX_SPECS`, `ORBIT3_FX`, `ENGINE_FX_SPECS`),
+ * which are pure reads of counters the sims already keep. Each row names the
+ * event by its index and kind; scripts/replay-check.ts fails if a game's events
+ * and its rows ever drift apart. Bonk, Pull!, Tenfall and Mixed Signals fire no
+ * shared success events, so their rows read their own sim counters here.
+ */
+import type { ArcadeFxEvent, ArcadeFxKind } from "@/lib/arcade/arcadeFx.renderer";
+import { ARCADE_FX_SPECS, ENGINE_FX_SPECS, ORBIT3_FX } from "@/lib/arcade/arcadeFxGames.renderer";
+import type { PuzzleData } from "@/lib/duel/types";
+import { ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { TD_TARGETS } from "@/lib/arcade/tenDrop";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type MomentCategory = "success" | "finish" | "near-miss" | "save";
+
+export interface MomentRow {
+  game: string;
+  /** Stable moment id within the game. */
+  id: string;
+  /** Rank weight; 0 = fires today but is not a highlight (an every-hit light, an info banner). */
+  weight: number;
+  category: MomentCategory;
+  /** What the moment is, for docs and as the caption when the event has no text. */
+  name: string;
+  /** Arcade rows: the index and kind of the success event in the game's spec. */
+  fx?: { index: number; kind: ArcadeFxKind; spec?: "orbit3" };
+}
+
+const fx = (
+  game: string,
+  index: number,
+  kind: ArcadeFxKind,
+  id: string,
+  weight: number,
+  name: string,
+  category: MomentCategory = "success",
+  spec?: "orbit3",
+): MomentRow => ({
+  game,
+  id,
+  weight,
+  category,
+  name,
+  fx: spec ? { index, kind, spec } : { index, kind },
+});
+const own = (
+  game: string,
+  id: string,
+  weight: number,
+  name: string,
+  category: MomentCategory = "success",
+): MomentRow => ({ game, id, weight, category, name });
+
+/** The one weight table: (game, moment, weight). */
+export const MOMENT_TABLE: readonly MomentRow[] = [
+  // Hover
+  fx("hover", 0, "pop", "barrier", 0, "Barrier passed (border light only)"),
+  fx("hover", 1, "streak", "zone", 30, "New zone (every 7 barriers)"),
+  fx("hover", 2, "perfect", "gold-star", 40, "Gold star"),
+  fx("hover", 3, "pop", "two-gap", 20, "Through a two-gap barrier"),
+  fx("hover", 4, "pop", "slipped-through", 30, "Slipped through a moving barrier", "near-miss"),
+  fx("hover", 5, "final", "all-barriers", 90, "Every barrier passed", "finish"),
+  // Breaker
+  fx("breaker", 0, "perfect", "power-up", 25, "Power-up caught"),
+  fx("breaker", 1, "streak", "bricks", 20, "Bricks streak (every 10)"),
+  fx("breaker", 2, "perfect", "fireball", 40, "Fireball caught"),
+  fx("breaker", 3, "pop", "moving-target", 25, "Brick out of a sliding row"),
+  fx("breaker", 4, "clear", "row-clear", 35, "Row cleared"),
+  fx("breaker", 5, "final", "wall-cleared", 95, "Wall cleared", "finish"),
+  // Rally
+  fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
+  fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),
+  fx("rally", 2, "perfect", "target", 45, "Far-wall target struck"),
+  fx("rally", 3, "pop", "bumper", 10, "Off the bumper"),
+  fx("rally", 4, "pop", "hit", 0, "Paddle hit (court lights only)"),
+  // Tempo
+  fx("beat", 0, "combo", "combo", 30, "Combo (every 10)"),
+  fx("beat", 1, "pop", "swipe", 15, "Swipe note hit"),
+  fx("beat", 2, "final", "full-combo", 95, "Full combo", "finish"),
+  // Meteor
+  fx("snake", 0, "streak", "stars", 30, "Stars streak (every 10)"),
+  fx("snake", 1, "pop", "dodged", 25, "Rock dodged", "near-miss"),
+  fx("snake", 2, "streak", "shower", 20, "Meteor shower incoming"),
+  fx("snake", 3, "perfect", "shower-dodged", 60, "Meteor shower dodged", "near-miss"),
+  fx("snake", 4, "final", "all-eaten", 90, "Every star eaten", "finish"),
+  // Fission
+  fx("burst", 0, "clear", "wave-cleared", 45, "Wave cleared"),
+  fx("burst", 1, "perfect", "freeze", 30, "Freeze caught"),
+  fx("burst", 2, "final", "flawless", 90, "Flawless finish", "finish"),
+  own("burst", "last-life-wave", 55, "Wave cleared on the last life", "near-miss"),
+  // Wavefront
+  fx("wavefront", 0, "perfect", "saucer", 55, "Saucer shot down"),
+  fx("wavefront", 1, "clear", "wave-cleared", 45, "Wave cleared"),
+  fx("wavefront", 2, "pop", "diver-down", 25, "Diver shot mid-dive"),
+  fx("wavefront", 3, "streak", "boss-hits", 40, "Boss hit streak (every 6)"),
+  fx(
+    "wavefront",
+    4,
+    "final",
+    "boss-down",
+    100,
+    "Boss destroyed (all waves on older rounds)",
+    "finish",
+  ),
+  // Orbit (rev 1/2 spec, and the rev 3+ camera spec with black holes)
+  fx("orbit", 0, "streak", "planets", 35, "Planets streak (every 10)"),
+  fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish"),
+  fx("orbit", 0, "streak", "planets", 35, "Planets streak (every 10)", "success", "orbit3"),
+  fx("orbit", 1, "final", "all-planets", 95, "All 40 planets", "finish", "orbit3"),
+  fx("orbit", 2, "clear", "black-hole", 60, "Through a black hole", "success", "orbit3"),
+  // High Rise
+  fx("skyline", 0, "perfect", "perfect-drop", 20, "Perfect drop"),
+  fx("skyline", 1, "streak", "floors", 35, "Floors streak (every 10)"),
+  fx("skyline", 2, "combo", "streak", 40, "Perfect streak"),
+  fx("skyline", 3, "pop", "wind-flag", 0, "Wind flag raised (info only)"),
+  fx("skyline", 4, "perfect", "wind-perfect", 50, "Perfect drop in the wind"),
+  // Jaywalk
+  fx("cross", 0, "clear", "crossing", 35, "Road crossed"),
+  fx("cross", 1, "pop", "bikes", 20, "Past the cyclists"),
+  fx("cross", 2, "pop", "cones", 20, "Through the roadworks"),
+  // Junction (practice only)
+  fx("junction", 0, "perfect", "ambulance", 45, "Ambulance through"),
+  fx("junction", 1, "streak", "cleared", 25, "Cars cleared (every 10)"),
+  fx("junction", 2, "pop", "new-road", 0, "New road built (info only)"),
+  fx("junction", 3, "pop", "bus", 20, "Bus through"),
+  fx("junction", 4, "streak", "new-roads", 20, "New roads' traffic (every 5)"),
+  // Rainbow Bridge
+  fx("inkbridge", 0, "clear", "level", 35, "Level cleared"),
+  fx("inkbridge", 1, "perfect", "gold-star", 45, "Coin through the gold star"),
+  fx("inkbridge", 2, "final", "all-levels", 95, "All 10 levels", "finish"),
+  // Slice
+  fx("slice", 0, "combo", "combo", 25, "Combo multiplier"),
+  fx("slice", 1, "perfect", "frenzy", 30, "Sauce frenzy"),
+  fx("slice", 2, "perfect", "simmer", 30, "Simmer (slow time)"),
+  fx("slice", 3, "streak", "sliced", 25, "Sliced streak (every 25)"),
+  fx("slice", 4, "perfect", "mayo", 30, "Mayonnaise squeezed"),
+  fx("slice", 5, "combo", "many-in-one", 55, "Four or more in one cut"),
+  // Swish
+  fx("bintoss", 0, "combo", "in-a-row", 35, "Buckets in a row (3+)"),
+  fx("bintoss", 1, "perfect", "hoop", 40, "Through the hoop"),
+  fx("bintoss", 2, "pop", "spinner", 20, "Past the spinner"),
+  fx("bintoss", 3, "final", "ten-of-ten", 95, "Ten out of ten", "finish"),
+  // Flightpath
+  fx("bullseye", 0, "perfect", "bullseye", 40, "Bullseye"),
+  fx("bullseye", 1, "perfect", "inner-bull", 60, "Inner bull"),
+  fx("bullseye", 2, "pop", "balloon", 20, "Balloon popped"),
+  fx("bullseye", 3, "combo", "bulls-in-a-row", 55, "Bulls in a row"),
+  fx("bullseye", 4, "final", "all-on-target", 80, "All ten on target", "finish"),
+  // Coral Pop
+  fx("bubble", 0, "combo", "big-pop", 55, "Big pop (5+)"),
+  fx("bubble", 1, "perfect", "big-drop", 60, "Big drop (3+)"),
+  fx("bubble", 2, "perfect", "joker", 30, "Joker"),
+  fx("bubble", 3, "perfect", "mine", 40, "Mine"),
+  fx("bubble", 4, "perfect", "torpedo", 40, "Torpedo"),
+  fx("bubble", 5, "final", "reef-cleared", 95, "Reef cleared", "finish"),
+  // Roofbound
+  fx("flip", 0, "streak", "seconds", 20, "Survival streak (every 10 s)"),
+  fx("flip", 1, "final", "survived", 80, "Survived", "finish"),
+  fx("flip", 2, "pop", "star", 15, "Star taken"),
+  fx("flip", 3, "perfect", "all-stars", 70, "All 10 stars"),
+  fx("flip", 4, "pop", "just-in-time", 40, "Off a crumbling tile just in time", "near-miss"),
+  // Grappler
+  fx("swing", 0, "streak", "distance", 30, "Distance (every 100 m)"),
+  fx("swing", 1, "perfect", "star", 25, "Star"),
+  fx("swing", 2, "pop", "dodged", 30, "Stalactite dodged", "near-miss"),
+  fx("swing", 3, "pop", "over-lava", 20, "Over the lava jet"),
+  fx("swing", 4, "final", "finish", 95, "500 m (dragon outrun)", "finish"),
+  // Scrumper
+  fx("snip", 0, "pop", "leaf", 15, "Leaf taken"),
+  fx("snip", 1, "clear", "level", 35, "Apple fed"),
+  fx("snip", 2, "final", "all-apples", 95, "All 10 apples", "finish"),
+  fx("snip", 3, "pop", "spring", 10, "Off a springy branch"),
+  // Tilt
+  fx("tilt", 0, "clear", "maze", 45, "Maze done"),
+  fx("tilt", 1, "final", "all-mazes", 95, "All 4 mazes", "finish"),
+  fx("tilt", 2, "pop", "star", 25, "Bonus star"),
+  fx("tilt", 3, "pop", "first-marble", 25, "First marble home"),
+  // Ball Tracker
+  fx("balltrack", 0, "streak", "home", 25, "Marbles home (every 5)"),
+  fx("balltrack", 1, "final", "all-home", 95, "All 30 home", "finish"),
+  fx("balltrack", 2, "pop", "turned-home", 20, "Home off a turned tube"),
+  fx("balltrack", 3, "pop", "switched-home", 20, "Home past a switch"),
+  // Gemstone
+  fx("matchup", 0, "combo", "cascade", 50, "Cascade (3+ steps)"),
+  fx("matchup", 1, "perfect", "line-of-five", 70, "Five or more in a line"),
+  fx("matchup", 2, "perfect", "jackpot-gem", 75, "Jackpot gem made"),
+  fx("matchup", 3, "combo", "jackpot", 65, "Jackpot set off"),
+  fx("matchup", 4, "final", "par-smashed", 85, "Par smashed", "finish"),
+  // Letterfall
+  fx("wordfall", 0, "pop", "word", 15, "Word made"),
+  fx("wordfall", 1, "perfect", "long-word", 55, "Six-letter (or longer) word"),
+  fx("wordfall", 2, "final", "par", 80, "Par reached", "finish"),
+  // Bonk, Pull!, Tenfall, Mixed Signals: their own sim counters
+  own("whack", "bonks", 25, "Bonks streak (every 10)"),
+  own("whack", "clean-twenty", 60, "Twenty bonks without a wrong tap"),
+  own("clayshoot", "gold", 40, "Gold clay"),
+  own("clayshoot", "clays", 25, "Clays streak (every 10)"),
+  own("clayshoot", "double", 55, "Two clays with one shot"),
+  own("tendrop", "ten", 20, "Ten made"),
+  own("tendrop", "all-cleared", 90, "Every target cleared", "finish"),
+  own("stroop", "sorted", 20, "Sorted streak (every 5)"),
+  own("stroop", "all-sorted", 70, "Whole queue sorted", "finish"),
+  own("stroop", "flawless", 90, "Whole queue sorted without a mistake", "finish"),
+  // Moment cards (rounds that don't replay well), from the stored answers.
+  own("reaction", "fastest", 30, "Fastest reaction"),
+  own("reaction", "lightning", 50, "Reaction under 200 ms"),
+  own("stopwatch", "closest", 30, "Closest stop"),
+  own("stopwatch", "dead-on", 60, "Stopped within 10 ms"),
+  own("wordsmith", "best-word", 30, "Best word"),
+  own("wordsmith", "pangram", 60, "Pangram (every letter)"),
+  own("wordhunt", "best-word", 30, "Best word"),
+  own("wordhunt", "long-word", 50, "Seven-letter (or longer) word"),
+  // Puzzle time-lapses (stored ordered move lists).
+  own("puzzle", "solved", 45, "Puzzle solved (time-lapse)"),
+  own("puzzle", "minimum", 70, "Puzzle solved in the minimum moves (time-lapse)"),
+  // Every game: the run's last scoring moment lands in the final two seconds.
+  own("shared", "final-second", 55, "Final-second save: scored in the last two seconds", "save"),
+];
+
+/** A detected moment in one stored round. */
+export interface Moment {
+  game: string;
+  id: string;
+  tick: number;
+  weight: number;
+  category: MomentCategory;
+  /** On-screen caption: the event's own text, else the row's name. */
+  caption: string;
+  /** Where it happened in world coordinates, when the event says. */
+  at: { x: number; y: number } | null;
+}
+
+const rowsByGame = new Map<string, MomentRow[]>();
+for (const row of MOMENT_TABLE)
+  rowsByGame.set(row.game, [...(rowsByGame.get(row.game) ?? []), row]);
+
+export function momentRows(game: string): readonly MomentRow[] {
+  return rowsByGame.get(game) ?? [];
+}
+
+/** The success events a game declares today, for the spec a stored round draws with. */
+export function fxEventsFor(game: string, spec?: "orbit3"): readonly ArcadeFxEvent<any>[] {
+  if (spec === "orbit3") return ORBIT3_FX.events as readonly ArcadeFxEvent<any>[];
+  const specs = { ...ARCADE_FX_SPECS, ...ENGINE_FX_SPECS } as Record<
+    string,
+    { events: readonly ArcadeFxEvent<any>[] }
+  >;
+  return specs[game]?.events ?? [];
+}
+
+interface Counter {
+  row: MomentRow;
+  count: (s: any) => number;
+  min?: number;
+  every?: number;
+  minDelta?: number;
+  when?: (s: any) => boolean;
+  label?: (s: any, count: number, delta: number) => string | null;
+  at?: (s: any) => { x: number; y: number } | null | undefined;
+}
+
+/** Own counters for the engine games without shared success events. */
+function ownCounters(game: string, rows: readonly MomentRow[]): Counter[] {
+  const row = (id: string) => rows.find((r) => r.id === id)!;
+  switch (game) {
+    case "whack":
+      return [
+        { row: row("bonks"), count: (s) => s.hits, every: 10, label: (_s, n) => `${n} BONKS` },
+        {
+          row: row("clean-twenty"),
+          count: (s) => (s.hits >= 20 && s.wrong + s.bombs === 0 ? 1 : 0),
+          label: () => "20 CLEAN BONKS!",
+        },
+      ];
+    case "clayshoot":
+      return [
+        { row: row("gold"), count: (s) => s.goldHits, label: () => "GOLD CLAY!" },
+        { row: row("clays"), count: (s) => s.hits, every: 10, label: (_s, n) => `${n} CLAYS` },
+        {
+          row: row("double"),
+          count: (s) => s.hits,
+          minDelta: 2,
+          label: (_s, _n, d) => (d >= 3 ? "TRIPLE!" : "DOUBLE!"),
+        },
+      ];
+    case "tendrop":
+      return [
+        { row: row("ten"), count: (s) => s.cleared, label: () => "TEN!" },
+        {
+          row: row("all-cleared"),
+          count: (s) => (s.cleared >= TD_TARGETS ? 1 : 0),
+          label: () => "ALL CLEARED!",
+        },
+      ];
+    case "stroop":
+      return [
+        { row: row("sorted"), count: (s) => s.correct, every: 5, label: (_s, n) => `${n} SORTED` },
+        {
+          row: row("all-sorted"),
+          count: (s) => (s.finishTick > 0 && (s.wrong > 0 || s.missed > 0) ? 1 : 0),
+          label: () => "ALL SORTED!",
+        },
+        {
+          row: row("flawless"),
+          count: (s) => (s.finishTick > 0 && s.wrong === 0 && s.missed === 0 ? 1 : 0),
+          label: () => "FLAWLESS!",
+        },
+      ];
+    case "burst":
+      return [
+        {
+          row: row("last-life-wave"),
+          count: (s) => s.cleared,
+          when: (s) => s.lives === 1,
+          label: () => "LAST-LIFE CLEAR!",
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
+function defaultCaption(kind: ArcadeFxKind, count: number, delta: number): string {
+  switch (kind) {
+    case "pop":
+      return `+${delta}`;
+    case "perfect":
+      return "PERFECT";
+    case "streak":
+      return `STREAK ${count}`;
+    case "combo":
+      return `COMBO ×${count}`;
+    case "clear":
+      return "CLEAR!";
+    case "final":
+      return "FULL CLEAR!";
+  }
+}
+
+/** Which spec variant a stored round's moments come from (Orbit rev 3+ has its own). */
+function specVariant(puzzle: PuzzleData): "orbit3" | undefined {
+  const rev = (puzzle as unknown as { orbitRev?: number }).orbitRev;
+  return puzzle.type === "orbit" && typeof rev === "number" && rev >= ORBIT_REV3
+    ? "orbit3"
+    : undefined;
+}
+
+/**
+ * Watches one replay tick by tick (feed it to ReplayTimeline as its observer)
+ * and collects moments with the shared success layer's firing rule: a counter
+ * rises (at `min`, crossing a multiple of `every`, by `minDelta`, `when` true).
+ */
+export class MomentDetector {
+  readonly moments: Moment[] = [];
+  private counters: Counter[] = [];
+  private finished = false;
+  private lastScoreTick = 0;
+  private lastScore = 0;
+  private readonly lastTick: number;
+  private readonly score: (s: any) => number;
+  private readonly game: string;
+
+  constructor(
+    puzzle: PuzzleData,
+    opts: { runTicks: number; lastTick: number; score: (s: any) => number },
+  ) {
+    this.game = puzzle.type;
+    this.lastTick = opts.lastTick;
+    this.score = opts.score;
+    const variant = specVariant(puzzle);
+    const rows = momentRows(puzzle.type);
+    const events = fxEventsFor(puzzle.type, variant);
+    for (const row of rows) {
+      if (!row.fx || row.fx.spec !== variant) continue;
+      const event = events[row.fx.index];
+      if (!event || event.kind !== row.fx.kind) continue;
+      this.counters.push({
+        row,
+        count: event.count,
+        ...(event.min !== undefined ? { min: event.min } : {}),
+        ...(event.every !== undefined ? { every: event.every } : {}),
+        ...(event.minDelta !== undefined ? { minDelta: event.minDelta } : {}),
+        ...(event.when ? { when: event.when } : {}),
+        ...(event.label ? { label: event.label } : {}),
+        ...(event.at ? { at: event.at } : {}),
+      });
+    }
+    this.counters.push(...ownCounters(puzzle.type, rows));
+  }
+
+  /** The observer: compare this tick's counters with the previous tick's. */
+  observe = (state: any, tick: number, previous: any): void => {
+    for (const c of this.counters) {
+      let before: number;
+      let after: number;
+      try {
+        before = Number(c.count(previous)) || 0;
+        after = Number(c.count(state)) || 0;
+      } catch {
+        continue;
+      }
+      if (after <= before) continue;
+      if (c.min !== undefined && after < c.min) continue;
+      if (c.every !== undefined && Math.floor(after / c.every) <= Math.floor(before / c.every))
+        continue;
+      if (c.minDelta !== undefined && after - before < c.minDelta) continue;
+      if (c.when && !safe(() => c.when!(state), false)) continue;
+      if (c.row.weight <= 0) continue;
+      // The text the effect shows today; an event with no text gets the row's name.
+      const kind = c.row.fx?.kind;
+      const caption = c.label
+        ? (safe(() => c.label!(state, after, after - before), null) ?? c.row.name)
+        : kind
+          ? defaultCaption(kind, after, after - before)
+          : c.row.name;
+      const at = c.at ? safe(() => c.at!(state) ?? null, null) : null;
+      this.moments.push({
+        game: this.game,
+        id: c.row.id,
+        tick,
+        weight: c.row.weight,
+        category: c.row.category,
+        caption,
+        at,
+      });
+    }
+    // Final-second save: track the last tick the score rose.
+    if (tick >= this.lastTick - 600) {
+      const now = safe(() => this.score(state), this.lastScore);
+      if (now > this.lastScore) this.lastScoreTick = tick;
+      this.lastScore = now;
+    }
+  };
+
+  /** Called once the run is fully scanned: adds the final-second save when it applies. */
+  finish(endTick: number): Moment[] {
+    if (this.finished) return this.moments;
+    this.finished = true;
+    const row = rowsByGame.get("shared")!.find((r) => r.id === "final-second")!;
+    if (
+      endTick >= this.lastTick &&
+      this.lastScoreTick > 0 &&
+      this.lastScoreTick >= this.lastTick - 120
+    ) {
+      this.moments.push({
+        game: this.game,
+        id: row.id,
+        tick: this.lastScoreTick,
+        weight: row.weight,
+        category: row.category,
+        caption: "FINAL-SECOND SAVE!",
+        at: null,
+      });
+    }
+    return this.moments;
+  }
+}
+
+function safe<T>(fn: () => T, fallback: T): T {
+  try {
+    return fn();
+  } catch {
+    return fallback;
+  }
+}
+
+/** Deterministic order: weight (high first), then the earlier tick, then table order. */
+export function rankMoments(moments: readonly Moment[]): Moment[] {
+  const order = new Map(MOMENT_TABLE.map((row, i) => [`${row.game}:${row.id}`, i]));
+  const key = (m: Moment) => order.get(`${m.game}:${m.id}`) ?? order.get(`shared:${m.id}`) ?? 9999;
+  return [...moments].sort((a, b) => b.weight - a.weight || a.tick - b.tick || key(a) - key(b));
+}
+
+/**
+ * The top `count` moments for a highlight: the best first, then the best that
+ * is a different moment or at least `gap` ticks away (so two clips never show
+ * the same few seconds).
+ */
+export function pickMoments(moments: readonly Moment[], count = 2, gap = 300): Moment[] {
+  const ranked = rankMoments(moments);
+  const picked: Moment[] = [];
+  for (const m of ranked) {
+    if (picked.length >= count) break;
+    if (picked.some((p) => Math.abs(p.tick - m.tick) < gap)) continue;
+    picked.push(m);
+  }
+  return picked.sort((a, b) => a.tick - b.tick);
+}

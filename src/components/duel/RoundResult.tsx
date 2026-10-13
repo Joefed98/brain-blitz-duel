@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
@@ -39,6 +39,8 @@ interface RoundResultProps {
   autoSeconds: number;
   finalRound: boolean;
   continueState: ContinueState;
+  /** Replays: the round winner's highlight (display only; never blocks Continue). */
+  highlight?: ReactNode;
 }
 
 export function RoundResult({
@@ -56,6 +58,7 @@ export function RoundResult({
   autoSeconds,
   finalRound,
   continueState,
+  highlight,
 }: RoundResultProps) {
   const iWon = myRoundScore > opponentRoundScore;
   const theyWon = opponentRoundScore > myRoundScore;
@@ -85,6 +88,8 @@ export function RoundResult({
             {finalRound ? "Final round" : "This round"}
           </span>
         </div>
+
+        {highlight}
 
         <div className="flex gap-3">
           <div

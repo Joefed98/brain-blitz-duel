@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleName } from "@/lib/duel/registry";
@@ -66,6 +66,8 @@ interface PodiumProps {
   busy: boolean;
   onPlayAgain: () => void;
   onLeave: () => void;
+  /** Replays: the play of the game panel (display only; never blocks Play again or Leave). */
+  playOfTheGame?: ReactNode;
 }
 
 /** The final screen for a room of three or more players. */
@@ -78,6 +80,7 @@ export function Podium({
   busy,
   onPlayAgain,
   onLeave,
+  playOfTheGame,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
   const mine = rows.find((r) => r.slot === mySlot);
@@ -109,6 +112,8 @@ export function Podium({
         <Plinth standing={rows.find((r) => r.position === 1)} place={1} />
         <Plinth standing={rows.find((r) => r.position === 3)} place={3} />
       </div>
+
+      {playOfTheGame}
 
       <p className="-mb-2 text-center text-[11px] text-foreground/70">Tap a player for their round scores</p>
       <ul className="flex flex-col gap-1">
