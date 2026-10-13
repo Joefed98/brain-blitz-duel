@@ -59,6 +59,13 @@ const RECORD = args.includes("--record");
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
 const ONLY = args.filter((a) => !a.startsWith("--"));
+/**
+ * Opt-in engine games outside the arcade worlds, played only when named on the command line
+ * (never in the default list, CI shards or baselines). Tenfall (tendrop) keeps its own
+ * stretched board, so the arena-slot layout proof is skipped for it; play, timer, errors,
+ * frame time (absolute ceiling only: no baseline) and movement are checked as for any game.
+ */
+const OPT_IN = ["tendrop"];
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PLAY_MS = 15_000;
@@ -159,6 +166,8 @@ const EXTRACT = String.raw`
     // Letterfall: every tile, falling or settled (drops enter from above the well; ids are stable).
     case "wordfall": s.well.forEach((stack, c) => stack.forEach((t) => P.push(["t" + t.id, c * 60, fp(t.y)]))); reset = s.words + ":" + s.over; break;
     case "balltrack": for (const b of s.balls) if (b.cell >= 0 && b.from >= 0) { const p = m.bt.btArtBallPoint(s, b, m.btRot); P.push(["m" + b.id, p.x, p.y]); } break;
+    // Tenfall (opt-in): every falling tile (ids are stable; a new target clears the lanes).
+    case "tendrop": s.tiles.forEach((t) => P.push(["t" + t.id, t.col * 90, fp(t.y)])); reset = s.stage; break;
     default: break; // beat, bullseye, matchup: no continuous movers
   }
   return { P, reset: String(reset) };
@@ -226,7 +235,7 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS)].filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...OPT_IN.filter((g) => ONLY.includes(g))].filter((g) => ONLY.length === 0 || ONLY.includes(g));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {
@@ -417,7 +426,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       await ready.click();
       await page.waitForTimeout(400);
       if (segment === 0) {
-        await arenaFits(page, game, problems);
+        if (!OPT_IN.includes(game)) await arenaFits(page, game, problems);
         // Resizing reallocates the canvas: frame gaps count from here.
         await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
       }
