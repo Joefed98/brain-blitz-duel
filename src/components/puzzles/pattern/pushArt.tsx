@@ -249,6 +249,17 @@ export function WarehouseBoard({
   const delta = ((((target - angle.current) % 360) + 540) % 360) - 180;
   angle.current += delta;
 
+  // A playback jump of more than one cell (the reveal's push-to-push steps) snaps
+  // instead of sliding, so the worker never glides through walls.
+  const lastPusher = useRef(pusher);
+  const workerJumps =
+    Math.abs((lastPusher.current % cols) - (pusher % cols)) +
+      Math.abs(Math.floor(lastPusher.current / cols) - Math.floor(pusher / cols)) >
+    1;
+  useLayoutEffect(() => {
+    lastPusher.current = pusher;
+  }, [pusher]);
+
   // A crate that lands on a marking thumps down with a puff of dust.
   const crateNodes = useRef<(HTMLDivElement | null)[]>([]);
   const wasHome = useRef<boolean[] | null>(null);
@@ -293,7 +304,10 @@ export function WarehouseBoard({
         </div>
       ))}
       {!crates.includes(pusher) && (
-        <div className="push-piece push-piece-worker" style={pieceStyle(pusher, cols, rows)}>
+        <div
+          className="push-piece push-piece-worker"
+          style={{ ...pieceStyle(pusher, cols, rows), ...(workerJumps ? { transition: "none" } : {}) }}
+        >
           <div className="push-piece-inner push-worker-turn" style={{ transform: `rotate(${angle.current}deg)` }}>
             <WorkerArt />
           </div>
