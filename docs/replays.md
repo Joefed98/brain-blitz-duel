@@ -39,9 +39,14 @@ returned (ties broken by `standings`, i.e. quicker answer time, then slot), plus
 needed for the margin. Checked by `replay-access-check` against the real loader code with an
 in-memory database.
 
-Pre-existing, not changed here: the `round_results` RLS policy already lets room members read
-other players' rows (answers included) from the reveal phase on (`duel_round_ended`); the
-reveal screen relies on it. Tightening that is a Room rules and trust decision.
+Closed 13 Oct 2026: the `round_results` RLS policy let room members read other players' rows
+(answers included) from the reveal phase on (`duel_round_ended`) while the reveal still took late
+answers. Migration `20261013120000_reveal_phase_answers_closed.sql` opens other players' rows on
+the same cutoff as replays (`result`, `standings`, `winner_reveal`, a later round, or a finished
+room); a player's own row stays readable. `revealAnswerFn` (`reveal.server.ts`) returns only the
+caller's own detail during the reveal phase, plus where the others' arcade runs ended on the reveal
+track; the phone fetches the reveal and the results again once the round closes
+(`reveal-window-check`).
 
 ## Replay player
 

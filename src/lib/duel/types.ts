@@ -652,6 +652,16 @@ export interface RoundRevealData {
   /** Compact correct-answer text for the result header, when the type has one. */
   correctAnswer: string | null;
   players: PlayerRoundDetail[];
+  /**
+   * True while the round still takes late answers (the reveal phase): `players`
+   * holds only the caller's own detail. Fetch again once the round closes.
+   */
+  partial?: boolean;
+  /**
+   * Reveal phase, arcade rounds: where each other player's run ended on the
+   * reveal track (the reveal's progress axis only, never their answer).
+   */
+  progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string } }[];
 }
 
 export const ROUND_MS = 30_000;
@@ -1656,6 +1666,11 @@ export const CHAIN_CYCLE = 3;
 export const CHAIN_LINK_POINTS = 3.5;
 export const CHAIN_FINISH_BONUS = 10;
 export const CHAIN_RULES_VERSION = 2;
+/**
+ * Finish-bonus time (13 Oct 2026): stamped rounds take time left as no more than
+ * the replayed last tap allows (45 s less its time), never the claimed time alone.
+ */
+export const CHAIN_TIME_REV = 1;
 /** Momentum windows, in ms, to make the given link after the previous one. */
 export const CHAIN_MOMENTUM_MS = [
   { upTo: 13, ms: 3_000 },
@@ -1702,6 +1717,8 @@ export interface ChainPuzzleData {
   type: "chain";
   /** Versioned rules; unversioned stored boards retain their original rules. */
   rulesVersion?: number;
+  /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
+  chainTimeRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */

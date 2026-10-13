@@ -122,6 +122,20 @@ export function useDuel(roomCode: string): DuelState {
     };
   }, [roomCode, userId]);
 
+  // Other players' answers become readable when a round closes (results screen),
+  // with no round_results event to announce them: fetch on every phase change.
+  useEffect(() => {
+    const duelId = duelIdRef.current;
+    if (!userId || !duelId || duel?.status !== "in_progress") return;
+    let cancelled = false;
+    void fetchResults(duelId).then((rows) => {
+      if (!cancelled) setResults(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, duel?.status, duel?.current_round, duel?.phase]);
+
   // Re-measure the shared clock the moment the room starts playing.
   useEffect(() => {
     if (duel?.status !== "in_progress") return;

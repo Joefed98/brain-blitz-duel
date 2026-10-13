@@ -5,7 +5,7 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
-import { puzzleDef, puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
+import { puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
 import { generateRoomCode } from "./puzzles";
 import { linkRoomState } from "./roomLink";
 import { mergePuzzle, splitPuzzle } from "./secrets";
@@ -18,6 +18,9 @@ import {
   recordForfeitInHistory,
   setPhase,
 } from "./roomPhase.server";
+import { recordTieWinnerInHistory, tieWinnerRecord } from "./historyWinner.server";
+import { loadRoundReveal } from "./reveal.server";
+import { acceptsAnswers } from "./answerWindow";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
   INACTIVE_AFTER_MISSED,
@@ -198,15 +201,6 @@ async function createRoomRow(
     return room;
   }
   throw new Error("Could not create a room right now. Please try again.");
-}
-
-function roundHasEnded(room: DuelRow, round: number): boolean {
-  if (room.status === "finished") return true;
-  if (room.current_round > round) return true;
-  return (
-    room.current_round === round &&
-    (room.phase === "reveal" || room.phase === "result" || room.phase === "standings" || room.phase === "winner_reveal")
-  );
 }
 
 /** How many answers are in for a round. */
@@ -752,10 +746,8 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     );
     if (staleNote) console.warn(staleNote);
 
-    if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
-      return { ok: false as const, message: "That round is over." };
-    }
-    if (room.phase !== "puzzle" && room.phase !== "reveal") {
+    // Late answers are taken through the reveal phase, never once others' answers are readable.
+    if (!acceptsAnswers(room, data.roundNumber)) {
       return { ok: false as const, message: "That round is over." };
     }
 
@@ -917,52 +909,18 @@ export const heartbeatFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** The answer for one round — only ever returned once that round has ended. */
+/**
+ * The answer for one round — only ever returned once that round has ended.
+ * Other players' answers only once late answers stop (reveal.server.ts).
+ */
 export const revealAnswerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomId: string; roundNumber: number }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
+    const me = await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
-    if (!roundHasEnded(room, data.roundNumber)) {
-      return { ok: false as const, message: "That round has not finished yet." };
-    }
-    const pub = room.puzzles_public[data.roundNumber - 1];
-    if (!pub) return { ok: false as const, message: "Unknown round." };
-    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
-    const puzzle = mergePuzzle(pub, priv);
-    const definition = puzzleDef(puzzle.type);
-    const { data: resultRows, error } = await client
-      .from("round_results")
-      .select("*")
-      .eq("duel_id", room.id)
-      .eq("round_number", data.roundNumber)
-      .order("player_slot");
-    if (error) throw new Error(error.message);
-    // A reveal must never break the round: a summary that throws falls back.
-    const players = ((resultRows ?? []) as RoundResultRow[]).map((result) => {
-      try {
-        return { playerSlot: result.player_slot, ...definition.roundSummary(result, puzzle) };
-      } catch (err) {
-        console.error(`[reveal] summary failed for ${puzzle.type}`, err);
-        return { playerSlot: result.player_slot, summary: "—", detail: [] as string[] };
-      }
-    });
-    let correctAnswer: ReturnType<typeof definition.correctAnswer> = null as never;
-    try {
-      correctAnswer = definition.correctAnswer(puzzle);
-    } catch (err) {
-      console.error(`[reveal] answer failed for ${puzzle.type}`, err);
-    }
-    return {
-      ok: true as const,
-      data: {
-        puzzle,
-        correctAnswer,
-        players,
-      },
-    };
+    return loadRoundReveal(client, room, data.roundNumber, me.player_slot);
   });
 
 /**
@@ -983,11 +941,12 @@ export const rematchFn = createServerFn({ method: "POST" })
     if (me.status === "left") return { ok: false as const, message: "You left this game." };
     // Read a forfeit's outcome before the reset clears statuses and results.
     const { data: resultRows } = await client.from("round_results").select("*").eq("duel_id", room.id);
-    const forfeit = forfeitRecord(
-      room,
-      await getPlayers(client, room.id),
-      (resultRows ?? []) as RoundResultRow[],
-    );
+    const roomPlayers = await getPlayers(client, room.id);
+    const forfeit = forfeitRecord(room, roomPlayers, (resultRows ?? []) as RoundResultRow[]);
+    // tieRev 1 rooms: the saved winner is the standings' winner (tie-break time, not slot).
+    const tieWinner = forfeit
+      ? null
+      : tieWinnerRecord(room, roomPlayers, (resultRows ?? []) as RoundResultRow[]);
     const { data: restarted, error } = await client.rpc("restart_duel_room", {
       p_room_id: room.id,
       p_host_id: context.userId,
@@ -995,6 +954,8 @@ export const rematchFn = createServerFn({ method: "POST" })
     if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
     if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))
       console.warn(`[rematch] room=${room.room_code}: forfeit winner not recorded in history`);
+    if (tieWinner && !(await recordTieWinnerInHistory(client, room.id, tieWinner)))
+      console.warn(`[rematch] room=${room.room_code}: standings winner not recorded in history`);
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
