@@ -10,7 +10,9 @@
  *
  *   bun scripts/snip-crook-design.ts <seed> <count> <easy|medium|hard> [samples]
  *
- * SNIP_DESIGN_MIX=1 (snipRev 6) also draws gutters and a sliding basket.
+ * SNIP_DESIGN_MIX=1 (snipRev 6) also draws gutters and a sliding basket
+ * (SNIP_DESIGN_GUTTER=1: always a gutter); SNIP_DESIGN_LOG=1 says why each
+ * candidate was dropped.
  */
 import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { placeSnipTemplate, snipTallGame, snipTestLevel, SNIP_CONFIG, SNIP_LEVEL_TICKS, SNIP_TALL_H, type SnipTemplate } from "../src/lib/arcade/snip";
@@ -23,6 +25,9 @@ const kind = (process.argv[4] ?? "hard") as "easy" | "medium" | "hard";
 const samples = Number(process.argv[5] ?? 500);
 const MAX_TICKS = kind === "hard" ? 400 : kind === "medium" ? 330 : 270;
 const MIX = process.env.SNIP_DESIGN_MIX === "1";
+const LOG = process.env.SNIP_DESIGN_LOG === "1";
+/** SNIP_DESIGN_GUTTER=1: the second obstacle is always a gutter. */
+const GUTTER = MIX && process.env.SNIP_DESIGN_GUTTER === "1";
 
 let x = seed * 2654435761 >>> 0 || 1;
 const r = (n: number) => {
@@ -56,7 +61,7 @@ function candidate(n: number): SnipTemplate {
   const gutters: [number, number, number, number][] = [];
   for (let i = 0; i < obstacles; i++) {
     // The mix (snipRev 6) adds gutters; an easy level's one obstacle can be any kind.
-    const pick = i === 0 && kind !== "easy" ? 0 : r(MIX ? 4 : 3);
+    const pick = i === 0 && kind !== "easy" ? 0 : GUTTER && i === 1 ? 3 : r(MIX ? 4 : 3);
     if (pick === 0) {
       for (let tries = 0; tries < 20; tries++) {
         const nx = between(130, 410), ny = between(380, 560), nr = between(20, 24);
@@ -141,9 +146,14 @@ for (let n = 0; kept.length < want && n < 4000; n++) {
   const t = candidate(n);
   const idx = place(t);
   const minCuts = kind === "hard" ? 3 : 2;
+  // A cheap first look (a fifth of the samples) drops most dead candidates early.
+  const t0 = performance.now();
+  const look = solveSnip(idx, 0, Math.max(60, Math.round(samples / 5)), 1);
+  const why = (reason: string) => LOG && console.error(`candidate ${n}: ${reason} (${Math.round(performance.now() - t0)} ms)`);
+  if (!look.wins) { why("no win in the first look"); continue; }
   const quick = solveSnip(idx, 0, samples, 1);
-  if (!quick.fast || quick.fast.plan.length < minCuts || quick.fast.tick > MAX_TICKS) continue;
-  if (winsWithoutVine(idx)) continue;
+  if (!quick.fast || quick.fast.plan.length < minCuts || quick.fast.tick > MAX_TICKS) { why(`fast ${quick.fast?.tick} cuts ${quick.fast?.plan.length}`); continue; }
+  if (winsWithoutVine(idx)) { why("wins without the vine"); continue; }
   let ok = true;
   let worst = quick.fast.tick;
   for (const j of [-10, 10]) {
@@ -151,7 +161,7 @@ for (let n = 0; kept.length < want && n < 4000; n++) {
     if (!res.fast || res.fast.tick > MAX_TICKS) { ok = false; break; }
     worst = Math.max(worst, res.fast.tick);
   }
-  if (!ok) continue;
+  if (!ok) { why("fails at a wobble"); continue; }
   // Leaf: on the fastest path, past the middle, clear of the crooks, nests and basket.
   const p = path(idx, quick.fast.plan);
   const spot = leafSpot(t, p);
