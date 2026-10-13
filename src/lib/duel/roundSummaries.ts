@@ -122,6 +122,7 @@ import {
   SNIP_TIME_MS,
   TILT_TIME_MS,
   HOTFLOOR_TIME_MS,
+  PINBALL_TIME_MS,
 } from "./types";
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
@@ -135,6 +136,7 @@ type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 /** Types added after the ladder below; their limits are looked up directly. */
 const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
+  pinball: PINBALL_TIME_MS,
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
@@ -1184,6 +1186,15 @@ const breakerSummary: SummaryBuilder = (result) => {
   };
 };
 
+const pinballSummary: SummaryBuilder = (result) => {
+  const n = (key: string) => Number(result.extra?.[key] ?? 0);
+  const left = n("ballsLeft");
+  return {
+    summary: `${n("points").toLocaleString("en-GB")} table points · ${n("bumps")} bumper hits · ${n("drops")} targets`,
+    detail: [`Multiplier ×${Math.max(1, n("mult"))}`, left > 0 ? `Clock ran out with ${left} ball${left === 1 ? "" : "s"} left` : "All three balls drained"],
+  };
+};
+
 const rallySummary: SummaryBuilder = (result) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const goldHits = Number(result.extra?.["goldHits"] ?? 0);
@@ -1674,6 +1685,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   dual: dualSummary,
   ricochet: ricoSummary,
   breaker: breakerSummary,
+  pinball: pinballSummary,
   rally: rallySummary,
   steady: steadySummary,
   slice: sliceSummary,
@@ -1784,6 +1796,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   dual: () => null,
   ricochet: () => null,
   breaker: () => null,
+  pinball: () => null,
   rally: () => null,
   steady: () => null,
   slice: () => null,

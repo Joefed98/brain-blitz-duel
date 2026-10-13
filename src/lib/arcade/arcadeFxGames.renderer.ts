@@ -41,6 +41,7 @@ function brkSlideDestroyed(s: BrkState): number {
   for (const row of s.slide ?? []) for (let c = 0; c < BRK_COLS; c++) if ((s.bricks[row * BRK_COLS + c] ?? 0) <= 0) n += 1;
   return n;
 }
+import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
 import { RALLY_PADDLE_Y, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
 import {
@@ -209,13 +210,17 @@ export const ARCADE_GAME_WORLDS = {
   tilt: "toybox",
   balltrack: "toybox",
   matchup: "gem",
+  pinball: "retro",
 } as const satisfies Record<string, ArcadeWorld>;
 
 export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
 
-/** Arcade games with a world that rooms no longer deal (practice only; registry RETIRED_TYPES). */
-export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = ["junction"];
-/** The 21 active arcade games (rooms deal these). */
+/**
+ * Arcade games with a world that rooms do not deal (practice only; registry RETIRED_TYPES):
+ * Junction (retired in Tuning C) and Pinball until PINBALL_IN_ROOMS (pinball.ts) is switched on.
+ */
+export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction"] : ["junction", "pinball"];
+/** The 21 active arcade games (rooms deal these; 22 once Pinball is switched on). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**
@@ -1204,6 +1209,44 @@ export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNI
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
 
+/* ================================ Pinball ================================ */
+
+/** Pinball's border lights ripple out both ways from the edge nearest the hit: magenta, gold and cyan bands. */
+export const PINBALL_BULBS = ["#FF4DFF", "#FFD84A", "#3DFFE0"] as const;
+const PIN_RIPPLE = { pattern: "ripple", colours: PINBALL_BULBS } as const;
+
+/** The bumper struck most recently (its centre), for where a bumper ripple starts. */
+function pinLastBumper(s: PinState): { x: number; y: number } {
+  let best = 0;
+  for (let i = 1; i < PIN_BUMPERS.length; i++) if ((s.bumperAt[i] ?? -999) > (s.bumperAt[best] ?? -999)) best = i;
+  const [x, y] = PIN_BUMPERS[best]!;
+  return { x, y };
+}
+
+/** Where a target drop shows: the rightmost dropped target (the sim keeps no drop order). */
+function pinTargetPoint(s: PinState): { x: number; y: number } {
+  let x = PIN_TARGET_XS[0]!;
+  for (let i = 0; i < PIN_TARGET_XS.length; i++) if ((s.targets >> i) & 1) x = PIN_TARGET_XS[i]!;
+  return { x, y: PIN_TARGET_Y };
+}
+
+export const PINBALL_FX: ArcadeFxSpec<PinState> = {
+  game: "pinball",
+  world: "retro",
+  width: PIN_WORLD_W,
+  height: PIN_WORLD_H,
+  fit: "world",
+  events: [
+    // Every bumper strike: the bumper flares neon (art) and the border ripples out from it.
+    { kind: "pop", count: (s) => s.bumps, at: pinLastBumper, label: () => null, textOnly: true, bulbs: PIN_RIPPLE },
+    { kind: "perfect", count: (s) => s.drops, at: pinTargetPoint, label: () => "TARGET!", textOnly: true, bulbs: PIN_RIPPLE },
+    { kind: "clear", count: (s) => s.banks, at: () => ({ x: (PIN_TARGET_XS[0]! + PIN_TARGET_XS[3]!) / 2, y: PIN_TARGET_Y }), label: () => "BANK DOWN!", textOnly: true, neon: true, bulbs: { ...PIN_RIPPLE, strong: true } },
+    { kind: "pop", count: (s) => s.laneLights, at: () => ({ x: (PIN_LANE_POSTS[0]! + PIN_LANE_POSTS[3]!) / 2, y: PIN_LANE_SENSOR_Y }), label: () => "LANE LIT", textOnly: true, bulbs: PIN_RIPPLE },
+    { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: (PIN_LANE_POSTS[0]! + PIN_LANE_POSTS[3]!) / 2, y: PIN_LANE_SENSOR_Y + 30 }), label: (s) => `MULTIPLIER x${s.mult}`, textOnly: true, neon: true, bulbs: { ...PIN_RIPPLE, strong: true } },
+    { kind: "combo", count: (s) => s.spins, minDelta: 8, at: () => ({ x: (PIN_LEFT_WALL + PIN_ORBIT_INNER) / 2 + 30, y: PIN_SPINNER_Y }), label: () => "SPINNER!", textOnly: true, bulbs: PIN_RIPPLE },
+  ],
+};
+
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_TALL,
   breaker: BREAKER_FX,
@@ -1227,6 +1270,7 @@ export const ARCADE_FX_SPECS = {
   tilt: TILT_FX,
   balltrack: BALLTRACK_FX,
   matchup: MATCHUP_FX,
+  pinball: PINBALL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */

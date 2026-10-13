@@ -204,6 +204,8 @@ export const ARCADE_FX_TEXT_COLOURS: Record<string, { fill: string; outline: str
   wordfall: { fill: "#FFCB5C", outline: "#2B1A0E" },
   // Gemstone: gem pink.
   matchup: { fill: "#FF8FE0", outline: "#1A1030" },
+  // Retro Pinball: bumper magenta.
+  pinball: { fill: "#FF7AE6", outline: "#000000" },
 };
 
 /**
@@ -290,9 +292,13 @@ export interface ArcadeFxEvent<S> {
  *          corner pulsing as a head passes it.
  *  step  — the whole border flashes in one colour, the next colour of the
  *          cycle each time the counter rises (colour = count mod cycle).
+ *  ripple — two light fronts run both ways round the border from the point of
+ *          the edge nearest the event (`at`), cycling colours band by band
+ *          behind them, and meet on the far side (Pinball); strong sends a
+ *          second pair after the first.
  */
 export interface ArcadeFxBulbs<S> {
-  pattern: "flash" | "chase" | "step";
+  pattern: "flash" | "chase" | "step" | "ripple";
   colours: readonly string[];
   /** Read from state when the event fires: the tension, 0…1 (flash only). */
   heat?: (state: S) => number;
@@ -331,6 +337,7 @@ export const ARCADE_FX_BULB_GAP = 24;
 export const ARCADE_FX_FLASH_MS = [480, 900] as const;
 export const ARCADE_FX_CHASE_MS = 950;
 export const ARCADE_FX_STEP_MS = [420, 900] as const;
+export const ARCADE_FX_RIPPLE_MS = [620, 1000] as const;
 
 interface FxTiming {
   particles: number;
@@ -478,7 +485,7 @@ interface Memory {
   arenaColours: readonly string[];
   bulbsAt: number;
   bulbsMs: number;
-  bulbs: { pattern: ArcadeFxBulbs<unknown>["pattern"]; colours: readonly string[]; heat: number; step: number; strong: boolean } | null;
+  bulbs: { pattern: ArcadeFxBulbs<unknown>["pattern"]; colours: readonly string[]; heat: number; step: number; strong: boolean; origin: number } | null;
   seed: number;
 }
 
@@ -699,13 +706,16 @@ function spawn<S>(
         ? ARCADE_FX_CHASE_MS * (strong ? 1.25 : 1)
         : b.pattern === "step"
           ? ARCADE_FX_STEP_MS[strong ? 1 : 0]
-          : ARCADE_FX_FLASH_MS[0] + (ARCADE_FX_FLASH_MS[1] - ARCADE_FX_FLASH_MS[0]) * Math.max(heat, strong ? 0.6 : 0);
+          : b.pattern === "ripple"
+            ? ARCADE_FX_RIPPLE_MS[strong ? 1 : 0]
+            : ARCADE_FX_FLASH_MS[0] + (ARCADE_FX_FLASH_MS[1] - ARCADE_FX_FLASH_MS[0]) * Math.max(heat, strong ? 0.6 : 0);
     // A plain firing never cuts short a milestone that is less than half done.
     const current = m.bulbs;
     if (!(current?.strong && !strong && now - m.bulbsAt < m.bulbsMs / 2)) {
       m.bulbsAt = now;
       m.bulbsMs = ms;
-      m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong };
+      const clip = spec.clip ?? { x: 0, y: 0, w: spec.width, h: spec.height };
+      m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong, origin: borderAlong(clip, point) };
     }
   }
 }
@@ -744,6 +754,20 @@ function bulbRing(clip: { x: number; y: number; w: number; h: number }): { bulbs
   if (bulbRings.size > 16) bulbRings.clear();
   bulbRings.set(key, ring);
   return ring;
+}
+
+/** Distance along the bulb ring (clockwise from its top-left corner) of the edge point nearest `p`. */
+function borderAlong(clip: { x: number; y: number; w: number; h: number }, p: ArcadeFxPoint): number {
+  const inset = 3;
+  const x0 = clip.x + inset, y0 = clip.y + inset, x1 = clip.x + clip.w - inset, y1 = clip.y + clip.h - inset;
+  const w = x1 - x0, h = y1 - y0;
+  const x = Math.max(x0, Math.min(x1, p.x)), y = Math.max(y0, Math.min(y1, p.y));
+  const top = y - y0, right = x1 - x, bottom = y1 - y, left = x - x0;
+  const nearest = Math.min(top, right, bottom, left);
+  if (nearest === top) return x - x0;
+  if (nearest === right) return w + (y - y0);
+  if (nearest === bottom) return w + h + (x1 - x);
+  return 2 * w + h + (y1 - y);
 }
 
 /**
@@ -804,6 +828,32 @@ function paintBulbs(ctx: CanvasRenderingContext2D, m: Memory, clip: { x: number;
       const k = 1 - best / tail;
       litColour[i] = k > 0.75 ? colours[0]! : colours[1 % colours.length]!;
       litLevel[i] = (bulb.corner ? 1 : 0.85) * k * fade;
+    }
+  } else if (b.pattern === "ripple") {
+    // Two fronts leave the edge point nearest the event, one each way round, and meet on the far side;
+    // the bulbs behind each front cycle the colours band by band. A strong ripple sends a second pair.
+    const half = ring.perimeter / 2;
+    const band = ARCADE_FX_BULB_GAP * 2;
+    const tail = ring.perimeter * 0.18;
+    const waves = b.strong ? 2 : 1;
+    for (let i = 0; i < bulbs.length; i++) {
+      const bulb = bulbs[i]!;
+      // `away`: distance from the origin round the shorter way (0…half).
+      const d = (((bulb.along - b.origin) % ring.perimeter) + ring.perimeter) % ring.perimeter;
+      const away = Math.min(d, ring.perimeter - d);
+      // Reduced motion: the bands glow in place.
+      let level = still ? 0.7 : 0;
+      for (let k = 0; k < waves && !still; k++) {
+        const start = k * 0.3;
+        const q = Math.max(0, Math.min(1, (p - start) / 0.7));
+        const front = (1 - (1 - q) * (1 - q)) * half;
+        const behind = front - away;
+        if (behind < 0 || behind > tail) continue;
+        level = Math.max(level, 1 - behind / tail);
+      }
+      if (level <= 0) continue;
+      litColour[i] = colours[Math.floor(away / band) % colours.length]!;
+      litLevel[i] = (bulb.corner ? 1 : 0.9) * level * fade;
     }
   } else {
     // Step: the whole border in this step's colour; a milestone blinks three times.

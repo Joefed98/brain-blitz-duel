@@ -101,7 +101,8 @@ export type PuzzleType =
   | "snip"
   | "measure"
   | "checkout"
-  | "numline";
+  | "numline"
+  | "pinball";
 
 export type PuzzleCategory =
   "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
@@ -551,7 +552,8 @@ export type PuzzleData =
   | SwingPuzzleData
   | SnipPuzzleData
   | TiltPuzzleData
-  | HotFloorPuzzleData;
+  | HotFloorPuzzleData
+  | PinballPuzzleData;
 
 /** Every timed screen of a round, driven by a shared timestamp. */
 export type DuelPhase = "starting" | "round_title" | "intro" | "puzzle" | "reveal" | "result" | "standings" | "winner_reveal";
@@ -2037,6 +2039,19 @@ export interface BreakerPuzzleData {
   seed: number;
   /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B); absent = original rules. */
   brkRev?: number;
+}
+
+/* ================================ Pinball ================================ */
+
+/** A fixed 60-second, three-ball run; the round clock adds three of slack (63 s). */
+export const PINBALL_TIME_MS = 63_000;
+
+export interface PinballPuzzleData {
+  type: "pinball";
+  /** Stored like every arcade seed; the table itself is fixed, so it plays the same for everyone whatever the seed. */
+  seed: number;
+  /** Rules revision (1 = the first table, scored on the Oct 2026 band shape). */
+  pinRev?: number;
 }
 
 export interface RallyPuzzleData {

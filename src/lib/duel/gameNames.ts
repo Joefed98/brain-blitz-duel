@@ -10,6 +10,7 @@ export const GAME_DISPLAY_NAMES: Record<PuzzleType, string> = {
   blockparty: "Tessellate",
   bomb: "Bomb Defusal",
   breaker: "Breaker",
+  pinball: "Pinball",
   bubble: "Coral Pop",
   checkout: "Checkout",
   bullseye: "Flightpath",

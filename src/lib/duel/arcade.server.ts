@@ -14,6 +14,7 @@ import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TUNEC } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { BRK_REV_TUNED } from "@/lib/arcade/breaker";
+import { PIN_REV } from "@/lib/arcade/pinball";
 import { WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { RALLY_REV_TUNED } from "@/lib/arcade/rally";
@@ -43,6 +44,7 @@ import type {
   SnakePuzzleData,
   SwervePuzzleData,
   BreakerPuzzleData,
+  PinballPuzzleData,
   RallyPuzzleData,
   SteadyPuzzleData,
   SlicePuzzleData,
@@ -113,6 +115,10 @@ export function generateRicochet(): RicoPuzzleData {
 
 export function generateBreaker(): BreakerPuzzleData {
   return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TUNED };
+}
+
+export function generatePinball(): PinballPuzzleData {
+  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV };
 }
 
 export function generateRally(): RallyPuzzleData {

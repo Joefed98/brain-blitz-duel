@@ -29,3 +29,4 @@ Analytic geometry, cross-checked in the browser by arcade-play-check; not device
 | Tilt | 440x470 | 367x392 | 382x408 | 382x408 | 422x451 | 610x652 | 0.868x | 140px | 288px | 0px |
 | Ball Tracker | 700x1000 | 352x503 | 375x536 | 382x546 | 422x603 | 445x636 | 0.546x | 116px | 134px | 0px |
 | Gemstone | 390x560 | 367x527 | 382x549 | 382x549 | 422x606 | 471x676 | 0.979x | 116px | 171px | 0px |
+| Pinball | 390x700 | 303x543 | 321x576 | 382x686 | 422x757 | 377x676 | 0.979x | 116px | 34px | 0px |

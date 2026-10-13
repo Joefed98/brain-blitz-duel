@@ -44,6 +44,7 @@ import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
+import { decodePinballRun, replayPinballRun } from "./pinball";
 import { decodeRallyRun, replayRallyRun } from "./rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
@@ -1280,6 +1281,39 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeBreakerRun(answer).events.length,
         claimedScore: decodeBreakerRun(answer).claimedScore,
+        ...(run.reason ? { reason: run.reason } : {}),
+      };
+      break;
+    }
+    case "pinball": {
+      // As with every arcade game, only the server's own replay scores.
+      const replayStart = performance.now();
+      const run = replayPinballRun(puzzle.seed, answer, puzzle.pinRev);
+      revealRun = run;
+      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
+      if (arcadeDiag.replayMs > 500)
+        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
+      isCorrect = run.ballsLeft > 0;
+      correctCount = run.bumps + run.drops;
+      score = run.score;
+      extraDetail = {
+        pinRev: puzzle.pinRev ?? 1,
+        points: run.points,
+        mult: run.mult,
+        bumps: run.bumps,
+        drops: run.drops,
+        banks: run.banks,
+        spins: run.spins,
+        laneSets: run.laneSets,
+        lost: run.lost,
+        ballsLeft: run.ballsLeft,
+        endedSeconds: run.endedSeconds,
+        flagged: run.flagged,
+        clientLag: run.clientLag,
+        clientTick: run.clientTick,
+        desyncTick: run.desyncTick,
+        inputs: decodePinballRun(answer).events.length,
+        claimedScore: decodePinballRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

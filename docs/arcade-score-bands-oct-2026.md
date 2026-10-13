@@ -294,3 +294,42 @@ from `bun scripts/arcade-skill-bands.ts snip --rev=bank --seeds=60`, snipRev 5 �
 | Game | Stamp | Average | Good | Great | Near-perfect |
 |---|---|---|---|---|---|
 | Scrumper | snipRev 5 → 6 | 70 (41–113) → 73 (38–100) | 108 (76–134) → 102 (82–135) | 134 (97–137) → 132 (91–136) | 136 (125–145) → 135 (107–145) |
+
+## Pinball (13 Oct 2026): a new game, born on the bands — practice only
+
+Pinball (`pinball`, working title; Retro world) is new, so it has no older scoring to keep: its first revision
+(`pinRev 1`) is band-stamped from the start and is an **open** game (table points on a curve to 150, no finish bonus,
+0 with no input). Rooms do not deal it until `PINBALL_IN_ROOMS` (`src/lib/arcade/pinball.ts`) is switched on.
+
+The units are the table's own points (multiplier included): pop bumper 100, slingshot 10, drop target 400, all four
+targets 2,500 more (the spinner is lit for 15 s and the bank stays open for 6 s), a top lane lit 100 (again 20), all
+three lanes 1,000 and the multiplier up one (to ×5), the spinner 25 a turn (100 while lit). A drained ball takes the
+multiplier, lit lanes, dropped targets and lit spinner with it, so keeping the ball alive is worth far more than the
+1.5 s a relaunch costs.
+
+The simulated player (`scripts/arcade-skill-bands/bots/pinball.ts`) watches the ball fall towards the flippers from what
+it has seen a tracking lag ago, uses a fork as experience to know when and on which side the ball will arrive, values a
+few flip moments around that arrival by the table points and survival they lead to, picks one with its blurred
+judgement, and presses off that moment by its timing error (and the odd lapse); a ball whose path changes before the
+press is re-planned a reaction time later. It never looks at the score. Medians (p10–p90) from
+`bun scripts/arcade-skill-bands.ts pinball --seeds=30`, through the server's own encode + replay:
+
+| Level | Table points, median (p10–p90) | Balls drained (of 3), runs of 30 with 0 / 1 / 2 / 3 | Score, median (p10–p90) |
+|---|---|---|---|
+| Average | 5,255 (1,766–7,506) | 3 / 6 / 8 / 13 | 70 (23–102) |
+| Good | 7,372 (3,145–12,680) | 9 / 10 / 7 / 4 | 100 (41–137) |
+| Great | 8,648 (5,504–16,264) | 12 / 9 / 8 / 1 | 123 (74–145) |
+| Near-perfect | 15,090 (8,382–22,274) | 17 / 10 / 3 / 0 | 144 (119–149) |
+
+Knots fitted to those medians: 5,250 → 70, 7,400 → 100, 8,650 → 125, 15,000 → 145, 24,000 → 150 (near-perfect p90 is
+22,274; 2 of 30 near-perfect runs reach 150, best 27,280 points). Good and great sit close in table points (a great
+player drains about as often as a good one but aims a little better), so the curve is steep between them; re-fit after
+Joe's phone play. No run was flagged or disagreed with the server replay.
+
+Physics and proofs: integer fixed point (1/256 px), every contact swept (walls, targets and bumpers as capsules and
+circles; flippers in their own rotating frame), a penetration pass for resting and rolling contacts.
+`scripts/pinball-check.ts` replays stored pinRev 1 runs (`scripts/fixtures/pinball-rev1.json`) to their scores, replays a
+full near-perfect minute and 30 dense random runs identically on the server, shows a single sweep finding the contact of
+a move far longer than the bumper, thin target or swinging flipper it hits, and fires 2,500 fast shots at bumpers,
+targets and swinging flippers without the ball ever ending a tick inside a collider or on the far side of one.
+`arcade-self-replay-check`, `arcade-fx-check`, `arcade-score-bands-check` and `arcade-play-check` include it.

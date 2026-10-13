@@ -164,6 +164,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
+**Pinball** (`pinball`, working title, 13 Oct 2026) is a new Retro arcade game, **practice only** until
+`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is set to `true` (the one switch: the registry, the practice list, the
+active arcade list and the checks all read it; after switching, update the docs' counts to 22 active arcade games). Its rules are
+`pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
+
 **Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21
 active arcade games (`ACTIVE_ARCADE_GAMES` in `arcadeFxGames.renderer.ts`); Junction keeps its world,
 fill, effects and band curve for practice and stored rounds.

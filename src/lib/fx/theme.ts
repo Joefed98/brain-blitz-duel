@@ -100,6 +100,8 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   hover: "music_hover",
   snake: "music_eatgrow",
   breaker: "music_breaker",
+  // Pinball has no track of its own yet: it borrows Rally's Retro track.
+  pinball: "music_rally",
   rally: "music_rally",
   burst: "music_burst",
   orbit: "music_orbit",

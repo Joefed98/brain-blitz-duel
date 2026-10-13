@@ -149,6 +149,17 @@ const BUILDERS: Record<string, Builder> = {
       outcome: done ? "finish" : n(r, "bricksLeft") > 0 && n(r, "endedSeconds") < 90 ? "crash" : "time",
     };
   },
+  pinball: (r, s) => ({
+    axis: { value: n(r, "points"), max: null, label: "Table points" },
+    lines: [`${n(r, "points").toLocaleString("en-GB")} table points → ${s}`],
+    tiles: [
+      { label: "Bumper hits", value: String(n(r, "bumps")) },
+      { label: "Targets", value: `${n(r, "drops")}${n(r, "banks") > 0 ? ` · ${n(r, "banks")} bank${n(r, "banks") === 1 ? "" : "s"}` : ""}` },
+      { label: "Multiplier", value: `×${Math.max(1, n(r, "mult"))}` },
+      { label: "Balls left", value: String(n(r, "ballsLeft")) },
+    ],
+    outcome: n(r, "ballsLeft") > 0 ? "time" : "crash",
+  }),
   rally: (r, s) => ({
     axis: { value: n(r, "goldHits"), max: null, label: "Gold-ball hits" },
     lines:

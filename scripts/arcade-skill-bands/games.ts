@@ -56,6 +56,8 @@ import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
+import { pinCheckpoint, pinballGameFor, PIN_REV } from "../../src/lib/arcade/pinball";
+import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
 
 export interface GameSpec {
   type: PuzzleType;
@@ -181,6 +183,8 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeBullseyeRun(run),
     replay: (seed, raw, rev) => replayBullseyeRun(seed, raw, bullseyeWinds(seed), rev),
   },
+  // Pinball (practice only until PINBALL_IN_ROOMS): born on the bands, so its one revision is both `live` and `next`.
+  simple("pinball", PIN_REV, PIN_REV, pinballGameFor, pinCheckpoint, encodePinballRun, replayPinballRun),
 ];
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

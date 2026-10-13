@@ -87,6 +87,7 @@ import { isRetired, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
+import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -173,8 +174,10 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
   }
   ok(isRetired("junction"), "Junction is retired (practice only)");
   ok(!typesInCategory("arcade").includes("junction"), "rooms never deal Junction");
-  ok(typesInCategory("arcade").length === 21, `rooms deal 21 arcade games (got ${typesInCategory("arcade").length})`);
-  ok(ACTIVE_ARCADE_GAMES.length === 21 && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, "21 active arcade worlds; Junction keeps its world for practice");
+  // 21 since Tuning C; 22 once Pinball (13 Oct, practice only until PINBALL_IN_ROOMS) is switched on.
+  const dealt = 21 + (PINBALL_IN_ROOMS ? 1 : 0);
+  ok(typesInCategory("arcade").length === dealt, `rooms deal ${dealt} arcade games (got ${typesInCategory("arcade").length})`);
+  ok(ACTIVE_ARCADE_GAMES.length === dealt && !ACTIVE_ARCADE_GAMES.includes("junction") && "junction" in ARCADE_GAME_WORLDS, `${dealt} active arcade worlds; Junction keeps its world for practice`);
   ok([...typesInCategory("arcade")].sort().join() === [...ACTIVE_ARCADE_GAMES].sort().join(), "the active arcade list is exactly the arcade types rooms deal");
 }
 
