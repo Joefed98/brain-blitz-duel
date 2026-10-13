@@ -87,6 +87,7 @@ import {
   totalScore,
   totalScoreThrough,
 } from "@/lib/duel/scoring";
+import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { useDuel } from "@/lib/duel/useDuel";
 import { normaliseCategories } from "@/lib/duel/categories";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
@@ -337,7 +338,9 @@ function DuelScreen() {
   const roundDetails = new Map(
     (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
-  const table = standings(roomPlayers, results, scoredThrough, roundDetails).map((row) => {
+  // Tie-break clocks for rooms stamped tieRev; null keeps older rooms' ranking.
+  const tieRounds = roomTieRounds(duel?.puzzles_public);
+  const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
     return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
   });
@@ -777,7 +780,7 @@ function DuelScreen() {
         <div ref={podiumShell}>
           <PhoneShell>
             <Podium
-              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS)}
+              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds)}
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
@@ -796,7 +799,7 @@ function DuelScreen() {
         <PhoneShell>
           <FinalResult
             outcome={
-              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot)
+              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot, tieRounds)
             }
             note={
               forfeit

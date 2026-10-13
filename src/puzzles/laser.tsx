@@ -18,6 +18,9 @@ import {
   type BeamTrace,
 } from "@/lib/duel/laser";
 import { useStageState } from "@/lib/duel/stageState";
+import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
+import { laserAction, replayLaserLog } from "@/lib/duel/laserLog";
+import { serverNow } from "@/lib/duel/clock";
 import {
   LASER_BEAM_MS,
   LASER_CELLS,
@@ -318,7 +321,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", phaseStartedAt }: PuzzleStageProps) {
   const isLaser = puzzle.type === "laser";
   const source = isLaser ? puzzle.source : 0;
   const dir: BeamDir = isLaser ? puzzle.dir : "R";
@@ -334,6 +337,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
   const [history, setHistory] = useStageState<number[]>(stateKey, "history", () => []);
   const [fires, setFires] = useStageState<number>(stateKey, "fires", () => 0);
+  // Stamped rounds (alogRev 1) answer with every change and FIRE on the round clock (laserLog.ts).
+  const logged = usesActionLog(puzzle);
+  const [log, setLog] = useStageState<LoggedAction[]>(stateKey, "alog", () => []);
+  const record = useCallback(
+    (action: string) => {
+      if (logged) setLog((current) => appendAction(current, action, serverNow() - phaseStartedAt));
+    },
+    [logged, setLog, phaseStartedAt],
+  );
   const [shot, setShot] = useState<{ trace: BeamTrace; step: number; done: boolean } | null>(null);
   const [ghost, setGhost] = useState<number | null>(null);
   const [shake, setShake] = useState(0);
@@ -356,8 +368,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   useEffect(() => clearTimers, []);
 
   useEffect(() => {
-    onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
-  }, [placed, fires, onDraftAnswer]);
+    onDraftAnswer?.(logged ? encodeActionLog(log) : encodeLaserAnswer(placed, Math.max(1, fires)));
+  }, [logged, log, placed, fires, onDraftAnswer]);
 
   const offsets = shot ? beamBranchOffsets(shot.trace.paths) : [];
   const revealed = shot ? shot.trace.paths.map((path, index) =>
@@ -399,6 +411,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       // Dropped off the board — back to the tray.
       if (target === null) {
         hapticTick();
+        record(laserAction.remove(drag.from));
         setPlaced(current.filter((mirror) => mirror.cell !== drag.from));
         setHistory((order) => order.filter((cell) => cell !== drag.from));
         return;
@@ -406,6 +419,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       // Dropped where it started — a tap, so flip it.
       if (target === drag.from) {
         hapticTick();
+        record(laserAction.turn(drag.from));
         setPlaced(
           current.map((mirror) =>
             mirror.cell === drag.from
@@ -421,6 +435,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
       hapticTick();
+      record(laserAction.move(drag.from, target));
       setPlaced([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
       setHistory((order) => order.map((cell) => (cell === drag.from ? target : cell)));
       return;
@@ -438,9 +453,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
+    record(laserAction.place(target, kind));
     setPlaced([...current, { cell: target, kind }]);
     setHistory((order) => [...order.filter((cell) => cell !== target), target]);
-  }, [refuse, setHistory, setPlaced, taken, total, splitterTotal, selected]);
+  }, [refuse, record, setHistory, setPlaced, taken, total, splitterTotal, selected]);
 
   const trackDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -484,6 +500,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitterPieces: splitterTotal, splitters, directionalGems }, placed);
     const attempt = fires + 1;
     setFires(attempt);
+    const firedLog = logged ? appendAction(log, laserAction.fire(), serverNow() - phaseStartedAt) : log;
+    if (logged) setLog(firedLog);
     clearTimers();
     setShot({ trace: verdict.trace, step: 0, done: false });
 
@@ -521,7 +539,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
             if (submitted.current) return;
             submitted.current = true;
             playCorrect();
-            onSubmit(encodeLaserAnswer(placed, attempt));
+            onSubmit(logged ? encodeActionLog(firedLog) : encodeLaserAnswer(placed, attempt));
             return;
           }
           buzz(20);
@@ -548,6 +566,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     fires,
     setFires,
     onSubmit,
+    logged,
+    log,
+    setLog,
+    phaseStartedAt,
   ]);
 
   const onBoardDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -571,6 +593,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
+    record(laserAction.place(cell, selected));
     setPlaced([...placed, { cell, kind: selected }]);
     setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
   };
@@ -580,6 +603,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const last = history.at(-1);
     if (last === undefined) return;
     hapticTick();
+    record(laserAction.remove(last));
     setHistory((current) => current.slice(0, -1));
     setPlaced((current) => current.filter((mirror) => mirror.cell !== last));
   };
@@ -639,6 +663,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
           onClick={() => {
+            record(laserAction.reset());
             setPlaced([]);
             setHistory([]);
           }}
@@ -681,7 +706,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const isLaser = puzzle.type === "laser";
   if (!isLaser) return null;
   const solution = puzzle.solution ?? [];
-  const mine = decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
+  const logReplay = usesActionLog(puzzle) ? replayLaserLog(puzzle, myAnswer ?? "", timeLimitMs) : null;
+  const mine = logReplay
+    ? { mirrors: logReplay.layout, fires: logReplay.solvedShot ?? logReplay.shots }
+    : decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
   const solutionTrace = traceBeam(
     puzzle.source,
     puzzle.dir,
