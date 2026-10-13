@@ -5,6 +5,7 @@
  */
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
+import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
@@ -232,14 +233,18 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
   const roundOrder = pickRoundOrder({ ...options, seed });
   return {
     roundOrder,
+    // Every room puzzle carries the tie-break stamp (tieBreak.ts), so a room's
+    // rounds are all on the new tie-break clock or, for older rooms, none are.
     puzzles: roundOrder.map((type) =>
-      generatePuzzle(type, {
-        previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
-        unblockRow: options.unblockRow ?? null,
-        recentWordMatchWords: options.recentWordMatchWords ?? [],
-        bankSeed: seed,
-        recentBankKeys: options.recentBankKeys,
-      }),
+      stampTieRev(
+        generatePuzzle(type, {
+          previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
+          unblockRow: options.unblockRow ?? null,
+          recentWordMatchWords: options.recentWordMatchWords ?? [],
+          bankSeed: seed,
+          recentBankKeys: options.recentBankKeys,
+        }),
+      ),
     ),
   };
 }

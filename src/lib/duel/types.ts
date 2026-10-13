@@ -1407,6 +1407,8 @@ export interface LaserPuzzleData {
   stats?: LaserStats;
   /** Server-side only: where each mirror belongs, and which way it faces. */
   solution?: MirrorPlacement[];
+  /** 1: answered with the timestamped action log (laserLog.ts); absent: the old "shot|layout" answer. */
+  alogRev?: number;
 }
 
 /* -------------------------------------------------------------------------- */

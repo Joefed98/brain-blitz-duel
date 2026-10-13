@@ -343,17 +343,37 @@ export function totalScoreThrough(
 }
 
 /**
- * Total time spent answering across all rounds — used for the tie-break.
- * Reaction Time rounds contribute their average reaction time instead.
+ * One round's tie-break clock, built from the room's stored puzzle by
+ * tieBreak.ts (`roomTieRounds`). `limitMs` is the round's own limit (the
+ * puzzle's stored timeLimitMs, else the registry limit; the run length for
+ * arcade and engine rounds); `phaseLimitMs` is the clock ms_remaining is
+ * stored against (the same, except arcade and engine rounds, which add the
+ * phase slack). Flash keeps its average reaction time.
  */
-export function totalAnswerMs(results: RoundResultRow[], slot: number): number {
-  return results
-    .filter((r) => r.player_slot === slot)
-    .reduce(
-      (sum, r) =>
-        sum + (r.reaction_avg_ms !== null ? r.reaction_avg_ms : ROUND_MS - r.ms_remaining),
-      0,
-    );
+export interface TieRound {
+  limitMs: number;
+  phaseLimitMs: number;
+  flash: boolean;
+}
+
+/** A room's tie-break rounds, or null for rooms played before the tie-break stamp. */
+export type TieRounds = readonly TieRound[] | null | undefined;
+
+/** Stamped rooms: the time one player used on one round. No answer used the whole round. */
+export function roundTimeUsedMs(row: RoundResultRow | undefined, round: TieRound): number {
+  if (!row) return round.limitMs;
+  if (round.flash && row.reaction_avg_ms !== null) return row.reaction_avg_ms;
+  return Math.min(round.limitMs, Math.max(0, round.phaseLimitMs - row.ms_remaining));
+}
+
+/**
+ * Total time spent answering across all rounds — used for the tie-break.
+ * Stamped rooms (`tie` from roomTieRounds) add the time each round actually
+ * took against its own limit; older rooms keep their original sum (30 s minus
+ * time left, or the average reaction time where a round stored one).
+ */
+export function totalAnswerMs(results: RoundResultRow[], slot: number, tie?: TieRounds): number {
+  return answerMsThrough(results, slot, Number.POSITIVE_INFINITY, tie);
 }
 
 export type Outcome = "win" | "loss" | "draw";
@@ -362,14 +382,15 @@ export function duelOutcome(
   results: RoundResultRow[],
   mySlot: number,
   opponentSlot: number,
+  tie?: TieRounds,
 ): Outcome {
   const mine = totalScore(results, mySlot);
   const theirs = totalScore(results, opponentSlot);
   if (mine > theirs) return "win";
   if (mine < theirs) return "loss";
 
-  const myTime = totalAnswerMs(results, mySlot);
-  const theirTime = totalAnswerMs(results, opponentSlot);
+  const myTime = totalAnswerMs(results, mySlot, tie);
+  const theirTime = totalAnswerMs(results, opponentSlot, tie);
   if (myTime < theirTime) return "win";
   if (myTime > theirTime) return "loss";
   return "draw";
@@ -425,7 +446,15 @@ function rank(
   return out;
 }
 
-function answerMsThrough(results: RoundResultRow[], slot: number, lastRound: number): number {
+function answerMsThrough(results: RoundResultRow[], slot: number, lastRound: number, tie?: TieRounds): number {
+  if (tie) {
+    // Every player in a room plays the same rounds, so a plain sum is fair.
+    let sum = 0;
+    for (let round = 1; round <= Math.min(lastRound, tie.length); round++) {
+      sum += roundTimeUsedMs(resultFor(results, slot, round), tie[round - 1]!);
+    }
+    return sum;
+  }
   return results
     .filter((r) => r.player_slot === slot && r.round_number <= lastRound)
     .reduce(
@@ -445,19 +474,20 @@ export function standings(
   results: RoundResultRow[],
   throughRound: number,
   details: Map<number, { summary: string; detail: string[] }> = new Map(),
+  tie?: TieRounds,
 ): Standing[] {
   const inRoom = players.filter((p) => p.status !== "left");
   const rows = inRoom.map((p) => ({
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound),
-    answerMs: answerMsThrough(results, p.player_slot, throughRound),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound, tie),
   }));
   const positions = new Map(rank(rows).map((r) => [r.slot, r.position]));
 
   const previousRows = inRoom.map((p) => ({
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound - 1),
-    answerMs: answerMsThrough(results, p.player_slot, throughRound - 1),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound - 1, tie),
   }));
   const previous = new Map(rank(previousRows).map((r) => [r.slot, r.position]));
 
@@ -471,7 +501,7 @@ export function standings(
         total: totalScoreThrough(results, p.player_slot, throughRound),
         roundScore: row?.score ?? 0,
         roundCorrect: row ? row.is_correct : null,
-        answerMs: answerMsThrough(results, p.player_slot, throughRound),
+        answerMs: answerMsThrough(results, p.player_slot, throughRound, tie),
         position: positions.get(p.player_slot) ?? inRoom.length,
         previousPosition: throughRound > 1 ? (previous.get(p.player_slot) ?? null) : null,
         summary: details.get(p.player_slot)?.summary ?? "No answer",
