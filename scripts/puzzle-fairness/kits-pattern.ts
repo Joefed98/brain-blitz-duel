@@ -14,6 +14,8 @@ import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
 import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, encodePlacements, fitsOn } from "../../src/lib/duel/blockParty";
 import { encodeLaserAnswer } from "../../src/lib/duel/laser";
+import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
+import { laserAction } from "../../src/lib/duel/laserLog";
 import { encodeFlowPaths, flowNeighbours } from "../../src/lib/duel/flow";
 import { PIPE_BITS, pipeNeighbour, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
@@ -420,12 +422,46 @@ function randomLayout(q: Of<"laser">, rng: Rng): MirrorPlacement[] {
 
 // BASE 5 s per piece: trace the beam, choose the piece and its facing, drag it on.
 const LASER_BASE = 5;
+/**
+ * Puzzles stamped alogRev 1 (13 Oct 2026, #40) take the phone's action log (every placement,
+ * removal and FIRE on the round clock); older ones the "fires|layout" answer. The play below
+ * keeps both in step so stored and new rounds see the same player.
+ */
+class LaserLog {
+  log: LoggedAction[] = [];
+  constructor(private readonly on: boolean) {}
+  add(a: string, t: number) { if (this.on) this.log = appendAction(this.log, a, t); }
+  place(m: MirrorPlacement, t: number) { this.add(laserAction.place(m.cell, m.kind), t); }
+  remove(cell: number, t: number) { this.add(laserAction.remove(cell), t); }
+  fire(t: number) { this.add(laserAction.fire(), t); }
+  answer(layout: MirrorPlacement[], fires: number): string { return this.on ? encodeActionLog(this.log) : encodeLaserAnswer(layout, fires); }
+}
+
 const laserKit: PuzzleKit = {
   type: "laser",
-  // The draft always carries max(1, fires): an untouched board submits "1|".
-  nothing: () => encodeLaserAnswer([], 1),
+  // Legacy: the draft always carries max(1, fires), so an untouched board submits "1|". Action log: an empty log.
+  nothing: (p) => (usesActionLog(p) ? encodeActionLog([]) : encodeLaserAnswer([], 1)),
   spam: (p, rng) => {
     const q = p as Of<"laser">;
+    if (usesActionLog(p)) {
+      const empty = new LaserLog(true);
+      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) empty.fire(1000 + shot * 2500);
+      const random = new LaserLog(true);
+      let t = 500;
+      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) {
+        random.add(laserAction.reset(), (t += 400));
+        for (const m of randomLayout(q, rng)) random.place(m, (t += 600));
+        random.fire((t += 800));
+      }
+      const unfired = new LaserLog(true);
+      t = 500;
+      for (const m of randomLayout(q, rng)) unfired.place(m, (t += 600));
+      return [
+        { label: "fire-empty-x3", answer: empty.answer([], 0) },
+        { label: "random-layout-x3", answer: random.answer([], 0) },
+        { label: "random-layout-unfired", answer: unfired.answer([], 0) },
+      ];
+    }
     let last: MirrorPlacement[] = [];
     for (let shot = 0; shot < LASER_MAX_FIRES; shot++) last = randomLayout(q, rng);
     return [
@@ -444,10 +480,12 @@ const laserKit: PuzzleKit = {
     const steps: Step[] = [];
     let at = 0;
     let fires = 0;
+    const logged = usesActionLog(p);
+    const log = new LaserLog(logged);
     const solvedLayout = () => wrongIdx.size === 0 && placed.length === solution.length;
     const draft = () => {
       // A fully right layout is only submitted by firing it; don't count the unfired draft.
-      if (!solvedLayout()) steps.push({ answer: encodeLaserAnswer(placed, Math.max(1, fires)), atMs: at });
+      if (logged || !solvedLayout()) steps.push({ answer: log.answer(placed, Math.max(1, fires)), atMs: at });
     };
     const wrongPiece = (good: MirrorPlacement): MirrorPlacement => {
       if (rng.chance(0.5)) return { cell: good.cell, kind: FLIP[good.kind] };
@@ -461,30 +499,36 @@ const laserKit: PuzzleKit = {
         placed.push(wrongPiece(good));
         wrongIdx.add(i);
       } else placed.push({ ...good });
+      log.place(placed[placed.length - 1]!, at);
       draft();
     });
     while (fires < LASER_MAX_FIRES) {
-      at += thinkMs(rng, 1, skill) + 1500; // tap Fire, watch the beam
+      at += thinkMs(rng, 1, skill); // tap Fire
       fires += 1;
+      log.fire(at);
+      at += 1500; // watch the beam
       if (solvedLayout()) {
-        steps.push({ answer: encodeLaserAnswer(placed, fires), atMs: at });
+        steps.push({ answer: log.answer(placed, fires), atMs: at });
         break;
       }
-      steps.push({ answer: encodeLaserAnswer(placed, fires), atMs: at });
+      steps.push({ answer: log.answer(placed, fires), atMs: at });
       if (fires >= LASER_MAX_FIRES) break;
       // Read the miss, then fix what the beam showed (and maybe slip again).
       at += thinkMs(rng, 3, skill);
       for (const i of [...wrongIdx]) {
         at += thinkMs(rng, LASER_BASE * 0.7, skill);
+        log.remove(placed[i]!.cell, at);
         if (rng.chance(skill.err / 2)) placed[i] = wrongPiece(solution[i]!);
         else {
           placed[i] = { ...solution[i]! };
           wrongIdx.delete(i);
         }
+        log.place(placed[i]!, at + 300);
         draft();
       }
     }
-    return { steps };
+    // The action log carries its own times: the last answer reached by the buzzer counts.
+    return logged ? { steps, timed: true } : { steps };
   },
 };
 

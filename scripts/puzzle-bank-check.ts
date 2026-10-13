@@ -238,7 +238,7 @@ if (PART === PARTS) {
     for (const puzzle of built.puzzles) {
       if (!(BANKED_TYPES as readonly string[]).includes(puzzle.type)) continue;
       banked++;
-      const { speedPar, ...rest } = puzzle as PuzzleData & { speedPar?: number };
+      const { speedPar, tieRev: _tieRev, ...rest } = puzzle as PuzzleData & { speedPar?: number; tieRev?: number };
       const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
       if (speedPar !== SPEED_PAR_VERSION || JSON.stringify(rest) !== JSON.stringify(expected)) sameShape = false;
       const again = drawBankedPuzzle(puzzle.type as BankedType, seed);

@@ -4,11 +4,14 @@ import { animateFx } from "@/lib/fx/motion";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { FxHook, GameTheme } from "@/lib/fx/theme";
 import { FX_PARTICLE_LIMIT } from "@/lib/fx/limits";
+import { installSoundCueLogger } from "@/lib/fx/soundCues";
 
 /** Bounded, layout-free effects; never transforms the puzzle or its hit regions. */
 export function FxLayer({ theme }: { theme?: GameTheme | undefined }) {
   const layer = useRef<HTMLDivElement>(null);
   useEffect(() => setFxTheme(theme), [theme]);
+  // Dev only (?dev=1): log every named sound cue (docs/sound-cues/README.md).
+  useEffect(() => installSoundCueLogger(), []);
   useEffect(() => {
     const nodes = new Set<HTMLElement>();
     const timers = new Set<ReturnType<typeof setTimeout>>();

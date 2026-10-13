@@ -176,7 +176,12 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "ladder",
   // Tuning C (Oct 2026): practice only.
   "junction",
+  // Rotation (13 Oct 2026): practice only; stored rounds replay and score on their own rules.
+  "intruder",
 ]);
+
+/** Slack added to every arcade phase beyond its run; never shown to players. */
+export const ARCADE_PHASE_SLACK_MS = 3000;
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
   wordsmith: wordsmithPuzzle,
@@ -288,7 +293,11 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
     {
       ...definition,
       theme: gameTheme(type as PuzzleType, definition.category),
-      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade")),
+      Stage: feedbackStage(definition.Stage, gameTheme(type as PuzzleType, definition.category), Boolean(definition.arcadeRun || definition.category === "arcade"), {
+        type: type as PuzzleType,
+        arcade: definition.category === "arcade",
+        runMs: definition.category === "arcade" ? definition.timeLimitMs - ARCADE_PHASE_SLACK_MS : null,
+      }),
       instructions: PUZZLE_INSTRUCTIONS[type as PuzzleType],
       retired: RETIRED_TYPES.has(type as PuzzleType),
       revealMs:
@@ -376,9 +385,6 @@ export function puzzleDurationMs(puzzle: PuzzleData | undefined): number {
   const def = puzzleDef(puzzle.type);
   return def.durationMs?.(puzzle) ?? puzzlePrepMs(puzzle) + puzzleTimeLimitMs(puzzle);
 }
-
-/** Slack added to every arcade phase beyond its run; never shown to players. */
-export const ARCADE_PHASE_SLACK_MS = 3000;
 
 /** Arcade-category games plus any other type built on the arcade engine. */
 export function usesArcadeClock(type: PuzzleType): boolean {

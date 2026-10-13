@@ -1,4 +1,8 @@
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
+import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
+import { puzzleUsesTieRev } from "./tieBreak";
+import { ACTION_LOG_ANSWER_CAP, usesActionLog, type ActionLogDiag } from "./actionLog";
+import { replayLaserLog } from "./laserLog";
 import { ARCADE_DIAG_KEYS, buildArcadeDiag, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import {
   STAGE_COUNT,
@@ -19,7 +23,7 @@ import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
-import { decodeLaserAnswer, verifyLaser } from "./laser";
+import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
 import { decodeTubeMoves, replayTubes } from "./tubes";
@@ -232,6 +236,16 @@ export function latestTapMs(timeLimitMs: number, receivedMsRemaining?: number): 
   return Math.min(timeLimitMs, Math.round(timeLimitMs - receivedMsRemaining) + TIME_CLAIM_TOLERANCE_MS);
 }
 
+function actionLogDetail(diag: ActionLogDiag): Record<string, unknown> {
+  return {
+    actions: diag.received,
+    repaired: diag.clamped + diag.dropped,
+    clamped: diag.clamped,
+    dropped: diag.dropped,
+    ...(diag.first ? { reason: diag.first } : {}),
+  };
+}
+
 function tapLogDetail(diag: TapLogDiag): Record<string, unknown> {
   return {
     taps: diag.received,
@@ -275,9 +289,10 @@ function gradeUnderRev(
 ): Graded {
   const extra = rawExtra ?? {};
   const tapLog = usesTapLog(puzzle);
+  const actionLog = usesActionLog(puzzle);
   // Arcade runs carry a full input log (one event a tick at most), so they get a
   // far larger allowance; cutting a log short silently changes the replay.
-  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : tapLog ? TAP_LOG_ANSWER_CAP : 4_000;
+  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : tapLog ? TAP_LOG_ANSWER_CAP : actionLog ? ACTION_LOG_ANSWER_CAP : 4_000;
   const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, answerCap) : "";
   let arcadeDiag: ArcadeDiag | null = null;
   /** The server replay result, for the stored arcade reveal summary. */
@@ -438,7 +453,14 @@ function gradeUnderRev(
         ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
         : replay.correct >= replay.total;
       score = replay.score;
-      storedMs = 0;
+      // Tie-break rooms store the real finishing time, from the sim's finishing
+      // tick (held to the time left the receipt check allows); an unfinished run
+      // used the whole run. Older rounds stored 0.
+      const finishTick = replay.state.finishTick;
+      storedMs =
+        puzzleUsesTieRev(puzzle) && replay.finished && finishTick > 0
+          ? Math.min(ms, clamp(timeLimitMs - (finishTick * 1000) / TICKS_PER_SECOND, 0, timeLimitMs))
+          : 0;
       extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
       break;
     }
@@ -757,6 +779,29 @@ function gradeUnderRev(
       break;
     }
     case "laser": {
+      if (actionLog) {
+        // The action log is replayed on the stored board: the server counts the
+        // shots and takes the layout at each one from the log. Only a FIRE that
+        // lights every gem without a bomb solves; otherwise the final layout's
+        // gems earn the unfinished credit (as the old timeout draft did, which
+        // always claimed at least one shot).
+        const replay = replayLaserLog(puzzle, answer, latestTapMs(timeLimitMs, receivedMsRemaining));
+        const solveMs = replay.solvedAt === null ? ms : Math.min(ms, clamp(timeLimitMs - replay.solvedAt, 0, timeLimitMs));
+        storedMs = replay.solved ? solveMs : ms;
+        isCorrect = replay.solved;
+        correctCount = replay.gemsLit;
+        score = scoreLaser(replay.solved, replay.gemsLit, replay.solved ? replay.solvedShot! : Math.max(1, replay.shots), storedMs, timeLimitMs);
+        extraDetail = {
+          solved: replay.solved,
+          gemsLit: replay.gemsLit,
+          fires: replay.solved ? replay.solvedShot : replay.shots,
+          hitBomb: replay.hitBomb,
+          shots: replay.shotLog.map((shot) => ({ t: shot.t, gems: shot.gemsLit, bomb: shot.hitBomb })),
+          mirrorsPlaced: replay.layout.filter((piece) => !isSplitter(piece.kind)).length,
+          ...actionLogDetail(replay.diag),
+        };
+        break;
+      }
       // The beam is re-traced here from the placement the phone sent, so the
       // client's own claim about the shot is never trusted.
       const shot = decodeLaserAnswer(answer, puzzle.mirrors + (puzzle.splitterPieces ?? 0));

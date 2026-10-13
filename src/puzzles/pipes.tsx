@@ -286,7 +286,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const pipesPuzzle: PuzzleDefinition = {
   key: "pipes",
   name: gameDisplayName("pipes"),
-  category: "logic",
+  category: "pattern",
   timeLimitMs: PIPES_TIME_MS,
   revealMs: 8_000,
   generate: () => ({ type: "pipes", tiles: [], source: 0 }) satisfies PipesPuzzleData,

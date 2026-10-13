@@ -8,7 +8,7 @@ Every round scores 0–150. A room total is the sum of a player's round scores.
 
 ## What changed since the 11 Oct version
 
-- **Names and counts.** Every table uses the current display names. 74 active games (Word 10, Number 9, Speed 6, Attention 7, Pattern 7, Logic 14, Arcade 21) and 27 retired, against 68 / 26 in the 11 Oct version.
+- **Names and counts.** Every table uses the current display names. 74 active games (Word 10, Number 9, Speed 6, Attention 7, Pattern 7, Logic 14, Arcade 21; 73 since 13 Oct: Attention 6, Pattern 10, Logic 11, Interloper retired) and 27 retired, against 68 / 26 in the 11 Oct version.
 - **The 50 % par rule everywhere.** Every new puzzle is stamped `speedPar: 1`, and every speed or time bonus (Shape A / B / C, staged rounds, arcade finish bonuses) pays in full with half the time left, then falls evenly to 0. The old doc's `round(P × ms ÷ limit)` is the unstamped legacy curve only (section 2).
 - **New games.** Word: Strikeout, Cryptogrid, Swapword and Letterfall (12 Oct). Number: Brimful, Checkout and Ballpark (12 Oct). Formulas in sections 4 and 5.
 - **Trusted inputs.** Flash, Bang On and Ascend (`tapRev: 1`, 12 Oct) send raw tap logs and the server works out every reaction, distance, count and wrong tap (section 14). The section now also lists the smaller trusted fields found in this pass.
@@ -28,7 +28,7 @@ Every round scores 0–150. A room total is the sum of a player's round scores.
 | Puzzle score shape (13 Oct 2026) | every new puzzle is stamped `puzzleScoreRev: 1` (`generatePuzzle`, `bankedIntroExample`); a non-arcade game with a finish state then scores **a finish = 120 + up to 30, unfinished credit at most 110** (section 2). Tenfall and Mixed Signals carry their own stamps (`tenRev: 1`, `clashRev: 4`). Unstamped stored rounds grade exactly as before | `puzzleScoreRev.ts`, `grade.ts gradeSubmission` |
 | Room size | 2–10 players (`MIN_PLAYERS`, `MAX_PLAYERS`) | `types.ts` |
 | Room total | sum of a slot's `round_results.score` | `scoring.ts totalScore()`, `totalScoreThrough()` |
-| Tie-break (2 players) | higher total wins; equal totals → lower `totalAnswerMs` wins; still equal → draw | `scoring.ts duelOutcome()` |
+| Tie-break (2 players; 3+ use the same time in `standings()`) | higher total wins; equal totals → lower `totalAnswerMs` wins; still equal → draw. **Rooms stamped `tieRev: 1`** (every puzzle `buildRoomPuzzles` makes from 13 Oct 2026): each round adds the time actually used against its own limit, `min(limit, phase limit − ms_remaining)`; the limit is the puzzle's stored `timeLimitMs`, else the registry limit, and for arcade and engine rounds the run length (`puzzleRunMs`; ms_remaining there is stored against run + 3 s slack). Flash adds its `reaction_avg_ms`; a round with no answer adds its whole limit; Mixed Signals stores its finishing time from the sim's finishing tick (held to the receipt-checked claim; unfinished = the whole 75 s run); Bang On and Go/No-Go store 0 and so add their whole limit. A plain sum, not normalised: everyone in a room plays the same rounds. **Older rooms** (not every round stamped) keep the original sum over answered rounds of `reaction_avg_ms` if set, else `ROUND_MS (30,000) − ms_remaining` | `scoring.ts duelOutcome()`, `roundTimeUsedMs()`; `tieBreak.ts roomTieRounds()`; `scripts/tie-break-check.ts` |
 | Standings (3+ players) | total descending, then answer time ascending; equal on both share a position; players who left are dropped; `previousPosition` kept for movement | `scoring.ts rank()`, `standings()` |
 | `totalAnswerMs` | sum over rounds of `reaction_avg_ms` if set, else `ROUND_MS − ms_remaining`, where `ROUND_MS` is the fixed 30,000 ms, not the game's own limit (see open item 1) | `scoring.ts totalAnswerMs()`, `answerMsThrough()` |
 | Trusted time left | the claim is rounded and clamped to [0, limit] (NaN → 0); if it exceeds the server's own time left (clamped) + 1,500 ms (`TIME_CLAIM_TOLERANCE_MS`) the server's value is used, `clamped: true` is recorded and a warning logged. Server time left = limit − (now − (`phase_started_at` ?? `round_started_at`) − `puzzlePrepMs`); the limit is the puzzle's own `timeLimitMs` where it has one (Hanoi's five-ring variant), else the type's | `grade.ts trustedMsRemaining()`; `duel.functions.ts submitAnswerFn` |
@@ -91,7 +91,7 @@ Notation: **ms** = trusted time left; **limit** = the game's registry time limit
 | Script | What it pins |
 |---|---|
 | `standard-scoring-check.ts` | Stored shape (unchanged anchors): every Shape A game complete at half time = 150, every Shape B game at the minimum and half time = 150, `scoreSolvedMoves(20, 10, 0, L)` = 100, the named partials (Chroma Lines 11/12 → 110, Hanoi 8/9 → 98, Matchmaker 14/15 → 112 …), staged anchors. New shape (`withPuzzleScoreRev(1)`): every standard game 150 at half time and 120 at the buzzer; every moves game 150 at the minimum and half time and 120 for the slowest, longest solve; tries 150 / 143 / 120; unfinished tops (Double Take 5 → 110, Labyrinth one step short → 110, Bomb 5 of 6 → 110, Ascend 23 → 110 …); starting states 0 (Hanoi, Pipeline, Colour Flood, Labyrinth, Exact with no step); Bang On all misses 0 and its 300 ms knee 74; staged anchors (Eagle Eye perfect 150 / 120, Tally exact 120, Operator best three 110); the default outside a grade is the stored shape |
-| `puzzle-score-rev-check.ts` (new, shard a) | **Legacy identity**: 8,366 stored-round answers (`scripts/fixtures/puzzle-score-legacy.json.gz`, recorded on main `eb143ad` before the change by `puzzle-score-legacy-record.ts`: 47 games × 3 seeds, unstamped and speedPar puzzles; empty drafts, spam, four solver levels and their unfinished states, at the buzzer, half and quarter time) grade exactly as main stored them: score, verdict, counts, errors, stored time and the whole stored extra. Every new puzzle is stamped. Quick fairness on 24 seeds per game: nothing scores 0, finishes 120–150 beat every unfinished run, unfinished ≤ 110, pure spam median ≤ 5 |
+| `puzzle-score-rev-check.ts` (new, shard a) | **Legacy identity**: 8,366 stored-round answers (`scripts/fixtures/puzzle-score-legacy.json.gz`, recorded on main `eb143ad` before the change by `puzzle-score-legacy-record.ts`: 47 games × 3 seeds, unstamped and speedPar puzzles; empty drafts, spam, four solver levels and their unfinished states, at the buzzer, half and quarter time) grade exactly as main stored them: score, verdict, counts, errors, stored time and the whole stored extra (Mixed Signals' presentation-only `extra.reveal` excepted: #40 changed its bonus line on purpose). Every new puzzle is stamped. Tenfall `tenRev: 1` and Mixed Signals `clashRev: 4` runs score the same on the phone's own sim and the server's replay, unflagged, with finishes covered, and Mixed Signals' reveal bonus is the stored score above 120. Lightbender on the action log: a first-shot solve at half time 150, a second-shot solve at the buzzer 128, a solving layout never fired 110 unfinished. Quick fairness on 24 seeds per game: nothing scores 0, finishes 120–150 beat every unfinished run, unfinished ≤ 110, pure spam median ≤ 5 |
 | `six-game-scoring-check.ts` | Formula identity over the input range for the pre-band Ball Tracker, Gemstone (revs 1–3), Junction, Rally, High Rise and Flightpath; band curves; legacy partial maxima; no intro or help states a partial cap or a "÷ N s" divisor; old Ball Tracker demos rejected |
 | `reveal-score-check.tsx` | For every active and retired type the reveal's `data-reveal-score` equals the stored score; no stored row shows "Scoring…"; no Reveal computes its own score |
 | `arcade-score-bands-check.ts` | 22 band games: pre-change runs replay to identical scores; curves start at 0, never fall, top at 140 + 10 or 150; doing nothing = 0 |
@@ -103,6 +103,8 @@ Notation: **ms** = trusted time left; **limit** = the game's registry time limit
 | `timing-check.ts` | `trustedMsRemaining`: honest, 1.2 s behind, at the tolerance, impossible claim → server value, over the limit → limit, negative or NaN → 0 |
 | `room-rounds-check.ts` | Rotation: rounds, per-category spread, no repeated game, no category twice in a row, same seed → same room |
 | `intro-score-text-check.ts` | Intro SCORE lines fit two short lines (90 characters) with no scoring terms; band intros say how to reach the top |
+| `arcade-play-check.ts` | Also plays Tenfall, Mixed Signals, Bonk and Pull! on the real practice screens (15 s live, tick and HUD timer advancing, no errors, frame time, READY on screen; no arcade-world layout proof) |
+| `tie-break-check.ts` | Mixed Signals' reveal bonus equals the bonus inside the stored score on clashRev 3, and on clashRev 4 is the score above 120 |
 | Arcade identity checks | `arcade-batch1`–`5-check`, `arcade-tuning-*`, `tuning-b-check`, `arcade-self-replay-check` (now also Mixed Signals clashRev 4): stored runs replay to the same score and state on their own revision |
 
 `scripts/puzzle-fairness.ts` (not a check) is the full audit behind these numbers: `docs/puzzle-score-bands-oct-2026.md`.
@@ -164,7 +166,7 @@ Notation: **ms** = trusted time left; **limit** = the game's registry time limit
 - Flash: tapping every coloured flash (gold and decoys alike) scores 75–100; the false-start cost (8) is small next to fast reactions (open item 16).
 - Ascend: a finish now always beats an unfinished run (the old formula could put a 4-wrong-tap finish under a clean 23).
 
-## 7. Attention — 7 active
+## 7. Attention — 6 active (Interloper retired 13 Oct, section 12)
 
 | Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | Items | File + function |
 |---|---|---|---|---|---|---|
@@ -173,7 +175,6 @@ Notation: **ms** = trusted time left; **limit** = the game's registry time limit
 | Double Take (`spotdiff`) | 30,000 ms | all 6 found with at most 5 wrong taps: 120 + PAR(30) | 22 per difference − 5 per wrong tap, 0–110 | Shape A; else 20 per difference, wrong taps free | 6 differences | `scoring.ts scoreSpotDifference` |
 | Tally (`countup`) | 45,000 ms | all three exact: 120 + PAR(30) | per tray w / 60 % / 30 % for exact / off by 1 / off by 2, w = 25 / 40 / 45 | w = 30 / 45 / 55 + PAR(20) | 3 trays | `stagedRounds.ts countStagePoints` |
 | Labyrinth (`maze`) | 60,000 ms | exit: 120 + PAR(30) | 110 × (p − 0.05) ÷ 0.95 × wasteFactor(cells walked, route length); p = furthest route step beyond the start ÷ steps to the exit | Shape A; else 110 × (furthest index + 1) ÷ route length (the start cell scored 1–2) | 19 × 19 | `scoring.ts scoreMaze`; `grade.ts` |
-| Interloper (`intruder`) | 75,000 ms | **unchanged on every revision** (retiring tonight): 130 + PAR(20) | 24 per board, 12 for half | same | 5 boards | `scoring.ts scoreIntruder` |
 | Matchmaker (`pairmatch`) | 90,000 ms | 120 + PAR(30) | 110 × pairs ÷ 14 − 1 per mismatched try beyond 25 | Shape A; else 8 per pair (up to 112) | 15 pairs | `scoring.ts scorePairMatch` |
 
 **Attention notes**
@@ -181,7 +182,7 @@ Notation: **ms** = trusted time left; **limit** = the game's registry time limit
 - Mixed Signals' reveal bonus line ("time bonus +N", `clashTimeBonusOf`) belongs to Room rules and trust and was left as it was; on clashRev 4 rounds its "+N" does not match the rev-4 rule (open item 4).
 - Tally: each tray's count is one of five values, so a blind guess in range often scores (audit flag; open item 15).
 
-## 8. Pattern — 7 active
+## 8. Pattern — 10 active (Pipeline, Chroma Lines and Heave moved from Logic, 13 Oct)
 
 At the buzzer the phone submits its draft answer with 0 ms left, and it is graded like any other answer. Moves, presses, tilts, pours and pushes count cumulatively; Undo and Reset never give moves back. On new rounds the board's starting state never earns credit.
 
@@ -194,20 +195,20 @@ At the buzzer the phone submits its draft answer with 0 ms left, and it is grade
 | Jumbled (`tiles`) | 60,000 ms | 120 + MOVES(15) + PAR(15) | 110 × (tiles the player put in place − start tiles moved out) ÷ (7 − tiles in place at the start) × wasteFactor | Shape B; else 14 per tile in place incl. the start (doing nothing scored 0–84) | `scoring.ts scoreTiles`; `grade.ts` |
 | Turntable (`rings`) | 60,000 ms | 120 + MOVES(15) + PAR(15) | 110 × spokes aligned beyond the start ÷ (7 − aligned at the start) × wasteFactor | Shape B; else 12 per aligned spoke | `scoring.ts scoreRings` |
 | Lightbender (`laser`) | 60,000 ms | all gems, no bomb: 120 + 15 / 8 / 0 for shot 1 / 2 / 3 + PAR(15) (shots are taken as an input; Room rules and trust moves them to a server-read log) | 22 per gem lit by the final placement (fired at least once) | 130 / 115 / 100 + PAR(20); else 15 per gem | `scoring.ts scoreLaser` |
+| Pipeline (`pipes`) | 120,000 ms | 120 + PAR(30) | 110 × (tiles joined to the source beyond the start ÷ (49 − start))² | Shape A; else the stepped 90 / 85 / … / 1.5 × j table (the start scored 2–21) | `scoring.ts scorePipes` |
+| Chroma Lines (`flow`) | 75,000 ms | 120 + PAR(30) | 110 × (pairs joined on their solution route − other joined pairs) ÷ pairs (every pair joined with cells empty = 110) | Shape A; else 10 per pair (up to 120) | `scoring.ts scoreFlow`; `grade.ts` |
+| Heave (`push`) | 120,000 ms | 120 + MOVES(15, pushes) + PAR(15) | 110 × crates the player brought home ÷ (crates − 1) × wasteFactor(pushes) | Shape B; else 110 × home ÷ crates | `scoring.ts scorePush` |
 
 **Pattern notes**
 - Topsy-Turvy: a parked ball never moves again, so random tilting parks balls and sometimes solves. wasteFactor takes the partial credit to 0 for random tilting, but a random solve is still a finish (rule c), so random tilting can still score 120 on about one board in five (audit flag; open item 15).
 - Tessellate and Chroma Lines credit only placements on the stored solution (both banks prove a unique, or stored, solution); a different full tiling still finishes.
 
-## 9. Logic — 14 active
+## 9. Logic — 11 active
 
 | Game (id) | Time limit | New: finish | New: unfinished | Stored rounds | File + function |
 |---|---|---|---|---|---|
-| Pipeline (`pipes`) | 120,000 ms | 120 + PAR(30) | 110 × (tiles joined to the source beyond the start ÷ (49 − start))² | Shape A; else the stepped 90 / 85 / … / 1.5 × j table (the start scored 2–21) | `scoring.ts scorePipes` |
 | Blackout (`lightsout`) | 75,000 ms | 120 + MOVES(15, presses) + PAR(15) | after a press, 1 / 2 / 3 / 4 lights left = 110 / 95 / 80 / 65; else 5 × (solution cells pressed an odd number of times − other cells pressed an odd number of times), 0–45 | Shape B; 85 / 75 / 60 / 50; else 5 per solution cell, most 45 (pressing every cell scored 45) | `scoring.ts scoreLightsOut` |
 | Box Six (`sudoku`) | 90,000 ms | 120 + PAR(30) | round(110 × correct ÷ blanks) − 5 per wrong digit | Shape A; else round(110 × correct ÷ blanks), wrong digits free | `scoring.ts scoreSudoku` |
-| Chroma Lines (`flow`) | 75,000 ms | 120 + PAR(30) | 110 × (pairs joined on their solution route − other joined pairs) ÷ pairs (every pair joined with cells empty = 110) | Shape A; else 10 per pair (up to 120) | `scoring.ts scoreFlow`; `grade.ts` |
-| Heave (`push`) | 120,000 ms | 120 + MOVES(15, pushes) + PAR(15) | 110 × crates the player brought home ÷ (crates − 1) × wasteFactor(pushes) | Shape B; else 110 × home ÷ crates | `scoring.ts scorePush` |
 | Hanoi (`tower`) | 90,000 ms | 120 + MOVES(15) + PAR(15) | 110 × rings stacked from the bottom of the gold post beyond the start ÷ (8 − home at the start) × wasteFactor | Shape B; else 110 × rings home ÷ 9 incl. the start (49 for doing nothing on 40 % of boards) | `scoring.ts scoreTower` |
 | Polypotions (`tubes`) | 90,000 ms | 120 + MOVES(15, pours) + PAR(15) | 110 × flasks corked beyond the start ÷ (colours − 1) × wasteFactor | Shape B; else 22 per corked flask, cap 110 | `scoring.ts scoreTubes` |
 | Safe Cracker (`safe`) | 75,000 ms | 120 + 15 / 8 / 0 for try 1 / 2 / 3 + PAR(15) | 25 per dial right on the last try beyond the first | 130 / 115 / 100 + PAR(20); else 15 per dial | `scoring.ts scoreSafe` |
@@ -366,6 +367,7 @@ Never dealt in rooms; still playable in practice, and stored rounds replay and s
 
 | Game (id) | Cat | Time limit | Complete | Bonus | Unfinished / wrong | Items / notes | File + function |
 |---|---|---|---|---|---|---|---|
+| Interloper (`intruder`) | attention | 75,000 ms | all 5 boards right: 130 + PAR(20) (`scoreIntruder`; unchanged on every revision, including `puzzleScoreRev: 1`) | PAR(20) | 24 per board right, 12 for one of two changes | retired 13 Oct 2026 (Rotation and shared screens); only the first N taps per board are read | `scoring.ts scoreIntruder`; `intruder.ts replayIntruder` |
 | Groups (`groups`) | word | 90,000 ms | 4/4: 100 + speedBonus(ms, 90,000) | speed, on all 4 | 3 → 60, 2 → 40, 1 → 20 | 4 groups | `scoring.ts scoreGroups` |
 | Word Match (`wordmatch`) | word | 45,000 ms | all 8: 100 + speedBonus(ms, 45,000) | speed, on all 8 | min(90, 13 × correct) | 8 pairs | `scoring.ts scoreWordMatch` |
 | Word Ladder (`ladder`) | word | 60,000 ms | 100 + speedBonus(ms, 60,000) + 20 for a minimum-length path | +20 at minimum | 1 letter away → 75, 2 → 50, 3 → 25 | — | `scoring.ts scoreWordLadder` |
@@ -427,7 +429,9 @@ Junction before the bands: rev 2 = 2 × cars + 3 × buses − gave up ± 4 per a
 | Go/No-Go (retired) — `extra.correctCount` | as sent, clamped to [0, `GONOGO_ITEMS`] | no replay | `grade.ts` case "gonogo" |
 | Go/No-Go (retired) — `extra.reactionAvgMs` | as sent, clamped to [0, 5000] | no recomputation | `grade.ts` case "gonogo" |
 | Every other type (standard, logic, arcade) | answer strings decoded and matched against stored content, or fully replayed (`replay*`, `verify*`, `decode*`) | full replay / verification | `grade.ts` other cases |
-| Lightbender (`laser`) — shots fired | the shot count (1–3) the answer claims | not replayed: `verifyLaser` reads `max(1, min(3, shots))` and turns 0 into 3; the draft at the buzzer claims at least 1, so a solving layout never fired scores as shot 1 | `laser.ts verifyLaser`, `laser.tsx` |
+| Lightbender (`laser`), `alogRev: 1` — answer `alog1:<action>@<t>,…` | **only which actions were taken and when** (every placement, turn, move, removal, Reset and FIRE on the round clock) | the server replays the action log (`docs/puzzle-action-log.md`) on the stored board under the phone's own rules, counts the shots itself (a FIRE after the third is ignored) and takes the layout at each shot from the log. A solve happens only on a FIRE whose layout lights all six gems without a bomb; nothing after it counts. `scoreLaser` is called with the server's shot count. A solving layout never fired is not a solve: the final layout's gems earn the unfinished credit (15 each; the shot argument is max(1, shots), as the old draft claimed). Time left is the receipt-checked claim but never more than the solving FIRE allows. Repairs as the tap logs (out-of-order actions are put back in time order and counted, so a shuffled log replays exactly as played; before / after the round, after receipt + 1.5 s, beyond 1,500, unreadable dropped), plus actions the board refuses (piece on a fixed or occupied cell, beyond the tray, turning or moving nothing); all counted on the round (`extra.actions`, `repaired`, `reason`). An old-format answer is not read | `actionLog.ts`, `laserLog.ts replayLaserLog`, `grade.ts` case "laser"; `scripts/laser-log-check.tsx` |
+| Lightbender (`laser`), unstamped rounds — shots fired | the shot count (1–3) the answer claims | not replayed: `verifyLaser` reads `max(1, min(3, shots))` and turns 0 into 3; the draft at the buzzer claims at least 1, so a solving layout never fired scores as shot 1 (kept so stored rounds grade as they did) | `laser.ts verifyLaser`, `grade.ts` legacy branch |
+| Lightbender, `alogRev: 1` — what stays the phone's word | which FIREs it logs | a modified phone can leave a missed FIRE out of its log; the server then grades the legal run that never took that shot (the board is public, so a phone can trace the beam without firing anyway). Fully server-witnessed shots would need FIREs streamed live, as for tap timing | `scripts/laser-log-check.tsx` (asserted: such a log grades exactly as that legal run) |
 | Integer Pyramid (`numpyramid`) — `active` | which pyramid earns partial credit | taken from the answer | `grade.ts` case "numpyramid" |
 | Don't Break the Chain — time left | the claimed `msRemaining` for the finish bonus | held only by the 1.5 s receipt check; not capped by the replayed last tap (Ascend's log is) | `grade.ts` case "chain" |
 
@@ -457,12 +461,12 @@ Tidied on 13 Oct 2026 (puzzle score pass): `scoreSymbolScan`, `scoreEquation` an
 
 Nothing here has been changed in the app unless it says so. Each needs Joe's ruling or a small follow-up; none affects stored rounds.
 
-1. **Tie-break time uses a fixed 30 s.** `totalAnswerMs` adds `ROUND_MS − ms_remaining` with `ROUND_MS` = 30,000, not the game's own limit (Room rules and trust is changing it tonight).
+1. **Closed 13 Oct 2026** (`tieRev: 1`, section 1; `scripts/tie-break-check.ts`). ~~**Tie-break time uses a fixed 30 s.** `totalAnswerMs` adds `ROUND_MS − ms_remaining` with `ROUND_MS` = 30,000, not the game's own limit: rounds longer than 30 s can add a negative amount, and rounds stored with 0 ms left (Flash, Go/No-Go, Mixed Signals) add 30,000. It decides only ties on equal totals. Changing it would change past results' tie-breaks, so it needs a versioned rule.~~
 2. ~~Doing nothing scores~~ **Closed 13 Oct** (`puzzleScoreRev: 1`): Bang On, Labyrinth, Slider, Jumbled, Hanoi, Pipeline, Colour Flood, Exact and Ballpark score 0 for doing nothing on new rounds.
 3. **Free mistakes.** Closed where they failed the spam rule (Double Take, Box Six, Tents and Trees, Lookout, Trail, Matchmaker, Cryptogrid, Lamplighter, Shikaku, Tessellate, Chroma Lines, Blackout). Roundabout keeps free misses (the phone sends only slot words; costing misses needs an attempt log); Ball Tracker unchanged (arcade).
-4. **Mixed Signals' reveal shows a linear time bonus** (`clashTimeBonusOf`) while the score uses the par curve, and on clashRev 4 rounds the bonus needs at most 2 wrong gates. Display only; owned by Room rules and trust tonight.
+4. **Closed 13 Oct 2026:** the reveal's "time bonus +N" is now the bonus inside the stored score (the score less the same run scored unfinished), on whatever curve scored it; no score change. ~~**Mixed Signals' reveal shows a linear time bonus** (`clashTimeBonusOf`) while the score uses the par curve. The stored score is right; the reveal's "+N" line is wrong whenever less than all the run is left. Display fix only.~~ On clashRev 4 rounds (puzzle score shape) the bonus read the same way is the rev-4 finish bonus: PAR(30) less 5 per wrong gate, with at most 2 wrong.
 5. ~~Counterweight's intro and help~~ **Closed 13 Oct**: new rounds credit each scale in any order (20 / 35 / 75); intro and help say so.
-6. **Lightbender's shot count is the phone's word** (Room rules and trust moves it to a server-read log tonight; `scoreLaser` takes the count as an input).
+6. **Closed 13 Oct 2026** (`alogRev: 1`, section 14; `scripts/laser-log-check.tsx`). ~~**Lightbender's shot count is the phone's word.** The server can't see shots, only the final layout; an unfired solving layout scores as shot 1. Record shots as a log (like the tap logs) before ranked play.~~ On `puzzleScoreRev: 1` rounds `scoreLaser` takes the log's shot count as its tries measure (15 / 8 / 0), and a solving layout never fired scores the unfinished 22 per gem lit (at most 110), not a solve.
 7. ~~Integer Pyramid's partial credit goes to the pyramid the phone names~~ **Closed 13 Oct**: new rounds credit the first unfinished pyramid.
 8. **Intro / help wording gaps** (arcade only now): Fission and Junction (penalties are units), Flightpath (ring values 10 / 9 / 8 / 3 / 2 / 1), Wavefront's intro (armour hits), Letterfall (Qu counts as two). Every puzzle SCORE line and help was rewritten to the new numbers on 13 Oct.
 9. ~~Roundabout's `isCorrect` counts cells~~ **Closed 13 Oct**: new rounds count word slots.

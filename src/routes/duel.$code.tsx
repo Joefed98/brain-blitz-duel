@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
@@ -87,6 +87,7 @@ import {
   totalScore,
   totalScoreThrough,
 } from "@/lib/duel/scoring";
+import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { useDuel } from "@/lib/duel/useDuel";
 import { normaliseCategories } from "@/lib/duel/categories";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
@@ -113,7 +114,10 @@ import {
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { roomInvite } from "@/lib/duel/roomLink";
+import { noteSignatureSubmit } from "@/lib/fx/signature";
+import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { roomUpdateGate, useUpdateGate } from "@/lib/appUpdate";
 
 const ROOM_TITLE = `Join a ${APP_NAME} room`;
 const ROOM_DESCRIPTION = `You're invited to a live ${APP_NAME} room. ${APP_TAGLINE}`;
@@ -221,6 +225,16 @@ function DuelScreen() {
   const roomCode = code.toUpperCase();
   const state = useDuel(roomCode);
   const { duel, players, results, me, opponent, roomPlayers, isMulti, isHost, now } = state;
+  // A new version reloads only between rounds and lands back here (lib/appUpdate).
+  useUpdateGate(
+    roomUpdateGate({
+      loading: state.loading,
+      notFound: state.notFound,
+      member: !!me,
+      status: duel?.status,
+      phase: duel?.phase,
+    }),
+  );
   // Accepted ?dev=1 key enables presentation-only readouts (layout overlay) in rooms too.
   useDemoKey();
 
@@ -337,7 +351,9 @@ function DuelScreen() {
   const roundDetails = new Map(
     (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
-  const table = standings(roomPlayers, results, scoredThrough, roundDetails).map((row) => {
+  // Tie-break clocks for rooms stamped tieRev; null keeps older rooms' ranking.
+  const tieRounds = roomTieRounds(duel?.puzzles_public);
+  const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
     return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
   });
@@ -355,6 +371,23 @@ function DuelScreen() {
     ]),
   );
 
+  // The shared signature beat, once this player's stored verdict lands.
+  const signatureVerdict = useMemo(
+    () =>
+      puzzle && myResult
+        ? {
+            type: puzzle.type,
+            arcade: puzzleDef(puzzle.type).category === "arcade",
+            correct: myResult.is_correct,
+            score: myResult.score,
+            msRemaining: myResult.ms_remaining,
+            timeLimitMs,
+          }
+        : null,
+    [puzzle, myResult, timeLimitMs],
+  );
+  useSignatureVerdict(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
+
   // Timer ran out without a submission — record a zero for this round.
   useEffect(() => {
     if (!duel || !me || !puzzle || duel.status !== "in_progress" || phase !== "puzzle") return;
@@ -362,6 +395,7 @@ function DuelScreen() {
     const key = `${duel.id}-${round}`;
     if (timeoutSubmitted.current === key) return;
     timeoutSubmitted.current = key;
+    noteSignatureSubmit(puzzle.type);
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
@@ -542,6 +576,7 @@ function DuelScreen() {
       round: roundNumber,
     } = latest.current;
     if (!room || !player || !current || mine) return;
+    noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
     buzz(15);
@@ -777,7 +812,7 @@ function DuelScreen() {
         <div ref={podiumShell}>
           <PhoneShell>
             <Podium
-              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS)}
+              rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds)}
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
@@ -796,7 +831,7 @@ function DuelScreen() {
         <PhoneShell>
           <FinalResult
             outcome={
-              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot)
+              forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot, tieRounds)
             }
             note={
               forfeit

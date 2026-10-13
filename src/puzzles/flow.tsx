@@ -341,7 +341,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const flowPuzzle: PuzzleDefinition = {
   key: "flow",
   name: gameDisplayName("flow"),
-  category: "logic",
+  category: "pattern",
   timeLimitMs: FLOW_TIME_MS,
   revealMs: 8_000,
   generate: () => ({ type: "flow", pairs: [] }) satisfies FlowPuzzleData,

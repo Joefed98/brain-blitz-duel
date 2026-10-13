@@ -1403,6 +1403,8 @@ export interface LaserPuzzleData {
   stats?: LaserStats;
   /** Server-side only: where each mirror belongs, and which way it faces. */
   solution?: MirrorPlacement[];
+  /** 1: answered with the timestamped action log (laserLog.ts); absent: the old "shot|layout" answer. */
+  alogRev?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2272,7 +2274,7 @@ export interface SnipPuzzleData {
   type: "snip";
   /** Draws the level order and pin wobble — identical for everyone. */
   seed: number;
-  /** 2 = ten levels drawn by band from the 30 templates; 3 = from the 60 (orchard elements). Absent = fixed legacy order. */
+  /** 2 = ten levels drawn by band from the 30 templates; 3 = from the 60 (orchard elements); 4 = 3 on the score bands; 5 = the tall bank (Tuning E); 6 = the bigger tall bank. Absent = fixed legacy order. */
   snipRev?: number;
 }
 

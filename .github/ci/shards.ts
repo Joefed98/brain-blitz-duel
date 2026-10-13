@@ -61,6 +61,7 @@ export const SHARDS: Record<string, string[]> = {
     "intro-demo-check.ts",
     "intro-score-text-check.ts",
     "laser-check.ts",
+    "laser-log-check.tsx",
     "link-join-check.ts",
     "matchup-check.ts",
     "new-types-check.ts",
@@ -84,6 +85,7 @@ export const SHARDS: Record<string, string[]> = {
     "success-effects-check.ts",
     "sum-hunt-check.ts",
     "tendrop-check.ts",
+    "tie-break-check.ts",
     "tile-grid-word-count-check.ts",
     "timing-check.ts",
     "trail-check.ts",
@@ -95,6 +97,9 @@ export const SHARDS: Record<string, string[]> = {
   ],
   c: [
     "arcade-batch1-check.ts",
+    "category-pool-check.ts",
+    "help-scroll-check.tsx",
+    "signature-beat-check.ts",
     "arcade-check.ts",
     "arcade-correction-check.ts",
     "arcade-drag-check.ts",
@@ -116,6 +121,7 @@ export const SHARDS: Record<string, string[]> = {
     "puzzle-bank-check.ts@1/4",
   ],
   d: [
+    "app-update-check.tsx",
     "arcade-self-replay-check.ts",
     "logic-grid-check.ts",
     "orbit-legacy-replay-check.ts",

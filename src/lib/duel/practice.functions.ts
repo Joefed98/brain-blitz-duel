@@ -1,6 +1,8 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
 import { createServerFn } from "@tanstack/react-start";
 
+import { staleSubmissionNote } from "@/lib/appVersion";
+
 import { type SubmitExtra } from "./grade";
 import { mergePuzzle, splitPuzzle } from "./secrets";
 import { PUZZLE_TYPES } from "./registry";
@@ -114,9 +116,14 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
       answer: string;
       msRemaining: number;
       extra?: SubmitExtra;
+      /** The phone's build id (appVersion.ts); missing from copies older than it. */
+      clientVersion?: string;
     }) => input,
   )
   .handler(async ({ data }) => {
+    // Log only: grading never depends on the client's version.
+    const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
+    if (staleNote) console.warn(staleNote);
     const priv = await unseal(data.sealed);
     if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
     const puzzle = mergePuzzle(data.puzzle, priv);
