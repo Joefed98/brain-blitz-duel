@@ -301,7 +301,7 @@ Medians of the simulated players at each level (30–100 room seeds), from `docs
 
 ### 10.4 Arcade notes
 
-- Help and intro wording: Fission's "each life lost takes 5 off" and Junction's −1 / −4 are units, not points; Flightpath's "rings 10 in the centre down to 1" skips that the values are 10 / 9 / 8 / 3 / 2 / 1; Wavefront's intro line leaves out armour hits (its help has them). The knots in every help string match the code.
+- Help and intro wording (fixed 13 Oct 2026, text only): Fission's and Junction's "?" help name their penalties in units (Fission's intro: a lost life takes 5 hits off); Flightpath's help and intro list the ring values 10 / 9 / 8 / 3 / 2 / 1 and the inner bull 12 from `BULLSEYE_RING_VALUES` / `BULLSEYE_INNER_BULL_POINTS`; Wavefront's intro names armour hits; Letterfall's intro and help say a Qu tile counts as two letters. The knots in every help string match the code.
 - Orbit: if the proved course bank ever misses, `generateOrbit` falls back to an unstamped round (original rules and scoring).
 - Rainbow Bridge times its finish bonus on `endedTick || tick`; every other game uses `endedTick`.
 - Before the bands, idle runs scored 30 in Ball Tracker, 20 in Breaker, 19 in Junction and 16 in Wavefront; stored rounds of those revisions still do.

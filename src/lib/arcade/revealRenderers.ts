@@ -43,11 +43,13 @@ import { BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
-import { tenDropGame, TD_H, TD_W } from "./tenDrop";
+import { TD_H, TD_W, type TenDropState } from "./tenDrop";
+import { drawTenDrop } from "./tenDrop.renderer";
 import { wordfallGame, WF_H, WF_W } from "./wordfall";
 import { wordfallArtGame } from "./wordfall.renderer";
 import { loadWordfallDict, wordfallDictReady } from "./wordfallDict";
-import { colourClashGame } from "./colourClash";
+import { CLASH_WORLD_H, CLASH_WORLD_W } from "./colourClash";
+import { colourClashArtGameFor } from "./colourClash.renderer";
 
 import { replayHoverRun } from "@/lib/duel/hover";
 import { replaySkylineRun } from "@/lib/duel/skyline";
@@ -123,6 +125,16 @@ function simple<S>(
       return focus ? focus(state) : null;
     },
   };
+}
+
+/**
+ * Tenfall's play art at world size: drawTenDrop paints in CSS px on a canvas of
+ * `ratio` device px each, so the ratio is the context's current uniform scale
+ * (the reveal's devicePixelRatio, or the demo's dpr × fit scale).
+ */
+function drawTenDropArt(ctx: CanvasRenderingContext2D, state: TenDropState, size: { width: number; height: number }): void {
+  const ratio = typeof ctx.getTransform === "function" ? ctx.getTransform().a || 1 : 1;
+  drawTenDrop(ctx, state, size, ratio, typeof performance !== "undefined" ? performance.now() : 0);
 }
 
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
@@ -237,7 +249,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  tendrop: simple(GOLD, TD_W, TD_H, tenDropGame, (p, a) => replayTenDropRun(seedOf(p), a)),
+  // Tenfall's polished board (tenDrop.renderer.ts), as in play; it draws in device px from the context's scale.
+  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a)),
   wordfall: {
     accent: "#D4A84A",
     worldW: WF_W,
@@ -252,5 +265,15 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  stroop: simple(GOLD, 390, 560, colourClashGame, (p, a) => replayColourClashRun(seedOf(p), a, p.type === "stroop" ? clashVariantOf(p) : 0)),
+  // Mixed Signals' polished lane board (colourClash.renderer.ts), as in play.
+  stroop: {
+    accent: GOLD,
+    worldW: CLASH_WORLD_W,
+    worldH: CLASH_WORLD_H,
+    drawFinal: (ctx, p, a) => {
+      const variant = p.type === "stroop" ? clashVariantOf(p) : 0;
+      colourClashArtGameFor(variant).draw(ctx, replayColourClashRun(seedOf(p), a, variant).state, { width: CLASH_WORLD_W, height: CLASH_WORLD_H });
+      return null;
+    },
+  },
 };

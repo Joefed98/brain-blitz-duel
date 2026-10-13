@@ -248,20 +248,19 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
         <Track players={players} axis={myReveal?.axis ?? null} accent={accent} />
 
         {myReveal && myReveal.tiles.length > 0 ? (
+          // One full-width row per stored tile (label left, value right), so a label as
+          // long as "Crossings completed" stays on one line at 12 px on a 375 px phone.
           <div
-            className="grid w-full shrink-0 gap-2"
-            style={{ gridTemplateColumns: `repeat(${Math.min(4, myReveal.tiles.length)}, minmax(0, 1fr))` }}
+            data-reveal-tiles=""
+            className="flex w-full shrink-0 flex-col divide-y rounded-lg border bg-background/70 px-3 animate-fade-in"
+            style={{ borderColor: accent }}
           >
             {myReveal.tiles.slice(0, 4).map((tile) => (
-              <div
-                key={tile.label}
-                className="flex flex-col items-center justify-center rounded-lg border bg-background/70 px-1 py-2 animate-fade-in"
-                style={{ borderColor: accent }}
-              >
-                <span className="font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>
+              <div key={tile.label} className="flex min-w-0 items-baseline justify-between gap-3 py-1" style={{ borderColor: "color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
+                <span className="min-w-0 truncate whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground">{tile.label}</span>
+                <span className="shrink-0 whitespace-nowrap font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>
                   {tile.value}
                 </span>
-                <span className="text-center text-xs uppercase leading-tight tracking-wider text-muted-foreground">{tile.label}</span>
               </div>
             ))}
           </div>
