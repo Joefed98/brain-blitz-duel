@@ -1,0 +1,1667 @@
+{
+  "lightsout@375x667": {
+    "steps": 12,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 181,
+      "playBottom": 551,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 65,
+      "gapBelow": 64,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 181,
+      "playBottom": 551,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 65,
+      "gapBelow": 64,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightsout.toggle",
+      "lightsout.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✗",
+      "contentHeight": 420.34375
+    }
+  },
+  "sudoku@375x667": {
+    "steps": 21,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 555,
+      "playTop": 152,
+      "playBottom": 519,
+      "playWidth": 367,
+      "playHeight": 367,
+      "gapAbove": 36,
+      "gapBelow": 36,
+      "arena": {
+        "w": 367,
+        "h": 427
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 555,
+      "playTop": 152,
+      "playBottom": 519,
+      "playWidth": 367,
+      "playHeight": 367,
+      "gapAbove": 36,
+      "gapBelow": 36,
+      "arena": {
+        "w": 367,
+        "h": 427
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓ Solved · 10.3s",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "sudoku.place",
+      "sudoku.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✗ 10 / 21 correct",
+      "contentHeight": 420.34375
+    }
+  },
+  "tower@375x667": {
+    "steps": 34,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 172,
+      "playBottom": 561,
+      "playWidth": 351,
+      "playHeight": 389,
+      "gapAbove": 56,
+      "gapBelow": 55,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 172,
+      "playBottom": 561,
+      "playWidth": 351,
+      "playHeight": 389,
+      "gapAbove": 56,
+      "gapBelow": 55,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves · min",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tower.lift",
+      "tower.drop",
+      "tower.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.15,
+      "worst": "17",
+      "contentHeight": 420.34375
+    }
+  },
+  "tubes@375x667": {
+    "steps": 24,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 129,
+      "playBottom": 603,
+      "playWidth": 355,
+      "playHeight": 474,
+      "gapAbove": 13,
+      "gapBelow": 12,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 129,
+      "playBottom": 603,
+      "playWidth": 355,
+      "playHeight": 474,
+      "gapAbove": 13,
+      "gapBelow": 12,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tubes.lift",
+      "tubes.pour",
+      "tubes.cork",
+      "tubes.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.15,
+      "worst": "12",
+      "contentHeight": 420.34375
+    }
+  },
+  "safe@375x667": {
+    "steps": 10,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 611,
+      "playTop": 197,
+      "playBottom": 530,
+      "playWidth": 367,
+      "playHeight": 333,
+      "gapAbove": 81,
+      "gapBelow": 81,
+      "arena": {
+        "w": 367,
+        "h": 483
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 611,
+      "playTop": 197,
+      "playBottom": 530,
+      "playWidth": 367,
+      "playHeight": 333,
+      "gapAbove": 81,
+      "gapBelow": 81,
+      "arena": {
+        "w": 367,
+        "h": 483
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 1.11,
+      "worst": "6",
+      "contentHeight": 310
+    },
+    "solvedScore": "150",
+    "cues": [
+      "safe.click",
+      "safe.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 1.11,
+      "worst": "6",
+      "contentHeight": 212
+    }
+  },
+  "bomb@375x667": {
+    "steps": 7,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 128,
+      "playBottom": 603,
+      "playWidth": 367,
+      "playHeight": 475,
+      "gapAbove": 12,
+      "gapBelow": 12,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 615,
+      "playTop": 128,
+      "playBottom": 603,
+      "playWidth": 367,
+      "playHeight": 475,
+      "gapAbove": 12,
+      "gapBelow": 12,
+      "arena": {
+        "w": 367,
+        "h": 487
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Yours",
+      "contentHeight": 214
+    },
+    "solvedScore": "150",
+    "cues": [
+      "bomb.cut",
+      "bomb.press",
+      "bomb.defuse",
+      "bomb.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.15,
+      "worst": "Exploded at step 4",
+      "contentHeight": 214
+    }
+  },
+  "nonogram@375x667": {
+    "steps": 22,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 213,
+      "playBottom": 562,
+      "playWidth": 343,
+      "playHeight": 349,
+      "gapAbove": 97,
+      "gapBelow": 97,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 213,
+      "playBottom": 562,
+      "playWidth": 343,
+      "playHeight": 349,
+      "gapAbove": 97,
+      "gapBelow": 97,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "nonogram.fill",
+      "nonogram.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 420.34375
+    }
+  },
+  "flood@375x667": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 580,
+      "playTop": 177,
+      "playBottom": 520,
+      "playWidth": 343,
+      "playHeight": 343,
+      "gapAbove": 61,
+      "gapBelow": 61,
+      "arena": {
+        "w": 367,
+        "h": 452
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 580,
+      "playTop": 177,
+      "playBottom": 520,
+      "playWidth": 343,
+      "playHeight": 343,
+      "gapAbove": 61,
+      "gapBelow": 61,
+      "arena": {
+        "w": 367,
+        "h": 452
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Par",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "flood.spread",
+      "flood.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Par",
+      "contentHeight": 420.34375
+    }
+  },
+  "tents@375x667": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 201,
+      "playBottom": 576,
+      "playWidth": 343,
+      "playHeight": 375,
+      "gapAbove": 85,
+      "gapBelow": 84,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 201,
+      "playBottom": 576,
+      "playWidth": 343,
+      "playHeight": 375,
+      "gapAbove": 85,
+      "gapBelow": 84,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tents.pitch",
+      "tents.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 420.34375
+    }
+  },
+  "shikaku@375x667": {
+    "steps": 18,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 203,
+      "playBottom": 573,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 87,
+      "gapBelow": 86,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 203,
+      "playBottom": 573,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 87,
+      "gapBelow": 86,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "shikaku.place",
+      "shikaku.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 420.34375
+    }
+  },
+  "lightup@375x667": {
+    "steps": 14,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 203,
+      "playBottom": 573,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 87,
+      "gapBelow": 86,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 659,
+      "controlsTop": 659,
+      "playTop": 203,
+      "playBottom": 573,
+      "playWidth": 343,
+      "playHeight": 370,
+      "gapAbove": 87,
+      "gapBelow": 86,
+      "arena": {
+        "w": 367,
+        "h": 543
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.37,
+      "worst": "1",
+      "contentHeight": 444.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightup.lamp",
+      "lightup.solve"
+    ],
+    "revealPartial": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.37,
+      "worst": "1",
+      "contentHeight": 420.34375
+    }
+  },
+  "lightsout@390x844": {
+    "steps": 12,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 262,
+      "playBottom": 647,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 146,
+      "gapBelow": 145,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 262,
+      "playBottom": 647,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 146,
+      "gapBelow": 145,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightsout.toggle",
+      "lightsout.solve"
+    ]
+  },
+  "sudoku@390x844": {
+    "steps": 21,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 732,
+      "playTop": 233,
+      "playBottom": 615,
+      "playWidth": 382,
+      "playHeight": 382,
+      "gapAbove": 117,
+      "gapBelow": 117,
+      "arena": {
+        "w": 382,
+        "h": 604
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 732,
+      "playTop": 233,
+      "playBottom": 615,
+      "playWidth": 382,
+      "playHeight": 382,
+      "gapAbove": 117,
+      "gapBelow": 117,
+      "arena": {
+        "w": 382,
+        "h": 604
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓ Solved · 11.5s",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "sudoku.place",
+      "sudoku.solve"
+    ]
+  },
+  "tower@390x844": {
+    "steps": 34,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 260,
+      "playBottom": 649,
+      "playWidth": 366,
+      "playHeight": 389,
+      "gapAbove": 144,
+      "gapBelow": 143,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 260,
+      "playBottom": 649,
+      "playWidth": 366,
+      "playHeight": 389,
+      "gapAbove": 144,
+      "gapBelow": 143,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves · min",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tower.lift",
+      "tower.drop",
+      "tower.solve"
+    ]
+  },
+  "tubes@390x844": {
+    "steps": 24,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 131,
+      "playBottom": 778,
+      "playWidth": 370,
+      "playHeight": 647,
+      "gapAbove": 15,
+      "gapBelow": 14,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 131,
+      "playBottom": 778,
+      "playWidth": 370,
+      "playHeight": 647,
+      "gapAbove": 15,
+      "gapBelow": 14,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tubes.lift",
+      "tubes.pour",
+      "tubes.cork",
+      "tubes.solve"
+    ]
+  },
+  "safe@390x844": {
+    "steps": 10,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 788,
+      "playTop": 267,
+      "playBottom": 637,
+      "playWidth": 382,
+      "playHeight": 370,
+      "gapAbove": 151,
+      "gapBelow": 151,
+      "arena": {
+        "w": 382,
+        "h": 660
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 788,
+      "playTop": 267,
+      "playBottom": 637,
+      "playWidth": 382,
+      "playHeight": 370,
+      "gapAbove": 151,
+      "gapBelow": 151,
+      "arena": {
+        "w": 382,
+        "h": 660
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 1.11,
+      "worst": "6",
+      "contentHeight": 310
+    },
+    "solvedScore": "150",
+    "cues": [
+      "safe.click",
+      "safe.solve"
+    ]
+  },
+  "bomb@390x844": {
+    "steps": 7,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 167,
+      "playBottom": 741,
+      "playWidth": 382,
+      "playHeight": 574,
+      "gapAbove": 51,
+      "gapBelow": 51,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 792,
+      "playTop": 167,
+      "playBottom": 741,
+      "playWidth": 382,
+      "playHeight": 574,
+      "gapAbove": 51,
+      "gapBelow": 51,
+      "arena": {
+        "w": 382,
+        "h": 664
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Yours",
+      "contentHeight": 214
+    },
+    "solvedScore": "150",
+    "cues": [
+      "bomb.cut",
+      "bomb.press",
+      "bomb.defuse",
+      "bomb.solve"
+    ]
+  },
+  "nonogram@390x844": {
+    "steps": 22,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 295,
+      "playBottom": 657,
+      "playWidth": 358,
+      "playHeight": 362,
+      "gapAbove": 179,
+      "gapBelow": 179,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 295,
+      "playBottom": 657,
+      "playWidth": 358,
+      "playHeight": 362,
+      "gapAbove": 179,
+      "gapBelow": 179,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "nonogram.fill",
+      "nonogram.solve"
+    ]
+  },
+  "flood@390x844": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 757,
+      "playTop": 258,
+      "playBottom": 616,
+      "playWidth": 358,
+      "playHeight": 358,
+      "gapAbove": 142,
+      "gapBelow": 142,
+      "arena": {
+        "w": 382,
+        "h": 629
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 757,
+      "playTop": 258,
+      "playBottom": 616,
+      "playWidth": 358,
+      "playHeight": 358,
+      "gapAbove": 142,
+      "gapBelow": 142,
+      "arena": {
+        "w": 382,
+        "h": 629
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Par",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "flood.spread",
+      "flood.solve"
+    ]
+  },
+  "tents@390x844": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 282,
+      "playBottom": 672,
+      "playWidth": 358,
+      "playHeight": 390,
+      "gapAbove": 166,
+      "gapBelow": 165,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 282,
+      "playBottom": 672,
+      "playWidth": 358,
+      "playHeight": 390,
+      "gapAbove": 166,
+      "gapBelow": 165,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tents.pitch",
+      "tents.solve"
+    ]
+  },
+  "shikaku@390x844": {
+    "steps": 18,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 284,
+      "playBottom": 669,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 168,
+      "gapBelow": 167,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 284,
+      "playBottom": 669,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 168,
+      "gapBelow": 167,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "shikaku.place",
+      "shikaku.solve"
+    ]
+  },
+  "lightup@390x844": {
+    "steps": 14,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 284,
+      "playBottom": 669,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 168,
+      "gapBelow": 167,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 836,
+      "controlsTop": 836,
+      "playTop": 284,
+      "playBottom": 669,
+      "playWidth": 358,
+      "playHeight": 385,
+      "gapAbove": 168,
+      "gapBelow": 167,
+      "arena": {
+        "w": 382,
+        "h": 720
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.37,
+      "worst": "1",
+      "contentHeight": 621.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightup.lamp",
+      "lightup.solve"
+    ]
+  },
+  "lightsout@430x932": {
+    "steps": 12,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 286,
+      "playBottom": 711,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 170,
+      "gapBelow": 169,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 286,
+      "playBottom": 711,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 170,
+      "gapBelow": 169,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightsout.toggle",
+      "lightsout.solve"
+    ]
+  },
+  "sudoku@430x932": {
+    "steps": 21,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 820,
+      "playTop": 257,
+      "playBottom": 679,
+      "playWidth": 422,
+      "playHeight": 422,
+      "gapAbove": 141,
+      "gapBelow": 141,
+      "arena": {
+        "w": 422,
+        "h": 692
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 820,
+      "playTop": 257,
+      "playBottom": 679,
+      "playWidth": 422,
+      "playHeight": 422,
+      "gapAbove": 141,
+      "gapBelow": 141,
+      "arena": {
+        "w": 422,
+        "h": 692
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "✓ Solved · 11s",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "sudoku.place",
+      "sudoku.solve"
+    ]
+  },
+  "tower@430x932": {
+    "steps": 34,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 304,
+      "playBottom": 693,
+      "playWidth": 406,
+      "playHeight": 389,
+      "gapAbove": 188,
+      "gapBelow": 187,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 304,
+      "playBottom": 693,
+      "playWidth": 406,
+      "playHeight": 389,
+      "gapAbove": 188,
+      "gapBelow": 187,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves · min",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tower.lift",
+      "tower.drop",
+      "tower.solve"
+    ]
+  },
+  "tubes@430x932": {
+    "steps": 24,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 175,
+      "playBottom": 822,
+      "playWidth": 410,
+      "playHeight": 647,
+      "gapAbove": 59,
+      "gapBelow": 58,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 175,
+      "playBottom": 822,
+      "playWidth": 410,
+      "playHeight": 647,
+      "gapAbove": 59,
+      "gapBelow": 58,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "moves",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tubes.lift",
+      "tubes.pour",
+      "tubes.cork",
+      "tubes.solve"
+    ]
+  },
+  "safe@430x932": {
+    "steps": 10,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 876,
+      "playTop": 311,
+      "playBottom": 681,
+      "playWidth": 422,
+      "playHeight": 370,
+      "gapAbove": 195,
+      "gapBelow": 195,
+      "arena": {
+        "w": 422,
+        "h": 748
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 876,
+      "playTop": 311,
+      "playBottom": 681,
+      "playWidth": 422,
+      "playHeight": 370,
+      "gapAbove": 195,
+      "gapBelow": 195,
+      "arena": {
+        "w": 422,
+        "h": 748
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 1.11,
+      "worst": "6",
+      "contentHeight": 310
+    },
+    "solvedScore": "150",
+    "cues": [
+      "safe.click",
+      "safe.solve"
+    ]
+  },
+  "bomb@430x932": {
+    "steps": 7,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 221,
+      "playBottom": 775,
+      "playWidth": 422,
+      "playHeight": 555,
+      "gapAbove": 105,
+      "gapBelow": 105,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 880,
+      "playTop": 221,
+      "playBottom": 775,
+      "playWidth": 422,
+      "playHeight": 555,
+      "gapAbove": 105,
+      "gapBelow": 105,
+      "arena": {
+        "w": 422,
+        "h": 752
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Yours",
+      "contentHeight": 214
+    },
+    "solvedScore": "150",
+    "cues": [
+      "bomb.cut",
+      "bomb.press",
+      "bomb.defuse",
+      "bomb.solve"
+    ]
+  },
+  "nonogram@430x932": {
+    "steps": 22,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 321,
+      "playBottom": 719,
+      "playWidth": 398,
+      "playHeight": 398,
+      "gapAbove": 205,
+      "gapBelow": 205,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 321,
+      "playBottom": 719,
+      "playWidth": 398,
+      "playHeight": 398,
+      "gapAbove": 205,
+      "gapBelow": 205,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "nonogram.fill",
+      "nonogram.solve"
+    ]
+  },
+  "flood@430x932": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 845,
+      "playTop": 282,
+      "playBottom": 680,
+      "playWidth": 398,
+      "playHeight": 398,
+      "gapAbove": 166,
+      "gapBelow": 166,
+      "arena": {
+        "w": 422,
+        "h": 717
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 845,
+      "playTop": 282,
+      "playBottom": 680,
+      "playWidth": 398,
+      "playHeight": 398,
+      "gapAbove": 166,
+      "gapBelow": 166,
+      "arena": {
+        "w": 422,
+        "h": 717
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 16,
+      "minContrast": 6.79,
+      "worst": "Par",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "flood.spread",
+      "flood.solve"
+    ]
+  },
+  "tents@430x932": {
+    "steps": 11,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 306,
+      "playBottom": 736,
+      "playWidth": 398,
+      "playHeight": 430,
+      "gapAbove": 190,
+      "gapBelow": 189,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 306,
+      "playBottom": 736,
+      "playWidth": 398,
+      "playHeight": 430,
+      "gapAbove": 190,
+      "gapBelow": 189,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "tents.pitch",
+      "tents.solve"
+    ]
+  },
+  "shikaku@430x932": {
+    "steps": 18,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 308,
+      "playBottom": 733,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 192,
+      "gapBelow": 191,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 308,
+      "playBottom": 733,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 192,
+      "gapBelow": 191,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 12.09,
+      "minContrast": 6.79,
+      "worst": "Solution",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "shikaku.place",
+      "shikaku.solve"
+    ]
+  },
+  "lightup@430x932": {
+    "steps": 14,
+    "playEmpty": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 308,
+      "playBottom": 733,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 192,
+      "gapBelow": 191,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "play": {
+      "regionTop": 116,
+      "regionBottom": 924,
+      "controlsTop": 924,
+      "playTop": 308,
+      "playBottom": 733,
+      "playWidth": 398,
+      "playHeight": 425,
+      "gapAbove": 192,
+      "gapBelow": 191,
+      "arena": {
+        "w": 422,
+        "h": 808
+      }
+    },
+    "revealSolved": {
+      "scrolls": false,
+      "pageScroll": false,
+      "clipped": 0,
+      "minFont": 14,
+      "minContrast": 6.37,
+      "worst": "1",
+      "contentHeight": 709.34375
+    },
+    "solvedScore": "150",
+    "cues": [
+      "lightup.lamp",
+      "lightup.solve"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
@@ -17,6 +17,7 @@ import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
@@ -27,7 +28,7 @@ function discColour(size: number, discs = TOWER_DISCS): string {
   return `var(--hanoi-${Math.max(1, Math.min(HANOI_SHADES, step))})`;
 }
 
-/** Three or four pegs on a base; the target peg wears a gold base. */
+/** Three or four wooden posts; the target post stands on a gold plate. */
 function Pegs({
   pegs,
   discs,
@@ -36,6 +37,8 @@ function Pegs({
   shake,
   onPeg,
   compact,
+  discHeight,
+  dropped,
 }: {
   pegs: TowerPegs;
   discs: number;
@@ -44,35 +47,45 @@ function Pegs({
   shake?: number | null;
   onPeg?: ((peg: number) => void) | undefined;
   compact?: boolean;
+  /** CSS length for one ring's thickness (live and reveal boards size it from their box). */
+  discHeight?: string;
+  /** The post whose top ring just landed (it settles with a small bounce). */
+  dropped?: { peg: number; key: number } | null;
 }) {
   const liftedDisc =
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
+  const ringH = discHeight ?? (compact ? "7px" : "12px");
+  const gap = compact ? 2 : 3;
 
   return (
-    <div className={`flex h-full w-full items-center justify-center ${compact ? "gap-1.5" : "gap-3 px-2"}`}>
+    <div
+      className={`logic-hanoi flex h-full w-full items-end justify-center ${compact ? "gap-1.5" : "gap-3 px-2"}`}
+      style={{ "--hanoi-ring": ringH, "--hanoi-gap": `${gap}px` } as CSSProperties}
+    >
       {Array.from({ length: Math.max(3, pegs.length) }, (_, peg) => {
         const stack = pegs[peg] ?? [];
         const isLifted = lifted === peg;
-                return (
+        const target = peg === targetPeg;
+        return (
           <button
             key={peg}
             type="button"
             disabled={!onPeg}
             onClick={() => onPeg?.(peg)}
             aria-label={`Post ${peg + 1}`}
-             className="relative flex h-full flex-1 flex-col items-center justify-center"
+            className={`relative flex h-full flex-1 flex-col items-center justify-end ${target ? "logic-hanoi-target" : ""}`}
           >
-            {/* The lifted disc hovers above its peg. */}
+            {/* The lifted ring hovers above its post. */}
             <div
-              className={`flex w-full flex-col items-center justify-end ${compact ? "gap-[2px]" : "gap-1"}`}
-              style={{ height: discs * (compact ? 9 : 14) + 24, maxHeight: "calc(100% - 10px)", minHeight: 0 }}
+              className="flex w-full flex-col items-center justify-end"
+              style={{ height: `calc(${discs + 1} * (var(--hanoi-ring) + var(--hanoi-gap)) + ${compact ? 8 : 16}px)`, maxHeight: "100%", minHeight: 0 }}
             >
-              <div className="flex h-6 w-full items-center justify-center">
+              <div className="flex w-full shrink-0 items-center justify-center" style={{ height: `calc(var(--hanoi-ring) + ${compact ? 6 : 12}px)` }}>
                 {isLifted && liftedDisc !== null && (
                   <div
-                    className="hanoi-disc hanoi-lifted rounded-full -translate-y-0.5"
+                    className="hanoi-disc hanoi-lifted logic-hanoi-ring logic-hanoi-hover"
                     style={{
-                      height: compact ? 7 : 12,
+                      height: "var(--hanoi-ring)",
                       width: `${30 + (liftedDisc / discs) * 65}%`,
                       backgroundColor: discColour(liftedDisc, discs),
                     }}
@@ -80,37 +93,31 @@ function Pegs({
                 )}
               </div>
 
-              <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-end">
-                <div
-                  aria-hidden="true"
-                  className="hanoi-post absolute bottom-0 w-[7px] rounded-t-full"
-                  style={{ height: "100%" }}
-                />
+              <div className="relative flex min-h-0 w-full flex-1 flex-col items-center justify-end" style={{ gap: "var(--hanoi-gap)" }}>
+                <div aria-hidden="true" className="logic-hanoi-post absolute bottom-0 rounded-t-full" />
+                {target && <span aria-hidden="true" className="logic-hanoi-sparkle" style={{ bottom: `calc(${stack.length} * (var(--hanoi-ring) + var(--hanoi-gap)))` }}><i /><i /><i /></span>}
                 {/* The stack is bottom-to-top from index 0, so the column is drawn
                     in reverse: the smallest disc is the topmost element. */}
                 {[...stack].reverse().map((size, index) => {
                   const hide = isLifted && index === 0;
+                  const landed = dropped?.peg === peg && index === 0;
                   return (
                     <div
-                      key={size}
-                      className={`hanoi-disc relative z-10 rounded-full ${shake === peg ? "animate-shake" : ""}`}
+                      key={landed ? `${size}-${dropped?.key}` : size}
+                      className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""}`}
                       style={{
-                        height: compact ? 7 : 12,
-                        marginTop: 2,
+                        height: "var(--hanoi-ring)",
                         width: `${30 + (size / discs) * 65}%`,
                         backgroundColor: discColour(size, discs),
                         opacity: hide ? 0.25 : 1,
-                      }}
+                        "--logic-i": stack.length - 1 - index,
+                      } as CSSProperties}
                     />
                   );
                 })}
               </div>
             </div>
-            <div
-              className={`mt-1 h-[7px] w-full rounded-full ${
-                peg === targetPeg ? "bg-primary" : "hanoi-base"
-              }`}
-            />
+            <div className={`logic-hanoi-base mt-1 w-full shrink-0 ${target ? "logic-hanoi-base-gold" : ""}`} style={{ height: compact ? 7 : 12 }} />
           </button>
         );
       })}
@@ -149,12 +156,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   const [moves, setMoves] = useStageState<TowerMove[]>(stateKey, "towerMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "towerLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "towerShake", () => null);
+  const [dropped, setDropped] = useState<{ peg: number; key: number } | null>(null);
   const submitted = useRef(false);
 
   const replay = useMemo(
     () => replayTower(start, targetPeg, discs, moves),
     [start, targetPeg, discs, moves],
   );
+  const solving = useSolveFx("tower", isTower && replay.solved);
 
   useEffect(() => {
     onDraftAnswer?.(encodeTowerMoves(moves));
@@ -179,6 +188,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     if (lifted === null) {
       if (!(replay.pegs[peg] ?? []).length) return;
       hapticTick();
+      soundCue("tower.lift");
       setLifted(peg);
       return;
     }
@@ -192,6 +202,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       return;
     }
     hapticTick();
+    soundCue("tower.drop");
+    setDropped({ peg, key: moves.length + 1 });
     setMoves((current) => [...current, { from: lifted, to: peg }]);
     setLifted(null);
   };
@@ -199,20 +211,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   if (!isTower) return null;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        moves <span className="text-primary">{replay.moves}</span>
-      </p>
-
-      <div data-game-arena="tall" className="flex min-h-0 flex-1 items-center justify-center">
-        <Pegs
-          pegs={replay.pegs}
-          discs={discs}
-          targetPeg={targetPeg}
-          lifted={lifted}
-          shake={shake}
-          onPeg={tapPeg}
-        />
+    <div data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic">
+        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          moves <span className="text-primary">{replay.moves}</span>
+        </p>
+        <div className="logic-hanoi-stage">
+          <Pegs
+            pegs={replay.pegs}
+            discs={discs}
+            targetPeg={targetPeg}
+            lifted={lifted}
+            shake={shake}
+            onPeg={tapPeg}
+            dropped={dropped}
+            discHeight={`clamp(12px, calc((100cqh - 92px) / ${discs + 1} - 3px), 30px)`}
+          />
+        </div>
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
@@ -221,6 +237,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
           disabled={locked || !moves.length}
           onClick={() => {
             setLifted(null);
+            setDropped(null);
             setMoves((current) => current.slice(0, -1));
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
@@ -232,6 +249,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
           disabled={locked || !moves.length}
           onClick={() => {
             setLifted(null);
+            setDropped(null);
             setMoves([]);
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
@@ -252,16 +270,19 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 200, height: 110 }}>
-        <Pegs
-          pegs={mine.moves ? mine.pegs : towerPegsFrom(start)}
-          discs={puzzle.discs}
-          targetPeg={puzzle.targetPeg}
-          compact
-        />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-hanoi-reveal">
+          <Pegs
+            pegs={mine.moves ? mine.pegs : towerPegsFrom(start)}
+            discs={puzzle.discs}
+            targetPeg={puzzle.targetPeg}
+            compact
+            discHeight={`clamp(7px, calc((100cqh - 40px) / ${puzzle.discs + 1} - 2px), 14px)`}
+          />
+        </div>
       </div>
-      <p className="font-display text-2xl font-bold">
+      <p className="shrink-0 text-center font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
@@ -270,7 +291,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
-      <p className="text-center text-base text-muted-foreground">
+      <p className="logic-reveal-text text-center text-muted-foreground">
         Park the big rings where they won&apos;t block you.
       </p>
     </div>

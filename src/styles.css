@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./polish-logic/logic.css";
 @import "./polish-b/a.css";
 @import "./polish-b/b.css";
 @import "./polish-b/c.css";

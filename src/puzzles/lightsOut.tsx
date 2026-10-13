@@ -3,7 +3,7 @@ import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { playCorrect } from "@/lib/sound";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { decodePresses, encodePresses, lightsAllOff, replayLights } from "@/lib/duel/logic";
 import {
@@ -14,7 +14,55 @@ import {
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+
+/** One glass bulb in its socket: dark glass and a grey filament off, a warm glow on. */
+function Bulb({ on, ids }: { on: boolean; ids: string }) {
+  return (
+    <svg viewBox="7 2.5 26 36" className="logic-bulb-art" aria-hidden="true">
+      <circle className="logic-bulb-halo" cx="20" cy="17" r="18" fill={`url(#${ids}-halo)`} style={{ opacity: on ? 1 : 0 }} />
+      <path className="logic-bulb-glass" d="M20 4.5a12 12 0 0 0-7.4 21.5c1.6 1.3 2.4 2.7 2.4 4.2h10c0-1.5.8-2.9 2.4-4.2A12 12 0 0 0 20 4.5Z" fill={`url(#${ids}-off)`} />
+      <path className="logic-bulb-lit" d="M20 4.5a12 12 0 0 0-7.4 21.5c1.6 1.3 2.4 2.7 2.4 4.2h10c0-1.5.8-2.9 2.4-4.2A12 12 0 0 0 20 4.5Z" fill={`url(#${ids}-on)`} style={{ opacity: on ? 1 : 0 }} />
+      <path className="logic-bulb-wire" d="M17.4 29.6V21.5M22.6 29.6V21.5" stroke={on ? "#FFE7A3" : "#5D616C"} strokeWidth="0.9" fill="none" />
+      <path className="logic-bulb-filament" d="M17.4 21.5l1-2 1 2 1-2 1 2 1-2" stroke={on ? "#FFFFFF" : "#8A8E99"} strokeWidth={on ? 1.3 : 1} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      <ellipse cx="15.6" cy="11.4" rx="2.6" ry="4" transform="rotate(28 15.6 11.4)" fill="#FFFFFF" opacity={on ? 0.55 : 0.22} />
+      <rect x="15" y="30.2" width="10" height="5.6" rx="1.2" fill={`url(#${ids}-base)`} />
+      <path d="M15 32.1h10M15 34h10" stroke="#3E3A33" strokeWidth="0.7" />
+      <path d="M18 35.8h4l-.8 1.6h-2.4Z" fill="#2B2A2E" />
+    </svg>
+  );
+}
+
+/** Shared gradients for one grid of bulbs (one set per grid, not per bulb). */
+function BulbDefs({ ids }: { ids: string }) {
+  return (
+    <svg width="0" height="0" className="absolute" aria-hidden="true">
+      <defs>
+        <radialGradient id={`${ids}-off`} cx="0.4" cy="0.35" r="0.75">
+          <stop offset="0" stopColor="#3A3E49" />
+          <stop offset="0.7" stopColor="#1E2028" />
+          <stop offset="1" stopColor="#14151B" />
+        </radialGradient>
+        <radialGradient id={`${ids}-on`} cx="0.5" cy="0.62" r="0.7">
+          <stop offset="0" stopColor="#FFFBEA" />
+          <stop offset="0.35" stopColor="#FFE38A" />
+          <stop offset="0.8" stopColor="#F5B82E" />
+          <stop offset="1" stopColor="#D08A12" />
+        </radialGradient>
+        <radialGradient id={`${ids}-halo`}>
+          <stop offset="0.35" stopColor="#F5B82E" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#F5B82E" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`${ids}-base`} x1="0" x2="1">
+          <stop offset="0" stopColor="#6E6A60" />
+          <stop offset="0.45" stopColor="#D6D0C2" />
+          <stop offset="1" stopColor="#5A564D" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 /** The grid of lights. Numbers mark the shortest solution on the reveal. */
 function LightsGrid({
@@ -32,43 +80,48 @@ function LightsGrid({
   onPress?: ((cell: number) => void) | undefined;
   gap?: number | undefined;
 }) {
+  const ids = `lo${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  const rows = Math.ceil(lights.length / cols);
   return (
     <div
-      className="mx-auto grid aspect-square w-full max-w-full"
+      className="logic-bulb-grid relative mx-auto grid aspect-square w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${Math.ceil(lights.length / cols)}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         gap,
         containerType: "inline-size",
       }}
     >
-      {lights.map((on, cell) => (
-        <button
-          key={cell}
-          type="button"
-          disabled={!onPress}
-          onClick={onPress ? () => onPress(cell) : undefined}
-          className={`lightsout-bulb relative rounded-xl border transition-colors duration-100 ${
-            on
-              ? "lightsout-bulb-on border-primary bg-primary shadow-[0_0_18px_var(--primary)]"
-              : "lightsout-bulb-off border-border bg-card"
-          } ${flash === cell ? "animate-pop-in" : ""}`}
-          aria-label={`Light ${cell + 1} ${on ? "on" : "off"}`}
-        >
-          {numbers?.[cell] !== undefined && (
-            <span
-              className={`absolute inset-0 flex items-center justify-center font-mono font-bold ${
-                on ? "text-background" : "text-primary"
-              }`}
-              style={{
-                fontSize: `max(11px, calc((100cqw - ${(cols - 1) * gap}px) / ${cols} * 0.45))`,
-              }}
-            >
-              {numbers[cell]}
-            </span>
-          )}
-        </button>
-      ))}
+      <BulbDefs ids={ids} />
+      {lights.map((on, cell) => {
+        const row = Math.floor(cell / cols);
+        const col = cell % cols;
+        // Completion stagger: from the centre outwards, 0–150 ms.
+        const reach = Math.hypot(row - (rows - 1) / 2, col - (cols - 1) / 2) / Math.hypot((rows - 1) / 2, (cols - 1) / 2 || 1);
+        return (
+          <button
+            key={cell}
+            type="button"
+            disabled={!onPress}
+            onClick={onPress ? () => onPress(cell) : undefined}
+            className={`lightsout-bulb logic-bulb relative ${on ? "lightsout-bulb-on" : "lightsout-bulb-off"} ${flash === cell ? "logic-bulb-press" : ""}`}
+            style={{ "--logic-delay": `${Math.round(reach * 150)}ms` } as CSSProperties}
+            aria-label={`Light ${cell + 1} ${on ? "on" : "off"}`}
+          >
+            <Bulb on={on} ids={ids} />
+            {numbers?.[cell] !== undefined && (
+              <span
+                className="logic-bulb-number absolute inset-0 flex items-center justify-center font-mono font-bold"
+                style={{
+                  fontSize: `max(13px, calc((100cqw - ${(cols - 1) * gap}px) / ${cols} * 0.42))`,
+                }}
+              >
+                <span>{numbers[cell]}</span>
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -113,6 +166,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const start = puzzle.type === "lightsout" ? puzzle.lights : [];
   const lights = useMemo(() => replayLights(start, presses), [start, presses]);
+  const solved = presses.some((cell) => cell >= 0) && lightsAllOff(lights);
+  const solving = useSolveFx("lightsout", solved);
 
   useEffect(() => {
     onDraftAnswer?.(encodePresses(presses));
@@ -131,21 +186,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const press = (cell: number) => {
     if (locked || submitted.current) return;
     buzz(10);
+    soundCue("lightsout.toggle");
     setFlash(cell);
-    window.setTimeout(() => setFlash(null), 160);
+    window.setTimeout(() => setFlash(null), 180);
     setPresses((current) => [...current, cell]);
   };
 
   return (
-    <div data-polish="lightsout" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
-      </p>
-      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center px-3">
-        <div className="logic-square-area flex h-full w-full items-center justify-center">
-          <div className="logic-square-board">
-            <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
-          </div>
+    <div data-logic-stage="lightsout" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
+        </p>
+        <div className="logic-square logic-bulb-panel">
+          <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
         </div>
       </div>
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-center gap-3">
@@ -175,16 +230,18 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const min = puzzle.minPresses ?? solution.length;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190 }}>
-        <LightsGrid lights={myCorrect ? new Array(puzzle.lights.length).fill(false) : puzzle.lights} numbers={numbers} gap={8} />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-square-bare logic-bulb-panel" style={{ maxWidth: 320 }}>
+          <LightsGrid lights={myCorrect ? new Array(puzzle.lights.length).fill(false) : puzzle.lights} numbers={numbers} gap={6} />
+        </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
         {min}
       </p>
       {myCorrect ? (
-        <p className="font-mono text-base text-primary">
+        <p className="logic-reveal-text text-center font-mono text-primary">
           {solvedMovesText(mine, min, myMsRemaining, timeLimitMs)}
         </p>
       ) : null}
