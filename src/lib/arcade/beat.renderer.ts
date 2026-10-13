@@ -1,4 +1,5 @@
 import { reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { BEAT_FX } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
@@ -45,13 +46,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   pulse.tick=state.tick;lanePulses.set(ctx,pulse);
   const hit = !reducedMotion() && state.lastJudge === 1 && eventTick===pulse.at && state.judgeAge < 12;
 
+  drawStage(ctx);
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     const x = lane * laneW;
     const colour = NEON[lane]!;
     const h = BEAT_WORLD_H - BEAT_HUD_H;
-    pixelRect(ctx, x, BEAT_HUD_H, laneW, h, `${colour}10`);
-    pixelRect(ctx, x + 2, BEAT_HUD_H, 2, h, `${colour}A0`);
-    pixelRect(ctx, x + laneW - 4, BEAT_HUD_H, 2, h, `${colour}A0`);
     if (tier > 0) {
       // Combo glow in stepped pixel bands above the hit line (display only).
       const bands = 2 + tier * 2;
@@ -123,6 +122,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   }
 
   pixelRect(ctx, 0, 0, BEAT_WORLD_W, BEAT_HUD_H, "#000000");
+  for (let lane = 0; lane < BEAT_LANES; lane++) pixelRect(ctx, lane * laneW, BEAT_HUD_H - 2, laneW, 2, `${NEON[lane]!}90`);
   const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:beatLaneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
   if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(beatLaneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
   successHud(ctx,'beat',state.tick,12,20,()=>{retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);});
@@ -148,10 +148,120 @@ function drawSwipe(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   }
 }
 
-/** A glowing pixel bar on the note's exact rect, with a darker inner line. */
+/**
+ * A glowing pixel bar on the note's exact rect, with a darker inner line.
+ * Polish G: drawn from a cached sprite per colour (lit top row, shaded bottom
+ * row, a 2 px glow at most) instead of a shadowBlur per note.
+ */
 function drawBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, colour: string, bloom: number): void {
+  const sprite = noteSprite(colour, w);
+  if (sprite) {
+    ctx.drawImage(sprite as CanvasImageSource, Math.round(x) - 2, Math.round(y) - 2, Math.round(w) + 4, BEAT_NOTE_H + 4);
+    return;
+  }
   pixelRect(ctx, x, y, w, BEAT_NOTE_H, colour, bloom);
   pixelRect(ctx, x + 4, y + 6, w - 8, 4, "rgba(0,0,0,0.35)");
+}
+
+const NOTE_SCALE = 3;
+const noteSprites = new Map<string, ArtCanvas | null>();
+function noteSprite(colour: string, width: number): ArtCanvas | null {
+  const w = Math.round(width);
+  const key = `${colour}:${w}`;
+  if (noteSprites.has(key)) return noteSprites.get(key) ?? null;
+  const canvas = artCanvas((w + 4) * NOTE_SCALE, (BEAT_NOTE_H + 4) * NOTE_SCALE);
+  const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+  if (canvas && c) {
+    c.scale(NOTE_SCALE, NOTE_SCALE);
+    c.translate(2, 2);
+    // Soft 2 px halo, then the bar itself.
+    c.fillStyle = `${colour}30`;
+    c.fillRect(-2, -2, w + 4, BEAT_NOTE_H + 4);
+    c.fillStyle = `${colour}60`;
+    c.fillRect(-1, -1, w + 2, BEAT_NOTE_H + 2);
+    c.fillStyle = colour;
+    c.fillRect(0, 0, w, BEAT_NOTE_H);
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.fillRect(2, 2, w - 4, 2);
+    c.fillStyle = "rgba(0,0,0,0.3)";
+    c.fillRect(0, BEAT_NOTE_H - 2, w, 2);
+    c.fillStyle = "rgba(0,0,0,0.35)";
+    c.fillRect(4, 6, w - 8, 4);
+    c.fillStyle = "rgba(255,255,255,0.9)";
+    c.fillRect(0, 0, 2, 2);
+    c.fillRect(w - 2, 0, 2, 2);
+  }
+  noteSprites.set(key, canvas && c ? canvas : null);
+  return canvas && c ? canvas : null;
+}
+
+/**
+ * Polish G: the static stage, painted once per device scale: each lane's tint
+ * deepening towards the hit line, double neon rails, a retro floor grid, the
+ * darker strip below the hit line and a target pad outline per lane where the
+ * notes land. Flat paint only.
+ */
+function paintStage(c: CanvasRenderingContext2D): void {
+  const laneW = BEAT_WORLD_W / BEAT_LANES;
+  const h = BEAT_WORLD_H - BEAT_HUD_H;
+  c.fillStyle = "#0B0A10";
+  c.fillRect(0, 0, BEAT_WORLD_W, BEAT_WORLD_H);
+  for (let lane = 0; lane < BEAT_LANES; lane++) {
+    const x = lane * laneW;
+    const colour = NEON[lane]!;
+    const tint = c.createLinearGradient(0, BEAT_HUD_H, 0, BEAT_HIT_LINE_Y);
+    tint.addColorStop(0, `${colour}08`);
+    tint.addColorStop(1, `${colour}26`);
+    c.fillStyle = tint;
+    c.fillRect(x, BEAT_HUD_H, laneW, BEAT_HIT_LINE_Y - BEAT_HUD_H);
+    c.fillStyle = `${colour}10`;
+    c.fillRect(x, BEAT_HIT_LINE_Y, laneW, BEAT_WORLD_H - BEAT_HIT_LINE_Y);
+    c.fillStyle = `${colour}A0`;
+    c.fillRect(Math.round(x + 2), BEAT_HUD_H, 2, h);
+    c.fillRect(Math.round(x + laneW - 4), BEAT_HUD_H, 2, h);
+    c.fillStyle = `${colour}30`;
+    c.fillRect(Math.round(x + 6), BEAT_HUD_H, 1, h);
+    c.fillRect(Math.round(x + laneW - 7), BEAT_HUD_H, 1, h);
+    // Target pad where this lane's notes meet the hit line: outline and corner pixels.
+    const px = Math.round(x + 10), pw = Math.round(laneW - 20), py = BEAT_HIT_LINE_Y - BEAT_NOTE_H / 2;
+    c.fillStyle = `${colour}22`;
+    c.fillRect(px, py, pw, BEAT_NOTE_H);
+    c.fillStyle = `${colour}80`;
+    c.fillRect(px, py, pw, 1);
+    c.fillRect(px, py + BEAT_NOTE_H - 1, pw, 1);
+    c.fillRect(px, py, 1, BEAT_NOTE_H);
+    c.fillRect(px + pw - 1, py, 1, BEAT_NOTE_H);
+    c.fillStyle = colour;
+    for (const [cx, cy] of [[px, py], [px + pw - 3, py], [px, py + BEAT_NOTE_H - 3], [px + pw - 3, py + BEAT_NOTE_H - 3]] as const) c.fillRect(cx, cy, 3, 3);
+  }
+  // Retro floor grid: rows closing up towards the top of the lanes.
+  c.fillStyle = "rgba(180,140,255,0.07)";
+  for (let k = 1; k < 18; k++) {
+    const y = Math.round(BEAT_HIT_LINE_Y - (BEAT_HIT_LINE_Y - BEAT_HUD_H) * (1 - Math.pow(1 - k / 18, 1.7)));
+    c.fillRect(0, y, BEAT_WORLD_W, 1);
+  }
+  c.fillStyle = "rgba(0,0,0,0.35)";
+  c.fillRect(0, BEAT_HIT_LINE_Y + 2, BEAT_WORLD_W, BEAT_WORLD_H - BEAT_HIT_LINE_Y - 2);
+}
+
+const stages = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
+function drawStage(ctx: CanvasRenderingContext2D): void {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const sx = Math.min(3, Math.max(1, t ? Math.abs(t.a) : 1));
+  const sy = Math.min(3, Math.max(1, t ? Math.abs(t.d) : 1));
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}`;
+  let cached = stages.get(ctx);
+  if (!cached || cached.key !== key) {
+    const layer = artCanvas(Math.ceil(BEAT_WORLD_W * sx), Math.ceil(BEAT_WORLD_H * sy));
+    const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
+    if (layer && c) {
+      c.scale(sx, sy);
+      paintStage(c);
+    }
+    stages.set(ctx, (cached = { key, layer: layer && c ? layer : null }));
+  }
+  if (cached.layer) ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, BEAT_WORLD_W, BEAT_WORLD_H);
+  else paintStage(ctx);
 }
 
 export const beatArtGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, draw };

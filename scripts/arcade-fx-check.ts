@@ -230,6 +230,7 @@ for (const [name, game] of Object.entries(GAMES)) {
 const zeros = (n: number) => Array.from({ length: n }, () => 0);
 const BUMPS: Record<string, ((s: any) => any)[]> = {
   hover: [
+    (s) => ({ ...s, gates: s.gates + 1 }),
     (s) => ({ ...s, gates: s.gates + 7 }),
     (s) => ({ ...s, stars: (s.stars ?? 0) + 1 }),
     (s) => ({ ...s, gates: 17 }),
@@ -401,9 +402,13 @@ for (const [name, game] of Object.entries(GAMES)) {
     game.draw(ctx, bumped, { width: 390, height: 620 });
     const stats = fx.arcadeFxStats(ctx, spec.game);
     assert.ok(
-      stats.particles + stats.pops + stats.rings > 0,
+      stats.particles + stats.pops + stats.rings > 0 || !!stats.bulbs,
       `${name} event ${i} (${event.kind}): effect fired`,
     );
+    if (event.bulbs) {
+      assert.equal(stats.bulbs, event.bulbs.pattern, `${name} event ${i} (${event.kind}): border lights fired`);
+      checks += 1;
+    }
     if (event.lights?.length) {
       assert.ok(stats.lights > 0, `${name} event ${i} (${event.kind}): light burst fired`);
       assert.ok(stats.lights <= fx.ARCADE_FX_MAX_LIGHTS, `${name}: light cap`);
@@ -416,8 +421,7 @@ for (const [name, game] of Object.entries(GAMES)) {
 
 /* ------------------------ Tuning D success effects ------------------------ */
 // Breaker: every success text is slightly smaller and, while it is up, the arena glows cool white and blue.
-// Fission (wave clear) and Hover (every 7 barriers): cool purple, green and blue lights.
-// Rally: lights on every paddle hit and on the bonus moments.
+// Fission (wave clear): cool purple, green and blue lights (Polish G: Fission's alone).
 {
   for (const event of specs.BREAKER_FX.events) {
     assert.ok(event.textScale !== undefined && event.textScale < 1 && event.textScale >= 0.75, `breaker ${event.kind}: slightly smaller text`);
@@ -426,12 +430,7 @@ for (const [name, game] of Object.entries(GAMES)) {
   }
   const burstClear = specs.BURST_FX.events.find((e) => e.kind === "clear");
   assert.deepEqual(burstClear?.lights, specs.COOL_LIGHTS, "fission: cool lights on a wave clear");
-  const hoverZone = specs.HOVER_FX.events.find((e) => e.every === 7);
-  assert.deepEqual(hoverZone?.lights, specs.COOL_LIGHTS, "hover: cool lights every 7 barriers");
-  const rallyHit = specs.RALLY_FX.events.find((e) => e.label?.({} as never, 1, 1) === null);
-  assert.ok(rallyHit?.lights?.length, "rally: lights on every paddle hit");
-  assert.ok(specs.RALLY_FX.events.filter((e) => e.lights === specs.RALLY_BONUS_LIGHTS).length >= 2, "rally: lights on gold and target hits");
-  checks += 4;
+  checks += 1;
   // Light bursts: capped, short, and they glow in place without moving under reduced motion.
   const c = createCanvas(390, 620).getContext("2d") as unknown as CanvasRenderingContext2D;
   const lit: Parameters<typeof fx.arcadeFx<{ tick: number; n: number }>>[1] = {
@@ -469,6 +468,92 @@ for (const [name, game] of Object.entries(GAMES)) {
   fx.arcadeFx(g, glow, { tick: 4, n: 1 }, () => {});
   assert.equal(strokes, 0, "arena glow ends with its text");
   checks += 3;
+}
+
+/* ------------------- Polish G: Retro border lights ------------------- */
+// The star-dust burst (lights) stays Fission's alone. Rally, Breaker and Hover show text only at
+// the event and each light the border in its own pattern: Rally flashes (building with the rally),
+// Breaker chases, Hover steps through a colour cycle. Edge only, short, and still under reduced motion.
+{
+  for (const [name, spec] of [["rally", specs.RALLY_FX], ["breaker", specs.BREAKER_FX], ["hover", specs.HOVER_FX]] as const) {
+    for (const event of spec.events as readonly any[]) {
+      assert.ok(!event.lights?.length, `${name} ${event.kind}: no star-dust lights`);
+      assert.ok(event.textOnly, `${name} ${event.kind}: no burst at the event's place`);
+      assert.ok(!event.neon && !event.sweep, `${name} ${event.kind}: border lights replace the shared neon and sweep`);
+      checks += 3;
+    }
+  }
+  const patterns = (spec: { events: readonly any[] }) => new Set(spec.events.map((e) => e.bulbs?.pattern).filter(Boolean));
+  assert.deepEqual([...patterns(specs.RALLY_FX)], ["flash"], "rally: flashing court lights");
+  assert.deepEqual([...patterns(specs.BREAKER_FX)], ["chase"], "breaker: chasing border lights");
+  assert.deepEqual([...patterns(specs.HOVER_FX)], ["step"], "hover: border steps through colours");
+  assert.ok(specs.RALLY_FX.events.some((e) => e.label?.({} as never, 1, 1) === null && e.bulbs), "rally: lights on every paddle hit");
+  assert.ok(specs.HOVER_FX.events.some((e) => e.kind === "pop" && !e.every && e.bulbs?.pattern === "step" && e.count({ gates: 3 } as never) === 3), "hover: a step on every barrier passed");
+  assert.ok(specs.HOVER_FX.events.some((e) => e.every === 7 && e.bulbs?.strong), "hover: stronger step every 7 barriers");
+  for (const event of specs.BREAKER_FX.events) assert.deepEqual(event.arenaGlow, specs.BREAKER_ARENA_GLOW, `breaker ${event.kind}: Tuning D arena pulse kept`);
+  for (const name of ["rally", "breaker", "hover", "beat", "snake"]) {
+    const spec = (specs.ARCADE_FX_SPECS as Record<string, any>)[name];
+    assert.ok(spec.events.every((e: any) => !e.lights?.length), `${name}: no star dust`);
+  }
+  assert.ok(specs.BURST_FX.events.some((e) => e.lights === specs.COOL_LIGHTS), "fission keeps the star dust");
+  checks += 9;
+  // Heat: a long, fast rally reads hotter than a fresh one.
+  assert.ok(specs.rallyHeat({ hits: 0, speed: 1024 } as never) === 0, "rally heat starts cold");
+  assert.ok(specs.rallyHeat({ hits: 40, speed: 1024 } as never) === 1 && specs.rallyHeat({ hits: 0, speed: 99999 } as never) === 1, "rally heat full at 40 returns or top speed");
+  checks += 2;
+
+  // Painting: edge only, gone when done, brighter and longer with heat, and no movement under reduced motion.
+  type S = { tick: number; n: number; heat: number };
+  const W = 390, H = 620;
+  const lit = (pattern: "flash" | "chase" | "step", strong = false): Parameters<typeof fx.arcadeFx<S>>[1] => ({
+    game: `bulbs-${pattern}`, world: "retro", width: W, height: H, fit: "world",
+    events: [{ kind: "pop", count: (s) => s.n, label: () => null, textOnly: true, bulbs: { pattern, colours: specs.RALLY_BULBS, heat: (s) => s.heat, strong } }],
+  });
+  const paintAt = (spec: ReturnType<typeof lit>, heat: number, ms: number) => {
+    const c = createCanvas(W, H);
+    const g = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const start = clock;
+    fx.arcadeFx(g, spec, { tick: 1, n: 0, heat }, () => {});
+    clock += 1000 / 60;
+    fx.arcadeFx(g, spec, { tick: 2, n: 1, heat }, () => {});
+    clock = start + ms;
+    g.clearRect(0, 0, W, H);
+    fx.arcadeFx(g, spec, { tick: 3, n: 1, heat }, () => {});
+    const stats = fx.arcadeFxStats(g, spec.game);
+    clock = start;
+    const data = c.getContext("2d").getImageData(0, 0, W, H).data;
+    let edge = 0, inner = 0, light = 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const a = data[(y * W + x) * 4 + 3]!;
+      if (a === 0) continue;
+      const d = Math.min(x, y, W - 1 - x, H - 1 - y);
+      if (d > 20) inner++;
+      else edge++;
+      light += a;
+    }
+    return { edge, inner, light, stats };
+  };
+  for (const pattern of ["flash", "chase", "step"] as const) {
+    const mid = paintAt(lit(pattern), 0.5, 200);
+    assert.ok(mid.edge > 0, `${pattern}: border lights paint`);
+    assert.equal(mid.inner, 0, `${pattern}: nothing more than 20 px in from the border`);
+    assert.equal(mid.stats.bulbs, pattern, `${pattern}: reported while lit`);
+    const done = paintAt(lit(pattern, true), 0.5, 1300);
+    assert.equal(done.edge + done.inner, 0, `${pattern}: gone within 1.3 s`);
+    checks += 4;
+  }
+  const cold = paintAt(lit("flash"), 0, 160);
+  const hot = paintAt(lit("flash"), 1, 160);
+  assert.ok(hot.light > cold.light * 1.5, `flash: a hot rally lights more and brighter bulbs (${hot.light} vs ${cold.light})`);
+  assert.ok(paintAt(lit("flash"), 1, 700).edge > 0 && paintAt(lit("flash"), 0, 700).edge === 0, "flash: a hot rally's lights last longer");
+  checks += 2;
+  reduced = true;
+  const a = paintAt(lit("chase"), 0, 50);
+  const b = paintAt(lit("chase"), 0, 250);
+  assert.ok(a.edge > 0 && a.light === b.light, "chase: reduced motion holds the lights still");
+  assert.equal(paintAt(lit("flash"), 1, 400).edge, 0, "reduced motion: lights end within 300 ms");
+  reduced = false;
+  checks += 2;
 }
 
 /* --------------- Success-text colours: one per game, readable --------------- */
