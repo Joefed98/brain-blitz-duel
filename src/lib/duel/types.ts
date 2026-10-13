@@ -1045,6 +1045,8 @@ export interface BlockPlacement {
 }
 
 export interface BlockPartyPuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "blockparty";
   /** Seven peg cells the pieces must fit around. */
   blockers: number[];
@@ -1172,6 +1174,8 @@ export interface FlowPair {
 }
 
 export interface FlowPuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "flow";
   /** Ten to twelve pairs in the order every player sees them. */
   pairs: FlowPair[];
@@ -1236,6 +1240,8 @@ export interface SlideStats {
 }
 
 export interface SlidePuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "iceslide";
   /** Wall cells the ball stops against. */
   walls: number[];
@@ -1508,6 +1514,8 @@ export const TUBES_TUBE_POINTS = 22;
 export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "tubes";
   /** One tube per entry, bottom ball first, holding colour indices 0–7. */
   tubes: number[][];
@@ -1618,6 +1626,8 @@ export const GRAV_LOCK_POINTS = 30;
 export type GravityDir = "U" | "D" | "L" | "R" | "X" | "Y";
 
 export interface GravityPuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "gravity";
   /** Dark blocks the balls cannot enter. */
   walls: number[];
@@ -2569,6 +2579,8 @@ export interface ShikakuPuzzleData {
 }
 
 export interface LightUpPuzzleData {
+  /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
+  puzzleScoreRev?: number;
   type: "lightup";
   size: number;
   walls: number[];
