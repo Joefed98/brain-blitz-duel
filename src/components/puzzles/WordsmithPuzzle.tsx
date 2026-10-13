@@ -6,6 +6,8 @@ import { WordsmithRing } from "./WordsmithRing";
 import { toggleWordsmithTile } from "./wordInput";
 import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
+import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
+import { scoreWordsmith } from "@/lib/duel/scoring";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -47,6 +49,8 @@ export function WordsmithPuzzle({
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+  const [runEnded, setRunEnded] = useState(false);
+  const ringRef = useRef<HTMLDivElement | null>(null);
   const selectedRef = useRef<number[]>([]);
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
@@ -59,8 +63,29 @@ export function WordsmithPuzzle({
   const lockIn = useCallback(() => {
     if (submitted.current) return;
     submitted.current = true;
+    setRunEnded(true);
     onSubmit(foundRef.current.map((entry) => entry.word).join(","));
   }, [onSubmit]);
+
+  // A run worth 120+ on this phone's count: the atom spins up, outer tiles orbiting the centre (display only).
+  useWordFinish(runEnded && scoreWordsmith(points) >= WORD_FINISH_SCORE, () => {
+    wordCue("wordsmith.finish");
+    const ring = ringRef.current?.querySelector(".wordsmith-ring");
+    const spin = "cubic-bezier(.5,0,.2,1)";
+    const steps: FinishStep[] = [
+      { el: ring, keyframes: [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }], delay: 0, duration: 1100, easing: spin },
+      {
+        el: ring?.querySelector(".wordsmith-ring-centre"),
+        keyframes: [{ filter: "none" }, { filter: "drop-shadow(0 0 10px var(--primary)) brightness(1.2)", offset: 0.5 }, { filter: "none" }],
+        delay: 0,
+        duration: 1100,
+      },
+    ];
+    ring?.querySelectorAll(".wordsmith-ring-letter").forEach((el) =>
+      steps.push({ el, keyframes: [{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }], delay: 0, duration: 1100, easing: spin }),
+    );
+    return playFinish(steps);
+  });
 
   // The round always runs the full clock; the found words go in just before
   // the clock stops so nothing is lost to the timeout.
@@ -105,11 +130,15 @@ export function WordsmithPuzzle({
   };
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-word-polish="wordsmith" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="relative flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>
           points <span className="text-primary">{points}</span>
         </span>
+        {/* The accepted word shows in the HUD's empty middle, never over the board. */}
+        <div className="word-moment-float inset-y-0 flex items-center" style={{ left: "28%", right: "28%" }}>
+          <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
+        </div>
         <button
           type="button"
           onClick={() => setListOpen((open) => !open)}
@@ -144,16 +173,15 @@ export function WordsmithPuzzle({
         )}
       </div>
 
-      <div data-game-arena="word" className="flex min-h-0 flex-1 flex-col items-center">
-        <AcceptedWordChip word={acceptedWord} hidden={listOpen} />
-        <div className="word-confirmation-board-space">
-          <div className="word-confirmation-board">
+      <div data-game-arena="word" data-word-first="" className="relative flex min-h-0 flex-1 flex-col items-center">
+        <div className="word-confirmation-board-space word-board-centre">
+          <div ref={ringRef} className="word-confirmation-board">
             <WordsmithRing letters={letters} order={order} selected={selectedTiles} disabled={locked || busy} onTap={tapTile} />
           </div>
         </div>
       </div>
       <div key={shake} aria-live="polite" aria-label="Current word"
-        data-game-controls="input" className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
+        data-game-controls="input" data-word-controls-first="" className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
         {word || " "}
       </div>
       <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>

@@ -1,0 +1,85 @@
+/* Pattern polish: pipes (Pipeline). Metal pipework, water and the solve rush; presentation only. */
+
+/* Arena: the counter stays on top; the board sits centred in the space below it,
+   with the same gap above (from the counter) and below (to the region bottom). */
+.game-column [data-polish="pipes"][data-stage-column] > [data-game-arena] { flex: 1 1 auto; max-height: none; padding-bottom: 12px; }
+.game-column [data-polish="pipes"] .pipes-play-board { width: min(100cqw, 100cqh); }
+
+/* The board: a recessed steel panel that shows through the gaps between tiles. */
+.pipes-board {
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 70%),
+    linear-gradient(160deg, #1a1f26, #0e1116);
+}
+.pipes-play-board { border-radius: 8px; transition: box-shadow 300ms ease-out; }
+.pipes-play-board[data-solve-fx] { box-shadow: 0 0 0 1px rgba(124, 216, 251, 0.75), 0 0 18px rgba(76, 198, 247, 0.45) inset; }
+
+/* Each tile is a brushed steel plate; tiles in the network get a cool rim. */
+.pipe-tile {
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 45%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #2a3038, #1d2229);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px #303741;
+  transition: box-shadow 160ms ease-out;
+}
+.pipe-tile[data-lit] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(76, 198, 247, 0.55);
+}
+.pipe-tile:not(:disabled):active { filter: brightness(1.15); }
+.pipe-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+.pipe-art { display: block; overflow: visible; }
+.pipe-turn { transform-box: view-box; transform-origin: 50px 50px; }
+.pipe-channel { fill: #161c24; }
+.pipe-rivet { fill: #dfe5ec; stroke: #2a3039; stroke-width: 0.9; }
+.pipe-spoke { fill: #f6d6cf; stroke: #6d1a15; stroke-width: 0.8; }
+.pipe-hub-eye { fill: #0d1218; stroke: #262c34; stroke-width: 1.2; }
+.pipe-hub-eye-wet { fill: #4cc6f7; }
+.pipe-water-eye { fill: #7bd8fb; }
+
+/* Water: present in every connected pipe, rippling away from the source. */
+.pipe-water-off { opacity: 0; }
+.pipe-ripple-dot { fill: rgba(225, 248, 255, 0.75); }
+.pipe-ripple { animation: pipe-ripple 900ms linear infinite; }
+.pipe-ripple-in { animation-direction: reverse; }
+.pipe-water-off .pipe-ripple { animation: none; }
+@keyframes pipe-ripple { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+/* Solve rush: a bright front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
+.pipe-surge { overflow: visible; animation: pipe-surge-fade 1200ms linear both; }
+.pipe-surge-line {
+  stroke: #effbff;
+  stroke-width: 12;
+  stroke-linecap: butt;
+  stroke-dashoffset: 1;
+  animation: pipe-surge-run var(--surge-ms) linear var(--surge-delay) both;
+}
+.pipe-surge-hub { fill: #f2fcff; opacity: 0; animation: pipe-surge-hub 260ms ease-out var(--surge-delay) both; }
+@keyframes pipe-surge-run { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes pipe-surge-hub { from { opacity: 0; transform: scale(0.4); } 40% { opacity: 1; } to { opacity: 0.85; transform: scale(1); } }
+.pipe-surge-hub { transform-box: fill-box; transform-origin: center; }
+@keyframes pipe-surge-fade { 0%, 74% { opacity: 0.95; } 100% { opacity: 0; } }
+
+/* Leak (intro and reveal): a red drip in the tile corner. */
+.pipe-leak {
+  border-radius: 50% 0 50% 50%;
+  transform: rotate(-45deg);
+  background: radial-gradient(circle at 35% 35%, #ff9a8f, var(--destructive) 60%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipe-ripple { animation: none; }
+  /* A static glow over the network for the moment, then it is removed. */
+  .pipe-surge { animation: none; opacity: 0.55; }
+  .pipe-surge-line, .pipe-surge-hub { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
+  .pipes-play-board { transition: none; }
+}
+
+/* Reveal: the two boards side by side, as large as the room above the result line allows. */
+.pipes-reveal-space { container-type: size; }
+.pipes-reveal-board { width: min(calc(50cqw - 6px), calc(100cqh - 76px), 220px); }
+.pipes-reveal-board > .pipes-board { height: auto; aspect-ratio: 1; }

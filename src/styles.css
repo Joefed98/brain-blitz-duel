@@ -1,11 +1,18 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./polish-logic/logic.css";
 @import "./polish-b/a.css";
 @import "./polish-b/b.css";
 @import "./polish-b/c.css";
 @import "./polish-b/d.css";
 @import "./polish-b/feel-b.css";
+@import "./polish-speed/a.css";
+@import "./polish-speed/b.css";
+@import "./polish-speed/c.css";
+@import "./polish-speed/d.css";
+@import "./polish-speed/e.css";
+@import "./polish-pattern/index.css";
 
 /*
  * Duelz design system — dark competitive esports feel.
@@ -1143,6 +1150,20 @@ body.game-lock {
   height: auto;
   padding-top: 0;
 }
+/*
+ * Layout 2 (13 Oct 2026, GAME_COLUMN_LAYOUT): the play area sits centred between
+ * the top bar and the bottom controls with equal gaps. Once the arena reaches its
+ * design cap, the spare height splits evenly above and below it (auto margins),
+ * the controls keep their 12px minimum and end at the bottom. While the arena can
+ * still grow there is no spare height and nothing moves. Arcade arena slots take
+ * the whole height and are unchanged; demos recorded on layout 1 keep layout 1.
+ */
+.game-column-centred [data-stage-column] > :is([data-game-arena], [data-arena-part]):not([data-arena-part] ~ [data-game-arena]) {
+  margin-top: auto;
+}
+.game-column-centred [data-stage-column] > [data-game-arena] {
+  margin-bottom: auto;
+}
 
 /*
  * Arcade arena slot (ArcadeArenaSlot). The slot takes all the height from the
@@ -1210,6 +1231,15 @@ body.game-lock {
 .pipeline-node { animation: pipeline-node 80ms linear var(--flow-delay) both; }
 @keyframes pipeline-node { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .pipeline-flow, .pipeline-node { animation: none !important; stroke-dashoffset: 0; opacity: 1; } }
+/* The in-game "?" help sheet body: its own finger-scrollable area. Being a scroll
+   container with pan-y, it is not blocked by html.game-lock or an arena's
+   touch-action none, and contained overscroll never moves the page or game. */
+.help-sheet-scroll {
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .chat-scroll {
   overflow-y: auto;
   touch-action: pan-y;

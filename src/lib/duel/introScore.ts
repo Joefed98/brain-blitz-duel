@@ -7,35 +7,19 @@ import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
-import { EQUATION_STAGE_POINTS, CHAIN_LENGTH, CHAIN_LINK_POINTS, type PuzzleType } from "./types";
+import { PUZZLE_FINISH_BASE } from "./puzzleScoreRev";
+import type { PuzzleType } from "./types";
 
 /**
  * Plain-English SCORE lines for the round intro: at most two short lines on a phone,
- * no scoring terms. Built from a few templates so the numbers follow the scoring
- * constants; the exact formula stays in the "?" help (instructions.ts).
- * intro-score-text-check guards the length and wording.
+ * no scoring terms; the exact formula stays in the "?" help (instructions.ts).
+ * intro-score-text-check guards the length and wording. Puzzles follow the Oct
+ * 2026 puzzle score shape (puzzleScoreRev.ts): a finish scores 120 plus up to 30.
  */
-const COMPLETE = 130;
 
-/** Finish for 130 plus a speed bonus; partial credit otherwise. */
-const standard = (finish: string, notFinished: string) =>
-  `${finish} for ${COMPLETE}, more if you're quick. Otherwise ${notFinished}.`;
-
-/** Fixed links with a completion-only speed bonus. */
-const linkedFinish = (length: number, points: number) =>
-  `${points} points per link. Finish all ${length} for ${length * points}, more if you're quick.`;
-
-/** Staged: each part scores; all parts for 130 plus a speed bonus. */
-const standardStaged = (weights: readonly number[]) =>
-  `Points for each part you solve. Solve all ${weights.length} for ${weights.reduce((sum, n) => sum + n, 0)}, more if you're quick.`;
-
-/** Fewest moves: 100 + moves points + speed points. */
-const fewestMoves = (finish: string, notFinished: string) =>
-  `${finish} for 100, more for few moves and speed. ${notFinished}.`;
-
-/** Arcade with a finish state. */
-const arcadeFinish = (progress: string, finish: string) =>
-  `Points per ${progress}. ${finish}: ${COMPLETE}, more if you're quick.`;
+/** Interloper is retiring on its own formula: finish for 130 plus a speed bonus; partial credit otherwise. */
+const legacyStandard = (finish: string, notFinished: string) =>
+  `${finish} for 130, more if you're quick. Otherwise ${notFinished}.`;
 
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
@@ -45,30 +29,30 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
   wordsmith: "Longer words score much more. Up to 150.",
   wordhunt: "Longer words score more. Up to 150.",
-  tilegrid: standard("Use all 15 tiles", "8 per tile in a word"),
-  wordslide: "Make all five rows words for 100, more for few moves and speed. Otherwise 22 per word row.",
-  wordsearch: standard("Find all six words", "20 per word"),
-  letterwheel: standard("Find every word", "points for each word"),
-  strikeout: "20 per word revealed; solve all five for 120 + 4 per strike left + speed",
-  codeword: "Credit per letter decoded; crack the whole grid for 130 + speed",
-  swapword: "5 per tile you place; solve it for 100 + fewest swaps + speed",
+  tilegrid: "Use all 15 tiles for 120, more if you're quick. Otherwise about 7 per tile in a word.",
+  wordslide: "Make all five rows words for 120, more for few moves and speed. Otherwise 27 per row.",
+  wordsearch: "Find all six words for 120, more if you're quick. Otherwise 22 per word.",
+  letterwheel: "Find every word for 120, more if you're quick. Otherwise points for each word.",
+  strikeout: "27 per word solved; solve all five for 120 + 3 per strike left + speed",
+  codeword: "Credit per letter decoded; crack the whole grid for 120 + speed",
+  swapword: "Solve it for 120, more for few swaps and speed. Otherwise points per tile placed.",
   ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
   groups: "Points for each group. Find all four quickly for extra points.",
   wordfall: "Longer words score more; reach the target for 150. Overflow a column and the run ends",
   wordmatch: "Get all eight right for 100, more if you're quick. Otherwise 13 per pair.",
 
   // Number
-  target: "Hit the target exactly for 130, more if you're quick. Close answers still score.",
-  equation: standardStaged(EQUATION_STAGE_POINTS),
-  balance: "The scales score 20, 40 and 60. Balance all three for 120, more if you're quick.",
-  numpyramid: "30 for each pyramid you finish, more if you're quick. Bricks right still score.",
-  trail: standard("Complete the path", "5 per tile in place"),
-  measure: "25 per puzzle, +5 for fewest moves, +30 speed if all four are solved",
+  target: "Hit the target exactly for 120, more if you're quick. Close answers still score.",
+  equation: "Points for each part you solve. Solve all 4 for 120, more if you're quick.",
+  balance: "Scales score 20, 35 and 75, any order. All three for 120, more if you're quick.",
+  numpyramid: "27 for each pyramid you finish. All four for 120, more if you're quick.",
+  trail: "Complete the path for 120, more if you're quick. Otherwise about 4 per tile in place.",
+  measure: "30, 35, 45 for puzzles 1-3; all four for 120, more for few moves and speed",
   // "board" for the brief's "stage": the intro wording check rejects "stage".
-  checkout: "18-26 per board, +2 for fewest darts, +30 speed if all five are solved",
+  checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
   // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
-  numline: "Up to 8 per number for accuracy; speed points grow with accuracy",
-  tendrop: "13 points for each target you hit. Clear all ten quickly for extra points.",
+  numline: "Up to 8 per number for accuracy (120 for all 15), more if quick; far-off ones lose 1",
+  tendrop: "12 points for each target you hit. Clear all ten for 120, more if you're quick.",
   numseq: "20 points for each sequence. Get all five quickly for extra points.",
   chaincalc: "Get it right quickly for the most points.",
   pctsprint: "Points for each right answer. Get all five quickly for extra points.",
@@ -78,17 +62,17 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Attention
   reaction: "Tap fast: 200 ms or quicker on average scores 150. Tapping too early loses 8.",
   stopwatch: "Stop each watch as close to the zone as you can. Closer scores more, up to 150.",
-  numhunt: standard("Tap all 24 in order", "5 per number"),
-  chain: linkedFinish(CHAIN_LENGTH, CHAIN_LINK_POINTS),
+  numhunt: "Tap all 24 in order for 120, more if you're quick. Wrong taps lose 5.",
+  chain: "About 3 points per link. Finish all 40 for 120, more if you're quick.",
   whack: "Points for each target you hit; all of them scores 150. Wrong taps lose points.",
   clayshoot: "5 for each orange clay and 10 for each gold one. Hitting a bird: lose 10.",
-  symscan: "Points for each eagle you find. All three grids perfect: more if you're quick.",
-  countup: "Points for each tray; one off still scores. All three exact: more if you're quick.",
-  spotdiff: standard("Find all six differences", "20 per difference"),
-  pairmatch: standard("Find all fifteen pairs", "8 per pair"),
-  maze: standard("Reach the exit", "points for how far you got"),
-  intruder: standard("Get all five boards right", "24 per board"),
-  stroop: `${arcadeFinish("word sorted", `All ${CLASH_QUEUE} right`)} Wrong gate: lose 2.`,
+  symscan: "Points for each eagle you find. All three grids perfect: 120, more if you're quick.",
+  countup: "Points for each tray; one off still scores. All three exact: 120, more if quick.",
+  spotdiff: "Find all six for 120, more if you're quick. Otherwise 22 each; wrong taps lose 5.",
+  pairmatch: "Find all fifteen pairs for 120, more if you're quick. Otherwise about 8 per pair.",
+  maze: "Reach the exit for 120, more if you're quick. Otherwise points for how far you got.",
+  intruder: legacyStandard("Get all five boards right", "24 per board"),
+  stroop: `Sort all ${CLASH_QUEUE}, 2 wrong at most, for ${PUZZLE_FINISH_BASE}, more if quick. Otherwise points per word right.`,
   sortrush: "Points for each one you sort correctly. Wrong gate: lose 2.",
   gonogo: "Points for each right choice. A perfect run scores extra if you're quick.",
   sequence: "Repeat the whole sequence quickly for the most points.",
@@ -99,27 +83,27 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   patcomp: "Points for each right pattern. Get all three quickly for extra points.",
 
   // Logic and pattern
-  unblock: fewestMoves("Free the gold block", "Clearing its lane still scores"),
-  lightsout: fewestMoves("Turn every light off", "A few left on still scores"),
-  pipes: standard("Connect every pipe", "points per connected tile"),
-  sudoku: standard("Fill the grid", "points for each right cell"),
-  flow: standard("Connect every pair", "10 per pair"),
-  iceslide: fewestMoves("Reach the exit", "Getting close still scores"),
-  push: fewestMoves("Get every crate home", "Each crate home scores"),
-  laser: "Light every gem on your first shot for 130, more if you're quick. Later shots score less.",
-  tower: fewestMoves("Move the whole tower", "Each ring in place scores"),
-  tubes: fewestMoves("Cork every flask", "22 per corked flask"),
-  safe: "Open the safe on your first try for 130, more if you're quick. Later tries score less.",
-  bomb: standard("Defuse the bomb", "points for each right step"),
-  gravity: fewestMoves("Park all four balls", "30 per ball parked"),
-  nonogram: standard("Complete the picture", "points for each right cell"),
-  flood: fewestMoves("Flood the board", "Part-flooded still scores"),
-  tiles: fewestMoves("Put the tiles in order", "14 per tile in place"),
-  rings: fewestMoves("Line up every spoke", "12 per matching spoke"),
-  blockparty: standard("Place all nine pieces", "12 per piece"),
-  shikaku: standard("Fill the grid", "points for each cell covered"),
-  lightup: standard("Light every cell", "points for each lit cell"),
-  tents: standard("Place every tent", "10 per right tent"),
+  unblock: "Free the gold block for 120, more for few moves and speed. Clearing its lane scores.",
+  lightsout: "Turn every light off for 120, more for few moves and speed. A few left on scores.",
+  pipes: "Connect every pipe for 120, more if you're quick. Otherwise points per joined tile.",
+  sudoku: "Fill the grid for 120, more if you're quick. Otherwise points per right cell.",
+  flow: "Connect every pair for 120, more if you're quick. Otherwise points per right pair.",
+  iceslide: "Reach the exit for 120, more for few moves and speed. Getting close still scores.",
+  push: "Get every crate home for 120, more for few moves and speed. Each crate home scores.",
+  laser: "Light every gem for 120, more on your first shot and if you're quick.",
+  tower: "Move the whole tower for 120, more for few moves and speed. Rings you stack score.",
+  tubes: "Cork every flask for 120, more for few moves and speed. Each flask corked scores.",
+  safe: "Open the safe for 120, more on your first try and if you're quick.",
+  bomb: "Defuse the bomb for 120, more if you're quick. Otherwise 22 per right step.",
+  gravity: "Park all four balls for 120, more for few moves and speed. Each ball parked scores.",
+  nonogram: "Complete the picture for 120, more if you're quick. Otherwise points per right cell.",
+  flood: "Flood the board for 120, more for few moves and speed. Part-flooded still scores.",
+  tiles: "Put the tiles in order for 120, more for few moves and speed. Tiles you place score.",
+  rings: "Line up every spoke for 120, more for few moves and speed. Spokes you match score.",
+  blockparty: "Place all nine pieces for 120, more if you're quick. Otherwise 14 per right piece.",
+  shikaku: "Fill the grid for 120, more if you're quick. Otherwise points per right rectangle.",
+  lightup: "Light every cell for 120, more if you're quick. Otherwise points per right bulb.",
+  tents: "Place every tent for 120, more if you're quick. Otherwise 10 per right tent, −10 wrong.",
   stroke: "Finish on your first try for a bonus.",
   dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 

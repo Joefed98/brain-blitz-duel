@@ -9,6 +9,7 @@
  * round ended removed) and the reveal can replay that list without a dictionary.
  */
 
+import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 
 export const STRIKEOUT_REV = 1;
@@ -150,11 +151,24 @@ export function soTally(state: SoState): SoTally {
   return { solvedRows, partialTiles, strikes: state.strikes, done: state.done };
 }
 
+/** Rev 1: 3 per strike left on a solve; 27.5 per solved word when unfinished. */
+export const SO_REV1_STRIKE_POINTS = 3;
+export const SO_REV1_WORD_POINTS = 27.5;
+
 /**
  * All five solved: 120 + 4 per unused strike + up to 10 for speed (par curve).
  * Otherwise 20 per solved row + 2 per revealed tile in unsolved rows, cap 110.
  */
 export function scoreStrikeout(tally: SoTally, msRemaining: number, timeLimitMs: number): number {
+  if (scoreRev1()) {
+    // Rev 1: 120 + 3 per strike left (15 with none used) + PAR(15); unfinished 27.5 per word solved (four = 110).
+    // Letters showing in unsolved words earn nothing, so guessing letters at random scores about 0.
+    if (tally.done) {
+      const left = Math.max(0, SO_MAX_STRIKES - tally.strikes);
+      return finishParts(timeLimitMs > 0 ? speedBonusCurve(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs) : 0, SO_REV1_STRIKE_POINTS * left, "strikes");
+    }
+    return partialParts(SO_REV1_WORD_POINTS * tally.solvedRows);
+  }
   if (tally.done) {
     const unused = Math.max(0, SO_MAX_STRIKES - tally.strikes);
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));

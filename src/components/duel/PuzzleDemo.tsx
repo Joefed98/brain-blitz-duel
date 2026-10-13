@@ -298,7 +298,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
         <div
           ref={stageRef}
           aria-hidden="true"
-          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${log.layout === GAME_COLUMN_LAYOUT ? "game-column" : ""}`}
+          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${(log.layout ?? 0) >= 1 ? "game-column" : ""} ${(log.layout ?? 0) >= GAME_COLUMN_LAYOUT ? "game-column-centred" : ""}`}
           style={{
             width: log.w,
             height: log.h,
@@ -306,7 +306,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
             transformOrigin: "center center",
           }}
         >
-          <GameColumnLayout.Provider value={log.layout === GAME_COLUMN_LAYOUT}>
+          <GameColumnLayout.Provider value={(log.layout ?? 0) >= 1}>
           <ArrowModeOverride.Provider value={log.joystick ?? false}>
             <Stage
               key={stateKey}

@@ -1,0 +1,118 @@
+/* Pattern polish: push (Heave). Warehouse board, sliding crates and worker, solve lights; presentation only. */
+
+/* Arena: the board fills the space between the counter and the arrow pad, centred,
+   with the arrows and Undo/Reset kept below it. */
+.game-column [data-polish="push"][data-stage-column] > [data-game-arena] {
+  flex: 1 1 auto;
+  max-height: none;
+  container-type: size;
+}
+.game-column [data-polish="push"] .push-board { width: min(100cqw, 100cqh); height: auto; max-height: none; }
+
+.push-board {
+  background: #24201c;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+.push-floor { display: block; }
+
+/* Pieces sit in their own cell and slide to the next one; the art never leaves the cell. */
+.push-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: transform 120ms cubic-bezier(0.25, 0.8, 0.3, 1);
+  will-change: transform;
+}
+.push-piece-inner {
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+.push-worker-turn { transition: transform 120ms ease-out; }
+.push-crate { overflow: visible; }
+.push-crate-body { fill: var(--crate); }
+.push-crate[aria-label="Crate home"] .push-crate-body { fill: color-mix(in oklab, var(--crate) 88%, var(--home-light)); }
+.push-nail { fill: #d9d2c4; stroke: #4a3220; stroke-width: 0.35; }
+
+/* Lamp bulbs along the top wall: dark until the solve. */
+.push-lamp-bulb { fill: #5d6168; }
+.push-board[data-solve-fx] .push-lamp-bulb {
+  animation: push-bulb 720ms linear both;
+  animation-delay: calc(80ms + var(--lamp) * 110ms);
+}
+@keyframes push-bulb {
+  0% { fill: #5d6168; }
+  6%, 75% { fill: #fff3c4; }
+  100% { fill: #5d6168; }
+}
+
+/* Light pools switching on along the row, faded by 1.2 s from the solve. The floor
+   first drops into shade, then each lamp's beam pops on in turn. */
+.push-lights::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.5);
+  opacity: 0;
+  animation: push-dim 1200ms linear both;
+}
+@keyframes push-dim {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  45% { opacity: 0.35; }
+  80%, 100% { opacity: 0; }
+}
+.push-light-pool {
+  position: absolute;
+  top: 0;
+  width: 52%;
+  height: 100%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 48% 78% at 50% 0%, rgba(255, 240, 190, 0.6), rgba(255, 226, 150, 0.2) 55%, transparent 80%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: push-light 720ms linear both;
+  animation-delay: calc(80ms + var(--lamp) * 110ms);
+}
+@keyframes push-light {
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  11% { opacity: 0.45; }
+  17%, 58% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Dust: a few motes kicked out from under a crate as it lands. */
+.push-dust-mote {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 18%;
+  height: 18%;
+  margin: -9% 0 0 -9%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 226, 206, 0.9), rgba(236, 226, 206, 0) 70%);
+  opacity: 0;
+  animation: push-dust 520ms ease-out both;
+  --angle: calc(var(--mote) * 60deg + 15deg);
+}
+@keyframes push-dust {
+  0% { opacity: 0.95; transform: rotate(var(--angle)) translateX(60%) scale(0.6); }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateX(210%) scale(1.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .push-piece, .push-worker-turn { transition: none; }
+  .push-dust { display: none; }
+  /* Lights: a plain glow for the moment, no switching sequence. */
+  .push-light-pool { animation: none; opacity: 0.8; }
+  .push-lights::before { animation: none; opacity: 0; }
+  .push-board[data-solve-fx] .push-lamp-bulb { animation: none; fill: #fff3c4; }
+}
+
+/* Reveal: the board takes the room left above the two result lines. */
+.push-reveal-space { container-type: size; }
+.push-reveal-board { width: min(100cqw, calc(100cqh - 84px), 380px); aspect-ratio: 1; flex-shrink: 0; }

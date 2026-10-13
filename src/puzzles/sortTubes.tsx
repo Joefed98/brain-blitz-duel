@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -19,6 +19,7 @@ import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from 
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 // The eight game colours from the shared palette (GOLD is reserved for the lift highlight).
@@ -47,20 +48,29 @@ function Tubes({
   shake,
   onTube,
   compact,
+  layerHeight,
+  poured,
 }: {
   tubes: TubeState;
   lifted?: number | null;
   shake?: number | null;
   onTube?: ((tube: number) => void) | undefined;
   compact?: boolean;
+  /** Reveal: CSS length for one compact layer (sized from its box). */
+  layerHeight?: string;
+  /** The flask that was just poured into, and how many layers arrived. */
+  poured?: { tube: number; count: number; key: number } | null;
 }) {
   const ballSize = compact ? 9 : 11;
+  let corkOrder = 0;
   return (
-    <div className={`grid w-full grid-cols-5 grid-rows-2 justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}>
+    <div className={`logic-potions grid w-full grid-cols-5 grid-rows-2 justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}>
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
         const liftCount = isLifted && group ? group.count : 0;
+        const sorted = tubeSorted(tube);
+        const order = sorted ? corkOrder++ : 0;
         return (
           <Button
             key={index}
@@ -71,35 +81,39 @@ function Tubes({
             aria-label={`Flask ${index + 1}`}
             className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
           >
-            <span className={`flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
-              isLifted ? "border-primary" : tubeSorted(tube) ? "border-primary/60" : ""
+            <span className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
+              isLifted ? "border-primary" : sorted ? "border-primary/60" : ""
             }`}
-              style={compact ? { maxWidth: 26 } : undefined}
+              style={{ ...(compact ? { maxWidth: layerHeight ? 36 : 26 } : {}), "--logic-i": order, "--logic-wobble": `${(index * 0.53) % 2.4}s` } as CSSProperties}
             >
-              {tubeSorted(tube) && (
-                <span aria-label="Corked" className="pointer-events-none absolute -top-[7px] left-1/2 -translate-x-1/2">
-                  <span className="potion-cork block h-[9px] w-[60%] min-w-[10px] rounded-[3px]" style={{ background: "linear-gradient(180deg, var(--cork), var(--cork-dark))", width: compact ? 12 : 20 }} />
+              <span aria-hidden="true" className="logic-flask-rim" />
+              {sorted && (
+                <span aria-label="Corked" className="pointer-events-none absolute -top-[7px] left-1/2 z-10 -translate-x-1/2">
+                  <span className="potion-cork logic-cork block h-[9px] w-[60%] min-w-[10px] rounded-[3px]" style={{ background: "linear-gradient(180deg, var(--cork), var(--cork-dark))", width: compact ? 12 : 20 }} />
                   {!compact && <span aria-hidden="true" className="potion-sparkle absolute -right-3 -top-2 text-xs text-primary">✦</span>}
                 </span>
               )}
-            <span className="flex w-full flex-col-reverse items-stretch justify-start overflow-hidden rounded-b-[10px]">
+            <span className="logic-liquid flex w-full flex-col-reverse items-stretch justify-start overflow-hidden rounded-b-[10px]">
               {tube.map((colour, ball) => {
                 const rising = isLifted && ball >= tube.length - liftCount;
                 const topLayer = ball === tube.length - 1;
+                const arriving = poured?.tube === index && ball >= tube.length - poured.count;
                 return (
                   <span
-                    key={ball}
-                    className={`potion-layer flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"}`}
+                    key={arriving ? `${ball}-${poured?.key}` : ball}
+                    className={`potion-layer logic-potion flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"} ${arriving ? "logic-potion-fill" : ""}`}
                     style={{
-                      ...(compact ? { height: ballSize + 3 } : {}),
+                      ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
                       backgroundColor: ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
                       boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,
+                      ...(arriving ? { animationDelay: `${(ball - (tube.length - (poured?.count ?? 0))) * 60}ms` } : {}),
                     }}
                   >
                     {!compact && <span aria-hidden="true" className="text-[10px] leading-none opacity-30" style={{ color: "var(--guest-ink)" }}>{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
-                    {!compact && topLayer && !tubeSorted(tube) && (
+                    {topLayer && !compact && <span aria-hidden="true" className="logic-potion-surface" />}
+                    {!compact && topLayer && !sorted && (
                       <>
                         <span aria-hidden="true" className="potion-bubble" style={{ left: "28%", animationDelay: `${(index * 0.37) % 2.6}s` }} />
                         <span aria-hidden="true" className="potion-bubble" style={{ left: "64%", animationDelay: `${(index * 0.37 + 1.3) % 2.6}s` }} />
@@ -109,6 +123,7 @@ function Tubes({
                 );
               })}
             </span>
+            <span aria-hidden="true" className="logic-flask-shine" />
             </span>
           </Button>
         );
@@ -143,9 +158,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const [moves, setMoves] = useStageState<TubeMove[]>(stateKey, "tubeMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "tubeLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "tubeShake", () => null);
+  const [poured, setPoured] = useState<{ tube: number; count: number; key: number } | null>(null);
   const submitted = useRef(false);
 
   const replay = useMemo(() => replayTubes(start, moves), [start, moves]);
+  const solving = useSolveFx("tubes", isTubes && replay.solved);
 
   useEffect(() => {
     onDraftAnswer?.(encodeTubeMoves(moves));
@@ -163,6 +180,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     if (lifted === null) {
       if (!(replay.tubes[tube] ?? []).length) return;
       hapticTick();
+      soundCue("tubes.lift");
       setLifted(tube);
       return;
     }
@@ -179,6 +197,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       return;
     }
     hapticTick();
+    const after = replayTubes(start, [...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
+    soundCue("tubes.pour");
+    if (tubeSorted(after)) soundCue("tubes.cork");
+    setPoured({ tube, count: after.length - (replay.tubes[tube] ?? []).length, key: moves.length + 1 });
     setMoves((current) => [...current, { from: lifted, to: tube }]);
     setLifted(null);
   };
@@ -186,13 +208,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   if (!isTubes) return null;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        moves <span className="text-primary">{replay.moves}</span>
-      </p>
-
-      <div data-game-arena="tall" className="tubes-play-space flex min-h-0 flex-1 items-center justify-center">
-        <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} />
+    <div data-logic-stage="tubes" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic">
+        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          moves <span className="text-primary">{replay.moves}</span>
+        </p>
+        <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
@@ -201,6 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
           disabled={locked || !moves.length}
           onClick={() => {
             setLifted(null);
+            setPoured(null);
             setMoves((current) => current.slice(0, -1));
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
@@ -212,6 +235,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
           disabled={locked || !moves.length}
           onClick={() => {
             setLifted(null);
+            setPoured(null);
             setMoves([]);
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
@@ -231,11 +255,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190, height: 150 }}>
-        <Tubes tubes={mine.tubes} compact />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-potions-reveal">
+          <Tubes tubes={mine.tubes} compact layerHeight="clamp(10px, calc((100cqh - 56px) / 12), 18px)" />
+        </div>
       </div>
-      <p className="font-display text-2xl font-bold">
+      <p className="shrink-0 text-center font-display text-2xl font-bold">
         <span className={myCorrect ? "text-primary" : "text-warn"}>
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
@@ -244,7 +270,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
-      <p className="text-center text-base text-muted-foreground">
+      <p className="logic-reveal-text text-center text-muted-foreground">
         {myCorrect
           ? "Keep one flask empty for as long as you can."
           : `${mine.sorted} of ${TUBES_COLOURS} flasks corked.`}

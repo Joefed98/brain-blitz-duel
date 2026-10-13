@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_V2_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
+import { soundCue } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 interface PanelProps {
@@ -36,6 +37,17 @@ interface PanelProps {
   onWire?: ((index: number) => void) | undefined;
   onButton?: ((label: "A" | "B") => void) | undefined;
   compact?: boolean;
+  /** Live panel only: whole seconds left on the decorative LED timer (null = no timer). */
+  ledSeconds?: number | null;
+  /** True once DEFUSE is pressed: the LED freezes and the fuse spark dies. */
+  frozen?: boolean;
+  /** The last action, keyed by step count, for the cut and press animations. */
+  lastAction?: { action: BombAction; key: number } | null;
+}
+
+function ledText(seconds: number): string {
+  const s = Math.max(0, seconds);
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
 /** The dark bomb box: thick coloured wires, two round caps, an LED and a plate. */
@@ -50,9 +62,12 @@ function Panel({
   onWire,
   onButton,
   compact = false,
+  ledSeconds = null,
+  frozen = false,
+  lastAction = null,
 }: PanelProps) {
   return (
-    <div className="bomb-plate relative flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border p-2">
+    <div className={`bomb-plate logic-bomb relative flex h-full w-full flex-col justify-between rounded-2xl border-2 border-border p-2 ${frozen ? "logic-bomb-frozen" : ""}`}>
       <span aria-hidden="true" data-corner="tl" className="bomb-screw" />
       <span aria-hidden="true" data-corner="tr" className="bomb-screw" />
       <span aria-hidden="true" data-corner="bl" className="bomb-screw" />
@@ -68,8 +83,14 @@ function Panel({
             boxShadow: light ? `0 0 8px ${WIRE_HEX.YELLOW}` : "none",
           }}
         />
+        {ledSeconds !== null && (
+          <span className="logic-bomb-led-wrap" aria-hidden="true">
+            <span className="logic-bomb-spark"><i /><i /><i /></span>
+            <span className="logic-bomb-led font-mono font-bold">{ledText(ledSeconds)}</span>
+          </span>
+        )}
         <span
-          className="bomb-serial rounded bg-muted px-2 py-0.5 font-mono text-sm font-bold tracking-widest text-foreground/90"
+          className="bomb-serial logic-bomb-serial rounded bg-muted px-2 py-0.5 font-mono text-sm font-bold tracking-widest text-foreground/90"
           style={{ backgroundColor: "#5A5A5A22" }}
         >
           {serial}
@@ -91,6 +112,19 @@ function Panel({
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-1 py-1">
         {wires.map((colour, index) => {
           const isCutWire = cutWires.includes(index);
+          const justCut = isCutWire && lastAction?.action === `w${index}`;
+          const strand = (style: CSSProperties, end?: "left" | "right") => (
+            <span
+              key={`${end ?? "whole"}-${justCut ? lastAction?.key : 0}`}
+              className={`logic-wire rounded-full ${end ? `logic-wire-cut logic-wire-${end}` : ""} ${justCut ? "logic-wire-snap" : ""}`}
+              style={{
+                height: compact ? 4 : 8,
+                backgroundColor: WIRE_HEX[colour],
+                boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : undefined,
+                ...style,
+              }}
+            />
+          );
           return (
             <button
               key={index}
@@ -101,30 +135,12 @@ function Panel({
               className="flex w-full items-center gap-1"
             >
               <span className="bomb-wire-index font-mono text-sm font-bold text-muted-foreground">{index + 1}</span>
-              <span className="flex flex-1 items-center">
-                <span
-                  className="rounded-full"
-                  style={{
-                    height: compact ? 4 : 7,
-                    flex: isCutWire ? "0 0 42%" : 1,
-                    backgroundColor: WIRE_HEX[colour],
-                    opacity: isCutWire ? 0.7 : 1,
-                    boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : "none",
-                  }}
-                />
-                {isCutWire && <span className="flex-1" />}
-                {isCutWire && (
-                  <span
-                    className="rounded-full"
-                    style={{
-                      height: compact ? 4 : 7,
-                      flex: "0 0 42%",
-                      backgroundColor: WIRE_HEX[colour],
-                      opacity: 0.7,
-                      boxShadow: colour === "BLACK" ? "0 0 0 1px #6A6A74" : "none",
-                    }}
-                  />
-                )}
+              <span className="relative flex flex-1 items-center">
+                {!compact && <span aria-hidden="true" className="logic-terminal logic-terminal-left" />}
+                {strand({ flex: isCutWire ? "0 0 42%" : 1, opacity: isCutWire ? 0.75 : 1 }, isCutWire ? "left" : undefined)}
+                {isCutWire && <span className="relative flex-1">{justCut && !compact && <span aria-hidden="true" className="logic-wire-sparks"><i /><i /><i /><i /></span>}</span>}
+                {isCutWire && strand({ flex: "0 0 42%", opacity: 0.75 }, "right")}
+                {!compact && <span aria-hidden="true" className="logic-terminal logic-terminal-right" />}
               </span>
             </button>
           );
@@ -134,14 +150,15 @@ function Panel({
       <div className="flex items-center justify-center gap-4 pt-1">
         {buttons.map((button) => {
           const isDown = pressed.includes(button.label);
+          const justPressed = lastAction?.action === `b${button.label}`;
           return (
             <button
-              key={button.label}
+              key={`${button.label}-${justPressed ? lastAction?.key : 0}`}
               type="button"
               disabled={!onButton}
               onClick={() => onButton?.(button.label)}
               aria-label={`Button ${button.label}`}
-              className="flex items-center justify-center rounded-full border-2 font-mono text-xs font-bold"
+              className={`logic-bomb-cap flex items-center justify-center rounded-full border-2 font-mono text-xs font-bold ${justPressed ? "logic-bomb-cap-press" : ""}`}
               style={{
                 width: compact ? 24 : 40,
                 height: compact ? 24 : 40,
@@ -274,6 +291,7 @@ function Stage({
 }: PuzzleStageProps) {
   const isBomb = puzzle.type === "bomb";
   const [actions, setActions] = useStageState<BombAction[]>(stateKey, "bombActions", () => []);
+  const [frozenAt, setFrozenAt] = useState<number | null>(null);
   const submitted = useRef(false);
 
   useEffect(() => {
@@ -283,6 +301,7 @@ function Stage({
   const act = (action: BombAction) => {
     if (locked || submitted.current) return;
     hapticTick();
+    soundCue(isCut(action) ? "bomb.cut" : "bomb.press");
     const next = [...actions, action];
     setActions(next);
   };
@@ -300,30 +319,38 @@ function Stage({
   const pressed = actions
     .filter((action) => !isCut(action))
     .map((action) => action.slice(1) as "A" | "B");
+  const limitMs = puzzle.timeLimitMs ?? BOMB_TIME_MS;
+  const ledSeconds = Math.ceil(Math.max(0, phaseStartedAt + limitMs - (frozenAt ?? now)) / 1000);
+  const last = actions.at(-1);
 
   return (
-    <div data-stage-column="2" data-polish="bomb" className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="shrink-0 rounded-xl border border-border bg-card p-2">
-        {puzzle.rules.map((rule, index) => (
-          <p key={rule.id} className="text-[14px] leading-snug">
-            <span className="font-mono text-primary">{index + 1}.</span>{" "}
-            <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
-          </p>
-        ))}
-      </div>
+    <div data-stage-column="2" data-logic-stage="bomb" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <div data-game-arena="logic">
+        <div className="logic-bomb-rules w-full shrink-0 rounded-xl border border-border bg-card p-2">
+          {puzzle.rules.map((rule, index) => (
+            <p key={rule.id} className="text-[14px] leading-snug">
+              <span className="font-mono text-primary">{index + 1}.</span>{" "}
+              <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
+            </p>
+          ))}
+        </div>
 
-      <div data-game-arena="board" className="flex min-h-0 flex-1">
-        <Panel
-          wires={puzzle.wires}
-          buttons={puzzle.buttons}
-          light={puzzle.light}
-          serial={puzzle.serial}
-          switchPosition={puzzle.switchPosition}
-          cutWires={cutWires}
-          pressed={pressed}
-          onWire={(index) => act(cutAction(index))}
-          onButton={(label) => act(pressAction(label))}
-        />
+        <div className="logic-bomb-board flex w-full">
+          <Panel
+            wires={puzzle.wires}
+            buttons={puzzle.buttons}
+            light={puzzle.light}
+            serial={puzzle.serial}
+            switchPosition={puzzle.switchPosition}
+            cutWires={cutWires}
+            pressed={pressed}
+            onWire={(index) => act(cutAction(index))}
+            onButton={(label) => act(pressAction(label))}
+            ledSeconds={ledSeconds}
+            frozen={frozenAt !== null}
+            lastAction={last ? { action: last, key: actions.length } : null}
+          />
+        </div>
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-between">
@@ -338,6 +365,9 @@ function Stage({
             if (locked || submitted.current) return;
             submitted.current = true;
             playLock();
+            // The panel freezes at the press; whether it is defused is the server's verdict.
+            setFrozenAt(Date.now());
+            soundCue("bomb.defuse");
             onSubmit(encodeBombActions(actions));
           }}
           className="h-9 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
@@ -358,6 +388,17 @@ function Stage({
       </div>
     </div>
   );
+}
+
+/** The reveal's status lamp: red, turning green on a verified defuse. */
+function BombLamp({ defused }: { defused: boolean }) {
+  const cued = useRef(false);
+  useEffect(() => {
+    if (!defused || cued.current) return;
+    cued.current = true;
+    soundCue("bomb.solve");
+  }, [defused]);
+  return <span aria-hidden="true" className={`logic-bomb-lamp ${defused ? "logic-bomb-lamp-green" : ""}`} />;
 }
 
 /** Whether a revealed plan replays as an explosion; the answer reveal plays its cue. */
@@ -402,7 +443,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           ))}
         </div>
       </div>
-      <p className="font-display text-xl font-bold">
+      <p className="flex items-center justify-center gap-2 font-display text-xl font-bold">
+        <BombLamp defused={myCorrect && replay.defused} />
         <span className={myCorrect ? "text-ok" : "text-warn"}>
           {replay.exploded
             ? `Exploded at step ${replay.correctPrefix + 1}`

@@ -1,0 +1,109 @@
+/*
+ * Word games' own look (Puzzle polish, 13 Oct 2026): drawing and layout only.
+ * Scoped by data-word-polish / data-polish on each game's stage. Imported by
+ * wordFinish.ts so the shared styles.css is untouched.
+ */
+
+/* ---------- Reveals: compact word columns (Nucleus, Forage) ---------- */
+.word-reveal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 2px 10px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 20px;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.word-reveal-list > li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; white-space: nowrap; }
+.word-reveal-missed { color: var(--muted-foreground); }
+
+/* ---------- Arena position ----------
+ * The free height splits equally above the play area ([data-word-first]) and
+ * above the bottom controls ([data-word-controls-first]), so the board sits
+ * centred between the top bar and the controls, which stay at the bottom.
+ * Selectors repeat attributes to outrank the shared column rules whatever the
+ * stylesheet order. Transient "found word" chips float over the gap above the
+ * board instead of reserving a row (.word-moment-float).
+ */
+.game-column [data-word-polish][data-word-polish] { position: relative; justify-content: flex-start; }
+.game-column [data-word-polish][data-word-polish] > [data-word-first][data-word-first] { margin-top: auto; }
+.game-column [data-word-polish][data-word-polish] > [data-word-controls-first][data-word-controls-first] { margin-top: auto; }
+.word-moment-float { position: absolute; left: 0; right: 0; z-index: 5; pointer-events: none; }
+.word-confirmation-board-space.word-board-centre { align-items: center; }
+/* Interlock: the moment row floats, so the board may use its 32px. */
+.game-column [data-polish="tilegrid"][data-word-polish] > [data-game-arena] { height: min(100cqw, calc(100cqh - 116px)); }
+/* Strikeout, Swapword: the arena is centred by its own slack, so the row after it keeps the column gap. */
+.game-column :is([data-word-polish="strikeout"], [data-word-polish="swapword"])[data-word-polish] > [data-game-arena][data-game-arena] + * { margin-top: 0; }
+
+/* ---------- Tiles: a little depth, smooth fills (sizes unchanged) ---------- */
+/* Nucleus: bevelled atom tiles; the nucleus is a deeper blue so its white letter reads at 4.5:1. */
+.wordsmith-ring .wordsmith-ring-tile.wordsmith-ring-tile {
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, left 260ms ease-out, top 260ms ease-out;
+}
+.wordsmith-ring.wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-centre,
+.wordsmith-ring.wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-centre:hover {
+  background: color-mix(in oklab, var(--category-accent) 72%, black);
+  border-color: color-mix(in oklab, var(--category-accent) 85%, white);
+  box-shadow: var(--wordsmith-nucleus-glow), inset 0 -4px 0 rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+.wordsmith-ring.wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-used,
+.wordsmith-ring.wordsmith-ring .wordsmith-ring-centre.wordsmith-ring-used:hover {
+  border-color: var(--accepted-word-foreground);
+  box-shadow: var(--wordsmith-nucleus-glow), 0 0 0 2px var(--accepted-word-foreground), inset 0 -4px 0 rgb(0 0 0 / 0.3);
+}
+
+/* Lettered grid tiles (Forage, Interlock, Slider, Lookout, Roundabout): the shared paint, eased. */
+[data-word-polish] .word-letter-tile, [data-polish="wordhunt"] .word-letter-tile {
+  transition: background-color 140ms ease-out, box-shadow 140ms ease-out, color 140ms ease-out;
+}
+
+/* Strikeout: bevelled tiles; reveals fade their fill in. */
+[data-word-polish="strikeout"] .so-tile, [data-word-reveal="strikeout"] .so-tile {
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  transition: background-color 180ms ease-out, color 180ms ease-out;
+}
+[data-word-polish="strikeout"] .so-tile[data-so-look="solved"], [data-word-reveal="strikeout"] .so-tile[data-so-look="solved"] {
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+[data-word-polish="strikeout"] .so-tile[data-so-look="typed"] {
+  box-shadow: inset 0 0 0 2px var(--primary), inset 0 -3px 0 rgb(0 0 0 / 0.25);
+}
+
+/* Cryptogrid: raised squares, smooth letter fills. */
+[data-word-polish="codeword"] [data-cw-cell], [data-word-reveal="codeword"] [data-cw-cell] {
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25);
+  transition: background-color 160ms ease-out, color 160ms ease-out;
+}
+
+/* Swapword: a lit top edge on the existing bevel; colour changes ease. */
+[data-word-polish="swapword"] [data-sw-tile], [data-word-reveal="swapword"] [data-sw-tile] {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
+  transition: background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out, transform 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordsmith-ring .wordsmith-ring-tile.wordsmith-ring-tile,
+  [data-word-polish] .word-letter-tile, [data-polish="wordhunt"] .word-letter-tile,
+  [data-word-polish] .so-tile, [data-word-polish] [data-cw-cell], [data-word-polish] [data-sw-tile] { transition: none; }
+}
+/* Slider: the moves line sits at the top of its row so the gap below the board reads like the gap above. */
+.game-column [data-word-polish="wordslide"][data-word-polish] > [data-game-controls="status"] { align-items: flex-start; }
+
+/* Lookout reveal: missed-word letters a lighter red so they read at 4.5:1 on their tint. */
+[data-word-reveal="wordsearch"] .word-letter-tile.text-destructive.text-destructive { color: color-mix(in oklab, var(--destructive) 65%, white) !important; }
+
+/*
+ * Layout 2 (#41, .game-column-centred) gives every arena auto top/bottom margins.
+ * Here they would stack with the margins above and split HUD rows and banners
+ * (Forage's points, Lookout's category, Swapword's swaps, Strikeout's strikes)
+ * from their boards, so word stages cancel them and keep their own split: the
+ * free height divides above [data-word-first] and above [data-word-controls-first].
+ */
+.game-column.game-column-centred :is([data-word-polish], [data-polish="wordhunt"], [data-polish="wordsearch"])[data-stage-column][data-stage-column] > :is([data-game-arena], [data-arena-part])[class] { margin-bottom: 0; }
+.game-column.game-column-centred :is([data-word-polish], [data-polish="wordhunt"], [data-polish="wordsearch"])[data-stage-column][data-stage-column] > :is([data-game-arena], [data-arena-part])[class]:not([data-game-arena] + *) { margin-top: 0; }
+.game-column.game-column-centred [data-word-polish][data-word-polish][data-stage-column] > [data-word-first][data-word-first][data-word-first] { margin-top: auto; }
+.game-column.game-column-centred [data-word-polish][data-word-polish][data-stage-column] > [data-word-controls-first][data-word-controls-first][data-word-controls-first] { margin-top: auto; }
+/* Cryptogrid: its code key is an arena part right under the grid; keep it 12px below (4px column gap + 8). */
+.game-column.game-column-centred [data-word-polish="codeword"][data-word-polish][data-stage-column] > [data-arena-part="codeword-key"][data-arena-part][data-arena-part] { margin-top: 8px; }

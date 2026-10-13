@@ -60,37 +60,49 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     .slice(0, 5);
   const pangram = puzzle.source ?? (puzzle.words ?? []).find((entry) => entry.word.length === puzzle.letters.length)?.word;
 
+  // Sized so all 25-odd words of a board fit on one 375×667 screen: the ring sits
+  // beside the counts, and both lists run in compact columns (14 px text).
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <div className="wordsmith-ring-example w-[160px] shrink-0">
-        <WordsmithRing letters={puzzle.letters} />
+    <div data-word-reveal="wordsmith" className="flex w-full flex-col items-center gap-3">
+      <div className="flex items-center gap-4">
+        <div className="wordsmith-ring-example w-[112px] shrink-0">
+          <WordsmithRing letters={puzzle.letters} />
+        </div>
+        <div className="flex flex-col gap-1 font-mono text-sm">
+          <p className="text-base uppercase tracking-widest text-foreground">{mine.length} words</p>
+          {pangram && (
+            <p className="text-muted-foreground">
+              {puzzle.letters.length}-letter word:
+              <br />
+              <span className="text-primary">{pangram}</span>
+            </p>
+          )}
+        </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {mine.length} words
-      </p>
 
       {mine.length > 0 && (
-        <ul className="flex w-full flex-col items-center gap-1">
+        <ul className="word-reveal-list w-full">
           {mine.map((word) => (
-            <li key={word} className="font-mono text-base uppercase text-foreground">
+            <li key={word}>
               <span>{word}</span>
-              <span className="ml-1 text-primary">{wordsmithPoints(word)}</span>
+              <span className="text-primary">{wordsmithPoints(word)}</span>
             </li>
           ))}
         </ul>
       )}
 
       {missed.length > 0 && (
-        <div className="w-full text-center font-mono text-base text-muted-foreground">
-          <p>You missed:</p>
-          <ul className="flex flex-col gap-1">{missed.map((entry) => <li key={entry.word}>{entry.word} ({entry.points})</li>)}</ul>
+        <div className="flex w-full flex-col items-center gap-1">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">You missed</p>
+          <ul className="word-reveal-list word-reveal-missed w-full">
+            {missed.map((entry) => (
+              <li key={entry.word}>
+                <span>{entry.word}</span>
+                <span>{entry.points}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
-
-      {pangram && (
-        <p className="text-center font-mono text-base text-muted-foreground">
-          {puzzle.letters.length}-letter word: <span className="text-primary">{pangram}</span>
-        </p>
       )}
     </div>
   );

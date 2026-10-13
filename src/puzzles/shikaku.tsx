@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { useStageState } from "@/lib/duel/stageState";
@@ -23,6 +23,7 @@ import { SHIKAKU_TIME_MS, type ShikakuPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const FILLS = ["var(--primary)", "var(--me)"];
@@ -53,7 +54,7 @@ function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className="shikaku-board grid w-full shrink-0 select-none overflow-hidden"
+      className="shikaku-board logic-glass grid w-full shrink-0 select-none overflow-hidden"
       style={{
         ...(pointer?.handlers.style ?? {}),
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
@@ -66,37 +67,39 @@ function Board({
       {Array.from({ length: size * rows }, (_, cell) => (
         <div
           key={cell}
-          className="flex min-h-0 min-w-0 items-center justify-center rounded-sm border border-border bg-card"
+          className="logic-glass-cell flex min-h-0 min-w-0 items-center justify-center rounded-sm border border-border bg-card"
           style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1 }}
         />
       ))}
       {rects.map((r, i) => (
         <div
-          key={`r${i}`}
-          className="pointer-events-none rounded-md"
+          key={`r${r.r0}-${r.c0}-${r.r1}-${r.c1}`}
+          className="logic-pane pointer-events-none rounded-md"
           style={{
             ...place(r),
             zIndex: 1,
             border: `2px solid ${FILLS[i % 2]}`,
             background: `color-mix(in oklab, ${FILLS[i % 2]} 35%, transparent)`,
-          }}
+            "--logic-i": Math.min(i, 17),
+            "--logic-hue": Math.round((i * 137.5 + 20) % 360),
+          } as CSSProperties}
         />
       ))}
       {preview && (
         <div
-          className="pointer-events-none rounded-md border-2 border-primary"
+          className="logic-pane-preview pointer-events-none rounded-md border-2 border-primary"
           style={{ ...place(preview), zIndex: 2 }}
         />
       )}
       {[...clueAt].map(([cell, n]) => (
         <span
           key={`n${cell}`}
-          className="shikaku-clue pointer-events-none flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden text-center font-mono font-bold leading-none text-foreground"
+          className="shikaku-clue logic-glass-clue pointer-events-none flex h-full w-full min-h-0 min-w-0 items-center justify-center overflow-hidden text-center font-mono font-bold leading-none text-foreground"
           style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, zIndex: 3,
-            fontSize: small ? `clamp(13px, calc((100cqw - ${size - 1}px) / ${size} * 0.88), 22px)` : undefined,
+            fontSize: small ? `clamp(${n >= 10 ? 12 : 13}px, calc((100cqw - ${size - 1}px) / ${size} * ${n >= 10 ? 0.62 : 0.88}), 22px)` : undefined,
           }}
         >
-          <span className={small ? "leading-none" : "text-xl leading-none"}>{n}</span>
+          <span className={`whitespace-nowrap ${small ? "leading-none" : "text-xl leading-none"} ${small && n >= 10 ? "tracking-[-0.08em]" : ""}`}>{n}</span>
         </span>
       ))}
     </div>
@@ -125,6 +128,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const last = useRef<number | null>(null);
   const submitted = useRef(false);
   const encoded = encodeShikaku(rects);
+  const solving = useSolveFx("shikaku", Boolean(data && shikakuSolved(rects, clues, size)));
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -160,6 +164,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       const existing = rects.findIndex((r) => rectHas(r, a, size));
       if (a === b && existing >= 0) {
         buzz(8);
+        soundCue("shikaku.remove");
         setRects((current) => current.filter((_, i) => i !== existing));
         return;
       }
@@ -170,6 +175,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         return;
       }
       buzz(8);
+      soundCue("shikaku.place");
       setRects((current) => [...current, rect]);
     },
   });
@@ -178,12 +184,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const uncovered = size * size - shikakuCovered(rects, clues, size);
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        uncovered <span className="text-primary">{uncovered}</span>
-      </p>
-      <div key={shake} data-game-arena="fixed" className={`w-full ${shake ? "animate-shake" : ""}`} style={{ width: "min(100%, 342px)", minWidth: 324 }}>
-        <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
+    <div data-logic-stage="shikaku" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          uncovered <span className="text-primary">{uncovered}</span>
+        </p>
+        <div key={shake} className={`logic-square logic-glass-frame ${shake ? "animate-shake" : ""}`}>
+          <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
+        </div>
       </div>
     </div>
   );
@@ -195,18 +204,20 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const covered = mine.reduce((sum, r) => sum + (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1), 0);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex w-full justify-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-          <Board size={puzzle.size} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <Board size={puzzle.size} clues={puzzle.clues} rects={mine} small />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-pair">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+            <Board size={puzzle.size} clues={puzzle.clues} rects={puzzle.solution ?? []} small />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
+            <Board size={puzzle.size} clues={puzzle.clues} rects={mine} small />
+          </div>
         </div>
       </div>
-      <p className="font-mono text-base text-primary">
+      <p className="logic-reveal-text text-center font-mono text-primary">
         {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : `${covered} / ${SHIKAKU_CELLS} covered`}
       </p>
     </div>

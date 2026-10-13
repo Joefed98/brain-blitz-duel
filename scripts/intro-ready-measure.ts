@@ -8,6 +8,9 @@
  *   bun scripts/intro-ready-measure.ts bintoss bullseye rally beat inkbridge orbit
  *   bun scripts/intro-ready-measure.ts --url=http://127.0.0.1:5179 orbit
  *   bun scripts/intro-ready-measure.ts --all --sizes=375x667   # every game, puzzles included
+ *   bun scripts/intro-ready-measure.ts --all --sizes=375x667 --two-line-score
+ *     (also swaps each SCORE line for a two-line one and re-measures without
+ *     re-fitting: room for a SCORE of up to two short lines)
  *
  * A case fails when READY is not fully on screen or the intro text above it
  * scrolls (any overflow inside .round-intro-content).
@@ -20,6 +23,8 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const ALL = args.includes("--all");
+const TWO_LINE_SCORE = args.includes("--two-line-score");
+const SCORE_TWO_LINES = "Up to 120 for the puzzle and up to 30 more for speed, full with half the time left.";
 const SIZES = (args.find((a) => a.startsWith("--sizes="))?.slice(8) ?? "375x667,390x700")
   .split(",")
   .map((s) => s.split("x").map(Number) as [number, number]);
@@ -73,9 +78,25 @@ try {
         const el = document.querySelector(".round-intro-content");
         return el ? el.scrollHeight - el.clientHeight : 0;
       });
-      const visible = !!box && box.y >= 0 && box.y + box.height <= height && scrolled <= 0;
+      const compact = await page.evaluate(() => document.querySelector(".round-intro")?.getAttribute("data-compact") ?? "?");
+      let visible = !!box && box.y >= 0 && box.y + box.height <= height && scrolled <= 0;
+      let extra = "";
+      if (TWO_LINE_SCORE) {
+        const two = await page.evaluate((text) => {
+          const p = document.querySelector(".intro-score p:last-child");
+          if (!p) return { lines: 0, overflow: 0 };
+          p.textContent = text;
+          const lh = Number.parseFloat(getComputedStyle(p).lineHeight) || 20;
+          const el = document.querySelector(".round-intro-content");
+          return { lines: Math.round(p.getBoundingClientRect().height / lh), overflow: el ? el.scrollHeight - el.clientHeight : 0 };
+        }, SCORE_TWO_LINES);
+        const box2 = await ready.boundingBox();
+        const ok2 = !!box2 && box2.y + box2.height <= height && two.overflow <= 0;
+        visible = visible && ok2;
+        extra = ` · two-line SCORE (${two.lines} lines): overflow ${two.overflow}px`;
+      }
       if (!visible) failures++;
-      console.log(`${visible ? "ok  " : "FAIL"} ${width}x${height} ${game.padEnd(10)} READY ${box ? `${Math.round(box.y)}-${Math.round(box.y + box.height)}` : "missing"} · intro overflow ${scrolled}px`);
+      console.log(`${visible ? "ok  " : "FAIL"} ${width}x${height} ${game.padEnd(10)} READY ${box ? `${Math.round(box.y)}-${Math.round(box.y + box.height)}` : "missing"} · intro overflow ${scrolled}px · compact ${compact}${extra}`);
       await page.close();
     }
   }

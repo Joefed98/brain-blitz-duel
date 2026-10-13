@@ -1,3 +1,4 @@
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 /**
  * Shikaku rules, shared by the phone (live checks, auto-lock) and the server
@@ -126,6 +127,10 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
 
 /** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells. */
 export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number): number {
+  if (scoreRev1()) {
+    if (solved) return finishParts(speedBonusCurve(30, msRemaining, timeLimitMs));
+    return partialParts((110 * covered) / SHIKAKU_CELLS);
+  }
   if (solved) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   return Math.max(0, Math.round((110 * covered) / SHIKAKU_CELLS));
 }

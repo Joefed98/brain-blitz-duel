@@ -24,6 +24,9 @@ import {
   type ReactionPuzzleData,
 } from "@/lib/duel/types";
 
+import { fireFlashGoldPulse, flashEarnsGoldPulse, localFlashScore } from "@/components/puzzles/reactionFx";
+import { registerFxPreview } from "@/components/puzzles/speedFx";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DECOY_COLOURS = ["teal", "red", "blue"] as const;
@@ -212,6 +215,8 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       decoy={decoy !== null}
       onTap={handleTap}
       inactive={locked || done}
+      runKey={key}
+      fxScore={done ? localFlashScore(times, falseStarts, flashes.length) : null}
     />
   );
 }
@@ -237,6 +242,8 @@ function ReactionArena({
   decoy,
   onTap,
   inactive,
+  runKey = "",
+  fxScore = null,
 }: {
   surface: string;
   falseStarts: number;
@@ -246,8 +253,22 @@ function ReactionArena({
   decoy: boolean;
   onTap: () => void;
   inactive: boolean;
+  /** Identifies the run, so the end-of-run effect plays once per run. */
+  runKey?: string;
+  /** The phone's local score once every flash is settled (read-only), else null. */
+  fxScore?: number | null;
 }) {
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
+  const arenaRef = useRef<HTMLButtonElement | null>(null);
+  const pulsed = useRef("");
+  // End of run: a gold pulse from the centre when the local score reaches the threshold.
+  useEffect(() => {
+    if (fxScore === null || !flashEarnsGoldPulse(fxScore) || pulsed.current === runKey) return;
+    pulsed.current = runKey;
+    fireFlashGoldPulse(arenaRef.current);
+  }, [fxScore, runKey]);
+  useEffect(() => registerFxPreview("reaction", () => fireFlashGoldPulse(arenaRef.current)), []);
+  const cue = live ? "gold" : decoy ? "decoy" : "idle";
   return (
     <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
@@ -263,19 +284,22 @@ function ReactionArena({
           const rect = event.currentTarget.getBoundingClientRect();
           setRipple({ x: event.clientX - rect.left, y: event.clientY - rect.top, id: event.timeStamp });
         }}
-        data-game-arena="tall" className={`relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
+        ref={arenaRef}
+        data-flash-cue={cue}
+        data-game-arena="tall" className={`flash-arena relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
+        <span aria-hidden="true" className="flash-art" />
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {live ? null : lastShown ? (
           <span
-            className={`font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
+            className={`flash-readout relative font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
           >
             {lastShown.text}
           </span>
         ) : done ? (
-          <span className="text-base text-muted-foreground">All flashes done</span>
+          <span className="relative text-base text-muted-foreground">All flashes done</span>
         ) : decoy ? null : (
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
+          <span className="flash-wait relative font-mono text-base uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
         )}
       </button>
     </div>
@@ -377,6 +401,8 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       decoy={decoy !== null}
       onTap={handleTap}
       inactive={locked || replay.done}
+      runKey={key}
+      fxScore={replay.done ? localFlashScore(replay.times, replay.falseStarts, flashes.length) : null}
     />
   );
 }
@@ -404,23 +430,23 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
 
   return (
     <>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-1.5">
         {times.length === 0 ? (
           <p className="font-display text-2xl font-bold text-warn">No attempts</p>
         ) : (
           times.map((ms, index) => (
-            <p key={index} className="font-mono text-xl tabular-nums text-foreground">
+            <p key={index} className="font-mono text-lg leading-7 tabular-nums text-foreground">
               Flash {index + 1} - {ms >= REACTION_MISS_MS ? "missed (1,200 ms)" : `${ms} ms`}
             </p>
           ))
         )}
-        <p className="font-mono text-lg text-muted-foreground">
+        <p className="mt-1 font-mono text-base text-muted-foreground">
           False starts: {falseStarts}
           {falseStarts > 0 ? ` (−${falseStarts * 8} points)` : ""}
         </p>
       </div>
-      <div className="flex w-full flex-col items-center gap-2 rounded-2xl bg-card px-4 py-5">
-        <p className="text-base uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
+      <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
+        <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
       </div>
     </>

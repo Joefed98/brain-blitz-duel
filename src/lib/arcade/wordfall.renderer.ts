@@ -6,6 +6,7 @@
  * 2 px), so what a finger sees is what the sim picks.
  */
 import { arcadeFx } from "./arcadeFx.renderer";
+import { reducedMotion } from "./art.renderer";
 import { WORDFALL_FX } from "./arcadeFxGames.renderer";
 import type { CanvasSize } from "./engine";
 import {
@@ -25,11 +26,13 @@ import {
   wfWord,
   wordfallChainWord,
   wordfallGame,
+  wordfallScore,
   WF_CELL,
   WF_COLS,
   WF_H,
   WF_ROWS,
   WF_SHAKE_TICKS,
+  WF_RUN_TICKS,
   WF_W,
   WF_WELL_H,
   WF_WELL_W,
@@ -50,6 +53,76 @@ const DANGER = "#D9363E";
 const INSET = 2;
 /** How long the last word stays on the word line, ticks. */
 const WORD_SHOW_TICKS = 50;
+/** End-of-run shimmer: length (ms) and the local score that earns it. */
+export const WF_SHIMMER_MS = 1100;
+export const WF_SHIMMER_SCORE = 120;
+
+/**
+ * When the live stage saw each finished run end (presentation clock), so the
+ * shimmer plays once from the end of the run. Keyed by the final state, which
+ * the sim never replaces once over. Only the live stage starts one (never the
+ * reveal's replay); the dev trigger forces one on whatever is drawn next.
+ */
+const shimmerStart = new WeakMap<WordfallState, number>();
+let devShimmerAt = -Infinity;
+
+/** True once the run is over with a local score of 120 or more. */
+export function wordfallEarnsShimmer(state: WordfallState): boolean {
+  return (state.over === 1 || state.tick >= WF_RUN_TICKS) && wordfallScore(state.points) >= WF_SHIMMER_SCORE;
+}
+
+function presentationNow(): number {
+  return typeof performance === "undefined" ? 0 : performance.now();
+}
+
+/** The live stage: the run has just ended on this state; shimmer from now. */
+export function wordfallStartShimmer(state: WordfallState): void {
+  if (!shimmerStart.has(state)) shimmerStart.set(state, presentationNow());
+}
+
+/** Dev only (screenshot tool): play the shimmer on the well as it stands. */
+export function wordfallShimmerDev(): void {
+  devShimmerAt = presentationNow();
+}
+
+/** Shimmer progress 0…1 while it plays, else null. */
+function shimmerProgress(state: WordfallState): number | null {
+  const now = presentationNow();
+  const start = now - devShimmerAt < WF_SHIMMER_MS ? devShimmerAt : shimmerStart.get(state);
+  if (start === undefined) return null;
+  const p = (now - start) / WF_SHIMMER_MS;
+  return p >= 0 && p < 1 ? p : null;
+}
+
+/**
+ * The well's tiles shimmer from bottom to top: a soft gold band rises through
+ * the stacks, painted inside each tile's face (never past its collision cell).
+ * Reduced motion: one gentle even glow that fades, no travelling band.
+ */
+function drawShimmer(ctx: CanvasRenderingContext2D, state: WordfallState, p: number): void {
+  const s = WF_CELL - INSET * 2;
+  const band = WF_CELL * 1.6;
+  const still = reducedMotion();
+  const bandY = WF_WELL_Y + WF_WELL_H + band / 2 - p * (WF_WELL_H + band);
+  state.well.forEach((stack, col) => {
+    for (const tile of stack) {
+      const x = WF_WELL_X + col * WF_CELL + INSET;
+      const y = WF_WELL_Y + tile.y / 256 + INSET;
+      const k = still ? 0.5 * (1 - p) : Math.max(0, 1 - Math.abs(y + s / 2 - bandY) / band);
+      if (k <= 0.01) continue;
+      ctx.save();
+      roundRect(ctx, x, y, s, s, 9);
+      ctx.clip();
+      const g = ctx.createLinearGradient(x, y + s, x + s, y);
+      g.addColorStop(0, `rgba(247,207,99,${0.36 * k})`);
+      g.addColorStop(0.5, `rgba(255,248,220,${0.5 * k})`);
+      g.addColorStop(1, `rgba(247,207,99,${0.36 * k})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, s, s);
+      ctx.restore();
+    }
+  });
+}
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
@@ -188,6 +261,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
       ctx.stroke();
     }
   }
+  const shimmer = shimmerProgress(state);
+  if (shimmer !== null) drawShimmer(ctx, state, shimmer);
   ctx.restore();
   ctx.restore();
 }

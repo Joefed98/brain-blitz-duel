@@ -12,194 +12,18 @@ import {
 } from "@/lib/duel/slide";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  SLIDE_CELLS,
   SLIDE_COLS,
   SLIDE_TIME_MS,
-  type SlideArrow,
   type SlideDir,
   type SlidePuzzleData,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { useSolveMoment } from "@/lib/fx/patternFx";
+import { IceBoard as Board, IceTrail, useIceSlideFx } from "@/components/puzzles/pattern/iceSlideBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
-
-const GOLD = "var(--ice-exit)";
-
-/** A one-way cell wears a chevron pointing the way the ball is sent. */
-function Chevron({ dir }: { dir: SlideDir }) {
-  const turn = dir === "U" ? 270 : dir === "D" ? 90 : dir === "L" ? 180 : 0;
-  return (
-    <svg
-      viewBox="0 0 10 10"
-      aria-label={`One way ${dir}`}
-      className="block"
-      style={{ width: "78%", height: "78%", transform: `rotate(${turn}deg)` }}
-    >
-      <polyline
-        points="3,2 7,5 3,8"
-        fill="none"
-        stroke="var(--ice-marker)"
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const PORTAL_COLOURS = ["var(--ice-portal-one)", "var(--ice-portal-two)"] as const;
-
-/** Thin ice: a cracked tile that breaks after one crossing. */
-function Crack() {
-  return (
-    <svg viewBox="0 0 10 10" aria-label="Thin ice" className="block h-[80%] w-[80%]">
-      <polyline
-        points="1,2 4,5 3,7 6,9"
-        fill="none"
-        stroke="var(--ice-marker)"
-        strokeOpacity={0.75}
-        strokeWidth={0.9}
-        strokeLinejoin="round"
-      />
-      <path d="M4,5 L7,4 L9,1" fill="none" stroke="var(--ice-marker)" strokeOpacity={0.75} strokeWidth={0.9} />
-    </svg>
-  );
-}
-
-function Board({
-  walls,
-  holes = [],
-  arrows = [],
-  portals = [],
-  thin = [],
-  broken = 0,
-  start,
-  exit,
-  ball,
-  cols = SLIDE_COLS,
-  cells = SLIDE_CELLS,
-  route,
-  dotted,
-}: {
-  walls: number[];
-  holes?: number[];
-  arrows?: SlideArrow[];
-  portals?: [number, number][];
-  thin?: number[];
-  /** Broken thin-ice mask (bit i = thin[i] is now a hole). */
-  broken?: number;
-  start: number;
-  exit: number;
-  ball: number;
-  cols?: number;
-  cells?: number;
-  /** Cells of a route to draw as a dotted gold line. */
-  route?: number[] | undefined;
-  dotted?: boolean;
-}) {
-  const rows = Math.ceil(cells / cols);
-  const wall = new Set(walls);
-  const pit = new Set(holes);
-  const turns = new Map(arrows.map((arrow) => [arrow.cell, arrow.dir]));
-  const portalColour = new Map<number, string>();
-  portals.forEach(([a, b], index) => {
-    const colour = index === 0 ? PORTAL_COLOURS[0] : PORTAL_COLOURS[1];
-    portalColour.set(a, colour);
-    portalColour.set(b, colour);
-  });
-  const thinBit = new Map(thin.map((cell, bit) => [cell, bit]));
-
-  return (
-    <div className="ice-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
-      <div
-        className="ice-board-grid puzzle-board grid h-full w-full"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-          gap: 2,
-        }}
-      >
-        {/* The ball is a centred child of the cell it occupies — never drawn from
-            pointer or pixel maths — so a slide moves it whole cells at a time. */}
-        {Array.from({ length: cols * rows }, (_, cell) => {
-          const isBall = cell === ball;
-          const turn = turns.get(cell);
-          const bit = thinBit.get(cell);
-          const brokenHole = bit !== undefined && (broken & (1 << bit)) !== 0;
-          const ring = portalColour.get(cell);
-          const piece = isBall ? (
-            <span
-              aria-label="Ball"
-              className="block rounded-full"
-              style={{ width: "80%", height: "80%", backgroundColor: "var(--ice-player)" }}
-            />
-          ) : pit.has(cell) || brokenHole ? (
-            <span
-              aria-label="Hole"
-              className="block rounded-full bg-background"
-              style={{ width: "72%", height: "72%", border: "2px solid var(--ice-marker)" }}
-            />
-          ) : ring ? (
-            <span
-              aria-label="Portal"
-              className="block rounded-full"
-              style={{ width: "76%", height: "76%", border: `3px solid ${ring}`, boxShadow: `0 0 5px ${ring}` }}
-            />
-          ) : bit !== undefined ? (
-            <Crack />
-          ) : turn ? (
-            <Chevron dir={turn} />
-          ) : cell === exit ? (
-            <svg viewBox="0 0 20 20" className="h-[82%] w-[82%]" aria-hidden="true">
-              <path d="M8 3H3v14h5M8 10h9m-4-4 4 4-4 4" fill="none" stroke="var(--ice-wall)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ) : cell === start ? (
-            <span
-              className="block rounded-full" 
-              style={{ width: "28%", height: "28%", background: "var(--ice-marker)" }}
-            />
-          ) : null;
-
-          if (wall.has(cell)) {
-            return <div key={cell} className="ice-wall rounded-md bg-foreground/70" />;
-          }
-          const className =
-            "ice-cell flex items-center justify-center " +
-            (cell === exit
-              ? "ice-exit rounded-md border-2 border-primary bg-primary/20"
-              : "rounded-[3px] bg-secondary/60");
-          return (
-            <div key={cell} className={className} aria-label={cell === exit ? "Exit" : undefined}>
-              {piece}
-            </div>
-          );
-        })}
-      </div>
-
-      <svg
-        viewBox={`0 0 ${cols} ${rows}`}
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        <path className="ice-frost" d={`M .15 .3 L ${cols*.4} ${rows*.35} M ${cols*.65} .2 L ${cols*.8} ${rows*.45} M .2 ${rows*.8} L ${cols*.4} ${rows*.65}`} />
-        {route && route.length > 1 && (
-          <polyline
-            points={route
-              .map((cell) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`)
-              .join(" ")}
-            fill="none"
-            stroke={GOLD}
-            strokeWidth={0.12}
-            strokeLinecap="round"
-            strokeDasharray={dotted === false ? undefined : "0.25 0.2"}
-          />
-        )}
-      </svg>
-    </div>
-  );
-}
 
 /** Fixed intro example — never randomised. */
 function IntroExample() {
@@ -256,6 +80,17 @@ function Stage({
   useEffect(() => () => slideTimers.current.forEach(clearTimeout), []);
 
   const replay = useMemo(() => replaySlide(board, moves), [board, moves]);
+  const portalPairs = useMemo(() => data?.portals ?? [], [data]);
+  const fx = useIceSlideFx({
+    portals: board.portals,
+    pairs: portalPairs,
+    thin: board.thin,
+    visualBall,
+    animating,
+    restCell: replay.cell,
+    restMask: replay.mask,
+  });
+  const solving = useSolveMoment(replay.solved && !animating, "iceslide.solve");
 
   useEffect(() => {
     onDraftAnswer?.(encodeSlideMoves(moves));
@@ -287,6 +122,7 @@ function Stage({
     if (locked || submitted.current || replay.solved || animating) return;
     const outcome = slideOutcome(board, replay.cell, replay.mask, dir);
     if (!outcome.path.length) return;
+    fx.begin(replay.cell, replay.mask, outcome);
     setVisualBall({ cell: replay.cell, jump: true });
     setAnimating(true);
     let elapsed = 20;
@@ -310,7 +146,7 @@ function Stage({
   if (!data) return null;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-polish="iceslide" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
         {replay.falls > 0 ? ` · ${replay.falls} fall${replay.falls === 1 ? "" : "s"}` : ""}
@@ -323,22 +159,38 @@ function Stage({
         }}
         {...swipe}
       >
-        <div className="relative aspect-square h-full max-h-full w-full max-w-full">
+        <div className="ice-stage-square relative aspect-square h-full max-h-full w-full max-w-full">
           <Board
             walls={data.walls}
             holes={data.holes ?? []}
             arrows={data.arrows ?? []}
             portals={data.portals ?? []}
             thin={data.thin ?? []}
-            broken={replay.mask}
+            broken={fx.mask}
+            fresh={fx.fresh}
+            flare={solving ? -1 : fx.flare}
             start={data.start}
             exit={data.exit}
             ball={animating ? -1 : replay.cell}
-          />
+            solving={solving}
+          >
+            <IceTrail cells={fx.trail} cols={SLIDE_COLS} rows={SLIDE_COLS} fading={fx.trailFading} />
+            {fx.fall ? (
+              <span
+                key={fx.fall.key}
+                className="ice-fall"
+                aria-hidden="true"
+                style={{
+                  left: `calc((100% - 22px) * ${((fx.fall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(fx.fall.cell % SLIDE_COLS) * 2}px)`,
+                  top: `calc((100% - 22px) * ${(Math.floor(fx.fall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(fx.fall.cell / SLIDE_COLS) * 2}px)`,
+                }}
+              />
+            ) : null}
+          </Board>
           {visualBall && (
             <span
               aria-label="Ball"
-              className="pointer-events-none absolute z-10 block rounded-full ice-player"
+              className="pointer-events-none absolute z-10 block rounded-full ice-player ice-ball"
               style={{
                 width: "calc((100% - 22px) * 0.066666667)",
                 height: "calc((100% - 22px) * 0.066666667)",
@@ -374,7 +226,7 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
   const best = puzzle.solution
@@ -386,8 +238,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const min = puzzle.minMoves ?? best.length;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 176 }}>
+    <div className="ice-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
+      <div className="ice-reveal-space">
+        <div className="ice-reveal-square">
         <Board
           walls={puzzle.walls}
           holes={puzzle.holes ?? []}
@@ -399,13 +252,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           ball={puzzle.start}
           route={route}
         />
+        </div>
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         shortest route · {min} move{min === 1 ? "" : "s"}
       </p>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)}`
+          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)}`
           : "✗ Not solved"}
       </p>
     </div>

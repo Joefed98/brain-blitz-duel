@@ -1,4 +1,5 @@
 import { speedBonusCurve } from "./speedPar";
+import { finishParts, partialParts, scorePartsText, scoreRev1, tryEfficiency, wasteFactor, PUZZLE_SPEED_POINTS, type ScoreParts } from "./puzzleScoreRev";
 import { chainScore } from "./chain";
 import type { ChainPuzzleData } from "./types";
 import {
@@ -14,6 +15,7 @@ import {
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
+  STOPWATCH_MISS_MS,
   MIRMATCH_ITEMS,
   MIRMATCH_TIME_MS,
   SPIN_ITEMS,
@@ -157,6 +159,13 @@ export function scoreTargetNumber(
   timeLimitMs: number,
 ): number {
   const d = Math.max(0, Math.round(distance));
+  if (scoreRev1()) {
+    // Rev 1: the grader measures d from numbers the player made (no step = no credit).
+    if (!Number.isFinite(distance)) return partialParts(0);
+    if (d === 0) return finishParts(speedPoints(30, msRemaining, timeLimitMs > 0 ? timeLimitMs : ROUND_MS));
+    if (d <= 10) return partialParts(110 - ((d - 1) * (d + 2)) / 2);
+    return partialParts(56 - TARGET_REV1_FAR_SLOPE * (d - 10));
+  }
   if (d === 0) {
     const limit = timeLimitMs > 0 ? timeLimitMs : ROUND_MS;
     return Math.min(MAX_ROUND_SCORE, 130 + speedBonusCurve(20, msRemaining, limit));
@@ -165,31 +174,16 @@ export function scoreTargetNumber(
   return Math.max(0, Math.round(66 - 0.6 * (d - 10)));
 }
 
-/** Reaction Time: 50 at 650 ms or slower, up to 150 at 50 ms. */
+/** Exact rev 1: beyond 10 away, credit falls this much per unit, as before (0 from about 103 away). */
+export const TARGET_REV1_FAR_SLOPE = 0.6;
+
 /** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, −8 per false start, 0…150. */
 export function scoreReaction(averageMs: number, falseStarts = 0): number {
   const base = averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
   return clamp(base - 8 * Math.max(0, falseStarts), 0, 150);
 }
 
-/** Symbol Scan: proportional credit, less five points for every wrong tap. */
-export function scoreSymbolScan(
-  foundTargets: number,
-  totalTargets: number,
-  wrongSelections: number,
-  msRemaining: number,
-): number {
-  const total = Math.max(1, totalTargets);
-  const found = clamp(Math.round(foundTargets), 0, total);
-  const wrong = Math.max(0, Math.round(wrongSelections));
-  const raw = Math.round((BASE_POINTS * found) / total) - 5 * wrong;
-  const floor = found >= 1 ? 5 : 0;
-  const accuracy = clamp(Math.max(raw, floor), 0, found === total && wrong === 0 ? BASE_POINTS : 90);
-  const bonus = found === total && wrong === 0 ? speedBonus(msRemaining, 45_000) : 0;
-  return accuracy + bonus;
-}
-
-/** Mirror Match: three flips, accuracy out of 100 plus a bonus for all three. */
+/** Mirror Match: five shapes, accuracy out of 100 plus a bonus for all five. */
 export function scoreMirrorMatch(correctCount: number, msRemaining: number): number {
   const correct = clamp(correctCount, 0, MIRMATCH_ITEMS);
   const accuracy = Math.round((BASE_POINTS * correct) / MIRMATCH_ITEMS);
@@ -214,9 +208,20 @@ export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): 
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
+/** Double Take rev 1: 22 per difference, −5 per wrong tap; more than 5 wrong taps and all six is not a finish. */
+export const SPOT_REV1_POINTS = 22;
+export const SPOT_REV1_WRONG_PENALTY = 5;
+export const SPOT_REV1_WRONG_LIMIT = 5;
+
 /** Spot the Difference (A): 20 per difference; all six = 130 + SPEED(20). */
-export function scoreSpotDifference(foundCount: number, msRemaining: number, timeLimitMs: number = SPOT_TIME_MS): number {
+export function scoreSpotDifference(foundCount: number, msRemaining: number, timeLimitMs: number = SPOT_TIME_MS, wrongTaps = 0): number {
   const found = clamp(Math.round(foundCount), 0, SPOT_DIFFERENCES);
+  if (scoreRev1()) {
+    // Rev 1: wrong taps cost SPOT_REV1_WRONG_PENALTY each, and a finish needs at most SPOT_REV1_WRONG_LIMIT of them.
+    const wrong = Math.max(0, Math.round(wrongTaps));
+    if (found >= SPOT_DIFFERENCES && wrong <= SPOT_REV1_WRONG_LIMIT) return finishParts(speedPoints(30, msRemaining, timeLimitMs));
+    return partialParts(SPOT_REV1_POINTS * found - SPOT_REV1_WRONG_PENALTY * wrong);
+  }
   if (found >= SPOT_DIFFERENCES) return standardComplete(msRemaining, timeLimitMs);
   return SPOT_DIFF_POINTS * found;
 }
@@ -254,43 +259,17 @@ export function scoreNumberSequence(correctCount: number, msRemaining: number): 
   return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
-/**
- * Equation Balancing: a true equation scores the standard points; otherwise
- * every operator in the right place is worth 30, up to 90.
- */
-export function scoreEquation(
-  correct: boolean,
-  symbolsInPlace: number,
-  msRemaining: number,
-  timeLimitMs: number,
-): number {
-  if (correct) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  return clamp(30 * Math.max(0, Math.round(symbolsInPlace)), 0, 90);
-}
+/** Bang On rev 1: where the curve's bottom starts its fall to 0 at an all-miss average (500 ms). */
+export const STOPWATCH_REV1_KNEE_MS = 300;
 
-/**
- * Count Up: the exact total scores the standard points; a near miss scores by
- * how far out it was, and a rough guess within a tenth still counts.
- */
-export function scoreCountUp(
-  answered: boolean,
-  given: number,
-  trueCount: number,
-  msRemaining: number,
-  timeLimitMs: number,
-): number {
-  if (!answered) return 0;
-  const away = Math.abs(Math.round(given) - Math.round(trueCount));
-  if (away === 0) return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-  if (away === 1) return 70;
-  if (away === 2) return 50;
-  if (away === 3) return 30;
-  return away <= Math.max(1, trueCount) * 0.1 ? 15 : 0;
-}
-
-/** Stop Watch: 150 for a perfect average, down to 50 at 400 ms or worse. */
+/** Bang On: 150 at ≤ 20 ms average, −0.27 per ms above (47 at 400 ms, 20 at an all-miss 500 ms). */
 export function scoreStopWatch(averageDistanceMs: number): number {
   if (averageDistanceMs <= 20) return 150;
+  // Rev 1: the same line down to STOPWATCH_REV1_KNEE_MS, then an even fall to 0 at the 500 ms miss value.
+  if (scoreRev1() && averageDistanceMs > STOPWATCH_REV1_KNEE_MS) {
+    const knee = Math.round(150 - 0.27 * (STOPWATCH_REV1_KNEE_MS - 20));
+    return clamp(Math.round((knee * (STOPWATCH_MISS_MS - averageDistanceMs)) / (STOPWATCH_MISS_MS - STOPWATCH_REV1_KNEE_MS)), 0, 150);
+  }
   return clamp(Math.round(150 - 0.27 * (averageDistanceMs - 20)), 0, 150);
 }
 
@@ -308,6 +287,12 @@ export function scoreNumberHunt(
 ): number {
   const limit = timeLimitMs > 0 ? timeLimitMs : NUMHUNT_TIME_MS;
   const penalty = NUMHUNT_ERROR_PENALTY * Math.max(0, errors);
+  if (scoreRev1()) {
+    // Rev 1: wrong taps come off the 30 above the finish base, never below 120, so a finish beats any unfinished run.
+    if (finished) return finishParts(Math.max(0, speedBonusCurve(30, msRemaining, limit) - penalty));
+    const count = clamp(Math.round(reached), 0, Math.max(1, total) - 1);
+    return partialParts((110 * count) / Math.max(1, total - 1) - penalty);
+  }
   if (finished) {
     const bonus = speedBonusCurve(20, msRemaining, limit);
     return clamp(130 + bonus - penalty, 0, MAX_ROUND_SCORE);
@@ -343,17 +328,37 @@ export function totalScoreThrough(
 }
 
 /**
- * Total time spent answering across all rounds — used for the tie-break.
- * Reaction Time rounds contribute their average reaction time instead.
+ * One round's tie-break clock, built from the room's stored puzzle by
+ * tieBreak.ts (`roomTieRounds`). `limitMs` is the round's own limit (the
+ * puzzle's stored timeLimitMs, else the registry limit; the run length for
+ * arcade and engine rounds); `phaseLimitMs` is the clock ms_remaining is
+ * stored against (the same, except arcade and engine rounds, which add the
+ * phase slack). Flash keeps its average reaction time.
  */
-export function totalAnswerMs(results: RoundResultRow[], slot: number): number {
-  return results
-    .filter((r) => r.player_slot === slot)
-    .reduce(
-      (sum, r) =>
-        sum + (r.reaction_avg_ms !== null ? r.reaction_avg_ms : ROUND_MS - r.ms_remaining),
-      0,
-    );
+export interface TieRound {
+  limitMs: number;
+  phaseLimitMs: number;
+  flash: boolean;
+}
+
+/** A room's tie-break rounds, or null for rooms played before the tie-break stamp. */
+export type TieRounds = readonly TieRound[] | null | undefined;
+
+/** Stamped rooms: the time one player used on one round. No answer used the whole round. */
+export function roundTimeUsedMs(row: RoundResultRow | undefined, round: TieRound): number {
+  if (!row) return round.limitMs;
+  if (round.flash && row.reaction_avg_ms !== null) return row.reaction_avg_ms;
+  return Math.min(round.limitMs, Math.max(0, round.phaseLimitMs - row.ms_remaining));
+}
+
+/**
+ * Total time spent answering across all rounds — used for the tie-break.
+ * Stamped rooms (`tie` from roomTieRounds) add the time each round actually
+ * took against its own limit; older rooms keep their original sum (30 s minus
+ * time left, or the average reaction time where a round stored one).
+ */
+export function totalAnswerMs(results: RoundResultRow[], slot: number, tie?: TieRounds): number {
+  return answerMsThrough(results, slot, Number.POSITIVE_INFINITY, tie);
 }
 
 export type Outcome = "win" | "loss" | "draw";
@@ -362,14 +367,15 @@ export function duelOutcome(
   results: RoundResultRow[],
   mySlot: number,
   opponentSlot: number,
+  tie?: TieRounds,
 ): Outcome {
   const mine = totalScore(results, mySlot);
   const theirs = totalScore(results, opponentSlot);
   if (mine > theirs) return "win";
   if (mine < theirs) return "loss";
 
-  const myTime = totalAnswerMs(results, mySlot);
-  const theirTime = totalAnswerMs(results, opponentSlot);
+  const myTime = totalAnswerMs(results, mySlot, tie);
+  const theirTime = totalAnswerMs(results, opponentSlot, tie);
   if (myTime < theirTime) return "win";
   if (myTime > theirTime) return "loss";
   return "draw";
@@ -425,7 +431,15 @@ function rank(
   return out;
 }
 
-function answerMsThrough(results: RoundResultRow[], slot: number, lastRound: number): number {
+function answerMsThrough(results: RoundResultRow[], slot: number, lastRound: number, tie?: TieRounds): number {
+  if (tie) {
+    // Every player in a room plays the same rounds, so a plain sum is fair.
+    let sum = 0;
+    for (let round = 1; round <= Math.min(lastRound, tie.length); round++) {
+      sum += roundTimeUsedMs(resultFor(results, slot, round), tie[round - 1]!);
+    }
+    return sum;
+  }
   return results
     .filter((r) => r.player_slot === slot && r.round_number <= lastRound)
     .reduce(
@@ -445,19 +459,20 @@ export function standings(
   results: RoundResultRow[],
   throughRound: number,
   details: Map<number, { summary: string; detail: string[] }> = new Map(),
+  tie?: TieRounds,
 ): Standing[] {
   const inRoom = players.filter((p) => p.status !== "left");
   const rows = inRoom.map((p) => ({
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound),
-    answerMs: answerMsThrough(results, p.player_slot, throughRound),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound, tie),
   }));
   const positions = new Map(rank(rows).map((r) => [r.slot, r.position]));
 
   const previousRows = inRoom.map((p) => ({
     slot: p.player_slot,
     total: totalScoreThrough(results, p.player_slot, throughRound - 1),
-    answerMs: answerMsThrough(results, p.player_slot, throughRound - 1),
+    answerMs: answerMsThrough(results, p.player_slot, throughRound - 1, tie),
   }));
   const previous = new Map(rank(previousRows).map((r) => [r.slot, r.position]));
 
@@ -471,7 +486,7 @@ export function standings(
         total: totalScoreThrough(results, p.player_slot, throughRound),
         roundScore: row?.score ?? 0,
         roundCorrect: row ? row.is_correct : null,
-        answerMs: answerMsThrough(results, p.player_slot, throughRound),
+        answerMs: answerMsThrough(results, p.player_slot, throughRound, tie),
         position: positions.get(p.player_slot) ?? inRoom.length,
         previousPosition: throughRound > 1 ? (previous.get(p.player_slot) ?? null) : null,
         summary: details.get(p.player_slot)?.summary ?? "No answer",
@@ -513,6 +528,11 @@ export function scoreWordSlide(
   moves = 0,
   par = 0,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: `rows` counts only word rows the player made (the grader leaves out rows unchanged from the start).
+    if (totalRows > 0 && rows >= totalRows) return finishParts(speedPoints(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs), movesPoints(15, moves, par), "moves");
+    return partialParts(((110 * Math.max(0, rows)) / Math.max(1, totalRows - 1)) * wasteFactor(moves, par));
+  }
   if (totalRows > 0 && rows >= totalRows) {
     return clamp(100 + speedPoints(30, msRemaining, timeLimitMs) + movesPoints(20, moves, par), 0, MAX_ROUND_SCORE);
   }
@@ -535,6 +555,9 @@ export function scoreUnblock(
   timeLimitMs: number = UNBLOCK_TIME_MS,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: the grader passes the share of the gold car's blockers cleared (no 0.9 factor).
+  // Rev 1, every moves game: unfinished credit × wasteFactor (0 at 4× the minimum moves).
+  if (scoreRev1()) return partialParts(110 * clamp(progress, 0, 1) * wasteFactor(moves, minMoves));
   const partial = Math.round(70 * clamp(progress, 0, 1));
   return clamp(Math.max(partial, fewerBlockers ? 10 : 0), 0, 70);
 }
@@ -547,6 +570,7 @@ export function scoreBlockParty(
   timeLimitMs: number = BLOCK_TIME_MS,
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
+  if (scoreRev1()) return partialParts((110 * Math.max(0, Math.round(piecesPlaced))) / 8);
   return clamp(BLOCK_PIECE_POINTS * Math.max(0, Math.round(piecesPlaced)), 0, MAX_ROUND_SCORE);
 }
 
@@ -568,6 +592,7 @@ export function movesPoints(points: number, moves: number, minMoves: number): nu
 
 /** Shape A: complete = 130 + SPEED(20). */
 export function standardComplete(msRemaining: number, timeLimitMs: number): number {
+  if (scoreRev1()) return finishParts(speedPoints(30, msRemaining, timeLimitMs));
   return clamp(130 + speedPoints(20, msRemaining, timeLimitMs), 0, MAX_ROUND_SCORE);
 }
 
@@ -586,6 +611,8 @@ export function scoreSolvedMoves(
   limitMs: number,
   shape: MovesShape = "B",
 ): number {
+  // Rev 1, every moves game: 120 + MOVES(15) + PAR(15); a solve never scores under 120.
+  if (scoreRev1()) return finishParts(speedPoints(PUZZLE_SPEED_POINTS, msRemaining, limitMs), movesPoints(15, moves, minMoves), "moves");
   const w = MOVES_SHAPE[shape];
   return clamp(
     BASE_POINTS + movesPoints(w.moves, moves, minMoves) + speedPoints(w.speed, msRemaining, limitMs),
@@ -601,7 +628,10 @@ export function solvedMovesText(
   msRemaining: number | undefined,
   limitMs: number,
   shape: MovesShape = "B",
+  parts?: ScoreParts | null,
 ): string {
+  // puzzleScoreRev 1 rounds show the breakdown the server stored.
+  if (parts?.kind === "finish") return `Solved · ${moves} moves${minMoves > 0 ? ` (min ${minMoves})` : ""} · ${scorePartsText(parts)}`;
   const w = MOVES_SHAPE[shape];
   const mb = movesPoints(w.moves, moves, minMoves);
   const sb = speedPoints(w.speed, msRemaining ?? 0, limitMs);
@@ -621,9 +651,16 @@ export function scoreLightsOut(
   lightsLeftOn: number,
   correctTaps: number,
   timeLimitMs: number = LIGHTS_TIME_MS,
+  wrongStanding = 0,
 ): number {
   if (solved) return scoreSolvedMoves(presses, minPresses, msRemaining, timeLimitMs);
   const left = Math.max(0, Math.round(lightsLeftOn));
+  if (scoreRev1()) {
+    // Rev 1: 1–4 lights left = 110 / 95 / 80 / 65 when the player has pressed; else 5 per solution cell standing
+    // less 5 per other cell standing (pressed an odd number of times), at most 45, so pressing everywhere earns nothing.
+    if (presses > 0 && left >= 1 && left <= 4) return partialParts(125 - 15 * left);
+    return partialParts(Math.min(45, 5 * (Math.max(0, Math.round(correctTaps)) - Math.max(0, wrongStanding))));
+  }
   if (left === 1) return 85;
   if (left === 2) return 75;
   if (left === 3) return 60;
@@ -637,8 +674,15 @@ export function scorePipes(
   connected: number,
   msRemaining: number,
   timeLimitMs: number = PIPES_TIME_MS,
+  startConnected = 0,
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
+  if (scoreRev1()) {
+    // Rev 1: only tiles the player joined beyond the starting board count.
+    // Squared, so random turns that join a few tiles earn about nothing.
+    const gained = Math.max(0, Math.round(connected) - Math.round(startConnected));
+    return partialParts(110 * (gained / Math.max(1, PIPES_CELLS - Math.round(startConnected))) ** 2);
+  }
   const joined = clamp(Math.round(connected), 0, PIPES_CELLS);
   if (joined >= PIPES_CELLS - 1) return 90;
   if (joined >= PIPES_CELLS - 2) return 85;
@@ -653,9 +697,12 @@ export function scoreSudoku(
   totalCells: number,
   msRemaining: number,
   timeLimitMs: number = SUDOKU_TIME_MS,
+  wrongCells = 0,
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
   const total = Math.max(1, totalCells);
+  // Rev 1: each wrong digit left in the grid costs 5, as in Mosaic.
+  if (scoreRev1()) return partialParts(Math.round((SUDOKU_PARTIAL_POINTS * correctCells) / total) - 5 * Math.max(0, wrongCells));
   return clamp(Math.round((SUDOKU_PARTIAL_POINTS * correctCells) / total), 0, SUDOKU_PARTIAL_POINTS);
 }
 
@@ -669,6 +716,8 @@ export function scoreFlow(
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
   const pairs = clamp(Math.round(pairsJoined), 0, Math.max(1, Math.round(totalPairs)));
+  // Rev 1: every pair joined with cells still empty is the 110 top.
+  if (scoreRev1()) return partialParts((110 * pairs) / Math.max(1, Math.round(totalPairs)));
   return clamp(FLOW_PAIR_POINTS * pairs, 0, MAX_ROUND_SCORE);
 }
 
@@ -682,6 +731,8 @@ export function scoreIceSlide(
   timeLimitMs: number = SLIDE_TIME_MS,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: the grader passes (start − best) ÷ (start − 1), so one move from the exit is 110, × wasteFactor.
+  if (scoreRev1()) return partialParts(110 * clamp(progress, 0, 1) * wasteFactor(moves, minMoves));
   return clamp(Math.round(SLIDE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, SLIDE_PARTIAL_POINTS);
 }
 
@@ -694,9 +745,12 @@ export function scorePush(
   cratesHome: number,
   totalCrates: number,
   timeLimitMs: number = PUSH_TIME_MS,
+  homeAtStart = 0,
 ): number {
   if (solved) return scoreSolvedMoves(pushes, minPushes, msRemaining, timeLimitMs);
   const total = Math.max(1, totalCrates);
+  // Rev 1: crates the player brought home (not ones that started there); all but one home is 110.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, cratesHome - homeAtStart)) / Math.max(1, total - 1 - homeAtStart)) * wasteFactor(pushes, minPushes));
   return clamp(Math.round((PUSH_PARTIAL_POINTS * cratesHome) / total), 0, PUSH_PARTIAL_POINTS);
 }
 
@@ -708,6 +762,12 @@ export function scoreLaser(
   msRemaining: number,
   timeLimitMs: number = LASER_TIME_MS,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: shots are the tries measure (15 / 8 / 0) + PAR(15); unsolved 22 per gem lit, at most 110.
+    if (solved) return finishParts(speedPoints(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs), tryEfficiency(fires), "shots");
+    if (fires < 1) return partialParts(0);
+    return partialParts(22 * clamp(Math.round(gemsLit), 0, LASER_GEMS));
+  }
   if (solved) {
     const shot = Math.max(1, Math.min(LASER_FIRE_BASE.length, Math.round(fires) || 1));
     return clamp(LASER_FIRE_BASE[shot - 1]! + speedPoints(20, msRemaining, timeLimitMs), 0, MAX_ROUND_SCORE);
@@ -726,11 +786,17 @@ export function scoreTower(
   timeLimitMs: number,
   correctFromBottom: number,
   discs: number,
+  homeAtStart = 0,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
   const total = Math.max(1, discs);
+  // Rev 1: only rings the player stacked count (not ones already home at the start); all but the top ring is 110.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, correctFromBottom - homeAtStart)) / Math.max(1, total - 1 - homeAtStart)) * wasteFactor(moves, minMoves));
   return clamp(Math.round((TOWER_PARTIAL_POINTS * correctFromBottom) / total), 0, TOWER_PARTIAL_POINTS);
 }
+
+/** Labyrinth rev 1: the share of the route next to the start that earns no credit. */
+export const MAZE_REV1_DEAD_ZONE = 0.05;
 
 /** Maze Dash (A). Unfinished round(110 × progress). */
 export function scoreMaze(
@@ -740,6 +806,9 @@ export function scoreMaze(
   timeLimitMs: number = MAZE_TIME_MS,
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
+  // Rev 1: the grader passes the furthest route step beyond the start ÷ the steps to the exit (the start cell is 0);
+  // the first MAZE_REV1_DEAD_ZONE of the route (cells a scribble reaches by chance) earns nothing.
+  if (scoreRev1()) return partialParts((110 * Math.max(0, clamp(progress, 0, 1) - MAZE_REV1_DEAD_ZONE)) / (1 - MAZE_REV1_DEAD_ZONE));
   return clamp(Math.round(MAZE_PARTIAL_POINTS * clamp(progress, 0, 1)), 0, MAZE_PARTIAL_POINTS);
 }
 
@@ -754,10 +823,18 @@ export function scoreTubes(
   msRemaining: number,
   sortedTubes: number,
   timeLimitMs: number = TUBES_TIME_MS,
+  colours = 0,
+  sortedAtStart = 0,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: flasks the player corked beyond the start; all colours but one corked is 110.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(sortedTubes) - sortedAtStart)) / Math.max(1, colours - 1 - sortedAtStart)) * wasteFactor(moves, minMoves));
   return clamp(TUBES_TUBE_POINTS * Math.max(0, Math.round(sortedTubes)), 0, UNFINISHED_CAP);
 }
+
+/** Safe Cracker rev 1 unfinished: points per dial right on the last try beyond the first (a lucky dial is free). */
+export const SAFE_REV1_DIAL_POINTS = 25;
+export const SAFE_REV1_FREE_DIALS = 1;
 
 /** Safe Cracker: try 1 / 2 / 3 = 130 / 115 / 100 + SPEED(20); else 15 per dial on the last try. */
 export function scoreSafe(
@@ -766,6 +843,11 @@ export function scoreSafe(
   dialsRight: number,
   timeLimitMs: number = SAFE_TIME_MS,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: tries are the efficiency measure (15 / 8 / 0) + PAR(15).
+    if (openedOn >= 1 && openedOn <= SAFE_TRY_POINTS.length) return finishParts(speedPoints(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs), tryEfficiency(openedOn), "tries");
+    return partialParts(SAFE_REV1_DIAL_POINTS * Math.max(0, dialsRight - SAFE_REV1_FREE_DIALS));
+  }
   if (openedOn >= 1 && openedOn <= SAFE_TRY_POINTS.length) {
     return clamp(SAFE_TRY_POINTS[openedOn - 1]! + speedPoints(20, msRemaining, timeLimitMs), 0, MAX_ROUND_SCORE);
   }
@@ -785,6 +867,8 @@ export function scoreBomb(
   steps?: number,
 ): number {
   if (defused) return standardComplete(msRemaining, timeLimitMs);
+  // Rev 1 (six steps): 22 per correct leading step, so five of six is 110.
+  if (scoreRev1() && steps && steps > 0) return partialParts((110 * Math.min(correctPrefix, steps - 1)) / Math.max(1, steps - 1));
   if (steps && steps > 0) {
     return clamp(Math.round((BOMB_PARTIAL_POINTS * Math.min(correctPrefix, steps)) / steps), 0, BOMB_PARTIAL_POINTS);
   }
@@ -799,8 +883,12 @@ export function scoreGravity(
   msRemaining: number,
   locked: number,
   timeLimitMs: number = GRAV_TIME_MS,
+  lockedAtStart = 0,
+  balls = 4,
 ): number {
   if (solved) return scoreSolvedMoves(tilts, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: balls the player parked beyond the start; all but one parked is 110.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(locked) - lockedAtStart)) / Math.max(1, balls - 1 - lockedAtStart)) * wasteFactor(tilts, minMoves));
   return clamp(GRAV_LOCK_POINTS * Math.max(0, Math.round(locked)), 0, MAX_ROUND_SCORE);
 }
 
@@ -816,7 +904,8 @@ export function scoreIntruder(
   msRemaining: number,
   timeLimitMs: number = INTRUDER_TIME_MS,
 ): number {
-  if (allCorrect) return standardComplete(msRemaining, timeLimitMs);
+  // Interloper is retiring: its formula stays the legacy one on every revision.
+  if (allCorrect) return clamp(130 + speedPoints(20, msRemaining, timeLimitMs), 0, MAX_ROUND_SCORE);
   return clamp(Math.round(points), 0, MAX_ROUND_SCORE);
 }
 
@@ -831,8 +920,12 @@ export function scoreNonogram(
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
   const share = total > 0 ? Math.round((NONO_PARTIAL_POINTS * correct) / total) : 0;
+  if (scoreRev1()) return partialParts(share - NONO_WRONG_PENALTY * wrong);
   return clamp(share - NONO_WRONG_PENALTY * wrong, 0, NONO_PARTIAL_POINTS);
 }
+
+/** Matchmaker rev 1: mismatched tries that cost nothing (finding 15 pairs needs about this many even with a perfect memory). */
+export const PAIR_REV1_FREE_MISSES = 25;
 
 /** Pair Match (A). Unfinished 8 per pair. */
 export function scorePairMatch(
@@ -840,8 +933,14 @@ export function scorePairMatch(
   pairs: number,
   msRemaining: number,
   timeLimitMs: number = PAIR_TIME_MS,
+  tries = 0,
 ): number {
   if (solved) return standardComplete(msRemaining, timeLimitMs);
+  // Rev 1: 110 × pairs ÷ 14, less 1 per mismatched try beyond PAIR_REV1_FREE_MISSES (random flipping earns nothing).
+  if (scoreRev1()) {
+    const misses = Math.max(0, Math.round(tries) - Math.round(pairs));
+    return partialParts((110 * clamp(Math.round(pairs), 0, PAIR_PAIRS - 1)) / (PAIR_PAIRS - 1) - Math.max(0, misses - PAIR_REV1_FREE_MISSES));
+  }
   return clamp(PAIR_PAIR_POINTS * clamp(Math.round(pairs), 0, PAIR_PAIRS), 0, MAX_ROUND_SCORE);
 }
 
@@ -853,8 +952,11 @@ export function scoreFlood(
   region: number,
   msRemaining: number,
   timeLimitMs: number = FLOOD_TIME_MS,
+  regionAtStart = 0,
 ): number {
   if (solved) return scoreSolvedMoves(moves, par, msRemaining, timeLimitMs, "C");
+  // Rev 1: only cells the player flooded beyond the starting region count.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, region - regionAtStart)) / Math.max(1, FLOOD_CELLS - regionAtStart)) * wasteFactor(moves, par));
   return clamp(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
     0,
@@ -886,8 +988,11 @@ export function scoreTiles(
   inPlace: number,
   msRemaining: number,
   timeLimitMs: number = TILES_TIME_MS,
+  startInPlace = 0,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: the grader passes only tiles the player put in place (not ones that started there).
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(inPlace))) / Math.max(1, TILES_COUNT - 1 - startInPlace)) * wasteFactor(moves, minMoves));
   return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 90);
 }
 
@@ -899,7 +1004,10 @@ export function scoreRings(
   aligned: number,
   msRemaining: number,
   timeLimitMs: number = RINGS_TIME_MS,
+  alignedAtStart = 0,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // Rev 1: spokes the player lined up beyond the start; all but one is 110.
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(aligned) - alignedAtStart)) / Math.max(1, RINGS_SEGMENTS - 1 - alignedAtStart)) * wasteFactor(moves, minMoves));
   return clamp(RINGS_SPOKE_POINTS * clamp(Math.round(aligned), 0, RINGS_SEGMENTS), 0, MAX_ROUND_SCORE);
 }

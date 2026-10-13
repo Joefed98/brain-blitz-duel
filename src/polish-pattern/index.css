@@ -1,0 +1,12 @@
+/* Pattern polish (13 Oct 2026): drawing, animation and layout for the ten Pattern games.
+   One file per game; presentation only. */
+@import "./unblock.css";
+@import "./blockparty.css";
+@import "./iceslide.css";
+@import "./gravity.css";
+@import "./tiles.css";
+@import "./rings.css";
+@import "./laser.css";
+@import "./flow.css";
+@import "./pipes.css";
+@import "./push.css";

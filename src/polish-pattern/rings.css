@@ -1,0 +1,75 @@
+/* Pattern polish: rings (Turntable). Presentation only. */
+
+/* ---- Turn: the rings that moved together flash once inside their bands -- */
+.rings-turn-flash { animation: rings-turn-flash 380ms ease-out both; }
+@keyframes rings-turn-flash {
+  0% { opacity: 0; }
+  25% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+/* ---- Deck lights ------------------------------------------------------- */
+.rings-led-power { opacity: 0.9; }
+.rings-deck[data-celebrate="on"] .rings-led-sync { animation: rings-led-blink 1100ms steps(1, end) both; }
+@keyframes rings-led-blink {
+  0%, 20%, 40%, 60%, 80% { opacity: 1; }
+  10%, 30%, 50%, 70% { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+
+/* ---- Solve: the record spins up like a deck starting (1.1 s, settles on a
+   whole number of turns so the lined-up spokes land where they were) ------ */
+.rings-record-spinup {
+  animation: rings-spinup 1100ms cubic-bezier(0.55, 0, 0.3, 1) both;
+  will-change: transform;
+}
+@keyframes rings-spinup {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+/* Strobe dots flash faster as the platter comes up to speed, chasing round the rim. */
+.rings-deck[data-celebrate="on"] .rings-strobe-lit {
+  animation: rings-strobe 1000ms linear both;
+  animation-delay: calc(var(--spoke) * 14ms);
+}
+@keyframes rings-strobe {
+  0%, 14%, 28%, 40%, 50%, 58%, 66%, 73%, 80%, 86%, 92%, 100% { opacity: 1; }
+  7%, 21%, 34%, 45%, 54%, 62%, 70%, 77%, 83%, 89%, 96% { opacity: 0.2; }
+}
+/* The gold rim is the reduced-motion signal; with motion it only glints in and out. */
+.rings-solve-rim { animation: rings-rim 1100ms ease-out both; }
+@keyframes rings-rim {
+  0% { opacity: 0; }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rings-turn-flash,
+  .rings-record-spinup,
+  .rings-deck[data-celebrate="on"] .rings-strobe-lit,
+  .rings-deck[data-celebrate="on"] .rings-led-sync { animation: none; }
+  .rings-solve-rim { animation: none; opacity: 0.9; }
+}
+
+/* ---- Arena: legend, deck and controls centred as one block -------------- */
+.game-column [data-polish="rings"] > [data-game-arena="board"].puzzle-square-space {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* ---- Reveal: decks as large as the space allows, no scrolling ----------- */
+.rings-reveal-space {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 96px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.rings-reveal-space > svg {
+  width: min(100cqw, 100cqh, 300px);
+  height: min(100cqw, 100cqh, 300px);
+}
+.rings-reveal-mine { flex-grow: 0.8; }

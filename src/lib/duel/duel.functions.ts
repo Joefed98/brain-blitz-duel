@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
@@ -734,12 +735,22 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       answer: string;
       msRemaining: number;
       extra?: SubmitExtra;
+      /** The phone's build id (appVersion.ts); missing from copies older than it. */
+      clientVersion?: string;
     }) => input,
   )
   .handler(async ({ data, context }) => {
     const client = await db();
     const player = await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
+
+    // Log only: grading never depends on the client's version.
+    const staleNote = staleSubmissionNote(
+      "submit_answer",
+      data.clientVersion,
+      `room ${room.id}, round ${data.roundNumber}, slot ${player.player_slot}`,
+    );
+    if (staleNote) console.warn(staleNote);
 
     if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
       return { ok: false as const, message: "That round is over." };

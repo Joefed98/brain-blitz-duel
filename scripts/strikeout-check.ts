@@ -10,11 +10,13 @@
  *   4. replay rules: guesses fill every matching tile, misses and wrong solves
  *      strike, non-words are refused free, five strikes end it, the stored
  *      answer replays identically without a dictionary;
- *   5. score anchors: perfect 150, minimum finish 124, best unfinished 88,
- *      nothing 0; finishing always beats not finishing; cap 150.
+ *   5. score anchors: new rounds (puzzleScoreRev 1) perfect 150, minimum finish
+ *      123, best unfinished 110, nothing 0; stored rounds minimum finish 124,
+ *      best unfinished 88; finishing always beats not finishing; cap 150.
  *
  *   bun scripts/strikeout-check.ts
  */
+import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import assert from "node:assert/strict";
 
 import { answerWords, isWord } from "../src/lib/duel/dictionary.server";
@@ -149,7 +151,10 @@ check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
   check("nothing scores 0", grade([], LIMIT) === 0);
   check("perfect run 150", grade(all, LIMIT) === 150);
   check("perfect at half time still 150", grade(all, LIMIT / 2) === 150);
-  check("minimum finish (4 strikes, buzzer) 124", grade([...strikes(4), ...all], 0) === 124);
+  // New rounds carry the Oct 2026 puzzle score shape (puzzleScoreRev 1): 120 + 3 per strike left + PAR(15).
+  check("minimum finish (4 strikes, buzzer) 123", grade([...strikes(4), ...all], 0) === 123);
+  const { puzzleScoreRev: _rev, ...storedP } = p as typeof p & { puzzleScoreRev?: number };
+  check("stored round minimum finish (4 strikes, buzzer) 124", gradeAnswer(storedP as typeof p, encodeStrikeout([...strikes(4), ...all]), 0).score === 124);
   // Best unfinished: four words solved, four tiles of the fifth showing, then five strikes.
   const last = words[4]!;
   const others = new Set(words.slice(0, 4).join(""));
@@ -159,7 +164,7 @@ check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
     const lead = words.slice(0, 4).map((w, row) => ({ kind: "solve", row, word: w }) as SoAction);
     const fill = [...new Set([...last].filter((ch) => ch !== missing))].map((letter) => ({ kind: "guess", letter }) as SoAction);
     bestUnfinished = grade([...lead, ...fill, ...strikes(5)], LIMIT);
-    check(`best unfinished replay scores 88 (got ${bestUnfinished})`, bestUnfinished === 88);
+    check(`best unfinished replay scores 110 (got ${bestUnfinished})`, bestUnfinished === 110);
   }
   // Every unfinished tally, and every finished one, by the formula.
   let maxUnfinished = 0;
@@ -176,7 +181,22 @@ check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
   check(`unfinished never above 110 (max ${maxUnfinished})`, maxUnfinished <= 110 && maxUnfinished === 88);
   check(`finishing beats any unfinished (${minFinished} > ${maxUnfinished})`, minFinished > maxUnfinished && minFinished === 124);
   check(`cap 150 (max ${maxFinished})`, maxFinished === 150);
-  console.log(`anchors: perfect ${grade(all, LIMIT)}, min finish ${grade([...strikes(4), ...all], 0)}, best unfinished ${bestUnfinished || maxUnfinished}, nothing ${grade([], LIMIT)}`);
+  // The same sweep on the new shape: unfinished tops at 110 (four words), every finish 123–150.
+  withPuzzleScoreRev(1, () => {
+    let maxU = 0, minF = 999, maxF = 0;
+    for (let solved = 0; solved <= 4; solved++)
+      for (let tiles = 0; tiles <= (5 - solved) * 4; tiles++)
+        maxU = Math.max(maxU, scoreStrikeout({ solvedRows: solved, partialTiles: tiles, strikes: 5, done: false }, LIMIT, LIMIT));
+    for (let s = 0; s < 5; s++)
+      for (const ms of [0, 1, LIMIT / 4, LIMIT / 2, LIMIT]) {
+        const v = scoreStrikeout({ solvedRows: 5, partialTiles: 0, strikes: s, done: true }, ms, LIMIT);
+        minF = Math.min(minF, v);
+        maxF = Math.max(maxF, v);
+      }
+    check(`rev 1: unfinished tops at 110 (max ${maxU})`, maxU === 110);
+    check(`rev 1: every finish 123-150 (${minF}-${maxF})`, minF === 123 && maxF === 150);
+  });
+  console.log(`anchors (new rounds): perfect ${grade(all, LIMIT)}, min finish ${grade([...strikes(4), ...all], 0)}, best unfinished ${bestUnfinished || 110}, nothing ${grade([], LIMIT)}; stored rounds: min finish 124, best unfinished ${maxUnfinished}`);
 }
 
 if (failures.length) {

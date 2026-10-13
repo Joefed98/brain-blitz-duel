@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
+import { firePairWave } from "@/components/puzzles/pairMatchFx";
+import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { decodePairFlips, encodePairFlips, replayPairs, sameCard } from "@/lib/duel/pairmatch";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -76,18 +78,26 @@ function Board({
           <button
             key={index}
             type="button"
+            data-pair-card=""
             aria-label={open ? `${card.colour} ${card.shape}` : "Face-down card"}
             onPointerDown={onCard ? () => onCard(index) : undefined}
-            className={`pairmatch-card flex aspect-square items-center justify-center rounded-lg border-2 transition-transform ${
-              matched.has(index)
-                ? "border-primary bg-primary/10"
-                : open
-                  ? "border-border bg-card"
-                  : "pairmatch-card-back border-border"
-            }`}
-            style={{ transitionDuration: `${PAIR_FLIP_MS}ms` }}
+            className="pairmatch-card relative aspect-square rounded-lg border-0 bg-transparent p-0 [-webkit-tap-highlight-color:transparent]"
           >
-            {open ? <CardFace card={card} size={glyph} /> : null}
+            {/* Two-sided card turned in 3D over the same PAIR_FLIP_MS as before (display only). */}
+            <span
+              className={`pairmatch-flipper ${open ? "is-open" : ""}`}
+              style={{ transitionDuration: `${PAIR_FLIP_MS}ms` }}
+              aria-hidden="true"
+            >
+              <span className="pairmatch-face pairmatch-card-back rounded-lg border-2 border-border" />
+              <span
+                className={`pairmatch-face pairmatch-face-front flex items-center justify-center rounded-lg border-2 ${
+                  matched.has(index) ? "is-matched border-primary bg-primary/10" : "border-border bg-card"
+                }`}
+              >
+                {open ? <CardFace card={card} size={glyph} /> : null}
+              </span>
+            </span>
           </button>
         );
       })}
@@ -135,6 +145,8 @@ function Stage({
   const [open, setOpen] = useStageState<number[]>(stateKey, "pairOpen", () => []);
   const submitted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => registerFxPreview("pairmatch", () => firePairWave(boardRef.current, 6)), []);
 
   const replay = data ? replayPairs(data.cards, flips) : null;
   const matched = new Set(replay?.matched ?? []);
@@ -171,6 +183,8 @@ function Stage({
       setOpen([]);
       if (replayPairs(data.cards, nextFlips).solved) {
         submitted.current = true;
+        // Finish effect fires synchronously, then the flips are submitted exactly as before.
+        firePairWave(boardRef.current, 6);
         onSubmit(encodePairFlips(nextFlips));
       }
       return;
@@ -183,7 +197,7 @@ function Stage({
 
   return (
     <div data-polish="pairmatch" data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-      <div data-game-arena="fixed" className="w-full max-w-[340px]">
+      <div ref={boardRef} data-game-arena="fixed" className="w-full max-w-[340px]">
         <Board
           cards={data.cards}
           faceUp={new Set(open)}
@@ -209,7 +223,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="w-full max-w-[240px] shrink-0">
+      <div className="w-full max-w-[288px] shrink-0">
         <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact />
       </div>
       <p

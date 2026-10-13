@@ -1,0 +1,208 @@
+/* Pattern polish: laser (Lightbender). Presentation only. */
+
+/* --- Board: a dark optical bench; tiles sit in it like recessed plates. --- */
+.laser-board {
+  border-radius: 8px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(245, 198, 76, 0.07), transparent 60%),
+    linear-gradient(180deg, #14161d, #0d0e13);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 18px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 400ms ease-out;
+}
+.laser-board .laser-cell,
+.laser-board .laser-cell[data-puzzle-cell],
+.laser-board .laser-piece-cell {
+  border-radius: 3px;
+  background-color: #1a1c24 !important;
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.18) 70%);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+}
+.laser-board .laser-cell.border-primary\/50,
+.laser-board .laser-cell.border-primary\/50[data-puzzle-cell] {
+  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+}
+
+/* Blocks: bevelled slate, clearly solid. */
+.laser-board .laser-block,
+.laser-board .laser-block[data-puzzle-cell] {
+  background-color: #59607a !important;
+  background-image:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(330deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 50%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* The emitter cell: a dark bay the housing sits in. */
+.laser-board .laser-source-cell,
+.laser-board .laser-source-cell[data-puzzle-cell] {
+  background-color: #241e10 !important;
+  background-image: radial-gradient(circle at 50% 50%, rgba(245, 198, 76, 0.28), transparent 70%);
+  box-shadow: inset 0 0 0 1px rgba(245, 198, 76, 0.45);
+}
+.laser-emitter-lens {
+  fill: #f5c64c;
+  transition: fill 160ms ease-out, filter 160ms ease-out;
+}
+.laser-emitter-firing .laser-emitter-lens {
+  fill: #fff6d6;
+  filter: drop-shadow(0 0 2px #f7c548);
+}
+
+/* --- Gems --- */
+.laser-gem {
+  overflow: visible;
+}
+.laser-gem-aura {
+  fill: rgba(247, 197, 72, 0.22);
+}
+.laser-gem-lit {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-gem-pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+@keyframes laser-gem-pop {
+  from { transform: scale(0.7); }
+  to { transform: scale(1); }
+}
+.laser-gem-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-gem-twinkle 1500ms ease-in-out infinite;
+}
+@keyframes laser-gem-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.55) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+
+/* --- Bombs --- */
+.laser-bomb-danger {
+  fill: rgba(255, 77, 77, 0.14);
+  stroke: rgba(255, 77, 77, 0.55);
+  stroke-width: 0.9;
+}
+.laser-bomb-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-bomb-fizz 520ms steps(2, jump-none) infinite;
+}
+@keyframes laser-bomb-fizz {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.55; transform: scale(0.7) rotate(30deg); }
+}
+.laser-bomb-hit .laser-bomb-danger {
+  fill: rgba(255, 77, 77, 0.5);
+  stroke: #ff4d4d;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-bomb-blast 420ms ease-out both;
+}
+@keyframes laser-bomb-blast {
+  0% { transform: scale(0.6); opacity: 1; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.85; }
+}
+
+/* --- Mirrors: drop in and turn into place --- */
+.laser-mirror-in {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-mirror-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes laser-mirror-in {
+  from { transform: rotate(-90deg) scale(0.7); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+
+/* --- Completion: the beam brightens to full, gems burst in beam order --- */
+.laser-beam-flare {
+  opacity: 0;
+  animation: laser-flare 1150ms ease-out both;
+}
+@keyframes laser-flare {
+  0% { opacity: 0; }
+  18% { opacity: 0.55; }
+  70% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+.laser-beam-solved .laser-beam-core {
+  animation: laser-core-hot 1150ms ease-out both;
+}
+@keyframes laser-core-hot {
+  0% { stroke: #fff8e0; }
+  15%, 70% { stroke: #ffffff; }
+}
+.laser-board-solved {
+  box-shadow: inset 0 0 0 1px rgba(245, 198, 76, 0.7), inset 0 0 22px rgba(245, 198, 76, 0.22);
+}
+.laser-burst {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: laser-burst 520ms cubic-bezier(0.15, 0.7, 0.3, 1) both;
+}
+@keyframes laser-burst {
+  0% { opacity: 0; transform: scale(0.3); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+.laser-burst-ring {
+  fill: none;
+  stroke: #ffd766;
+}
+.laser-burst-core {
+  fill: rgba(255, 246, 214, 0.55);
+}
+.laser-burst-ray {
+  stroke: #fff4cc;
+  stroke-linecap: round;
+}
+
+/* --- Arena: the board centred, equal gaps to the label and the piece tray --- */
+.game-column [data-polish="laser"][data-stage-column] {
+  gap: 8px;
+}
+.game-column [data-polish="laser"] > [data-game-arena="board"] {
+  flex: 0 1 auto;
+  height: min(100cqw, calc(100cqh - 138px));
+}
+
+/* --- Reveal: both boards as large as the space allows --- */
+.answer-reveal-content > .laser-reveal {
+  flex: 1 1 0;
+  min-height: 0;
+  container-type: size;
+  justify-content: center;
+}
+.laser-reveal > .laser-reveal-boards {
+  flex: 0 1 auto;
+}
+.laser-reveal-board {
+  width: min(calc((100cqw - 12px) / 2), calc(100cqh - 76px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .laser-gem-lit,
+  .laser-gem-sparkle,
+  .laser-bomb-spark,
+  .laser-bomb-hit .laser-bomb-danger,
+  .laser-mirror-in,
+  .laser-burst {
+    animation: none;
+  }
+  .laser-burst {
+    opacity: 0;
+  }
+  .laser-beam-flare {
+    animation: none;
+    opacity: 0.4;
+  }
+  .laser-beam-solved .laser-beam-core {
+    animation: none;
+    stroke: #ffffff;
+  }
+}

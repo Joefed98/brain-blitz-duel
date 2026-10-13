@@ -17,7 +17,8 @@ import {
   type WordfallState,
 } from "@/lib/arcade/wordfall";
 import { loadWordfallDict, wordfallDictReady } from "@/lib/arcade/wordfallDict";
-import { wordfallArtGame } from "@/lib/arcade/wordfall.renderer";
+import { wordfallArtGame, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
+import { wordCue } from "@/components/puzzles/wordFinish";
 import { TOY_BRASS, TOY_INK, TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { WORDFALL_TIME_MS, type WordfallPuzzleData } from "@/lib/duel/types";
@@ -114,8 +115,15 @@ function observer(setDev: (line: string | null) => void) {
     const dev = devDiagnosticsOn();
     let seen: { tick: number; words: number; invalid: number; chain: number; over: number } | null = null;
     let lastDev = -1;
+    let shimmered = false;
     return {
       frame: (s: WordfallState, running: boolean) => {
+        // The renderer starts the end-of-run shimmer on this same frame.
+        if (!shimmered && wordfallEarnsShimmer(s)) {
+          shimmered = true;
+          wordfallStartShimmer(s);
+          wordCue("wordfall.finish");
+        }
         if (seen && s.tick >= seen.tick && running) {
           if (s.words > seen.words) playCorrect();
           else if (s.invalid > seen.invalid || (s.over && !seen.over)) playWrong();
@@ -145,6 +153,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const dict = useWordfallDict();
   const [dev, setDev] = useState<string | null>(null);
   const [sounds] = useState(() => observer(setDev));
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const onDev = () => {
+      wordfallShimmerDev();
+      wordCue("wordfall.finish");
+    };
+    window.addEventListener("duelz-dev-word-finish", onDev);
+    return () => window.removeEventListener("duelz-dev-word-finish", onDev);
+  }, []);
   return (
     <ArcadeCanvasStage
       diagKey="wordfall"
