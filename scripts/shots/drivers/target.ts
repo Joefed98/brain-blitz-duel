@@ -35,4 +35,5 @@ export const driver: Driver = {
   solve: async ({ page, puzzle }) => {
     for (const s of puzzle.solution.slice(2)) await exactStep(page, s.a, s.operator, s.b);
   },
+  completeShotMs: 200,
 };
