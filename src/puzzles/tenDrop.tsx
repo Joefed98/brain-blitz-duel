@@ -45,6 +45,7 @@ const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "
 
 /** Toybox look (Number polish, Oct 2026): the HUD plank, its pegs and the effects. Presentation only. */
 const TD_CSS = `
+.game-column-centred [data-polish="tendrop"][data-stage-column] > [data-game-arena][data-play-area].td-board { margin-top: 0; margin-bottom: 0; }
 [data-polish="tendrop"] .td-hud { background: linear-gradient(180deg, #5A3A20, #3E2716); border: 2px solid #2B1A0E; border-bottom: 3px solid #D4A84A; border-radius: 12px 12px 0 0; box-shadow: inset 0 1px 0 rgba(255,230,180,0.25); }
 [data-polish="tendrop"] .td-label { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; line-height: 1; color: rgba(255,244,222,0.85); }
 [data-polish="tendrop"] .td-total { color: #F7CF63; display: inline-block; }
