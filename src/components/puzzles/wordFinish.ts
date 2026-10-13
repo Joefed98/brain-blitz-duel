@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 
+import { soundCue as dispatchSoundCue } from "@/lib/fx/soundCues";
 import { prefersReducedMotion } from "@/lib/motion";
+import { demoHushed } from "@/lib/sound";
 
 import "./wordPolish.css";
 
@@ -33,10 +35,13 @@ export type WordGameId =
   | "swapword"
   | "wordfall";
 
-/** Dispatches a named sound cue for the sound pass ("<gameId>.<event>"). */
+/**
+ * Dispatches a named sound cue ("<gameId>.<event>") through the shared
+ * soundCue helper; silent while an intro demo is hushed. No audio is played.
+ */
 export function wordCue(cue: string): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue } }));
+  if (demoHushed()) return;
+  dispatchSoundCue(cue);
 }
 
 /** One animated element: its keyframes and when it starts (ms from the solve). */

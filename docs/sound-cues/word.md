@@ -1,11 +1,10 @@
 # Sound cues: Word games
 
 Added by the Word puzzle polish (13 Oct 2026). No audio is attached yet: each moment only
-dispatches a named cue for the sound pass to pick up:
-
-```js
-window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue: "<gameId>.<event>" } }));
-```
+dispatches a named cue for the sound pass to pick up, through `wordCue()` in
+`src/components/puzzles/wordFinish.ts`, which hands it to the shared `soundCue()`
+(`src/lib/fx/soundCues.ts`, the `duelz-sound` window event) and stays silent while an intro
+demo is hushed (`demoHushed()`), as the other groups' helpers do.
 
 Every cue fires once, on the phone that sees the moment, and it fires even with reduced
 motion (the effect is then a short glow in place, 420 ms). Effects are presentation only:

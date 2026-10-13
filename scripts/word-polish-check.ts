@@ -46,6 +46,9 @@ const documented = new Set([...doc.matchAll(/^\| `([a-z]+\.[a-z]+)` \|/gm)].map(
 for (const cue of used) ok(documented.has(cue), `${cue} is listed in docs/sound-cues/word.md`);
 for (const cue of documented) ok(used.has(cue), `${cue} in the doc is dispatched somewhere`);
 ok(used.size === 10, `one completion cue per word game (got ${used.size})`);
+const finishSrc = readFileSync("src/components/puzzles/wordFinish.ts", "utf8");
+ok(/from "@\/lib\/fx\/soundCues"/.test(finishSrc) && /if \(demoHushed\(\)\) return;\s*dispatchSoundCue\(cue\)/.test(finishSrc), "cues go through the shared soundCue helper, silent in hushed intro demos");
+ok(!/new CustomEvent\("duelz-sound"/.test(FILES.map((f) => readFileSync(f, "utf8")).join("\n")), "no game dispatches duelz-sound by hand");
 
 // 2. Effects: clamped to 1.2 s; reduced motion is a still glow.
 class FakeEl {

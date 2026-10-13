@@ -69,3 +69,26 @@ board letters included. Contrast is against the painted background (gradient sto
 | Letterfall | 0 px · 10 px · 6.79 | 0 px · 10 px · 6.79 | – | – |
 
 Letterfall's reveal is the shared arcade reveal (ArcadeReveal), outside this pass; its 10 px stat labels are noted for its owner.
+
+## On the merged code (main with #39–#44 and #46–#49)
+
+Layout 2 (#41) gives every arena auto top/bottom margins. In the word games these stacked with the
+column's own split and pulled HUD rows and banners off their boards: Slider 52 / 99, Cryptogrid 12 / 4,
+and Lookout's category, Forage's points row and Swapword's swaps pill drifted 20–40 px off their boards.
+`wordPolish.css` cancels #41's arena margins inside the ten word stages, and keeps Cryptogrid's
+code key 12 px under its grid (as #49 did for Tenfall). Gaps above / below the play area (px), board in brackets:
+
+| Game | 375×667 | 390×844 | 430×932 |
+|---|---|---|---|
+| Nucleus | 12 / 12 (367) | 93 / 93 (382) | 117 / 117 (422) |
+| Forage | 40 / 36 (367) | 40 / 36 (382) | 40 / 36 (422) |
+| Interlock | 26 / 22 (367) | 108 / 104 (381) | 134 / 130 (416) |
+| Slider | 74 / 78 (372×312) | 157 / 161 (382×322) | 181 / 185 (422×362) |
+| Lookout | 8 / 12 (367) | 8 / 12 (382) | 8 / 12 (422) |
+| Roundabout | 12 / 8 (217×483) | 61 / 57 (260×561) | 100 / 96 (260×572) |
+| Strikeout | 20 / 23 (275×291) | 20 / 23 (342×358) | 21 / 24 (380×396) |
+| Cryptogrid | 12 / 12 (323) | 12 / 12 (382) | 13 / 13 (420) |
+| Swapword | 8 / 14 (367) | 8 / 14 (382) | 19 / 25 (400) |
+| Letterfall | 8 / 16 (299×479) | 8 / 61 (382×611) | 8 / 85 (422×675), shared arcade slot, top-aligned |
+
+All ten reveals still fit 375×667 with no scrolling on the merged code, with main's scores (0 px overflow, smallest text 12 px, lowest contrast 6.0:1).

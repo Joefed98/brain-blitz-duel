@@ -31,3 +31,4 @@ Open the app with `?dev=1` (for example `/practice?dev=1`): a dev-only listener 
 
 - `src/lib/fx/soundCues.ts`: `SOUND_CUE_EVENT`, `soundCue()`, `installSoundCueLogger()`.
 - `docs/sound-cues/shared.md`: the shared cues.
+- `docs/sound-cues/word.md`: the Word games' cues (Nucleus to Letterfall).

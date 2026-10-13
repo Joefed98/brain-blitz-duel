@@ -93,3 +93,17 @@
 
 /* Lookout reveal: missed-word letters a lighter red so they read at 4.5:1 on their tint. */
 [data-word-reveal="wordsearch"] .word-letter-tile.text-destructive.text-destructive { color: color-mix(in oklab, var(--destructive) 65%, white) !important; }
+
+/*
+ * Layout 2 (#41, .game-column-centred) gives every arena auto top/bottom margins.
+ * Here they would stack with the margins above and split HUD rows and banners
+ * (Forage's points, Lookout's category, Swapword's swaps, Strikeout's strikes)
+ * from their boards, so word stages cancel them and keep their own split: the
+ * free height divides above [data-word-first] and above [data-word-controls-first].
+ */
+.game-column.game-column-centred :is([data-word-polish], [data-polish="wordhunt"], [data-polish="wordsearch"])[data-stage-column][data-stage-column] > :is([data-game-arena], [data-arena-part])[class] { margin-bottom: 0; }
+.game-column.game-column-centred :is([data-word-polish], [data-polish="wordhunt"], [data-polish="wordsearch"])[data-stage-column][data-stage-column] > :is([data-game-arena], [data-arena-part])[class]:not([data-game-arena] + *) { margin-top: 0; }
+.game-column.game-column-centred [data-word-polish][data-word-polish][data-stage-column] > [data-word-first][data-word-first][data-word-first] { margin-top: auto; }
+.game-column.game-column-centred [data-word-polish][data-word-polish][data-stage-column] > [data-word-controls-first][data-word-controls-first][data-word-controls-first] { margin-top: auto; }
+/* Cryptogrid: its code key is an arena part right under the grid; keep it 12px below (4px column gap + 8). */
+.game-column.game-column-centred [data-word-polish="codeword"][data-word-polish][data-stage-column] > [data-arena-part="codeword-key"][data-arena-part][data-arena-part] { margin-top: 8px; }
