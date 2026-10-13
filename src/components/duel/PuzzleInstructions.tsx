@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { puzzleDef } from "@/lib/duel/registry";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
+import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
 
 interface PuzzleInstructionsProps {
@@ -70,6 +71,12 @@ interface PuzzleHelpProps {
 export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
   useEffect(() => {
     if (!open) return;
+    soundCue("shared.help.open");
+    return () => soundCue("shared.help.close");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -79,26 +86,45 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
 
   if (!open) return null;
 
+  // The sheet sits over the game region. Its body is its own scroll container
+  // (help-sheet-scroll: pan-y, contained overscroll, data-scrollable for the
+  // game screen's touch blockers), so an arena's touch-action none or a board's
+  // touchmove guard never stops it scrolling, and the page and game behind never
+  // move. The close button sits outside the scroller and is always on screen.
   return (
     <div
       role="presentation"
-      className="absolute inset-0 z-40 flex cursor-pointer items-start justify-center bg-background/90 px-3 pt-2 backdrop-blur-sm"
+      data-help-sheet
+      className="absolute inset-0 z-40 flex cursor-pointer flex-col items-stretch justify-start bg-background/90 px-3 pb-2 pt-2 backdrop-blur-sm"
       onClick={onClose}
+      onPointerDown={(event) => event.stopPropagation()}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={`${puzzleDef(type).name} help`}
-        className="w-full rounded-lg border border-border bg-card p-4 shadow-xl"
+        className="flex max-h-full min-h-0 w-full cursor-default flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+        onClick={(event) => event.stopPropagation()}
       >
-        <p className="mb-3 text-center text-sm font-bold text-foreground">
-          The clock keeps running while this is open.
-        </p>
-        <PuzzleInstructions type={type} overlay />
-        {type === "lightup" && <HelpExample type={type} />}
-        <p className="mt-4 text-center font-mono text-[10px] uppercase text-muted-foreground">
-          Tap anywhere to close
-        </p>
+        <div data-help-header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+          <p className="min-w-0 flex-1 text-sm font-bold text-foreground">The clock keeps running while this is open.</p>
+          <button
+            type="button"
+            data-help-close
+            aria-label="Close help"
+            onClick={onClose}
+            className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-background font-display text-xl font-bold leading-none text-foreground"
+          >
+            ×
+          </button>
+        </div>
+        <div data-help-scroll data-scrollable className="help-sheet-scroll min-h-0 flex-1 px-4 pb-4 pt-3">
+          <PuzzleInstructions type={type} overlay />
+          {type === "lightup" && <HelpExample type={type} />}
+          <p className="mt-4 text-center font-mono text-xs uppercase text-muted-foreground">
+            Tap outside or × to close
+          </p>
+        </div>
       </div>
     </div>
   );

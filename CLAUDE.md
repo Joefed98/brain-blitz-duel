@@ -8,8 +8,10 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 74 active games across Word, Number, Speed, Attention,
-Pattern, Logic and Arcade (Memory is dormant). Built in Lovable, synced to this repo.
+short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
+Pattern, Logic and Arcade (Word 10, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
+Arcade 21; Memory is dormant; 28 retired to practice). Every category the lobby offers keeps at
+least 6 active games (`category-pool-check`). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
 ## Stack
@@ -44,6 +46,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Live feedback comes from `checkMovesFn` / `practiceCheckMovesFn` (`moves.server.ts`): the phone
   sends its whole move list and gets back only the board view. Shared QWERTY keypad:
   `src/components/puzzles/LetterKeypad.tsx`.
+- `src/lib/fx/signature.ts` — the shared signature beat (gold flash + app-logo burst on every
+  solve/finish, fired only from the common points: the rooms/practice verdict and arcadeFeedback);
+  `src/lib/fx/soundCues.ts` and `docs/sound-cues/` — named sound cues (`duelz-sound` events,
+  `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

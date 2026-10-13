@@ -13,6 +13,7 @@ import { playSound, stopMusic } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
 import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
+import { usePerfectBurst } from "@/lib/fx/useSignature";
 
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
@@ -78,6 +79,8 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
 
 /** The only score on the reveal: the server's stored number, never a local calculation. */
 export function StoredScore({ score }: { score: number | null }) {
+  const scoreRef = useRef<HTMLParagraphElement>(null);
+  usePerfectBurst(scoreRef, score);
   if (score === null) {
     return (
       <div data-reveal-score="pending" className="shrink-0">
@@ -86,7 +89,7 @@ export function StoredScore({ score }: { score: number | null }) {
     );
   }
   return (
-    <p data-reveal-score={score} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
+    <p ref={scoreRef} data-reveal-score={score} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
       {score} points
     </p>
   );
