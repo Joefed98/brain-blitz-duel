@@ -48,6 +48,7 @@ import {
   type WavState,
 } from "./wavefront";
 import { artHash, reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 /* Mirrors of private sim constants, used only to place art on the same geometry. */
 const FP = 256;
@@ -61,20 +62,9 @@ function shade(hex: string, amount: number): string {
   return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
 }
 
-/** One enemy hull filling the cell box (x, y, s x s); nose points down at the player. */
-function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
+/** The hull's outline for each kind, filling the cell box (x, y, s x s); nose points down at the player. */
+function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, s: number): void {
   const cx = x + s / 2;
-  const body = ctx.createLinearGradient(x, y, x, y + s);
-  body.addColorStop(0, shade(colour, -0.15));
-  body.addColorStop(0.55, colour);
-  body.addColorStop(1, colour);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, y, s, s);
-  ctx.clip();
-  ctx.fillStyle = body;
-  ctx.strokeStyle = shade(colour, -0.6);
-  ctx.lineWidth = 1;
   ctx.beginPath();
   if (kind === 0) {
     // Interceptor: round core with swept wings, full width.
@@ -108,7 +98,56 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
     ctx.lineTo(x, y + s * 0.3);
     ctx.closePath();
   }
+}
+
+/** The static hull: body gradient, dark rim, Polish G lit edge and panel lines, cockpit. */
+function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
+  const cx = x + s / 2;
+  const body = ctx.createLinearGradient(x, y, x, y + s);
+  body.addColorStop(0, shade(colour, -0.15));
+  body.addColorStop(0.55, colour);
+  body.addColorStop(1, colour);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, s, s);
+  ctx.clip();
+  ctx.fillStyle = body;
+  ctx.strokeStyle = shade(colour, -0.6);
+  ctx.lineWidth = 1;
+  hullPath(ctx, kind, x, y, s);
   ctx.fill();
+  ctx.save();
+  ctx.clip();
+  // Lit from the upper left: a bright inner edge on that side, shade on the other.
+  const rim = ctx.createLinearGradient(x, y, x + s, y + s);
+  rim.addColorStop(0, "rgba(255,255,255,0.55)");
+  rim.addColorStop(0.5, "rgba(255,255,255,0)");
+  rim.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.strokeStyle = rim;
+  ctx.lineWidth = 2.4;
+  hullPath(ctx, kind, x, y, s);
+  ctx.stroke();
+  // Panel lines and a centre spine.
+  ctx.strokeStyle = shade(colour, -0.4);
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(cx, y + s * 0.2);
+  ctx.lineTo(cx, y + s * 0.45);
+  if (kind !== 1) {
+    ctx.moveTo(x + s * 0.14, y + s * 0.42);
+    ctx.lineTo(x + s * 0.3, y + s * 0.5);
+    ctx.moveTo(x + s * 0.86, y + s * 0.42);
+    ctx.lineTo(x + s * 0.7, y + s * 0.5);
+  } else {
+    ctx.moveTo(x + s * 0.3, y + s * 0.3);
+    ctx.lineTo(cx, y + s * 0.78);
+    ctx.lineTo(x + s * 0.7, y + s * 0.3);
+  }
+  ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = shade(colour, -0.6);
+  ctx.lineWidth = 1;
+  hullPath(ctx, kind, x, y, s);
   ctx.stroke();
   if (kind === 2) {
     ctx.strokeStyle = "rgba(0,0,0,0.35)";
@@ -117,18 +156,125 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
     ctx.lineTo(x + s * 0.8, y + s * 0.5);
     ctx.stroke();
   }
-  // Engine glow at the rear (top), inside the box.
-  const pulse = 0.6 + 0.4 * Math.sin(t * 9 + x * 0.1);
-  ctx.fillStyle = `rgba(255,200,120,${0.55 * pulse})`;
-  ctx.beginPath();
-  ctx.ellipse(cx, y + s * 0.12, s * 0.12, s * 0.08, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Dark cockpit, no white highlight.
+  // Dark cockpit with a faint reflection.
   ctx.fillStyle = shade(colour, -0.65);
   ctx.beginPath();
   ctx.ellipse(cx, y + s * (kind === 1 ? 0.55 : 0.6), s * 0.1, s * 0.07, 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "rgba(200,230,255,0.45)";
+  ctx.fillRect(cx - s * 0.05, y + s * (kind === 1 ? 0.52 : 0.57), s * 0.04, s * 0.025);
   ctx.restore();
+}
+
+const HULL_SCALE = 3;
+const hullSprites = new Map<string, ArtCanvas | null>();
+
+/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine glow. */
+function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
+  const key = `${kind}:${colour}:${s}`;
+  let sprite = hullSprites.get(key);
+  if (sprite === undefined) {
+    const canvas = artCanvas(Math.ceil(s * HULL_SCALE), Math.ceil(s * HULL_SCALE));
+    const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+    if (canvas && c) {
+      c.scale(HULL_SCALE, HULL_SCALE);
+      paintHull(c, kind, colour, 0, 0, s);
+    }
+    sprite = canvas && c ? canvas : null;
+    hullSprites.set(key, sprite);
+  }
+  if (sprite) ctx.drawImage(sprite as CanvasImageSource, x, y, s, s);
+  else paintHull(ctx, kind, colour, x, y, s);
+  // Engine glow at the rear (top), inside the box.
+  const pulse = 0.6 + 0.4 * Math.sin(t * 9 + x * 0.1);
+  ctx.fillStyle = `rgba(255,200,120,${0.55 * pulse})`;
+  ctx.beginPath();
+  ctx.ellipse(x + s / 2, y + s * 0.12, s * 0.12, s * 0.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/**
+ * Polish G: deep space painted once per device scale: a violet-to-black sky
+ * (ending in the arena fill colour), two soft nebulae, three sizes of stars
+ * with a few cross glints, and a dim ringed planet low in a corner.
+ */
+function paintSpace(c: CanvasRenderingContext2D): void {
+  const W = WAV_WORLD_W, H = WAV_WORLD_H;
+  const sky = c.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#0D0B22");
+  sky.addColorStop(0.6, "#08081A");
+  sky.addColorStop(1, "#07070C");
+  c.fillStyle = sky;
+  c.fillRect(0, 0, W, H);
+  for (const [nx, ny, nr, colour] of [[300, 150, 190, "rgba(150,70,200,0.13)"], [70, 380, 170, "rgba(60,110,220,0.11)"], [220, 260, 110, "rgba(220,90,170,0.06)"]] as const) {
+    const g = c.createRadialGradient(nx, ny, 0, nx, ny, nr);
+    g.addColorStop(0, colour);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = g;
+    c.fillRect(nx - nr, ny - nr, nr * 2, nr * 2);
+  }
+  let v = 91;
+  const next = () => {
+    v = (Math.imul(v, 1103515245) + 12345) | 0;
+    return ((v >>> 8) % 10000) / 10000;
+  };
+  for (let i = 0; i < 150; i++) {
+    const x = next() * W, y = next() * H, k = next();
+    c.fillStyle = k > 0.9 ? "rgba(255,240,220,0.9)" : k > 0.6 ? "rgba(200,220,255,0.55)" : "rgba(255,255,255,0.28)";
+    const sz = k > 0.9 ? 2 : k > 0.6 ? 1.4 : 1;
+    c.fillRect(x, y, sz, sz);
+  }
+  c.strokeStyle = "rgba(220,235,255,0.22)";
+  c.lineWidth = 0.5;
+  for (let i = 0; i < 4; i++) {
+    const x = next() * W, y = next() * H * 0.8, r = 2 + next() * 1.5;
+    c.beginPath();
+    c.moveTo(x - r, y);
+    c.lineTo(x + r, y);
+    c.moveTo(x, y - r);
+    c.lineTo(x, y + r);
+    c.stroke();
+  }
+  // A dim ringed planet low on the left, behind everything.
+  const px = 34, py = 470, pr = 26;
+  const planet = c.createRadialGradient(px - 9, py - 9, 2, px, py, pr);
+  planet.addColorStop(0, "#3A3060");
+  planet.addColorStop(1, "#120E24");
+  c.fillStyle = planet;
+  c.beginPath();
+  c.arc(px, py, pr, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = "rgba(180,160,255,0.16)";
+  c.lineWidth = 2;
+  c.beginPath();
+  c.ellipse(px, py, pr * 1.7, pr * 0.42, -0.35, 0, Math.PI * 2);
+  c.stroke();
+}
+
+const spaceLayers = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
+function drawSpace(ctx: CanvasRenderingContext2D, t: number): void {
+  const tr = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const scale = Math.min(3, Math.max(1, tr ? Math.hypot(tr.a, tr.b) : 1));
+  const key = scale.toFixed(3);
+  let cached = spaceLayers.get(ctx);
+  if (!cached || cached.key !== key) {
+    const layer = artCanvas(Math.ceil(WAV_WORLD_W * scale), Math.ceil(WAV_WORLD_H * scale));
+    const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
+    if (layer && c) {
+      c.scale(scale, scale);
+      paintSpace(c);
+    }
+    spaceLayers.set(ctx, (cached = { key, layer: layer && c ? layer : null }));
+  }
+  if (cached.layer) ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, WAV_WORLD_W, WAV_WORLD_H);
+  else drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
+  // A few stars twinkle (presentation clock; still under reduced motion).
+  for (let k = 0; k < 8; k++) {
+    const h = artHash(k, 707);
+    const a = 0.25 + 0.55 * Math.max(0, Math.sin(t * (1.3 + (h % 7) * 0.2) + k));
+    ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    ctx.fillRect(h % WAV_WORLD_W, (h >>> 10) % (WAV_WORLD_H - 120), 1.5, 1.5);
+  }
 }
 
 function drawArmourHull(ctx: CanvasRenderingContext2D, state: WavState, a: WavArmour): void {
@@ -418,7 +564,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
-  drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
+  drawSpace(ctx, t);
 
   const latest=state.bursts.at(-1);
   successFrame(ctx,{id:'wavefront-hit',tick:state.tick,count:state.shapesDown+state.armourHits,eventTick:latest?.t,misses:WAV_LIVES-state.lives,colour:WAV_GOLD,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:latest?.x??state.shipX,y:latest?.y??WAV_SHIP_Y,shape:'pixel'},hud:{x:14,y:14,text:`Wave ${state.wave}`}});

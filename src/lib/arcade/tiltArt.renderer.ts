@@ -13,6 +13,7 @@ import {
   toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { reducedMotion } from "./art.renderer";
+import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 const FP = 256;
 const CX = 220;
@@ -91,6 +92,66 @@ function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: number; 
     ctx.arc(cup.x, cup.y + cup.r * 0.08, cup.r * 0.42, 0, Math.PI * 2);
     ctx.fill();
   }
+  // Polish G: a glass shine on the upper-left inside the cup, and a lit brass lip.
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r * 0.72, Math.PI * 1.05, Math.PI * 1.45);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,240,190,0.6)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.arc(cup.x, cup.y, cup.r + 1.8, Math.PI * 0.95, Math.PI * 1.6);
+  ctx.stroke();
+}
+
+/**
+ * Polish G: the oak disc face (grain and growth rings) is one cached sprite,
+ * drawn in the disc's rotating frame; a screen-fixed lamp gloss goes on top in
+ * drawWorld, so the light stays put while the board turns.
+ */
+const DISC_SCALE = 2;
+let discSprite: ArtCanvas | null | undefined;
+function paintDisc(c: CanvasRenderingContext2D): void {
+  const r = TILT_DISC_R;
+  c.fillStyle = TOY_OAK_LIGHT;
+  c.beginPath();
+  c.arc(0, 0, r, 0, Math.PI * 2);
+  c.fill();
+  c.save();
+  c.beginPath();
+  c.arc(0, 0, r, 0, Math.PI * 2);
+  c.clip();
+  toyGrain(c, -r, -r, r * 2, r * 2, 12);
+  // Faint growth rings from an off-centre heart, and a few darker flecks.
+  c.strokeStyle = "rgba(150,100,50,0.12)";
+  c.lineWidth = 1;
+  for (let k = 1; k < 9; k++) {
+    c.beginPath();
+    c.ellipse(-r * 0.9, r * 0.2, k * 26, k * 20, 0.3, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.fillStyle = "rgba(110,70,35,0.25)";
+  for (let k = 0; k < 40; k++) {
+    const a = k * 2.399, d = (k * 37) % r;
+    c.fillRect(Math.cos(a) * d, Math.sin(a) * d, 2, 0.8);
+  }
+  c.restore();
+}
+function drawDiscSurface(ctx: CanvasRenderingContext2D): void {
+  if (discSprite === undefined) {
+    const size = Math.ceil((TILT_DISC_R * 2 + 2) * DISC_SCALE);
+    const canvas = artCanvas(size, size);
+    const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+    if (canvas && c) {
+      c.scale(DISC_SCALE, DISC_SCALE);
+      c.translate(TILT_DISC_R + 1, TILT_DISC_R + 1);
+      paintDisc(c);
+    }
+    discSprite = canvas && c ? canvas : null;
+  }
+  if (discSprite) ctx.drawImage(discSprite as CanvasImageSource, -TILT_DISC_R - 1, -TILT_DISC_R - 1, TILT_DISC_R * 2 + 2, TILT_DISC_R * 2 + 2);
+  else paintDisc(ctx);
 }
 
 /** tiltRev 2 bonus star: a gold five-point star filling most of its dead-end cell. */
@@ -194,21 +255,41 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   }
 
   ctx.translate(CX, CY);
-  // Disc rim: darker wood ring just outside the sim's disc.
+  // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
+  const groove = ctx.createRadialGradient(3, 4, TILT_DISC_R - 4, 3, 4, TILT_DISC_R + 12);
+  groove.addColorStop(0, "rgba(40,20,6,0.55)");
+  groove.addColorStop(1, "rgba(40,20,6,0)");
+  ctx.fillStyle = groove;
+  ctx.beginPath();
+  ctx.arc(3, 4, TILT_DISC_R + 12, 0, Math.PI * 2);
+  ctx.fill();
+  // Disc rim: darker wood ring just outside the sim's disc, bevelled (lit upper left).
   ctx.fillStyle = TOY_WOOD_DARK;
   ctx.beginPath();
   ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
   ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(255,220,170,0.35)";
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 1.2, Math.PI * 0.9, Math.PI * 1.7);
+  ctx.stroke();
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
   ctx.clip();
   ctx.rotate(rot);
-  ctx.fillStyle = TOY_OAK_LIGHT;
+  drawDiscSurface(ctx);
+  ctx.save();
+  ctx.rotate(-rot);
+  const gloss = ctx.createRadialGradient(-TILT_DISC_R * 0.45, -TILT_DISC_R * 0.5, 10, 0, 0, TILT_DISC_R);
+  gloss.addColorStop(0, "rgba(255,246,220,0.28)");
+  gloss.addColorStop(0.6, "rgba(255,246,220,0)");
+  gloss.addColorStop(1, "rgba(60,30,10,0.22)");
+  ctx.fillStyle = gloss;
   ctx.beginPath();
   ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);
   ctx.fill();
-  toyGrain(ctx, -TILT_DISC_R, -TILT_DISC_R, TILT_DISC_R * 2, TILT_DISC_R * 2, 12);
+  ctx.restore();
 
   // Full square collision footprint; rounded bevel stays inside the dark cut.
   const pr = cs / 4;
@@ -216,6 +297,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     const x = (p % m.n) * cs + cs / 2 - o;
     const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
     ctx.fillStyle = "#120A05";
+    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
+    // Polish G: depth inside the square: black at the centre, warm wood showing at the sides.
+    const deep = ctx.createRadialGradient(x, y, 0, x, y, pr * 1.3);
+    deep.addColorStop(0, "#000000");
+    deep.addColorStop(0.6, "#0E0703");
+    deep.addColorStop(1, "#3A2210");
+    ctx.fillStyle = deep;
     ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
     ctx.strokeStyle = TOY_WOOD_DARK;
     ctx.lineWidth = 1.5;
@@ -266,6 +354,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
 
   // Raised wooden strips with a slight shadow.
   ctx.lineCap = "round";
+  ctx.strokeStyle = "rgba(30,15,5,0.22)";
+  ctx.lineWidth = 4;
+  walls(ctx, m, o, 2, 2.6);
   ctx.strokeStyle = "rgba(30,15,5,0.35)";
   ctx.lineWidth = 3;
   walls(ctx, m, o, 1.2, 1.6);
@@ -274,6 +365,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   ctx.strokeStyle = STRIP_TOP;
   ctx.lineWidth = 1;
   walls(ctx, m, o, -0.5, -0.5);
+  ctx.strokeStyle = "rgba(255,236,200,0.35)";
+  ctx.lineWidth = 0.5;
+  walls(ctx, m, o, -0.9, -0.9);
 
   if (m.crevice >= 0) {
     const lx = (m.lock % m.n) * cs + cs / 2 - o;

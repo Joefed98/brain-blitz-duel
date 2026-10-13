@@ -41,7 +41,7 @@ function brkSlideDestroyed(s: BrkState): number {
   for (const row of s.slide ?? []) for (let c = 0; c < BRK_COLS; c++) if ((s.bricks[row * BRK_COLS + c] ?? 0) <= 0) n += 1;
   return n;
 }
-import { RALLY_PADDLE_Y, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { RALLY_PADDLE_Y, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
 import {
   SNAKE_BOARD_X,
@@ -240,9 +240,25 @@ export const COOL_LIGHTS = ["#B48CFF", "#5CFFB4", "#5CB8FF"] as const;
 export const BREAKER_ARENA_GLOW = ["#EAF4FF", "#6FB8FF"] as const;
 /** Breaker's success text runs this much smaller than the shared default. */
 export const BREAKER_TEXT_SCALE = 0.8;
-/** Tuning D: Rally's lights, on paddle hits and on bonus targets. */
-export const RALLY_HIT_LIGHTS = ["#3DFFE0", "#EAFBFF", "#5CB8FF"] as const;
-export const RALLY_BONUS_LIGHTS = ["#FF6FD8", "#FFD84A", "#FFFFFF"] as const;
+/**
+ * Polish G border lights (edge only), one pattern per game so no two Retro
+ * games look alike; the star-dust burst (COOL_LIGHTS) stays Fission's alone.
+ * Rally: white and blue bulbs flash round the court on every hit, building up
+ * (more bulbs, brighter, faster) as the rally grows and the ball speeds up.
+ */
+export const RALLY_BULBS = ["#FFFFFF", "#4DA6FF"] as const;
+export const RALLY_GOLD_BULBS = ["#FFD84A", "#FFFFFF"] as const;
+/** Breaker: white heads with blue tails chase round the border on rows and power-ups. */
+export const BREAKER_BULBS = ["#FFFFFF", "#5CB8FF", "#2A6BFF"] as const;
+/** Hover: the border flashes the next colour of this cycle at every barrier passed. */
+export const HOVER_STEP_COLOURS = ["#3DFFE0", "#FF4DFF", "#FFD84A", "#4BFF7A", "#5CB8FF", "#FF6A5C"] as const;
+
+/** Rally's tension, 0…1: the longer of the rally (40 returns) and the ball's speed-up. */
+export function rallyHeat(s: RallyState): number {
+  const length = s.hits / 40;
+  const pace = (s.speed - RALLY_SPEED_START) / (RALLY_SPEED_CAP - RALLY_SPEED_START);
+  return Math.max(0, Math.min(1, Math.max(length, pace)));
+}
 
 export const HOVER_FX: ArcadeFxSpec<HoverState> = {
   game: "hover",
@@ -251,15 +267,23 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
   height: HOVER_WORLD_H,
   fit: "world",
   events: [
-    // Every seventh barrier changes colour: a new "zone" reached.
+    // Polish G: every barrier passed flashes the border in the next colour of the cycle.
+    {
+      kind: "pop",
+      count: (s) => s.gates,
+      label: () => null,
+      textOnly: true,
+      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS },
+    },
+    // Every seventh barrier changes colour: a new "zone" reached (the border blinks its colour three times).
     {
       kind: "streak",
       count: (s) => s.gates,
       every: 7,
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
-      sweep: true,
-      lights: COOL_LIGHTS,
+      textOnly: true,
+      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
     },
     // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
     {
@@ -268,7 +292,8 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) - 16 }),
       label: () => "GOLD STAR!",
       colour: () => "#FFD84A",
-      neon: true,
+      textOnly: true,
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
     },
     {
       kind: "pop",
@@ -278,17 +303,21 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
         const p = s.pillars[s.gates - 1];
         return p?.gap2Top !== undefined && s.y >= p.gap2Top ? "LOWER GAP!" : "UPPER GAP!";
       },
+      textOnly: true,
     },
     {
       kind: "pop",
       count: (s) => hoverPassed(s, "moving"),
       at: (s) => ({ x: px(HOVER_DISC_X) + 30, y: px(s.y) - 14 }),
       label: () => "SLIPPED THROUGH!",
+      textOnly: true,
     },
     {
       kind: "final",
       count: (s) => (s.totalGates > 0 && s.gates >= s.totalGates ? 1 : 0),
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
+      textOnly: true,
+      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
     },
   ],
 };
@@ -324,8 +353,13 @@ function lowestClearedRow(s: BrkState): { x: number; y: number } {
   return { x: BRK_WORLD_W / 2, y: BRK_WALL_Y };
 }
 
-/** Every Breaker success text: slightly smaller, and the arena glows while it is up. */
-const BREAKER_TEXT = { textScale: BREAKER_TEXT_SCALE, arenaGlow: BREAKER_ARENA_GLOW } as const;
+/**
+ * Every Breaker success text: slightly smaller, and the arena glows while it is up
+ * (Tuning D). Polish G: text only at the event (no star dust); rows and power-ups
+ * send lights chasing round the border instead.
+ */
+const BREAKER_TEXT = { textScale: BREAKER_TEXT_SCALE, arenaGlow: BREAKER_ARENA_GLOW, textOnly: true } as const;
+const BREAKER_CHASE = { pattern: "chase", colours: BREAKER_BULBS } as const;
 
 export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
   game: "breaker",
@@ -340,6 +374,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 80 }),
       label: () => "POWER-UP!",
       ...BREAKER_TEXT,
+      bulbs: BREAKER_CHASE,
     },
     {
       kind: "streak",
@@ -357,7 +392,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       label: () => "FIREBALL!",
       ...BREAKER_TEXT,
       colour: () => "#FF6A2B",
-      neon: true,
+      bulbs: BREAKER_CHASE,
     },
     {
       kind: "pop",
@@ -369,8 +404,8 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       label: () => "MOVING TARGET!",
       ...BREAKER_TEXT,
     },
-    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", sweep: true, ...BREAKER_TEXT },
-    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", neon: true, sweep: true, ...BREAKER_TEXT },
+    { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", ...BREAKER_TEXT, bulbs: BREAKER_CHASE },
+    { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", ...BREAKER_TEXT, bulbs: { ...BREAKER_CHASE, strong: true } },
   ],
 };
 
@@ -387,15 +422,16 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       every: 10,
       at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 8 }),
       label: (_s, n) => `RALLY ${n}`,
-      sweep: true,
-      lights: RALLY_HIT_LIGHTS,
+      textOnly: true,
+      bulbs: { pattern: "flash", colours: RALLY_BULBS, heat: rallyHeat, strong: true },
     },
     {
       kind: "pop",
       count: (s) => s.goldHits,
       at: (s) => ({ x: s.paddleX, y: RALLY_PADDLE_Y - 10 }),
       label: () => "GOLD!",
-      lights: RALLY_BONUS_LIGHTS,
+      textOnly: true,
+      bulbs: { pattern: "flash", colours: RALLY_GOLD_BULBS, heat: rallyHeat },
     },
     {
       // Rev 2: the gold ball struck a far-wall target.
@@ -403,8 +439,8 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       count: (s) => s.targetHits ?? 0,
       at: (s) => ({ x: (s.struckLeft ?? RALLY_WORLD_W / 2) + 22, y: 70 }),
       label: () => "TARGET!",
-      neon: true,
-      lights: RALLY_BONUS_LIGHTS,
+      textOnly: true,
+      bulbs: { pattern: "flash", colours: RALLY_GOLD_BULBS, heat: rallyHeat, strong: true },
     },
     {
       // Rev 2: a ball came off the bumper.
@@ -412,15 +448,16 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       count: (s) => s.bounces ?? 0,
       at: (s) => (s.bumper ? { x: s.bumper.x, y: s.bumper.y - 20 } : null),
       label: () => "BOING",
-      lights: ["#B49CFF", "#FFFFFF"],
+      textOnly: true,
     },
     {
-      // Tuning D: every paddle hit lights up where the ball left the paddle (no text).
+      // Every paddle hit flashes the court lights (no text), building with the rally.
       kind: "pop",
       count: (s) => s.hits,
       at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 4 }),
       label: () => null,
-      lights: RALLY_HIT_LIGHTS,
+      textOnly: true,
+      bulbs: { pattern: "flash", colours: RALLY_BULBS, heat: rallyHeat },
     },
   ],
 };
