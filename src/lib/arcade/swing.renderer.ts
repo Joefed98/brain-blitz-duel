@@ -75,6 +75,8 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
   const last = Math.min(state.ceil.length - 1, first + 12);
   const ceilingAt = (x: number) => lerpAt(state.ceil, Math.round((x + cam) * FP)) / FP;
+  // Polish G: the solid rock above the ceiling line (the sim's boundary), shaded and faceted.
+  drawRockMass(ctx, state, first, last, sx);
   // All cave scenery stays below the authoritative ceiling, not the screen edge.
   ctx.save();
   ctx.beginPath();
@@ -87,24 +89,37 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.fillStyle = "#08060A";
   ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
 
-  // Cavern back wall: faint distant rock, slow parallax.
-  ctx.fillStyle = "#120C10";
-  ctx.beginPath();
-  ctx.moveTo(0, SWING_WORLD_H);
-  for (let x = -20; x <= SWING_WORLD_W + 20; x += 30) {
-    const h = artHash(Math.floor((x + cam * 0.3) / 30));
-    ctx.lineTo(x - ((cam * 0.3) % 30), 330 + (h % 70));
+  // Cavern back wall: a deep warm haze, then two layers of distant rock at slow parallax.
+  const haze = ctx.createLinearGradient(0, 80, 0, SWING_WORLD_H);
+  haze.addColorStop(0, "#0A070B");
+  haze.addColorStop(0.6, "#160B0C");
+  haze.addColorStop(1, "#2A0D08");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
+  for (const [par, base, span, colour, step] of [[0.15, 250, 90, "#160D10", 46], [0.3, 330, 70, "#21131A", 30]] as const) {
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.moveTo(-20, SWING_WORLD_H);
+    const off = (cam * par) % step;
+    const k0 = Math.floor((cam * par) / step);
+    for (let k = -1; k <= SWING_WORLD_W / step + 2; k++) {
+      const h = artHash(k0 + k, step);
+      ctx.lineTo(k * step - off, base + (h % span));
+    }
+    ctx.lineTo(SWING_WORLD_W + 20, SWING_WORLD_H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,120,70,0.07)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
-  ctx.lineTo(SWING_WORLD_W, SWING_WORLD_H);
-  ctx.fill();
-
   // Lava light cast up onto nearby rock.
   const lavaTop = Math.min(...state.floor.slice(first, last + 1)) / FP;
   const cast = ctx.createLinearGradient(0, lavaTop - 160, 0, lavaTop + 10);
   cast.addColorStop(0, "rgba(255,90,30,0)");
   cast.addColorStop(1, `rgba(255,90,30,${0.26 + (still ? 0 : 0.04 * Math.sin(t * 1.7))})`);
   ctx.fillStyle = cast;
-  ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, 170);
+  ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, SWING_WORLD_H - lavaTop + 160);
 
   // Narrow rock band begins at the sim's ceiling line and faces down into the cave.
   ctx.beginPath();
@@ -152,13 +167,34 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.save();
     ctx.clip();
     const g = ctx.createLinearGradient(x - SPIKE_HALF, 0, x + SPIKE_HALF, 0);
-    g.addColorStop(0, "#3A2C30");
-    g.addColorStop(0.5, "#241A1E");
-    g.addColorStop(1, "#140E11");
+    g.addColorStop(0, "#54404A");
+    g.addColorStop(0.35, "#33262B");
+    g.addColorStop(0.7, "#1E1519");
+    g.addColorStop(1, "#110B0E");
     ctx.fillStyle = g;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,120,60,0.55)";
+    // Lava light from below warms the tips; a lit ridge runs down each point (inside the polygon).
+    const warm = ctx.createLinearGradient(0, top + SPIKE_DEPTH - 22, 0, top + SPIKE_DEPTH);
+    warm.addColorStop(0, "rgba(255,110,40,0)");
+    warm.addColorStop(1, "rgba(255,110,40,0.35)");
+    ctx.fillStyle = warm;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,214,170,0.28)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 13, Math.max(top, ceilingAt(x - 13)) + 4);
+    ctx.lineTo(x - 8.5, top + SPIKE_DEPTH - 4);
+    ctx.moveTo(x + 2, top + 18);
+    ctx.lineTo(x + 6.5, top + SPIKE_DEPTH - 8);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,120,60,0.6)";
     ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - SPIKE_HALF, Math.max(top, ceilingAt(x - SPIKE_HALF)));
+    ctx.lineTo(x - 8, Math.max(0, top + SPIKE_DEPTH));
+    ctx.lineTo(x, Math.max(0, top + 24));
+    ctx.lineTo(x + 8, Math.max(0, top + SPIKE_DEPTH));
+    ctx.lineTo(x + SPIKE_HALF, Math.max(top, ceilingAt(x + SPIKE_HALF)));
     ctx.stroke();
     ctx.restore();
     ctx.restore();
@@ -237,7 +273,11 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     }
     cy = Math.round(cy);
     const left = x - hw + shake;
-    ctx.fillStyle = r.phase === 0 ? "#4A3A3E" : "#6A5258";
+    const stone = ctx.createLinearGradient(left, 0, left + hw * 2, 0);
+    stone.addColorStop(0, r.phase === 0 ? "#6A565C" : "#8A6E74");
+    stone.addColorStop(0.55, r.phase === 0 ? "#45363A" : "#62494F");
+    stone.addColorStop(1, r.phase === 0 ? "#2A1F23" : "#3E2C31");
+    ctx.fillStyle = stone;
     ctx.strokeStyle = r.phase === 0 ? "rgba(255,170,120,0.45)" : "#FF4D5E";
     ctx.lineWidth = 1.2;
     ctx.beginPath();
@@ -365,14 +405,43 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   }
   ctx.restore();
   // Glowing surface line.
+  // Polish G: the glow is two soft strokes above the surface (no shadowBlur), then the bright line.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
+  ctx.moveTo(-4, SWING_WORLD_H);
+  for (const [px, py] of surface) ctx.lineTo(px, py);
+  ctx.lineTo(SWING_WORLD_W + 4, SWING_WORLD_H);
+  ctx.closePath();
+  ctx.clip("evenodd");
+  ctx.beginPath();
+  surface.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(255,120,40,0.16)";
+  ctx.lineWidth = 14;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,150,60,0.3)";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+  ctx.restore();
   ctx.strokeStyle = "#FFD27A";
   ctx.lineWidth = 1.5;
-  ctx.shadowColor = "rgba(255,140,40,0.9)";
-  ctx.shadowBlur = 8;
   ctx.beginPath();
   surface.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  // Bright ripple glints riding the surface.
+  ctx.strokeStyle = "rgba(255,240,190,0.7)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let k = Math.floor(cam / 70) - 1; k < Math.floor(cam / 70) + 7; k++) {
+    const h = artHash(k, 59);
+    const wx = k * 70 + (h % 40) + (still ? 0 : Math.sin(t * 0.9 + k) * 6);
+    const px = wx - cam;
+    const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + wave(wx) + 5 + (h >>> 7) % 10;
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + 6 + (h >>> 3) % 8, py);
+  }
+  ctx.stroke();
 
   // swingRev 4 lava jets: bubbles on the surface during the warning, then a molten column
   // as tall and as wide as the sim's jet.
@@ -616,9 +685,68 @@ function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: numb
     else ctx.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
   }
   ctx.closePath();
+  const body = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+  body.addColorStop(0, "#FFF2A8");
+  body.addColorStop(0.5, "#FFD84A");
+  body.addColorStop(1, "#E8A520");
+  ctx.fillStyle = body;
   ctx.fill();
   ctx.stroke();
+  // A small white glint in the upper-left arm, well inside the star.
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.18, cy - r * 0.2, Math.max(0.8, r * 0.12), 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
+}
+
+/**
+ * Polish G: the solid rock above the ceiling line, which the sim never lets
+ * the player into: a dark gradient with hashed facets anchored to the course,
+ * a lit lip along the ceiling line. Drawn before the cave so nothing hides.
+ */
+function drawRockMass(ctx: CanvasRenderingContext2D, state: SwingState, first: number, last: number, sx: (x: number) => number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx(first * COL), -2);
+  for (let i = first; i <= last; i++) ctx.lineTo(sx(i * COL), state.ceil[i]! / FP);
+  ctx.lineTo(sx(last * COL), -2);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, 0, 0, 110);
+  g.addColorStop(0, "#0C090B");
+  g.addColorStop(1, "#241A1D");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.clip();
+  // Facets: each course column gets a lighter and a darker plane.
+  for (let i = first; i < last; i++) {
+    const h = artHash(i, 211);
+    const x0 = sx(i * COL), x1 = sx((i + 1) * COL);
+    const y0 = state.ceil[i]! / FP, y1 = state.ceil[i + 1]! / FP;
+    const up = 14 + (h % 26);
+    ctx.fillStyle = h % 3 === 0 ? "rgba(255,200,170,0.05)" : "rgba(0,0,0,0.22)";
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + (x1 - x0) * (0.3 + ((h >>> 5) % 40) / 100), Math.min(y0, y1) - up);
+    ctx.lineTo(x1, y1);
+    ctx.closePath();
+    ctx.fill();
+    if (h % 5 === 0) {
+      ctx.fillStyle = "rgba(255,150,90,0.25)";
+      ctx.fillRect(x0 + (h >>> 8) % 30, Math.min(y0, y1) - 10 - (h >>> 11) % 20, 1.5, 1.5);
+    }
+  }
+  ctx.restore();
+  // Warm lit lip just above the ceiling line.
+  ctx.strokeStyle = "rgba(255,150,100,0.14)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  for (let i = first; i <= last; i++) {
+    const y = state.ceil[i]! / FP - 2;
+    if (i === first) ctx.moveTo(sx(i * COL), y);
+    else ctx.lineTo(sx(i * COL), y);
+  }
+  ctx.stroke();
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */

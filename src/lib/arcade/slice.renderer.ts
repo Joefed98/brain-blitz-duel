@@ -32,7 +32,21 @@ function sprite(key:string,size:number,paint:(c:CanvasRenderingContext2D,s:numbe
   const canvas=artCanvas(px,px); const c=canvas ? artContext(canvas):null;
   if(!canvas || !c) return null;
   if(cache.size>=96) cache.clear();
-  paint(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
+  paint(c as CanvasRenderingContext2D,px);if(key!=='chilli-glow')shadeSprite(c as CanvasRenderingContext2D,px);cache.set(id,canvas);return canvas;
+}
+/**
+ * Polish G: kitchen light on every round stamp, only over pixels already painted
+ * (source-atop), so the silhouette and its extents never change: a soft lamp
+ * highlight upper left, a gentle shade lower right and a small specular glint.
+ */
+function shadeSprite(c:CanvasRenderingContext2D,size:number):void {
+  const r=size/2;
+  c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='source-atop';
+  const g=c.createRadialGradient(r*.62,r*.55,r*.05,r,r,r*1.05);
+  g.addColorStop(0,'rgba(255,250,235,0.26)');g.addColorStop(.55,'rgba(255,250,235,0)');g.addColorStop(1,'rgba(40,20,8,0.28)');
+  c.fillStyle=g;c.fillRect(0,0,size,size);
+  c.fillStyle='rgba(255,255,255,0.55)';c.beginPath();c.ellipse(r*.6,r*.48,r*.16,r*.08,-.6,0,Math.PI*2);c.fill();
+  c.restore();
 }
 function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number,fill:string) {
   c.fillStyle=fill;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
@@ -151,6 +165,18 @@ function paintBackground(c:CanvasRenderingContext2D) {
   for(let x=W-39;x<W-15;x+=9){c.beginPath();c.moveTo(x,8);c.lineTo(x-3,0);c.stroke();}
   c.strokeStyle=K.ink;c.lineWidth=2;c.beginPath();c.moveTo(10,5);c.lineTo(10,32);c.stroke();circle(c,10,5,4,K.silver);
   const light=c.createLinearGradient(0,0,W,H);light.addColorStop(0,'rgba(255,249,220,0.14)');light.addColorStop(1,'rgba(255,249,220,0)');c.fillStyle=light;c.fillRect(0,SLICE_HUD_H,W,H-SLICE_HUD_H);
+  // Polish G: oiled-wood depth: long tone streaks along the grain, end-grain flecks,
+  // a few deeper crossing knife cuts, and a soft vignette towards the board's edges.
+  for(let i=0;i<38;i++){const y=SLICE_HUD_H+12+((i*53)%(H-SLICE_HUD_H-24)),x=(i*131)%W,l=60+(i*29)%140;
+    c.fillStyle=i%3?'rgba(70,36,14,0.07)':'rgba(255,226,180,0.06)';c.fillRect(x-l/2,y,l,2+(i%3));}
+  c.fillStyle='rgba(60,32,14,0.22)';for(let i=0;i<120;i++){const x=(i*67)%W,y=SLICE_HUD_H+((i*113)%(H-SLICE_HUD_H));c.fillRect(x,y,1.4,.8);}
+  c.lineCap='round';for(let i=0;i<9;i++){const x=40+(i*83)%(W-80),y=SLICE_HUD_H+70+((i*197)%(H-SLICE_HUD_H-140)),a=((i*53)%120-60)*Math.PI/180,l=26+(i*11)%24;
+    c.strokeStyle='rgba(60,30,12,0.28)';c.lineWidth=1.1;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);c.stroke();
+    c.strokeStyle='rgba(255,236,205,0.2)';c.lineWidth=.6;c.beginPath();c.moveTo(x+.8,y+.8);c.lineTo(x+Math.cos(a)*l+.8,y+Math.sin(a)*l+.8);c.stroke();}
+  const vig=c.createRadialGradient(W/2,(H+SLICE_HUD_H)/2,Math.min(W,H)*.35,W/2,(H+SLICE_HUD_H)/2,Math.max(W,H)*.7);
+  vig.addColorStop(0,'rgba(40,20,6,0)');vig.addColorStop(1,'rgba(40,20,6,0.28)');c.fillStyle=vig;c.fillRect(0,SLICE_HUD_H,W,H-SLICE_HUD_H);
+  // Glazed tiles behind the HUD: a highlight on each tile's top edge.
+  c.fillStyle='rgba(255,255,255,0.35)';for(let x=0;x<W;x+=48)c.fillRect(x+2,2,44,2);
 }
 function background():ArtCanvas|null {
   const key='kitchen-background';const old=cache.get(key);if(old)return old;

@@ -12,7 +12,7 @@ import {
   MATCHUP_BOARD_H, MATCHUP_BOARD_W, MATCHUP_BOARD_X, MATCHUP_BOARD_Y, MATCHUP_BOMB, MATCHUP_CELL_PX,
   MATCHUP_CLEAR_MS, MATCHUP_COLOURS, MATCHUP_CROSS, MATCHUP_DETONATE_MS, MATCHUP_DROP_MS, MATCHUP_GOLD,
   MATCHUP_NEXT_H, MATCHUP_NEXT_Y, MATCHUP_QUEUE_LEN, MATCHUP_ROWS, MATCHUP_SHAPES, MATCHUP_SIZE, MATCHUP_STAR,
-  MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, matchupIsJackpot, matchupPending, matchupStepTiming,
+  MATCHUP_SYMBOL_PCT, MATCHUP_TEXT, MATCHUP_JACKPOT, MATCHUP_WORLD_H, MATCHUP_WORLD_W, matchupIsJackpot, matchupPending, matchupStepTiming,
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -130,6 +130,7 @@ function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>,
   ctx.strokeStyle = shade(colour, -0.6);
   ctx.lineWidth = 1.2;
   ctx.stroke();
+  gemGlint(ctx, pts, cx, cy, r);
   ctx.restore();
 }
 
@@ -172,6 +173,46 @@ function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: n
   ctx.globalAlpha = 0.16;
   ctx.fillStyle = shine;
   pathOf(ctx, pts); ctx.fill();
+  ctx.globalAlpha = 1;
+  gemGlint(ctx, pts, cx, cy, r);
+  ctx.restore();
+}
+
+/**
+ * Polish G: a lit upper-left rim, a shaded lower-right rim and a small white
+ * glint on the table, all inside the cut's own outline (the caller clips to it).
+ */
+function gemGlint(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, cx: number, cy: number, r: number): void {
+  ctx.save();
+  pathOf(ctx, pts);
+  ctx.clip();
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 1.6;
+  const rim = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  rim.addColorStop(0, "rgba(255,255,255,0.55)");
+  rim.addColorStop(0.45, "rgba(255,255,255,0)");
+  rim.addColorStop(0.6, "rgba(0,0,0,0)");
+  rim.addColorStop(1, "rgba(0,0,0,0.35)");
+  ctx.strokeStyle = rim;
+  pathOf(ctx, pts.map(([x, y]) => [cx + (x - cx) * 0.9, cy + (y - cy) * 0.9] as [number, number]));
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  const gx = cx - r * 0.28, gy = cy - r * 0.34, g = r * 0.2;
+  ctx.beginPath();
+  ctx.moveTo(gx, gy - g);
+  ctx.lineTo(gx + g * 0.3, gy - g * 0.3);
+  ctx.lineTo(gx + g, gy);
+  ctx.lineTo(gx + g * 0.3, gy + g * 0.3);
+  ctx.lineTo(gx, gy + g);
+  ctx.lineTo(gx - g * 0.3, gy + g * 0.3);
+  ctx.lineTo(gx - g, gy);
+  ctx.lineTo(gx - g * 0.3, gy - g * 0.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.beginPath();
+  ctx.arc(cx + r * 0.3, cy + r * 0.22, r * 0.05, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -276,8 +317,41 @@ const centre = (index: number) => ({
   y: MATCHUP_BOARD_Y + (Math.floor(index / MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
 });
 
-function cellFill(row: number, col: number): string {
-  return (row + col) % 2 === 0 ? "#15151C" : "#101017";
+/**
+ * Polish G: each cell is a recessed velvet socket (shadow on the upper-left
+ * inner edge, a faint lit lip lower-right), filling exactly its cell.
+ */
+function paintSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: number): void {
+  const s = MATCHUP_CELL_PX;
+  c.fillStyle = parity === 0 ? "#15151C" : "#101017";
+  c.fillRect(x, y, s, s);
+  const well = c.createRadialGradient(x + s * 0.5, y + s * 0.56, s * 0.08, x + s * 0.5, y + s * 0.5, s * 0.62);
+  well.addColorStop(0, parity === 0 ? "rgba(70,52,110,0.30)" : "rgba(60,44,96,0.26)");
+  well.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = well;
+  c.fillRect(x, y, s, s);
+  c.fillStyle = "rgba(0,0,0,0.45)";
+  c.fillRect(x, y, s, 2);
+  c.fillRect(x, y, 2, s);
+  c.fillStyle = "rgba(255,255,255,0.05)";
+  c.fillRect(x, y + s - 1, s, 1);
+  c.fillRect(x + s - 1, y, 1, s);
+}
+
+const sockets = new Map<number, ArtCanvas>();
+function drawSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: number): void {
+  let sprite = sockets.get(parity);
+  if (!sprite) {
+    const canvas = artCanvas(MATCHUP_CELL_PX * 2, MATCHUP_CELL_PX * 2);
+    const native = canvas && artContext(canvas);
+    if (canvas && native) {
+      native.scale(2, 2);
+      paintSocket(native as CanvasRenderingContext2D, 0, 0, parity);
+      sockets.set(parity, (sprite = canvas));
+    }
+  }
+  if (sprite) c.drawImage(sprite as CanvasImageSource, x, y, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
+  else paintSocket(c, x, y, parity);
 }
 
 function drawFrame(ctx: CanvasRenderingContext2D): void {
@@ -288,20 +362,35 @@ function drawFrame(ctx: CanvasRenderingContext2D): void {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, 10);
   const bevel = ctx.createLinearGradient(0, y, 0, y + h);
-  bevel.addColorStop(0, "#3A3A48");
-  bevel.addColorStop(1, "#141419");
+  bevel.addColorStop(0, "#4A4258");
+  bevel.addColorStop(0.08, "#2C2638");
+  bevel.addColorStop(1, "#121017");
   ctx.fillStyle = bevel;
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
   ctx.lineWidth = 1;
   ctx.stroke();
+  // A thin gold inlay just inside the rim, and a diamond stud at each corner.
+  ctx.strokeStyle = "rgba(245,184,46,0.55)";
+  ctx.beginPath();
+  ctx.roundRect(x + 2.5, y + 2.5, w - 5, h - 5, 8);
+  ctx.stroke();
+  ctx.fillStyle = MATCHUP_GOLD;
+  for (const [sx, sy] of [[x + 2.5, y + 2.5], [x + w - 2.5, y + 2.5], [x + 2.5, y + h - 2.5], [x + w - 2.5, y + h - 2.5]] as const) {
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 2.5);
+    ctx.lineTo(sx + 2.5, sy);
+    ctx.lineTo(sx, sy + 2.5);
+    ctx.lineTo(sx - 2.5, sy);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D): void {
   for (let row = 0; row < MATCHUP_ROWS; row++) {
     for (let col = 0; col < MATCHUP_SIZE; col++) {
-      ctx.fillStyle = cellFill(row, col);
-      ctx.fillRect(MATCHUP_BOARD_X + col * MATCHUP_CELL_PX, MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX, MATCHUP_CELL_PX, MATCHUP_CELL_PX);
+      drawSocket(ctx, MATCHUP_BOARD_X + col * MATCHUP_CELL_PX, MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX, (row + col) % 2);
     }
   }
   ctx.strokeStyle = "rgba(0,0,0,0.5)";
@@ -309,13 +398,100 @@ function drawGrid(ctx: CanvasRenderingContext2D): void {
   ctx.strokeRect(MATCHUP_BOARD_X + 1, MATCHUP_BOARD_Y + 1, MATCHUP_BOARD_W - 2, MATCHUP_BOARD_H - 2);
 }
 
+/**
+ * Polish G: the world behind the board, painted once per device scale: deep
+ * violet velvet fading to the arena fill at the bottom edge, a soft glow
+ * behind the board and faint gem-coloured sparkles in the margins. No text.
+ */
+function paintBackdrop(c: CanvasRenderingContext2D): void {
+  const W = MATCHUP_WORLD_W, H = MATCHUP_WORLD_H;
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#1B1131");
+  g.addColorStop(0.55, "#130E21");
+  g.addColorStop(1, "#0B0B0F");
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+  const glow = c.createRadialGradient(W / 2, MATCHUP_BOARD_Y + MATCHUP_BOARD_H * 0.45, 40, W / 2, MATCHUP_BOARD_Y + MATCHUP_BOARD_H * 0.45, W * 0.75);
+  glow.addColorStop(0, "rgba(120,80,200,0.22)");
+  glow.addColorStop(1, "rgba(120,80,200,0)");
+  c.fillStyle = glow;
+  c.fillRect(0, 0, W, H);
+  // Diagonal sheen bands.
+  c.save();
+  c.globalAlpha = 0.05;
+  c.fillStyle = "#FFFFFF";
+  for (const [x0, wBand] of [[60, 34], [150, 14], [300, 26]] as const) {
+    c.beginPath();
+    c.moveTo(x0, 0);
+    c.lineTo(x0 + wBand, 0);
+    c.lineTo(x0 + wBand - 160, H);
+    c.lineTo(x0 - 160, H);
+    c.closePath();
+    c.fill();
+  }
+  c.restore();
+  // Sparkles in the margins only (never behind a gem).
+  const boardTop = MATCHUP_NEXT_Y - 6, boardBottom = MATCHUP_BOARD_Y + MATCHUP_BOARD_H + 8;
+  for (let k = 0; k < 46; k++) {
+    const h = artHash(k, 431);
+    const x = h % W;
+    const y = (h >>> 9) % H;
+    const inBoard = y > boardTop && y < boardBottom && x > MATCHUP_BOARD_X - 8 && x < MATCHUP_BOARD_X + MATCHUP_BOARD_W + 8;
+    if (inBoard || (y < 40 && x < 150)) continue;
+    const colour = MATCHUP_COLOURS[k % MATCHUP_COLOURS.length] ?? MATCHUP_GOLD;
+    const r = 0.8 + ((h >>> 20) % 3) * 0.6;
+    c.globalAlpha = 0.35 + ((h >>> 4) % 4) * 0.1;
+    c.fillStyle = colour;
+    c.beginPath();
+    c.moveTo(x, y - r * 2.2);
+    c.lineTo(x + r * 0.5, y - r * 0.5);
+    c.lineTo(x + r * 2.2, y);
+    c.lineTo(x + r * 0.5, y + r * 0.5);
+    c.lineTo(x, y + r * 2.2);
+    c.lineTo(x - r * 0.5, y + r * 0.5);
+    c.lineTo(x - r * 2.2, y);
+    c.lineTo(x - r * 0.5, y - r * 0.5);
+    c.closePath();
+    c.fill();
+  }
+  c.globalAlpha = 1;
+}
+
+const backdrops = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
+function drawBackdrop(ctx: CanvasRenderingContext2D): void {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const scale = Math.min(3, Math.max(1, t ? Math.hypot(t.a, t.b) : 1));
+  const key = scale.toFixed(3);
+  let cached = backdrops.get(ctx);
+  if (!cached || cached.key !== key) {
+    const layer = artCanvas(Math.ceil(MATCHUP_WORLD_W * scale), Math.ceil(MATCHUP_WORLD_H * scale));
+    const native = layer && artContext(layer);
+    if (!layer || !native) {
+      paintBackdrop(ctx);
+      return;
+    }
+    native.scale(scale, scale);
+    paintBackdrop(native as CanvasRenderingContext2D);
+    backdrops.set(ctx, (cached = { key, layer }));
+  }
+  ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, MATCHUP_WORLD_W, MATCHUP_WORLD_H);
+}
+
 function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
   ctx.beginPath();
   ctx.roundRect(MATCHUP_BOARD_X, MATCHUP_NEXT_Y, MATCHUP_BOARD_W, MATCHUP_NEXT_H, 12);
-  ctx.fillStyle = "rgba(247, 247, 248, 0.08)";
+  const tray = ctx.createLinearGradient(0, MATCHUP_NEXT_Y, 0, MATCHUP_NEXT_Y + MATCHUP_NEXT_H);
+  tray.addColorStop(0, "rgba(10,8,16,0.75)");
+  tray.addColorStop(1, "rgba(60,48,84,0.45)");
+  ctx.fillStyle = tray;
   ctx.fill();
-  ctx.strokeStyle = "rgba(247, 247, 248, 0.14)";
+  ctx.strokeStyle = "rgba(245,184,46,0.35)";
   ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.beginPath();
+  ctx.moveTo(MATCHUP_BOARD_X + 10, MATCHUP_NEXT_Y + MATCHUP_NEXT_H - 1.5);
+  ctx.lineTo(MATCHUP_BOARD_X + MATCHUP_BOARD_W - 10, MATCHUP_NEXT_Y + MATCHUP_NEXT_H - 1.5);
   ctx.stroke();
   for (let col = 0; col < MATCHUP_SIZE; col++) {
     const queue = state.queues[col] ?? [];
@@ -332,7 +508,7 @@ function drawSettled(ctx: CanvasRenderingContext2D, cells: readonly number[], ti
   const native=layer&&artContext(layer.canvas);
   if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(2,2);
    for(let i=0;i<cells.length;i++){if(layer.cells[i]===cells[i])continue;const x=(i%MATCHUP_SIZE)*MATCHUP_CELL_PX,y=Math.floor(i/MATCHUP_SIZE)*MATCHUP_CELL_PX;
-    c.clearRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);c.fillStyle=cellFill(Math.floor(i/MATCHUP_SIZE),i%MATCHUP_SIZE);c.fillRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);
+    c.clearRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);drawSocket(c,x,y,(Math.floor(i/MATCHUP_SIZE)+i%MATCHUP_SIZE)%2);
     drawMatchupGem(c,cells[i]??0,x+MATCHUP_CELL_PX/2,y+MATCHUP_CELL_PX/2,RADIUS,time);layer.cells[i]=cells[i]??0;
    }c.restore();ctx.drawImage(layer.canvas,MATCHUP_BOARD_X,MATCHUP_BOARD_Y,MATCHUP_BOARD_W,MATCHUP_BOARD_H);
    ctx.strokeStyle="rgba(0,0,0,0.5)";ctx.lineWidth=2;ctx.strokeRect(MATCHUP_BOARD_X+1,MATCHUP_BOARD_Y+1,MATCHUP_BOARD_W-2,MATCHUP_BOARD_H-2);return;
@@ -572,6 +748,7 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
+  drawBackdrop(ctx);
   drawNextStrip(ctx, state, time);
   drawFrame(ctx);
   const animationMs = options.animationMs;

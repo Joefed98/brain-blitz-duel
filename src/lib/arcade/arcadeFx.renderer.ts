@@ -275,6 +275,29 @@ export interface ArcadeFxEvent<S> {
    * its edges, alternating these colours. Edge only, never over the play area.
    */
   arenaGlow?: readonly string[];
+  /**
+   * Polish G: cabinet lights round the arena border and in its corners (Retro
+   * games). Small bulbs on the edge only, never over the play area.
+   */
+  bulbs?: ArcadeFxBulbs<S>;
+}
+
+/**
+ * Border-light patterns (Polish G), so no two Retro games light up alike:
+ *  flash — every other bulb blinks, the two sets swapping, corners strongest;
+ *          `heat` (0…1) lights more bulbs, brighter, blinking faster and longer.
+ *  chase — bright heads with fading tails run once round the border, each
+ *          corner pulsing as a head passes it.
+ *  step  — the whole border flashes in one colour, the next colour of the
+ *          cycle each time the counter rises (colour = count mod cycle).
+ */
+export interface ArcadeFxBulbs<S> {
+  pattern: "flash" | "chase" | "step";
+  colours: readonly string[];
+  /** Read from state when the event fires: the tension, 0…1 (flash only). */
+  heat?: (state: S) => number;
+  /** A milestone: longer, stronger lights (and for chase, more heads). */
+  strong?: boolean;
 }
 
 export interface ArcadeFxSpec<S> {
@@ -303,6 +326,11 @@ export const ARCADE_FX_SHAKE_PX = 2;
 /** Light-burst budget per canvas and how long one burst lasts. */
 export const ARCADE_FX_MAX_LIGHTS = 14;
 export const ARCADE_FX_LIGHTS_MS = 750;
+/** Border lights (Polish G): spacing between bulbs (world px) and how long each pattern runs. */
+export const ARCADE_FX_BULB_GAP = 24;
+export const ARCADE_FX_FLASH_MS = [480, 900] as const;
+export const ARCADE_FX_CHASE_MS = 950;
+export const ARCADE_FX_STEP_MS = [420, 900] as const;
 
 interface FxTiming {
   particles: number;
@@ -448,6 +476,9 @@ interface Memory {
   arenaAt: number;
   arenaMs: number;
   arenaColours: readonly string[];
+  bulbsAt: number;
+  bulbsMs: number;
+  bulbs: { pattern: ArcadeFxBulbs<unknown>["pattern"]; colours: readonly string[]; heat: number; step: number; strong: boolean } | null;
   seed: number;
 }
 
@@ -504,6 +535,9 @@ function freshMemory(tick: number, counts: number[]): Memory {
     arenaAt: -Infinity,
     arenaMs: 0,
     arenaColours: [],
+    bulbsAt: -Infinity,
+    bulbsMs: 0,
+    bulbs: null,
     seed: 1,
   };
 }
@@ -655,7 +689,155 @@ function spawn<S>(
   }
   if (event.neon) m.neonAt = now;
   if (event.sweep && !still) m.sweepAt = now;
+  if (event.bulbs?.colours.length) {
+    const b = event.bulbs;
+    const heat = Math.max(0, Math.min(1, b.heat?.(state) ?? 0));
+    const strong = !!b.strong;
+    const ms = still
+      ? 300
+      : b.pattern === "chase"
+        ? ARCADE_FX_CHASE_MS * (strong ? 1.25 : 1)
+        : b.pattern === "step"
+          ? ARCADE_FX_STEP_MS[strong ? 1 : 0]
+          : ARCADE_FX_FLASH_MS[0] + (ARCADE_FX_FLASH_MS[1] - ARCADE_FX_FLASH_MS[0]) * Math.max(heat, strong ? 0.6 : 0);
+    // A plain firing never cuts short a milestone that is less than half done.
+    const current = m.bulbs;
+    if (!(current?.strong && !strong && now - m.bulbsAt < m.bulbsMs / 2)) {
+      m.bulbsAt = now;
+      m.bulbsMs = ms;
+      m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong };
+    }
+  }
 }
+
+interface Bulb {
+  x: number;
+  y: number;
+  /** Distance along the border, clockwise from the top-left corner. */
+  along: number;
+  corner: boolean;
+}
+
+const bulbRings = new Map<string, { bulbs: Bulb[]; perimeter: number }>();
+
+/** Bulb spots round a rectangle's edge (inset 3 px), corners first-class; cached per size. */
+function bulbRing(clip: { x: number; y: number; w: number; h: number }): { bulbs: Bulb[]; perimeter: number } {
+  const key = `${clip.x},${clip.y},${clip.w},${clip.h}`;
+  const old = bulbRings.get(key);
+  if (old) return old;
+  const inset = 3;
+  const x0 = clip.x + inset, y0 = clip.y + inset, x1 = clip.x + clip.w - inset, y1 = clip.y + clip.h - inset;
+  const w = x1 - x0, h = y1 - y0;
+  const bulbs: Bulb[] = [];
+  const side = (ax: number, ay: number, bx: number, by: number, len: number, start: number) => {
+    const n = Math.max(1, Math.round(len / ARCADE_FX_BULB_GAP));
+    for (let i = 0; i < n; i++) {
+      const f = i / n;
+      bulbs.push({ x: ax + (bx - ax) * f, y: ay + (by - ay) * f, along: start + len * f, corner: i === 0 });
+    }
+  };
+  side(x0, y0, x1, y0, w, 0);
+  side(x1, y0, x1, y1, h, w);
+  side(x1, y1, x0, y1, w, w + h);
+  side(x0, y1, x0, y0, h, w * 2 + h);
+  const ring = { bulbs, perimeter: 2 * (w + h) };
+  if (bulbRings.size > 16) bulbRings.clear();
+  bulbRings.set(key, ring);
+  return ring;
+}
+
+/**
+ * Paints the border lights for their age: a square pixel bulb 3 px inside the
+ * edge with a soft glow, corners bigger. Edge only: nothing reaches more than
+ * 20 px in from the border.
+ */
+function paintBulbs(ctx: CanvasRenderingContext2D, m: Memory, clip: { x: number; y: number; w: number; h: number }, now: number, still: boolean): void {
+  const b = m.bulbs;
+  const age = now - m.bulbsAt;
+  if (!b || age < 0 || age >= m.bulbsMs) return;
+  const p = age / m.bulbsMs;
+  const fade = still ? 0.7 : p < 0.08 ? p / 0.08 : p > 0.7 ? (1 - p) / 0.3 : 1;
+  const ring = bulbRing(clip);
+  const colours = b.colours;
+  const bulbs = ring.bulbs;
+  // Reused scratch per bulb: its colour and light level this frame (0 = dark).
+  litColour.length = bulbs.length;
+  litLevel.length = bulbs.length;
+  litLevel.fill(0);
+  if (b.pattern === "flash") {
+    // Marquee blink: the two halves swap, faster and with more bulbs as the heat builds.
+    const period = still ? Infinity : 150 - 80 * b.heat;
+    const phase = Math.floor(age / period) % 2;
+    const every = b.heat >= 0.66 || b.strong ? 1 : b.heat >= 0.33 ? 2 : 3;
+    const level = (0.5 + 0.5 * Math.max(b.heat, b.strong ? 0.7 : 0)) * fade;
+    for (let i = 0; i < bulbs.length; i++) {
+      if (bulbs[i]!.corner) {
+        litColour[i] = colours[phase % colours.length]!;
+        litLevel[i] = Math.min(1, level * 1.25);
+        continue;
+      }
+      const slot = Math.floor(i / every);
+      if (i % every !== 0 || slot % 2 !== phase) continue;
+      litColour[i] = colours[(slot >> 1) % colours.length]!;
+      litLevel[i] = level;
+    }
+  } else if (b.pattern === "chase") {
+    // Heads run clockwise once round; tails fade behind them; corners pulse as a head passes.
+    const heads = b.strong ? 4 : 2;
+    const tail = ring.perimeter * 0.14;
+    const travel = still ? 0 : (1 - (1 - p) * (1 - p)) * ring.perimeter;
+    for (let i = 0; i < bulbs.length; i++) {
+      const bulb = bulbs[i]!;
+      let best = Infinity;
+      for (let k = 0; k < heads; k++) {
+        const head = (travel + (k * ring.perimeter) / heads) % ring.perimeter;
+        const behind = (head - bulb.along + ring.perimeter) % ring.perimeter;
+        if (behind < best) best = behind;
+      }
+      if (best > tail) {
+        if (bulb.corner) {
+          litColour[i] = colours[colours.length - 1]!;
+          litLevel[i] = 0.35 * fade;
+        }
+        continue;
+      }
+      const k = 1 - best / tail;
+      litColour[i] = k > 0.75 ? colours[0]! : colours[1 % colours.length]!;
+      litLevel[i] = (bulb.corner ? 1 : 0.85) * k * fade;
+    }
+  } else {
+    // Step: the whole border in this step's colour; a milestone blinks three times.
+    const colour = colours[b.step % colours.length]!;
+    const blink = still || !b.strong ? 1 : Math.abs(Math.cos(Math.PI * 3 * p));
+    const level = (b.strong ? 1 : 0.8) * fade * blink;
+    ctx.globalAlpha = 0.55 * level;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = b.strong ? 4 : 3;
+    ctx.strokeRect(clip.x + 1.5, clip.y + 1.5, clip.w - 3, clip.h - 3);
+    litColour.fill(colour);
+    litLevel.fill(level);
+  }
+  const previous = ctx.globalCompositeOperation;
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < bulbs.length; i++) {
+    const level = litLevel[i]!;
+    if (level <= 0.02) continue;
+    const bulb = bulbs[i]!;
+    drawGlow(ctx, litColour[i]!, bulb.x, bulb.y, bulb.corner ? 17 : 11, level * 0.8);
+  }
+  ctx.globalCompositeOperation = previous;
+  for (let i = 0; i < bulbs.length; i++) {
+    const level = litLevel[i]!;
+    if (level <= 0.02) continue;
+    const bulb = bulbs[i]!;
+    const s = bulb.corner ? 6 : 4;
+    ctx.globalAlpha = Math.min(1, level * 1.1);
+    ctx.fillStyle = litColour[i]!;
+    ctx.fillRect(Math.round(bulb.x - s / 2), Math.round(bulb.y - s / 2), s, s);
+  }
+}
+const litColour: string[] = [];
+const litLevel: number[] = [];
 
 /** Neon border pulse and edge colour sweep: how long each runs, ms. */
 export const ARCADE_FX_NEON_MS = 900;
@@ -849,10 +1031,11 @@ function paint<S>(
   const neonAge = now - m.neonAt;
   const sweepAge = now - m.sweepAt;
   const arenaAge = now - m.arenaAt;
+  const bulbsAge = now - m.bulbsAt;
   if (
     !m.particles.length && !m.pops.length && !m.rings.length && !m.lights.length && flashAge > 260 && edgeAge > 600 &&
     neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS &&
-    arenaAge > m.arenaMs
+    arenaAge > m.arenaMs && bulbsAge > m.bulbsMs
   )
     return;
 
@@ -922,6 +1105,8 @@ function paint<S>(
       ctx.fillRect(clip.x + clip.w - x - seg, clip.y + clip.h - 5, seg + 1, 5);
     }
   }
+
+  paintBulbs(ctx, m, clip, now, still);
 
   const previous = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = "lighter";
@@ -1096,11 +1281,13 @@ export function withArcadeFx<S extends { tick: number }, R extends unknown[]>(
 export function arcadeFxStats(
   ctx: object,
   game: string,
-): { particles: number; pops: number; rings: number; lights: number; shaking: boolean } {
+): { particles: number; pops: number; rings: number; lights: number; shaking: boolean; bulbs?: string } {
   const m = memories.get(ctx)?.get(game);
   if (!m) return { particles: 0, pops: 0, rings: 0, lights: 0, shaking: false };
   const now = clock();
+  const bulbs = m.bulbs && now - m.bulbsAt >= 0 && now - m.bulbsAt < m.bulbsMs ? m.bulbs.pattern : undefined;
   return {
+    ...(bulbs ? { bulbs } : {}),
     lights: m.lights.filter((l) => now - l.born < ARCADE_FX_LIGHTS_MS).length,
     particles: m.particles.filter((p) => now - p.born < p.life).length,
     pops: m.pops.filter((p) => now - p.born < p.life).length,
