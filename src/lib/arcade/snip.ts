@@ -185,6 +185,15 @@ const SNIP_CROOK_SOURCES: readonly SnipTemplate[] = [
  * then the crook levels (90 on).
  */
 const SNIP_TALL_SOURCES: readonly SnipTemplate[] = [...SNIP_SOURCES.slice(30, 60).map(stretchTall), ...SNIP_CROOK_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H }))];
+
+/**
+ * snipRev 6 (Oct 2026 bank growth): new tall levels appended after Tuning E's
+ * (index SNIP_BANK6_FIRST on), in design coordinates: mostly picker's-crook
+ * levels (a cut, a catch, another cut) among springy branches, planks,
+ * gutters, wasp nests and sliding baskets, from scripts/snip-crook-design.ts.
+ */
+const SNIP_BANK6_SOURCES: readonly SnipTemplate[] = [
+];
 export const SNIP_TALL_FIRST = 60;
 const tallIds = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_TALL_FIRST + from + i);
 export const SNIP_BANDS_TALL = {
@@ -240,7 +249,7 @@ export const SNIP_CONFIG = {
   springMax: 2_560,
   maxScore: 150,
   /** Ten levels in play order, easiest first (then the banks drawn by revision; Tuning E's tall ones last). */
-  templates: [...SNIP_SOURCES, ...SNIP_TALL_SOURCES].map(placeSnipTemplate) as readonly SnipTemplate[],
+  templates: [...SNIP_SOURCES, ...SNIP_TALL_SOURCES, ...SNIP_BANK6_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H }))].map(placeSnipTemplate) as readonly SnipTemplate[],
 } as const;
 
 /** A designed template placed in the wide world (exported for level-design scripts). */
@@ -1043,6 +1052,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_BANK6) return snipBank6Game;
   if (rev === SNIP_REV_TALL) return snipTallGame;
   if (rev === SNIP_REV_BAND) return snipBandGame;
   return rev === SNIP_REV3 ? snipRev3Game : rev === SNIP_REV ? snipRev2Game : snipGame;
@@ -1112,5 +1122,47 @@ export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ..
 
 /** The world height (px) a stored round's snipRev plays in. */
 export function snipWorldHFor(rev?: number | null): number {
-  return rev === SNIP_REV_TALL ? SNIP_TALL_H : SNIP_H;
+  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 ? SNIP_TALL_H : SNIP_H;
 }
+
+/* ================= Bank growth (snipRev 6, Oct 2026) ================= */
+
+/**
+ * snipRev 6: the same tall game as snipRev 5 (rules, physics, timing and
+ * scoring unchanged) dealing from a bigger bank, so regular players see fewer
+ * repeats: snipRev 5's tall templates plus the new levels from index
+ * SNIP_BANK6_FIRST on. Still 2 easy / 3 medium / 5 hard, on a stream of its
+ * own; pin wobble from the seed as before. Every template keeps a stored
+ * human-paced winning plan (fixtures/snip-rev5-proofs.json and
+ * fixtures/snip-rev6-proofs.json). snipRev 5 rounds keep SNIP_BANDS_TALL.
+ */
+export const SNIP_REV_BANK6 = 6;
+export const SNIP_BANK6_FIRST = SNIP_TALL_FIRST + SNIP_TALL_SOURCES.length;
+const bank6Ids = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_BANK6_FIRST + from + i);
+export const SNIP_BANDS_V6 = {
+  easy: [...SNIP_BANDS_TALL.easy],
+  medium: [...SNIP_BANDS_TALL.medium],
+  hard: [...SNIP_BANDS_TALL.hard],
+};
+
+/** The ten-level order for a snipRev-6 seed. */
+export function snipLevelOrderV6(seed: number): number[] {
+  let rng = (seed ^ 0x6b0a_17e6) | 0;
+  const out: number[] = [];
+  [SNIP_BANDS_V6.easy, SNIP_BANDS_V6.medium, SNIP_BANDS_V6.hard].forEach((band, b) => {
+    const pool = [...band];
+    for (let k = 0; k < SNIP_BAND_PLAN_TALL[b]!; k++) {
+      const r = rngBelow(rng, pool.length);
+      rng = r.state;
+      out.push(pool.splice(r.value, 1)[0]!);
+    }
+  });
+  return out;
+}
+
+function initBank6(seed: number): SnipState {
+  const s = init(seed);
+  return bandInit(buildLevel({ ...s, rng: seed | 0, order: snipLevelOrderV6(seed), rev: SNIP_REV_BANK6, worldH: SNIP_TALL_H }, 0));
+}
+
+export const snipBank6Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipTallGame, init: initBank6 };

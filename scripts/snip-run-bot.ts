@@ -19,6 +19,8 @@ export const SNIP_PROOFS: SnipProofs = {
   ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev3-proofs.json", import.meta.url), "utf8")),
   // Tuning E's tall templates (snipRev 5), keyed by their own indices (60 on).
   ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev5-proofs.json", import.meta.url), "utf8")),
+  // snipRev 6's new tall templates (SNIP_BANK6_FIRST on).
+  ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev6-proofs.json", import.meta.url), "utf8")),
 };
 
 type Game = ArcadeGame<SnipState, ArcadeInputEvent | null>;
