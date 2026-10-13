@@ -36,7 +36,9 @@ export function generateWordSlide(): WordSlidePuzzleData {
       current = applyShift(current, shift);
       previous = shift;
     }
-    if (markedRowsSolved(current) === WS_MARKED_ROWS.length) continue;
+    // Never deal a row that is already a word (13 Oct 2026, with puzzleScoreRev 1): doing nothing must score 0.
+    // A board with no word row draws exactly as before, so the fixed intro example is unchanged.
+    if (markedRowsSolved(current) > 0) continue;
     return { type: "wordslide", grid: current, par: count, words: chosen };
   }
   const fallbackWords = ["HOUSE", "WATER", "STONE", "PLANT", "LIGHT"];

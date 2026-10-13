@@ -4,6 +4,7 @@
  * joined by "|"; an empty segment is a skipped stage. Used by the server
  * grader, the reveal and the result summaries so they always agree.
  */
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import {
   EQUATION_STAGE_POINTS,
@@ -37,9 +38,23 @@ export function parseOperators(segment: string): Operator[] {
   return segment.split(",").map((v) => v.trim()).filter((v) => v.length > 0) as Operator[];
 }
 
+/** Puzzle score rev 1: Operator's four stages while unfinished (the best three = 110). */
+export const EQUATION_REV1_STAGE_POINTS = [20, 30, 35, 45] as const;
+/** Puzzle score rev 1: Eagle Eye's and Tally's three stages while unfinished (all three = 110). */
+export const STAGE_WEIGHTS_3_REV1 = [25, 40, 45] as const;
+
+function stageWeight(stage: number): number {
+  return (scoreRev1() ? STAGE_WEIGHTS_3_REV1 : STAGE_WEIGHTS_3)[stage] ?? 0;
+}
+
 export function scoreEquationStages(correct: boolean[], msRemaining: number): number {
   // A stored three-stage round retains its original weights and bonus.
   const legacy = correct.length === 3;
+  if (scoreRev1() && !legacy) {
+    // Rev 1: all four = 120 + PAR(30); otherwise 20 / 30 / 35 / 45 per stage, any order.
+    if (correct.length === EQUATION_STAGE_COUNT && correct.every(Boolean)) return finishParts(speedBonusCurve(30, clampMs(msRemaining, EQUATION_TIME_MS), EQUATION_TIME_MS));
+    return partialParts(correct.reduce((sum, ok, i) => sum + (ok ? EQUATION_REV1_STAGE_POINTS[i] ?? 0 : 0), 0));
+  }
   const weights = legacy ? [30, 40, 50] : EQUATION_STAGE_POINTS;
   const base = correct.reduce((sum, ok, i) => sum + (ok ? weights[i] ?? 0 : 0), 0);
   const all = correct.length === (legacy ? 3 : EQUATION_STAGE_COUNT) && correct.every(Boolean);
@@ -62,7 +77,7 @@ export interface ScanStageResult {
 }
 
 export function scanStageResult(stage: number, selected: number[], targets: number[]): ScanStageResult {
-  const weight = STAGE_WEIGHTS_3[stage] ?? 0;
+  const weight = stageWeight(stage);
   const found = targets.filter((t) => selected.includes(t)).length;
   const wrong = selected.filter((s) => !targets.includes(s)).length;
   const total = Math.max(1, targets.length);
@@ -73,6 +88,8 @@ export function scanStageResult(stage: number, selected: number[], targets: numb
 export function scoreSymbolScanStages(results: ScanStageResult[], msRemaining: number, timeLimitMs: number = SYMSCAN_TIME_MS): number {
   const base = results.reduce((sum, r) => sum + r.points, 0);
   const all = results.length === STAGE_COUNT && results.every((r) => r.perfect);
+  // Rev 1: all three perfect = 120 + PAR(30); otherwise the stages' points (25 / 40 / 45 at most).
+  if (scoreRev1()) return all ? finishParts(speedBonusCurve(30, clampMs(msRemaining, timeLimitMs), timeLimitMs)) : partialParts(base);
   const bonus = all ? speedBonusCurve(20, clampMs(msRemaining, timeLimitMs), timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }
@@ -86,7 +103,7 @@ export function parseCount(segment: string): number | null {
 
 export function countStagePoints(stage: number, given: number | null, truth: number): number {
   if (given === null) return 0;
-  const weight = STAGE_WEIGHTS_3[stage] ?? 0;
+  const weight = stageWeight(stage);
   const away = Math.abs(given - truth);
   if (away === 0) return weight;
   if (away === 1) return Math.round(weight * 0.6);
@@ -97,6 +114,8 @@ export function countStagePoints(stage: number, given: number | null, truth: num
 export function scoreCountUpStages(given: (number | null)[], counts: number[], msRemaining: number, timeLimitMs: number = COUNTUP_TIME_MS): number {
   const base = counts.reduce((sum, truth, i) => sum + countStagePoints(i, given[i] ?? null, truth), 0);
   const all = counts.length === STAGE_COUNT && counts.every((truth, i) => given[i] === truth);
+  // Rev 1: all three exact = 120 + PAR(30); otherwise the trays' points (25 / 40 / 45 at most, near counts 60 % / 30 %).
+  if (scoreRev1()) return all ? finishParts(speedBonusCurve(30, clampMs(msRemaining, timeLimitMs), timeLimitMs)) : partialParts(base);
   const bonus = all ? speedBonusCurve(20, clampMs(msRemaining, timeLimitMs), timeLimitMs) : 0;
   return Math.min(150, base + bonus);
 }

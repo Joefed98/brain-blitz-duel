@@ -5,6 +5,7 @@
  * the line (0 = left end, 10,000 = right end). The error is the distance from
  * the item's true position as a share of the line's length.
  */
+import { partialParts, recordParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { NumlineStageData, NumlineValue } from "./types";
 
@@ -18,6 +19,10 @@ export const NUMLINE_ITEM_POINTS = 8;
 export const NUMLINE_FULL_ERROR = 0.02;
 export const NUMLINE_ZERO_ERROR = 0.15;
 export const NUMLINE_SPEED_POINTS = 30;
+/** Puzzle score rev 1: an item scores nothing from this error share. */
+export const NUMLINE_REV1_ZERO_ERROR = 0.08;
+/** Puzzle score rev 1: a placement this far off costs a point. */
+export const NUMLINE_REV1_WILD_ERROR = 0.25;
 /** Every value sits at least this share of the line from a labelled tick. */
 export const NUMLINE_TICK_GAP = 0.03;
 
@@ -39,6 +44,14 @@ export function numlineTicks(stage: Pick<NumlineStageData, "lo" | "hi">): number
 
 export function numlineItemPoints(error: number): number {
   if (!Number.isFinite(error)) return 0;
+  // Rev 1: full within 2 %, falling evenly to 0 at NUMLINE_REV1_ZERO_ERROR; a wild placement (NUMLINE_REV1_WILD_ERROR
+  // or more off) costs 1, so placing at random earns about nothing.
+  if (scoreRev1()) {
+    if (error >= NUMLINE_REV1_WILD_ERROR) return -1;
+    if (error <= NUMLINE_FULL_ERROR) return NUMLINE_ITEM_POINTS;
+    if (error >= NUMLINE_REV1_ZERO_ERROR) return 0;
+    return (NUMLINE_ITEM_POINTS * (NUMLINE_REV1_ZERO_ERROR - error)) / (NUMLINE_REV1_ZERO_ERROR - NUMLINE_FULL_ERROR);
+  }
   if (error <= NUMLINE_FULL_ERROR) return NUMLINE_ITEM_POINTS;
   if (error >= NUMLINE_ZERO_ERROR) return 0;
   return (
@@ -119,6 +132,15 @@ export function scoreNumline(
 ): number {
   const accuracy = numlineAccuracy(results);
   const all = results.length === NUMLINE_TOTAL && results.every((r) => r.placed);
+  if (scoreRev1()) {
+    // Rev 1: all 15 placed = accuracy (120 at full) + PAR(30) scaled by accuracy; unplaced numbers leave it unfinished, at most 110.
+    const acc = Math.max(0, accuracy);
+    if (!all) return partialParts(acc);
+    const shareAll = acc / (NUMLINE_TOTAL * NUMLINE_ITEM_POINTS);
+    const speed = timeLimitMs > 0 ? Math.round(speedBonusCurve(NUMLINE_SPEED_POINTS, msRemaining, timeLimitMs) * shareAll) : 0;
+    recordParts({ kind: "finish", base: Math.round(acc), speed });
+    return Math.max(0, Math.min(150, Math.round(acc) + speed));
+  }
   const share = accuracy / (NUMLINE_TOTAL * NUMLINE_ITEM_POINTS);
   const bonus =
     all && timeLimitMs > 0

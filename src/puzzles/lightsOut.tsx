@@ -219,7 +219,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "lightsout") return null;
   const solution = puzzle.solution ?? [];
   const numbers: Record<number, number> = {};
@@ -242,7 +242,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </p>
       {myCorrect ? (
         <p className="logic-reveal-text text-center font-mono text-primary">
-          {solvedMovesText(mine, min, myMsRemaining, timeLimitMs)}
+          {solvedMovesText(mine, min, myMsRemaining, timeLimitMs, "B", scoreParts)}
         </p>
       ) : null}
     </div>

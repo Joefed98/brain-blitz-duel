@@ -7,6 +7,9 @@
  *   bun scripts/flow-bank.ts --check       rebuild in memory; fail unless it matches the file byte for byte
  *   bun scripts/flow-bank.ts --count=50    a smaller bank (with --out=<path>, or --check to compare a prefix)
  *   bun scripts/flow-bank.ts --jobs=4      worker processes (default: CPU count)
+ *   bun scripts/flow-bank.ts --example-only   rebuild only the stored intro example: the committed
+ *                                          entries and retries are kept as they are (the build stamp's
+ *                                          count and SHA-256, which cover the entries, must come out the same)
  *
  * Determinism: entry i is the live generator run under the fixed seed
  * `bankEntrySeed(type, i, retry)` for the smallest retry whose board passes the
@@ -170,8 +173,36 @@ export async function buildBank(type: BankedType, count = BANK_COUNT, jobs = cpu
   return { type, entries, retries, example, source: renderBankSource(type, entries, retries, example) };
 }
 
+/**
+ * Rewrites the bank file with a fresh intro example (liveIntroExample) and the committed
+ * entries and retries unchanged, e.g. after a new per-puzzle stamp (puzzleScoreRev, 13 Oct 2026).
+ */
+async function rebuildExampleOnly(type: BankedType, check: boolean): Promise<void> {
+  const { constName } = BANK_FILES[type];
+  const mod = (await import(bankPath(type))) as Record<string, unknown>;
+  const entries = mod[`${constName}_BANK`] as PuzzleData[];
+  const retries = mod[`${constName}_BANK_RETRIES`] as number[];
+  const build = mod[`${constName}_BANK_BUILD`] as { entries: number; sha256: string };
+  if (entries.length !== build.entries || entriesHash(entries) !== build.sha256) throw new Error(`${type}: committed entries do not match their build stamp`);
+  const example = liveIntroExample(type);
+  const source = renderBankSource(type, entries, retries, example);
+  const committed = readFileSync(bankPath(type), "utf8");
+  // Only the intro example line may change.
+  const strip = (text: string) => text.split("\n").filter((line) => !line.startsWith(`export const ${constName}_INTRO_EXAMPLE`)).join("\n");
+  if (strip(source) !== strip(committed)) throw new Error(`${type}: rebuilding the example would change more than the example line`);
+  const changed = source !== committed;
+  if (check) {
+    console.log(changed ? `FAIL ${type}: stored intro example differs from the live one` : `PASS ${type}: stored intro example matches the live one`);
+    if (changed) process.exit(1);
+    return;
+  }
+  writeFileSync(bankPath(type), source);
+  console.log(`${type}: ${changed ? "rewrote" : "kept"} the intro example in ${BANK_FILES[type].file}; ${entries.length} entries and the build stamp unchanged`);
+}
+
 export async function runBankScript(type: BankedType): Promise<void> {
   const args = process.argv.slice(2);
+  if (args.includes("--example-only")) return rebuildExampleOnly(type, args.includes("--check"));
   const value = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];
   const count = Number(value("count") ?? BANK_COUNT);
   const jobs = Number(value("jobs") ?? cpus().length);

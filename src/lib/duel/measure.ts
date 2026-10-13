@@ -8,6 +8,7 @@
  * itself is not a move, and moves made before it keep counting. An action that
  * would change nothing (or is not available on this board) is ignored.
  */
+import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { MeasureBoardData } from "./types";
 
@@ -16,6 +17,8 @@ export const MEASURE_BOARDS = 4;
 export const MEASURE_SOLVE_POINTS = 25;
 export const MEASURE_MOVE_POINTS = 5;
 export const MEASURE_SPEED_POINTS = 30;
+/** Puzzle score rev 1: unfinished credit for puzzles 1–3 solved in order (three = 110). */
+export const MEASURE_REV1_WEIGHTS = [30, 35, 45] as const;
 /** Longest action list read per board. */
 export const MEASURE_MAX_ACTIONS = 300;
 
@@ -229,11 +232,20 @@ export function scoreMeasure(
   msRemaining: number,
   timeLimitMs: number,
 ): number {
+  const all = results.length === MEASURE_BOARDS && results.every((r) => r.solved);
+  if (scoreRev1()) {
+    // Rev 1: all four = 120 + up to 15 for moves (each puzzle's move points, 15 when every one is at its minimum) + PAR(15).
+    if (all) {
+      const moves = (15 * results.reduce((sum, r) => sum + r.movePoints, 0)) / (MEASURE_BOARDS * MEASURE_MOVE_POINTS);
+      return finishParts(timeLimitMs > 0 ? speedBonusCurve(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs) : 0, moves, "moves");
+    }
+    // Unfinished: puzzles are played in order, so the solved ones are a prefix worth 30 / 35 / 45 (three = 110).
+    return partialParts(results.reduce((sum, r, i) => sum + (r.solved ? MEASURE_REV1_WEIGHTS[i] ?? 0 : 0), 0));
+  }
   const base = results.reduce(
     (sum, r) => sum + (r.solved ? MEASURE_SOLVE_POINTS + r.movePoints : 0),
     0,
   );
-  const all = results.length === MEASURE_BOARDS && results.every((r) => r.solved);
   const bonus =
     all && timeLimitMs > 0 ? speedBonusCurve(MEASURE_SPEED_POINTS, msRemaining, timeLimitMs) : 0;
   return Math.max(0, Math.min(150, base + bonus));

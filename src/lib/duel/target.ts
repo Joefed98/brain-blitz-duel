@@ -297,6 +297,27 @@ export function replayTargetSteps(tiles: number[], target: number, rawSteps: unk
   return { pool, steps, value, distance };
 }
 
+/**
+ * Puzzle score rev 1: the distance from the target of the closest number the
+ * player made that is still on the board (a step result), never a starting tile.
+ * No step made = Infinity (no credit).
+ */
+export function madeDistance(tiles: number[], target: number, replay: Replay): number {
+  // Replay the accepted steps on a tagged pool; a result is "made", a starting tile is not.
+  let pool = tiles.map((value) => ({ value, made: false }));
+  for (const step of replay.steps) {
+    const first = pool.findIndex((t) => t.value === step.a);
+    if (first < 0) break;
+    const rest = pool.filter((_, i) => i !== first);
+    const second = rest.findIndex((t) => t.value === step.b);
+    if (second < 0) break;
+    pool = [...rest.filter((_, i) => i !== second), { value: step.result, made: true }];
+  }
+  let best = Number.POSITIVE_INFINITY;
+  for (const t of pool) if (t.made) best = Math.min(best, Math.abs(t.value - target));
+  return best;
+}
+
 /** Wire format: one step per ";", written "a|operator|b". */
 export function encodeSteps(steps: { a: number; b: number; operator: Operator }[]): string {
   return steps.map((s) => `${s.a}|${s.operator}|${s.b}`).join(";");

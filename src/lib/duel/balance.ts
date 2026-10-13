@@ -4,6 +4,7 @@
  * answer lists, per scale, the peg each tray weight sits on ("-" for the tray).
  */
 
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { BalanceScale } from "./types";
 
@@ -85,11 +86,25 @@ export function balanceSolvedCount(scales: BalanceScale[], placements: Placement
   return n;
 }
 
+/** Every scale's balance verdict, in any order (puzzle score rev 1). */
+export function balanceScalesSolved(scales: BalanceScale[], placements: Placement[]): boolean[] {
+  return scales.map((scale, s) => scaleSolved(scale, placements[s] ?? []));
+}
+
+/** Puzzle score rev 1: each balanced scale, any order, weighted by difficulty (the two hardest = 110). */
+export const BAL_REV1_SCALE_POINTS = [20, 35, 75] as const;
+
 /** Stage weights for scales 1 / 2 / 3 when the round is unfinished. */
 export const BAL_STAGE_POINTS = [20, 40, 60] as const;
 
 /** All three: 120 + round(30 × ms left ÷ limit), cap 150. Otherwise the solved stages' weights. */
-export function balanceRoundScore(solved: number, msRemaining: number, timeLimitMs: number): number {
+export function balanceRoundScore(solved: number, msRemaining: number, timeLimitMs: number, scalesSolved?: readonly boolean[]): number {
+  if (scoreRev1() && scalesSolved) {
+    // Rev 1: each balanced scale scores its weight in any order (20 / 35 / 75: any two at most 110); all three = 120 + PAR(30).
+    const n = scalesSolved.filter(Boolean).length;
+    if (n >= BAL_SCALES) return finishParts(timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0);
+    return partialParts(scalesSolved.reduce((sum, ok, i) => sum + (ok ? BAL_REV1_SCALE_POINTS[i] ?? 0 : 0), 0));
+  }
   const n = Math.max(0, Math.min(BAL_SCALES, solved));
   if (n >= BAL_SCALES) {
     const ms = Math.max(0, Math.min(msRemaining, timeLimitMs));

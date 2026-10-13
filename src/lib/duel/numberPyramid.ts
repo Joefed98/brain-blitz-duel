@@ -1,3 +1,4 @@
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 /** Number Pyramid rules shared by the phone, grader, and offline bank builder. */
 
@@ -122,6 +123,13 @@ export function npCorrectCells(givens: readonly (number | null)[], tray: readonl
 }
 
 export function scoreNumberPyramid(completed: number, allComplete: boolean, msRemaining: number, activeCorrect: number, activeEmpty: number, timeLimitMs: number): number {
+  if (scoreRev1()) {
+    // Rev 1: all four = 120 + PAR(30); otherwise 27.5 per pyramid finished + 27.5 × the share right on the
+    // first unfinished pyramid (the server picks it, never the phone), at most 110.
+    if (allComplete) return finishParts(timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0);
+    const share = activeEmpty > 0 ? Math.max(0, Math.min(activeCorrect, activeEmpty)) / activeEmpty : 0;
+    return partialParts(27.5 * (Math.max(0, Math.min(NP_SET_SIZE, completed)) + Math.min(share, 0.99)));
+  }
   const base = 30 * Math.max(0, Math.min(NP_SET_SIZE, completed));
   const bonus = allComplete ? (timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0) : 0;
   const partial = allComplete || activeEmpty <= 0 ? 0 : Math.round((30 * Math.max(0, Math.min(activeCorrect, activeEmpty))) / activeEmpty);

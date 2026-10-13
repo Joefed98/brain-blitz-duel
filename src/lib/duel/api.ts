@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { APP_BUILD_ID } from "@/lib/appVersion";
+import { trackSubmission } from "@/lib/appUpdate";
 
 import {
   advancePhaseFn,
@@ -129,15 +131,20 @@ export async function submitAnswer(params: {
   msRemaining: number;
   extra?: SubmitExtra;
 }): Promise<void> {
-  await submitAnswerFn({
-    data: {
-      roomId: params.duelId,
-      roundNumber: params.roundNumber,
-      answer: params.answer,
-      msRemaining: params.msRemaining,
-      extra: params.extra ?? {},
-    },
-  });
+  // The build id lets the server log answers from stale copies; no reload starts
+  // while the answer is on its way.
+  await trackSubmission(
+    submitAnswerFn({
+      data: {
+        roomId: params.duelId,
+        roundNumber: params.roundNumber,
+        answer: params.answer,
+        msRemaining: params.msRemaining,
+        extra: params.extra ?? {},
+        clientVersion: APP_BUILD_ID,
+      },
+    }),
+  );
 }
 
 /** Tapping READY on the round intro. */

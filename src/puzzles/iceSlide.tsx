@@ -374,7 +374,7 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
   const best = puzzle.solution
@@ -405,7 +405,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       </p>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
-          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs)}`
+          ? `✓ ${solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)}`
           : "✗ Not solved"}
       </p>
     </div>

@@ -1,3 +1,4 @@
+import { TEN_DROP_SCORE_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
@@ -5,7 +6,7 @@ import { INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
-import { SNIP_REV_TALL } from "@/lib/arcade/snip";
+import { SNIP_REV_BANK6 } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
@@ -135,7 +136,7 @@ export function generateBeat(): BeatPuzzleData {
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
-  return { type: "tendrop", seed: arcadeSeed() };
+  return { type: "tendrop", seed: arcadeSeed(), tenRev: TEN_DROP_SCORE_REV };
 }
 
 /** Letterfall: the seed draws the letter queue and drop columns; stamped rev 1 and speed-par 1. */
@@ -204,7 +205,7 @@ export function generateOrbit(): OrbitPuzzleData {
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV_TALL };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV_BANK6 };
 }
 
 /** Room/practice generation picks a proved course from the bank by the room seed; on-the-spot proving is only a fallback if the bank is empty or unlucky. */

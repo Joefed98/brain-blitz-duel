@@ -1,3 +1,4 @@
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 /**
  * Tents and Trees rules, shared by the phone (live feedback, auto-lock) and the
@@ -172,6 +173,9 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
   return found;
 }
 
+/** Puzzle score rev 1: each tent off the solution costs this, so tents everywhere earn nothing. */
+export const TENTS_REV1_WRONG_PENALTY = 10;
+
 /** 10 per correctly placed tent, up to 110; all correct with no wrong tents = 130 + up to 20 for speed (speedBonusCurve). Cap 150. */
 export function scoreTents(
   _solved: boolean,
@@ -182,6 +186,11 @@ export function scoreTents(
   trees: number,
 ): number {
   const perfect = trees > 0 && correct === trees && wrong === 0;
+  if (scoreRev1()) {
+    // Rev 1: 120 + PAR(30); otherwise 10 per right tent − TENTS_REV1_WRONG_PENALTY per wrong one, at most 110.
+    if (perfect) return finishParts(speedBonusCurve(30, msRemaining, timeLimitMs));
+    return partialParts(10 * Math.max(0, correct) - TENTS_REV1_WRONG_PENALTY * Math.max(0, wrong));
+  }
   if (perfect) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   return Math.min(110, 10 * Math.max(0, correct));
 }

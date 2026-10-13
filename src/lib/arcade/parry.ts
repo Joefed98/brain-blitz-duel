@@ -235,7 +235,7 @@ function step(state: ParryState, input: ArcadeInputEvent | null): ParryState {
   return s;
 }
 
-/** Five per arrow deflected, minus ten per life lost. */
+/** Two per arrow deflected, minus ten per life lost. */
 export function parryScoreOf(deflected: number, hits: number): number {
   return clampInt(deflected * 2 - hits * 10, 0, 150);
 }
