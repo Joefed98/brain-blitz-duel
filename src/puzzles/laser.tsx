@@ -18,6 +18,9 @@ import {
   type BeamTrace,
 } from "@/lib/duel/laser";
 import { useStageState } from "@/lib/duel/stageState";
+import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
+import { laserAction, replayLaserLog } from "@/lib/duel/laserLog";
+import { serverNow } from "@/lib/duel/clock";
 import {
   LASER_BEAM_MS,
   LASER_CELLS,
@@ -33,73 +36,25 @@ import {
 import { buzz } from "@/lib/motion";
 import { playCorrect, playSound, playWrong } from "@/lib/sound";
 
+import {
+  directionalChevronPoints,
+  gemsInBeamOrder,
+  LaserBeam,
+  LaserBomb,
+  LaserEmitter,
+  LaserGem,
+  LaserGemBursts,
+  LaserMirror,
+  LaserSplitter,
+  useLaserCues,
+} from "@/components/puzzles/pattern/laserArt";
+import { useSolveMoment } from "@/lib/fx/patternFx";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const GOLD = "var(--primary)";
-const GREY = "var(--muted-foreground)";
-const RED = "var(--destructive)";
 
-/**
- * A faceted diamond — a rotated square with a lighter facet line across it —
- * drawn inline so no icon font or emoji is involved. Dim grey until the beam
- * passes through it, then gold with a soft glow.
- */
-function Gem({ lit }: { lit: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
-      <polygon
-        points="12,1 23,12 12,23 1,12"
-        fill={lit ? GOLD : GREY}
-        fillOpacity={lit ? 1 : 0.55}
-        stroke={GOLD}
-        strokeOpacity={lit ? 1 : 0.45}
-        strokeWidth={1.6}
-        style={lit ? { filter: "drop-shadow(0 0 3px rgba(245,198,76,0.95))" } : undefined}
-      />
-      <polyline
-        points="4.5,10 19.5,10"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeOpacity={lit ? 0.75 : 0.5}
-        strokeWidth={1.2}
-      />
-    </svg>
-  );
-}
-
-export function directionalChevronPoints(dir: BeamDir): string {
-  if (dir === "R") return "3,10 6,12 3,14";
-  if (dir === "L") return "21,10 18,12 21,14";
-  if (dir === "D") return "10,3 12,6 14,3";
-  return "10,21 12,18 14,21";
-}
-
-function DirectionalGem({ lit, from }: { lit: boolean; from?: BeamDir }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-full w-full overflow-visible" aria-hidden="true">
-      <g transform="translate(6 6) scale(.5)"><Gem lit={lit} /></g>
-      {from ? <polyline points={directionalChevronPoints(from)} fill="none" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /> : null}
-    </svg>
-  );
-}
-
-function Splitter({ kind = "S-" }: { kind?: MirrorKind }) {
-  return (
-    <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
-      <polygon points="12,0.5 23.5,12 12,23.5 0.5,12" fill="var(--card)" stroke="var(--opponent)" strokeWidth="1.8" />
-      <path transform={kind === "S|" ? "" : "rotate(90 12 12)"} d="M12 22V12M2 12H22M2 12L6 8M2 12L6 16M22 12L18 8M22 12L18 16" fill="none" stroke="var(--opponent)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** The arrow head on the source cell, drawn from the stored beam direction. */
-function sourceArrowPoints(x: number, y: number, dir: BeamDir, size: number): string {
-  const half = size / 2;
-  if (dir === "R") return `${x - half},${y - half} ${x + half},${y} ${x - half},${y + half}`;
-  if (dir === "L") return `${x + half},${y - half} ${x - half},${y} ${x + half},${y + half}`;
-  if (dir === "D") return `${x - half},${y - half} ${x},${y + half} ${x + half},${y - half}`;
-  return `${x - half},${y + half} ${x},${y - half} ${x + half},${y + half}`;
-}
+export { directionalChevronPoints };
 
 /** Each fork starts when the travelling beam reaches its parent splitter. */
 export function beamBranchOffsets(paths: number[][]): number[] {
@@ -142,6 +97,8 @@ function LaserBoard({
   shake = false,
   pointer,
   gridRef,
+  live = false,
+  solved = false,
 }: {
   source: number;
   dir: BeamDir;
@@ -163,6 +120,10 @@ function LaserBoard({
   pointer?: BoardPointer | undefined;
   /** The grid element itself, used for hit testing. */
   gridRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  /** The playable stage board (animations and cues); intro and reveal boards are still. */
+  live?: boolean;
+  /** The stage has submitted a solve (starts the completion effect). */
+  solved?: boolean;
 }) {
   const rows = Math.ceil(cells / cols);
   const wall = new Set(blocks);
@@ -175,12 +136,17 @@ function LaserBoard({
   const mirrorAt = new Map(placed.map((mirror) => [mirror.cell, mirror.kind]));
   const unit = metrics ? Math.min(metrics.cellW, metrics.cellH) : 0;
   const at = (cell: number) => (metrics ? gridCellCentre(metrics, cell, cols) : { x: 0, y: 0 });
+  // Presentation only: the completion flare and cues read what is already drawn.
+  const solveFx = useSolveMoment(live && solved, "laser.solve");
+  const firing = Boolean(beam);
+  useLaserCues({ live, placed, firing, litCount: litGems.length, bombHit: bombFlash });
+  const burstOrder = solveFx && beam ? gemsInBeamOrder(beam, beamBranchOffsets(beam), litGems) : [];
 
   return (
     <div
-      className={`relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${
+      className={`laser-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${
         shake ? "animate-shake" : ""
-      }`}
+      } ${solveFx ? "laser-board-solved" : ""}`}
       style={{ touchAction: "none" }}
       onPointerDown={pointer?.onPointerDown}
     >
@@ -194,44 +160,38 @@ function LaserBoard({
         }}
       >
         {Array.from({ length: cols * rows }, (_, cell) => {
-          if (wall.has(cell)) return <div key={cell} className="rounded-md bg-foreground/60" />;
+          if (wall.has(cell)) return <div key={cell} className="laser-block rounded-md bg-foreground/60" />;
           const piece = mirrorAt.get(cell);
-          if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="flex items-center justify-center"><Splitter kind={piece} /></div>;
-          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="flex items-center justify-center"><Splitter /></div>;
+          if (piece && isSplitter(piece)) return <div key={cell} aria-label={`Splitter ${piece === "S|" ? "vertical" : "horizontal"} input`} className="laser-piece-cell flex items-center justify-center"><LaserSplitter kind={piece} /></div>;
+          if (splitters.includes(cell)) return <div key={cell} aria-label="Splitter" className="laser-piece-cell flex items-center justify-center"><LaserSplitter /></div>;
           if (gemSet.has(cell)) {
             const directional = directionalGems.find((gem) => gem.cell === cell);
             return (
               <div
                 key={cell}
                 aria-label={litSet.has(cell) ? "Gem lit" : "Gem"}
-                className="flex items-center justify-center"
+                className="laser-piece-cell flex items-center justify-center"
               >
                 <div className="h-full w-full">
-                  <DirectionalGem lit={litSet.has(cell)} {...(directional ? { from: directional.from } : {})} />
+                  <LaserGem lit={litSet.has(cell)} from={directional?.from} />
                 </div>
               </div>
             );
           }
           if (bombSet.has(cell)) {
             return (
-              <div
-                key={cell}
-                aria-label="Bomb"
-                className={`flex items-center justify-center rounded-full border-2 ${
-                  bombFlash ? "border-destructive bg-destructive/40" : "border-destructive/70"
-                }`}
-              >
-                <span className="h-[62%] w-[62%] rounded-full bg-foreground/85" />
+              <div key={cell} aria-label="Bomb" className="laser-piece-cell flex items-center justify-center">
+                <LaserBomb flash={bombFlash} />
               </div>
             );
           }
           if (cell === source) {
-            return <div key={cell} aria-label="Laser" className="rounded-md bg-primary/25" />;
+            return <div key={cell} aria-label="Laser" className="laser-source-cell rounded-md bg-primary/25"><LaserEmitter dir={dir} firing={live && firing} /></div>;
           }
           return (
             <div
               key={cell}
-              className={`rounded-[3px] border bg-card ${
+              className={`laser-cell rounded-[3px] border bg-card ${
                 mirrorAt.has(cell) ? "border-primary/50" : "border-border/50"
               }`}
             />
@@ -242,45 +202,28 @@ function LaserBoard({
       <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
         {metrics ? (
           <>
-            {/* The source arrow, from the same stored direction the beam uses. */}
-            <polygon
-              points={sourceArrowPoints(at(source).x, at(source).y, dir, unit * 0.5)}
-              fill={GOLD}
-              opacity={0.9}
-            />
-            {beam?.map((path, index) => path.length > 1 ? (
-              <polyline
-                key={`beam-${index}`}
-                points={path.map((cell) => `${at(cell).x},${at(cell).y}`).join(" ")}
-                fill="none"
-                stroke={bombFlash ? RED : GOLD}
-                strokeWidth={Math.max(1.5, unit * 0.16)}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  filter: bombFlash
-                    ? "drop-shadow(0 0 3px rgba(255,80,80,0.9))"
-                    : "drop-shadow(0 0 3px rgba(245,198,76,0.85))",
-                }}
+            {beam ? (
+              <LaserBeam
+                branches={beam.map((path) => path.map(at))}
+                unit={unit}
+                danger={bombFlash}
+                solved={solveFx}
               />
-            ) : null)}
+            ) : null}
             {placed.filter((piece) => !isSplitter(piece.kind)).map((mirror) => {
               const centre = at(mirror.cell);
-              const reach = unit * 0.42;
-              const forward = mirror.kind === "/";
               return (
-                <line
-                  key={`m-${mirror.cell}`}
-                  x1={centre.x - reach}
-                  y1={centre.y + (forward ? reach : -reach)}
-                  x2={centre.x + reach}
-                  y2={centre.y + (forward ? -reach : reach)}
-                  stroke="#FFFFFF"
-                  strokeWidth={Math.max(2, unit * 0.2)}
-                  strokeLinecap="round"
+                <LaserMirror
+                  key={`m-${mirror.cell}-${mirror.kind}`}
+                  x={centre.x}
+                  y={centre.y}
+                  unit={unit}
+                  kind={mirror.kind}
+                  animate={live}
                 />
               );
             })}
+            {burstOrder.length ? <LaserGemBursts centres={burstOrder.map(at)} unit={unit} /> : null}
             {ghostCell !== null ? (
               <rect
                 x={at(ghostCell).x - unit * 0.44}
@@ -318,7 +261,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: PuzzleStageProps) {
+function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", phaseStartedAt }: PuzzleStageProps) {
   const isLaser = puzzle.type === "laser";
   const source = isLaser ? puzzle.source : 0;
   const dir: BeamDir = isLaser ? puzzle.dir : "R";
@@ -334,6 +277,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
   const [history, setHistory] = useStageState<number[]>(stateKey, "history", () => []);
   const [fires, setFires] = useStageState<number>(stateKey, "fires", () => 0);
+  // Stamped rounds (alogRev 1) answer with every change and FIRE on the round clock (laserLog.ts).
+  const logged = usesActionLog(puzzle);
+  const [log, setLog] = useStageState<LoggedAction[]>(stateKey, "alog", () => []);
+  const record = useCallback(
+    (action: string) => {
+      if (logged) setLog((current) => appendAction(current, action, serverNow() - phaseStartedAt));
+    },
+    [logged, setLog, phaseStartedAt],
+  );
   const [shot, setShot] = useState<{ trace: BeamTrace; step: number; done: boolean } | null>(null);
   const [ghost, setGhost] = useState<number | null>(null);
   const [shake, setShake] = useState(0);
@@ -356,8 +308,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
   useEffect(() => clearTimers, []);
 
   useEffect(() => {
-    onDraftAnswer?.(encodeLaserAnswer(placed, Math.max(1, fires)));
-  }, [placed, fires, onDraftAnswer]);
+    onDraftAnswer?.(logged ? encodeActionLog(log) : encodeLaserAnswer(placed, Math.max(1, fires)));
+  }, [logged, log, placed, fires, onDraftAnswer]);
 
   const offsets = shot ? beamBranchOffsets(shot.trace.paths) : [];
   const revealed = shot ? shot.trace.paths.map((path, index) =>
@@ -399,6 +351,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       // Dropped off the board — back to the tray.
       if (target === null) {
         hapticTick();
+        record(laserAction.remove(drag.from));
         setPlaced(current.filter((mirror) => mirror.cell !== drag.from));
         setHistory((order) => order.filter((cell) => cell !== drag.from));
         return;
@@ -406,6 +359,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       // Dropped where it started — a tap, so flip it.
       if (target === drag.from) {
         hapticTick();
+        record(laserAction.turn(drag.from));
         setPlaced(
           current.map((mirror) =>
             mirror.cell === drag.from
@@ -421,6 +375,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       }
       const kind = current.find((mirror) => mirror.cell === drag.from)?.kind ?? "/";
       hapticTick();
+      record(laserAction.move(drag.from, target));
       setPlaced([...current.filter((mirror) => mirror.cell !== drag.from), { cell: target, kind }]);
       setHistory((order) => order.map((cell) => (cell === drag.from ? target : cell)));
       return;
@@ -438,9 +393,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
+    record(laserAction.place(target, kind));
     setPlaced([...current, { cell: target, kind }]);
     setHistory((order) => [...order.filter((cell) => cell !== target), target]);
-  }, [refuse, setHistory, setPlaced, taken, total, splitterTotal, selected]);
+  }, [refuse, record, setHistory, setPlaced, taken, total, splitterTotal, selected]);
 
   const trackDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -484,6 +440,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const verdict = verifyLaser({ source, dir, gems, bombs, blocks, mirrors: total, splitterPieces: splitterTotal, splitters, directionalGems }, placed);
     const attempt = fires + 1;
     setFires(attempt);
+    const firedLog = logged ? appendAction(log, laserAction.fire(), serverNow() - phaseStartedAt) : log;
+    if (logged) setLog(firedLog);
     clearTimers();
     setShot({ trace: verdict.trace, step: 0, done: false });
 
@@ -521,7 +479,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
             if (submitted.current) return;
             submitted.current = true;
             playCorrect();
-            onSubmit(encodeLaserAnswer(placed, attempt));
+            onSubmit(logged ? encodeActionLog(firedLog) : encodeLaserAnswer(placed, attempt));
             return;
           }
           buzz(20);
@@ -548,6 +506,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     fires,
     setFires,
     onSubmit,
+    logged,
+    log,
+    setLog,
+    phaseStartedAt,
   ]);
 
   const onBoardDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -571,6 +533,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
       return;
     }
     hapticTick();
+    record(laserAction.place(cell, selected));
     setPlaced([...placed, { cell, kind: selected }]);
     setHistory((order) => [...order.filter((placedCell) => placedCell !== cell), cell]);
   };
@@ -580,6 +543,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
     const last = history.at(-1);
     if (last === undefined) return;
     hapticTick();
+    record(laserAction.remove(last));
     setHistory((current) => current.slice(0, -1));
     setPlaced((current) => current.filter((mirror) => mirror.cell !== last));
   };
@@ -613,6 +577,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           shake={shake > 0}
           gridRef={gridRef}
           pointer={{ onPointerDown: onBoardDown }}
+          live
+          solved={solved}
         />
       </div>
 
@@ -630,7 +596,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
                 trackDrag(event.clientX, event.clientY);
               }}
               className={`h-11 min-w-11 gap-2 px-2 ${isSplitter(selected) === isSplitter(kind) ? "border-primary" : ""}`}>
-              <span className="flex h-7 w-7 items-center justify-center [&_svg]:size-6">{isSplitter(kind) ? <Splitter kind={kind} /> : <span className="text-lg">/</span>}</span>
+              <span className="flex h-7 w-7 items-center justify-center [&_svg]:size-6">{isSplitter(kind) ? <LaserSplitter kind={kind} /> : <span className="text-lg">/</span>}</span>
               <span className="font-mono text-xs">{left}</span>
             </Button>
           );
@@ -639,6 +605,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser" }: 
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
           onClick={() => {
+            record(laserAction.reset());
             setPlaced([]);
             setHistory([]);
           }}
@@ -681,7 +648,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const isLaser = puzzle.type === "laser";
   if (!isLaser) return null;
   const solution = puzzle.solution ?? [];
-  const mine = decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
+  const logReplay = usesActionLog(puzzle) ? replayLaserLog(puzzle, myAnswer ?? "", timeLimitMs) : null;
+  const mine = logReplay
+    ? { mirrors: logReplay.layout, fires: logReplay.solvedShot ?? logReplay.shots }
+    : decodeLaserAnswer(myAnswer ?? "", puzzle.mirrors + (puzzle.splitterPieces ?? 0));
   const solutionTrace = traceBeam(
     puzzle.source,
     puzzle.dir,
@@ -704,10 +674,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       : "Missed";
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex items-end justify-center gap-4">
+    <div className="laser-reveal flex w-full min-h-0 flex-col items-center gap-3">
+      <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-center justify-center gap-3">
         <div className="flex flex-col items-center gap-1">
-          <div style={{ width: 150 }}>
+          <div className="laser-reveal-board aspect-square">
             <LaserBoard
               source={puzzle.source}
               dir={puzzle.dir}
@@ -726,7 +696,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           </span>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <div style={{ width: 110 }}>
+          <div className="laser-reveal-board aspect-square">
             <LaserBoard
               source={puzzle.source}
               dir={puzzle.dir}

@@ -5,13 +5,12 @@
  */
 import { prefersReducedMotion } from "@/lib/motion";
 import { demoHushed } from "@/lib/sound";
+import { soundCue as dispatchSoundCue } from "@/lib/fx/soundCues";
 
-export const SOUND_CUE_EVENT = "duelz-sound";
-
-/** Named cue for a future sound pass ("<gameId>.<event>" or "shared.<event>"). No audio is played. */
+/** Named cue for a future sound pass (shared "duelz-sound" event), silent while an intro demo is hushed. No audio is played. */
 export function soundCue(cue: string): void {
-  if (typeof window === "undefined" || demoHushed()) return;
-  window.dispatchEvent(new CustomEvent(SOUND_CUE_EVENT, { detail: { cue } }));
+  if (demoHushed()) return;
+  dispatchSoundCue(cue);
 }
 
 /** The completion effect never runs longer than this. */

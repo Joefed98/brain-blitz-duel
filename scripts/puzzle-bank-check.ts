@@ -31,6 +31,7 @@
  * The full byte-for-byte rebuild of all six banks takes ~20 minutes, so it is
  * the optional `puzzle-bank-rebuild-check.ts` (run-checks --include-optional).
  */
+import { PUZZLE_SCORE_REV } from "../src/lib/duel/puzzleScoreRev";
 import { spawn } from "node:child_process";
 import { cpus } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -238,15 +239,16 @@ if (PART === PARTS) {
     for (const puzzle of built.puzzles) {
       if (!(BANKED_TYPES as readonly string[]).includes(puzzle.type)) continue;
       banked++;
-      const { speedPar, ...rest } = puzzle as PuzzleData & { speedPar?: number };
+      const { speedPar, puzzleScoreRev, tieRev: _tieRev, ...rest } = puzzle as PuzzleData & { speedPar?: number; puzzleScoreRev?: number; tieRev?: number };
       const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
-      if (speedPar !== SPEED_PAR_VERSION || JSON.stringify(rest) !== JSON.stringify(expected)) sameShape = false;
+      // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev).
+      if (speedPar !== SPEED_PAR_VERSION || puzzleScoreRev !== PUZZLE_SCORE_REV || JSON.stringify(rest) !== JSON.stringify(expected)) sameShape = false;
       const again = drawBankedPuzzle(puzzle.type as BankedType, seed);
       if (JSON.stringify(again) !== JSON.stringify(rest)) reproducible = false;
     }
   }
   check(banked > 20, `room start: ${banked} banked rounds drawn over 60 logic+pattern rooms`);
-  check(sameShape, "room start: banked rounds are the bank entry for the room seed, stamped speedPar like live rounds");
+  check(sameShape, "room start: banked rounds are the bank entry for the room seed, stamped speedPar and puzzleScoreRev like live rounds");
   check(reproducible, "room start: the room seed alone reproduces every banked round");
   const logicPattern = [...typesInCategory("logic"), ...typesInCategory("pattern")];
   check(BANKED_TYPES.every((t) => logicPattern.includes(t)), "room start: all six banked types are active room types");

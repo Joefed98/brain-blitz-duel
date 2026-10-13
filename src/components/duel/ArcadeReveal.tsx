@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePerfectBurst } from "@/lib/fx/useSignature";
 
 import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
 import { WaitingLine } from "@/components/duel/Dots";
@@ -139,7 +140,7 @@ function Track({ players, axis, accent }: { players: RevealPlayer[]; axis: Arcad
   const ordered = [...others, ...players.filter((p) => p.isMe)];
   return (
     <div className="w-full shrink-0">
-      <div className="mb-1 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <div className="mb-1 flex items-baseline justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>{axis?.label ?? "Progress"}</span>
         <span>{axis?.max ? axis.max : `best ${best}`}</span>
       </div>
@@ -178,7 +179,7 @@ function Track({ players, axis, accent }: { players: RevealPlayer[]; axis: Arcad
                 style={{
                   width: size,
                   height: size,
-                  fontSize: player.isMe ? 11 : 9,
+                  fontSize: 12,
                   borderColor: pending ? "var(--muted-foreground)" : colour,
                   background: pending ? "var(--muted)" : player.isMe ? colour : "var(--background)",
                   color: pending ? "var(--muted-foreground)" : player.isMe ? "var(--primary-foreground)" : colour,
@@ -211,6 +212,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const accent = ARCADE_REVEAL_RENDERERS[puzzle.type]?.accent ?? "var(--me)";
   const shownScore = useCountUp(myScore);
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
+  const scoreRef = useRef<HTMLParagraphElement>(null);
+  usePerfectBurst(scoreRef, myScore);
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
       <Backdrop puzzle={puzzle} answer={myAnswer ?? ""} outcome={myReveal?.outcome ?? null} />
@@ -223,6 +226,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             </div>
           ) : (
             <p
+              ref={scoreRef}
               data-reveal-score={myScore}
               className={`font-mono text-6xl font-bold tabular-nums leading-none text-primary${celebration ? " arcade-score-celebrate" : ""}`}
               aria-label={`${myScore} points`}
@@ -230,7 +234,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
               {shownScore}
             </p>
           )}
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">points</p>
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">points</p>
           {myReveal
             ? myReveal.lines.map((line) => (
                 <p key={line} className="text-center font-mono text-sm text-foreground animate-fade-in">
@@ -257,7 +261,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
                 <span className="font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>
                   {tile.value}
                 </span>
-                <span className="text-center text-[10px] uppercase leading-tight tracking-wider text-muted-foreground">{tile.label}</span>
+                <span className="text-center text-xs uppercase leading-tight tracking-wider text-muted-foreground">{tile.label}</span>
               </div>
             ))}
           </div>

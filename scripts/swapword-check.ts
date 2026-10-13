@@ -168,6 +168,14 @@ for (let seed = 1; seed <= 300; seed++) {
   const startMisplaced = [...p.start].filter((ch, t) => ch !== solution[t]).length;
   maxUnfinished = Math.max(maxUnfinished, almost.score, Math.min(100, 5 * (startMisplaced - 2)));
   check(`seed ${seed}: nothing scores 0`, gradeAnswer(p, "", LIMIT).score === 0);
+  // New rounds (puzzleScoreRev 1): 120 + MOVES(15) + PAR(15); the last swap short is the 110 top.
+  const fresh = { ...p, puzzleScoreRev: 1 } as typeof p;
+  check(`seed ${seed}: new shape perfect 150`, gradeAnswer(fresh, encodeSwapword(witness), LIMIT).score === 150);
+  const freshSlow = gradeAnswer(fresh, encodeSwapword([...waste, ...witness]), 0).score;
+  check(`seed ${seed}: new shape slow finish 120-135 (${freshSlow})`, freshSlow >= 120 && freshSlow <= 135);
+  const freshAlmost = gradeAnswer(fresh, encodeSwapword(witness.slice(0, -1)), LIMIT).score;
+  check(`seed ${seed}: new shape one swap short ≤ 110 (${freshAlmost})`, freshAlmost <= 110);
+  check(`seed ${seed}: new shape nothing 0`, gradeAnswer(fresh, "", LIMIT).score === 0);
 }
 check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
 check(`finishing beats any unfinished (${minFinish} > ${maxUnfinished})`, minFinish > maxUnfinished && minFinish >= 111);

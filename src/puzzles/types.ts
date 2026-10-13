@@ -1,3 +1,4 @@
+import type { ScoreParts } from "@/lib/duel/puzzleScoreRev";
 import type { ComponentType } from "react";
 
 import type {
@@ -75,6 +76,8 @@ export interface PuzzleRevealProps {
   timeLimitMs: number;
   /** Server-checked row indices for the Word Slide reveal. */
   validRows?: number[] | undefined;
+  /** The stored score breakdown (puzzleScoreRev 1 rounds; null on older rounds). */
+  scoreParts?: ScoreParts | null | undefined;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { fx } from "./index";
+import { signatureArcadeRunOver } from "./signature";
 
 /** HUD-only observer, called after a frame advances. Does not inspect inputs or score. */
 export function arcadeFeedback(options: { combo?: boolean } = {}) {
@@ -20,6 +21,8 @@ export function arcadeFeedback(options: { combo?: boolean } = {}) {
       finished = true;
       // Complete means the run ended, not a claim of perfect server correctness.
       fx.onComplete();
+      // The shared signature beat: arcade finish reached, or an open run of 120+.
+      signatureArcadeRunOver(state);
     }
     previousCombo = combo;
     previousCascades = cascades;

@@ -19,6 +19,7 @@
  * needed-elsewhere marks come from the server, which holds the solution.
  */
 
+import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { movesPoints, speedPoints } from "./scoring";
 
 export const SWAPWORD_REV = 1;
@@ -155,7 +156,14 @@ export function scoreSwapword(
   placed: number,
   msRemaining: number,
   timeLimitMs: number,
+  toPlace = 0,
 ): number {
+  if (scoreRev1()) {
+    // Rev 1: 120 + MOVES(15) + PAR(15); unfinished 110 × tiles placed ÷ (tiles to place − 2), as the last swap places two;
+    // the grader passes placed less the tiles that started in place and were moved out, so random swaps earn about 0.
+    if (solved) return finishParts(speedPoints(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs), movesPoints(15, swaps, minSwaps), "swaps");
+    return partialParts((110 * Math.max(0, placed)) / Math.max(1, toPlace - 2));
+  }
   if (solved) {
     return Math.min(150, 100 + movesPoints(25, swaps, minSwaps) + speedPoints(25, msRemaining, timeLimitMs));
   }

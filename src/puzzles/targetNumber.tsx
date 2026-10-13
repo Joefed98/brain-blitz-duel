@@ -3,7 +3,8 @@ import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { playWrong } from "@/lib/sound";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
 import { buzz } from "@/lib/motion";
 import {
@@ -36,15 +37,91 @@ function isLarge(value: number): boolean {
   return LARGE_TILES.includes(value);
 }
 
-function tileClass(value: number, state: "idle" | "selected" | "consumed"): string {
-  const base =
-    "press flex h-16 items-center justify-center rounded-2xl border font-mono text-2xl font-bold tabular-nums transition-all duration-150";
-  const colour = isLarge(value) ? "text-primary" : "text-foreground";
-  if (state === "selected") return `${base} border-primary bg-primary/15 scale-105 ${colour}`;
-  if (state === "consumed")
-    return `${base} border-border/40 bg-card/40 text-muted-foreground opacity-35`;
-  return `${base} border-border bg-card ${colour}`;
+type TileState = "idle" | "selected" | "consumed";
+
+/* Exact polish (13 Oct 2026): drawing, animation and sound cues only; steps and submit untouched. */
+const EXACT_CSS = `
+[data-polish="target"] .exact-board { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 10px 8px; border-radius: 16px; overflow: hidden;
+  background: radial-gradient(120% 70% at 50% 0%, rgba(245,184,46,.10), transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 22px), linear-gradient(180deg, #17171f, #101016);
+  box-shadow: inset 0 0 0 1px rgba(245,184,46,.16), inset 0 1px 0 rgba(255,255,255,.05), 0 6px 18px rgba(0,0,0,.35); }
+[data-polish="target"] .exact-plaque { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 28px 6px; }
+[data-polish="target"] .exact-rings { position: absolute; left: 50%; top: 50%; height: calc(100% + 14px); width: auto; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; opacity: .6; }
+[data-polish="target"] .exact-label { position: relative; font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: #a9a9b4; }
+[data-polish="target"] .exact-number { position: relative; font-family: var(--font-mono); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: #F5B82E; font-size: 48px;
+  text-shadow: 0 0 18px rgba(245,184,46,.28), 0 2px 0 rgba(0,0,0,.45); }
+[data-polish="target"] .exact-history { width: 100%; height: 104px; display: flex; flex-direction: column; align-items: center; gap: 2px; overflow-y: auto; padding: 6px 8px; border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.16)); box-shadow: inset 0 1px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04); }
+[data-polish="target"] .exact-history-empty { margin: auto; font-family: var(--font-mono); font-size: 14px; color: #9a9aa6; }
+[data-polish="target"] .exact-line { font-family: var(--font-mono); font-size: 18px; line-height: 26px; font-variant-numeric: tabular-nums; color: #ececf1; white-space: nowrap; }
+[data-polish="target"] .exact-line b { color: #F5B82E; font-weight: 700; }
+[data-polish="target"] .exact-line[data-new="true"] { animation: exact-line-in 220ms cubic-bezier(.2,.9,.3,1) both; }
+@keyframes exact-line-in { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+
+[data-polish="target"] .exact-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+[data-polish="target"] .exact-tile { position: relative; display: flex; height: 64px; align-items: center; justify-content: center; border-radius: 16px; overflow: hidden;
+  font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: #f4f4f7;
+  background: linear-gradient(180deg, #2b2b35 0%, #20202a 55%, #1a1a22 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.09), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -4px 0 rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.35);
+  transition: translate 150ms ease-out, box-shadow 150ms ease-out, opacity 180ms ease-out, background 180ms ease-out; }
+[data-polish="target"] .exact-tile:disabled { opacity: 1; }
+[data-polish="target"] .exact-tile[data-large="true"] { color: #F5B82E; background: linear-gradient(180deg, #33301f 0%, #25231b 55%, #1d1b16 100%); box-shadow: inset 0 0 0 1px rgba(245,184,46,.30), inset 0 1px 0 rgba(255,236,170,.12), inset 0 -4px 0 rgba(0,0,0,.35), 0 2px 4px rgba(0,0,0,.35); }
+[data-polish="target"] .exact-tile[data-state="selected"] { translate: 0 -2px; color: #FFE08A; background: linear-gradient(180deg, #4a3d17 0%, #33290f 60%, #2a220c 100%);
+  box-shadow: inset 0 0 0 2px #F5B82E, inset 0 1px 0 rgba(255,236,170,.25), inset 0 -4px 0 rgba(0,0,0,.30), 0 0 14px rgba(245,184,46,.35), 0 4px 8px rgba(0,0,0,.4); }
+[data-polish="target"] .exact-tile[data-state="consumed"] { opacity: .32; color: #8d8d99; background: #15151b; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), inset 0 2px 4px rgba(0,0,0,.5); }
+[data-polish="target"] .exact-tile[data-state="consumed"] .exact-face { animation: exact-sink 200ms ease-out both; }
+[data-polish="target"] .exact-tile[data-hit="true"] { color: #1a1406; background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: inset 0 0 0 1px #ffe69a, inset 0 -4px 0 rgba(120,80,0,.35), 0 0 18px rgba(245,184,46,.55); }
+[data-polish="target"][data-locked="true"] .exact-tile:not([data-hit="true"]):not([data-state="consumed"]) { opacity: .5; }
+[data-polish="target"] .exact-face { position: relative; display: inline-block; }
+[data-polish="target"] .exact-face[data-pop="true"] { animation: exact-pop 240ms cubic-bezier(.2,1.5,.4,1) both; }
+[data-polish="target"] .exact-ring { position: absolute; inset: 3px; border-radius: 13px; box-shadow: inset 0 0 0 2px #F5B82E; pointer-events: none; animation: exact-ring 260ms ease-out both; }
+@keyframes exact-pop { 0% { scale: .7; opacity: .4; } 60% { scale: 1.14; opacity: 1; } 100% { scale: 1; } }
+@keyframes exact-ring { from { opacity: .9; scale: .86; } to { opacity: 0; scale: 1.02; } }
+@keyframes exact-sink { 0% { scale: 1; } 50% { scale: .82; } 100% { scale: 1; } }
+
+[data-polish="target"] .exact-ops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+[data-polish="target"] .exact-op { display: flex; height: 48px; align-items: center; justify-content: center; border-radius: 12px; font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: #ececf1;
+  background: linear-gradient(180deg, #262630, #1c1c24); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.08), inset 0 -3px 0 rgba(0,0,0,.35);
+  transition: box-shadow 140ms ease-out, background 140ms ease-out, color 140ms ease-out; }
+[data-polish="target"] .exact-op[data-on="true"] { color: #F5B82E; background: linear-gradient(180deg, #3a3017, #29220f); box-shadow: inset 0 0 0 2px #F5B82E, inset 0 -3px 0 rgba(0,0,0,.3), 0 0 10px rgba(245,184,46,.28); }
+
+/* Solve: the final tile flies into the target, which pulses gold. */
+[data-polish="target"] .exact-ghost { position: absolute; z-index: 30; width: 96px; height: 56px; margin: -28px 0 0 -48px; display: flex; align-items: center; justify-content: center; border-radius: 14px; pointer-events: none;
+  font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: #1a1406; background: linear-gradient(180deg, #ffd56a, #F5B82E 60%, #d99a14); box-shadow: 0 0 22px rgba(245,184,46,.6);
+  animation: exact-fly 480ms cubic-bezier(.5,0,.3,1) both; }
+@keyframes exact-fly { 0% { translate: 0 0; scale: 1; opacity: 1; } 75% { translate: var(--dx) var(--dy); scale: 1.15; opacity: 1; } 100% { translate: var(--dx) var(--dy); scale: 1.5; opacity: 0; } }
+[data-polish="target"] .exact-plaque[data-solved="true"] .exact-number { animation: exact-target-pulse 700ms 340ms ease-out both; }
+@keyframes exact-target-pulse { 0% { scale: 1; } 30% { scale: 1.16; color: #FFE08A; text-shadow: 0 0 28px rgba(255,208,90,.9), 0 0 6px rgba(255,236,170,.9); } 100% { scale: 1; } }
+[data-polish="target"] .exact-burst { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 3px #F5B82E, 0 0 16px rgba(245,184,46,.6); opacity: 0; animation: exact-burst 620ms 360ms ease-out both; }
+[data-polish="target"] .exact-burst + .exact-burst { animation-delay: 470ms; }
+@keyframes exact-burst { 0% { opacity: .95; scale: .4; } 100% { opacity: 0; scale: 1.7; } }
+[data-polish="target"] .exact-stamp-late { animation-delay: 700ms; }
+
+.game-column [data-polish="target"][data-stage-column] { padding-top: 12px; }
+.game-column [data-polish="target"][data-stage-column] > [data-game-arena] { flex: 1 1 0; max-height: none; min-height: 0; container-type: size; justify-content: center; }
+.game-column [data-polish="target"] .exact-number { font-size: clamp(48px, min(17cqw, 15cqh), 84px); }
+.game-column [data-polish="target"] .exact-plaque { flex: none; }
+.game-column [data-polish="target"] .exact-history { flex: 1 1 0; height: auto; min-height: 0; max-height: 148px; }
+@container (min-height: 330px) { .game-column [data-polish="target"] .exact-line { font-size: 20px; line-height: 30px; } .game-column [data-polish="target"] .exact-history { max-height: 168px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-polish="target"] :is(.exact-line, .exact-face, .exact-ring, .exact-tile .exact-face) { animation: none !important; }
+  [data-polish="target"] .exact-ghost, [data-polish="target"] .exact-burst { display: none; }
+  [data-polish="target"] .exact-tile { transition: none; }
+  [data-polish="target"] .exact-plaque[data-solved="true"] { border-radius: 14px; box-shadow: inset 0 0 0 2px #F5B82E, 0 0 16px rgba(245,184,46,.4); }
+  [data-polish="target"] .exact-plaque[data-solved="true"] .exact-number { animation: none; color: #FFE08A; }
+  [data-polish="target"] .exact-stamp-late { animation-delay: 0ms; }
 }
+`;
+
+/** Faint bullseye behind the target number (static, built once). */
+const EXACT_RINGS = (
+  <svg className="exact-rings" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(245,184,46,.10)" strokeWidth="1" />
+    <circle cx="50" cy="50" r="36" fill="none" stroke="rgba(245,184,46,.12)" strokeWidth="1" strokeDasharray="2 3" />
+    <circle cx="50" cy="50" r="24" fill="rgba(245,184,46,.05)" stroke="rgba(245,184,46,.14)" strokeWidth="1" />
+    <path d="M50 0v14M50 86v14M0 50h14M86 50h14" stroke="rgba(245,184,46,.16)" strokeWidth="1" />
+  </svg>
+);
 
 function IntroExample() {
   const tiles = [75, 4, 6, 2, 10, 3];
@@ -71,7 +148,7 @@ function IntroExample() {
         75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
       </p>
       <p className="text-center text-xs text-muted-foreground">
-        Exact hit scores 130 + speed; off by 1 scores 120, and it falls from there.
+        Exact hit scores 120 + speed; off by 1 scores 110, and it falls from there.
       </p>
     </div>
   );
@@ -93,6 +170,14 @@ function Stage(props: PuzzleStageProps) {
   return <TargetStage {...props} tiles={props.puzzle.tiles} target={props.puzzle.target} />;
 }
 
+interface SolveFlight {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  value: number;
+}
+
 function TargetStage({
   tiles: startTiles,
   target,
@@ -110,7 +195,14 @@ function TargetStage({
   const [operator, setOperator] = useState<Operator | null>(null);
   const [shake, setShake] = useState(0);
   const [lockedHere, setLockedHere] = useState(false);
+  // Presentation only: the last combine (for its pop) and the exact hit's flight into the target.
+  const [combine, setCombine] = useState<{ id: number; consumed: number; n: number } | null>(null);
+  const [flight, setFlight] = useState<SolveFlight | null>(null);
   const submitted = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLParagraphElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const solving = useSolveFx(flight !== null, "target.solve", 1150);
 
   const steps = history.map((h) => h.step);
 
@@ -135,6 +227,7 @@ function TargetStage({
     setHistory([]);
     setSelectedId(null);
     setOperator(null);
+    setCombine(null);
   };
 
   const undo = () => {
@@ -145,12 +238,14 @@ function TargetStage({
     setHistory((current) => current.slice(0, -1));
     setSelectedId(null);
     setOperator(null);
+    setCombine(null);
   };
 
   const tapTile = (tile: Tile) => {
     if (locked || lockedHere || !tile.active) return;
     if (selectedId === null) {
       setSelectedId(tile.id);
+      soundCue("target.select");
       return;
     }
     if (tile.id === selectedId) {
@@ -160,6 +255,7 @@ function TargetStage({
     }
     if (operator === null) {
       setSelectedId(tile.id);
+      soundCue("target.select");
       return;
     }
     const first = pool.find((t) => t.id === selectedId);
@@ -180,10 +276,23 @@ function TargetStage({
     setHistory(nextHistory);
     setSelectedId(first.id);
     setOperator(null);
+    setCombine((c) => ({ id: first.id, consumed: tile.id, n: (c?.n ?? 0) + 1 }));
+    soundCue("target.combine");
     buzz(10);
 
     // Hitting the target locks the answer at once.
-    if (result === target) send(nextHistory.map((h) => h.step));
+    if (result === target) {
+      send(nextHistory.map((h) => h.step));
+      // Display only, measured after the submit: the result tile's flight into the target.
+      const root = rootRef.current?.getBoundingClientRect();
+      const goal = targetRef.current?.getBoundingClientRect();
+      const from = rootRef.current?.querySelector<HTMLElement>(`[data-tile-id="${first.id}"]`)?.getBoundingClientRect();
+      if (root && goal && from) {
+        const x = from.left + from.width / 2 - root.left;
+        const y = from.top + from.height / 2 - root.top;
+        setFlight({ x, y, dx: goal.left + goal.width / 2 - root.left - x, dy: goal.top + goal.height / 2 - root.top - y, value: result });
+      }
+    }
   };
 
   // Out of time: the closest tile goes in automatically.
@@ -192,6 +301,12 @@ function TargetStage({
     if (now < phaseStartedAt + TARGET_TIME_MS - 400) return;
     send(steps);
   });
+
+  // Keep the newest step in view.
+  useEffect(() => {
+    const box = historyRef.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [history.length]);
 
   const closest = pool
     .filter((tile) => tile.active)
@@ -204,62 +319,83 @@ function TargetStage({
     );
   const away = closest === null ? null : Math.abs(closest - target);
   const isLockedNow = locked || lockedHere;
+  const hitId = flight ? (combine?.id ?? null) : null;
 
   return (
-    <div data-polish="target" data-stage-column="2" className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Target</p>
-        <p className="font-mono text-5xl font-bold leading-none text-primary tabular-nums">
-          {target}
-        </p>
-      </div>
+    <div ref={rootRef} data-polish="target" data-stage-column="2" data-locked={isLockedNow ? "true" : undefined} className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>
+      <PolishStyle id="target" css={EXACT_CSS} />
+      <div data-game-arena="fixed" className="exact-board">
+        <div className="exact-plaque" data-solved={flight ? "true" : undefined}>
+          {EXACT_RINGS}
+          <p className="exact-label">Target</p>
+          <p ref={targetRef} className="exact-number">
+            {target}
+          </p>
+          {solving && (
+            <>
+              <span className="exact-burst" aria-hidden="true" />
+              <span className="exact-burst" aria-hidden="true" />
+            </>
+          )}
+        </div>
 
-      <div data-game-arena="fixed" data-scrollable className="target-history flex h-[104px] shrink-0 flex-col items-center gap-1 overflow-y-auto rounded-lg bg-muted/20 px-2 py-2">
-        {steps.length === 0 ? (
-          <p className="font-mono text-xs text-muted-foreground">No steps yet</p>
-        ) : (
-          steps.map((step, index) => (
-            <p
-              key={`${index}-${step.result}`}
-              className="font-mono text-lg leading-6 tabular-nums text-foreground"
-            >
-              {formatStep(step)}
-            </p>
-          ))
-        )}
-      </div>
-
-      <div key={shake} data-game-controls="numbers" className={shake > 0 ? "animate-shake" : ""}>
-        <div className="grid grid-cols-3 gap-2">
-          {pool.map((tile) => (
-            <button
-              key={tile.id}
-              type="button"
-              disabled={isLockedNow || !tile.active}
-              onClick={() => tapTile(tile)}
-              className={tileClass(
-                tile.value,
-                !tile.active ? "consumed" : selectedId === tile.id ? "selected" : "idle",
-              )}
-            >
-              {tile.value}
-            </button>
-          ))}
+        <div ref={historyRef} data-scrollable className="target-history exact-history">
+          {steps.length === 0 ? (
+            <p className="exact-history-empty">No steps yet</p>
+          ) : (
+            steps.map((step, index) => (
+              <p
+                key={`${index}-${step.result}`}
+                data-new={index === steps.length - 1 && combine ? "true" : undefined}
+                className="exact-line"
+              >
+                {formatStep(step).replace(/ = [^=]*$/, " = ")}
+                <b>{step.result}</b>
+              </p>
+            ))
+          )}
         </div>
       </div>
 
-      <div data-game-controls="operators" className="grid grid-cols-4 gap-2">
+      <div key={shake} data-game-controls="numbers" className={shake > 0 ? "animate-shake" : ""}>
+        <div className="exact-tiles">
+          {pool.map((tile) => {
+            const state: TileState = !tile.active ? "consumed" : selectedId === tile.id ? "selected" : "idle";
+            const popped = combine !== null && combine.id === tile.id;
+            const sunk = combine !== null && combine.consumed === tile.id;
+            return (
+              <button
+                key={tile.id}
+                type="button"
+                data-tile-id={tile.id}
+                data-state={state}
+                data-large={isLarge(tile.value) ? "true" : undefined}
+                data-hit={hitId === tile.id ? "true" : undefined}
+                aria-pressed={state === "selected"}
+                disabled={isLockedNow || !tile.active}
+                onClick={() => tapTile(tile)}
+                className="press exact-tile"
+              >
+                <span key={popped ? `pop-${combine.n}` : sunk ? `sink-${combine.n}` : "face"} className="exact-face" data-pop={popped ? "true" : undefined}>
+                  {tile.value}
+                </span>
+                {popped && <span key={`ring-${combine.n}`} className="exact-ring" aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div data-game-controls="operators" className="exact-ops">
         {TARGET_OPERATORS.map((op) => (
           <button
             key={op}
             type="button"
             disabled={isLockedNow}
             onClick={() => setOperator(op)}
-            className={`press flex h-12 items-center justify-center rounded-xl border font-mono text-xl font-bold ${
-              operator === op
-                ? "border-primary bg-primary/15 text-primary"
-                : "border-border bg-card text-foreground"
-            }`}
+            data-on={operator === op ? "true" : undefined}
+            aria-pressed={operator === op}
+            className="press exact-op"
           >
             {op === "-" ? "−" : op}
           </button>
@@ -287,9 +423,19 @@ function TargetStage({
         </button>
       </div>
 
+      {solving && flight && (
+        <div
+          className="exact-ghost"
+          aria-hidden="true"
+          style={{ left: flight.x, top: flight.y, "--dx": `${flight.dx}px`, "--dy": `${flight.dy}px` } as CSSProperties}
+        >
+          {flight.value}
+        </div>
+      )}
+
       {isLockedNow && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <p className="animate-stamp-in rounded-xl border-2 border-primary px-6 py-2 font-display text-2xl font-bold uppercase tracking-[0.2em] text-primary">
+          <p className={`animate-stamp-in rounded-xl border-2 border-primary px-6 py-2 font-display text-2xl font-bold uppercase tracking-[0.2em] text-primary ${flight ? "exact-stamp-late" : ""}`}>
             Locked
           </p>
         </div>
@@ -303,6 +449,19 @@ function Reveal(props: PuzzleRevealProps) {
   return <TargetReveal {...props} puzzle={props.puzzle} />;
 }
 
+const EXACT_REVEAL_CSS = `
+.exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--font-mono); font-size: 16px; }
+.exact-reveal-card { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 4px; padding: 12px 12px 14px; border-radius: 16px; overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(245,184,46,.12), transparent 62%), linear-gradient(180deg, #17171f, #101016); box-shadow: inset 0 0 0 1px rgba(245,184,46,.18), 0 6px 18px rgba(0,0,0,.3); }
+.exact-reveal-card .exact-rings { position: absolute; left: 50%; top: 52%; width: 180px; height: 180px; translate: -50% -50%; pointer-events: none; opacity: .5; }
+.exact-reveal-target { position: relative; font-size: 15px; color: #b4b4be; }
+.exact-reveal-value { position: relative; font-size: 48px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; color: #F5B82E; text-shadow: 0 0 18px rgba(245,184,46,.28); }
+.exact-reveal-verdict { position: relative; font-weight: 700; color: #f4f4f7; }
+.exact-reveal-way { display: flex; width: 100%; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: #15151c; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); color: #d4d4dc; }
+.exact-reveal-way > p:first-child { font-size: 14px; color: #b4b4be; }
+.exact-reveal-way > p + p { font-size: 17px; line-height: 24px; font-variant-numeric: tabular-nums; }
+`;
+
 function TargetReveal({
   puzzle,
   myAnswer,
@@ -314,12 +473,16 @@ function TargetReveal({
   );
   const away = replay.distance;
   return (
-    <div className="flex w-full flex-col items-center gap-3 text-center font-mono text-base">
-      <p className="text-muted-foreground">Target {puzzle.target}</p>
-      <p className="text-5xl font-bold text-primary tabular-nums">{replay.value ?? "—"}</p>
-      <p className="font-bold text-foreground">{myCorrect || away === 0 ? "Target Number Achieved" : away === null ? "No number locked" : `${away} away from the target`}</p>
+    <div className="exact-reveal">
+      <PolishStyle id="target-reveal" css={EXACT_REVEAL_CSS} />
+      <div className="exact-reveal-card">
+        {EXACT_RINGS}
+        <p className="exact-reveal-target">Target {puzzle.target}</p>
+        <p className="exact-reveal-value">{replay.value ?? "—"}</p>
+        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Target Number Achieved" : away === null ? "No number locked" : `${away} away from the target`}</p>
+      </div>
       {(puzzle.solution ?? []).length > 0 && (
-        <div className="flex flex-col gap-1 text-muted-foreground"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
+        <div className="exact-reveal-way"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>
       )}
     </div>
   );

@@ -1,0 +1,162 @@
+/* Pattern polish: tiles (Jumbled). Presentation only. */
+
+/* ---- Tray ------------------------------------------------------------- */
+.tiles-frame {
+  /* Outside the live column (old recorded demos) the tray keeps its original 286 px. */
+  width: 286px;
+  container-type: inline-size;
+  position: relative;
+  border-color: color-mix(in oklab, var(--border) 70%, #000);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 60%),
+    linear-gradient(160deg, color-mix(in oklab, var(--card) 88%, #fff) 0%, var(--card) 45%, color-mix(in oklab, var(--card) 70%, #000) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 300ms ease;
+}
+.tiles-frame[data-tiles-variant="reveal"] { width: 100%; }
+
+.tiles-frame > * { aspect-ratio: 1; min-width: 0; }
+
+/* The gap is a recessed slot in the tray. */
+[data-puzzle-surface] .tiles-gap[data-puzzle-cell],
+.tiles-gap {
+  background-color: color-mix(in oklab, var(--background) 82%, #000) !important;
+  background-image: radial-gradient(90% 90% at 50% 35%, rgba(255, 255, 255, 0.04), transparent 70%);
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Tiles: bevel, sheen, crisp numeral (all drawn inside the tap box) -- */
+[data-puzzle-surface] .tiles-tile[data-puzzle-cell],
+.tiles-tile {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--tile-fill) !important;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.10) 38%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.14) 100%) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.42),
+    inset 2px 0 0 rgba(255, 255, 255, 0.12),
+    inset -2px 0 0 rgba(0, 0, 0, 0.12),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.26),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.30);
+  color: #fff;
+  font-size: 12.6cqw;
+  line-height: 1;
+  will-change: transform;
+}
+.tiles-frame[data-tiles-variant="reveal"] .tiles-tile { font-size: 12.6cqw; }
+.tiles-numeral {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.38), 0 0 1px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Sheen streak, idle until the solve ramp sweeps it across. */
+.tiles-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0 -60%;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%);
+  transform: translateX(-70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Solve: the colour ramp flows 1 → 8 (≤ ~0.95 s), then the tray glows.
+   Drawn on the tile's own overlays and numeral, so it never fights the shared
+   solve flourish (which animates the buttons' filter/transform). ---------- */
+.tiles-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(80% 80% at 50% 40%, rgba(255, 255, 255, 0.55), color-mix(in oklab, var(--tile-fill) 60%, #fff) 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+.tiles-frame[data-celebrate="on"] .tiles-tile::before {
+  animation: tiles-ramp-light 420ms ease-out both;
+  animation-delay: calc(var(--tile-order) * 70ms);
+}
+.tiles-frame[data-celebrate="on"] .tiles-numeral {
+  animation: tiles-ramp-pop 420ms cubic-bezier(.3, .7, .3, 1) both;
+  animation-delay: calc(var(--tile-order) * 70ms);
+}
+.tiles-frame[data-celebrate="on"] .tiles-tile::after {
+  animation: tiles-ramp-sheen 420ms ease-out both;
+  animation-delay: calc(var(--tile-order) * 70ms);
+}
+.tiles-frame[data-celebrate="on"] .tiles-gap {
+  animation: tiles-gap-fill 420ms ease-out 560ms both;
+}
+.tiles-frame[data-celebrate="on"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+@keyframes tiles-ramp-light {
+  0% { opacity: 0; }
+  30% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+@keyframes tiles-ramp-pop {
+  0% { transform: translateY(-1px) scale(1); }
+  35% { transform: translateY(-1px) scale(1.18); }
+  100% { transform: translateY(-1px) scale(1); }
+}
+@keyframes tiles-ramp-sheen {
+  0% { transform: translateX(-70%); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateX(70%); opacity: 0; }
+}
+@keyframes tiles-gap-fill {
+  0% { background-color: color-mix(in oklab, var(--background) 82%, #000); }
+  45% { background-color: color-mix(in oklab, var(--primary) 45%, var(--background)); }
+  100% { background-color: color-mix(in oklab, var(--background) 82%, #000); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiles-frame[data-celebrate="on"] .tiles-tile::before,
+  .tiles-frame[data-celebrate="on"] .tiles-numeral,
+  .tiles-frame[data-celebrate="on"] .tiles-tile::after,
+  .tiles-frame[data-celebrate="on"] .tiles-gap { animation: none; }
+  .tiles-frame { transition: none; }
+}
+
+/* ---- Arena: the tray fills the space above the controls, centred ------- */
+.tiles-arena { display: flex; align-items: center; justify-content: center; }
+.game-column [data-polish="tiles"] > [data-game-arena].tiles-arena {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  align-self: stretch;
+  container-type: size;
+  /* Matches the 12 px gap to the status line below, so the gaps are equal. */
+  padding-top: 12px;
+}
+.game-column [data-polish="tiles"] > .tiles-arena > .tiles-frame {
+  width: min(calc(100cqw - 16px), 100cqh, 460px);
+}
+
+/* ---- Reveal: the solved tray as large as the space allows -------------- */
+.tiles-reveal-space {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 120px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.tiles-reveal-space > .tiles-frame { width: min(100cqw, 100cqh, 300px); }

@@ -74,6 +74,7 @@ import {
   SNIP_HOOK_REACH,
   SNIP_LEVEL_TICKS,
   SNIP_REV_BAND,
+  SNIP_REV_BANK6,
   SNIP_REV_TALL,
   SNIP_RUN_TICKS,
   SNIP_TALL_FIRST,
@@ -150,7 +151,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   const stamps: [string, string, number | undefined, number][] = [
     ["skyline", "skylineRev", generateSkyline().skylineRev, SKYLINE_REV_TALL],
     ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_TALL],
-    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_TALL],
+    // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts).
+    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_BANK6],
     ["hover", "hoverRev", generateHover().hoverRev, HOVER_REV_TALL],
   ];
   for (const [type, field, got, rev] of stamps) {

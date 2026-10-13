@@ -1,0 +1,144 @@
+/* Pattern polish: gravity (Topsy-Turvy). Presentation only. */
+
+/* ---------- The tray ---------- */
+.grav-tray {
+  padding: 3%;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 18%),
+    linear-gradient(160deg, #3a4052, #20242f 55%, #161922);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+    0 10px 20px -6px rgba(0, 0, 0, 0.7);
+  transform: none;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.grav-tray[data-lean="U"] { transform: perspective(700px) rotateX(6deg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 14px 22px -6px rgba(0, 0, 0, 0.75); }
+.grav-tray[data-lean="D"] { transform: perspective(700px) rotateX(-6deg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 4px 14px -6px rgba(0, 0, 0, 0.75); }
+.grav-tray[data-lean="L"] { transform: perspective(700px) rotateY(-6deg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 6px 10px 20px -6px rgba(0, 0, 0, 0.75); }
+.grav-tray[data-lean="R"] { transform: perspective(700px) rotateY(6deg); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), -6px 10px 20px -6px rgba(0, 0, 0, 0.75); }
+
+.grav-well {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: #0b0e16;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+.grav-grid { position: relative; }
+
+/* Floor: recessed felt squares. */
+.grav-floor {
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: radial-gradient(circle at 50% 40%, #232a3c, #181d2a 75%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Blocks: raised stone with a lit top edge. */
+.grav-block {
+  border-radius: 3px;
+  background: linear-gradient(170deg, #9aa3b5, #6e778b 45%, #4d5568);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    inset 2px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Target sockets: a cup ringed in the ball's colour. */
+.grav-socket {
+  position: relative;
+  width: 92%;
+  height: 92%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #05070c 0 40%, color-mix(in srgb, var(--ball) 30%, #0b0e16) 72%, color-mix(in srgb, var(--ball) 50%, #0b0e16) 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.85),
+    0 0 0 2px color-mix(in srgb, var(--ball) 75%, transparent);
+}
+.grav-socket::before {
+  /* Dotted guide ring while empty. */
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--ball) 80%, transparent);
+  opacity: 0.85;
+}
+.grav-socket.is-locked {
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.85),
+    0 0 0 2.5px var(--ball),
+    0 0 9px 1px color-mix(in srgb, var(--ball) 70%, transparent);
+}
+.grav-socket.is-locked::before { opacity: 0; }
+.grav-socket::after {
+  content: "";
+  position: absolute;
+  inset: -4%;
+  border-radius: 50%;
+  border: 3px solid var(--ball);
+  opacity: 0;
+  pointer-events: none;
+}
+.grav-socket.is-fresh::after { animation: grav-lock-ring 460ms ease-out 200ms both; }
+@keyframes grav-lock-ring {
+  0% { opacity: 1; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+
+/* Balls: shaded spheres that roll to their cell. */
+.grav-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 34% 28%, #fff 0 7%, color-mix(in srgb, var(--ball) 55%, #fff) 16%, var(--ball) 46%, color-mix(in srgb, var(--ball) 55%, #000) 100%);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.6), inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 260ms cubic-bezier(0.3, 0.8, 0.35, 1.1);
+  will-change: transform;
+}
+.grav-ball.is-locked { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.65), 0 0 8px 1px color-mix(in srgb, var(--ball) 75%, transparent); }
+.grav-ball-glow {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 18%, color-mix(in srgb, var(--ball) 85%, transparent) 36%, transparent 68%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Completion: the four balls light up on their targets in turn ---------- */
+.grav-tray.is-solving .grav-ball-glow { animation: grav-ball-light 480ms ease-out both; animation-delay: calc(var(--order) * 210ms); }
+.grav-tray.is-solving .grav-socket::after { animation: grav-lock-ring 520ms ease-out both; animation-delay: calc(var(--order) * 210ms + 60ms); }
+@keyframes grav-ball-light {
+  0% { opacity: 0; transform: scale(0.5); }
+  35% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0.55; transform: scale(0.9); }
+}
+
+/* ---------- Reveal: the board as large as the space allows ---------- */
+.answer-reveal-content > .grav-reveal { flex: 1 1 auto; min-height: 0; }
+.grav-reveal > p { flex: 0 0 auto; }
+.grav-reveal-space {
+  flex: 1 1 auto;
+  min-height: 150px;
+  width: 100%;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.grav-reveal-square { width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
+
+@media (prefers-reduced-motion: reduce) {
+  .grav-tray, .grav-ball { transition: none; }
+  .grav-tray[data-lean] { transform: none; }
+  .grav-socket.is-fresh::after { animation: none; }
+  .grav-tray.is-solving .grav-ball-glow { animation: none; opacity: 0.7; transform: none; }
+  .grav-tray.is-solving .grav-socket::after { animation: none; opacity: 0.8; transform: none; }
+}

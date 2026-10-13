@@ -1,5 +1,6 @@
 /** Server-only exact-piece branching Laser generation. */
 
+import { ACTION_LOG_REV } from "./actionLog";
 import { laserCol, laserRow, laserStep, verifyLaser } from "./laser";
 import { shuffled } from "./random";
 import {
@@ -186,6 +187,8 @@ export function generateLaser(): LaserPuzzleData {
       gems: gems.length, bombs: bombs.length, necessityPass: true, subsetsTested: tested,
       attempts: attempt, splitters: 1, directionalGems: 2, splitRequired: true,
       generationMs: performance.now() - started };
+    // New rounds are answered with the action log (laserLog.ts).
+    puzzle.alogRev = ACTION_LOG_REV;
     return puzzle;
   }
   throw new Error("Laser generator could not build a verified exact-piece layout");

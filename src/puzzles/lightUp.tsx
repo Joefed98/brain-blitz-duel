@@ -1,6 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { useStageState } from "@/lib/duel/stageState";
@@ -17,6 +17,7 @@ import { LIGHTUP_TIME_MS, type LightUpPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** 0 empty, 1 bulb, 2 dot (a note: no bulb here). */
@@ -62,6 +63,7 @@ function Board({
   wrong,
   small = false,
   pointer,
+  spread,
 }: {
   board: LightUpBoard;
   marks: readonly Mark[];
@@ -69,6 +71,8 @@ function Board({
   wrong?: ReadonlySet<number>;
   small?: boolean;
   pointer?: ReturnType<typeof useGridPointer>;
+  /** The lamp just placed, keyed per tap: its light spreads out along the beams. */
+  spread?: { cell: number; key: number } | null;
 }) {
   const { size } = board;
   const bulbs = marks.flatMap((m, cell) => (m === 1 ? [cell] : []));
@@ -81,7 +85,7 @@ function Board({
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className="grid w-full select-none"
+      className={`logic-lamps grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
       {Array.from({ length: size * size }, (_, cell) => {
@@ -94,13 +98,13 @@ function Board({
           return (
             <div
               key={cell}
-              className={`lightup-wall relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : ""}`}
+              className={`lightup-wall logic-wall relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : ""}`}
             >
               {n >= 0 && (
                 <span className={`font-mono font-bold ${over ? "text-destructive-foreground" : "text-foreground"} ${small ? "text-xs" : "text-lg"}`}>{n}</span>
               )}
-              {done && (
-                <span className={`absolute right-0.5 top-0 font-bold leading-none text-primary ${small ? "text-[8px]" : "text-xs"}`}>✓</span>
+              {done && !small && (
+                <span className="absolute right-0.5 top-0 text-xs font-bold leading-none text-primary">✓</span>
               )}
             </div>
           );
@@ -108,13 +112,21 @@ function Board({
         const mark = marks[cell] ?? 0;
         const bad = status.clashing.has(cell) || wrong?.has(cell);
         const lit = status.lit.has(cell);
+        const r = Math.floor(cell / size);
+        const c = cell % size;
+        const from = spread ? { r: Math.floor(spread.cell / size), c: spread.cell % size } : null;
+        const reach = from && lit && (from.r === r || from.c === c) ? Math.abs(from.r - r) + Math.abs(from.c - c) : -1;
         return (
           <div
             key={cell}
-            className={`lightup-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
+            style={{ "--logic-diag": r + c } as CSSProperties}
+            className={`lightup-cell logic-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
               lit ? "lightup-cell-lit border-transparent" : "border-dotted border-muted-foreground/50 bg-card"
             }`}
           >
+            {reach >= 0 && (
+              <span key={spread?.key} aria-hidden="true" className="logic-light-in" style={{ animationDelay: `${reach * 40}ms` }} />
+            )}
             {beam.h.has(cell) && (
               <span
                 className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${beam.redH.has(cell) ? "bg-destructive" : "lightup-beam"}`}
@@ -129,7 +141,7 @@ function Board({
             )}
             {mark === 1 ? (
               <span
-                className={`relative block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
+                className={`logic-lamp relative block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
                 style={{ boxShadow: bad ? undefined : "0 0 10px var(--primary)" }}
               />
             ) : mark === 2 ? (
@@ -174,10 +186,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const [marks, setMarks] = useStageState<Mark[]>(stateKey ?? "lightup", "lightUpMarks", () =>
     new Array(size * size).fill(0),
   );
+  const [spread, setSpread] = useState<{ cell: number; key: number } | null>(null);
   const submitted = useRef(false);
   const pressed = useRef(false);
   const bulbs = marks.flatMap((m, cell) => (m === 1 ? [cell] : []));
   const encoded = encodeBulbs(bulbs);
+  const solving = useSolveFx("lightup", Boolean(data && lightUpValid(data, bulbs)));
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -203,6 +217,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             if (walls.has(cell)) return puzzleReject();
             pressed.current = true;
             buzz(8);
+            const next = ((marks[cell] ?? 0) + 1) % 3;
+            soundCue(next === 1 ? "lightup.lamp" : next === 2 ? "lightup.dot" : "lightup.clear");
+            setSpread((current) => (next === 1 ? { cell, key: (current?.key ?? 0) + 1 } : null));
             setMarks((current) => current.map((m, i) => (i === cell ? (((m + 1) % 3) as Mark) : m)));
           }
         : undefined,
@@ -215,12 +232,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const status = lightUpStatus(data, bulbs);
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
-      </p>
-       <div data-game-arena="fixed" className="w-full" style={{ width: "min(100%, 336px)", minWidth: 320 }}>
-        <Board board={data} marks={marks} pointer={pointer} />
+    <div data-logic-stage="lightup" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
+        </p>
+        <div className="logic-square logic-lamp-frame">
+          <Board board={data} marks={marks} pointer={pointer} spread={spread} />
+        </div>
       </div>
     </div>
   );
@@ -238,18 +258,20 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const status = lightUpStatus(puzzle, mine);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex w-full justify-center gap-3">
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-          <Board board={puzzle} marks={solvedMarks} small />
-        </div>
-        <div className="flex flex-1 flex-col items-center gap-1" style={{ maxWidth: 170 }}>
-          <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-          <Board board={puzzle} marks={myMarks} wrong={wrong} small />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-pair">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+            <Board board={puzzle} marks={solvedMarks} small />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
+            <Board board={puzzle} marks={myMarks} wrong={wrong} small />
+          </div>
         </div>
       </div>
-      <p className="font-mono text-base text-primary">
+      <p className="logic-reveal-text text-center font-mono text-primary">
         {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : `${status.lit.size} / ${status.whites} lit`}
       </p>
     </div>

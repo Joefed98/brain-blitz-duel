@@ -1,8 +1,10 @@
-import { Kettlebell } from "@/components/puzzles/refreshIcons";
+import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, TripleLevelFx } from "@/components/puzzles/balanceArt";
+import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { useReducedMotion } from "@/lib/motion";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
@@ -31,8 +33,15 @@ const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
 const pegDistanceLabel = (peg: number) => (peg < 4 ? 4 - peg : peg - 3);
 
-function Disc({ value, fixed, size }: { value: number; fixed: boolean; size: number }) {
-  return <Kettlebell value={value} fixed={fixed} size={size} />;
+function Disc({ value, fixed, width, height }: { value: number; fixed: boolean; width: number; height: number }) {
+  return <IronKettlebell value={value} fixed={fixed} width={width} height={height} />;
+}
+
+function BalanceArt() {
+  return <>
+    <PolishStyle id="balance" css={BALANCE_CSS} />
+    {BALANCE_DEFS}
+  </>;
 }
 
 /** Below this the existing ±12° tilt is too faint to see, so unbalanced beams show at least this much. */
@@ -44,22 +53,36 @@ function visibleTilt(scale: BalanceScale, placement: Placement): number {
   return Math.sign(tilt) * Math.min(12, Math.max(MIN_VISIBLE_TILT, Math.abs(tilt)));
 }
 
-function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false, height }: {
+/** Render-only beam tilt and peg offsets: a quick ease with a small settle past level. */
+const TILT_EASE = "transform 260ms cubic-bezier(.34,1.4,.55,1)";
+
+function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showControls = false, height, compact = false, solving = false }: {
   scale: BalanceScale; placement: Placement; spacing: number;
   onWeightTap?: (tray: number) => void; onPlace?: (peg: number) => void;
   selected?: number | null; showControls?: boolean;
-  /** Total drawing height (capped at 250px and centred); the beam sits a little above the middle. */
+  /** Total drawing height; the beam sits a little above the middle. */
   height?: number;
+  /** Reveal: a short stand, so three beams fit one screen. */
+  compact?: boolean;
+  /** The completion moment: the brass shines along its length. */
+  solving?: boolean;
 }) {
   const tilt = visibleTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
   const width = spacing * BAL_PEGS;
   const big = height !== undefined;
-  const H = height ?? (showControls ? 144 : 126);
-  const beamY = big ? Math.max(32, Math.round(H * 0.36)) : 32;
   const weight = big ? 52 : Math.min(44, spacing);
-  const standW = big ? 20 : 10;
-  const baseW = big ? 58 : 34;
+  // A weight's art is exactly its button: 44 × 52 on the live beam, 44 × 44 in the old layout.
+  const bellW = big ? spacing : weight;
+  const bellH = big ? 52 : showControls ? weight : Math.round(weight * 52 / 44);
+  const beamY = height !== undefined ? Math.max(32, Math.round(height * 0.36)) : compact ? 24 : 32;
+  const H = height ?? (compact ? beamY + 12 + 8 + bellH + 6 : showControls ? 144 : 126);
+  const standW = big ? 10 : 6;
+  const baseW = big ? 58 : compact ? 30 : 34;
+  const baseH = big ? 12 : 7;
+  const barH = big ? 12 : 8;
+  const labelW = Math.min(28, spacing - 6);
+  const clipId = `bal-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const onPeg = new Map<number, { w: number; fixed: boolean; tray?: number }>();
   scale.fixed.forEach(f => onPeg.set(f.peg, { w: f.w, fixed: true }));
   placement.forEach((peg, i) => {
@@ -67,29 +90,53 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
     if (peg !== null && w !== undefined) onPeg.set(peg, { w, fixed: false, tray: i });
   });
   const offset = (peg: number) => Math.tan(tilt * Math.PI / 180) * ((peg + .5) * spacing - width / 2);
-  const ease = 'transform 420ms cubic-bezier(.3,.7,.3,1)';
-  return <div className="balance-instrument relative" style={{ width, height: H }}>
-    <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
-      <path d={`M${width/2-standW} ${beamY+13} L${width/2+standW} ${beamY+13} L${width/2+standW+7} ${H-7} L${width/2-standW-7} ${H-7}Z`} className="balance-metal"/>
-      <path d={`M${width/2-baseW} ${H-9}h${baseW*2}l8 9h-${baseW*2+16}Z`} className="balance-metal"/>
-      <path d={`M${width/2} ${beamY+13}v${H-beamY-24}`} stroke="var(--balance-highlight)" strokeWidth="2"/>
-      <g style={{ transform: `rotate(${tilt}deg)`, transformOrigin: `${width/2}px ${beamY}px`, transition: ease }}>
-        <rect x="1" y={beamY-5} width={width-2} height="10" rx="3" className="balance-metal"/>
-        <path d={`M4 ${beamY-3}H${width-4}`} stroke="var(--balance-highlight)" strokeWidth="1"/>
+  const cx = width / 2;
+  const top = beamY + barH / 2;
+  const fx = showControls ? solving ? " bal-solving" : balanced ? " bal-level" : "" : "";
+  return <div className={`balance-instrument relative${fx}`} style={{ width, height: H }}>
+    <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
+      <ellipse cx={cx} cy={H - 1.5} rx={baseW + 8} ry={big ? 4 : 2.5} fill="#000" opacity="0.4"/>
+      <path d={`M${cx - standW} ${top + 10} L${cx + standW} ${top + 10} L${cx + standW + 5} ${H - baseH} L${cx - standW - 5} ${H - baseH}Z`} fill="url(#bal-column)" stroke="#0B0D10" strokeWidth="1"/>
+      <rect x={cx - standW - 3} y={top + 10} width={standW * 2 + 6} height={big ? 5 : 3} rx="1.5" fill="url(#bal-brass-h)"/>
+      <rect x={cx - standW - 8} y={H - baseH - (big ? 6 : 4)} width={standW * 2 + 16} height={big ? 6 : 4} rx="2" fill="url(#bal-brass-h)"/>
+      <path d={`M${cx - baseW} ${H - 1}L${cx - baseW + 6} ${H - baseH}H${cx + baseW - 6}L${cx + baseW} ${H - 1}Z`} fill="url(#bal-wood)" stroke="#1A0F06" strokeWidth="1"/>
+      <path d={`M${cx - baseW + 7} ${H - baseH + 1.5}H${cx + baseW - 7}`} stroke="#E6BE6A" strokeOpacity="0.55" strokeWidth="1"/>
+      <path d={`M${cx - 8} ${top + 11} L${cx + 8} ${top + 11} L${cx} ${beamY}Z`} fill="url(#bal-brass)" stroke="#5A3A0C" strokeWidth="0.8"/>
+      <g className="bal-tilt" style={{ transform: `rotate(${tilt}deg)`, transformOrigin: `${cx}px ${beamY}px`, transition: TILT_EASE }}>
+        <rect className="bal-beam-rect" x="2" y={beamY - barH / 2} width={width - 4} height={barH} rx={barH / 2.5} fill="url(#bal-brass)" stroke="#5A3A0C" strokeWidth="1"/>
+        <path d={`M${barH / 2} ${beamY - barH / 2 + 1.5}H${width - barH / 2}`} stroke="#FFF6D6" strokeOpacity="0.75" strokeWidth="1"/>
+        <path d={`M${barH / 2} ${beamY + barH / 2 - 2}H${width - barH / 2}`} stroke="#4A2F08" strokeOpacity="0.45" strokeWidth="1"/>
+        {Array.from({ length: BAL_PEGS - 1 }, (_, i) => i + 1).filter((peg) => peg !== 4).map((peg) => {
+          const x = peg * spacing, h = barH / 2 - 1.5;
+          return <g key={peg}>
+            <path d={`M${x} ${beamY - h}V${beamY + h}`} stroke="#3E2805" strokeWidth="1.4"/>
+            <path d={`M${x + 1.2} ${beamY - h}V${beamY + h}`} stroke="#FFF1C2" strokeOpacity="0.55" strokeWidth="0.8"/>
+          </g>;
+        })}
+        <circle cx={big ? 5 : 4} cy={beamY} r={big ? 6.5 : 4.5} fill="url(#bal-brass)" stroke="#5A3A0C" strokeWidth="1"/>
+        <circle cx={width - (big ? 5 : 4)} cy={beamY} r={big ? 6.5 : 4.5} fill="url(#bal-brass)" stroke="#5A3A0C" strokeWidth="1"/>
+        {showControls && <>
+          <clipPath id={clipId}><rect x="2" y={beamY - barH / 2} width={width - 4} height={barH} rx={barH / 2.5}/></clipPath>
+          <g clipPath={`url(#${clipId})`}>
+            <rect className="bal-beam-shine" x="0" y={beamY - barH / 2} width="64" height={barH} fill="url(#bal-shine)"
+              style={{ ["--sweep-from" as string]: "-70px", ["--sweep-to" as string]: `${width + 6}px` }}/>
+          </g>
+        </>}
       </g>
-      <circle cx={width/2} cy={beamY+7} r="5" fill={balanced ? 'var(--primary)' : 'var(--balance-handle)'}/>
+      <circle className="bal-boss-glow" cx={cx} cy={beamY} r={big ? 11 : 7} fill="var(--primary)" opacity="0.4"/>
+      <circle cx={cx} cy={beamY} r={big ? 5 : 3.5} fill={balanced ? "var(--primary)" : "url(#bal-brass-h)"} stroke="#3E2805" strokeWidth="1"/>
     </svg>
     {Array.from({ length: BAL_PEGS }, (_, peg) => {
       const item = onPeg.get(peg), available = selected != null && !item;
-      return <div key={peg} className="absolute flex flex-col items-center" style={{ top: beamY - 32, left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: ease }}>
+      return <div key={peg} className="absolute flex flex-col items-center" style={{ top: beamY - 32, left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: TILT_EASE }}>
         {showControls ? <Button type="button" variant="ghost" onClick={() => { if (available) onPlace?.(peg); }}
           aria-label={`Place at distance ${pegDistanceLabel(peg)} on the ${peg < 4 ? 'left' : 'right'}`} aria-disabled={!available}
-          className={`balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm ${available ? 'text-primary' : 'text-foreground'}`}>
-          <span className={available ? 'balance-notch-label balance-notch-active' : 'balance-notch-label'}>{pegDistanceLabel(peg)}</span>
-        </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm text-foreground"><span className="balance-notch-label">{pegDistanceLabel(peg)}</span></div>}
-        {item && <div className="flex flex-col items-center">
-          <span className="balance-chain h-2 w-px"/>
-          {item.fixed ? <Disc value={item.w} fixed size={weight} /> : <Button variant="ghost" className={`min-w-0 p-0 ${big ? 'h-[52px]' : 'h-11'} w-full ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} size={weight}/></Button>}
+          className="balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm">
+          <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistanceLabel(peg)}</span>
+        </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistanceLabel(peg)}</span></div>}
+        {item && <div key={item.fixed ? 'f' : `t${item.tray}`} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
+          <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
+          {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} /> : <Button variant="ghost" className={`min-w-0 p-0 ${big ? 'h-[52px]' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH}/></Button>}
         </div>}
       </div>;
     })}
@@ -114,6 +161,7 @@ function IntroExample() {
   const scale: BalanceScale = { fixed: [{ peg: 1, w: 2 }], tray: [3] };
   return (
     <div className="flex w-full flex-col items-center gap-2">
+      <BalanceArt />
       <Beam scale={scale} placement={[5]} spacing={30} />
       <p className="text-center text-xs text-muted-foreground">2 × 3 on the left equals 3 × 2 on the right.</p>
     </div>
@@ -134,8 +182,12 @@ function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
   return spacing;
 }
 
+/** Live instrument height: as tall as the bench allows, within a readable range. */
+const beamHeightFor = (arenaHeight: number) => Math.min(300, Math.max(146, arenaHeight - 56));
+
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, stateKey = "balance" }: PuzzleStageProps) {
   const column = useGameColumnLayout();
+  const reduced = useReducedMotion();
   const data: BalancePuzzleData | null = puzzle.type === "balance" ? puzzle : null;
   const scales = data?.scales ?? [];
   const [placements, setPlacements] = useStageState<Placement[]>(stateKey, "placements", () =>
@@ -144,6 +196,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [selected, setSelected] = useState<number | null>(null);
   const [current, setCurrentStage] = useStageState<number>(stateKey, "balanceStage", () => Math.min(balanceSolvedCount(scales, placements), BAL_SCALES - 1));
   const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
+  // Set by the move that balances the last scale (never on a restore), to start the completion effect.
+  const [solvedHere, setSolvedHere] = useState(false);
+  const solveFx = useSolveFx(solvedHere, "balance.solve", 1100);
   const lastTap = useRef<{ tray: number; time: number } | null>(null);
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
@@ -198,7 +253,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (frozen) return;
     const all = placements.map((p, i) => (i === current ? next : p));
     setPlacements(all);
-    if (scaleSolved(scale, next)) playCorrect();
+    if (scaleSolved(scale, next)) {
+      playCorrect();
+      if (balanceSolvedCount(scales, all) === BAL_SCALES) setSolvedHere(true);
+      else soundCue("balance.level");
+    }
   };
 
 
@@ -208,6 +267,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (!available(tray).includes(peg)) return puzzleReject();
     // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
+    soundCue("balance.drop");
     setSelected(null); hapticTick(); setCurrent(next);
   };
   const tapWeight = (tray: number) => {
@@ -217,20 +277,38 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     lastTap.current = isDouble ? null : { tray, time: Date.now() };
     if (isDouble) {
       const next = [...placement]; next[tray] = null;
+      soundCue("balance.lift");
       setSelected(null); hapticTick(); setCurrent(next);
     } else {
+      if (selected !== tray) soundCue("balance.select");
       setSelected((current) => current === tray ? null : tray);
     }
   };
 
   const trayLeft = scale.tray.map((_, i) => i).filter((i) => placement[i] === null);
+  const beamHeight = beamHeightFor(arenaHeight);
+  // The instrument stands on the bench: centred in the panel, with the desk from its base down.
+  const beamTop = Math.max(26, Math.round((arenaHeight - beamHeight) / 2) + 8);
+  const trayButtons = trayLeft.map((i) => (
+    <Button variant="ghost"
+      key={i}
+      aria-label={`Select weight ${scale.tray[i] ?? 0}`}
+      data-selected={selected === i}
+      onClick={() => tapWeight(i)}
+      className="bal-tray-cup h-14 w-14 p-0"
+    >
+      <Disc value={scale.tray[i] ?? 0} fixed={false} width={44} height={52} />
+    </Button>
+  ));
 
   return (
     <div
       ref={root}
+      data-polish="balance"
       data-stage-column="3" className="flex min-h-0 w-full flex-1 flex-col items-center gap-3"
       style={NO_SCROLL_STYLE}
     >
+      <BalanceArt />
       {progressTarget && createPortal(
         <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${BAL_SCALES} scales balanced`}>
           {Array.from({ length: BAL_SCALES }, (_, i) => (
@@ -240,37 +318,33 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       )}
       {column ? (
         <>
-          {/* Column layout: beam arena, then the scale counter and tray in flow 12px below. */}
+          {/* Column layout: the bench fills the space above the tray, which sits 12px below it. */}
           <div ref={arena} data-game-arena="balance" className="relative min-h-[170px] w-full">
-            <div className="absolute left-1/2 -translate-x-1/2" style={{ top: Math.max(0, Math.round((arenaHeight - 24 - Math.min(250, Math.max(146, arenaHeight - 24))) / 2)) }}>
-              <StageCorrect visible={holding} />
+            <div className="bal-panel pointer-events-none absolute inset-x-0 bottom-0 top-3">
+              <div className="bal-table" style={{ top: beamTop + beamHeight - 28, height: "auto" }} />
+            </div>
+            <div className="absolute inset-x-0 top-4"><StageCorrect visible={holding} /></div>
+            {solveFx && <TripleLevelFx reduced={reduced} />}
+            <div className="absolute left-1/2 -translate-x-1/2" style={{ top: beamTop }}>
               <Beam
                 scale={scale}
                 placement={placement}
                 spacing={spacing}
                 selected={selected}
                 showControls
-                height={Math.min(250, Math.max(146, arenaHeight - 24))}
+                solving={solveFx}
+                height={beamHeight}
                 onWeightTap={tapWeight}
                 onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
               />
             </div>
           </div>
-          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-3">
+          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-2">
             <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
               scale {current + 1} / {BAL_SCALES}
             </p>
-            <div className="flex min-h-[56px] w-full flex-wrap justify-center gap-3">
-              {trayLeft.map((i) => (
-                <Button variant="ghost"
-                  key={i}
-                  aria-label={`Select weight ${scale.tray[i] ?? 0}`}
-                  onClick={() => tapWeight(i)}
-                  className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
-                >
-                  <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
-                </Button>
-              ))}
+            <div className="bal-rack flex min-h-[68px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
+              {trayButtons}
             </div>
           </div>
         </>
@@ -284,6 +358,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               spacing={spacing}
               selected={selected}
               showControls
+              solving={solveFx}
               onWeightTap={tapWeight}
               onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
             />
@@ -292,16 +367,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             scale {current + 1} / {BAL_SCALES}
           </p>
           <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
-            {trayLeft.map((i) => (
-              <Button variant="ghost"
-                key={i}
-                aria-label={`Select weight ${scale.tray[i] ?? 0}`}
-                onClick={() => tapWeight(i)}
-                className={`h-14 w-14 p-0 ${selected === i ? "ring-2 ring-primary" : ""}`}
-              >
-                <Disc value={scale.tray[i] ?? 0} fixed={false} size={56} />
-              </Button>
-            ))}
+            {trayButtons}
           </div>
         </div>
       )}
@@ -309,31 +375,37 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
+const SIDE = (peg: number) => `${peg < 4 ? "left" : "right"} ${pegDistanceLabel(peg)}`;
+
 function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "balance") return null;
   const placements = decodeBalance(myAnswer ?? "", puzzle.scales);
   const solved = balanceSolvedCount(puzzle.scales, placements);
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-6 overflow-y-auto py-1">
-      {puzzle.scales.map((scale, s) => {
-        const ok = s < solved;
-        const solution = puzzle.solutions?.[s];
-        return (
-          <div key={s} className="flex shrink-0 flex-col items-center gap-2">
-            <div className="flex items-center gap-2">
-              <span className={`font-mono text-base font-bold ${ok ? "text-primary" : "text-warn"}`}>{ok ? "✓" : "✗"}</span>
-              <Beam scale={scale} placement={placements[s] ?? []} spacing={30} />
-            </div>
-            {!ok && solution && (
-              <div className="flex flex-col items-center opacity-80">
-                <span className="text-xs text-muted-foreground">One balanced way</span>
-                <Beam scale={scale} placement={solution} spacing={26} />
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto py-1">
+      <BalanceArt />
+      <div className="bal-panel flex w-full max-w-[360px] shrink-0 flex-col items-center gap-2 px-2 py-2">
+        {puzzle.scales.map((scale, s) => {
+          const ok = s < solved;
+          const solution = puzzle.solutions?.[s];
+          return (
+            <div key={s} className="flex shrink-0 flex-col items-center gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className={`w-4 font-mono text-base font-bold ${ok ? "text-primary" : "text-warn"}`}>{ok ? "✓" : "✗"}</span>
+                <Beam scale={scale} placement={placements[s] ?? []} spacing={36} compact />
+                <span className="w-4" />
               </div>
-            )}
-          </div>
-        );
-      })}
+              {!ok && solution && (
+                <p className="px-2 text-center text-sm leading-snug text-foreground">
+                  <span className="text-[#E8D9B0]">One balanced way: </span>
+                  {solution.map((peg, i) => peg === null ? null : `${scale.tray[i]} on ${SIDE(peg)}`).filter(Boolean).join(" · ")}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <p className={`text-center font-mono text-base font-bold ${solved === BAL_SCALES ? "text-primary" : "text-foreground"}`}>
         {solved === BAL_SCALES ? `3 / 3${elapsed ? ` · ${elapsed}s` : ""}` : `${solved} / 3`}
       </p>

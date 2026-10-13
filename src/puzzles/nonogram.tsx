@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { Fragment, useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import {
@@ -12,6 +12,7 @@ import { useStageState } from "@/lib/duel/stageState";
 import { NONO_SIZE, NONO_TIME_MS, type NonoPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function clueText(clue: number[]): string {
@@ -29,6 +30,8 @@ function Board({
   fluid = false,
   goldCells,
   wrongCells,
+  reveal = false,
+  tapped,
 }: {
   rows: number[][];
   cols: number[][];
@@ -39,6 +42,10 @@ function Board({
   fluid?: boolean;
   goldCells?: Set<number>;
   wrongCells?: Set<number>;
+  /** Reveal: fluid cells, 12px clues, finished lines not dimmed. */
+  reveal?: boolean;
+  /** The cell that was just tapped, keyed per tap (its tile pops). */
+  tapped?: { index: number; key: number } | null;
 }) {
   const cellsOf = (line: "row" | "col", index: number) =>
     Array.from({ length: size }, (_, other) =>
@@ -47,10 +54,11 @@ function Board({
 
   return (
     <div
-      className={`grid gap-0 ${fluid ? "logic-nonogram-board" : ""}`}
+      className={`logic-nono grid gap-0 ${fluid ? "logic-nonogram-board" : ""} ${reveal ? "logic-nono-reveal w-full" : ""}`}
       style={{
-        gridTemplateColumns: fluid ? `1.15fr repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
-        gridTemplateRows: fluid ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
+        gridTemplateColumns: fluid ? `1.15fr repeat(${size}, minmax(0, 1fr))` : reveal ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
+        gridTemplateRows: fluid ? `auto repeat(${size}, minmax(0, 1fr))` : reveal ? `auto repeat(${size}, auto)` : `auto repeat(${size}, ${cell}px)`,
+        ...(reveal ? { fontSize: 12 } : {}),
       }}
     >
       <span />
@@ -59,8 +67,8 @@ function Board({
         return (
           <span
             key={`c${col}`}
-            className={`nono-clue-col flex items-end justify-center gap-0.5 whitespace-pre pb-1.5 font-mono text-[15px] font-bold leading-[1.15] ${guide ? "nono-guide-col" : ""} ${
-              lineSatisfied(clue, cellsOf("col", col))
+            className={`nono-clue-col flex items-end justify-center gap-0.5 whitespace-pre pb-1.5 font-mono font-bold leading-[1.15] ${reveal ? "" : "text-[15px]"} ${guide ? "nono-guide-col" : ""} ${
+              !reveal && lineSatisfied(clue, cellsOf("col", col))
                 ? "text-muted-foreground/40"
                 : "text-foreground"
             }`}
@@ -74,8 +82,8 @@ function Board({
         return (
         <Fragment key={`r${row}`}>
           <span
-            className={`nono-clue-row flex max-w-10 items-center justify-end gap-1 pr-1.5 font-mono text-[15px] font-bold leading-none ${
-              lineSatisfied(clue, cellsOf("row", row))
+            className={`nono-clue-row flex items-center justify-end gap-1 pr-1.5 font-mono font-bold leading-none ${reveal ? "" : "max-w-10 text-[15px]"} ${
+              !reveal && lineSatisfied(clue, cellsOf("row", row))
                 ? "text-muted-foreground/40"
                 : "text-foreground"
             }`}
@@ -90,13 +98,15 @@ function Board({
             const gold = goldCells?.has(index);
             const wrong = wrongCells?.has(index);
             const colGuide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
+            const popped = tapped?.index === index;
             return (
               <button
-                key={index}
+                key={popped ? `${index}-${tapped?.key}` : index}
                 type="button"
                 aria-label={`Row ${row + 1} column ${col + 1}`}
                 onPointerDown={onCell ? () => onCell(index) : undefined}
-                className={`flex items-center justify-center border text-[13px] font-bold ${
+                style={{ "--logic-diag": row + col, "--logic-hue": (row * 47 + col * 83) % 360 } as CSSProperties}
+                className={`logic-nono-cell flex items-center justify-center border text-[13px] font-bold ${reveal ? "aspect-square" : ""} ${popped ? (mark === 1 ? "logic-nono-pop" : "logic-nono-tick") : ""} ${
                   rowGuide ? "nono-guide-row" : ""
                 } ${colGuide ? "nono-guide-col" : ""} ${
                   wrong
@@ -166,6 +176,7 @@ function Stage({
     "nonoMarks",
     () => Array.from({ length: NONO_SIZE * NONO_SIZE }, () => 0) as NonoMarks,
   );
+  const [tapped, setTapped] = useState<{ index: number; key: number } | null>(null);
   const submitted = useRef(false);
 
   useEffect(() => {
@@ -183,6 +194,7 @@ function Stage({
       data.cols.every((clue, col) => lineSatisfied(clue, filledCol(col)))
     );
   }, [data, marks]);
+  const solving = useSolveFx("nonogram", complete);
 
   // Every line matching its clues means the picture is the stored one.
   useEffect(() => {
@@ -204,6 +216,9 @@ function Stage({
   const tap = (index: number) => {
     if (locked || submitted.current) return;
     hapticTick();
+    const next = ((marks[index] ?? 0) + 1) % 3;
+    soundCue(next === 1 ? "nonogram.fill" : next === 2 ? "nonogram.mark" : "nonogram.clear");
+    setTapped((current) => ({ index, key: (current?.key ?? 0) + 1 }));
     setMarks(
       marks.map((mark, at) =>
         at === index ? (((mark + 1) % 3) as NonoMarks[number]) : mark,
@@ -212,8 +227,13 @@ function Stage({
   };
 
   return (
-    <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3">
-      <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} fluid />
+    <div data-logic-stage="nonogram" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <div className="logic-nono-fit logic-nono-frame">
+          <Board rows={data.rows} cols={data.cols} marks={marks} onCell={tap} fluid tapped={tapped} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -235,19 +255,27 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   const wrongCells = new Set(filled.filter((cell) => !pattern[cell]));
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="flex shrink-0 items-start justify-center gap-2">
-        <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} cell={14} />
-        <Board
-          rows={puzzle.rows}
-          cols={puzzle.cols}
-          marks={myMarks}
-          cell={14}
-          wrongCells={wrongCells}
-        />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-nono-pair">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
+            <Board rows={puzzle.rows} cols={puzzle.cols} marks={solutionMarks} reveal />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
+            <Board
+              rows={puzzle.rows}
+              cols={puzzle.cols}
+              marks={myMarks}
+              wrongCells={wrongCells}
+              reveal
+            />
+          </div>
+        </div>
       </div>
       <p
-        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {myCorrect
           ? `Solved${elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}`

@@ -18,7 +18,7 @@
  */
 import { readFileSync } from "node:fs";
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { SNIP_BANDS_TALL, SNIP_BANDS_V3, SNIP_CONFIG, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
+import { SNIP_BANDS_V3, SNIP_BANDS_V6, SNIP_CONFIG, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -31,6 +31,8 @@ const PROOFS: Record<string, Record<string, Proof>> = {
   ...JSON.parse(readFileSync(new URL("../../fixtures/snip-rev3-proofs.json", import.meta.url), "utf8")),
   // Tuning E's tall templates (snipRev 5).
   ...JSON.parse(readFileSync(new URL("../../fixtures/snip-rev5-proofs.json", import.meta.url), "utf8")),
+  // snipRev 6's new tall templates.
+  ...JSON.parse(readFileSync(new URL("../../fixtures/snip-rev6-proofs.json", import.meta.url), "utf8")),
 };
 
 /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
@@ -43,8 +45,8 @@ const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near
 const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
 
 function bandOf(template: number): number {
-  if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_TALL.hard.includes(template)) return 2;
-  if ((SNIP_BANDS_V3.medium as readonly number[]).includes(template) || SNIP_BANDS_TALL.medium.includes(template)) return 1;
+  if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_V6.hard.includes(template)) return 2;
+  if ((SNIP_BANDS_V3.medium as readonly number[]).includes(template) || SNIP_BANDS_V6.medium.includes(template)) return 1;
   return 0;
 }
 

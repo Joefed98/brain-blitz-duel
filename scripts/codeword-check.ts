@@ -10,7 +10,8 @@
  *      no repeats, 14–18 letters, 4 givens, and exactly one solution against the
  *      full dictionary; two sampled entries rebuild byte-for-byte from their seeds;
  *   5. replay rules (moving a letter, clearing, givens fixed);
- *   6. score anchors: perfect 150, minimum finish 130, best unfinished < 130, nothing 0.
+ *   6. score anchors: perfect 150, minimum finish 130, best unfinished < 130, nothing 0
+ *      (stored rounds); new rounds (puzzleScoreRev 1) 150 / 120 / 110 / 0.
  *
  *   bun scripts/codeword-check.ts            (all 1,000 boards)
  *   bun scripts/codeword-check.ts --part=k/n (bank part k of n; the rest runs in every part)
@@ -165,6 +166,13 @@ const bankSeconds = (performance.now() - started) / 1000;
     check(`board ${k}: finish at the buzzer 130 (${slow})`, slow === 130);
     check(`board ${k}: nothing 0`, gradeAnswer(puzzle, "", LIMIT).score === 0);
     check(`board ${k}: one short is unfinished`, almost < 130 && twoWrong < 130);
+    // New rounds (puzzleScoreRev 1): 120 + PAR(30); one number short at most 110; a wrong letter costs 5.
+    const fresh = { ...puzzle, puzzleScoreRev: 1 } as CodewordPuzzleData;
+    check(`board ${k}: new shape perfect 150`, gradeAnswer(fresh, encodeCodeword(right), LIMIT).score === 150);
+    check(`board ${k}: new shape finish at the buzzer 120`, gradeAnswer(fresh, encodeCodeword(right), 0).score === 120);
+    check(`board ${k}: new shape one short = 110`, gradeAnswer(fresh, encodeCodeword(right.slice(1)), LIMIT).score === 110);
+    check(`board ${k}: new shape two swapped < 110`, gradeAnswer(fresh, encodeCodeword(swapped), LIMIT).score < 110);
+    check(`board ${k}: new shape nothing 0`, gradeAnswer(fresh, "", LIMIT).score === 0);
     minFinish = Math.min(minFinish, slow);
     maxUnfinished = Math.max(maxUnfinished, almost, twoWrong, scoreCodeword({ correct: hidden.length - 1, hidden: hidden.length, complete: true, solved: false }, LIMIT, LIMIT));
     maxScore = Math.max(maxScore, perfect);
