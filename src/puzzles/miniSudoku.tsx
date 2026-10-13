@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { decodeSudoku, encodeSudoku, sudokuBox, sudokuSolved } from "@/lib/duel/logic";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DIGITS = [1, 2, 3, 4, 5, 6];
@@ -37,6 +38,7 @@ function SudokuGrid({
   selected,
   onSelect,
   cols = SUDOKU_COLS,
+  placed,
 }: {
   values: number[];
   tones: CellTone[];
@@ -44,6 +46,8 @@ function SudokuGrid({
   selected?: number | null | undefined;
   onSelect?: ((cell: number) => void) | undefined;
   cols?: number | undefined;
+  /** The cell that just took a digit (it pops in). */
+  placed?: number | null | undefined;
 }) {
   const selectedRow =
     selected === null || selected === undefined ? -1 : Math.floor(selected / cols);
@@ -52,7 +56,7 @@ function SudokuGrid({
 
   return (
     <div
-      className="sudoku-grid mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
+      className="sudoku-grid logic-sudoku mx-auto grid aspect-square h-full max-h-full w-full max-w-full"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${Math.ceil(values.length / cols)}, minmax(0, 1fr))`,
@@ -74,18 +78,20 @@ function SudokuGrid({
             type="button"
             disabled={!onSelect}
             onClick={onSelect ? () => onSelect(cell) : undefined}
-            className={`relative flex items-center justify-center font-display font-bold ${boxEdges(cell)} ${
+            className={`logic-sudoku-cell relative flex items-center justify-center font-display font-bold ${boxEdges(cell)} ${
               cell === selected
                 ? "bg-primary/20 outline outline-2 -outline-offset-2 outline-primary"
                 : highlight
                   ? "bg-muted/40"
                   : "bg-card"
             } ${tone === "given" ? "text-foreground" : tone === "wrong" ? "text-destructive" : "text-primary"}`}
-            style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))" }}
+            style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))", "--logic-row": row, "--logic-box": sudokuBox(cell) } as CSSProperties}
             aria-label={`Cell ${cell + 1}`}
           >
             {value ? (
-              value
+              <span key={value} className={`logic-sudoku-digit ${tone === "given" ? "logic-sudoku-given" : ""} ${placed === cell ? "logic-sudoku-pop" : ""}`}>
+                {value}
+              </span>
             ) : marks.length ? (
               <span
                 className="grid w-full grid-cols-3 gap-0 px-[6%] font-mono text-muted-foreground"
@@ -140,6 +146,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
   const [selected, setSelected] = useState<number | null>(null);
   const [pencilMode, setPencilMode] = useState(false);
+  const [placed, setPlaced] = useState<number | null>(null);
   const submitted = useRef(false);
 
   const grid = useMemo(
@@ -150,6 +157,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   useEffect(() => {
     onDraftAnswer?.(encodeSudoku(grid));
   }, [grid, onDraftAnswer]);
+
+  const solving = useSolveFx("sudoku", puzzle.type === "sudoku" && sudokuSolved(grid, givens));
 
   useEffect(() => {
     if (locked || submitted.current) return;
@@ -178,6 +187,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       );
       return;
     }
+    if (entries[selected] !== digit) {
+      setPlaced(selected);
+      soundCue("sudoku.place");
+    }
     setEntries((current) =>
       current.map((value, cell) => (cell === selected ? (value === digit ? 0 : digit) : value)),
     );
@@ -190,15 +203,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <div data-polish="sudoku" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
-        <SudokuGrid
-          values={grid}
-          tones={tones}
-          pencil={pencil}
-          selected={selected}
-          onSelect={locked ? undefined : (cell) => setSelected(cell)}
-        />
+    <div data-logic-stage="sudoku" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic">
+        <div className="logic-square-bare logic-sudoku-frame">
+          <SudokuGrid
+            values={grid}
+            tones={tones}
+            pencil={pencil}
+            selected={selected}
+            placed={placed}
+            onSelect={locked ? undefined : (cell) => setSelected(cell)}
+          />
+        </div>
       </div>
       <div data-game-controls="numbers" className="flex shrink-0 flex-col gap-2">
         <div className="grid grid-cols-6 gap-1.5">
@@ -208,7 +225,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               type="button"
               onClick={() => tapDigit(digit)}
               disabled={locked}
-              className="press tap-target rounded-lg border border-border bg-card py-2 font-display text-lg font-bold text-foreground disabled:opacity-40"
+              className="logic-sudoku-key press tap-target rounded-lg border border-border bg-card py-2 font-display text-lg font-bold text-foreground disabled:opacity-40"
             >
               {digit}
             </button>
@@ -265,11 +282,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 190 }}>
-        <SudokuGrid values={values} tones={tones} />
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-square-bare logic-sudoku-frame" style={{ maxWidth: 300 }}>
+          <SudokuGrid values={values} tones={tones} />
+        </div>
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+      <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed}s`}`
           : `✗ ${correct} / ${blanks} correct`}

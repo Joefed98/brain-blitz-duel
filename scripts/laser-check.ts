@@ -68,7 +68,8 @@ for (let seed = 0; seed < 200; seed++) {
     const answer = encodeLaserAnswer(solution, fires);
     const wire = decodeLaserAnswer(answer, p.mirrors + 1);
     check(JSON.stringify(wire.mirrors) === JSON.stringify(solution), "placement wire round trip");
-    const result = gradeSubmission(p, answer, 30_000, 60_000);
+    // The "shot|layout" answer of stored (unstamped) rounds; new rounds send an action log (laser-log-check).
+    const result = gradeSubmission({ ...p, alogRev: undefined }, answer, 30_000, 60_000);
     check(result.isCorrect && result.score === [150, 135, 120][fires - 1], "server shot/speed score");
   }
   check(!verifyLaser({ ...p, splitterPieces: 0 }, solution).solved, "server rejects unprovided splitter");

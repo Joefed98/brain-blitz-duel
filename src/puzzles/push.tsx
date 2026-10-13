@@ -3,6 +3,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ArrowPad, useSwipe } from "@/components/puzzles/GridDrag";
+import { WarehouseBoard } from "@/components/puzzles/pattern/pushArt";
+import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import {
   cratesOnTargets,
   decodePushMoves,
@@ -31,6 +33,8 @@ function Board({
   pusher,
   cols = PUSH_COLS,
   cells = PUSH_CELLS,
+  facing,
+  solveFx,
 }: {
   walls: number[];
   targets: number[];
@@ -38,66 +42,21 @@ function Board({
   pusher: number;
   cols?: number;
   cells?: number;
+  facing?: SlideDir | undefined;
+  solveFx?: boolean;
 }) {
-  const rows = Math.ceil(cells / cols);
-  const wall = new Set(walls);
-
-  const crate = new Set(crates);
-
+  // Every piece is drawn inside its own cell and slides between cells (pattern/pushArt).
   return (
-    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full">
-      <div
-        className="grid h-full w-full"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-          gap: 2,
-        }}
-      >
-        {/* Every piece is a centred child of its own cell, so nothing can drift. */}
-        {Array.from({ length: cols * rows }, (_, cell) => {
-          if (wall.has(cell)) return <div key={cell} className="warehouse-shelf rounded-[3px]" aria-label="Shelving" />;
-          const onTarget = targets.includes(cell);
-          const hasCrate = crate.has(cell);
-          const hasPusher = cell === pusher;
-          return (
-            <div key={cell} className="warehouse-floor relative flex items-center justify-center rounded-[2px]">
-              {onTarget && <span aria-hidden="true" className="warehouse-target absolute inset-[10%] rounded-[3px]" />}
-              {hasCrate && <CrateArt home={onTarget} />}
-              {hasPusher && !hasCrate && <WorkerArt />}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** Wooden crate with plank lines; a green light shows when it sits on a marking. */
-function CrateArt({ home }: { home: boolean }) {
-  return (
-    <svg viewBox="0 0 20 20" className="relative block h-[75%] w-[75%]" aria-label={home ? "Crate home" : "Crate"}>
-      <rect x="1" y="1" width="18" height="18" rx="2" fill="var(--crate)" stroke="var(--crate-dark)" strokeWidth="1.4" />
-      <path d="M2 7h16M2 13h16" stroke="var(--crate-dark)" strokeWidth="1" />
-      <path d="M3 3l14 14" stroke="var(--crate-dark)" strokeWidth="1.6" />
-      <path d="M2.4 2.4h15.2" stroke="var(--crate-light)" strokeWidth="0.8" />
-      {home && <>
-        <circle cx="15" cy="5" r="3.6" fill="var(--home-light)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
-        <path d="M13.3 5l1.2 1.2 2.2-2.4" fill="none" stroke="var(--hazard-dark)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-      </>}
-    </svg>
-  );
-}
-
-/** Top-down warehouse worker: shoulders, hi-vis vest and a hard hat. */
-function WorkerArt() {
-  return (
-    <svg viewBox="0 0 20 20" className="relative block h-[75%] w-[75%]" aria-label="You">
-      <ellipse cx="10" cy="11.5" rx="7.6" ry="5" fill="var(--worker-body)" stroke="var(--hazard-dark)" strokeWidth="0.8" />
-      <path d="M5.2 9.2 7 15.6M14.8 9.2 13 15.6" stroke="var(--worker-vest)" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="10" cy="10" r="4.4" fill="var(--worker-hat)" stroke="var(--hazard-dark)" strokeWidth="0.9" />
-      <path d="M10 5.8v8.4" stroke="var(--crate-light)" strokeWidth="0.9" opacity="0.7" />
-    </svg>
+    <WarehouseBoard
+      walls={walls}
+      targets={targets}
+      crates={crates}
+      pusher={pusher}
+      cols={cols}
+      cells={cells}
+      facing={facing}
+      solveFx={solveFx ?? false}
+    />
   );
 }
 
@@ -142,6 +101,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     [walls, targets, startPusher, startCrates, moves],
   );
 
+  const solveFx = useSolveMoment(replay.solved, "push.solve");
+
   useEffect(() => {
     onDraftAnswer?.(encodePushMoves(moves));
   }, [moves, onDraftAnswer]);
@@ -157,6 +118,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     if (locked || submitted.current || replay.solved) return;
     const result = movePusher(replay.state, dir, new Set(walls));
     if (!result.moved) return puzzleReject();
+    const home = cratesOnTargets(result.state.crates, targets);
+    soundCue(result.pushed ? "push.push" : "push.step");
+    if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
     setMoves((current) => [...current, dir]);
   };
 
@@ -165,7 +129,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   if (puzzle.type !== "push") return null;
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-polish="push" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
         pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
         {replay.cratesOnTargets} / {targets.length} home
@@ -180,6 +144,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           targets={targets}
           crates={replay.state.crates}
           pusher={replay.state.pusher}
+          facing={moves.at(-1)}
+          solveFx={solveFx}
         />
       </div>
         <ArrowPad onPress={step} disabled={locked || replay.solved} />
@@ -242,10 +208,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div style={{ width: 176 }}>
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3">
+      <div className="push-reveal-space flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3">
+        <div className="push-reveal-board">
         <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} />
-      </div>
+        </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         minimum · {min} push{min === 1 ? "" : "es"}
       </p>
@@ -254,6 +221,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
           : `✗ ${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home`}
       </p>
+      </div>
     </div>
   );
 }
@@ -262,7 +230,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const pushPuzzle: PuzzleDefinition = {
   key: "push",
   name: gameDisplayName("push"),
-  category: "logic",
+  category: "pattern",
   timeLimitMs: PUSH_TIME_MS,
   revealMs: 8_000,
   generate: () =>

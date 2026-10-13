@@ -46,19 +46,25 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   const covered = mine.reduce((sum, entry) => sum + entry.cells.length, 0);
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
-      <div className="flex items-start justify-center gap-3">
-        <div className="flex flex-col items-center gap-1">
-          <BlockBoard blockers={puzzle.blockers} placements={puzzle.solution ?? []} size={140} />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            one solution
-          </span>
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <BlockBoard blockers={puzzle.blockers} placements={mine} size={140} />
-          <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-            your board
-          </span>
+    <div className="bp-reveal flex w-full flex-col items-center gap-3">
+      <div className="bp-reveal-space">
+        <div className="bp-reveal-pair">
+          <div className="flex flex-col items-center gap-1">
+            <div className="bp-reveal-board">
+              <BlockBoard blockers={puzzle.blockers} placements={puzzle.solution ?? []} />
+            </div>
+            <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+              one solution
+            </span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="bp-reveal-board">
+              <BlockBoard blockers={puzzle.blockers} placements={mine} />
+            </div>
+            <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
+              your board
+            </span>
+          </div>
         </div>
       </div>
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">

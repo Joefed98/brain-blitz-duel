@@ -15,6 +15,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
 import { installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
+import { installAppUpdater } from "../lib/appUpdate";
+import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
 
 function NotFoundComponent() {
   return (
@@ -146,10 +148,18 @@ function RootComponent() {
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).
   useEffect(() => installSoundUnlock(), []);
 
+  // A stale copy of the app updates itself, never mid-round (lib/appUpdate).
+  const router = useRouter();
+  useEffect(
+    () => installAppUpdater((path) => router.history.replace(path, router.history.location.state)),
+    [router],
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <AppUpdateOverlay />
     </QueryClientProvider>
   );
 }

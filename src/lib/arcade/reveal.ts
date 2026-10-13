@@ -476,6 +476,26 @@ const BUILDERS: Record<string, Builder> = {
   },
   stroop: (r, s) => {
     // Fixed-queue rounds: correct / N, wrong and the completion-only time bonus.
+    // clashRev 4 (puzzle score shape): a finish is all sorted with at most 2 wrong = 120 + the time bonus
+    // (−5 per wrong from it); otherwise 110 × correct ÷ N − 2 per wrong. The bonus is the stored one.
+    if (n(r, "queue") > 0 && "finishBase" in (r as object)) {
+      const done = b(r, "finished");
+      const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
+          done ? `${n(r, "wrong")} wrong · finish 120` : `${n(r, "wrong")} wrong × −2`,
+          done ? `time bonus +${n(r, "timeBonus")}` : sorted ? "time bonus — more than 2 wrong" : "time bonus — not all sorted",
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Wrong", value: String(n(r, "wrong")) },
+          { label: "Time bonus", value: done ? `+${n(r, "timeBonus")}` : "—" },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
     if (n(r, "queue") > 0) {
       const done = b(r, "finished");
       return {

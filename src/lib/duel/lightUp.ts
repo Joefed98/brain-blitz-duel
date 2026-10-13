@@ -1,3 +1,4 @@
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 /**
  * Light Up rules, shared by the phone (live lighting, auto-lock) and the
@@ -168,6 +169,11 @@ export function scoreLightUp(
   whites: number,
   clashing: number,
 ): number {
+  if (scoreRev1()) {
+    if (solved) return finishParts(speedBonusCurve(30, msRemaining, timeLimitMs));
+    if (whites <= 0) return partialParts(0);
+    return partialParts(Math.round((110 * lit) / whites) - 5 * clashing);
+  }
   if (solved) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   if (whites <= 0) return 0;
   return Math.max(0, Math.round((110 * lit) / whites) - 5 * clashing);

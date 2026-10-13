@@ -6,6 +6,7 @@ Legend: **Active** = dealt in rooms · **Retired** = practice only, never dealt 
 
 ## What changed since the 11 Oct version
 
+- **Rotation (13 Oct, later the same day):** Interloper (`intruder`) is retired to practice, so **Attention: 7 → 6 active**. Chroma Lines (`flow`), Pipeline (`pipes`) and Heave (`push`) move from Logic to Pattern: **Logic 14 → 11, Pattern 7 → 10**. A game's category is read only when a room is dealt and for labels, colours, music and practice lists; stored rounds keep their puzzle types and the host's chosen categories, so stored rounds and room history are unchanged. `category-pool-check` fails if any category the lobby offers drops below 6 active games. **Totals: 73 active, 28 retired.**
 - **Word: 6 → 10 active.** Strikeout, Cryptogrid and Swapword (word batch, 12 Oct) and Letterfall (an arcade-engine word game, 12 Oct) added.
 - **Number: 6 → 9 active.** Brimful, Checkout and Ballpark (number batch, 12 Oct) added.
 - **Speed:** Flash, Bang On and Ascend send raw tap logs that the server scores (`tapRev: 1`, 12 Oct).
@@ -13,7 +14,7 @@ Legend: **Active** = dealt in rooms · **Retired** = practice only, never dealt 
 - **Rotation** (decided 10 Oct) is built and seeded (11–12 Oct): see "How rooms use the bank".
 - **Scoring model:** arcade now scores on the bands (curve to 140 + up to 10 for a finish, or to 150 on open games); the 130 / 150 split describes stored rounds only.
 - **Corrections from the code:** Bomb Defusal is 90 s (stored on the puzzle; the registry default 75 s applies to old version-1 bombs); Mixed Signals is 78 s (75 s run); Gridlock draws from a database bank with a 400-row fallback; Hanoi always 90 s.
-- **Totals:** 74 active, 27 retired, 101 in all (was 71 / 27 on 12 Oct, 68 / 26 in the 11 Oct game facts).
+- **Totals:** 73 active, 28 retired, 101 in all after the 13 Oct rotation (74 / 27 before it; 71 / 27 on 12 Oct, 68 / 26 in the 11 Oct game facts).
 
 ---
 
@@ -29,7 +30,7 @@ Legend: **Active** = dealt in rooms · **Retired** = practice only, never dealt 
 - Maximum 150 per round. Ties on total break on lower total answer time.
 - The server is the arbiter: phones send moves, answers, input logs or tap logs, never scores; arcade inputs are replayed on the server's deterministic engine.
 
-**Shared feel features (Oct 2026).** Red pulsing timer and ticks in the final 10 s; consistent wrong-answer shake and red outline; solve flourishes on puzzle reveal boards; near-miss lines on arcade results; the shared arcade success layer (bursts, lights, arena glow, streak banners, Retro border lights) and one success-text colour per game; personal bests in practice (stored on the device).
+**Shared feel features (Oct 2026).** Red pulsing timer and ticks in the final 10 s; consistent wrong-answer shake and red outline; solve flourishes on puzzle reveal boards; near-miss lines on arcade results; the shared arcade success layer (bursts, lights, arena glow, streak banners, Retro border lights) and one success-text colour per game; personal bests in practice (stored on the device). **Added 13 Oct (rotation):** the shared signature beat (a gold flash and app-logo burst, 0.6 s, 1.0 s after a solve or finish; a bigger "fast" tier with at least half the time left; a gold burst on a stored 150 on the reveal; `src/lib/fx/signature.ts`); "?" help sheets that scroll inside the sheet with the close button always on screen; one-page intros (GOAL one sentence, HOW at most three short lines, detail in "?" help); named sound cues for every new moment (`docs/sound-cues/`).
 
 **Dictionary.** Free SCOWL-based British list on the server (`dictionary.server.ts`); help text says "standard British English dictionary". Strikeout, Cryptogrid and Swapword answers come from the common-words list (SCOWL sizes ≤ 35). Letterfall alone ships an exact packed copy to the phone. Oxford Languages and Collins Scrabble Words quotes to request (master plan step 8b).
 
@@ -102,7 +103,7 @@ Decision still open: revive Memory with new games or drop it. The category is ne
 | Target Tracking, Stop at 11 | To build | | | |
 | Aim Precision / Rhythm Tapping / Simon-Says Pattern Speed | Bank | | | |
 
-## Attention & perception (core) — 7 active
+## Attention & perception (core) — 6 active
 
 | Game (id) | Status | Description | Time | Revision |
 |---|---|---|---|---|
@@ -111,12 +112,12 @@ Decision still open: revive Memory with new games or drop it. The category is ne
 | Double Take (spotdiff) | Active | Two sweet-shop pictures; find six differences (colour swaps, item swaps, flips). 20 per difference; all six = 130 + speed. | 30 s | — |
 | Tally (countup) | Active | Three crowded display trays of outlined shapes in named colours; count the ones each question asks for and type the total. Stages 30 / 45 / 55 (off by 1 = 60 %, off by 2 = 30 %); all exact adds speed. | 45 s | — |
 | Labyrinth (maze) | Active | 19 × 19 branching maze; drag the gold player cell by cell from the start to the exit. 110 × share of the route reached; solved = 130 + speed. | 60 s | — |
-| Interloper (intruder) | Active | Five parties: memorise the guests (head shape + colour) in spotlights for 7 s; the lights dim; tap every guest who changed within 5 s. Two changes on parties 3–5; guests swap places on 4–5. 24 per party right. | 75 s | — |
+| Interloper (intruder) | Retired | Retired to practice 13 Oct (rotation); stored rounds replay and score on their own rules. Five parties: memorise the guests (head shape + colour) in spotlights for 7 s; the lights dim; tap every guest who changed within 5 s. Two changes on parties 3–5; guests swap places on 4–5. 24 per party right. | 75 s | — |
 | Matchmaker (pairmatch) | Active | 15 pairs of cards with patterned backs; turn two at a time. 8 per pair; all 15 = 130 + speed. | 90 s | — |
 | Crowd Sort | To build (arcade) | | | |
 | Hidden Object Search / Focus Filter / Sequence Spotting | Bank | | | |
 
-## Pattern & spatial (core) — 7 active
+## Pattern & spatial (core) — 10 active
 
 | Game (id) | Status | Description | Time | Revision |
 |---|---|---|---|---|
@@ -127,19 +128,19 @@ Decision still open: revive Memory with new games or drop it. The category is ne
 | Jumbled (tiles) | Active | 3 × 3 slide puzzle, tiles coloured on a ramp from 1 to 8; every slide counts, undone ones too. Fewest-moves scoring. | 60 s | — |
 | Turntable (rings) | Active | DJ deck: five linked vinyl rings of eight segments with a link legend; turn rings until every spoke is one colour; a strobe dot lights per solved spoke. Fewest-moves scoring. | 60 s | — |
 | Lightbender (laser) | Active | 10 × 10: place mirrors and a movable splitter so one beam lights all six gems (two only from a marked direction) while avoiding bombs; three FIRE shots: 130 / 115 / 100 + speed for shot 1 / 2 / 3. | 60 s | — |
+| Chroma Lines (flow) | Active (from Logic, 13 Oct) | 9 × 9, 10–12 colour pairs, 2–4 striped wall cells; join every pair with non-crossing paths that fill every square. 1,000-board bank. 10 per pair unfinished. | 75 s | — |
+| Pipeline (pipes) | Active (from Logic, 13 Oct) | 7 × 7: rotate pipe tiles to connect every tile to the source with no leaks; water flows through on a solve. Stepped credit by tiles connected. | 120 s | — |
+| Heave (push) | Active (from Logic, 13 Oct) | Warehouse Sokoban on 9 × 9: push 4–5 wooden crates onto hatched floor markings in the fewest pushes. 120-board bank. | 120 s | — |
 | Pattern Completion (patcomp), Spin (spin), Mirror Match (mirmatch) | Retired | | 30 / 45 / 60 s | — |
 | Pattern Shift / Shape Assembly / Shape Rotation (3D) / Shadow Match / Matrix Reasoning / Complete the Reflection / Mirror or Turn? | To build | | | |
 | Shape Folding / Block Stacking / Jigsaw Assembly / Grid Pathfinding | Bank | | | |
 
-## Logic (core) — 14 active
+## Logic (core) — 11 active
 
 | Game (id) | Status | Description | Time | Revision |
 |---|---|---|---|---|
-| Pipeline (pipes) | Active | 7 × 7: rotate pipe tiles to connect every tile to the source with no leaks; water flows through on a solve. Stepped credit by tiles connected. | 120 s | — |
 | Blackout (lightsout) | Active | 6 × 6 lights with bulb outlines; a press flips a light and its four neighbours; turn them all off in the minimum (8–12 presses, unique). Fewest-moves scoring. | 75 s | — |
 | Box Six (sudoku) | Active | 6 × 6 sudoku with 2 × 3 boxes, 14–16 givens and pencil marks; unique solution. | 90 s | — |
-| Chroma Lines (flow) | Active | 9 × 9, 10–12 colour pairs, 2–4 striped wall cells; join every pair with non-crossing paths that fill every square. 1,000-board bank. 10 per pair unfinished. | 75 s | — |
-| Heave (push) | Active | Warehouse Sokoban on 9 × 9: push 4–5 wooden crates onto hatched floor markings in the fewest pushes. 120-board bank. | 120 s | — |
 | Hanoi (tower) | Active | Tower of Hanoi: nine size-coloured rings from a random legal start onto the gold post, 3 or 4 posts. Minimum moves shown on the reveal. | 90 s | — |
 | Polypotions (tubes) | Active | Sort liquid layers so every flask is one colour (10 flasks, capacity 5, 8 colours, partial pours); a full flask gets a cork. 1,000-board bank. | 90 s | — |
 | Safe Cracker (safe) | Active | Four dial drums, five clues, one combination; three tries: 130 / 115 / 100 + speed. | 75 s | — |
@@ -199,7 +200,7 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 
 ---
 
-## Totals (13 Oct 2026, from the registry)
+## Totals (13 Oct 2026 after the rotation, from the registry)
 
 | Category | Active in rooms | Retired (practice only) | Total |
 |---|---:|---:|---:|
@@ -207,11 +208,11 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 | Number | 9 | 4 | 13 |
 | Memory (dormant) | 0 | 4 | 4 |
 | Speed | 6 | 1 | 7 |
-| Attention | 7 | 0 | 7 |
-| Pattern | 7 | 3 | 10 |
-| Logic | 14 | 2 | 16 |
+| Attention | 6 | 1 | 7 |
+| Pattern | 10 | 3 | 13 |
+| Logic | 11 | 2 | 13 |
 | Arcade | 21 | 10 | 31 |
-| **Total** | **74** | **27** | **101** |
+| **Total** | **73** | **28** | **101** |
 
 Engine games outside Arcade: Letterfall (Word), Tenfall (Number), Bonk and Pull! (Speed), Mixed Signals (Attention). Target: at least six strong games per category (every core category is there; Memory is empty). Guiding rule: aim for around 40 outstanding games with radically different skill profiles rather than 100 variations.
 

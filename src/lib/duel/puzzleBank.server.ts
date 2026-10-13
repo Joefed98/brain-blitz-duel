@@ -26,6 +26,7 @@ import { TUBES_MAX_ATTEMPTS, generateTubes, verifyTubesPuzzle } from "./tubes.se
 import { TUBES_BANK, TUBES_INTRO_EXAMPLE } from "./tubesBank.server";
 import { withSeededRandom } from "./random";
 import { SPEED_PAR_VERSION } from "./speedPar";
+import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
 import type {
   BlockPartyPuzzleData,
   FlowPuzzleData,
@@ -231,5 +232,5 @@ export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
   if (!isBankedType(type)) return null;
   const example = spec(type).example;
   if (!example) return null;
-  return { ...(JSON.parse(JSON.stringify(example)) as object), speedPar: SPEED_PAR_VERSION } as unknown as PuzzleData;
+  return { ...(JSON.parse(JSON.stringify(example)) as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
 }

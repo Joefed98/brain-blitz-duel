@@ -1,6 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { decodeFloodMoves, encodeFloodMoves, regionCells, replayFlood } from "@/lib/duel/flood";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
+import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
@@ -45,10 +46,11 @@ function Board({
 
   return (
     <div
-      className={`puzzle-board grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
+      className={`puzzle-board logic-flood relative grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
       style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
       aria-label={`${gameDisplayName("flood")} board`}
     >
+      <span aria-hidden="true" className="logic-flood-sheen" />
       {grid.map((colour, index) => {
         const row = Math.floor(index / size);
         const col = index % size;
@@ -72,6 +74,7 @@ function Board({
             key={ripple?.cells.has(index) ? `${index}-${ripple.key}` : index}
             className={`flood-tile ${mine ? "flood-wet" : ""} ${ripple?.cells.has(index) ? "flood-ripple" : ""}`}
             style={{
+              "--logic-diag": row + col,
               animationDelay: ripple?.cells.has(index) ? `${Math.min(80, (row + col) * 6)}ms` : undefined,
               animationDuration: "220ms",
               width: fluid ? "100%" : cell,
@@ -79,7 +82,7 @@ function Board({
               backgroundColor: fillOf(colour),
               borderRadius: `${r(0, 3)} ${r(0, 1)} ${r(2, 1)} ${r(2, 3)}`,
               boxShadow: shadows.length ? shadows.join(", ") : undefined,
-            }}
+            } as CSSProperties}
           />
         );
       })}
@@ -119,6 +122,7 @@ function Stage({
   const submitted = useRef(false);
 
   const replay = data ? replayFlood(data.grid, moves) : null;
+  const solving = useSolveFx("flood", Boolean(replay?.solved && moves.length));
   // Presentation only: which cells the last move swallowed, for the wet-paint ripple.
   const ripple = useMemo(() => {
     if (!data || !moves.length) return undefined;
@@ -144,6 +148,7 @@ function Stage({
     if (locked || submitted.current || replay.solved) return;
     if (replay.grid[0] === colour) return;
     hapticTick();
+    soundCue("flood.spread");
     const next = [...moves, colour];
     setMoves(next);
     const after = replayFlood(data.grid, next);
@@ -156,17 +161,22 @@ function Stage({
   };
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-3">
-      <Board grid={replay.grid} fluid ripple={ripple} />
-      <div data-after-arena data-game-controls="colours" className="flex shrink-0 items-center gap-2">
+    <div data-logic-stage="flood" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 w-full flex-1 flex-col items-center gap-2">
+      <span aria-hidden="true" className="logic-calm-glow" />
+      <div data-game-arena="logic" className="px-3">
+        <div className="logic-square-bare logic-flood-frame">
+          <Board grid={replay.grid} fluid ripple={ripple} />
+        </div>
+      </div>
+      <div data-game-controls="colours" className="flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button
             key={colour}
             type="button"
             aria-label={FLOOD_NAMES[colour]}
             onPointerDown={() => tap(colour)}
-            className="flood-tile rounded-lg border-2 border-border"
-            style={{ width: 52, height: 52, backgroundColor: fillOf(colour), borderRadius: 10 }}
+            className={`flood-tile logic-paint-pot ${replay.grid[0] === colour ? "logic-paint-pot-current" : ""}`}
+            style={{ width: 52, height: 52, backgroundColor: fillOf(colour) }}
           />
         ))}
       </div>
@@ -179,21 +189,25 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
   const replay = replayFlood(puzzle.grid, decodeFloodMoves(myAnswer ?? ""));
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <Board grid={replay.grid} cell={20} />
-       <p className="text-center font-mono text-base text-muted-foreground">Par {puzzle.par} — you used {replay.moves}</p>
+    <div className="logic-reveal">
+      <div className="logic-reveal-board">
+        <div className="logic-square-bare logic-flood-frame" style={{ maxWidth: 300 }}>
+          <Board grid={replay.grid} fluid />
+        </div>
+      </div>
+      <p className="logic-reveal-text text-center font-mono text-muted-foreground">Par {puzzle.par} — you used {replay.moves}</p>
       <p
-        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
+        className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
          {replay.solved
-           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C")
+           ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C", scoreParts)
           : `${replay.region} / ${FLOOD_CELLS} cells`}
       </p>
     </div>

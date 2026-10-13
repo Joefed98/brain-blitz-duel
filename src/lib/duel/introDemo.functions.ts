@@ -8,7 +8,7 @@ import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
-import { CLASH_REV } from "@/lib/arcade/colourClash";
+import { clashPlays3 } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -57,7 +57,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Old Ball Track queues and release timings cannot replay the current run.
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
-    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV) return null;
+    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
     // Four-step bomb demos cannot replay the six-step example.
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 2) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.

@@ -2,7 +2,9 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { fireChainFinish } from "@/components/puzzles/chainFx";
 import { hapticTick, pointerElementIndex } from "@/components/puzzles/GridDrag";
+import { registerFxPreview } from "@/components/puzzles/speedFx";
 import {
   chainBoardIndex,
   chainRules,
@@ -37,14 +39,55 @@ const NODE = 34;
 const BREAK_HOLD_MS = 1_000;
 const CYCLE_HIGHLIGHT_MS = 650;
 
-/** Glossy charm: same shape and colour as before, filling more of its slot, with a soft highlight. */
+/**
+ * Shared gradients for the charms and links (Polish, 13 Oct 2026; display only). Rendered
+ * once per screen; every charm and link references them by id.
+ */
+function ChainDefs() {
+  return (
+    <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
+      <defs>
+        <radialGradient id="chainz-enamel" cx="0.36" cy="0.3" r="0.8">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.32" />
+          <stop offset="0.42" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.78" stopColor="#000" stopOpacity="0.12" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.4" />
+        </radialGradient>
+        <linearGradient id="chainz-bezel" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stopColor="#FBFCFD" />
+          <stop offset="0.45" stopColor="#9AA2AC" />
+          <stop offset="0.7" stopColor="#5E6670" />
+          <stop offset="1" stopColor="#D9DEE4" />
+        </linearGradient>
+        <linearGradient id="chainz-link-metal" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="12">
+          <stop offset="0" stopColor="#FFF1C2" />
+          <stop offset="0.35" stopColor="var(--chain-link)" />
+          <stop offset="0.72" stopColor="var(--chain-link-dark)" />
+          <stop offset="1" stopColor="#FFD978" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/**
+ * Enamel charm in a silver bezel: same shape, colour and footprint as before, with
+ * depth shading (needs <ChainDefs /> on the screen; without it only the shading drops).
+ */
 function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
   const inner = Math.round(size * 0.74);
+  const bezel = { fill: "none", stroke: "url(#chainz-bezel)", strokeWidth: 1.3, strokeLinejoin: "round" as const };
   return (
     <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden="true" className="chain-charm" style={colour ? { color: colour } : undefined}>
       {shape === "circle" && <circle cx="12" cy="12" r="10" fill="currentColor" />}
       {shape === "square" && <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />}
       {shape === "triangle" && <path d="M12 2 22.4 20.6a1 1 0 0 1-.9 1.4H2.5a1 1 0 0 1-.9-1.4Z" fill="currentColor" />}
+      {shape === "circle" && <circle cx="12" cy="12" r="10" fill="url(#chainz-enamel)" />}
+      {shape === "square" && <rect x="2" y="2" width="20" height="20" rx="4" fill="url(#chainz-enamel)" />}
+      {shape === "triangle" && <path d="M12 2 22.4 20.6a1 1 0 0 1-.9 1.4H2.5a1 1 0 0 1-.9-1.4Z" fill="url(#chainz-enamel)" />}
+      {shape === "circle" && <circle cx="12" cy="12" r="10" {...bezel} />}
+      {shape === "square" && <rect x="2" y="2" width="20" height="20" rx="4" {...bezel} />}
+      {shape === "triangle" && <path d="M12 2 22.4 20.6a1 1 0 0 1-.9 1.4H2.5a1 1 0 0 1-.9-1.4Z" {...bezel} />}
       {shape === "circle" && <ellipse cx="9" cy="8" rx="4.2" ry="2.6" fill="var(--charm-shine)" transform="rotate(-25 9 8)" />}
       {shape === "square" && <rect x="5" y="4.5" width="9" height="4" rx="2" fill="var(--charm-shine)" />}
       {shape === "triangle" && <ellipse cx="10.5" cy="12" rx="2" ry="3.4" fill="var(--charm-shine)" transform="rotate(28 10.5 12)" />}
@@ -56,11 +99,11 @@ function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; c
 function ChainLinks({ links, total, broken }: { links: number; total: number; broken: boolean }) {
   const w = 10;
   return (
-    <svg key={broken ? "broken" : "ok"} className={`h-3.5 w-full shrink-0 ${broken ? "chain-strain" : ""}`} viewBox={`0 0 ${total * w + 4} 14`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <svg key={broken ? "broken" : "ok"} data-chain-links="" className={`chain-links h-3.5 w-full shrink-0 ${broken ? "chain-strain" : ""}`} viewBox={`0 0 ${total * w + 4} 14`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       {Array.from({ length: total }, (_, i) => {
         const made = i < links;
         const x = 2 + i * w;
-        const stroke = broken && made ? "var(--color-warn)" : made ? "var(--chain-link)" : "var(--color-border)";
+        const stroke = broken && made ? "var(--color-warn)" : made ? "url(#chainz-link-metal)" : "var(--color-border)";
         return i % 2 === 0
           ? <rect key={i} x={x} y={3} width={w + 3} height={8} rx={4} fill="none" stroke={stroke} strokeWidth={made ? 2 : 1.2} />
           : <line key={i} x1={x + 1} y1={7} x2={x + w + 2} y2={7} stroke={stroke} strokeWidth={made ? 2.4 : 1.2} strokeLinecap="round" />;
@@ -123,6 +166,7 @@ const EXAMPLE_CYCLE: ChainRuleItem[] = [
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
+      <ChainDefs />
       <RuleStrip cycle={EXAMPLE_CYCLE} step={1} compact />
       <div className="relative h-20 w-full max-w-[240px]">
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -161,22 +205,19 @@ function ChainLine({ nodes, path, broken }: { nodes: ChainNode[]; path: number[]
       style={broken ? { transform: "translateY(60%) rotate(6deg)", opacity: 0, transitionDelay: "250ms" } : undefined}
       aria-hidden="true"
     >
-      {points.slice(1).map((to, index) => {
-        const from = points[index]!;
-        return (
-          <line
-            key={index}
-            x1={`${from.x}%`}
-            y1={`${from.y}%`}
-            x2={`${to.x}%`}
-            y2={`${to.y}%`}
-            stroke={colour}
-            strokeWidth={4}
-            strokeLinecap="round"
-            style={{ filter: `drop-shadow(0 0 4px ${colour})`, transition: "stroke 120ms" }}
-          />
-        );
-      })}
+      <g style={{ filter: `drop-shadow(0 0 4px ${colour})` }}>
+        {points.slice(1).map((to, index) => {
+          const from = points[index]!;
+          const line = { x1: `${from.x}%`, y1: `${from.y}%`, x2: `${to.x}%`, y2: `${to.y}%`, strokeLinecap: "round" as const };
+          return (
+            <g key={index}>
+              <line {...line} stroke={broken ? colour : "var(--chain-link-dark)"} strokeWidth={6} style={{ transition: "stroke 120ms" }} />
+              <line {...line} stroke={colour} strokeWidth={4} strokeDasharray="7 4" style={{ transition: "stroke 120ms" }} />
+              {!broken && <line {...line} stroke="#FFF1C2" strokeOpacity={0.75} strokeWidth={1.2} strokeDasharray="5 6" strokeDashoffset={-1} />}
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }
@@ -190,6 +231,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const [faster, setFaster] = useState(false);
   const submitted = useRef(false);
   const warned = useRef("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  /** Latest board path (arena %) and length, for the dev effect preview only. */
+  const previewRef = useRef<{ path: { x: number; y: number }[]; length: number }>({ path: [], length: 0 });
+  useEffect(() => registerFxPreview("chain", () => fireChainFinish(rootRef.current, previewRef.current.path, previewRef.current.length)), []);
 
   const replay = data ? replayChain(data, { taps, reason: ended ?? "timer" }) : null;
   const encoded = encodeChainAnswer({ taps, reason: ended ?? "timer" });
@@ -253,6 +298,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const windowMs = chainWindowMs(links + 1, data);
   const left = replay.lastT === null ? 1 : (windowMs - (clock - replay.lastT)) / windowMs;
   const tier = links >= (rules.fasterAt[1] ?? Infinity) ? 2 : links >= (rules.fasterAt[0] ?? Infinity) ? 1 : 0;
+  previewRef.current = {
+    path: (path.length >= 2 ? path.map((id) => board[id]) : board.slice(0, CHAIN_BLOCK)).filter((n): n is ChainNode => Boolean(n)),
+    length: rules.length,
+  };
 
   const tap = (nodeId: number) => {
     if (over) return;
@@ -275,7 +324,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
     }
-    if (made >= rules.length) finish("complete", nextTaps);
+    if (made >= rules.length) {
+      // Finish effect fires synchronously, then the chain is submitted exactly as before.
+      const finalPath = [...path, nodeId].map((id) => board[id]).filter((n): n is ChainNode => Boolean(n));
+      fireChainFinish(rootRef.current, finalPath, rules.length);
+      finish("complete", nextTaps);
+    }
   };
 
    const cycle = chainCycleAt(data, links);
@@ -285,10 +339,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
 
   return (
     <div
+      ref={rootRef}
+      data-polish="chain"
       data-stage-column="1.5" className={`relative flex min-h-0 flex-1 flex-col gap-1.5 rounded-xl pt-3 transition-colors duration-500 ${
         tier === 2 ? "bg-warn/10" : tier === 1 ? "bg-primary/10" : ""
       }`}
     >
+      <ChainDefs />
       <RuleStrip cycle={cycle} step={chainRuleStep(data, links)} highlight={cycleHighlight} />
       <p className="shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
         <span key={links} className={`inline-block ${links > 0 ? "animate-scale-in" : ""} text-primary`}>
@@ -370,10 +427,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
           ? `Broken at link ${replay.links + 1} - too slow`
           : "Time ran out";
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
+    <div data-polish-reveal="chain" className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2">
+      <ChainDefs />
       <p className="font-mono text-3xl font-bold">
         {replay.links} / {chainRules(puzzle).length}
       </p>
+      <div className="w-full max-w-[320px]">
+        <ChainLinks links={replay.links} total={chainRules(puzzle).length} broken={replay.reason === "wrong" || replay.reason === "momentum"} />
+      </div>
       <p className="whitespace-normal break-words text-center font-mono text-sm">
         {ending}
         {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}

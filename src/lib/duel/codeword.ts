@@ -7,6 +7,7 @@
  * given letter cannot be put on another number.
  */
 
+import { partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { standardComplete } from "./scoring";
 
 export const CODEWORD_REV = 1;
@@ -77,6 +78,8 @@ export interface CwTally {
   /** Hidden (not given) numbers carrying their right letter. */
   correct: number;
   hidden: number;
+  /** Hidden numbers carrying a wrong letter. */
+  wrong?: number;
   /** Every number filled. */
   complete: boolean;
   solved: boolean;
@@ -90,23 +93,31 @@ export function codewordTally(
   const given = new Set(givens.map((g) => g.n));
   let correct = 0;
   let hidden = 0;
+  let wrong = 0;
   for (let i = 0; i < solution.length; i++) {
     if (given.has(i + 1)) continue;
     hidden++;
     if (letters[i] === solution[i]) correct++;
+    else if (letters[i]) wrong++;
   }
   return {
     correct,
     hidden,
+    wrong,
     complete: letters.every((l) => l !== ""),
     solved: solution.length > 0 && letters.every((l, i) => l === solution[i]),
   };
 }
 
+/** Cryptogrid rev 1: cost of each wrong letter left on a number (unfinished credit only). */
+export const CODEWORD_REV1_WRONG_PENALTY = 5;
+
 /** Solved: 130 + SPEED(20) (Shape A). Otherwise round(110 × correct ÷ hidden); wrong letters cost nothing. */
 export function scoreCodeword(tally: CwTally, msRemaining: number, timeLimitMs: number): number {
   if (tally.solved) return standardComplete(msRemaining, timeLimitMs);
   if (tally.hidden <= 0) return 0;
+  // Rev 1: every number but one right is the 110 top; each wrong letter still standing costs 5 (as in Mosaic).
+  if (scoreRev1()) return partialParts((110 * tally.correct) / Math.max(1, tally.hidden - 1) - CODEWORD_REV1_WRONG_PENALTY * (tally.wrong ?? 0));
   return Math.min(110, Math.round((110 * tally.correct) / tally.hidden));
 }
 

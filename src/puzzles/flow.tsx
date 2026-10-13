@@ -15,6 +15,9 @@ import {
 import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
+import { FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
+import { useSolveMoment } from "@/lib/fx/patternFx";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /**
@@ -31,6 +34,8 @@ function FlowBoard({
   cells = FLOW_CELLS,
   onCell,
   onRelease,
+  live = false,
+  solved = false,
 }: {
   pairs: FlowPair[];
   paths: number[][];
@@ -39,6 +44,10 @@ function FlowBoard({
   cells?: number;
   onCell?: ((cell: number) => void) | undefined;
   onRelease?: (() => void) | undefined;
+  /** The playable stage board (join pulses and cues); intro and reveal boards are still. */
+  live?: boolean;
+  /** Every pair joined and every cell filled (starts the completion effect). */
+  solved?: boolean;
 }) {
   const rows = Math.ceil(cells / cols) || cols;
   const total = cols * rows;
@@ -52,10 +61,20 @@ function FlowBoard({
     for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
   });
 
-  const stroke = metrics ? Math.max(3, metrics.cellW * 0.68) : 0;
+  const stroke = metrics ? Math.max(3, metrics.cellW * 0.4) : 0;
+  // Presentation only: which pairs are joined end to end, for the tube caps,
+  // the join pulse and the completion effect.
+  const joined = pairs.map((pair, index) => {
+    const path = paths[index] ?? [];
+    const first = path[0];
+    const last = path[path.length - 1];
+    return path.length > 1 && ((first === pair.a && last === pair.b) || (first === pair.b && last === pair.a));
+  });
+  const pulse = useFlowJoins(joined, live, solved);
+  const solveFx = useSolveMoment(live && solved, "flow.solve");
 
   return (
-    <div className="relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none">
+    <div className={`flow-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full select-none ${solveFx ? "flow-board-solved" : ""}`}>
       <div
         ref={pointer.ref}
         className="puzzle-board grid h-full w-full touch-none"
@@ -77,7 +96,7 @@ function FlowBoard({
             return (
               <div
                 key={cell}
-                className="rounded-[3px] border border-foreground/30 bg-[repeating-linear-gradient(45deg,var(--background),var(--background)_3px,var(--muted)_3px,var(--muted)_6px)]"
+                className="flow-wall rounded-[3px] border border-foreground/30 bg-[repeating-linear-gradient(45deg,var(--background),var(--background)_3px,var(--muted)_3px,var(--muted)_6px)]"
                 aria-label="Wall"
               />
             );
@@ -92,13 +111,14 @@ function FlowBoard({
                   and it sits above the path layer. */}
               {dot && (
                 <span
-                  className="relative block rounded-full"
+                  className={`flow-dot relative block rounded-full ${joined[pairs.indexOf(dot)] ? "flow-dot-joined" : ""}`}
                   style={{
                     width: "64%",
                     height: "64%",
                     zIndex: 2,
                     backgroundColor: GLYPH_COLOURS[dot.colour],
-                    boxShadow: "0 0 0 2px var(--background), 0 0 0 3px color-mix(in oklab, var(--foreground) 25%, transparent)",
+                    ["--dot" as string]: GLYPH_COLOURS[dot.colour],
+                    ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
                   }}
                 />
               )}
@@ -114,26 +134,19 @@ function FlowBoard({
           style={{ zIndex: 1 }}
           aria-hidden="true"
         >
-          {paths.map((path, index) => {
-            const colour = pairs[index]?.colour;
-            if (!colour || path.length < 2) return null;
-            return (
-              <polyline
-                key={index}
-                points={path
-                  .map((cell) => {
-                    const at = gridCellCentre(metrics, cell, cols);
-                    return `${at.x},${at.y}`;
-                  })
-                  .join(" ")}
-                fill="none"
-                stroke={GLYPH_COLOURS[colour]}
-                strokeWidth={stroke}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            );
-          })}
+          <FlowTubes
+            tubes={paths.map((path, index) => {
+              const colour = pairs[index]?.colour;
+              return {
+                colour: colour ? GLYPH_COLOURS[colour] : "#888888",
+                points: colour ? path.map((cell) => gridCellCentre(metrics, cell, cols)) : [],
+                joined: joined[index] ?? false,
+              };
+            })}
+            width={stroke}
+            pulse={pulse}
+            solved={solveFx}
+          />
         </svg>
       )}
     </div>
@@ -291,6 +304,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "flow" }: P
           walls={walls}
           onCell={locked ? undefined : touch}
           onRelease={release}
+          live
+          solved={verdict.solved}
         />
       </div>
     </div>
@@ -313,15 +328,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
-      <div className="flex items-start justify-center gap-3">
-        <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
+    <div className="flow-reveal flex w-full min-h-0 flex-col items-center gap-3">
+      <div className="flow-reveal-boards flex min-h-0 w-full flex-1 items-center justify-center gap-3">
+        <div className="flow-reveal-board flex flex-col items-center gap-1">
           <FlowBoard pairs={puzzle.pairs} paths={solution} walls={puzzle.walls ?? []} />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             solved
           </span>
         </div>
-        <div className="flex flex-col items-center gap-1" style={{ width: 138 }}>
+        <div className="flow-reveal-board flex flex-col items-center gap-1">
           <FlowBoard pairs={puzzle.pairs} paths={mine} walls={puzzle.walls ?? []} />
           <span className="font-mono text-base uppercase tracking-widest text-muted-foreground">
             yours
@@ -341,7 +356,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
 export const flowPuzzle: PuzzleDefinition = {
   key: "flow",
   name: gameDisplayName("flow"),
-  category: "logic",
+  category: "pattern",
   timeLimitMs: FLOW_TIME_MS,
   revealMs: 8_000,
   generate: () => ({ type: "flow", pairs: [] }) satisfies FlowPuzzleData,

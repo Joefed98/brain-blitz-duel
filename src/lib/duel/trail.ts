@@ -1,3 +1,4 @@
+import { finishParts, partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 /**
  * Trail: one king-move path through every cell of a 6×6 grid, numbered 1–36.
@@ -139,7 +140,12 @@ export function trComplete(givens: readonly (number | null)[], path: readonly nu
   return true;
 }
 
-export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, playerCorrect: number): number {
+export function scoreTrail(complete: boolean, msRemaining: number, timeLimitMs: number, playerCorrect: number, toPlace = 0, playerWrong = 0): number {
+  if (scoreRev1()) {
+    // Rev 1: 120 + PAR(30); otherwise 110 × (tiles right − tiles wrong) ÷ (tiles to place − 1), so a random walk earns about 0.
+    if (complete) return finishParts(timeLimitMs > 0 ? speedBonusCurve(30, msRemaining, timeLimitMs) : 0);
+    return partialParts((110 * (Math.max(0, playerCorrect) - Math.max(0, playerWrong))) / Math.max(1, toPlace - 1));
+  }
   if (complete) return Math.min(150, 130 + (timeLimitMs > 0 ? speedBonusCurve(20, msRemaining, timeLimitMs) : 0));
   return Math.min(130, 5 * Math.max(0, playerCorrect));
 }
