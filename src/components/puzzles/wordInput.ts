@@ -8,10 +8,14 @@ export const ROUNDABOUT_PRESENTATION = "oct10-roundabout-balance";
 /** Polish B rescaled/centred these boards; older coordinate demos are rejected. */
 export const POLISH_B_DEMOS = new Set(["maze", "pairmatch", "unblock", "blockparty", "gravity", "tiles", "laser", "lightsout", "sudoku", "flow", "safe", "bomb", "nonogram", "shikaku", "lightup"]);
 export const POLISH_B_PRESENTATION = "oct10-polish-b";
+/** Number polish (13 Oct 2026) moved these boards and controls; older coordinate demos are rejected. */
+export const NUMBER_POLISH_DEMOS = new Set(["target", "equation", "balance", "numpyramid", "trail", "measure", "checkout", "numline"]);
+export const NUMBER_POLISH_PRESENTATION = "oct13-number-polish";
 export function puzzlePresentation(type: string): string {
+  if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, ...POLISH_B_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...NUMBER_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
