@@ -1,6 +1,6 @@
 import { successHud, successFrame } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { HOVER_FX } from "./arcadeFxGames.renderer";
+import { hoverFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from './art.renderer';
 /** Hover in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
@@ -17,8 +17,9 @@ import {
   HOVER_PILLAR_W,
   HOVER_SCROLL_MAX,
   HOVER_SCROLL_START,
-  HOVER_WORLD_H,
+  HOVER_TALL_H,
   HOVER_WORLD_W,
+  hoverWorldH,
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
@@ -47,19 +48,20 @@ const barrierCache = new Map<string, ArtCanvas>();
 function barrierSprite(w: number, colour: string): ArtCanvas | null {
   const cached = barrierCache.get(colour);
   if (cached) return cached;
-  const layer = artCanvas(w * 2, HOVER_WORLD_H * 2);
+  const RH = HOVER_TALL_H;
+  const layer = artCanvas(w * 2, RH * 2);
   const c = layer && artContext(layer);
   if (!layer || !c) return null;
   c.scale(2, 2);
-  c.fillStyle = colour; c.fillRect(0, 0, w, HOVER_WORLD_H);
-  c.fillStyle = "rgba(0,0,0,0.72)"; c.fillRect(0, 0, w, HOVER_WORLD_H);
+  c.fillStyle = colour; c.fillRect(0, 0, w, RH);
+  c.fillStyle = "rgba(0,0,0,0.72)"; c.fillRect(0, 0, w, RH);
   // One baked glow pass, clipped by the raster's exact rectangular footprint.
   c.shadowColor = colour; c.shadowBlur = 3;
-  for (let y = 0; y < HOVER_WORLD_H; y += 12) {
+  for (let y = 0; y < RH; y += 12) {
     c.fillStyle = colour; c.fillRect(0, y, w, 11);
   }
   c.shadowBlur = 0;
-  for (let y = 0; y < HOVER_WORLD_H; y += 12) {
+  for (let y = 0; y < RH; y += 12) {
     c.fillStyle = Math.floor(y / 12) % 2 ? "rgba(0,0,0,0.38)" : "rgba(0,0,0,0.22)"; c.fillRect(0, y, w, 11);
     c.fillStyle = "rgba(255,255,255,0.55)"; c.fillRect(2, y + 2, w - 4, 1);
     c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(w / 2, y + 3, 1, 7);
@@ -69,13 +71,43 @@ function barrierSprite(w: number, colour: string): ArtCanvas | null {
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
-  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => arcadeFx(c, HOVER_FX, state, () => drawWorld(c, state)));
+  retroScreen(ctx, size, HOVER_WORLD_W, hoverWorldH(state), "fit", (c) => arcadeFx(c, hoverFxFor(state), state, () => drawWorld(c, state)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
-  retroScreen(ctx, size, HOVER_WORLD_W, HOVER_WORLD_H, "fit", (c) => arcadeFx(c, HOVER_FX, state, () => drawWorld(c, state, false)));
+  retroScreen(ctx, size, HOVER_WORLD_W, hoverWorldH(state), "fit", (c) => arcadeFx(c, hoverFxFor(state), state, () => drawWorld(c, state, false)));
+}
+
+/**
+ * A faint star field behind the course (display only, every revision): small,
+ * dim points drifting left at a twentieth of the course's scroll, keyed to the
+ * sim's distance so every phone and the reveal draw the same sky. Kept well
+ * under the barriers' and saucer's brightness.
+ */
+const STAR_COUNT = 46;
+const STARS = (() => {
+  let v = 0x5eed_4a11 | 0;
+  const next = () => {
+    v = (Math.imul(v, 1103515245) + 12345) | 0;
+    return ((v >>> 8) % 10000) / 10000;
+  };
+  return Array.from({ length: STAR_COUNT }, (_, i) => ({ x: next() * HOVER_WORLD_W, y: next(), big: i % 9 === 0, a: 0.16 + next() * 0.16 }));
+})();
+function drawStarField(ctx: CanvasRenderingContext2D, state: HoverState, H: number): void {
+  const drift = (state.distance / FP) * 0.05;
+  ctx.save();
+  ctx.fillStyle = "#CFC8FF";
+  for (const star of STARS) {
+    const x = (((star.x - drift) % HOVER_WORLD_W) + HOVER_WORLD_W) % HOVER_WORLD_W;
+    ctx.globalAlpha = star.a;
+    const s = star.big ? 2 : 1;
+    ctx.fillRect(Math.round(x), Math.round(star.y * (H - 2)), s, s);
+  }
+  ctx.restore();
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator = true): void {
+  const HOVER_WORLD_H = hoverWorldH(state);
+  drawStarField(ctx, state, HOVER_WORLD_H);
   const bloom = retroBloom();
   const discLeft = HOVER_DISC_X - HOVER_DISC_R;
   const width = px(HOVER_PILLAR_W);

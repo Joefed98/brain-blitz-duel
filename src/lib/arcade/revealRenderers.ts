@@ -17,7 +17,9 @@ import { sliceGame } from "./slice";
 import { sliceArtGame } from "./slice.renderer";
 import { bubbleArtGame as bubbleGame } from "./bubble.renderer";
 import { beatArtGame as beatGame } from "./beat.renderer";
-import { SNAKE_WORLD_H, SNAKE_WORLD_W } from "./snake";
+import { SNAKE_WORLD_H, SNAKE_WORLD_W, snakeWorldHForRev } from "./snake";
+import { hoverWorldHFor } from "./hover";
+import { skylineWorldHFor } from "./skyline";
 import { snakeArtGame as snakeGame } from "./snake.renderer";
 import { crossArtGame as crossGame, crossRevealGame } from "./cross.renderer";
 import { WAV_SHIP_Y } from "./wavefront";
@@ -34,7 +36,7 @@ import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "./orbit
 import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initTunedFrom, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
-import { snipCamera, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
+import { snipCamera, snipWorldH, snipWorldHFor, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
 import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { BT_H, BT_W, type BtState } from "./ballTrack";
@@ -81,8 +83,15 @@ export interface ArcadeRevealRenderer {
   accent: string;
   worldW: number;
   worldH: number;
-  /** Draws the final tick into a worldW × worldH context. */
+  /** Tuning E: the world height of this stored round when it differs by revision (taller worlds); else worldH. */
+  heightFor?: (puzzle: PuzzleData) => number;
+  /** Draws the final tick into a worldW × revealWorldH(renderer, puzzle) context. */
   drawFinal: (ctx: CanvasRenderingContext2D, puzzle: PuzzleData, answer: string, presentation?: "reveal" | "demo") => { x: number; y: number } | null;
+}
+
+/** The world height a stored round's reveal and demo draw at (Tuning E's taller worlds by revision). */
+export function revealWorldH(renderer: ArcadeRevealRenderer, puzzle: PuzzleData | null | undefined): number {
+  return puzzle && renderer.heightFor ? renderer.heightFor(puzzle) : renderer.worldH;
 }
 
 const GOLD = "#F5B82E";
@@ -101,14 +110,16 @@ function simple<S>(
   replay: (puzzle: PuzzleData, answer: string) => { state: S },
   focus?: (state: S) => { x: number; y: number } | null,
   revealGame: Drawable<S> = game,
+  heightFor?: (puzzle: PuzzleData) => number,
 ): ArcadeRevealRenderer {
   return {
     accent,
     worldW,
     worldH,
+    ...(heightFor ? { heightFor } : {}),
     drawFinal: (ctx, puzzle, answer, presentation = "reveal") => {
       const { state } = replay(puzzle, answer);
-      (presentation === "demo" ? game : revealGame).draw(ctx, state, { width: worldW, height: worldH });
+      (presentation === "demo" ? game : revealGame).draw(ctx, state, { width: worldW, height: heightFor ? heightFor(puzzle) : worldH });
       return focus ? focus(state) : null;
     },
   };
@@ -117,8 +128,8 @@ function simple<S>(
 const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle.seed) : 1);
 
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
-  hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame),
-  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame),
+  hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
+  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
@@ -138,7 +149,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined)),
-  snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined)),
+  snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),
   cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame),
   wavefront: simple(
     "#A78BFA",
@@ -194,10 +205,11 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,
     worldH: SNIP_H,
+    heightFor: (puzzle) => snipWorldHFor(puzzle.type === "snip" ? puzzle.snipRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       const state = replaySnipRun(seedOf(puzzle), answer, puzzle.type === "snip" ? puzzle.snipRev : undefined).state as SnipState;
       const camera = snipCamera(state, state.sx / FP - SNIP_CONFIG.viewW / 2, 1);
-      drawSnip(ctx, state, { width: SNIP_CONFIG.viewW, height: SNIP_H }, undefined, camera);
+      drawSnip(ctx, state, { width: SNIP_CONFIG.viewW, height: snipWorldH(state) }, undefined, camera);
       return null;
     },
   },

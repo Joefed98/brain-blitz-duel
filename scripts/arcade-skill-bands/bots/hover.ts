@@ -26,7 +26,7 @@ import {
   HOVER_SCROLL_START,
   HOVER_STAR_R,
   HOVER_TERMINAL,
-  HOVER_WORLD_BOTTOM,
+  hoverBottom,
   hoverGapTop,
   hoverScroll,
   hoverStarY,
@@ -62,7 +62,8 @@ const RISE = (() => {
   return out;
 })();
 const ARC = -Math.min(...RISE);
-const FLOOR = HOVER_WORLD_BOTTOM - HOVER_DISC_R - 6 * FP;
+/** The floor margin line; set per run from the world being played (Tuning E's taller world or 560). */
+let FLOOR = 0;
 const CEIL = HOVER_DISC_R + 6 * FP;
 
 interface Target {
@@ -92,6 +93,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let pending: number | null = null;
   let lastTap = -100;
   const init = game.init(seed) as HoverState;
+  FLOOR = hoverBottom(init) - HOVER_DISC_R - 6 * FP;
 
   const target = (s: HoverState, seen: HoverState, t: number): Target | null => {
     let idx = -1;

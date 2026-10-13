@@ -131,6 +131,18 @@ export interface HoverState extends BandFields {
   stars?: number;
   starsTaken?: number[];
   totalStars?: number;
+  /** hoverRev 5 only (Tuning E): the taller world's height in px (HOVER_TALL_H). Absent = HOVER_WORLD_H. */
+  worldH?: number;
+}
+
+/** The world height a state plays in (px): the taller Tuning E world, or the original 560. */
+export function hoverWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? HOVER_WORLD_H;
+}
+
+/** The floor a state's disc crashes into, fixed-point. */
+export function hoverBottom(state: { worldH?: number }): number {
+  return state.worldH ? state.worldH * 256 : HOVER_WORLD_BOTTOM;
 }
 
 /** Gap height in fixed-point units for the nth pillar. */
@@ -340,7 +352,7 @@ function stepRev2(state: HoverState, tapped: boolean): HoverState {
   while (gates < state.pillars.length && distance > passedAt(state.pillars[gates]!)) gates += 1;
 
   const ceiling = y - HOVER_DISC_R <= 0;
-  const floor = y + HOVER_DISC_R >= HOVER_WORLD_BOTTOM;
+  const floor = y + HOVER_DISC_R >= hoverBottom(state);
   const crashed = ceiling || floor || state.pillars.some((pillar) => hitsRev2(pillar, distance, y, tick));
   // A star counts when the disc touches it (and the disc did not crash this tick).
   let stars = state.stars ?? 0;
@@ -433,8 +445,9 @@ export function hoverCheckpoint(state: HoverState): HoverCheckpoint {
   let checksum = 0x811c9dc5;
   // hoverRev 2 folds its stars into the checksum; the encoded fields stay the same.
   const extra = state.rev === HOVER_REV ? [state.stars ?? 0, ...(state.starsTaken ?? [])] : [];
-  // hoverRev 4 (Tuning C) adds its marker last.
+  // hoverRev 4 (Tuning C) adds its marker last; hoverRev 5 (Tuning E) its world height after it.
   if (state.tunec) extra.push(state.tunec);
+  if (state.worldH) extra.push(state.worldH);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -471,9 +484,10 @@ export const HOVER_CRASH_COLOUR = "#FF4D4D";
 
 /** Draws purely from the state — no animation lives outside the sim. */
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
-  const scale = Math.min(size.width / HOVER_WORLD_W, size.height / HOVER_WORLD_H);
+  const H = hoverWorldH(state);
+  const scale = Math.min(size.width / HOVER_WORLD_W, size.height / H);
   const offsetX = (size.width - HOVER_WORLD_W * scale) / 2;
-  const offsetY = (size.height - HOVER_WORLD_H * scale) / 2;
+  const offsetY = (size.height - H * scale) / 2;
 
   ctx.save();
   ctx.fillStyle = HOVER_BG;
@@ -493,8 +507,8 @@ function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize
       const top2 = px(pillar.gap2Top);
       const gap2 = px(pillar.gap2H ?? 0);
       ctx.fillRect(left, top + gap, width, Math.max(0, top2 - top - gap));
-      ctx.fillRect(left, top2 + gap2, width, Math.max(0, HOVER_WORLD_H - top2 - gap2));
-    } else ctx.fillRect(left, top + gap, width, Math.max(0, HOVER_WORLD_H - top - gap));
+      ctx.fillRect(left, top2 + gap2, width, Math.max(0, H - top2 - gap2));
+    } else ctx.fillRect(left, top + gap, width, Math.max(0, H - top - gap));
   }
 
   ctx.beginPath();
@@ -511,7 +525,7 @@ function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize
 
   if (state.crashed) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
-    ctx.fillRect(0, 0, HOVER_WORLD_W, HOVER_WORLD_H);
+    ctx.fillRect(0, 0, HOVER_WORLD_W, H);
   }
 
   ctx.restore();
@@ -532,6 +546,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_TALL) return hoverTallGame;
   if (rev === HOVER_REV_TUNEC) return hoverTunecGame;
   if (rev === HOVER_REV_BAND) return hoverBandGame;
   return rev === HOVER_REV ? hoverRev2Game : hoverGame;
@@ -546,7 +561,7 @@ export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70
 export function hoverBandParts(state: HoverState): BandParts {
   const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
   const finished = hoverSurvived(state);
-  return { units, points: bandPoints(state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
+  return { units, points: bandPoints(state.worldH ? HOVER_V5_BAND_CURVE : state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: HoverState): number {
@@ -566,3 +581,64 @@ export const hoverBandGame: ArcadeGame<HoverState> = { ...hoverRev2Game, init: (
 export const HOVER_REV_TUNEC = 4;
 export const HOVER_V4_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 63, 90, 112, 122, 124, 140]);
 export const hoverTunecGame: ArcadeGame<HoverState> = { ...hoverBandGame, init: (seed) => ({ ...hoverBandGame.init(seed), tunec: 1 }) };
+
+/* ================= Tuning E (hoverRev 5, Oct 2026) ================= */
+
+/**
+ * hoverRev 5 (Tuning E): a taller world (390 × HOVER_TALL_H, the same for every
+ * player) so the arena fills a 390 × 844 phone down to the usual gap. The
+ * course is the hoverRev 4 course (same spacing, gap sizes, kinds, stars, slides
+ * and scroll ramp), with the whole course drifting slowly up and down over the
+ * extra height: every barrier moves down by hoverDrift(index), a seeded integer
+ * triangle wave over the barrier index (0 … the extra height, a full cycle every
+ * HOVER_DRIFT_PERIOD barriers). Both gaps of a barrier move together, so every
+ * gap keeps its size, every star its place in its gap, every two-gap barrier its
+ * wall, and each climb from one barrier to the next changes by at most
+ * HOVER_DRIFT_STEP px: the flying is as hard as before, spread over the whole
+ * height. (Stretching the course with the world made some late drops longer
+ * than the disc can fall between barriers at top speed.) The disc starts at
+ * its old height plus the first barrier's drift. Scored on HOVER_V5_BAND_CURVE.
+ * States add `worldH`, folded into the checkpoint checksum last.
+ */
+export const HOVER_REV_TALL = 5;
+export const HOVER_TALL_H = 735;
+/**
+ * The flying is unchanged, so the Tuning C curve stands (re-measured with
+ * scripts/arcade-skill-bands.ts --rev=e), but for its 123-unit knot at 125
+ * (was 124): with it one barrier short of a full run is within 12 of finishing,
+ * as the band rules ask (Tuning C's curve missed by a tenth of a point).
+ */
+export const HOVER_V5_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 63, 90, 112, 122, 125, 140]);
+/** Barriers per full drift cycle (down and back up). */
+export const HOVER_DRIFT_PERIOD = 16;
+/** The most the drift changes between neighbouring barriers, px. */
+export const HOVER_DRIFT_STEP = Math.ceil((HOVER_TALL_H - HOVER_WORLD_H) / (HOVER_DRIFT_PERIOD >> 1));
+
+/** The drift (fixed-point, 0 … the extra height) of barrier `index` on a seed's course. */
+export function hoverDrift(seed: number, index: number, bottom: number): number {
+  const extra = bottom - HOVER_WORLD_BOTTOM;
+  const phase = rngBelow((seed ^ 0x4e0f_d21a) | 0, HOVER_DRIFT_PERIOD).value;
+  const half = HOVER_DRIFT_PERIOD >> 1;
+  const p = (index + phase) % HOVER_DRIFT_PERIOD;
+  const tri = p < half ? p : HOVER_DRIFT_PERIOD - p;
+  return Math.trunc((extra * tri) / half);
+}
+
+function initTall(seed: number): HoverState {
+  const base = hoverTunecGame.init(seed);
+  const bottom = HOVER_TALL_H * 256;
+  const pillars = base.pillars.map((pillar, index) => {
+    const drift = hoverDrift(seed, index, bottom);
+    const out: HoverPillar = { ...pillar, gapTop: pillar.gapTop + drift };
+    if (pillar.gap2Top !== undefined) out.gap2Top = pillar.gap2Top + drift;
+    return out;
+  });
+  return { ...base, y: base.y + hoverDrift(seed, 0, bottom), pillars, worldH: HOVER_TALL_H };
+}
+
+export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: initTall };
+
+/** The world height (px) a stored round's hoverRev plays in. */
+export function hoverWorldHFor(rev?: number | null): number {
+  return rev === HOVER_REV_TALL ? HOVER_TALL_H : HOVER_WORLD_H;
+}

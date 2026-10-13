@@ -114,11 +114,11 @@ import { MATCHUP_REV_BAND, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SNIP_REV_BAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_BAND } from "@/lib/arcade/skyline";
-import { HOVER_REV_BAND, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
+import { SNIP_REV_BAND, SNIP_REV_TALL } from "@/lib/arcade/snip";
+import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
+import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TUNED } from "@/lib/arcade/breaker";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
@@ -526,6 +526,11 @@ const GAMES: Game[] = [
   { key: "wavefront/tunec", game: wavefrontGameFor(WAV_REV_TUNEC), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_TUNEC) },
   { key: "tilt/tunec", game: tiltGameFor(TILT_REV_TUNEC), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_TUNEC) },
   { key: "slice/tunec", game: sliceGameFor(SLICE_REV_TUNEC), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_TUNEC) },
+  // Tuning E (Oct 2026): the taller worlds' revisions.
+  { key: "hover/tall", game: hoverGameFor(HOVER_REV_TALL), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_TALL) },
+  { key: "skyline/tall", game: skylineGameFor(SKYLINE_REV_TALL), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV_TALL) },
+  { key: "snake/tall", game: snakeGameFor(SNAKE_REV_TALL), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_TALL) },
+  { key: "snip/tall", game: snipGameFor(SNIP_REV_TALL), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_TALL) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },

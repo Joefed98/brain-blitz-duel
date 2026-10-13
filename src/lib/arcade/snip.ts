@@ -51,54 +51,23 @@ export interface SnipTemplate {
   springs?: readonly (readonly [number, number, number, number])[];
   nests?: readonly (readonly [number, number, number])[];
   slide?: readonly [number, number];
+  /**
+   * Tuning E (snipRev 5 templates only): the level's height in px (SNIP_TALL_H);
+   * absent = SNIP_CONFIG.worldH. The apple is lost below this.
+   */
+  h?: number;
+  /**
+   * Tuning E picker's crooks (snipRev 5 templates only): x, y and vine length
+   * in px. A crook snags the apple only while it falls freely (no rope left)
+   * down past the crook's hook from above, within SNIP_HOOK_REACH px across;
+   * it then holds it on a new vine of the given length (a rope the player can
+   * cut). Each crook catches once per level.
+   */
+  hooks?: readonly (readonly [number, number, number])[];
 }
 
-export const SNIP_CONFIG = {
-  runSeconds: 60,
-  levelSeconds: 12,
-  levels: 10,
-  /** Ticks resting on a platform before the level fails. */
-  restTicks: 30,
-  /** Per-tick speed (1/256 px) below which the sweet counts as resting. */
-  restSpeed: 48,
-  worldW: 1260,
-  viewW: 360,
-  worldH: 560,
-  /** Nodes per rope including the pin; the sweet is one more segment. */
-  ropeNodes: 9,
-  /** Constraint passes per tick. */
-  iterations: 10,
-  /** 1/256 px per tick². */
-  gravity: 64,
-  /** Velocity kept per tick, out of 256. */
-  damping: 256,
-  /** Out of 256: share of a rope correction taken by the sweet (the rest by its neighbour node). */
-  sweetShare: 64,
-  sweetRadius: 12,
-  /** Sweet centre within this distance of the mouth centre = eaten. */
-  mouthRadius: 32,
-  /** Sweet centre within this distance of a star = collected. */
-  starReach: 24,
-  /** Bounce kept off walls and platforms, out of 256. */
-  bounce: 112,
-  /** Side walls reflect velocity without loss. Platforms keep their existing response. */
-  wallBounce: 256,
-  /** Sliding speed kept along a platform each contact tick, out of 256. */
-  friction: 236,
-  /** Seeded pin wobble per level, ± px. */
-  pinJitter: 10,
-  pointsPerSweet: 10,
-  pointsPerStar: 3,
-  /** Bonus for clearing all ten levels, scaled by time left. */
-  finishBonus: 20,
-  /** Orchard elements: plank bounce and roll kept (out of 256), spring kick (1/256 px a tick). */
-  plankBounce: 40,
-  plankRoll: 252,
-  springKick: 1_792,
-  springMax: 2_560,
-  maxScore: 150,
-  /** Ten levels in play order, easiest first. */
-  templates: [
+/** Every template as designed (x before the 360 px swing clearance is added). */
+const SNIP_SOURCES: readonly SnipTemplate[] = [
     { name: "Drop", sweet: [270, 170], pins: [[270, 60, 0]], platforms: [], mouth: [270, 480], stars: [[270, 260]] },
     { name: "Swing", sweet: [160, 150], pins: [[270, 50, 0]], platforms: [], mouth: [380, 490], stars: [[270, 200]] },
     { name: "Pair", sweet: [270, 180], pins: [[160, 60, 0], [380, 60, 0]], platforms: [], mouth: [390, 490], stars: [[340, 250]] },
@@ -164,7 +133,119 @@ export const SNIP_CONFIG = {
     { name: "Top shelf", sweet: [230, 200], pins: [[130, 100, 0], [330, 100, 0], [230, 330, 0]], platforms: [[330, 340, 430, 356]], springs: [[170, 440, 270, 460]], mouth: [340, 308], stars: [[281, 238]] },
     { name: "Last orchard", sweet: [270, 170], pins: [[130, 70, 0], [410, 70, 0], [200, 40, 0], [340, 40, 0]], platforms: [], planks: [[110, 330, 240, 370]], springs: [[300, 400, 380, 380]], nests: [[270, 300, 20]], slide: [70, 300], mouth: [285, 490], stars: [[222, 352]] },
     { name: "Wasp pendulum", sweet: [300, 120], pins: [[200, 40, 0], [400, 40, 0], [300, 250, 0]], platforms: [], nests: [[200, 300, 22], [400, 300, 22]], mouth: [310, 490], stars: [[239, 167]] },
-  ].map((template): SnipTemplate => ({
+];
+
+/** Tuning E (snipRev 5): the taller levels' height (px). */
+export const SNIP_TALL_H = 640;
+
+/** An orchard template stretched to the tall height: every height × 8/7 (sizes and radii kept). */
+function stretchTall(t: SnipTemplate): SnipTemplate {
+  const y = (v: number) => Math.round((v * SNIP_TALL_H) / 560);
+  const seg = (list: readonly (readonly [number, number, number, number])[]) => list.map(([x0, y0, x1, y1]) => [x0, y(y0), x1, y(y1)] as const);
+  const out: SnipTemplate = {
+    name: t.name,
+    sweet: [t.sweet[0], y(t.sweet[1])],
+    pins: t.pins.map(([x, py, slack]) => [x, y(py), slack] as const),
+    // A ledge keeps its 16 px thickness.
+    platforms: t.platforms.map(([x0, y0, x1, y1]) => [x0, y(y0), x1, y(y0) + (y1 - y0)] as const),
+    mouth: [t.mouth[0], y(t.mouth[1])],
+    stars: t.stars.map(([x, sy]) => [x, y(sy)] as const),
+    h: SNIP_TALL_H,
+  };
+  if (t.planks) out.planks = seg(t.planks);
+  if (t.gutters) out.gutters = seg(t.gutters);
+  if (t.springs) out.springs = seg(t.springs);
+  if (t.nests) out.nests = t.nests.map(([x, ny, r]) => [x, y(ny), r] as const);
+  if (t.slide) out.slide = t.slide;
+  return out;
+}
+
+/** Tuning E's new crook levels (index SNIP_TALL_FIRST + 30 on), in design coordinates. */
+const SNIP_CROOK_SOURCES: readonly SnipTemplate[] = [
+  // Medium (90–94): a cut, a catch on the crook, another cut (scripts/snip-crook-design.ts kept 92–94).
+  { name: "Plank crook", sweet: [160, 150], pins: [[260, 60, 0]], platforms: [], planks: [[110, 300, 230, 340]], hooks: [[330, 400, 80]], nests: [[230, 560, 22], [420, 300, 20]], mouth: [400, 600], stars: [[346, 489]] },
+  { name: "Crook gutter", sweet: [370, 150], pins: [[280, 60, 0], [420, 90, 0]], platforms: [], hooks: [[240, 330, 80]], gutters: [[110, 500, 260, 540]], nests: [[400, 520, 22]], mouth: [300, 600], stars: [[208, 163]] },
+  { name: "Spring vine", sweet: [194, 149], pins: [[201, 98, 0]], platforms: [], hooks: [[213, 300, 87]], nests: [[211, 472, 21]], springs: [[339, 418, 430, 385]], mouth: [154, 584], stars: [[214, 377]] },
+  { name: "Short vine", sweet: [306, 142], pins: [[327, 97, 0]], platforms: [], hooks: [[326, 302, 71]], nests: [[387, 429, 20]], mouth: [350, 592], stars: [[337, 257]] },
+  { name: "Long vine", sweet: [312, 183], pins: [[381, 63, 0]], platforms: [], hooks: [[392, 379, 108]], nests: [[329, 441, 20]], mouth: [334, 564], stars: [[381, 479]] },
+  // Hard (95–102): the apple must be caught and cut free again, past several obstacles (96–102 kept by snip-crook-design).
+  { name: "Spring crook", sweet: [270, 160], pins: [[180, 60, 0], [360, 60, 0]], platforms: [], springs: [[200, 330, 290, 360]], hooks: [[360, 300, 90]], nests: [[150, 470, 22]], mouth: [270, 590], stars: [[364, 380]] },
+  { name: "Crook over planks", sweet: [324, 196], pins: [[160, 49, 0]], platforms: [], hooks: [[215, 302, 75], [155, 422, 72]], nests: [[275, 463, 21]], planks: [[154, 414, 257, 401]], mouth: [224, 566], stars: [[239, 255]] },
+  { name: "Wasp bend", sweet: [283, 172], pins: [[247, 82, 0], [134, 79, 0]], platforms: [], hooks: [[262, 280, 90]], nests: [[233, 483, 21], [336, 425, 24]], mouth: [254, 593], stars: [[262, 367]] },
+  { name: "Spring ladder", sweet: [219, 218], pins: [[295, 64, 0], [217, 40, 0]], platforms: [], hooks: [[272, 338, 103]], nests: [[394, 444, 21]], springs: [[314, 412, 398, 403], [348, 459, 430, 475]], mouth: [336, 575], stars: [[263, 441]] },
+  { name: "Double crook", sweet: [315, 144], pins: [[315, 60, 0]], platforms: [], hooks: [[317, 290, 100], [307, 432, 93]], nests: [[217, 468, 24], [239, 553, 23]], mouth: [338, 588], stars: [[315, 340]] },
+  { name: "Nest drop crook", sweet: [308, 176], pins: [[273, 67, 0], [310, 88, 0]], platforms: [], hooks: [[329, 285, 76]], nests: [[260, 435, 21], [237, 509, 24]], mouth: [386, 590], stars: [[307, 357]] },
+  { name: "Three nests", sweet: [295, 218], pins: [[403, 49, 0], [256, 76, 0]], platforms: [], hooks: [[232, 368, 95]], nests: [[345, 435, 22], [388, 514, 23], [262, 507, 20]], mouth: [243, 590], stars: [[255, 303]] },
+  { name: "Crook maze", sweet: [285, 142], pins: [[294, 56, 0], [230, 86, 0], [132, 61, 0]], platforms: [], hooks: [[326, 326, 102]], nests: [[223, 391, 21]], springs: [[200, 538, 299, 508]], planks: [[229, 417, 328, 427]], mouth: [326, 566], stars: [[309, 265]] },
+];
+
+/**
+ * Tuning E (snipRev 5) bank, appended after the 60 older templates: the 30
+ * orchard templates stretched to the tall height (60–89, in their old bands),
+ * then the crook levels (90 on).
+ */
+const SNIP_TALL_SOURCES: readonly SnipTemplate[] = [...SNIP_SOURCES.slice(30, 60).map(stretchTall), ...SNIP_CROOK_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H }))];
+export const SNIP_TALL_FIRST = 60;
+const tallIds = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_TALL_FIRST + from + i);
+export const SNIP_BANDS_TALL = {
+  // Spring hop (60) and Gutter run (62) are left out: stretched, they lose at some pin wobbles.
+  easy: [...tallIds(1, 1), ...tallIds(3, 7)],
+  medium: [...tallIds(8, 18), ...tallIds(30, 34)],
+  hard: [...tallIds(19, 29), ...tallIds(35, 42)],
+};
+
+
+export const SNIP_CONFIG = {
+  runSeconds: 60,
+  levelSeconds: 12,
+  levels: 10,
+  /** Ticks resting on a platform before the level fails. */
+  restTicks: 30,
+  /** Per-tick speed (1/256 px) below which the sweet counts as resting. */
+  restSpeed: 48,
+  worldW: 1260,
+  viewW: 360,
+  worldH: 560,
+  /** Nodes per rope including the pin; the sweet is one more segment. */
+  ropeNodes: 9,
+  /** Constraint passes per tick. */
+  iterations: 10,
+  /** 1/256 px per tick². */
+  gravity: 64,
+  /** Velocity kept per tick, out of 256. */
+  damping: 256,
+  /** Out of 256: share of a rope correction taken by the sweet (the rest by its neighbour node). */
+  sweetShare: 64,
+  sweetRadius: 12,
+  /** Sweet centre within this distance of the mouth centre = eaten. */
+  mouthRadius: 32,
+  /** Sweet centre within this distance of a star = collected. */
+  starReach: 24,
+  /** Bounce kept off walls and platforms, out of 256. */
+  bounce: 112,
+  /** Side walls reflect velocity without loss. Platforms keep their existing response. */
+  wallBounce: 256,
+  /** Sliding speed kept along a platform each contact tick, out of 256. */
+  friction: 236,
+  /** Seeded pin wobble per level, ± px. */
+  pinJitter: 10,
+  pointsPerSweet: 10,
+  pointsPerStar: 3,
+  /** Bonus for clearing all ten levels, scaled by time left. */
+  finishBonus: 20,
+  /** Orchard elements: plank bounce and roll kept (out of 256), spring kick (1/256 px a tick). */
+  plankBounce: 40,
+  plankRoll: 252,
+  springKick: 1_792,
+  springMax: 2_560,
+  maxScore: 150,
+  /** Ten levels in play order, easiest first (then the banks drawn by revision; Tuning E's tall ones last). */
+  templates: [...SNIP_SOURCES, ...SNIP_TALL_SOURCES].map(placeSnipTemplate) as readonly SnipTemplate[],
+} as const;
+
+/** A designed template placed in the wide world (exported for level-design scripts). */
+export function placeSnipTemplate(template: SnipTemplate): SnipTemplate {
+  return {
     // Keep each layout intact, with 360 extra px of swing clearance on each side.
     name: template.name,
     sweet: [(template.sweet[0] ?? 0) + 360, template.sweet[1] ?? 0],
@@ -172,9 +253,9 @@ export const SNIP_CONFIG = {
     platforms: template.platforms.map(([x0 = 0, y0 = 0, x1 = 0, y1 = 0]) => [x0 + 360, y0, x1 + 360, y1]),
     mouth: [(template.mouth[0] ?? 0) + 360, template.mouth[1] ?? 0],
     stars: template.stars.map(([x = 0, y = 0]) => [x + 360, y]),
-    ...orchardFields(template as OrchardSource),
-  })) as readonly SnipTemplate[],
-} as const;
+    ...orchardFields(template),
+  };
+}
 
 type Seg = readonly [number, number, number, number];
 interface OrchardSource {
@@ -183,6 +264,8 @@ interface OrchardSource {
   springs?: readonly Seg[];
   nests?: readonly (readonly [number, number, number])[];
   slide?: readonly [number, number];
+  h?: number;
+  hooks?: readonly (readonly [number, number, number])[];
 }
 /** The orchard fields of a template, shifted into the wide world like the rest of it (absent stays absent). */
 function orchardFields(t: OrchardSource): OrchardSource {
@@ -193,6 +276,8 @@ function orchardFields(t: OrchardSource): OrchardSource {
   if (t.springs) out.springs = seg(t.springs);
   if (t.nests) out.nests = t.nests.map(([x, y, r]) => [x + 360, y, r] as const);
   if (t.slide) out.slide = t.slide;
+  if (t.h) out.h = t.h;
+  if (t.hooks) out.hooks = t.hooks.map(([x, y, len]) => [x + 360, y, len] as const);
   return out;
 }
 
@@ -208,6 +293,12 @@ const PAD = 40;
 export const SNIP_INPUT_RANGES: readonly InputRange[] = [
   inputRange(SNIP_INPUT_CUT, [-PAD, SNIP_W + PAD], [-PAD, SNIP_H + PAD], [-PAD, SNIP_W + PAD], [-PAD, SNIP_H + PAD]),
 ];
+/** snipRev 5 (Tuning E): the same swipe over the taller world. */
+export const SNIP_TALL_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(SNIP_INPUT_CUT, [-PAD, SNIP_W + PAD], [-PAD, SNIP_TALL_H + PAD], [-PAD, SNIP_W + PAD], [-PAD, SNIP_TALL_H + PAD]),
+];
+/** A picker's crook catches an apple falling within this many px across of its hook. */
+export const SNIP_HOOK_REACH = 26;
 
 /** Level outcomes. */
 export const SNIP_PLAYING = 0;
@@ -265,6 +356,16 @@ export interface SnipState extends BandFields {
   rev?: number;
   springHits?: number;
   springTick?: number;
+  /** snipRev 5 only (Tuning E): the run's world height in px (SNIP_TALL_H), for the arena and art. */
+  worldH?: number;
+  /** Levels with picker's crooks only: crooks that have caught this level (bit per crook) and the tick of the last catch. */
+  hooked?: number;
+  hookTick?: number;
+}
+
+/** The world height (px) a state is drawn in: Tuning E's taller levels, or the original 560. */
+export function snipWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? SNIP_CONFIG.worldH;
 }
 
 function buildLevel(state: SnipState, level: number, fixedJitter?: number): SnipState {
@@ -306,6 +407,7 @@ function buildLevel(state: SnipState, level: number, fixedJitter?: number): Snip
     starGot: tpl.stars.map(() => 0),
     outcome: SNIP_PLAYING,
     rest: 0,
+    ...(tpl.hooks || state.hooked !== undefined ? { hooked: 0 } : {}),
   };
 }
 
@@ -376,10 +478,11 @@ function initRev2(seed: number): SnipState {
   return buildLevel({ ...s, rng: seed | 0, order: snipLevelOrder(seed) }, 0);
 }
 
-/** Scripts only: one level of a template with every pin moved by `jitter` px. */
+/** Scripts only: one level of a template with every pin moved by `jitter` px (a tall template plays in the tall world). */
 export function snipTestLevel(template: number, jitter: number): SnipState {
   const s = init(1);
-  return buildLevel({ ...s, order: [template] }, 0, jitter);
+  const h = SNIP_CONFIG.templates[template]?.h;
+  return buildLevel({ ...s, order: [template], ...(h ? { rev: SNIP_REV_TALL, worldH: h } : {}) }, 0, jitter);
 }
 
 function isOver(state: SnipState): boolean {
@@ -565,6 +668,28 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
     next.springHits = (state.springHits ?? 0) + 1;
     next.springTick = tick;
   }
+  // Picker's crooks (snipRev 5 templates): a freely falling apple dropping past a crook's hook from above is held on a new vine.
+  if (tpl.hooks && !ropes.some((rope) => rope.alive)) {
+    let hooked = next.hooked ?? 0;
+    const reach = SNIP_HOOK_REACH * 256;
+    tpl.hooks.forEach(([hxp, hyp, len], k) => {
+      if (hooked & (1 << k) || ropes.some((rope) => rope.alive)) return;
+      const hx = hxp * 256;
+      const hy = hyp * 256;
+      if (!(state.sy < hy && sy >= hy && sy > state.sy && Math.abs(sx - hx) <= reach)) return;
+      const n = c.ropeNodes;
+      const x: number[] = [];
+      const y: number[] = [];
+      for (let i = 0; i < n; i++) {
+        x.push(hx + Math.trunc(((sx - hx) * i) / n));
+        y.push(hy + Math.trunc(((sy - hy) * i) / n));
+      }
+      ropes.push({ alive: 1, len: Math.trunc((len * 256) / n), x, y, ox: [...x], oy: [...y] });
+      hooked |= 1 << k;
+      next.hookTick = tick;
+    });
+    next.hooked = hooked;
+  }
 
   // 5. Stars, mouth, out of the arena, timeout.
   const reach = c.starReach * 256;
@@ -585,7 +710,7 @@ function step(state: SnipState, input: ArcadeInputEvent | null): SnipState {
   let outcome = SNIP_PLAYING;
   if (mx * mx + my * my < mr * mr) outcome = SNIP_EATEN;
   else if (tpl.nests && snipTouchesNest(tpl, sx, sy)) outcome = SNIP_STUNG;
-  else if (sy > (c.worldH + c.sweetRadius * 2) * 256 || sy < -c.sweetRadius * 2 * 256) outcome = SNIP_LOST;
+  else if (sy > ((tpl.h ?? c.worldH) + c.sweetRadius * 2) * 256 || sy < -c.sweetRadius * 2 * 256) outcome = SNIP_LOST;
   else if (next.rest >= c.restTicks) outcome = SNIP_LANDED;
   else if (next.levelTick >= SNIP_LEVEL_TICKS) outcome = SNIP_TIMEOUT;
 
@@ -736,7 +861,9 @@ export function snipCheckpoint(state: SnipState): SnipCheckpoint {
     posHash,
   };
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  // snipRev 5 (Tuning E) folds its world height and crook catches in last; the encoded fields stay the same.
+  const extra = state.worldH ? [state.worldH, state.hooked ?? 0] : [];
+  for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -749,8 +876,8 @@ export const SNIP_SWEET = "#E84A7F";
 export const SNIP_MOUTH = "#5FBF4A";
 export const SNIP_STAR = "#F5C542";
 
-export function snipView(size: CanvasSize): { scaleX: number; scaleY: number } {
-  return { scaleX: size.width / SNIP_CONFIG.viewW, scaleY: size.height / SNIP_H };
+export function snipView(size: CanvasSize, worldH: number = SNIP_H): { scaleX: number; scaleY: number } {
+  return { scaleX: size.width / SNIP_CONFIG.viewW, scaleY: size.height / worldH };
 }
 
 /** Render-only camera: soft velocity lead with a hard visibility guard. */
@@ -916,6 +1043,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_TALL) return snipTallGame;
   if (rev === SNIP_REV_BAND) return snipBandGame;
   return rev === SNIP_REV3 ? snipRev3Game : rev === SNIP_REV ? snipRev2Game : snipGame;
 }
@@ -929,7 +1057,7 @@ export const SNIP_BAND_CURVE = bandCurve([0, 62, 80, 90, 120], [0, 70, 100, 134,
 export function snipBandParts(state: SnipState): BandParts {
   const units = 10 * clampInt(state.eaten, 0, SNIP_CONFIG.levels) + 2 * Math.max(0, state.stars);
   const finished = state.eaten >= SNIP_CONFIG.levels && state.finishTick > 0;
-  return { units, points: bandPoints(SNIP_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
+  return { units, points: bandPoints(state.worldH ? SNIP_V5_BAND_CURVE : SNIP_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
 }
 
 function scoreBand(state: SnipState): number {
@@ -937,3 +1065,52 @@ function scoreBand(state: SnipState): number {
 }
 
 export const snipBandGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipRev3Game, init: (seed) => bandInit(snipRev3Game.init(seed)) };
+
+/* ================= Tuning E (snipRev 5, Oct 2026) ================= */
+
+/**
+ * snipRev 5 (Tuning E): taller levels (view 360 × SNIP_TALL_H, the same for
+ * every player) drawn from a bank of tall templates only (SNIP_TALL_SOURCES:
+ * the orchard levels stretched to the new height, and new levels with
+ * picker's crooks that catch the falling apple on a fresh vine, so a level can
+ * need a cut, a catch and another cut). Levels 1–2 easy, 3–5 medium, 6–10
+ * hard, on their own stream; pin wobble from the seed as before. Every tall
+ * template keeps a stored winning plan at human cutting pace
+ * (fixtures/snip-rev5-proofs.json). Scored on SNIP_V5_BAND_CURVE. States add
+ * `worldH` (and `hooked` on crook levels), folded into the checksum.
+ */
+export const SNIP_REV_TALL = 5;
+const SNIP_BAND_PLAN_TALL = [2, 3, 5] as const;
+/**
+ * Apples count 10 and leaves 2, as before; the lower knots move down for the
+ * harder mix (re-measured with scripts/arcade-skill-bands.ts --rev=e: the same
+ * players feed about one apple fewer): 54 → 70, 74 → 100; the top is unchanged.
+ */
+export const SNIP_V5_BAND_CURVE = bandCurve([0, 54, 74, 90, 120], [0, 70, 100, 134, 140]);
+
+/** The ten-level order for a snipRev-5 seed. */
+export function snipLevelOrderTall(seed: number): number[] {
+  let rng = (seed ^ 0x7a11_5e05) | 0;
+  const out: number[] = [];
+  [SNIP_BANDS_TALL.easy, SNIP_BANDS_TALL.medium, SNIP_BANDS_TALL.hard].forEach((band, b) => {
+    const pool = [...band];
+    for (let k = 0; k < SNIP_BAND_PLAN_TALL[b]!; k++) {
+      const r = rngBelow(rng, pool.length);
+      rng = r.state;
+      out.push(pool.splice(r.value, 1)[0]!);
+    }
+  });
+  return out;
+}
+
+function initTall(seed: number): SnipState {
+  const s = init(seed);
+  return bandInit(buildLevel({ ...s, rng: seed | 0, order: snipLevelOrderTall(seed), rev: SNIP_REV_TALL, worldH: SNIP_TALL_H }, 0));
+}
+
+export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipBandGame, init: initTall, inputRanges: SNIP_TALL_INPUT_RANGES };
+
+/** The world height (px) a stored round's snipRev plays in. */
+export function snipWorldHFor(rev?: number | null): number {
+  return rev === SNIP_REV_TALL ? SNIP_TALL_H : SNIP_H;
+}

@@ -23,10 +23,10 @@ import {
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
-  HOVER_REV,
+  HOVER_REV_TALL,
+  hoverWorldHFor,
   HOVER_RUN_TICKS,
   type HoverState,
-  HOVER_WORLD_H,
   HOVER_WORLD_W,
 } from "@/lib/arcade/hover";
 import { decodeHoverRun, encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
@@ -253,7 +253,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={HOVER_WORLD_W} height={HOVER_WORLD_H} background={ARCADE_ARENA_FILL.hover}>
+    <ArcadeArenaSlot width={HOVER_WORLD_W} height={hoverWorldHFor(data.hoverRev)} background={ARCADE_ARENA_FILL.hover}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}
@@ -300,7 +300,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_TALL }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

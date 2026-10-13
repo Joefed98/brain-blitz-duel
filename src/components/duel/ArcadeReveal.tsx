@@ -5,7 +5,7 @@ import { WaitingLine } from "@/components/duel/Dots";
 import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
+import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
 
 /** One player in the room for the progress track. `reveal` is null until their result lands. */
@@ -70,12 +70,13 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
   const renderer = ARCADE_REVEAL_RENDERERS[puzzle.type];
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [focus, setFocus] = useState<{ x: number; y: number } | null>(null);
+  const worldH = renderer ? revealWorldH(renderer, puzzle) : 0;
   useEffect(() => {
     const node = canvas.current;
     if (!renderer || !node) return;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     node.width = Math.round(renderer.worldW * ratio);
-    node.height = Math.round(renderer.worldH * ratio);
+    node.height = Math.round(worldH * ratio);
     const ctx = node.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -84,7 +85,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
     } catch {
       setFocus(null);
     }
-  }, [renderer, puzzle, answer]);
+  }, [renderer, puzzle, answer, worldH]);
   if (!renderer) return null;
   const ring = outcome === "finish" ? "var(--me)" : null;
   return (
@@ -97,7 +98,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
       {ring ? (
         <svg
           className="absolute inset-0 h-full w-full"
-          viewBox={`0 0 ${renderer.worldW} ${renderer.worldH}`}
+          viewBox={`0 0 ${renderer.worldW} ${worldH}`}
           preserveAspectRatio="xMidYMid slice"
         >
           {focus ? (
@@ -110,7 +111,7 @@ function Backdrop({ puzzle, answer, outcome }: { puzzle: PuzzleData; answer: str
               x={4}
               y={4}
               width={renderer.worldW - 8}
-              height={renderer.worldH - 8}
+              height={worldH - 8}
               rx={14}
               fill="none"
               stroke={ring}

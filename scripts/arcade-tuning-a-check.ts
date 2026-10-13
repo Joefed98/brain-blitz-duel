@@ -77,6 +77,7 @@ import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { skylineGameFor, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 
@@ -112,7 +113,8 @@ section("Old rounds replay and score exactly as before");
 /* ============================== 2a. High Rise ============================== */
 if (want("skyline")) {
   section("High Rise: logo flag, wind unchanged");
-  ok(generateSkyline().skylineRev === BAND_STAMPS.skyline![1], "new High Rise rounds keep their stamp (no gameplay change)");
+  // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
+  ok(generateSkyline().skylineRev === SKYLINE_REV_TALL && skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "new High Rise rounds keep the band play and curve (Tuning E's taller view only)");
   ok(APP_LOGO_URL.startsWith("/") && existsSync(`public${APP_LOGO_URL}`), `the app logo file ${APP_LOGO_URL} exists`);
   const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8")) as { icons: { src: string }[] };
   ok(manifest.icons.every((i) => i.src === APP_LOGO_URL), "the PWA icon is the same logo file the flag draws");

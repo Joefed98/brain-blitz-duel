@@ -17,8 +17,8 @@ import {
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
   SNIP_CONFIG,
-  SNIP_H,
-  SNIP_REV3,
+  SNIP_REV_TALL,
+  snipWorldHFor,
   type SnipState,
 } from "@/lib/arcade/snip";
 import { drawSnipArt, drawSnipOrchardExample, type SnipSwipe } from "@/lib/arcade/snip.renderer";
@@ -198,7 +198,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const toWorld = (clientX: number, clientY: number) => {
     const box = board.current?.getBoundingClientRect();
     if (!box) return null;
-    const { scaleX, scaleY } = snipView({ width: box.width, height: box.height });
+    const { scaleX, scaleY } = snipView({ width: box.width, height: box.height }, snipWorldHFor(data.snipRev));
     return { x: Math.round((clientX - box.left) / scaleX + camera.current.x), y: Math.round((clientY - box.top) / scaleY) };
   };
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
@@ -214,7 +214,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           {hud.eaten} picked · {hud.stars} leaves
         </span>
       </div>
-      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={SNIP_H} background={ARCADE_ARENA_FILL.snip}>
+      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)} background={ARCADE_ARENA_FILL.snip}>
         <div
           ref={board}
           data-play-area
@@ -270,7 +270,7 @@ export const snipPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SNIP_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV3 }) satisfies SnipPuzzleData,
+  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV_TALL }) satisfies SnipPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

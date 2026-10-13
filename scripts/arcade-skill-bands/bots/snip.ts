@@ -18,7 +18,7 @@
  */
 import { readFileSync } from "node:fs";
 import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { SNIP_BANDS_V3, SNIP_CONFIG, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
+import { SNIP_BANDS_TALL, SNIP_BANDS_V3, SNIP_CONFIG, SNIP_INPUT_CUT, SNIP_LEVEL_TICKS, type SnipState } from "../../../src/lib/arcade/snip";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -27,7 +27,11 @@ interface Proof {
   fast: { plan: Plan } | null;
   leaf: { plan: Plan } | null;
 }
-const PROOFS: Record<string, Record<string, Proof>> = JSON.parse(readFileSync(new URL("../../fixtures/snip-rev3-proofs.json", import.meta.url), "utf8"));
+const PROOFS: Record<string, Record<string, Proof>> = {
+  ...JSON.parse(readFileSync(new URL("../../fixtures/snip-rev3-proofs.json", import.meta.url), "utf8")),
+  // Tuning E's tall templates (snipRev 5).
+  ...JSON.parse(readFileSync(new URL("../../fixtures/snip-rev5-proofs.json", import.meta.url), "utf8")),
+};
 
 /** World px per phone px (a 360-px-wide view on a ~390-px phone). */
 const WORLD_PER_PX = SNIP_CONFIG.viewW / 390;
@@ -39,8 +43,8 @@ const GAP: Record<SkillLevel, number> = { average: 20, good: 16, great: 14, near
 const LEAF_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
 
 function bandOf(template: number): number {
-  if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template)) return 2;
-  if ((SNIP_BANDS_V3.medium as readonly number[]).includes(template)) return 1;
+  if ((SNIP_BANDS_V3.hard as readonly number[]).includes(template) || SNIP_BANDS_TALL.hard.includes(template)) return 2;
+  if ((SNIP_BANDS_V3.medium as readonly number[]).includes(template) || SNIP_BANDS_TALL.medium.includes(template)) return 1;
   return 0;
 }
 
@@ -137,8 +141,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const planLevel = (s: SnipState) => {
     const tpl = SNIP_CONFIG.templates[s.template]!;
     const n = s.ropes.length;
+    const crooks = tpl.hooks?.length ?? 0;
     const band = bandOf(s.template);
-    const ready = human.thinkTicks(1400 + 900 * band + 500 * (n - 1));
+    const ready = human.thinkTicks(1400 + 900 * band + 500 * (n - 1) + 600 * crooks);
     // Nearest proved wobble (the mean pin offset).
     let jit = 0;
     for (let i = 0; i < n; i++) jit += s.ropes[i]!.x[0]! / 256 - tpl.pins[i]![0];
@@ -150,13 +155,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     if (!shape.length) shape = Array.from({ length: n }, (_, i) => [i, 30 + 20 * i] as [number, number]);
     // Order: a weaker player can misread which rope goes first.
     believe = false;
-    if (n >= 2) {
-      const right = shape.map(([r]) => r);
-      const orders = permutations(n).filter((p) => p.length === right.length);
+    // (A crook's vine, rope n or later, is cut after its catch; only the pins' ropes can be misordered.)
+    const slots = shape.map(([r], i) => (r < n ? i : -1)).filter((i) => i >= 0);
+    if (n >= 2 && slots.length === n) {
+      const right = slots.map((i) => shape[i]![0]);
+      const orders = permutations(n);
       const values = orders.map((p) => (p.every((r, i) => r === right[i]) ? 1 : 0));
       const k = human.pick(values, 0.6 + 0.5 * band + 0.25 * (n - 2));
       if (values[k] === 0) {
-        shape = shape.map(([, at], i) => [orders[k]![i]!, at] as [number, number]);
+        const swapped = shape.map(([r, at]) => [r, at] as [number, number]);
+        slots.forEach((i, j) => (swapped[i]![0] = orders[k]![j]!));
+        shape = swapped;
         believe = true;
       }
     }
@@ -264,6 +273,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
       if (next >= plan.length) return null;
       const rope = plan[next]![0];
+      // A crook's vine not there yet (no catch so far): wait for it.
+      if (rope >= s.ropes.length) return null;
       if (!s.ropes[rope]?.alive && !pendingCheck) {
         // Already gone (cut along with another): move on.
         next += 1;
@@ -283,7 +294,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       retryAt = -1;
       fireAt = Infinity;
       pendingCheck = { rope, at: s.levelTick + human.reactTicks() };
-      return swipe(view, rope);
+      // A vine the lagged view has not seen yet is swiped where it is now.
+      return swipe(view.ropes[rope] ? view : s, rope);
     },
     init,
   );

@@ -256,3 +256,26 @@ same simulated players and seeds.
   star's own point; near-perfect players still fall chasing them, so near (121) sits under great (124).
 - **Junction** is retired to practice (registry `RETIRED_TYPES`); rooms deal 21 arcade games. Its band curve stays
   for practice and stored rounds.
+
+## Tuning E (13 Oct 2026): taller worlds, deeper Scrumper
+
+High Rise, Meteor, Scrumper and Hover get taller worlds (the same for every player, uniform scale) so their arenas fill
+a 390 × 844 phone down to the usual gap; Scrumper's run becomes 2 easy, 3 medium and 5 hard levels from a tall bank,
+with picker's crooks (catch a falling apple from above, hold it on a vine to cut again). Every change is a new stamp;
+older rounds replay and score exactly as before (`scripts/arcade-tuning-e-check.ts` replays 32 runs recorded on the
+code before this change, `scripts/fixtures/arcade-tuning-e-legacy.json`). Medians (p10–p90 in the PR) from
+`bun scripts/arcade-skill-bands.ts <game> --rev=e`: the revision rooms stamped before → the Tuning E one.
+
+| Game | Stamp | World | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|---|
+| High Rise | skylineRev 3 → 4 | 390 × 560 → 390 × 735 | View only; same play and curve | 71 → 71 | 99 → 99 | 124 → 124 | 145 → 145 |
+| Meteor | snakeRev 4 → 5 | 390 × 532 → 390 × 724 (15 × 20 → 15 × 28) | Stars, rocks and shower drawn over the taller grid; the same skill eats fewer stars, so 150 at 34 stars (knots 15 → 70, 22 → 100, 26 → 125, 30 → 142) | 70 → 74 | 99 → 103 | 125 → 125 | 141 → 142 |
+| Scrumper | snipRev 4 → 5 | 360 × 560 → 360 × 640 | Tall bank (28 stretched orchard levels, 13 crook levels), 2 easy / 3 medium / 5 hard; lower knots 54 → 70, 74 → 100 (top unchanged) | 70 → 69 | 100 → 100 | 134 → 134 | 137 → 137 |
+| Hover | hoverRev 4 → 5 | 390 × 560 → 390 × 735 | The same course drifting over the extra height (each climb changes by ≤ 22 px); Tuning C curve with its 123-unit knot at 125 | 63 → 66 | 90 → 87 | 109 → 119 | 122 → 123 |
+
+- **Hover**: stretching the course with the world (and growing the gaps) was tried first; it made some late drops longer
+  than the disc can fall between barriers at top speed (a flawless player crashed on every course). The drifting course
+  keeps every climb, gap and star as before. A scripted flawless player scores 150 through the server replay.
+- **Scrumper**: every tall template has stored human-paced winning plans at pin wobble −10, 0 and +10
+  (`scripts/fixtures/snip-rev5-proofs.json`); the slowest ten-level mix takes 34.7 s with them, and a run bot scores 150
+  through the server replay. Hard crook levels cannot be won without the catch (no rope-only plan feeds the apple).

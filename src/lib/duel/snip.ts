@@ -89,7 +89,7 @@ export function replaySnipRun(seed: number, raw: string, rev?: number | null): S
   const run = decodeSnipRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SNIP_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SNIP_RUN_TICKS;
-  const check = checkInputEvents(run.events, SNIP_RUN_TICKS, SNIP_INPUT_RANGES);
+  const check = checkInputEvents(run.events, SNIP_RUN_TICKS, snipGame.inputRanges ?? SNIP_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : SNIP_RUN_TICKS;

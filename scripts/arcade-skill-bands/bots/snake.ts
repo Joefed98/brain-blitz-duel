@@ -9,7 +9,7 @@
  * reaction later, when the player re-plans. With no route in hand (finding the
  * next star) the player steers away from what is right ahead of the head.
  */
-import { snakeReversal, snakeStepTicks, SNAKE_COLS, SNAKE_INPUT_TURN, SNAKE_ROWS, type SnakeState } from "../../../src/lib/arcade/snake";
+import { snakeReversal, snakeStepTicks, SNAKE_COLS, SNAKE_INPUT_TURN, snakeRowsOf, type SnakeState } from "../../../src/lib/arcade/snake";
 import { driveEvents, type SkillBot } from "../bot";
 import type { Human } from "../human";
 
@@ -21,10 +21,13 @@ const FIND_MS = 300;
 const DR = [-1, 0, 1, 0];
 const DC = [0, 1, 0, -1];
 
+/** Rows of the grid being played (Tuning E's taller grid or the original 20); set when a run starts. */
+let ROWS = 20;
+
 function nb(cell: number, dir: number): number {
   const r = Math.trunc(cell / SNAKE_COLS) + DR[dir]!;
   const c = (cell % SNAKE_COLS) + DC[dir]!;
-  if (r < 0 || r >= SNAKE_ROWS || c < 0 || c >= SNAKE_COLS) return -1;
+  if (r < 0 || r >= ROWS || c < 0 || c >= SNAKE_COLS) return -1;
   return r * SNAKE_COLS + c;
 }
 
@@ -253,6 +256,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const gap = SWIPE_GAP[level]!;
   const init = game.init(seed) as SnakeState;
+  ROWS = snakeRowsOf(init);
   /** Swipes planned: tick → direction. */
   const swipes = new Map<number, number>();
   let lastSwipe = -100;

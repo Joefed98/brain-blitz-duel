@@ -141,6 +141,18 @@ export interface SnakeState extends BandFields {
   showerWarn?: number[];
   showerLandTick?: number;
   showerDone?: number;
+  /** snakeRev 5 only (Tuning E): the taller grid's row count (SNAKE_TALL_ROWS). Absent = SNAKE_ROWS. */
+  rows?: number;
+}
+
+/** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
+export function snakeRowsOf(state: { rows?: number }): number {
+  return state.rows ?? SNAKE_ROWS;
+}
+
+/** World height (px) for a grid of this many rows: HUD, board and the bottom margin. */
+export function snakeWorldHFor(rows: number): number {
+  return SNAKE_HUD_H + rows * SNAKE_CELL + 8;
 }
 
 export interface SnakeRockSlot {
@@ -175,19 +187,20 @@ function pelletFrom(
   return { cursor: at, pellet: queue[at % SNAKE_QUEUE_LEN] ?? 0 };
 }
 
-function init(seed: number): SnakeState {
+function init(seed: number, rows: number = SNAKE_ROWS): SnakeState {
   let rng = seed | 0;
   const queue: number[] = [];
   for (let slot = 0; slot < SNAKE_QUEUE_LEN; slot++) {
-    const drawn = rngBelow(rng, SNAKE_CELLS);
+    const drawn = rngBelow(rng, rows * SNAKE_COLS);
     rng = drawn.state;
     queue.push(drawn.value);
   }
   const col = SNAKE_COLS >> 1;
-  const row = SNAKE_ROWS >> 1;
+  const row = rows >> 1;
   const body = [cellOf(row, col), cellOf(row + 1, col), cellOf(row + 2, col)];
   const first = pelletFrom(queue, 0, body);
   return {
+    ...(rows !== SNAKE_ROWS ? { rows } : {}),
     tick: 0,
     rng,
     body,
@@ -209,7 +222,7 @@ function init(seed: number): SnakeState {
  * (or diagonal to) another slot's square. Drawn from the state's own PRNG after
  * the star queue, so the original queue is untouched.
  */
-function rockSchedule(rngIn: number, queue: readonly number[]): { rng: number; slots: SnakeRockSlot[] } {
+function rockSchedule(rngIn: number, queue: readonly number[], rows: number = SNAKE_ROWS): { rng: number; slots: SnakeRockSlot[] } {
   let rng = rngIn;
   const starCells = new Set(queue);
   const slots: SnakeRockSlot[] = [];
@@ -218,7 +231,7 @@ function rockSchedule(rngIn: number, queue: readonly number[]): { rng: number; s
     rng = jitter.state;
     let cell = -1;
     for (let attempt = 0; attempt < 64 && cell < 0; attempt++) {
-      const drawn = rngBelow(rng, (SNAKE_ROWS - 2) * (SNAKE_COLS - 2));
+      const drawn = rngBelow(rng, (rows - 2) * (SNAKE_COLS - 2));
       rng = drawn.state;
       const row = 1 + Math.trunc(drawn.value / (SNAKE_COLS - 2));
       const col = 1 + (drawn.value % (SNAKE_COLS - 2));
@@ -234,9 +247,9 @@ function rockSchedule(rngIn: number, queue: readonly number[]): { rng: number; s
   return { rng, slots };
 }
 
-function initRev2(seed: number): SnakeState {
-  const base = init(seed);
-  const schedule = rockSchedule(base.rng, base.queue);
+function initRev2(seed: number, rows: number = SNAKE_ROWS): SnakeState {
+  const base = init(seed, rows);
+  const schedule = rockSchedule(base.rng, base.queue, rows);
   return {
     ...base,
     rng: schedule.rng,
@@ -256,14 +269,14 @@ function initRev2(seed: number): SnakeState {
  * asteroid square and each other — and its possible moments. Drawn from the PRNG
  * continuing after the asteroids, so the rev-2 schedule is untouched.
  */
-function initRev3(seed: number): SnakeState {
-  const base = initRev2(seed);
+function initRev3(seed: number, rows: number = SNAKE_ROWS): SnakeState {
+  const base = initRev2(seed, rows);
   let rng = base.rng;
   const stars = new Set(base.queue);
   const taken = (base.rockSlots ?? []).map((slot) => slot.cell);
   const cells: number[] = [];
   for (let attempt = 0; attempt < 400 && cells.length < SNAKE_SHOWER_ROCKS; attempt++) {
-    const drawn = rngBelow(rng, (SNAKE_ROWS - 2) * (SNAKE_COLS - 2));
+    const drawn = rngBelow(rng, (rows - 2) * (SNAKE_COLS - 2));
     rng = drawn.state;
     const row = 1 + Math.trunc(drawn.value / (SNAKE_COLS - 2));
     const col = 1 + (drawn.value % (SNAKE_COLS - 2));
@@ -336,7 +349,7 @@ function stepV1(state: SnakeState, input: ArcadeInputEvent | null): SnakeState {
   const head = state.body[0] ?? 0;
   const row = snakeRow(head) + (nextDir === 0 ? -1 : nextDir === 2 ? 1 : 0);
   const col = snakeCol(head) + (nextDir === 1 ? 1 : nextDir === 3 ? -1 : 0);
-  if (row < 0 || row >= SNAKE_ROWS || col < 0 || col >= SNAKE_COLS) {
+  if (row < 0 || row >= snakeRowsOf(state) || col < 0 || col >= SNAKE_COLS) {
     return { ...state, tick, dir: nextDir, nextDir, sinceMove: 0, dead: true, endedTick: tick };
   }
 
@@ -383,7 +396,7 @@ function stepRev2(state: SnakeState, input: ArcadeInputEvent | null): SnakeState
     const head = state.body[0] ?? 0;
     const row = snakeRow(head) + (nextDir === 0 ? -1 : nextDir === 2 ? 1 : 0);
     const col = snakeCol(head) + (nextDir === 1 ? 1 : nextDir === 3 ? -1 : 0);
-    const inside = row >= 0 && row < SNAKE_ROWS && col >= 0 && col < SNAKE_COLS;
+    const inside = row >= 0 && row < snakeRowsOf(state) && col >= 0 && col < SNAKE_COLS;
     if (inside && rocks.includes(cellOf(row, col))) {
       const tick = state.tick + 1;
       return { ...state, tick, dir: nextDir, nextDir, sinceMove: 0, dead: true, endedTick: tick, rockHit: 1 };
@@ -507,6 +520,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
     state.rev === SNAKE_REV2 || state.rev === SNAKE_REV ? [state.rockSlot ?? 0, state.rockWarn ?? -1, ...(state.rocks ?? [])] : [];
   // snakeRev 3 adds the shower's progress.
   if (state.rev === SNAKE_REV) extra.push(state.showerSlot ?? 0, state.showerDone ?? 0, state.showerLandTick ?? 0, ...(state.showerWarn ?? []));
+  // snakeRev 5 (Tuning E): the taller grid's rows, last.
+  if (state.rows) extra.push(state.rows);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -522,9 +537,12 @@ export const SNAKE_HEAD = "#B98708";
 export const SNAKE_PELLET = "#2ED3B7";
 
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  const scale = Math.min(size.width / SNAKE_WORLD_W, size.height / SNAKE_WORLD_H);
+  const ROWS = snakeRowsOf(state);
+  const WORLD_H = snakeWorldHFor(ROWS);
+  const BOARD_H = ROWS * SNAKE_CELL;
+  const scale = Math.min(size.width / SNAKE_WORLD_W, size.height / WORLD_H);
   const offsetX = (size.width - SNAKE_WORLD_W * scale) / 2;
-  const offsetY = (size.height - SNAKE_WORLD_H * scale) / 2;
+  const offsetY = (size.height - WORLD_H * scale) / 2;
 
   ctx.save();
   ctx.fillStyle = SNAKE_BG;
@@ -539,10 +557,10 @@ function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize
     const x = SNAKE_BOARD_X + col * SNAKE_CELL + 0.5;
     ctx.beginPath();
     ctx.moveTo(x, SNAKE_BOARD_Y);
-    ctx.lineTo(x, SNAKE_BOARD_Y + SNAKE_BOARD_H);
+    ctx.lineTo(x, SNAKE_BOARD_Y + BOARD_H);
     ctx.stroke();
   }
-  for (let row = 0; row <= SNAKE_ROWS; row++) {
+  for (let row = 0; row <= ROWS; row++) {
     const y = SNAKE_BOARD_Y + row * SNAKE_CELL + 0.5;
     ctx.beginPath();
     ctx.moveTo(SNAKE_BOARD_X, y);
@@ -550,7 +568,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize
     ctx.stroke();
   }
   ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
-  ctx.strokeRect(SNAKE_BOARD_X + 0.5, SNAKE_BOARD_Y + 0.5, SNAKE_BOARD_W - 1, SNAKE_BOARD_H - 1);
+  ctx.strokeRect(SNAKE_BOARD_X + 0.5, SNAKE_BOARD_Y + 0.5, SNAKE_BOARD_W - 1, BOARD_H - 1);
 
   // Pellet.
   ctx.fillStyle = SNAKE_PELLET;
@@ -598,7 +616,7 @@ function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
-    ctx.fillRect(0, 0, SNAKE_WORLD_W, SNAKE_WORLD_H);
+    ctx.fillRect(0, 0, SNAKE_WORLD_W, WORLD_H);
   }
 
   ctx.restore();
@@ -622,6 +640,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_TALL) return snakeTallGame;
   if (rev === SNAKE_REV_BAND) return snakeBandGame;
   if (rev === SNAKE_REV) return snakeRev3Game;
   return rev === SNAKE_REV2 ? snakeRev2Game : snakeGame;
@@ -636,7 +655,7 @@ export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 
 
 export function snakeBandParts(state: SnakeState): BandParts {
   const units = Math.max(0, state.eaten);
-  return { units, points: bandPoints(SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
+  return { units, points: bandPoints(state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
 }
 
 function scoreBand(state: SnakeState): number {
@@ -644,3 +663,26 @@ function scoreBand(state: SnakeState): number {
 }
 
 export const snakeBandGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeRev3Game, init: (seed) => bandInit(snakeRev3Game.init(seed)) };
+
+/* ================= Tuning E (snakeRev 5, Oct 2026) ================= */
+
+/**
+ * snakeRev 5 (Tuning E): snakeRev 4 rules on a taller grid, 15 × SNAKE_TALL_ROWS
+ * (world 390 × snakeWorldHFor(28) = 724, the same for every player), so the
+ * arena fills a 390 × 844 phone down to the usual gap. The star queue, rock
+ * squares and shower squares are drawn from the seed over the taller grid; the
+ * meteor starts in its middle. Scored on SNAKE_V5_BAND_CURVE (150 at 34 stars
+ * instead of 38: the same skill eats fewer stars on the bigger board). States add
+ * `rows`, folded into the checkpoint checksum last.
+ */
+export const SNAKE_REV_TALL = 5;
+export const SNAKE_TALL_ROWS = 28;
+export const SNAKE_TALL_H = snakeWorldHFor(SNAKE_TALL_ROWS);
+/** Stars eaten on the taller grid (stars sit further apart); 150 at 34 (re-measured with scripts/arcade-skill-bands.ts --rev=e). */
+export const SNAKE_V5_BAND_CURVE = bandCurve([0, 15, 22, 26, 30, 34], [0, 70, 100, 125, 142, 150]);
+export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeBandGame, init: (seed) => bandInit(initRev3(seed, SNAKE_TALL_ROWS)) };
+
+/** The world height (px) a stored round's snakeRev plays in. */
+export function snakeWorldHForRev(rev?: number | null): number {
+  return rev === SNAKE_REV_TALL ? SNAKE_TALL_H : SNAKE_WORLD_H;
+}

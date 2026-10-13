@@ -21,10 +21,10 @@ import {
   SKYLINE_CHECKPOINT_INTERVAL,
   SKYLINE_COLOURS,
   SKYLINE_FLASH,
-  SKYLINE_REV,
+  SKYLINE_REV_TALL,
+  skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
-  SKYLINE_WORLD_H,
   SKYLINE_WORLD_W,
 } from "@/lib/arcade/skyline";
 import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
@@ -223,7 +223,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={SKYLINE_WORLD_H} background={ARCADE_ARENA_FILL.skyline}>
+    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} background={ARCADE_ARENA_FILL.skyline}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}
@@ -278,7 +278,7 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_TALL }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
