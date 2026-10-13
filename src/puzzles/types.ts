@@ -78,6 +78,8 @@ export interface PuzzleRevealProps {
   validRows?: number[] | undefined;
   /** The stored score breakdown (puzzleScoreRev 1 rounds; null on older rounds). */
   scoreParts?: ScoreParts | null | undefined;
+  /** The player's stored round extra (display only; e.g. Flash's false-start cost, Bang On's distances). */
+  myExtra?: Record<string, unknown> | null | undefined;
 }
 
 /**

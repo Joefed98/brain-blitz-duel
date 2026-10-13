@@ -37,7 +37,41 @@ The Oct 2026 puzzle score shape (`puzzleScoreRev: 1`; `docs/duelz-scoring-refere
 | Labyrinth | wall-following every dead end at 6 cells a second | 100 / 120 | A real strategy that doesn't read the whole maze. A random scribble scores 0. |
 | Chroma Lines | each dot drawn straight to its twin | 26 / 80 | Many shortest routes are the solution; credit is only for pairs on their solution route. Random lines score 0. |
 | Mosaic | filling the rows and columns with long clues | 45 / 69 | Partial logic. Filling everything or at random scores 0. |
-| No-finish games | Bang On random taps 92; Flash tapping every colour 75; Pull! mashing 30; Letterfall random chains 25; Forage 8; Nucleus 5 | — | Out of scope tonight (their formulas stay); only Bang On's all-miss bottom changed (20 → 0). Bang On's random tap averages about 226 ms off against an average player's 138 ms, so a curve that zeroes random taps would also cut average players hard: Joe's call (scoring reference open item 16). |
+| No-finish games | Bang On random taps 92 → **72**; Flash tapping every colour 75 → **54**; Pull! mashing 30 → **16**; Letterfall random chains 25; Forage 8; Nucleus 5 | — | Bang On, Flash and Pull! took light-touch careless-play costs later on 13 Oct (next section; `tapRev: 2`, `clayRev: 4`): lower, not zero, so honest players keep their bands. Letterfall waits on real play to set its par; Forage and Nucleus are already near 0. |
+
+## Careless-play costs (13 Oct 2026): Flash, Bang On, Pull!
+
+A light-touch fix for scoring reference open item 16: careless play earns less, honest players' bands move by at most 3 (they moved by at most 2). New puzzles are stamped `tapRev: 2` (Flash, Bang On) and `clayRev: 4` (Pull!); older stamps score exactly as before.
+
+- **Flash:** false starts cost 8 each for the first two, 11 each after that (was 8 each). Honest players make 0–2 (median), tapping every colour about 9.
+- **Bang On:** the same line to 101 at 200 ms, then an even fall to 0 at 325 ms (was 74 at 300 ms, 0 at 500 ms). Random taps average about 230 ms off; every simulated honest median is under 200 ms (average player about 145 ms).
+- **Pull!:** the first 30 shots that hit nothing (no clay, no bird) are free, then every 20 more cost 1. Honest runs miss 0–15; mashing fires over 300 empty shots.
+- The reveals read the stored breakdown (`extra.falseStartCost`; `extra.averageMs`, `kneeMs`, `zeroMs`; `extra.emptyShots`, `emptyShotCost`).
+
+Measured by `scripts/careless-play-check.ts` on the same 30 room seeds (5001–5030) and kits as above, each run graded under the old stamp (before) and the new one (after); medians:
+
+| Game | Line | Before | After | Change |
+|---|---|---|---|---|
+| Flash | average | 112 | 110 | −2 |
+| Flash | good | 135 | 135 | 0 |
+| Flash | great | 150 | 150 | 0 |
+| Flash | near-perfect | 150 | 150 | 0 |
+| Flash | **tap every colour (careless)** | 75 | **54** | −21 |
+| Flash | tap every 150–300 ms / every 1 s | 0 / 0 | 0 / 0 | 0 |
+| Bang On | average | 116 | 116 | 0 |
+| Bang On | good | 136 | 136 | 0 |
+| Bang On | great | 144 | 144 | 0 |
+| Bang On | near-perfect | 148 | 148 | 0 |
+| Bang On | **tap at a random time (careless)** | 92 | **72** | −20 |
+| Bang On | tap at the start / every 150–300 ms | 36 / 21 | 0 / 0 | −36 / −21 |
+| Pull! | average | 95 | 95 | 0 |
+| Pull! | good | 130 | 130 | 0 |
+| Pull! | great | 150 | 150 | 0 |
+| Pull! | near-perfect | 150 | 150 | 0 |
+| Pull! | **mash on whatever flies (careless)** | 30 | **16** | −14 |
+| Pull! | random shots 6 / 3 a second | 15 / 5 | 0 / 0 | −15 / −5 |
+
+No run scores more after. Within a band a few seeds move more than the median: a Flash average player with 3–4 false starts loses 3–6, and a Bang On average player whose run averages over 200 ms off (the worst of 30 is about 224 ms) loses up to about 13.
 
 ## Bands: median score per level, before → after (finish rate after)
 
@@ -93,10 +127,10 @@ Last two columns: doing nothing (max over 30 seeds) and the worst spam strategy'
 | Nucleus | 22 → **22** (0/30) | 57 → **57** (2/30) | 85 → **85** (7/30) | 137 → **137** (11/30) | 0 → 0 | 5 → 5 |
 | Forage | 16 → **16** (0/30) | 30 → **30** (0/30) | 48 → **48** (0/30) | 72 → **72** (1/30) | 0 → 0 | 8 → 8 |
 | Letterfall | 85 → **85** (1/30) | 150 → **150** (21/30) | 150 → **150** (29/30) | 150 → **150** (29/30) | 0 → 0 | 25 → 25 |
-| Flash | 112 → **112** (30/30) | 134 → **134** (30/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | 0 → 0 | 75 → 75 |
-| Bang On | 116 → **116** (30/30) | 136 → **136** (30/30) | 144 → **144** (30/30) | 148 → **148** (30/30) | 20 → 0 | 92 → 92 |
+| Flash | 112 → **112** (30/30) | 134 → **134** (30/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | 0 → 0 | 75 → 75 (54 with `tapRev: 2`) |
+| Bang On | 116 → **116** (30/30) | 136 → **136** (30/30) | 144 → **144** (30/30) | 148 → **148** (30/30) | 20 → 0 | 92 → 92 (72 with `tapRev: 2`) |
 | Bonk | 62 → **62** (0/30) | 102 → **102** (1/30) | 118 → **118** (0/30) | 133 → **133** (12/30) | 0 → 0 | 0 → 0 |
-| Pull! | 95 → **95** (0/30) | 130 → **130** (6/30) | 150 → **150** (21/30) | 150 → **150** (30/30) | 0 → 0 | 30 → 30 |
+| Pull! | 95 → **95** (0/30) | 130 → **130** (6/30) | 150 → **150** (21/30) | 150 → **150** (30/30) | 0 → 0 | 30 → 30 (16 with `clayRev: 4`) |
 
 ### Summary
 

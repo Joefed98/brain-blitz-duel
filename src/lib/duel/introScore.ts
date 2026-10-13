@@ -60,12 +60,12 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   numclimb: "Each digit you recall in order raises your score.",
 
   // Attention
-  reaction: "Tap fast: 200 ms or quicker on average scores 150. Tapping too early loses 8.",
-  stopwatch: "Stop each watch as close to the zone as you can. Closer scores more, up to 150.",
+  reaction: "Tap fast: 200 ms or quicker on average scores 150. Early taps cost 8, then 11 after two.",
+  stopwatch: "Stop each watch as close to the zone as you can, up to 150. Over 200 ms off drops fast.",
   numhunt: "Tap all 24 in order for 120, more if you're quick. Wrong taps lose 5.",
   chain: "About 3 points per link. Finish all 40 for 120, more if you're quick.",
   whack: "Points for each target you hit; all of them scores 150. Wrong taps lose points.",
-  clayshoot: "5 for each orange clay and 10 for each gold one. Hitting a bird: lose 10.",
+  clayshoot: "5 per orange clay, 10 per gold. A bird costs 10; past 30 empty shots, each 20 cost 1.",
   symscan: "Points for each eagle you find. All three grids perfect: 120, more if you're quick.",
   countup: "Points for each tray; one off still scores. All three exact: 120, more if quick.",
   spotdiff: "Find all six for 120, more if you're quick. Otherwise 22 each; wrong taps lose 5.",

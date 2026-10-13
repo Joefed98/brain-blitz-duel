@@ -63,8 +63,14 @@ export function nearMiss(
         ? `${(60 - seconds).toFixed(1)} s short of the finish`
         : null;
     }
-    case "clayshoot":
-      return remaining("hits", number("total"), "clay");
+    case "clayshoot": {
+      const clays = remaining("hits", number("total"), "clay");
+      // clayRev 4: the stored empty-shot cost.
+      const cost = number("emptyShotCost"),
+        empty = number("emptyShots");
+      const wasted = cost !== null && cost > 0 && empty !== null ? `${empty} shots hit nothing: −${cost}` : null;
+      return clays && wasted ? `${clays} · ${wasted}` : (clays ?? wasted);
+    }
     case "bullseye":
       return extra["finished"] === true ? null : remaining("arrows", 10, "dart");
     case "breaker": {
