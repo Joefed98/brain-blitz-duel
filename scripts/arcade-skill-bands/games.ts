@@ -78,6 +78,8 @@ export interface GameSpec {
   tunee?: number;
   /** A later bank-only revision (Scrumper snipRev 6, Oct 2026), measured with `--rev=bank` against `tunee`. */
   bank?: number;
+  /** The Tuning F revision (Oct 2026), measured with `--rev=f` against liveBefore(spec). */
+  tunef?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -88,6 +90,10 @@ export interface GameSpec {
   /** Whether the run is a tap list (input: boolean) rather than events. */
   taps?: boolean;
 }
+
+/** The revision rooms stamped before Tuning F (the latest earlier slot that is set). */
+export const liveBefore = (spec: GameSpec): number | null | undefined =>
+  spec.bank ?? spec.tunee ?? spec.tunec ?? spec.current ?? spec.tuned ?? spec.next ?? spec.live;
 
 /** A spread of 32-bit room seeds (fixed, so the table reproduces). */
 export function roomSeed(n: number): number {
