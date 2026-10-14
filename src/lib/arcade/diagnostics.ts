@@ -9,6 +9,7 @@
 import { beatCheckpoint } from "./beat";
 import { binTossCheckpoint } from "./binToss";
 import { brkCheckpoint } from "./breaker";
+import { pinCheckpoint } from "./pinball";
 import { bubCheckpoint } from "./bubble";
 import { bullseyeCheckpoint } from "./bullseye";
 import { crossCheckpoint } from "./cross";
@@ -51,6 +52,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   beat: beatCheckpoint,
   bintoss: binTossCheckpoint,
   breaker: brkCheckpoint,
+  pinball: pinCheckpoint,
   bubble: bubCheckpoint,
   bullseye: bullseyeCheckpoint,
   cross: crossCheckpoint,

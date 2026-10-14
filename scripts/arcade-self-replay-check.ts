@@ -1,5 +1,5 @@
 /**
- * Self-replay proof for every arcade-engine game: all 22 active arcade games
+ * Self-replay proof for every arcade-engine game: all 22 active arcade games and practice-only Pinball
  * (each on the revision live rooms stamp today, plus the legacy rules stored
  * rounds still replay on), Colour Clash, Letterfall, and the retired games kept for practice. Each run drives the sim exactly the
  * way the phone does — random candidate inputs (many deliberately out of range)
@@ -121,6 +121,8 @@ import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TUNED } from "@/lib/arcade/breaker";
+import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
+import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { initBandFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
@@ -536,6 +538,8 @@ const GAMES: Game[] = [
   { key: "stroop", game: colourClashRev4Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 4) },
   { key: "stroop", game: colourClashRev3Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 3) },
   { key: "stroop", game: colourClashGame, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 0) },
+  // Pinball (practice only until PINBALL_IN_ROOMS): held-flipper changes, often both at once.
+  { key: "pinball", game: pinballGameFor(PIN_REV), checkpoint: pinCheckpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV) },
   // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.
   { key: "wordfall", game: wordfallGame, checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: encodeWordfallRun, replay: (seed: number, raw: string) => replayWordfallRun(seed, raw) },
 ];

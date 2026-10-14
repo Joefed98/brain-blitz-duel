@@ -174,7 +174,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 2. **Version-stamp every gameplay change.** Any change to rules, generation, physics,
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
-   `sliceRev`, `tapRev`, `chainTimeRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, and the move-limit stamps
+   `sliceRev`, `tapRev`, `chainTimeRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, and the move-limit stamps
    `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev`). Unstamped/older rounds must replay and score exactly as before.
    Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
@@ -192,6 +192,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 7. **Server is the arbiter.** Clients never send scores or correctness; the server
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
+
+**Pinball** (`pinball`, working title, 13 Oct 2026) is a new Retro arcade game, **practice only** until
+`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is set to `true` (the one switch: the registry, the practice list, the
+active arcade list and the checks all read it; after switching, update the docs' counts to 22 active arcade games). Its rules are
+`pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
 
 **Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21
 active arcade games (`ACTIVE_ARCADE_GAMES` in `arcadeFxGames.renderer.ts`); Junction keeps its world,

@@ -10,6 +10,7 @@ Legend: **Active** = dealt in rooms · **Retired** = practice only, never dealt 
 - **Word: 6 → 10 active.** Strikeout, Cryptogrid and Swapword (word batch, 12 Oct) and Letterfall (an arcade-engine word game, 12 Oct) added.
 - **Number: 6 → 9 active.** Brimful, Checkout and Ballpark (number batch, 12 Oct) added.
 - **Speed:** Flash, Bang On and Ascend send raw tap logs that the server scores (`tapRev: 1`, 12 Oct). Careless play costs more since 13 Oct (Flash and Bang On `tapRev: 2`, Pull! `clayRev: 4`): random Bang On taps about 72, tapping every Flash colour about 54, mashing Pull! about 16; honest bands within 2.
+- **Arcade: Pinball added, practice only (13 Oct).** A new Retro table game (working title Pinball); not dealt in rooms (`PINBALL_IN_ROOMS` is `false`). It is not in the active or retired totals: 73 active, 28 retired, Pinball noted separately.
 - **Arcade: 22 → 21 active.** Junction is retired to practice (Tuning C, 12 Oct). Every arcade game moved on: Batches 1–5 (11–12 Oct) added new rules to all 21 plus Junction; the Oct 2026 score bands (12 Oct) put every arcade game on one scoring shape; Tunings A, B, C and E (12–13 Oct) changed play or curves for 17 of them; Polish F and G and Tuning D (12–13 Oct) changed drawing and effects only. Each game's line in the Arcade table gives its current play and stamp; the revision history is in the scoring reference, section 11.2.
 - **Rotation** (decided 10 Oct) is built and seeded (11–12 Oct): see "How rooms use the bank".
 - **Scoring model:** arcade now scores on the bands (curve to 140 + up to 10 for a finish, or to 150 on open games); the 130 / 150 split describes stored rounds only.
@@ -185,9 +186,12 @@ All run on the deterministic engine: 60 ticks a second, integer physics, seeded 
 | Ball Tracker (balltrack) | Toybox | tap | Turn gold tubes (marbles inside roll out the new end) and switch bottom-row drops to route 30 marbles into cups of their colour; mid-round the bottom row moves and the cups swap. 1 per marble home; all 30 adds up to 10 for speed. | 60 s | btRev 3 |
 | Gemstone (matchup) | Gem | swap | 7 × 8 match-3 with fixed refill queues; bombs, stars and a Jackpot gem; each swap waits for the board to settle. Match points on an open curve (150 at 2,500). | 60 s | matchupRev 5 |
 | Junction (junction) | Real World | tap | Traffic lights at a crossroads with diagonal roads joining every 12 s, buses, turning cars and ambulances; a crash ends the run. Kept for practice and stored rounds. | 60 s | junctionRev 3 |
+| Pinball (pinball) — working title | Retro | hold left / right half (both at once with two thumbs) | **Practice only** (new 13 Oct). One fixed table for everyone: two flippers on thumb zones (hold the left or right half of the screen), three pop bumpers that flare neon when struck, two slingshots, a bank of four drop targets (all four down: a bonus, the spinner lit for 15 s and the bank open for 6 s), a spinner in the left orbit lane, three lit top lanes (each flipper press shifts the lit lanes; all three lit raises the multiplier to ×5). Three balls auto-launch up the shooter lane at fixed strengths; a drained ball relaunches until the clock or the balls run out, and takes the multiplier, lanes and targets with it. Border lights ripple out from every hit. Table points on an open curve (150 at 24,000). | 60 s | pinRev 1 |
 | Swerve / Steady / Dual / Ricochet / Rooftop Run / Bastion / Sort Rush / Parry / Hot Floor | Retired | | | 60 s each (Hot Floor 120 s) | — |
 
 Junction's status: **practice only** (retired 12 Oct in Tuning C); rooms deal the other 21.
+
+Pinball's status: **practice only** (new 13 Oct, working title), listed on its own under "New · practice only" on the practice screen. Rooms start dealing it when `PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is set to `true` (one switch: the registry, the active arcade list and the arcade checks all read it); then Arcade has 22 active games.
 
 **Arcade gameplay ideas still to come:** Pull! doubles and more in the master plan's "Later" sections. **Arcade candidates still in the bank:** Crowd Sort, Balance the Tower, asteroid dodge. New-content ideas (sports, action games, solitaire) are in the master plan.
 
@@ -214,6 +218,8 @@ Joe's turn-based tactics concept for two players on their own phones: secret dep
 | Logic | 11 | 2 | 13 |
 | Arcade | 21 | 10 | 31 |
 | **Total** | **73** | **28** | **101** |
+
+Not counted above: **Pinball** (`pinball`, Arcade), new and practice only (`PINBALL_IN_ROOMS` is `false`, so rooms never deal it). It is listed on its own in practice, under "New · practice only".
 
 Engine games outside Arcade: Letterfall (Word), Tenfall (Number), Bonk and Pull! (Speed), Mixed Signals (Attention). Target: at least six strong games per category (every core category is there; Memory is empty). Guiding rule: aim for around 40 outstanding games with radically different skill profiles rather than 100 variations.
 

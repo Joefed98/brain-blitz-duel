@@ -13,6 +13,7 @@ import { type HoverState } from "@/lib/arcade/hover";
 import type { SnakeState } from "@/lib/arcade/snake";
 import { BRK_PADDLE_Y, type BrkState } from "@/lib/arcade/breaker";
 import type { RallyState } from "@/lib/arcade/rally";
+import type { PinState } from "@/lib/arcade/pinball";
 import type { BurstState } from "@/lib/arcade/burst";
 import { BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
@@ -219,6 +220,30 @@ export function breakerSounds(): GameSounds<BrkState> {
           return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (BRK_PADDLE_Y - 40) * 256;
         });
         if (paddleHit) playSound("arc_retro_blip", 0.8, 1, true);
+      }
+      prev = state;
+    },
+    stop: () => {},
+  };
+}
+
+export function pinballSounds(): GameSounds<PinState> {
+  let prev: PinState | null = null;
+  const start = retroStart();
+  return {
+    frame(state, running) {
+      start(running);
+      if (prev && state.tick > prev.tick) {
+        if (state.lost > prev.lost) playSound("arc_retro_explode");
+        if (state.live && !prev.live) playSound("arc_bounce", 0.8);
+        if (state.bumps > prev.bumps) playSound("arc_retro_hit", 0.8, 1, true);
+        if (state.slings > prev.slings) playSound("arc_retro_blip", 0.6, 1.3, true);
+        if (state.drops > prev.drops) playSound("arc_retro_coin", 0.8, 1, true);
+        if (state.banks > prev.banks || state.laneSets > prev.laneSets) playSound("arc_retro_pickup");
+        else if (state.laneLights > prev.laneLights) playSound("arc_retro_note", 0.8);
+        if (state.spins > prev.spins) playSound("arc_retro_blip", 0.5, 1.6, true);
+        // A flipper raised (each side once per press).
+        if ((state.held & ~prev.held) !== 0) playSound("arc_retro_blip", 0.7, 0.8, true);
       }
       prev = state;
     },

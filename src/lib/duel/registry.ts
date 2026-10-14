@@ -57,6 +57,8 @@ import { binTossPuzzle } from "@/puzzles/binToss";
 import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
+import { pinballPuzzle } from "@/puzzles/pinball";
+import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
 import { steadyPuzzle } from "@/puzzles/steady";
 import { slicePuzzle } from "@/puzzles/slice";
@@ -178,6 +180,8 @@ const RETIRED_TYPES = new Set<PuzzleType>([
   "junction",
   // Rotation (13 Oct 2026): practice only; stored rounds replay and score on their own rules.
   "intruder",
+  // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
+  ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
 
 /** Slack added to every arcade phase beyond its run; never shown to players. */
@@ -243,6 +247,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   bullseye: bullseyePuzzle,
   matchup: matchupPuzzle,
   breaker: breakerPuzzle,
+  pinball: pinballPuzzle,
   rally: rallyPuzzle,
   steady: steadyPuzzle,
   slice: slicePuzzle,
@@ -327,6 +332,13 @@ export function isRetired(type: PuzzleType): boolean {
 export const ACTIVE_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => !isRetired(t));
 
 export const RETIRED_PUZZLE_TYPES = PUZZLE_TYPES.filter((t) => isRetired(t));
+
+/**
+ * New games that rooms do not deal yet, listed on their own in practice (not
+ * under Retired): Pinball until PINBALL_IN_ROOMS. They are also in
+ * RETIRED_PUZZLE_TYPES, which is what keeps them out of room draws.
+ */
+export const PREVIEW_PUZZLE_TYPES: PuzzleType[] = PINBALL_IN_ROOMS ? [] : ["pinball"];
 
 export function puzzleCategories(): PuzzleCategory[] {
   return Array.from(new Set(ACTIVE_PUZZLE_TYPES.map((t) => PUZZLE_REGISTRY[t].category)));

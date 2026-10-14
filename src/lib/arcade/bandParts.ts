@@ -1,5 +1,5 @@
 /**
- * The 22 active arcade games' Oct 2026 score bands in one table: each game's
+ * The 22 active arcade games' Oct 2026 score bands in one table (and Pinball, practice only): each game's
  * band breakdown (from its own sim), its curve, and how its finish works. Read
  * by the arcade reveal and the score-band check; the sims own the rules.
  */
@@ -28,6 +28,7 @@ import { sliceBandParts, SLICE_BAND_CURVE, SLICE_REV_BAND } from "./slice";
 import { burstBandParts, BURST_BAND_CURVE, BURST_REV_BAND } from "./burst";
 import { swingBandParts, SWING_BAND_CURVE, SWING_REV_BAND, SWING_REV_TUNED } from "./swing";
 import { bullseyeBandParts, BULLSEYE_BAND_CURVE, BULLSEYE_REV_BAND } from "./bullseye";
+import { pinballBandParts, PIN_BAND_CURVE, PIN_REV } from "./pinball";
 
 export interface BandSpec {
   parts: (state: any) => BandParts;
@@ -66,6 +67,8 @@ export const BAND_SPECS: Record<string, BandSpec> = {
   burst: { parts: burstBandParts, curve: BURST_BAND_CURVE, kind: "finish" },
   swing: { parts: swingBandParts, curve: SWING_BAND_CURVE, kind: "finish", last: { unit: 1, extra: 5, extras: 10 } },
   bullseye: { parts: bullseyeBandParts, curve: BULLSEYE_BAND_CURVE, kind: "open" },
+  // Practice only until PINBALL_IN_ROOMS; born on the bands (its first revision is band-stamped).
+  pinball: { parts: pinballBandParts, curve: PIN_BAND_CURVE, kind: "open" },
 };
 
 /**
@@ -95,6 +98,7 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, .
   burst: ["burstRev", BURST_REV_BAND],
   swing: ["swingRev", SWING_REV_BAND, SWING_REV_TUNED],
   bullseye: ["bullRev", BULLSEYE_REV_BAND],
+  pinball: ["pinRev", PIN_REV],
 };
 
 /**

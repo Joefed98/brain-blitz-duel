@@ -54,6 +54,7 @@ const REV_KEY: Record<string, string> = {
   snip: "snipRev",
   tilt: "tiltRev",
   balltrack: "btRev",
+  pinball: "pinRev",
 };
 
 /** A fixed seed per game, so a rebuild deals the same rooms (the generator's own seed is overwritten where it is free). */
