@@ -24,12 +24,12 @@ The Oct 2026 puzzle score shape (`puzzleScoreRev: 1`; `docs/duelz-scoring-refere
 
 | Game | Strategy | Median / max | Why it stays |
 |---|---|---|---|
-| Colour Flood | random or cycling colours | 120 / 135 | Any colour sequence floods the board (random play in 1.5–3.4× par). A solve must stay a finish (rule c), so only a move limit in the game (with a moves-left counter) can stop it. |
-| Polypotions | random legal pours | 120 / 128 | Random pours solve about two boards in three (1.4–2.7× the minimum); same as Colour Flood: needs a pour limit. |
-| Topsy-Turvy | random tilts | 0 / 131 | Partial credit is 0 (wasteFactor), but a parked ball never moves, so random tilting solves about one board in five. Needs a tilt limit. |
-| Counterweight | random hanging | 55 / 120 | The two small scales balance by chance and only the final placement is sent. Weights 20 / 35 / 75 keep it at 55; needs harder small scales or a placement log. |
-| Operator | trying every operator order | 68 / 120 | Each stage flashes CORRECT live and stages 1–2 have 16 and 64 orders; needs a try limit. |
-| Tally | guessing in range | 66 / 79 | Every tray's count is one of five values (6–10, 8–12, 10–14), so a blind guess is often exact or one off; needs wider count ranges. |
+| Colour Flood | random or cycling colours | 0 / 135 since the move limit (the 135 is cycling's one real finish); was 126 / 135 | **Move limit par + 2 and a waste factor reaching 0 at the limit (`floodRev 1`, 13–14 Oct)**: below 5, no longer a flag. Random play no longer floods the board (0 of 30; cycling 1 of 30), and a board that runs out of moves scores 0. |
+| Polypotions | random legal pours | 41–42 / 132 since the pour limit; was 120 / 128 | **Pour limit (13 Oct, `tubesRev 1`)**: random pours no longer solve (0–1 of 30); they keep the unfinished credit for flasks corked by the limit. |
+| Topsy-Turvy | random tilts | 0–31 / 131 since the tilt limit; was 0 / 131 | **Tilt limit (13 Oct, `gravityRev 1`)**: random tilting solves 1 board in 30 (was one in five), but stopping at the limit keeps wasteFactor above 0, so 3 tilts a second now keeps some unfinished credit (median 31). |
+| Counterweight | random hanging | 0 / 75 since the hang limit; was 55 / 120 | **Hang limit and unique small scales (13 Oct, `balanceRev 1`)**: below 5, no longer a flag. The limit is the phone's count; with no limit at all the harder scales alone give random hanging a median of 20. |
+| Operator | trying every operator order | 20 / 65 since 3 tries; was 68 / 120 | **3 tries per equation (13 Oct, `equationRev 1`)**: brute force reaches stage 1 on about half the boards, stage 2 rarely. The try count is the phone's word. |
+| Tally | guessing in range | 53 / 79 (random 44 / 100) since `countRev 1`; was 66 / 79 | **Seven count values per tray (13 Oct)**: 5–11, 7–13, 9–15, so a blind guess is less often exact or one off. Near misses still score by design (60 % / 30 %). |
 | Roundabout | random traces | 16 / 47 | The phone keeps only words that fill a slot, so a scoring trace is a real find; costing misses needs an attempt log. |
 | Strikeout | letters in frequency order | 83 / 126 | That is how the game is played (a weak but real strategy). Random letters and A–Z score 0. |
 | Swapword | swapping non-green / amber tiles | 30 / 66 | Uses the tile marks: real play. Random swaps score 0. |
@@ -75,7 +75,7 @@ No run scores more after. Within a band a few seeds move more than the median: a
 
 ## Bands: median score per level, before → after (finish rate after)
 
-Last two columns: doing nothing (max over 30 seeds) and the worst spam strategy's median, before → after.
+Last two columns: doing nothing (max over 30 seeds) and the worst spam strategy's median, before → after. Colour Flood, Polypotions, Topsy-Turvy, Counterweight, Operator, Brimful and Tally changed again later on 13 Oct (move limits and Tally's counts): their current numbers are in "Move limits" at the end.
 
 | Game | Average | Good | Great | Near-perfect | Nothing | Worst spam median |
 |---|---|---|---|---|---|---|
@@ -153,3 +153,35 @@ The shape barely moves the bands as a whole: a good solve now scores 120 + the s
 ### Caveats
 
 The kits are scripted players, not people: think times per action are estimates (noted per kit), mistakes are modelled, and a few solvers are stronger than a person (Tenfall's reads the whole screen). The before/after differences are reliable (same puzzle, same play); the absolute band per game is a starting point for Joe's phone testing.
+
+## Move limits (13 Oct 2026)
+
+Random or brute-force play used to pay in six puzzles (rule b flags above). Each now has a visible limit on the board ("Moves 7 / 12", "pours", "tilts", "hangs", "tries"); running out ends that board as unfinished, scored on the game's existing unfinished rules (Colour Flood's waste factor now reaches 0 at the limit, so running out there scores 0). Tally's trays take wider counts. Every change is gated on the game's own stamp (`floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev 2`, `countRev`; `src/lib/duel/moveLimits.ts`), so stored rounds and the other games are unchanged (`scripts/move-limits-check.ts`: 1,973 stored answers grade identically).
+
+| Game | Limit (new rounds) | How it was set |
+|---|---|---|
+| Colour Flood | par + 2 taps | Over 120 seeds good players finish 117 (par + 2) or 118 (par + 3) boards of 120, great and near-perfect all 120; random colours 58 vs 64, cycling 88 vs 91. par + 1 cut good finishes to 23 / 30. |
+| Polypotions | minimum + 6 pours, rounded up to a 5 (shown; the minimum stays private); Undo and Reset never give a pour back | Good players' finishes unchanged (27 / 30) from minimum + 4 up; random pours 41–42. |
+| Topsy-Turvy | minimum + 6 tilts, rounded up to a 5 | Good and great finishes unchanged (23 / 30, 30 / 30); + 2 cost great players two boards. |
+| Counterweight | 6 / 8 / 10 hangs (weights + 4 / 5 / 6); scales 1–2 with exactly one balanced arrangement | Random hanging 0 at 5 / 7 / 9 to 7 / 9 / 11 alike; solver bands identical. |
+| Operator | 3 full tries per equation | 2 tries cost good players 7 finishes in 60, 3 tries 1, 4 tries none; brute force 0 / 20 / 20. |
+| Brimful | 3 × the minimum per puzzle, rounded up to a 5 | For consistency: random play already scored 0 and no level comes near it; scores unchanged. |
+| Tally | counts 5–11, 7–13, 9–15 (was 6–10, 8–12, 10–14) | Same middles. The kit's honest scores do not depend on the count (120 seeds: 65 / 136 / 150 / 150 with either range). |
+
+**Bands, median per level, 30 room seeds (5001–5030), before → after the limits** (both on the `puzzleScoreRev 1` shape; finish rate after in brackets), and every spam strategy's median / max:
+
+| Game | Average | Good | Great | Near-perfect | Random / brute-force median / max |
+|---|---|---|---|---|---|
+| Colour Flood | 98 → **96** (1/30) | 146 → **146** (29/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | random 2 / s 120 / 130 → **0 / 0**; cycling 126 / 135 → **0 / 135** (1 finish); random 0.5 / s 99 / 125 → **0 / 0** |
+| Polypotions | 24 → **24** (0/30) | 140 → **139** (27/30) | 149 → **148** (30/30) | 150 → **150** (30/30) | random 1.5 / s 120 / 128 → **41 / 93**; 3 / s 120 / 126 → **42 / 132** |
+| Topsy-Turvy | 37 → **37** (1/30) | 137 → **137** (23/30) | 148 → **148** (30/30) | 150 → **150** (30/30) | random 1.5 / s 0 / 120 → **0 / 63**; 3 / s 0 / 131 → **31 / 131** |
+| Counterweight | 55 → **55** (13/30) | 145 → **145** (30/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | random hanging 38 / 120 → **0 / 75**; fast 55 / 120 → **0 / 20**; place once 0 → 0 |
+| Operator | 85 → **85** (2/30) | 143 → **143** (30/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | brute force 68 / 120 → **20 / 65**; random 0 / 35 → 0 / 35; all plus 0 / 55 → 0 / 55 |
+| Brimful | 48 → **48** (0/30) | 110 → **110** (14/30) | 144 → **144** (30/30) | 150 → **150** (30/30) | random 0 / 30 → **0 / 0**; fast 0 / 30 → 0 / 30; sweep 0 → 0 |
+| Tally | 63 → **55** (2/30) | 97 → **97** (14/30) | 150 → **150** (26/30) | 150 → **150** (29/30) | guess the middle 66 / 79 → **53 / 79**; random in range 39 / 70 → **44 / 100** |
+
+Every honest band moves by at most 1 except Colour Flood's average (98 → 96: an average player who times out a move or two past par now keeps half or none of the credit) and Tally's average (63 → 55 on these 30 seeds): the wider counts redraw every scene, and on 120 seeds the average is 65 with either range, so the 30-seed difference is which boards were drawn, not the rule. Rules a, c and e still pass for all seven (finishes ≥ 121, unfinished ≤ 110).
+
+**What the server verifies.** Colour Flood, Polypotions (Undo and Reset now in the log), Topsy-Turvy and Brimful send every move, and the server replays only the moves inside the stored limit. Counterweight and Operator send the final placement / operators plus the phone's hang / try counts; the server refuses a count over the limit, but the count is the phone's word (a modified phone could send fewer). Counterweight's harder small scales are verifiable: with no limit at all, random hanging scores a median of 20 (was 38–55).
+
+**Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).

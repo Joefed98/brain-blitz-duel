@@ -25,6 +25,7 @@ import { buildRoomPuzzles, gradeAnswer, generatePuzzle } from "@/lib/duel/genera
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef, typesInCategory } from "@/lib/duel/registry";
 import { splitPuzzle } from "@/lib/duel/secrets";
+import { MEASURE_LIMIT_REV } from "../src/lib/duel/moveLimits";
 import {
   decodeMeasureActions,
   encodeMeasureAction,
@@ -86,7 +87,7 @@ const REV_KEY = { measure: "measureRev", checkout: "checkoutRev", numline: "numl
 const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
 // The Oct 2026 puzzle score shape (puzzleScoreRev 1) lines; stored rounds keep their old scoring (anchors below).
 const SCORE_LINES = {
-  measure: "30, 35, 45 for puzzles 1-3; all four for 120, more for few moves and speed",
+  measure: "30, 35, 45 for puzzles 1-3, moves limited; all four for 120, more for few moves and speed",
   checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
   numline: "Up to 8 per number for accuracy (120 for all 15), more if quick; far-off ones lose 1",
 };
@@ -108,7 +109,9 @@ for (const type of TYPES) {
   ok(Boolean(def.instructions?.score), `${type}: no "?" help`);
   const made = generatePuzzle(type, { bankSeed: 12345 }) as unknown as Record<string, unknown>;
   ok(made["speedPar"] === 1, `${type}: speedPar stamp`);
-  ok(made[REV_KEY[type]] === 1, `${type}: ${REV_KEY[type]} stamp`);
+  // Brimful's marker is 2 on new puzzles since the 13 Oct 2026 move limit (moveLimits.ts MEASURE_LIMIT_REV).
+  const wantRev = type === "measure" ? MEASURE_LIMIT_REV : 1;
+  ok(made[REV_KEY[type]] === wantRev, `${type}: ${REV_KEY[type]} stamp ${String(made[REV_KEY[type]])}, want ${wantRev}`);
   const { pub, priv } = splitPuzzle(made as unknown as PuzzleData);
   for (const key of PRIVATE[type]) {
     ok(!(key in (pub as unknown as Record<string, unknown>)), `${type}: ${key} reaches the phone`);

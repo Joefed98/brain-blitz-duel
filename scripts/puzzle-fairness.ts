@@ -91,31 +91,26 @@ export const KNOWN_SPAM: Partial<Record<PuzzleType, Record<string, string>>> = {
   strikeout: { "frequency-order": `${STRATEGY} (guessing letters in frequency order is how the game is played)` },
   codeword: { "frequency-fill": `${STRATEGY} (letter-frequency code breaking)` },
   swapword: { "swap-non-green": `${STRATEGY} (uses the tile marks)`, "swap-amber": `${STRATEGY} (uses the tile marks)` },
-  equation: { "brute-force": "each stage flashes CORRECT live and stages 1–2 have 16 and 64 operator orders, so trying them all is solving; needs a try limit in the game" },
+  equation: { "brute-force": "3 tries per equation (equationRev 1): trying operator orders until CORRECT now reaches stage 1 on about half the boards and rarely stage 2 (median 20, was 68)" },
   balance: {
-    "random-hang": "the two small scales balance by chance and only the final placement is sent; needs harder small scales or a placement log",
-    "random-hang-fast": "the two small scales balance by chance and only the final placement is sent; needs harder small scales or a placement log",
+    "random-hang": "hang limit per scale and unique small scales (balanceRev 1): random hanging rarely balances (median 0, was 38); the limit itself is the phone's count",
+    "random-hang-fast": "hang limit per scale and unique small scales (balanceRev 1): random hanging rarely balances (median 0, was 55)",
   },
   checkout: { greedy: `${STRATEGY} (biggest dart, then a finisher)` },
   countup: {
-    "guess-typical": "each tray's count is one of 5 values (6–10, 8–12, 10–14), so a guess near the middle is often exact or one off; needs wider count ranges",
-    "guess-random": "each tray's count is one of 5 values, so a random guess in range often scores; needs wider count ranges",
+    "guess-typical": "each tray's count is one of 7 values since countRev 1 (5–11, 7–13, 9–15; was 5), so a guess near the middle is less often exact or one off (median about 50, was 66)",
+    "guess-random": "a random guess in range (7 values per tray since countRev 1) still scores on near misses (median about 45)",
   },
   maze: { "blind-dfs-6cps": `${STRATEGY} (wall-following every dead end at 6 cells a second)` },
   flow: { "direct-lines": `${STRATEGY} (each dot drawn straight to its twin; many shortest routes are the solution)` },
   nonogram: { "busy-lines": `${STRATEGY} (fills rows and columns whose clues are long)` },
   gravity: {
-    "random-1.5/s": "a parked ball never moves again, so random tilting parks balls and sometimes solves; a solve must stay a finish (rule c), so this needs a tilt limit in the game",
-    "random-3/s": "a parked ball never moves again, so random tilting parks balls and sometimes solves; needs a tilt limit in the game",
+    "random-1.5/s": "tilt limit (gravityRev 1): random tilting runs out long before it solves (about one board in 30); the board then keeps the existing unfinished credit for balls parked",
+    "random-3/s": "tilt limit (gravityRev 1): random tilting runs out and keeps the unfinished credit for parked balls at the limit (median about 30)",
   },
   tubes: {
-    "random-pours-1.5/s": "random legal pours solve about half the boards (1.4–2.7× the minimum); a solve must stay a finish (rule c), so this needs a pour limit in the game",
-    "random-pours-3/s": "random legal pours solve about half the boards; needs a pour limit in the game",
-  },
-  flood: {
-    "random-colours-2/s": "any colour sequence floods the board (random play floods in 1.5–3.4× par); a solve must stay a finish (rule c), so this needs a move limit in the game",
-    "cycle-colours-2/s": "cycling the colours floods the board; needs a move limit in the game",
-    "random-colours-0.5/s": "random play floods the board; needs a move limit in the game",
+    "random-pours-1.5/s": "pour limit (tubesRev 1): random pours no longer solve (was two boards in three); at the limit they keep the existing unfinished credit for corked flasks (median about 40)",
+    "random-pours-3/s": "pour limit (tubesRev 1): random pours keep the unfinished credit for corked flasks at the limit (median about 40)",
   },
 };
 /** Ballpark has no clean finish: "all placed" is its finish, scaled by accuracy, so rule c's 120 floor does not apply. */

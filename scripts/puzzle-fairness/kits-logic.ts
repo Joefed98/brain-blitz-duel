@@ -32,7 +32,8 @@ import {
   type TowerMove,
   type TowerPegs,
 } from "../../src/lib/duel/tower";
-import { canPour, decodeTubeMoves, encodeTubeMoves, pour, tubesSolved, type TubeMove, type TubeState } from "../../src/lib/duel/tubes";
+import { canPour, decodeTubeMoves, encodeTubeLog, encodeTubeMoves, pour, tubesSolved, type TubeMove, type TubeState, type TubeToken } from "../../src/lib/duel/tubes";
+import { floodMoveLimit, tubesPourLimit, tubesSendsUndo } from "../../src/lib/duel/moveLimits";
 import { clueHolds, encodeSafeTries } from "../../src/lib/duel/safe";
 import { canonicalBombOrder, decodeBombActions, decodeBombConstraints, encodeBombActions, bombPredecessors } from "../../src/lib/duel/bomb";
 import { encodeNonoCells, type NonoMarks } from "../../src/lib/duel/nonogram";
@@ -486,15 +487,25 @@ function tubeLegal(state: TubeState): TubeMove[] {
   return out;
 }
 
+/** tubesRev 1 sends Undo and Reset in the log (every pour counts); stored rounds send only the pours left after Undo. */
+const tubesEncode = (pz: TubesPuzzleData, log: TubeToken[]) => {
+  if (tubesSendsUndo(pz)) return encodeTubeLog(log);
+  const moves: TubeMove[] = [];
+  for (const t of log) if (t === "undo") moves.pop(); else if (t === "reset") moves.length = 0; else moves.push(t);
+  return encodeTubeMoves(moves);
+};
+
 const tubesKit: PuzzleKit = {
   type: "tubes",
   nothing: () => encodeTubeMoves([]),
   spam(p, rng, limitMs) {
     const pz = p as TubesPuzzleData;
+    // The phone stops taking pours at the pour limit (tubesRev 1) and submits the board unfinished.
+    const cap = tubesPourLimit(pz) ?? Infinity;
     const random = (perSecond: number) => {
       let state = pz.tubes.map((t) => [...t]);
       const moves: TubeMove[] = [];
-      for (let i = 0; i < spamCount(limitMs, perSecond); i++) {
+      for (let i = 0; i < spamCount(limitMs, perSecond) && moves.length < cap; i++) {
         const legal = tubeLegal(state);
         if (!legal.length) break;
         const m = rng.pick(legal);
@@ -513,10 +524,10 @@ const tubesKit: PuzzleKit = {
     const pz = p as TubesPuzzleData;
     const plan = decodeTubeMoves(pz.solution ?? "");
     let state = pz.tubes.map((t) => [...t]);
-    const moves: TubeMove[] = [];
+    const moves: TubeToken[] = [];
     const steps: Step[] = [];
     let t = 0;
-    const record = () => steps.push({ answer: encodeTubeMoves(moves), atMs: t });
+    const record = () => steps.push({ answer: tubesEncode(pz, moves), atMs: t });
     for (const m of plan) {
       if (rng.chance(skill.err)) {
         const wrong = tubeLegal(state).filter((x) => x.from !== m.from || x.to !== m.to);
@@ -526,7 +537,7 @@ const tubesKit: PuzzleKit = {
           moves.push(rng.pick(wrong));
           record();
           t += thinkMs(rng, TUBES_BASE * (rng.chance(0.5) ? 0.5 : 1.2), skill);
-          moves.pop();
+          moves.push("undo");
           record();
         }
       }
@@ -744,10 +755,12 @@ const floodKit: PuzzleKit = {
   nothing: () => encodeFloodMoves([]),
   spam(p, rng, limitMs) {
     const pz = p as FloodPuzzleData;
+    // The phone stops taking taps at the move limit (floodRev 1) and submits the board unfinished.
+    const cap = floodMoveLimit(pz) ?? Infinity;
     const run = (pickColour: (grid: number[], i: number) => number, perSecond: number) => {
       let grid = pz.grid;
       const moves: number[] = [];
-      for (let i = 0; i < spamCount(limitMs, perSecond); i++) {
+      for (let i = 0; i < spamCount(limitMs, perSecond) && moves.length < cap; i++) {
         const c = pickColour(grid, i);
         if (c === grid[0]) continue; // the phone ignores the current colour
         grid = floodApply(grid, c);

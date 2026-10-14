@@ -40,6 +40,7 @@ import { encodeFlowPaths } from "../src/lib/duel/flow";
 import { encodePlacements } from "../src/lib/duel/blockParty";
 import { encodeBulbs } from "../src/lib/duel/lightUp";
 import { buildRoomPuzzles, gradeAnswer } from "../src/lib/duel/generate.server";
+import { stampMoveLimits } from "../src/lib/duel/moveLimits.server";
 import {
   BANKED_TYPES,
   bankEntrySeed,
@@ -241,14 +242,15 @@ if (PART === PARTS) {
       banked++;
       const { speedPar, puzzleScoreRev, tieRev: _tieRev, ...rest } = puzzle as PuzzleData & { speedPar?: number; puzzleScoreRev?: number; tieRev?: number };
       const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
-      // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev).
-      if (speedPar !== SPEED_PAR_VERSION || puzzleScoreRev !== PUZZLE_SCORE_REV || JSON.stringify(rest) !== JSON.stringify(expected)) sameShape = false;
-      const again = drawBankedPuzzle(puzzle.type as BankedType, seed);
+      // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev
+      // and the per-game limit stamps of moveLimits.server.ts: Polypotions' tubesRev / pourLimit, Topsy-Turvy's gravityRev / tiltLimit).
+      if (speedPar !== SPEED_PAR_VERSION || puzzleScoreRev !== PUZZLE_SCORE_REV || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(expected!))) sameShape = false;
+      const again = stampMoveLimits(drawBankedPuzzle(puzzle.type as BankedType, seed));
       if (JSON.stringify(again) !== JSON.stringify(rest)) reproducible = false;
     }
   }
   check(banked > 20, `room start: ${banked} banked rounds drawn over 60 logic+pattern rooms`);
-  check(sameShape, "room start: banked rounds are the bank entry for the room seed, stamped speedPar and puzzleScoreRev like live rounds");
+  check(sameShape, "room start: banked rounds are the bank entry for the room seed, stamped speedPar, puzzleScoreRev and their limits like live rounds");
   check(reproducible, "room start: the room seed alone reproduces every banked round");
   const logicPattern = [...typesInCategory("logic"), ...typesInCategory("pattern")];
   check(BANKED_TYPES.every((t) => logicPattern.includes(t)), "room start: all six banked types are active room types");

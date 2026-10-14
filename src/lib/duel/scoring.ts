@@ -968,6 +968,12 @@ export function scorePairMatch(
   return clamp(PAIR_PAIR_POINTS * clamp(Math.round(pairs), 0, PAIR_PAIRS), 0, MAX_ROUND_SCORE);
 }
 
+/** Colour Flood floodRev 1 waste factor: 1 up to par, falling evenly to 0 at the move limit. */
+export function floodLimitWaste(moves: number, par: number, moveLimit: number): number {
+  if (!Number.isFinite(moves) || moves <= par) return 1;
+  return clamp((moveLimit - moves) / (moveLimit - par), 0, 1);
+}
+
 /** Colour Flood (C). Unfinished round(110 × region ÷ 196). */
 export function scoreFlood(
   solved: boolean,
@@ -977,10 +983,15 @@ export function scoreFlood(
   msRemaining: number,
   timeLimitMs: number = FLOOD_TIME_MS,
   regionAtStart = 0,
+  /** floodRev 1 (moveLimits.ts): the stored move limit; null on stored rounds. */
+  moveLimit: number | null = null,
 ): number {
   if (solved) return scoreSolvedMoves(moves, par, msRemaining, timeLimitMs, "C");
-  // Rev 1: only cells the player flooded beyond the starting region count.
-  if (scoreRev1()) return partialParts(((110 * Math.max(0, region - regionAtStart)) / Math.max(1, FLOOD_CELLS - regionAtStart)) * wasteFactor(moves, par));
+  // Rev 1: only cells the player flooded beyond the starting region count. floodRev 1: the waste
+  // factor falls from 1 at par to 0 at the move limit (par + 2) instead of at 4× par, so a board
+  // that runs out of moves (random taps, colour cycling) scores 0.
+  const waste = moveLimit !== null && moveLimit > par ? floodLimitWaste(moves, par, moveLimit) : wasteFactor(moves, par);
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, region - regionAtStart)) / Math.max(1, FLOOD_CELLS - regionAtStart)) * waste);
   return clamp(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
     0,

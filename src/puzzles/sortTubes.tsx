@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   canPour,
+  decodeTubeLog,
   decodeTubeMoves,
+  encodeTubeLog,
   encodeTubeMoves,
+  replayTubeLog,
   replayTubes,
   topGroup,
   tubeSorted,
   type TubeMove,
   type TubeState,
+  type TubeToken,
 } from "@/lib/duel/tubes";
+import { limitText, tubesPourLimit, tubesSendsUndo } from "@/lib/duel/moveLimits";
 import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -155,28 +160,38 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isTubes],
   );
-  const [moves, setMoves] = useStageState<TubeMove[]>(stateKey, "tubeMoves", () => []);
+  // tubesRev 1 (moveLimits.ts): the log keeps Undo and Reset, every pour counts and the last allowed pour ends the board.
+  const logged = isTubes && tubesSendsUndo(puzzle);
+  const pourLimit = isTubes ? tubesPourLimit(puzzle) : null;
+  const [moves, setMoves] = useStageState<TubeToken[]>(stateKey, "tubeMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "tubeLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "tubeShake", () => null);
   const [poured, setPoured] = useState<{ tube: number; count: number; key: number } | null>(null);
   const submitted = useRef(false);
 
-  const replay = useMemo(() => replayTubes(start, moves), [start, moves]);
+  const play = (log: TubeToken[]) =>
+    logged ? replayTubeLog(start, log, pourLimit) : { ...replayTubes(start, log as TubeMove[]), outOfPours: false, depth: log.length };
+  const encode = (log: TubeToken[]) => (logged ? encodeTubeLog(log) : encodeTubeMoves(log as TubeMove[]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
   const solving = useSolveFx("tubes", isTubes && replay.solved);
 
   useEffect(() => {
-    onDraftAnswer?.(encodeTubeMoves(moves));
-  }, [moves, onDraftAnswer]);
+    onDraftAnswer?.(encode(moves));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moves, onDraftAnswer, logged]);
 
   useEffect(() => {
-    if (locked || submitted.current || !replay.solved) return;
+    if (locked || submitted.current || !(replay.solved || replay.outOfPours)) return;
     submitted.current = true;
-    playCorrect();
-    onSubmit(encodeTubeMoves(moves));
-  }, [replay.solved, moves, locked, onSubmit]);
+    if (replay.solved) playCorrect();
+    // Out of pours: the board ends unfinished and goes in now.
+    onSubmit(encode(moves));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replay.solved, replay.outOfPours, moves, locked, onSubmit]);
 
   const tapTube = (tube: number) => {
-    if (locked || submitted.current || replay.solved) return;
+    if (locked || submitted.current || replay.solved || replay.outOfPours) return;
     if (lifted === null) {
       if (!(replay.tubes[tube] ?? []).length) return;
       hapticTick();
@@ -197,7 +212,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       return;
     }
     hapticTick();
-    const after = replayTubes(start, [...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
+    const after = play([...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
     soundCue("tubes.pour");
     if (tubeSorted(after)) soundCue("tubes.cork");
     setPoured({ tube, count: after.length - (replay.tubes[tube] ?? []).length, key: moves.length + 1 });
@@ -211,8 +226,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     <div data-logic-stage="tubes" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
-        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          moves <span className="text-primary">{replay.moves}</span>
+        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" data-move-limit={pourLimit ?? undefined}>
+          {pourLimit !== null
+            ? <>pours <span className={replay.outOfPours ? "text-warn" : "text-primary"}>{limitText(replay.moves, pourLimit)}</span></>
+            : <>moves <span className="text-primary">{replay.moves}</span></>}
         </p>
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
       </div>
@@ -220,11 +237,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
-          disabled={locked || !moves.length}
+          disabled={locked || replay.depth === 0}
           onClick={() => {
             setLifted(null);
             setPoured(null);
-            setMoves((current) => current.slice(0, -1));
+            // Undo never gives a pour back on a limited board: it is logged, not removed.
+            setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -232,11 +250,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         </button>
         <button
           type="button"
-          disabled={locked || !moves.length}
+          disabled={locked || replay.depth === 0}
           onClick={() => {
             setLifted(null);
             setPoured(null);
-            setMoves([]);
+            setMoves((current) => (logged ? [...current, "reset"] : []));
           }}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
@@ -249,7 +267,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "tubes") return null;
-  const mine = replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
+  const pourLimit = tubesPourLimit(puzzle);
+  const mine = tubesSendsUndo(puzzle)
+    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit)
+    : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
   const limit = timeLimitMs;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
@@ -266,14 +287,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          moves{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
+          {pourLimit !== null ? `of ${pourLimit} pours` : "moves"}{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>
       <p className="logic-reveal-text text-center text-muted-foreground">
         {myCorrect
           ? "Keep one flask empty for as long as you can."
-          : `${mine.sorted} of ${TUBES_COLOURS} flasks corked.`}
+          : `${mine.sorted} of ${TUBES_COLOURS} flasks corked${"outOfPours" in mine && mine.outOfPours ? " · out of pours" : ""}.`}
       </p>
     </div>
   );

@@ -43,11 +43,11 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
 
   // Number
   target: "Hit the target exactly for 120, more if you're quick. Close answers still score.",
-  equation: "Points for each part you solve. Solve all 4 for 120, more if you're quick.",
-  balance: "Scales score 20, 35 and 75, any order. All three for 120, more if you're quick.",
+  equation: "Points for each part you solve, 3 tries each. Solve all 4 for 120, more if you're quick.",
+  balance: "Scales score 20, 35 and 75; hangs are limited. All three for 120, more if you're quick.",
   numpyramid: "27 for each pyramid you finish. All four for 120, more if you're quick.",
   trail: "Complete the path for 120, more if you're quick. Otherwise about 4 per tile in place.",
-  measure: "30, 35, 45 for puzzles 1-3; all four for 120, more for few moves and speed",
+  measure: "30, 35, 45 for puzzles 1-3, moves limited; all four for 120, more for few moves and speed",
   // "board" for the brief's "stage": the intro wording check rejects "stage".
   checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
   // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
@@ -92,12 +92,12 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   push: "Get every crate home for 120, more for few moves and speed. Each crate home scores.",
   laser: "Light every gem for 120, more on your first shot and if you're quick.",
   tower: "Move the whole tower for 120, more for few moves and speed. Rings you stack score.",
-  tubes: "Cork every flask for 120, more for few moves and speed. Each flask corked scores.",
+  tubes: "Cork every flask within the pours for 120, more if few and quick. Each corked one scores.",
   safe: "Open the safe for 120, more on your first try and if you're quick.",
   bomb: "Defuse the bomb for 120, more if you're quick. Otherwise 22 per right step.",
-  gravity: "Park all four balls for 120, more for few moves and speed. Each ball parked scores.",
+  gravity: "Park all four within the tilts for 120, more if few and quick. Each parked ball scores.",
   nonogram: "Complete the picture for 120, more if you're quick. Otherwise points per right cell.",
-  flood: "Flood the board for 120, more for few moves and speed. Part-flooded still scores.",
+  flood: "Flood it within the moves for 120, more if few and quick. Out of moves scores nothing.",
   tiles: "Put the tiles in order for 120, more for few moves and speed. Tiles you place score.",
   rings: "Line up every spoke for 120, more for few moves and speed. Spokes you match score.",
   blockparty: "Place all nine pieces for 120, more if you're quick. Otherwise 14 per right piece.",
