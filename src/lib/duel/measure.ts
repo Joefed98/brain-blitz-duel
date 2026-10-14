@@ -95,24 +95,32 @@ export interface MeasureReplay {
   /** Counted moves up to the solve (or the end of the list). */
   moves: number;
   solved: boolean;
+  /** True when the board's move limit (measureRev 2) is used up without a solve. */
+  outOfMoves?: boolean;
 }
 
-/** Replays one board's actions from its start; play stops at the solve. */
+/**
+ * Replays one board's actions from its start; play stops at the solve. With a
+ * move limit (measureRev 2, moveLimits.ts) play also stops at the limit-th
+ * move: the board has ended unfinished.
+ */
 export function replayMeasure(
   board: MeasureBoardData,
   actions: readonly MeasureAction[],
+  limit: number | null = null,
 ): MeasureReplay {
   let amounts = [...board.start];
   let moves = 0;
   if (measureSolved(board, amounts)) return { amounts, moves, solved: true };
   for (const action of actions) {
+    if (limit !== null && moves >= limit) return { amounts, moves, solved: false, outOfMoves: true };
     const next = measureApply(board, amounts, action);
     if (!next) continue;
     if (action.kind !== "reset") moves += 1;
     amounts = next;
     if (measureSolved(board, amounts)) return { amounts, moves, solved: true };
   }
-  return { amounts, moves, solved: false };
+  return limit !== null && moves >= limit ? { amounts, moves, solved: false, outOfMoves: true } : { amounts, moves, solved: false };
 }
 
 /** Every move-counting action available on a board, in a fixed order. */
@@ -201,6 +209,8 @@ export function gradeMeasureBoards(
   boards: readonly MeasureBoardData[],
   minMoves: readonly number[],
   raw: string,
+  /** Per-board move limits (measureRev 2); null on stored rounds. */
+  moveLimits: readonly number[] | null = null,
 ): MeasureBoardResult[] {
   const parts = splitMeasureRound(raw);
   const out: MeasureBoardResult[] = [];
@@ -214,6 +224,7 @@ export function gradeMeasureBoards(
     const replay = replayMeasure(
       board,
       decodeMeasureActions(parts[index] ?? "", board.caps.length),
+      moveLimits?.[index] ?? null,
     );
     if (!replay.solved) open = false;
     out.push({

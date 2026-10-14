@@ -291,8 +291,13 @@ interface Slot {
   colour: GlyphColour;
 }
 
-/** Target count range per stage, scaled to the field's size. */
-const STAGE_COUNTS: [number, number][] = [[6, 10], [8, 12], [10, 14]];
+/**
+ * Target count range per stage, scaled to the field's size. countRev 1 (13 Oct
+ * 2026, stamped by moveLimits.server.ts): seven values per tray around the same
+ * middles (was 6–10, 8–12, 10–14), so a blind guess is rarely exact or one off.
+ * Generation only: stored rounds keep their stored scenes and grade unchanged.
+ */
+export const COUNTUP_STAGE_COUNTS_REV1: [number, number][] = [[5, 11], [7, 13], [9, 15]];
 
 const SCENE_W = 300;
 const SCENE_H = 260;
@@ -388,7 +393,7 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
 }
 
 export function buildCountUp(): CountUpPuzzleData {
-  const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, STAGE_COUNTS[i]!));
+  const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, COUNTUP_STAGE_COUNTS_REV1[i]!));
   return { type: "countup", stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
 }
 

@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { randInt, shuffled } from "@/lib/duel/random";
 import { useStageState } from "@/lib/duel/stageState";
+import { equationTryLimit, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import {
   equationStageCorrect,
   evaluateLeftToRight,
@@ -169,6 +171,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   const [slots, setSlots] = useStageState<(Operator | null)[]>(stateKey, "eqSlots", () =>
     Array(Math.max(0, (data?.stages[0]?.numbers.length ?? 1) - 1)).fill(null),
   );
+  // equationRev 1 (moveLimits.ts): every full operator set is a try; after the last wrong one the equation locks.
+  const tryLimit = data ? equationTryLimit(data) : null;
+  const [tries, setTries] = useStageState<number[]>(stateKey, "eqTries", () => Array.from({ length: data?.stages.length ?? 4 }, () => 0));
   const done = useRef(false);
   // Presentation only: the slot that just took an operator, whether a stage has advanced, and the finale.
   const [dropped, setDropped] = useState<{ index: number; n: number } | null>(null);
@@ -179,8 +184,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   const total = data?.stages.length ?? 4;
   const current = data?.stages[Math.min(stage, total - 1)];
   const liveAnswers = answers.map((a, i) => (i === stage ? slots.filter(Boolean).join(",") : a));
-  const draft = joinStages(liveAnswers, total);
+  const draft = tryLimit !== null ? joinCountSuffix(joinStages(liveAnswers, total), tries) : joinStages(liveAnswers, total);
   const complete = !!current && slots.every((slot) => slot !== null) && equationStageCorrect(current.numbers, current.target, slots.join(","));
+  const triesUsed = tries[stage] ?? 0;
+  const outOfTries = tryLimit !== null && !complete && triesUsed >= tryLimit;
   const holding = useStageCorrectHold({
     complete,
     finalStage: stage >= total - 1,
@@ -197,6 +204,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
 
   if (!data || !current) return null;
   const frozen = locked || done.current || holding;
+  // Out of tries: the equation is over; only Next (or Submit) is left.
+  const keysFrozen = frozen || outOfTries;
 
   const advance = (filled: (Operator | null)[]) => {
     const next = [...answers];
@@ -204,7 +213,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     setAnswers(next);
     if (stage >= total - 1) {
       done.current = true;
-      onSubmit(joinStages(next, total));
+      onSubmit(tryLimit !== null ? joinCountSuffix(joinStages(next, total), tries) : joinStages(next, total));
       // Display only: every equation right means the whole puzzle is solved.
       if (data.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, next[i] ?? ""))) setFinale(next);
       return;
@@ -219,18 +228,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   };
 
   const tapOperator = (op: Operator) => {
-    if (frozen) return;
+    if (keysFrozen) return;
     const index = slots.findIndex((s) => s === null);
     if (index === -1) return;
     const next = [...slots];
     next[index] = op;
     setSlots(next);
+    // A full set is a try (the right one included).
+    if (tryLimit !== null && next.every((s) => s !== null)) {
+      setTries(tries.map((n, i) => (i === stage ? n + 1 : n)));
+      if (!equationStageCorrect(current.numbers, current.target, next.join(","))) puzzleReject();
+    }
     setDropped((d) => ({ index, n: (d?.n ?? 0) + 1 }));
     soundCue("equation.drop");
   };
 
   const clearSlot = (index: number) => {
-    if (frozen) return;
+    if (keysFrozen) return;
     const next = [...slots];
     next[index] = null;
     setSlots(next);
@@ -260,13 +274,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
                   key={dropped?.index === index ? `drop-${dropped.n}` : "slot"}
                   value={slots[index] ?? null}
                   fresh={dropped?.index === index}
-                  onClick={frozen ? undefined : () => clearSlot(index)}
+                  onClick={keysFrozen ? undefined : () => clearSlot(index)}
                 />
               )}
             </span>
           ))}
           <span className="op-goal">= {current.target}</span>
         </div>
+        {tryLimit !== null && (
+          <p className="op-caption" data-move-limit={tryLimit}>
+            {outOfTries ? <span className="text-warn">No tries left</span> : <>tries <span className="text-primary">{limitText(triesUsed, tryLimit)}</span></>}
+          </p>
+        )}
         <StageCorrect visible={holding} />
         {finaleOn && finale && (
           <div className="op-finale" aria-hidden="true">
@@ -286,7 +305,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
             key={op}
             variant="ghost"
             type="button"
-            disabled={frozen}
+            disabled={keysFrozen}
             onClick={() => tapOperator(op)}
             aria-label={`Operator ${display(op)}`}
             className="press op-key"
@@ -342,13 +361,15 @@ const OPERATOR_REVEAL_CSS = `
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "equation") return null;
-  const parts = splitStages(myAnswer, puzzle.stages.length);
+  const tryLimit = equationTryLimit(puzzle);
+  const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(myAnswer) : { body: myAnswer ?? "", counts: [] as number[] };
+  const parts = splitStages(body, puzzle.stages.length);
   return (
     <div className="op-reveal">
       <PolishStyle id="equation-reveal" css={OPERATOR_REVEAL_CSS} />
       {puzzle.stages.map((stage, i) => {
         const mine = parseOperators(parts[i] ?? "");
-        const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "");
+        const ok = equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit);
         return (
           <div key={i} className="op-reveal-row" data-ok={ok ? "true" : "false"}>
             <p className="op-reveal-label">
@@ -377,7 +398,7 @@ export const equationPuzzle: PuzzleDefinition = {
   generate: buildEquation,
   check: (answer, puzzle) => {
     if (puzzle.type !== "equation") return false;
-    const parts = splitStages(answer, puzzle.stages.length);
+    const parts = splitStages(splitCountSuffix(answer).body, puzzle.stages.length);
     return puzzle.stages.every((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
   },
   IntroExample,
