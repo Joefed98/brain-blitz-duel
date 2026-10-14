@@ -98,20 +98,28 @@ export interface GravityReplay {
   tilts: number;
   solved: boolean;
   locked: number;
+  /** True when the tilt limit (gravityRev 1) is used up without a solve: the board has ended unfinished. */
+  outOfTilts: boolean;
 }
 
-/** The one place a tilt list is turned into an outcome. X = undo, Y = reset. */
+/**
+ * The one place a tilt list is turned into an outcome. X = undo, Y = reset.
+ * With a tilt limit (gravityRev 1, moveLimits.ts) nothing after the limit-th
+ * tilt counts; Undo and Reset never give a tilt back.
+ */
 export function replayGravity(
   walls: number[] | Set<number>,
   starts: GravityBalls,
   targets: number[],
   tilts: GravityDir[],
+  limit: number | null = null,
 ): GravityReplay {
   const wallSet = walls instanceof Set ? walls : new Set(walls);
   let balls = [...starts];
   let count = 0;
   const history: GravityBalls[] = [[...balls]];
   for (const dir of tilts) {
+    if (limit !== null && count >= limit) break;
     if (dir === "X") {
       if (history.length > 1) history.pop();
       balls = [...history[history.length - 1]!];
@@ -134,5 +142,6 @@ export function replayGravity(
     tilts: count,
     solved: gravitySolved(balls, targets),
     locked: gravityLockCount(balls, targets),
+    outOfTilts: limit !== null && count >= limit && !gravitySolved(balls, targets),
   };
 }

@@ -12,6 +12,7 @@ import {
   replayGravity,
 } from "@/lib/duel/gravity";
 import { useStageState } from "@/lib/duel/stageState";
+import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
 import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCorrect, playLock, playSound } from "@/lib/sound";
@@ -55,9 +56,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   const boardSpaceRef = useRef<HTMLDivElement | null>(null);
   const boardSpace = useGridMetrics(boardSpaceRef, 1, 1);
 
+  // gravityRev 1 (moveLimits.ts): a visible tilt limit; the last allowed tilt ends the board.
+  const tiltLimit = data ? gravityTiltLimit(data) : null;
   const replay = useMemo(
-    () => (data ? replayGravity(data.walls, data.starts, data.targets, tilts) : null),
-    [data, tilts],
+    () => (data ? replayGravity(data.walls, data.starts, data.targets, tilts, tiltLimit) : null),
+    [data, tilts, tiltLimit],
   );
 
   useEffect(() => {
@@ -74,18 +77,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   }, [replay]);
 
   useEffect(() => {
-    if (locked || submitted.current || !replay?.solved) return;
+    if (locked || submitted.current || !(replay?.solved || replay?.outOfTilts)) return;
     submitted.current = true;
-    playCorrect();
+    if (replay.solved) playCorrect();
+    // Out of tilts: the board ends unfinished and goes in now.
     onSubmit(encodeGravityTilts(tilts));
-  }, [replay?.solved, tilts, locked, onSubmit]);
+  }, [replay?.solved, replay?.outOfTilts, tilts, locked, onSubmit]);
 
   const solving = useSolveMoment(Boolean(replay?.solved), "gravity.solve");
 
   if (!data || !replay) return null;
 
   const press = (dir: GravityDir) => {
-    if (locked || submitted.current || replay.solved) return;
+    if (locked || submitted.current || replay.solved || replay.outOfTilts) return;
     hapticTick();
     buzz(10);
     // A new tilt cuts the previous pull, so long pulls never overlap.
@@ -99,7 +103,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   return (
     <div data-stage-column="2" data-polish="gravity" className="flex min-h-0 flex-1 flex-col gap-2">
       <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        tilts <span className="text-primary">{replay.tilts}</span> · locked{" "}
+        tilts <span className={replay.outOfTilts ? "text-warn" : "text-primary"} data-move-limit={tiltLimit ?? undefined}>{tiltLimit !== null ? limitText(replay.tilts, tiltLimit) : replay.tilts}</span> · locked{" "}
         <span className="text-primary">{replay.locked} / 4</span>
       </p>
 
@@ -116,7 +120,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
       </div>
 
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
-        <ArrowPad onPress={press} disabled={locked || replay.solved} />
+        <ArrowPad onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
         <div data-game-controls="actions" className="flex gap-3 px-2">
           <Button
             type="button"
@@ -144,7 +148,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "gravity") return null;
-  const mine = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(myAnswer ?? ""));
+  const tiltLimit = gravityTiltLimit(puzzle);
+  const mine = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(myAnswer ?? ""), tiltLimit);
   const best = decodeGravityTilts(puzzle.solution ?? "");
   return (
     <div className="grav-reveal flex min-h-0 w-full flex-1 flex-col items-center gap-3">
@@ -163,10 +168,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
           {mine.tilts} {myCorrect ? "✓" : "✗"}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          tilts{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
+          {tiltLimit !== null ? `of ${tiltLimit} tilts` : "tilts"}{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
         </span>
       </p>
-      <p className="font-mono text-base text-muted-foreground">{mine.locked} / 4 balls locked</p>
+      <p className="font-mono text-base text-muted-foreground">{mine.locked} / 4 balls locked{mine.outOfTilts ? " · out of tilts" : ""}</p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">
           {solvedMovesText(mine.tilts, puzzle.minMoves ?? 0, myMsRemaining, timeLimitMs, "B", scoreParts)}

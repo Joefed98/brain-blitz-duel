@@ -127,3 +127,63 @@ export function tubesKey(state: TubeState): string {
     .sort()
     .join("|");
 }
+
+/* ---------------- Pour limit (tubesRev 1, moveLimits.ts, 13 Oct 2026) ---------------- */
+
+/** A pour, or the Undo / Reset buttons: from tubesRev 1 the phone sends all three, so the server sees every pour. */
+export type TubeToken = TubeMove | "undo" | "reset";
+
+export function encodeTubeLog(tokens: readonly TubeToken[]): string {
+  return tokens.map((t) => (t === "undo" ? "u" : t === "reset" ? "r" : `${t.from}>${t.to}`)).join(",");
+}
+
+/** Longest pour log read (Undo and Reset included). */
+export const TUBE_LOG_MAX = 300;
+
+export function decodeTubeLog(raw: string): TubeToken[] {
+  const out: TubeToken[] = [];
+  for (const part of String(raw ?? "").split(",")) {
+    if (out.length >= TUBE_LOG_MAX) break;
+    const token = part.trim();
+    if (token === "u") out.push("undo");
+    else if (token === "r") out.push("reset");
+    else {
+      const pair = token.split(">").map((value) => Number.parseInt(value, 10));
+      if (pair.length === 2 && pair.every((v) => Number.isInteger(v) && v >= 0 && v < TUBES_COUNT)) out.push({ from: pair[0]!, to: pair[1]! });
+    }
+  }
+  return out;
+}
+
+/**
+ * Replays a pour log: illegal pours are skipped, Undo steps back one pour and
+ * Reset goes back to the start, but neither gives a pour back. With a limit,
+ * nothing after the limit-th pour counts (the board has ended unfinished).
+ */
+export function replayTubeLog(
+  start: TubeState,
+  tokens: readonly TubeToken[],
+  limit: number | null = null,
+): { tubes: TubeState; moves: number; solved: boolean; sorted: number; outOfPours: boolean; depth: number } {
+  const history: TubeState[] = [cloneTubes(start)];
+  let poured = 0;
+  for (const token of tokens) {
+    const state = history[history.length - 1]!;
+    if (poured > 0 && tubesSolved(state)) break;
+    if (limit !== null && poured >= limit) break;
+    if (token === "undo") {
+      if (history.length > 1) history.pop();
+      continue;
+    }
+    if (token === "reset") {
+      history.length = 1;
+      continue;
+    }
+    if (!canPour(state, token.from, token.to)) continue;
+    history.push(pour(state, token.from, token.to));
+    poured += 1;
+  }
+  const tubes = history[history.length - 1]!;
+  const solved = poured > 0 && tubesSolved(tubes);
+  return { tubes, moves: poured, solved, sorted: sortedTubeCount(tubes), outOfPours: limit !== null && poured >= limit && !solved, depth: history.length - 1 };
+}

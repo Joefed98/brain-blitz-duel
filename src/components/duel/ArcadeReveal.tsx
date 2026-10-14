@@ -5,6 +5,7 @@ import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/Arcad
 import { WaitingLine } from "@/components/duel/Dots";
 import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
+import { CLAY_FREE_EMPTY_SHOTS } from "@/lib/arcade/clayShoot";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -30,6 +31,24 @@ interface ArcadeRevealProps {
   personalBest?: boolean | undefined;
   /** Identifies this run for the room best record (one verdict per run). */
   round?: number | undefined;
+  /** Stored costs shown as extra rows under the tiles (storedCostRows); never recomputed. */
+  costRows?: ArcadeRevealData["tiles"] | undefined;
+}
+
+/**
+ * Rows for costs the server stored beside the reveal (round_results.extra), read as
+ * stored and never recomputed: Pull! clayRev 4's empty shots and their cost (#53).
+ * Rounds without the stored fields get no rows.
+ */
+export function storedCostRows(type: string, extra: Record<string, unknown> | null | undefined): ArcadeRevealData["tiles"] {
+  if (type !== "clayshoot" || !extra) return [];
+  const empty = extra["emptyShots"];
+  const cost = extra["emptyShotCost"];
+  if (typeof empty !== "number" || typeof cost !== "number") return [];
+  return [
+    { label: `Hit nothing (${CLAY_FREE_EMPTY_SHOTS} free)`, value: String(empty) },
+    { label: "Empty-shot cost", value: cost > 0 ? `−${cost}` : "0" },
+  ];
 }
 
 const PLAYER_COLOURS = [
@@ -208,7 +227,7 @@ function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: nu
   return full && best ? "both" : full ? "full" : best ? "best" : null;
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round }: ArcadeRevealProps) {
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nearMissLine, personalBest, round, costRows = [] }: ArcadeRevealProps) {
   const accent = ARCADE_REVEAL_RENDERERS[puzzle.type]?.accent ?? "var(--me)";
   const shownScore = useCountUp(myScore);
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
@@ -247,7 +266,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
 
         <Track players={players} axis={myReveal?.axis ?? null} accent={accent} />
 
-        {myReveal && myReveal.tiles.length > 0 ? (
+        {myReveal && myReveal.tiles.length + costRows.length > 0 ? (
           // One full-width row per stored tile (label left, value right), so a label as
           // long as "Crossings completed" stays on one line at 12 px on a 375 px phone.
           <div
@@ -255,7 +274,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             className="flex w-full shrink-0 flex-col divide-y rounded-lg border bg-background/70 px-3 animate-fade-in"
             style={{ borderColor: accent }}
           >
-            {myReveal.tiles.slice(0, 4).map((tile) => (
+            {[...myReveal.tiles.slice(0, 4), ...costRows].map((tile) => (
               <div key={tile.label} className="flex min-w-0 items-baseline justify-between gap-3 py-1" style={{ borderColor: "color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
                 <span className="min-w-0 truncate whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground">{tile.label}</span>
                 <span className="shrink-0 whitespace-nowrap font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>

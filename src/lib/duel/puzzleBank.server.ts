@@ -27,6 +27,7 @@ import { TUBES_BANK, TUBES_INTRO_EXAMPLE } from "./tubesBank.server";
 import { withSeededRandom } from "./random";
 import { SPEED_PAR_VERSION } from "./speedPar";
 import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
+import { stampMoveLimits } from "./moveLimits.server";
 import type {
   BlockPartyPuzzleData,
   FlowPuzzleData,
@@ -232,5 +233,6 @@ export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
   if (!isBankedType(type)) return null;
   const example = spec(type).example;
   if (!example) return null;
-  return { ...(JSON.parse(JSON.stringify(example)) as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
+  const copy = stampMoveLimits(JSON.parse(JSON.stringify(example)) as PuzzleData);
+  return { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
 }

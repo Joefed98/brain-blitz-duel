@@ -6,6 +6,7 @@
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
 import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
+import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
 import { generateGroups } from "./groups.server";
@@ -124,7 +125,8 @@ export interface GenerateContext {
  * curve and shape.
  */
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
-  const made = generateUnstamped(type, context);
+  // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
+  const made = stampMoveLimits(generateUnstamped(type, context));
   return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
 }
 

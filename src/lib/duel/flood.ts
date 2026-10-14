@@ -65,17 +65,24 @@ export interface FloodReplay {
   solved: boolean;
   moves: number;
   region: number;
+  /** True when the move limit (floodRev 1) is used up without a flood: the board has ended unfinished. */
+  outOfMoves: boolean;
 }
 
-/** The one place a tap list is replayed — used for scoring and for Undo. */
+/**
+ * The one place a tap list is replayed — used for scoring and for Undo. With a
+ * move limit (floodRev 1, moveLimits.ts) taps after the limit-th move are ignored.
+ */
 export function replayFlood(
   start: number[],
   moves: number[],
   size: number = FLOOD_SIZE,
+  limit: number | null = null,
 ): FloodReplay {
   const history = [[...start]];
   let made = 0;
   for (const colour of moves) {
+    if (limit !== null && made >= limit) break;
     if (colour === -1) { if (history.length > 1) history.pop(); continue; }
     const grid = history[history.length - 1]!;
     if (floodSolved(grid)) break;
@@ -90,5 +97,6 @@ export function replayFlood(
     solved: floodSolved(grid),
     moves: made,
     region: floodSolved(grid) ? FLOOD_CELLS : regionSize(grid, size),
+    outOfMoves: limit !== null && made >= limit && !floodSolved(grid),
   };
 }

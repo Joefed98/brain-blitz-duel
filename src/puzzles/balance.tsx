@@ -16,6 +16,7 @@ import {
   BAL_REVEAL_MS,
   BAL_SCALES,
   BAL_TIME_MS,
+  balanceScalesSolved,
   balanceSolvedCount,
   balanceTilt,
   decodeBalance,
@@ -24,6 +25,7 @@ import {
   type Placement,
 } from "@/lib/duel/balance";
 import { useStageState } from "@/lib/duel/stageState";
+import { balancePlaceLimits, joinCountSuffix, limitText, splitCountSuffix } from "@/lib/duel/moveLimits";
 import type { BalancePuzzleData, BalanceScale } from "@/lib/duel/types";
 import { playCorrect, playLock } from "@/lib/sound";
 
@@ -193,6 +195,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const [placements, setPlacements] = useStageState<Placement[]>(stateKey, "placements", () =>
     scales.map((s) => s.tray.map(() => null)),
   );
+  // balanceRev 1 (moveLimits.ts): a visible hang limit per scale; a scale out of hangs ends unbalanced and the next one starts.
+  const placeLimits = data ? balancePlaceLimits(data) : null;
+  const [hangs, setHangs] = useStageState<number[]>(stateKey, "balanceHangs", () => scales.map(() => 0));
   const [selected, setSelected] = useState<number | null>(null);
   const [current, setCurrentStage] = useStageState<number>(stateKey, "balanceStage", () => Math.min(balanceSolvedCount(scales, placements), BAL_SCALES - 1));
   const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
@@ -211,10 +216,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
   }, [stateKey]);
 
-  const solved = balanceSolvedCount(scales, placements);
-  const encoded = encodeBalance(placements);
+  const verdicts = balanceScalesSolved(scales, placements);
+  // Limited boards credit each scale on its own (any order); stored rounds advance only past a balanced scale.
+  const solved = placeLimits ? verdicts.filter(Boolean).length : balanceSolvedCount(scales, placements);
+  const encoded = placeLimits ? joinCountSuffix(encodeBalance(placements), hangs) : encodeBalance(placements);
+  const outOfHangs = !!placeLimits && !verdicts[current] && (hangs[current] ?? 0) >= (placeLimits[current] ?? 0);
+  const allDone = placeLimits ? current >= BAL_SCALES - 1 && (verdicts[current] || outOfHangs) : solved === BAL_SCALES;
   const holding = useStageCorrectHold({
-    complete: solved > current && current < BAL_SCALES - 1,
+    complete: (placeLimits ? !!verdicts[current] : solved > current) && current < BAL_SCALES - 1,
     finalStage: false,
     locked: locked || submitted.current,
     stateKey,
@@ -224,7 +233,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   useEffect(() => {
     setSelected(null);
     lastTap.current = null;
-  }, [solved]);
+  }, [solved, current]);
+
+  useEffect(() => {
+    // Out of hangs on a scale before the last: it ends unbalanced and the next scale starts.
+    if (!outOfHangs || current >= BAL_SCALES - 1 || locked || submitted.current) return;
+    soundCue("balance.level");
+    setCurrentStage(current + 1);
+  }, [outOfHangs, current, locked, setCurrentStage]);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -232,30 +248,31 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (solved === BAL_SCALES) {
+    if (allDone) {
       submitted.current = true;
-      playLock();
+      if (solved === BAL_SCALES) playLock();
       onSubmit(encoded);
       return;
     }
     if (now < phaseStartedAt + BAL_TIME_MS - 400) return;
     submitted.current = true;
     onSubmit(encoded);
-  }, [now, phaseStartedAt, locked, data, encoded, onSubmit, solved]);
+  }, [now, phaseStartedAt, locked, data, encoded, onSubmit, solved, allDone]);
 
   if (!data) return null;
   const scale = scales[current];
   if (!scale) return null;
   const placement = placements[current] ?? scale.tray.map(() => null);
-  const frozen = locked || submitted.current || holding;
+  const frozen = locked || submitted.current || holding || outOfHangs;
 
-  const setCurrent = (next: Placement) => {
+  const setCurrent = (next: Placement, hung = false) => {
     if (frozen) return;
     const all = placements.map((p, i) => (i === current ? next : p));
     setPlacements(all);
+    if (hung && placeLimits) setHangs(hangs.map((n, i) => (i === current ? n + 1 : n)));
     if (scaleSolved(scale, next)) {
       playCorrect();
-      if (balanceSolvedCount(scales, all) === BAL_SCALES) setSolvedHere(true);
+      if ((placeLimits ? balanceScalesSolved(scales, all).filter(Boolean).length : balanceSolvedCount(scales, all)) === BAL_SCALES) setSolvedHere(true);
       else soundCue("balance.level");
     }
   };
@@ -268,7 +285,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     // Button taps update the same placement array encoded for server torque validation.
     const next = [...placement]; next[tray] = peg;
     soundCue("balance.drop");
-    setSelected(null); hapticTick(); setCurrent(next);
+    setSelected(null); hapticTick(); setCurrent(next, true);
   };
   const tapWeight = (tray: number) => {
     if (frozen) return;
@@ -312,7 +329,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       {progressTarget && createPortal(
         <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${BAL_SCALES} scales balanced`}>
           {Array.from({ length: BAL_SCALES }, (_, i) => (
-            <span key={i} className={`h-3 flex-1 rounded-full ${i < solved ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
+            <span key={i} className={`h-3 flex-1 rounded-full ${(placeLimits ? verdicts[i] : i < solved) ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
           ))}
         </div>, progressTarget,
       )}
@@ -342,6 +359,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-2">
             <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
               scale {current + 1} / {BAL_SCALES}
+              {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : "text-primary"} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
             </p>
             <div className="bal-rack flex min-h-[68px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
               {trayButtons}
@@ -365,6 +383,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
           </div>
           <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
             scale {current + 1} / {BAL_SCALES}
+            {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : undefined} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
           </p>
           <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
             {trayButtons}
@@ -380,14 +399,18 @@ const SIDE = (peg: number) => `${peg < 4 ? "left" : "right"} ${pegDistanceLabel(
 function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "balance") return null;
   const placements = decodeBalance(myAnswer ?? "", puzzle.scales);
-  const solved = balanceSolvedCount(puzzle.scales, placements);
+  const placeLimits = balancePlaceLimits(puzzle);
+  const hangs = placeLimits ? splitCountSuffix(myAnswer).counts : [];
+  // Limited rounds credit each scale on its own (hung within its limit); stored rounds count scales in order.
+  const okAt = placeLimits ? balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && (hangs[s] ?? 0) <= (placeLimits[s] ?? 0)) : null;
+  const solved = okAt ? okAt.filter(Boolean).length : balanceSolvedCount(puzzle.scales, placements);
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto py-1">
       <BalanceArt />
       <div className="bal-panel flex w-full max-w-[360px] shrink-0 flex-col items-center gap-2 px-2 py-2">
         {puzzle.scales.map((scale, s) => {
-          const ok = s < solved;
+          const ok = okAt ? !!okAt[s] : s < solved;
           const solution = puzzle.solutions?.[s];
           return (
             <div key={s} className="flex shrink-0 flex-col items-center gap-0.5">

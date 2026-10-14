@@ -471,7 +471,16 @@ function DuelScreen() {
   useEffect(() => {
     if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
       return;
-    if (revealed?.round === round && revealed.tournamentKey === tournamentKey) return;
+    // A reveal-phase fetch holds only my own answer (late answers are still
+    // accepted then), or nothing at all before my answer is in; fetch again
+    // once my answer is stored or the round has closed for everyone.
+    if (
+      revealed?.round === round &&
+      revealed.tournamentKey === tournamentKey &&
+      (!revealed.data.partial ||
+        (phase === "reveal" && !(revealed.data.awaitingAnswer && myResult)))
+    )
+      return;
     let cancelled = false;
     void fetchRevealPuzzle(duel.id, round).then((found) => {
       if (found && !cancelled) setRevealed({ round, tournamentKey, data: found });
@@ -479,7 +488,7 @@ function DuelScreen() {
     return () => {
       cancelled = true;
     };
-  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey, revealed?.data.partial, revealed?.data.awaitingAnswer, !!myResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
   const musicScreen =
@@ -905,7 +914,7 @@ function DuelScreen() {
           round={round}
           totalRounds={duel.round_count ?? TOTAL_ROUNDS}
           puzzle={currentReveal?.puzzle ?? puzzle}
-          answersReady={!!currentReveal}
+          answersReady={!!currentReveal && !currentReveal.awaitingAnswer}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}
@@ -916,11 +925,18 @@ function DuelScreen() {
             .map((p) => {
               const row = resultFor(results, p.player_slot, round);
               const reveal = (row?.extra as Record<string, unknown> | null | undefined)?.["reveal"];
+              // Other players' rows stay unreadable until late answers stop; the
+              // reveal fetch carries where their runs ended for the track.
+              const axis = currentReveal?.progress?.find((g) => g.playerSlot === p.player_slot)?.axis;
               return {
                 slot: p.player_slot,
                 name: p.display_name,
                 isMe: p.player_slot === mySlot,
-                reveal: row ? ((reveal as ArcadeRevealData | undefined) ?? null) : null,
+                reveal: row
+                  ? ((reveal as ArcadeRevealData | undefined) ?? null)
+                  : axis
+                    ? { axis, lines: [], tiles: [], outcome: "time" as const }
+                    : null,
               };
             })}
           myExtra={myResult?.extra ?? null}

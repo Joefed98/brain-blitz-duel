@@ -8,7 +8,8 @@ import {
   FLASH_FASTEST_MS,
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV,
+  TAP_REV_CARELESS,
+  tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
   replayFlash,
@@ -26,6 +27,7 @@ import {
 
 import { fireFlashGoldPulse, flashEarnsGoldPulse, localFlashScore } from "@/components/puzzles/reactionFx";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
+import { FLASH_FALSE_START_COST } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -73,7 +75,7 @@ export function buildReaction(): ReactionPuzzleData {
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
     ]);
   }
-  return { type: "reaction", flashes, decoys, tapRev: TAP_REV };
+  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_CARELESS };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -116,8 +118,8 @@ function IntroExample() {
       </div>
       <p className="text-center text-xs text-muted-foreground">
         Teal, red or blue is a trap: tapping it, tapping a dark screen, or tapping within {FLASH_FASTEST_MS} ms of the
-        gold (too fast to be a reaction) is a false start (−8 points). Score: 150 at 200 ms average or faster, −16 per
-        100 ms slower; a missed flash counts 1,200 ms.
+        gold (too fast to be a reaction) is a false start: −8 each for the first two, −11 each after that. Score: 150 at
+        200 ms average or faster, −16 per 100 ms slower; a missed flash counts 1,200 ms.
       </p>
     </div>
   );
@@ -402,7 +404,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       onTap={handleTap}
       inactive={locked || replay.done}
       runKey={key}
-      fxScore={replay.done ? localFlashScore(replay.times, replay.falseStarts, flashes.length) : null}
+      fxScore={replay.done ? localFlashScore(replay.times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
     />
   );
 }
@@ -411,22 +413,37 @@ function Stage(props: PuzzleStageProps) {
   return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
 }
 
-function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
+/** tapRev 2: the stored per-flash times, false starts and their cost (the server's figures). */
+function storedFlash(extra: Record<string, unknown> | null | undefined) {
+  const times = extra?.["times"];
+  const falseStarts = extra?.["falseStarts"];
+  const cost = extra?.["falseStartCost"];
+  if (!Array.isArray(times) || typeof falseStarts !== "number" || typeof cost !== "number") return null;
+  return { times: times.filter((v): v is number => typeof v === "number"), falseStarts, cost };
+}
+
+function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "reaction") return null;
   let times: number[];
   let falseStarts: number;
-  if (usesTapLog(puzzle)) {
+  const stored = storedFlash(myExtra);
+  let cost: number;
+  if (stored) {
+    ({ times, falseStarts, cost } = stored);
+  } else if (usesTapLog(puzzle)) {
     // The same replay the server scored; misses show as 1,200 ms.
     const replay = myAnswer?.startsWith(TAP_LOG_PREFIX)
       ? replayFlash(puzzle, decodeTapTimes(myAnswer, REACTION_ROUND_MS).times, REACTION_ROUND_MS)
       : null;
     times = replay ? replay.times.map((v) => v ?? REACTION_MISS_MS) : [];
     falseStarts = replay?.falseStarts ?? 0;
+    cost = falseStarts * FLASH_FALSE_START_COST;
   } else {
     ({ times, falseStarts } = parseAnswer(myAnswer));
+    cost = falseStarts * FLASH_FALSE_START_COST;
   }
-  const stored = usesTapLog(puzzle) ? myReactionAvgMs : null;
-  const avg = stored ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
+  const storedAvg = usesTapLog(puzzle) ? myReactionAvgMs : null;
+  const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
   return (
     <>
@@ -442,7 +459,7 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs }: PuzzleRevealProps) {
         )}
         <p className="mt-1 font-mono text-base text-muted-foreground">
           False starts: {falseStarts}
-          {falseStarts > 0 ? ` (−${falseStarts * 8} points)` : ""}
+          {falseStarts > 0 ? ` (−${cost} points)` : ""}
         </p>
       </div>
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">

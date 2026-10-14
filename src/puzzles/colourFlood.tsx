@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { decodeFloodMoves, encodeFloodMoves, regionCells, replayFlood } from "@/lib/duel/flood";
+import { floodMoveLimit, limitText } from "@/lib/duel/moveLimits";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   FLOOD_CELLS,
@@ -121,7 +122,9 @@ function Stage({
   const [moves, setMoves] = useStageState<number[]>(stateKey, "floodMoves", () => []);
   const submitted = useRef(false);
 
-  const replay = data ? replayFlood(data.grid, moves) : null;
+  // floodRev 1: a visible move limit; the last allowed tap ends the board (moveLimits.ts).
+  const moveLimit = data ? floodMoveLimit(data) : null;
+  const replay = data ? replayFlood(data.grid, moves, undefined, moveLimit) : null;
   const solving = useSolveFx("flood", Boolean(replay?.solved && moves.length));
   // Presentation only: which cells the last move swallowed, for the wet-paint ripple.
   const ripple = useMemo(() => {
@@ -145,18 +148,23 @@ function Stage({
   if (!data || !replay) return null;
 
   const tap = (colour: number) => {
-    if (locked || submitted.current || replay.solved) return;
+    if (locked || submitted.current || replay.solved || replay.outOfMoves) return;
     if (replay.grid[0] === colour) return;
     hapticTick();
     soundCue("flood.spread");
     const next = [...moves, colour];
     setMoves(next);
-    const after = replayFlood(data.grid, next);
+    const after = replayFlood(data.grid, next, undefined, moveLimit);
     if (after.solved) {
       submitted.current = true;
       playLock();
       onSubmit(encodeFloodMoves(next));
       return;
+    }
+    // Out of moves: the board ends unfinished and goes in now.
+    if (after.outOfMoves) {
+      submitted.current = true;
+      onSubmit(encodeFloodMoves(next));
     }
   };
 
@@ -181,8 +189,10 @@ function Stage({
         ))}
       </div>
       <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
-        <span className="font-mono text-xs text-muted-foreground">
-          Moves: {replay.moves}
+        <span className="font-mono text-xs text-muted-foreground" data-move-limit={moveLimit ?? undefined}>
+          {moveLimit !== null
+            ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
+            : <>Moves: {replay.moves}</>}
         </span>
       </div>
     </div>
@@ -191,7 +201,8 @@ function Stage({
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
-  const replay = replayFlood(puzzle.grid, decodeFloodMoves(myAnswer ?? ""));
+  const moveLimit = floodMoveLimit(puzzle);
+  const replay = replayFlood(puzzle.grid, decodeFloodMoves(myAnswer ?? ""), undefined, moveLimit);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
@@ -202,13 +213,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
           <Board grid={replay.grid} fluid />
         </div>
       </div>
-      <p className="logic-reveal-text text-center font-mono text-muted-foreground">Par {puzzle.par} — you used {replay.moves}</p>
+      <p className="logic-reveal-text text-center font-mono text-muted-foreground">
+        Par {puzzle.par} — you used {replay.moves}{moveLimit !== null ? ` of ${moveLimit}` : ""}
+      </p>
       <p
         className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
          {replay.solved
            ? solvedMovesText(replay.moves, puzzle.par, myMsRemaining, timeLimitMs, "C", scoreParts)
-          : `${replay.region} / ${FLOOD_CELLS} cells`}
+          : `${replay.region} / ${FLOOD_CELLS} cells${replay.outOfMoves ? " · out of moves" : ""}`}
       </p>
     </div>
   );
