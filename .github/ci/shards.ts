@@ -13,11 +13,15 @@ export const SHARDS: Record<string, string[]> = {
   // Headless Chromium: arcade-play-check's 22 games (Pinball included, and Letterfall) in five groups (one job each,
   // one game at a time, so frame times compare fairly with the CI baseline). The
   // workflow installs the browser and swaps in the CI frame-time baseline for these.
-  play1: ["arcade-play-check.ts@1/5"],
-  play2: ["arcade-play-check.ts@2/5"],
-  play3: ["arcade-play-check.ts@3/5"],
+  // bottom-clearance-check (every active game's controls ≥12px above the visible bottom at
+  // 375x667 / 390x844, with and without an 80px toolbar) rides play1-play3 for the browser,
+  // one third each (~25 games, ~4 min), after the arcade games.
+  play1: ["arcade-play-check.ts@1/5", "bottom-clearance-check.ts@1/3"],
+  play2: ["arcade-play-check.ts@2/5", "bottom-clearance-check.ts@2/3"],
+  play3: ["arcade-play-check.ts@3/5", "bottom-clearance-check.ts@3/3"],
   // beat-hold-browser-check (real practice and room screens in Chromium) rides here for the browser.
-  play4: ["arcade-play-check.ts@4/5", "beat-hold-browser-check.tsx"],
+  // safe-area-screens-check (non-game screens with an emulated notch and home bar, ~2 min) rides here too.
+  play4: ["arcade-play-check.ts@4/5", "beat-hold-browser-check.tsx", "safe-area-screens-check.tsx"],
   // play5 also plays stored rounds through the replay player (replay-play-check, ~2-3 min with its dev server).
   play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],
   a: [

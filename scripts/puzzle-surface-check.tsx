@@ -120,9 +120,10 @@ for (const [key, definition] of active) {
     }
     const shell = renderToStaticMarkup(<PhoneShell constrained gameScreen gameType={type}><span /></PhoneShell>);
     assert.ok(shell.includes(`data-puzzle-surface="${key}"`));
-    // Play shells fill the game-locked root (html/body 100%) instead of sizing to 100dvh.
+    // Play shells are the dynamic viewport (.game-viewport, 100dvh in CSS) and the column fills them.
+    assert.ok(shell.includes("no-overscroll game-viewport overflow-hidden"));
     assert.ok(shell.includes("no-overscroll h-full overflow-hidden"));
-    assert.ok(!shell.includes("100dvh"));
+    assert.ok(!shell.includes("100dvh") && !shell.includes("100vh"));
     records.push({ key, name: definition.name, viewport: `${width}x${height}`, result: "PASS markup/geometry invariants; rendered fit UNVERIFIED", coverage: phaseCounts.join("; "), exception: MEANINGFUL_SURFACE_GAMES.has(key) ? "Meaningful fills/objects retained; shared edge, text and selection only" : "Shared surfaces; existing control dimensions retained", sizing: risks[key] });
   }
 }

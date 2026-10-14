@@ -298,7 +298,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
         <div
           ref={stageRef}
           aria-hidden="true"
-          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${(log.layout ?? 0) >= 1 ? "game-column" : ""} ${(log.layout ?? 0) >= GAME_COLUMN_LAYOUT ? "game-column-centred" : ""}`}
+          className={`absolute left-1/2 top-1/2 flex flex-col overflow-hidden ${(log.layout ?? 0) >= 1 ? "game-column" : ""} ${(log.layout ?? 0) >= 2 ? "game-column-centred" : ""} ${(log.layout ?? 0) >= GAME_COLUMN_LAYOUT ? "game-column-lifted" : ""}`}
           style={{
             width: log.w,
             height: log.h,

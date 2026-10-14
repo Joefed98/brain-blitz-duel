@@ -647,7 +647,9 @@ export function ArrowPad({
     const rawX = event.clientX - origin.x;
     const rawY = event.clientY - origin.y;
     const distance = Math.hypot(rawX, rawY);
-    const visualScale = distance > 18 ? 18 / distance : 1;
+    // The knob's drawn travel grows with the larger stick; the 18px direction threshold below is unchanged.
+    const travel = expanded ? 22 : 18;
+    const visualScale = distance > travel ? travel / distance : 1;
     setKnob({ x: rawX * visualScale, y: rawY * visualScale });
     if (distance <= 18) {
       stickLatched.current = false;
@@ -664,7 +666,7 @@ export function ArrowPad({
     stop();
     press.current(direction);
     if (repeatMs) timer.current = setInterval(() => press.current(direction), 180);
-  }, [disabled, repeatMs, stop]);
+  }, [disabled, expanded, repeatMs, stop]);
 
   const releaseStick = useCallback(() => {
     stickOrigin.current = null;
@@ -681,7 +683,7 @@ export function ArrowPad({
           ref={stickElement}
           role="application"
           aria-label="Directional joystick"
-          className={`relative justify-self-center touch-none rounded-full border border-border bg-card ${expanded ? "h-[68px] w-[68px]" : "h-11 w-11"}`}
+          className={`relative justify-self-center touch-none rounded-full border border-border bg-card ${expanded ? "h-[76px] w-[76px]" : "h-[52px] w-[52px]"}`}
           style={{ userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
           onPointerDown={(event) => {
             if (disabled) return;
@@ -696,7 +698,7 @@ export function ArrowPad({
           onPointerCancel={releaseStick}
         >
           <span
-            className="pointer-events-none absolute left-1/2 top-1/2 h-6 w-6 rounded-full bg-primary transition-transform duration-75"
+            className={`pointer-events-none absolute left-1/2 top-1/2 rounded-full bg-primary transition-transform duration-75 ${expanded ? "h-9 w-9" : "h-7 w-7"}`}
             style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
           />
         </div>

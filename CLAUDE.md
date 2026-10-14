@@ -131,6 +131,22 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `--part=k/n` for one CI group (`play4` holds flip, Roofbound).
   It starts its own Vite dev server (or `--url=<origin>`) and needs the pre-installed
   Chromium; run-checks gives it 1,500 s.
+- **Bottom clearance** (14 Oct 2026): bottom-clearance-check (headless Chromium, ~10 s a game, split
+  over `play1`–`play3` as `@1/3`–`@3/3`) opens every active game's intro and live stage in practice at
+  375×667 and 390×844, each also 80 px shorter (a browser bottom toolbar shortens the dynamic viewport by
+  its height), and fails if any control in the stage (or the intro's Ready) sits under 12 px above the
+  visible bottom, is clipped by the game region, or the shell does not end at the dynamic viewport's
+  bottom. Game screens are `.game-viewport` (100dvh) with the inset + 16 px under the controls; per-game
+  lifts live in `src/polish-layout/bottom.css` (layout 3, `.game-column-lifted`). Run it after a stage
+  layout change.
+- **Safe areas on the other screens** (14 Oct 2026): `viewport-fit=cover` lets every page draw under a
+  notch and home bar, so safe-area-screens-check (headless Chromium, ~2 min, shard `play4`) draws the home /
+  room join, practice list, sound settings, practice and room round intros, a help sheet, and the room's
+  lobby, link join, Prepare to Duel, round title, result, standings, winner reveal and podium (the real
+  routes through `scripts/safe-area-harness.tsx`, network stubbed) with a 47 px notch and 34 px home bar
+  emulated (`Emulation.setSafeAreaInsetsOverride`) at 375×667 and 390×844. It fails if text or a control
+  sits under either inset (a scrolling page at its scroll end), a control is covered, or an intro or room
+  moment scrolls. Run it after changing a non-game screen's layout.
 - **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s, shard `d`) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre
