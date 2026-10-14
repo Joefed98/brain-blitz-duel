@@ -10,21 +10,20 @@
  * applies them. A tap outside the tapped element never reaches its handler, so it
  * misses by construction.
  *
- *  - Pull! (clayshoot): flying orange and gold clays (their drawn shot zone), all four
- *    sides; hit = that clay is HIT on the next tick.
+ *  - Pull! (clayshoot): flying orange and gold clays (their drawn shot zone) and flying
+ *    birds (their drawn no-shoot zone), all four sides; hit = that clay is HIT / that
+ *    bird is startled on the next tick.
  *  - Mixed Signals (stroop): every lane's drawn gate, left and right (the lane
  *    pick is by x alone), in the starting and the widened lane counts; hit = the
  *    sim moves the word into that lane.
  *  - Tempo (beat): every lane's drawn lane flash, left and right (lane by x
  *    alone); hit = the tap lands in that lane.
  *
- * Reported, not enforced (printed with how often and how far they break it; making them
- * comply changes art or rules, which is outside a check):
- *  - Pull! birds: the sim's hit ellipse is a fixed 15 × 9, but a flapping gull is drawn
- *    shorter than 9 px above or below its centre on many frames, so a tap a few px over
- *    its drawn top or bottom still startles it.
- *  - Bonk (whack): taps snap to the nearer hole across the 8 px gaps and 35 % of a cell
- *    past the board's outer edge, so a tap well past a target still hits its hole.
+ * Reported, not enforced (printed with how often and how far a tap past the edge still hits):
+ *  - Bonk (whack), by design: taps snap to the nearer hole across the 8 px gaps and
+ *    35 % of a cell past the board's outer edge, so a tap well past a target still hits
+ *    its hole. That forgiving whole-cell tap box is the game's intended rule (a rule
+ *    change would need its own stamp), so Bonk is measured but never fails the check.
  *
  * Targets are only judged where they stand clear of every other target (8 px past
  * both shot zones) and of the canvas edge, so a miss can't be another target's hit.
@@ -286,7 +285,6 @@ function clayShoot(): void {
                 ? next.status[o.i] === clay.CLAY_HIT
                 : next.birdStatus![o.i] === clay.CLAY_BIRD_STARTLED;
             },
-            o.kind === "bird" ? "Pull! birds" : undefined,
           );
         }
         if (o.kind === "clay") {
@@ -506,11 +504,11 @@ function bonk(): void {
         diffMask(a, b, size, size),
         ["left", "right", "top", "bottom"],
         (p) => holeAt(p) === hole,
-        "Bonk targets",
+        "Bonk targets (intended: whole-cell tap box)",
       );
     }
   }
-  console.log(`Bonk: ${done.size} holes (reported only)`);
+  console.log(`Bonk: ${done.size} holes (reported only: the whole-cell tap box is intended)`);
 }
 
 clayShoot();

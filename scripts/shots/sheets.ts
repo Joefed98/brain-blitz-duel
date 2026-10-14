@@ -16,7 +16,7 @@ import type { PuzzleType } from "../../src/lib/duel/types";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const IN = opt("in") ?? "/tmp/duelz-shots";
+const IN = opt("in") ?? ".shots";
 const OUT = opt("out") ?? join(IN, "sheets");
 const SCALE = Number(opt("scale") ?? 1);
 const FORMAT = opt("format") === "png" ? "png" : "jpg";

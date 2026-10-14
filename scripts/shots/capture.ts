@@ -4,7 +4,7 @@
  * wave; it replaces the per-category copies (#44 Pattern, #45 Word, #47 Logic, #49 Number).
  *
  *   bun scripts/shots/capture.ts [games…] [--category=<id>] [--all] [--sizes=375x667,390x844]
- *       [--url=<origin>] [--out=<dir>] [--tag=after] [--phases=intro,play,solve,reveal]
+ *       [--url=<origin>] [--out=<dir>, default .shots/ (gitignored)] [--tag=after] [--phases=intro,play,solve,reveal]
  *       [--dpr=1] [--hold=2000] [--reduced-motion]
  *   bun scripts/shots/sheets.ts --in=<dir> --out=<dir>      (before/after contact sheets)
  *
@@ -53,7 +53,8 @@ const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slic
 const flag = (name: string) => args.includes(`--${name}`);
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5190;
-const OUT = opt("out") ?? "/tmp/duelz-shots";
+/** Default output: the repo-root .shots/ folder, which .gitignore keeps out of commits. */
+const OUT = opt("out") ?? ".shots";
 const TAG = opt("tag") ?? "after";
 const DPR = Number(opt("dpr") ?? 1);
 const HOLD_MS = Number(opt("hold") ?? 2000);

@@ -133,9 +133,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s, shard `d`) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre
-  must hit and a tap 3 px past the drawn edge must miss (clays all round; gates and lanes left and right,
-  since lanes are picked by x). Pull!'s birds and Bonk are reported, not enforced (their hit boxes are rules,
-  not drawing). Run it after changing one of those renderers, their tap handlers or tapMapping.ts.
+  must hit and a tap 3 px past the drawn edge must miss (clays and birds all round, each drawn over a zone at
+  exactly its sim hit area; gates and lanes left and right, since lanes are picked by x). Bonk is reported,
+  not enforced: its whole-cell tap box is intended. Run it after changing one of those renderers, their tap
+  handlers or tapMapping.ts.
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.
@@ -147,13 +148,15 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Screenshots (design tools, not checks)
 
 - **One screenshot tool:** `bun scripts/shots/capture.ts <game ids…> | --category=<id> | --all
-  [--sizes=375x667,390x844] [--phases=intro,play,solve,reveal,timeout,full] [--tag=after] [--out=<dir>]
+  [--sizes=375x667,390x844] [--phases=intro,play,solve,reveal,timeout,full] [--tag=after] [--out=<dir>, default
+  `.shots/`, which is gitignored]
   [--url=<origin>] [--dpr=1]`. Any game at any viewport: practice mode on the fixed intro example with
   `Math.random` seeded (so two trees show the same puzzle), the practice grade request held so completion
   effects can be photographed, frames `<game>-<w>x<h>-<phase>-<tag>.png` and `report-<tag>.json` (play-area
   and board gaps, reveal scrolling, smallest text, lowest contrast, sound cues, page errors). It starts its
   own dev server unless `--url` is given. Before/after: run main in a git worktree on another port with
-  `--tag=before`, then `bun scripts/shots/sheets.ts --in=<dir> --out=<dir>` for one sheet per game and size.
+  `--tag=before`, then `bun scripts/shots/sheets.ts` (reads `.shots/` unless `--in`, writes `<in>/sheets/` unless `--out`) for one
+  sheet per game and size. Commit chosen sheets to `screenshots/<wave>/` deliberately; raw frames stay in `.shots/`.
 - A game without a driver still gets its intro, an untouched mid-play frame, its completion effect through
   the dev preview hooks and a timed-out reveal. To play one for real, add a driver in
   `scripts/shots/drivers/` (contract in `scripts/shots/driver.ts`, register it in `drivers/index.ts`);

@@ -20,9 +20,9 @@ export const NUMBER_POLISH_PRESENTATION = "oct13-number-polish";
 /**
  * Pattern polish (13 Oct 2026) moved these boards and controls: played against today's layout
  * (scripts/shots/demo-taps.ts), coordinate demos recorded before it miss, so they are rejected.
- * Tessellate's tray never draws in the demo player, so its piece taps miss too.
+ * (Tessellate's touches all land since its tray draws in the demo player, so it keeps Polish B.)
  */
-export const PATTERN_POLISH_DEMOS = new Set(["unblock", "blockparty", "iceslide", "tiles", "rings", "pipes", "push"]);
+export const PATTERN_POLISH_DEMOS = new Set(["unblock", "iceslide", "tiles", "rings", "pipes", "push"]);
 export const PATTERN_POLISH_PRESENTATION = "oct13-pattern-polish";
 /** Speed & Attention polish (13 Oct 2026) moved these boards; older coordinate demos miss and are rejected. */
 export const SPEED_POLISH_DEMOS = new Set(["numhunt", "symscan", "spotdiff", "countup"]);

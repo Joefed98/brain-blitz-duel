@@ -7,7 +7,7 @@
  *   git worktree add /tmp/old <commit the demos were recorded on>   (cp scripts/shots/demo-mount.tsx into it)
  *   (cd /tmp/old && npx vite dev --port 5192)   and today's tree on another port
  *   bun scripts/shots/demo-taps.ts --old=http://127.0.0.1:5192 --url=http://127.0.0.1:5191 [games…]
- *       [--sizes=375x667,390x844,430x932]
+ *       [--sizes=375x667,390x844,430x932] [--no-control]
  *
  * A saved demo stores each touch as a fraction of the play area it was recorded in, with
  * that area's size and column layout. For every place a demo can touch (each tap target's
@@ -300,6 +300,12 @@ async function replayed(
 }
 
 const games = args.filter((a) => !a.startsWith("--"));
+/**
+ * --no-control: skip the old tree's own player (use when that player is itself broken for a
+ * game, e.g. Tessellate's tray before its fix) and judge today's player against the
+ * recorded touch points alone.
+ */
+const NO_CONTROL = args.includes("--no-control");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const summary: string[] = [];
 try {
@@ -312,7 +318,9 @@ try {
     for (const size of SIZES) {
       try {
         const rec = await recordedProbes(browser, game, size);
-        const control = await replayed(browser, OLD, game, rec.w, rec.h, rec.probes);
+        const control = NO_CONTROL
+          ? rec.probes.map((p) => p.id)
+          : await replayed(browser, OLD, game, rec.w, rec.h, rec.probes);
         const now = await replayed(browser, NEW, game, rec.w, rec.h, rec.probes);
         rec.probes.forEach((p, i) => {
           total++;
