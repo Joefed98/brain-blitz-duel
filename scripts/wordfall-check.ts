@@ -6,12 +6,21 @@
  *     the phone's public text file and cache key match it exactly; reports the
  *     download size it adds (raw, gzip, brotli).
  *  2. Plan: the same seed gives the same queue, columns and drops (tick by tick,
- *     with no input); every 20 consecutive queue tiles hold at least 8 vowels;
- *     drop intervals fall 1.6 s → 0.8 s across five 18 s phases.
+ *     with no input); rev 1: every 20 consecutive queue tiles hold at least 8
+ *     vowels, drop intervals fall 1.6 s → 0.8 s across five 18 s phases;
+ *     wordfallRev 2: at most 2 vowels in a row, 3 in any 6 tiles and 3
+ *     consonants in a row, fewer vowels overall, drops 2.0 s → 1.1 s, a slower
+ *     fall, and the Enter box (a tap inside it submits; on rev 1 the same tap
+ *     misses) drawn exactly on its tap box.
+ *  2b. Legacy: real rev-1 runs recorded on main before wordfallRev 2
+ *     (fixtures/wordfall-rev1-legacy.json.gz: strong, slow, quitting and random
+ *     play, stamped 1 and unstamped) replay to the identical score, final state
+ *     and checkpoints.
  *  3. Par: a scripted word-finding bot, playing through recordInput as the phone
- *     does, reaches par inside the 90 s run on every tested seed, and the server
- *     replay of its submitted string scores 150.
- *  4. Identity proof (this sim only): random input logs, including out-of-range
+ *     does on today's revision (pressing the Enter box), reaches par inside the
+ *     90 s run on every tested seed, and the server replay of its submitted
+ *     string scores 150.
+ *  4. Identity proof (both revisions): random input logs, including out-of-range
  *     payloads and unknown kinds, recorded through recordInput (always on the
  *     next sim tick, as the phone records),
  *     replay to the identical state, checkpoints and score; a hand-built bad log
@@ -20,8 +29,9 @@
  *
  *   bun scripts/wordfall-check.ts [botSeeds]
  */
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { brotliCompressSync, gzipSync } from "node:zlib";
+import { brotliCompressSync, gunzipSync, gzipSync } from "node:zlib";
 
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import {
@@ -37,21 +47,34 @@ import {
   wfSettled,
   wfSpelling,
   wfWordPoints,
+  wfInEnterV2,
+  wfWorldHFor,
   wordfallCheckpoint,
-  wordfallGame,
+  wordfallGameFor,
   wordfallPlan,
   wordfallScore,
   WF_CELL,
   WF_CHECKPOINT_INTERVAL,
   WF_COLS,
+  WF_ENTER_V2,
+  WF_FALL,
+  WF_FALL_V2,
+  WF_H,
+  WF_H_V2,
   WF_INPUT_ENTER,
   WF_INPUT_TAP,
   WF_PAR,
   WF_QUEUE_LEN,
+  WF_ROWS,
   WF_RUN_TICKS,
   WF_START_TILES,
   WF_VOWEL_MIN,
   WF_VOWEL_WINDOW,
+  WF_V2_CONSONANT_RUN,
+  WF_V2_VOWEL_RUN,
+  WF_V2_VOWEL_SPAN,
+  WF_V2_VOWEL_SPAN_MAX,
+  WF_W,
   WF_WELL_X,
   WF_WELL_Y,
   type WordfallState,
@@ -67,6 +90,10 @@ import { WORDFALL_DATA_PATH, WORDFALL_META_PATH, WORDFALL_PUBLIC_DIR, wordfallWo
 import { WORDFALL_META } from "@/lib/arcade/wordfallWords.meta";
 
 const BOT_SEEDS = Number(process.argv[2] ?? 20);
+/** The revision rooms deal today, and the original rules stored rounds keep. */
+const REV = 2;
+const wordfallGame = wordfallGameFor(1);
+const gameV2 = wordfallGameFor(REV);
 let failures = 0;
 let checks = 0;
 const fail = (msg: string) => {
@@ -124,12 +151,12 @@ interface DropRecord {
   col: number;
   letter: number;
 }
-function idleRun(seed: number): { drops: DropRecord[]; state: WordfallState } {
-  let state = wordfallGame.init(seed);
+function idleRun(seed: number, game = wordfallGame): { drops: DropRecord[]; state: WordfallState } {
+  let state = game.init(seed);
   const drops: DropRecord[] = [];
-  while (!wordfallGame.isOver(state)) {
+  while (!game.isOver(state)) {
     const before = state.drops;
-    state = wordfallGame.step(state, null);
+    state = game.step(state, null);
     if (state.drops > before) {
       const col = state.plan.cols[before]!;
       const top = state.well[col]![state.well[col]!.length - 1]!;
@@ -173,11 +200,150 @@ function idleRun(seed: number): { drops: DropRecord[]; state: WordfallState } {
     check(a.state.over === 1, `seed ${seed}: an idle run should overflow`);
   }
   check(!same(idleRun(1).drops, idleRun(2).drops), "seeds 1 and 2 drop the same tiles");
-  const intervals = [0, 1079, 1080, 2160, 3240, 4320, 5399].map(wfDropInterval);
+  const intervals = [0, 1079, 1080, 2160, 3240, 4320, 5399].map((t) => wfDropInterval(t));
   check(same(intervals, [96, 96, 84, 72, 60, 48, 48]), `drop intervals ${intervals.join(",")}`);
   check(same([3, 4, 5, 6, 7, 9, 12].map(wfWordPoints), [1, 2, 4, 7, 11, 11, 11]), "word points table");
   check(wordfallScore(30) === 150 && wordfallScore(60) === 150 && wordfallScore(15) === 75 && wordfallScore(1) === 5 && wordfallScore(0) === 0, "score formula");
   console.log("plan: 2000 seeds, every 20-tile window ≥ 8 vowels, balanced column bags, identical drops per seed");
+
+  // wordfallRev 2: the run rules on every seed, fewer vowels, the same column bags, slower drops.
+  let vowels = 0;
+  let tiles = 0;
+  let minWindow = 99;
+  for (let seed = 1; seed <= 2000; seed++) {
+    const s = seed * 7919;
+    const a = wordfallPlan(s, REV);
+    if (!same(a, wordfallPlan(s, REV))) fail(`rev 2 seed ${s}: plan differs between two builds`);
+    if (a.plan.letters.length !== WF_QUEUE_LEN || a.plan.cols.length !== WF_QUEUE_LEN) fail(`rev 2 seed ${s}: queue length`);
+    const letters = a.plan.letters;
+    let vRun = 0;
+    let cRun = 0;
+    for (let i = 0; i < letters.length; i++) {
+      const v = wfIsVowel(letters[i]!);
+      vRun = v ? vRun + 1 : 0;
+      cRun = v ? 0 : cRun + 1;
+      if (v) vowels++;
+      tiles++;
+      if (vRun > WF_V2_VOWEL_RUN) fail(`rev 2 seed ${s}: ${vRun} vowels in a row at ${i}`);
+      if (cRun > WF_V2_CONSONANT_RUN) fail(`rev 2 seed ${s}: ${cRun} consonants in a row at ${i}`);
+      if (i + 1 >= WF_V2_VOWEL_SPAN) {
+        let n = 0;
+        for (let j = i + 1 - WF_V2_VOWEL_SPAN; j <= i; j++) if (wfIsVowel(letters[j]!)) n++;
+        if (n > WF_V2_VOWEL_SPAN_MAX) fail(`rev 2 seed ${s}: ${n} vowels in tiles ${i + 1 - WF_V2_VOWEL_SPAN}-${i}`);
+      }
+      if (i + 1 >= WF_VOWEL_WINDOW) {
+        let n = 0;
+        for (let j = i + 1 - WF_VOWEL_WINDOW; j <= i; j++) if (wfIsVowel(letters[j]!)) n++;
+        minWindow = Math.min(minWindow, n);
+      }
+    }
+    const cols = a.plan.cols;
+    for (let i = 0; i + 6 <= cols.length; i += 6) if (new Set(cols.slice(i, i + 6)).size !== 6) fail(`rev 2 seed ${s}: column bag ${i / 6}`);
+    for (let i = 1; i < cols.length; i++) if (cols[i] === cols[i - 1]) fail(`rev 2 seed ${s}: column twice in a row at ${i}`);
+    checks += 3;
+  }
+  const share = vowels / tiles;
+  check(share > 0.33 && share < 0.42, `rev 2 vowel share ${(share * 100).toFixed(1)} %, want 33-42 %`);
+  check(minWindow >= 5, `rev 2: only ${minWindow} vowels in some 20-tile window`);
+  for (const seed of [1, 42, 123456789, -77]) {
+    const a = idleRun(seed, gameV2);
+    check(same(a, idleRun(seed, gameV2)), `rev 2 seed ${seed}: two idle runs differ`);
+    const plan = wordfallPlan(seed, REV).plan;
+    a.drops.forEach((d, i) => {
+      if (d.col !== plan.cols[i] || d.letter !== plan.letters[WF_START_TILES + i]) fail(`rev 2 seed ${seed}: drop ${i} is not queue tile ${WF_START_TILES + i}`);
+    });
+    check(a.state.over === 1 && a.state.rev === REV, `rev 2 seed ${seed}: an idle run should overflow`);
+    check(a.state.tick > idleRun(seed).state.tick, `rev 2 seed ${seed}: idle overflow not later than rev 1`);
+  }
+  const intervalsV2 = [0, 1079, 1080, 2160, 3240, 4320, 5399].map((t) => wfDropInterval(t, REV));
+  check(same(intervalsV2, [120, 120, 105, 90, 78, 66, 66]), `rev 2 drop intervals ${intervalsV2.join(",")}`);
+  check(WF_FALL_V2 < WF_FALL, "rev 2 fall is not slower");
+  // A dropped tile falls WF_FALL_V2 a tick on rev 2.
+  {
+    let st = gameV2.init(5);
+    while (st.drops === 0) st = gameV2.step(st, null);
+    const col = st.plan.cols[0]!;
+    const y0 = st.well[col]![st.well[col]!.length - 1]!.y;
+    st = gameV2.step(st, null);
+    check(st.well[col]![st.well[col]!.length - 1]!.y - y0 === WF_FALL_V2, "rev 2 fall step");
+  }
+  check(wfWorldHFor(REV) === WF_H_V2 && wfWorldHFor(1) === WF_H && wfWorldHFor(undefined) === WF_H, "world heights by revision");
+  check(WF_ENTER_V2.y >= WF_WELL_Y + WF_ROWS * WF_CELL + 8 && WF_ENTER_V2.y + WF_ENTER_V2.h <= WF_H_V2 && WF_ENTER_V2.x >= 0 && WF_ENTER_V2.x + WF_ENTER_V2.w <= WF_W, "Enter box sits under the well frame inside the rev-2 world");
+  // A chain of three settled tiles, then a tap in the Enter box: submitted on rev 2, a miss on rev 1.
+  for (const rev of [1, REV]) {
+    const game = wordfallGameFor(rev);
+    let st = game.init(77);
+    const taps = [tapAtCell(st, { col: 0, index: 0, id: 0, letter: 0 }, 1), tapAtCell(st, { col: 1, index: 0, id: 0, letter: 0 }, 2), tapAtCell(st, { col: 2, index: 0, id: 0, letter: 0 }, 3)];
+    for (const ev of taps) st = game.step(st, ev);
+    check(st.chain.length === 3, `rev ${rev}: chain of three not built`);
+    const enter = { t: 4, k: WF_INPUT_TAP, a: WF_ENTER_V2.x + 1, b: WF_ENTER_V2.y + WF_ENTER_V2.h - 1, c: 0, d: 0 };
+    const after = game.step(st, enter);
+    if (rev === REV) check(after.submits === 1 && after.chain.length === 0 && after.taps === st.taps + 1, "rev 2: a tap in the Enter box does not submit");
+    else check(after.submits === 0 && after.chain.length === 3, "rev 1: a tap below the well changed the chain");
+    const outside = game.step(st, { ...enter, a: WF_ENTER_V2.x - 1 });
+    check(outside.submits === 0 && outside.chain.length === 3, `rev ${rev}: a tap 1 px left of the Enter box submitted`);
+  }
+  check(wfInEnterV2(WF_ENTER_V2.x, WF_ENTER_V2.y) && !wfInEnterV2(WF_ENTER_V2.x + WF_ENTER_V2.w, WF_ENTER_V2.y) && !wfInEnterV2(WF_ENTER_V2.x, WF_ENTER_V2.y + WF_ENTER_V2.h), "Enter box edges");
+  console.log(`plan rev 2: 2000 seeds, ≤ ${WF_V2_VOWEL_RUN} vowels in a row, ≤ ${WF_V2_VOWEL_SPAN_MAX} in any ${WF_V2_VOWEL_SPAN}, ≤ ${WF_V2_CONSONANT_RUN} consonants in a row; vowels ${(share * 100).toFixed(1)} % (min ${minWindow} per 20); drops 2.0 s → 1.1 s; Enter box submits`);
+}
+
+/* ------------------------- 2a. Enter box art = tap box ------------------------- */
+{
+  // Draw a rev-2 state lit (a 3-tile chain) and muted (the same state over): the only pixels
+  // that differ are the Enter box's, and they reach every edge of its tap box within 2 px.
+  const { createCanvas } = await import("@napi-rs/canvas");
+  Object.defineProperty(globalThis, "performance", { configurable: true, value: { now: () => 10_000 } });
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }), devicePixelRatio: 1 },
+  });
+  const { drawWordfall } = await import("@/lib/arcade/wordfall.renderer");
+  let st = gameV2.init(77);
+  for (const [i, col] of [0, 1, 2].entries()) st = gameV2.step(st, tapAtCell(st, { col, index: 0, id: 0, letter: 0 }, i + 1));
+  const frame = (s: WordfallState) => {
+    const c = createCanvas(WF_W, WF_H_V2);
+    const ctx = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    drawWordfall(ctx, s, { width: WF_W, height: WF_H_V2 });
+    return ctx.getImageData(0, 0, WF_W, WF_H_V2).data;
+  };
+  const lit = frame(st);
+  const muted = frame({ ...st, over: 1 });
+  let x0 = WF_W, y0 = WF_H_V2, x1 = -1, y1 = -1;
+  for (let y = 0; y < WF_H_V2; y++) for (let x = 0; x < WF_W; x++) {
+    const i = (y * WF_W + x) * 4;
+    if (Math.abs(lit[i]! - muted[i]!) + Math.abs(lit[i + 1]! - muted[i + 1]!) + Math.abs(lit[i + 2]! - muted[i + 2]!) > 24) {
+      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+    }
+  }
+  const e = WF_ENTER_V2;
+  const box = `${x0},${y0}-${x1 + 1},${y1 + 1}`;
+  check(x1 >= 0, "Enter box art did not change between lit and muted");
+  check(Math.abs(x0 - e.x) <= 2 && Math.abs(y0 - e.y) <= 2 && Math.abs(x1 + 1 - (e.x + e.w)) <= 2 && Math.abs(y1 + 1 - (e.y + e.h)) <= 2,
+    `Enter box drawn at ${box}, tap box ${e.x},${e.y}-${e.x + e.w},${e.y + e.h}`);
+  console.log(`enter box: drawn ${box}, tap box ${e.x},${e.y}-${e.x + e.w},${e.y + e.h} (within 2 px)`);
+}
+
+/* --------------------------- 2b. Legacy rev-1 runs --------------------------- */
+{
+  const path = new URL("./fixtures/wordfall-rev1-legacy.json.gz", import.meta.url).pathname;
+  const fixture = JSON.parse(gunzipSync(readFileSync(path)).toString("utf8")) as {
+    runs: { label: string; seed: number; rev: number | null; raw: string; score: number; stateDigest: string; checkpointsDigest: string }[];
+  };
+  const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
+  let scored = 0;
+  for (const run of fixture.runs) {
+    const r = replayWordfallRun(run.seed, run.raw, run.rev ?? undefined);
+    const problems: string[] = [];
+    if (r.score !== run.score) problems.push(`score ${r.score}, recorded ${run.score}`);
+    if (digest(r.state) !== run.stateDigest) problems.push("final state");
+    if (digest(r.checkpoints) !== run.checkpointsDigest) problems.push("checkpoints");
+    if (r.state.rev !== 1) problems.push(`state rev ${r.state.rev}`);
+    if (problems.length) fail(`legacy ${run.label} (rev ${run.rev ?? "unstamped"}): ${problems.join(", ")}`);
+    if (run.score > 0) scored++;
+    checks++;
+  }
+  check(fixture.runs.length >= 30 && scored >= 20, `legacy fixture too thin (${fixture.runs.length} runs, ${scored} scoring)`);
+  console.log(`legacy: ${fixture.runs.length} real rev-1 replays (stamped 1 and unstamped; ${scored} scoring) give the recorded score, state and checkpoints`);
 }
 
 /* ---------------------------------- 3. Par --------------------------------- */
@@ -247,6 +413,11 @@ function bestWord(state: WordfallState): Cell[] | null {
   return null;
 }
 
+/** wordfallRev 2's Enter: a tap in the middle of the Enter box. */
+function enterTap(t: number): ArcadeInputEvent {
+  return { t, k: WF_INPUT_TAP, a: WF_ENTER_V2.x + WF_ENTER_V2.w / 2, b: WF_ENTER_V2.y + WF_ENTER_V2.h / 2, c: 0, d: 0 };
+}
+
 function tapAtCell(state: WordfallState, cell: Cell, t: number): ArcadeInputEvent {
   void state;
   return {
@@ -259,8 +430,8 @@ function tapAtCell(state: WordfallState, cell: Cell, t: number): ArcadeInputEven
   };
 }
 
-function botRun(seed: number): { state: WordfallState; raw: string; parTick: number } {
-  let state = wordfallGame.init(seed);
+function botRun(seed: number, game = gameV2): { state: WordfallState; raw: string; parTick: number } {
+  let state = game.init(seed);
   const log: ArcadeInputEvent[] = [];
   const cps: ReturnType<typeof wordfallCheckpoint>[] = [];
   let plan: Cell[] = [];
@@ -274,21 +445,21 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
     }
     if (plan.length) {
       if (step < plan.length) cand = tapAtCell(state, plan[step]!, t);
-      else cand = { t, k: WF_INPUT_ENTER, a: 0, b: 0, c: 0, d: 0 };
+      else cand = state.rev === 2 ? enterTap(t) : { t, k: WF_INPUT_ENTER, a: 0, b: 0, c: 0, d: 0 };
       step++;
       if (step > plan.length) {
         plan = [];
         step = 0;
       }
     }
-    recordInput(log, cand, wordfallGame.inputRanges);
-    state = wordfallGame.step(state, inputAt(log, t));
+    recordInput(log, cand, game.inputRanges);
+    state = game.step(state, inputAt(log, t));
     if (state.tick % WF_CHECKPOINT_INTERVAL === 0) cps.push(wordfallCheckpoint(state));
     if (parTick < 0 && state.points >= WF_PAR) parTick = state.tick;
   }
-  const score = wordfallGame.score(state);
+  const score = game.score(state);
   const raw = appendClientCounters(
-    encodeWordfallRun({ seed, claimedScore: score, events: log, endTick: state.tick, checkpoints: cps }),
+    encodeWordfallRun({ seed, claimedScore: score, events: log, endTick: state.tick, checkpoints: cps }, state.rev),
     arcadeCounters("wordfall", state, score),
   );
   return { state, raw, parTick };
@@ -299,7 +470,7 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
   for (let n = 0; n < BOT_SEEDS; n++) {
     const seed = (n * 2654435761 + 97) | 0;
     const { state, raw, parTick } = botRun(seed);
-    const result = replayWordfallRun(seed, raw);
+    const result = replayWordfallRun(seed, raw, REV);
     totalPoints += state.points;
     if (result.score !== 150 || parTick < 0)
       fail(`bot seed ${seed}: ${state.points} points (${state.words} words, ${state.over ? "overflowed" : "survived"}) → ${result.score}, par not reached`);
@@ -309,7 +480,7 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
   }
   parTicks.sort((a, b) => a - b);
   console.log(
-    `par: bot reached ${WF_PAR} on ${parTicks.length}/${BOT_SEEDS} seeds (median ${((parTicks[Math.floor(parTicks.length / 2)] ?? 0) / 60).toFixed(1)} s, slowest ${((parTicks[parTicks.length - 1] ?? 0) / 60).toFixed(1)} s); mean ${(totalPoints / BOT_SEEDS).toFixed(1)} points by the end`,
+    `par (rev ${REV}, Enter box): bot reached ${WF_PAR} on ${parTicks.length}/${BOT_SEEDS} seeds (median ${((parTicks[Math.floor(parTicks.length / 2)] ?? 0) / 60).toFixed(1)} s, slowest ${((parTicks[parTicks.length - 1] ?? 0) / 60).toFixed(1)} s); mean ${(totalPoints / BOT_SEEDS).toFixed(1)} points by the end`,
   );
 }
 
@@ -324,6 +495,9 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
   let maxEvents = 0;
   for (let run = 0; run < RUNS; run++) {
     const seed = rand(0x7ffffffe) + 1;
+    // Alternate revisions: even pairs on rev 1, odd pairs on rev 2.
+    const rev = Math.floor(run / 2) % 2 === 0 ? 1 : REV;
+    const wordfallGame = wordfallGameFor(rev);
     let state = wordfallGame.init(seed);
     const log: ArcadeInputEvent[] = [];
     const cps: ReturnType<typeof wordfallCheckpoint>[] = [];
@@ -338,6 +512,8 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
           const col = rand(WF_COLS);
           const index = rand(Math.max(1, state.well[col]!.length));
           cand = tapAtCell(state, { col, index, id: 0, letter: 0 }, t);
+        } else if (kind === WF_INPUT_TAP && rand(4) === 0) {
+          cand = enterTap(t);
         } else {
           cand = { t, k: kind, a: rand(520) - 60, b: rand(800) - 80, c: rand(5) - 2, d: rand(5) - 2 };
         }
@@ -349,16 +525,16 @@ function botRun(seed: number): { state: WordfallState; raw: string; parTick: num
     maxEvents = Math.max(maxEvents, log.length);
     const score = wordfallGame.score(state);
     const raw = appendClientCounters(
-      encodeWordfallRun({ seed, claimedScore: score, events: log, endTick: state.tick, checkpoints: cps }),
+      encodeWordfallRun({ seed, claimedScore: score, events: log, endTick: state.tick, checkpoints: cps }, rev),
       arcadeCounters("wordfall", state, score),
     );
-    const result = replayWordfallRun(seed, raw);
+    const result = replayWordfallRun(seed, raw, rev);
     const problems: string[] = [];
     if (result.score !== score) problems.push(`score ${score} vs ${result.score}`);
     if (!same(result.state, state)) problems.push("final state");
     if (!same(result.checkpoints, cps)) problems.push("checkpoints");
     if (result.flagged || result.inputDiag.clamped || result.inputDiag.dropped) problems.push(`flagged ${result.reason ?? ""}`);
-    if (problems.length) fail(`identity run ${run} seed ${seed}: ${problems.join(", ")}`);
+    if (problems.length) fail(`identity run ${run} (rev ${rev}) seed ${seed}: ${problems.join(", ")}`);
     checks++;
   }
   // A bad log the phone could never record: the server repairs, flags and replays it deterministically.

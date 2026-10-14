@@ -408,6 +408,7 @@ export function RoomChat({
     <>
       <ReactionLayer chat={chat} />
       <div
+        data-chat-bar
         aria-hidden={open || undefined}
         className={`sticky z-[55] mt-2 shrink-0 bg-background ${open ? "invisible pointer-events-none" : ""}`}
         style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}

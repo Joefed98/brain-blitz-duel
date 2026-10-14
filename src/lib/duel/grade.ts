@@ -34,7 +34,7 @@ import { decodeChainAnswer, replayChain } from "./chain";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
-import { decodeTileMoves, replayTiles } from "./tiles";
+import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
@@ -52,7 +52,7 @@ import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
 import { decodeClayRun, replayClayRun } from "./clayShoot";
-import { clayEmptyShotCost, clayEmptyShots, CLAY_REV4 } from "@/lib/arcade/clayShoot";
+import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
@@ -62,7 +62,7 @@ import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
@@ -76,10 +76,10 @@ import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } fro
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
-import { gradeNumlineItems, NUMLINE_FULL_ERROR, numlineAccuracy, scoreNumline } from "./numline";
+import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
-import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -89,7 +89,7 @@ import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
-import { balanceRoundScore, balanceScalesSolved, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
+import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
@@ -105,13 +105,38 @@ import {
   type TapLogDiag,
 } from "./tapLog";
 import { decodeMoves, replayUnblock } from "./unblock";
+import {
+  COUNT_REV2_TRAYS,
+  countUpStageTruth,
+  scanRev1StageResult,
+  scanStageMatches,
+  scoreCountRev2,
+  scoreScanRev1,
+  scoreSpotTwo,
+  spotTwoResult,
+  usesCountRev2,
+  usesScanRev1,
+  usesSpotRev1,
+} from "./attentionRev";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { solvedFrame } from "./tiles";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
-import { decodeStrikeout, encodeStrikeout, replayStrikeout, scoreStrikeout, soTally } from "./strikeout";
+import {
+  STRIKEOUT_REV2,
+  decodeStrikeout,
+  decodeStrikeout2,
+  encodeStrikeout,
+  encodeStrikeout2,
+  replayStrikeout,
+  replayStrikeout2,
+  scoreStrikeout,
+  scoreStrikeout2,
+  so2Tally,
+  soTally,
+  strikeoutRevOf,
+} from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
@@ -323,12 +348,14 @@ function gradeUnderRev(
       const placements = decodeBalance(body, puzzle.scales);
       const withinLimit = (s: number) => !placeLimits || (hangs[s] ?? 0) <= (placeLimits[s] ?? 0);
       const verdicts = balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && withinLimit(s));
+      // balanceRev 2 deals four scales (the fourth with 10 notches, 120 s on the puzzle); stored rounds three.
+      const total = balanceScaleCount(puzzle);
       const firstOpen = verdicts.indexOf(false);
-      const solved = placeLimits ? (firstOpen < 0 ? BAL_SCALES : firstOpen) : balanceSolvedCount(puzzle.scales, placements);
+      const solved = placeLimits ? (firstOpen < 0 ? total : firstOpen) : balanceSolvedCount(puzzle.scales, placements);
       // Rev 1 credits every balanced scale in any order.
       const scales = scoreRev1() ? verdicts : undefined;
       correctCount = scales ? scales.filter(Boolean).length : solved;
-      isCorrect = scales ? correctCount === BAL_SCALES : solved === BAL_SCALES;
+      isCorrect = scales ? correctCount === total : solved === total;
       score = balanceRoundScore(solved, ms, timeLimitMs, scales);
       extraDetail = scales ? { solved, scales, ...(placeLimits ? { hangs: puzzle.scales.map((_, s) => hangs[s] ?? 0), placeLimits } : {}) } : { solved };
       break;
@@ -412,6 +439,16 @@ function gradeUnderRev(
       break;
     }
     case "spotdiff": {
+      if (usesSpotRev1(puzzle)) {
+        // spotRev 1: two pictures, "cells|cells"; a finish needs all twelve and at most 5 wrong taps in each picture.
+        const result = spotTwoResult(puzzle, answer);
+        correctCount = result.found.reduce((a, b) => a + b, 0);
+        errors = result.wrong.reduce((a, b) => a + b, 0);
+        isCorrect = result.finished;
+        score = scoreSpotTwo(result, ms, timeLimitMs);
+        extraDetail = { found: result.found, wrong: result.wrong };
+        break;
+      }
       // The phone sends every cell it tapped; the six differences live
       // server-side, so only the stored answers decide the score.
       const tapped = answer
@@ -429,6 +466,16 @@ function gradeUnderRev(
       break;
     }
     case "symscan": {
+      if (usesScanRev1(puzzle)) {
+        // scanRev 1: grid 3 counts eagles facing either target; truth comes from the stored cells.
+        const parts = splitStages(answer);
+        const results = puzzle.stages.map((stage, i) => scanRev1StageResult(i, parseSelection(parts[i] ?? ""), scanStageMatches(stage)));
+        correctCount = results.filter((r) => r.perfect).length;
+        errors = results.reduce((sum, r) => sum + r.wrong, 0);
+        isCorrect = correctCount === STAGE_COUNT;
+        score = scoreScanRev1(results, ms, timeLimitMs);
+        break;
+      }
       const parts = splitStages(answer);
       const results = puzzle.stages.map((_, i) =>
         scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []),
@@ -825,13 +872,13 @@ function gradeUnderRev(
       const replay = checkBombPlan(required, constraints, decodeBombActions(answer));
       isCorrect = replay.defused;
       correctCount = replay.correctPrefix;
-      // Version 2 (six steps) scores partial credit as a share of the plan; stored four-step rounds keep 25 per step.
+      // Versions 2 and 3 (six steps) score partial credit as a share of the plan; stored four-step rounds keep 25 per step.
       score = scoreBomb(
         replay.defused,
         ms,
         replay.correctPrefix,
         timeLimitMs,
-        puzzle.bombVersion === BOMB_V2 ? required.length : undefined,
+        (puzzle.bombVersion ?? 1) >= BOMB_V2 ? required.length : undefined,
       );
       extraDetail = {
         defused: replay.defused,
@@ -927,17 +974,19 @@ function gradeUnderRev(
     }
     case "tiles": {
       // Every tapped tile is replayed on the stored frame, Undo and Reset too.
-      const replay = replayTiles(puzzle.frame, decodeTileMoves(answer));
+      // tilesRev 1: the extra-cell board (ten cells, tiles 1–9); stored rounds keep the 3×3 frame.
+      const layout = tilesLayout(puzzle);
+      const replay = replayTiles(puzzle.frame, decodeTileMoves(answer, layout.count), layout);
       isCorrect = replay.solved;
       correctCount = replay.inPlace;
       if (scoreRev1()) {
         // Rev 1: only tiles the player put in place, not ones that started there.
-        const goal = solvedFrame();
+        const goal = layout.goal;
         const startIn = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i]).length;
         // Tiles that started in place and were moved out count against, so random slides earn about 0.
         const displaced = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i] && replay.frame[i] !== v).length;
         const placed = replay.frame.filter((v, i) => v !== 0 && v === goal[i] && puzzle.frame[i] !== v).length - displaced;
-        score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn);
+        score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn, layout.count);
       } else score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
@@ -1486,7 +1535,7 @@ function gradeUnderRev(
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         // clayRev 4: the stored empty-shot cost, so the reveal never recomputes it.
-        ...(puzzle.clayRev === CLAY_REV4
+        ...(clayChargesEmptyShots(puzzle.clayRev)
           ? (() => {
               const emptyShots = clayEmptyShots(run.shots, run.hits, run.birdHits);
               return { emptyShots, emptyShotCost: clayEmptyShotCost(emptyShots, puzzle.clayRev) };
@@ -1766,7 +1815,7 @@ function gradeUnderRev(
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         // swingRev 4: stars taken (of starTotal) and what ended the run (1 dragon, 2 stalactite, 3 lava jet).
-        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
+        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,
@@ -1907,15 +1956,16 @@ function gradeUnderRev(
     }
     case "numline": {
       // Placements are measured against the stored exact values; the client sends positions only.
-      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer);
+      // numlineRev 2: the tighter item curve (and the 90 s clock stored on the puzzle).
+      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer, puzzle.numlineRev);
       const placed = results.filter((r) => r.placed).length;
       // Finished = every number placed; accuracy decides the score.
       isCorrect = placed === results.length;
       correctCount = placed;
-      score = scoreNumline(results, ms, timeLimitMs);
+      score = scoreNumline(results, ms, timeLimitMs, puzzle.numlineRev);
       extraDetail = {
         placed,
-        withinFull: results.filter((r) => r.error !== null && r.error <= NUMLINE_FULL_ERROR).length,
+        withinFull: results.filter((r) => r.error !== null && r.error <= numlineFullError(puzzle.numlineRev)).length,
         accuracy: Math.round(numlineAccuracy(results) * 10) / 10,
         numlineRev: puzzle.numlineRev,
         errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
@@ -1982,6 +2032,27 @@ function gradeUnderRev(
       break;
     }
     case "letterwheel": {
+      if (lwUsesLog(puzzle)) {
+        // wheelRev 1: the answer is every submitted trace; slot words are found in the log itself and misses cost.
+        const tally = lwTallyLog(puzzle.words ?? [], puzzle.letters, lwDecodeLog(answer), isWord);
+        const total = puzzle.slots.length;
+        const cells = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, tally.slots.map((i) => puzzle.words![i]!));
+        isCorrect = total > 0 && tally.slots.length >= total;
+        correctCount = tally.slots.length;
+        errors = tally.misses;
+        score = scoreLetterWheelLog(tally.slots.length, total, tally.misses, ms, timeLimitMs);
+        extraDetail = {
+          slots: tally.slots.length,
+          total,
+          cells: cells.cells,
+          totalCells: cells.totalCells,
+          traces: tally.traces,
+          misses: tally.misses,
+          freeMisses: LW_FREE_MISSES,
+          neutral: tally.neutral,
+        };
+        break;
+      }
       // Each submitted word is matched against the stored crossword.
       const words = lwDecode(answer);
       const v = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, words);
@@ -1994,6 +2065,30 @@ function gradeUnderRev(
       break;
     }
     case "strikeout": {
+      if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
+        // Rev 2: one word at a time, givens public, two vowel guesses per word, strikes shared.
+        const state2 = replayStrikeout2(
+          puzzle.words ?? [],
+          puzzle.givens ?? [],
+          decodeStrikeout2(answer),
+          isWord,
+        );
+        const tally2 = so2Tally(state2);
+        isCorrect = tally2.done;
+        correctCount = tally2.solvedWords;
+        errors = tally2.strikes;
+        score = scoreStrikeout2(tally2, ms, timeLimitMs);
+        storedAnswer = encodeStrikeout2(state2.effective);
+        extraDetail = {
+          solvedRows: tally2.solvedWords,
+          foundTiles: tally2.foundTiles,
+          strikes: tally2.strikes,
+          done: tally2.done,
+          over: state2.over,
+          strikeoutRev: puzzle.strikeoutRev,
+        };
+        break;
+      }
       // Every guess and solve is replayed on the stored words; solves are checked against the dictionary.
       const state = replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), isWord);
       const tally = soTally(state);
@@ -2175,6 +2270,16 @@ function gradeUnderRev(
       break;
     }
     case "countup": {
+      if (usesCountRev2(puzzle)) {
+        // countRev 2: four trays, the fourth a comparison; truth from the stored scenes.
+        const parts = splitStages(answer, COUNT_REV2_TRAYS);
+        const truths = puzzle.stages.map(countUpStageTruth);
+        const given = truths.map((_, i) => parseCount(parts[i] ?? ""));
+        correctCount = truths.filter((truth, i) => given[i] === truth).length;
+        isCorrect = truths.length === COUNT_REV2_TRAYS && correctCount === COUNT_REV2_TRAYS;
+        score = scoreCountRev2(given, truths, ms, timeLimitMs);
+        break;
+      }
       const parts = splitStages(answer);
       // Truth is derived from the stored scene, never accepted from a client or
       // a duplicated hidden count.

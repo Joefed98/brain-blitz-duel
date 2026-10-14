@@ -49,9 +49,11 @@ export interface PuzzleDemoLog {
  * Current in-game column layout revision. 1: top-anchored arena, controls 12px
  * below. 2 (13 Oct 2026): spare height splits evenly above and below the arena,
  * so it sits centred between the top bar and the bottom controls
- * (.game-column-centred). Older demos replay on the layout they were recorded on.
+ * (.game-column-centred). 3 (14 Oct 2026): per-game bottom-clearance lifts
+ * (.game-column-lifted, src/polish-layout/bottom.css) raise some boards and
+ * their bottom controls. Older demos replay on the layout they were recorded on.
  */
-export const GAME_COLUMN_LAYOUT = 2;
+export const GAME_COLUMN_LAYOUT = 3;
 
 const round3 = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 1000) / 1000;
 const TAP_SPAN = 0.025;

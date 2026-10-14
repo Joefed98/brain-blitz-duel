@@ -142,7 +142,7 @@ For discussion once tuning is finished. The deterministic engine makes all of th
 
 **Action games.** These work when the opponent or course is scripted from the seed:
 
-- Fighting: every player faces the same scripted opponent, so it becomes a test of reading and countering. Check first what didn't work in the retired Parry.
+- Fighting: every player faces the same scripted opponent, so it becomes a test of reading and countering. Check first what didn't work in Parry (retired, then deleted on 14 Oct 2026).
 - Runners and platformers on seeded courses, like Grappler and Roofbound.
 - Flick games: the engine's physics is deterministic, so the same flick always gives the same result.
 

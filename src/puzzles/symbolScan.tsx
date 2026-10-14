@@ -18,6 +18,7 @@ import {
   type SymbolScanStage,
 } from "@/lib/duel/types";
 
+import { SCAN_REV, scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
 import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -101,12 +102,37 @@ function IntroExample() {
           />
         ))}
       </div>
+      <p className="text-center text-xs text-muted-foreground">Grid 3 has two targets: tap eagles facing either.</p>
     </div>
   );
 }
 
+/** Eagles facing the target (or, on scanRev 1's grid 3, either target). */
 function matchesOf(stage: SymbolScanStage): number[] {
-  return stage.cells.flatMap((dir, i) => (dir === stage.target ? [i] : []));
+  return scanStageMatches(stage);
+}
+
+/** The target eagle(s) for a grid: one, or two side by side with "or" on scanRev 1's grid 3. */
+function TargetBadge({ stage, size = 30 }: { stage: SymbolScanStage; size?: number }) {
+  const box = size >= 30 ? "h-12 w-12" : "h-9 w-9";
+  const badge = (dir: ArrowDir) => (
+    <div className={`eye-target flex ${box} items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary`}>
+      <EagleIcon dir={dir} size={size} />
+    </div>
+  );
+  if (!stage.alsoTarget) return badge(stage.target);
+  return (
+    <div className="flex items-center gap-1.5" data-eye-targets="2">
+      {badge(stage.target)}
+      <span className="font-display text-xs font-bold uppercase tracking-wide text-primary">or</span>
+      {badge(stage.alsoTarget)}
+    </div>
+  );
+}
+
+/** One grid's result: scanRev 1 weights on stamped rounds, the stored weights otherwise. */
+function gridResult(puzzle: SymbolScanPuzzleData, s: number, selected: number[], targets: number[]) {
+  return usesScanRev1(puzzle) ? scanRev1StageResult(s, selected, targets) : scanStageResult(s, selected, targets);
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }: PuzzleStageProps) {
@@ -154,7 +180,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
     const area = stageRef.current;
     if (!grid || !area) return;
     const kids = Array.from(grid.children);
-    const birds = current.cells.flatMap((dir, i) => (dir === current.target && kids[i] ? [{ cell: kids[i]!, dir }] : []));
+    const facing = matchesOf(current);
+    const birds = current.cells.flatMap((dir, i) => (facing.includes(i) && kids[i] ? [{ cell: kids[i]!, dir }] : []));
     playEagleTakeoff(area, birds);
     if (!prefersReducedMotion()) setFlown(true);
   };
@@ -183,11 +210,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
         <StageProgress stage={stage} />
         <div className="flex items-center gap-3">
           <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Grid {stage + 1} of 3 · target
+            Grid {stage + 1} of 3 · {current.alsoTarget ? "targets" : "target"}
           </span>
-          <div className="eye-target flex h-12 w-12 items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary">
-            <EagleIcon dir={current.target} size={30} />
-          </div>
+          <TargetBadge stage={current} />
         </div>
       </div>
 
@@ -202,7 +227,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
               key={`${stage}-${index}`}
               index={index}
               dir={dir}
-              flown={flown && dir === current.target}
+              flown={flown && (dir === current.target || dir === current.alsoTarget)}
               state={selected.includes(index) ? "selected" : "plain"}
               onClick={() => toggle(index)}
               disabled={frozen}
@@ -230,9 +255,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "symscan") return null;
   const parts = splitStages(myAnswer);
   const grids = puzzle.stages.map((stage, s) => {
-    const targets = puzzle.targets?.[s] ?? matchesOf(stage);
+    const targets = usesScanRev1(puzzle) ? matchesOf(stage) : (puzzle.targets?.[s] ?? matchesOf(stage));
     const selected = parseSelection(parts[s] ?? "");
-    return { stage, targets, selected, result: scanStageResult(s, selected, targets) };
+    return { stage, targets, selected, result: gridResult(puzzle, s, selected, targets) };
   });
   // One grid at a time, large enough to read; the first grid with a slip opens first.
   const open = shown ?? Math.max(0, grids.findIndex((g) => !g.result.perfect));
@@ -269,6 +294,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <span className="flex shrink-0 items-center gap-1.5 text-primary">
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Grid {s + 1}</span>
               <EagleIcon dir={stage.target} size={20} />
+              {stage.alsoTarget ? <><span className="text-[10px] font-bold uppercase">or</span><EagleIcon dir={stage.alsoTarget} size={20} /></> : null}
             </span>
             <span className={`ml-auto font-mono text-base font-bold ${result.perfect ? "text-primary" : "text-warn"}`}>
               {result.found} / {result.targets} found{result.wrong ? ` · ${result.wrong} wrong` : ""} {result.perfect ? "✓" : "✗"}
@@ -308,9 +334,34 @@ function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] }
   return { stage: { target, cols, cells }, targets };
 }
 
+/** scanRev 1 grid 3: eagles facing either of two directions at least 90° apart, SCAN_TWO_EACH of each. */
+export const SCAN_TWO_EACH: [number, number] = [4, 6];
+
+function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+  const cellCount = cols * cols;
+  const target = pick(DIRECTIONS);
+  const ti = DIRECTIONS.indexOf(target);
+  // Never a neighbour: the two targets must read as clearly different facings.
+  const alsoTarget = pick(DIRECTIONS.filter((_, i) => Math.min((i - ti + 8) % 8, (ti - i + 8) % 8) >= 2));
+  const first = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
+  const second = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
+  const order = shuffled(Array.from({ length: cellCount }, (_, i) => i));
+  const firstCells = order.slice(0, first);
+  const secondCells = order.slice(first, first + second);
+  const targets = [...firstCells, ...secondCells].sort((a, b) => a - b);
+  const others = DIRECTIONS.filter((d) => d !== target && d !== alsoTarget);
+  const near = others.filter((d) => adjacentDirs(target).includes(d) || adjacentDirs(alsoTarget).includes(d));
+  const far = others.filter((d) => !near.includes(d));
+  const cells = Array.from({ length: cellCount }, (_, i) =>
+    firstCells.includes(i) ? target : secondCells.includes(i) ? alsoTarget : far.length === 0 || Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
+  );
+  return { stage: { target, alsoTarget, cols, cells }, targets };
+}
+
 export function buildSymbolScan(): SymbolScanPuzzleData {
-  const built = SYMSCAN_STAGE_COLS.map((cols) => buildStage(cols));
-  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets) };
+  // scanRev 1 (14 Oct 2026): the third grid has two target directions.
+  const built = SYMSCAN_STAGE_COLS.map((cols, i) => (i === SYMSCAN_STAGE_COLS.length - 1 ? buildTwoTargetStage(cols) : buildStage(cols)));
+  return { type: "symscan", stages: built.map((b) => b.stage), targets: built.map((b) => b.targets), scanRev: SCAN_REV };
 }
 
 export const symbolScanPuzzle: PuzzleDefinition = {
@@ -323,7 +374,7 @@ export const symbolScanPuzzle: PuzzleDefinition = {
     if (puzzle.type !== "symscan") return false;
     const parts = splitStages(answer);
     return puzzle.stages.every((stage, i) =>
-      scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? matchesOf(stage)).perfect,
+      gridResult(puzzle, i, parseSelection(parts[i] ?? ""), usesScanRev1(puzzle) ? matchesOf(stage) : (puzzle.targets?.[i] ?? matchesOf(stage))).perfect,
     );
   },
   IntroExample,

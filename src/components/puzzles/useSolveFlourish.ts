@@ -82,7 +82,7 @@ export function useSolveFlourish(
     };
     let selector =
       "[data-puzzle-cell], .word-letter-tile, .grid > button, .grid > div, .grid > span";
-    if (["flow", "trail", "stroke", "laser", "wordsearch"].includes(type))
+    if (["flow", "trail", "laser", "wordsearch"].includes(type))
       selector = "svg path, svg polyline, svg line";
     if (type === "tiles") selector = "[data-pointer-index]";
     if (type === "push") selector = 'svg[aria-label="Crate home"]';

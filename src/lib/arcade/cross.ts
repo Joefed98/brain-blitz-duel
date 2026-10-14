@@ -149,11 +149,11 @@ function mod(value: number, m: number): number {
   return r < 0 ? r + m : r;
 }
 
-/** True when the player's disc at this column centre touches a block. */
-export function crossBlocked(lane: CrossLane, centreFp: number, rel: number): boolean {
+/** True when the player's disc at this column centre touches a block (half: the disc's half-width, 1/256 px). */
+export function crossBlocked(lane: CrossLane, centreFp: number, rel: number, half = CROSS_PLAYER_HALF_FP): boolean {
   if (lane.kind === CROSS_KIND_ROADWORKS) return false;
-  const left = centreFp - CROSS_PLAYER_HALF_FP;
-  const span = CROSS_PLAYER_HALF_FP * 2;
+  const left = centreFp - half;
+  const span = half * 2;
   const u = mod(left - lane.dir * lane.speed * rel - lane.phase, lane.period);
   if (lane.offsets) {
     // Uneven riders: the disc's span [u, u + span) against each rider, wrapping at the period.
@@ -463,6 +463,8 @@ export interface CrossState extends BandFields {
   ghost: boolean;
   /** Render only: the tick of the last hit. */
   hitTick: number;
+  /** crossRev 5 only (Tuning F): the walker's smaller hit box. Absent on every earlier round. */
+  tunef?: number;
 }
 
 function init(seed: number): CrossState {
@@ -584,7 +586,7 @@ function step(state: CrossState, input: ArcadeInputEvent | null): CrossState {
   if (!paused && hop === 0 && lane >= 1 && lane <= CROSS_LANES) {
     const course = crossCourse({ ...state, crossings });
     const laneDef = course.lanes[lane - 1];
-    const blocked = !!laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart);
+    const blocked = !!laneDef && crossBlocked(laneDef, crossColumnCentreFp(col), tick - crossStart, crossPlayerHalfFp(state));
     if (ghost && !blocked) ghost = false;
     if (blocked && !ghost) {
       const lives = state.lives - 1;
@@ -676,6 +678,11 @@ export function crossCheckpoint(state: CrossState): CrossCheckpoint {
   let checksum = 0x811c9dc5;
   for (const value of Object.values(snapshot)) {
     checksum ^= value | 0;
+    checksum = Math.imul(checksum, 0x01000193) >>> 0;
+  }
+  // crossRev 5 folds its flag in after the unchanged fields.
+  if (state.tunef) {
+    checksum ^= state.tunef | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
   return { ...snapshot, checksum };
@@ -884,6 +891,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_SMALL) return crossSmallGame;
   if (rev === CROSS_REV_BAND) return crossBandGame;
   return rev === CROSS_REV ? crossRev3Game : rev === CROSS_REV2 ? crossRev2Game : crossGame;
 }
@@ -918,3 +926,28 @@ function scoreBand(state: CrossState): number {
 }
 
 export const crossBandGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = { ...crossRev3Game, init: (seed) => bandInit(crossRev3Game.init(seed)) };
+
+/* ============ Tuning F (crossRev 5): a smaller walker ============ */
+
+/**
+ * crossRev 5 (Tuning F, Oct 2026): crossRev 4's courses, traffic, inputs and
+ * band curve, with the walker's hit box narrowed from 16 px to 13 px either side
+ * of its column centre (the stick figure's arms reach about 13.75 px, so the
+ * drawn walker is what collides). Courses are still proved with the 16 px disc,
+ * so every proved gap stays open at least as long. States add `tunef: 1`.
+ */
+export const CROSS_REV_SMALL = 5;
+export const CROSS_PLAYER_R_V5 = 13;
+export const CROSS_PLAYER_HALF_V5_FP = CROSS_PLAYER_R_V5 * 256;
+
+/** The walker's hit-box half-width for this run, in 1/256 px. */
+export function crossPlayerHalfFp(state: Pick<CrossState, "tunef">): number {
+  return state.tunef ? CROSS_PLAYER_HALF_V5_FP : CROSS_PLAYER_HALF_FP;
+}
+
+/** The walker's hit-box half-width for this run, in world px (art and hit flash). */
+export function crossPlayerR(state: Pick<CrossState, "tunef">): number {
+  return state.tunef ? CROSS_PLAYER_R_V5 : CROSS_PLAYER_R;
+}
+
+export const crossSmallGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = { ...crossBandGame, init: (seed) => ({ ...crossBandGame.init(seed), tunef: 1 }) };

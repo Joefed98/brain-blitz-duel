@@ -1,33 +1,69 @@
 /**
- * Builds the Letter Wheel bank in src/lib/duel/letterWheelBank.server.ts.
+ * Builds the Roundabout (Letter Wheel) banks.
  *
- *   bun scripts/letter-wheel-bank.ts
+ *   bun scripts/letter-wheel-bank.ts            # wheelRev 1 bank → src/lib/duel/letterWheelBankRev1.server.ts
+ *   bun scripts/letter-wheel-bank.ts --legacy   # the original bank → src/lib/duel/letterWheelBank.server.ts
+ *   … --check                                   # rebuild in memory and compare with the committed file
+ *   … --out=<path>                              # write somewhere else
  *
- * Seed: an everyday 6–7 letter word. Valid words: every SCOWL British word of
- * 3+ letters spellable from the seed's letters, plurals removed with the shared
- * heuristic. Crossword: exactly 8 or 9 of the most common valid words, including at least
- * three words of 4+ letters and no more than three 3-letter words (ranked by the
- * scripts/data/word-frequency.txt list), interlocked in at most 8 × 8 with every
- * crossing consistent and no letters touching except at crossings. Seeds with
- * fewer than 8 valid words or no layout are rejected. Every entry is
- * re-checked before the file is written.
+ * Both are seeded and rebuild byte for byte. The legacy bank (unstamped rounds) is
+ * kept exactly as it was; its rules are unchanged below.
+ *
+ * Valid words: every SCOWL British word of 3+ letters spellable from the seed's
+ * letters, plurals removed with the shared heuristic. Crossword candidates: the most
+ * common valid words (ranked by the scripts/data/word-frequency.txt list), the seed
+ * first. Words interlock with every crossing consistent and no letters touching
+ * except at crossings (every maximal run of 2+ letters is exactly one slot). Every
+ * entry is re-checked before the file is written.
+ *
+ * Legacy: an everyday 6–7 letter seed; exactly 8 or 9 words, at least three of 4+
+ * letters and no more than three 3-letter words, in at most 8 × 8.
+ *
+ * wheelRev 1 (14 Oct 2026): an everyday 7-letter seed; 11 to 14 words, at least seven
+ * of 4+ letters and no more than five 3-letter words, in at most 11 columns × 9 rows
+ * (the board's wide, short space above the wheel at 375 × 667). The layout with the
+ * most words (then the smallest box) over 60 jittered attempts is kept. Candidates must
+ * also be on the everyday list (commonWords), which drops abbreviations such as SEPT.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { commonWords, isWord, wordsFrom } from "../src/lib/duel/dictionary.server";
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
-import { lwGrade, lwSlotCells, scoreLetterWheel } from "../src/lib/duel/letterWheel";
+import { lwGrade, lwSlotCells, LW_REV1_LIMITS } from "../src/lib/duel/letterWheel";
 import type { LetterWheelSlot } from "../src/lib/duel/types";
 
-const BANK = 300;
-const MAX = 8;
+const args = process.argv.slice(2);
+const LEGACY = args.includes("--legacy");
+const CHECK = args.includes("--check");
+const OUT = args.find((a) => a.startsWith("--out="))?.slice(6);
+
+interface Config {
+  bank: number;
+  seed: number;
+  seedLengths: number[];
+  maxCols: number;
+  maxRows: number;
+  minWords: number;
+  maxWords: number;
+  minLong: number;
+  maxShort: number;
+  candidates: number;
+  attempts: number;
+  /** Legacy: the first layout that passes; rev 1: the best of every attempt. */
+  best: boolean;
+}
+
+const CFG: Config = LEGACY
+  ? { bank: 300, seed: 20261002, seedLengths: [6, 7], maxCols: 8, maxRows: 8, minWords: 8, maxWords: 9, minLong: 3, maxShort: 3, candidates: 18, attempts: 40, best: false }
+  : { bank: 300, seed: 20261014, seedLengths: [7], ...LW_REV1_LIMITS, candidates: 24, attempts: 60, best: true };
+
 const freqRank = new Map<string, number>();
 readFileSync(new URL("./data/word-frequency.txt", import.meta.url), "utf8")
   .split(/\s+/)
   .forEach((w, i) => w && !freqRank.has(w) && freqRank.set(w, i));
 const rank = (w: string) => freqRank.get(w.toLowerCase()) ?? 1e9;
 
-let seedState = 20261002;
+let seedState = CFG.seed;
 const rnd = () => {
   seedState = (seedState + 0x6d2b79f5) | 0;
   let t = seedState;
@@ -74,7 +110,7 @@ function fit(grid: Grid, dirs: Dirs, p: Placed, box: number[]): number {
       if (sides.some((s) => grid.has(s))) return -1;
     }
   }
-  if (r1 - r0 + 1 > MAX || c1 - c0 + 1 > MAX) return -1;
+  if (r1 - r0 + 1 > CFG.maxRows || c1 - c0 + 1 > CFG.maxCols) return -1;
   return crosses;
 }
 
@@ -100,10 +136,12 @@ function layout(pool: string[]): Placed[] | null {
   box[3] = first.length - 1;
   const rest = pool.slice(1);
   let progress = true;
-  while (placed.length < 9 && progress) {
+  while (placed.length < CFG.maxWords && progress) {
     progress = false;
     for (const word of rest) {
       if (placed.some((p) => p.word === word)) continue;
+      // Rev 1: no more 3-letter words once the limit is reached.
+      if (CFG.best && word.length === 3 && placed.filter((p) => p.word.length === 3).length >= CFG.maxShort) continue;
       let best: { p: Placed; score: number } | null = null;
       for (const [k, letter] of grid) {
         const [r, c] = k.split(",").map(Number) as [number, number];
@@ -124,19 +162,28 @@ function layout(pool: string[]): Placed[] | null {
       if (best) {
         put(best.p);
         progress = true;
-        if (placed.length >= 9) break;
+        if (placed.length >= CFG.maxWords) break;
       }
     }
   }
-  if (placed.length < 8) return null;
+  if (placed.length < CFG.minWords) return null;
   const long = placed.filter((p) => p.word.length >= 4).length;
   const short = placed.filter((p) => p.word.length === 3).length;
-  return long >= 3 && short <= 3 ? placed : null;
+  return long >= CFG.minLong && short <= CFG.maxShort ? placed : null;
 }
+
+function boxOf(lay: Placed[]): { rows: number; cols: number } {
+  const cells = lay.flatMap(cellsOf);
+  const rows = Math.max(...cells.map(([r]) => r)) - Math.min(...cells.map(([r]) => r)) + 1;
+  const cols = Math.max(...cells.map(([, c]) => c)) - Math.min(...cells.map(([, c]) => c)) + 1;
+  return { rows, cols };
+}
+
+const everyday = new Set(commonWords());
 
 // ---- Seeds ----
 const seeds = shuffle(
-  commonWords().filter((w) => (w.length === 6 || w.length === 7) && rank(w) < 15000 && !isPluralForm(w) && isWord(w)),
+  commonWords().filter((w) => CFG.seedLengths.includes(w.length) && rank(w) < 15000 && !isPluralForm(w) && isWord(w)),
 );
 
 interface Entry { cols: number; rows: number; letters: string; slots: LetterWheelSlot[]; words: string[] }
@@ -146,21 +193,27 @@ let rejectedFew = 0;
 let rejectedLayout = 0;
 
 for (const seed of seeds) {
-  if (bank.length >= BANK) break;
+  if (bank.length >= CFG.bank) break;
   const sorted = [...seed].sort().join("");
   if (usedSets.has(sorted)) continue;
   const valid = [...new Set(wordsFrom(seed, 3, true).filter((w) => !isPluralForm(w)))].map((w) => w.toUpperCase());
-  if (valid.length < 8) { rejectedFew++; continue; }
+  if (valid.length < CFG.minWords) { rejectedFew++; continue; }
   // Crossword candidates: common words only, most frequent first; the seed leads.
-  const common = valid.filter((w) => rank(w) < 20000).sort((a, b) => rank(a) - rank(b)).slice(0, 18);
+  // Rev 1 also requires the everyday list (drops abbreviations such as SEPT).
+  const common = valid.filter((w) => rank(w) < 20000 && (!CFG.best || everyday.has(w.toLowerCase()))).sort((a, b) => rank(a) - rank(b)).slice(0, CFG.candidates);
   const S = seed.toUpperCase();
   let result: Placed[] | null = null;
-  for (let attempt = 0; attempt < 40 && !result; attempt++) {
+  let resultKey = -Infinity;
+  for (let attempt = 0; attempt < CFG.attempts && (CFG.best || !result); attempt++) {
     const rest = common.filter((w) => w !== S);
     // Keep frequency order but jitter it a little between attempts.
     const jittered = rest.map((w, i) => ({ w, k: i + rnd() * 6 })).sort((a, b) => a.k - b.k).map((x) => x.w);
     const lay = layout([S, ...jittered]);
-    if (lay && new Set(lay.map((p) => p.word.length)).size >= 2) result = lay;
+    if (!lay || new Set(lay.map((p) => p.word.length)).size < 2) continue;
+    if (!CFG.best) { result = lay; break; }
+    const { rows, cols } = boxOf(lay);
+    const k = lay.length * 1000 - rows * cols;
+    if (k > resultKey) { result = lay; resultKey = k; }
   }
   if (!result) { rejectedLayout++; continue; }
   const minR = Math.min(...result.flatMap((p) => cellsOf(p).map(([r]) => r)));
@@ -178,10 +231,21 @@ for (const seed of seeds) {
 // ---- Re-check every entry ----
 const problems: string[] = [];
 for (const [n, e] of bank.entries()) {
-  if (e.cols > MAX || e.rows > MAX) problems.push(`#${n} too big`);
-  if (e.words.length !== 8 && e.words.length !== 9) problems.push(`#${n} ${e.words.length} words`);
-  if (e.words.filter((w) => w.length >= 4).length < 3) problems.push(`#${n} fewer than three 4+ letter words`);
-  if (e.words.filter((w) => w.length === 3).length > 3) problems.push(`#${n} more than three 3-letter words`);
+  if (e.cols > CFG.maxCols || e.rows > CFG.maxRows) problems.push(`#${n} too big`);
+  if (e.words.length < CFG.minWords || e.words.length > CFG.maxWords) problems.push(`#${n} ${e.words.length} words`);
+  if (e.words.filter((w) => w.length >= 4).length < CFG.minLong) problems.push(`#${n} too few 4+ letter words`);
+  if (e.words.filter((w) => w.length === 3).length > CFG.maxShort) problems.push(`#${n} too many 3-letter words`);
+  if (new Set(e.words).size !== e.words.length) problems.push(`#${n} repeated word`);
+  const pool = [...e.letters].sort().join("");
+  for (const w of e.words) {
+    const left = [...pool];
+    for (const ch of w) {
+      const at = left.indexOf(ch);
+      if (at < 0) problems.push(`#${n} ${w} not spellable`);
+      else left.splice(at, 1);
+    }
+    if (!isWord(w)) problems.push(`#${n} ${w} not a word`);
+  }
   const grid: (string | null)[] = Array(e.cols * e.rows).fill(null);
   for (const [i, s] of e.slots.entries()) {
     for (const [j, cell] of lwSlotCells(s, e.cols).entries()) {
@@ -213,24 +277,21 @@ for (const [n, e] of bank.entries()) {
   }
   if (runCount !== e.slots.length) problems.push(`#${n} run count ${runCount}/${e.slots.length}`);
   const all = lwGrade(e.words, e.slots, e.cols, e.words);
-  if (all.cells !== all.totalCells) problems.push(`#${n} not complete`);
-  const expected = e.words.length === 8 ? 135 : 129;
-  if (scoreLetterWheel(all.slots.length, e.words.length, 60_000, 120_000) !== expected) problems.push(`#${n} score`);
+  if (all.cells !== all.totalCells || all.slots.length !== e.words.length) problems.push(`#${n} not complete`);
 }
-if (problems.length || bank.length < BANK) {
+if (problems.length || bank.length < CFG.bank) {
   console.error(problems.slice(0, 30).join("\n"), `\nbuilt ${bank.length}`);
   process.exit(1);
 }
 
 const hist = new Map<number, number>();
 for (const e of bank) hist.set(e.words.length, (hist.get(e.words.length) ?? 0) + 1);
-console.log(`bank ${bank.length}; words per board`, Object.fromEntries([...hist].sort()),
-  `; rejected: ${rejectedFew} under 8 words, ${rejectedLayout} no layout`,
+console.log(`${LEGACY ? "legacy" : "wheelRev 1"} bank ${bank.length}; words per board`, Object.fromEntries([...hist].sort()),
+  `; rejected: ${rejectedFew} under ${CFG.minWords} words, ${rejectedLayout} no layout`,
   `; size max ${Math.max(...bank.map((e) => e.cols))}×${Math.max(...bank.map((e) => e.rows))}`);
 
-writeFileSync(
-  new URL("../src/lib/duel/letterWheelBank.server.ts", import.meta.url),
-  `/**
+const text = LEGACY
+  ? `/**
  * Letter Wheel bank — generated by scripts/letter-wheel-bank.ts. Do not edit by hand.
  */
 import type { LetterWheelSlot } from "./types";
@@ -244,5 +305,21 @@ export interface LetterWheelBankEntry {
 }
 
 export const LETTER_WHEEL_BANK: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
-`,
-);
+`
+  : `/**
+ * Roundabout wheelRev 1 bank (11–14 words, at most 11 × 9) — generated by
+ * scripts/letter-wheel-bank.ts. Do not edit by hand. Server-only.
+ */
+import type { LetterWheelBankEntry } from "./letterWheelBank.server";
+
+export const LETTER_WHEEL_BANK_REV1: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
+`;
+const target = OUT ?? new URL(`../src/lib/duel/${LEGACY ? "letterWheelBank" : "letterWheelBankRev1"}.server.ts`, import.meta.url).pathname;
+if (CHECK) {
+  const have = readFileSync(target, "utf8");
+  if (have !== text) {
+    console.error(`FAIL: ${target} differs from a fresh build`);
+    process.exit(1);
+  }
+  console.log(`ok: ${target} rebuilds byte for byte`);
+} else writeFileSync(target, text);

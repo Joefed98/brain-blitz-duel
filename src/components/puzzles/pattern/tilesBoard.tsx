@@ -8,15 +8,16 @@ import { useLayoutEffect, useRef } from "react";
 import { pointerElementIndex } from "@/components/puzzles/GridDrag";
 import { useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { CLASSIC_TILES_LAYOUT, type TilesLayout } from "@/lib/duel/tiles";
 import { TILES_SIZE, TILES_SLIDE_MS } from "@/lib/duel/types";
 import { soundCue } from "@/lib/fx/patternFx";
 
 const TILE_GRADIENT_STOPS = 8;
 
-/** The 1→8 hue ramp (same as the puzzle's own `tileFill`). */
-export function tilesRampFill(value: number): string {
-  const step = (value - 1) % TILE_GRADIENT_STOPS;
-  const hue = 215 - (step / (TILE_GRADIENT_STOPS - 1)) * 175;
+/** The 1→8 hue ramp (same as the puzzle's own `tileFill`); the extra-cell board spreads it over 1→9. */
+export function tilesRampFill(value: number, stops: number = TILE_GRADIENT_STOPS): string {
+  const step = (value - 1) % stops;
+  const hue = 215 - (step / (stops - 1)) * 175;
   return `hsl(${hue.toFixed(0)} 52% 58%)`;
 }
 
@@ -35,8 +36,11 @@ export function TilesFrame({
   onTile,
   variant = "stage",
   celebrate = false,
+  layout = CLASSIC_TILES_LAYOUT,
 }: {
   frame: number[];
+  /** The board's cells: the classic 3×3 frame, or the extra-cell board (tilesRev 1). */
+  layout?: TilesLayout;
   onTile?: ((tile: number) => void) | undefined;
   /** "stage" keeps the original 86 px cells outside the live column; "reveal" fits its box. */
   variant?: "stage" | "reveal";
@@ -72,18 +76,36 @@ export function TilesFrame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  const shaped = layout.cells.length !== TILES_SIZE * TILES_SIZE;
+  const stops = Math.max(TILE_GRADIENT_STOPS, layout.count);
+  // tilesRev 1: each cell sits at its own grid slot inside the bounding box; a bed under each
+  // cell draws the tray in the board's shape, so the empty corners of the box show nothing.
+  const place = (index: number) => {
+    if (!shaped) return undefined;
+    const cell = layout.cells[index]!;
+    return { gridRow: cell.r - layout.top + 1, gridColumn: cell.c - layout.left + 1 };
+  };
+
   return (
     <div
       ref={board}
-      className="tiles-frame puzzle-board grid gap-1.5 rounded-xl border-2 p-1.5"
+      className={`tiles-frame puzzle-board grid gap-1.5 rounded-xl border-2 p-1.5${shaped ? " tiles-frame-shaped" : ""}`}
       data-tiles-variant={variant}
+      data-tiles-shape={shaped ? `${layout.cols}x${layout.rows}` : undefined}
       data-celebrate={celebrate ? "on" : undefined}
-      style={{ gridTemplateColumns: `repeat(${TILES_SIZE}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${shaped ? layout.cols : TILES_SIZE}, minmax(0, 1fr))`,
+        ...(shaped ? { ["--tiles-aspect" as string]: layout.cols / layout.rows } : {}),
+      }}
       aria-label={`${gameDisplayName("tiles")} frame`}
     >
-      {frame.map((value) =>
+      {shaped &&
+        layout.cells.map((_cell, index) => (
+          <span key={`bed-${index}`} aria-hidden="true" className="tiles-bed" style={place(index)} />
+        ))}
+      {frame.map((value, index) =>
         value === 0 ? (
-          <span key="gap" data-tile-gap className="tiles-gap rounded-lg bg-background/40" />
+          <span key="gap" data-tile-gap className="tiles-gap rounded-lg bg-background/40" style={place(index)} />
         ) : (
           <button
             key={`tile-${value}`}
@@ -100,8 +122,9 @@ export function TilesFrame({
             }}
             className="tiles-tile flex items-center justify-center rounded-lg font-display font-bold text-white"
             style={{
-              background: tilesRampFill(value),
-              ["--tile-fill" as string]: tilesRampFill(value),
+              ...place(index),
+              background: tilesRampFill(value, stops),
+              ["--tile-fill" as string]: tilesRampFill(value, stops),
               ["--tile-order" as string]: value - 1,
             }}
           >

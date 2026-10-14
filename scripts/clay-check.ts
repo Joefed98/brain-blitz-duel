@@ -14,6 +14,9 @@ import {
   CLAY_KIND_ORANGE,
   CLAY_REV,
   CLAY_REV2,
+  CLAY_REV4,
+  CLAY_BIRD_MAX_V5,
+  CLAY_BIRD_MIN_V5,
   CLAY_BIRD_RX,
   CLAY_BIRD_RY,
 } from "@/lib/arcade/clayShoot";
@@ -51,7 +54,11 @@ for (let run = 0; run < RUNS; run++) {
   const game = clayGameFor(CLAY_REV);
   let state = game.init(seed);
   const birds = state.birds;
-  if (!birds || birds.launch.length < 10 || birds.launch.length > 12) fail(`run ${run}: bird count`);
+  // clayRev 5 (14 Oct 2026): 14–16 birds; rev 3 and 4 keep 10–12.
+  if (!birds || birds.launch.length < CLAY_BIRD_MIN_V5 || birds.launch.length > CLAY_BIRD_MAX_V5) fail(`run ${run}: bird count`);
+  const rev4Birds = clayGameFor(CLAY_REV4).init(seed).birds?.launch.length ?? 0;
+  if (rev4Birds < 10 || rev4Birds > 12) fail(`run ${run}: rev 4 bird count ${rev4Birds}`);
+  if (JSON.stringify(clayGameFor(CLAY_REV4).init(seed).schedule) !== JSON.stringify(state.schedule)) fail(`run ${run}: rev 5 clays differ from rev 4`);
   if (birds?.launch.some((tick, i) => tick < 0 || tick >= CLAY_CONFIG.runSeconds * 60 || (i > 0 && tick < birds.launch[i - 1]!))) fail(`run ${run}: bird timing`);
   birdCounts[birds?.launch.length ?? 0] = (birdCounts[birds?.launch.length ?? 0] ?? 0) + 1;
   if (run === 0) birdTableSeed0 = birds ? birds.launch.map((t, i) => ({ launch: t, side: birds.side[i]!, y: birds.launchY[i]!, vx: birds.vx[i]!, vy: birds.vy[i]! })) : [];

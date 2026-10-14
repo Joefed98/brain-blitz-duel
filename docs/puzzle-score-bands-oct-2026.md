@@ -185,3 +185,143 @@ Every honest band moves by at most 1 except Colour Flood's average (98 → 96: a
 **What the server verifies.** Colour Flood, Polypotions (Undo and Reset now in the log), Topsy-Turvy and Brimful send every move, and the server replays only the moves inside the stored limit. Counterweight and Operator send the final placement / operators plus the phone's hang / try counts; the server refuses a count over the limit, but the count is the phone's word (a modified phone could send fewer). Counterweight's harder small scales are verifiable: with no limit at all, random hanging scores a median of 20 (was 38–55).
 
 **Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).
+
+## Attention rework (14 Oct 2026): Eagle Eye, Double Take, Tally
+
+Each game gained a harder part and was re-weighted on the puzzle score shape (a finish = 120 + PAR(30), unfinished credit at most 110). Every change is gated on its own stamp, so stored rounds grade as before (`scripts/attention-rework-check.ts`: 770 answers on main's puzzles and 841 on the new stamps grade identically). Formulas: `docs/duelz-scoring-reference.md` section 7; code `src/lib/duel/attentionRev.ts`.
+
+| Game | Change | Stage scores |
+|---|---|---|
+| Eagle Eye (`scanRev 1`) | Grid 3 has two target directions, at least 90° apart, 4–6 eagles each; tap every eagle facing either. Still 30 s. | Grids 40 / 40 / 30 (was 25 / 40 / 45), −3 per wrong tap |
+| Double Take (`spotRev 1`) | Two pictures with their own six differences: the sweet shop, then a new rock pool (pufferfish, crab, seahorse, starfish, shell, fish). 30 s → 60 s, stored on the puzzle. **Next picture** moves on early, no way back. | 10 per difference (was 22), −4 per wrong tap (was 5); a finish needs all 12 with at most 5 wrong taps **in each picture** |
+| Tally (`countRev 2`) | A fourth, 50-shape tray asks "How many more A than B?" (every shape of each colour counts; B 3–6, the answer 1–13). 45 s → 60 s, stored on the puzzle. Each tray now has 13 possible answers: 3–15, 5–17, 7–19 (#55's 5–11, 7–13, 9–15 widened around nearly the same middles), placed with spacing so every counted shape stays at least half visible. | Trays 40 / 30 / 25 / 15 (was 25 / 40 / 45); one off = 15 %, two or more off = 0 (was 60 % / 30 %) |
+
+Measured with the fairness kits (`scripts/puzzle-fairness.ts symscan spotdiff countup --seeds=30`, seeds 5001–5030). Before = main (`1c0deac`) as rooms deal it today; after = the new stamps. Median score per level (finishes out of 30); random = the spam strategies' medians.
+
+| Game | Average | Good | Great | Near-perfect | Random (median) | Highest unfinished / lowest finish |
+|---|---|---|---|---|---|---|
+| Eagle Eye | 51 → **66** (0/30) | 125 → **103** (9/30) | 144 → **135** (28/30) | 150 → **150** (28/30) | tap-all 0, random half 0, random quarter 0 → **0 / 0 / 0** | 107 / 122 → **108 / 120** |
+| Double Take | 86 → **73** (0/30) | 142 → **136** (30/30) | 150 → **148** (30/30) | 150 → **150** (30/30) | 0 / 0 / 0 → **0 / 0 / 0**, skip-then-tap-all **0** | 110 / 120 → **110 / 127** |
+| Tally | 55 → **49** (0/30) | 97 → **92** (8/30) | 150 → **150** (25/30) | 150 → **150** (27/30) | guess the middle 53 → **5**, random guess 44 → **4** | 100 / 124 → **97 / 128** |
+
+Target bands were about 70 / 100 / 125 / 140–150 with random at or below about 60.
+
+- **Eagle Eye** lands close: the two-target grid costs good players their finish about half as often as before (17 → 9 of 30), and the front-loaded grid weights lift the average player, who rarely reaches grid 3 (51 → 66). Great is 135 (target 125): great players still finish 28 of 30 with time to spare. A −2 wrong-tap cost was tried and rejected: tapping every eagle then scored a median of 6.
+- **Double Take** stays high for good and great players (136 / 148, target 100 / 125). Twelve differences in 60 s is the old pace (six in 30 s); the kit gives the rock pool 3.5 s a difference against the shop's 3 s, and a good player still finishes with about 18 s left. Reaching about 100 would need a shorter clock than the 60 s asked for, or a harder picture than a fair one. The average falls 86 → 73 because nobody can finish on a strong first half alone any more. Random play scores 0 in every strategy (the per-picture allowance and −4 cost make blanket tapping worthless).
+- **Tally** (revised before merge): guessing paid too well with one off at 60 % and two off at 30 % (guess the middle 51, a random guess 45 on the first version of this change). Two off now scores nothing, one off 15 % of the tray, and every tray has 13 possible answers, so a blind guess lands within one of the answer on about one tray in four and earns a few points (median 5 / 4, at most 70–74). On 120 seeds (30 are noisy for Tally's average): first version 72 / 98 / 149 / 150 with guesses 48 / 39 → now **70 / 95 / 147 / 150** with guesses **5 / 4**. One off at 30 % (as first suggested) left the guess median at 9 and 20 % at 6, so 15 % was taken; the weights moved to the early trays (40 / 30 / 25 / 15), which good players miss least, to keep good players near 100 (88 at 30 / 30 / 30 / 20). Great and near-perfect players still count all four exactly with half the time left (150).
+- **Kit assumptions** (`scripts/puzzle-fairness/kits-speed.ts`): Eagle Eye grid 3 takes 1.2 s to read two targets and 1.05 s per eagle (grids 1–2: 0.8 s and 0.85 s); Double Take 3 s a difference in the shop, 3.5 s in the rock pool and 1.2 s for the picture change; Tally's comparison tray takes 2 s + 0.55 s per counted shape (both colours) + 1.2 s + 1 s to subtract; Tally's guessers guess each tray's middle (9 / 11 / 13 / 7 on countRev 2) or a random count in range.
+
+## Number tuning (14 Oct 2026)
+
+Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 100 / 125 / 140–150** (average / good / great / near-perfect), with random play at or below about 60. Both changes are stamped and both clocks are stored on the puzzle, so stored rounds keep their 90 s / 75 s and their rules (`move-limits-check`, `number-batch-check`).
+
+| Game | Change (new rounds) | Stamp |
+|---|---|---|
+| Counterweight | A fourth scale, slightly harder: 10 notches (5 each side, distances 1–5), three fixed and five tray weights, 12 hangs (limits 6 / 8 / 10 / 12). 120 s (was 90). Scales 15 / 25 / 30 / 55 in any order (any three ≤ 110); all four = 120 + PAR(30). | `balanceRev 2`, `timeLimitMs` 120,000 |
+| Ballpark | 90 s (was 75). Full 8 within 1 % (was 2 %), falling evenly to 0 at 10 % (was 8 % under the 13 Oct score shape; 15 % on rounds dealt before it); a wild placement (25 % or more) still costs 1. The speed part is PAR(30) × the share of numbers placed within 1 % (was × accuracy ÷ 120). | `numlineRev 2`, `timeLimitMs` 90,000 |
+
+**Bands, median per level, 30 room seeds (5001–5030), before (main, 14 Oct) → after** (finish rate after in brackets), and the spam strategies' median / max. Measured with `bun scripts/puzzle-fairness.ts balance numline --seeds=30` on main and on this change.
+
+| Game | Average | Good | Great | Near-perfect | Random / spam median / max |
+|---|---|---|---|---|---|
+| Counterweight | 55 → **70** (0/30) | 145 → **126** (23/30) | 150 → **142** (30/30) | 150 → **150** (30/30) | random hanging 0 / 75 → **0 / 80**; fast 0 / 20 → **0 / 30**; place once 0 → 0 |
+| Ballpark | 59 → **72** (6/30) | 116 → **105** (30/30) | 144 → **126** (30/30) | 150 → **142** (30/30) | random 2 / 24 → **5 / 27**; all middle 4 / 12 → **5 / 12**; either end 0 → 0 |
+
+**How they were set.**
+
+- **Counterweight.** The kit keeps its 5 s per weight on the 8-notch scales; the wide scale takes 10 s a weight (five weights over seven free notches at distances to 5 is a search, not a sum). At 6.5 s good players finished every round (good 135), at 8 s 131, at 10 s 126 (23 finishes in 30) and at 12 s half finished (median 70 or 120 either side). Good players either finish (121–138) or stop on the wide scale with 70, so their band is two-humped: median 126, mean 115. Average players balance the three 8-notch scales and run out of time on the fourth, which the points put at 15 + 25 + 30 = **70**. Reaching the good target of 100 would need a fourth scale that good players fail in about half their rounds, which is more than "slightly harder". Random hanging stays at a median of 0: the hang limits hold and the wide scale has many arrangements but 12 hangs over five weights rarely land one.
+- **Ballpark.** At 90 s with the rev-1 curve the bands were 70 / 122 / 146 / 150: the longer clock lets everyone finish, and the speed part scaled by accuracy lets rough finishes keep most of it. Linear curves alone could not separate good from average (full within 0.5–1 %, zero at 8–15 %: good 107–126 whenever average reached 70). Scaling the speed part by the share placed within 1 % does: good players (about 2.5 % typical error) keep 10–15 of the 30, near-perfect players nearly all of it. Full within 1 % and zero at 10 % gave 72 / 105 / 126 / 142 (60 seeds: 70 / 104 / 125 / 142, random 5 / 37). Spam stays at a median of 5 or less.
+
+Rules a, c and e still pass for both (nothing scores 0; Counterweight's lowest finish 121 against its highest unfinished 80; every intro SCORE line and "?" help states the numbers).
+
+## Speed tuning (14 Oct 2026): Flash, Bang On, Don't Break the Chain, Pull!
+
+Aimed at the shared targets (average about 70, good 100, great 125, near-perfect 140–150), without pushing Chain's good players (about 80) any lower. Each change rides its own stamp; stored rounds grade exactly as before (`scripts/speed-oct14-check.ts`: 700 answers recorded on main before the change, plus 698 on the new stamps).
+
+- **Flash (`tapRev: 3`).** Gold-like decoys join teal, red and blue: near-gold amber, a gold border only, the word GOLD on a dark screen and the top half of the screen gold (each at least once a round; the first decoy is always plain). Curve: 150 at ≤ 150 ms average, 128 at 200, 100 at 300, 0 at 800 (straight lines between; was 150 at ≤ 200 ms, −16 per 100 ms). False starts cost as `tapRev: 2`. "Wait for gold…" is larger.
+- **Bang On (`tapRev: 3`).** From watch 2: black blind spots where the marker vanishes (0.05 of the bar on watch 2, growing to 0.13 on watch 10; two from watch 6; never over the target), watches 2, 4 and 7 sweep 40 % slower, watches 6 and 9 run corner to corner. Full marks need ≤ 5 ms (was 20 ms); 20 ms scores 137; then a straight line to the 13 Oct knee (101 at 200 ms) and its fall to 0 at 325 ms, kept as decided. Ten watches on the fixed schedule: a player stopping at each first crossing is done by about 14 s.
+- **Don't Break the Chain (`chainCycleRev: 1`).** Each board's cycle is five different charms (no shape or colour more than twice; neighbours share neither), all shown in the preview and each needed once per board, so nothing repeats inside a board. The board for links 21–25 runs last to first: a banner warns from link 17 ("Reverse after link 20!"), a "← REVERSE" flash marks link 20, and the preview's arrows point back. Unfinished credit (`CHAIN_CYCLE_REV_CREDIT`) pays 4 a link up to five links (20), then about 4 a link to 79 at 19 links, then flattens to 110 one short (floor(79 + 31 × ((links − 19) ÷ 20)^0.7)), so a chain that breaks at the reversal keeps most of its credit while a few early links earn little; a finish is still 120 + up to 30. (The first draft, floor(110 × (links ÷ 39)^0.45), paid 21 for one link and lifted average players to 43; revised 14 Oct before merging.)
+- **Pull! (`clayRev: 5`).** 14–16 birds instead of 10–12, on the same cadence rules (the gap shrinks to fit), the same clays and the same scoring and empty-shot cost.
+- **Ascend** (display only): the count-up timer sits centred above the board, 0 to 15 s, back to 0 when the untapped discs move. **Bonk** (display only): the "TAP GOLD / TAP RED" box is bigger and outlined in the rule colour.
+
+**Kit modelling added for the new rules** (`scripts/puzzle-fairness/kits-speed.ts`, `kits-engine.ts`; script-only assumptions, applied to before and after alike where they apply): a gold-like decoy pulls a reflex tap 1.3–2.2 times as often as a plain one (amber 2.2, half 2, border 1.5, word 1.3); Bang On's timing spread grows 25 % per 0.1 of bar blacked out before the target, 15 % on a diagonal face and by √1.4 on a slower sweep; chain players read five charms 6 % slower, take 25 % longer per link on the reversed board, slip 1.5 times as often there, and on its first link sometimes tap forwards (1.5 × the slip rate); a Pull! player now and then takes a flying bird for a clay on the first look (a quarter of the slip rate, every revision).
+
+Medians on 30 room seeds (5001–5030), `bun scripts/speed-bands-oct14.ts --md`; "before" is the same seed dealt by main's generators (Flash and Bang On `tapRev: 2`, three-symbol chains, Pull! `clayRev: 4`), "after" today's room puzzle:
+
+| Game | Player | Before | After |
+|---|---|---|---|
+| Flash | average | 110 | **70** |
+| Flash | good | 135 | **104** |
+| Flash | great | 150 | **127** |
+| Flash | near-perfect | 150 | **144** |
+| Flash | **tap every colour (careless)** | 54 | **30** |
+| Flash | tap every 150–300 ms / every 1 s | 0 / 0 | 0 / 0 |
+| Bang On | average | 116 | **109** |
+| Bang On | good | 136 | **119** |
+| Bang On | great | 144 | **129** |
+| Bang On | near-perfect | 148 | **133** |
+| Bang On | **tap at a random time (careless)** | 72 | **49** |
+| Bang On | tap at the start / every 150–300 ms | 0 / 0 | 0 / 0 |
+| Don't Break the Chain | average | 15 | **20** |
+| Don't Break the Chain | good | 80 | **82** |
+| Don't Break the Chain | great | 141 | **135** |
+| Don't Break the Chain | near-perfect | 150 | **150** |
+| Don't Break the Chain | tap at random / in screen order (careless) | 0 / 0 (max 2) | 0 / 0 (max 4: one lucky link) |
+| Pull! | average | 90 | **90** |
+| Pull! | good | 125 | **130** |
+| Pull! | great | 150 | **150** |
+| Pull! | near-perfect | 150 | **150** |
+| Pull! | **mash on whatever flies (careless)** | 16 | **0** |
+| Pull! | random shots 6 / 3 a second | 0 / 0 | 0 / 0 |
+
+**Where the targets were not reached, and why.**
+- **Bang On** stays above 70 / 100 for average and good players: the ask kept the 13 Oct curve from 200 ms down (101 at 200 ms), and simulated average players are about 165 ms off (good about 110 ms), so they cannot fall below about 101–110 without moving that knee. The top tightened as asked (near-perfect 148 → 133; 20 ms now scores 137). Lowering the knee would be a new decision.
+- **Pull!** honest bands do not move: kit players aim at clays and rarely hit a bird (about 0.1–0.2 per run before and after), so more birds mainly hurt careless mashing (16 → 0). Pull!'s 5 / 10 per clay was kept; reaching the targets would need a scoring change or real-play evidence that players shoot more birds.
+- **Chain** average players stay low (15 → 20): their chains break within the first few links, which now pay 4 each. Good players held (80 → 82); great players fell slightly (141 → 135) from breaks at the reversal.
+
+## Word batch 2 (14 Oct 2026)
+
+Six Word games changed on 14 Oct (each behind its own stamp; stored rounds grade exactly as before). Medians from `scripts/puzzle-fairness.ts <game>` run on the unmodified tree (before) and the batch (after), same seeds (30 room seeds unless noted), finish rate after in brackets. Targets for average / good / great / near-perfect: about 70 / 100 / 125 / 140–150; random and careless play near 0.
+
+| Game (stamp) | Average | Good | Great | Near-perfect | Random / careless (median) |
+|---|---|---|---|---|---|
+| Strikeout (`strikeoutRev 2`) | 83 → **66** (0/30) | 135 → **110** (13/30) | 141 → **135** (21/30) | 144 → **141** (23/30) | frequency-order letters 83 → **6**; A–Z 0 → 4; random letters 0 → 2 |
+| Roundabout (`wheelRev 1`) | 83 → **72** (0/30) | 132 → **102** (5/30) | 150 → **143** (30/30) | 150 → **150** (30/30) | random traces 16 → **0**; random 3–5 letter traces 14 → **0**; 3-letter sweep (new) 0 |
+| Lookout (`wordSearchRev 1`) | 131 → **121** (16/30) | 148 → **147** | 150 → **150** | 150 → **150** | random drags 0, sweeping every cell 0 |
+| Cryptogrid (`codewordRev 2`, 100 seeds) | 84 → **91** (16/100) | 139 → **142** | 150 → **150** | 150 → **150** | spam medians 0 (random reassign max 29 on one seed) |
+| Swapword (`swapwordRev 2`, 100 seeds) | 136 → **136** (67/100) | 148 → **148** | 150 → **150** | 150 → **150** | random swaps 0; mark-reading swap-non-green 24 → 28, swap-amber 28 → 31 (flagged, real play) |
+| Letterfall (`wordfallRev 2`, kit bots) | 105 → **105** (p10 50 → 70) | 150 → **150** | 150 → **150** | 150 → **150** | random taps + Enter 0 (max 5); random 3–4 tile chains 25 → 25 (open game, flagged) |
+
+- **Strikeout** lands near the targets (66 / 110 / 135 / 141). Good sits at 110 because its four-word runs hit the unfinished cap; strikes, not time, stop the strong solvers, so near-perfect finishes about four boards in five. The old rule-b flag (frequency-order guessing 83) is closed.
+- **Roundabout** lands near the targets apart from great (143): the kit's great player finishes every board with about a quarter of the time left, and pulling great to 125 would sink average well below 70. Unfinished credit is front-loaded (12 a word for the first 6, then 5) so average lands near 70 while good stays near 100. The rule-b flag (random traces 16) is closed by the attempt log.
+- **Lookout, Cryptogrid and Swapword** were already above the targets for good and great before the batch, and the requested changes (a bigger bank and counted chips, a fifth given, a budget of at least 16) do not pull them down: the kits play at a flat speed with perfect deduction (Lookout 9 s a word, Cryptogrid 6 s a number, Swapword the optimal swap every 5 s), so theme, word length and deduction difficulty don't show. Bringing them to the band needs harder formats (more words per grid, fewer givens, a tighter budget) or timings measured from real play; left for Joe.
+- **Letterfall** keeps par 30, so good and better still reach 150; the slower, less vowel-heavy drops bury the good bot far less (15/30 → 3/30) while its raw points fall (40 → 34). On these bots a par of about 40–45 would hit the band; **par needs setting from real play**.
+
+## Pattern / Logic batch (14 Oct 2026)
+
+Jumbled `tilesRev 1` (the 3 × 3 grid plus one extra cell, minimum 18–24), Colour Flood `floodRev 2` (raised colours; the limit stays par + 2 after measuring a flat 15 and par + 3), Box Six `sudokuRev 1` (13–15 givens) and Bomb Defusal `bombVersion 3` (plain clues) change difficulty, not formulas; Polypotions (look and buttons only) and Topsy-Turvy are unchanged. Measured with `scripts/puzzle-fairness.ts tiles flood sudoku bomb tubes --seeds=30` on main (before) and on the branch (after), the same 30 room seeds (5001–5030) and kits. Median score (finishes of 30); the target is about 70 / 100 / 125 / 140–150 with random play at or below about 60.
+
+| Game | Average | Good | Great | Near-perfect | Nothing | Random / spam median (max) |
+|---|---|---|---|---|---|---|
+| Jumbled | 137 (26) → **30** (0) | 147 (30) → **138** (27) | 150 (30) → **148** (30) | 150 → **150** (30) | 0 → 0 | random slides 1.5 / 3 a second 0 (120) → **0 (2)** |
+| Box Six | 65 (0) → **58** (0) | 123 (23) → **113** (15) | 142 (30) → **140** (30) | 150 → **150** (30) | 0 → 0 | random digits, one digit, row fill 0 (38) → **0 (28)** |
+| Bomb Defusal | 117 (15) → **125** (16) | 150 (25) → **150** (25) | 150 (28) → **150** (28) | 150 (29) → **150** (29) | 0 → 0 | tapping everything, random steps 0 (44) → **0 (44)** |
+| Colour Flood (par + 2, shipped) | 96 (1) → **96** (1) | 146 (29) → **146** (29) | 150 → **150** (30) | 150 → **150** (30) | 0 → 0 | random colours 2 / s 0 (0) → **0 (0)**; cycling 0 (135) → **0 (135)**; random 0.5 / s 0 → **0** |
+| Colour Flood (par + 3, measured) | 96 → 96 (1) | 146 → 146 (29) | 150 → 150 (30) | 150 → 150 (30) | 0 → 0 | random colours 2 / s 0 (0); cycling 0 (135); random 0.5 / s 0 |
+| Polypotions | 24 → 24 | 139 → 139 | 148 → 148 | 150 → 150 | 0 → 0 | random pours 41–42 (132), unchanged (pour limit) |
+
+Rules a–e still pass for all five (finishes ≥ 120, unfinished ≤ 110, nothing 0, the intro and help state 120 and the game's own numbers).
+
+**Jumbled.** The kits play the stored shortest route with each level's think time and mistakes; a slide on the extra-cell board is taken as 1.8 s for a good player (1.5 s on the 3 × 3: nine tiles and a line of four need a longer look ahead; an assumption, as every kit's base is). With 1.5 s the after bands are 55 (1) / 142 (30) / 149 / 150. Either way the average player now rarely finishes inside 60 s (it finished 26 of 30 on the 3 × 3) and good, great and near-perfect move by at most 9. The fewest-moves shape can't put a median between 70 and 120 for long: a finish is 120 or more and a slide puzzle's unfinished credit (tiles placed × waste) is small mid-solve, so the average band lands low and the good band high. Tried: minimum 14–20 (average 37–56, good 139–142), 16–22 (34–49, 138–141), 18–24 kept.
+
+**Box Six.** One fewer given moves every band down a little (good 123 → 113, half the good players now finish). The kit counts seconds per blank cell, not the harder deduction a sparser grid needs, so real play likely drops a little more.
+
+**Bomb Defusal.** The kit reads each clue for a fixed 5 s (good player) and makes the same share of slips on any wording, so it cannot see clearer clues: the bands move only with card size (version 3 cards are mostly 6 clues). By the kit Bomb stays above the target (average 125, good 150); Joe's device testing should say whether the plain card plays easier. A shorter clock would be the lever if so (not changed tonight).
+
+**Colour Flood.** Three limits were measured for `floodRev 2`; the batch ships par + 2, the rule `floodRev 1` already used, because good players' median stays at 146 (the bar was 140). The stamp now marks the batch's boards (raised colours, moves line above them). Honest medians are the same under all three (average 96, good 146, great and near-perfect 150). Random play, 120 room seeds (5001–5120), boards flooded / median / mean:
+
+| Limit | Colour cycling 2 / s | Random colours 2 / s | Random colours 0.5 / s |
+|---|---|---|---|
+| **par + 2 (shipped)** | **11 / 0 / 12.2** | **0 / 0 / 0.0** | **0 / 0 / 0.0** |
+| par + 3 | 14 / 0 / 15.5 | 4 / 0 / 4.4 | 0 / 0 / 0.0 |
+| flat 15 (first version of this batch) | 24 / 0 / 26 | 2 / 0 / 2 | 0 / 0 / 0 |

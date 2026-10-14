@@ -47,7 +47,7 @@ import {
   FLASH_FASTEST_MS,
   TAP_LOG_MAX,
   TAP_REV,
-  TAP_REV_CARELESS,
+  TAP_REV_SPEED_TUNING,
   encodeNumberTaps,
   encodeTapTimes,
   type NumberTap,
@@ -132,14 +132,15 @@ for (let i = 0; i < 40; i++) {
     lifeChecks++;
   }
 }
-// Flash and Bang On moved to tapRev 2 (13 Oct 2026, careless-play costs; careless-play-check);
-// Ascend stays on tapRev 1. The fixtures below stay stamped tapRev 1: the log format is shared.
-const FRESH_REV = { reaction: TAP_REV_CARELESS, stopwatch: TAP_REV_CARELESS, numhunt: TAP_REV } as const;
+// Flash and Bang On moved to tapRev 2 (13 Oct 2026, careless-play costs; careless-play-check), then
+// tapRev 3 (14 Oct 2026, Speed tuning; speed-oct14-check); Ascend stays on tapRev 1. The fixtures
+// below stay stamped tapRev 1: the log format is shared.
+const FRESH_REV = { reaction: TAP_REV_SPEED_TUNING, stopwatch: TAP_REV_SPEED_TUNING, numhunt: TAP_REV } as const;
 for (const type of ["reaction", "stopwatch", "numhunt"] as const) {
   const fresh = generatePuzzle(type) as { tapRev?: number };
   if (fresh.tapRev !== FRESH_REV[type]) fail(`${type}: new puzzles are not stamped tapRev ${FRESH_REV[type]}`);
 }
-lines.push(`watch run-out matches the marker on ${lifeChecks} watches; new Flash and Bang On puzzles carry tapRev ${TAP_REV_CARELESS}, Ascend tapRev ${TAP_REV}`);
+lines.push(`watch run-out matches the marker on ${lifeChecks} watches; new Flash and Bang On puzzles carry tapRev ${TAP_REV_SPEED_TUNING}, Ascend tapRev ${TAP_REV}`);
 
 /* ---------------------------------------------------- 1 + 2: legacy and honest */
 let legacyOk = 0;

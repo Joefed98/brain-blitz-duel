@@ -388,27 +388,65 @@
 .logic-liquid {
   position: relative;
 }
-/* Liquid: a gloss on the left, depth on the right. */
+/* Liquid (14 Oct 2026): one body per colour. The whole column darkens with depth, a
+   glossy band runs down the left, layers of one colour meet at a faint line (a colour
+   change keeps a clear one), and the top carries a bright meniscus that wobbles only
+   when a pour lands. Presentation only. */
+.logic-liquid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 35%, rgba(0, 0, 0, 0.22));
+}
 .logic-potion.potion-layer {
-  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 10%, rgba(255, 255, 255, 0.07) 28%, transparent 55%, rgba(0, 0, 0, 0.2));
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.34) 0 9%, rgba(255, 255, 255, 0.1) 22%, transparent 48%, rgba(0, 0, 0, 0.18) 88%, rgba(0, 0, 0, 0.26));
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.42);
   overflow: visible;
+}
+/* A layer's top edge meets the layer above it: a same-colour one joins with a hairline. */
+.logic-potion.potion-layer[data-same-above] { box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.12); }
+/* Colour-blind symbols: the size and contrast they had before the liquid look (14 px, as the shared
+   puzzle surface set the old text-[10px] glyph, at 30 % of the ink), drawn above the depth shading. */
+.logic-potion-glyph {
+  position: relative;
+  z-index: 2;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--guest-ink);
+  opacity: 0.3;
+  pointer-events: none;
 }
 .logic-potion-surface {
   position: absolute;
-  top: -1px;
+  top: -2px;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 5px;
+  z-index: 3;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.1));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0 1.5px, rgba(255, 255, 255, 0.28) 2px, rgba(255, 255, 255, 0.05));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
   transform-origin: 50% 100%;
-  animation: logic-potion-wobble 2.4s ease-in-out var(--logic-wobble, 0s) infinite alternate;
   pointer-events: none;
 }
-@keyframes logic-potion-wobble {
-  from { transform: skewY(-3deg) scaleY(0.8); }
-  to { transform: skewY(3deg) scaleY(1.1); }
+.logic-potion-surface-pour {
+  animation: logic-potion-wobble 620ms ease-out both;
 }
+@keyframes logic-potion-wobble {
+  0% { transform: skewY(-5deg) scaleY(1.3); }
+  25% { transform: skewY(4deg) scaleY(0.85); }
+  50% { transform: skewY(-2.5deg) scaleY(1.12); }
+  75% { transform: skewY(1.2deg) scaleY(0.95); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logic-potion-surface-pour { animation: none; }
+}
+/* Undo / Reset: taller, and lifted off the bottom edge. */
+[data-logic-stage="tubes"] .tubes-actions { padding-bottom: 10px; }
 /* A pour: the arriving layers fill up from below. */
 .logic-potion-fill {
   transform-origin: 50% 100%;
@@ -884,6 +922,8 @@
 .logic-paint-pot-current {
   box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--background), 0 0 0 5px rgba(242, 244, 247, 0.85);
 }
+/* The colours sit above the bottom edge, with room for the current pot's ring (14 Oct 2026). */
+[data-logic-stage="flood"] .flood-colours { padding: 6px 0 12px; }
 /* Completion: the final colour ripples across the board from the top-left corner. */
 [data-logic-solved] .logic-flood > .flood-tile {
   animation: logic-flood-wave 520ms ease-out calc(var(--logic-diag, 0) * 24ms) 1 none !important;

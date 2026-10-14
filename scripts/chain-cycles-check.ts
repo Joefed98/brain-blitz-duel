@@ -1,7 +1,8 @@
-import { generateChain } from "../src/lib/duel/chain.server";
-import { chainRules, chainScore, chainDemoCompatible, chainBoardIndex, chainCycleAt, chainRequiredAt, chainRuleStep, chainWindowMs, decodeChainAnswer, encodeChainAnswer, replayChain, type ChainTap } from "../src/lib/duel/chain";
+import { generateChain, generateChainV2 } from "../src/lib/duel/chain.server";
+import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { CHAIN_CYCLE_REV_CREDIT, chainLongCycles, chainReversedAt, chainRules, chainScore, chainDemoCompatible, chainBoardIndex, chainCycleAt, chainRequiredAt, chainRuleStep, chainWindowMs, decodeChainAnswer, encodeChainAnswer, replayChain, type ChainTap } from "../src/lib/duel/chain";
 import { gradeSubmission } from "../src/lib/duel/grade";
-import { CHAIN_BLOCK, CHAIN_BOARDS, CHAIN_CYCLE, CHAIN_FASTER_AT, CHAIN_LENGTH, CHAIN_TIME_MS, CHAIN_BOARD_H_PX, CHAIN_BOARD_W_PX, CHAIN_NODE_GAP_PX, CHAIN_NODE_PX, type ChainPuzzleData, type ChainRuleItem } from "../src/lib/duel/types";
+import { CHAIN_BLOCK, CHAIN_BOARDS, CHAIN_CYCLE, CHAIN_CYCLE_LONG, CHAIN_REVERSE_AT, CHAIN_REVERSE_LINKS, CHAIN_FASTER_AT, CHAIN_LENGTH, CHAIN_TIME_MS, CHAIN_BOARD_H_PX, CHAIN_BOARD_W_PX, CHAIN_NODE_GAP_PX, CHAIN_NODE_PX, type ChainPuzzleData, type ChainRuleItem } from "../src/lib/duel/types";
 import { withSeededRandom } from "../src/lib/duel/random";
 
 function check(ok: boolean, label: string) { if (!ok) throw new Error(label); }
@@ -21,21 +22,35 @@ function solve(puzzle: ChainPuzzleData): ChainTap[] {
   return taps;
 }
 
+// Rooms deal five-symbol cycles since 14 Oct 2026 (chainCycleRev 1); the three-symbol generator stays checked for stored rounds.
+for (const [generate, long] of [[generateChainV2, false], [generateChain, true]] as const)
 for (let seed = 0; seed < 200; seed++) {
-  const puzzle = generateChain(seed);
-  check(JSON.stringify(puzzle) === JSON.stringify(generateChain(seed)), "Seed regeneration differs");
-  check(JSON.stringify(withSeededRandom(seed, () => generateChain())) === JSON.stringify(withSeededRandom(seed, () => generateChain())), "Fixed intro generation differs");
+  const puzzle = generate(seed);
+  check(chainLongCycles(puzzle) === long, "Wrong cycle stamp");
+  check(JSON.stringify(puzzle) === JSON.stringify(generate(seed)), "Seed regeneration differs");
+  check(JSON.stringify(withSeededRandom(seed, () => generate())) === JSON.stringify(withSeededRandom(seed, () => generate())), "Fixed intro generation differs");
   check(puzzle.cycles?.length === CHAIN_BOARDS, "Missing board cycles");
   for (let board = 0; board < CHAIN_BOARDS; board++) {
     const cycle = chainCycleAt(puzzle, board * CHAIN_BLOCK);
     const nodes = puzzle.boards[board];
     if (!nodes) throw new Error("Missing board");
-    check(cycle.length === CHAIN_CYCLE && new Set(cycle.map((c) => c.shape)).size === 3 && new Set(cycle.map((c) => c.colour)).size === 3, "Invalid cycle");
+    if (long) {
+      // Five different charms, no shape or colour more than twice, neighbours (cyclically) share neither.
+      check(cycle.length === CHAIN_CYCLE_LONG && new Set(cycle.map((c) => `${c.shape}${c.colour}`)).size === CHAIN_CYCLE_LONG, "Invalid five-symbol cycle");
+      for (const c of cycle) check(cycle.filter((d) => d.shape === c.shape).length <= 2 && cycle.filter((d) => d.colour === c.colour).length <= 2, "Five-symbol cycle repeats too much");
+      cycle.forEach((c, i) => { const n = cycle[(i + 1) % cycle.length]!; check(c.shape !== n.shape && c.colour !== n.colour, "Neighbouring charms alike"); });
+      // Every rule charm is needed exactly once on its board, forwards or (board 5) backwards.
+      const needs = Array.from({ length: CHAIN_BLOCK }, (_, i) => chainRequiredAt(puzzle, board * CHAIN_BLOCK + i)!);
+      const reversed = board * CHAIN_BLOCK === CHAIN_REVERSE_AT;
+      check(needs.every((n, i) => same(n, cycle[reversed ? CHAIN_CYCLE_LONG - 1 - i : i]!)), "Cycle order wrong");
+      check(chainReversedAt(puzzle, board * CHAIN_BLOCK) === reversed, "Reversed board misplaced");
+    } else check(cycle.length === CHAIN_CYCLE && new Set(cycle.map((c) => c.shape)).size === 3 && new Set(cycle.map((c) => c.colour)).size === 3, "Invalid cycle");
     check(chainRuleStep(puzzle, board * CHAIN_BLOCK) === 0, "New cycle doesn't restart");
     const previous = puzzle.cycles?.[board - 1];
     if (previous) {
       check(!cycle.every((c) => previous.some((p) => same(c, p))), "Symbol set unchanged");
-      check(!cycle.every((c, i) => c.shape === previous[i]?.shape), "Order unchanged");
+      if (long) check(!same(cycle[0]!, previous[0]!), "First charm unchanged");
+      else check(!cycle.every((c, i) => c.shape === previous[i]?.shape), "Order unchanged");
     }
     for (const need of cycle) {
       check(nodes.some((n) => n.shape === need.shape && n.colour !== need.colour), "Missing shape decoy");
@@ -79,6 +94,17 @@ for (let seed = 0; seed < 200; seed++) {
     const late = replayChain(puzzle, { taps: [...prefix, { ...tap, t: previous.t + chainWindowMs(link) + 1 }], reason: "timer" });
     check(late.links === link - 1 && late.reason === "momentum", "Late tap accepted");
   }
+  if (long) {
+    // The reversed board: tapping the board's first charm (forwards) at link 21 breaks the chain.
+    const cycle = chainCycleAt(puzzle, CHAIN_REVERSE_AT);
+    const forward = puzzle.boards[chainBoardIndex(CHAIN_REVERSE_AT)]!.findIndex((n) => same(n, cycle[0]!));
+    const t = taps[CHAIN_REVERSE_AT]!.t;
+    check(replayChain(puzzle, { taps: [...taps.slice(0, CHAIN_REVERSE_AT), { node: forward, t }], reason: "timer" }).reason === "wrong", "Forward tap accepted on the reversed board");
+    check(!chainReversedAt(puzzle, CHAIN_REVERSE_AT - 1) && !chainReversedAt(puzzle, CHAIN_REVERSE_AT + CHAIN_REVERSE_LINKS), "Reversal runs beyond five links");
+    check(chainDemoCompatible(puzzle), "New demo rejected");
+    continue;
+  }
+  check(!chainDemoCompatible(puzzle), "Three-symbol demo still accepted");
   // Legacy single-cycle stored boards must retain global cycle phase.
   const legacy: ChainPuzzleData = { type: "chain", cycle: puzzle.cycle, boards: Array.from({ length: 6 }, (_, board) => Array.from({ length: CHAIN_BLOCK }, (_, i) => {
     const face = puzzle.cycle[(board * CHAIN_BLOCK + i) % CHAIN_CYCLE];
@@ -104,7 +130,6 @@ for (let seed = 0; seed < 200; seed++) {
     }
     check(!chainDemoCompatible(old), "Old demo still accepted");
   }
-  check(chainDemoCompatible(puzzle), "New demo rejected");
   const first = taps[0];
   if (!first) throw new Error("Missing first tap");
   check(replayChain(puzzle, { taps: [{ ...first, t: 44000 }], reason: "timer" }).links === 1, "First tap incorrectly timed");
@@ -120,4 +145,16 @@ check([1,13,14,26,27,40].map((link) => chainWindowMs(link)).join() === "3000,300
 for (let links = 0; links < 40; links++) check(chainScore(links, 45000) === Math.floor(3.5 * links), "Unfinished formula changed");
 for (let ms = 0; ms <= 45000; ms++) check(chainScore(40, ms) === 140 + Math.round(10 * Math.min(1, ms / 22500)), "Finish bonus mismatch (speed par)");
 check(chainScore(40, 50000) === 150 && chainScore(40, -10) === 140, "Score bounds failed");
-console.log("Chain: 200/200 seeded regeneration, eight changing cycles, current decoys, scatter, full/partial server grades, boundary taps, momentum and legacy 30-link full/partial grading, old momentum, demo invalidation and 45,001 finish-bonus checks passed.");
+// chainCycleRev 1 (puzzle score rev 1): 4 a link to 5 links, then two concave pieces through 79 at 19 and 110 at 39;
+// 0 for none, rising every link, a finish still 120+.
+const longPuzzle = generateChain(1);
+const creditFormula = (n: number) => n <= 5 ? 4 * n : n <= 19 ? Math.floor(20 + 59 * Math.pow((n - 5) / 14, 0.95)) : Math.floor(79 + 31 * Math.pow((n - 19) / 20, 0.7));
+check(CHAIN_CYCLE_REV_CREDIT.length === 40 && CHAIN_CYCLE_REV_CREDIT.every((v, n) => v === creditFormula(n) && (n === 0 || v > CHAIN_CYCLE_REV_CREDIT[n - 1]!)), "Five-symbol credit table");
+check(CHAIN_CYCLE_REV_CREDIT[5] === 20 && CHAIN_CYCLE_REV_CREDIT[19] === 79 && CHAIN_CYCLE_REV_CREDIT[39] === 110, "Five-symbol credit anchors");
+withPuzzleScoreRev(1, () => {
+  for (let links = 0; links < 40; links++) check(chainScore(links, 45000, longPuzzle) === CHAIN_CYCLE_REV_CREDIT[links], "Five-symbol unfinished credit");
+  check(chainScore(40, 0, longPuzzle) === 120 && chainScore(40, 45000, longPuzzle) === 150, "Five-symbol finish");
+  const v2 = generateChainV2(1);
+  for (let links = 0; links < 40; links++) check(chainScore(links, 45000, v2) === Math.floor((110 * links) / 39), "Three-symbol rev-1 credit changed");
+});
+console.log("Chain: 200/200 seeded regeneration per generator (three- and five-symbol), the reversed board from link 20, five-symbol credit, eight changing cycles, current decoys, scatter, full/partial server grades, boundary taps, momentum and legacy 30-link full/partial grading, old momentum, demo invalidation and 45,001 finish-bonus checks passed.");

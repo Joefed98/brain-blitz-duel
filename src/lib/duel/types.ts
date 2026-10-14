@@ -172,22 +172,38 @@ export interface SpotDifference {
   /** The cells that count as this difference — two when a shape moved. */
   cells: number[];
   label: string;
+  /** spotRev 1: which picture (0 sweet shop, 1 rock pool); absent = picture 0. */
+  scene?: number;
 }
 
 export interface SpotPuzzleData {
   type: "spotdiff";
+  /** Picture 1 (the sweet shop). */
   top: SpotShape[];
   bottom: SpotShape[];
-  /** Server-side only until the reveal: the five differences. */
+  /**
+   * Server-side only until the reveal: the six differences (stored rounds), or on
+   * `spotRev: 1` the twelve, each tagged with its picture (`scene` 0 or 1).
+   */
   differences?: SpotDifference[];
+  /** Two-picture revision (14 Oct 2026): 1 = the sweet shop, then the rock pool, 60 s. */
+  spotRev?: number;
+  /** spotRev 1: picture 2 (the rock pool), drawn from the same shape kinds. */
+  reef?: { top: SpotShape[]; bottom: SpotShape[] };
+  /** spotRev 1 carries its own 60 s clock; stored rounds use SPOT_TIME_MS. */
+  timeLimitMs?: number;
 }
 
 export interface ReactionPuzzleData {
   type: "reaction";
   /** When each gold flash starts, in ms from the round start (generated once). */
   flashes: number[];
-  /** Seeded decoy pulses before the gold flashes: start time and colour. */
-  decoys: { at: number; color: "teal" | "red" | "blue" }[];
+  /**
+   * Seeded decoy pulses before the gold flashes: start time and colour. `tapRev: 3`
+   * (14 Oct 2026) adds gold-like decoys: near-gold amber, a gold border only, the
+   * word GOLD on a dark screen and a half-screen gold (REACTION_GOLD_LIKE_DECOYS).
+   */
+  decoys: { at: number; color: ReactionDecoyColour }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
 }
@@ -249,6 +265,8 @@ export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
 export interface SymbolScanStage {
   target: ArrowDir;
+  /** scanRev 1, grid 3 only: a second target direction (tap eagles facing either). */
+  alsoTarget?: ArrowDir;
   cols: number;
   /** cols × cols cells, row-major. */
   cells: ArrowDir[];
@@ -260,6 +278,8 @@ export interface SymbolScanPuzzleData {
   stages: SymbolScanStage[];
   /** Server-side only until reveal: indices matching each stage's target. */
   targets?: number[][];
+  /** Two-direction revision (14 Oct 2026): 1 = grid 3 has two target directions, rebalanced stage scores. */
+  scanRev?: number;
 }
 
 export interface HuntSpot {
@@ -518,6 +538,10 @@ export const REACTION_FLASH_MS = 1_500;
 export const REACTION_MISS_MS = 1_200;
 /** How long a decoy pulse stays on screen. */
 export const REACTION_DECOY_MS = 600;
+/** Flash decoys: the original colours, plus the gold-like ones `tapRev: 3` deals. */
+export const REACTION_PLAIN_DECOYS = ["teal", "red", "blue"] as const;
+export const REACTION_GOLD_LIKE_DECOYS = ["amber", "border", "word", "half"] as const;
+export type ReactionDecoyColour = (typeof REACTION_PLAIN_DECOYS)[number] | (typeof REACTION_GOLD_LIKE_DECOYS)[number];
 
 /** Every run holds at least this many of each instruction. */
 export const STROOP_MIN_PER_INSTRUCTION = 4;
@@ -573,6 +597,10 @@ export interface StopWatchSpec {
   moving?: { amplitude: number; cycleMs: number; phase: number };
   /** Draw and move this watch vertically instead of horizontally. */
   vertical?: boolean;
+  /** `tapRev: 3`: draw the bar corner to corner (bottom left to top right); the marker rules are unchanged. */
+  diagonal?: boolean;
+  /** `tapRev: 3`: black blind spots, [from, to] as fractions of the bar, where the marker vanishes (drawing only). */
+  blind?: [number, number][];
   /** Optional traversal times, one per pass. */
   passSweepMs?: number[];
   /** Right-boundary arrivals allowed before this watch is missed. */
@@ -618,6 +646,12 @@ export interface CountUpStage {
   shapes: CountUpShape[];
   targetShape: GlyphShape | "hexagon";
   targetColour: GlyphColour;
+  /**
+   * countRev 2, tray 4: a comparison question, "How many more <more> than <less>?",
+   * counting every shape of each colour. The answer is count(more) − count(less);
+   * targetColour is `more` there and targetShape is unused.
+   */
+  compare?: { more: GlyphColour; less: GlyphColour };
 }
 
 export interface CountUpPuzzleData {
@@ -626,8 +660,14 @@ export interface CountUpPuzzleData {
   stages: CountUpStage[];
   /** Server-side only: how many shapes match each stage's question. */
   counts?: number[];
-  /** Count range revision (13 Oct 2026): 1 = the wider per-tray ranges (`COUNTUP_STAGE_COUNTS_REV1`). Generation only; grading is unchanged. */
+  /**
+   * Count revision. 1 (13 Oct 2026) = the wider per-tray ranges (`COUNTUP_STAGE_COUNTS_REV1`),
+   * generation only. 2 (14 Oct 2026) = the same three trays plus a fourth comparison tray,
+   * 60 s, scored on the four-tray weights (attentionRev.ts).
+   */
   countRev?: number;
+  /** countRev 2 carries its own 60 s clock; stored rounds use COUNTUP_TIME_MS. */
+  timeLimitMs?: number;
 }
 
 export const COUNTUP_STAGE_SIZES = [50, 80, 110] as const;
@@ -812,12 +852,18 @@ export const SUDOKU_BOX_COLS = 3;
 export const SUDOKU_TIME_MS = 90_000;
 export const SUDOKU_MIN_GIVENS = 14;
 export const SUDOKU_MAX_GIVENS = 16;
+/** sudokuRev 1 (14 Oct 2026): one fewer given, 13–15, still one solution. */
+export const SUDOKU_REV_FEWER = 1;
+export const SUDOKU_REV1_MIN_GIVENS = 13;
+export const SUDOKU_REV1_MAX_GIVENS = 15;
 export const SUDOKU_PARTIAL_POINTS = 110;
 
 export interface SudokuPuzzleData {
   type: "sudoku";
   /** Thirty-six cells: the fixed digits, 0 where the player must fill in. */
   givens: number[];
+  /** Generation revision: 1 = 13–15 givens (14 Oct 2026); absent = 14–16. Grading reads only the givens, so it is the same either way. */
+  sudokuRev?: 1;
   /** Server-side only: the one grid the givens allow. */
   solution?: number[];
 }
@@ -1261,6 +1307,18 @@ export const BOMB_V2_FAMILY_CAP = 3;
 export const BOMB_V2_NECESSARY = 6;
 export const BOMB_V2_TIME_MS = 90_000;
 
+/**
+ * Version 3 (14 Oct 2026): the same six-step panel and 90 s clock, with a card
+ * of plain-language clues only (bomb.server.ts V3 templates): which step an
+ * action is, what comes before what, what comes straight after what, and what
+ * not to do. No conditions on the light or serial, no sums, no "if". Each card
+ * has exactly one valid sequence, proved over all 60,480 (scripts/bomb-v3-check.ts).
+ */
+export const BOMB_V3 = 3 as const;
+/** Card size for version 3: six to nine clues, every one individually necessary. */
+export const BOMB_V3_MIN_RULES = 6;
+export const BOMB_V3_MAX_RULES = 9;
+
 export interface BombSpec {
   steps: number;
   rules: number;
@@ -1286,8 +1344,8 @@ export interface BombPuzzleData {
   rules: { id: string; text: string }[];
   /** How many actions the plan needs — the "actions 2 / 6" counter. */
   stepCount: number;
-  /** 2 for six-step rounds; absent on stored four-step rounds. */
-  bombVersion?: 2;
+  /** 2 for six-step rounds, 3 for six-step rounds with the plain-language card (14 Oct 2026); absent on stored four-step rounds. */
+  bombVersion?: 2 | 3;
   /** Version 2 carries its own clock; version 1 uses BOMB_TIME_MS. */
   timeLimitMs?: number;
   /** Server-side only: the required actions, as `bA,w2`. */
@@ -1356,6 +1414,19 @@ export const CHAIN_RULES_VERSION = 2;
  * the replayed last tap allows (45 s less its time), never the claimed time alone.
  */
 export const CHAIN_TIME_REV = 1;
+/**
+ * Five-symbol cycles (14 Oct 2026, Speed tuning): each board's cycle is five
+ * different charms, all shown in the preview (no symbol repeats within a board),
+ * and the board starting at link CHAIN_REVERSE_AT is played in reverse order for
+ * CHAIN_REVERSE_LINKS links, after a banner warning. Absent = three-symbol cycles.
+ */
+export const CHAIN_CYCLE_REV = 1;
+export const CHAIN_CYCLE_LONG = 5;
+/** chainCycleRev 1: links already made when the reversed board starts (0-based link 20 = the 21st tap). */
+export const CHAIN_REVERSE_AT = 20;
+export const CHAIN_REVERSE_LINKS = 5;
+/** chainCycleRev 1: the reverse warning banner shows from this many links made. */
+export const CHAIN_REVERSE_WARN_AT = 17;
 /** Momentum windows, in ms, to make the given link after the previous one. */
 export const CHAIN_MOMENTUM_MS = [
   { upTo: 13, ms: 3_000 },
@@ -1404,6 +1475,8 @@ export interface ChainPuzzleData {
   rulesVersion?: number;
   /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
   chainTimeRev?: number;
+  /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
+  chainCycleRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
@@ -1505,10 +1578,31 @@ export const TILES_PARTIAL_POINTS = 60;
 export const TILES_SLIDE_MS = 120;
 export const TILES_ATTEMPTS = 600;
 
+/**
+ * tilesRev 1 (14 Oct 2026): the 3×3 grid plus one extra cell beside it, on a
+ * random side, so one row or column has four cells. Ten cells, tiles 1–9.
+ */
+export const TILES_EXTRA_MIN_MOVES = 18;
+export const TILES_EXTRA_MAX_MOVES = 24;
+
+export interface TilesExtra {
+  side: "top" | "bottom" | "left" | "right";
+  /** Which column (top / bottom) or row (left / right) of the grid it sits beside, 0–2. */
+  index: number;
+}
+
 export interface TilesPuzzleData {
   type: "tiles";
-  /** Row-major frame: 1 … 8 for the tiles and 0 for the gap. */
+  /**
+   * One value per cell: 1 … 8 (stored rounds) or 1 … 9 (tilesRev 1) for the
+   * tiles and 0 for the gap. Cells 0–8 are the 3×3 grid row-major; cell 9 is
+   * the extra cell on tilesRev 1.
+   */
   frame: number[];
+  /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
+  tilesRev?: 1;
+  /** tilesRev 1: where the extra cell sits. */
+  extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */
   minMoves?: number;
   /** Server-side only: one minimum-length slide order (tile values). */
@@ -1630,7 +1724,7 @@ export interface SnakePuzzleData {
   type: "snake";
   /** Draws the whole star queue (and rock schedule) — identical for everyone in the room. */
   seed: number;
-  /** Rule revision (2 = asteroids); absent = original rules. */
+  /** Rule revision (2 = asteroids; 3 = shower; 4 = score bands; 5 = taller grid, Tuning E; 6 = more rocks, Tuning F); absent = original rules. */
   snakeRev?: number;
 }
 
@@ -1665,7 +1759,7 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B); absent = original rules. */
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B; 5 = 2.5 s Fireball, Tuning F); absent = original rules. */
   brkRev?: number;
 }
 
@@ -1686,7 +1780,7 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
-  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B). Absent on rounds stored before rev 2. */
+  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B); 5 = a second bumper from 45 s (Tuning F). Absent on rounds stored before rev 2. */
   rallyRev?: number;
 }
 
@@ -1779,7 +1873,7 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
-  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C). Absent on rounds stored before rev 2. */
+  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C); 5 = a tenth fewer notes (Tuning F). Absent on rounds stored before rev 2. */
   beatRev?: number;
 }
 
@@ -1808,10 +1902,12 @@ export interface WordSlidePuzzleData {
 /* ================================ Balance =============================== */
 
 export interface BalanceScale {
-  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4. */
+  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4 (10 notches: 0–4 left 5…1, 5–9 right 1…5). */
   fixed: { peg: number; w: number }[];
   /** Loose gold weights the player must place. */
   tray: number[];
+  /** Notches, when not 8: balanceRev 2's fourth scale has 10 (5 a side). */
+  pegs?: number;
 }
 
 export interface BalancePuzzleData {
@@ -1819,10 +1915,12 @@ export interface BalancePuzzleData {
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
-  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. Absent = no limit. */
+  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. 2 (14 Oct 2026) = as 1, plus a fourth 10-notch scale, 120 s and the rev-2 scale points (balance.ts). Absent = no limit. */
   balanceRev?: number;
-  /** Hangs allowed per scale (balanceRev 1). */
+  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12). */
   placeLimits?: number[];
+  /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
+  timeLimitMs?: number;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -1915,7 +2013,7 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
@@ -2042,7 +2140,7 @@ export interface CheckoutPuzzleData {
   routes?: string[];
 }
 
-/** Ballpark: three lines of five numbers in 75 s. */
+/** Ballpark: three lines of five numbers in 75 s (the registry limit: stored rounds; numlineRev 2 puzzles carry 90 s as `timeLimitMs`). */
 export const NUMLINE_TIME_MS = 75_000;
 
 /** An exact value: (num ÷ den) + rootCoef × √root (rootCoef 0 when rational). */
@@ -2063,8 +2161,10 @@ export interface NumlineStageData {
 
 export interface NumlinePuzzleData {
   type: "numline";
-  /** Rules revision; 1 = the first rules. */
+  /** Rules revision; 1 = the first rules, 2 = 90 s and the rev-2 item curve (numline.ts). */
   numlineRev: number;
+  /** numlineRev 2: the round clock (90,000 ms). Absent on stored rounds, which keep the registry's 75 s. */
+  timeLimitMs?: number;
   stages: NumlineStageData[];
   /** Exact value of every item, stage by stage — private until the reveal. */
   values?: NumlineValue[][];
@@ -2129,6 +2229,8 @@ export interface LetterWheelPuzzleData {
   slots: LetterWheelSlot[];
   /** Word for each slot — private until the reveal. */
   words?: string[];
+  /** 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules. */
+  wheelRev?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2136,10 +2238,13 @@ export const STRIKEOUT_TIME_MS = 100_000;
 
 export interface StrikeoutPuzzleData {
   type: "strikeout";
-  /** Rules revision (1 = first release). */
+  /** Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026). */
   strikeoutRev: number;
   rows: number;
+  /** Rev 1: every word's length; rev 2: the longest word's length (each word's own length is its givens pattern's). */
   length: number;
+  /** Rev 2: each word's starting letters as a public pattern ("__N_____"; every copy of a starting letter shows). */
+  givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
 }
@@ -2149,7 +2254,7 @@ export const CODEWORD_TIME_MS = 120_000;
 
 export interface CodewordPuzzleData {
   type: "codeword";
-  /** Rules revision (1 = first release). */
+  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026). */
   codewordRev: number;
   size: number;
   /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
@@ -2167,13 +2272,13 @@ export const SWAPWORD_TIME_MS = 120_000;
 
 export interface SwapwordPuzzleData {
   type: "swapword";
-  /** Rules revision (1 = first release; also fixes the board shape). */
+  /** Rules revision (1 = first release, also fixes the board shape; 2 = budget at least 16, 14 Oct 2026). */
   swapwordRev: number;
   /** Starting letters, one per tile in the layout's tile order, upper case. */
   start: string;
   /** Proven fewest swaps that solve the board. */
   minSwaps: number;
-  /** Swap budget: minSwaps + 5. Running out ends the round. */
+  /** Swap budget: rev 1 minSwaps + 5; rev 2 max(16, minSwaps + 5). Running out ends the round. */
   maxSwaps: number;
   /** Solved letters in tile order — private until the reveal. */
   solution?: string;
@@ -2191,6 +2296,10 @@ export interface WordSearchPuzzleData {
   grid: string;
   category: string;
   wordCount: number;
+  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths. Absent on stored rounds. */
+  wordSearchRev?: number;
+  /** Rev 1: each hidden word's letter count, in placement order (public: the chips show it before a word is found). */
+  wordLengths?: number[];
   /** Where each hidden word lies — private until the reveal. */
   placements?: WordSearchPlacement[];
 }

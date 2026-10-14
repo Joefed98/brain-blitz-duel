@@ -4,9 +4,11 @@
  *
  * A board is a 7 × 7 crossword with 180° symmetric black squares, every run of
  * white cells either a single cell or a word of 3+ letters from the common-word
- * list, 14–18 different letters and 4 numbers given. The constraint solver below
+ * list, 14–18 different letters and 4 numbers given (5 from codewordRev 2: one
+ * more picked from the entry by codewordFifthGiven). The constraint solver below
  * proves that the grid plus its givens has exactly one solution when every run
- * may be ANY word of the full dictionary. Generation is too slow to run live,
+ * may be ANY word of the full dictionary (a fifth given only removes solutions;
+ * codeword-check re-proves both). Generation is too slow to run live,
  * so rooms and practice draw from a committed bank of 1,000 boards
  * (scripts/codeword-bank.ts), picked by the room seed.
  */
@@ -18,6 +20,7 @@ import {
   CW_MAX_LETTERS,
   CW_MIN_LETTERS,
   CW_SIZE,
+  codewordGivensFor,
   codewordRuns,
   codewordTally,
   decodeCodeword,
@@ -291,23 +294,47 @@ export function buildCodewordEntry(seed: number): string | null {
   return null;
 }
 
-export function codewordFromEntry(entry: string): CodewordPuzzleData {
+/**
+ * Rev 2's fifth given for a bank entry: one of the hidden numbers that fills at
+ * least two squares (any hidden number if none does), chosen by a hash of the
+ * whole entry, so the same board always gains the same number.
+ */
+export function codewordFifthGiven(entry: string): number {
+  const [grid = "", order = "", given = ""] = entry.split("|");
+  const four = new Set(given.split(".").map(Number));
+  const uses = new Map<number, number>();
+  for (const ch of grid) {
+    if (ch === "#") continue;
+    const n = order.indexOf(ch) + 1;
+    uses.set(n, (uses.get(n) ?? 0) + 1);
+  }
+  const hidden = Array.from({ length: order.length }, (_, i) => i + 1).filter((n) => !four.has(n));
+  const repeated = hidden.filter((n) => (uses.get(n) ?? 0) >= 2);
+  const pool = repeated.length ? repeated : hidden;
+  return pool[fmix32(saltOf(entry) ^ saltOf("codeword-fifth-given")) % pool.length]!;
+}
+
+/** The board for a bank entry under a rules revision (rev 1: the entry's four givens; rev 2: plus the fifth). */
+export function codewordFromEntry(entry: string, rev: number = CODEWORD_REV): CodewordPuzzleData {
   const [grid = "", order = "", given = ""] = entry.split("|");
   const cells = [...grid].map((ch) => (ch === "#" ? 0 : order.indexOf(ch) + 1));
+  const numbers = given.split(".").map(Number);
+  if (rev >= 2) numbers.push(codewordFifthGiven(entry));
+  numbers.sort((a, b) => a - b);
   return {
     type: "codeword",
-    codewordRev: CODEWORD_REV,
+    codewordRev: rev,
     size: N,
     cells,
     numbers: order.length,
-    givens: given.split(".").map(Number).map((n) => ({ n, letter: order[n - 1]! })),
+    givens: numbers.map((n) => ({ n, letter: order[n - 1]! })),
     solution: order,
   };
 }
 
 /** Null when an entry meets every rule (including the uniqueness proof), else the rule broken. */
 export function codewordEntryRuleBreak(entry: string): string | null {
-  const p = codewordFromEntry(entry);
+  const p = codewordFromEntry(entry, 1);
   const grid = entry.split("|")[0] ?? "";
   if (grid.length !== CELLS) return "grid is not 7 × 7";
   const broken = templateRuleBreak(p.cells.map((n) => n > 0));
@@ -320,6 +347,12 @@ export function codewordEntryRuleBreak(entry: string): string | null {
   if (new Set(words).size !== words.length) return "repeated word";
   for (const w of words) if (!answerWords(w.length).includes(w)) return `${w} is not a common answer word`;
   if (countCodewordSolutions(p.cells, p.numbers, p.givens, 2) !== 1) return "not exactly one solution";
+  // Rev 2: the fifth given is a different, hidden number and the board stays unique.
+  const p2 = codewordFromEntry(entry, 2);
+  const want = codewordGivensFor(2);
+  if (p2.givens.length !== want || new Set(p2.givens.map((g) => g.n)).size !== want) return "rev 2: not five different givens";
+  if (!p.givens.every((g) => p2.givens.some((x) => x.n === g.n && x.letter === g.letter))) return "rev 2: lost a rev-1 given";
+  if (countCodewordSolutions(p2.cells, p2.numbers, p2.givens, 2) !== 1) return "rev 2: not exactly one solution";
   return null;
 }
 

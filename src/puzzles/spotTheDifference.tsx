@@ -20,6 +20,8 @@ import {
 } from "@/lib/duel/types";
 
 import { ShopBackdrop, SweetArt, playDifferenceGlow } from "./doubleTakeArt";
+import { ATTENTION_REWORK_TIME_MS, SPOT_REV, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
+import { ReefArt, ReefBackdrop, reefLabel } from "./doubleTakeReef";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const COLOURS: Record<Exclude<StroopColour, "YELLOW">, string> = {
@@ -75,14 +77,21 @@ function cellsApart(a: number, b: number): number {
   return Math.max(Math.abs(ac - bc), Math.abs(ar - br));
 }
 
-function shapePath(kind: SpotShapeKind, fill: string) { return <SweetArt kind={kind} fill={fill}/>; }
+function shapePath(kind: SpotShapeKind, fill: string, theme: SpotTheme = "shop") {
+  return theme === "reef" ? <ReefArt kind={kind} fill={fill} /> : <SweetArt kind={kind} fill={fill} />;
+}
+
+/** A difference's label for the picture it belongs to (display only). */
+function themedLabel(label: string, theme: SpotTheme): string {
+  return theme === "reef" ? reefLabel(label) : sweetLabel(label);
+}
 
 /** Translate saved labels at display time; never rewrite generated or stored differences. */
 function sweetLabel(label: string): string {
   return label.replace(/\b(circle|square|triangle|star|hexagon|arrow)\b/g, kind => SWEET_NAMES[kind as SpotShapeKind]).replace('A shape', 'A sweet');
 }
 
-function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }) {
+function DrawnShape({ shape, size = SHAPE, theme = "shop" }: { shape: SpotShape; size?: number; theme?: SpotTheme }) {
   const { x, y } = cellCentre(shape.cell);
   const scale = size / 40;
   const turns = [
@@ -96,15 +105,15 @@ function DrawnShape({ shape, size = SHAPE }: { shape: SpotShape; size?: number }
     .join(" ");
   const colour = COLOURS[shape.colour as keyof typeof COLOURS];
   if (!colour) return null;
-  return <g transform={turns}>{shapePath(shape.kind, colour)}</g>;
+  return <g transform={turns}>{shapePath(shape.kind, colour, theme)}</g>;
 }
 
 /** The sweets of one picture; re-rendered only when the picture itself changes. */
-const SweetLayer = memo(function SweetLayer({ shapes, size }: { shapes: SpotShape[]; size: number }) {
+const SweetLayer = memo(function SweetLayer({ shapes, size, theme }: { shapes: SpotShape[]; size: number; theme: SpotTheme }) {
   return (
     <g pointerEvents="none">
       {shapes.map((shape) => (
-        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={size} />
+        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={size} theme={theme} />
       ))}
     </g>
   );
@@ -120,7 +129,10 @@ function Panel({
   rows = SPOT_ROWS,
   fitHeight = false,
   shapeSize = SHAPE,
+  theme = "shop",
 }: {
+  /** Which picture: the sweet shop or (spotRev 1, picture 2) the rock pool. */
+  theme?: SpotTheme;
   shapes: SpotShape[];
   /** Cells ringed in gold. */
   found?: number[];
@@ -144,9 +156,10 @@ function Panel({
       className={`sweet-panel dt-panel block select-none ${fitHeight ? "h-full min-h-0 w-full" : "w-full"}`}
       style={{ touchAction: "manipulation" }}
       data-dt-panel=""
+      data-dt-theme={theme}
     >
-      <ShopBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} />
-      <SweetLayer shapes={shapes} size={shapeSize} />
+      {theme === "reef" ? <ReefBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} /> : <ShopBackdrop cols={SPOT_COLS} rows={rows} cell={CELL_H} />}
+      <SweetLayer shapes={shapes} size={shapeSize} theme={theme} />
       {missed.map((cell) => {
         const { x, y } = cellCentre(cell);
         return (
@@ -293,19 +306,26 @@ const EXAMPLE_BOTTOM: SpotShape[] = EXAMPLE_TOP.map((shape) =>
   shape.cell === 4 ? { ...shape, colour: "GREEN" } : shape,
 );
 
+/** Rock-pool example: the fish in cell 6 (1-based) turns round. */
+const EXAMPLE_REEF_TOP: SpotShape[] = EXAMPLE_TOP.slice(0, SPOT_COLS).map((shape, i) => ({ ...shape, colour: EXAMPLE_COLOURS[(i + 3) % EXAMPLE_COLOURS.length]! }));
+const EXAMPLE_REEF_BOTTOM: SpotShape[] = EXAMPLE_REEF_TOP.map((shape) => (shape.cell === 5 ? { ...shape, flip: true } : shape));
+
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center text-sm text-muted-foreground">
-        Find the six differences between the top and bottom sweet-shop pictures.
+        Six differences in the sweet shop, then six more in the rock pool.
       </p>
-      <div className="flex w-full flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card">
-        <Panel shapes={EXAMPLE_TOP} found={[4]} rows={2} />
-        <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
-        <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={2} />
+      <div className="flex w-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card">
+        <Panel shapes={EXAMPLE_TOP} found={[4]} rows={1} />
+        <Panel shapes={EXAMPLE_BOTTOM} found={[4]} rows={1} />
+      </div>
+      <div className="flex w-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card" data-dt-theme="reef">
+        <Panel shapes={EXAMPLE_REEF_TOP} theme="reef" found={[5]} rows={1} />
+        <Panel shapes={EXAMPLE_REEF_BOTTOM} theme="reef" found={[5]} rows={1} />
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Tap each difference in either picture. You have 30 seconds.
+        Tap each difference in either panel. 60 seconds for both pictures.
       </p>
     </div>
   );
@@ -316,14 +336,17 @@ function IntroExample() {
 /* -------------------------------------------------------------------------- */
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
-  const top = puzzle.type === "spotdiff" ? puzzle.top : [];
-  const bottom = puzzle.type === "spotdiff" ? puzzle.bottom : [];
-  const key = top.map((s) => `${s.cell}${s.kind}${s.colour}`).join("|");
-  const groups = useMemo(() => differenceGroups(top, bottom), [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [taps, setTaps] = useState<number[]>([]);
+  const data = puzzle.type === "spotdiff" ? puzzle : null;
+  const scenes = useMemo(() => (data ? spotScenes(data) : []), [data]);
+  const twoPictures = scenes.length > 1;
+  const key = scenes.map((sc) => sc.top.map((s) => `${s.cell}${s.kind}${s.colour}`).join("|")).join("/");
+  const allGroups = useMemo(() => scenes.map((sc) => differenceGroups(sc.top, sc.bottom)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [scene, setScene] = useState(0);
+  const [taps, setTaps] = useState<number[][]>(() => scenes.map(() => []));
   const [wrong, setWrong] = useState<number | null>(null);
   const submitted = useRef("");
   const arenaRef = useRef<HTMLDivElement>(null);
+  const groups = allGroups[scene] ?? [];
   const glow = useRef<() => void>(() => undefined);
   glow.current = () => {
     if (arenaRef.current) playDifferenceGlow(arenaRef.current, groups.flat(), { cols: SPOT_COLS, cell: CELL_W, width: PANEL_W, height: PANEL_H });
@@ -331,26 +354,45 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   useEffect(() => registerFxPreview("spotdiff", () => glow.current()), []);
 
   useEffect(() => {
-    setTaps([]);
+    setScene(0);
+    setTaps(scenes.map(() => []));
     setWrong(null);
     submitted.current = "";
-  }, [key]);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const foundGroups = groups.filter((g) => g.some((cell) => taps.includes(cell)));
+  const sceneTaps = taps[scene] ?? [];
+  const foundGroups = groups.filter((g) => g.some((cell) => sceneTaps.includes(cell)));
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
+  const groupCells = new Set(groups.flat());
+  const misses = sceneTaps.filter((c) => !groupCells.has(c)).length;
+  const limitMs = data?.timeLimitMs ?? SPOT_TIME_MS;
+  const lastScene = scene >= scenes.length - 1;
+  // Stored rounds send "c1,c2,…"; spotRev 1 sends one list per picture, "picture1|picture2".
+  const answer = twoPictures ? taps.map((t) => t.join(",")).join("|") : (taps[0] ?? []).join(",");
 
-  // All six found lock the round in; otherwise the taps so far go up just
-  // before the clock runs out. The server re-checks every tap either way.
+  // All six found in the last picture lock the round in (in picture 1 they bring on
+  // picture 2); otherwise the taps so far go up just before the clock runs out. The
+  // server re-checks every tap either way.
   useEffect(() => {
     if (groups.length === 0 || locked || submitted.current === key) return;
-    const timeUp = now >= phaseStartedAt + SPOT_TIME_MS - 400;
-    if (foundGroups.length < total && !timeUp) return;
+    const timeUp = now >= phaseStartedAt + limitMs - 400;
+    const sceneDone = foundGroups.length >= total;
+    if (!sceneDone && !timeUp) return;
+    if (sceneDone && !lastScene && !timeUp) return;
     submitted.current = key;
     // Finish effect when all six are found (display only, never awaited).
-    if (foundGroups.length >= total) glow.current();
-    onSubmit(taps.join(","));
-  }, [foundGroups.length, total, locked, now, key]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (sceneDone) glow.current();
+    onSubmit(answer);
+  }, [foundGroups.length, total, locked, now, key, lastScene]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Picture 1 finished: a short glow, then picture 2 slides in (the clock keeps running).
+  useEffect(() => {
+    if (!twoPictures || lastScene || locked || foundGroups.length < total || groups.length === 0) return;
+    glow.current();
+    const timer = setTimeout(() => setScene((s) => Math.min(s + 1, scenes.length - 1)), 700);
+    return () => clearTimeout(timer);
+  }, [foundGroups.length, total, lastScene, twoPictures, locked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (wrong === null) return;
@@ -358,90 +400,138 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     return () => clearTimeout(timer);
   }, [wrong]);
 
-  if (puzzle.type !== "spotdiff") return null;
+  if (!data) return null;
+  const current = scenes[scene]!;
+  const sceneFinished = foundGroups.length >= total;
 
   const tap = (cell: number) => {
-    if (locked) return;
+    if (locked || sceneFinished) return;
     if (foundCells.includes(cell)) return;
     const hit = groups.some((g) => g.includes(cell));
+    const add = (prev: number[][]) => prev.map((t, i) => (i === scene && !t.includes(cell) ? [...t, cell] : t));
     if (hit) {
       playCorrect();
       soundCue("spotdiff.found");
-      setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
+      setTaps(add);
     } else {
       playWrong();
       soundCue("spotdiff.miss");
-      setTaps((prev) => (prev.includes(cell) ? prev : [...prev, cell]));
+      setTaps(add);
       setWrong(cell);
     }
   };
 
+  const skip = () => {
+    if (locked || lastScene) return;
+    soundCue("spotdiff.nextPicture");
+    setScene(scene + 1);
+  };
+
   return (
     <div data-stage-column="2" data-polish="spotdiff" className="spot-difference-stage flex min-h-0 flex-1 flex-col items-center gap-2">
-      <p className="shrink-0 font-mono text-sm uppercase tracking-widest text-primary">
-        {foundGroups.length} / {total} found
-      </p>
+      <div className="flex w-full shrink-0 items-center justify-center gap-3 font-mono text-sm uppercase tracking-widest">
+        {twoPictures ? <span className="text-muted-foreground" data-dt-picture={scene + 1}>Picture {scene + 1} / {scenes.length}</span> : null}
+        <span className="text-primary">{foundGroups.length} / {total} found</span>
+        {twoPictures ? (
+          <span className={misses > SPOT_TWO_WRONG_LIMIT ? "text-warn" : "text-muted-foreground"} data-dt-misses={misses}>
+            Misses {misses} / {SPOT_TWO_WRONG_LIMIT}
+          </span>
+        ) : null}
+      </div>
       <div
         ref={arenaRef}
+        key={scene}
+        data-dt-theme={current.theme}
         data-game-arena="tall" className={`dt-arena flex min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card ${
-          wrong !== null ? "animate-shake" : ""
-        }`}
+          scene > 0 ? "dt-scene-in" : ""
+        } ${wrong !== null ? "animate-shake" : ""}`}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel
-            shapes={puzzle.top}
-            found={foundCells}
-            wrongCell={wrong}
-            onTap={tap}
-            fitHeight
-            shapeSize={SHAPE}
-          />
+          <Panel shapes={current.top} theme={current.theme} found={foundCells} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
         </div>
         <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel
-            shapes={puzzle.bottom}
-            found={foundCells}
-            wrongCell={wrong}
-            onTap={tap}
-            fitHeight
-            shapeSize={SHAPE}
-          />
+          <Panel shapes={current.bottom} theme={current.theme} found={foundCells} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
         </div>
       </div>
+      {twoPictures && !lastScene ? (
+        <button
+          type="button"
+          onClick={skip}
+          disabled={locked || sceneFinished}
+          data-game-controls="actions"
+          className="tap-target w-full shrink-0 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-wide text-foreground disabled:opacity-40"
+        >
+          Next picture
+        </button>
+      ) : null}
     </div>
   );
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  const [shown, setShown] = useState<number | null>(null);
   if (puzzle.type !== "spotdiff") return null;
+  const scenes = spotScenes(puzzle);
+  const twoPictures = scenes.length > 1;
   const differences = puzzle.differences ?? [];
-  const cells = differences.flatMap((d) => d.cells);
-  const taps = (myAnswer ?? "")
-    .split(",")
-    .map((v) => Number.parseInt(v, 10))
-    .filter((v) => Number.isFinite(v));
-  const found = differences.filter((d) => d.cells.some((cell) => taps.includes(cell)));
-  const foundCells = found.flatMap((d) => d.cells);
-  const missedCells = cells.filter((cell) => !foundCells.includes(cell));
+  const tapsByScene = twoPictures
+    ? parseSpotTaps(myAnswer, scenes.length)
+    : [
+        (myAnswer ?? "")
+          .split(",")
+          .map((v) => Number.parseInt(v, 10))
+          .filter((v) => Number.isFinite(v)),
+      ];
+  const pictures = scenes.map((sc, i) => {
+    const own = differences.filter((d) => (d.scene ?? 0) === i);
+    const taps = tapsByScene[i] ?? [];
+    const found = own.filter((d) => d.cells.some((cell) => taps.includes(cell)));
+    const foundCells = found.flatMap((d) => d.cells);
+    const missedCells = own.flatMap((d) => d.cells).filter((cell) => !foundCells.includes(cell));
+    return { scene: sc, own, found, foundCells, missedCells };
+  });
+  // One picture at a time on spotRev 1; the first with a miss opens first.
+  const open = shown ?? Math.max(0, pictures.findIndex((p) => p.found.length < p.own.length));
+  const pic = pictures[open]!;
+  const totalFound = pictures.reduce((n, p) => n + p.found.length, 0);
+  const totalDiffs = twoPictures ? differences.length : SPOT_DIFFERENCES;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-1.5">
+      {twoPictures ? (
+        <div className="flex w-full gap-1" role="tablist" aria-label="Pictures">
+          {pictures.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={i === open}
+              onClick={() => setShown(i)}
+              className={`min-h-11 flex-1 rounded-xl border px-2 font-mono text-sm font-bold ${i === open ? "border-primary/70 bg-card" : "border-transparent bg-card/60"} ${
+                p.found.length === p.own.length ? "text-primary" : "text-warn"
+              }`}
+            >
+              Picture {i + 1} · {p.found.length} / {p.own.length}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {/* Side by side: each picture is larger than when stacked on a short phone. */}
-      <div className="dt-reveal-panels dt-arena flex w-full flex-row gap-1 overflow-hidden rounded-2xl border border-border bg-card p-1">
+      <div className="dt-reveal-panels dt-arena flex w-full flex-row gap-1 overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme}>
         <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={puzzle.top} found={foundCells} missed={missedCells} />
+          <Panel shapes={pic.scene.top} theme={pic.scene.theme} found={pic.foundCells} missed={pic.missedCells} />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={puzzle.bottom} found={foundCells} missed={missedCells} />
+          <Panel shapes={pic.scene.bottom} theme={pic.scene.theme} found={pic.foundCells} missed={pic.missedCells} />
         </div>
       </div>
       <div className="flex w-full flex-col gap-0.5">
-        {differences.map((difference, index) => {
-          const got = found.includes(difference);
+        {pic.own.map((difference, index) => {
+          const got = pic.found.includes(difference);
           return (
             <div key={index} className="flex items-center justify-between text-base leading-6">
-              <span className="text-foreground/80">{sweetLabel(difference.label)}</span>
+              <span className="text-foreground/80">{themedLabel(difference.label, pic.scene.theme)}</span>
               <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                 {got ? "✓" : "✗"}
               </span>
@@ -450,7 +540,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         })}
       </div>
       <p className="font-mono text-2xl font-bold tabular-nums text-primary">
-        {found.length} / {SPOT_DIFFERENCES} found
+        {totalFound} / {totalDiffs} found
       </p>
     </div>
   );
@@ -514,7 +604,35 @@ function applyDifference(
   }
 }
 
+/** One picture pair with six stored differences (the generator every revision uses). */
+function buildPicture(): Pick<SpotPuzzleData, "top" | "bottom"> & { differences: SpotDifference[] } {
+  const { top, bottom, differences = [] } = buildSpotPicture();
+  return { top, bottom, differences };
+}
+
+/**
+ * spotRev 1 (14 Oct 2026): two pictures, each with its own six differences — the sweet
+ * shop, then the rock pool (the same shape kinds, drawn as sea creatures) — on a 60 s
+ * clock stored on the puzzle.
+ */
 export function buildSpotDifference(): SpotPuzzleData {
+  const shop = buildPicture();
+  const reef = buildPicture();
+  return {
+    type: "spotdiff",
+    top: shop.top,
+    bottom: shop.bottom,
+    reef: { top: reef.top, bottom: reef.bottom },
+    differences: [
+      ...shop.differences.map((d) => ({ ...d, scene: 0 })),
+      ...reef.differences.map((d) => ({ ...d, scene: 1 })),
+    ],
+    spotRev: SPOT_REV,
+    timeLimitMs: ATTENTION_REWORK_TIME_MS,
+  };
+}
+
+function buildSpotPicture(): SpotPuzzleData {
   // Only changes that work on a full grid: a colour, a shape, or a turn.
   const ALL: SpotDifferenceKind[] = ["colour", "kind", "turn"];
 
@@ -580,7 +698,7 @@ export const spotDifferencePuzzle: PuzzleDefinition = {
   generate: buildSpotDifference,
   // Scored from how many of the six stored differences were tapped.
   check: () => true,
-  revealHeading: "The six differences",
+  revealHeading: "The differences",
   IntroExample,
   Stage,
   Reveal,

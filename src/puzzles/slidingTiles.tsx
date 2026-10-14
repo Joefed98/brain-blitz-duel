@@ -10,12 +10,12 @@ import {
   encodeTileMoves,
   replayTiles,
   solvedFrame,
+  tilesLayout,
   TILES_RESET,
   TILES_UNDO,
 } from "@/lib/duel/tiles";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  TILES_COUNT,
   TILES_TIME_MS,
   type TilesPuzzleData,
 } from "@/lib/duel/types";
@@ -100,7 +100,9 @@ function Stage({
   const data: TilesPuzzleData | null = puzzle.type === "tiles" ? puzzle : null;
   const [moves, setMoves] = useStageState<number[]>(stateKey, "tileMoves", () => []);
   const submitted = useRef(false);
-  const replay = useMemo(() => (data ? replayTiles(data.frame, moves) : null), [data, moves]);
+  // tilesRev 1: the extra-cell board; stored rounds keep the 3×3 frame.
+  const layout = useMemo(() => (data ? tilesLayout(data) : null), [data]);
+  const replay = useMemo(() => (data && layout ? replayTiles(data.frame, moves, layout) : null), [data, layout, moves]);
   const celebrate = useSolveMoment(replay?.solved ?? false, "tiles.solve");
 
   useEffect(() => {
@@ -114,12 +116,12 @@ function Stage({
     onSubmit(encodeTileMoves(moves));
   }, [now, phaseStartedAt, locked, data, moves, onSubmit]);
 
-  if (!data || !replay) return null;
+  if (!data || !replay || !layout) return null;
 
   const slide = (tile: number) => {
     if (locked || submitted.current || replay.solved) return;
     const next = [...moves, tile];
-    const after = replayTiles(data.frame, next);
+    const after = replayTiles(data.frame, next, layout);
     if (after.moves === replay.moves) return puzzleReject();
     hapticTick();
     setMoves(next);
@@ -140,7 +142,7 @@ function Stage({
   return (
     <div data-stage-column="3" data-polish="tiles" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
       <div data-game-arena="board" className="tiles-arena">
-        <TilesFrame frame={replay.frame} onTile={slide} celebrate={celebrate} />
+        <TilesFrame frame={replay.frame} onTile={slide} celebrate={celebrate} layout={layout} />
       </div>
       <p data-after-arena data-game-controls="status" className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
         moves <span className="text-primary">{replay.moves}</span>
@@ -167,7 +169,8 @@ function Stage({
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "tiles") return null;
-  const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? ""));
+  const layout = tilesLayout(puzzle);
+  const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? "", layout.count), layout);
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   const min = puzzle.minMoves ?? 0;
@@ -175,14 +178,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   return (
     <div className="tiles-reveal flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="tiles-reveal-space">
-        <TilesFrame frame={solvedFrame()} variant="reveal" />
+        <TilesFrame frame={solvedFrame(layout)} variant="reveal" layout={layout} />
       </div>
       <p
         className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
       >
         {replay.solved
           ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)
-          : `${replay.inPlace} / ${TILES_COUNT} in place`}
+          : `${replay.inPlace} / ${layout.count} in place`}
       </p>
     </div>
   );

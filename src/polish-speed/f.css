@@ -1,0 +1,67 @@
+/* Speed tuning (14 Oct 2026): Flash's gold-like decoys (tapRev 3), Bang On's blind
+   spots and diagonal faces (tapRev 3), Ascend's move timer, Don't Break the Chain's
+   five-symbol preview and reverse banner. Presentation only. */
+
+/* ------------------------------------------------------------ Flash */
+/* Near-gold amber: a little deeper and warmer than the gold surface. */
+.flash-decoy-amber { background-color: oklch(0.76 0.165 64); }
+.flash-arena[data-flash-decoy-kind="border"] .flash-art,
+.flash-arena[data-flash-decoy-kind="word"] .flash-art,
+.flash-arena[data-flash-decoy-kind="half"] .flash-art {
+  background: radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.55) 100%);
+  box-shadow: inset 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+/* A gold frame only: the screen inside stays dark. */
+.flash-decoy-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 14px solid var(--primary);
+  pointer-events: none;
+}
+/* The top half of the screen gold, the bottom half dark. */
+.flash-decoy-half {
+  position: absolute;
+  inset: 0 0 50% 0;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: var(--primary);
+  pointer-events: none;
+}
+/* The word GOLD in gold on the dark screen. */
+.flash-decoy-word {
+  color: var(--primary);
+  font-size: clamp(3rem, 18vw, 5.5rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* ------------------------------------------------------------ Bang On */
+/* Blind spots: black bands where the marker vanishes (the sim never reads them). */
+.bangon-blind {
+  z-index: 2;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+/* Diagonal watch: the bar turned corner to corner (bottom left to top right) in a square. */
+.bangon-diagonal { max-width: min(100%, 300px); }
+.bangon-face.bangon-face-diagonal,
+.game-column [data-polish="stopwatch"] .bangon-face.bangon-face-diagonal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 118%;
+  height: 72px;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* ------------------------------------------------------------ Bonk */
+/* The bigger "Tap gold / Tap red" box: reserve its extra height above the board
+   (d.css reserved 84 px for the small pill and the hit line). */
+.game-column [data-polish="whack"][data-stage-column] > [data-game-arena] {
+  height: min(100cqw, calc(100cqh - 104px));
+}
+.bonk-banner-large { box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4), 0 6px 18px -8px currentColor; line-height: 1.1; }

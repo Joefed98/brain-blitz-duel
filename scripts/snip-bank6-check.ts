@@ -41,7 +41,9 @@ import {
   SNIP_BANK6_FIRST,
   SNIP_CONFIG,
   SNIP_LEVEL_TICKS,
+  SNIP_PROVEN_FIRST,
   SNIP_REV_BANK6,
+  SNIP_REV_PROVEN,
   SNIP_REV_TALL,
   SNIP_RUN_TICKS,
   SNIP_TALL_H,
@@ -86,7 +88,8 @@ section("Stored snipRev 5 rounds replay and score exactly as before");
 /* ======================== 2. Stamp, world, rules ======================== */
 section("New rounds: snipRev 6, the tall world, the same rules");
 {
-  ok(generateSnip().snipRev === SNIP_REV_BANK6, `new rounds stamped ${SNIP_REV_BANK6} (got ${generateSnip().snipRev})`);
+  // Rooms moved on to snipRev 7 (snipRev 6's game with every per-pin deal proven; scripts/snip-rev7-check.ts).
+  ok(generateSnip().snipRev === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN}, snipRev 6's successor (got ${generateSnip().snipRev})`);
   ok(puzzleUsesBands({ type: "snip", snipRev: SNIP_REV_BANK6 } as never), "snipRev 6 scores on the bands");
   ok(snipWorldHFor(SNIP_REV_BANK6) === SNIP_TALL_H, "snipRev 6 plays in the 360 × 640 world");
   const r = ARCADE_REVEAL_RENDERERS.snip!;
@@ -107,7 +110,7 @@ const added = pool.filter((t) => t >= SNIP_BANK6_FIRST);
 {
   ok(new Set(pool).size === pool.length && pool.length >= 60, `${pool.length} distinct templates in the snipRev 6 bands (snipRev 5: ${[...SNIP_BANDS_TALL.easy, ...SNIP_BANDS_TALL.medium, ...SNIP_BANDS_TALL.hard].length})`);
   ok((["easy", "medium", "hard"] as const).every((b) => SNIP_BANDS_TALL[b].every((t) => bands[b].includes(t))), "every snipRev 5 level keeps its band");
-  ok(added.length === T.length - SNIP_BANK6_FIRST && added.every((t) => T[t]!.h === SNIP_TALL_H), `all ${added.length} new templates are tall and in a band`);
+  ok(added.length === SNIP_PROVEN_FIRST - SNIP_BANK6_FIRST && added.every((t) => T[t]!.h === SNIP_TALL_H), `all ${added.length} new templates are tall and in a band`);
   ok(pool.every((t) => T[t]!.pins.length + (T[t]!.hooks?.length ?? 0) <= 4), "at most four ropes and vines a level (the cut log packs the rope in 2 bits)");
   const crooks = added.filter((t) => T[t]!.hooks);
   ok(crooks.length * 2 > added.length, `${crooks.length} of ${added.length} new levels are picker's-crook levels`);

@@ -131,9 +131,34 @@ export function reactionFalseStartCost(falseStarts: number, tapRev = 0): number 
   return FLASH_FALSE_START_COST * cheap + FLASH_REV2_FALSE_START_COST * (n - cheap);
 }
 
+/** Straight lines between [x, score] knots (x rising), flat beyond both ends, rounded. */
+export function knotScore(knots: readonly (readonly [number, number])[], x: number): number {
+  const first = knots[0]!;
+  const last = knots[knots.length - 1]!;
+  if (x <= first[0]) return first[1];
+  if (x >= last[0]) return last[1];
+  for (let i = 1; i < knots.length; i++) {
+    const [x1, y1] = knots[i]!;
+    if (x > x1) continue;
+    const [x0, y0] = knots[i - 1]!;
+    return Math.round(y0 + ((y1 - y0) * (x - x0)) / (x1 - x0));
+  }
+  return last[1];
+}
+
+/**
+ * Flash tapRev 3 (14 Oct 2026, Speed tuning): the average reaction (a miss counts
+ * 1,200 ms) on a steeper curve, so the bands land near 70 / 100 / 125 / 145:
+ * 150 at ≤ 150 ms, 128 at 200 ms, 100 at 300 ms, 0 at 800 ms; false starts cost as
+ * tapRev 2 (8, 8, then 11 each).
+ */
+export const FLASH_REV3_CURVE = [[150, 150], [200, 128], [300, 100], [800, 0]] as const;
+
 /** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, minus the false-start cost, 0…150. */
 export function scoreReaction(averageMs: number, falseStarts = 0, tapRev = 0): number {
-  const base = averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
+  const base = tapRev >= 3
+    ? knotScore(FLASH_REV3_CURVE, averageMs)
+    : averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
   return clamp(base - reactionFalseStartCost(falseStarts, tapRev), 0, 150);
 }
 
@@ -166,8 +191,16 @@ export const STOPWATCH_REV1_KNEE_MS = 300;
 export const STOPWATCH_REV2_KNEE_MS = 200;
 export const STOPWATCH_REV2_ZERO_MS = 325;
 
+/**
+ * Bang On tapRev 3 (14 Oct 2026, Speed tuning): full marks need ≤ 5 ms average
+ * error (was 20 ms), 137 at 20 ms, then a straight line to tapRev 2's knee (101 at
+ * 200 ms) and its fall to 0 at 325 ms, which stay as decided on 13 Oct.
+ */
+export const STOPWATCH_REV3_CURVE = [[5, 150], [20, 137], [STOPWATCH_REV2_KNEE_MS, 101], [STOPWATCH_REV2_ZERO_MS, 0]] as const;
+
 /** Bang On: 150 at ≤ 20 ms average, −0.27 per ms above (47 at 400 ms, 20 at an all-miss 500 ms). */
 export function scoreStopWatch(averageDistanceMs: number, tapRev = 0): number {
+  if (tapRev >= 3) return clamp(knotScore(STOPWATCH_REV3_CURVE, averageDistanceMs), 0, 150);
   if (averageDistanceMs <= 20) return 150;
   if (tapRev >= 2 && averageDistanceMs > STOPWATCH_REV2_KNEE_MS) {
     const knee = Math.round(150 - 0.27 * (STOPWATCH_REV2_KNEE_MS - 20));
@@ -880,10 +913,12 @@ export function scoreTiles(
   msRemaining: number,
   timeLimitMs: number = TILES_TIME_MS,
   startInPlace = 0,
+  /** Tiles on the board: 8 on stored rounds, 9 on the extra-cell board (tilesRev 1). */
+  tileCount: number = TILES_COUNT,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
   // Rev 1: the grader passes only tiles the player put in place (not ones that started there).
-  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(inPlace))) / Math.max(1, TILES_COUNT - 1 - startInPlace)) * wasteFactor(moves, minMoves));
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(inPlace))) / Math.max(1, tileCount - 1 - startInPlace)) * wasteFactor(moves, minMoves));
   return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 90);
 }
 

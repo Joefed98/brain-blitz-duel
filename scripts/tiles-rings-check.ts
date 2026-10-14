@@ -10,10 +10,12 @@ import {
   replayTiles,
   solvedFrame,
   tilesInPlace,
+  tilesLayout,
   TILES_RESET,
+  TILES_REV_EXTRA,
   TILES_UNDO,
 } from "../src/lib/duel/tiles";
-import { generateTiles, tilesMinMoves } from "../src/lib/duel/tiles.server";
+import { generateClassicTiles, generateTiles, tilesMinMoves } from "../src/lib/duel/tiles.server";
 import {
   alignedSpokes,
   decodeRingTaps,
@@ -31,7 +33,8 @@ import {
   RINGS_MAX_TURNS,
   RINGS_MIN_TURNS,
   RINGS_SEGMENTS,
-  TILES_COUNT,
+  TILES_EXTRA_MAX_MOVES,
+  TILES_EXTRA_MIN_MOVES,
   TILES_MAX_MOVES,
   TILES_MIN_MOVES,
 } from "../src/lib/duel/types";
@@ -46,41 +49,51 @@ function check(label: string, ok: boolean): void {
 }
 
 // ----------------------------- Sliding Tiles -----------------------------
-for (let round = 0; round < ROUNDS; round += 1) {
-  const puzzle = generateTiles();
-  const { frame, minMoves, solution } = puzzle;
-  check(`tiles ${round}: nine cells with a gap`, frame.length === 9 && frame.includes(0));
-  check(
-    `tiles ${round}: every tile once`,
-    new Set(frame).size === 9 && frame.every((v) => v >= 0 && v <= TILES_COUNT),
-  );
-  check(
-    `tiles ${round}: minimum in band`,
-    (minMoves ?? 0) >= TILES_MIN_MOVES && (minMoves ?? 0) <= TILES_MAX_MOVES,
-  );
-  const replay = replayTiles(frame, solution ?? []);
-  check(`tiles ${round}: solution solves`, replay.solved);
-  check(`tiles ${round}: solution is minimal`, replay.moves === minMoves);
-  const proved = tilesMinMoves(frame);
-  check(`tiles ${round}: minimum is exact`, proved?.min === minMoves);
-  check(`tiles ${round}: in place counted`, tilesInPlace(solvedFrame()) === TILES_COUNT);
+// Stored rounds' classic 3×3 frame and the extra-cell board (tilesRev 1, 14 Oct 2026).
+for (const kind of ["classic", "extra"] as const) {
+  for (let round = 0; round < ROUNDS; round += 1) {
+    const puzzle = kind === "classic" ? generateClassicTiles() : generateTiles();
+    const { frame, minMoves, solution } = puzzle;
+    const layout = tilesLayout(puzzle);
+    const cells = kind === "classic" ? 9 : 10;
+    const count = cells - 1;
+    const tag = `tiles ${kind} ${round}`;
+    check(`${tag}: stamp`, kind === "classic" ? puzzle.tilesRev === undefined : puzzle.tilesRev === TILES_REV_EXTRA && !!puzzle.extra);
+    check(`${tag}: ${cells} cells with a gap`, frame.length === cells && frame.includes(0) && layout.cells.length === cells);
+    check(`${tag}: every tile once`, new Set(frame).size === cells && frame.every((v) => v >= 0 && v <= count));
+    if (kind === "extra") {
+      // One row or column of the 3×3 has four cells: the extra cell touches exactly one grid cell.
+      const extra = layout.cells[9]!;
+      const touching = layout.cells.slice(0, 9).filter((c) => Math.abs(c.r - extra.r) + Math.abs(c.c - extra.c) === 1);
+      check(`${tag}: extra cell beside one grid cell`, touching.length === 1);
+      const line = layout.cells.filter((c) => c.r === extra.r).length === 4 || layout.cells.filter((c) => c.c === extra.c).length === 4;
+      check(`${tag}: one line of four`, line);
+      check(`${tag}: goal is 1–9 in reading order, gap last`, [...layout.cells.keys()].sort((x, y) => layout.cells[x]!.r - layout.cells[y]!.r || layout.cells[x]!.c - layout.cells[y]!.c).map((i) => layout.goal[i]).join(",") === "1,2,3,4,5,6,7,8,9,0");
+    } else {
+      check(`${tag}: classic goal unchanged`, solvedFrame().join(",") === "1,2,3,4,5,6,7,8,0");
+    }
+    const [lo, hi] = kind === "classic" ? [TILES_MIN_MOVES, TILES_MAX_MOVES] : [TILES_EXTRA_MIN_MOVES, TILES_EXTRA_MAX_MOVES];
+    check(`${tag}: minimum in band`, (minMoves ?? 0) >= lo && (minMoves ?? 0) <= hi);
+    const replay = replayTiles(frame, solution ?? [], layout);
+    check(`${tag}: solution solves`, replay.solved);
+    check(`${tag}: solution is minimal`, replay.moves === minMoves);
+    const proved = tilesMinMoves(frame, layout);
+    check(`${tag}: minimum is exact`, proved?.min === minMoves);
+    check(`${tag}: in place counted`, tilesInPlace(solvedFrame(layout), layout) === count);
+    // Solvable by construction: scrambled from the finished board, so the IDA* search always ends.
+    check(`${tag}: solvable`, proved !== null);
 
-  // Undo and Reset rewind the frame without ever inventing a win. Since the
-  // Sep 26 rule, `moves` counts every slide made (undone ones included), so
-  // Undo/Reset cannot lower the move count used for scoring.
-  const threeIn = replayTiles(frame, (solution ?? []).slice(0, 3));
-  const undone = replayTiles(frame, [...(solution ?? []).slice(0, 4), TILES_UNDO]);
-  check(
-    `tiles ${round}: undo steps back`,
-    !undone.solved && undone.moves === 4 && undone.frame.every((v, i) => v === threeIn.frame[i]),
-  );
-  const reset = replayTiles(frame, [...(solution ?? []).slice(0, 5), TILES_RESET]);
-  check(
-    `tiles ${round}: reset clears`,
-    !reset.solved && reset.moves === 5 && reset.frame.every((v, i) => v === frame[i]),
-  );
-  const decoded = decodeTileMoves(encodeTileMoves(solution ?? []));
-  check(`tiles ${round}: round-trips`, replayTiles(frame, decoded).solved);
+    // Undo and Reset rewind the frame without ever inventing a win. Since the
+    // Sep 26 rule, `moves` counts every slide made (undone ones included), so
+    // Undo/Reset cannot lower the move count used for scoring.
+    const threeIn = replayTiles(frame, (solution ?? []).slice(0, 3), layout);
+    const undone = replayTiles(frame, [...(solution ?? []).slice(0, 4), TILES_UNDO], layout);
+    check(`${tag}: undo steps back`, !undone.solved && undone.moves === 4 && undone.frame.every((v, i) => v === threeIn.frame[i]));
+    const reset = replayTiles(frame, [...(solution ?? []).slice(0, 5), TILES_RESET], layout);
+    check(`${tag}: reset clears`, !reset.solved && reset.moves === 5 && reset.frame.every((v, i) => v === frame[i]));
+    const decoded = decodeTileMoves(encodeTileMoves(solution ?? []), layout.count);
+    check(`${tag}: round-trips`, replayTiles(frame, decoded, layout).solved);
+  }
 }
 
 // ---------------------------- Rotating Rings ----------------------------

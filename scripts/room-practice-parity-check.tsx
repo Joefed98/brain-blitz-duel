@@ -98,7 +98,7 @@ for (const [key, definition] of active) {
       assert.equal(root.querySelectorAll(".pad-game-safe").length, 1);
       // Single safe-area owner; equal available height for any inset value.
       for (const bottomInset of [0, 34]) {
-        const budget = height - 8 - Math.max(8, bottomInset) - 44 - 28 - 8
+        const budget = height - 8 - (bottomInset + 16) - 44 - 28 - 8
           - (puzzleShowsTimer(puzzle) ? 28 : 0) - (type === "balance" ? 20 : 0);
         assert.ok(budget > 0);
       }

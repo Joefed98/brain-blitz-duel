@@ -283,13 +283,12 @@ rules and trust is defining (docs/puzzle-action-log.md) in a follow-up session.
 | Integer Pyramid (`numpyramid`) | final boards (JSON) | final state | `solutions` | no | action log |
 | Nucleus, Forage | word lists | words in order | `par` | card instead | (paths for Forage) |
 | Flash, Bang On | tap logs with times | yes, **with times** | — | card instead | — |
-| Operator, Tally, Eagle Eye, Double Take, Interloper | per-stage picks / sets | n/a | — | no (quiz-style) | — |
+| Operator, Tally, Eagle Eye, Double Take | per-stage picks / sets | n/a | — | no (quiz-style) | — |
 
-Retired types (practice only) are not dealt in rooms; of them Word Ladder, Sequence and
-Reverse Recall would prefix-play, Dig stores sim-step stamps (needs a replay that stops at a
-step), Sum Hunt replays to a board it doesn't draw, One-Stroke needs a traced-edge render, and
-Groups, Number Sequence, Chain Calculation, Spatial Memory, Go / No-Go, Pattern Completion,
-Spin, Word Match, Percent Sprint, Number Climb and Mirror Match are quizzes.
+Retired types (practice only) are not dealt in rooms; of the non-engine ones, Dig stores
+sim-step stamps (needs a replay that stops at a step). The 19 games deleted on 14 Oct 2026
+(`src/lib/duel/removedGames.ts`) have no replay at all: `replay.server.ts` skips their stored
+rounds, which show only the game's name and the stored score (`removed-games-check`).
 
 ## Sound cues
 

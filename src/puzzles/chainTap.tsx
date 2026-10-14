@@ -9,8 +9,10 @@ import {
   chainBoardIndex,
   chainRules,
   chainCycleAt,
+  chainCycleIndex,
+  chainLongCycles,
   chainRequiredAt,
-  chainRuleStep,
+  chainReversedAt,
   chainTapVerdict,
   chainWindowMs,
   decodeChainAnswer,
@@ -21,6 +23,8 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import {
   CHAIN_BLOCK,
+  CHAIN_REVERSE_AT,
+  CHAIN_REVERSE_WARN_AT,
   CHAIN_TIME_MS,
   CHAIN_WARN_MS,
   type ChainBreak,
@@ -112,25 +116,33 @@ function ChainLinks({ links, total, broken }: { links: number; total: number; br
   );
 }
 
-function RuleStrip({ cycle, step, compact, highlight = false }: { cycle: ChainRuleItem[]; step: number; compact?: boolean; highlight?: boolean }) {
-  const active = step % cycle.length;
-  const size = compact ? 24 : 32;
+/**
+ * The link preview. Three-symbol cycles repeat (↺); chainCycleRev 1 shows all five
+ * charms of the board, and on the reversed board the arrows point back (←) and the
+ * highlight walks from the last charm to the first. `active` is the cycle index the
+ * next tap needs.
+ */
+function RuleStrip({ cycle, active, compact, highlight = false, reversed = false }: { cycle: ChainRuleItem[]; active: number; compact?: boolean; highlight?: boolean; reversed?: boolean }) {
+  const long = cycle.length > 3;
+  const size = compact ? 24 : long ? 28 : 32;
+  const arrow = reversed ? "←" : "→";
   return (
-    <div className={`flex shrink-0 items-center justify-center gap-1.5 rounded-md transition-colors duration-150 motion-reduce:transition-none ${highlight ? "bg-primary/20 ring-2 ring-primary" : "bg-transparent"}`} aria-label="Repeating rule">
+    <div data-chain-preview={long ? "five" : "three"} data-chain-reversed={reversed ? "" : undefined} className={`flex shrink-0 items-center justify-center ${long ? "gap-1" : "gap-1.5"} rounded-md transition-colors duration-150 motion-reduce:transition-none ${highlight ? "bg-primary/20 ring-2 ring-primary" : reversed ? "bg-warn/15 ring-2 ring-warn" : "bg-transparent"}`} aria-label={long ? (reversed ? "Link preview, reversed" : "Link preview") : "Repeating rule"}>
       {cycle.map((item, index) => (
-        <span key={`${item.shape}-${item.colour}`} className="flex items-center gap-1.5">
+        <span key={`${item.shape}-${item.colour}`} className={`flex items-center ${long ? "gap-1" : "gap-1.5"}`}>
+          {reversed && index > 0 && <span className="font-mono text-xs text-warn">{arrow}</span>}
           <span
             className={`flex items-center justify-center rounded-md border-2 transition-transform ${
-              index === active ? "scale-110 border-primary" : "border-transparent opacity-60"
+              index === active ? `scale-110 ${reversed ? "border-warn" : "border-primary"}` : "border-transparent opacity-60"
             }`}
             style={{ width: size + 6, height: size + 6 }}
           >
             <NodeGlyph shape={item.shape} colour={GLYPH_COLOURS[item.colour]} size={size} />
           </span>
-          <span className="font-mono text-xs text-muted-foreground">→</span>
+          {!reversed && (!long || index < cycle.length - 1) && <span className="font-mono text-xs text-muted-foreground">{arrow}</span>}
         </span>
       ))}
-      <span className="font-mono text-xs text-muted-foreground">↺</span>
+      {!long && <span className="font-mono text-xs text-muted-foreground">↺</span>}
     </div>
   );
 }
@@ -161,13 +173,15 @@ const EXAMPLE_CYCLE: ChainRuleItem[] = [
   { shape: "circle", colour: "RED" },
   { shape: "square", colour: "BLUE" },
   { shape: "triangle", colour: "GREEN" },
+  { shape: "circle", colour: "YELLOW" },
+  { shape: "square", colour: "RED" },
 ];
 
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <ChainDefs />
-      <RuleStrip cycle={EXAMPLE_CYCLE} step={1} compact />
+      <RuleStrip cycle={EXAMPLE_CYCLE} active={2} compact />
       <div className="relative h-20 w-full max-w-[240px]">
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <line x1="15" y1="60" x2="45" y2="35" stroke={GLYPH_COLOURS.GOLD} strokeWidth="3" strokeLinecap="round" />
@@ -229,6 +243,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
   const [clock, setClock] = useState(() => Date.now() - phaseStartedAt);
   const [pulse, setPulse] = useState<number | null>(null);
   const [faster, setFaster] = useState(false);
+  const [reverseFlash, setReverseFlash] = useState(false);
   const submitted = useRef(false);
   const warned = useRef("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -324,6 +339,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
     }
+    if (chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT) {
+      setReverseFlash(true);
+      setTimeout(() => setReverseFlash(false), 1_100);
+    }
     if (made >= rules.length) {
       // Finish effect fires synchronously, then the chain is submitted exactly as before.
       const finalPath = [...path, nodeId].map((id) => board[id]).filter((n): n is ChainNode => Boolean(n));
@@ -334,6 +353,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
 
    const cycle = chainCycleAt(data, links);
    const need = chainRequiredAt(data, links);
+   const reversed = chainReversedAt(data, links) && !over;
+   // chainCycleRev 1: the warning banner before the reversed board, then a reverse flash as it starts.
+   const reverseSoon = chainLongCycles(data) && !over && links >= CHAIN_REVERSE_WARN_AT && links < CHAIN_REVERSE_AT;
    const changedAt = taps[boardIndex * CHAIN_BLOCK - 1]?.t;
    const cycleHighlight = boardIndex > 0 && changedAt !== undefined && clock - changedAt < CYCLE_HIGHLIGHT_MS && !over;
 
@@ -346,7 +368,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       }`}
     >
       <ChainDefs />
-      <RuleStrip cycle={cycle} step={chainRuleStep(data, links)} highlight={cycleHighlight} />
+      <RuleStrip cycle={cycle} active={chainCycleIndex(data, links)} highlight={cycleHighlight && !reversed} reversed={reversed} />
+      {(reverseSoon || reversed) && (
+        <p data-chain-reverse-banner={reversed ? "on" : "soon"} role="status" className={`chain-reverse-banner mx-auto shrink-0 rounded-full px-3 py-0.5 text-center font-display text-sm font-black uppercase tracking-widest ${reversed ? "bg-warn text-background" : "bg-warn/20 text-warn"}`}>
+          {reversed ? "← Reversed: last to first" : `Reverse after link ${CHAIN_REVERSE_AT}!`}
+        </p>
+      )}
       <p className="shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">
         <span key={links} className={`inline-block ${links > 0 ? "animate-scale-in" : ""} text-primary`}>
           {links}
@@ -387,7 +414,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
             </button>
           );
         })}
-        {faster && !over && (
+        {reverseFlash && !over && (
+          <div data-chain-reverse-flash="" className="pointer-events-none absolute inset-x-0 top-1/3 z-10 text-center font-display text-4xl font-black tracking-widest text-warn animate-scale-in">
+            ← REVERSE
+          </div>
+        )}
+        {faster && !over && !reverseFlash && (
           <div className="pointer-events-none absolute inset-x-0 top-1/3 text-center font-display text-4xl font-black tracking-widest text-primary animate-scale-in">
             FASTER
           </div>

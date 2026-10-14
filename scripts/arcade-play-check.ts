@@ -1,7 +1,7 @@
 /**
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
- * For each of the 21 active arcade games (Junction is practice only since Tuning C) and the new practice-only Pinball, plus the engine games of other categories
+ * For each of the 22 active arcade games (Pinball dealt in rooms since 14 Oct 2026; Junction is practice only since Tuning C), plus the engine games of other categories
  * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall) and the engine games that draw their own
  * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!; no arena-layout proof), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
@@ -27,7 +27,7 @@
  *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
  *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
  *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
- *    6-8 px above the bottom; a control below the arena under 44 px or off screen;
+ *    16 px above the bottom (pad-game-safe: inset + 16 px since the 14 Oct bottom-clearance pass; 6-8 px before); a control below the arena under 44 px or off screen;
  *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none;
  *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
@@ -38,7 +38,7 @@
  * still playing one game at a time in its own browser, so every game runs under
  * the same conditions as the recorded baseline (and as a whole run).
  *
- *   bun scripts/arcade-play-check.ts                 # all 21 games (and Letterfall)
+ *   bun scripts/arcade-play-check.ts                 # all 22 games (and Letterfall)
  *   bun scripts/arcade-play-check.ts cross flip      # only these game ids
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # play the same way, judge liveness, rewrite the frame-time baseline
@@ -363,7 +363,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (m.fill !== rgb) problems.push(`${at}: space below the arena painted ${m.fill}, not the arena fill ${rgb}`);
     if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: fill below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
     const gap = h - m.stageBottom;
-    if (gap < 6 - 0.5 || gap > 8 + 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want 6-8)`);
+    // pad-game-safe leaves the home-bar inset + 16 px (no inset in headless Chromium); was 6-8 px.
+    if (Math.abs(gap - 16) > 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want 16)`);
     for (const c of m.controls) {
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
