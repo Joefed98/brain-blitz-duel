@@ -19,7 +19,7 @@ import { playFlightpath, playInk, playRally, playSwish, playTempo } from "./arca
 import { inkBridgeGameFor, inkCheckpoint, inkStarCheck, INK_LEVELS, INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC, INK_STAR_LEVELS, INK_V4_PARTIAL_MAX } from "../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
-import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
+import { beatCheckpoint, beatGame, beatGameFor, beatSwipeCount, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_SWIPE_FROM } from "../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../src/lib/duel/beat";
 import {
   rallyCheckpoint,
@@ -33,6 +33,7 @@ import {
   RALLY_REV,
   RALLY_REV_BAND,
   RALLY_REV_TUNED,
+  RALLY_REV_TUNEF,
   RALLY_TARGET_W,
   RALLY_WALL,
   RALLY_WORLD_W,
@@ -79,7 +80,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally } from "../src/lib/duel/arcade.server";
-import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_TUNED, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
@@ -231,7 +232,7 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(generateRally().rallyRev === RALLY_REV_TUNED && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 4 (Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(generateRally().rallyRev === RALLY_REV_TUNEF && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 5 (Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -274,7 +275,7 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(generateBeat().beatRev === BEAT_REV_TUNEC, "new rounds are stamped beatRev 4 (rev 2 play on the score bands; Tuning C curve)");
+  ok(generateBeat().beatRev === BEAT_REV_TUNEF && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 5 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {
@@ -347,8 +348,8 @@ if (want("orbit")) {
     let stamped = 0;
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
-      // Score bands (Oct 2026) then Tuning A: every bank course is stamped orbitRev 6 (rev-5 bands, fly-in), with its holes when it has them.
-      ok(p.orbitRev === ORBIT_REV_TUNED && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 6 and ship their planets");
+      // Score bands (Oct 2026), Tuning A, then Tuning F: every bank course is stamped orbitRev 7 (rev-6 play, swept holes), with its holes when it has them.
+      ok(p.orbitRev === ORBIT_REV_SWEPT && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 7 and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");

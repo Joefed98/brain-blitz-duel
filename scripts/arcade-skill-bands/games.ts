@@ -22,9 +22,9 @@ import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND } from "../../src/l
 import { encodeBubbleRun, replayBubbleRun } from "../../src/lib/duel/bubble";
 import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND } from "../../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
-import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TUNED } from "../../src/lib/arcade/rally";
+import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "../../src/lib/arcade/rally";
 import { encodeRallyRun, replayRallyRun } from "../../src/lib/duel/rally";
-import { snakeCheckpoint, snakeGameFor, SNAKE_REV, SNAKE_REV_BAND, SNAKE_REV_TALL } from "../../src/lib/arcade/snake";
+import { snakeCheckpoint, snakeGameFor, SNAKE_REV, SNAKE_REV_BAND, SNAKE_REV_TALL, SNAKE_REV_ROCKS } from "../../src/lib/arcade/snake";
 import { encodeSnakeRun, replaySnakeRun } from "../../src/lib/duel/snake";
 import { binTossCheckpoint, binTossGameFor, BINTOSS_REV3, BINTOSS_REV_BAND } from "../../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../../src/lib/duel/binToss";
@@ -36,16 +36,16 @@ import { skylineCheckpoint, skylineGameFor, SKYLINE_REV, SKYLINE_REV_BAND, SKYLI
 import { encodeSkylineRun, replaySkylineRun } from "../../src/lib/duel/skyline";
 import { juncCheckpoint, junctionGameFor, JUNC_REV, JUNC_REV_BAND } from "../../src/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "../../src/lib/duel/junction";
-import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TUNED } from "../../src/lib/arcade/breaker";
+import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TUNED, BRK_REV_TUNEF } from "../../src/lib/arcade/breaker";
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
-import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initBandFrom, initRev4From, initTunedFrom, orbitRev3Game, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
+import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
-import { beatCheckpoint, beatGameFor, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC } from "../../src/lib/arcade/beat";
+import { beatCheckpoint, beatGameFor, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "../../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../../src/lib/duel/beat";
 import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_TUNEC } from "../../src/lib/arcade/slice";
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
@@ -78,6 +78,8 @@ export interface GameSpec {
   tunee?: number;
   /** A later bank-only revision (Scrumper snipRev 6, Oct 2026), measured with `--rev=bank` against `tunee`. */
   bank?: number;
+  /** The Tuning F revision (Oct 2026), measured with `--rev=f` against the one rooms stamped before it. */
+  tunef?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -132,31 +134,32 @@ export const GAMES: GameSpec[] = [
   { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT },
   simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun),
   simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun),
-  { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED },
-  { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL },
+  { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF },
+  { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
   { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL, bank: SNIP_REV_BANK6 },
   { ...simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true), tunec: HOVER_REV_TUNEC, tunee: HOVER_REV_TALL },
   { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
-  { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED },
+  { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF },
   { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC },
   {
     type: "orbit",
     live: ORBIT_REV4,
     next: ORBIT_REV_BAND,
     tuned: ORBIT_REV_TUNED,
+    tunef: ORBIT_REV_SWEPT,
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
     gameFor: (rev, seed) => {
-      const start = rev === ORBIT_REV_TUNED ? initTunedFrom : rev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
+      const start = orbitRev3StartFor(rev) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
     replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes),
   },
-  { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC },
+  { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF },
   { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC },
   simple("burst", BURST_REV, BURST_REV_BAND, burstGameFor, burstCheckpoint, encodeBurstRun, replayBurstRun),
   {

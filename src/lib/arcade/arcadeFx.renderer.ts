@@ -304,6 +304,8 @@ export interface ArcadeFxBulbs<S> {
   heat?: (state: S) => number;
   /** A milestone: longer, stronger lights (and for chase, more heads). */
   strong?: boolean;
+  /** Brightness scale for every bulb and stroke, 0…1 (default 1): Hover's barrier steps are faint (Tuning F). */
+  level?: number;
 }
 
 export interface ArcadeFxSpec<S> {
@@ -490,7 +492,7 @@ interface Memory {
   arenaColours: readonly string[];
   bulbsAt: number;
   bulbsMs: number;
-  bulbs: { pattern: ArcadeFxBulbs<unknown>["pattern"]; colours: readonly string[]; heat: number; step: number; strong: boolean; origin: number } | null;
+  bulbs: { pattern: ArcadeFxBulbs<unknown>["pattern"]; colours: readonly string[]; heat: number; step: number; strong: boolean; origin: number; level: number } | null;
   seed: number;
 }
 
@@ -720,7 +722,7 @@ function spawn<S>(
       m.bulbsAt = now;
       m.bulbsMs = ms;
       const clip = spec.clip ?? { x: 0, y: 0, w: spec.width, h: spec.height };
-      m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong, origin: borderAlong(clip, point) };
+      m.bulbs = { pattern: b.pattern, colours: b.colours, heat, step: Math.max(0, Math.floor(count)), strong, origin: borderAlong(clip, point), level: Math.max(0, Math.min(1, b.level ?? 1)) };
     }
   }
 }
@@ -785,7 +787,8 @@ function paintBulbs(ctx: CanvasRenderingContext2D, m: Memory, clip: { x: number;
   const age = now - m.bulbsAt;
   if (!b || age < 0 || age >= m.bulbsMs) return;
   const p = age / m.bulbsMs;
-  const fade = still ? 0.7 : p < 0.08 ? p / 0.08 : p > 0.7 ? (1 - p) / 0.3 : 1;
+  // `level` scales every pattern's brightness (1 unless the event asks for fainter lights).
+  const fade = (still ? 0.7 : p < 0.08 ? p / 0.08 : p > 0.7 ? (1 - p) / 0.3 : 1) * b.level;
   const ring = bulbRing(clip);
   const colours = b.colours;
   const bulbs = ring.bulbs;

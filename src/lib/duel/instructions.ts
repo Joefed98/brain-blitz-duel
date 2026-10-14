@@ -25,8 +25,8 @@ import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
 import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
-import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
-import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V5_BAND_CURVE } from "@/lib/arcade/snake";
+import { RALLY_V5_BAND_CURVE } from "@/lib/arcade/rally";
+import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V6_BAND_CURVE } from "@/lib/arcade/snake";
 import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
 import { SNIP_V5_BAND_CURVE } from "@/lib/arcade/snip";
 import { HOVER_V5_BAND_CURVE } from "@/lib/arcade/hover";
@@ -47,7 +47,7 @@ import {
 } from "@/lib/arcade/pinball";
 import { TILT_V4_BAND_CURVE } from "@/lib/arcade/tilt";
 import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
-import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
+import { BEAT_V5_BAND_CURVE } from "@/lib/arcade/beat";
 import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
 import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
@@ -707,13 +707,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Red shadow?", detail: "A rock lands there in 2 s." },
       { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!" },
       { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks.", helpOnly: true },
-      { action: "Rocks start at length 10:", detail: "one more every 5 stars, up to 8. Stars never appear on a rock.", helpOnly: true },
-      { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 11 rocks.", helpOnly: true },
+      { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
+      { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
       { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
       { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
-    score: bandHelp("Each star eaten counts 1.", SNAKE_V5_BAND_CURVE),
+    score: bandHelp("Each star eaten counts 1.", SNAKE_V6_BAND_CURVE),
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -750,7 +750,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Green L = laser:", detail: "one beam straight up from the paddle that hits the first 4 bricks above it.", helpOnly: true },
       { action: "Silver ×3 = three shots:", detail: "each tap fires an extra ball straight up; it vanishes at the first wall it hits.", helpOnly: true },
       { action: "Bronze ×2 = double balls", detail: "at once. There is one per board.", helpOnly: true },
-      { action: "Orange flame = Fireball:", detail: "for 3.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
+      { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
     score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
@@ -782,9 +782,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A gold ball drops in", detail: "every ten seconds - only gold balls score.", helpOnly: true },
       { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one scores 3, and the pad moves somewhere new in its own half, so the two never overlap.", helpOnly: true },
       { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
+      { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
       { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V4_BAND_CURVE),
+    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V5_BAND_CURVE),
   },
 
   steady: {
@@ -835,7 +836,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V4_BAND_CURVE),
+    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V5_BAND_CURVE),
   },
 
   ricochet: {
@@ -1012,6 +1013,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds.", helpOnly: true },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing.", helpOnly: true },
       { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
+      { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
     ],
     score: bandHelp("Each planet reached counts 1.", ORBIT_BAND_CURVE, "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },

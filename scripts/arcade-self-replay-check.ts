@@ -113,20 +113,20 @@ import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
-import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_TALL } from "@/lib/arcade/snake";
+import { RALLY_REV_BAND, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_TUNED } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { initBandFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
-import { BEAT_REV_BAND, BEAT_REV_TUNEC } from "@/lib/arcade/beat";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { initBandFrom, initSweptFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
+import { BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
@@ -533,6 +533,22 @@ const GAMES: Game[] = [
   { key: "skyline/tall", game: skylineGameFor(SKYLINE_REV_TALL), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, SKYLINE_REV_TALL) },
   { key: "snake/tall", game: snakeGameFor(SNAKE_REV_TALL), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_TALL) },
   { key: "snip/tall", game: snipGameFor(SNIP_REV_TALL), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_TALL) },
+  // Tuning F (Oct 2026): Breaker's 2.5 s Fireball, Rally's second bumper, Tempo's thinner chart, Meteor's extra rocks, Orbit's swept holes.
+  { key: "breaker/tunef", game: breakerGameFor(BRK_REV_TUNEF), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_TUNEF) },
+  { key: "rally/tunef", game: rallyGameFor(RALLY_REV_TUNEF), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TUNEF) },
+  { key: "beat/tunef", game: beatGameFor(BEAT_REV_TUNEF), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_TUNEF) },
+  { key: "snake/rocks", game: snakeGameFor(SNAKE_REV_ROCKS), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_ROCKS) },
+  {
+    key: "orbit/swept",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initSweptFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed))) }),
+    seedFor: (n: number) => ORBIT_HOLE_BANK[n % ORBIT_HOLE_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_SWEPT, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
+  },
   { key: "snip/bank6", game: snipGameFor(SNIP_REV_BANK6), checkpoint: snipCheckpoint, mode: "events", rate: 40, encode: encodeSnipRun, replay: (seed: number, raw: string) => replaySnipRun(seed, raw, SNIP_REV_BANK6) },
   { key: "hotfloor", game: hotFloorGame, checkpoint: hotfloorCheckpoint, mode: "events", rate: 60, encode: encodeHotFloorRun, replay: replayHotFloorRun },
   { key: "stroop", game: colourClashRev4Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 4) },

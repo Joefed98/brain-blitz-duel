@@ -333,3 +333,37 @@ full near-perfect minute and 30 dense random runs identically on the server, sho
 a move far longer than the bumper, thin target or swinging flipper it hits, and fires 2,500 fast shots at bumpers,
 targets and swinging flippers without the ball ever ending a tick inside a collider or on the far side of one.
 `arcade-self-replay-check`, `arcade-fx-check`, `arcade-score-bands-check` and `arcade-play-check` include it.
+
+## Tuning F (14 Oct 2026)
+
+Five games changed play under new stamps; everything older replays and scores exactly as before
+(`scripts/arcade-tuning-f-check.ts` replays 40 runs recorded on main before this change and 40 recorded on the new
+stamps, `scripts/fixtures/arcade-tuning-f-legacy.json`). Hover's arena border lights and Fission's arrows changed display only (Hover's barriers, sim, score and stamp are untouched).
+Medians (p10–p90) from `bun scripts/arcade-skill-bands.ts breaker rally beat snake orbit --rev=f --seeds=30`, the revision
+rooms stamped before → the Tuning F one, same simulated players and seeds, every run through the server's own encode +
+replay (no run flagged or disagreeing):
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Breaker | brkRev 4 → 5 | Fireball 2.5 s (was 3.5 s). Knots unchanged | 67 (42–125) → 67 (42–124) | 94 (50–125) → 103 (50–129) | 133 (99–145) → 131 (89–142) | 141 (128–148) → 141 (127–148) |
+| Rally | rallyRev 4 → 5 | A second mirror bumper for the final 15 s (from 45 s, same 2 s blinking warning), at a seeded spot in the first's band at least 90 px (centres) from it, on a stream of its own, so play before 45 s is exactly rallyRev 4's. Knots refitted: 105 → 70, 130 → 100, 146 → 125, 185 → 145, 250 → 150 | 78 (45–100) → 72 (48–128) | 85 (51–131) → 78 (54–131) | 118 (68–149) → 124 (68–147) | 144 (96–150) → 145 (112–150) |
+| Tempo | beatRev 4 → 5 | A tenth fewer notes: the beatRev 4 chart, then round(notes ÷ 10) plain notes dropped on a stream of their own, busiest spots first (chord partners and eighths), never a hold, a swipe or the first note (300 charts: 47,950 → 43,135 notes, 10.0 % fewer). Knots moved to the new unit medians, keeping the points each level scored on beatRev 4: 662 → 75, 869 → 114, 951 → 140, 990 → 149, 1,000 → 150 | 75 (68–89) → 75 (66–87) | 114 (102–123) → 114 (106–126) | 140 (132–144) → 140 (131–145) | 149 (148–150) → 148 (146–150) |
+| Meteor | snakeRev 5 → 6 | More rocks on the taller grid: first at length 9 (was 10), one more every 4 stars (was 5), up to 11 asteroids (was 8; 14 rocks with the shower); same slots every 3 s and squares. 20 good and great runs saw 139 rocks land against 105. Knots refitted: 15 → 70, 21 → 100, 26 → 125, 29 → 142, 33 → 150 | 74 (44–96) → 68 (32–106) | 103 (56–133) → 100 (56–121) | 125 (89–142) → 125 (100–146) | 142 (117–150) → 142 (113–150) |
+| Orbit | orbitRev 6 → 7 | Bug fix, swept black holes: every hole ahead is live (not only the one beside the planet just left), the rocket is swallowed when its drawn body touches the drawn disc anywhere along the tick's segment, and a belt wins only when the rocket meets it first. Knots unchanged | 70 (0–112) → 76 (0–109) | 98 (29–112) → 100 (29–122) | 126 (96–147) → 128 (96–148) | 135 (120–149) → 136 (125–150) |
+
+- **Tempo kept Tuning C's levels rather than 70 / 100 / 125.** Fewer notes make the chart easier, so on the beatRev 4
+  curve the same players scored 87 / 124 / 143 / 149; the beatRev 5 knots bring each level back to what it scored on
+  beatRev 4, Joe's deliberately kinder Tempo (Tuning C, about 10 % above the targets).
+- **Rally good players stay low (78).** As in every Rally measurement, the simulated average and good players barely
+  separate (unit medians 107 and 112); a curve cannot put them 30 points apart without a cliff, so the knots fit average,
+  great and near-perfect.
+- **Orbit** scores a little more for the same players because hops that cross the next planet's hole now take it; 150
+  is still the sun at speed.
+- Proofs (`arcade-tuning-f-check`): the old and new stored runs; stamps and bands; Breaker's 150-tick Fireball; Rally's
+  second bumper on 4,000 seeds, play identical to rallyRev 4 until 45 s, and bounces off it after; Tempo's thinned chart
+  keeping every rule on 300 seeds; Meteor's rock pace; for Orbit, 30,720 synthetic flights at 1–40 px a tick through
+  every hole of 8 bank courses (all of them with `CHECKS_FULL=1`) from the hole's planet and the one before, judged by a
+  closed-form distance oracle — every flight that reaches 2 px inside the reach registers, none passing 2 px outside it
+  does, and on orbitRev 6 most of the same flights fly through unregistered (the bug) — plus every flight tick of real
+  skill-band runs; 150 through the server replay on every new stamp; Hover's border lights painted at 19 % (each barrier) and
+  37 % (every 7th) of their old strength; Fission's arrows 20 px off the bottom (were 12 px).

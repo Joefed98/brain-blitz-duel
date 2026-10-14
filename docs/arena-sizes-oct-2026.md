@@ -12,7 +12,7 @@ Analytic geometry, cross-checked in the browser by arcade-play-check; not device
 | Rally | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
 | Tempo | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
 | Meteor | 390x724 | 293x543 | 310x576 | 382x709 | 422x783 | 364x676 | 0.979x | 116px | 11px | 0px |
-| Fission | 390x560 | 320x459 | 343x492 | 382x549 | 422x606 | 412x592 | 0.979x | 116px | 87px | 0px |
+| Fission | 390x560 | 314x451 | 337x484 | 382x549 | 422x606 | 407x584 | 0.979x | 116px | 79px | 0px |
 | Wavefront | 390x620 | 342x543 | 362x576 | 382x607 | 422x671 | 425x676 | 0.979x | 116px | 113px | 0px |
 | Orbit | 390x620 | 286x455 | 307x488 | 382x607 | 422x671 | 370x588 | 0.979x | 116px | 25px | 0px |
 | High Rise | 390x735 | 288x543 | 306x576 | 382x720 | 422x795 | 359x676 | 0.979x | 116px | 0px | 0px |
