@@ -405,7 +405,48 @@ function underInsets(arg: {
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const failures: string[] = [];
+
+/**
+ * A cold dev server compiles the whole app on the first request (about 30 s on a 2-core runner,
+ * right at Playwright's default goto timeout), so the first screen measured used to time out
+ * before it rendered. Load the harness once, unmeasured, before any screen; nothing is judged here.
+ */
+async function warmUp(): Promise<void> {
+  const started = Date.now();
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      (window as unknown as { __harness: unknown }).__harness = {
+        puzzles: {},
+        verdict: { isCorrect: true, score: 150 },
+        latencyMs: 50,
+        submissions: [],
+        verdictAt: null,
+        room: null,
+      };
+    });
+    await page.goto(`${origin}/safe-area.html?mode=home`, { timeout: 180_000 });
+    await page.waitForSelector("#root *", { timeout: 120_000 });
+    if (VERBOSE) console.log(`  warm-up: harness loaded in ${Date.now() - started} ms`);
+  } finally {
+    await context.close();
+  }
+}
+
+/** goto, retried once if the load itself times out (a slow first compile); any other error stands. */
+async function gotoRetried(page: import("playwright").Page, url: string, where: string): Promise<void> {
+  try {
+    await page.goto(url);
+  } catch (error) {
+    if (!/Timeout \d+ms exceeded/.test(String((error as Error).message))) throw error;
+    console.log(`  ${where}: first load timed out; retrying once`);
+    await page.goto(url, { timeout: 90_000 });
+  }
+}
+
 try {
+  await warmUp();
   for (const [w, h] of SIZES) {
     for (const screen of SCREENS) {
       const context = await browser.newContext({ viewport: { width: w, height: h } });
@@ -429,7 +470,7 @@ try {
       );
       const where = `${screen.name} ${w}x${h}`;
       try {
-        await page.goto(`${origin}/safe-area.html?mode=${screen.mode}`);
+        await gotoRetried(page, `${origin}/safe-area.html?mode=${screen.mode}`, where);
         if (screen.mode === "practice")
           await page
             .getByRole("button", { name: "Box Six", exact: true })
