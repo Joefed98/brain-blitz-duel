@@ -24,6 +24,7 @@ import {
   type PinState,
 } from "@/lib/arcade/pinball";
 import { replayPinballRun, encodePinballRun } from "@/lib/duel/pinball";
+import { pinHeldTracker, pinSideOf } from "@/lib/arcade/pinballInput";
 import type { PinballPuzzleData } from "@/lib/duel/types";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -49,12 +50,6 @@ function IntroExample() {
   );
 }
 
-/** Which flipper a screen point drives: the left or right half of the arena. */
-function sideOf(box: DOMRect | undefined, clientX: number): number {
-  if (!box || box.width < 1) return 0;
-  return clientX < box.left + box.width / 2 ? 0 : 1;
-}
-
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: PinballPuzzleData | null = puzzle.type === "pinball" ? puzzle : null;
   const seed = data?.seed ?? 1;
@@ -67,10 +62,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const state = useRef<PinState>(game.init(seed));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof pinCheckpoint>[]>([]);
-  /** Fingers (and keys) down, each holding one side. */
-  const pointers = useRef(new Map<number | string, number>());
-  /** Sides pressed since the last tick: a tap shorter than a tick still raises its flipper for one tick. */
-  const latched = useRef(0);
+  /** Fingers (and keys) down, each holding its own side; several at once (pinballInput.ts). */
+  const thumbs = useRef(pinHeldTracker());
   /** The held set the sim was last told about. */
   const sent = useRef(0);
   const submitted = useRef(false);
@@ -94,18 +87,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       checkpoints: checkpoints.current,
     });
 
-  const heldMask = (): number => {
-    let mask = 0;
-    for (const side of pointers.current.values()) mask |= 1 << side;
-    return mask;
-  };
-
   useEffect(() => {
     state.current = game.init(seed);
     events.current = [];
     checkpoints.current = [];
-    pointers.current.clear();
-    latched.current = 0;
+    thumbs.current.clear();
     sent.current = 0;
     submitted.current = false;
     forceRedraw((n) => n + 1);
@@ -140,8 +126,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
           // One event a tick, only when the held set changes; logged on the tick it applies.
-          const mask = heldMask() | latched.current;
-          latched.current = 0;
+          const mask = thumbs.current.takeTick();
           if (mask !== sent.current) {
             const event = { t: state.current.tick + 1, k: PIN_INPUT_FLIPPERS, a: mask, b: 0, c: 0, d: 0 };
             if (recordInput(events.current, event, game.inputRanges)) sent.current = mask;
@@ -178,9 +163,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       event.preventDefault();
       if (down) {
         if (lockedRef.current || submitted.current) return;
-        pointers.current.set(`key${side}`, side);
-        latched.current |= 1 << side;
-      } else pointers.current.delete(`key${side}`);
+        thumbs.current.down(`key${side}`, side);
+      } else thumbs.current.up(`key${side}`);
     };
     const keyDown = onKey(true);
     const keyUp = onKey(false);
@@ -221,13 +205,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const press = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     if (locked || submitted.current || game.isOver(state.current)) return;
-    const side = sideOf(wrap.current?.getBoundingClientRect(), event.clientX);
-    pointers.current.set(event.pointerId, side);
-    latched.current |= 1 << side;
+    // Each finger holds the half it went down on until it lifts: two fingers, two flippers.
+    thumbs.current.down(event.pointerId, pinSideOf(wrap.current?.getBoundingClientRect(), event.clientX));
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    pointers.current.delete(event.pointerId);
+    thumbs.current.up(event.pointerId);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 

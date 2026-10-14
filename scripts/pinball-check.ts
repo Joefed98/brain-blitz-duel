@@ -22,6 +22,9 @@
  *     always lists it (under New while it is practice only); the room
  *     generator stamps pinRev 1.
  *  6. Art matches collision: the drawn flipper tip sits within 2 px of the sim's.
+ *  7. Multi-touch: two fingers (one on each half) raise both flippers; lifting
+ *     one drops only its own flipper, through the phone's tracker, the recorded
+ *     log and the server replay.
  *
  *   bun scripts/pinball-check.ts            # check
  *   bun scripts/pinball-check.ts --record   # rewrite scripts/fixtures/pinball-rev1.json (only when pinRev 1 is new)
@@ -65,6 +68,7 @@ import {
   type PinState,
 } from "../src/lib/arcade/pinball";
 import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
+import { pinHeldTracker, pinSideOf } from "../src/lib/arcade/pinballInput";
 import { encodePinballRun, replayPinballRun } from "../src/lib/duel/pinball";
 import { ACTIVE_ARCADE_GAMES, RETIRED_ARCADE_GAMES } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { allTypesInCategory, isRetired, PREVIEW_PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
@@ -424,6 +428,51 @@ let replayMs = 0;
   ok(worst <= 2, `drawn flipper tip ${worst.toFixed(2)} px from the sim's`);
 }
 
+/* ------------------------------------------------------------------ 7 */
+{
+  // The halves: left of the arena's middle drives the left flipper, the rest the right.
+  const box = { left: 10, width: 390 };
+  ok(pinSideOf(box, 10) === 0 && pinSideOf(box, 204) === 0 && pinSideOf(box, 205) === 1 && pinSideOf(box, 399) === 1, "thumb zones: left half → left flipper, right half → right flipper");
+
+  // Drive the phone's tracker tick by tick, record the log the way the Stage does, and step the sim.
+  const thumbs = pinHeldTracker();
+  const events: ArcadeInputEvent[] = [];
+  let s: PinState = game.init(1);
+  let sent = 0;
+  const tick = (n = 1) => {
+    for (let i = 0; i < n; i++) {
+      const t = s.tick + 1;
+      const mask = thumbs.takeTick();
+      if (mask !== sent && recordInput(events, { t, k: PIN_INPUT_FLIPPERS, a: mask, b: 0, c: 0, d: 0 }, game.inputRanges)) sent = mask;
+      s = game.step(s, inputAt(events, t));
+    }
+  };
+  tick(5);
+  thumbs.down(101, 0); // left thumb
+  thumbs.down(102, 1); // right thumb, both on the glass together
+  tick(10);
+  ok(s.held === 3 && s.flips[0] === PIN_FLIP_UP && s.flips[1] === PIN_FLIP_UP, `two fingers: both flippers up (held ${s.held}, ${s.flips.join("/")})`);
+  thumbs.up(101); // lift the left thumb only
+  tick(12);
+  ok(s.held === 2 && s.flips[0] === PIN_FLIP_REST && s.flips[1] === PIN_FLIP_UP, `left finger lifted: left drops, right stays up (held ${s.held}, ${s.flips.join("/")})`);
+  thumbs.down(103, 1); // a second finger on the right half
+  thumbs.up(102); // the first right finger lifts: the second still holds it
+  tick(3);
+  ok(s.held === 2 && s.flips[1] === PIN_FLIP_UP, "another finger on the same half keeps that flipper up");
+  thumbs.down(104, 0);
+  thumbs.up(104); // a tap shorter than a tick
+  tick(1);
+  ok(s.held === 3, "a tap shorter than a tick still raises its flipper for one tick");
+  tick(1);
+  ok(s.held === 2, "…and drops it on the next");
+  thumbs.up(103);
+  tick(12);
+  ok(s.held === 0 && s.flips[0] === PIN_FLIP_REST && s.flips[1] === PIN_FLIP_REST, "all fingers lifted: both flippers down");
+  // The server replays the same log to the same flippers.
+  const back = replayPinballRun(1, encodePinballRun({ seed: 1, claimedScore: game.score(s), events, endTick: s.tick, checkpoints: [] }), PIN_REV);
+  ok(back.state.held === s.held && back.state.flips.join() === s.flips.join() && back.state.tick === s.tick, "the server replays the two-finger log to the same flippers");
+}
+
 /* ------------------------------------------------------------------ 150 */
 {
   // 150 is reachable: a near-perfect simulated player scores it through the server replay.
@@ -441,4 +490,4 @@ if (failures.length) {
   console.log(`FAIL: ${failures.length} of ${checks} pinball checks`);
   process.exit(1);
 }
-console.log(`Pinball: ${checks} checks passed — stored pinRev 1 runs replay unchanged; a ${longest}-tick near-perfect run replays identically (${replayMs.toFixed(0)} ms); swept contacts and thousands of fast shots never tunnel; table rules, bands, practice-only switch and art bounds`);
+console.log(`Pinball: ${checks} checks passed — stored pinRev 1 runs replay unchanged; a ${longest}-tick near-perfect run replays identically (${replayMs.toFixed(0)} ms); swept contacts and thousands of fast shots never tunnel; table rules, bands, practice-only switch, art bounds and two-finger flippers`);

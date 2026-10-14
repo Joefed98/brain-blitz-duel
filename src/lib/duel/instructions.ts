@@ -753,7 +753,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   pinball: {
     goal: "Keep the ball in play and rack up table points.",
     how: [
-      { action: "Hold the left or right half", detail: "of the screen to raise that flipper." },
+      { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both." },
       { action: "Three balls, one minute:", detail: "a lost ball relaunches by itself." },
       { action: "Bumpers, targets, spinner", detail: "and lit lanes all score." },
       { action: "One table for everyone,", detail: "with no luck in it: each ball launches up the right-hand lane at its own fixed strength.", helpOnly: true },
