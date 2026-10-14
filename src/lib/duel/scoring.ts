@@ -1024,10 +1024,12 @@ export function scoreTiles(
   msRemaining: number,
   timeLimitMs: number = TILES_TIME_MS,
   startInPlace = 0,
+  /** Tiles on the board: 8 on stored rounds, 9 on the extra-cell board (tilesRev 1). */
+  tileCount: number = TILES_COUNT,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
   // Rev 1: the grader passes only tiles the player put in place (not ones that started there).
-  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(inPlace))) / Math.max(1, TILES_COUNT - 1 - startInPlace)) * wasteFactor(moves, minMoves));
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(inPlace))) / Math.max(1, tileCount - 1 - startInPlace)) * wasteFactor(moves, minMoves));
   return clamp(14 * clamp(Math.round(inPlace), 0, TILES_COUNT), 0, 90);
 }
 

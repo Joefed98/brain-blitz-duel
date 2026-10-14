@@ -13,14 +13,15 @@ import {
   BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV,
+  FLOOD_FLAT_LIMIT,
+  FLOOD_FLAT_LIMIT_REV,
   GRAVITY_LIMIT_REV,
   MEASURE_LIMIT_REV,
   TUBES_LIMIT_REV,
 } from "./moveLimits";
 import type { PuzzleData } from "./types";
 
-/** Colour Flood: par (public) plus this many spare taps. */
+/** Colour Flood floodRev 1 (stored rounds): par (public) plus this many spare taps. New rounds (floodRev 2) get a flat FLOOD_FLAT_LIMIT. */
 export const FLOOD_SPARE_MOVES = 2;
 /** Polypotions: the minimum plus this many spare pours, rounded up to a multiple of 5. */
 export const TUBES_SPARE_POURS = 6;
@@ -38,10 +39,11 @@ const upTo5 = (n: number) => Math.max(5, Math.ceil(n / 5) * 5);
 export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
   switch (puzzle.type) {
     case "flood":
+      // floodRev 2 (14 Oct 2026): 15 taps on every board; the bank's par is 10–14.
       return {
         ...puzzle,
-        floodRev: FLOOD_LIMIT_REV,
-        moveLimit: Math.max(1, puzzle.par) + FLOOD_SPARE_MOVES,
+        floodRev: FLOOD_FLAT_LIMIT_REV,
+        moveLimit: Math.max(FLOOD_FLAT_LIMIT, Math.max(1, puzzle.par) + 1),
       };
     case "tubes":
       if (!(puzzle.minMoves && puzzle.minMoves > 0)) return puzzle;

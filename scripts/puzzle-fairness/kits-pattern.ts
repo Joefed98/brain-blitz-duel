@@ -7,7 +7,7 @@
 import type { PuzzleData, BlockPlacement, MirrorPlacement, MirrorKind } from "../../src/lib/duel/types";
 import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES } from "../../src/lib/duel/types";
 import { applyMove, decodeMoves, encodeMoves, isSolved as unblockSolved, position, slideRange, type UnblockMove } from "../../src/lib/duel/unblock";
-import { tilesMovable, tilesSlide, tilesSolved, TILES_UNDO } from "../../src/lib/duel/tiles";
+import { tilesLayout, tilesMovable, tilesSlide, tilesSolved, TILES_UNDO } from "../../src/lib/duel/tiles";
 import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../../src/lib/duel/rings";
 import { SLIDE_DIRS, slideBoard, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
 import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
@@ -191,12 +191,13 @@ const unblockKit = moveKit("unblock", unblockGame, 2.2);
 
 function tilesGame(p: PuzzleData): MoveGame<number[], number> {
   const q = p as Of<"tiles">;
+  const layout = tilesLayout(q);
   return {
     start: [...q.frame],
     solution: [...(q.solution ?? [])],
-    legal: tilesMovable,
-    apply: (s, m) => tilesSlide(s, m) ?? s,
-    solved: tilesSolved,
+    legal: (s) => tilesMovable(s, layout),
+    apply: (s, m) => tilesSlide(s, m, layout) ?? s,
+    solved: (s) => tilesSolved(s, layout),
     same: (a, b) => a === b,
     token: (m) => String(m),
     sep: ",",
@@ -204,8 +205,18 @@ function tilesGame(p: PuzzleData): MoveGame<number[], number> {
     inverse: (_before, m) => m,
   };
 }
-// BASE 1.5 s per slide: 8-puzzle taps, quick but each needs a look ahead.
-const tilesKit = moveKit("tiles", tilesGame, 1.5);
+// BASE 1.5 s per slide: 8-puzzle taps, quick but each needs a look ahead. The extra-cell board
+// (tilesRev 1) is TILES_EXTRA_BASE s (1.8, a fifth longer): nine tiles and a fourth cell in one line, so each slide
+// needs a longer look ahead (an assumption, like every kit's base; Joe's device testing sets it).
+const TILES_EXTRA_BASE = Number(process.env["TILES_EXTRA_BASE"] ?? 1.8);
+const classicTilesKit = moveKit("tiles", tilesGame, 1.5);
+const extraTilesKit = moveKit("tiles", tilesGame, TILES_EXTRA_BASE);
+const tilesKit: PuzzleKit = {
+  type: "tiles",
+  nothing: classicTilesKit.nothing,
+  spam: (p, rng, limitMs) => ((p as Of<"tiles">).tilesRev ? extraTilesKit : classicTilesKit).spam(p, rng, limitMs),
+  play: (p, rng, skill, limitMs) => ((p as Of<"tiles">).tilesRev ? extraTilesKit : classicTilesKit).play(p, rng, skill, limitMs),
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Turntable (rings)                                                        */

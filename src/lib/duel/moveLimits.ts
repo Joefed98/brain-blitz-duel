@@ -33,6 +33,14 @@ import type {
 } from "./types";
 
 export const FLOOD_LIMIT_REV = 1;
+/**
+ * Colour Flood floodRev 2 (14 Oct 2026): a flat limit of FLOOD_FLAT_LIMIT taps on
+ * every board (par is 10–14) instead of par + 2. The limit is still stored on the
+ * puzzle (`moveLimit`), so every rule that reads it (the counter, the server's
+ * cut-off and the waste factor reaching 0 at the limit) is unchanged.
+ */
+export const FLOOD_FLAT_LIMIT_REV = 2;
+export const FLOOD_FLAT_LIMIT = 15;
 export const TUBES_LIMIT_REV = 1;
 export const GRAVITY_LIMIT_REV = 1;
 export const BALANCE_LIMIT_REV = 1;

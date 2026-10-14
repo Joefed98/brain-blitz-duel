@@ -160,3 +160,32 @@
   container-type: size;
 }
 .tiles-reveal-space > .tiles-frame { width: min(100cqw, 100cqh, 300px); }
+
+/* ---- tilesRev 1: the 3×3 grid plus one extra cell (14 Oct 2026) --------
+   The frame is the shape's bounding box (4×3 or 3×4) with no tray of its
+   own; a bed under each cell draws the tray in the board's shape. The beds
+   reach half the gap past their cell, so neighbouring beds join. */
+.tiles-frame-shaped {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.tiles-frame-shaped > .tiles-bed {
+  aspect-ratio: auto;
+  margin: -3px;
+  z-index: 0;
+  background: linear-gradient(160deg, color-mix(in oklab, var(--card) 88%, #fff) 0%, var(--card) 45%, color-mix(in oklab, var(--card) 70%, #000) 100%);
+}
+.tiles-frame-shaped > .tiles-tile,
+.tiles-frame-shaped > .tiles-gap { z-index: 1; }
+/* Four across: numerals keep the 3×3 board's size relative to a cell. */
+.tiles-frame-shaped[data-tiles-shape="4x3"] .tiles-tile { font-size: 9.5cqw; }
+.tiles-frame-shaped[data-tiles-shape="3x4"] .tiles-tile { font-size: 12.6cqw; }
+.game-column [data-polish="tiles"] > .tiles-arena > .tiles-frame-shaped {
+  width: min(calc(100cqw - 16px), calc((100cqh - 12px) * var(--tiles-aspect)), 460px);
+}
+.tiles-reveal-space > .tiles-frame-shaped { width: min(100cqw, calc(100cqh * var(--tiles-aspect)), 300px); }
+.tiles-frame-shaped[data-celebrate="on"] { box-shadow: none; }
+.tiles-frame-shaped[data-celebrate="on"] > .tiles-bed {
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--primary) 50%, transparent);
+}

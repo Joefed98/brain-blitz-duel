@@ -1149,12 +1149,18 @@ export const SUDOKU_BOX_COLS = 3;
 export const SUDOKU_TIME_MS = 90_000;
 export const SUDOKU_MIN_GIVENS = 14;
 export const SUDOKU_MAX_GIVENS = 16;
+/** sudokuRev 1 (14 Oct 2026): one fewer given, 13–15, still one solution. */
+export const SUDOKU_REV_FEWER = 1;
+export const SUDOKU_REV1_MIN_GIVENS = 13;
+export const SUDOKU_REV1_MAX_GIVENS = 15;
 export const SUDOKU_PARTIAL_POINTS = 110;
 
 export interface SudokuPuzzleData {
   type: "sudoku";
   /** Thirty-six cells: the fixed digits, 0 where the player must fill in. */
   givens: number[];
+  /** Generation revision: 1 = 13–15 givens (14 Oct 2026); absent = 14–16. Grading reads only the givens, so it is the same either way. */
+  sudokuRev?: 1;
   /** Server-side only: the one grid the givens allow. */
   solution?: number[];
 }
@@ -1598,6 +1604,18 @@ export const BOMB_V2_FAMILY_CAP = 3;
 export const BOMB_V2_NECESSARY = 6;
 export const BOMB_V2_TIME_MS = 90_000;
 
+/**
+ * Version 3 (14 Oct 2026): the same six-step panel and 90 s clock, with a card
+ * of plain-language clues only (bomb.server.ts V3 templates): which step an
+ * action is, what comes before what, what comes straight after what, and what
+ * not to do. No conditions on the light or serial, no sums, no "if". Each card
+ * has exactly one valid sequence, proved over all 60,480 (scripts/bomb-v3-check.ts).
+ */
+export const BOMB_V3 = 3 as const;
+/** Card size for version 3: six to nine clues, every one individually necessary. */
+export const BOMB_V3_MIN_RULES = 6;
+export const BOMB_V3_MAX_RULES = 9;
+
 export interface BombSpec {
   steps: number;
   rules: number;
@@ -1623,8 +1641,8 @@ export interface BombPuzzleData {
   rules: { id: string; text: string }[];
   /** How many actions the plan needs — the "actions 2 / 6" counter. */
   stepCount: number;
-  /** 2 for six-step rounds; absent on stored four-step rounds. */
-  bombVersion?: 2;
+  /** 2 for six-step rounds, 3 for six-step rounds with the plain-language card (14 Oct 2026); absent on stored four-step rounds. */
+  bombVersion?: 2 | 3;
   /** Version 2 carries its own clock; version 1 uses BOMB_TIME_MS. */
   timeLimitMs?: number;
   /** Server-side only: the required actions, as `bA,w2`. */
@@ -1918,10 +1936,31 @@ export const TILES_PARTIAL_POINTS = 60;
 export const TILES_SLIDE_MS = 120;
 export const TILES_ATTEMPTS = 600;
 
+/**
+ * tilesRev 1 (14 Oct 2026): the 3×3 grid plus one extra cell beside it, on a
+ * random side, so one row or column has four cells. Ten cells, tiles 1–9.
+ */
+export const TILES_EXTRA_MIN_MOVES = 18;
+export const TILES_EXTRA_MAX_MOVES = 24;
+
+export interface TilesExtra {
+  side: "top" | "bottom" | "left" | "right";
+  /** Which column (top / bottom) or row (left / right) of the grid it sits beside, 0–2. */
+  index: number;
+}
+
 export interface TilesPuzzleData {
   type: "tiles";
-  /** Row-major frame: 1 … 8 for the tiles and 0 for the gap. */
+  /**
+   * One value per cell: 1 … 8 (stored rounds) or 1 … 9 (tilesRev 1) for the
+   * tiles and 0 for the gap. Cells 0–8 are the 3×3 grid row-major; cell 9 is
+   * the extra cell on tilesRev 1.
+   */
   frame: number[];
+  /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
+  tilesRev?: 1;
+  /** tilesRev 1: where the extra cell sits. */
+  extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */
   minMoves?: number;
   /** Server-side only: one minimum-length slide order (tile values). */

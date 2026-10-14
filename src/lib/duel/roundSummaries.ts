@@ -1,6 +1,7 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
+import { tilesLayout } from "./tiles";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { WF_PAR } from "@/lib/arcade/wordfall";
@@ -69,7 +70,6 @@ import {
   FLOOD_CELLS,
   FLOOD_TIME_MS,
   STROKE_TIME_MS,
-  TILES_COUNT,
   TILES_TIME_MS,
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
@@ -918,7 +918,7 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
       : `${prefix} / ${puzzle.stepCount}`,
     detail: [
       `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
-      puzzle.bombVersion === 2
+      (puzzle.bombVersion ?? 1) >= 2
         ? puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV
           ? `22 per correct step, five of six = 110`
           : `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
@@ -1040,7 +1040,7 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
-      : `${inPlace} / ${TILES_COUNT} in place`,
+      : `${inPlace} / ${tilesLayout(puzzle).count} in place`,
     detail: [
       result.is_correct && min > 0 && moves <= min
         ? "Solved in the minimum"

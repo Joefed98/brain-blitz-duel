@@ -176,7 +176,15 @@ function Stage({
           <Board grid={replay.grid} fluid ripple={ripple} />
         </div>
       </div>
-      <div data-game-controls="colours" className="flex shrink-0 items-center gap-2">
+      {/* The moves line sits above the colours and the colours are lifted off the bottom edge (14 Oct 2026), so nothing is cut off. */}
+      <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
+        <span className="font-mono text-xs text-muted-foreground" data-move-limit={moveLimit ?? undefined}>
+          {moveLimit !== null
+            ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
+            : <>Moves: {replay.moves}</>}
+        </span>
+      </div>
+      <div data-game-controls="colours" className="flood-colours flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button
             key={colour}
@@ -187,13 +195,6 @@ function Stage({
             style={{ width: 52, height: 52, backgroundColor: fillOf(colour) }}
           />
         ))}
-      </div>
-      <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
-        <span className="font-mono text-xs text-muted-foreground" data-move-limit={moveLimit ?? undefined}>
-          {moveLimit !== null
-            ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
-            : <>Moves: {replay.moves}</>}
-        </span>
       </div>
     </div>
   );

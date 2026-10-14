@@ -18,7 +18,7 @@
  *   4. Generation: Counterweight's two small scales have exactly one balanced
  *      arrangement; Tally's counts stay inside the wider ranges and use them.
  *   5. Random play: over 24 room seeds no spam strategy finishes more than 2
- *      boards, and every spam median is at most 60. Colour Flood (floodRev 1,
+ *      boards (Colour Flood 8 since floodRev 2's flat 15), and every spam median is at most 60. Colour Flood (floodRev 1 / 2,
  *      unfinished credit falls to 0 at the move limit): every random-colour and
  *      colour-cycling run that does not finish scores exactly 0, while the same
  *      answers on the stored shape (no floodRev) still score what they did.
@@ -56,13 +56,14 @@ import {
   BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV,
+  FLOOD_FLAT_LIMIT,
+  FLOOD_FLAT_LIMIT_REV,
   GRAVITY_LIMIT_REV,
   MEASURE_LIMIT_REV,
   TUBES_LIMIT_REV,
   joinCountSuffix,
 } from "../src/lib/duel/moveLimits";
-import { EQUATION_TRIES, FLOOD_SPARE_MOVES } from "../src/lib/duel/moveLimits.server";
+import { EQUATION_TRIES } from "../src/lib/duel/moveLimits.server";
 import { COUNTUP_STAGE_COUNTS_REV1 } from "../src/puzzles/countUp";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { KITS } from "./puzzle-fairness/kits";
@@ -113,7 +114,8 @@ type Loose = Record<string, unknown>;
 
 /* ---------------------------------- 2. Stamps ---------------------------------- */
 const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: string }>> = {
-  flood: { rev: "floodRev", value: FLOOD_LIMIT_REV, limit: "moveLimit" },
+  // Colour Flood's new rounds moved to floodRev 2 (a flat 15) on 14 Oct 2026 (pattern-logic-oct14-check).
+  flood: { rev: "floodRev", value: FLOOD_FLAT_LIMIT_REV, limit: "moveLimit" },
   tubes: { rev: "tubesRev", value: TUBES_LIMIT_REV, limit: "pourLimit" },
   gravity: { rev: "gravityRev", value: GRAVITY_LIMIT_REV, limit: "tiltLimit" },
   balance: { rev: "balanceRev", value: BALANCE_LIMIT_REV, limit: "placeLimits" },
@@ -156,7 +158,7 @@ for (let i = 0; i < 12; i++) {
   const seed = 7001 + i;
   const flood = roomPuzzle("flood", seed) as Loose & { par: number; moveLimit: number };
   ok(
-    flood.moveLimit === flood.par + FLOOD_SPARE_MOVES,
+    flood.moveLimit === FLOOD_FLAT_LIMIT && flood.par >= 10 && flood.par <= 14,
     `flood ${seed}: limit ${flood.moveLimit} for par ${flood.par}`,
   );
   for (const [type, key] of [
@@ -378,7 +380,7 @@ for (let i = 0; i < 12; i++) {
         const g = gradeAnswer(p, sp.answer, 0);
         (scores[sp.label] ??= []).push(g.score);
         if (type === "flood") {
-          // floodRev 1: a board that runs out of moves (or stops past par + 1) unfinished scores 0.
+          // floodRev 1 / 2: a board that runs out of moves unfinished scores 0.
           ok(g.isCorrect || g.score === 0, `flood ${seed}: spam "${sp.label}" unfinished scores ${g.score}, want 0`);
           // Stored rounds: the same answer without the stamp scores on the old waste factor (0 at 4× par).
           const stored = { ...(p as unknown as Loose) };
@@ -397,7 +399,8 @@ for (let i = 0; i < 12; i++) {
     for (const [label, xs] of Object.entries(scores)) {
       ok(median(xs) <= 60, `${type}: spam "${label}" median ${median(xs)} > 60`);
       ok(
-        (solved[label] ?? 0) <= 2,
+        // floodRev 2's flat 15 lets colour cycling flood about one board in five (median still 0; docs/puzzle-score-bands-oct-2026.md).
+        (solved[label] ?? 0) <= (type === "flood" ? 8 : 2),
         `${type}: spam "${label}" finished ${solved[label]} of 24 boards`,
       );
     }

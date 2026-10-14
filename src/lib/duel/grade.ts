@@ -37,7 +37,7 @@ import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { decodeStrokeAttempts, replayStroke } from "./stroke";
-import { decodeTileMoves, replayTiles } from "./tiles";
+import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
@@ -115,7 +115,6 @@ import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { solvedFrame } from "./tiles";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -943,13 +942,13 @@ function gradeUnderRev(
       const replay = checkBombPlan(required, constraints, decodeBombActions(answer));
       isCorrect = replay.defused;
       correctCount = replay.correctPrefix;
-      // Version 2 (six steps) scores partial credit as a share of the plan; stored four-step rounds keep 25 per step.
+      // Versions 2 and 3 (six steps) score partial credit as a share of the plan; stored four-step rounds keep 25 per step.
       score = scoreBomb(
         replay.defused,
         ms,
         replay.correctPrefix,
         timeLimitMs,
-        puzzle.bombVersion === BOMB_V2 ? required.length : undefined,
+        (puzzle.bombVersion ?? 1) >= BOMB_V2 ? required.length : undefined,
       );
       extraDetail = {
         defused: replay.defused,
@@ -1073,17 +1072,19 @@ function gradeUnderRev(
     }
     case "tiles": {
       // Every tapped tile is replayed on the stored frame, Undo and Reset too.
-      const replay = replayTiles(puzzle.frame, decodeTileMoves(answer));
+      // tilesRev 1: the extra-cell board (ten cells, tiles 1–9); stored rounds keep the 3×3 frame.
+      const layout = tilesLayout(puzzle);
+      const replay = replayTiles(puzzle.frame, decodeTileMoves(answer, layout.count), layout);
       isCorrect = replay.solved;
       correctCount = replay.inPlace;
       if (scoreRev1()) {
         // Rev 1: only tiles the player put in place, not ones that started there.
-        const goal = solvedFrame();
+        const goal = layout.goal;
         const startIn = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i]).length;
         // Tiles that started in place and were moved out count against, so random slides earn about 0.
         const displaced = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i] && replay.frame[i] !== v).length;
         const placed = replay.frame.filter((v, i) => v !== 0 && v === goal[i] && puzzle.frame[i] !== v).length - displaced;
-        score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn);
+        score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn, layout.count);
       } else score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms, timeLimitMs);
       extraDetail = {
         solved: replay.solved,

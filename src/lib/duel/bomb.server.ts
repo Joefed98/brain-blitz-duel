@@ -39,13 +39,16 @@ import {
   type WireColour,
 } from "./bomb";
 import { pick, randomBelow, shuffled } from "./random";
-import { BOMB_V2_BANK } from "./bombBank.server";
+import { BOMB_V3_BANK } from "./bombBankV3.server";
 import {
   BOMB_MAX_SEQUENCE,
   BOMB_NECESSARY_RULES,
   BOMB_RULE_COUNT,
   BOMB_V2,
   BOMB_V2_TIME_MS,
+  BOMB_V3,
+  BOMB_V3_MAX_RULES,
+  BOMB_V3_MIN_RULES,
   BOMB_WIRES,
   bombSpecOf,
   type BombSpec,
@@ -693,17 +696,18 @@ export function generateBombPanel(version: 1 | 2 = BOMB_V2): BombGeneration {
 }
 
 /**
- * New rounds draw a six-step panel from the script-built, server-only bank
- * (scripts/bomb-bank.ts); the room stores it, so every player gets the same one.
+ * New rounds draw a six-step, plain-clue panel (version 3, 14 Oct 2026) from the
+ * script-built, server-only bank (scripts/bomb-bank.ts --v3); the room stores it,
+ * so every player gets the same one. The version-2 bank is no longer drawn.
  */
 export function generateBomb(): BombPuzzleData {
-  if (BOMB_V2_BANK.length > 0) {
-    const entry = BOMB_V2_BANK[randomBelow(BOMB_V2_BANK.length)]!;
-    return structuredClone({ ...entry, bombVersion: BOMB_V2, timeLimitMs: BOMB_V2_TIME_MS });
+  if (BOMB_V3_BANK.length > 0) {
+    const entry = BOMB_V3_BANK[randomBelow(BOMB_V3_BANK.length)]!;
+    return structuredClone({ ...entry, bombVersion: BOMB_V3, timeLimitMs: BOMB_V2_TIME_MS });
   }
-  const generated = generateBombPanel(BOMB_V2);
+  const generated = generatePlainBombPanel();
   console.log(
-    `[bomb] panel accepted after ${generated.attempts} attempt(s): one unique ${generated.puzzle.stepCount}-action plan from ${generated.puzzle.rules.length} rules`,
+    `[bomb] panel accepted after ${generated.attempts} attempt(s): one unique ${generated.puzzle.stepCount}-action plan from ${generated.puzzle.rules.length} clues`,
   );
   return generated.puzzle;
 }
@@ -765,5 +769,227 @@ export function inspectBombRules(puzzle: BombPuzzleData): {
     ),
     unknownRules: puzzle.rules.length - known.length,
     familiesOk: familiesOk(known),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Version 3 (14 Oct 2026): plain-language clues                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Version 3 keeps the six-step panel, the plan and the proof, and replaces the
+ * card with plain clues the player never has to decode: no conditions on the
+ * light, serial or switch, no sums, no "if". Every clue names actions outright
+ * and says one of these, in one fixed wording each:
+ *
+ *   step      "Step 3: cut wire 4."                       (that action is that step)
+ *   before    "Cut wire 2 at some point before you press A."  (both happen, in that order)
+ *   next      "Cut wire 6, then press B as the very next step."
+ *   no        "Do not cut wire 5." / "Do not press button B."
+ *   colour    "Cut both Red wires." / "Cut the Blue wire." / "Do not cut any Green wire."
+ *   count     "Cut exactly 4 wires."
+ *
+ * The challenge is reading all of them and working out the order. A card is
+ * kept only when exactly one of the 60,480 ordered six-action sequences
+ * satisfies every clue, that one is the stored plan, and every clue is needed
+ * (dropping any one lets a second sequence through). scripts/bomb-v3-check.ts
+ * re-proves every bank card from the clue TEXT alone.
+ */
+
+type V3Family = "step" | "before" | "next" | "which";
+
+/** The proof's plan-length switch (not a React hook). */
+const setSpec = useSpec;
+
+/** At most this many clues of each kind on one card, so cards mix kinds. */
+export const BOMB_V3_FAMILY_CAP: Record<V3Family, number> = { step: 2, before: 5, next: 2, which: 3 };
+
+interface V3Rule {
+  id: string;
+  text: string;
+  key: string;
+  family: V3Family;
+  test: (sequence: BombAction[]) => boolean;
+  /** Clues about the same two actions share this (at most one per pair). */
+  pair?: string | undefined;
+}
+
+/** "cut wire 3" / "press A". */
+const plainAct = (action: BombAction) => (isCut(action) ? `cut wire ${cutIndex(action) + 1}` : `press ${action.slice(1)}`);
+/** "you cut wire 5" / "you press A". */
+const youAct = (action: BombAction) => `you ${plainAct(action)}`;
+const NUMBER_WORDS = ["", "", "both", "all 3", "all 4", "all 5", "all 6", "all 7"];
+
+/** Every plain clue the panel could carry; the id starts with the clue kind. */
+export function plainRuleCandidates(panel: Pick<BombPuzzleData, "wires" | "buttons">): V3Rule[] {
+  const out: V3Rule[] = [];
+  const add = (family: V3Family, id: string, text: string, key: string, test: (s: BombAction[]) => boolean, pair?: string) =>
+    out.push({ id, text, key: `v3:${key}`, family, test, pair });
+  const count = (colour: WireColour) => panel.wires.filter((wire) => wire === colour).length;
+  const present = WIRE_COLOURS.filter((colour) => count(colour) > 0);
+
+  for (const x of BOMB_ACTIONS) {
+    for (let step = 0; step < BOMB_V2_STEPS_V3; step++) {
+      add("step", `step:${step + 1}:${x}`, `Step ${step + 1}: ${plainAct(x)}.`, `at:${step}:${x}`, (s) => s[step] === x);
+    }
+    add("which", `no:${x}`, isCut(x) ? `Do not cut wire ${cutIndex(x) + 1}.` : `Do not press button ${x.slice(1)}.`, `no:${x}`, (s) => !s.includes(x));
+    for (const y of BOMB_ACTIONS) {
+      if (x === y) continue;
+      const pair = [x, y].sort().join("|");
+      add("before", `before:${x}:${y}`, `${capFirst(plainAct(x))} at some point before ${youAct(y)}.`, `before:${x}:${y}`, (s) => {
+        const a = s.indexOf(x);
+        const b = s.indexOf(y);
+        return a >= 0 && b >= 0 && a < b;
+      }, pair);
+      add("next", `next:${x}:${y}`, `${capFirst(plainAct(x))}, then ${plainAct(y)} as the very next step.`, `next:${x}:${y}`, (s) => {
+        const a = s.indexOf(x);
+        return a >= 0 && s[a + 1] === y;
+      }, pair);
+    }
+  }
+  add("which", "both-buttons", "Press both buttons.", "both", (s) => s.includes("bA") && s.includes("bB"));
+  for (const colour of present) {
+    const wires = panel.wires.flatMap((wire, index) => (wire === colour ? [cutAction(index)] : []));
+    const n = wires.length;
+    const name = colourWord(colour);
+    add("which", `every:${colour}`, n === 1 ? `Cut the ${name} wire.` : `Cut ${NUMBER_WORDS[n]} ${name} wires.`, `every:${wires.join("+")}`, (s) => wires.every((w) => s.includes(w)));
+    add("which", `none:${colour}`, n === 1 ? `Do not cut the ${name} wire.` : `Do not cut any ${name} wire.`, `none:${wires.join("+")}`, (s) => wires.every((w) => !s.includes(w)));
+  }
+  for (const k of [4, 5, 6]) {
+    add("which", `cuts:${k}`, `Cut exactly ${k} wires.`, `cuts:${k}`, (s) => s.filter(isCut).length === k);
+  }
+  return out;
+}
+
+const BOMB_V2_STEPS_V3 = 6;
+const capFirst = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+function v3FamiliesOk(rules: V3Rule[]): boolean {
+  const counts = new Map<V3Family, number>();
+  for (const rule of rules) {
+    const next = (counts.get(rule.family) ?? 0) + 1;
+    if (next > BOMB_V3_FAMILY_CAP[rule.family]) return false;
+    counts.set(rule.family, next);
+  }
+  return true;
+}
+
+function v3PairsOk(rules: V3Rule[]): boolean {
+  const seen = new Set<string>();
+  for (const rule of rules) {
+    if (!rule.pair) continue;
+    if (seen.has(rule.pair)) return false;
+    seen.add(rule.pair);
+  }
+  return true;
+}
+
+function v3Mask(rule: V3Rule): Uint32Array {
+  return maskOf(rule as unknown as RuleInstance);
+}
+
+/** Version 3: a random six-action plan and a card of plain clues that only it satisfies. */
+export function generatePlainBombPanel(): BombGeneration {
+  const spec = { ...bombSpecOf(BOMB_V2), rules: BOMB_V3_MAX_RULES, necessary: BOMB_V3_MIN_RULES };
+  for (let attempt = 1; attempt <= 20_000; attempt++) {
+    const panel = randomPanel();
+    setSpec(spec);
+    const plan = shuffled(BOMB_ACTIONS).slice(0, spec.steps);
+    const planIndex = indexOfPlan(plan);
+    const seen = new Set<string>();
+    const pool = shuffled(plainRuleCandidates(panel).filter((rule) => rule.test(plan))).filter(
+      (rule) => !seen.has(rule.key) && seen.add(rule.key) !== undefined,
+    );
+    const masks: Uint32Array[] = [];
+    const maskAt = (index: number) => (masks[index] ??= v3Mask(pool[index]!));
+
+    let picked: number[] | null = null;
+    for (let restart = 0; restart < 24 && !picked; restart++) {
+      const chosen: number[] = [];
+      let bits = ALL_BITS;
+      while (countBits(bits, 2) > 1) {
+        const rules = chosen.map((index) => pool[index]!);
+        const before = countBits(bits);
+        const options: { index: number; next: Uint32Array; left: number }[] = [];
+        for (let index = 0; index < pool.length; index++) {
+          if (chosen.includes(index)) continue;
+          const rule = pool[index]!;
+          if (!v3FamiliesOk([...rules, rule]) || !v3PairsOk([...rules, rule])) continue;
+          const next = intersect(bits, maskAt(index));
+          const left = countBits(next);
+          if (left < before) options.push({ index, next, left });
+        }
+        if (options.length === 0) break;
+        options.sort((a, b) => a.left - b.left);
+        // One of the sharper cuts, not always the sharpest, so cards vary.
+        const option = options[randomBelow(Math.min(6, options.length))]!;
+        chosen.push(option.index);
+        bits = option.next;
+      }
+      if (countBits(bits, 2) !== 1 || firstBit(bits) !== planIndex) continue;
+      let kept = [...chosen];
+      for (const drop of shuffled([...chosen])) {
+        const rest = kept.filter((index) => index !== drop);
+        if (solutions(rest.map(maskAt), 2).length === 1) kept = rest;
+      }
+      if (kept.length < BOMB_V3_MIN_RULES || kept.length > BOMB_V3_MAX_RULES) continue;
+      picked = kept;
+    }
+    if (!picked) continue;
+    const unique = solutions(picked.map(maskAt));
+    if (unique.length !== 1 || planKey(ALL_SEQUENCES[unique[0]!]!) !== planKey(plan)) continue;
+    if (!isNecessary(picked.map(maskAt))) continue;
+
+    const rules = shuffled(picked.map((index) => pool[index]!)).map((rule) => ({ id: rule.id, text: rule.text }));
+    const constraints: BombConstraint[] = plan
+      .slice(0, -1)
+      .map((action, index) => ({ kind: "before", a: action, b: plan[index + 1]! }) as const);
+    return {
+      attempts: attempt,
+      puzzle: {
+        type: "bomb",
+        wires: panel.wires,
+        buttons: panel.buttons,
+        light: panel.light,
+        serial: panel.serial,
+        switchPosition: panel.switchPosition,
+        rules,
+        stepCount: spec.steps,
+        bombVersion: BOMB_V3,
+        timeLimitMs: BOMB_V2_TIME_MS,
+        required: encodeBombActions(plan),
+        constraints: encodeBombConstraints(constraints),
+        sequence: encodeBombActions(plan),
+      },
+    };
+  }
+  throw new Error("Bomb Defusal v3 generator could not build an unambiguous panel");
+}
+
+/** Re-derives a version-3 card from its ids and proves it: one sequence, the stored one, every clue needed, exact wording. */
+export function inspectPlainBomb(puzzle: BombPuzzleData): {
+  solutions: number;
+  unique: boolean;
+  necessaryRules: number;
+  wordingOk: boolean;
+  unknownRules: number;
+  familiesOk: boolean;
+  pairsOk: boolean;
+} {
+  setSpec({ ...bombSpecOf(BOMB_V2), rules: BOMB_V3_MAX_RULES, necessary: BOMB_V3_MIN_RULES });
+  const candidates = plainRuleCandidates(puzzle);
+  const rebuilt = puzzle.rules.map(({ id }) => candidates.find((rule) => rule.id === id));
+  const known = rebuilt.filter((rule): rule is V3Rule => Boolean(rule));
+  const masks = known.map(v3Mask);
+  const found = solutions(masks, 3);
+  const plan = (puzzle.sequence ?? "").split(",").join(",");
+  return {
+    solutions: found.length,
+    unique: found.length === 1 && known.length === puzzle.rules.length && ALL_SEQUENCES[found[0]!]!.join(",") === plan,
+    necessaryRules: known.filter((_, drop) => solutions(masks.filter((__, index) => index !== drop), 2).length >= 2).length,
+    wordingOk: puzzle.rules.every((rule, index) => rebuilt[index]?.text === rule.text),
+    unknownRules: puzzle.rules.length - known.length,
+    familiesOk: v3FamiliesOk(known),
+    pairsOk: v3PairsOk(known),
   };
 }

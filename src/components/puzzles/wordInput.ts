@@ -30,7 +30,16 @@ export const SPEED_POLISH_PRESENTATION = "oct13-speed-polish";
 /** Move limits (13 Oct 2026): Operator's tries line sits inside its board and moves the equation; older coordinate demos are rejected. */
 export const MOVE_LIMIT_DEMOS = new Set(["equation"]);
 export const MOVE_LIMIT_PRESENTATION = "oct13-move-limits";
+/**
+ * Pattern / Logic batch (14 Oct 2026): Jumbled's board became the 3×3 grid plus one extra cell
+ * (tilesRev 1), Polypotions' Undo / Reset grew and moved up, and Colour Flood's moves line moved
+ * above its raised colours. Their boards move, so older coordinate demos are rejected.
+ * (Bomb Defusal's demos are stopped by version in introDemo.functions.ts; Box Six's board did not move.)
+ */
+export const OCT14_BATCH_DEMOS = new Set(["tiles", "tubes", "flood"]);
+export const OCT14_BATCH_PRESENTATION = "oct14-pattern-logic-batch";
 export function puzzlePresentation(type: string): string {
+  if (OCT14_BATCH_DEMOS.has(type)) return OCT14_BATCH_PRESENTATION;
   if (MOVE_LIMIT_DEMOS.has(type)) return MOVE_LIMIT_PRESENTATION;
   if (PATTERN_POLISH_DEMOS.has(type)) return PATTERN_POLISH_PRESENTATION;
   if (SPEED_POLISH_DEMOS.has(type)) return SPEED_POLISH_PRESENTATION;
@@ -39,7 +48,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...OCT14_BATCH_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
