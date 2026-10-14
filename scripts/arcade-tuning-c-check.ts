@@ -50,7 +50,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
   wavDropPx,
   wavefrontGameFor,
@@ -162,7 +162,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["hover", generateHover().hoverRev, HOVER_REV_TALL],
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],
     ["flip", generateFlip().flipRev, FLIP_REV_TUNEC],
-    ["beat", generateBeat().beatRev, BEAT_REV_TUNEC],
+    // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
+    ["beat", generateBeat().beatRev, BEAT_REV_TUNEF],
     ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC],
     ["tilt", generateTilt().tiltRev, TILT_REV_TUNEC],
     ["slice", generateSlice().sliceRev, SLICE_REV_TUNEC],
@@ -215,7 +216,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
     }
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("63") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("103") && PUZZLE_INSTRUCTIONS.beat.score.includes("77"), "the \"?\" help states the new knots");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("63") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("103") && PUZZLE_INSTRUCTIONS.beat.score.includes("114"), "the \"?\" help states the new knots (Tempo's are Tuning F's since beatRev 5, which keeps Tuning C's levels)");
 }
 
 /* ================================ 4a. Gemstone ================================ */

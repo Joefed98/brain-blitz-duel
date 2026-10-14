@@ -96,8 +96,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />
-    {/* Two large arrows (76 px tall, half the width each), raised 12 px off the bottom edge. */}
-    <div data-game-controls="pad" className="grid h-[88px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4 bg-background/60 pb-3">
+    {/* Two large arrows (76 px tall, half the width each), raised 20 px off the bottom edge (Tuning F: 8 px higher). */}
+    <div data-game-controls="pad" className="grid h-[96px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4 bg-background/60 pb-5">
       <ArcadeControlButton type="button" aria-label="Move left" disabled={locked} className="h-[76px] w-full border-2 border-primary/70 bg-background/40 p-0 text-3xl text-primary before:content-['◀'] active:bg-primary/30" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
       <ArcadeControlButton type="button" aria-label="Move right" disabled={locked} className="h-[76px] w-full border-2 border-primary/70 bg-background/40 p-0 text-3xl text-primary before:content-['▶'] active:bg-primary/30" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
     </div>

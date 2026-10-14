@@ -3,7 +3,7 @@ import { SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
 import { INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { SNAKE_REV_TALL } from "@/lib/arcade/snake";
+import { SNAKE_REV_ROCKS } from "@/lib/arcade/snake";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { SNIP_REV_BANK6 } from "@/lib/arcade/snip";
@@ -13,12 +13,12 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TUNEC } from "@/lib/arcade/swing";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
-import { BRK_REV_TUNED } from "@/lib/arcade/breaker";
+import { BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { PIN_REV } from "@/lib/arcade/pinball";
 import { WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { RALLY_REV_TUNED } from "@/lib/arcade/rally";
-import { BEAT_REV_TUNEC } from "@/lib/arcade/beat";
+import { ORBIT_REV_SWEPT } from "@/lib/arcade/orbit";
+import { RALLY_REV_TUNEF } from "@/lib/arcade/rally";
+import { BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V4_BANK } from "./swingBankV4.server";
@@ -98,7 +98,7 @@ export function generateMatchup(): MatchupPuzzleData {
 }
 
 export function generateSnake(): SnakePuzzleData {
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_TALL };
+  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_ROCKS };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -114,7 +114,7 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TUNED };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TUNEF };
 }
 
 export function generatePinball(): PinballPuzzleData {
@@ -122,7 +122,7 @@ export function generatePinball(): PinballPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_TUNED };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_TUNEF };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -138,7 +138,7 @@ export function generateBubble(): BubblePuzzleData {
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_TUNEC };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_TUNEF };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -205,9 +205,10 @@ export function generateOrbit(): OrbitPuzzleData {
   if (!bankPlanets) return { type: "orbit", seed };
   // Rev 6 (Tuning A): the rev-5 band rules with the course's proved black holes
   // (scripts/orbit-hole-bank.ts), or none, plus the 1 s fly-in after a hole and a quicker end to a miss.
+  // Rev 7 (Tuning F): the same with swept black holes (every hole ahead swallows the rocket's whole body).
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  return { type: "orbit", seed, orbitRev: ORBIT_REV_TUNED, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV_SWEPT, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 
 export function generateSnip(): SnipPuzzleData {
