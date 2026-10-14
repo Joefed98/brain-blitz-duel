@@ -26,7 +26,7 @@ import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "./orbit";
 import { beatBandParts, BEAT_BAND_CURVE, BEAT_REV_BAND } from "./beat";
 import { sliceBandParts, SLICE_BAND_CURVE, SLICE_REV_BAND } from "./slice";
 import { burstBandParts, BURST_BAND_CURVE, BURST_REV_BAND } from "./burst";
-import { swingBandParts, SWING_BAND_CURVE, SWING_REV_BAND, SWING_REV_TUNED } from "./swing";
+import { swingBandParts, SWING_BAND_CURVE, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_SPREAD } from "./swing";
 import { bullseyeBandParts, BULLSEYE_BAND_CURVE, BULLSEYE_REV_BAND } from "./bullseye";
 import { pinballBandParts, PIN_BAND_CURVE, PIN_REV } from "./pinball";
 
@@ -96,7 +96,7 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, .
   beat: ["beatRev", BEAT_REV_BAND],
   slice: ["sliceRev", SLICE_REV_BAND],
   burst: ["burstRev", BURST_REV_BAND],
-  swing: ["swingRev", SWING_REV_BAND, SWING_REV_TUNED],
+  swing: ["swingRev", SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_SPREAD],
   bullseye: ["bullRev", BULLSEYE_REV_BAND],
   pinball: ["pinRev", PIN_REV],
 };

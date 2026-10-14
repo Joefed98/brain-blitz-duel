@@ -325,7 +325,8 @@ if (want("orbit")) {
 /* =============================== 2d. Grappler =============================== */
 if (want("swing")) {
   section("Grappler swingRev 6: touch stars, crumbling stalactites");
-  ok(generateSwing().swingRev === SWING_REV_TUNED + 1, "new Grappler rounds are stamped swingRev 7 (Tuning C, after swingRev 6)");
+  // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
+  ok(generateSwing().swingRev === SWING_REV_TUNED + 2, "new Grappler rounds are stamped swingRev 8 (Tuning F, after swingRev 6 and 7)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");

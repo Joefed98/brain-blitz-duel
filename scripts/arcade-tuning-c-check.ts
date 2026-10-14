@@ -157,7 +157,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
 {
   const stamps: [string, number | undefined, number][] = [
     ["matchup", generateMatchup().matchupRev, MATCHUP_REV_WAIT],
-    ["swing", generateSwing().swingRev, SWING_REV_TUNEC],
+    // Tuning F (Oct 2026) moved Grappler on to its evenly spread stars (swingRev 8); swing-rev8-check covers it.
+    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 1],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", generateHover().hoverRev, HOVER_REV_TALL],
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],
