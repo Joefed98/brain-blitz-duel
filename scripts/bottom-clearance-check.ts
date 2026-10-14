@@ -31,6 +31,8 @@ import type { PuzzleType } from "../src/lib/duel/types";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const VERBOSE = args.includes("--verbose");
+/** --dump: print every measured control's clearance (to compare two trees). */
+const DUMP = args.includes("--dump");
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5195;
 export const CLEARANCE_PX = 12;
@@ -56,6 +58,7 @@ interface Measure {
   shellBottom: number | null;
   worst: { label: string; bottom: number; clearance: number; clipped: boolean } | null;
   bad: { label: string; bottom: number; clearance: number; clipped: boolean }[];
+  all: { label: string; bottom: number; clearance: number; clipped: boolean }[];
   count: number;
 }
 
@@ -82,6 +85,7 @@ function measure(scope: "stage" | "intro"): Measure {
     return true;
   };
   const out: Measure["bad"] = [];
+  const all: Measure["bad"] = [];
   let worst: Measure["worst"] = null;
   let count = 0;
   const nodes = root
@@ -108,6 +112,7 @@ function measure(scope: "stage" | "intro"): Measure {
         : null) ??
       ((el.textContent ?? "").trim().slice(0, 24) || el.tagName.toLowerCase());
     const row = { label, bottom: Math.round(b.bottom), clearance, clipped };
+    all.push(row);
     if (!worst || clearance < worst.clearance) worst = row;
     if (clipped || clearance < 12) out.push(row);
   }
@@ -117,6 +122,7 @@ function measure(scope: "stage" | "intro"): Measure {
     shellBottom: shell ? Math.round(shell.getBoundingClientRect().bottom) : null,
     worst,
     bad: out,
+    all,
     count,
   };
 }
@@ -175,6 +181,9 @@ async function measureAll(page: Page, scope: "stage" | "intro", game: string, fa
       console.log(
         `  ${where}: ${m.count} controls, worst ${m.worst ? `"${m.worst.label}" ${m.worst.clearance}px` : "-"}`,
       );
+    if (DUMP && scope === "stage" && !v.toolbar)
+      for (const c of m.all)
+        console.log(`  dump ${game} ${v.w}x${v.h} "${c.label}" ${c.clearance}`);
   }
 }
 

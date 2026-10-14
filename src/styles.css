@@ -12,6 +12,7 @@
 @import "./polish-speed/c.css";
 @import "./polish-speed/d.css";
 @import "./polish-speed/e.css";
+@import "./polish-speed/f.css";
 @import "./polish-pattern/index.css";
 @import "./polish-layout/bottom.css";
 
@@ -1265,6 +1266,12 @@ body.game-lock {
    (IntroFit) gives up height and the text steps down (data-compact) instead. */
 .round-intro {
   max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(2rem, env(safe-area-inset-bottom)) - 2.75rem);
+}
+/* In a room the chat bar (8px + 56px, sticky above the home bar) follows the intro: the
+   intro gives up that height too, so READY is never under the bar (14 Oct 2026; with a
+   notch's top inset the page otherwise outgrew the screen and the bar covered READY). */
+:has(> [data-chat-bar]) > .round-intro {
+  max-height: calc(100dvh - max(1.5rem, env(safe-area-inset-top)) - max(2rem, env(safe-area-inset-bottom)) - 2.75rem - 64px);
 }
 
 /* Intro demo: its natural height; IntroFit scales it down to the room the text leaves. */

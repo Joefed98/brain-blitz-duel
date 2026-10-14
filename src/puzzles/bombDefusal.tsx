@@ -274,7 +274,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Rule: “If the light is ON, cut wire 2.” The light is on, so wire 2 is cut. Read every rule, work out the six actions and their order, then do them.
+        Clue: “Step 1: cut wire 2.” So wire 2 is cut first. Read every clue, work out the six steps and their order, then do them.
       </p>
     </div>
   );

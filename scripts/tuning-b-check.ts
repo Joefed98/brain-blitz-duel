@@ -61,6 +61,7 @@ import {
   BRK_POWER_FIRE,
   BRK_REV_BAND,
   BRK_REV_TUNED,
+  BRK_REV_TUNEF,
 } from "../src/lib/arcade/breaker";
 import {
   rallyCheckpoint,
@@ -68,6 +69,7 @@ import {
   rallyTargetLeft,
   RALLY_REV_BAND,
   RALLY_REV_TUNED,
+  RALLY_REV_TUNEF,
   RALLY_TARGET_W,
   RALLY_WORLD_W,
   type RallyState,
@@ -217,7 +219,8 @@ section("Flightpath bullRev 4 (value balloons across the board)");
 /* ============================== 2. Breaker ============================== */
 section("Breaker brkRev 4 (3.5 s Fireball)");
 {
-  ok(generateBreaker().brkRev === BRK_REV_TUNED, "new rounds are stamped brkRev 4");
+  // Tuning F (Oct 2026) moved rooms on to brkRev 5 (2.5 s Fireball); arcade-tuning-f-check covers it.
+  ok(generateBreaker().brkRev === BRK_REV_TUNEF, "new rounds are stamped brkRev 5 (brkRev 4 rules with a shorter Fireball)");
   ok(BRK_FIRE_TICKS_V4 === 210 && BRK_FIRE_TICKS === 300, "Fireball 3.5 s (210 ticks), was 5 s");
   for (const [rev, want] of [[BRK_REV_TUNED, BRK_FIRE_TICKS_V4], [BRK_REV_BAND, BRK_FIRE_TICKS]] as const) {
     const game = breakerGameFor(rev);
@@ -233,7 +236,8 @@ section("Breaker brkRev 4 (3.5 s Fireball)");
 /* =============================== 3. Rally =============================== */
 section("Rally rallyRev 4 (pads never overlap)");
 {
-  ok(generateRally().rallyRev === RALLY_REV_TUNED, "new rounds are stamped rallyRev 4");
+  // Tuning F (Oct 2026) moved rooms on to rallyRev 5 (a second bumper); arcade-tuning-f-check covers it.
+  ok(generateRally().rallyRev === RALLY_REV_TUNEF, "new rounds are stamped rallyRev 5 (rallyRev 4 pads plus a second bumper)");
   const half = Math.trunc(RALLY_WORLD_W / 2);
   const overlap = (s: RallyState) => {
     const [p, q] = (s.live ?? []).map((spot) => rallyTargetLeft(s.spots ?? [], spot));

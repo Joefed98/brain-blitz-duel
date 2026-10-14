@@ -13,21 +13,23 @@ import {
   BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV,
+  FLOOD_LIMIT_REV2,
+  FLOOD_REV2_SPARE_MOVES,
   GRAVITY_LIMIT_REV,
   MEASURE_LIMIT_REV,
   TUBES_LIMIT_REV,
 } from "./moveLimits";
+import { BAL_REV2, BAL_REV2_SCALES } from "./balance";
 import type { PuzzleData } from "./types";
 
-/** Colour Flood: par (public) plus this many spare taps. */
+/** Colour Flood floodRev 1 (stored rounds): par (public) plus this many spare taps. New rounds (floodRev 2) get par + FLOOD_REV2_SPARE_MOVES. */
 export const FLOOD_SPARE_MOVES = 2;
 /** Polypotions: the minimum plus this many spare pours, rounded up to a multiple of 5. */
 export const TUBES_SPARE_POURS = 6;
 /** Topsy-Turvy: the minimum plus this many spare tilts, rounded up to a multiple of 5. */
 export const GRAVITY_SPARE_TILTS = 6;
-/** Counterweight: hangs per scale = weights on the tray plus this many re-hangs. */
-export const BALANCE_SPARE_HANGS = [4, 5, 6] as const;
+/** Counterweight: hangs per scale = weights on the tray plus this many re-hangs (6 / 8 / 10, and 12 on balanceRev 2's fourth scale). */
+export const BALANCE_SPARE_HANGS = [4, 5, 6, 7] as const;
 /** Operator: full operator sets per equation. */
 export const EQUATION_TRIES = 3;
 /** Brimful: about 3× the breadth-first minimum, rounded up to a multiple of 5. */
@@ -38,10 +40,11 @@ const upTo5 = (n: number) => Math.max(5, Math.ceil(n / 5) * 5);
 export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
   switch (puzzle.type) {
     case "flood":
+      // floodRev 2 (14 Oct 2026): par + 2 taps, stored on the puzzle.
       return {
         ...puzzle,
-        floodRev: FLOOD_LIMIT_REV,
-        moveLimit: Math.max(1, puzzle.par) + FLOOD_SPARE_MOVES,
+        floodRev: FLOOD_LIMIT_REV2,
+        moveLimit: Math.max(1, puzzle.par) + FLOOD_REV2_SPARE_MOVES,
       };
     case "tubes":
       if (!(puzzle.minMoves && puzzle.minMoves > 0)) return puzzle;
@@ -60,7 +63,8 @@ export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
     case "balance":
       return {
         ...puzzle,
-        balanceRev: BALANCE_LIMIT_REV,
+        // Four scales (generateBalance since 14 Oct 2026) are balanceRev 2; a three-scale puzzle stays 1.
+        balanceRev: puzzle.scales.length === BAL_REV2_SCALES ? BAL_REV2 : BALANCE_LIMIT_REV,
         placeLimits: puzzle.scales.map(
           (scale, i) =>
             scale.tray.length +

@@ -1,38 +1,59 @@
 /**
- * Strikeout check:
- *   1. the same seed deals the same five words (room and practice paths), and a
- *      room seed gives every player the same board;
+ * Strikeout check (strikeoutRev 2, 14 Oct 2026: five 7–8 letter words one at a
+ * time; rev 1 stored rounds unchanged):
+ *   1. the same seed deals the same puzzle (room and practice paths), and a room
+ *      seed gives every player the same board; new puzzles are stamped rev 2;
  *   2. nothing sent to the phone (public puzzle, live-check replies) carries a
- *      hidden word or an unearned letter;
- *   3. generator rules over 400 seeds: five different common five-letter words
- *      (no plurals), 14–18 distinct letters, a less common letter somewhere, the
- *      five vowels never solve a row or show more than 10 tiles; < 1 s each;
- *   4. replay rules: guesses fill every matching tile, misses and wrong solves
- *      strike, non-words are refused free, five strikes end it, the stored
- *      answer replays identically without a dictionary;
- *   5. score anchors: new rounds (puzzleScoreRev 1) perfect 150, minimum finish
- *      123, best unfinished 110, nothing 0; stored rounds minimum finish 124,
- *      best unfinished 88; finishing always beats not finishing; cap 150.
+ *      hidden word or an unearned letter: the public half has only the starting
+ *      patterns, replies show the current word as far as it is earned and later
+ *      words blank;
+ *   3. generator rules over 400 seeds: five different common words, two or three
+ *      of each length 7 and 8, two starting consonants on a seven-letter word and
+ *      one on an eight, every copy of a starting letter shown, at least
+ *      length − 2 letters and 3 consonants left hidden, no shared opening or
+ *      ending; < 1 s each;
+ *   4. rev-2 replay rules: one word at a time, guesses fill every copy in the
+ *      current word only, the keypad resets for each word, at most two vowel
+ *      guesses per word (a third is refused: no effect, no strike), misses and
+ *      wrong solves strike and strikes are shared over the round, five end it,
+ *      non-words and wrong-length solves are refused free, actions for another
+ *      word are ignored, the stored answer replays identically without a
+ *      dictionary;
+ *   5. rev-2 score anchors: perfect 150, minimum finish 123, four words 110,
+ *      three words + found letters 90 + 2 each, starting letters 0, nothing 0;
+ *      every finish 123–150 beats every unfinished run (≤ 110); random keypad
+ *      mashing on 30 room seeds scores about 0 (median ≤ 5);
+ *   6. rev-1 legacy identity: 1,920 stored-round cases recorded on main before
+ *      the change (scripts/fixtures/strikeout-legacy.json.gz, recorded by
+ *      scripts/strikeout-legacy-record.ts) grade, store, live-check and reveal
+ *      exactly as main did; the rev-1 score anchors still hold.
  *
  *   bun scripts/strikeout-check.ts
  */
-import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { answerWords, isWord } from "../src/lib/duel/dictionary.server";
 import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
+import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import {
+  SO2_MAX_VOWELS,
   SO_MAX_STRIKES,
-  decodeStrikeout,
-  encodeStrikeout,
-  replayStrikeout,
+  decodeStrikeout2,
+  encodeStrikeout2,
+  replayStrikeout2,
   scoreStrikeout,
-  type SoAction,
+  scoreStrikeout2,
+  type So2Action,
 } from "../src/lib/duel/strikeout";
-import { checkStrikeoutMoves, strikeoutRuleBreak } from "../src/lib/duel/strikeout.server";
+import { checkStrikeoutMoves, strikeout2RuleBreak, strikeoutAnswerWords } from "../src/lib/duel/strikeout.server";
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
-import { STRIKEOUT_TIME_MS, type StrikeoutPuzzleData } from "../src/lib/duel/types";
+import { STRIKEOUT_TIME_MS, type PuzzleData, type StrikeoutPuzzleData } from "../src/lib/duel/types";
+import { strikeoutPuzzle } from "../src/puzzles/strikeout";
 
 const failures: string[] = [];
 let checks = 0;
@@ -42,14 +63,17 @@ function check(label: string, ok: boolean) {
 }
 
 const LIMIT = STRIKEOUT_TIME_MS;
+const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const VOWELS = "AEIOU";
 const gen = (seed: number) => generatePuzzle("strikeout", { bankSeed: seed }) as StrikeoutPuzzleData;
+const g = (word: number, letter: string): So2Action => ({ kind: "guess", word, letter });
+const s = (word: number, guess: string): So2Action => ({ kind: "solve", word, guess });
 
-// 1. Determinism.
+// 1. Determinism and stamps.
 for (const seed of [1, 77, 4242, 0x7fff_ffff]) {
-  check(`seed ${seed}: same words twice`, JSON.stringify(gen(seed)) === JSON.stringify(gen(seed)));
+  check(`seed ${seed}: same puzzle twice`, JSON.stringify(gen(seed)) === JSON.stringify(gen(seed)));
 }
 check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)));
-// A room seed that deals Strikeout gives the same board every time it is dealt.
 {
   let dealt = 0;
   for (let seed = 1; seed <= 400 && dealt < 5; seed++) {
@@ -60,143 +84,235 @@ check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)
     const b = buildRoomPuzzles({ categories: ["word"], seed });
     check(`room seed ${seed}: same order`, JSON.stringify(a.roundOrder) === JSON.stringify(b.roundOrder));
     check(`room seed ${seed}: same Strikeout board`, JSON.stringify(a.puzzles[at]) === JSON.stringify(b.puzzles[at]));
+    check(`room seed ${seed}: rev 2`, (a.puzzles[at] as StrikeoutPuzzleData).strikeoutRev === 2);
   }
   check("a word room deals Strikeout", dealt === 5);
 }
 {
   const p = gen(31337);
   check("stamped speedPar 1", (p as { speedPar?: number }).speedPar === 1);
-  check("stamped strikeoutRev 1", p.strikeoutRev === 1);
+  check("stamped puzzleScoreRev 1", (p as { puzzleScoreRev?: number }).puzzleScoreRev === 1);
+  check("stamped strikeoutRev 2", p.strikeoutRev === 2);
+  check("time limit 100 s", LIMIT === 100_000 && !("timeLimitMs" in p));
 }
 
 // 2. Secrecy.
 for (let seed = 1; seed <= 50; seed++) {
   const full = gen(seed * 101);
+  const words = full.words!;
   const { pub, priv } = splitPuzzle(full);
-  const json = JSON.stringify(pub);
+  const json = JSON.stringify(pub).toUpperCase();
   check(`seed ${seed}: words private`, !("words" in pub) && Array.isArray(priv["words"]));
-  for (const w of full.words!) check(`seed ${seed}: ${w} not in public puzzle`, !json.toUpperCase().includes(w));
-  const empty = checkStrikeoutMoves(full.words!, "");
-  check(`seed ${seed}: empty board shows nothing`, empty.rows.every((r) => r === "_____") && empty.hits === "" && empty.misses === "");
-  // A guess shows exactly the matching tiles.
-  const letter = full.words![0]![0]!;
-  const one = checkStrikeoutMoves(full.words!, letter);
+  check(`seed ${seed}: givens public`, JSON.stringify((pub as StrikeoutPuzzleData).givens) === JSON.stringify(full.givens));
+  for (const w of words) check(`seed ${seed}: ${w} not in public puzzle`, !json.includes(w));
+  const empty = checkStrikeoutMoves(full, "");
+  check(`seed ${seed}: empty board shows only word 1's starting letters`, empty.rows[0] === full.givens![0] && empty.rows.slice(1).every((r) => /^_+$/.test(r)));
+  check(`seed ${seed}: empty reply`, empty.hits === "" && empty.misses === "" && empty.word === 0 && empty.vowelsLeft === SO2_MAX_VOWELS);
+  const letter = [...words[0]!].find((ch) => full.givens![0]!.indexOf(ch) < 0)!;
+  const one = checkStrikeoutMoves(full, `0${letter}`);
   check(
-    `seed ${seed}: guess ${letter} reveals only ${letter}`,
-    one.rows.every((r, ri) => [...r].every((ch, i) => (full.words![ri]![i] === letter ? ch === letter : ch === "_"))),
+    `seed ${seed}: guess ${letter} reveals only ${letter} in word 1`,
+    [...one.rows[0]!].every((ch, i) => (words[0]![i] === letter || full.givens![0]![i] !== "_" ? ch === words[0]![i] : ch === "_")) &&
+      one.rows.slice(1).every((r) => /^_+$/.test(r)),
   );
-  check(`seed ${seed}: reply keys`, JSON.stringify(Object.keys(one).sort()) === JSON.stringify(["count", "done", "hits", "last", "misses", "over", "rows", "strikes"]));
+  check(
+    `seed ${seed}: reply keys`,
+    JSON.stringify(Object.keys(one).sort()) === JSON.stringify(["count", "done", "hits", "last", "misses", "over", "rows", "strikes", "vowelsLeft", "word"]),
+  );
 }
 
 // 3. Generator rules.
-const common5 = new Set(answerWords(5));
+const common7 = new Set(answerWords(7));
+const common8 = new Set(strikeoutAnswerWords(8));
+check("seven-letter answers from the shared common list", common7.size > 1000);
+check("eight-letter answers built with the same rules", common8.size > 1000 && [...common8].every((w) => w.length === 8 && isWord(w) && !isPluralForm(w.toLowerCase())));
 let worstMs = 0;
 for (let seed = 1; seed <= 400; seed++) {
   const t0 = performance.now();
   const p = gen(seed * 7919);
   worstMs = Math.max(worstMs, performance.now() - t0);
   const words = p.words!;
-  check(`seed ${seed}: rule break ${strikeoutRuleBreak(words)}`, strikeoutRuleBreak(words) === null);
-  check(`seed ${seed}: five different`, new Set(words).size === 5);
-  for (const w of words) {
-    check(`${w}: common five-letter answer`, w.length === 5 && common5.has(w) && isWord(w) && !isPluralForm(w));
-  }
-  const distinct = new Set(words.join("")).size;
-  check(`seed ${seed}: ${distinct} distinct letters`, distinct >= 14 && distinct <= 18);
-  check(`seed ${seed}: less common letter`, words.some((w) => /[JKQVWXYZ]/.test(w)));
-  const vowels = replayStrikeout(words, [..."AEIOU"].map((letter) => ({ kind: "guess", letter }) as SoAction), () => true);
-  check(`seed ${seed}: vowels solve no row`, vowels.revealed.every((r) => !r.every(Boolean)));
-  check(`seed ${seed}: vowels show ≤ 10 tiles`, vowels.revealed.flat().filter(Boolean).length <= 10);
+  const givens = p.givens!;
+  check(`seed ${seed}: rule break ${strikeout2RuleBreak(words, givens)}`, strikeout2RuleBreak(words, givens) === null);
+  check(`seed ${seed}: five different`, new Set(words).size === 5 && p.rows === 5 && p.length === 8);
+  const sevens = words.filter((w) => w.length === 7).length;
+  check(`seed ${seed}: ${sevens} seven-letter words`, sevens === 2 || sevens === 3);
+  words.forEach((w, i) => {
+    check(`${w}: common answer`, (w.length === 7 ? common7 : common8).has(w) && isWord(w) && !isPluralForm(w.toLowerCase()));
+    const shown = new Set([...givens[i]!].filter((ch) => ch !== "_"));
+    check(`${w}: ${shown.size} starting letters`, shown.size === (w.length === 7 ? 2 : 1) && [...shown].every((ch) => !VOWELS.includes(ch)));
+    check(`${w}: every copy of a starting letter shows`, [...w].every((ch, k) => shown.has(ch) === (givens[i]![k] === ch)));
+    const hidden = new Set([...w].filter((ch) => !shown.has(ch)));
+    check(`${w}: vowels never finish it`, hidden.size >= w.length - 2 && [...hidden].filter((ch) => !VOWELS.includes(ch)).length >= 3);
+  });
 }
 check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
 
-// 4. Replay rules.
+// 4. Rev-2 replay rules.
 {
-  const words = ["CRANE", "JOLLY", "SWIFT", "BOXED", "PLUMB"];
-  const g = (letter: string): SoAction => ({ kind: "guess", letter });
-  const s = (row: number, word: string): SoAction => ({ kind: "solve", row, word });
-  let st = replayStrikeout(words, [g("L")], isWord);
-  check("L fills JOLLY twice and PLUMB once", st.revealed[1]!.filter(Boolean).length === 2 && st.revealed[4]![1] === true && st.strikes === 0);
-  st = replayStrikeout(words, [g("L"), g("L")], isWord);
+  const words = ["BLANKET", "PLATFORM", "JOURNEY", "SHIPPING", "WIZARDS"];
+  const givens = ["_L___E_", "P_______", "J____N_", "__I_____", "W______"]; // replay does not enforce generator rules
+  const rp = (actions: So2Action[]) => replayStrikeout2(words, givens, actions, isWord);
+  let st = rp([]);
+  check("starting letters show, nobody's progress", st.revealed[0]!.filter(Boolean).length === 2 && st.word === 0 && st.strikes === 0);
+  st = rp([g(0, "A")]);
+  check("A fills word 1 only", st.revealed[0]![2] === true && st.revealed[1]![2] === false && st.vowelsUsed === 1 && st.strikes === 0);
+  st = rp([g(0, "A"), g(0, "A")]);
   check("repeat guess ignored", st.outcomes[1] === "ignored" && st.effective.length === 1);
-  st = replayStrikeout(words, [g("Q")], isWord);
+  st = rp([g(0, "L")]);
+  check("starting letter cannot be guessed", st.outcomes[0] === "ignored" && st.effective.length === 0);
+  st = rp([g(0, "A"), g(0, "O"), g(0, "U")]);
+  check("third vowel refused: no effect, no strike", st.outcomes[2] === "vowels" && st.strikes === 1 && st.effective.length === 2 && st.vowelsUsed === 2);
+  const v = checkStrikeoutMoves({ type: "strikeout", strikeoutRev: 2, rows: 5, length: 8, givens, words }, "0A,0O,0U");
+  check("reply: no vowel guesses left, refused", v.vowelsLeft === 0 && v.last === "vowels" && v.strikes === 1 && v.misses === "O");
+  st = rp([g(0, "Q")]);
   check("miss strikes", st.strikes === 1 && st.misses.join("") === "Q");
-  st = replayStrikeout(words, [s(0, "QZXJV")], isWord);
+  st = rp([s(0, "QZXJVWK")]);
   check("non-word solve refused free", st.strikes === 0 && st.outcomes[0] === "notword" && st.effective.length === 0);
-  st = replayStrikeout(words, [s(0, "CRATE")], isWord);
+  st = rp([s(0, "PLANKS"), s(0, "BLANKETS")]);
+  check("wrong-length solves ignored", st.strikes === 0 && st.outcomes.every((o) => o === "ignored"));
+  st = rp([s(0, "BRACKET")]);
   check("wrong word solve strikes", st.strikes === 1 && st.outcomes[0] === "wrong");
-  st = replayStrikeout(words, [s(0, "CRANE")], isWord);
-  check("right solve reveals row", st.revealed[0]!.every(Boolean) && st.outcomes[0] === "right");
-  st = replayStrikeout(words, [s(0, "CRANE"), s(0, "CRATE")], isWord);
-  check("solved row cannot be solved again", st.strikes === 0 && st.outcomes[1] === "ignored");
-  st = replayStrikeout(words, ["Q", "Z", "V", "G", "H", "K"].map(g), isWord);
-  check("fifth strike ends the round", st.over && st.strikes === SO_MAX_STRIKES && st.outcomes[5] === "ignored");
-  const raw = [g("E"), s(1, "QZXJV"), s(2, "SHIFT"), g("O"), s(3, "BOXED")];
-  const stored = gradeAnswer({ type: "strikeout", strikeoutRev: 1, rows: 5, length: 5, words, speedPar: 1 } as never, encodeStrikeout(raw), 50_000).answer;
-  const direct = replayStrikeout(words, raw, isWord);
-  const replayed = replayStrikeout(words, decodeStrikeout(stored), () => true);
-  check("stored answer drops refused solves", !stored.includes("QZXJV") && decodeStrikeout(stored).length === 4);
-  check("stored answer replays identically without a dictionary", JSON.stringify(replayed.revealed) === JSON.stringify(direct.revealed) && replayed.strikes === direct.strikes);
+  st = rp([g(1, "T"), s(2, "JOURNEY")]);
+  check("actions for another word ignored", st.outcomes.every((o) => o === "ignored") && st.word === 0);
+  st = rp([s(0, "BLANKET")]);
+  check("right solve completes the word and moves on", st.word === 1 && st.solvedWords === 1 && st.revealed[0]!.every(Boolean) && st.outcomes[0] === "right");
+  st = rp([g(0, "A"), g(0, "B"), g(0, "N"), g(0, "K"), g(0, "T")]);
+  check("guessing the last letter completes the word", st.word === 1 && st.solvedWords === 1 && st.strikes === 0);
+  st = rp([g(0, "A"), g(0, "B"), g(0, "N"), g(0, "K"), g(0, "T"), g(1, "A"), g(1, "T"), g(1, "O")]);
+  check("keypad resets per word (A and T again on word 2)", st.outcomes.slice(5).every((o) => o === "hit") && st.guessed.join("") === "ATO");
+  check("vowel guesses reset per word", st.vowelsUsed === 2);
+  st = rp([g(0, "Q"), s(0, "BLANKET"), g(1, "Z"), g(1, "E"), s(1, "PLATFORM"), g(2, "X"), g(2, "B"), g(2, "C")]);
+  check("strikes are shared: five over three words end it", st.over && st.strikes === SO_MAX_STRIKES && st.word === 2);
+  st = rp([g(0, "Q"), g(0, "Z"), g(0, "X"), g(0, "V"), g(0, "W"), s(0, "BLANKET")]);
+  check("after the fifth strike nothing counts", st.over && st.outcomes[5] === "ignored" && st.solvedWords === 0);
+  st = rp(words.map((w, i) => s(i, w)));
+  check("five solves finish", st.done && st.word === 5 && st.solvedWords === 5);
+  const view = checkStrikeoutMoves({ type: "strikeout", strikeoutRev: 2, rows: 5, length: 8, givens, words }, "0A,0Q,0BLANKET,1T");
+  check("reply: solved word in full, current word as earned, later blank", view.rows[0] === "BLANKET" && view.rows[1] === "P__T____" && view.rows.slice(2).every((r) => /^_+$/.test(r)));
+  check("reply: keys are the current word's only", view.hits === "T" && view.misses === "" && view.word === 1 && view.strikes === 1);
+  const raw = [g(0, "E") /* a starting letter: ignored */, s(0, "QZXJVWK"), g(0, "A"), g(0, "I"), g(0, "U"), s(0, "BRACKET"), g(3, "S"), s(0, "BLANKET"), g(1, "R")];
+  const full = { type: "strikeout", strikeoutRev: 2, rows: 5, length: 8, givens, words, speedPar: 1, puzzleScoreRev: 1 } as StrikeoutPuzzleData;
+  const stored = gradeAnswer(full, encodeStrikeout2(raw), 50_000).answer;
+  const direct = rp(raw);
+  const replayed = replayStrikeout2(words, givens, decodeStrikeout2(stored), () => true);
+  check(`stored answer keeps only what changed the board (${stored})`, stored === "0A,0I,0BRACKET,0BLANKET,1R");
+  check(
+    "stored answer replays identically without a dictionary",
+    JSON.stringify(replayed.revealed) === JSON.stringify(direct.revealed) && replayed.strikes === direct.strikes && replayed.word === direct.word,
+  );
+  // The reveal draws the stored answer with the stored score only.
+  const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: full, myAnswer: stored, myMsRemaining: 0, timeLimitMs: LIMIT } as never));
+  check("rev-2 reveal draws the five words and the tally", html.includes('data-strikeout-rev="2"') && html.includes("1 / 5 words · 2 strikes"));
 }
 
-// 5. Score anchors.
+// 5. Rev-2 score anchors.
 {
   const p = gen(2024);
   const words = p.words!;
-  const grade = (actions: SoAction[], ms: number) => gradeAnswer(p, encodeStrikeout(actions), ms).score;
-  const lettersIn = [...new Set(words.join(""))];
-  const absent = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].filter((l) => !lettersIn.includes(l));
-  const all = lettersIn.map((letter) => ({ kind: "guess", letter }) as SoAction);
-  const strikes = (n: number) => absent.slice(0, n).map((letter) => ({ kind: "guess", letter }) as SoAction);
+  const givens = p.givens!;
+  const grade = (actions: So2Action[], ms: number) => gradeAnswer(p, encodeStrikeout2(actions), ms).score;
+  const solveAll = words.map((w, i) => s(i, w));
+  const strikesOn = (word: number, n: number) => [...ALPHA].filter((l) => !words[word]!.includes(l) && !VOWELS.includes(l)).slice(0, n).map((l) => g(word, l));
   check("nothing scores 0", grade([], LIMIT) === 0);
-  check("perfect run 150", grade(all, LIMIT) === 150);
-  check("perfect at half time still 150", grade(all, LIMIT / 2) === 150);
-  // New rounds carry the Oct 2026 puzzle score shape (puzzleScoreRev 1): 120 + 3 per strike left + PAR(15).
-  check("minimum finish (4 strikes, buzzer) 123", grade([...strikes(4), ...all], 0) === 123);
-  const { puzzleScoreRev: _rev, ...storedP } = p as typeof p & { puzzleScoreRev?: number };
-  check("stored round minimum finish (4 strikes, buzzer) 124", gradeAnswer(storedP as typeof p, encodeStrikeout([...strikes(4), ...all]), 0).score === 124);
-  // Best unfinished: four words solved, four tiles of the fifth showing, then five strikes.
-  const last = words[4]!;
-  const others = new Set(words.slice(0, 4).join(""));
-  const missing = [...last].find((ch) => !others.has(ch) && [...last].filter((x) => x === ch).length === 1);
-  let bestUnfinished = 0;
-  if (missing) {
-    const lead = words.slice(0, 4).map((w, row) => ({ kind: "solve", row, word: w }) as SoAction);
-    const fill = [...new Set([...last].filter((ch) => ch !== missing))].map((letter) => ({ kind: "guess", letter }) as SoAction);
-    bestUnfinished = grade([...lead, ...fill, ...strikes(5)], LIMIT);
-    check(`best unfinished replay scores 110 (got ${bestUnfinished})`, bestUnfinished === 110);
+  check("perfect run 150", grade(solveAll, LIMIT) === 150);
+  check("perfect at half time still 150", grade(solveAll, LIMIT / 2) === 150);
+  check("minimum finish (4 strikes, buzzer) 123", grade([...strikesOn(0, 4), ...solveAll], 0) === 123);
+  check("four words solved, then five strikes: 110", grade([...solveAll.slice(0, 4), ...strikesOn(4, 5)], LIMIT) === 110);
+  // Three words, then two letters found in the fourth (not starting letters), then five strikes.
+  const fourth = words[3]!;
+  const found = [...new Set([...fourth])].filter((ch) => givens[3]!.indexOf(ch) < 0 && !VOWELS.includes(ch)).slice(0, 2);
+  const tiles = [...fourth].filter((ch) => found.includes(ch)).length;
+  check(`three words + ${tiles} found tiles = ${90 + 2 * tiles}`, grade([...solveAll.slice(0, 3), ...found.map((l) => g(3, l)), ...strikesOn(3, 5)], LIMIT) === 90 + 2 * tiles);
+  check("found letters in word 1 only: 2 each", grade([g(0, found[0] ?? "Z"), ...strikesOn(0, 5)], LIMIT) <= 2 * 3);
+  check("starting letters alone score 0", grade(strikesOn(0, 5), LIMIT) === 0);
+  let maxU = 0, minF = 999, maxF = 0;
+  for (let solved = 0; solved <= 4; solved++)
+    for (let t = 0; t <= 8; t++) maxU = Math.max(maxU, scoreStrikeout2({ solvedWords: solved, foundTiles: t, strikes: 5, done: false }, LIMIT, LIMIT));
+  for (let k = 0; k < 5; k++)
+    for (const ms of [0, 1, LIMIT / 4, LIMIT / 2, LIMIT]) {
+      const v = scoreStrikeout2({ solvedWords: 5, foundTiles: 0, strikes: k, done: true }, ms, LIMIT);
+      minF = Math.min(minF, v);
+      maxF = Math.max(maxF, v);
+    }
+  check(`rev 2: unfinished tops at 110 (max ${maxU})`, maxU === 110);
+  check(`rev 2: every finish 123-150 (${minF}-${maxF})`, minF === 123 && maxF === 150);
+  // Random keypad mashing on room seeds: about one key a second on the word the board shows, until the round ends.
+  const rng = (() => { let a = 12345; return () => ((a = (Math.imul(a, 1103515245) + 12345) >>> 0) / 0x1_0000_0000); })();
+  const randomScores: number[] = [];
+  const alphaScores: number[] = [];
+  let dealt = 0;
+  for (let seed = 5001; dealt < 30; seed++) {
+    const room = buildRoomPuzzles({ categories: ["word"], seed });
+    const at = room.roundOrder.indexOf("strikeout");
+    if (at < 0) continue;
+    dealt++;
+    const rp = room.puzzles[at] as StrikeoutPuzzleData;
+    for (const [mode, out] of [["random", randomScores], ["alphabet", alphaScores]] as const) {
+      const acts: So2Action[] = [];
+      for (let t = 0; t < 100; t++) {
+        const st = replayStrikeout2(rp.words!, rp.givens!, acts, isWord);
+        if (st.done || st.over) break;
+        const shown = new Set([...rp.givens![st.word]!].filter((ch) => ch !== "_"));
+        const open = [...ALPHA].filter((l) => !st.guessed.includes(l) && !shown.has(l) && !(VOWELS.includes(l) && st.vowelsUsed >= SO2_MAX_VOWELS));
+        acts.push(g(st.word, mode === "random" ? open[Math.floor(rng() * open.length)]! : open[0]!));
+      }
+      out.push(gradeAnswer(rp, encodeStrikeout2(acts), 0).score);
+    }
   }
-  // Every unfinished tally, and every finished one, by the formula.
-  let maxUnfinished = 0;
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1]!;
+  check(`random mashing median ≤ 5 (${median(randomScores)}, max ${Math.max(...randomScores)})`, median(randomScores) <= 5);
+  check(`alphabet order median ≤ 5 (${median(alphaScores)}, max ${Math.max(...alphaScores)})`, median(alphaScores) <= 5);
+  console.log(
+    `anchors (rev 2): perfect ${grade(solveAll, LIMIT)}, min finish ${grade([...strikesOn(0, 4), ...solveAll], 0)}, four words 110, nothing 0; random mashing median ${median(randomScores)} (max ${Math.max(...randomScores)}), alphabet ${median(alphaScores)} (max ${Math.max(...alphaScores)})`,
+  );
+}
+
+// 6. Rev-1 legacy identity: stored rounds grade, store, live-check and reveal exactly as main did.
+{
+  interface LegacyCase {
+    puzzle: StrikeoutPuzzleData;
+    answer: string;
+    ms: number;
+    graded: unknown;
+    view: unknown;
+    reveal: string | null;
+  }
+  const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/strikeout-legacy.json.gz", import.meta.url))).toString("utf8")) as {
+    recordedFrom: string;
+    cases: LegacyCase[];
+  };
+  let same = 0, reveals = 0;
+  const diffs: string[] = [];
+  for (const c of fixture.cases) {
+    const graded = gradeAnswer(c.puzzle as PuzzleData, c.answer, c.ms);
+    const view = checkStrikeoutMoves(c.puzzle, c.answer);
+    let ok = JSON.stringify(graded) === JSON.stringify(c.graded) && JSON.stringify(view) === JSON.stringify(c.view);
+    if (c.reveal !== null) {
+      reveals++;
+      const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: c.puzzle, myAnswer: (c.graded as { answer: string }).answer, myMsRemaining: (c.graded as { storedMs: number }).storedMs, timeLimitMs: LIMIT } as never));
+      ok &&= html === c.reveal;
+    }
+    if (ok) same++;
+    else if (diffs.length < 5) diffs.push(`"${c.answer}" @ ${c.ms}: ${JSON.stringify(graded)} vs ${JSON.stringify(c.graded)}`);
+  }
+  check(`rev-1 legacy identity: ${same} / ${fixture.cases.length} cases (${reveals} reveals) as ${fixture.recordedFrom}${diffs.length ? `\n  ${diffs.join("\n  ")}` : ""}`, same === fixture.cases.length && fixture.cases.length >= 1900);
+  check("legacy fixture is rev 1", fixture.cases.every((c) => (c.puzzle.strikeoutRev ?? 1) === 1 && c.puzzle.words!.every((w) => w.length === 5)));
+  // Rev-1 formula anchors, as before the change.
+  let maxUnfinished = 0, minFinished = 999;
   for (let solved = 0; solved <= 4; solved++)
     for (let tiles = 0; tiles <= (5 - solved) * 4; tiles++)
       maxUnfinished = Math.max(maxUnfinished, scoreStrikeout({ solvedRows: solved, partialTiles: tiles, strikes: 5, done: false }, LIMIT, LIMIT));
-  let minFinished = 999, maxFinished = 0;
-  for (let s = 0; s < 5; s++)
-    for (const ms of [0, 1, LIMIT / 4, LIMIT / 2, LIMIT]) {
-      const v = scoreStrikeout({ solvedRows: 5, partialTiles: 0, strikes: s, done: true }, ms, LIMIT);
-      minFinished = Math.min(minFinished, v);
-      maxFinished = Math.max(maxFinished, v);
-    }
-  check(`unfinished never above 110 (max ${maxUnfinished})`, maxUnfinished <= 110 && maxUnfinished === 88);
-  check(`finishing beats any unfinished (${minFinished} > ${maxUnfinished})`, minFinished > maxUnfinished && minFinished === 124);
-  check(`cap 150 (max ${maxFinished})`, maxFinished === 150);
-  // The same sweep on the new shape: unfinished tops at 110 (four words), every finish 123–150.
+  for (let k = 0; k < 5; k++) minFinished = Math.min(minFinished, scoreStrikeout({ solvedRows: 5, partialTiles: 0, strikes: k, done: true }, 0, LIMIT));
+  check(`rev 1 stored shape: best unfinished 88, minimum finish 124 (${maxUnfinished}, ${minFinished})`, maxUnfinished === 88 && minFinished === 124);
   withPuzzleScoreRev(1, () => {
-    let maxU = 0, minF = 999, maxF = 0;
+    let maxU = 0;
     for (let solved = 0; solved <= 4; solved++)
       for (let tiles = 0; tiles <= (5 - solved) * 4; tiles++)
         maxU = Math.max(maxU, scoreStrikeout({ solvedRows: solved, partialTiles: tiles, strikes: 5, done: false }, LIMIT, LIMIT));
-    for (let s = 0; s < 5; s++)
-      for (const ms of [0, 1, LIMIT / 4, LIMIT / 2, LIMIT]) {
-        const v = scoreStrikeout({ solvedRows: 5, partialTiles: 0, strikes: s, done: true }, ms, LIMIT);
-        minF = Math.min(minF, v);
-        maxF = Math.max(maxF, v);
-      }
-    check(`rev 1: unfinished tops at 110 (max ${maxU})`, maxU === 110);
-    check(`rev 1: every finish 123-150 (${minF}-${maxF})`, minF === 123 && maxF === 150);
+    check(`rev 1 new shape: unfinished tops at 110 (${maxU})`, maxU === 110);
+    check("rev 1 new shape: minimum finish 123", scoreStrikeout({ solvedRows: 5, partialTiles: 0, strikes: 4, done: true }, 0, LIMIT) === 123);
   });
-  console.log(`anchors (new rounds): perfect ${grade(all, LIMIT)}, min finish ${grade([...strikes(4), ...all], 0)}, best unfinished ${bestUnfinished || 110}, nothing ${grade([], LIMIT)}; stored rounds: min finish 124, best unfinished ${maxUnfinished}`);
 }
 
 if (failures.length) {
@@ -205,4 +321,4 @@ if (failures.length) {
   process.exit(1);
 }
 assert.ok(checks > 0);
-console.log(`PASS: ${checks} Strikeout checks (determinism, secrecy, generator rules over 400 seeds, worst ${worstMs.toFixed(0)} ms, replay rules, score anchors)`);
+console.log(`PASS: ${checks} Strikeout checks (determinism, secrecy, rev-2 generator rules over 400 seeds, worst ${worstMs.toFixed(0)} ms, rev-2 replay rules, score anchors, random play, rev-1 legacy identity)`);

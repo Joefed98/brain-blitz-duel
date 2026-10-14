@@ -9,7 +9,15 @@ import { partialParts, recordParts, scoreRev1 } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { NumlineStageData, NumlineValue } from "./types";
 
-export const NUMLINE_REV = 1;
+/**
+ * Rules revision stamped on new puzzles. 1 (12 Oct 2026): the first rules, 75 s.
+ * 2 (14 Oct 2026): the round runs 90 s (stored on the puzzle as `timeLimitMs`)
+ * and the item curve is the rev-2 one below. Stored rounds keep what they were
+ * dealt: no `timeLimitMs` (the registry's 75 s) and the rev-1 curve.
+ */
+export const NUMLINE_REV = 2;
+/** numlineRev 2: the round clock, stored on each new puzzle. */
+export const NUMLINE_REV2_TIME_MS = 90_000;
 export const NUMLINE_STAGES = 3;
 export const NUMLINE_ITEMS = 5;
 export const NUMLINE_TOTAL = NUMLINE_STAGES * NUMLINE_ITEMS;
@@ -23,6 +31,9 @@ export const NUMLINE_SPEED_POINTS = 30;
 export const NUMLINE_REV1_ZERO_ERROR = 0.08;
 /** Puzzle score rev 1: a placement this far off costs a point. */
 export const NUMLINE_REV1_WILD_ERROR = 0.25;
+/** numlineRev 2: full points within this share, none from NUMLINE_REV2_ZERO_ERROR. */
+export const NUMLINE_REV2_FULL_ERROR = 0.01;
+export const NUMLINE_REV2_ZERO_ERROR = 0.1;
 /** Every value sits at least this share of the line from a labelled tick. */
 export const NUMLINE_TICK_GAP = 0.03;
 
@@ -42,8 +53,21 @@ export function numlineTicks(stage: Pick<NumlineStageData, "lo" | "hi">): number
   return ticks;
 }
 
-export function numlineItemPoints(error: number): number {
+/** The error share at or under which an item scores all 8 (the reveal's green; rev 2's "close" for the speed part). */
+export function numlineFullError(rev = 1): number {
+  return rev >= 2 ? NUMLINE_REV2_FULL_ERROR : NUMLINE_FULL_ERROR;
+}
+
+export function numlineItemPoints(error: number, rev = 1): number {
   if (!Number.isFinite(error)) return 0;
+  // Rev 2 (numlineRev 2, 14 Oct 2026): full within 1 %, falling evenly to 0 at 10 % (wider than rev 1's 8 %, so
+  // rough estimates keep some credit), and the same cost for a wild placement.
+  if (rev >= 2 && scoreRev1()) {
+    if (error >= NUMLINE_REV1_WILD_ERROR) return -1;
+    if (error <= NUMLINE_REV2_FULL_ERROR) return NUMLINE_ITEM_POINTS;
+    if (error >= NUMLINE_REV2_ZERO_ERROR) return 0;
+    return (NUMLINE_ITEM_POINTS * (NUMLINE_REV2_ZERO_ERROR - error)) / (NUMLINE_REV2_ZERO_ERROR - NUMLINE_REV2_FULL_ERROR);
+  }
   // Rev 1: full within 2 %, falling evenly to 0 at NUMLINE_REV1_ZERO_ERROR; a wild placement (NUMLINE_REV1_WILD_ERROR
   // or more off) costs 1, so placing at random earns about nothing.
   if (scoreRev1()) {
@@ -94,6 +118,8 @@ export function gradeNumlineItems(
   stages: readonly NumlineStageData[],
   values: readonly NumlineValue[][],
   raw: string | null | undefined,
+  /** The puzzle's numlineRev (1 when absent). */
+  rev = 1,
 ): NumlineItemResult[] {
   const placements = decodeNumline(raw);
   const out: NumlineItemResult[] = [];
@@ -109,7 +135,7 @@ export function gradeNumlineItems(
         return;
       }
       const error = Math.abs(placement / NUMLINE_SCALE - share);
-      out.push({ placed: true, error, points: numlineItemPoints(error), truth, placement });
+      out.push({ placed: true, error, points: numlineItemPoints(error, rev), truth, placement });
     });
   });
   return out;
@@ -121,7 +147,7 @@ export function numlineAccuracy(results: readonly NumlineItemResult[]): number {
 }
 
 /**
- * round(accuracy) + (all 15 placed: round(speed par curve up to 30 × accuracy ÷ 120)). Max 150.
+ * numlineRev 1: round(accuracy) + (all 15 placed: round(speed par curve up to 30 × accuracy ÷ 120)). Max 150.
  * Placing another item never lowers the score: items only add points and the
  * speed part needs every item placed.
  */
@@ -129,9 +155,21 @@ export function scoreNumline(
   results: readonly NumlineItemResult[],
   msRemaining: number,
   timeLimitMs: number,
+  /** The puzzle's numlineRev (1 when absent). */
+  rev = 1,
 ): number {
   const accuracy = numlineAccuracy(results);
   const all = results.length === NUMLINE_TOTAL && results.every((r) => r.placed);
+  if (rev >= 2 && scoreRev1()) {
+    // numlineRev 2: as rev 1, but the speed part scales with the share of numbers placed close (within
+    // NUMLINE_REV2_FULL_ERROR), so a quick, rough finish no longer takes most of it.
+    const acc = Math.max(0, accuracy);
+    if (!all) return partialParts(acc);
+    const close = results.filter((r) => r.error !== null && r.error <= NUMLINE_REV2_FULL_ERROR).length / NUMLINE_TOTAL;
+    const speed = timeLimitMs > 0 ? Math.round(speedBonusCurve(NUMLINE_SPEED_POINTS, msRemaining, timeLimitMs) * close) : 0;
+    recordParts({ kind: "finish", base: Math.round(acc), speed });
+    return Math.max(0, Math.min(150, Math.round(acc) + speed));
+  }
   if (scoreRev1()) {
     // Rev 1: all 15 placed = accuracy (120 at full) + PAR(30) scaled by accuracy; unplaced numbers leave it unfinished, at most 110.
     const acc = Math.max(0, accuracy);

@@ -26,8 +26,8 @@ import { flipGame } from "@/lib/arcade/flip";
 import { junctionGame } from "@/lib/arcade/junction";
 import { inkBridgeGame } from "@/lib/arcade/inkBridge";
 import { burstGame } from "@/lib/arcade/burst";
-import { orbitGame, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { orbitRev3Game, initBandFrom, initTunedFrom, initRev3From, initRev4From, decodeOrbitHoles, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { orbitGame, ORBIT_REV3 } from "@/lib/arcade/orbit";
+import { orbitRev3Game, orbitRev3StartFor, initRev3From, decodeOrbitHoles, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGame } from "@/lib/arcade/snip";
 import { tiltGame } from "@/lib/arcade/tilt";
@@ -101,12 +101,11 @@ const CASES: Case[] = [
     type: "orbit",
     // orbitRev 3/4 rounds fly the stamped puzzle's own planets (and rev-4 holes), as the phone and server do.
     game: (p) => {
-      if (p.type !== "orbit" || (p.orbitRev !== ORBIT_REV3 && p.orbitRev !== ORBIT_REV4 && p.orbitRev !== ORBIT_REV_BAND && p.orbitRev !== ORBIT_REV_TUNED)) return orbitGame as unknown as AnyGame;
+      const start = p.type === "orbit" ? orbitRev3StartFor(p.orbitRev) : null;
+      if (p.type !== "orbit" || (p.orbitRev !== ORBIT_REV3 && !start)) return orbitGame as unknown as AnyGame;
       const planets = p.planets && p.planets.length > 0 ? decodeRev3Planets(p.planets) : buildCourse3(p.seed, ORBIT_REV3_WORLD_W).planets;
-      // orbitRev 5 (score bands) flies the rev-4 course with the band stamp.
-      if (p.orbitRev === ORBIT_REV_TUNED) return { ...orbitRev3Game, init: () => initTunedFrom(planets, ORBIT_REV3_WORLD_W, decodeOrbitHoles(p.holes ?? [])) } as unknown as AnyGame;
-      if (p.orbitRev === ORBIT_REV_BAND) return { ...orbitRev3Game, init: () => initBandFrom(planets, ORBIT_REV3_WORLD_W, decodeOrbitHoles(p.holes ?? [])) } as unknown as AnyGame;
-      if (p.orbitRev === ORBIT_REV4) return { ...orbitRev3Game, init: () => initRev4From(planets, ORBIT_REV3_WORLD_W, decodeOrbitHoles(p.holes ?? [])) } as unknown as AnyGame;
+      // orbitRev 4–7 (holes, bands, fly-in, swept holes) start from orbitRev3StartFor, as the phone and server do.
+      if (start) return { ...orbitRev3Game, init: () => start(planets, ORBIT_REV3_WORLD_W, decodeOrbitHoles(p.holes ?? [])) } as unknown as AnyGame;
       return { ...orbitRev3Game, init: () => initRev3From(planets, ORBIT_REV3_WORLD_W) } as unknown as AnyGame;
     },
     replay: (p, s, raw) => replayOrbitRun(s, raw, p.type === "orbit" ? p.orbitRev : undefined, p.type === "orbit" ? p.planets : undefined, p.type === "orbit" ? p.holes : undefined),

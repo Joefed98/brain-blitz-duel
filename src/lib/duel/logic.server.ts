@@ -32,6 +32,9 @@ import {
   SUDOKU_COLS,
   SUDOKU_MAX_GIVENS,
   SUDOKU_MIN_GIVENS,
+  SUDOKU_REV1_MAX_GIVENS,
+  SUDOKU_REV1_MIN_GIVENS,
+  SUDOKU_REV_FEWER,
   type LightsOutPuzzleData,
   type PipeTile,
   type PipesPuzzleData,
@@ -305,11 +308,24 @@ export function countSudokuSolutions(puzzle: number[], limit = 2): number {
   return found;
 }
 
+/**
+ * New rounds (sudokuRev 1, 14 Oct 2026) keep 13–15 givens; `generateClassicSudoku`
+ * is the stored rounds' 14–16. Givens are removed one at a time from a full grid
+ * and a removal is kept only while the board still has exactly one solution.
+ */
 export function generateSudoku(): SudokuPuzzleData {
+  return { ...buildSudoku(SUDOKU_REV1_MIN_GIVENS, SUDOKU_REV1_MAX_GIVENS), sudokuRev: SUDOKU_REV_FEWER };
+}
+
+export function generateClassicSudoku(): SudokuPuzzleData {
+  return buildSudoku(SUDOKU_MIN_GIVENS, SUDOKU_MAX_GIVENS);
+}
+
+function buildSudoku(minGivens: number, maxGivens: number): SudokuPuzzleData {
   for (let attempt = 0; attempt < 40; attempt++) {
     const solution = shuffledSolution();
     const givens = [...solution];
-    const target = SUDOKU_MIN_GIVENS + randomInt(SUDOKU_MAX_GIVENS - SUDOKU_MIN_GIVENS + 1);
+    const target = minGivens + randomInt(maxGivens - minGivens + 1);
     let remaining = SUDOKU_CELLS;
 
     for (const cell of shuffled(Array.from({ length: SUDOKU_CELLS }, (_, i) => i))) {
@@ -320,7 +336,7 @@ export function generateSudoku(): SudokuPuzzleData {
       else givens[cell] = kept;
     }
 
-    if (remaining >= SUDOKU_MIN_GIVENS && remaining <= SUDOKU_MAX_GIVENS) {
+    if (remaining >= minGivens && remaining <= maxGivens) {
       return { type: "sudoku", givens, solution };
     }
   }
@@ -328,7 +344,7 @@ export function generateSudoku(): SudokuPuzzleData {
   const solution = shuffledSolution();
   const givens = [...solution];
   for (const cell of shuffled(Array.from({ length: SUDOKU_CELLS }, (_, i) => i))) {
-    if (givens.filter(Boolean).length <= SUDOKU_MAX_GIVENS) break;
+    if (givens.filter(Boolean).length <= maxGivens) break;
     const kept = givens[cell]!;
     givens[cell] = 0;
     if (countSudokuSolutions(givens) !== 1) givens[cell] = kept;

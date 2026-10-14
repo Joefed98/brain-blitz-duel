@@ -18,7 +18,7 @@ import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { LOGIC_SOLVE_FX_MS } from "../src/puzzles/logicFx";
-import { LOGIC_POLISH_DEMOS, puzzleInputDemoCompatible, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { LOGIC_POLISH_DEMOS, OCT14_BATCH_DEMOS, puzzleInputDemoCompatible, puzzlePresentation, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
 
 const GAMES: { type: PuzzleType; file: string }[] = [
   { type: "lightsout", file: "lightsOut" },
@@ -61,7 +61,9 @@ for (const { type } of GAMES) {
   check(`${type}: older coordinate demos rejected`, () => {
     assert.ok(LOGIC_POLISH_DEMOS.has(type));
     assert.equal(puzzleInputDemoCompatible(type, { presentation: "oct10-polish-b" }), false);
-    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), true);
+    // Polypotions and Colour Flood moved again on 14 Oct 2026 (OCT14_BATCH_DEMOS): logic-polish demos are rejected too.
+    assert.equal(puzzleInputDemoCompatible(type, { presentation: LOGIC_POLISH_PRESENTATION }), !OCT14_BATCH_DEMOS.has(type));
+    assert.equal(puzzleInputDemoCompatible(type, { presentation: puzzlePresentation(type) }), true);
   });
 }
 

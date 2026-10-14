@@ -1,6 +1,19 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import {
+  SPOT_REV1_PER_SCENE,
+  SPOT_REV1_SCENES,
+  countUpStageTruth,
+  parseSpotTaps,
+  scanRev1StageResult,
+  scanStageMatches,
+  spotTwoResult,
+  usesCountRev2,
+  usesScanRev1,
+  usesSpotRev1,
+} from "./attentionRev";
 import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
+import { tilesLayout } from "./tiles";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { WF_PAR } from "@/lib/arcade/wordfall";
@@ -69,7 +82,6 @@ import {
   FLOOD_CELLS,
   FLOOD_TIME_MS,
   STROKE_TIME_MS,
-  TILES_COUNT,
   TILES_TIME_MS,
   RINGS_SEGMENTS,
   RINGS_TIME_MS,
@@ -128,7 +140,7 @@ import {
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
 import { SH_TIME_MS, SH_STAGES } from "./sumHunt";
-import { BAL_SCALES, BAL_TIME_MS } from "./balance";
+import { BAL_TIME_MS, balanceScaleCount } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -199,6 +211,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
+  // A puzzle that carries its own clock (Tower's five discs, Bomb v2, Counterweight balanceRev 2, Ballpark numlineRev 2, Double Take spotRev 1, Tally countRev 2) wins.
+  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
+  if (typeof own === "number" && own > 0) return Math.max(0, own - result.ms_remaining);
   const direct = DIRECT_LIMITS[puzzle.type];
   if (direct) return Math.max(0, direct - result.ms_remaining);
   const limit =
@@ -314,7 +329,9 @@ function sequenceAnswer(result: RoundResultRow, puzzle: PuzzleData): string | nu
 function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "symscan") return { summary: "No answer", detail: [] };
   const parts = splitStages(result.answer);
-  const results = puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
+  const results = usesScanRev1(puzzle)
+    ? puzzle.stages.map((stage, i) => scanRev1StageResult(i, parseSelection(parts[i] ?? ""), scanStageMatches(stage)))
+    : puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
   const perfect = results.filter((r) => r.perfect).length;
   return {
     summary: `${perfect} / 3 grids perfect · ${seconds(elapsedMs(result, puzzle))}`,
@@ -334,11 +351,12 @@ function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetai
 
 function countUpSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "countup") return { summary: "No answer", detail: [] };
-  const parts = splitStages(result.answer);
-  const counts = puzzle.counts ?? [];
+  const trays = usesCountRev2(puzzle) ? puzzle.stages.length : 3;
+  const parts = splitStages(result.answer, trays);
+  const counts = usesCountRev2(puzzle) ? puzzle.stages.map(countUpStageTruth) : (puzzle.counts ?? []);
   const exact = counts.filter((c, i) => parseCount(parts[i] ?? "") === c).length;
   return {
-    summary: `${exact} / 3 exact · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${exact} / ${trays} exact · ${seconds(elapsedMs(result, puzzle))}`,
     detail: counts.map((c, i) => `Count ${i + 1}: ${parts[i] || "—"} (answer ${c})`),
   };
 }
@@ -495,6 +513,17 @@ function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  if (puzzle.type === "spotdiff" && usesSpotRev1(puzzle)) {
+    const taps = parseSpotTaps(result.answer, SPOT_REV1_SCENES);
+    const r = spotTwoResult(puzzle, result.answer);
+    const total = SPOT_REV1_SCENES * SPOT_REV1_PER_SCENE;
+    const found = r.found.reduce((a, b) => a + b, 0);
+    const detail = (puzzle.differences ?? []).map((difference, index) => {
+      const got = difference.cells.some((cell) => (taps[difference.scene ?? 0] ?? []).includes(cell));
+      return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label} · ${got ? "✓" : "✗"}`;
+    });
+    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${found} / ${total}`, detail };
+  }
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
     .split(",")
@@ -648,8 +677,10 @@ const sumHuntSummary: SummaryBuilder = (result, puzzle) => {
 
 const balanceSummary: SummaryBuilder = (result, puzzle) => {
   const solved = Number(result.extra?.["solved"] ?? result.correct_count ?? 0);
+  // balanceRev 2 deals four scales; stored rounds three.
+  const total = puzzle.type === "balance" ? balanceScaleCount(puzzle) : 3;
   return {
-    summary: solved === BAL_SCALES ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / 3`,
+    summary: solved === total ? `${total} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / ${total}`,
     detail: [],
   };
 };
@@ -918,7 +949,7 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
       : `${prefix} / ${puzzle.stepCount}`,
     detail: [
       `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
-      puzzle.bombVersion === 2
+      (puzzle.bombVersion ?? 1) >= 2
         ? puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV
           ? `22 per correct step, five of six = 110`
           : `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
@@ -1040,7 +1071,7 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
-      : `${inPlace} / ${TILES_COUNT} in place`,
+      : `${inPlace} / ${tilesLayout(puzzle).count} in place`,
     detail: [
       result.is_correct && min > 0 && moves <= min
         ? "Solved in the minimum"
@@ -1536,7 +1567,9 @@ const checkoutSummary: SummaryBuilder = (result, puzzle) => {
 const numlineSummary: SummaryBuilder = (result) => {
   const placed = Number(result.extra?.["placed"] ?? 0);
   const close = Number(result.extra?.["withinFull"] ?? 0);
-  return { summary: `${placed} / 15 placed · ${close} within 2%`, detail: [] };
+  // numlineRev 2 counts "close" within 1 %; stored rounds within 2 %.
+  const within = Number(result.extra?.["numlineRev"] ?? 1) >= 2 ? "1%" : "2%";
+  return { summary: `${placed} / 15 placed · ${close} within ${within}`, detail: [] };
 };
 
 const trailSummary: SummaryBuilder = (result) => {
@@ -1565,7 +1598,9 @@ const wordSearchSummary: SummaryBuilder = (result) => {
 const letterWheelSummary: SummaryBuilder = (result) => {
   const slots = Number(result.extra?.["slots"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 0);
-  return { summary: `${slots} / ${total} words`, detail: [] };
+  // wheelRev 1 rounds store their misses (traces that were not words); older rounds have none.
+  const misses = Number(result.extra?.["misses"] ?? 0);
+  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}`, detail: [] };
 };
 
 const strikeoutSummary: SummaryBuilder = (result) => {

@@ -11,6 +11,25 @@ import type { WordSearchPlacement } from "./types";
 
 export const WS_SIZE = 10;
 export const WS_WORDS = 6;
+/** Lookout rev stamped on new puzzles (`wordSearchRev`): 1 = 76-theme bank and public word lengths (14 Oct 2026). */
+export const WS_REV = 1;
+
+/**
+ * Letter count of each word still to find, in chip order, or null when the puzzle carries none
+ * (stored rounds before rev 1 show blank chips). Found words take the first open slot of their length.
+ */
+export function wsChipSlots(
+  wordLengths: readonly number[] | undefined,
+  found: readonly string[],
+): { length: number; word: string | null }[] | null {
+  if (!wordLengths || wordLengths.length === 0) return null;
+  const slots = wordLengths.map((length) => ({ length, word: null as string | null }));
+  for (const word of found) {
+    const slot = slots.find((s) => s.word === null && s.length === word.length);
+    if (slot) slot.word = word;
+  }
+  return slots;
+}
 const MAX_SELECTIONS = 300;
 
 /** Cells of the straight line start → end, or null if it is not one of the eight directions. */

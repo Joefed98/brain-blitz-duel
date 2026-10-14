@@ -107,6 +107,8 @@ function Tubes({
                   <span
                     key={arriving ? `${ball}-${poured?.key}` : ball}
                     className={`potion-layer logic-potion flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"} ${arriving ? "logic-potion-fill" : ""}`}
+                    // Presentation only: a same-colour layer above joins this one with a faint line, so one colour reads as one body of liquid.
+                    data-same-above={tube[ball + 1] === colour ? "" : undefined}
                     style={{
                       ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
                       backgroundColor: ballColour(colour),
@@ -116,8 +118,8 @@ function Tubes({
                       ...(arriving ? { animationDelay: `${(ball - (tube.length - (poured?.count ?? 0))) * 60}ms` } : {}),
                     }}
                   >
-                    {!compact && <span aria-hidden="true" className="text-[10px] leading-none opacity-30" style={{ color: "var(--guest-ink)" }}>{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
-                    {topLayer && !compact && <span aria-hidden="true" className="logic-potion-surface" />}
+                    {!compact && <span aria-hidden="true" className="logic-potion-glyph">{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
+                    {topLayer && !compact && <span aria-hidden="true" className={`logic-potion-surface ${arriving ? "logic-potion-surface-pour" : ""}`} />}
                     {!compact && topLayer && !sorted && (
                       <>
                         <span aria-hidden="true" className="potion-bubble" style={{ left: "28%", animationDelay: `${(index * 0.37) % 2.6}s` }} />
@@ -234,7 +236,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
       </div>
 
-      <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
+      {/* Taller than before and raised off the bottom edge (14 Oct 2026), so neither is cut off. */}
+      <div data-game-controls="actions" className="tubes-actions flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || replay.depth === 0}
@@ -244,7 +247,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
             // Undo never gives a pour back on a limited board: it is logged, not removed.
             setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
           }}
-          className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          className="h-[52px] min-w-[84px] rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
         </button>
@@ -256,7 +259,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
             setPoured(null);
             setMoves((current) => (logged ? [...current, "reset"] : []));
           }}
-          className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          className="h-[52px] min-w-[84px] rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
         </button>

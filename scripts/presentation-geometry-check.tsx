@@ -107,8 +107,8 @@ assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*height: min\(1
 assert.match(css2, /\[data-arena-slot\] \{[^}]*container-type: size;[^}]*align-items: center;[^}]*justify-content: flex-start/);
 assert.match(css2, /@utility pad-game-safe \{[^}]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 16px\);/);
 assert.doesNotMatch(css2, /\.game-column:has\(\[data-arena-slot\]\) \{/, "no arcade bottom top-up: the shared 16px pad covers it");
-/** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip). */
-const BELOW: Record<string, number> = { burst: 12 + 72, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
+/** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip; Fission's arrows sit 8px higher since Tuning F). */
+const BELOW: Record<string, number> = { burst: 12 + 80, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
 /** Smallest touch target edge in each control row, by viewport width. */
 const TARGETS: Record<string, (w: number) => number> = {
   burst: (w) => Math.min(56, (w - 8 - 2 * 12) / 3),

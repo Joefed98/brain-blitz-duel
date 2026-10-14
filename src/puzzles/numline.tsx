@@ -21,7 +21,7 @@ import {
   gradeNumlineItems,
   numlineErrorLabel,
   numlineTicks,
-  NUMLINE_FULL_ERROR,
+  numlineFullError,
   NUMLINE_ITEMS,
   NUMLINE_SCALE,
   NUMLINE_STAGES,
@@ -102,12 +102,12 @@ function labelX(cx: number, textW: number, width: number): number {
  * Rises for the placed markers' labels: each takes the lowest of three levels where it
  * does not overlap a label already there (12px mono, ~7.2px a character).
  */
-function labelLevels(xs: readonly number[], items: readonly string[]): number[] {
+function labelLevels(xs: readonly number[], items: readonly string[], minWidth = 0): number[] {
   const order = xs.map((_, i) => i).sort((a, b) => xs[a]! - xs[b]!);
   const ends: number[] = [-Infinity, -Infinity, -Infinity];
   const out: number[] = xs.map(() => 0);
   for (const i of order) {
-    const half = ((items[i] ?? "").length * 7.2) / 2 + 3;
+    const half = Math.max(minWidth, (items[i] ?? "").length * 7.2) / 2 + 3;
     let level = ends.findIndex((end) => xs[i]! - half >= end);
     if (level < 0) level = ends.indexOf(Math.min(...ends));
     ends[level] = xs[i]! + half;
@@ -358,7 +358,7 @@ function IntroExample() {
         {step === 3 ? "Placed: 0.5% off → 8 points" : "Drag, then Place"}
       </p>
       <p className="max-w-[270px] text-center text-xs text-muted-foreground">
-        Only the ends are labelled. Within 2% of the line scores all 8; 8% off scores 0.
+        Only the ends are labelled. Within 1% of the line scores all 8; 10% off scores 0.
       </p>
     </div>
   );
@@ -707,7 +707,8 @@ function Stage({
           </svg>
         </div>
       ) : null}
-      <div data-game-controls="actions" className="flex w-full shrink-0 justify-center">
+      {/* Place stands 16 px clear of the bottom of the screen. */}
+      <div data-game-controls="actions" className="flex w-full shrink-0 justify-center pb-4">
         <button
           type="button"
           disabled={busy || marker === null}
@@ -722,25 +723,35 @@ function Stage({
 }
 
 const REVEAL_W = 340;
+/** The tape's end inset (Line's SIDE) and a reveal number label's width with its gap, in drawing px. */
+const REVEAL_SIDE = SIDE;
+const REVEAL_LABEL_W = 8;
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "numline") return null;
-  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer);
+  const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer, puzzle.numlineRev);
+  const full = numlineFullError(puzzle.numlineRev);
   const placed = decodeNumline(myAnswer).length;
   return (
     <div className="flex w-full flex-col items-stretch gap-1.5 px-1">
       <PolishStyle id="numline" css={NUMLINE_CSS} />
       {puzzle.stages.map((stage, s) => {
         const rows = results.slice(s * NUMLINE_ITEMS, s * NUMLINE_ITEMS + NUMLINE_ITEMS);
+        // Close true spots: their number labels step up a level so they never print over each other.
+        const levels = labelLevels(
+          rows.map((r) => REVEAL_SIDE + (r.truth / NUMLINE_SCALE) * (REVEAL_W - 2 * REVEAL_SIDE)),
+          rows.map((_, i) => `${i + 1}`),
+          REVEAL_LABEL_W,
+        );
         return (
-          <div key={s} className="flex flex-col items-center gap-0.5">
+          <div key={s} className="flex flex-col items-center gap-1">
             <Line
               stage={stage}
               width={REVEAL_W}
-              height={56}
+              height={60}
               t={10}
               label={12}
-              yShare={0.46}
+              yShare={0.6}
               svgStyle={{ width: "100%", maxWidth: 400, height: "auto" }}
             >
               {(x, y) => (
@@ -778,7 +789,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                       ) : null}
                       <text
                         x={x(r.truth / NUMLINE_SCALE)}
-                        y={y - 12}
+                        y={y - 12 - levels[i]! * 13}
                         textAnchor="middle"
                         fontSize={12}
                         fontWeight={700}
@@ -803,9 +814,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                     {`${i + 1}. ${stage.items[i]}`}
                   </span>
                   <span
-                    className={`font-mono text-[14px] font-bold ${r.error === null ? "text-muted-foreground" : r.error <= NUMLINE_FULL_ERROR ? "text-primary" : "text-warn"}`}
+                    className={`font-mono text-[14px] font-bold ${r.error === null ? "text-muted-foreground" : r.error <= full ? "text-primary" : "text-warn"}`}
                     style={
-                      r.error !== null && r.error > NUMLINE_FULL_ERROR
+                      r.error !== null && r.error > full
                         ? { color: "color-mix(in oklab, var(--warn) 80%, white)" }
                         : undefined
                     }

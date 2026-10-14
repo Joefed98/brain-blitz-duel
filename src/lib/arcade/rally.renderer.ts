@@ -10,6 +10,7 @@ import {
   rallyTotalHits,
   RALLY_BALL_R,
   RALLY_BUMPER_FROM,
+  RALLY_BUMPER2_FROM,
   RALLY_BUMPER_R,
   RALLY_GOLD_POINTS,
   RALLY_HUD_H,
@@ -192,19 +193,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
       lightUp(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, PAD, 46 + 24 * p, 0.75 * (1 - p));
       retroBurst(ctx, left + RALLY_TARGET_W / 2, RALLY_HUD_H + RALLY_WALL, p, PAD, 22);
     }
-    const bumper = state.bumper;
-    if (bumper) {
-      const until = RALLY_BUMPER_FROM - state.tick;
+    // The first bumper from 30 s; rallyRev 5's second from 45 s. Only the one the latest bounce came off flashes.
+    const bounced = retroEventAge(key, "rally-bumper", false);
+    const posts: [{ x: number; y: number } | undefined, number][] = [[state.bumper, RALLY_BUMPER_FROM], [state.bumper2, RALLY_BUMPER2_FROM]];
+    posts.forEach(([bumper, from], i) => {
+      if (!bumper) return;
+      const until = from - state.tick;
       if (until <= 0) {
-        const bounced = retroEventAge(key, "rally-bumper", false);
-        const flash = !reducedMotion() && bounced < 160;
+        const flash = !reducedMotion() && bounced < 160 && (state.bumped ?? 0) === i;
         drawBumper(ctx, bumper.x, bumper.y, flash, bloom);
       } else if (until <= 120) {
         // Two seconds' warning: a blinking outline where the bumper will appear (it does not bounce yet).
         const on = reducedMotion() || Math.floor(until / 10) % 2 === 0;
         if (on) retroText(ctx, "BUMPER", bumper.x, bumper.y - 5, 8, BUMPER, "center");
       }
-    }
+    });
   }
 
   const width = rallyPaddleW(rallyTotalHits(state));

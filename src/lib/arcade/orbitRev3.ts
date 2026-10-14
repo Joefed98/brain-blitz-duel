@@ -41,6 +41,12 @@ import {
   captureAt,
   flightHitsBelts,
   innerLobe,
+  orbitFlightBeltK,
+  orbitSweepSteps,
+  ORBIT_REV4,
+  ORBIT_REV_BAND,
+  ORBIT_REV_TUNED,
+  ORBIT_REV_SWEPT,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -545,6 +551,8 @@ export interface OrbitRev3State extends BandFields {
   /** orbitRev 6 only: set on the revision, and the fly-in ticks left after a black hole. */
   tuned?: number;
   warp?: number;
+  /** orbitRev 7 only (Tuning F): 1 = swept black holes (orbitSweptHit). Absent on every earlier round. */
+  swept?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -687,7 +695,9 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     const previousX = s.x, previousY = s.y;
     s.x += s.vx;
     s.y += s.vy;
-    if (flightHitsBelts(s.planets, previousX, previousY, s.x, s.y, tick)) {
+    // orbitRev 7: one sweep orders belts and black holes along the segment; earlier revisions test belts, then holes.
+    const sweep = s.swept ? orbitSweptHit(s, previousX, previousY, s.x, s.y, tick) : null;
+    if (sweep ? sweep.belt : flightHitsBelts(s.planets, previousX, previousY, s.x, s.y, tick)) {
       die();
       if (respawned) {
         const checkpointPlanet = s.planets[s.cur];
@@ -697,11 +707,12 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     }
     // Rev 4: a black hole beside the planet just left swallows the rocket and puts it in
     // orbit round planet `to`; the planets in between count as reached.
-    const hole = s.holes ? s.holes.find((h) => h.from === s.cur && orbitFlightHitsHole(h, previousX, previousY, s.x, s.y)) : undefined;
+    const hole = sweep ? sweep.hole : s.holes ? s.holes.find((h) => h.from === s.cur && orbitFlightHitsHole(h, previousX, previousY, s.x, s.y)) : undefined;
     const j = hole ? -1 : captureAt(s.planets, s.cur, s.x, s.y);
     if (hole) {
       const to = s.planets[hole.to]!;
-      s.skipped = (s.skipped ?? 0) + (hole.to - hole.from - 1);
+      // The planets between the one left and the hole's target count as reached (on rev 4–6 the one left is always hole.from).
+      s.skipped = (s.skipped ?? 0) + (hole.to - (s.swept ? s.cur : hole.from) - 1);
       s.jumps = (s.jumps ?? 0) + 1;
       s.holeTick = tick;
       s.cur = hole.to;
@@ -1047,11 +1058,90 @@ export function orbitPastReach(s: OrbitRev3State): boolean {
     const p = s.planets[j]!;
     reach = Math.max(reach, dist(p.x, p.y) + captureReach(p));
   }
-  for (const h of s.holes ?? []) if (h.from === s.cur) reach = Math.max(reach, dist(h.x, h.y) + ORBIT_HOLE_R + FP);
+  for (const h of s.holes ?? []) {
+    if (s.swept ? orbitHoleLive(s, h) : h.from === s.cur) reach = Math.max(reach, dist(h.x, h.y) + (s.swept ? ORBIT_HOLE_SWEPT_R : ORBIT_HOLE_R) + FP);
+  }
   return dist(s.x, s.y) > reach;
 }
 
 /** orbitRev 6 start: the band start plus the tuning marker. */
 export function initTunedFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
   return { ...initBandFrom(planets, worldW, holes), tuned: 1, warp: 0 };
+}
+
+/* ================= Tuning F (orbitRev 7, Oct 2026) ================= */
+/*
+ * The black-hole bug: on orbitRev 4–6 a hole only swallows a flight released
+ * from the planet it sits beside (`from`), and only when the rocket's centre
+ * point comes within the disc's radius. Every hole on the course is drawn,
+ * though, so a flight from the planet before (which often passes straight over
+ * the next planet's hole) or one whose drawn rocket overlaps the rim flew
+ * through it with nothing happening. And a belt anywhere on the same tick's
+ * segment won even when the hole came first along it.
+ *
+ * orbitRev 7 keeps rev-6 play (courses, holes, fly-in, band curve) and makes
+ * holes swept: every hole whose target is ahead of the current planet is live,
+ * the rocket is swallowed the moment its drawn body (ORBIT_ROCKET_DIAMETER, the
+ * size belts already use) touches the drawn disc anywhere along the tick's
+ * swept segment, and a belt only wins when the rocket reaches it first along
+ * that segment. The planets between the one left and the target count as
+ * reached. States keep `tuned` and add `swept: 1`.
+ */
+/** Capture reach of a black hole on orbitRev 7: the disc plus the rocket's enclosing radius, 1/256 px. */
+export const ORBIT_HOLE_SWEPT_R = ORBIT_HOLE_R + ORBIT_ROCKET_DIAMETER / 2;
+
+/** orbitRev 7: a hole is live while its target is ahead of the planet the rocket left. */
+export function orbitHoleLive(s: Pick<OrbitRev3State, "cur">, h: OrbitHole): boolean {
+  return h.to > s.cur;
+}
+
+/** The first sample (0..steps) at which the swept segment comes within `reach` of the hole's centre, or -1. */
+export function orbitHoleK(hole: OrbitHole, x0: number, y0: number, x1: number, y1: number, steps: number, reach = ORBIT_HOLE_SWEPT_R): number {
+  for (let k = 0; k <= steps; k++) {
+    const dx = x0 + Math.trunc(((x1 - x0) * k) / steps) - hole.x;
+    const dy = y0 + Math.trunc(((y1 - y0) * k) / steps) - hole.y;
+    if (dx * dx + dy * dy <= reach * reach) return k;
+  }
+  return -1;
+}
+
+/**
+ * orbitRev 7's swept test for one flight tick: the earliest belt contact and
+ * the earliest live black hole along the segment, sampled every px. A hole
+ * wins ties (the rocket touches both at the same point); with several holes
+ * the first along the segment wins, then the first in the list.
+ */
+export function orbitSweptHit(s: OrbitRev3State, x0: number, y0: number, x1: number, y1: number, tick: number): { belt: boolean; hole: OrbitHole | undefined } {
+  const steps = orbitSweepSteps(x0, y0, x1, y1);
+  let beltK = -1;
+  for (const p of s.planets) {
+    const k = orbitFlightBeltK(p, x0, y0, x1, y1, tick);
+    if (k >= 0 && (beltK < 0 || k < beltK)) beltK = k;
+  }
+  let holeK = -1;
+  let hole: OrbitHole | undefined;
+  for (const h of s.holes ?? []) {
+    if (!orbitHoleLive(s, h)) continue;
+    const k = orbitHoleK(h, x0, y0, x1, y1, steps);
+    if (k >= 0 && (holeK < 0 || k < holeK)) {
+      holeK = k;
+      hole = h;
+    }
+  }
+  if (beltK >= 0 && (holeK < 0 || beltK < holeK)) return { belt: true, hole: undefined };
+  return { belt: false, hole };
+}
+
+/** orbitRev 7 start: the rev-6 start plus the swept marker. */
+export function initSweptFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return { ...initTunedFrom(planets, worldW, holes), swept: 1 };
+}
+
+/** The start for a stored bank-course orbitRev (4–7), or null for an earlier one. */
+export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_SWEPT) return initSweptFrom;
+  if (rev === ORBIT_REV_TUNED) return initTunedFrom;
+  if (rev === ORBIT_REV_BAND) return initBandFrom;
+  if (rev === ORBIT_REV4) return initRev4From;
+  return null;
 }

@@ -34,12 +34,16 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-function Banner({ red, flash }: { red: boolean; flash: boolean }) {
+/** The rule box. Live (14 Oct 2026): a bigger box, outlined in the rule's colour; the intro still keeps the small pill. */
+function Banner({ red, flash, small = false }: { red: boolean; flash: boolean; small?: boolean }) {
   return (
     <div
-      className={`mx-auto rounded-full bg-card px-6 py-2 text-center font-display text-2xl font-bold tracking-widest transition-transform duration-150 ${
-        red ? "bonk-banner-red" : "bonk-banner-gold"
-      } ${flash ? "scale-110 ring-2 ring-current" : ""}`}
+      data-bonk-banner={small ? "small" : "large"}
+      className={`mx-auto text-center font-display tracking-widest transition-transform duration-150 ${
+        small
+          ? "rounded-full bg-card px-6 py-2 text-2xl font-bold"
+          : "bonk-banner-large w-full max-w-[20rem] rounded-2xl border-2 border-current bg-card px-6 py-2.5 text-4xl font-black"
+      } ${red ? "bonk-banner-red" : "bonk-banner-gold"} ${flash ? "scale-110 ring-2 ring-current" : ""}`}
     >
       {red ? "TAP RED" : "TAP GOLD"}
     </div>
@@ -50,7 +54,7 @@ function Banner({ red, flash }: { red: boolean; flash: boolean }) {
 function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-2">
-      <Banner red={false} flash={false} />
+      <Banner red={false} flash={false} small />
       <div className="bonk-example grid h-[120px] w-[120px] grid-cols-2 gap-1">
         <div className="bonk-burrow"><BonkIcon/></div><div className="bonk-burrow"/>
         <div className="bonk-burrow"><BonkIcon hedgehog/></div><div className="bonk-burrow"><BonkIcon red/></div>

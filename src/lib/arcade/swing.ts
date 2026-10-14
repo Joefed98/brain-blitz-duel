@@ -437,6 +437,8 @@ export interface SwingState extends Body, BandFields {
   tuned?: number;
   /** swingRev 7 only (Tuning C): 1 = rev-6 play scored on the lower SWING_V7_BAND_CURVE. Absent on every earlier round. */
   tunec?: number;
+  /** swingRev 8 only (Tuning F): 1 = stars spread evenly along the run. Absent on every earlier round. */
+  spread?: number;
   starSpots?: [number, number][];
   tick: number;
   rng: number;
@@ -788,8 +790,10 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     for (const r of state.rocks ?? []) values.push(r.phase, r.t, r.y);
     // swingRev 6 only, after every rev-4 value.
     if (state.tuned) values.push(state.tuned, ...(state.starsTaken ?? []));
-    // swingRev 7 only, last.
+    // swingRev 7 only.
     if (state.tunec) values.push(state.tunec);
+    // swingRev 8 only, last.
+    if (state.spread) values.push(state.spread);
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -951,6 +955,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_SPREAD) return swingSpreadGame;
   if (rev === SWING_REV_TUNEC) return swingTunecGame;
   if (rev === SWING_REV_TUNED) return swingTunedGame;
   if (rev === SWING_REV_BAND) return swingBandGame;
@@ -1122,3 +1127,120 @@ export const swingTunedGame: typeof swingGame = { ...swingBandGame, init: (seed)
 export const SWING_REV_TUNEC = 7;
 export const SWING_V7_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 63, 90, 112, 122, 124, 140]);
 export const swingTunecGame: typeof swingGame = { ...swingTunedGame, init: (seed) => ({ ...swingTunedGame.init(seed), tunec: 1 }) };
+
+/* ================= Tuning F (swingRev 8, Oct 2026) ================= */
+
+/**
+ * swingRev 8 (Tuning F): swingRev 7 play, cavern, hazards and curve unchanged;
+ * only where the ten touch stars sit. Rev 6/7 put one on a proved line in each
+ * star-anchor gap, and a gap whose star spots all failed handed its star to the
+ * earliest spare gap, so stars bunched near the start. Rev 8 aims one star at
+ * the middle of each of ten equal stretches of the run (30–490 m) and takes
+ * the proved spot nearest it: a point of the drawn kind (top of a flight,
+ * bottom of a swing, a flight's lowest point) within SWING_SPREAD_WINDOW of
+ * the aim on a line provedLines finds through the gap at the aim or a
+ * neighbour, else the nearest proved point of any kind. Same proof as rev 6,
+ * same count, same clearances (anchor rings, lava jets) plus clear of a loose
+ * stalactite's column. Its draws come from their own stream, so the course is
+ * unchanged. States add `spread: 1` (folded into the checkpoint checksum last).
+ */
+export const SWING_REV_SPREAD = 8;
+/** The stretch of the run the stars spread over (metres) and how far from its aim a star may sit (1/256 px). */
+export const SWING_SPREAD_FROM_M = 30;
+export const SWING_SPREAD_TO_M = 490;
+export const SWING_SPREAD_WINDOW = 60 * FP;
+
+/** Where swingRev 8 aims star `k` (1/256 px): the middle of the k-th of SWING_STARS equal stretches. */
+export function swingSpreadAim(k: number): number {
+  const span = SWING_SPREAD_TO_M - SWING_SPREAD_FROM_M;
+  return START_X + Math.trunc(((SWING_SPREAD_FROM_M * 2 * SWING_STARS + (2 * k + 1) * span) * METRE) / (2 * SWING_STARS));
+}
+
+function spreadSpots(v4: SwingState, seed: number): [number, number][] {
+  // Its own stream (not rev 6's), so every rev-4 draw and the stored rng are unchanged.
+  let rng = (seed ^ 0x5b8ead17) | 0;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const anchors = v4.anchors;
+  const course: Course = { ceil: v4.ceil, floor: v4.floor, anchors, spikes: v4.spikes, rng: 0 };
+  const clear = ([x, y]: [number, number]) =>
+    anchors.every((a) => Math.abs(a.x - x) > STAR_CLEAR_OF_ANCHOR || Math.abs(a.y - y) > STAR_CLEAR_OF_ANCHOR) &&
+    (v4.jets ?? []).every((jet) => Math.abs(jet.x - x) > SWING_JET_HALF_W + SWING_STAR_TOUCH) &&
+    (v4.rocks ?? []).every((r) => Math.abs(r.x - x) > SWING_ROCK_HALF_W + SWING_STAR_TOUCH);
+  const lineCache = new Map<number, Line[]>();
+  const linesAt = (j: number) => {
+    let lines = lineCache.get(j);
+    if (!lines) lineCache.set(j, (lines = provedLines(course, j, 4)));
+    return lines;
+  };
+  const startIndex = anchors.findIndex((a) => a.x >= START_X);
+  const spots: [number, number][] = [];
+  for (let k = 0; k < SWING_STARS; k++) {
+    const aim = swingSpreadAim(k);
+    const kind = draw(3);
+    const ahead = anchors.findIndex((a) => a.x > aim);
+    const order = [0, 1, -1, 2, -2, 3, -3].map((d) => ahead + d).filter((j) => j > startIndex && j + 1 < anchors.length);
+    let chosen: [number, number] | null = null;
+    // The drawn kind near the aim: the top of a flight, the bottom of a swing, or a flight's lowest point.
+    for (const j of order) {
+      const pool: [number, number][] = [];
+      for (const line of linesAt(j)) {
+        const pts = (kind === 1 ? line.swing : line.flight).filter((p) => Math.abs(p[0] - aim) <= SWING_SPREAD_WINDOW && clear(p));
+        if (pts.length === 0) continue;
+        let best = pts[0]!;
+        for (const p of pts) if (kind === 0 ? p[1] < best[1] : p[1] > best[1]) best = p;
+        pool.push(best);
+      }
+      if (pool.length > 0) {
+        chosen = pool[draw(pool.length)]!;
+        break;
+      }
+    }
+    // Otherwise the proved point nearest the aim, of any kind.
+    if (!chosen) {
+      let bestD = Infinity;
+      for (const j of order)
+        for (const line of linesAt(j))
+          for (const p of [...line.swing, ...line.flight]) {
+            const d = Math.abs(p[0] - aim);
+            if (d < bestD && clear(p)) {
+              bestD = d;
+              chosen = p;
+            }
+          }
+    }
+    if (chosen) spots.push(chosen);
+  }
+  return spots;
+}
+
+/**
+ * Every body centre on the lines provedLines finds through the gap before
+ * anchor `j` of a swingRev 6+ course (checks use it to show each star sits on
+ * a proved line; not used in play).
+ */
+export function swingProvedPoints(state: SwingState, j: number): [number, number][] {
+  const course: Course = { ceil: state.ceil, floor: state.floor, anchors: state.anchors, spikes: state.spikes, rng: 0 };
+  return provedLines(course, j, 4).flatMap((line) => [...line.swing, ...line.flight]);
+}
+
+const v8Cache = new Map<number, SwingState>();
+function initV8(seed: number): SwingState {
+  const cached = v8Cache.get(seed | 0);
+  if (cached) return { ...cached, rocks: cached.rocks!.map((r) => ({ ...r })) };
+  const v4 = initV4(seed);
+  const spread: SwingState = {
+    ...v4,
+    tuned: 1,
+    starAnchors: [],
+    starSpots: spreadSpots(v4, seed),
+    rocks: v4.rocks!.map((r) => ({ ...r, trigger: r.trigger + SWING_ROCK_LEAD_V6 })),
+    tunec: 1,
+    spread: 1,
+  };
+  if (v8Cache.size > 16) v8Cache.clear();
+  v8Cache.set(seed | 0, spread);
+  return { ...spread, rocks: spread.rocks!.map((r) => ({ ...r })) };
+}
+
+/** swingRev 8: rev-7 play and curve (it carries `tunec`), stars spread evenly. */
+export const swingSpreadGame: typeof swingGame = { ...swingTunecGame, init: (seed) => bandInit(initV8(seed)) };

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { ENGINE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -8,7 +8,9 @@ import {
   unpackWfLog,
   wordfallCheckpoint,
   WF_CHECKPOINT_INTERVAL,
-  WF_H,
+  WF_ENTER_V2,
+  WF_H_V2,
+  wfWorldHFor,
   WF_INPUT_ENTER,
   WF_INPUT_TAP,
   WF_PAR,
@@ -17,7 +19,7 @@ import {
   type WordfallState,
 } from "@/lib/arcade/wordfall";
 import { loadWordfallDict, wordfallDictReady } from "@/lib/arcade/wordfallDict";
-import { wordfallArtGame, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
+import { wordfallArtGameFor, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
 import { wordCue } from "@/components/puzzles/wordFinish";
 import { TOY_BRASS, TOY_INK, TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -153,6 +155,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const dict = useWordfallDict();
   const [dev, setDev] = useState<string | null>(null);
   const [sounds] = useState(() => observer(setDev));
+  // The stage's input sender (handed to footer each render), so the rev-2 Enter button can use it.
+  const sendRef = useRef<((payload: PointerPayload) => void) | null>(null);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const onDev = () => {
@@ -173,8 +177,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null && dict.ready}
       locked={locked}
       worldW={WF_W}
-      worldH={WF_H}
-      game={wordfallArtGame}
+      worldH={wfWorldHFor(rev)}
+      game={wordfallArtGameFor(rev)}
       sounds={sounds}
       checkpoint={wordfallCheckpoint}
       interval={WF_CHECKPOINT_INTERVAL}
@@ -182,15 +186,41 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={WF_INPUT_TAP}
       overlay={
-        dict.ready ? null : (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <p className="rounded-lg bg-background/80 px-3 py-2 font-mono text-sm text-foreground">
-              {dict.failed ? "Couldn't load the words - retrying…" : "Loading words…"}
-            </p>
-          </div>
-        )
+        <>
+          {rev === 2 ? (
+            // wordfallRev 2: a real button over the drawn Enter box for keyboards and screen readers. It takes no
+            // touches (pointer-events none: a finger still taps the canvas exactly as before) and, when activated,
+            // sends the same tap a finger on the box's centre sends, so the input log and replays are unchanged.
+            <button
+              type="button"
+              aria-label="Enter word"
+              data-wordfall-enter=""
+              disabled={locked || !dict.ready}
+              className="pointer-events-none absolute rounded-xl bg-transparent outline-none focus-visible:ring-4 focus-visible:ring-ring"
+              style={{
+                left: `${(WF_ENTER_V2.x / WF_W) * 100}%`,
+                top: `${(WF_ENTER_V2.y / WF_H_V2) * 100}%`,
+                width: `${(WF_ENTER_V2.w / WF_W) * 100}%`,
+                height: `${(WF_ENTER_V2.h / WF_H_V2) * 100}%`,
+              }}
+              onClick={() => sendRef.current?.({ k: WF_INPUT_TAP, a: WF_ENTER_V2.x + WF_ENTER_V2.w / 2, b: WF_ENTER_V2.y + WF_ENTER_V2.h / 2, c: 0 })}
+            />
+          ) : null}
+          {dict.ready ? null : (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <p className="rounded-lg bg-background/80 px-3 py-2 font-mono text-sm text-foreground">
+                {dict.failed ? "Couldn't load the words - retrying…" : "Loading words…"}
+              </p>
+            </div>
+          )}
+        </>
       }
-      footer={(send) => (
+      footer={(send) => {
+        sendRef.current = send;
+        return rev === 2 ? (
+        // wordfallRev 2: Enter is the box drawn in the world under the well (the sim's tap box).
+        dev ? <p className="shrink-0 whitespace-pre-wrap break-all pt-1 text-center font-mono text-[10px] text-muted-foreground">{dev}</p> : null
+      ) : (
         <div data-game-controls="enter" className="flex shrink-0 flex-col items-center gap-1 pt-1">
           <ArcadeControlButton
             type="button"
@@ -201,7 +231,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           />
           {dev ? <p className="whitespace-pre-wrap break-all text-center font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
         </div>
-      )}
+        );
+      }}
       pointer={(kind, x, y) => (kind === "down" ? { k: WF_INPUT_TAP, a: x, b: y, c: 0 } : null)}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

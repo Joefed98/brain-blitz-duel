@@ -5,7 +5,7 @@ import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
-import { wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
+import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { buzz } from "@/lib/motion";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
@@ -180,6 +180,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
 
   if (!data) return null;
   const gold = new Set(found.flatMap((f) => f.cells));
+  // Stored rounds before rev 1 carry no lengths and keep their blank chips.
+  const slots = wsChipSlots(data.wordLengths, found.map((f) => f.word));
   return (
     <div ref={stageRef} data-polish="wordsearch" data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
       <div className="flex shrink-0 flex-col items-center">
@@ -194,8 +196,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         </div>
       </div>
       <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
-        {found.map((entry) => <span key={entry.word} className="lookout-word-chip">{entry.word}</span>)}
-        {Array.from({ length: Math.max(0, total - found.length) }, (_, i) => <span key={`empty-${i}`} className="lookout-word-placeholder" aria-label="Word still to find" />)}
+        {slots
+          ? // Rev 1: one chip per hidden word in a fixed order; an open chip shows only its letter count.
+            slots.map((slot, i) =>
+              slot.word ? (
+                <span key={`slot-${i}`} className="lookout-word-chip" data-ws-chip="found">{slot.word}</span>
+              ) : (
+                <span key={`slot-${i}`} className="lookout-word-placeholder gap-1" data-ws-chip="open" data-ws-length={slot.length} aria-label={`Word still to find, ${slot.length} letters`}>
+                  <span aria-hidden="true" className="font-mono text-[11px] leading-none tracking-[0.12em] text-muted-foreground">{"_".repeat(slot.length)}</span>
+                  <span aria-hidden="true" className="rounded-sm bg-muted px-1 font-mono text-[11px] font-bold leading-4 text-foreground">{slot.length}</span>
+                </span>
+              ),
+            )
+          : <>
+              {found.map((entry) => <span key={entry.word} className="lookout-word-chip">{entry.word}</span>)}
+              {Array.from({ length: Math.max(0, total - found.length) }, (_, i) => <span key={`empty-${i}`} className="lookout-word-placeholder" aria-label="Word still to find" />)}
+            </>}
       </div>
     </div>
   );
@@ -219,8 +235,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 font-mono text-sm uppercase tracking-wider">
         {placements.map((p, i) => (
-          <span key={p.word} className={foundSet.has(i) ? "text-primary" : "text-destructive"}>
+          <span key={p.word} data-ws-reveal-word={p.word} className={foundSet.has(i) ? "text-primary" : "text-destructive"}>
             {p.word}
+            {/* Letter count, as the chips show it during play (every round, stored ones too). */}
+            <span className="ml-0.5 align-super text-[10px] opacity-70">{p.word.length}</span>
           </span>
         ))}
       </div>

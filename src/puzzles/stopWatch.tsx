@@ -7,7 +7,7 @@ import { markerState, targetCentre } from "@/lib/duel/stopWatch";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV_CARELESS,
+  TAP_REV_SPEED_TUNING,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -36,7 +36,33 @@ const MARKER_W = 6;
 const HIDE_FROM = 2 / 3;
 
 function isHidden(spec: StopWatchSpec, pos: number): boolean {
-  return spec.hidden && pos > HIDE_FROM;
+  return (spec.hidden && pos > HIDE_FROM) || (spec.blind?.some(([from, to]) => pos >= from && pos <= to) ?? false);
+}
+
+/** tapRev 3: blind-spot width by watch (watch 2 small, growing gently to watch 10). */
+const BLIND_WIDTH = [0, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13] as const;
+/** tapRev 3: these watches sweep about 40 % slower (longer sweeps). */
+const LONG_SWEEPS = new Set([1, 3, 6]);
+/** tapRev 3: these watches run corner to corner. */
+const DIAGONAL_WATCHES = new Set([5, 8]);
+
+/** Blind spots for one watch: clear of the target band (and of the hidden final third). */
+function blindSpots(index: number, centre: number, half: number, reach: number, hidden: boolean): [number, number][] {
+  const width = BLIND_WIDTH[index] ?? 0;
+  if (width <= 0) return [];
+  const count = index >= 5 ? 2 : 1;
+  const lo = centre - half - reach - 0.04;
+  const hi = centre + half + reach + 0.04;
+  const top = hidden ? HIDE_FROM : 0.94;
+  const spots: [number, number][] = [];
+  for (let attempt = 0; attempt < 200 && spots.length < count; attempt++) {
+    const from = randInt(6, Math.floor((top - width) * 100)) / 100;
+    const to = Math.round((from + width) * 100) / 100;
+    if (to > lo && from < hi) continue;
+    if (spots.some(([a, b]) => to > a - 0.06 && from < b + 0.06)) continue;
+    spots.push([from, to]);
+  }
+  return spots.sort((a, b) => a[0] - b[0]);
 }
 
 export function buildStopWatch(): StopWatchPuzzleData {
@@ -47,21 +73,27 @@ export function buildStopWatch(): StopWatchPuzzleData {
       const moving = index === 2 || index === 5 || index === 8;
       const vertical = index === 4 || index === 7;
       const accelerating = index >= 6;
-      const sweepMs = Math.max(560, 1_180 - index * 55);
+      const base = Math.max(560, 1_180 - index * 55);
+      const sweepMs = LONG_SWEEPS.has(index) ? Math.round(base * 1.4) : base;
+      const half = Math.max(0.035, 0.085 - index * 0.005);
+      const hidden = index >= 3 && index % 2 === 1;
       const spec: StopWatchSpec = {
         centre,
-        half: Math.max(0.035, 0.085 - index * 0.005),
+        half,
         sweepMs,
-        hidden: index >= 3 && index % 2 === 1,
+        hidden,
         wrap: index >= 7,
         passes: index + 2,
       };
       if (vertical) spec.vertical = true;
+      if (DIAGONAL_WATCHES.has(index)) spec.diagonal = true;
       if (moving) spec.moving = { amplitude: 0.1, cycleMs: 2_200 - index * 70, phase: randInt(0, 99) / 100 };
       if (accelerating) spec.passSweepMs = Array.from({ length: index + 2 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
+      const blind = blindSpots(index, centre, half, moving ? 0.1 : 0, hidden);
+      if (blind.length) spec.blind = blind;
       return spec;
     }),
-    tapRev: TAP_REV_CARELESS,
+    tapRev: TAP_REV_SPEED_TUNING,
   };
 }
 
@@ -81,12 +113,14 @@ function Bar({
   passesLeft: number;
 }) {
   const vertical = spec.vertical === true;
-  return (
+  const diagonal = !vertical && spec.diagonal === true;
+  const face = (
     <div
       ref={barRef}
       data-bangon-face=""
       data-vertical={vertical ? "" : undefined}
-      className={`bangon-face relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : "h-20 w-full"}`}
+      data-diagonal={diagonal ? "" : undefined}
+      className={`bangon-face relative overflow-hidden rounded-2xl border border-border bg-card ${vertical ? "h-full min-h-72 w-1/2" : diagonal ? "bangon-face-diagonal" : "h-20 w-full"}`}
     >
       <span aria-hidden="true" className="bangon-ticks" />
       {spec.hidden && !vertical && (
@@ -108,6 +142,15 @@ function Bar({
           className={`absolute rounded-full bg-primary ${vertical ? "inset-x-2 top-1/2 h-[3px] -translate-y-1/2" : "inset-y-2 left-1/2 w-[3px] -translate-x-1/2"}`}
         />
       </span>
+      {spec.blind?.map(([from, to]) => (
+        <span
+          key={from}
+          aria-hidden="true"
+          data-bangon-blind=""
+          className={`bangon-blind absolute ${vertical ? "inset-x-0" : "inset-y-0"}`}
+          style={vertical ? { bottom: `${from * 100}%`, height: `${(to - from) * 100}%` } : { left: `${from * 100}%`, width: `${(to - from) * 100}%` }}
+        />
+      ))}
       {markerRef ? (
         <span
           ref={markerRef}
@@ -135,6 +178,8 @@ function Bar({
       </span>
     </div>
   );
+  // A diagonal watch is the same bar turned corner to corner inside a square.
+  return diagonal ? <div className="bangon-diagonal relative mx-auto aspect-square w-full">{face}</div> : face;
 }
 
 function IntroExample() {
@@ -143,10 +188,12 @@ function IntroExample() {
       <p className="text-center text-sm text-muted-foreground">
         Ten watches, each one trickier. Tap to stop the marker on the zone's centre line.
       </p>
-      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2 }} marker={0.58} passesLeft={2} />
+      <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2, blind: [[0.26, 0.34]] }} marker={0.58} passesLeft={2} />
       <p className="text-center text-xs text-muted-foreground">
-        Some targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11 on
-        Watch 10. Watches 8-10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more to 101 at 200 ms, then falling faster to 0 at 325 ms; a missed watch counts 500 ms.
+        From Watch 2, black blind spots hide the marker (wider later on); some sweeps are slower, two watches run corner
+        to corner, and targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11
+        on Watch 10; watches 8-10 wrap. Score: 150 at 5 ms average error or closer, 137 at 20 ms, 101 at 200 ms, then
+        falling faster to 0 at 325 ms; a missed watch counts 500 ms.
       </p>
     </div>
   );
@@ -338,7 +385,7 @@ function WatchView({
       <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
         Watch {Math.min(index + 1, count)} / {count}
       </p>
-      <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-center" : ""}`}>
+      <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-center" : spec.diagonal ? "justify-center" : ""}`}>
         <Bar
           key={index}
           spec={spec}
