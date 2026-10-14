@@ -5,7 +5,7 @@
  *  1. Stored rev-8 runs (skill-band runs replayed through the server path,
  *     scripts/fixtures/swing-rev8-runs.json) replay to the same score and the
  *     same final state; the pre-change rev-7 runs in
- *     scripts/fixtures/arcade-tuning-f-legacy.json still replay as recorded.
+ *     scripts/fixtures/arcade-tuning-f2-legacy.json still replay as recorded.
  *  2. New rounds are stamped swingRev 8 and score on rev 7's curve; the
  *     `spread` flag is folded into the checkpoint checksum last.
  *  3. Same course: on bank courses rev 8 has rev 7's cavern, anchors, spikes,
@@ -28,7 +28,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
-import type { TuningFRecord } from "./arcade-tuning-f-legacy";
+import type { TuningF2Record } from "./arcade-tuning-f2-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { puzzleUsesBands } from "../src/lib/arcade/bandParts";
 import { recordInput } from "../src/lib/arcade/engine";
@@ -76,7 +76,7 @@ const v8 = swingGameFor(SWING_REV_SPREAD);
 
 /* ============================== 1. Stored runs ============================== */
 if (RECORD) {
-  const runs: TuningFRecord[] = [];
+  const runs: TuningF2Record[] = [];
   for (const level of LEVELS)
     for (let n = 0; n < 2; n++) {
       const raw = readFileSync(`${RECORD}/swing/next-${level}-${n}.txt`, "utf8");
@@ -90,9 +90,9 @@ if (RECORD) {
 }
 
 section("Stored rev-8 runs and pre-change rev-7 runs replay exactly");
-const unpack = (r: TuningFRecord) => gunzipSync(Buffer.from(r.raw, "base64")).toString();
+const unpack = (r: TuningF2Record) => gunzipSync(Buffer.from(r.raw, "base64")).toString();
 {
-  const fixture = JSON.parse(readFileSync(FIXTURE, "utf8")) as { runs: TuningFRecord[] };
+  const fixture = JSON.parse(readFileSync(FIXTURE, "utf8")) as { runs: TuningF2Record[] };
   ok(fixture.runs.length >= 8 && fixture.runs.every((r) => r.rev === SWING_REV_SPREAD), `${fixture.runs.length} stored swingRev 8 runs`);
   for (const run of fixture.runs) {
     const result = replaySwingRun(run.seed, unpack(run), run.rev);
@@ -101,7 +101,7 @@ const unpack = (r: TuningFRecord) => gunzipSync(Buffer.from(r.raw, "base64")).to
   }
   console.log(`  ${fixture.runs.length} rev-8 runs: ${fixture.runs.map((r) => r.score).join(", ")}`);
 }
-const legacy = (JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f-legacy.json", "utf8")) as { runs: TuningFRecord[] }).runs.filter((r) => r.type === "swing");
+const legacy = (JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f2-legacy.json", "utf8")) as { runs: TuningF2Record[] }).runs.filter((r) => r.type === "swing");
 {
   ok(legacy.length >= 8 && legacy.every((r) => r.rev === SWING_REV_TUNEC), `${legacy.length} pre-change swingRev 7 runs`);
   for (const run of legacy) {
@@ -143,7 +143,7 @@ const SAMPLE = SWING_V4_BANK.slice(0, FULL ? SWING_V4_BANK.length : 60).map((e) 
   ok(bad === 0, `${SAMPLE.length} bank courses: the same cavern, anchors, spikes, jets, stalactites and rng on rev 7 and 8 (${bad} differ)`);
   // Every saved rev-7 log (both fixtures' logs) plays tick for tick the same body, hazards and end on rev 8.
   const physics = (s: SwingState) => JSON.stringify([s.tick, s.x, s.y, s.vx, s.vy, s.rope, s.th, s.om, s.len, s.maxX, s.camX, s.ended, s.endedTick, s.cause, s.chaseX, s.chaseY, s.rocks]);
-  const fixtureRuns = (JSON.parse(readFileSync(FIXTURE, "utf8")) as { runs: TuningFRecord[] }).runs;
+  const fixtureRuns = (JSON.parse(readFileSync(FIXTURE, "utf8")) as { runs: TuningF2Record[] }).runs;
   let logs = 0;
   let diverged = 0;
   for (const run of [...legacy, ...fixtureRuns]) {

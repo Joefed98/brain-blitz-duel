@@ -15,7 +15,7 @@ import { SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
 import { replaySnipRun } from "../src/lib/duel/snip";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { fnv } from "./arcade-tuning-a-legacy";
-import type { TuningFRecord } from "./arcade-tuning-f-legacy";
+import type { TuningF2Record } from "./arcade-tuning-f2-legacy";
 
 const LEVELS = ["average", "good", "great", "near"] as const;
 const PER_LEVEL = 2;
@@ -23,7 +23,7 @@ const PER_LEVEL = 2;
 if (import.meta.main) {
   const logs = process.argv[2]!;
   const spec = GAME_BY_TYPE.get("snip")!;
-  const out: TuningFRecord[] = [];
+  const out: TuningF2Record[] = [];
   for (const level of LEVELS)
     for (let n = 0; n < PER_LEVEL; n++) {
       const raw = readFileSync(`${logs}/snip/next-${level}-${n}.txt`, "utf8");

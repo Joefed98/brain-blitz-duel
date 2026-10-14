@@ -14,7 +14,7 @@
  *     Torpedo's path go, at most BUB_TORPEDO_HITS, never a whole row; it never
  *     stays on the field; loose bubbles drop exactly as after any pop.
  *  3. Older revisions are unchanged: the pre-change bubbleRev 3 runs in
- *     scripts/fixtures/arcade-tuning-f-legacy.json replay to the same score and
+ *     scripts/fixtures/arcade-tuning-f2-legacy.json replay to the same score and
  *     state, rev 3 still clears a row, and rev 4 starts from rev 3's field and queue.
  *  4. Wiring: new rooms stamp 4 and score on the bands; a stored scripted best
  *     run (a two-shot lookahead bot, seed 93) clears the field through the server
@@ -268,7 +268,7 @@ const full = (rows: number) => {
 /* ========================= 3. older revisions ========================= */
 section("Older revisions are unchanged");
 {
-  const legacy = JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f-legacy.json", "utf8")) as {
+  const legacy = JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f2-legacy.json", "utf8")) as {
     runs: { type: string; rev: number; level: string; seed: number; score: number; stateHash: number; raw: string }[];
   };
   const runs = legacy.runs.filter((r) => r.type === "bubble");

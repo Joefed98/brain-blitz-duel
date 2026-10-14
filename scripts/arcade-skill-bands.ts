@@ -25,11 +25,10 @@
  * "next" the Tuning E one.
  * --rev=bank measures a bank-only revision (a game's `bank`: Scrumper snipRev 6)
  * against its Tuning E one: "live" is the Tuning E revision, "next" the new bank.
- * --rev=f measures Tuning F (a game's `tunef`: Jaywalk, Slice, Coral Pop,
- * Grappler, Gemstone and Scrumper, Oct 2026) against the revision rooms stamped
- * before it (liveBefore: its bank, Tuning E, Tuning C, tuned, current or next
- * revision): "live" is the old revision, "next" the Tuning F one. A game with
- * no `tunef` yet plays only "live" (how the legacy fixture was saved).
+ * --rev=f measures Tuning F (a game's `tunef`: Breaker, Rally, Tempo, Meteor and
+ * Orbit; Jaywalk, Slice, Coral Pop, Grappler, Gemstone and Scrumper) against the
+ * revision rooms stamped before it (liveBefore: its `bank`, `tunee`, `tunec`,
+ * `tuned`, `current` or `next`): "live" is the old revision, "next" the Tuning F one.
  * --levels=average,near limits the levels. --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
@@ -130,6 +129,8 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
   const revs: ["live" | "next" | "tuned", number | null][] = [];
   if (REV_MODE === "f") {
     // Tuning F: the revision rooms stamped before it ("live") against the Tuning F one ("next").
+    // (liveBefore: a bank-only revision first, so Scrumper measures snipRev 6 → 7). A game with no
+    // `tunef` plays only "live" (how the pre-change fixtures were saved).
     const before = liveBefore(spec);
     if (before === undefined) console.error(`${spec.type}: no revision to measure`);
     else revs.push(["live", before]);

@@ -717,7 +717,7 @@ import {
   ORBIT_CAM_VIEW_H,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitRev3Game, ORBIT_HOLE_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, ORBIT_HOLE_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -923,8 +923,16 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     drawBelt(ctx, p, state.tick, cam.y, still);
   }
 
-  // Rev 4: black holes in view.
-  for (const hole of state.holes ?? []) drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, hole.from === state.cur && state.flying === 0, t, state.tick - (state.holeTick ?? -100));
+  // Rev 4: black holes in view. orbitRev 7: every hole ahead is live (bright rim); one behind is spent and fades.
+  for (const hole of state.holes ?? []) {
+    const live = state.swept ? orbitHoleLive(state, hole) : hole.from === state.cur;
+    if (state.swept && !live) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+    }
+    drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, live && state.flying === 0, t, state.tick - (state.holeTick ?? -100));
+    if (state.swept && !live) ctx.restore();
+  }
 
   const since = state.tick - state.releaseTick;
   if (since >= 0 && since < ORBIT_TRAIL_TICKS && state.flying > 0) {

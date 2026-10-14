@@ -39,7 +39,7 @@ import {
   type WavState,
 } from "../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../src/lib/duel/wavefront";
-import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
+import { orbitCanSetCheckpoint, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_TOTAL, orbitPos } from "../src/lib/arcade/orbit";
 import {
   decodeOrbitHoles,
   decodeRev3Planets,
@@ -217,7 +217,8 @@ if (want("orbit")) {
   section("Orbit orbitRev 6: black-hole fly-in, earlier end to a miss");
   {
     const p = generateOrbit();
-    ok(p.orbitRev === ORBIT_REV_TUNED && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 6 with their planets");
+    // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes); arcade-tuning-f-check covers it.
+    ok(p.orbitRev === ORBIT_REV_SWEPT && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 7 (rev 6 plus swept holes) with their planets");
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const courses = ORBIT_HOLE_BANK.slice(0, FULL ? 40 : 6);

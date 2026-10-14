@@ -9,7 +9,7 @@
  * deals, 4,435 over the 67-level bank, and this check plays every one.
  *
  *  1. Old rounds: snipRev 6 runs recorded on main before this change
- *     (fixtures/arcade-tuning-f-legacy.json) replay to the same score and the
+ *     (fixtures/arcade-tuning-f2-legacy.json) replay to the same score and the
  *     same final state; scripted runs of every older revision (unstamped,
  *     snipRev 2–6) on 60 seeds, every level dealt, hash as they did on main
  *     (scripts/snip-rev7-digest.ts); the 129 older templates, snipRev 6's bands
@@ -33,7 +33,7 @@
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
-import type { TuningFRecord } from "./arcade-tuning-f-legacy";
+import type { TuningF2Record } from "./arcade-tuning-f2-legacy";
 import { puzzleUsesBands } from "../src/lib/arcade/bandParts";
 import { snipFxFor } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { inputAt, recordInput, rngBelow, type ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -76,7 +76,7 @@ const T = SNIP_CONFIG.templates;
 /* ============================== 1. Old rounds ============================== */
 section("Stored rounds (snipRev 6 and older) replay and score exactly as before");
 {
-  const fixture = JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f-legacy.json", "utf8")) as { runs: TuningFRecord[] };
+  const fixture = JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f2-legacy.json", "utf8")) as { runs: TuningF2Record[] };
   const runs = fixture.runs.filter((r) => r.type === "snip");
   for (const run of runs) {
     const raw = gunzipSync(Buffer.from(run.raw, "base64")).toString();
@@ -241,7 +241,7 @@ section("Every per-pin deal of every level: a stored human-paced winning plan");
 /* ============================== 5. Runs ============================== */
 section("Stored snipRev 7 runs replay unchanged; the run bot scores 150 through the server replay");
 {
-  const fixture = JSON.parse(readFileSync("scripts/fixtures/snip-rev7-runs.json", "utf8")) as { runs: TuningFRecord[] };
+  const fixture = JSON.parse(readFileSync("scripts/fixtures/snip-rev7-runs.json", "utf8")) as { runs: TuningF2Record[] };
   for (const run of fixture.runs) {
     const raw = gunzipSync(Buffer.from(run.raw, "base64")).toString();
     const result = replaySnipRun(run.seed, raw, run.rev);
