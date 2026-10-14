@@ -22,7 +22,7 @@ import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
 import { WAV_BOSS_HP, WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
 import { FLIP_V4_BAND_CURVE } from "@/lib/arcade/flip";
 import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
-import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
+import { MATCHUP_V6_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
 import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
@@ -698,7 +698,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V5_BAND_CURVE),
+    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V6_BAND_CURVE),
   },
   snake: {
     goal: "Eat the stars; don't crash.",
@@ -723,6 +723,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Three lives.", detail: "A hit sends you back to the start of this crossing." },
       { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
       { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
+      { action: "Only the walker counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
     ],
     score: bandHelp("Each lane crossed counts 1 and each full crossing 2 more.", CROSS_BAND_CURVE),
   },
@@ -806,7 +807,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
       { action: "Cut a bottle:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together." },
       { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
-      { action: "One finger-down-to-up path counts together", detail: "- curves too, up to about three-quarters of the screen. Each combo resets a 10-second timer.", helpOnly: true },
+      { action: "One finger-down-to-up path counts together", detail: "- curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
     score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_V4_BAND_CURVE),
   },

@@ -1,11 +1,11 @@
 import { TEN_DROP_SCORE_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TUNEC } from "@/lib/arcade/slice";
+import { SLICE_REV_LONG } from "@/lib/arcade/slice";
 import { FLIP_REV_TUNEC } from "@/lib/arcade/flip";
-import { CROSS_REV_BAND } from "@/lib/arcade/cross";
+import { CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_PAR } from "@/lib/arcade/matchup";
 import { SNIP_REV_BANK6 } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
@@ -94,7 +94,7 @@ export function generateBullseye(): BullseyePuzzleData {
 }
 
 export function generateMatchup(): MatchupPuzzleData {
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_WAIT };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_PAR };
 }
 
 export function generateSnake(): SnakePuzzleData {
@@ -102,7 +102,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_BAND };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_SMALL };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -130,7 +130,7 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_TUNEC };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_LONG };
 }
 
 export function generateBubble(): BubblePuzzleData {

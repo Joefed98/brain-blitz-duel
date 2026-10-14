@@ -16,11 +16,11 @@ import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC } 
 import { encodeFlipRun, replayFlipRun } from "../../src/lib/duel/flip";
 import { inkBridgeGameFor, inkCheckpoint, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "../../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
-import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
+import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../../src/lib/duel/matchup";
 import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND } from "../../src/lib/arcade/bubble";
 import { encodeBubbleRun, replayBubbleRun } from "../../src/lib/duel/bubble";
-import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND } from "../../src/lib/arcade/cross";
+import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND, CROSS_REV_SMALL } from "../../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
 import { rallyCheckpoint, rallyGameFor, RALLY_REV, RALLY_REV_BAND, RALLY_REV_TUNED } from "../../src/lib/arcade/rally";
 import { encodeRallyRun, replayRallyRun } from "../../src/lib/duel/rally";
@@ -47,7 +47,7 @@ import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
 import { beatCheckpoint, beatGameFor, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC } from "../../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../../src/lib/duel/beat";
-import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_TUNEC } from "../../src/lib/arcade/slice";
+import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC } from "../../src/lib/arcade/slice";
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
@@ -135,9 +135,9 @@ export const GAMES: GameSpec[] = [
   { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES, tunec: WAV_REV_TUNEC },
   { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
   { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
-  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT },
+  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
   simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun),
-  simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun),
+  { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL },
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
@@ -163,7 +163,7 @@ export const GAMES: GameSpec[] = [
     replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes),
   },
   { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC },
-  { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC },
+  { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG },
   simple("burst", BURST_REV, BURST_REV_BAND, burstGameFor, burstCheckpoint, encodeBurstRun, replayBurstRun),
   {
     type: "swing",

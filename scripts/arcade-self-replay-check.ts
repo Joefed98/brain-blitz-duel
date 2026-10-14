@@ -110,9 +110,9 @@ import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { MATCHUP_REV_BAND, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND } from "@/lib/arcade/bubble";
-import { CROSS_REV_BAND } from "@/lib/arcade/cross";
+import { CROSS_REV_BAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TUNED } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
@@ -127,7 +127,7 @@ import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { initBandFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
 import { BEAT_REV_BAND, BEAT_REV_TUNEC } from "@/lib/arcade/beat";
-import { SLICE_REV_BAND, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
+import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
@@ -520,6 +520,10 @@ const GAMES: Game[] = [
   },
   // Tuning C (Oct 2026): every revision it stamps.
   { key: "matchup/wait", game: matchupGameFor(MATCHUP_REV_WAIT), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_WAIT) },
+  // Tuning F (Oct 2026).
+  { key: "slice/long", game: sliceGameFor(SLICE_REV_LONG), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_LONG) },
+  { key: "cross/small", game: crossGameFor(CROSS_REV_SMALL), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, CROSS_REV_SMALL) },
+  { key: "matchup/par", game: matchupGameFor(MATCHUP_REV_PAR), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_PAR) },
   { key: "swing/tunec", game: swingGameFor(SWING_REV_TUNEC), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_TUNEC) },
   { key: "hover/tunec", game: hoverGameFor(HOVER_REV_TUNEC), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_TUNEC) },
   { key: "inkbridge/tunec", game: inkBridgeGameFor(INK_REV_TUNEC), checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_TUNEC) },

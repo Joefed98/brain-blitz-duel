@@ -24,7 +24,7 @@ import {
   SLICE_INPUT_BEGIN,
   SLICE_INPUT_END,
   SLICE_INPUT_SWIPE,
-  SLICE_MAX_PATH,
+  sliceMaxPath,
   SLICE_R,
   SLICE_SPECIAL_R,
   SLICE_WORLD_H,
@@ -202,7 +202,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       .sort((a, b) => a.d - b.d);
     for (const n of near) {
       const trial = route(s, [...ids, n.f.i], t0, t);
-      if (trial && trial.length <= SLICE_MAX_PATH - 25) ids.push(n.f.i);
+      if (trial && trial.length <= sliceMaxPath(s) - 25) ids.push(n.f.i);
     }
     // A combo player holds off for three in a line while nothing is about to drop.
     if (combo && ids.length < 3 && anchor.exit > 45 && !anchor.special) {

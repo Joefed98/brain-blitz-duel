@@ -11,6 +11,12 @@
  *
  *   bun scripts/arcade-skill-bands.ts cross slice bubble swing matchup snip --rev=f --seeds=2 --save=<logs>   (at <root>)
  *   bun scripts/arcade-tuning-f-legacy.ts <root> <logs> > scripts/fixtures/arcade-tuning-f-legacy.json
+ *
+ * With --new (and the game ids to record) it records runs on the Tuning F
+ * revisions instead (each GameSpec's `tunef`, the logs saved as "next" by
+ * `--rev=f`), so later changes can prove those replay unchanged too:
+ *
+ *   bun scripts/arcade-tuning-f-legacy.ts . <logs> --new cross slice matchup > scripts/fixtures/arcade-tuning-f-runs.json
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
@@ -43,18 +49,22 @@ export interface TuningFRecord {
 if (import.meta.main) {
   const root = process.argv[2]!;
   const logs = process.argv[3]!;
+  const fresh = process.argv.includes("--new");
   const { GAME_BY_TYPE } = await import(`${root}/scripts/arcade-skill-bands/games.ts`);
   const out: TuningFRecord[] = [];
-  for (const [type, rev] of TUNING_F_GAMES) {
+  const games: (readonly [string, number])[] = fresh
+    ? process.argv.slice(4).filter((a) => !a.startsWith("--")).map((type) => [type, GAME_BY_TYPE.get(type).tunef] as const)
+    : TUNING_F_GAMES;
+  for (const [type, rev] of games) {
     const spec = GAME_BY_TYPE.get(type);
     for (const level of LEVELS)
       for (let n = 0; n < PER_LEVEL; n++) {
-        const raw = readFileSync(`${logs}/${type}/live-${level}-${n}.txt`, "utf8");
+        const raw = readFileSync(`${logs}/${type}/${fresh ? "next" : "live"}-${level}-${n}.txt`, "utf8");
         const seed = spec.seedFor(n);
         const result = spec.replay(seed, raw, rev);
         if (result.flagged) throw new Error(`${type} ${level} ${n}: the saved run is flagged`);
         out.push({ type, rev, level, seed, score: result.score, stateHash: fnv(JSON.stringify(result.state)), raw: gzipSync(raw).toString("base64") });
       }
   }
-  console.log(JSON.stringify({ recorded: "code on main before Tuning F (1c0deac)", runs: out }));
+  console.log(JSON.stringify({ recorded: fresh ? "Tuning F code (the new revisions)" : "code on main before Tuning F (1c0deac)", runs: out }));
 }
