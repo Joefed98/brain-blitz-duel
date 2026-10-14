@@ -8,13 +8,16 @@
  * round is always Final Round; every cue is named room.* and listed in
  * docs/sound-cues/room.md; every rfx keyframe moves only transform and opacity
  * (no per-frame gradients, layout or paint properties); every part has a CSS
- * rule; reduced motion swaps to the calm fade and hides movement-only parts;
+ * rule; reduced motion swaps to the calm fade and hides movement-only parts,
+ * and that override reaches only the effect parts (an element outside them
+ * still gets the app's 0.01 ms reduced-motion rule, computed in happy-dom);
  * the effect layers never take taps; the three screens mount the effects and
  * the room flow and server phase code do not import them.
  *
  *   bun scripts/room-moments-check.ts
  */
 import { readFileSync } from "node:fs";
+import { Window } from "happy-dom";
 import {
   DUEL_START_MS,
   ROUND_TITLE_MS,
@@ -122,6 +125,60 @@ for (const spec of [PREPARE_SPEC, FINAL_SPEC, WINNER_SPEC])
     `${spec.moment} keeps a calm part under reduced motion`,
   );
 ok(/\.room-fx \{[^}]*pointer-events: none/.test(css), "effect layers never take taps");
+// The override is scoped: only effect parts (`.room-fx [data-part]`) keep their
+// length under reduced motion; everything else still gets the app's 0.01 ms rule.
+const importantDurations = [
+  ...css.matchAll(/([^{}]+)\{[^{}]*animation-duration:[^;{}]*!important/g),
+].map((m) => m[1]!.trim().replace(/\s+/g, " "));
+ok(
+  importantDurations.length === 2 &&
+    importantDurations.some((sel) => sel === "*, *::before, *::after") &&
+    importantDurations.some((sel) => sel === ".room-fx [data-part]"),
+  `only the global rule and .room-fx [data-part] force animation-duration (${importantDurations.join(" | ")})`,
+);
+const computed = (reducedMotion: "reduce" | "no-preference") => {
+  const win = new Window({
+    width: 390,
+    height: 844,
+    settings: { device: { prefersReducedMotion: reducedMotion } } as never,
+  });
+  const doc = win.document;
+  const sheet = doc.createElement("style");
+  sheet.textContent = css;
+  doc.head.appendChild(sheet);
+  doc.body.innerHTML = `<div class="duel-start-screen" data-category="word">
+    <div class="room-fx" data-moment="round" data-effect="dial">
+      <span id="part" data-part="dial" style="animation-duration: 2750ms; --rfx-dur: 2750ms"><i id="mark"></i></span>
+    </div>
+    <div id="bolt" class="duel-start-bolt"></div>
+    <div class="round-title-lines"><h1 id="heading" class="round-title-heading">ROUND 1</h1></div>
+    <span id="outside" data-part="dial" style="animation-duration: 2750ms; --rfx-dur: 2750ms"></span>
+    <div id="plain" style="animation-name: rfx-halo; animation-duration: 900ms"></div>
+  </div>`;
+  const duration = (id: string) => win.getComputedStyle(doc.getElementById(id)!).animationDuration;
+  return { win, duration };
+};
+{
+  const { win, duration } = computed("reduce");
+  ok(
+    win.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    "happy-dom honours reduced motion",
+  );
+  ok(duration("part") === "2750ms", `effect part keeps its calm fade length (${duration("part")})`);
+  for (const id of ["mark", "bolt", "heading", "outside", "plain"])
+    ok(
+      duration(id) === "0.01ms",
+      `#${id} outside the effect parts still gets the 0.01 ms rule (${duration(id)})`,
+    );
+}
+{
+  const { duration } = computed("no-preference");
+  ok(
+    duration("plain") === "900ms",
+    `without reduced motion the 0.01 ms rule is off (${duration("plain")})`,
+  );
+}
+
 for (const spec of [PREPARE_SPEC, FINAL_SPEC])
   ok(!spec.parts.some((p) => p.part === "flash" && !p.motionOnly), "flashes are movement-only");
 
