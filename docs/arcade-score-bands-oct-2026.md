@@ -295,11 +295,11 @@ from `bun scripts/arcade-skill-bands.ts snip --rev=bank --seeds=60`, snipRev 5 �
 |---|---|---|---|---|---|
 | Scrumper | snipRev 5 → 6 | 70 (41–113) → 73 (38–100) | 108 (76–134) → 102 (82–135) | 134 (97–137) → 132 (91–136) | 136 (125–145) → 135 (107–145) |
 
-## Pinball (13 Oct 2026): a new game, born on the bands — practice only
+## Pinball (13 Oct 2026): a new game, born on the bands — in rooms from 14 Oct
 
 Pinball (`pinball`, working title; Retro world) is new, so it has no older scoring to keep: its first revision
 (`pinRev 1`) is band-stamped from the start and is an **open** game (table points on a curve to 150, no finish bonus,
-0 with no input). Rooms do not deal it until `PINBALL_IN_ROOMS` (`src/lib/arcade/pinball.ts`) is switched on.
+0 with no input). Practice only on 13 Oct; rooms deal it from 14 Oct (`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is `true`, Tuning F below), with the same rules and curve.
 
 The units are the table's own points (multiplier included): pop bumper 100, slingshot 10, drop target 400, all four
 targets 2,500 more (the spinner is lit for 15 s and the bank stays open for 6 s), a top lane lit 100 (again 20), all
@@ -333,3 +333,33 @@ full near-perfect minute and 30 dense random runs identically on the server, sho
 a move far longer than the bumper, thin target or swinging flipper it hits, and fires 2,500 fast shots at bumpers,
 targets and swinging flippers without the ball ever ending a tick inside a collider or on the far side of one.
 `arcade-self-replay-check`, `arcade-fx-check`, `arcade-score-bands-check` and `arcade-play-check` include it.
+
+## Tuning F (14 Oct 2026): six games, Pinball in rooms
+
+Joe's notes from phone play. Every play or scoring change is a new stamp; older rounds replay and score exactly as before
+(`scripts/arcade-tuning-f-check.ts` replays 48 runs recorded on the code before this change,
+`scripts/fixtures/arcade-tuning-f-legacy.json`, and runs recorded on each new revision, `scripts/fixtures/arcade-tuning-f-runs.json`;
+`bubble-rev4-check`, `swing-rev8-check` and `snip-rev7-check` hold the Coral Pop, Grappler and Scrumper proofs and stored runs).
+Medians (p10–p90) from `bun scripts/arcade-skill-bands.ts <game> --rev=f --seeds=60`: the revision rooms stamped before → the
+Tuning F one, same simulated players and seeds.
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Jaywalk | crossRev 4 → 5 | The walker's hit box is 13 px either side of its column (was 16): the stick figure's own reach. Same courses (still proved with the 16 px box) and curve | 67 (47–90) → 69 (46–102) | 96 (61–145) → 96 (61–145) | 109 (64–146) → 121 (63–147) | 127 (68–148) → 133 (70–150) |
+| Slice | sliceRev 4 → 5 | One finger-down path cuts up to 620 px (the world's height; was 465, three quarters). Same foods, blade and curve | 74 (46–92) → 71 (46–90) | 105 (85–137) → 105 (80–138) | 129 (95–146) → 130 (99–145) | 126 (98–143) → 131 (104–147) |
+| Coral Pop | bubbleRev 3 → 4 | The torpedo never sticks: it flies like any shot and, once it touches the field, keeps going the way it points, destroying each bubble it touches (up to 6) until the top row's line; bubbles left unheld then drop as after any pop. It no longer clears its whole row (and everything under it). Same field, queue and curve | 62 (36–95) → 64 (38–104) | 105 (80–140) → 107 (80–126) | 126 (118–142) → 126 (118–140) | 129 (118–148) → 129 (118–141) |
+| Grappler | swingRev 7 → 8 | The ten touch stars sit one per equal stretch of 30–490 m (aimed at each stretch's middle, on a proved line), not bunched near the start (gaps 46 ± 1.5 m against 39 ± 49 m over all 300 bank courses). Same cavern, hazards and curve. The dragon's "N m" label (all revisions, display only) is hidden beyond 50 m, small at 40–50 m and full size within 10 m | 67 (20–101) → 63 (20–95) | 91 (41–122) → 100 (41–122) | 116 (85–135) → 114 (83–142) | 123 (104–139) → 131 (108–140) |
+| Gemstone | matchupRev 5 → 6 | Score only: 150 at 2,800 match points (was 2,500); the knots from 100 up move by the same factor (1,008 → 100, 1,456 → 125, 2,240 → 145), 620 → 70 stays | 70 (43–100) → 70 (43–92) | 88 (58–118) → 83 (58–110) | 103 (63–126) → 95 (63–119) | 112 (91–129) → 105 (85–125) |
+| Scrumper | snipRev 6 → 7 | Each pin's seeded wobble is one of −10 / −5 / 0 / +5 / +10 px (the same pin stream; was any of −10…+10), so a level with k pins has 5^k deals, and every one of the 4,435 deals over the 67-level bank has a stored human-paced winning plan. Crook gutter run (template 116: 28 of its 441 rev-6 deals had no plan, where its two pins meet) is dealt as a fixed copy (template 129) in its slot; the bot's other misses were its search, not the levels. Same ten levels per seed, rules and curve | 73 (38–100) → 70 (43–97) | 102 (82–135) → 104 (76–134) | 132 (91–136) → 134 (100–137) | 135 (107–145) → 136 (121–145) |
+
+- **No curve refits.** Every level moved by a few points at most (Jaywalk's great and Grappler's good about 10, within the
+  seed noise those levels show), so each new revision keeps its predecessor's curve; Gemstone's change is the curve.
+- **Gemstone** still sits below band from good up because the bots never plan cascades (as in Tuning C); Joe's par is
+  the calibration. A scripted greedy player still reaches 150 through the server replay.
+- **Coral Pop** barely moves in the medians because a run deals only one mine or torpedo; on seeds that deal a torpedo
+  the greedy bot's score fell from 142–147 to 91–126. No simulated run reaches 150 on rev 3 or rev 4 (best stored, a
+  clear at 54.7 s, scores 148).
+- **Best scores** through the server replay: 150 on Jaywalk, Gemstone, Grappler and Scrumper; Slice's flawless player
+  reaches the 140s.
+- **Pinball** moves into rooms (Arcade 22 active, 74 in all) with a display-only table polish (cached table layer,
+  lit inserts by gradient, bevels inside each solid's outline); pinRev 1 and its curve are unchanged.
