@@ -37,6 +37,14 @@ export const TAP_REV = 1;
  * Bang On's steeper fall above 200 ms). Ascend stays on TAP_REV.
  */
 export const TAP_REV_CARELESS = 2;
+/**
+ * Flash and Bang On (14 Oct 2026, Speed tuning): the same tap logs and replays.
+ * Flash deals gold-like decoys and scores on a steeper curve (scoring.ts
+ * FLASH_REV3_CURVE); Bang On's watches add blind spots, longer sweeps and
+ * diagonal faces, and full marks need ≤ 5 ms (STOPWATCH_REV3_CURVE). Ascend
+ * stays on TAP_REV.
+ */
+export const TAP_REV_SPEED_TUNING = 3;
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */
 export const TAP_LOG_PREFIX = "log1:";
 /** The most taps the server reads; the phone stops logging here. */
@@ -51,7 +59,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {

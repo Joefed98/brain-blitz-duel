@@ -18,6 +18,8 @@ import {
   CHAIN_BOARD_W_PX,
   CHAIN_COLOURS,
   CHAIN_CYCLE,
+  CHAIN_CYCLE_LONG,
+  CHAIN_CYCLE_REV,
   CHAIN_MIN_CENTRAL,
   CHAIN_NODES,
   CHAIN_NODE_GAP_PX,
@@ -113,6 +115,57 @@ function shuffle<T>(list: readonly T[], random: () => number): T[] {
   return out;
 }
 
+/**
+ * chainCycleRev 1: the 20 faces for a five-symbol board: each rule charm once,
+ * then for each one a near miss sharing its shape and one sharing its colour
+ * (never a rule charm), then more near misses to 20; shuffled.
+ */
+export function chainLongBoardFaces(cycle: ChainRuleItem[], random: () => number): ChainRuleItem[] {
+  const faces: ChainRuleItem[] = cycle.map((item) => ({ ...item }));
+  const isRule = (face: ChainRuleItem) => cycle.some((item) => sameItem(item, face));
+  for (const item of cycle) {
+    let face: ChainRuleItem;
+    do face = { shape: item.shape, colour: pick(CHAIN_COLOURS.filter((c) => c !== item.colour), random) };
+    while (isRule(face));
+    faces.push(face);
+    do face = { shape: pick(CHAIN_SHAPES.filter((s) => s !== item.shape), random) as ChainShape, colour: item.colour };
+    while (isRule(face));
+    faces.push(face);
+  }
+  while (faces.length < CHAIN_NODES) {
+    const item = pick(cycle, random);
+    const face = random() < 0.5
+      ? { shape: item.shape, colour: pick(CHAIN_COLOURS, random) as ChainColour }
+      : { shape: pick(CHAIN_SHAPES, random), colour: item.colour };
+    if (!isRule(face)) faces.push(face);
+  }
+  return shuffle(faces, random);
+}
+
+/**
+ * chainCycleRev 1: five different charms; no shape or colour used more than
+ * twice, and neighbours (the last and first too) share neither shape nor colour.
+ */
+function longCycle(random: () => number, previous: ChainRuleItem[] | undefined): ChainRuleItem[] {
+  for (;;) {
+    const cycle: ChainRuleItem[] = [];
+    for (let tries = 0; tries < 200 && cycle.length < CHAIN_CYCLE_LONG; tries++) {
+      const face = { shape: pick(CHAIN_SHAPES, random), colour: pick(CHAIN_COLOURS, random) } as ChainRuleItem;
+      const last = cycle.at(-1);
+      if (cycle.some((item) => sameItem(item, face))) continue;
+      if (cycle.filter((item) => item.shape === face.shape).length >= 2) continue;
+      if (cycle.filter((item) => item.colour === face.colour).length >= 2) continue;
+      if (last && (last.shape === face.shape || last.colour === face.colour)) continue;
+      if (cycle.length === CHAIN_CYCLE_LONG - 1 && (cycle[0]!.shape === face.shape || cycle[0]!.colour === face.colour)) continue;
+      cycle.push(face);
+    }
+    if (cycle.length < CHAIN_CYCLE_LONG) continue;
+    // The board must change at every reshuffle: a different first charm and a different set.
+    if (previous && (sameItem(previous[0]!, cycle[0]!) || cycle.every((item) => previous.some((old) => sameItem(item, old))))) continue;
+    return cycle;
+  }
+}
+
 /** The 20 node faces for one block, in shuffled order. */
 export function chainBoardFaces(cycle: ChainRuleItem[], block: number, random = seededRandom(randInt(0, 0x7fffffff))): ChainRuleItem[] {
   const faces: ChainRuleItem[] = [];
@@ -146,7 +199,36 @@ export function chainBoardFaces(cycle: ChainRuleItem[], block: number, random = 
   return shuffle(faces, random);
 }
 
+/** chainCycleRev 1: eight boards, each with its own five-symbol cycle. */
+function generateLongChain(seed: number): ChainPuzzleData {
+  const random = seededRandom(seed);
+  const cycles: ChainRuleItem[][] = [];
+  const boards: ChainNode[][] = Array.from({ length: CHAIN_BOARDS }, () => {
+    const cycle = longCycle(random, cycles.at(-1));
+    cycles.push(cycle);
+    let points = samplePoints(random);
+    while (!points) points = samplePoints(random);
+    const faces = chainLongBoardFaces(cycle, random);
+    return points.map((point, index) => ({ ...point, ...faces[index]! }));
+  });
+  return {
+    type: "chain",
+    rulesVersion: CHAIN_RULES_VERSION,
+    chainTimeRev: CHAIN_TIME_REV,
+    chainCycleRev: CHAIN_CYCLE_REV,
+    seed,
+    cycle: cycles[0] ?? [],
+    cycles,
+    boards,
+  };
+}
+
 export function generateChain(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
+  return generateLongChain(seed);
+}
+
+/** The three-symbol generator rooms used before chainCycleRev 1 (kept for checks and fixtures). */
+export function generateChainV2(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
   const random = seededRandom(seed);
   const cycles: ChainRuleItem[][] = [];
   const boards: ChainNode[][] = Array.from({ length: CHAIN_BOARDS }, () => {

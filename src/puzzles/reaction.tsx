@@ -8,7 +8,7 @@ import {
   FLASH_FASTEST_MS,
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV_CARELESS,
+  TAP_REV_SPEED_TUNING,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -17,11 +17,14 @@ import {
 } from "@/lib/duel/tapLog";
 import {
   REACTION_DECOY_MS,
+  REACTION_GOLD_LIKE_DECOYS,
+  REACTION_PLAIN_DECOYS,
   REACTION_MAX_FLASHES,
   REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
   REACTION_MISS_MS,
   REACTION_ROUND_MS,
+  type ReactionDecoyColour,
   type ReactionPuzzleData,
 } from "@/lib/duel/types";
 
@@ -31,7 +34,18 @@ import { FLASH_FALSE_START_COST } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-const DECOY_COLOURS = ["teal", "red", "blue"] as const;
+const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
+
+/**
+ * tapRev 3: every gold-like decoy (amber, border, word, half) appears at least
+ * once; the rest are a seeded mix of plain and gold-like; the first decoy of the
+ * round is always a plain colour.
+ */
+function dealDecoyKinds(count: number): ReactionDecoyColour[] {
+  const kinds: ReactionDecoyColour[] = [...REACTION_GOLD_LIKE_DECOYS].slice(0, Math.max(0, count - 1));
+  while (kinds.length < count - 1) kinds.push(randInt(0, 1) === 0 ? pick(REACTION_PLAIN_DECOYS) : pick(REACTION_GOLD_LIKE_DECOYS));
+  return count > 0 ? [pick(REACTION_PLAIN_DECOYS), ...shuffled(kinds)] : [];
+}
 
 /** 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. */
 export function buildReaction(): ReactionPuzzleData {
@@ -75,7 +89,9 @@ export function buildReaction(): ReactionPuzzleData {
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
     ]);
   }
-  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_CARELESS };
+  const kinds = dealDecoyKinds(decoys.length);
+  decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
+  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_SPEED_TUNING };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -103,13 +119,13 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-center text-sm text-muted-foreground">
-        The screen stays dark. It flashes gold five to eight times - tap the instant it does.
+        The screen stays dark. It turns fully gold five to eight times - tap the instant it does.
       </p>
       <div className="flex items-center gap-2">
         <span className="flex h-16 w-20 items-center justify-center rounded-xl border border-border bg-card font-mono text-xs text-muted-foreground">
           Wait…
         </span>
-        <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-opponent font-display text-xs font-bold text-primary-foreground">
+        <span className="flash-decoy-amber flex h-16 w-20 items-center justify-center rounded-xl font-display text-xs font-bold text-primary-foreground">
           Don't tap
         </span>
         <span className="flex h-16 w-20 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
@@ -117,9 +133,9 @@ function IntroExample() {
         </span>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Teal, red or blue is a trap: tapping it, tapping a dark screen, or tapping within {FLASH_FASTEST_MS} ms of the
-        gold (too fast to be a reaction) is a false start: −8 each for the first two, −11 each after that. Score: 150 at
-        200 ms average or faster, −16 per 100 ms slower; a missed flash counts 1,200 ms.
+        Traps: teal, red or blue, near-gold amber, a gold border, the word GOLD, half the screen gold. Tapping a trap, a
+        dark screen, or within {FLASH_FASTEST_MS} ms of the gold is a false start: −8 each for the first two, −11 each
+        after that. Score: 150 at 150 ms average or faster, 128 at 200 ms, 100 at 300 ms; a missed flash counts 1,200 ms.
       </p>
     </div>
   );
@@ -215,6 +231,7 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       live={liveIndex >= 0}
       done={done}
       decoy={decoy !== null}
+      decoyKind={decoy?.color ?? null}
       onTap={handleTap}
       inactive={locked || done}
       runKey={key}
@@ -223,16 +240,34 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
   );
 }
 
-function surfaceFor(liveIndex: number, decoy: { color: string } | null): string {
-  return liveIndex >= 0
-    ? "bg-primary"
-    : decoy
-      ? decoy.color === "teal"
-        ? "bg-opponent"
-        : decoy.color === "red"
-          ? "bg-destructive"
-          : "bg-reaction-blue"
-      : "bg-background";
+function surfaceFor(liveIndex: number, decoy: { color: ReactionDecoyColour } | null): string {
+  if (liveIndex >= 0) return "bg-primary";
+  switch (decoy?.color) {
+    case "teal":
+      return "bg-opponent";
+    case "red":
+      return "bg-destructive";
+    case "blue":
+      return "bg-reaction-blue";
+    case "amber":
+      return "flash-decoy-amber";
+    default:
+      // No decoy, or a gold-like decoy drawn over the dark screen (border, word, half).
+      return "bg-background";
+  }
+}
+
+/** tapRev 3's gold-like decoys drawn over the dark screen (amber is a full-screen colour). */
+function DecoyOverlay({ kind }: { kind: ReactionDecoyColour }) {
+  if (kind === "border") return <span aria-hidden="true" data-flash-decoy="border" className="flash-decoy-border" />;
+  if (kind === "half") return <span aria-hidden="true" data-flash-decoy="half" className="flash-decoy-half" />;
+  if (kind === "word")
+    return (
+      <span aria-hidden="true" data-flash-decoy="word" className="flash-decoy-word relative font-display font-bold">
+        GOLD
+      </span>
+    );
+  return null;
 }
 
 function ReactionArena({
@@ -242,6 +277,7 @@ function ReactionArena({
   live,
   done,
   decoy,
+  decoyKind = null,
   onTap,
   inactive,
   runKey = "",
@@ -253,6 +289,8 @@ function ReactionArena({
   live: boolean;
   done: boolean;
   decoy: boolean;
+  /** The decoy on screen (drawn by kind), or null. */
+  decoyKind?: ReactionDecoyColour | null;
   onTap: () => void;
   inactive: boolean;
   /** Identifies the run, so the end-of-run effect plays once per run. */
@@ -271,6 +309,7 @@ function ReactionArena({
   }, [fxScore, runKey]);
   useEffect(() => registerFxPreview("reaction", () => fireFlashGoldPulse(arenaRef.current)), []);
   const cue = live ? "gold" : decoy ? "decoy" : "idle";
+  const overlay = !live && decoyKind && decoyKind !== "amber" && (REACTION_GOLD_LIKE_DECOYS as readonly string[]).includes(decoyKind) ? decoyKind : null;
   return (
     <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
@@ -288,9 +327,11 @@ function ReactionArena({
         }}
         ref={arenaRef}
         data-flash-cue={cue}
+        data-flash-decoy-kind={decoy && !live ? (decoyKind ?? undefined) : undefined}
         data-game-arena="tall" className={`flash-arena relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
       >
         <span aria-hidden="true" className="flash-art" />
+        {overlay && !(overlay === "word" && lastShown) && <DecoyOverlay kind={overlay} />}
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {live ? null : lastShown ? (
           <span
@@ -301,7 +342,7 @@ function ReactionArena({
         ) : done ? (
           <span className="relative text-base text-muted-foreground">All flashes done</span>
         ) : decoy ? null : (
-          <span className="flash-wait relative font-mono text-base uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
+          <span className="flash-wait relative px-3 text-center font-display text-3xl font-bold uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
         )}
       </button>
     </div>
@@ -401,6 +442,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       live={liveIndex >= 0}
       done={replay.done}
       decoy={decoy !== null}
+      decoyKind={decoy?.color ?? null}
       onTap={handleTap}
       inactive={locked || replay.done}
       runKey={key}

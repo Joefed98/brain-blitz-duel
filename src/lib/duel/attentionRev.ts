@@ -8,13 +8,14 @@
  * Every stamped round is also on the puzzle score shape (puzzleScoreRev 1): a
  * finish = 120 + PAR(30), unfinished credit at most 110.
  *
- *   Eagle Eye:   grid 3 has two target directions. Grids worth 30 / 35 / 45,
+ *   Eagle Eye:   grid 3 has two target directions. Grids worth 40 / 40 / 30,
  *                share of eagles found − 3 per wrong tap; all three perfect = finish.
  *   Double Take: two pictures (sweet shop, then rock pool), six differences each,
- *                60 s. 9 per difference − 4 per wrong tap; a finish needs all twelve
+ *                60 s. 10 per difference − 4 per wrong tap; a finish needs all twelve
  *                with at most 5 wrong taps in each picture.
- *   Tally:       a fourth tray asks "how many more A than B?", 60 s. Trays worth
- *                20 / 25 / 30 / 35, near counts 60 % / 30 %; all four exact = finish.
+ *   Tally:       a fourth tray asks "how many more A than B?", 60 s; 13 possible answers
+ *                a tray. Trays worth 40 / 30 / 25 / 15, one off 15 %, further off 0;
+ *                all four exact = finish.
  */
 import { finishParts, partialParts } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
@@ -172,7 +173,7 @@ export function scoreSpotTwo(r: SpotTwoResult, msRemaining: number, limit: numbe
 
 /* -------------------------------- Tally -------------------------------- */
 
-export const COUNT_REV2_WEIGHTS = [30, 30, 30, 20] as const;
+export const COUNT_REV2_WEIGHTS = [40, 30, 25, 15] as const;
 export const COUNT_REV2_TRAYS = 4;
 
 export function usesCountRev2(p: Pick<CountUpPuzzleData, "countRev">): boolean {
@@ -203,13 +204,15 @@ export function countUpCounts(
   return shape.shape === stage.targetShape && shape.colour === stage.targetColour;
 }
 
+/** countRev 2: one off scores this share of the tray; two or more off scores nothing (blind guesses must not pay). */
+export const COUNT_REV2_NEAR = 0.15;
+
 export function countRev2StagePoints(stage: number, given: number | null, truth: number): number {
   if (given === null) return 0;
   const weight = COUNT_REV2_WEIGHTS[stage] ?? 0;
   const away = Math.abs(given - truth);
   if (away === 0) return weight;
-  if (away === 1) return Math.round(weight * 0.6);
-  if (away === 2) return Math.round(weight * 0.3);
+  if (away === 1) return Math.round(weight * COUNT_REV2_NEAR);
   return 0;
 }
 

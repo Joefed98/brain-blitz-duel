@@ -560,6 +560,22 @@ function clayAt(s: ClayState, i: number, dt: number): { x: number; y: number } {
   for (let k = 0; k < dt; k++) { x += s.schedule.vx[i]!; vy += CLAY_CONFIG.gravity; y += vy; }
   return { x: x / 256, y: y / 256 };
 }
+/** The flying bird nearest a point, or -1. */
+function flyingBird(s: ClayState, near: { x: number; y: number }): number {
+  let best = -1;
+  let bestD = Infinity;
+  s.birdStatus?.forEach((st, i) => {
+    if (st !== CLAY_BIRD_FLYING) return;
+    const d = Math.hypot(s.birdX![i]! / 256 - near.x, s.birdY![i]! / 256 - near.y);
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  return best;
+}
+/** Where bird i will be after dt ticks (straight line), px. */
+function birdAt(s: ClayState, i: number, dt: number): { x: number; y: number } {
+  const b = s.birds!;
+  return { x: (s.birdX![i]! + b.vx[i]! * dt) / 256, y: (s.birdY![i]! + b.vy[i]! * dt) / 256 };
+}
 const shot = (x: number, y: number): Ev => ({ k: CLAY_INPUT_SHOT, a: Math.round(Math.max(0, Math.min(CLAY_W, x))), b: Math.round(Math.max(0, Math.min(CLAY_H, y))), c: 0 });
 
 const clayKit: PuzzleKit = {
@@ -613,7 +629,12 @@ const clayKit: PuzzleKit = {
       if (aim.x < -10 || aim.x > CLAY_W + 10 || aim.y > CLAY_H + 10) { nextFree = t + 3; return null; }
       const slip = rng.chance(skill.err) ? 3 : 1;
       const late = Math.round((rng.normal(0, prof.timingSdMs) * slip) / TICK_MS);
-      pending = { tick: Math.max(t + 1, t + dt + late), ev: shot(aim.x + rng.normal(0, prof.aimSdPx * slip), aim.y + rng.normal(0, prof.aimSdPx * slip)) };
+      // A bird in flight is sometimes taken for a clay on the first look (a quarter of the slip rate,
+      // 14 Oct 2026): the shot goes where that bird will be. More birds in the sky, more of these.
+      const bird = first ? flyingBird(s, aim) : -1;
+      const fooled = bird >= 0 && rng.chance(skill.err * 0.25);
+      const at = fooled ? birdAt(s, bird, dt) : aim;
+      pending = { tick: Math.max(t + 1, t + dt + late), ev: shot(at.x + rng.normal(0, prof.aimSdPx * slip), at.y + rng.normal(0, prof.aimSdPx * slip)) };
       nextFree = pending.tick + ticks(Math.max(100, rng.normal(180, 40) * skill.pace));
       return null;
     });

@@ -44,6 +44,8 @@ export const ORBIT_REV4 = 4;
 export const ORBIT_REV_BAND = 5;
 /** Rev 6 (Tuning A): rev-5 courses and bands; a 1 s fly-in after a black hole and an earlier end to a missed hop (orbitRev3.ts). */
 export const ORBIT_REV_TUNED = 6;
+/** Rev 7 (Tuning F): rev-6 play with swept black holes: every hole ahead swallows the rocket the moment its drawn body touches the disc (orbitRev3.ts). */
+export const ORBIT_REV_SWEPT = 7;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
@@ -165,8 +167,23 @@ export function orbitExtent(p: { kind: number; ring: number }): number {
 
 /** Rocket swept against the circular arc, including its endpoints; never called on orbit. */
 export function orbitFlightHitsBelt(p: Planet, x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
+  return orbitFlightBeltK(p, x0, y0, x1, y1, tick) >= 0;
+}
+
+/** Sample steps a swept flight segment is tested in: one per started px of its longer axis. */
+export function orbitSweepSteps(x0: number, y0: number, x1: number, y1: number): number {
+  return Math.max(1, Math.trunc((Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + FP - 1) / FP));
+}
+
+/**
+ * The first sample (0..orbitSweepSteps) at which the swept segment touches the
+ * planet's belt, or -1. orbitFlightHitsBelt is exactly `>= 0` of this, so the
+ * belt test itself is unchanged; orbitRev 7 also uses the index to order a
+ * belt against a black hole on the same tick.
+ */
+export function orbitFlightBeltK(p: Planet, x0: number, y0: number, x1: number, y1: number, tick: number): number {
   const start = orbitBeltStart(p, tick);
-  if (start < 0) return false;
+  if (start < 0) return -1;
   const radius = orbitBeltRadius(p);
   const pad = ORBIT_ROCKET_DIAMETER / 2 + ORBIT_BELT_HALF_WIDTH + FP / 2;
   const steps = Math.max(1, Math.trunc((Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + FP - 1) / FP));
@@ -176,11 +193,11 @@ export function orbitFlightHitsBelt(p: Planet, x0: number, y0: number, x1: numbe
     const dy = y0 + Math.trunc((y1 - y0) * k / steps) - p.y;
     const d2 = dx * dx + dy * dy;
     if (d2 < (radius - pad) ** 2 || d2 > (radius + pad) ** 2) continue;
-    if (((iatan2(dy, dx) - start) & 65535) < HAZARD_SPAN) return true;
+    if (((iatan2(dy, dx) - start) & 65535) < HAZARD_SPAN) return k;
     if ((dx - first.u) ** 2 + (dy - first.v) ** 2 <= pad * pad ||
-        (dx - last.u) ** 2 + (dy - last.v) ** 2 <= pad * pad) return true;
+        (dx - last.u) ** 2 + (dy - last.v) ** 2 <= pad * pad) return k;
   }
-  return false;
+  return -1;
 }
 
 export function flightHitsBelts(planets: readonly Planet[], x0: number, y0: number, x1: number, y1: number, tick: number): boolean {
@@ -691,10 +708,12 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   let checksum = 0x811c9dc5;
   const values = Object.values(snap);
   // Rev 4 folds its black-hole counters in; older states never have them, so their sums are unchanged.
-  const holes = state as { jumps?: number; skipped?: number; tuned?: number; warp?: number };
+  const holes = state as { jumps?: number; skipped?: number; tuned?: number; warp?: number; swept?: number };
   if (holes.jumps !== undefined) values.push(holes.jumps, holes.skipped ?? 0);
   // orbitRev 6 folds in its fly-in after those.
   if (holes.tuned) values.push(holes.tuned, holes.warp ?? 0);
+  // orbitRev 7 (swept black holes) adds its marker last, so rev-4/5/6 checksums are unchanged.
+  if (holes.swept) values.push(holes.swept);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

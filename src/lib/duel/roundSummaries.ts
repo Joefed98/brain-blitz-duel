@@ -140,7 +140,7 @@ import {
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
 import { SH_TIME_MS, SH_STAGES } from "./sumHunt";
-import { BAL_SCALES, BAL_TIME_MS } from "./balance";
+import { BAL_TIME_MS, balanceScaleCount } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
@@ -211,8 +211,9 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
-  // Double Take spotRev 1 and Tally countRev 2 carry their own 60 s clock.
-  if ((puzzle.type === "spotdiff" || puzzle.type === "countup") && puzzle.timeLimitMs) return Math.max(0, puzzle.timeLimitMs - result.ms_remaining);
+  // A puzzle that carries its own clock (Tower's five discs, Bomb v2, Counterweight balanceRev 2, Ballpark numlineRev 2, Double Take spotRev 1, Tally countRev 2) wins.
+  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
+  if (typeof own === "number" && own > 0) return Math.max(0, own - result.ms_remaining);
   const direct = DIRECT_LIMITS[puzzle.type];
   if (direct) return Math.max(0, direct - result.ms_remaining);
   const limit =
@@ -676,8 +677,10 @@ const sumHuntSummary: SummaryBuilder = (result, puzzle) => {
 
 const balanceSummary: SummaryBuilder = (result, puzzle) => {
   const solved = Number(result.extra?.["solved"] ?? result.correct_count ?? 0);
+  // balanceRev 2 deals four scales; stored rounds three.
+  const total = puzzle.type === "balance" ? balanceScaleCount(puzzle) : 3;
   return {
-    summary: solved === BAL_SCALES ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / 3`,
+    summary: solved === total ? `${total} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${solved} / ${total}`,
     detail: [],
   };
 };
@@ -1564,7 +1567,9 @@ const checkoutSummary: SummaryBuilder = (result, puzzle) => {
 const numlineSummary: SummaryBuilder = (result) => {
   const placed = Number(result.extra?.["placed"] ?? 0);
   const close = Number(result.extra?.["withinFull"] ?? 0);
-  return { summary: `${placed} / 15 placed · ${close} within 2%`, detail: [] };
+  // numlineRev 2 counts "close" within 1 %; stored rounds within 2 %.
+  const within = Number(result.extra?.["numlineRev"] ?? 1) >= 2 ? "1%" : "2%";
+  return { summary: `${placed} / 15 placed · ${close} within ${within}`, detail: [] };
 };
 
 const trailSummary: SummaryBuilder = (result) => {

@@ -19,7 +19,7 @@ import type {
 import { applyOperation, encodeSteps, TARGET_OPERATORS } from "../../src/lib/duel/target";
 import { equationStageCorrect, joinStages } from "../../src/lib/duel/stagedRounds";
 import { balancePlaceLimits, equationTryLimit, joinCountSuffix } from "../../src/lib/duel/moveLimits";
-import { BAL_PEGS, encodeBalance, scaleSolved, type Placement } from "../../src/lib/duel/balance";
+import { encodeBalance, scalePegs, scaleSolved, type Placement } from "../../src/lib/duel/balance";
 import { NP_SET_SIZE, npComplete, npEncodeRound, type NpPlacements } from "../../src/lib/duel/numberPyramid";
 import { trComplete, trEncode, trSlots, trTapPath, trUndoPlayer, TR_CELLS } from "../../src/lib/duel/trail";
 import {
@@ -273,7 +273,7 @@ const equationKit: PuzzleKit = {
 /* ============================= Counterweight ============================= */
 
 function balanceFreePegs(scale: BalancePuzzleData["scales"][number], placement: Placement, tray: number): number[] {
-  return Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter(
+  return Array.from({ length: scalePegs(scale) }, (_, peg) => peg).filter(
     (peg) => !scale.fixed.some((f) => f.peg === peg) && !placement.some((q, i) => i !== tray && q === peg),
   );
 }
@@ -322,8 +322,10 @@ const balanceKit: PuzzleKit = {
     return out;
   },
   play(p, rng, skill) {
-    // BASE 5 s per weight: work out a torque and hang the weight (two taps).
-    const BASE = 5;
+    // BASE 5 s per weight: work out a torque and hang the weight (two taps). balanceRev 2's 10-notch
+    // scale takes 10 s a weight: five weights over seven free notches at distances to 5 is a search, not a sum.
+    const BASE_8 = 5;
+    const BASE_10 = 10;
     const puzzle = p as BalancePuzzleData;
     const limits = balancePlaceLimits(puzzle);
     const rec = recorder();
@@ -334,6 +336,7 @@ const balanceKit: PuzzleKit = {
       const scale = puzzle.scales[s]!;
       const sol = puzzle.solutions?.[s] ?? [];
       const pl = placements[s]!;
+      const BASE = scalePegs(scale) > 8 ? BASE_10 : BASE_8;
       // balanceRev 1: each hang counts; the phone refuses hangs past the scale's limit.
       const canHang = () => !limits || hangs[s]! < limits[s]!;
       const hang = (i: number, peg: number) => { pl[i] = peg; hangs[s]!++; rec.push(answer()); };

@@ -15,7 +15,7 @@
  *   4. Anchors: finish 150 at half time and 120 at the buzzer; best unfinished 110 or less;
  *      Double Take's 5-wrong-taps-per-picture allowance; nothing scores 0; the stored shape
  *      on an unstamped copy is unchanged.
- *   5. Random play on 24 seeds: every spam strategy's median ≤ 60, no spam finish.
+ *   5. Random play on 24 seeds: every spam strategy's median ≤ 60 (Tally's blind guesses ≤ 6), no spam finish.
  *   6. Intro demos recorded before the rework are rejected.
  *
  *   bun scripts/attention-rework-check.ts
@@ -37,7 +37,7 @@ import {
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { joinStages } from "../src/lib/duel/stagedRounds";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { countUpSceneValid } from "../src/puzzles/countUp";
+import { COUNTUP_STAGE_COUNTS_REV2, countUpSceneValid } from "../src/puzzles/countUp";
 import { differenceGroups } from "../src/puzzles/spotTheDifference";
 import type {
   CountUpPuzzleData,
@@ -172,11 +172,16 @@ for (let i = 0; i < 40; i++) {
     );
     ok(countUpSceneValid(st), `countup ${seed}: tray ${k + 1} has a counted shape mostly hidden`);
     ok((k === 3) === !!st.compare, `countup ${seed}: tray ${k + 1} compare ${!!st.compare}`);
+    if (k < 3) {
+      const [lo, hi] = COUNTUP_STAGE_COUNTS_REV2[k]!;
+      const n = countUpStageTruth(st);
+      ok(n >= lo && n <= hi, `countup ${seed}: tray ${k + 1} count ${n} outside ${lo}–${hi}`);
+    }
   });
   const cmp = tally.stages[3]!;
   if (cmp.compare) {
     const truth = countUpStageTruth(cmp);
-    ok(truth >= 1 && truth <= 10, `countup ${seed}: comparison answer ${truth}`);
+    ok(truth >= 1 && truth <= 13, `countup ${seed}: comparison answer ${truth}`);
     const close: [string, string][] = [
       ["RED", "ORANGE"],
       ["ORANGE", "BROWN"],
@@ -313,9 +318,14 @@ const half = (p: PuzzleData) => (p as { timeLimitMs?: number }).timeLimitMs ?? 3
     4,
   );
   const r = gradeAnswer(p, off, 30_000);
-  ok(!r.isCorrect && r.score === 90 + 12, `countup: tray 4 one off ${r.score}`);
+  ok(!r.isCorrect && r.score === 95 + 2, `countup: tray 4 one off ${r.score}`);
+  // countRev 2: one off = 15 % of the tray, two off = 0.
+  const twoOff = gradeAnswer(p, joinStages(truths.map((t, i) => String(i === 0 ? t + 2 : t)), 4), 30_000);
+  ok(!twoOff.isCorrect && twoOff.score === 30 + 25 + 15, `countup: tray 1 two off ${twoOff.score}`);
+  const oneOff = gradeAnswer(p, joinStages(truths.map((t, i) => String(i === 0 ? t - 1 : t)), 4), 30_000);
+  ok(!oneOff.isCorrect && oneOff.score === 6 + 30 + 25 + 15, `countup: tray 1 one off ${oneOff.score}`);
   const three = gradeAnswer(p, joinStages(truths.slice(0, 3).map(String), 4), 30_000);
-  ok(!three.isCorrect && three.score === 90, `countup: three exact ${three.score}`);
+  ok(!three.isCorrect && three.score === 95, `countup: three exact ${three.score}`);
   ok(gradeAnswer(p, joinStages(["", "", "", ""], 4), 0).score === 0, "countup: nothing scores");
 }
 
@@ -339,8 +349,10 @@ const half = (p: PuzzleData) => (p as { timeLimitMs?: number }).timeLimitMs ?? 3
       .map(([k, xs]) => `${k} ${median(xs)}`)
       .join(", ");
     console.log(`${type} random play medians: ${line}`);
+    // Tally (countRev 2): blind guessing must score about nothing; the others' spam already scores 0.
+    const cap = type === "countup" ? 6 : 60;
     for (const [k, xs] of Object.entries(by))
-      ok(median(xs) <= 60, `${type}: spam ${k} median ${median(xs)} > 60`);
+      ok(median(xs) <= cap, `${type}: spam ${k} median ${median(xs)} > ${cap}`);
     ok(finished === 0, `${type}: spam finished ${finished} times`);
   }
 }

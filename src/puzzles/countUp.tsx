@@ -263,8 +263,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
         const given = parseCount(parts[i] ?? "");
         const exact = truth !== null && given === truth;
-        // One or two off still scores on every revision (60 % / 30 %).
-        const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= 2;
+        // Near misses that still score: one or two off on stored rounds, only one off on countRev 2.
+        const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= (rev2 ? 1 : 2);
         return (
           <div key={i} className={`tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 ${rev2 ? "py-1" : "py-2"}`}>
             <div className={`${rev2 ? "w-[80px]" : "w-[112px]"} shrink-0`}>
@@ -305,6 +305,12 @@ interface Slot {
  * Generation only: stored rounds keep their stored scenes and grade unchanged.
  */
 export const COUNTUP_STAGE_COUNTS_REV1: [number, number][] = [[5, 11], [7, 13], [9, 15]];
+/**
+ * countRev 2 (14 Oct 2026): thirteen values per tray around nearly the same middles, so a
+ * blind guess is within one of the answer about one tray in four (with seven values it was
+ * three in seven) and two off now scores nothing.
+ */
+export const COUNTUP_STAGE_COUNTS_REV2: [number, number][] = [[3, 15], [5, 17], [7, 19]];
 
 const SCENE_W = 300;
 const SCENE_H = 260;
@@ -351,7 +357,38 @@ export function countUpSceneValid(stage: CountUpStage): boolean {
     .every((item) => countUpVisibleShare(item, stage.shapes) >= 0.5);
 }
 
-function buildStage(total: number, [min, max]: [number, number]): { stage: CountUpStage; count: number } {
+/** One shape at a random spot inside the scene, sized up to `maxSize`. */
+function placeShape(slot: Slot, layer: number, maxSize: number): CountUpShape {
+  const size = randInt(28, maxSize);
+  const bound = Math.ceil(size * Math.SQRT1_2);
+  const xMargin = Math.ceil((bound / SCENE_W) * 100) + 1;
+  const yMargin = Math.ceil((bound / SCENE_H) * 100) + 1;
+  return { shape: slot.shape, colour: slot.colour, x: randInt(xMargin, 100 - xMargin), y: randInt(yMargin, 100 - yMargin), size, rotation: randInt(0, 359), layer };
+}
+
+function shapesApart(a: CountUpShape, b: CountUpShape): boolean {
+  return Math.hypot(((a.x - b.x) / 100) * SCENE_W, ((a.y - b.y) / 100) * SCENE_H) >= (0.62 * (a.size + b.size)) / 2;
+}
+
+/**
+ * countRev 2 layout: fillers underneath at random, then each counted shape on top, re-placed
+ * (up to 60 times) until it sits clear enough of the counted shapes before it.
+ */
+function spacedLayout(slots: Slot[], total: number, counts: (slot: Slot) => boolean, countedMax: number): CountUpShape[] {
+  const ordered = shuffled(slots.slice(0, total));
+  const fill = ordered.filter((slot) => !counts(slot));
+  const counted = ordered.filter(counts);
+  const shapes: CountUpShape[] = fill.map((slot, index) => placeShape(slot, index, 56));
+  const top: CountUpShape[] = [];
+  for (const [index, slot] of counted.entries()) {
+    let item = placeShape(slot, total + index, countedMax);
+    for (let tries = 0; tries < 60 && !top.every((other) => shapesApart(item, other)); tries += 1) item = placeShape(slot, total + index, countedMax);
+    top.push(item);
+  }
+  return [...shapes, ...top];
+}
+
+function buildStage(total: number, [min, max]: [number, number], spaced = false): { stage: CountUpStage; count: number } {
   const targetShape = pick(SHAPES);
   const targetColour = pick(COLOURS);
   const count = randInt(min, max);
@@ -376,6 +413,14 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
     slots.push({ shape, colour });
   }
 
+  if (spaced) {
+    // countRev 2's wider counts (up to 19 on a tray) need the spaced layout to keep every target visible.
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const shapes = spacedLayout(slots, total, (slot) => slot.shape === targetShape && slot.colour === targetColour, 48);
+      const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour } satisfies CountUpStage;
+      if (countUpSceneValid(stage)) return { stage, count };
+    }
+  }
   for (let attempt = 0; attempt < 200; attempt += 1) {
     const shapes: CountUpShape[] = shuffled(slots.slice(0, total)).map((slot, index) => {
       const target = slot.shape === targetShape && slot.colour === targetColour;
@@ -401,15 +446,16 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
 
 /** countRev 2 tray 4: shapes on the tray, the larger colour's count, and the gap to the smaller. */
 export const COUNTUP_COMPARE_SIZE = 50;
-export const COUNTUP_COMPARE_MORE: [number, number] = [8, 13];
-export const COUNTUP_COMPARE_GAP: [number, number] = [2, 7];
+/** The smaller colour's count and the gap (the answer), each drawn evenly: thirteen answers, 1–13. */
+export const COUNTUP_COMPARE_LESS: [number, number] = [3, 6];
+export const COUNTUP_COMPARE_GAP: [number, number] = [1, 13];
 
 /** "How many more red than blue?": every shape of each colour counts, whatever its kind. */
 function buildCompareStage(total: number): { stage: CountUpStage; count: number } {
   const more = pick(COLOURS);
   const less = pick(COLOURS.filter((c) => c !== more && !tooClose(c, more)));
-  const moreCount = randInt(COUNTUP_COMPARE_MORE[0], COUNTUP_COMPARE_MORE[1]);
-  const lessCount = Math.max(3, moreCount - randInt(COUNTUP_COMPARE_GAP[0], COUNTUP_COMPARE_GAP[1]));
+  const lessCount = randInt(COUNTUP_COMPARE_LESS[0], COUNTUP_COMPARE_LESS[1]);
+  const moreCount = lessCount + randInt(COUNTUP_COMPARE_GAP[0], COUNTUP_COMPARE_GAP[1]);
   // Fillers never use a colour that could be mistaken for either counted one.
   const fillers = COLOURS.filter((c) => c !== more && c !== less && !tooClose(c, more) && !tooClose(c, less));
   const slots: Slot[] = [];
@@ -417,35 +463,16 @@ function buildCompareStage(total: number): { stage: CountUpStage; count: number 
   for (let i = 0; i < lessCount; i++) slots.push({ shape: pick(SHAPES), colour: less });
   while (slots.length < total) slots.push({ shape: pick(SHAPES), colour: pick(fillers) });
   const compare = { more, less };
-  const place = (slot: Slot, layer: number, maxSize: number): CountUpShape => {
-    const size = randInt(28, maxSize);
-    const bound = Math.ceil(size * Math.SQRT1_2);
-    const xMargin = Math.ceil((bound / SCENE_W) * 100) + 1;
-    const yMargin = Math.ceil((bound / SCENE_H) * 100) + 1;
-    return { shape: slot.shape, colour: slot.colour, x: randInt(xMargin, 100 - xMargin), y: randInt(yMargin, 100 - yMargin), size, rotation: randInt(0, 359), layer };
-  };
-  const apart = (a: CountUpShape, b: CountUpShape) =>
-    Math.hypot(((a.x - b.x) / 100) * SCENE_W, ((a.y - b.y) / 100) * SCENE_H) >= 0.62 * (a.size + b.size) / 2;
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    // Fillers underneath, then each counted shape placed clear enough of the counted ones before it.
-    const ordered = shuffled(slots);
-    const fill = ordered.filter((slot) => slot.colour !== more && slot.colour !== less);
-    const counted = ordered.filter((slot) => slot.colour === more || slot.colour === less);
-    const shapes: CountUpShape[] = fill.map((slot, index) => place(slot, index, 56));
-    const top: CountUpShape[] = [];
-    for (const [index, slot] of counted.entries()) {
-      let item = place(slot, total + index, 44);
-      for (let tries = 0; tries < 60 && !top.every((other) => apart(item, other)); tries += 1) item = place(slot, total + index, 44);
-      top.push(item);
-    }
-    const stage = { cols: 10, rows: 10, shapes: [...shapes, ...top], targetShape: "circle", targetColour: more, compare } satisfies CountUpStage;
+    const shapes = spacedLayout(slots, total, (slot) => slot.colour === more || slot.colour === less, 40);
+    const stage = { cols: 10, rows: 10, shapes, targetShape: "circle", targetColour: more, compare } satisfies CountUpStage;
     if (countUpSceneValid(stage)) return { stage, count: moreCount - lessCount };
   }
   throw new Error(`${gameDisplayName("countup")} comparison tray exhausted visibility attempts`);
 }
 
 export function buildCountUp(): CountUpPuzzleData {
-  const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, COUNTUP_STAGE_COUNTS_REV1[i]!));
+  const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, COUNTUP_STAGE_COUNTS_REV2[i]!, true));
   // countRev 2 (14 Oct 2026): a fourth, comparison tray and a 60 s clock stored on the puzzle.
   built.push(buildCompareStage(COUNTUP_COMPARE_SIZE));
   return {

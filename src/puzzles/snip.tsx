@@ -17,7 +17,7 @@ import {
   SNIP_CHECKPOINT_INTERVAL,
   SNIP_INPUT_CUT,
   SNIP_CONFIG,
-  SNIP_REV_BANK6,
+  SNIP_REV_PROVEN,
   snipWorldHFor,
   type SnipState,
 } from "@/lib/arcade/snip";
@@ -270,7 +270,7 @@ export const snipPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SNIP_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV_BANK6 }) satisfies SnipPuzzleData,
+  generate: () => ({ type: "snip", seed: 1, snipRev: SNIP_REV_PROVEN }) satisfies SnipPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

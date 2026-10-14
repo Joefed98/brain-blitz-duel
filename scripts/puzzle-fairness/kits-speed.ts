@@ -7,7 +7,7 @@
  * Flash and Bang On grade every log as "correct" (the score comes from the
  * reactions), so their plays return one step: the whole tap log at the last tap.
  */
-import { chainRequiredAt, chainBoardIndex, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
+import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
 import { encodeMazePath, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
 import { encodePairFlips, sameCard } from "../../src/lib/duel/pairmatch";
 import { joinStages } from "../../src/lib/duel/stagedRounds";
@@ -25,6 +25,7 @@ import {
 import {
   CHAIN_BLOCK,
   CHAIN_LENGTH,
+  CHAIN_REVERSE_AT,
   CHAIN_TIME_MS,
   PAIR_FLIP_BACK_MS,
   REACTION_FLASH_MS,
@@ -43,12 +44,20 @@ import {
   type StopWatchSpec,
   type SymbolScanPuzzleData,
 } from "../../src/lib/duel/types";
-import { countUpCounts, countUpStageTruth, spotScenes, usesSpotRev1 } from "../../src/lib/duel/attentionRev";
+import { countUpCounts, countUpStageTruth, spotScenes, usesCountRev2, usesSpotRev1 } from "../../src/lib/duel/attentionRev";
+import { COUNTUP_COMPARE_GAP, COUNTUP_STAGE_COUNTS_REV2 } from "../../src/puzzles/countUp";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
 const sortedUnique = (times: number[]) => [...new Set(times.map((t) => Math.max(0, Math.round(t))))].sort((a, b) => a - b);
 
 /* -------------------------------- Flash -------------------------------- */
+
+/**
+ * Reflex-tap pull of a decoy relative to a plain colour (Flash tapRev 3, 14 Oct
+ * 2026): near-gold amber and a half-screen gold read as gold at a glance; a gold
+ * frame or the word GOLD less so. Script-only modelling assumptions.
+ */
+const DECOY_PULL: Record<string, number> = { teal: 1, red: 1, blue: 1, amber: 2.2, half: 2, border: 1.5, word: 1.3 };
 
 /** Drops taps the phone would not log (after every flash is settled, or past the cap). */
 function flashLog(p: ReactionPuzzleData, taps: number[], limitMs: number): number[] {
@@ -90,7 +99,8 @@ const flash: PuzzleKit = {
     for (const f of r.flashes) {
       // Mistakes: a reflex tap on a decoy, now and then a dark-screen tap, rarely a lapse.
       for (const d of r.decoys.filter((d) => d.at >= segment && d.at < f)) {
-        if (rng.chance(skill.err)) taps.push(d.at + Math.max(120, rng.normal(skill.reactionMs, skill.reactionSd)));
+        // tapRev 3's gold-like decoys pull more reflex taps than a plain colour.
+        if (rng.chance(Math.min(0.6, skill.err * (DECOY_PULL[d.color] ?? 1)))) taps.push(d.at + Math.max(120, rng.normal(skill.reactionMs, skill.reactionSd)));
       }
       if (rng.chance(skill.err * 0.3)) taps.push(segment + rng.int(300, 900));
       if (rng.chance(skill.err * 0.25)) {
@@ -136,6 +146,21 @@ function bangOnLog(watches: StopWatchSpec[], stopAt: (spec: StopWatchSpec, index
   return taps;
 }
 
+/**
+ * Bang On tapRev 3 (14 Oct 2026): extra timing spread from blind spots on the
+ * approach (+25 % per 0.1 of bar blacked out before the target), a diagonal face
+ * (+15 %) and a longer sweep (timing error grows with the square root of the
+ * interval). Script-only modelling assumptions; older watches return 1.
+ */
+function watchSpread(spec: StopWatchSpec): number {
+  const before = (spec.blind ?? []).reduce((sum, [from, to]) => sum + Math.max(0, Math.min(to, spec.centre) - from), 0);
+  const blind = 1 + 2.5 * before;
+  const diagonal = spec.diagonal ? 1.15 : 1;
+  // Only tapRev 3's longer sweeps run slower than 1,180 ms (40 % longer than their watch's usual sweep).
+  const long = spec.sweepMs > 1_180 ? Math.sqrt(1.4) : 1;
+  return blind * diagonal * long;
+}
+
 const bangOn: PuzzleKit = {
   type: "stopwatch",
   nothing: () => encodeTapTimes([]),
@@ -166,7 +191,7 @@ const bangOn: PuzzleKit = {
         // Mistake: waits a pass to be sure (costs time) or mistimes badly.
         const late = rng.chance(skill.err) ? 1 : 0;
         const aim = cross[Math.min(late, cross.length - 1)]!;
-        const spread = (spec.hidden ? 1.4 : 1) * (rng.chance(skill.err * 0.5) ? 4 : 1) * sd;
+        const spread = (spec.hidden ? 1.4 : 1) * watchSpread(spec) * (rng.chance(skill.err * 0.5) ? 4 : 1) * sd;
         return Math.max(0, Math.min(watchLifeMs(spec) - 1, Math.round(rng.normal(aim, spread))));
       },
       limitMs,
@@ -278,15 +303,22 @@ const chain: PuzzleKit = {
     const taps: ChainTap[] = [];
     const used: number[][] = [];
     const steps: Step[] = [];
+    // chainCycleRev 1 (14 Oct 2026): five charms to read instead of three (+6 % per link), and the reversed
+    // board from link 20: +25 % per link there, and on its first link a chance of tapping the forward charm.
+    const long = chainLongCycles(c);
     // BASE 0.85 s per link (1.1 s on a new board): read the rule chip, find the matching shape+colour among 20 nodes, tap.
     let t = thinkMs(rng, 1.5, skill); // first look at the board and the rule
     let lastT: number | null = null;
     const finish = (reason: ChainBreak, at: number) => steps.push({ answer: encodeChainAnswer({ taps, reason }), atMs: at });
     for (let links = 0; links < CHAIN_LENGTH; ) {
-      let gap = links === 0 ? 0 : thinkMs(rng, links % CHAIN_BLOCK === 0 ? 1.1 : 0.85, skill);
-      const mistake = links > 0 && rng.chance(skill.err);
-      // Most mistakes are a hesitation (lost the rule for a moment); some are a wrong tap.
-      const wrongTap = mistake && rng.chance(0.2);
+      const reversed = chainReversedAt(c, links);
+      const factor = (long ? 1.06 : 1) * (reversed ? 1.25 : 1);
+      let gap = links === 0 ? 0 : thinkMs(rng, (links % CHAIN_BLOCK === 0 ? 1.1 : 0.85) * factor, skill);
+      const mistake = links > 0 && rng.chance(skill.err * (reversed ? 1.5 : 1));
+      // Most mistakes are a hesitation (lost the rule for a moment); some are a wrong tap. The first
+      // reversed link catches out some players who keep going forwards.
+      const forgot = long && links === CHAIN_REVERSE_AT && rng.chance(Math.min(0.5, skill.err * 1.5));
+      const wrongTap = forgot || (mistake && rng.chance(0.2));
       if (mistake && !wrongTap) gap += thinkMs(rng, 0.8, skill);
       const at: number = (lastT ?? t) + gap;
       if (lastT !== null && at - lastT > chainWindowMs(links + 1, c)) {
@@ -457,11 +489,15 @@ const tally: PuzzleKit = {
   type: "countup",
   nothing: (p) => joinStages((p as CountUpPuzzleData).stages.map(() => ""), (p as CountUpPuzzleData).stages.length),
   spam(p, rng) {
-    // Guesses without counting: the stage's typical count, or a random one (countRev 2's comparison tray: 2–7).
+    // Guesses without counting: each tray's middle count, or a random count in range.
+    // countRev 2: 3–15, 5–17, 7–19 and the comparison 1–13; older rounds: about 8 / 10 / 12 ± 3.
     const c = p as CountUpPuzzleData;
     const n = c.stages.length;
-    const mid = [8, 10, 12, 5].slice(0, n);
-    const random = (i: number) => (i === 3 ? rng.int(2, 7) : rng.int(mid[i]! - 3, mid[i]! + 3));
+    const ranges: [number, number][] = usesCountRev2(c)
+      ? [...COUNTUP_STAGE_COUNTS_REV2, COUNTUP_COMPARE_GAP]
+      : [[5, 11], [7, 13], [9, 15]];
+    const mid = ranges.slice(0, n).map(([lo, hi]) => Math.round((lo + hi) / 2));
+    const random = (i: number) => rng.int(ranges[i]![0], ranges[i]![1]);
     return [
       { label: "guess-typical", answer: joinStages(mid.map(String), n) },
       { label: "guess-random", answer: joinStages(mid.map((_, i) => String(random(i))), n) },
