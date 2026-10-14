@@ -4,7 +4,6 @@ import { scoreLightUp } from "../src/lib/duel/lightUp";
 import { scoreTents } from "../src/lib/duel/tents";
 import { scoreSymbolScanStages, scoreCountUpStages, scoreEquationStages, scanStageResult } from "../src/lib/duel/stagedRounds";
 import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
-import { replayIntruder } from "../src/lib/duel/intruder";
 let fail = 0;
 const L = 100_000, H = 50_000;
 const ex = (n: string, got: number, want: number | number[]) => {
@@ -14,7 +13,6 @@ const ex = (n: string, got: number, want: number | number[]) => {
 // A games complete at half time = 150 (speed par: full bonus with half the time left)
 ex("Spot", S.scoreSpotDifference(6, H, L), 150);
 ex("Maze", S.scoreMaze(true, 1, H, L), 150);
-ex("Intruder", S.scoreIntruder(120, true, H, L), 150);
 ex("Pair", S.scorePairMatch(true, 15, H, L), 150);
 ex("Block", S.scoreBlockParty(true, H, 9, L), 150);
 ex("Pipes", S.scorePipes(true, 49, H, L), 150);
@@ -64,8 +62,6 @@ ex("Tents 11", scoreTents(false, 0, L, 11, 2, 12), 110);
 ex("Shikaku 90", scoreShikaku(false, 0, L, 90), 99);
 ex("LightUp 45/50 1 clash", scoreLightUp(false, 0, L, 45, 50, 1), 94);
 ex("Word Slide 4", S.scoreWordSlide(4, 5, 0, L), 88);
-const iv = replayIntruder([[1], [2], [3], [4], [5, 6]].map((cells) => ({ cells })) as never, [[1], [2], [3], [4], [5]] as never);
-ex("Intruder 4 + half", S.scoreIntruder(iv.points, false, 0, L), 108);
 // staged
 const scan = [0, 1, 2].map((i) => scanStageResult(i, [1, 2], [1, 2]));
 ex("Symbol Scan perfect half", scoreSymbolScanStages(scan, H, L), 150);

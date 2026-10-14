@@ -14,7 +14,7 @@ const fail = (message: string) => {
   failures.push(message);
 };
 
-const ROOM_CATEGORIES = CATEGORY_ORDER.filter((c) => c !== "memory");
+const ROOM_CATEGORIES = [...CATEGORY_ORDER];
 const SELECTIONS: PuzzleCategory[][] = [
   ["arcade"],
   ["word"],

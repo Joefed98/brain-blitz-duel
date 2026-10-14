@@ -9,9 +9,7 @@ const removed = {
   "sortTubes": "Tap a tube to lift its top balls, then tap where to pour",
   "flow": "Drag dot to dot · drag from a loose end to carry on · tap a dot to clear it",
   "nonogram": "Tap to fill, again to mark empty, again to clear.",
-  "oneStroke": "Lift your finger to start again.",
   "bombDefusal": "Read every rule, act in order, then tap DEFUSE",
-  "goNoGo": "Tap gold circles only",
 };
 for (const [file, caption] of Object.entries(removed)) {
   const source = readFileSync(`src/puzzles/${file}.tsx`, "utf8");

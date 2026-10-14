@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { puzzleName } from "@/lib/duel/registry";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { StoredPuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
@@ -19,7 +19,7 @@ interface FinalResultProps {
   myTotal: number;
   opponentTotal: number;
   breakdown: { round: number; mine: number; theirs: number }[];
-  roundOrder: PuzzleType[];
+  roundOrder: StoredPuzzleType[];
   busy: boolean;
   onPlayAgain: () => void;
   isHost: boolean;

@@ -2,8 +2,9 @@
  * Category pools (13 Oct 2026 rotation): every category the lobby offers keeps
  * at least MIN_ACTIVE active games, so a retirement or a category move that
  * would thin one out fails here, loudly, before a room can be dealt short.
- * Also proves the rotation's own moves (Interloper retired; Chroma Lines,
- * Pipeline and Heave in Pattern) and that nothing stored reads a game's
+ * Also proves the rotation's own moves (Chroma Lines, Pipeline and Heave in
+ * Pattern), that the 19 games deleted on 14 Oct 2026 (removedGames.ts) and
+ * the Memory category are gone from the registry, and that nothing stored reads a game's
  * category: grading, scoring and the server-only generators never do, and rooms
  * store only puzzle types (round_order) and the host's chosen categories
  * (selected_categories), so moving a game changes no stored round or history.
@@ -16,10 +17,12 @@ import {
   gameCounts,
   isRetired,
   puzzleDef,
+  PUZZLE_TYPES,
   RETIRED_PUZZLE_TYPES,
   typesInCategory,
 } from "../src/lib/duel/registry";
 import type { PuzzleType } from "../src/lib/duel/types";
+import { REMOVED_PUZZLE_TYPES } from "../src/lib/duel/removedGames";
 
 const MIN_ACTIVE = 6;
 const failures: string[] = [];
@@ -28,8 +31,8 @@ const fail = (message: string) => {
   console.log(`FAIL ${message}`);
 };
 
-// Every category the lobby offers (CATEGORY_ORDER; Memory is never offered).
-const offered = CATEGORY_ORDER.filter((c) => c !== "memory");
+// Every category the lobby offers (CATEGORY_ORDER).
+const offered = CATEGORY_ORDER;
 const counts: string[] = [];
 for (const category of offered) {
   const active = typesInCategory(category);
@@ -47,14 +50,20 @@ const expect = (type: PuzzleType, category: string, retired: boolean) => {
   if (isRetired(type) !== retired)
     fail(`${type}: ${retired ? "should be retired to practice" : "should be active"}`);
 };
-expect("intruder", "attention", true);
 for (const type of ["flow", "pipes", "push"] as const) expect(type, "pattern", false);
+
+// The deleted games and Memory are gone: no registry entry, no category, no draw.
+for (const type of REMOVED_PUZZLE_TYPES)
+  if ((PUZZLE_TYPES as string[]).includes(type)) fail(`${type}: deleted on 14 Oct 2026 but still registered`);
+for (const type of PUZZLE_TYPES)
+  if (!(CATEGORY_ORDER as string[]).includes(puzzleDef(type).category))
+    fail(`${type}: category ${puzzleDef(type).category} is not one the lobby offers`);
 
 // Totals agree with the registry everywhere they are read.
 const { puzzle, arcade } = gameCounts();
 if (
   puzzle + arcade !==
-  ACTIVE_PUZZLE_TYPES.filter((t) => puzzleDef(t).category !== "memory").length
+  ACTIVE_PUZZLE_TYPES.length
 )
   fail(`gameCounts ${puzzle} + ${arcade} does not match the active registry`);
 
@@ -94,5 +103,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: every lobby category has at least ${MIN_ACTIVE} active games (${counts.join(", ")}; ${ACTIVE_PUZZLE_TYPES.length} active, ${RETIRED_PUZZLE_TYPES.length} retired); Interloper retired; Chroma Lines, Pipeline and Heave in Pattern; grading, scoring and generators never read a category, and rooms store only types and the host's selection`,
+  `PASS: every lobby category has at least ${MIN_ACTIVE} active games (${counts.join(", ")}; ${ACTIVE_PUZZLE_TYPES.length} active, ${RETIRED_PUZZLE_TYPES.length} retired); Chroma Lines, Pipeline and Heave in Pattern; the 19 deleted games and Memory gone; grading, scoring and generators never read a category, and rooms store only types and the host's selection`,
 );

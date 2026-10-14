@@ -5,25 +5,14 @@ import type { ChainPuzzleData } from "./types";
 import {
   BLOCK_PIECE_POINTS,
   BLOCK_TIME_MS,
-  GONOGO_ITEMS,
   NUMHUNT_ERROR_PENALTY,
   NUMHUNT_TIME_MS,
-  NUMSEQ_ITEMS,
-  NUMSEQ_TIME_MS,
-  PCTSPRINT_ITEMS,
-  PCTSPRINT_TIME_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
   STOPWATCH_MISS_MS,
-  MIRMATCH_ITEMS,
-  MIRMATCH_TIME_MS,
-  SPIN_ITEMS,
-  SPIN_TIME_MS,
   TOTAL_ROUNDS,
   UNBLOCK_TIME_MS,
-  WORDMATCH_ITEMS,
-  WORDMATCH_TIME_MS,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
   PIPES_TIME_MS,
@@ -59,8 +48,6 @@ import {
   TUBES_TIME_MS,
   GRAV_TIME_MS,
   GRAV_LOCK_POINTS,
-  INTRUDER_BOARDS,
-  INTRUDER_TIME_MS,
   NONO_PARTIAL_POINTS,
   NONO_TIME_MS,
   NONO_WRONG_PENALTY,
@@ -69,9 +56,6 @@ import {
   PAIR_TIME_MS,
   FLOOD_CELLS,
   FLOOD_PARTIAL_POINTS,
-  STROKE_FIRST_TRY_BONUS,
-  STROKE_PARTIAL_POINTS,
-  STROKE_TIME_MS,
   TILES_COUNT,
   TILES_TIME_MS,
   RINGS_SPOKE_POINTS,
@@ -97,11 +81,6 @@ export function speedBonus(msRemaining: number, timeLimitMs: number = ROUND_MS):
   return speedBonusCurve(MAX_SPEED_BONUS, clamped, limit);
 }
 
-/** 0–50 from an average reaction time: 50 at 150 ms, 0 at 650 ms or slower. */
-export function reactionBonus(averageMs: number): number {
-  return clamp(Math.round((650 - averageMs) / 10), 0, MAX_SPEED_BONUS);
-}
-
 /** Correct: 100 plus the speed bonus. Wrong / timeout: 0. */
 export function scoreRound(
   isCorrect: boolean,
@@ -110,43 +89,6 @@ export function scoreRound(
 ): number {
   if (!isCorrect) return 0;
   return BASE_POINTS + speedBonus(msRemaining, timeLimitMs);
-}
-
-/** Groups: all four earn the standard score; partial groups earn flat credit. */
-export function scoreGroups(foundGroups: number, msRemaining: number): number {
-  if (foundGroups >= 4) return BASE_POINTS + speedBonus(msRemaining, 90_000);
-  if (foundGroups === 3) return 60;
-  if (foundGroups === 2) return 40;
-  return foundGroups === 1 ? 20 : 0;
-}
-
-/**
- * Word Ladder: solved earns standard points, plus 20 for a minimum path. An
- * unfinished ladder scores by how close the last valid rung came to the end
- * word — one letter away 75, two 50, three 25.
- */
-export function scoreWordLadder(
-  solved: boolean,
-  validRungs: number,
-  shortestLength: number,
-  msRemaining: number,
-  lettersAway: number,
-): number {
-  if (!solved) {
-    if (lettersAway === 1) return 75;
-    if (lettersAway === 2) return 50;
-    if (lettersAway === 3) return 25;
-    return 0;
-  }
-  const minimumBonus = validRungs === shortestLength ? 20 : 0;
-  return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, 60_000) + minimumBonus);
-}
-
-/** Number Climb: partial credit is proportional to the correct leading span. */
-export function scoreNumberClimb(span: number, msRemaining: number): number {
-  const correct = clamp(Math.round(span), 0, 12);
-  if (correct === 12) return BASE_POINTS + speedBonus(msRemaining, 20_000);
-  return Math.min(90, Math.round((BASE_POINTS * correct) / 12));
 }
 
 /**
@@ -195,31 +137,6 @@ export function scoreReaction(averageMs: number, falseStarts = 0, tapRev = 0): n
   return clamp(base - reactionFalseStartCost(falseStarts, tapRev), 0, 150);
 }
 
-/** Mirror Match: five shapes, accuracy out of 100 plus a bonus for all five. */
-export function scoreMirrorMatch(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, MIRMATCH_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / MIRMATCH_ITEMS);
-  const bonus = correct >= MIRMATCH_ITEMS ? speedBonus(msRemaining, MIRMATCH_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
-}
-
-/** Spin: eight items, accuracy out of 100 plus a bonus for a flawless run. */
-export function scoreSpin(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, SPIN_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / SPIN_ITEMS);
-  const bonus = correct >= SPIN_ITEMS ? speedBonus(msRemaining, SPIN_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
-}
-
-/** Go / No-Go: accuracy out of 100, plus a reaction bonus on a flawless run. */
-export function scoreGoNoGo(correctCount: number, averageHitMs: number | null): number {
-  const correct = clamp(correctCount, 0, GONOGO_ITEMS);
-  const accuracy = Math.min(correct >= GONOGO_ITEMS ? BASE_POINTS : 90, Math.round((BASE_POINTS * correct) / GONOGO_ITEMS));
-  const perfect = correct >= GONOGO_ITEMS && averageHitMs !== null;
-  const bonus = perfect ? reactionBonus(averageHitMs!) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
-}
-
 /** Double Take rev 1: 22 per difference, −5 per wrong tap; more than 5 wrong taps and all six is not a finish. */
 export const SPOT_REV1_POINTS = 22;
 export const SPOT_REV1_WRONG_PENALTY = 5;
@@ -236,39 +153,6 @@ export function scoreSpotDifference(foundCount: number, msRemaining: number, tim
   }
   if (found >= SPOT_DIFFERENCES) return standardComplete(msRemaining, timeLimitMs);
   return SPOT_DIFF_POINTS * found;
-}
-
-/** Pattern Completion: partial credit per board; speed only rewards a perfect set. */
-export function scorePatternCompletion(correctCount: number, msRemaining: number): number {
-  const correct = clamp(Math.round(correctCount), 0, 3);
-  return (
-    Math.round((BASE_POINTS * correct) / 3) + (correct === 3 ? speedBonus(msRemaining, 30_000) : 0)
-  );
-}
-
-/** Word Match: all eight score 100 plus speed; partial pairs earn 13, capped at 90. */
-export function scoreWordMatch(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, WORDMATCH_ITEMS);
-  if (correct >= WORDMATCH_ITEMS) {
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, WORDMATCH_TIME_MS));
-  }
-  return Math.min(90, 13 * correct);
-}
-
-/** Percent Sprint: accuracy out of 100, plus the speed bonus on a flawless run. */
-export function scorePercentSprint(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, PCTSPRINT_ITEMS);
-  const accuracy = Math.round((BASE_POINTS * correct) / PCTSPRINT_ITEMS);
-  const bonus = correct >= PCTSPRINT_ITEMS ? speedBonus(msRemaining, PCTSPRINT_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
-}
-
-/** Number Sequence: 20 a sequence, plus the speed bonus for all five. */
-export function scoreNumberSequence(correctCount: number, msRemaining: number): number {
-  const correct = clamp(correctCount, 0, NUMSEQ_ITEMS);
-  const accuracy = 20 * correct;
-  const bonus = correct >= NUMSEQ_ITEMS ? speedBonus(msRemaining, NUMSEQ_TIME_MS) : 0;
-  return Math.min(MAX_ROUND_SCORE, accuracy + bonus);
 }
 
 /** Bang On rev 1: where the curve's bottom starts its fall to 0 at an all-miss average (500 ms). */
@@ -921,18 +805,6 @@ export function scoreChain(links: number, msRemaining = 0, puzzle?: ChainPuzzleD
   return chainScore(links, msRemaining, puzzle);
 }
 
-/** Intruder Detection (A): 24 per board (12 for half a two-change board); all five = 130 + SPEED(20). */
-export function scoreIntruder(
-  points: number,
-  allCorrect: boolean,
-  msRemaining: number,
-  timeLimitMs: number = INTRUDER_TIME_MS,
-): number {
-  // Interloper is retiring: its formula stays the legacy one on every revision.
-  if (allCorrect) return clamp(130 + speedPoints(20, msRemaining, timeLimitMs), 0, MAX_ROUND_SCORE);
-  return clamp(Math.round(points), 0, MAX_ROUND_SCORE);
-}
-
 /** Nonogram (A). Unfinished clamp(round(110 × correct ÷ total) − 5 × wrong, 0, 110). */
 export function scoreNonogram(
   solved: boolean,
@@ -997,22 +869,6 @@ export function scoreFlood(
     0,
     FLOOD_PARTIAL_POINTS,
   );
-}
-
-/** One-Stroke (retired): finishing scores, with a bonus for getting it first time. */
-export function scoreStroke(
-  solved: boolean,
-  solvedOn: number,
-  best: number,
-  total: number,
-  msRemaining: number,
-): number {
-  if (solved) {
-    const bonus = solvedOn === 1 ? STROKE_FIRST_TRY_BONUS : 0;
-    return Math.min(MAX_ROUND_SCORE, BASE_POINTS + speedBonus(msRemaining, STROKE_TIME_MS) + bonus);
-  }
-  const share = total > 0 ? Math.round((STROKE_PARTIAL_POINTS * clamp(best, 0, total)) / total) : 0;
-  return clamp(share, 0, STROKE_PARTIAL_POINTS);
 }
 
 /** Sliding Tiles (B). Unfinished 14 per tile in place (max 90). */

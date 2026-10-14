@@ -30,9 +30,7 @@ import { clayCheckpoint } from "./clayShoot";
 import { wavCheckpoint } from "./wavefront";
 import { basCheckpoint } from "./bastion";
 import { roofCheckpoint } from "./rooftop";
-import { sortCheckpoint } from "./sortRush";
 import { flipCheckpoint } from "./flip";
-import { parryCheckpoint } from "./parry";
 import { juncCheckpoint } from "./junction";
 import { inkCheckpoint } from "./inkBridge";
 import { burstCheckpoint } from "./burst";
@@ -73,9 +71,7 @@ const SNAPSHOTS: Record<string, (state: any) => object> = {
   wavefront: wavCheckpoint,
   bastion: basCheckpoint,
   rooftop: roofCheckpoint,
-  sortrush: sortCheckpoint,
   flip: flipCheckpoint,
-  parry: parryCheckpoint,
   junction: juncCheckpoint,
   inkbridge: inkCheckpoint,
   burst: burstCheckpoint,

@@ -8,10 +8,13 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 74 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 10, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
-Arcade 21; Memory is dormant; 28 retired to practice). Every category the lobby offers keeps at
-least 6 active games (`category-pool-check`). Built in Lovable, synced to this repo.
+Arcade 22 with Pinball dealt in rooms; 9 retired to practice: Swerve, Steady, Dual, Ricochet,
+Bastion, Rooftop Run, Junction, Dig, Hot Floor). Every category the lobby offers keeps at
+least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
+category were deleted; old rooms' rounds of them show only the name and stored score
+(`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
 ## Stack
@@ -111,10 +114,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   from it. Joe's cloud environment can do this automatically through a setup script
   (kept in the environment settings, not in the repo); if `node_modules` is missing at
   session start, the script didn't run, so ask Joe before working around it.
-- **Baseline:** whatever the latest green PR run of the Checks workflow reports (97
-  routine checks as of 12 Oct 2026, with arcade-tuning-c-check, with arcade-batch4-check, arcade-batch5-check and tap-log-check, plus the word
-  batch's strikeout-check, codeword-check and swapword-check; the two `--include-optional` checks never run in
-  CI). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
+- **Baseline:** whatever the latest green PR run of the Checks workflow reports (131
+  routine checks as of 14 Oct 2026: the 133 `scripts/*-check.ts(x)` less the two `--include-optional`
+  ones, which never run in CI; the CI summary lists puzzle-bank-check as its 4 parts and
+  arcade-play-check as its 5, 138 rows in all. The 14 Oct deletion removed sum-hunt-check, added
+  removed-games-check and renamed stroke-tiles-rings-check to tiles-rings-check and
+  gravity-chain-intruder-check to gravity-maze-check). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
   (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
   puzzle-bank-check part ~65 s (whole ~5 min CI, ~4 min on 4 local cores); arcade-fx,
   arcade-self-replay, ink-live-bottom and orbit-camera ~60–70 s; burst-swing-score and

@@ -6,7 +6,7 @@
 
 import { shuffled } from "./random";
 import {
-  INTRUDER_SHAPES,
+  PAIR_SHAPES,
   PAIR_PAIRS,
   type PairCard,
   type PairPuzzleData,
@@ -18,7 +18,7 @@ const PAIR_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"
 /** Every shape-and-colour combination available to a board. */
 export function pairCombinations(): PairCard[] {
   const out: PairCard[] = [];
-  for (const shape of INTRUDER_SHAPES) {
+  for (const shape of PAIR_SHAPES) {
     for (const colour of PAIR_COLOURS) out.push({ shape, colour });
   }
   return out;

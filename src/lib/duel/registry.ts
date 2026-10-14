@@ -2,33 +2,18 @@ import { wordsmithPuzzle } from "@/puzzles/wordsmith";
 import { wordHuntPuzzle } from "@/puzzles/wordHunt";
 import { unblockPuzzle } from "@/puzzles/unblock";
 import { blockPartyPuzzle } from "@/puzzles/blockParty";
-import { chainCalculationPuzzle } from "@/puzzles/chainCalculation";
 import { countUpPuzzle } from "@/puzzles/countUp";
 import { equationPuzzle } from "@/puzzles/equation";
-import { goNoGoPuzzle } from "@/puzzles/goNoGo";
-import { mirrorMatchPuzzle } from "@/puzzles/mirrorMatch";
-import { wordLadderPuzzle } from "@/puzzles/wordLadder";
 import { tileGridPuzzle } from "@/puzzles/tileGrid";
 import { wordSlidePuzzle } from "@/puzzles/wordSlide";
-import { sumHuntPuzzle } from "@/puzzles/sumHunt";
 import { balancePuzzle } from "@/puzzles/balance";
-import { numberClimbPuzzle } from "@/puzzles/numberClimb";
 import { numberHuntPuzzle } from "@/puzzles/numberHunt";
-import { numberSequencePuzzle } from "@/puzzles/numberSequence";
-import { groupsPuzzle } from "@/puzzles/groups";
 import { spotDifferencePuzzle } from "@/puzzles/spotTheDifference";
-import { patternCompletionPuzzle } from "@/puzzles/patternCompletion";
-import { percentSprintPuzzle } from "@/puzzles/percentSprint";
 import { reactionPuzzle } from "@/puzzles/reaction";
-import { reverseRecallPuzzle } from "@/puzzles/reverseRecall";
-import { spinPuzzle } from "@/puzzles/spin";
-import { sequencePuzzle } from "@/puzzles/sequence";
-import { spatialMemoryPuzzle } from "@/puzzles/spatialMemory";
 import { stopWatchPuzzle } from "@/puzzles/stopWatch";
 import { stroopPuzzle } from "@/puzzles/stroop";
 import { symbolScanPuzzle } from "@/puzzles/symbolScan";
 import { targetNumberPuzzle } from "@/puzzles/targetNumber";
-import { wordMatchPuzzle } from "@/puzzles/wordMatch";
 import { lightsOutPuzzle } from "@/puzzles/lightsOut";
 import { pipesPuzzle } from "@/puzzles/pipes";
 import { miniSudokuPuzzle } from "@/puzzles/miniSudoku";
@@ -43,11 +28,9 @@ import { safeCrackerPuzzle } from "@/puzzles/safeCracker";
 import { bombDefusalPuzzle } from "@/puzzles/bombDefusal";
 import { gravityMazePuzzle } from "@/puzzles/gravityMaze";
 import { chainTapPuzzle } from "@/puzzles/chainTap";
-import { intruderDetectionPuzzle } from "@/puzzles/intruderDetection";
 import { nonogramPuzzle } from "@/puzzles/nonogram";
 import { pairMatchPuzzle } from "@/puzzles/pairMatch";
 import { colourFloodPuzzle } from "@/puzzles/colourFlood";
-import { oneStrokePuzzle } from "@/puzzles/oneStroke";
 import { slidingTilesPuzzle } from "@/puzzles/slidingTiles";
 import { rotatingRingsPuzzle } from "@/puzzles/rotatingRings";
 import { hoverPuzzle } from "@/puzzles/hover";
@@ -58,6 +41,7 @@ import { bullseyePuzzle } from "@/puzzles/bullseye";
 import { matchupPuzzle } from "@/puzzles/matchup";
 import { breakerPuzzle } from "@/puzzles/breaker";
 import { pinballPuzzle } from "@/puzzles/pinball";
+import { removedGameDefinition } from "@/puzzles/removedGame";
 import { PINBALL_IN_ROOMS } from "@/lib/arcade/pinball";
 import { rallyPuzzle } from "@/puzzles/rally";
 import { steadyPuzzle } from "@/puzzles/steady";
@@ -75,9 +59,7 @@ import { lightUpPuzzle } from "@/puzzles/lightUp";
 import { wavefrontPuzzle } from "@/puzzles/wavefront";
 import { bastionPuzzle } from "@/puzzles/bastion";
 import { rooftopPuzzle } from "@/puzzles/rooftop";
-import { sortRushPuzzle } from "@/puzzles/sortRush";
 import { flipPuzzle } from "@/puzzles/flip";
-import { parryPuzzle } from "@/puzzles/parry";
 import { junctionPuzzle } from "@/puzzles/junction";
 import { inkBridgePuzzle } from "@/puzzles/inkBridge";
 import { burstPuzzle } from "@/puzzles/burst";
@@ -115,26 +97,18 @@ import { CORRECT_ANSWERS, ROUND_SUMMARIES } from "./roundSummaries";
 import { PUZZLE_INSTRUCTIONS } from "./instructions";
 import { gameTheme, type GameTheme } from "@/lib/fx/theme";
 import { feedbackStage } from "@/components/duel/FeedbackStage";
+import { removedGameName, type RemovedPuzzleType } from "./removedGames";
 
 /** The single registry of puzzle types. Add a new type by adding one entry. */
 type RegisteredPuzzleDefinition = PuzzleDefinition &
   Required<Pick<PuzzleDefinition, "roundSummary" | "correctAnswer" | "instructions" | "retired">> & { theme: GameTheme };
 
 const LONG_REVEAL_TYPES = new Set<PuzzleType>([
-  "numseq",
-  "chaincalc",
   "target",
   "wordsmith",
   "wordhunt",
   "stroop",
-  "wordmatch",
-  "pctsprint",
-  "spin",
-  "mirmatch",
-  "gonogo",
   "spotdiff",
-  "groups",
-  "ladder",
   "tilegrid",
 ]);
 
@@ -147,39 +121,18 @@ export const OPT_IN_CATEGORIES: PuzzleCategory[] = ["number"];
 /** The arcade pool: one round at most, and only when the host toggle is on. */
 export const ARCADE_CATEGORY: PuzzleCategory = "arcade";
 
-
 /** Never drawn in rooms; still playable in practice. */
 const RETIRED_TYPES = new Set<PuzzleType>([
-  "groups",
-  "chaincalc",
-  "sequence",
-  "reverse",
-  "spatial",
-  "numclimb",
-  "patcomp",
   "rooftop",
-  "wordmatch",
-  "numseq",
-  "pctsprint",
-  "sumhunt",
-  "gonogo",
-  "spin",
-  "stroke",
-  "mirmatch",
   "swerve",
   "dual",
   "ricochet",
   "steady",
-  "sortrush",
-  "parry",
   "hotfloor",
   "dig",
   "bastion",
-  "ladder",
   // Tuning C (Oct 2026): practice only.
   "junction",
-  // Rotation (13 Oct 2026): practice only; stored rounds replay and score on their own rules.
-  "intruder",
   // New (13 Oct 2026): practice only until PINBALL_IN_ROOMS (src/lib/arcade/pinball.ts) is switched on.
   ...(PINBALL_IN_ROOMS ? [] : (["pinball"] as const)),
 ]);
@@ -189,33 +142,18 @@ export const ARCADE_PHASE_SLACK_MS = 3000;
 
 const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> = {
   wordsmith: wordsmithPuzzle,
-  groups: groupsPuzzle,
-  ladder: wordLadderPuzzle,
   tilegrid: tileGridPuzzle,
   wordslide: wordSlidePuzzle,
-  sumhunt: sumHuntPuzzle,
   balance: balancePuzzle,
   target: targetNumberPuzzle,
-  numseq: numberSequencePuzzle,
   equation: equationPuzzle,
-  chaincalc: chainCalculationPuzzle,
-  sequence: sequencePuzzle,
-  reverse: reverseRecallPuzzle,
-  spatial: spatialMemoryPuzzle,
   reaction: reactionPuzzle,
-  gonogo: goNoGoPuzzle,
   numhunt: numberHuntPuzzle,
   stroop: stroopPuzzle,
   symscan: symbolScanPuzzle,
   spotdiff: spotDifferencePuzzle,
-  patcomp: patternCompletionPuzzle,
-  spin: spinPuzzle,
-  wordmatch: wordMatchPuzzle,
-  pctsprint: percentSprintPuzzle,
-  numclimb: numberClimbPuzzle,
   stopwatch: stopWatchPuzzle,
   countup: countUpPuzzle,
-  mirmatch: mirrorMatchPuzzle,
   wordhunt: wordHuntPuzzle,
   unblock: unblockPuzzle,
   blockparty: blockPartyPuzzle,
@@ -233,11 +171,9 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   bomb: bombDefusalPuzzle,
   gravity: gravityMazePuzzle,
   chain: chainTapPuzzle,
-  intruder: intruderDetectionPuzzle,
   nonogram: nonogramPuzzle,
   pairmatch: pairMatchPuzzle,
   flood: colourFloodPuzzle,
-  stroke: oneStrokePuzzle,
   tiles: slidingTilesPuzzle,
   rings: rotatingRingsPuzzle,
   hover: hoverPuzzle,
@@ -264,9 +200,7 @@ const BASE_REGISTRY: Record<PuzzleType, Omit<PuzzleDefinition, "instructions">> 
   wavefront: wavefrontPuzzle,
   bastion: bastionPuzzle,
   rooftop: rooftopPuzzle,
-  sortrush: sortRushPuzzle,
   flip: flipPuzzle,
-  parry: parryPuzzle,
   junction: junctionPuzzle,
   inkbridge: inkBridgePuzzle,
   burst: burstPuzzle,
@@ -315,12 +249,42 @@ export const PUZZLE_REGISTRY = Object.fromEntries<RegisteredPuzzleDefinition>(
 
 export const PUZZLE_TYPES = Object.keys(PUZZLE_REGISTRY) as PuzzleType[];
 
-export function puzzleDef(type: PuzzleType): RegisteredPuzzleDefinition {
-  return PUZZLE_REGISTRY[type];
+/**
+ * A type's definition. A deleted game's id (removedGames.ts), still held by
+ * stored rounds, gets a read-only stand-in: its name and a notice, never a board.
+ */
+export function puzzleDef(type: PuzzleType | RemovedPuzzleType): RegisteredPuzzleDefinition {
+  return PUZZLE_REGISTRY[type as PuzzleType] ?? removedDefinition(type);
 }
 
-export function puzzleName(type: PuzzleType): string {
-  return PUZZLE_REGISTRY[type]?.name ?? type;
+const REMOVED_DEFINITIONS = new Map<string, RegisteredPuzzleDefinition>();
+
+function removedDefinition(type: string): RegisteredPuzzleDefinition {
+  let definition = REMOVED_DEFINITIONS.get(type);
+  if (!definition) {
+    const base = removedGameDefinition(type);
+    definition = {
+      ...base,
+      theme: gameTheme(undefined, base.category),
+      instructions: base.instructions!,
+      retired: true,
+      revealMs: REVEAL_MS,
+      roundSummary: base.roundSummary!,
+      correctAnswer: base.correctAnswer!,
+    };
+    REMOVED_DEFINITIONS.set(type, definition);
+  }
+  return definition;
+}
+
+/** A live type's name, or the name a deleted game had (stored history rows still carry its id). */
+export function puzzleName(type: PuzzleType | RemovedPuzzleType): string {
+  return PUZZLE_REGISTRY[type as PuzzleType]?.name ?? removedGameName(type) ?? type;
+}
+
+/** True for a type the app can still play, reveal and replay; false for deleted ids in stored rounds. */
+export function isLiveType(type: unknown): type is PuzzleType {
+  return typeof type === "string" && Object.prototype.hasOwnProperty.call(PUZZLE_REGISTRY, type);
 }
 
 /** True for types kept only for practice. */
@@ -346,7 +310,6 @@ export function puzzleCategories(): PuzzleCategory[] {
 
 /** Non-retired types in a category — what every draw and list reads. */
 export function typesInCategory(category: PuzzleCategory): PuzzleType[] {
-  if (category === "memory") return [];
   return ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === category);
 }
 

@@ -1,32 +1,18 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
 import type { OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
+import type { RemovedPuzzleType } from "./removedGames";
 export type PuzzleType =
   | "wordsmith"
-  | "groups"
   | "target"
-  | "numseq"
-  | "sequence"
-  | "reverse"
   | "reaction"
-  | "ladder"
   | "equation"
   | "stroop"
-  | "spatial"
-  | "gonogo"
-  | "patcomp"
   | "symscan"
-  | "spin"
   | "numhunt"
   | "spotdiff"
-  | "chaincalc"
-  | "wordmatch"
-  | "pctsprint"
-  | "numclimb"
   | "stopwatch"
   | "countup"
-  | "mirmatch"
   | "wordhunt"
-  | "sumhunt"
   | "balance"
   | "tilegrid"
   | "wordslide"
@@ -46,11 +32,9 @@ export type PuzzleType =
   | "bomb"
   | "gravity"
   | "chain"
-  | "intruder"
   | "nonogram"
   | "pairmatch"
   | "flood"
-  | "stroke"
   | "tiles"
   | "rings"
   | "hover"
@@ -76,9 +60,7 @@ export type PuzzleType =
   | "wavefront"
   | "bastion"
   | "rooftop"
-  | "sortrush"
   | "flip"
-  | "parry"
   | "junction"
   | "inkbridge"
   | "burst"
@@ -104,8 +86,11 @@ export type PuzzleType =
   | "numline"
   | "pinball";
 
+/** A type id as stored rooms hold it: a live type, or a game deleted since (removedGames.ts). */
+export type StoredPuzzleType = PuzzleType | RemovedPuzzleType;
+
 export type PuzzleCategory =
-  "word" | "number" | "memory" | "speed" | "attention" | "pattern" | "logic" | "arcade";
+  "word" | "number" | "speed" | "attention" | "pattern" | "logic" | "arcade";
 
 /** Wordsmith: variable ring with the required centre retained at its legacy index. */
 export const WORDSMITH_TIME_MS = 100_000;
@@ -148,21 +133,6 @@ export interface WordsmithPuzzleData {
   source?: string;
 }
 
-export const GROUPS_TIME_MS = 90_000;
-
-export interface GroupsSecretGroup {
-  theme: string;
-  words: [string, string, string, string] | string[];
-}
-
-export interface GroupsPuzzleData {
-  type: "groups";
-  /** Sixteen words in the stored order every player sees. */
-  words: string[];
-  /** Server-side only until reveal: the exact four groups and their themes. */
-  groups?: GroupsSecretGroup[];
-}
-
 /** One combining step: two values and an operator, giving a new value. */
 export interface TargetStep {
   a: number;
@@ -179,35 +149,6 @@ export interface TargetNumberPuzzleData {
   target: number;
   /** One valid solution, kept server-side until the reveal. */
   solution: TargetStep[];
-}
-
-/** One sequence in the quick-fire run: five terms, four options, one rule. */
-export interface SequenceItem {
-  /** The five terms shown before the blank. */
-  numbers: number[];
-  /** Four options in their stored order — one correct, three near misses. */
-  options: number[];
-  /** Short rule text ("+5", "×2 then +1"), shown on the answer reveal. */
-  rule: string;
-}
-
-export interface NumberSequencePuzzleData {
-  type: "numseq";
-  items: SequenceItem[];
-  /** Server-side only, until the reveal: the correct option index per item. */
-  answers?: number[];
-}
-
-/** Number Sequence: five sequences over 30 seconds. */
-/** Number Sequence: five sequences over 45 seconds. */
-export const NUMSEQ_ITEMS = 5;
-export const NUMSEQ_TIME_MS = 45_000;
-
-export interface SequencePuzzleData {
-  type: "sequence" | "reverse";
-  tiles: number[];
-  /** Reverse Recall only: the server-side answer order. */
-  answerOrder?: number[];
 }
 
 export type SpotShapeKind = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
@@ -241,19 +182,6 @@ export interface SpotPuzzleData {
   differences?: SpotDifference[];
 }
 
-export interface ChainOperation {
-  operator: Operator;
-  operand: number;
-}
-
-export interface ChainCalculationPuzzleData {
-  type: "chaincalc";
-  start: number;
-  operations: ChainOperation[];
-  intermediates: number[];
-  answer: number;
-}
-
 export interface ReactionPuzzleData {
   type: "reaction";
   /** When each gold flash starts, in ms from the round start (generated once). */
@@ -262,16 +190,6 @@ export interface ReactionPuzzleData {
   decoys: { at: number; color: "teal" | "red" | "blue" }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
-}
-
-export interface WordLadderPuzzleData {
-  type: "ladder";
-  startWord: string;
-  targetWord: string;
-  /** Server-side only until reveal. Number of one-letter changes. */
-  shortestLength?: number;
-  /** Server-side only until reveal. One minimum path, including both endpoints. */
-  shortestPath?: string[];
 }
 
 export type Operator = "+" | "-" | "×" | "÷";
@@ -322,76 +240,9 @@ export interface StroopPuzzleData {
   clashRev?: number;
 }
 
-export interface SpatialPuzzleData {
-  type: "spatial";
-  /** Eight tile indices (0-24) of a 5x5 grid, lit in four groups of two. */
-  tiles: number[];
-  /** Always two; stored for backward compatibility with existing rooms. */
-  groupSize?: number;
-}
-
 export type GlyphShape = "circle" | "square" | "triangle" | "star" | "hexagon";
-/** Go / No-Go and Pattern Completion reuse the Colour Clash palette, plus gold. */
+/** Tally's shapes use the Colour Clash palette, plus gold. */
 export type GlyphColour = StroopColour | "GOLD";
-
-export interface GoNoGoItem {
-  shape: GlyphShape;
-  colour: GlyphColour;
-  /** True only for the gold circle. */
-  target: boolean;
-}
-
-export interface GoNoGoPuzzleData {
-  type: "gonogo";
-  items: GoNoGoItem[];
-}
-
-/** Pattern Completion draws its own shapes, including two the glyph set lacks. */
-export type PatternShape = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
-
-/** Only triangles and arrows show their rotation; everything else stays at 0. */
-export type PatternRotation = 0 | 90 | 180 | 270;
-
-export interface PatternCell {
-  shape: PatternShape;
-  colour: StroopColour;
-  count: 1 | 2 | 3;
-  rot: PatternRotation;
-}
-
-export type PatternAttribute = "shape" | "colour" | "count" | "rot";
-
-/** How one attribute behaves across the grid. */
-export type PatternRuleKind = "row" | "prog" | "latin";
-
-export interface PatternRule {
-  attr: PatternAttribute;
-  kind: PatternRuleKind;
-  /** Plain English, shown on the answer reveal. */
-  text: string;
-}
-
-export interface PatternRoundItem {
-  /** Nine cells, row-major; index 8 is the answer cell (shown as ? in play). */
-  cells: PatternCell[];
-  /** The attributes the player composes; the fourth is constant and pre-filled. */
-  active: PatternAttribute[];
-  /** True when the grid uses a rotatable shape, so the rotation picker shows. */
-  rotatable: boolean;
-  /** Server-side only until the reveal. */
-  rules?: PatternRule[];
-  answer?: PatternCell;
-}
-
-export interface PatternPuzzleData {
-  type: "patcomp";
-  /** Three independent boards played inside one continuous round. */
-  puzzles: PatternRoundItem[];
-}
-
-/** Pattern Completion: build the missing piece. */
-export const PATCOMP_ITEMS = 3;
-export const PATCOMP_TIME_MS = 30_000;
 
 /** The eight compass directions used by Symbol Scan. */
 export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
@@ -409,34 +260,6 @@ export interface SymbolScanPuzzleData {
   stages: SymbolScanStage[];
   /** Server-side only until reveal: indices matching each stage's target. */
   targets?: number[][];
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Spin                                                                       */
-/* -------------------------------------------------------------------------- */
-
-export const SPIN_ITEMS = 8;
-export const SPIN_TIME_MS = 45_000;
-export const SPIN_MAX_STREAK = 2;
-
-/** How the copy on the right was made from the shape on the left. */
-export type SpinTransform = "cw" | "half" | "ccw" | "flip";
-
-/** Fixed button order for the whole run. */
-export const SPIN_TRANSFORMS: SpinTransform[] = ["cw", "half", "ccw", "flip"];
-
-export interface SpinItem {
-  /** The shape on the left. */
-  target: MirrorShape;
-  /** The transformed copy on the right. */
-  shown: MirrorShape;
-}
-
-export interface SpinPuzzleData {
-  type: "spin";
-  items: SpinItem[];
-  /** Server-side only: the transform used for each item, in order. */
-  answers?: SpinTransform[];
 }
 
 export interface HuntSpot {
@@ -458,30 +281,16 @@ export interface NumberHuntPuzzleData {
 
 export type PuzzleData =
   | WordsmithPuzzleData
-  | GroupsPuzzleData
   | TargetNumberPuzzleData
-  | NumberSequencePuzzleData
-  | SequencePuzzleData
   | SpotPuzzleData
-  | ChainCalculationPuzzleData
   | ReactionPuzzleData
-  | WordLadderPuzzleData
   | EquationPuzzleData
   | StroopPuzzleData
-  | SpatialPuzzleData
-  | GoNoGoPuzzleData
-  | PatternPuzzleData
   | SymbolScanPuzzleData
-  | SpinPuzzleData
   | NumberHuntPuzzleData
-  | WordMatchPuzzleData
-  | PercentPuzzleData
-  | NumberClimbPuzzleData
   | StopWatchPuzzleData
   | CountUpPuzzleData
-  | MirrorPuzzleData
   | WordHuntPuzzleData
-  | SumHuntPuzzleData
   | BalancePuzzleData
   | TileGridPuzzleData
   | WordSlidePuzzleData
@@ -501,11 +310,9 @@ export type PuzzleData =
   | BombPuzzleData
   | GravityPuzzleData
   | ChainPuzzleData
-  | IntruderPuzzleData
   | NonoPuzzleData
   | PairPuzzleData
   | FloodPuzzleData
-  | StrokePuzzleData
   | TilesPuzzleData
   | RingsPuzzleData
   | HoverPuzzleData
@@ -546,9 +353,7 @@ export type PuzzleData =
   | WavefrontPuzzleData
   | BastionPuzzleData
   | RooftopPuzzleData
-  | SortRushPuzzleData
   | FlipPuzzleData
-  | ParryPuzzleData
   | JunctionPuzzleData
   | InkBridgePuzzleData
   | BurstPuzzleData
@@ -568,7 +373,8 @@ export interface TournamentEntry {
   date: string;
   /** The winner's total; stored round scores are never changed. */
   score: number;
-  round_order: PuzzleType[];
+  round_order: StoredPuzzleType[];
+  /** Word Match prompts, stored by restart_duel_room; no longer read (Word Match was deleted on 14 Oct 2026). */
   word_match_words?: string[];
   /** The game ended through "Finish now": the winner was the last player still in it. */
   forfeit?: boolean;
@@ -587,7 +393,7 @@ export interface DuelRow {
   host_user_id: string | null;
   max_players: number;
   round_count: number;
-  round_order: PuzzleType[];
+  round_order: StoredPuzzleType[];
   /** Host setting: kept for older rooms; no longer used in the draw. */
   no_maths: boolean;
 
@@ -703,21 +509,6 @@ export const STANDINGS_MS = 10_000;
 export const INACTIVE_AFTER_MISSED = 2;
 export const DISCONNECT_MS = 15_000;
 
-/** Sequence Recall plays back before its 30s clock starts, on a 4x4 grid. */
-export const SEQUENCE_LEAD_IN_MS = 700;
-export const SEQUENCE_FLASH_MS = 700;
-export const SEQUENCE_GAP_MS = 350;
-export const SEQUENCE_COLS = 4;
-export const SEQUENCE_LENGTH = 7;
-/** Reverse Recall shows one fewer tile than Sequence Recall. */
-export const REVERSE_LENGTH = 6;
-
-export function sequencePlaybackMs(count: number): number {
-  return SEQUENCE_LEAD_IN_MS + count * SEQUENCE_FLASH_MS + (count - 1) * SEQUENCE_GAP_MS;
-}
-
-export const SEQUENCE_PLAYBACK_MS = sequencePlaybackMs(SEQUENCE_LENGTH);
-
 /** Reaction Time: 5–8 stored gold flashes on one shared 60-second timeline. */
 export const REACTION_ROUND_MS = 60_000;
 export const REACTION_MIN_FLASHES = 5;
@@ -732,30 +523,6 @@ export const REACTION_DECOY_MS = 600;
 export const STROOP_MIN_PER_INSTRUCTION = 4;
 /** Never more than this many of the same instruction in a row. */
 export const STROOP_MAX_STREAK = 3;
-
-/** Spatial Memory: eight tiles of a 5x5 grid, lit in four groups of two. */
-export const SPATIAL_GRID_COLS = 5;
-export const SPATIAL_TILES = 8;
-export const SPATIAL_LEAD_IN_MS = 700;
-/** How long each group of tiles stays gold, and the dark gap between groups. */
-export const SPATIAL_GROUP_MS = 1_000;
-export const SPATIAL_GROUP_GAP_MS = 300;
-
-/** Total preparation time for a puzzle shown in `groups` groups. */
-export function spatialPrepMs(groups: number): number {
-  const count = Math.max(1, groups);
-  return SPATIAL_LEAD_IN_MS + count * SPATIAL_GROUP_MS + (count - 1) * SPATIAL_GROUP_GAP_MS;
-}
-
-/** Go / No-Go: twelve shapes, six of them gold circles, on a shared timeline. */
-export const GONOGO_ITEMS = 12;
-export const GONOGO_TARGETS = 6;
-export const GONOGO_ITEM_MS = 730;
-export const GONOGO_GAP_MS = 360;
-export const GONOGO_SLOT_MS = GONOGO_ITEM_MS + GONOGO_GAP_MS;
-export const GONOGO_RUN_MS = GONOGO_ITEMS * GONOGO_SLOT_MS;
-export const GONOGO_POINTS_PER_ITEM = 10;
-export const GONOGO_MAX_BONUS = 130;
 
 /** Symbol Scan: a 7x7 grid of arrows with 6-10 matching the target. */
 export const SYMSCAN_COLS = 7;
@@ -779,9 +546,6 @@ export const SPOT_THREE_POINTS = 50;
 export const SPOT_TWO_POINTS = 30;
 export const SPOT_ONE_POINTS = 15;
 
-/** Rotation Match: shapes drawn as filled cells of a 5x5 grid. */
-export const ROTATION_COLS = 5;
-
 /** Ascend (Number Hunt): 24 numbers over one minute. */
 export const NUMHUNT_COUNT = 24;
 export const NUMHUNT_TIME_MS = 60_000;
@@ -789,70 +553,6 @@ export const NUMHUNT_CIRCLE_PX = 42;
 export const NUMHUNT_ERROR_PENALTY = 5;
 export const NUMHUNT_FLASH_MS = 200;
 export const NUMHUNT_MOVE_MS = 15_000;
-
-/* -------------------------------------------------------------------------- */
-/*  Word Match                                                                 */
-/* -------------------------------------------------------------------------- */
-
-export type WordMatchMode = "synonym" | "antonym";
-
-export interface WordMatchItem {
-  prompt: string;
-  mode: WordMatchMode;
-  /** Four options in their stored, shuffled order. */
-  options: string[];
-}
-
-export interface WordMatchPuzzleData {
-  type: "wordmatch";
-  items: WordMatchItem[];
-  /** Server-side only: the correct option index of each item. */
-  answers?: number[];
-}
-
-/** Word Match: a run of eight prompts, over 45 seconds. */
-export const WORDMATCH_ITEMS = 8;
-export const WORDMATCH_TIME_MS = 45_000;
-
-/* -------------------------------------------------------------------------- */
-/*  Percent Sprint                                                             */
-/* -------------------------------------------------------------------------- */
-
-export interface PercentItem {
-  question: string;
-  /** Four options in their stored order — one correct, three near misses. */
-  options: number[];
-  /** One line of working, shown on the answer reveal. */
-  working: string;
-}
-
-export interface PercentPuzzleData {
-  type: "pctsprint";
-  items: PercentItem[];
-  /** Server-side only, until the reveal: the correct option index per question. */
-  answers?: number[];
-}
-
-/** Percent Sprint: five questions over 45 seconds. */
-export const PCTSPRINT_ITEMS = 5;
-export const PCTSPRINT_TIME_MS = 45_000;
-
-/* -------------------------------------------------------------------------- */
-/*  Number Climb                                                               */
-/* -------------------------------------------------------------------------- */
-
-export interface NumberClimbPuzzleData {
-  type: "numclimb";
-  /** The 12-digit prompt, shown for six seconds before the clock starts. */
-  digits: string;
-  /** Server-side grading copy, kept in private puzzle data. */
-  answerDigits?: string;
-}
-
-export const WORD_LADDER_TIME_MS = 60_000;
-export const NUMBER_CLIMB_LENGTH = 12;
-export const NUMBER_CLIMB_TIME_MS = 20_000;
-export const NUMBER_CLIMB_PREP_MS = 6_000;
 
 /* -------------------------------------------------------------------------- */
 /*  Stop Watch                                                                 */
@@ -941,43 +641,6 @@ export const COUNTUP_MIN_SHAPES = 50;
 export const COUNTUP_MAX_SHAPES = 110;
 export const COUNTUP_MIN_COUNT = 6;
 export const COUNTUP_MAX_COUNT = 12;
-
-/* -------------------------------------------------------------------------- */
-/*  Mirror Match                                                               */
-/* -------------------------------------------------------------------------- */
-
-/** Five shapes in one round. */
-export const MIRMATCH_ITEMS = 5;
-export const MIRMATCH_TIME_MS = 60_000;
-
-/** Which dashed line the target is flipped across. */
-export type MirrorAxis = "vertical" | "horizontal";
-
-/** How a wrong candidate differs from the true reflection. */
-export type MirrorCandidateKind = "correct" | "otherAxis" | "rotation" | "swap";
-
-/** A coloured shape: filled cells of a 5x5 grid, with one colour per cell. */
-export interface MirrorShape {
-  cells: number[];
-  colours: StroopColour[];
-}
-
-export interface MirrorItem {
-  axis: MirrorAxis;
-  target: MirrorShape;
-  /** Four candidates in their stored, shuffled order. */
-  candidates: MirrorShape[];
-}
-
-export interface MirrorPuzzleData {
-  type: "mirmatch";
-  /** Three puzzles, played one after the other. */
-  items: MirrorItem[];
-  /** Server-side only: the correct candidate of each item, in order. */
-  answers?: number[];
-  /** Server-side only: what each candidate is, per item, in stored order. */
-  kinds?: MirrorCandidateKind[][];
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Word Hunt                                                                  */
@@ -1751,60 +1414,6 @@ export interface ChainPuzzleData {
   boards: ChainNode[][];
 }
 
-/* ========================= Intruder Detection =========================== */
-
-/** Per board: 1 s round card, 5 s memorise, 1 s blank, 3 s pick, 1 s hold. */
-export const INTRUDER_CARD_MS = 1_000;
-export const INTRUDER_SHOW_MS = 7_000;
-export const INTRUDER_HIDE_MS = 1_000;
-export const INTRUDER_PLAY_MS = 5_000;
-export const INTRUDER_HOLD_MS = 1_000;
-export const INTRUDER_BOARD_MS = INTRUDER_CARD_MS + INTRUDER_SHOW_MS + INTRUDER_HIDE_MS + INTRUDER_PLAY_MS + INTRUDER_HOLD_MS;
-export const INTRUDER_TIME_MS = 5 * INTRUDER_BOARD_MS;
-export const INTRUDER_BOARDS = 5;
-export const INTRUDER_BOARD_SIZES = [3, 3, 3, 3, 3] as const;
-export const INTRUDER_CHANGE_COUNTS = [1, 1, 2, 2, 2] as const;
-
-export const INTRUDER_SHAPES = ["circle", "square", "triangle", "star"] as const;
-export const INTRUDER_COLOURS: StroopColour[] = ["RED", "BLUE", "GREEN", "YELLOW", "ORANGE"];
-export const INTRUDER_BOARD_COLOUR_COUNTS = [3, 4, 4, 5, 5] as const;
-export const INTRUDER_BOARD_SHAPE_COUNTS = [2, 3, 4, 4, 4] as const;
-
-export type IntruderShape = (typeof INTRUDER_SHAPES)[number];
-export type IntruderChangeKind = "colour" | "shape";
-
-export interface IntruderCell {
-  shape: IntruderShape;
-  colour: StroopColour;
-  /** Kept at zero; Intruder now changes only colour or shape. */
-  rot: 0 | 180;
-}
-
-export interface IntruderBoard {
-  size: number;
-  /** The grid as first shown. */
-  cells: IntruderCell[];
-  /** The grid as shown again, with exactly one cell different. */
-  after: IntruderCell[];
-  /**
-   * Boards 4–5: the symbols move inside the fixed grid for the second view.
-   * after[i] is derived from cells[perm[i]]; the grid itself never moves.
-   */
-  perm?: number[];
-}
-
-export interface IntruderAnswer {
-  cells: number[];
-  kinds: IntruderChangeKind[];
-}
-
-export interface IntruderPuzzleData {
-  type: "intruder";
-  boards: IntruderBoard[];
-  /** Server-side only: which cell changed on each board, and how. */
-  answers?: IntruderAnswer[];
-}
-
 /* ============================== Nonogram ================================ */
 
 export const NONO_TIME_MS = 120_000;
@@ -1842,8 +1451,13 @@ export const PAIR_PARTIAL_POINTS = 60;
 /** Unfinished Pair Match: points per pair found. */
 export const PAIR_PAIR_POINTS = 8;
 
+/** The four card shapes. */
+export const PAIR_SHAPES = ["circle", "square", "triangle", "star"] as const;
+
+export type PairShape = (typeof PAIR_SHAPES)[number];
+
 export interface PairCard {
-  shape: IntruderShape;
+  shape: PairShape;
   colour: StroopColour;
 }
 
@@ -1877,33 +1491,6 @@ export interface FloodPuzzleData {
   floodRev?: number;
   /** Taps allowed (floodRev 1). */
   moveLimit?: number;
-}
-
-/* ============================== One-Stroke ============================== */
-
-export const STROKE_TIME_MS = 30_000;
-export const STROKE_MIN_DOTS = 6;
-export const STROKE_MAX_DOTS = 9;
-export const STROKE_MIN_EDGES = 8;
-export const STROKE_MAX_EDGES = 14;
-export const STROKE_FIRST_TRY_BONUS = 20;
-export const STROKE_PARTIAL_POINTS = 60;
-/** Generation gives up on a figure after this many random attempts. */
-export const STROKE_ATTEMPTS = 600;
-
-export interface StrokeDot {
-  /** Percentage coordinates inside the play area. */
-  x: number;
-  y: number;
-}
-
-export interface StrokePuzzleData {
-  type: "stroke";
-  dots: StrokeDot[];
-  /** Each edge joins two dot indices; no two edges cross. */
-  edges: [number, number][];
-  /** Server-side only: one dot order that traces every edge exactly once. */
-  solution?: number[];
 }
 
 /* ============================= Sliding Tiles ============================= */
@@ -2218,16 +1805,6 @@ export interface WordSlidePuzzleData {
   words?: string[];
 }
 
-/* =============================== Sum Hunt =============================== */
-
-export interface SumHuntPuzzleData {
-  type: "sumhunt";
-  /** Draws the same stage-indexed boards for both players. */
-  seed: number;
-  /** Initial sum every path must hit, starting from 20–25. */
-  target: number;
-}
-
 /* ================================ Balance =============================== */
 
 export interface BalanceScale {
@@ -2277,16 +1854,8 @@ export interface RooftopPuzzleData {
   seed: number;
 }
 
-/** Sort Rush, Flip and Parry: fixed 60-second runs; the round clock adds three of slack. */
-export const SORTRUSH_TIME_MS = 63_000;
+/** Flip (Roofbound): a fixed 60-second run; the round clock adds three of slack. */
 export const FLIP_TIME_MS = 63_000;
-export const PARRY_TIME_MS = 63_000;
-
-export interface SortRushPuzzleData {
-  type: "sortrush";
-  /** Draws the shape stream and gate swaps — identical for everyone. */
-  seed: number;
-}
 
 export interface FlipPuzzleData {
   type: "flip";
@@ -2294,12 +1863,6 @@ export interface FlipPuzzleData {
   seed: number;
   /** Rules revision (2 = bend at 15 s, crumbling tiles, stars, larger runner; 3 = score bands; 4 = bend at 10 s, about 10% higher, Tuning C); absent = original. */
   flipRev?: number;
-}
-
-export interface ParryPuzzleData {
-  type: "parry";
-  /** Draws every arrow — identical for everyone. */
-  seed: number;
 }
 
 /** Junction: a fixed 60-second run; Ink Bridge: 120 seconds. The round clock adds three of slack. */

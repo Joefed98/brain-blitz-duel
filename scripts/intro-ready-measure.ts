@@ -29,7 +29,7 @@ const SIZES = (args.find((a) => a.startsWith("--sizes="))?.slice(8) ?? "375x667,
   .split(",")
   .map((s) => s.split("x").map(Number) as [number, number]);
 const GAMES = ALL
-  ? await import("../src/lib/duel/registry").then((r) => r.PUZZLE_TYPES.filter((t) => r.puzzleDef(t).category !== "memory"))
+  ? await import("../src/lib/duel/registry").then((r) => r.PUZZLE_TYPES)
   : args.filter((a) => !a.startsWith("--"));
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5181;

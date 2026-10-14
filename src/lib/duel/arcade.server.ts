@@ -57,9 +57,7 @@ import type {
   WavefrontPuzzleData,
   BastionPuzzleData,
   RooftopPuzzleData,
-  SortRushPuzzleData,
   FlipPuzzleData,
-  ParryPuzzleData,
   JunctionPuzzleData,
   InkBridgePuzzleData,
   BurstPuzzleData,
@@ -170,20 +168,12 @@ export function generateRooftop(): RooftopPuzzleData {
   return { type: "rooftop", seed: arcadeSeed() };
 }
 
-export function generateSortRush(): SortRushPuzzleData {
-  return { type: "sortrush", seed: arcadeSeed() };
-}
-
 export function generateColourClash(): StroopPuzzleData {
   return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV };
 }
 
 export function generateFlip(): FlipPuzzleData {
   return { type: "flip", seed: arcadeSeed(), flipRev: FLIP_REV_TUNEC };
-}
-
-export function generateParry(): ParryPuzzleData {
-  return { type: "parry", seed: arcadeSeed() };
 }
 
 export function generateJunction(): JunctionPuzzleData {

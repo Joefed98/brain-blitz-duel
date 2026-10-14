@@ -12,7 +12,6 @@ import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import {
   practiceCheckWordFn,
-  practiceCheckGroupFn,
   practiceCheckMovesFn,
   practiceGenerateFn,
   practiceGradeFn,
@@ -629,11 +628,6 @@ function PracticeScreen() {
             const verdict = await practiceCheckWordFn({
               data: { puzzle, word, found, path: path ?? [], sealed },
             });
-            recorder.current?.verdict(verdict);
-            return verdict;
-          }}
-          checkGroup={async (indices) => {
-            const verdict = await practiceCheckGroupFn({ data: { puzzle, sealed, indices } });
             recorder.current?.verdict(verdict);
             return verdict;
           }}

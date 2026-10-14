@@ -19,7 +19,8 @@
  * The database client is passed in, so scripts/reveal-window-check.ts drives
  * this exact code with an in-memory stand-in.
  */
-import { puzzleDef } from "./registry";
+import { puzzleDef, puzzleName } from "./registry";
+import { isRemovedType, removedRoundScore } from "./removedGames";
 import { mergePuzzle } from "./secrets";
 import { othersAnswersReadable } from "./answerWindow";
 import type {
@@ -88,8 +89,17 @@ export async function loadRoundReveal(
     .maybeSingle();
   const priv = ((secretRow?.puzzles_private ?? []) as Record<string, unknown>[])[roundNumber - 1];
   const puzzle = mergePuzzle(pub, priv);
-  const definition = puzzleDef(puzzle.type);
   const shown = open ? rows : rows.filter((row) => row.player_slot === mySlot);
+  // A deleted game (removedGames.ts): its name and each stored score, nothing recomputed.
+  if (isRemovedType(puzzle.type)) {
+    const players: PlayerRoundDetail[] = shown.map((result) => ({
+      playerSlot: result.player_slot,
+      summary: `${puzzleName(puzzle.type)} · ${removedRoundScore(result)} points`,
+      detail: [],
+    }));
+    return { ok: true, data: { puzzle, correctAnswer: null, players, ...(open ? {} : { partial: true, progress: [] }) } };
+  }
+  const definition = puzzleDef(puzzle.type);
   // A reveal must never break the round: a summary that throws falls back.
   const players: PlayerRoundDetail[] = shown.map((result) => {
     try {

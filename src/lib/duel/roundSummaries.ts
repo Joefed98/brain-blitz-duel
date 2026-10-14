@@ -4,24 +4,12 @@ import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { WF_PAR } from "@/lib/arcade/wordfall";
-import {
-  checkPatternAnswer,
-  decodePatternAnswers,
-  patternAttributeLabel,
-  patternMistakes,
-} from "./pattern";
 import { equationStageCorrect, parseCount, parseSelection, scanStageResult, splitStages } from "./stagedRounds";
 import {
   EQUATION_TIME_MS,
   BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
-  GONOGO_ITEMS,
-  GONOGO_RUN_MS,
   NUMHUNT_COUNT,
-  NUMSEQ_ITEMS,
-  PCTSPRINT_ITEMS,
-  PCTSPRINT_TIME_MS,
-  PATCOMP_TIME_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
   SPOT_TIME_MS,
@@ -31,10 +19,6 @@ import {
   wordHuntPoints,
   WORDSMITH_TIME_MS,
   wordsmithPoints,
-  WORDMATCH_ITEMS,
-  WORDMATCH_TIME_MS,
-  WORD_LADDER_TIME_MS,
-  NUMBER_CLIMB_TIME_MS,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
   FLOW_CELLS,
@@ -47,28 +31,20 @@ import {
   LASER_TIME_MS,
   MAZE_TIME_MS,
   TOWER_TIME_MS,
-  type GoNoGoItem,
   type PlayerRoundDetail,
   type PuzzleData,
   type PuzzleType,
   type RoundResultRow,
-  MIRMATCH_ITEMS,
-  MIRMATCH_TIME_MS,
-  SPIN_ITEMS,
-  SPIN_TIME_MS,
 } from "./types";
 import { BOMB_TIME_MS, SAFE_DIALS, SAFE_TIME_MS, TUBES_COLOURS, TUBES_TIME_MS } from "./types";
 import {
   CHAIN_TIME_MS,
   GRAV_TIME_MS,
-  INTRUDER_BOARDS,
-  INTRUDER_TIME_MS,
   NONO_TIME_MS,
   PAIR_PAIRS,
   PAIR_TIME_MS,
   FLOOD_CELLS,
   FLOOD_TIME_MS,
-  STROKE_TIME_MS,
   TILES_COUNT,
   TILES_TIME_MS,
   RINGS_SEGMENTS,
@@ -111,9 +87,7 @@ import {
   WAVEFRONT_TIME_MS,
   BASTION_TIME_MS,
   ROOFTOP_TIME_MS,
-  SORTRUSH_TIME_MS,
   FLIP_TIME_MS,
-  PARRY_TIME_MS,
   JUNCTION_TIME_MS,
   INKBRIDGE_TIME_MS,
   BURST_TIME_MS,
@@ -127,7 +101,6 @@ import {
 
 import { TG_TILES, TG_TIME_MS } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
-import { SH_TIME_MS, SH_STAGES } from "./sumHunt";
 import { BAL_SCALES, BAL_TIME_MS } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
@@ -140,10 +113,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   nonogram: NONO_TIME_MS,
   pairmatch: PAIR_TIME_MS,
   flood: FLOOD_TIME_MS,
-  stroke: STROKE_TIME_MS,
   tiles: TILES_TIME_MS,
   tilegrid: TG_TIME_MS,
-  sumhunt: SH_TIME_MS,
   balance: BAL_TIME_MS,
   wordslide: WS_TIME_MS,
   rings: RINGS_TIME_MS,
@@ -185,9 +156,7 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   wavefront: WAVEFRONT_TIME_MS,
   bastion: BASTION_TIME_MS,
   rooftop: ROOFTOP_TIME_MS,
-  sortrush: SORTRUSH_TIME_MS,
   flip: FLIP_TIME_MS,
-  parry: PARRY_TIME_MS,
   junction: JUNCTION_TIME_MS,
   inkbridge: INKBRIDGE_TIME_MS,
   burst: BURST_TIME_MS,
@@ -198,79 +167,40 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
   hotfloor: HOTFLOOR_TIME_MS,
 };
 
+/** The older types' limits (Tower and Bomb Defusal may carry their own). */
+const LADDER_LIMITS: Partial<Record<PuzzleType, number>> = {
+  target: TARGET_TIME_MS,
+  equation: EQUATION_TIME_MS,
+  symscan: 45_000,
+  countup: 45_000,
+  spotdiff: SPOT_TIME_MS,
+  lightsout: LIGHTS_TIME_MS,
+  pipes: PIPES_TIME_MS,
+  sudoku: SUDOKU_TIME_MS,
+  flow: FLOW_TIME_MS,
+  iceslide: SLIDE_TIME_MS,
+  push: PUSH_TIME_MS,
+  laser: LASER_TIME_MS,
+  maze: MAZE_TIME_MS,
+  wordsmith: WORDSMITH_TIME_MS,
+  wordhunt: WORDHUNT_TIME_MS,
+  unblock: UNBLOCK_TIME_MS,
+  blockparty: BLOCK_TIME_MS,
+  tubes: TUBES_TIME_MS,
+  safe: SAFE_TIME_MS,
+  gravity: GRAV_TIME_MS,
+  chain: CHAIN_TIME_MS,
+};
+
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
   const direct = DIRECT_LIMITS[puzzle.type];
   if (direct) return Math.max(0, direct - result.ms_remaining);
   const limit =
-    puzzle.type === "wordmatch"
-      ? WORDMATCH_TIME_MS
-      : puzzle.type === "pctsprint"
-        ? PCTSPRINT_TIME_MS
-        : puzzle.type === "patcomp"
-          ? PATCOMP_TIME_MS
-          : puzzle.type === "target"
-            ? TARGET_TIME_MS
-            : puzzle.type === "equation"
-              ? EQUATION_TIME_MS
-              : puzzle.type === "chaincalc"
-              ? 45_000
-              : puzzle.type === "symscan"
-                ? 45_000
-                : puzzle.type === "countup"
-                  ? 45_000
-                  : puzzle.type === "numseq"
-                    ? 30_000
-                    : puzzle.type === "mirmatch"
-                      ? MIRMATCH_TIME_MS
-                      : puzzle.type === "spin"
-                        ? SPIN_TIME_MS
-                        : puzzle.type === "spotdiff"
-                          ? SPOT_TIME_MS
-                          : puzzle.type === "groups"
-                            ? 90_000
-                            : puzzle.type === "ladder"
-                              ? WORD_LADDER_TIME_MS
-                              : puzzle.type === "numclimb"
-                                ? NUMBER_CLIMB_TIME_MS
-                                : puzzle.type === "lightsout"
-                                  ? LIGHTS_TIME_MS
-                                  : puzzle.type === "pipes"
-                                    ? PIPES_TIME_MS
-                                    : puzzle.type === "sudoku"
-                                      ? SUDOKU_TIME_MS
-                                      : puzzle.type === "flow"
-                                        ? FLOW_TIME_MS
-                                        : puzzle.type === "iceslide"
-                                          ? SLIDE_TIME_MS
-                                          : puzzle.type === "push"
-                                            ? PUSH_TIME_MS
-                                            : puzzle.type === "laser"
-                                              ? LASER_TIME_MS
-                                              : puzzle.type === "maze"
-                                                ? MAZE_TIME_MS
-                                                : puzzle.type === "tower"
-                                                  ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
-                                                  : puzzle.type === "wordsmith"
-                                                    ? WORDSMITH_TIME_MS
-                                                    : puzzle.type === "wordhunt"
-                                                      ? WORDHUNT_TIME_MS
-                                                      : puzzle.type === "unblock"
-                                                        ? UNBLOCK_TIME_MS
-                                                        : puzzle.type === "blockparty"
-                                                          ? BLOCK_TIME_MS
-                                                          : puzzle.type === "tubes"
-                                                            ? TUBES_TIME_MS
-                                                            : puzzle.type === "safe"
-                                                              ? SAFE_TIME_MS
-                                                              : puzzle.type === "bomb"
-                                                                ? (puzzle.timeLimitMs ?? BOMB_TIME_MS)
-                                                                : puzzle.type === "gravity"
-                                                                  ? GRAV_TIME_MS
-                                                                  : puzzle.type === "chain"
-                                                                    ? CHAIN_TIME_MS
-                                                                    : puzzle.type === "intruder"
-                                                                      ? INTRUDER_TIME_MS
-                                                                      : ROUND_MS;
+    puzzle.type === "tower"
+      ? (puzzle.timeLimitMs ?? TOWER_TIME_MS)
+      : puzzle.type === "bomb"
+        ? (puzzle.timeLimitMs ?? BOMB_TIME_MS)
+        : (LADDER_LIMITS[puzzle.type] ?? ROUND_MS);
   return Math.max(0, limit - result.ms_remaining);
 }
 
@@ -290,25 +220,6 @@ function marked(result: RoundResultRow, answer: string): string {
 function optionAnswer(result: RoundResultRow): string | null {
   const value = Number.parseInt(result.answer ?? "", 10);
   return Number.isFinite(value) ? `Option ${value + 1}` : null;
-}
-
-function cellsAnswer(result: RoundResultRow): string | null {
-  const cells = (result.answer ?? "")
-    .split(",")
-    .map((value) => Number.parseInt(value, 10))
-    .filter(Number.isFinite)
-    .map((value) => value + 1);
-  return cells.length ? `Cells ${cells.join(", ")}` : null;
-}
-
-function sequenceAnswer(result: RoundResultRow, puzzle: PuzzleData): string | null {
-  if (puzzle.type !== "sequence" && puzzle.type !== "reverse") return rawAnswer(result);
-  const indices = (result.answer ?? "")
-    .split(",")
-    .map((value) => Number.parseInt(value, 10))
-    .filter(Number.isFinite);
-  if (!indices.length) return null;
-  return indices.map((index) => puzzle.tiles[index] ?? index + 1).join(" → ");
 }
 
 function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
@@ -343,14 +254,6 @@ function countUpSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail
   };
 }
 
-function chainCalculationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const answer = rawAnswer(result);
-  return {
-    summary: `${answer ?? "No answer"} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [],
-  };
-}
-
 function singleAnswer(
   display: (result: RoundResultRow, puzzle: PuzzleData) => string | null,
 ): SummaryBuilder {
@@ -373,127 +276,6 @@ function stroopSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
   return { summary: `${count} / ${total} · ${wrong} wrong`, detail: [] };
 }
 
-function wordMatchSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
-  const detail =
-    puzzle.type === "wordmatch"
-      ? puzzle.items.map((item, index) => {
-          const chosen = item.options[picks[index] ?? -1] ?? "No answer";
-          const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
-          return `${index + 1}. ${item.prompt} · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`}`;
-        })
-      : [];
-  return {
-    summary: `${count} / ${WORDMATCH_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail,
-  };
-}
-
-function percentSprintSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
-  const detail =
-    puzzle.type === "pctsprint"
-      ? puzzle.items.map((item, index) => {
-          const chosen = item.options[picks[index] ?? -1] ?? "No answer";
-          const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
-          return `${index + 1}. ${item.question} · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`}`;
-        })
-      : [];
-  return {
-    summary: `${count} / ${PCTSPRINT_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail,
-  };
-}
-
-function numberSequenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
-  const detail =
-    puzzle.type === "numseq"
-      ? puzzle.items.map((item, index) => {
-          const chosen = item.options[picks[index] ?? -1] ?? "No answer";
-          const expected = item.options[puzzle.answers?.[index] ?? -1] ?? "—";
-          return `${index + 1}. ${item.numbers.join(", ")}, ? · ${chosen === expected ? `✓ ${chosen}` : `✗ ${chosen} · ${expected}`} (${item.rule})`;
-        })
-      : [];
-  return {
-    summary: `${count} / ${NUMSEQ_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail,
-  };
-}
-
-const MIRROR_WRONG: Record<string, string> = {
-  otherAxis: "flip across the other line",
-  rotation: "turned, not flipped",
-  swap: "colours swapped",
-};
-
-function mirrorSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const picks = (result.answer ?? "").split(",").map((value) => Number.parseInt(value, 10));
-  const detail =
-    puzzle.type === "mirmatch"
-      ? puzzle.items.map((item, index) => {
-          const answer = puzzle.answers?.[index];
-          const mine = picks[index];
-          const line = `${index + 1}. Flip ${item.axis === "vertical" ? "left/right" : "up/down"}`;
-          if (mine === undefined || Number.isNaN(mine)) return `${line} · ✗ No answer`;
-          if (mine === answer) return `${line} · ✓`;
-          const kind = puzzle.kinds?.[index]?.[mine];
-          return `${line} · ✗ ${kind ? (MIRROR_WRONG[kind] ?? "wrong shape") : "wrong shape"}`;
-        })
-      : [];
-  return {
-    summary: `${count} / ${MIRMATCH_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail,
-  };
-}
-
-const SPIN_TEXT: Record<string, string> = {
-  cw: "90° clockwise",
-  half: "180°",
-  ccw: "90° anticlockwise",
-  flip: "flipped",
-};
-
-function spinSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const picks = (result.answer ?? "").split(",").filter(Boolean);
-  const detail =
-    puzzle.type === "spin"
-      ? puzzle.items.map((_item, index) => {
-          const answer = puzzle.answers?.[index];
-          const mine = picks[index];
-          const expected = answer ? (SPIN_TEXT[answer] ?? answer) : "—";
-          if (!mine) return `${index + 1}. ${expected} · ✗ No answer`;
-          return mine === answer
-            ? `${index + 1}. ${expected} · ✓`
-            : `${index + 1}. ${expected} · ✗ ${SPIN_TEXT[mine] ?? mine}`;
-        })
-      : [];
-  return { summary: `${count} / ${SPIN_ITEMS} · ${seconds(elapsedMs(result, puzzle))}`, detail };
-}
-
-function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  if (puzzle.type !== "patcomp") return { summary: "—", detail: [] };
-  const answers = decodePatternAnswers(result.answer);
-  const count = puzzle.puzzles.filter((item, index) =>
-    checkPatternAnswer(answers[index] ?? "", item),
-  ).length;
-  const detail = puzzle.puzzles.map((item, index) => {
-    const answer = answers[index] ?? "";
-    if (checkPatternAnswer(answer, item)) return `${index + 1}. ✓`;
-    const wrong = patternMistakes(item, answer).map(patternAttributeLabel);
-    return `${index + 1}. ✗ ${wrong.length ? `${wrong.join(", ")} wrong` : "Skipped"}`;
-  });
-  return {
-    summary: count === 3 ? `3 / 3 · ${seconds(elapsedMs(result, puzzle))}` : `${count} / 3 correct`,
-    detail,
-  };
-}
-
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
@@ -512,24 +294,6 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
       ? `${count} / ${SPOT_DIFFERENCES} · ${seconds(elapsedMs(result, puzzle))}`
       : `${count} / ${SPOT_DIFFERENCES}`;
   return { summary, detail };
-}
-
-function describeGoNoGo(item: GoNoGoItem): string {
-  return item.target ? "gold circle" : `${item.colour.toLowerCase()} ${item.shape}`;
-}
-
-function goNoGoSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
-  const count = result.correct_count ?? 0;
-  const taps = (result.answer ?? "").split(",");
-  const detail =
-    puzzle.type === "gonogo"
-      ? puzzle.items.map((item, index) => {
-          const tapped = taps[index] !== undefined && taps[index] !== "-" && taps[index] !== "";
-          const ok = item.target ? tapped : !tapped;
-          return `${index + 1}. ${describeGoNoGo(item)} · ${ok ? "✓" : "✗"}`;
-        })
-      : [];
-  return { summary: `${count} / ${GONOGO_ITEMS} · ${seconds(GONOGO_RUN_MS)}`, detail };
 }
 
 function wordsmithSummary(result: RoundResultRow): BuiltDetail {
@@ -580,8 +344,6 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
 
 const rawSingle = singleAnswer((result) => rawAnswer(result));
 const optionSingle = singleAnswer((result) => optionAnswer(result));
-const cellsSingle = singleAnswer((result) => cellsAnswer(result));
-const sequenceSingle = singleAnswer(sequenceAnswer);
 
 /** Raw word points and the resulting round score, with words in the expanded detail. */
 const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
@@ -627,25 +389,6 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const groupsSummary: SummaryBuilder = (result, puzzle) => {
-  if (puzzle.type !== "groups") return { summary: "—", detail: [] };
-  const found = Math.max(0, Math.min(4, Number(result.extra?.["foundGroups"] ?? 0)));
-  if (found === 4)
-    return {
-      summary: `4 / 4 groups · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
-    };
-  return {
-    summary: `${found} / 4 groups`,
-    detail: (puzzle.groups ?? []).map((group) => `${group.theme}: ${group.words.join(", ")}`),
-  };
-};
-
-const sumHuntSummary: SummaryBuilder = (result, puzzle) => {
-  const stage = Number(result.extra?.["stage"] ?? 1);
-  return { summary: stage > SH_STAGES ? `Cleared the grid · ${seconds(elapsedMs(result, puzzle))}` : `Stage ${stage} of ${SH_STAGES}`, detail: [] };
-};
-
 const balanceSummary: SummaryBuilder = (result, puzzle) => {
   const solved = Number(result.extra?.["solved"] ?? result.correct_count ?? 0);
   return {
@@ -670,24 +413,6 @@ const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
       ? `Solved · 5 / 5 rows · ${seconds(elapsedMs(result, puzzle))}`
       : `${rows} / 5 rows`,
     detail: [],
-  };
-};
-
-const ladderSummary: SummaryBuilder = (result, puzzle) => {
-  if (puzzle.type !== "ladder" || !result.is_correct) return { summary: "Not solved", detail: [] };
-  const rungs = (result.answer ?? "").split(",").filter(Boolean);
-  return {
-    summary: `Solved · ${rungs.length + 1} rungs · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [[puzzle.startWord, ...rungs].join(" → ")],
-  };
-};
-
-const numberClimbSummary: SummaryBuilder = (result, puzzle) => {
-  if (puzzle.type !== "numclimb") return { summary: "—", detail: [] };
-  const span = Math.max(0, Math.min(12, Number(result.extra?.["span"] ?? 0)));
-  return {
-    summary: `Span ${span}${span === 12 ? " ✓" : ""} / 12 · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: result.answer ? [`Typed ${result.answer}`] : [],
   };
 };
 
@@ -971,17 +696,6 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const intruderSummary: SummaryBuilder = (result, puzzle) => {
-  if (puzzle.type !== "intruder") return { summary: "—", detail: [] };
-  const correct = Number(result.extra?.["correct"] ?? 0);
-  return {
-    summary: `${correct} / ${INTRUDER_BOARDS} · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [
-      result.extra?.["allFirstTry"] ? "Every grid found first time" : "A second look was needed",
-    ],
-  };
-};
-
 const nonogramSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "nonogram") return { summary: "—", detail: [] };
   const correct = Number(result.extra?.["correct"] ?? 0);
@@ -1015,20 +729,6 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
       ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
       : `${region} / ${FLOOD_CELLS} cells`,
     detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
-  };
-};
-
-const strokeSummary: SummaryBuilder = (result, puzzle) => {
-  if (puzzle.type !== "stroke") return { summary: "—", detail: [] };
-  const solvedOn = Number(result.extra?.["solvedOn"] ?? 0);
-  const best = Number(result.extra?.["best"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? puzzle.edges.length);
-  const ordinal = solvedOn === 1 ? "1st" : solvedOn === 2 ? "2nd" : `${solvedOn}th`;
-  return {
-    summary: result.is_correct
-      ? `Solved · ${ordinal} try · ${seconds(elapsedMs(result, puzzle))}`
-      : `${best} / ${total} lines`,
-    detail: [`${Number(result.extra?.["attempts"] ?? 0)} attempts`],
   };
 };
 
@@ -1343,38 +1043,12 @@ const rooftopSummary: SummaryBuilder = (result) => {
   };
 };
 
-const sortRushSummary: SummaryBuilder = (result) => {
-  const sorted = Number(result.extra?.["sorted"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 0);
-  const wrong = Number(result.extra?.["wrong"] ?? 0);
-  const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  const head = `${sorted} / ${total} sorted · ${wrong} wrong`;
-  return {
-    summary: survived ? `${head} · survived` : `${head} · missed at ${ended.toFixed(1)}s`,
-    detail: ["Same shapes for everyone"],
-  };
-};
-
 const flipSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
     summary: survived ? "Survived the minute" : `Survived ${ended.toFixed(1)}s`,
     detail: ["Same corridor for everyone"],
-  };
-};
-
-const parrySummary: SummaryBuilder = (result) => {
-  const deflected = Number(result.extra?.["deflected"] ?? 0);
-  const total = Number(result.extra?.["total"] ?? 0);
-  const hits = Number(result.extra?.["hits"] ?? 0);
-  const survived = result.extra?.["survived"] !== false;
-  const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
-  void total;
-  return {
-    summary: `${deflected} deflected · ${hits} ${hits === 1 ? "life" : "lives"} lost · ${result.score ?? 0}`,
-    detail: ["Same arrows for everyone"],
   };
 };
 
@@ -1623,33 +1297,18 @@ const ringsSummary: SummaryBuilder = (result, puzzle) => {
 
 export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wordsmith: wordsmithSummary,
-  groups: groupsSummary,
-  ladder: ladderSummary,
   tilegrid: tileGridSummary,
-  sumhunt: sumHuntSummary,
   balance: balanceSummary,
   wordslide: wordSlideSummary,
   target: targetSummary,
-  numseq: numberSequenceSummary,
-  sequence: sequenceSingle,
-  reverse: sequenceSingle,
   reaction: averageSummary,
   equation: equationSummary,
   stroop: stroopSummary,
-  spatial: cellsSingle,
-  gonogo: goNoGoSummary,
-  patcomp: patternSummary,
   symscan: symbolScanSummary,
-  spin: spinSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
-  chaincalc: chainCalculationSummary,
-  wordmatch: wordMatchSummary,
-  pctsprint: percentSprintSummary,
-  numclimb: numberClimbSummary,
   stopwatch: averageSummary,
   countup: countUpSummary,
-  mirmatch: mirrorSummary,
   wordhunt: wordHuntSummary,
   unblock: unblockSummary,
   blockparty: blockPartySummary,
@@ -1667,11 +1326,9 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   bomb: bombSummary,
   gravity: gravitySummary,
   chain: chainSummary,
-  intruder: intruderSummary,
   nonogram: nonogramSummary,
   pairmatch: pairMatchSummary,
   flood: floodSummary,
-  stroke: strokeSummary,
   tiles: tilesSummary,
   rings: ringsSummary,
   hover: hoverSummary,
@@ -1698,9 +1355,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   wavefront: wavefrontSummary,
   bastion: bastionSummary,
   rooftop: rooftopSummary,
-  sortrush: sortRushSummary,
   flip: flipSummary,
-  parry: parrySummary,
   junction: junctionSummary,
   inkbridge: inkBridgeSummary,
   burst: burstSummary,
@@ -1732,36 +1387,18 @@ function joinOperators(values: string[]): string {
 
 export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wordsmith: () => null,
-  groups: () => "Four groups of four",
   tilegrid: () => null,
-  sumhunt: () => null,
   balance: () => null,
   wordslide: (p) => (p.type === "wordslide" && p.words ? p.words.join(" · ") : null),
-  ladder: (p) => (p.type === "ladder" ? (p.shortestPath ?? []).join(" → ") : null),
   target: (p) => (p.type === "target" ? String(p.target) : null),
-  numseq: () => null,
-  sequence: (p) => (p.type === "sequence" ? p.tiles.join(" → ") : null),
-  reverse: (p) =>
-    p.type === "reverse"
-      ? (p.answerOrder ?? [...p.tiles].reverse()).map((i) => p.tiles[i] ?? i + 1).join(" → ")
-      : null,
   reaction: () => null,
   equation: (p) => (p.type === "equation" && p.operators ? p.operators.map((ops) => joinOperators(ops)).join(" · ") : null),
   stroop: () => null,
-  spatial: (p) => (p.type === "spatial" ? `Cells ${p.tiles.map((i) => i + 1).join(", ")}` : null),
-  gonogo: () => null,
-  patcomp: (p) => (p.type === "patcomp" ? "See the three grids" : null),
   symscan: (p) => (p.type === "symscan" && p.targets ? p.targets.map((t) => t.length).join(" · ") + " arrows" : null),
-  spin: () => null,
   numhunt: () => null,
   spotdiff: (p) => (p.type === "spotdiff" ? `${(p.differences ?? []).length} differences` : null),
-  chaincalc: (p) => (p.type === "chaincalc" ? String(p.answer) : null),
-  wordmatch: () => null,
-  pctsprint: () => null,
-  numclimb: (p) => (p.type === "numclimb" ? (p.answerDigits ?? p.digits) : null),
   stopwatch: () => null,
   countup: (p) => (p.type === "countup" && p.counts ? p.counts.join(" · ") : null),
-  mirmatch: () => null,
   wordhunt: () => null,
   unblock: (p) => (p.type === "unblock" && p.minMoves ? `${p.minMoves} moves` : null),
   blockparty: () => null,
@@ -1779,11 +1416,9 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   bomb: () => null,
   gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
   chain: () => null,
-  intruder: () => null,
   nonogram: () => "The picture",
   pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
-  stroke: (p) => (p.type === "stroke" ? `${p.edges.length} lines, one stroke` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,
   swerve: () => null,
@@ -1809,9 +1444,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   wavefront: () => null,
   bastion: () => null,
   rooftop: () => null,
-  sortrush: () => null,
   flip: () => null,
-  parry: () => null,
   junction: () => null,
   inkbridge: () => null,
   burst: () => null,

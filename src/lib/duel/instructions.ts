@@ -82,15 +82,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Longer words score more: 8 letters = 11 word points; 9-11 letters = 15. Round score = floor(2.5 × word points), up to 150.",
   },
-  groups: {
-    goal: "Sort sixteen words into four groups of four.",
-    how: [
-      { action: "Tap four words", detail: "that share a link." },
-      { action: "Submit", detail: "to lock the group in." },
-      { action: "Watch out", detail: "for red herrings." },
-    ],
-    score: "More groups = more points. All four = speed bonus (the full bonus if you finish with at least half the time left).",
-  },
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
     how: [
@@ -102,16 +93,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
     score: "All fifteen tiles in a valid grid = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × tiles inside a real word ÷ 15 (about 7 each), at most 110.",
-  },
-  sumhunt: {
-    goal: "Clear digit paths that add up to the target.",
-    how: [
-      { action: "Swipe or tap", detail: "touching cells, no diagonals." },
-      { action: "Hit the target", detail: "and the path clears." },
-      { action: "The target rises", detail: "with every clear." },
-      { action: "A new board slides in", detail: "after each of the first eight clears; finish by chaining the whole grid.", helpOnly: true },
-    ],
-    score: "10 per stage; clear the whole grid to finish for the time bonus (the full bonus if you finish with at least half the time left).",
   },
   balance: {
     goal: "Balance each of the three scales.",
@@ -136,16 +117,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "All five rows words = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise 27.5 per word row you made (rows as they started don't count), less for wasted moves (nothing at 4× par), at most 110.",
   },
-  ladder: {
-    goal: "Change one letter at a time to reach the last word.",
-    how: [
-      { action: "Type a word", detail: "for each rung." },
-      { action: "Change one letter", detail: "from the word above." },
-      { action: "Press Enter", detail: "to add each word." },
-      { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
-    ],
-    score: "Finish the ladder faster = more points. Getting close still scores.",
-  },
   target: {
     goal: "Use the six numbers to make the target.",
     how: [
@@ -154,15 +125,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Every step", detail: "must be a whole number." },
     ],
     score: "Exact = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise measured from the closest number you made: off by 1 = 110, falling faster the further off, 0 from about 100 away; no step made = 0.",
-  },
-  numseq: {
-    goal: "Find the next number in each sequence.",
-    how: [
-      { action: "Five sequences,", detail: "each harder." },
-      { action: "Tap the answer;", detail: "you can't go back." },
-      { action: "Finish all five", detail: "inside 45 seconds.", helpOnly: true },
-    ],
-    score: "Twenty a sequence. All five right for the speed bonus (the full bonus if you finish with at least half the time left).",
   },
   equation: {
     goal: "Fill the gaps so each equation is true.",
@@ -176,42 +138,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Stages: 20 / 30 / 35 / 45, in any order (the best three = 110). All four: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. An equation still wrong after 3 tries scores nothing.",
   },
-  chaincalc: {
-    goal: "Work out the final number in the chain.",
-    how: [
-      { action: "Start at the top", detail: "with the first number." },
-      { action: "Work down", detail: "one step at a time." },
-      { action: "Type the result", detail: "and press Submit." },
-    ],
-    score: "Correct and faster = more points.",
-  },
-  sequence: {
-    goal: "Repeat the tile sequence in order.",
-    how: [
-      { action: "Watch the tiles", detail: "light up one by one." },
-      { action: "Tap them back", detail: "in the same order." },
-      { action: "Tap again", detail: "to undo your last tap." },
-    ],
-    score: "Complete the sequence faster = more points.",
-  },
-  reverse: {
-    goal: "Repeat the tile sequence backwards.",
-    how: [
-      { action: "Watch the tiles", detail: "light up one by one." },
-      { action: "Tap them back", detail: "last one first." },
-      { action: "Tap again", detail: "to undo your last tap." },
-    ],
-    score: "Complete the sequence faster = more points.",
-  },
-  spatial: {
-    goal: "Find all eight tiles that lit up.",
-    how: [
-      { action: "Watch four pairs", detail: "appear on the grid." },
-      { action: "Tap all eight", detail: "after they vanish." },
-      { action: "Any order;", detail: "tap again to undo." },
-    ],
-    score: "Find every tile faster = more points.",
-  },
   reaction: {
     goal: "Tap the instant the screen turns gold.",
     how: [
@@ -221,15 +147,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "False starts:", detail: "a tap on a decoy colour or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
     ],
     score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.",
-  },
-  gonogo: {
-    goal: "Tap every gold circle; ignore the rest.",
-    how: [
-      { action: "Watch each shape", detail: "as it appears." },
-      { action: "Tap gold circles", detail: "as fast as you can." },
-      { action: "Leave everything else", detail: "alone." },
-    ],
-    score: "More correct choices = more points. Perfect = speed bonus (the full bonus if you finish with at least half the time left).",
   },
   numhunt: {
     goal: "Tap all 24 numbers from smallest to largest.",
@@ -268,51 +185,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "All six with at most 5 wrong taps = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 22 per difference found, −5 per wrong tap, at most 110.",
   },
-  patcomp: {
-    goal: "Complete all three visual patterns.",
-    how: [
-      { action: "Study each pattern", detail: "for its two changing features." },
-      { action: "Build the missing piece", detail: "with the pickers." },
-      { action: "Submit or skip", detail: "to move on." },
-    ],
-    score: "Each correct pattern scores. All three = speed bonus (the full bonus if you finish with at least half the time left).",
-  },
-  spin: {
-    goal: "Say how each shape was turned or flipped.",
-    how: [
-      { action: "Compare the shapes", detail: "before and after." },
-      { action: "Tap the rotation", detail: "shown by the arrows." },
-      { action: "Choose FLIPPED", detail: "if the shape is mirrored." },
-    ],
-    score: "More correct = more points. Perfect = speed bonus (the full bonus if you finish with at least half the time left).",
-  },
-  wordmatch: {
-    goal: "Decide if each word pair fits the rule.",
-    how: [
-      { action: "Read the rule:", detail: "SYNONYM or ANTONYM." },
-      { action: "Compare the pair", detail: "for meaning." },
-      { action: "Tap your answer", detail: "for every pair." },
-    ],
-    score: "All eight = 100 plus speed. Otherwise 13 per correct pair, up to 90.",
-  },
-  pctsprint: {
-    goal: "Solve all five percentage questions.",
-    how: [
-      { action: "Work out", detail: "the percentage asked for." },
-      { action: "Tap the answer", detail: "from the choices." },
-      { action: "Solve all five", detail: "in 45 seconds." },
-    ],
-    score: "More correct = more points. All five = speed bonus (the full bonus if you finish with at least half the time left).",
-  },
-  numclimb: {
-    goal: "Recall all twelve digits in order.",
-    how: [
-      { action: "Memorise the digits", detail: "while they show." },
-      { action: "Type them back", detail: "from the start." },
-      { action: "Press Submit", detail: "when you're done." },
-    ],
-    score: "Each correct digit in a row increases your span.",
-  },
   stopwatch: {
     goal: "Stop the marker in the gold zone, ten times.",
     how: [
@@ -333,15 +205,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
     ],
     score: "Stages worth 25 / 40 / 45 (110 in all): exact = full, off by 1 = 60%, off by 2 = 30%. All three exact: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
-  },
-  mirmatch: {
-    goal: "Pick the exact mirror image of each shape.",
-    how: [
-      { action: "Flip the shape", detail: "across the dashed line." },
-      { action: "Match every colour", detail: "and the outline." },
-      { action: "Tap your answer", detail: "for all five shapes." },
-    ],
-    score: "More correct = more points. All five = speed bonus (the full bonus if you finish with at least half the time left).",
   },
   wordhunt: {
     goal: "Find as many words as you can.",
@@ -517,17 +380,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "Unfinished: 110 × links ÷ 39 (about 2.8 per link), at most 110. All 40: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Round lasts 45 s.",
   },
-  intruder: {
-    goal: "Find every party guest who changed.",
-    how: [
-      { action: "Memorise the guests", detail: "before the lights dim." },
-      { action: "Tap each guest", detail: "who changed." },
-      { action: "Later parties", detail: "have two changes." },
-      { action: "A change", detail: "is a new head shape or colour.", helpOnly: true },
-      { action: "Five parties", detail: "- 7 s to memorise, 5 s to pick; on the last two the guests swap places around the party.", helpOnly: true },
-    ],
-    score: "Complete = 130 + up to 20 for speed: the full 20 if you finish with at least half the time left. Otherwise 24 per board right; one of two changes earns 12.",
-  },
   nonogram: {
     goal: "Fill cells so every line matches its numbers.",
     how: [
@@ -555,15 +407,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
     ],
     score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × cells you flooded beyond the start ÷ cells left, in full up to par moves, half at par + 1 and nothing at the limit (par + 2), so running out of moves scores 0.",
-  },
-  stroke: {
-    goal: "Trace every line in one stroke.",
-    how: [
-      { action: "Start on any dot", detail: "and drag along the lines." },
-      { action: "No line twice.", detail: "" },
-      { action: "Lift your finger", detail: "to start again." },
-    ],
-    score: "First try earns a bonus.",
   },
   tiles: {
     goal: "Slide the tiles into order, 1 to 8.",
@@ -928,14 +771,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     ],
     score: "The longer you last, the more you score - the full minute is 150.",
   },
-  sortrush: {
-    goal: "Sort every shape into the gate of its colour.",
-    how: [
-      { action: "Swipe left or right", detail: "- from 20 seconds there's a middle gate too (swipe down)." },
-      { action: "The gate colours swap;", detail: "watch for the flash." },
-    ],
-    score: "Points for the share you sort; wrong gates cost 2.",
-  },
   flip: {
     goal: "Run the corridor - flip to the other side to dodge.",
     how: [
@@ -946,15 +781,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
     score: bandHelp("Each half second you last counts 1 and each gold star 3.", FLIP_V4_BAND_CURVE, "Lasting the full minute adds 10."),
-  },
-  parry: {
-    goal: "Block every arrow with the gong shield.",
-    how: [
-      { action: "Swipe in any of eight directions", detail: "or use ⟲ ⟳ to move one position." },
-      { action: "A diagonal blocks both neighbours", detail: "- at 1:30 it covers the top and the right." },
-      { action: "Later they come in pairs", detail: "and some swerve at the last moment. Three hits and you're out." },
-    ],
-    score: "2 per arrow deflected, −10 per life lost.",
   },
   junction: {
     goal: "Keep traffic moving, no crashes.",

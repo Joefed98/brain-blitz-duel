@@ -14,7 +14,7 @@
 
 import { randomBelow, shuffled, weightedPick, withSeededRandom } from "./random";
 import { typesInCategory } from "./registry";
-import type { PuzzleCategory, PuzzleType } from "./types";
+import type { PuzzleCategory, PuzzleType, StoredPuzzleType } from "./types";
 import { normaliseCategories } from "./categories";
 
 /**
@@ -25,8 +25,8 @@ export const RECENT_WEIGHTS = [0.25, 0.5, 0.75] as const;
 /** A type from the previous room is skipped when its category has this many alternatives. */
 export const EXCLUDE_MIN_ALTERNATIVES = 3;
 
-/** Round orders of recent rooms, most recent first. */
-export type RecentRounds = readonly (readonly PuzzleType[])[];
+/** Round orders of recent rooms, most recent first (as stored: they may hold deleted games' ids, which match nothing). */
+export type RecentRounds = readonly (readonly StoredPuzzleType[])[];
 
 /** 1.0 unless the value appears in one of the recent rooms. */
 function recencyWeight<T>(value: T, seen: readonly (readonly T[])[]): number {

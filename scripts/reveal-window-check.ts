@@ -279,14 +279,14 @@ function noAnswerDb(room: Record<string, unknown>, mineIn: boolean) {
   check(/answersReady=\{!!currentReveal && !currentReveal\.awaitingAnswer\}/.test(route), "an awaiting reveal shows no answer (the reveal waits, the score line shows Scoring…)");
   const word = server.slice(server.indexOf("export const checkWordFn"), server.indexOf("export const checkMovesFn"));
   check(/room\.phase !== "puzzle"/.test(word.slice(0, word.indexOf("privatePuzzles("))), "the word checker reads the private solution only in the puzzle phase");
-  for (const fn of ["checkMovesFn", "checkGroupFn"]) {
+  for (const fn of ["checkMovesFn"]) {
     const body = server.slice(server.indexOf(`export const ${fn}`));
     check(/room\.phase !== "puzzle"/.test(body.slice(0, body.indexOf("privatePuzzles("))), `${fn} reads the private solution only in the puzzle phase`);
   }
   const fnsWithSecrets = [...server.matchAll(/export const (\w+Fn)[\s\S]*?(?=export const |$)/g)]
     .filter((m) => /privatePuzzles\(|duel_secrets/.test(m[0]))
     .map((m) => m[1]);
-  check(JSON.stringify(fnsWithSecrets.sort()) === JSON.stringify(["checkGroupFn", "checkMovesFn", "checkWordFn", "startRoomFn", "submitAnswerFn"]),
+  check(JSON.stringify(fnsWithSecrets.sort()) === JSON.stringify(["checkMovesFn", "checkWordFn", "startRoomFn", "submitAnswerFn"]),
     `room server functions touching the private solution: ${fnsWithSecrets.join(", ")}`);
   check(/currentReveal\?\.progress\?\.find/.test(route), "the arcade reveal track uses the reveal's progress for the others");
   const hook = readFileSync("src/lib/duel/useDuel.ts", "utf8");

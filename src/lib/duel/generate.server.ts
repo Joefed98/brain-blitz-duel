@@ -9,19 +9,17 @@ import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
-import { generateGroups } from "./groups.server";
 import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
-import { TOTAL_ROUNDS, type GoNoGoItem, type PuzzleData, type PuzzleType } from "./types";
+import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock, type UnblockBankRow } from "./unblock.server";
 import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
-import { generateWordLadder } from "./wordLadder.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
-import { generateBalance, generateSumHunt } from "./numberRounds.server";
+import { generateBalance } from "./numberRounds.server";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
@@ -34,11 +32,9 @@ import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
 import { generateChain } from "./chain.server";
-import { generateIntruder } from "./intruder.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
-import { generateStroke } from "./stroke.server";
 import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
@@ -66,9 +62,7 @@ import {
   generateWavefront,
   generateBastion,
   generateRooftop,
-  generateSortRush,
   generateFlip,
-  generateParry,
   generateJunction,
   generateInkBridge,
   generateBurst,
@@ -98,17 +92,10 @@ import { generateNumline } from "./numline.server";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 
-import { buildGoNoGo } from "@/puzzles/goNoGo";
-import { buildWordMatch } from "@/puzzles/wordMatch";
-
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
-  /** The opening item of the host's previous Go / No-Go run, if there was one. */
-  previousGoNoGoFirst?: GoNoGoItem | null;
   /** A pre-drawn Unblock bank row, so building a room never runs a solver. */
   unblockRow?: UnblockBankRow | null;
-  /** Word Match prompts from the host's last ten tournaments. */
-  recentWordMatchWords?: string[];
   /**
    * Draw the six slow puzzle types (see puzzleBank.server.ts) from their
    * precomputed bank with this seed instead of generating live. Room start
@@ -135,17 +122,12 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
-  if (type === "gonogo") return buildGoNoGo(context.previousGoNoGoFirst ?? null);
-  if (type === "wordmatch") return buildWordMatch(context.recentWordMatchWords ?? []);
   if (type === "wordsmith") return generateWordsmith();
   if (type === "wordhunt") return generateWordHunt();
   if (type === "unblock") return generateUnblock(context.unblockRow);
   if (type === "blockparty") return generateBlockParty();
-  if (type === "groups") return generateGroups();
-  if (type === "ladder") return generateWordLadder();
   if (type === "tilegrid") return generateTileGrid();
   if (type === "wordslide") return generateWordSlide();
-  if (type === "sumhunt") return generateSumHunt();
   if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
@@ -161,11 +143,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "bomb") return generateBomb();
   if (type === "gravity") return generateGravity();
   if (type === "chain") return generateChain();
-  if (type === "intruder") return generateIntruder();
   if (type === "nonogram") return generateNonogram();
   if (type === "pairmatch") return generatePairMatch();
   if (type === "flood") return generateFlood();
-  if (type === "stroke") return generateStroke();
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
   if (type === "hover") return generateHover();
@@ -192,9 +172,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "wavefront") return generateWavefront();
   if (type === "bastion") return generateBastion();
   if (type === "rooftop") return generateRooftop();
-  if (type === "sortrush") return generateSortRush();
   if (type === "flip") return generateFlip();
-  if (type === "parry") return generateParry();
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge();
   if (type === "burst") return generateBurst();
@@ -247,9 +225,7 @@ export function buildRoomPuzzles(options: RoundSelectionOptions & GenerateContex
     puzzles: roundOrder.map((type) =>
       stampTieRev(
         generatePuzzle(type, {
-          previousGoNoGoFirst: options.previousGoNoGoFirst ?? null,
           unblockRow: options.unblockRow ?? null,
-          recentWordMatchWords: options.recentWordMatchWords ?? [],
           bankSeed: seed,
           recentBankKeys: options.recentBankKeys,
         }),

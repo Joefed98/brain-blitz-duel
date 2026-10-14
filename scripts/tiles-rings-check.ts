@@ -1,21 +1,9 @@
 /**
- * Proof checks for One-Stroke, Sliding Tiles and Rotating Rings.
- * Run with: bun scripts/stroke-tiles-rings-check.ts
+ * Proof checks for Sliding Tiles and Rotating Rings (One-Stroke's part went
+ * with the game on 14 Oct 2026).
+ * Run with: bun scripts/tiles-rings-check.ts
  */
 
-import {
-  decodeStrokeAttempts,
-  encodeStrokeAttempts,
-  findEulerPath,
-  oddDots,
-  replayStroke,
-  replayStrokeAttempt,
-  strokeConnected,
-  strokeDegrees,
-  strokeTrapDots,
-} from "../src/lib/duel/stroke";
-import { generateStroke } from "../src/lib/duel/stroke.server";
-import { chainSegmentsIntersect } from "../src/lib/duel/chain";
 import {
   decodeTileMoves,
   encodeTileMoves,
@@ -43,10 +31,6 @@ import {
   RINGS_MAX_TURNS,
   RINGS_MIN_TURNS,
   RINGS_SEGMENTS,
-  STROKE_MAX_DOTS,
-  STROKE_MAX_EDGES,
-  STROKE_MIN_DOTS,
-  STROKE_MIN_EDGES,
   TILES_COUNT,
   TILES_MAX_MOVES,
   TILES_MIN_MOVES,
@@ -59,52 +43,6 @@ function check(label: string, ok: boolean): void {
   if (ok) return;
   failures += 1;
   console.error(`FAIL ${label}`);
-}
-
-// ------------------------------ One-Stroke ------------------------------
-for (let round = 0; round < ROUNDS; round += 1) {
-  const puzzle = generateStroke();
-  const { dots, edges, solution } = puzzle;
-  check(
-    `stroke ${round}: dot count`,
-    dots.length >= STROKE_MIN_DOTS && dots.length <= STROKE_MAX_DOTS,
-  );
-  check(
-    `stroke ${round}: edge count`,
-    edges.length >= STROKE_MIN_EDGES && edges.length <= STROKE_MAX_EDGES,
-  );
-  check(`stroke ${round}: connected`, strokeConnected(dots, edges));
-  check(`stroke ${round}: euler parity`, [0, 2].includes(oddDots(dots, edges).length));
-  check(
-    `stroke ${round}: a busy dot`,
-    strokeDegrees(dots, edges).some((d) => d >= 4),
-  );
-  check(`stroke ${round}: has a trap dot`, strokeTrapDots(dots, edges).length > 0);
-
-  // No two edges cross, except where they share a dot.
-  let crossing = false;
-  edges.forEach(([a, b], i) => {
-    edges.slice(i + 1).forEach(([c, d]) => {
-      if (a === c || a === d || b === c || b === d) return;
-      if (chainSegmentsIntersect(dots[a]!, dots[b]!, dots[c]!, dots[d]!)) crossing = true;
-    });
-  });
-  check(`stroke ${round}: no crossing edges`, !crossing);
-
-  // The stored route traces every edge exactly once, and replays as solved.
-  check(`stroke ${round}: solution stored`, Array.isArray(solution) && solution.length > 0);
-  const replayed = replayStrokeAttempt(edges, solution ?? []);
-  check(`stroke ${round}: solution complete`, replayed.complete);
-  const full = replayStroke(edges, decodeStrokeAttempts(encodeStrokeAttempts([solution ?? []])));
-  check(`stroke ${round}: solved first try`, full.solved && full.solvedOn === 1);
-
-  // A trap start really is impossible.
-  const trap = strokeTrapDots(dots, edges)[0]!;
-  check(`stroke ${round}: trap cannot finish`, findEulerPath(dots, edges, trap) === null);
-
-  // A partial attempt scores partially, never as solved.
-  const partial = replayStroke(edges, [(solution ?? []).slice(0, 3)]);
-  check(`stroke ${round}: partial not solved`, !partial.solved && partial.best <= edges.length);
 }
 
 // ----------------------------- Sliding Tiles -----------------------------
@@ -202,5 +140,5 @@ if (failures > 0) {
   process.exit(1);
 }
 console.log(
-  `All One-Stroke, Sliding Tiles and Rotating Rings checks passed (${ROUNDS} rounds each).`,
+  `All Sliding Tiles and Rotating Rings checks passed (${ROUNDS} rounds each).`,
 );

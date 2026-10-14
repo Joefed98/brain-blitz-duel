@@ -1276,7 +1276,7 @@ body.game-lock {
 [data-category="number"] { --category-accent: var(--category-number); }
 [data-category="speed"] { --category-accent: var(--category-speed); }
 [data-category="attention"] { --category-accent: var(--category-attention); }
-[data-category="pattern"], [data-category="memory"] { --category-accent: var(--category-pattern); }
+[data-category="pattern"] { --category-accent: var(--category-pattern); }
 [data-category="logic"] { --category-accent: var(--category-logic); }
 [data-category="arcade"] { --category-accent: var(--category-arcade); }
 .screen-background { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(155deg, var(--screen-mid), var(--background) 55%, var(--screen-edge)); }

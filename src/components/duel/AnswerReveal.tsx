@@ -7,7 +7,8 @@ import { ArcadeReveal, storedCostRows, type RevealPlayer } from "@/components/du
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
-import { puzzleDef, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
+import { isRemovedType } from "@/lib/duel/removedGames";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playSound, stopMusic } from "@/lib/sound";
@@ -163,7 +164,35 @@ function Verdict({ correct, score }: { correct: boolean; score: number | null })
   );
 }
 
-export function AnswerReveal({
+/**
+ * The round reveal. A stored round of a deleted game (removedGames.ts) gets only
+ * its name and the stored score; everything else gets the game's own reveal.
+ */
+export function AnswerReveal(props: AnswerRevealProps) {
+  return isRemovedType(props.puzzle.type) ? <RemovedRoundReveal {...props} /> : <LiveAnswerReveal {...props} />;
+}
+
+/** Read-only: no board, no replay, no grading; never waits on "Scoring…". */
+function RemovedRoundReveal({ round, totalRounds = TOTAL_ROUNDS, puzzle, myScore }: AnswerRevealProps) {
+  return (
+    <div data-removed-game={puzzle.type} className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+      <div className="flex items-center justify-between gap-2">
+        <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Round {round} of {totalRounds}
+        </span>
+        <span className="min-w-0 flex-1 whitespace-normal break-words text-center font-display text-sm font-bold leading-none text-foreground">{puzzleName(puzzle.type)}</span>
+      </div>
+      <div className="flex w-full flex-1 flex-col items-center gap-2">
+        <p data-reveal-score={myScore ?? "none"} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary">
+          {myScore === null ? "No score" : `${myScore} points`}
+        </p>
+        <p className="text-center text-sm text-muted-foreground">This game is no longer in Duelz; the stored score stands.</p>
+      </div>
+    </div>
+  );
+}
+
+function LiveAnswerReveal({
   round,
   totalRounds = TOTAL_ROUNDS,
   puzzle,
@@ -185,7 +214,7 @@ export function AnswerReveal({
   );
   const def = puzzleDef(puzzle.type);
   const Reveal = def.Reveal;
-  const puzzleOwnsRevealLayout = puzzle.type === "chain" || puzzle.type === "intruder";
+  const puzzleOwnsRevealLayout = puzzle.type === "chain";
   const cued = useRef(0);
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
