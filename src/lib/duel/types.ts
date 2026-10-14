@@ -2070,7 +2070,7 @@ export interface SnakePuzzleData {
   type: "snake";
   /** Draws the whole star queue (and rock schedule) — identical for everyone in the room. */
   seed: number;
-  /** Rule revision (2 = asteroids); absent = original rules. */
+  /** Rule revision (2 = asteroids; 3 = shower; 4 = score bands; 5 = taller grid, Tuning E; 6 = more rocks, Tuning F); absent = original rules. */
   snakeRev?: number;
 }
 
@@ -2105,7 +2105,7 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B); absent = original rules. */
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B; 5 = 2.5 s Fireball, Tuning F); absent = original rules. */
   brkRev?: number;
 }
 
@@ -2126,7 +2126,7 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
-  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B). Absent on rounds stored before rev 2. */
+  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B); 5 = a second bumper from 45 s (Tuning F). Absent on rounds stored before rev 2. */
   rallyRev?: number;
 }
 
@@ -2219,7 +2219,7 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
-  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C). Absent on rounds stored before rev 2. */
+  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C); 5 = a tenth fewer notes (Tuning F). Absent on rounds stored before rev 2. */
   beatRev?: number;
 }
 
@@ -2258,10 +2258,12 @@ export interface SumHuntPuzzleData {
 /* ================================ Balance =============================== */
 
 export interface BalanceScale {
-  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4. */
+  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4 (10 notches: 0–4 left 5…1, 5–9 right 1…5). */
   fixed: { peg: number; w: number }[];
   /** Loose gold weights the player must place. */
   tray: number[];
+  /** Notches, when not 8: balanceRev 2's fourth scale has 10 (5 a side). */
+  pegs?: number;
 }
 
 export interface BalancePuzzleData {
@@ -2269,10 +2271,12 @@ export interface BalancePuzzleData {
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
-  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. Absent = no limit. */
+  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. 2 (14 Oct 2026) = as 1, plus a fourth 10-notch scale, 120 s and the rev-2 scale points (balance.ts). Absent = no limit. */
   balanceRev?: number;
-  /** Hangs allowed per scale (balanceRev 1). */
+  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12). */
   placeLimits?: number[];
+  /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
+  timeLimitMs?: number;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2379,7 +2383,7 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
@@ -2506,7 +2510,7 @@ export interface CheckoutPuzzleData {
   routes?: string[];
 }
 
-/** Ballpark: three lines of five numbers in 75 s. */
+/** Ballpark: three lines of five numbers in 75 s (the registry limit: stored rounds; numlineRev 2 puzzles carry 90 s as `timeLimitMs`). */
 export const NUMLINE_TIME_MS = 75_000;
 
 /** An exact value: (num ÷ den) + rootCoef × √root (rootCoef 0 when rational). */
@@ -2527,8 +2531,10 @@ export interface NumlineStageData {
 
 export interface NumlinePuzzleData {
   type: "numline";
-  /** Rules revision; 1 = the first rules. */
+  /** Rules revision; 1 = the first rules, 2 = 90 s and the rev-2 item curve (numline.ts). */
   numlineRev: number;
+  /** numlineRev 2: the round clock (90,000 ms). Absent on stored rounds, which keep the registry's 75 s. */
+  timeLimitMs?: number;
   stages: NumlineStageData[];
   /** Exact value of every item, stage by stage — private until the reveal. */
   values?: NumlineValue[][];

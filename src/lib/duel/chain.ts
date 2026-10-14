@@ -93,12 +93,15 @@ export function chainBoardIndex(links: number, puzzle?: ChainPuzzleData): number
 }
 
 /**
- * chainCycleRev 1: unfinished credit by links made, floor(110 × (links ÷ 39)^0.45),
- * written out so phone and server never depend on Math.pow rounding.
+ * chainCycleRev 1: unfinished credit by links made: 4 a link to 20 at five links,
+ * then floor(20 + 59 × ((links − 5) ÷ 14)^0.95) to 79 at 19 links, then
+ * floor(79 + 31 × ((links − 19) ÷ 20)^0.7) to 110 at 39, so the early links pay a
+ * little and the curve flattens towards one short. Written out so phone and server
+ * never depend on Math.pow rounding.
  */
 export const CHAIN_CYCLE_REV_CREDIT: readonly number[] = [
-  0, 21, 28, 34, 39, 43, 47, 50, 53, 56, 59, 62, 64, 67, 69, 71, 73, 75, 77, 79,
-  81, 83, 85, 86, 88, 90, 91, 93, 94, 96, 97, 99, 100, 102, 103, 104, 106, 107, 108, 110,
+  0, 4, 8, 12, 16, 20, 24, 29, 33, 37, 42, 46, 50, 54, 58, 62, 66, 70, 74, 79,
+  82, 85, 87, 89, 90, 92, 93, 95, 96, 98, 99, 100, 101, 103, 104, 105, 106, 107, 108, 110,
 ];
 
 /** Shared server-scoring rule, with the original rule for stored rounds. */

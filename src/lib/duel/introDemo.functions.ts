@@ -1,4 +1,4 @@
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { chainDemoCompatible } from "./chain";
@@ -65,7 +65,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // clayRev 5 (14 Oct 2026) flies 14–16 birds: an older demo would show 10–12, so only a rev-5 demo plays.
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED && demo.puzzle.swingRev !== SWING_REV_TUNEC) return null;
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED && demo.puzzle.swingRev !== SWING_REV_TUNEC && demo.puzzle.swingRev !== SWING_REV_SPREAD) return null;
     return demo;
   });
 

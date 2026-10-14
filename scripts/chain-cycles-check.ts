@@ -145,9 +145,12 @@ check([1,13,14,26,27,40].map((link) => chainWindowMs(link)).join() === "3000,300
 for (let links = 0; links < 40; links++) check(chainScore(links, 45000) === Math.floor(3.5 * links), "Unfinished formula changed");
 for (let ms = 0; ms <= 45000; ms++) check(chainScore(40, ms) === 140 + Math.round(10 * Math.min(1, ms / 22500)), "Finish bonus mismatch (speed par)");
 check(chainScore(40, 50000) === 150 && chainScore(40, -10) === 140, "Score bounds failed");
-// chainCycleRev 1 (puzzle score rev 1): floor(110 × (links ÷ 39)^0.45) unfinished, 0 for none, 110 one short, a finish still 120+.
+// chainCycleRev 1 (puzzle score rev 1): 4 a link to 5 links, then two concave pieces through 79 at 19 and 110 at 39;
+// 0 for none, rising every link, a finish still 120+.
 const longPuzzle = generateChain(1);
-check(CHAIN_CYCLE_REV_CREDIT.length === 40 && CHAIN_CYCLE_REV_CREDIT.every((v, n) => v === Math.floor(110 * Math.pow(n / 39, 0.45)) && (n === 0 || v > CHAIN_CYCLE_REV_CREDIT[n - 1]!)), "Five-symbol credit table");
+const creditFormula = (n: number) => n <= 5 ? 4 * n : n <= 19 ? Math.floor(20 + 59 * Math.pow((n - 5) / 14, 0.95)) : Math.floor(79 + 31 * Math.pow((n - 19) / 20, 0.7));
+check(CHAIN_CYCLE_REV_CREDIT.length === 40 && CHAIN_CYCLE_REV_CREDIT.every((v, n) => v === creditFormula(n) && (n === 0 || v > CHAIN_CYCLE_REV_CREDIT[n - 1]!)), "Five-symbol credit table");
+check(CHAIN_CYCLE_REV_CREDIT[5] === 20 && CHAIN_CYCLE_REV_CREDIT[19] === 79 && CHAIN_CYCLE_REV_CREDIT[39] === 110, "Five-symbol credit anchors");
 withPuzzleScoreRev(1, () => {
   for (let links = 0; links < 40; links++) check(chainScore(links, 45000, longPuzzle) === CHAIN_CYCLE_REV_CREDIT[links], "Five-symbol unfinished credit");
   check(chainScore(40, 0, longPuzzle) === 120 && chainScore(40, 45000, longPuzzle) === 150, "Five-symbol finish");

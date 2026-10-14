@@ -104,9 +104,13 @@ export const BRK_FIRE_TICKS = 5 * TICKS_PER_SECOND;
 /** brkRev 4 (Tuning B): the Fireball lasts 30 % less, 3.5 s. */
 export const BRK_FIRE_TICKS_V4 = Math.round(3.5 * TICKS_PER_SECOND);
 export const BRK_TUNE = 1;
+/** brkRev 5 (Tuning F): the Fireball is cut again, to 2.5 s. */
+export const BRK_FIRE_TICKS_V5 = Math.round(2.5 * TICKS_PER_SECOND);
+export const BRK_TUNE_F = 2;
 
 /** How long a caught Fireball lasts on this state's revision. */
 export function brkFireTicks(state: Pick<BrkState, "tune">): number {
+  if (state.tune === BRK_TUNE_F) return BRK_FIRE_TICKS_V5;
   return state.tune === BRK_TUNE ? BRK_FIRE_TICKS_V4 : BRK_FIRE_TICKS;
 }
 export const BRK_V2_LASER_BRICKS = 4;
@@ -198,7 +202,7 @@ export interface BrkState extends BandFields {
   /** brkRev 2: ticks of Fireball left, and Fireball capsules caught. */
   fire?: number;
   fireballs?: number;
-  /** brkRev 4 only (Tuning B): 1 = the 3.5 s Fireball. Absent on every earlier round. */
+  /** brkRev 4 (Tuning B): 1 = the 3.5 s Fireball; brkRev 5 (Tuning F): 2 = the 2.5 s Fireball. Absent on every earlier round. */
   tune?: number;
   tick: number;
   rng: number;
@@ -874,6 +878,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TUNEF) return breakerTunefGame;
   if (rev === BRK_REV_TUNED) return breakerTunedGame;
   if (rev === BRK_REV_BAND) return breakerBandGame;
   return rev === BRK_REV ? breakerGameV2 : breakerGame;
@@ -910,4 +915,18 @@ export const BRK_REV_TUNED = 4;
 export const breakerTunedGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   ...breakerGameV2,
   init: (seed) => bandInit({ ...breakerGameV2.init(seed), tune: BRK_TUNE }),
+};
+
+/* ================= Tuning F (brkRev 5): shorter Fireball again ================= */
+
+/**
+ * brkRev 5 (Tuning F, Oct 2026): brkRev 4 play and bands with the Fireball cut
+ * again, from 3.5 s to 2.5 s. States keep `rev: 2` and carry `tune: 2`.
+ */
+export const BRK_REV_TUNEF = 5;
+// Bands: the brkRev 3 knots stand (scripts/arcade-skill-bands.ts --rev=f).
+
+export const breakerTunefGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerGameV2,
+  init: (seed) => bandInit({ ...breakerGameV2.init(seed), tune: BRK_TUNE_F }),
 };

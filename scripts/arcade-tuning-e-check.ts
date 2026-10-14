@@ -57,6 +57,7 @@ import {
   SNAKE_COLS,
   SNAKE_REV_BAND,
   SNAKE_REV_TALL,
+  SNAKE_REV_ROCKS,
   SNAKE_TALL_H,
   SNAKE_TALL_ROWS,
   SNAKE_V5_BAND_CURVE,
@@ -74,7 +75,7 @@ import {
   SNIP_HOOK_REACH,
   SNIP_LEVEL_TICKS,
   SNIP_REV_BAND,
-  SNIP_REV_BANK6,
+  SNIP_REV_PROVEN,
   SNIP_REV_TALL,
   SNIP_RUN_TICKS,
   SNIP_TALL_FIRST,
@@ -150,9 +151,11 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
 {
   const stamps: [string, string, number | undefined, number][] = [
     ["skyline", "skylineRev", generateSkyline().skylineRev, SKYLINE_REV_TALL],
-    ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_TALL],
-    // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts).
-    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_BANK6],
+    // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
+    ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_ROCKS],
+    // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
+    // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
+    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_PROVEN],
     ["hover", "hoverRev", generateHover().hoverRev, HOVER_REV_TALL],
   ];
   for (const [type, field, got, rev] of stamps) {
@@ -460,7 +463,7 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("63") && PUZZLE_INSTRUCTIONS.hover.score.includes("112"), "Hover's help states its curve (the Tuning C knots, unchanged on hoverRev 5)");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("34") && PUZZLE_INSTRUCTIONS.snake.score.includes("142"), "Meteor's help states the snakeRev 5 knots");
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("33") && PUZZLE_INSTRUCTIONS.snake.score.includes("142"), "Meteor's help states the knots rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

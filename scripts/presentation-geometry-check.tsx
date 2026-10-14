@@ -105,8 +105,8 @@ assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*width: min\(10
 assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*height: min\(100cqh, 100cqw \* var\(--arena-h\) \/ var\(--arena-w\)\)/);
 assert.match(css2, /\[data-arena-slot\] \{[^}]*container-type: size;[^}]*align-items: center;[^}]*justify-content: flex-start/);
 assert.match(css2, /padding-bottom: calc\(max\(8px, env\(safe-area-inset-bottom\) \+ 6px\) - max\(8px, env\(safe-area-inset-bottom\)\)\)/);
-/** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip). */
-const BELOW: Record<string, number> = { burst: 12 + 72, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
+/** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip; Fission's arrows sit 8px higher since Tuning F). */
+const BELOW: Record<string, number> = { burst: 12 + 80, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
 /** Smallest touch target edge in each control row, by viewport width. */
 const TARGETS: Record<string, (w: number) => number> = {
   burst: (w) => Math.min(56, (w - 8 - 2 * 12) / 3),

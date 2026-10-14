@@ -31,7 +31,7 @@ import { gunzipSync } from "node:zlib";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, puzzleDef, puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { encodeFloodMoves, replayFlood } from "../src/lib/duel/flood";
 import { unfinishedCredit, wasteFactor } from "../src/lib/duel/puzzleScoreRev";
@@ -42,7 +42,7 @@ import {
   type TubeToken,
 } from "../src/lib/duel/tubes";
 import { decodeGravityTilts, encodeGravityTilts } from "../src/lib/duel/gravity";
-import { encodeBalance } from "../src/lib/duel/balance";
+import { BAL_REV2, BAL_REV2_TIME_MS, encodeBalance } from "../src/lib/duel/balance";
 import { balancedArrangements } from "../src/lib/duel/numberRounds.server";
 import {
   decodeMeasureActions,
@@ -53,7 +53,6 @@ import {
 } from "../src/lib/duel/measure";
 import { joinStages } from "../src/lib/duel/stagedRounds";
 import {
-  BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
   FLOOD_LIMIT_REV,
@@ -116,7 +115,8 @@ const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: s
   flood: { rev: "floodRev", value: FLOOD_LIMIT_REV, limit: "moveLimit" },
   tubes: { rev: "tubesRev", value: TUBES_LIMIT_REV, limit: "pourLimit" },
   gravity: { rev: "gravityRev", value: GRAVITY_LIMIT_REV, limit: "tiltLimit" },
-  balance: { rev: "balanceRev", value: BALANCE_LIMIT_REV, limit: "placeLimits" },
+  // Counterweight's four-scale puzzles (14 Oct 2026) are balanceRev 2, which keeps the rev-1 limits and adds the fourth.
+  balance: { rev: "balanceRev", value: BAL_REV2, limit: "placeLimits" },
   equation: { rev: "equationRev", value: EQUATION_LIMIT_REV, limit: "tryLimit" },
   measure: { rev: "measureRev", value: MEASURE_LIMIT_REV, limit: "moveLimits" },
   countup: { rev: "countRev", value: COUNTUP_COUNT_REV },
@@ -351,6 +351,17 @@ for (let i = 0; i < 12; i++) {
       balancedArrangements(b.scales[0]!) === 1 && balancedArrangements(b.scales[1]!) === 1,
       `balance ${seed}: a small scale has more than one balanced arrangement`,
     );
+    // balanceRev 2: a fourth scale with 10 notches and five weights; 6 / 8 / 10 / 12 hangs; 120 s on the puzzle.
+    ok(
+      b.scales.length === 4 && b.scales[3]!.pegs === 10 && b.scales[3]!.tray.length === 5 &&
+        b.scales.slice(0, 3).every((s) => s.pegs === undefined) &&
+        balancedArrangements(b.scales[3]!) >= 1,
+      `balance ${seed}: fourth scale not 10 notches with five weights`,
+    );
+    ok(
+      (b.placeLimits ?? []).join(",") === "6,8,10,12" && b.timeLimitMs === BAL_REV2_TIME_MS,
+      `balance ${seed}: limits ${b.placeLimits?.join("/")} / clock ${b.timeLimitMs}`,
+    );
     const c = roomPuzzle("countup", seed) as Extract<PuzzleData, { type: "countup" }>;
     (c.counts ?? []).forEach((n, k) => {
       const [lo, hi] = COUNTUP_STAGE_COUNTS_REV1[k]!;
@@ -373,7 +384,7 @@ for (let i = 0; i < 12; i++) {
     for (let i = 0; i < 24; i++) {
       const seed = 5001 + i;
       const p = roomPuzzle(type, seed);
-      const limit = puzzleDef(type).timeLimitMs;
+      const limit = puzzleTimeLimitMs(p);
       for (const sp of kit.spam(p, makeRng(hashText(`${type}:spam:${seed}`)), limit)) {
         const g = gradeAnswer(p, sp.answer, 0);
         (scores[sp.label] ??= []).push(g.score);

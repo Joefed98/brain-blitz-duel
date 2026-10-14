@@ -198,7 +198,7 @@ lines.push(`Pull!: 300 seeds fly ${Object.entries(birdCounts).map(([k, v]) => `$
 const TARGET: Record<string, Record<string, [number, number]>> = {
   reaction: { average: [62, 80], good: [92, 112], great: [117, 135], near: [138, 150] },
   stopwatch: { average: [100, 118], good: [110, 128], great: [120, 138], near: [126, 142] },
-  chain: { average: [30, 60], good: [80, 100], great: [120, 150], near: [140, 150] },
+  chain: { average: [12, 35], good: [80, 100], great: [120, 150], near: [140, 150] },
   clayshoot: { average: [80, 100], good: [115, 140], great: [140, 150], near: [145, 150] },
 };
 const table = ["| Game | Player | Before | After |", "|---|---|---|---|"];

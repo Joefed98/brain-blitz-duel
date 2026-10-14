@@ -186,13 +186,36 @@ Every honest band moves by at most 1 except Colour Flood's average (98 → 96: a
 
 **Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).
 
+## Number tuning (14 Oct 2026)
+
+Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 100 / 125 / 140–150** (average / good / great / near-perfect), with random play at or below about 60. Both changes are stamped and both clocks are stored on the puzzle, so stored rounds keep their 90 s / 75 s and their rules (`move-limits-check`, `number-batch-check`).
+
+| Game | Change (new rounds) | Stamp |
+|---|---|---|
+| Counterweight | A fourth scale, slightly harder: 10 notches (5 each side, distances 1–5), three fixed and five tray weights, 12 hangs (limits 6 / 8 / 10 / 12). 120 s (was 90). Scales 15 / 25 / 30 / 55 in any order (any three ≤ 110); all four = 120 + PAR(30). | `balanceRev 2`, `timeLimitMs` 120,000 |
+| Ballpark | 90 s (was 75). Full 8 within 1 % (was 2 %), falling evenly to 0 at 10 % (was 8 % under the 13 Oct score shape; 15 % on rounds dealt before it); a wild placement (25 % or more) still costs 1. The speed part is PAR(30) × the share of numbers placed within 1 % (was × accuracy ÷ 120). | `numlineRev 2`, `timeLimitMs` 90,000 |
+
+**Bands, median per level, 30 room seeds (5001–5030), before (main, 14 Oct) → after** (finish rate after in brackets), and the spam strategies' median / max. Measured with `bun scripts/puzzle-fairness.ts balance numline --seeds=30` on main and on this change.
+
+| Game | Average | Good | Great | Near-perfect | Random / spam median / max |
+|---|---|---|---|---|---|
+| Counterweight | 55 → **70** (0/30) | 145 → **126** (23/30) | 150 → **142** (30/30) | 150 → **150** (30/30) | random hanging 0 / 75 → **0 / 80**; fast 0 / 20 → **0 / 30**; place once 0 → 0 |
+| Ballpark | 59 → **72** (6/30) | 116 → **105** (30/30) | 144 → **126** (30/30) | 150 → **142** (30/30) | random 2 / 24 → **5 / 27**; all middle 4 / 12 → **5 / 12**; either end 0 → 0 |
+
+**How they were set.**
+
+- **Counterweight.** The kit keeps its 5 s per weight on the 8-notch scales; the wide scale takes 10 s a weight (five weights over seven free notches at distances to 5 is a search, not a sum). At 6.5 s good players finished every round (good 135), at 8 s 131, at 10 s 126 (23 finishes in 30) and at 12 s half finished (median 70 or 120 either side). Good players either finish (121–138) or stop on the wide scale with 70, so their band is two-humped: median 126, mean 115. Average players balance the three 8-notch scales and run out of time on the fourth, which the points put at 15 + 25 + 30 = **70**. Reaching the good target of 100 would need a fourth scale that good players fail in about half their rounds, which is more than "slightly harder". Random hanging stays at a median of 0: the hang limits hold and the wide scale has many arrangements but 12 hangs over five weights rarely land one.
+- **Ballpark.** At 90 s with the rev-1 curve the bands were 70 / 122 / 146 / 150: the longer clock lets everyone finish, and the speed part scaled by accuracy lets rough finishes keep most of it. Linear curves alone could not separate good from average (full within 0.5–1 %, zero at 8–15 %: good 107–126 whenever average reached 70). Scaling the speed part by the share placed within 1 % does: good players (about 2.5 % typical error) keep 10–15 of the 30, near-perfect players nearly all of it. Full within 1 % and zero at 10 % gave 72 / 105 / 126 / 142 (60 seeds: 70 / 104 / 125 / 142, random 5 / 37). Spam stays at a median of 5 or less.
+
+Rules a, c and e still pass for both (nothing scores 0; Counterweight's lowest finish 121 against its highest unfinished 80; every intro SCORE line and "?" help states the numbers).
+
 ## Speed tuning (14 Oct 2026): Flash, Bang On, Don't Break the Chain, Pull!
 
 Aimed at the shared targets (average about 70, good 100, great 125, near-perfect 140–150), without pushing Chain's good players (about 80) any lower. Each change rides its own stamp; stored rounds grade exactly as before (`scripts/speed-oct14-check.ts`: 700 answers recorded on main before the change, plus 698 on the new stamps).
 
 - **Flash (`tapRev: 3`).** Gold-like decoys join teal, red and blue: near-gold amber, a gold border only, the word GOLD on a dark screen and the top half of the screen gold (each at least once a round; the first decoy is always plain). Curve: 150 at ≤ 150 ms average, 128 at 200, 100 at 300, 0 at 800 (straight lines between; was 150 at ≤ 200 ms, −16 per 100 ms). False starts cost as `tapRev: 2`. "Wait for gold…" is larger.
 - **Bang On (`tapRev: 3`).** From watch 2: black blind spots where the marker vanishes (0.05 of the bar on watch 2, growing to 0.13 on watch 10; two from watch 6; never over the target), watches 2, 4 and 7 sweep 40 % slower, watches 6 and 9 run corner to corner. Full marks need ≤ 5 ms (was 20 ms); 20 ms scores 137; then a straight line to the 13 Oct knee (101 at 200 ms) and its fall to 0 at 325 ms, kept as decided. Ten watches on the fixed schedule: a player stopping at each first crossing is done by about 14 s.
-- **Don't Break the Chain (`chainCycleRev: 1`).** Each board's cycle is five different charms (no shape or colour more than twice; neighbours share neither), all shown in the preview and each needed once per board, so nothing repeats inside a board. The board for links 21–25 runs last to first: a banner warns from link 17 ("Reverse after link 20!"), a "← REVERSE" flash marks link 20, and the preview's arrows point back. Unfinished credit is concave, floor(110 × (links ÷ 39)^0.45) (21 for one link, 79 for 19, 110 one short), so a chain that breaks at the reversal keeps most of its credit; a finish is still 120 + up to 30.
+- **Don't Break the Chain (`chainCycleRev: 1`).** Each board's cycle is five different charms (no shape or colour more than twice; neighbours share neither), all shown in the preview and each needed once per board, so nothing repeats inside a board. The board for links 21–25 runs last to first: a banner warns from link 17 ("Reverse after link 20!"), a "← REVERSE" flash marks link 20, and the preview's arrows point back. Unfinished credit (`CHAIN_CYCLE_REV_CREDIT`) pays 4 a link up to five links (20), then about 4 a link to 79 at 19 links, then flattens to 110 one short (floor(79 + 31 × ((links − 19) ÷ 20)^0.7)), so a chain that breaks at the reversal keeps most of its credit while a few early links earn little; a finish is still 120 + up to 30. (The first draft, floor(110 × (links ÷ 39)^0.45), paid 21 for one link and lifted average players to 43; revised 14 Oct before merging.)
 - **Pull! (`clayRev: 5`).** 14–16 birds instead of 10–12, on the same cadence rules (the gap shrinks to fit), the same clays and the same scoring and empty-shot cost.
 - **Ascend** (display only): the count-up timer sits centred above the board, 0 to 15 s, back to 0 when the untapped discs move. **Bonk** (display only): the "TAP GOLD / TAP RED" box is bigger and outlined in the rule colour.
 
@@ -214,11 +237,11 @@ Medians on 30 room seeds (5001–5030), `bun scripts/speed-bands-oct14.ts --md`;
 | Bang On | near-perfect | 148 | **133** |
 | Bang On | **tap at a random time (careless)** | 72 | **49** |
 | Bang On | tap at the start / every 150–300 ms | 0 / 0 | 0 / 0 |
-| Don't Break the Chain | average | 15 | **43** |
-| Don't Break the Chain | good | 80 | **81** |
+| Don't Break the Chain | average | 15 | **20** |
+| Don't Break the Chain | good | 80 | **82** |
 | Don't Break the Chain | great | 141 | **135** |
 | Don't Break the Chain | near-perfect | 150 | **150** |
-| Don't Break the Chain | tap at random / in screen order (careless) | 0 / 0 | 0 / 0 |
+| Don't Break the Chain | tap at random / in screen order (careless) | 0 / 0 (max 2) | 0 / 0 (max 4: one lucky link) |
 | Pull! | average | 90 | **90** |
 | Pull! | good | 125 | **130** |
 | Pull! | great | 150 | **150** |
@@ -229,4 +252,4 @@ Medians on 30 room seeds (5001–5030), `bun scripts/speed-bands-oct14.ts --md`;
 **Where the targets were not reached, and why.**
 - **Bang On** stays above 70 / 100 for average and good players: the ask kept the 13 Oct curve from 200 ms down (101 at 200 ms), and simulated average players are about 165 ms off (good about 110 ms), so they cannot fall below about 101–110 without moving that knee. The top tightened as asked (near-perfect 148 → 133; 20 ms now scores 137). Lowering the knee would be a new decision.
 - **Pull!** honest bands do not move: kit players aim at clays and rarely hit a bird (about 0.1–0.2 per run before and after), so more birds mainly hurt careless mashing (16 → 0). Pull!'s 5 / 10 per clay was kept; reaching the targets would need a scoring change or real-play evidence that players shoot more birds.
-- **Chain** average players rose (15 → 43) from the concave credit; good players held at 81; great players fell slightly (141 → 135) from breaks at the reversal.
+- **Chain** average players stay low (15 → 20): their chains break within the first few links, which now pay 4 each. Good players held (80 → 82); great players fell slightly (141 → 135) from breaks at the reversal.
