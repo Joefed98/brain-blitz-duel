@@ -147,7 +147,7 @@ Decision still open: revive Memory with new games or drop it. The category is ne
 | Safe Cracker (safe) | Active | Four dial drums, five clues, one combination; three tries: 130 / 115 / 100 + speed. | 75 s | — |
 | Bomb Defusal (bomb) | Active | Six-step bomb: a rule card (ordering, conditional and counting rules, every one needed) allows exactly one six-action sequence on 7 wires, 2 buttons, a light, a serial and a switch; one wrong step and it explodes. Partial = round(75 × correct steps ÷ 6). 300-bomb bank. | 90 s (stored on the puzzle) | bombVersion 2 |
 | Mosaic (nonogram) | Active | 7 × 7 picture logic from 48 pictograms; −5 per wrong cell. | 120 s | — |
-| Colour Flood (flood) | Active | 14 × 14 wet-paint board in five colours; flood from the top-left (par 10–15 moves). 400-board bank. **Moves are limited to par + 2**; out of moves, the board ends. 120 + up to 15 moves + 15 speed. | 60 s | floodRev 1 (`moveLimit`) |
+| Colour Flood (flood) | Active | 14 × 14 wet-paint board in five colours; flood from the top-left (par 10–15 moves). 400-board bank. **Moves are limited to par + 2**; out of moves, the board ends and scores 0 (unfinished credit falls from full at par to nothing at the limit). 120 + up to 15 moves + 15 speed. | 60 s | floodRev 1 (`moveLimit`) |
 | Tents and Trees (tents) | Active | 8 × 8 campsite: pitch a striped tent beside every tree (11–12), none touching, matching the signposted row and column counts. | 90 s | — |
 | Shikaku (shikaku) | Active | Cut a 10 × 10 grid into rectangles, each holding one number equal to its area. | 90 s | — |
 | Lamplighter (lightup) | Active | 9 × 9: place lamps to light every white square without two lamps seeing each other; numbered walls. 1,000-board bank. −5 per clashing lamp. | 90 s | — |

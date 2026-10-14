@@ -1024,7 +1024,7 @@ function gradeUnderRev(
       const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer), undefined, moveLimit);
       isCorrect = replay.solved;
       correctCount = replay.region;
-      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0);
+      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0, moveLimit);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,

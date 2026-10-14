@@ -24,7 +24,7 @@ The Oct 2026 puzzle score shape (`puzzleScoreRev: 1`; `docs/duelz-scoring-refere
 
 | Game | Strategy | Median / max | Why it stays |
 |---|---|---|---|
-| Colour Flood | cycling colours (random colours) | 85 / 135 (54–59 / 101) since the move limit; was 126 / 135 | **Move limit par + 2 (13 Oct, `floodRev 1`)**: random play no longer floods the board (0 of 30; cycling 1 of 30), but by the limit it has flooded much of it and keeps the existing unfinished credit. Cycling is the one strategy above 60; a waste factor reaching 0 at the limit would take it to 0 (section "Move limits"; Joe's ruling). |
+| Colour Flood | random or cycling colours | 0 / 135 since the move limit (the 135 is cycling's one real finish); was 126 / 135 | **Move limit par + 2 and a waste factor reaching 0 at the limit (`floodRev 1`, 13–14 Oct)**: below 5, no longer a flag. Random play no longer floods the board (0 of 30; cycling 1 of 30), and a board that runs out of moves scores 0. |
 | Polypotions | random legal pours | 41–42 / 132 since the pour limit; was 120 / 128 | **Pour limit (13 Oct, `tubesRev 1`)**: random pours no longer solve (0–1 of 30); they keep the unfinished credit for flasks corked by the limit. |
 | Topsy-Turvy | random tilts | 0–31 / 131 since the tilt limit; was 0 / 131 | **Tilt limit (13 Oct, `gravityRev 1`)**: random tilting solves 1 board in 30 (was one in five), but stopping at the limit keeps wasteFactor above 0, so 3 tilts a second now keeps some unfinished credit (median 31). |
 | Counterweight | random hanging | 0 / 75 since the hang limit; was 55 / 120 | **Hang limit and unique small scales (13 Oct, `balanceRev 1`)**: below 5, no longer a flag. The limit is the phone's count; with no limit at all the harder scales alone give random hanging a median of 20. |
@@ -122,7 +122,7 @@ The kits are scripted players, not people: think times per action are estimates 
 
 ## Move limits (13 Oct 2026)
 
-Random or brute-force play used to pay in six puzzles (rule b flags above). Each now has a visible limit on the board ("Moves 7 / 12", "pours", "tilts", "hangs", "tries"); running out ends that board as unfinished, scored on the game's existing unfinished rules. Tally's trays take wider counts. Every change is gated on the game's own stamp (`floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev 2`, `countRev`; `src/lib/duel/moveLimits.ts`), so stored rounds and the other games are unchanged (`scripts/move-limits-check.ts`: 1,973 stored answers grade identically).
+Random or brute-force play used to pay in six puzzles (rule b flags above). Each now has a visible limit on the board ("Moves 7 / 12", "pours", "tilts", "hangs", "tries"); running out ends that board as unfinished, scored on the game's existing unfinished rules (Colour Flood's waste factor now reaches 0 at the limit, so running out there scores 0). Tally's trays take wider counts. Every change is gated on the game's own stamp (`floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev 2`, `countRev`; `src/lib/duel/moveLimits.ts`), so stored rounds and the other games are unchanged (`scripts/move-limits-check.ts`: 1,973 stored answers grade identically).
 
 | Game | Limit (new rounds) | How it was set |
 |---|---|---|
@@ -138,7 +138,7 @@ Random or brute-force play used to pay in six puzzles (rule b flags above). Each
 
 | Game | Average | Good | Great | Near-perfect | Random / brute-force median / max |
 |---|---|---|---|---|---|
-| Colour Flood | 98 → **98** (1/30) | 146 → **146** (29/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | random 2 / s 120 / 130 → **54 / 101**; cycling 126 / 135 → **85 / 135**; random 0.5 / s 99 / 125 → **59 / 98** |
+| Colour Flood | 98 → **96** (1/30) | 146 → **146** (29/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | random 2 / s 120 / 130 → **0 / 0**; cycling 126 / 135 → **0 / 135** (1 finish); random 0.5 / s 99 / 125 → **0 / 0** |
 | Polypotions | 24 → **24** (0/30) | 140 → **139** (27/30) | 149 → **148** (30/30) | 150 → **150** (30/30) | random 1.5 / s 120 / 128 → **41 / 93**; 3 / s 120 / 126 → **42 / 132** |
 | Topsy-Turvy | 37 → **37** (1/30) | 137 → **137** (23/30) | 148 → **148** (30/30) | 150 → **150** (30/30) | random 1.5 / s 0 / 120 → **0 / 63**; 3 / s 0 / 131 → **31 / 131** |
 | Counterweight | 55 → **55** (13/30) | 145 → **145** (30/30) | 150 → **150** (30/30) | 150 → **150** (30/30) | random hanging 38 / 120 → **0 / 75**; fast 55 / 120 → **0 / 20**; place once 0 → 0 |
@@ -146,8 +146,8 @@ Random or brute-force play used to pay in six puzzles (rule b flags above). Each
 | Brimful | 48 → **48** (0/30) | 110 → **110** (14/30) | 144 → **144** (30/30) | 150 → **150** (30/30) | random 0 / 30 → **0 / 0**; fast 0 / 30 → 0 / 30; sweep 0 → 0 |
 | Tally | 63 → **55** (2/30) | 97 → **97** (14/30) | 150 → **150** (26/30) | 150 → **150** (29/30) | guess the middle 66 / 79 → **53 / 79**; random in range 39 / 70 → **44 / 100** |
 
-Every honest band moves by at most 1 except Tally's average (63 → 55 on these 30 seeds): the wider counts redraw every scene, and on 120 seeds the average is 65 with either range, so the 30-seed difference is which boards were drawn, not the rule. Rules a, c and e still pass for all seven (finishes ≥ 121, unfinished ≤ 110).
+Every honest band moves by at most 1 except Colour Flood's average (98 → 96: an average player who times out a move or two past par now keeps half or none of the credit) and Tally's average (63 → 55 on these 30 seeds): the wider counts redraw every scene, and on 120 seeds the average is 65 with either range, so the 30-seed difference is which boards were drawn, not the rule. Rules a, c and e still pass for all seven (finishes ≥ 121, unfinished ≤ 110).
 
 **What the server verifies.** Colour Flood, Polypotions (Undo and Reset now in the log), Topsy-Turvy and Brimful send every move, and the server replays only the moves inside the stored limit. Counterweight and Operator send the final placement / operators plus the phone's hang / try counts; the server refuses a count over the limit, but the count is the phone's word (a modified phone could send fewer). Counterweight's harder small scales are verifiable: with no limit at all, random hanging scores a median of 20 (was 38–55).
 
-**Still above the target.** Colour Flood's colour cycling (85): the existing unfinished credit pays for cells flooded, and cycling floods most of the board within par + 2. A `floodRev` waste factor that reaches 0 at the limit (instead of at 4× par) was simulated: random and cycling 0, average 98 → 96, good and great unchanged. It changes the unfinished rule, so it is left for Joe's ruling (scoring reference open item 15).
+**Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).

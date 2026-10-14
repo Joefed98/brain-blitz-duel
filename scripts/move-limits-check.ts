@@ -18,9 +18,10 @@
  *   4. Generation: Counterweight's two small scales have exactly one balanced
  *      arrangement; Tally's counts stay inside the wider ranges and use them.
  *   5. Random play: over 24 room seeds no spam strategy finishes more than 2
- *      boards, and every spam median is at most 60 (Colour Flood's colour cycling,
- *      which floods most of the board before the limit and keeps the existing
- *      unfinished credit, at most 95: docs/puzzle-score-bands-oct-2026.md).
+ *      boards, and every spam median is at most 60. Colour Flood (floodRev 1,
+ *      unfinished credit falls to 0 at the move limit): every random-colour and
+ *      colour-cycling run that does not finish scores exactly 0, while the same
+ *      answers on the stored shape (no floodRev) still score what they did.
  *   6. The counter is on the board: each Stage renders `data-move-limit`.
  *
  *   bun scripts/move-limits-check.ts
@@ -32,7 +33,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { encodeFloodMoves } from "../src/lib/duel/flood";
+import { encodeFloodMoves, replayFlood } from "../src/lib/duel/flood";
+import { unfinishedCredit, wasteFactor } from "../src/lib/duel/puzzleScoreRev";
 import {
   decodeTubeMoves,
   encodeTubeLog,
@@ -364,7 +366,6 @@ for (let i = 0; i < 12; i++) {
 /* -------------------------------- 5. Random play -------------------------------- */
 {
   const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
-  const CAP: Record<string, number> = { "flood:cycle-colours-2/s": 95 };
   for (const type of Object.keys(STAMPS) as PuzzleType[]) {
     const kit = KITS[type]!;
     const scores: Record<string, number[]> = {};
@@ -376,12 +377,25 @@ for (let i = 0; i < 12; i++) {
       for (const sp of kit.spam(p, makeRng(hashText(`${type}:spam:${seed}`)), limit)) {
         const g = gradeAnswer(p, sp.answer, 0);
         (scores[sp.label] ??= []).push(g.score);
+        if (type === "flood") {
+          // floodRev 1: a board that runs out of moves (or stops past par + 1) unfinished scores 0.
+          ok(g.isCorrect || g.score === 0, `flood ${seed}: spam "${sp.label}" unfinished scores ${g.score}, want 0`);
+          // Stored rounds: the same answer without the stamp scores on the old waste factor (0 at 4× par).
+          const stored = { ...(p as unknown as Loose) };
+          delete stored["floodRev"];
+          delete stored["moveLimit"];
+          const old = gradeAnswer(stored as unknown as PuzzleData, sp.answer, 0);
+          const extra = old.extra as Loose;
+          const start = replayFlood((p as Extract<PuzzleData, { type: "flood" }>).grid, []).region;
+          const par = (p as Extract<PuzzleData, { type: "flood" }>).par;
+          const want = old.isCorrect ? old.score : unfinishedCredit(((110 * Math.max(0, (extra["region"] as number) - start)) / (196 - start)) * wasteFactor(extra["moves"] as number, par));
+          ok(old.score === want && !("moveLimit" in extra), `flood ${seed}: spam "${sp.label}" on the stored shape scores ${old.score}, want ${want}`);
+        }
         solved[sp.label] = (solved[sp.label] ?? 0) + (g.isCorrect ? 1 : 0);
       }
     }
     for (const [label, xs] of Object.entries(scores)) {
-      const cap = CAP[`${type}:${label}`] ?? 60;
-      ok(median(xs) <= cap, `${type}: spam "${label}" median ${median(xs)} > ${cap}`);
+      ok(median(xs) <= 60, `${type}: spam "${label}" median ${median(xs)} > 60`);
       ok(
         (solved[label] ?? 0) <= 2,
         `${type}: spam "${label}" finished ${solved[label]} of 24 boards`,

@@ -97,7 +97,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   bomb: "Defuse the bomb for 120, more if you're quick. Otherwise 22 per right step.",
   gravity: "Park all four within the tilts for 120, more if few and quick. Each parked ball scores.",
   nonogram: "Complete the picture for 120, more if you're quick. Otherwise points per right cell.",
-  flood: "Flood it within the moves for 120, more for few moves and speed. Part-flooded scores.",
+  flood: "Flood it within the moves for 120, more if few and quick. Out of moves scores nothing.",
   tiles: "Put the tiles in order for 120, more for few moves and speed. Tiles you place score.",
   rings: "Line up every spoke for 120, more for few moves and speed. Spokes you match score.",
   blockparty: "Place all nine pieces for 120, more if you're quick. Otherwise 14 per right piece.",

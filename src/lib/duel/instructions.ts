@@ -540,9 +540,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a colour", detail: "to repaint your region." },
       { action: "Your region grows", detail: "into touching cells of it." },
       { action: "You start", detail: "from the top-left corner." },
-      { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends.", helpOnly: true },
+      { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise, or out of moves (par + 2): 110 × cells you flooded beyond the start ÷ cells left, less for wasted moves (nothing at 4× par).",
+    score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × cells you flooded beyond the start ÷ cells left, in full up to par moves, half at par + 1 and nothing at the limit (par + 2), so running out of moves scores 0.",
   },
   stroke: {
     goal: "Trace every line in one stroke.",

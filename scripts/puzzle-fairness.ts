@@ -112,11 +112,6 @@ export const KNOWN_SPAM: Partial<Record<PuzzleType, Record<string, string>>> = {
     "random-pours-1.5/s": "pour limit (tubesRev 1): random pours no longer solve (was two boards in three); at the limit they keep the existing unfinished credit for corked flasks (median about 40)",
     "random-pours-3/s": "pour limit (tubesRev 1): random pours keep the unfinished credit for corked flasks at the limit (median about 40)",
   },
-  flood: {
-    "random-colours-2/s": "move limit par + 2 (floodRev 1): random colours no longer flood the board, but by the limit they have flooded about half of it and keep that existing unfinished credit (median about 55)",
-    "cycle-colours-2/s": "move limit par + 2 (floodRev 1): cycling the colours floods most of the board by the limit and keeps the existing unfinished credit (median about 85); a waste factor reaching 0 at the limit would take it to 0 (Joe's ruling)",
-    "random-colours-0.5/s": "move limit par + 2 (floodRev 1): random colours keep the existing unfinished credit at the limit (median about 60)",
-  },
 };
 /** Ballpark has no clean finish: "all placed" is its finish, scaled by accuracy, so rule c's 120 floor does not apply. */
 const NO_CLEAN_FINISH = new Set<PuzzleType>(["numline"]);
