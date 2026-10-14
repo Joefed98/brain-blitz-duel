@@ -8,9 +8,9 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
+short code and play the same timed rounds; 74 active games across Word, Number, Speed, Attention,
 Pattern, Logic and Arcade (Word 10, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
-Arcade 21; Memory is dormant; 28 retired to practice). Every category the lobby offers keeps at
+Arcade 22; Memory is dormant; 28 retired to practice). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). Built in Lovable, synced to this repo.
 Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app).
 
@@ -74,7 +74,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     banked generator or verifier.
   - Split checks: an entry `<file>@<k>/<n>` in `shards.ts` runs part k of n
     (`--part=k/n`). puzzle-bank-check's every-entry verification is split over `a`–`d`
-    (one part each, under 90 s on a 2-core runner); arcade-play-check's 21 active arcade games (and Letterfall) over
+    (one part each, under 90 s on a 2-core runner); arcade-play-check's 22 active arcade games (and Letterfall) over
     `play1`–`play5`. Together the parts check exactly what one whole run does.
   - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
     or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
@@ -121,7 +121,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   reveal-score ~50 s. new-types checks seeded bank draws and takes ~10 s. number-batch-check (Brimful, Checkout, Ballpark: same-seed puzzles, BFS and exhaustive-search proofs, score anchors) takes ~12 s. wordfall-check (Letterfall dictionary, plan, a 20-seed bot proving par through the server replay, identity proof) takes ~6 s. arcade-batch1-check (legacy identity + 150 proofs for Jaywalk, Roofbound, Ball Tracker, Slice) takes ~2 min; arcade-batch2-check (legacy digests, bots proving 150 for Gemstone, Coral Pop, Meteor, Hover) takes ~60 s. arcade-batch4-check (legacy digest, stored Scrumper plans for all 60 templates, bots proving 150 for Scrumper, Junction, Tilt, High Rise) takes ~30 s. arcade-batch5-check (legacy digest, bots proving 150 for Swish, Flightpath, Rally, Tempo, Rainbow Bridge, Orbit's hole witnesses) takes ~45 s. arcade-tuning-a-check (Tuning A: pre-change runs replaying to the same score and state for High Rise, Wavefront, Orbit, Grappler and Tilt; Wavefront shapes, Orbit fly-in and earlier misses, Grappler touch stars, every Tilt cup reachable, 150 proofs) takes ~15 s; `CHECKS_FULL=1` checks every Grappler bank course and 40,000 Tilt seeds. ink-live defaults to 20 seeds; `INK_LIVE_SEEDS=60` runs the full set. tap-log-check (Flash, Bang On and Ascend tap logs against honest runs recorded on main, phone parity in happy-dom, tampered logs) takes ~30 s; arcade-tuning-c-check (Tuning C: 72 pre-change runs replaying to the same score and state for Gemstone, Grappler, Hover, Rainbow Bridge, Roofbound, Tempo, Wavefront, Tilt and Slice; Gemstone's wait and 2,500 par, the score-only curves on identical play, Roofbound's 10 s bend, Wavefront's slower waves 3–4 and timed boss kill, Tilt's amber start, hole-mouth stars and a scripted 150, Slice's blade, Junction retired, 150 proofs) takes ~45 s; tuning-b-check (Flightpath bullRev 4 balloons and 150 via the server replay, Breaker's 3.5 s Fireball, Rally pads never overlapping, arena fills, Fission controls) takes ~5 s; `TAP_LOG_PARITY=all` plays every recorded run through the phone. codeword-check (all 1,000 Cryptogrid boards proven unique), strikeout-check and swapword-check take under 10 s each. move-limits-check (13 Oct 2026: Colour Flood, Polypotions, Topsy-Turvy, Counterweight, Operator and Brimful limits, Tally's counts; legacy identity on `scripts/fixtures/move-limits-legacy.json.gz`, enforcement, random play, counters) takes ~2 s. careless-play-check (Flash and Bang On `tapRev: 2`, Pull! `clayRev: 4`: older stamps unchanged, stored breakdowns, careless lines and honest bands on 30 room seeds) takes ~8 s. arcade-tuning-e-check (Tuning E, 13 Oct 2026: 32 pre-change High Rise, Meteor, Scrumper and Hover runs replaying to the same score and state; taller worlds per stored revision; Hover's drifting course; Meteor's 28 rows; Scrumper's 2/3/5 mix, crook rules, stored rev-5 plans at every wobble, hard levels needing their catch; best scores via the server replay) takes ~2 min.
 - **Any arcade change** (a sim, renderer, art, effect or arcade stage): run
   `bun scripts/arcade-play-check.ts` with the game's own checks, arcade-self-replay,
-  arcade-fx and reveal-score. It plays all 21 active arcade games (and Letterfall, plus Tenfall, Mixed Signals, Bonk and Pull! without the arcade-world layout proof) in headless Chromium
+  arcade-fx and reveal-score. It plays all 22 active arcade games (and Letterfall, plus Tenfall, Mixed Signals, Bonk and Pull! without the arcade-world layout proof) in headless Chromium
   (390 × 700, practice mode, 15 s of scripted taps and swipes each, about 10–12 minutes)
   and fails if the sim tick or HUD timer stops, a console or page error appears, the
   average frame time is far above the per-game baseline from main
@@ -196,12 +196,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.
 
-**Pinball** (`pinball`, working title, 13 Oct 2026) is a new Retro arcade game, **practice only** until
-`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is set to `true` (the one switch: the registry, the practice list, the
-active arcade list and the checks all read it; after switching, update the docs' counts to 22 active arcade games). Its rules are
+**Pinball** (`pinball`, working title, 13 Oct 2026) is a Retro arcade game, **dealt in rooms since 14 Oct 2026**
+(`PINBALL_IN_ROOMS` in `src/lib/arcade/pinball.ts` is `true`; the one switch: the registry, the practice list, the
+active arcade list and the checks all read it). Its rules are
 `pinRev 1`; `scripts/pinball-check.ts` (~11 s) replays stored rev-1 runs, long runs and fast shots (no tunnelling).
 
-**Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 21
+**Junction** (`junction`) is retired to practice since Tuning C (12 Oct 2026): rooms deal the 22
 active arcade games (`ACTIVE_ARCADE_GAMES` in `arcadeFxGames.renderer.ts`); Junction keeps its world,
 fill, effects and band curve for practice and stored rounds.
 
