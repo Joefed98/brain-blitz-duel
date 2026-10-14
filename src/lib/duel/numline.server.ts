@@ -8,6 +8,7 @@
 import {
   NUMLINE_ITEMS,
   NUMLINE_REV,
+  NUMLINE_REV2_TIME_MS,
   NUMLINE_TICK_GAP,
   numlineShare,
   numlineTicks,
@@ -252,5 +253,5 @@ export function generateNumline(seed: number): NumlinePuzzleData {
     stages.push({ ...line.stage, items: items.map((item) => item.text) });
     values.push(items.map((item) => item.value));
   }
-  return { type: "numline", numlineRev: NUMLINE_REV, stages, values };
+  return { type: "numline", numlineRev: NUMLINE_REV, timeLimitMs: NUMLINE_REV2_TIME_MS, stages, values };
 }

@@ -2231,10 +2231,12 @@ export interface SumHuntPuzzleData {
 /* ================================ Balance =============================== */
 
 export interface BalanceScale {
-  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4. */
+  /** Fixed grey weights: peg 0–3 are left 4…1, peg 4–7 are right 1…4 (10 notches: 0–4 left 5…1, 5–9 right 1…5). */
   fixed: { peg: number; w: number }[];
   /** Loose gold weights the player must place. */
   tray: number[];
+  /** Notches, when not 8: balanceRev 2's fourth scale has 10 (5 a side). */
+  pegs?: number;
 }
 
 export interface BalancePuzzleData {
@@ -2242,10 +2244,12 @@ export interface BalancePuzzleData {
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
-  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. Absent = no limit. */
+  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. 2 (14 Oct 2026) = as 1, plus a fourth 10-notch scale, 120 s and the rev-2 scale points (balance.ts). Absent = no limit. */
   balanceRev?: number;
-  /** Hangs allowed per scale (balanceRev 1). */
+  /** Hangs allowed per scale (balanceRev 1: 6 / 8 / 10; 2: 6 / 8 / 10 / 12). */
   placeLimits?: number[];
+  /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
+  timeLimitMs?: number;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2479,7 +2483,7 @@ export interface CheckoutPuzzleData {
   routes?: string[];
 }
 
-/** Ballpark: three lines of five numbers in 75 s. */
+/** Ballpark: three lines of five numbers in 75 s (the registry limit: stored rounds; numlineRev 2 puzzles carry 90 s as `timeLimitMs`). */
 export const NUMLINE_TIME_MS = 75_000;
 
 /** An exact value: (num ÷ den) + rootCoef × √root (rootCoef 0 when rational). */
@@ -2500,8 +2504,10 @@ export interface NumlineStageData {
 
 export interface NumlinePuzzleData {
   type: "numline";
-  /** Rules revision; 1 = the first rules. */
+  /** Rules revision; 1 = the first rules, 2 = 90 s and the rev-2 item curve (numline.ts). */
   numlineRev: number;
+  /** numlineRev 2: the round clock (90,000 ms). Absent on stored rounds, which keep the registry's 75 s. */
+  timeLimitMs?: number;
   stages: NumlineStageData[];
   /** Exact value of every item, stage by stage — private until the reveal. */
   values?: NumlineValue[][];

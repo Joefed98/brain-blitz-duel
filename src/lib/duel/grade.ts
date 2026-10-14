@@ -81,7 +81,7 @@ import { scoreTrail, trComplete, trCorrectPrefix, trCorrectTiles, trDecode } fro
 import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid } from "./numberPyramid";
 import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
-import { gradeNumlineItems, NUMLINE_FULL_ERROR, numlineAccuracy, scoreNumline } from "./numline";
+import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
 import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
@@ -96,7 +96,7 @@ import { validateLadder } from "./wordLadder.server";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeSumPaths, replaySumHunt, sumHuntRoundScore, SH_STAGES } from "./sumHunt";
-import { balanceRoundScore, balanceScalesSolved, balanceSolvedCount, BAL_SCALES, decodeBalance } from "./balance";
+import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
@@ -359,12 +359,14 @@ function gradeUnderRev(
       const placements = decodeBalance(body, puzzle.scales);
       const withinLimit = (s: number) => !placeLimits || (hangs[s] ?? 0) <= (placeLimits[s] ?? 0);
       const verdicts = balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && withinLimit(s));
+      // balanceRev 2 deals four scales (the fourth with 10 notches, 120 s on the puzzle); stored rounds three.
+      const total = balanceScaleCount(puzzle);
       const firstOpen = verdicts.indexOf(false);
-      const solved = placeLimits ? (firstOpen < 0 ? BAL_SCALES : firstOpen) : balanceSolvedCount(puzzle.scales, placements);
+      const solved = placeLimits ? (firstOpen < 0 ? total : firstOpen) : balanceSolvedCount(puzzle.scales, placements);
       // Rev 1 credits every balanced scale in any order.
       const scales = scoreRev1() ? verdicts : undefined;
       correctCount = scales ? scales.filter(Boolean).length : solved;
-      isCorrect = scales ? correctCount === BAL_SCALES : solved === BAL_SCALES;
+      isCorrect = scales ? correctCount === total : solved === total;
       score = balanceRoundScore(solved, ms, timeLimitMs, scales);
       extraDetail = scales ? { solved, scales, ...(placeLimits ? { hangs: puzzle.scales.map((_, s) => hangs[s] ?? 0), placeLimits } : {}) } : { solved };
       break;
@@ -2107,15 +2109,16 @@ function gradeUnderRev(
     }
     case "numline": {
       // Placements are measured against the stored exact values; the client sends positions only.
-      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer);
+      // numlineRev 2: the tighter item curve (and the 90 s clock stored on the puzzle).
+      const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], answer, puzzle.numlineRev);
       const placed = results.filter((r) => r.placed).length;
       // Finished = every number placed; accuracy decides the score.
       isCorrect = placed === results.length;
       correctCount = placed;
-      score = scoreNumline(results, ms, timeLimitMs);
+      score = scoreNumline(results, ms, timeLimitMs, puzzle.numlineRev);
       extraDetail = {
         placed,
-        withinFull: results.filter((r) => r.error !== null && r.error <= NUMLINE_FULL_ERROR).length,
+        withinFull: results.filter((r) => r.error !== null && r.error <= numlineFullError(puzzle.numlineRev)).length,
         accuracy: Math.round(numlineAccuracy(results) * 10) / 10,
         numlineRev: puzzle.numlineRev,
         errors: results.map((r) => (r.error === null ? null : Math.round(r.error * 10_000) / 10_000)),
