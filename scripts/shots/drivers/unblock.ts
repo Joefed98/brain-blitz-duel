@@ -33,10 +33,11 @@ async function play(page: Page, full: FullPuzzle, count: number) {
 }
 
 export const driver: Driver = {
+  solveFromStart: true,
   board: ".unblock-lot",
-  midPlay: (page, full) => play(page, full, Math.floor(decodeMoves(full.solution).length / 2)),
+  partial: ({ page, puzzle: full }) => play(page, full, Math.floor(decodeMoves(full.solution).length / 2)),
   // Resolves on the solving drop (the last drag's release).
-  finish: async (page, full) => {
+  solve: async ({ page, puzzle: full }) => {
     const moves = decodeMoves(full.solution);
     await play(page, { ...full, solution: full.solution }, moves.length - 1);
     const last = moves.at(-1)!;

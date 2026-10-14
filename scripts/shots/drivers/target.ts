@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 export const stage = (page: Page) => page.locator("[data-game-stage]");
 
@@ -35,5 +35,5 @@ export const driver: Driver = {
   solve: async ({ page, puzzle }) => {
     for (const s of puzzle.solution.slice(2)) await exactStep(page, s.a, s.operator, s.b);
   },
-  completeShotMs: 200,
+  solveShotsMs: [200],
 };

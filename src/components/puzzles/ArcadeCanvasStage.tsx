@@ -15,6 +15,7 @@ import {
 } from "@/lib/arcade/engine";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
 export interface PointerPayload {
@@ -243,13 +244,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
 
   /** Screen point to world point, or null outside the drawn play area. */
   const worldPoint = (clientX: number, clientY: number, clamp: boolean) => {
-    const box = wrap.current?.getBoundingClientRect();
-    if (!box || box.width < 1) return null;
     const { worldW, worldH } = propsRef.current;
-    const x = Math.round(((clientX - box.left) / box.width) * worldW);
-    const y = Math.round(((clientY - box.top) / box.height) * worldH);
-    if (!clamp && (x < 0 || x > worldW || y < 0 || y > worldH)) return null;
-    return { x: Math.max(0, Math.min(worldW, x)), y: Math.max(0, Math.min(worldH, y)) };
+    return arcadeWorldPoint(wrap.current?.getBoundingClientRect(), clientX, clientY, worldW, worldH, clamp);
   };
 
   const push = (payload: PointerPayload) => {

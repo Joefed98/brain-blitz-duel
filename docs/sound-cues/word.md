@@ -30,6 +30,6 @@ No `shared.*` cues are added by this pass. Other changes in the pass (eased tile
 the accepted-word chip moving into Nucleus's HUD, floating found-word chips) reuse
 existing moments and add no cue.
 
-In dev builds the screenshot tool (`scripts/word-polish-shots.ts`) can replay any of these
+In dev builds the screenshot tool (`scripts/shots/capture.ts`) can replay any of these
 on the board as it stands with `window.dispatchEvent(new CustomEvent("duelz-dev-word-finish"))`;
 that dev trigger also dispatches the cue.

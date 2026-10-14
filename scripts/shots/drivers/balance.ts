@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 const stage = (page: Page) => page.locator("[data-game-stage]");
 
@@ -38,5 +38,5 @@ export const driver: Driver = {
     await stage(page).locator(`button[aria-label="Select weight ${w}"]:not(.balance-instrument button)`).first().click();
     await stage(page).getByRole("button", { name: `Place at distance ${peg < 4 ? 4 - peg : peg - 3} on the ${peg < 4 ? "left" : "right"}`, exact: true }).click();
   },
-  completeShotMs: 450,
+  solveShotsMs: [450],
 };

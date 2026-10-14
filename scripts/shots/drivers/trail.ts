@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 /* Trail: tap each empty cell in solution order at its centre on the 6×6 board (4px gaps). */
 async function tapSteps(page: Page, puzzle: Record<string, any>, from: number, to: number) {
@@ -20,5 +20,5 @@ async function tapSteps(page: Page, puzzle: Record<string, any>, from: number, t
 export const driver: Driver = {
   partial: async ({ page, puzzle }) => tapSteps(page, puzzle, 1, 9),
   solve: async ({ page, puzzle }) => tapSteps(page, puzzle, 9, 36),
-  completeShotMs: 450,
+  solveShotsMs: [450],
 };

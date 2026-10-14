@@ -5,10 +5,10 @@ const half = (full: { solution: string }) => Number(process.env.ICE_FROM ?? Math
 
 export const driver: Driver = {
   board: ".ice-board",
-  mid: (full) => ({ slideMoves: moves(full).slice(0, half(full)) }),
+  seedMid: (full) => ({ slideMoves: moves(full).slice(0, half(full)) }),
   // ICE_FRAMES=<dir> plays a few more moves and saves frames of the slides (portals, cracks).
-  midPlay: process.env.ICE_FRAMES
-    ? async (page, full) => {
+  partial: process.env.ICE_FRAMES
+    ? async ({ page, puzzle: full }) => {
         let n = 0;
         const clip = (await page.locator("[data-game-stage] .ice-board").first().boundingBox()) ?? undefined;
         for (const dir of moves(full).slice(half(full), half(full) + 6)) {
@@ -21,8 +21,8 @@ export const driver: Driver = {
         }
       }
     : undefined,
-  nearSolved: (full) => ({ slideMoves: moves(full).slice(0, -1) }),
-  finish: async (page, full) => {
+  seedNearSolved: (full) => ({ slideMoves: moves(full).slice(0, -1) }),
+  solve: async ({ page, puzzle: full }) => {
     await arrow(page, moves(full).at(-1)!);
     // The submission waits for the slide animation to reach the exit.
     await page.waitForTimeout(700);

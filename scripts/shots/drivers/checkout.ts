@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 import { searchCheckout, CHECKOUT_BULL, type CheckoutDart } from "@/lib/duel/checkout";
 import type { CheckoutStageData } from "@/lib/duel/types";
 
@@ -63,5 +63,5 @@ export const driver: Driver = {
       await playStage(page, puzzle, i);
     }
   },
-  completeShotMs: 380,
+  solveShotsMs: [380],
 };

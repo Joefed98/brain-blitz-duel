@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 /**
  * Tenfall: reads the live sim state through the arcade test hook (window.__arcadeProbe,
@@ -82,5 +82,5 @@ export const driver: Driver = {
   solve: async ({ page }) => {
     await play(page, (cleared) => cleared >= 10, 100_000);
   },
-  completeShotMs: 300,
+  solveShotsMs: [300],
 };

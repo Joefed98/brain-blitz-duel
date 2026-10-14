@@ -5,7 +5,8 @@ import { playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles
 import { colourClashSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
-import { CLASH_QUEUE, CLASH_REV, clashVariantOf, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_SET_LANE, CLASH_WORLD_H, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
+import { clashTapPayload } from "@/components/puzzles/tapMapping";
+import { CLASH_QUEUE, CLASH_REV, clashVariantOf, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_H, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import type { StroopPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -49,9 +50,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return <div ref={column} data-stage-column="" data-polish="stroop" className="flex min-h-0 w-full flex-1 flex-col"><ArcadeCanvasStage diagKey="stroop" sounds={sounds} label={`${gameDisplayName("stroop")} lane board`} background="#07070D" seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={CLASH_WORLD_H} game={colourClashArtGameFor(clashVariantOf(puzzle))} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={(answer) => { fireFinish(); onSubmit(answer); }} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
     if (kind === "down") { down.current = { x, y }; return null; }
     if (kind !== "up" || !down.current) return null;
-    const dy = y - down.current.y; down.current = null;
-    if (dy > 40) return { k: CLASH_INPUT_LANE, a: CLASH_DROP, b: 0, c: 0 };
-    return { k: CLASH_INPUT_LANE, a: CLASH_SET_LANE, b: Math.min(CLASH_WORLD_W - 1, Math.max(0, Math.round(x))), c: 0 };
+    const from = down.current; down.current = null;
+    return clashTapPayload(from, { x, y });
   }} /></div>;
 }
 

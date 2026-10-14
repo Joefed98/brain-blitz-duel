@@ -1,6 +1,6 @@
 import type { Page } from "playwright";
 import { numlineShare, numlineValue } from "@/lib/duel/numline";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 const stage = (page: Page) => page.locator("[data-game-stage]");
 /** Matches the Stage's SIDE inset: shares map onto the arena width minus 22 px each side. */
@@ -39,5 +39,5 @@ export const driver: Driver = {
   solve: async ({ page, puzzle }) => {
     for (const s of shares(puzzle).slice(3)) await placeAt(page, s);
   },
-  completeShotMs: 450,
+  solveShotsMs: [450],
 };

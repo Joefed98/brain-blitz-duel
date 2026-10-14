@@ -3,7 +3,8 @@
 Drawing, layout and effects for the nine Number games. No sim, rule, scoring or stamp changes.
 "Before" is `main` at eb143ad; "after" is this branch with all nine games merged.
 
-Made with `scripts/shots/number-polish-shots.ts` (drivers in `scripts/shots/drivers/`): a local `vite dev`
+Made with `scripts/shots/number-polish-shots.ts`, now the shared screenshot tool `scripts/shots/capture.ts`
+(`--category=number`; drivers in `scripts/shots/drivers/`, sheets from `scripts/shots/sheets.ts`): a local `vite dev`
 server, Playwright driving the pre-installed Chromium at device scale 1, `/practice` with the generate request
 rewritten to `example: true` (the fixed intro example) and `Math.random` seeded, so before and after show the
 same puzzle. The #9 capture scripts lived outside the repo, so this one follows the same method and is kept here.

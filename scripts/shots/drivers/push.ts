@@ -57,9 +57,9 @@ function moves(full: Full): SlideDir[] {
 
 export const driver: Driver = {
   board: '[data-game-arena="board"] > div',
-  mid: (full) => ({ pushMoves: moves(full).slice(0, Math.floor(moves(full).length / 2)) }),
-  nearSolved: (full) => ({ pushMoves: moves(full).slice(0, -1) }),
-  finish: async (page, full) => {
+  seedMid: (full) => ({ pushMoves: moves(full).slice(0, Math.floor(moves(full).length / 2)) }),
+  seedNearSolved: (full) => ({ pushMoves: moves(full).slice(0, -1) }),
+  solve: async ({ page, puzzle: full }) => {
     await arrow(page, moves(full).at(-1)!);
   },
 };
