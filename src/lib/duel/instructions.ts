@@ -33,6 +33,18 @@ import { HOVER_V5_BAND_CURVE } from "@/lib/arcade/hover";
 import { SKYLINE_BAND_CURVE } from "@/lib/arcade/skyline";
 import { JUNC_BAND_CURVE } from "@/lib/arcade/junction";
 import { BRK_BAND_CURVE } from "@/lib/arcade/breaker";
+import {
+  PIN_BAND_CURVE,
+  PIN_MULT_MAX,
+  PIN_PTS_BANK,
+  PIN_PTS_BUMPER,
+  PIN_PTS_LANE,
+  PIN_PTS_LANE_SET,
+  PIN_PTS_SLING,
+  PIN_PTS_SPIN,
+  PIN_PTS_SPIN_LIT,
+  PIN_PTS_TARGET,
+} from "@/lib/arcade/pinball";
 import { TILT_V4_BAND_CURVE } from "@/lib/arcade/tilt";
 import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
 import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
@@ -742,6 +754,22 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
     score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+  },
+  pinball: {
+    goal: "Keep the ball in play and rack up table points.",
+    how: [
+      { action: "Hold the left or right half", detail: "of the screen to raise that flipper; two thumbs raise both." },
+      { action: "Three balls, one minute:", detail: "a lost ball relaunches by itself." },
+      { action: "Bumpers, targets, spinner", detail: "and lit lanes all score." },
+      { action: "One table for everyone,", detail: "with no luck in it: each ball launches up the right-hand lane at its own fixed strength.", helpOnly: true },
+      { action: "Pink pop bumpers:", detail: `${PIN_PTS_BUMPER} a hit, and they kick the ball away.`, helpOnly: true },
+      { action: "Orange drop targets:", detail: `${PIN_PTS_TARGET} each. Knock all four down for ${PIN_PTS_BANK.toLocaleString("en-GB")} more and a lit spinner for 15 seconds.`, helpOnly: true },
+      { action: "Spinner in the left lane:", detail: `${PIN_PTS_SPIN} a turn, ${PIN_PTS_SPIN_LIT} while lit. A faster ball spins it more.`, helpOnly: true },
+      { action: "Three top lanes:", detail: `${PIN_PTS_LANE} for lighting each one. Light all three for ${PIN_PTS_LANE_SET} and the next multiplier (up to ×${PIN_MULT_MAX}), which counts on everything after. Each flipper press shifts the lit lanes, so you can line a dark lane up under the ball.`, helpOnly: true },
+      { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
+      { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
+    ],
+    score: bandHelp("Your table points count, multiplier included.", PIN_BAND_CURVE),
   },
   rally: {
     goal: "Keep the rally going.",

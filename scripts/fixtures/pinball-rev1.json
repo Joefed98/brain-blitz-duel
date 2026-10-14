@@ -1,0 +1,69 @@
+{
+ "note": "pinRev 1 runs recorded when the revision was new (scripts/pinball-check.ts --record); they must replay to these scores for ever",
+ "runs": [
+  {
+   "level": "average",
+   "seed": 1002484393,
+   "score": 84,
+   "points": 6290,
+   "checksum": 2669718230,
+   "raw": "H4sIAAAAAAAAA3WUCW6kUAxELwRSeV/O1ocfGTodnGSEhPR5lNcCAlhTpeSV+mJBEzU35jpYZY7XoXEo6kmV6kmNaY7vB4eJL2r81Jrzk7rUU+tmi3o+tZ70pMHxpHGH+tCSZ+SEPmkqPbVpixLuhr/EBF5VE3QVRvBVGSFWeEKumRDBFieKxVl45Wfd9Wnp4nbX++Gxh05xD/Kbly99YvP3eL753gul64qfsfNnLTtRAYsX7f5L9vxKfXNb8RmxVs/IzVlXfOa9H7bMZ3/sWH7n2Pvn2Pvn8mUurrueLy5Eyx9CvOoTuc354bryv8SBlwAtgEs7ZWqnUBfRPLteM3W6b9poak5Xq0rTw4G2DMsmEBH3SeLRdWWln3JqGr2ixLTS6rjWZaXUYkCOXPus+YRMf8rfTi0Sy2SMW0eecOskWDQrmnQsFfVH8uuW5Yw0jTEzWksqmyQ0qJkRfUogmwN2dXuq2TvE28oiIYwMofEzWplTm1R8Jp3SpxRXc9n/IiQ0ylBxMF0T4JKOGHOlcJ+Ckha+9M8eLq9Nd8GWRukHK9AlZdzqo0WfzMGtFnbZ5ls9saipQkOqTMd9aGGZvx2UyttnFkVowy/5nKilGFIGzkMAdIbWjIQTba59coaMAJfpfmVnsACadMj4K8Xmi0OaVzuoTzNvyz/kOdaDW5WW0THWbYdQe7popzeDop3rp1ZurXsFJQv+AdveO6+SBgAA"
+  },
+  {
+   "level": "average",
+   "seed": 1787895559,
+   "score": 125,
+   "points": 8840,
+   "checksum": 503309924,
+   "raw": "H4sIAAAAAAAAA22VC67rSAhEN2RLUPxZWxY/In43Mc7IUqRO+TRQ0G2OjCwzqxfDXoA1c6NpngOSs6S/pfpSnZaavNSyuyq0WOFYqmzV1s4aeVe1+K5a1l11Wmzgvfz3xxFXoD81DXc2fWWVEUvdccuXVxWrXibNe2Amq6UzyR1n5ocutHWVpT/s5offrLoKZ7WVPeuVz4fX0KUbL9PZrny++tWjr+6b9wl+0x0P3WTl577r88vPr77dZ6/tb/DmQ2rrj/rjUX/E5vPhf+rm6xqOz/5VWKeBeB8lwuovONf+4AcP5/v+wM4Pes3Xh9fr/Y9uu37Y5ff3tOryF7nnU4jX0RDCyk9kz7fI7p+o6OJVV/9FUxevVz8/uuWOb3U/my9xopcQtVfMNsbs0qe7thoadL1oY4sw6r0RN4qV1FX9fVHAtLwZmiZ9Qk37RBTaceNPQXBrT7bMJaKhJEcRtUnZ1MEl3Cdz9Mka3qU3/v1zPXABeXgcPClCitBqLNFK3iLN8oNq2ztyGsv07WAj6oRPi6WY0CeKW9mby38jDy4srkjOmeU3bnPjEMDWZ3F2WbXNpf6T+Js34lSF1wEm6jDzbEClWihaCuPGk5aLRpUZOIQP6ETXMnQSM/q08cDRNnk98ZzYFFJBznkgxvUoyUbGzCR5e0iH/Y9v2WiIFxtF2iE0MAe4GVWIPgP+Tq7z1/cJjhYgPA0sh8zACTnQbpY2zZ4vJiw7Yy7cxV8jJ4pwq/I4Zmgb7jP6mqkT32qm1jtz8f43sUYiVAX9D6GrI9CrBwAA"
+  },
+  {
+   "level": "good",
+   "seed": 1002484393,
+   "score": 130,
+   "points": 10520,
+   "checksum": 25905401,
+   "raw": "H4sIAAAAAAAAA22VDY7CQAiFL9QmPP7hbB5+g3XdspomxvHrG+DBjCBiTZWSB4QezNVAc9M8BytmSb/LeNLXDwfXogK+a4V50aBFU+9USe9U4Ysm3eNqLa1J3qnZphGLZtxpXtrfuKl5pyDYHYN4c+gqCjBbnH0ZBs7lCUT3/mIrOyit0qDY8dV589jcaefn8/KNB+vSx1XPH7etD1/eInPnl1WLl2Dp66r3PU9MscaNsfTMKZvXqo9FVnNZTBa3awbfepPN/fLrzb02T8jaP3n1h1/z8tanL/+4YvWXK9dcC/HyR2jnJ4zVH2FZ+4tcJ+GtV9r7G638xdb8PMSJHkLUFjGZqcOt8TyM1jM885g6rg9ubjQ4DVxgO+YVj5DosprZZkGfjPlK+JRLo5W8hIuEjyLqJDJvZ6NsSekT0zP7EL+MYCeXAAIHmKhFdTyquRM8h/s39euYCErKRUdtk7uZVocwqCO5T0hRq/F//Ww60csyYMZxIIk6AsQt/CwbLN5F2mr6X29NEz7cXQCTgzG251ywYUgbuU11bbBPdU5wjiAFMQ7WcY4T1gov7XOuyFNC2ulDLj1j3J6iIRRzj49zPtNdOmfuLLY+2djav4V/6gFRUDlwCE32pDG+wkJa3JoF2kXxJf7TPLCHEQUfMkPnKEJLamXb/O/o9IgGbT2NnlsMoWpCdszgdrBYNtRStc9CdEg16LN7s+JmKzIl/ACaiQ3P8wYAAA=="
+  },
+  {
+   "level": "good",
+   "seed": 1787895559,
+   "score": 30,
+   "points": 2305,
+   "checksum": 3035398573,
+   "raw": "H4sIAAAAAAAAA12RC27EIAxEL5SVPOO/z5bDVyRVCysEkv0YjzHIymp371vlJnOA4chaF/UJn2DkMuNOzfWgESv8TVxWslNn7VrX2mngqBy0nSZkp0nfaTl334qjcudBOw8KFdsxFIcztHS3hvbJ7X3Hn94sDh6pB486JorS3urfK75VZDxcMexujoYOWUN5ZW6B97CRwTCcTDHyCpEJBjGwQtu4DzzX+PgtxujaLZpVSlwtMtopmOxOH4jMxw0D6LeYjxgOI6OrLqzuzOg26pE2UZhPLR/V1eWpfvpGGbMt/IKLTGuvr4xovPOAqzx3/5VPeigdWq5lF0pkyqkxxbSYD0Bdj9ahin/pX+duZIuX/QCGhC/S/gIAAA=="
+  },
+  {
+   "level": "great",
+   "seed": 1002484393,
+   "score": 148,
+   "points": 21630,
+   "checksum": 3183494203,
+   "raw": "H4sIAAAAAAAAA22VCY7rQAhEL+RIUOycbQ7/hTsbM1+RIjnPxVLQHSaCpkrJD2v+ANnMjab5XFCex/uh6VK3eXz+cGnYNzXwNzXRRXVpzeqbOtF3Xp83PzRs0fBNPb8jR2LRqm9t8qLJq9887b+pYlGTRU8Zbxqr38yd95TxomWr5opVFXOt0AzyxXF6fMkZtbnYMpvlWPThp5o31+03K/vmWNWz2i/usbiTrvqdtz7OMrx5nHgffvp58/xVX2LrU3b8wvanZPkLcvrmoKDFuWRx0IqPpx+fY6Jbb3thYb52Ay5r/HDb9YWso4TQrY9zej481maizlq/ecmqT+j49+JC2z/B3j8RWvWJnH7fetnzE4k1P5Fc+yF6/H5zzdWf6Jn/O77xrv/XVSMmO79pbG47v+0rQyyXf2L13d+PONGPELWnF7eYEfejlDsLDTo6U+fzpU3NHeGeVnJfbmYxOUzmxlGv5rlqEyPEUaGI23rSiotBYYarRhzF2qzwpH6gqB/M8pI/Mz+4ittvPUepFIva3B3U6vc1aMQW/UCWdxY1Qr/yP9RsOp65QJlKjVEXG1FHueq8D+kHu1mrZiPyd+tHzqKjtqqLk6iTdTZQ2cv6EWStFC2D/qSXRgtUhFGICzx/DUlKHcqV8572gyE1bf3NP3qEeSoAuaCT33M2GsaIZnizCtrGgz/l3+0bVD00cSFm7jLpGKzAeI/owjzzfwLYGOBGlgrOS4iooSTcBYnsmFneG6j1P702ekYNN4n78FGrjWkM9ZzmacYoWdZscTexTOQThE04qFLymg1uZM25Mp3jZdllDXYZ+Uv5XN+7B+GcMYLkH1z+PXYlCAAA"
+  },
+  {
+   "level": "great",
+   "seed": 1787895559,
+   "score": 146,
+   "points": 17780,
+   "checksum": 2550644573,
+   "raw": "H4sIAAAAAAAAA22UC2rDQAxEL2SDRn/pbDl8UZwGyy2BgP08q1ntaBEZWWZWL6i/WKiB5qb5Haw2j++HpkPJ71SZ7tRoaQ26qNeiuWmtlR18p25vG58Xh/ty5eGL1nIVl6tfGvBFedUNXdoUuWtTl7Z2r2pTkOddDMq1J4CXHJC1K+Dq/VcPX97AFIszY3PhzTUWF9v1xWXz2lyvRn655moOtLbeIEtvnJvX9u/zcOP+8O+6++e+1//E4MvDtj4e+yuPpa+oO2civeuZdtqZdZ0vs639sfiKJcv2x0a8Ru0xL+zYo+iP+nVN0JfXNUK/XIhWfSGs8xfStT8h23rsoRPEOh9Brv4J73yIwBYX2Vwf9dXu/X+JE72EqGcj0o5M7RR0AfPu/Zmp4/rTpkZzulpVmh5O1Fai1ZNElj6N0SecqwMj5kt5qtnY4EYjicXcIo8i6nRJb4z16rPQmPux8Cx+iVOSuFR9ZpMa5GENZVPrGR6egFnaH/EcdANppSLGB+YmNVeS8c6sDeOxHs1UT732BKclUcjxfyDf3h3eRhXep+noIdUMei7A1wJh6USOOhjTdhbTRnFpn9JpzYanVD61hYqCiuzg9zVRrtQSFNIi6HN4c8azcf7RgzJCPfTgua810qnZqbhPDevJtoyrf8sDVh7sEZP6EcYEy5gs++SobOP3ad8WQGr1nE9zS5IEpSsfMtHSZJtwE9N8IfPxXB6a/ziwaaB4IT1Yjsltq2pGKzmkS7XPZG5E/NHPdEizGbmqhfwAC6uKuI8HAAA="
+  },
+  {
+   "level": "near",
+   "seed": 1002484393,
+   "score": 148,
+   "points": 21290,
+   "checksum": 1117493504,
+   "raw": "H4sIAAAAAAAAA22VC27rUAhEN+RIDH9YWxf/RG9fbNIqUiT7eLh8xhhErKlS8gXNLxZqoLlpfherzeX3RdOl4CdVzic19bn8uXGZ06IpT62VPKmTPrUOfdKweGoj8KTJK+eUlXOaLur1pCXxPLc0Fo18aqtWRSCpJwbpig34kgMn3JtzrXZCThPe3I2fycF9ZYdwLH0EL568+UdnkFYrfu6+os5A3/ryFZ/J18CZcvWHoSt/xhnFzY9Dbh5bz5KL84eeT/03j81FVv0sp56bn/NvHsuTrLysw3ryuXks87DW6h9rLduy0dYbVn/ZTr43P/O/+en3mzvb4n78ePPjh3d+nvv8qF1f0vIHl6yXkmv7m+vM+62vE+8/F6JVvxCWf4XO/rj5zl+o1vwFtDlOv26ua34CW/4UbH8LanPe8xGRtbJE9jYU/ahPeZ+vseYjuveHGNb7J8a7PqvnfvkSJ/oSohYil3ZkaqegC5h734+ZOs6fNjWa09Wq0vRyolaKeSktc2pRaswOInyK51S0UjmVldlVc64JV5eRZ78M1DYF1i/xj2sks0K/1WCijqiIzjKh9rB+QcdgJZ/6H9eaMVFy4IIRtZklWpE10tm1r/JsqfjzfG5OFgaXXkiiTsN8gqQE3i+Et8C68q/0rbnFOcTYki/GnA/M8+yVbTwhMPuG+Y8ANPooIZSoXaxEjWRFg3Js9wLPt1TJG5K/OoD+zkAcxAnVi2OGZxLZCXHtF8x5WqjaULffESDTSAKFmXvN6zgzsPnEqblVv3gW4HykjJ9NVKUa7QSQKkRUkl0yHstAVScS0q/RssE+A/xv43cGEK0kVbrGwO2qY2tjF2kO7lew9Mxp5Hy0ou8xYNpcYqT/AFLoum2rCAAA"
+  },
+  {
+   "level": "near",
+   "seed": 1787895559,
+   "score": 150,
+   "points": 30130,
+   "checksum": 1845186570,
+   "raw": "H4sIAAAAAAAAA22VC47jQAhEL2RLFH842xx+hXuUhMwqUiT7pYCGooPIyDKz+oHRDws10Nw0n4v1eXwemi7Fosr4pEb1SW1TD5/H3xeXZ33SlPjUpsmiUZ/arBUZ5PgUg2Jz5JIDtXJD1JdeTrwXN8LSG3zz3TTY7hrMv/hXfRa5ea3Tw7GaA+dYPGzXH7HzJ2TxZN3cdZ0vz6jevGzxOjZ48SpepiHiT87Yo2dkLi5qSy+nXy+u2HrlrdfTzzfPVT9rxeJGW2/IzWX1n92Wv9h9xw9f/uLIrU/mxVN2/rKdv3xxAa/FEuiKL2wrvrAvfwjn8o8Ibb3o8p/IqefNa9Unevz04uqy+faP6Nm/V3z7yv+7D29+6n3zM79f/iNO9CNELUQu7cjUTkEXMO+en5k6zpc2NZrT1arS9PKRSjBahc361si+IbNVhG+5NDdajJ0C4LiKqFXZ0JkFbaRo30xRLZBvOZ0ARoWcxbjARB08icDClD3rfytVtZod/Y2qFYAlKEPZn+uI2rLmtjVnk2Z6DJHSxvb/AsSIjIoQF3IKcJ8hqLpG367Zc0mY17ecT/3FmaqmcTFotjNsmuhhfQMsfUO5/e/55egdLOkSz18KtcHGU0rp0TemaqPo0Pirj9GrlXNJ4uIgagZIWth9JkfubSwN+Z8e1tzKLAli2CVE1MmM6EDN/Dl46peZU/7pgDRNF7LEU1Sf/aFWebaUTILGQd63VI0bSkfPR3yr2cwgW1qh7OCcGsaDnjYXocHMGn07RQudFn7JYXOQVEO6Bf0DYSW7qrUHAAA="
+  }
+ ]
+}

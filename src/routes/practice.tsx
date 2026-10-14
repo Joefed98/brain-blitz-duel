@@ -24,6 +24,7 @@ import { DevKeyStatus, SaveDemoButton, useDemoKey } from "@/components/duel/Save
 import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
+  PREVIEW_PUZZLE_TYPES,
   puzzleCategories,
   puzzleDef,
   puzzleDurationMs,
@@ -432,13 +433,31 @@ function PracticeScreen() {
             </div>
           ))}
 
-          {RETIRED_PUZZLE_TYPES.length > 0 && (
+          {PREVIEW_PUZZLE_TYPES.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">New · practice only</p>
+              <div className="flex flex-col gap-2">
+                {PREVIEW_PUZZLE_TYPES.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => void load(key)}
+                    className="press tap-target w-full rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
+                  >
+                    {PUZZLE_REGISTRY[key].name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {RETIRED_PUZZLE_TYPES.length > PREVIEW_PUZZLE_TYPES.length && (
             <details className="flex flex-col gap-2">
               <summary className="press cursor-pointer font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                Retired ({RETIRED_PUZZLE_TYPES.length})
+                Retired ({RETIRED_PUZZLE_TYPES.length - PREVIEW_PUZZLE_TYPES.length})
               </summary>
               <div className="mt-2 flex flex-col gap-2">
-                {RETIRED_PUZZLE_TYPES.map((key) => (
+                {RETIRED_PUZZLE_TYPES.filter((key) => !PREVIEW_PUZZLE_TYPES.includes(key)).map((key) => (
                   <button
                     key={key}
                     type="button"

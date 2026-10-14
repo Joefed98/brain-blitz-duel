@@ -33,6 +33,7 @@ export const ARCADE_ARENA_FILL: Record<ArcadeFxGame, string> = {
   tilt: ARENA_NO_FILL,
   balltrack: "#7E5C38",
   matchup: "#0B0B0F",
+  pinball: "#000000",
 };
 
 /** The same for engine games outside the Arcade category (ENGINE_GAME_WORLDS). */

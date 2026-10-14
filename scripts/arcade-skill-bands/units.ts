@@ -23,6 +23,7 @@ import { sliceBandParts } from "../../src/lib/arcade/slice";
 import { burstBandParts } from "../../src/lib/arcade/burst";
 import { swingBandParts } from "../../src/lib/arcade/swing";
 import { bullseyeBandParts } from "../../src/lib/arcade/bullseye";
+import { pinballBandParts } from "../../src/lib/arcade/pinball";
 
 export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   balltrack: btBandParts,
@@ -47,6 +48,7 @@ export const BAND_PARTS: Record<string, (s: any) => BandParts> = {
   burst: burstBandParts,
   swing: swingBandParts,
   bullseye: bullseyeBandParts,
+  pinball: pinballBandParts,
 };
 
 export const UNITS: Record<string, (s: any) => { u: number; finished: boolean }> = Object.fromEntries(

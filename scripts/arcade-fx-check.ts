@@ -1,7 +1,7 @@
 /**
  * Shared arcade success layer + art pipeline checks (presentation only).
  *
- *  1. All 22 arcade games with a world (21 active, Junction practice only): seeded random inputs, every frame drawn through
+ *  1. All 23 arcade games with a world (21 active; Junction and Pinball practice only): seeded random inputs, every frame drawn through
  *     the game's real renderer (which now runs the shared effects layer). Drawing
  *     must never change state (deep-equal before/after every draw), and the run
  *     with drawing must end in exactly the state of the same run without drawing.
@@ -55,6 +55,7 @@ const sprites = await import("../src/lib/arcade/sprites.renderer");
 const { hoverArtGame } = await import("../src/lib/arcade/hover.renderer");
 const { hoverRev2Game } = await import("../src/lib/arcade/hover");
 const { breakerArtGameFor } = await import("../src/lib/arcade/breaker.renderer");
+const { pinballArtGame } = await import("../src/lib/arcade/pinball.renderer");
 const { rallyArtGame } = await import("../src/lib/arcade/rally.renderer");
 const { rallyRev2Game } = await import("../src/lib/arcade/rally");
 const { beatArtGame } = await import("../src/lib/arcade/beat.renderer");
@@ -132,9 +133,10 @@ const GAMES: Record<string, AnyGame> = {
     draw: (ctx: CanvasRenderingContext2D, s: any) => btArtDraw(ctx, course, s, btGame.rotatable),
   } as AnyGame,
   matchup: { ...matchupArtGame, init: matchupRev2Game.init } as AnyGame,
+  pinball: pinballArtGame as AnyGame,
 };
 
-assert.equal(Object.keys(GAMES).length, 22, "22 arcade games with a world (21 active, Junction practice only)");
+assert.equal(Object.keys(GAMES).length, 23, "23 arcade games with a world (21 active; Junction and Pinball practice only)");
 assert.deepEqual(
   Object.keys(GAMES).sort(),
   Object.keys(specs.ARCADE_FX_SPECS).sort(),
@@ -373,6 +375,14 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, rideHomes: (s.rideHomes ?? 0) + 1 }),
     (s) => ({ ...s, switchHomes: (s.switchHomes ?? 0) + 1 }),
   ],
+  pinball: [
+    (s) => ({ ...s, bumps: s.bumps + 1, bumperAt: [s.tick + 1, -999, -999] }),
+    (s) => ({ ...s, drops: s.drops + 1, targets: s.targets | 2 }),
+    (s) => ({ ...s, banks: s.banks + 1, targets: 15 }),
+    (s) => ({ ...s, laneLights: s.laneLights + 1, lanes: 1 }),
+    (s) => ({ ...s, laneSets: s.laneSets + 1, mult: 2 }),
+    (s) => ({ ...s, spins: s.spins + 9 }),
+  ],
   matchup: [
     (s) => ({ ...s, cascades: s.cascades + 1, lastSteps: 3 }),
     (s) => ({ ...s, bestLine: 5 }),
@@ -487,6 +497,11 @@ for (const [name, game] of Object.entries(GAMES)) {
   assert.deepEqual([...patterns(specs.RALLY_FX)], ["flash"], "rally: flashing court lights");
   assert.deepEqual([...patterns(specs.BREAKER_FX)], ["chase"], "breaker: chasing border lights");
   assert.deepEqual([...patterns(specs.HOVER_FX)], ["step"], "hover: border steps through colours");
+  // Pinball: its own pattern, rippling both ways from the hit (every event, bumpers included).
+  assert.deepEqual([...patterns(specs.PINBALL_FX)], ["ripple"], "pinball: border ripples from the hit");
+  assert.ok(specs.PINBALL_FX.events.every((e) => e.bulbs?.pattern === "ripple" && e.textOnly && !e.lights?.length), "pinball: ripple on every event, no star dust");
+  assert.ok(specs.PINBALL_FX.events.some((e) => e.kind === "pop" && e.count({ bumps: 4 } as never) === 4), "pinball: a ripple on every bumper hit");
+  checks += 3;
   assert.ok(specs.RALLY_FX.events.some((e) => e.label?.({} as never, 1, 1) === null && e.bulbs), "rally: lights on every paddle hit");
   assert.ok(specs.HOVER_FX.events.some((e) => e.kind === "pop" && !e.every && e.bulbs?.pattern === "step" && e.count({ gates: 3 } as never) === 3), "hover: a step on every barrier passed");
   assert.ok(specs.HOVER_FX.events.some((e) => e.every === 7 && e.bulbs?.strong), "hover: stronger step every 7 barriers");
@@ -505,7 +520,7 @@ for (const [name, game] of Object.entries(GAMES)) {
   // Painting: edge only, gone when done, brighter and longer with heat, and no movement under reduced motion.
   type S = { tick: number; n: number; heat: number };
   const W = 390, H = 620;
-  const lit = (pattern: "flash" | "chase" | "step", strong = false): Parameters<typeof fx.arcadeFx<S>>[1] => ({
+  const lit = (pattern: "flash" | "chase" | "step" | "ripple", strong = false): Parameters<typeof fx.arcadeFx<S>>[1] => ({
     game: `bulbs-${pattern}`, world: "retro", width: W, height: H, fit: "world",
     events: [{ kind: "pop", count: (s) => s.n, label: () => null, textOnly: true, bulbs: { pattern, colours: specs.RALLY_BULBS, heat: (s) => s.heat, strong } }],
   });
@@ -533,7 +548,7 @@ for (const [name, game] of Object.entries(GAMES)) {
     }
     return { edge, inner, light, stats };
   };
-  for (const pattern of ["flash", "chase", "step"] as const) {
+  for (const pattern of ["flash", "chase", "step", "ripple"] as const) {
     const mid = paintAt(lit(pattern), 0.5, 200);
     assert.ok(mid.edge > 0, `${pattern}: border lights paint`);
     assert.equal(mid.inner, 0, `${pattern}: nothing more than 20 px in from the border`);
@@ -541,6 +556,29 @@ for (const [name, game] of Object.entries(GAMES)) {
     const done = paintAt(lit(pattern, true), 0.5, 1300);
     assert.equal(done.edge + done.inner, 0, `${pattern}: gone within 1.3 s`);
     checks += 4;
+  }
+  // Ripple (Pinball): early on, the light sits by the edge nearest the event, not across the arena.
+  {
+    const near: ReturnType<typeof lit> = { ...lit("ripple"), game: "bulbs-ripple-left", events: [{ ...lit("ripple").events[0]!, at: () => ({ x: 30, y: H / 2 }) }] };
+    const c = createCanvas(W, H);
+    const g = c.getContext("2d") as unknown as CanvasRenderingContext2D;
+    const start = clock;
+    fx.arcadeFx(g, near, { tick: 1, n: 0, heat: 0 }, () => {});
+    clock += 1000 / 60;
+    fx.arcadeFx(g, near, { tick: 2, n: 1, heat: 0 }, () => {});
+    clock = start + 120;
+    g.clearRect(0, 0, W, H);
+    fx.arcadeFx(g, near, { tick: 3, n: 1, heat: 0 }, () => {});
+    clock = start;
+    const data = c.getContext("2d").getImageData(0, 0, W, H).data;
+    let left = 0, right = 0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const a = data[(y * W + x) * 4 + 3]!;
+      if (x < W / 3) left += a;
+      else if (x > (2 * W) / 3) right += a;
+    }
+    assert.ok(left > 0 && right === 0, `ripple: starts at the edge nearest the event (left ${left}, right ${right})`);
+    checks += 1;
   }
   const cold = paintAt(lit("flash"), 0, 160);
   const hot = paintAt(lit("flash"), 1, 160);
@@ -918,5 +956,5 @@ const unit = (
 
 for (const line of summary) console.log(`  ${line}`);
 console.log(
-  `Arcade fx checks passed: ${checks} assertions; 22 games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
+  `Arcade fx checks passed: ${checks} assertions; 23 games draw read-only with identical sims, director gates and caps, art fallback and bounds.`,
 );

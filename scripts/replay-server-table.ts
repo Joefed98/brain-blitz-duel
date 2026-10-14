@@ -12,6 +12,7 @@ import { replayBinTossRun } from "../src/lib/duel/binToss";
 import { replayBullseyeRun } from "../src/lib/duel/bullseye";
 import { replayMatchupRun } from "../src/lib/duel/matchup";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
+import { replayPinballRun } from "../src/lib/duel/pinball";
 import { replayRallyRun } from "../src/lib/duel/rally";
 import { replaySliceRun } from "../src/lib/duel/slice";
 import { replayBubbleRun } from "../src/lib/duel/bubble";
@@ -47,6 +48,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   bullseye: (p, a) => replayBullseyeRun(p.seed, a, p.winds, p.bullRev),
   matchup: (p, a) => replayMatchupRun(p.seed, a, p.matchupRev),
   breaker: (p, a) => replayBreakerRun(p.seed, a, p.brkRev),
+  pinball: (p, a) => replayPinballRun(p.seed, a, p.pinRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
   bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),

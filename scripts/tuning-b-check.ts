@@ -284,10 +284,17 @@ section("Arena fill below the arena");
   const changed: Record<string, { from: string; to: string }> = {
     cross: { from: "#0B0B0F", to: "#6FA851" },
   };
+  /**
+   * Arcade games added after Tuning B, each with its own fill; the 22 above must keep theirs.
+   * - pinball (13 Oct 2026, practice only): its Retro screen ends black.
+   */
+  const added: Record<string, string> = { pinball: "#000000" };
   const none = new Set(["hover", "tilt", "flip", "inkbridge", "junction", "skyline"]);
-  ok(Object.keys(ARCADE_ARENA_FILL).length === 22, "22 arcade games");
+  ok(Object.keys(ARCADE_ARENA_FILL).length === 22 + Object.keys(added).length, "22 Tuning B arcade games plus the ones added since");
+  ok(Object.keys(before).every((game) => game in ARCADE_ARENA_FILL), "every Tuning B arcade game keeps a fill");
   for (const [game, fill] of Object.entries(ARCADE_ARENA_FILL)) {
-    if (none.has(game)) ok(fill === ARENA_NO_FILL, `${game}: no fill (page colour)`);
+    if (added[game]) ok(fill === added[game], `${game}: added after Tuning B with fill ${added[game]} (${fill})`);
+    else if (none.has(game)) ok(fill === ARENA_NO_FILL, `${game}: no fill (page colour)`);
     else if (changed[game]) {
       ok(before[game] === changed[game].from, `${game}: deliberate change starts from its Tuning B fill (${before[game]})`);
       ok(fill === changed[game].to, `${game}: fill is the deliberate ${changed[game].to} (${fill})`);

@@ -1,7 +1,7 @@
 /**
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
- * For each of the 21 active arcade games (Junction is practice only since Tuning C), plus the engine games of other categories
+ * For each of the 21 active arcade games (Junction is practice only since Tuning C) and the new practice-only Pinball, plus the engine games of other categories
  * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall) and the engine games that draw their own
  * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!; no arena-layout proof), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
@@ -51,6 +51,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARCADE_ARENA_FILL, ARENA_NO_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
@@ -67,6 +68,11 @@ const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
  * layout proof is skipped, as they have no world spec or arena fill.
  */
 const ENGINE_PLAY_GAMES = ["tendrop", "stroop", "whack", "clayshoot"] as const;
+/**
+ * New arcade games still practice only (not yet dealt in rooms), played with every rule,
+ * the arena-layout proof included: Pinball until PINBALL_IN_ROOMS (then it is in ACTIVE_ARCADE_GAMES).
+ */
+const PRACTICE_PLAY_GAMES: string[] = PINBALL_IN_ROOMS ? [] : ["pinball"];
 const ONLY = args.filter((a) => !a.startsWith("--"));
 const BASELINE_PATH = new URL("./fixtures/arcade-play-baseline.json", import.meta.url).pathname;
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
@@ -118,6 +124,8 @@ const EXTRACT = String.raw`
     // sets them to the drag x, so a new touch elsewhere moves them at once); only physics bodies are tracked.
     case "breaker": s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
     case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
+    // Pinball: the ball; a drain puts it back in the shooter lane (a reset).
+    case "pinball": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.lost + ":" + s.live; break;
     case "burst": P.push(["player", fp(s.x), 0]); s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.wave + ":" + s.lives; break;
     // The ship is finger-driven (see breaker) and invaders step on a grid; wavRev 2 divers and the boss fly.
     case "wavefront":
@@ -237,7 +245,7 @@ async function main() {
     process.exit(1);
   }
   const { chromium } = await import("playwright");
-  let games = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...ENGINE_PLAY_GAMES].filter((g) => ONLY.length === 0 || ONLY.includes(g));
+  let games = [...ACTIVE_ARCADE_GAMES, ...PRACTICE_PLAY_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), ...ENGINE_PLAY_GAMES].filter((g) => ONLY.length === 0 || ONLY.includes(g));
   if (PART_ARG) {
     const [k, n] = PART_ARG.split("/").map(Number) as [number, number];
     if (!(n >= 1 && k >= 1 && k <= n)) {

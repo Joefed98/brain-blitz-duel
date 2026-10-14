@@ -117,6 +117,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   cross: "Points for each lane crossed, more for each full crossing. Up to 150.",
   breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to 150.`,
   rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to 150.",
+  pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to 150.",
   bubble: "Points for each bubble cleared. Clear the whole field quickly for up to 150.",
   slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to 150.",
   beat: "Points for each note hit in time; every note Perfect for 150. A miss costs a little.",

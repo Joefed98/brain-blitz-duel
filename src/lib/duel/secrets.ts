@@ -83,6 +83,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   dual: [],
   ricochet: [],
   breaker: [],
+  // A fixed table; the run is replayed on the server.
+  pinball: [],
   rally: [],
   steady: [],
   slice: [],

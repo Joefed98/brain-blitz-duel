@@ -77,6 +77,13 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("breaker", 3, "pop", "moving-target", 25, "Brick out of a sliding row"),
   fx("breaker", 4, "clear", "row-clear", 35, "Row cleared"),
   fx("breaker", 5, "final", "wall-cleared", 95, "Wall cleared", "finish"),
+  // Pinball
+  fx("pinball", 0, "pop", "bumper", 0, "Bumper hit (border ripple only)"),
+  fx("pinball", 1, "perfect", "target", 15, "Drop target knocked down"),
+  fx("pinball", 2, "clear", "bank-down", 50, "Whole bank of drop targets down"),
+  fx("pinball", 3, "pop", "lane-lit", 10, "Top lane lit"),
+  fx("pinball", 4, "streak", "multiplier", 60, "All three lanes lit: multiplier up"),
+  fx("pinball", 5, "combo", "spinner", 25, "Spinner ripped (8+ turns at once)"),
   // Rally
   fx("rally", 0, "streak", "long-rally", 35, "Long rally (every 10 returns)"),
   fx("rally", 1, "pop", "gold", 25, "Gold ball returned"),

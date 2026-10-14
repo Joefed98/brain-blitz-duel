@@ -10,7 +10,7 @@
  * A check file not listed here still runs, in CATCH_ALL.
  */
 export const SHARDS: Record<string, string[]> = {
-  // Headless Chromium: arcade-play-check's 21 games (and Letterfall) in five groups (one job each,
+  // Headless Chromium: arcade-play-check's 21 games (and practice-only Pinball, and Letterfall) in five groups (one job each,
   // one game at a time, so frame times compare fairly with the CI baseline). The
   // workflow installs the browser and swaps in the CI frame-time baseline for these.
   play1: ["arcade-play-check.ts@1/5"],
@@ -57,6 +57,8 @@ export const SHARDS: Record<string, string[]> = {
     "flip-bend-check.ts",
     "gravity-chain-intruder-check.ts",
     "hover-check.ts",
+    // Pinball (practice only): stored rev-1 runs, long replays, swept-contact proofs (~11 s).
+    "pinball-check.ts",
     "ink-birds-check.ts",
     "ink-line-check.ts",
     "ink-rainbow-check.ts",
