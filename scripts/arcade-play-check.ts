@@ -1,7 +1,7 @@
 /**
  * Arcade play check: every active arcade game, played for real in headless Chromium.
  *
- * For each of the 21 active arcade games (Junction is practice only since Tuning C) and the new practice-only Pinball, plus the engine games of other categories
+ * For each of the 22 active arcade games (Pinball dealt in rooms since 14 Oct 2026; Junction is practice only since Tuning C), plus the engine games of other categories
  * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall) and the engine games that draw their own
  * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!; no arena-layout proof), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
@@ -38,7 +38,7 @@
  * still playing one game at a time in its own browser, so every game runs under
  * the same conditions as the recorded baseline (and as a whole run).
  *
- *   bun scripts/arcade-play-check.ts                 # all 21 games (and Letterfall)
+ *   bun scripts/arcade-play-check.ts                 # all 22 games (and Letterfall)
  *   bun scripts/arcade-play-check.ts cross flip      # only these game ids
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # play the same way, judge liveness, rewrite the frame-time baseline
