@@ -180,6 +180,8 @@ import {
   INTRUDER_BOARDS,
   WORDMATCH_ITEMS,
   FLOW_PAIRS,
+  CHAIN_TIME_MS,
+  CHAIN_TIME_REV,
   type PuzzleData,
 } from "./types";
 
@@ -951,7 +953,11 @@ function gradeUnderRev(
       isCorrect = replay.reason === "complete";
       correctCount = replay.links;
       errors = replay.reason === "wrong" ? 1 : 0;
-      score = scoreChain(replay.links, ms, puzzle);
+      // chainTimeRev 1: time left is the claim (already held to the receipt
+      // check), but never more than the replayed last tap allows.
+      if (puzzle.chainTimeRev === CHAIN_TIME_REV && isCorrect && replay.lastT !== null)
+        storedMs = Math.min(ms, clamp(CHAIN_TIME_MS - replay.lastT, 0, CHAIN_TIME_MS));
+      score = scoreChain(replay.links, storedMs, puzzle);
       extraDetail = {
         links: replay.links,
         reason: replay.reason,

@@ -1,5 +1,5 @@
 // A tiny in-memory stand-in for the service-role Supabase client: enough of
-// from().select()/.update()/.eq()/.lt()/.gt()/.maybeSingle() for the guarded
+// from().select()/.update()/.eq()/.lt()/.gt()/.order()/.maybeSingle() for the guarded
 // room writes in src/lib/duel/roomPhase.server.ts. Every write records the
 // table it touched, so checks can prove what was (and wasn't) written.
 type Row = Record<string, unknown>;
@@ -18,6 +18,7 @@ export function memoryDb(tables: Record<string, Row[]>) {
               conditions.push((row) => row[key] === value),
               query
             ),
+            order: () => query,
             maybeSingle: async () => {
               const found = rows()[0];
               return { data: found ? structuredClone(found) : null, error: null };
