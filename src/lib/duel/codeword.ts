@@ -10,9 +10,21 @@
 import { partialParts, scoreRev1 } from "./puzzleScoreRev";
 import { standardComplete } from "./scoring";
 
-export const CODEWORD_REV = 1;
+/**
+ * Rules revision stamped on new boards. Rev 1: the bank entry's four givens.
+ * Rev 2 (14 Oct 2026): a fifth given, picked from the same bank entry
+ * (codewordFromEntry); grading, the live check and the reveal read the stored
+ * givens, so rev-1 rounds replay exactly as before.
+ */
+export const CODEWORD_REV = 2;
 export const CW_SIZE = 7;
+/** Givens in every bank entry (and on rev-1 boards). */
 export const CW_GIVENS = 4;
+
+/** Numbers that start decoded on a board of this revision. */
+export function codewordGivensFor(rev: number): number {
+  return rev >= 2 ? CW_GIVENS + 1 : CW_GIVENS;
+}
 export const CW_MIN_LETTERS = 14;
 export const CW_MAX_LETTERS = 18;
 /** Answer strings stay well inside the grader's 4,000-character cap; the phone compacts longer lists. */

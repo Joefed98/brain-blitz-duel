@@ -8,7 +8,7 @@ import {
   unpackWfLog,
   wordfallCheckpoint,
   WF_CHECKPOINT_INTERVAL,
-  WF_H,
+  wfWorldHFor,
   WF_INPUT_ENTER,
   WF_INPUT_TAP,
   WF_PAR,
@@ -17,7 +17,7 @@ import {
   type WordfallState,
 } from "@/lib/arcade/wordfall";
 import { loadWordfallDict, wordfallDictReady } from "@/lib/arcade/wordfallDict";
-import { wordfallArtGame, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
+import { wordfallArtGameFor, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
 import { wordCue } from "@/components/puzzles/wordFinish";
 import { TOY_BRASS, TOY_INK, TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -173,8 +173,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null && dict.ready}
       locked={locked}
       worldW={WF_W}
-      worldH={WF_H}
-      game={wordfallArtGame}
+      worldH={wfWorldHFor(rev)}
+      game={wordfallArtGameFor(rev)}
       sounds={sounds}
       checkpoint={wordfallCheckpoint}
       interval={WF_CHECKPOINT_INTERVAL}
@@ -190,7 +190,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </div>
         )
       }
-      footer={(send) => (
+      footer={(send) => rev === 2 ? (
+        // wordfallRev 2: Enter is the box drawn in the world under the well (the sim's tap box).
+        dev ? <p className="shrink-0 whitespace-pre-wrap break-all pt-1 text-center font-mono text-[10px] text-muted-foreground">{dev}</p> : null
+      ) : (
         <div data-game-controls="enter" className="flex shrink-0 flex-col items-center gap-1 pt-1">
           <ArcadeControlButton
             type="button"

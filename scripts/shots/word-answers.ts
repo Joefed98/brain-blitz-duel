@@ -30,6 +30,7 @@ export function wordAnswer(puzzle: PuzzleData): string | null {
     case "letterwheel":
       return (p.words ?? []).join(",");
     case "strikeout":
+      if ((p.strikeoutRev ?? 1) >= 2) return (p.words ?? []).map((word, i) => `${i}${word.toUpperCase()}`).join(",");
       return encodeStrikeout(
         (p.words ?? []).map((word, row) => ({
           kind: "solve" as const,

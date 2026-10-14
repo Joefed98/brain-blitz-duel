@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { WORD_FINISH_MAX_MS, playFinish, goldFlip, goldPulse } from "../src/components/puzzles/wordFinish";
-import { WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
+import { WORD_BATCH_DEMOS, WORD_BATCH_PRESENTATION, WORD_POLISH_DEMOS, WORD_POLISH_PRESENTATION, puzzleInputDemoCompatible, puzzlePresentation } from "../src/components/puzzles/wordInput";
 import { wordfallGame, WF_PAR, WF_RUN_TICKS, type WordfallState } from "../src/lib/arcade/wordfall";
 import { wordfallEarnsShimmer } from "../src/lib/arcade/wordfall.renderer";
 
@@ -89,11 +89,14 @@ ok(!/shimmerStart\.set\([^)]*\)/.test(renderer.split("export function wordfallSt
 ok(!/from "\.\/wordfall\.renderer"/.test(readFileSync("src/lib/arcade/wordfall.ts", "utf8")), "the sim never imports the renderer");
 
 // 4. Demo revisions for the boards that moved.
-for (const type of WORD_POLISH_DEMOS) {
-  ok(puzzlePresentation(type) === WORD_POLISH_PRESENTATION, `${type}: word polish presentation`);
+// The word batch (14 Oct 2026) moved some of these boards again; those take its newer revision.
+for (const type of new Set([...WORD_POLISH_DEMOS, ...WORD_BATCH_DEMOS])) {
+  const current = WORD_BATCH_DEMOS.has(type) ? WORD_BATCH_PRESENTATION : WORD_POLISH_PRESENTATION;
+  ok(puzzlePresentation(type) === current, `${type}: current word presentation`);
   ok(!puzzleInputDemoCompatible(type, {}), `${type}: unstamped coordinate demos are rejected`);
   ok(!puzzleInputDemoCompatible(type, { presentation: "oct10-polish-a" }), `${type}: older demos are rejected`);
-  ok(puzzleInputDemoCompatible(type, { presentation: WORD_POLISH_PRESENTATION }), `${type}: new demos replay`);
+  if (WORD_BATCH_DEMOS.has(type)) ok(!puzzleInputDemoCompatible(type, { presentation: WORD_POLISH_PRESENTATION }), `${type}: word polish demos are rejected after the word batch`);
+  ok(puzzleInputDemoCompatible(type, { presentation: current }), `${type}: new demos replay`);
 }
 
 // 5. Reveal score lines kept.

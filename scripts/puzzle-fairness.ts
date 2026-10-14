@@ -63,7 +63,7 @@ export const OPEN_GAMES: PuzzleType[] = ["wordsmith", "wordhunt", "wordfall", "r
 export const TEXT: Partial<Record<PuzzleType, { intro: string[]; help: string[] }>> = {};
 for (const t of FINISH_GAMES) TEXT[t] = { intro: ["120"], help: ["120", "half the time"] };
 const moreHelp: Partial<Record<PuzzleType, string[]>> = {
-  tilegrid: ["30", "110"], wordslide: ["15", "27.5"], wordsearch: ["22"], letterwheel: ["110"], strikeout: ["3 per strike", "27.5"],
+  tilegrid: ["30", "110"], wordslide: ["15", "27.5"], wordsearch: ["22"], letterwheel: ["110"], strikeout: ["3 per strike", "30 per solved word"],
   codeword: ["110", "−5"], swapword: ["15", "110"], target: ["110"], equation: ["20 / 30 / 35 / 45"], balance: ["20, 35 and 75"],
   numpyramid: ["27.5"], trail: ["110"], measure: ["30 / 35 / 45", "15"], checkout: ["22, 24, 26, 28 and 32", "3 per board"],
   numline: ["8", "8%"], tendrop: ["110", "30"], numhunt: ["5", "110"], chain: ["110", "30"], stroop: ["110", "30"],
@@ -84,10 +84,6 @@ for (const [t, extra] of Object.entries(moreHelp)) TEXT[t as PuzzleType]!.help.p
 const STRATEGY = "a weak but real strategy: it reads the screen's feedback";
 export const KNOWN_SPAM: Partial<Record<PuzzleType, Record<string, string>>> = {
   wordslide: { "spin-rows-lock-green": `${STRATEGY} (turns each row until it reads as a word)` },
-  letterwheel: {
-    "random-3": "the phone keeps only words that fill a slot, so random traces that score are real finds; costing misses needs an attempt log",
-    "random-3to5": "the phone keeps only words that fill a slot; costing misses needs an attempt log",
-  },
   strikeout: { "frequency-order": `${STRATEGY} (guessing letters in frequency order is how the game is played)` },
   codeword: { "frequency-fill": `${STRATEGY} (letter-frequency code breaking)` },
   swapword: { "swap-non-green": `${STRATEGY} (uses the tile marks)`, "swap-amber": `${STRATEGY} (uses the tile marks)` },

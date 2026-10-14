@@ -3,11 +3,12 @@
  * tabletop (toybox.renderer.ts), through the shared success layer. Render
  * only — never imported by the sim or the server. Every tile is drawn inside
  * its 60 px collision cell (2 px inset; the refused-chain shake moves it at most
- * 2 px), so what a finger sees is what the sim picks.
+ * 2 px), so what a finger sees is what the sim picks. wordfallRev 2 draws its
+ * Enter box exactly on the sim's tap box (WF_ENTER_V2) under the well.
  */
 import { arcadeFx } from "./arcadeFx.renderer";
 import { reducedMotion } from "./art.renderer";
-import { WORDFALL_FX } from "./arcadeFxGames.renderer";
+import { wordfallFxFor } from "./arcadeFxGames.renderer";
 import type { CanvasSize } from "./engine";
 import {
   TOY_BRASS,
@@ -25,11 +26,13 @@ import {
   wfLabel,
   wfWord,
   wordfallChainWord,
-  wordfallGame,
+  wfWorldH,
+  wordfallGameFor,
   wordfallScore,
   WF_CELL,
   WF_COLS,
-  WF_H,
+  WF_ENTER_V2,
+  WF_MIN_WORD,
   WF_ROWS,
   WF_SHAKE_TICKS,
   WF_RUN_TICKS,
@@ -184,12 +187,37 @@ function drawWordLine(ctx: CanvasRenderingContext2D, state: WordfallState): void
   ctx.fillText(text, x + w / 2, y + h / 2 + 2, w - 24);
 }
 
+/**
+ * wordfallRev 2's Enter box: a brass key filling exactly the sim's tap box
+ * (stroke inset by half its width, so nothing is drawn outside it). Lit once
+ * the chain is a word's length, muted otherwise; it submits either way.
+ */
+function drawEnterBox(ctx: CanvasRenderingContext2D, state: WordfallState): void {
+  const { x, y, w, h } = WF_ENTER_V2;
+  const ready = state.chain.length >= WF_MIN_WORD && state.over !== 1;
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, ready ? "#FFD978" : "#8C6A3E");
+  g.addColorStop(1, ready ? "#E9A93A" : "#6E5030");
+  roundRect(ctx, x + 1, y + 1, w - 2, h - 2, 14);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = ready ? TOY_BRASS_DARK : TOY_WOOD_DARK;
+  ctx.stroke();
+  ctx.fillStyle = ready ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.16)";
+  ctx.fillRect(x + 16, y + 5, w - 32, 2);
+  ctx.font = `700 24px ${DISPLAY}`;
+  ctx.fillStyle = ready ? TOY_INK : "#F3E2C0";
+  ctx.fillText("ENTER", x + w / 2, y + h / 2 + 2, w - 24);
+}
+
 function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
   toyTabletop(ctx);
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   drawWordLine(ctx, state);
+  if (state.rev === 2) drawEnterBox(ctx, state);
   toyBoard(ctx, WF_WELL_X, WF_WELL_Y, WF_WELL_W, WF_WELL_H, 8);
 
   ctx.save();
@@ -269,12 +297,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
 
 /** Letterfall drawn through the shared success layer (presentation only). */
 export function drawWordfall(ctx: CanvasRenderingContext2D, state: WordfallState, size: CanvasSize): void {
-  arcadeFx(ctx, WORDFALL_FX, state, () => {
+  arcadeFx(ctx, wordfallFxFor(state), state, () => {
     ctx.save();
-    ctx.scale(size.width / WF_W, size.height / WF_H);
+    ctx.scale(size.width / WF_W, size.height / wfWorldH(state));
     drawWorld(ctx, state);
     ctx.restore();
   }, size);
 }
 
-export const wordfallArtGame = { ...wordfallGame, draw: drawWordfall };
+export const wordfallArtGame = { ...wordfallGameFor(1), draw: drawWordfall };
+export const wordfallArtGameV2 = { ...wordfallGameFor(2), draw: drawWordfall };
+
+/** The art game for a stored revision (its init and input ranges follow the revision). */
+export function wordfallArtGameFor(rev?: number): typeof wordfallArtGame {
+  return rev === 2 ? wordfallArtGameV2 : wordfallArtGame;
+}
