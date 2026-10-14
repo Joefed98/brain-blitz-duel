@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { serverNow } from "@/lib/duel/clock";
 import { puzzleDef } from "@/lib/duel/registry";
 import {
@@ -8,8 +8,11 @@ import {
   roundTitleFrame,
 } from "@/lib/duel/startPresentation";
 import type { PuzzleType } from "@/lib/duel/types";
+import { FINAL_PUNCH_MS, roundMomentSpec } from "@/lib/fx/roomMoments";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareRoundMusic, stopMusic, type VoiceId } from "@/lib/sound";
+import { useMomentElapsed } from "@/lib/fx/useRoomMoments";
+import { RoomMomentFx } from "./RoomMomentFx";
 
 /** Room-only, shell-free title; presentation and cues use the shared clock. */
 export function RoundTitle({
@@ -28,6 +31,8 @@ export function RoundTitle({
   // Registry category is the draw category, independent of engine implementation.
   const category = puzzleDef(type).category;
   const final = round >= totalRounds;
+  const moment = useMemo(() => roundMomentSpec(round, totalRounds), [round, totalRounds]);
+  const elapsed = useMomentElapsed(startedAt);
 
   useEffect(() => {
     stopMusic(0);
@@ -80,7 +85,16 @@ export function RoundTitle({
 
   return (
     <div className="duel-start-screen" data-category={category} aria-label="Round title">
-      <div className="round-title-lines">
+      <RoomMomentFx spec={moment} startedAt={startedAt} />
+      <div
+        className="round-title-lines"
+        data-final={final ? "" : undefined}
+        style={
+          final
+            ? { animationDelay: `${-elapsed}ms`, animationDuration: `${FINAL_PUNCH_MS}ms` }
+            : undefined
+        }
+      >
         <h1 ref={heading} className="round-title-heading">
           {final ? "FINAL ROUND" : `ROUND ${round}`}
         </h1>

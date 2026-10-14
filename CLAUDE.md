@@ -48,6 +48,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `src/components/puzzles/LetterKeypad.tsx`.
 - `src/lib/fx/signature.ts` — the shared signature beat (gold flash + app-logo burst on every
   solve/finish, fired only from the common points: the rooms/practice verdict and arcadeFeedback);
+  `src/lib/fx/roomMoments.ts` — the room's big-moment effects (Prepare to Duel, round titles 1–6, Final
+  Round, the winner reveal; display only, CSS `rfx-*`, cues `room.*`, `room-moments-check`);
   `src/lib/fx/soundCues.ts` and `docs/sound-cues/` — named sound cues (`duelz-sound` events,
   `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
