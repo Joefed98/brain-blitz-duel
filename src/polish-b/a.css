@@ -19,12 +19,4 @@
 .game-column [data-polish="pairmatch"] > [data-game-arena="fixed"] { max-width: min(440px, 94cqw); }
 .game-column [data-polish="pairmatch"] > [data-game-controls="status"] { flex: 0 0 auto; }
 
-/* --- unblock (Gridlock): bevelled blocks --- */
-.unblock-bevel {
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -3px 4px rgba(0, 0, 0, 0.35),
-    inset 2px 0 0 rgba(255, 255, 255, 0.12),
-    inset -2px 0 0 rgba(0, 0, 0, 0.18);
-}
 .unblock-exit-arrow { z-index: 5; filter: drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 70%, transparent)); }

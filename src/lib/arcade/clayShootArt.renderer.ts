@@ -6,13 +6,16 @@
  *
  * Bounds (rule 3): a flying clay fills exactly the sim's drawn footprint (ellipse
  * rx = clayRadius, ry = 0.55 r) inside a shot-zone ring at the sim hit radius (orange 30, gold 24);
- * a bird stays inside CLAY_BIRD_RX × CLAY_BIRD_RY + 2 px. Flying clays and birds are drawn one tick
+ * a bird stays inside CLAY_BIRD_RX × CLAY_BIRD_RY + 2 px, over a no-shoot zone at exactly that hit
+ * ellipse. Flying clays and birds are drawn one tick
  * ahead, where the sim judges a tap made on this frame.
  */
 import {
   clayGameFor,
   clayView,
   CLAY_BIRD_FLYING,
+  CLAY_BIRD_RX,
+  CLAY_BIRD_RY,
   CLAY_BIRD_STARTLED,
   CLAY_BIRD_STARTLED_TICKS,
   CLAY_CONFIG,
@@ -597,6 +600,23 @@ function drawBird(c: CanvasRenderingContext2D, flap: number): void {
   wing(flap, "#FFFFFF", "#1E222A");
 }
 
+/**
+ * A flying bird's no-shoot zone: a faint red wash and rim at exactly the sim's hit ellipse
+ * (CLAY_BIRD_RX × CLAY_BIRD_RY), so the drawn edge is the edge a tap startles it from,
+ * whatever the wings are doing. Display only, like the clays' shot zones.
+ */
+function drawBirdZone(c: CanvasRenderingContext2D, x: number, y: number): void {
+  c.beginPath();
+  c.ellipse(x, y, CLAY_BIRD_RX, CLAY_BIRD_RY, 0, 0, TAU);
+  c.fillStyle = "rgba(255,90,90,0.10)";
+  c.fill();
+  c.beginPath();
+  c.ellipse(x, y, CLAY_BIRD_RX - 0.6, CLAY_BIRD_RY - 0.6, 0, 0, TAU);
+  c.lineWidth = 1.2;
+  c.strokeStyle = "rgba(255,110,110,0.5)";
+  c.stroke();
+}
+
 function drawBirds(c: CanvasRenderingContext2D, state: ClayState, still: boolean, ahead: number): void {
   const birds = state.birds;
   if (!birds || !state.birdX || !state.birdY || !state.birdStatus || !state.birdDoneTick) return;
@@ -611,6 +631,7 @@ function drawBirds(c: CanvasRenderingContext2D, state: ClayState, still: boolean
     const startledAge = status === CLAY_BIRD_STARTLED ? tick - state.birdDoneTick[i]! : -1;
     const period = startledAge >= 0 ? 7 : 14;
     const flap = still ? 0.6 : Math.cos((((tick + i * 7) % period) / period) * TAU);
+    if (status === CLAY_BIRD_FLYING) drawBirdZone(c, px, py);
     c.save();
     c.translate(px, py);
     if (birds.side[i] === 1) c.scale(-1, 1);

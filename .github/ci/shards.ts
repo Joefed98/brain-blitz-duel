@@ -133,6 +133,8 @@ export const SHARDS: Record<string, string[]> = {
     "logic-grid-check.ts",
     "orbit-legacy-replay-check.ts",
     "snip-check.ts",
+    // Canvas tap targets: centre taps hit, 3 px past the drawn edge misses (~20 s, @napi-rs/canvas).
+    "tap-mapping-check.ts",
     "tubes-safe-bomb-check.ts",
     "wordsmith-variable-check.tsx",
     "puzzle-bank-check.ts@4/4",

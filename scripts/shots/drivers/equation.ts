@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 const stage = (page: Page) => page.locator("[data-game-stage]");
 const label = (op: string) => (op === "-" ? "−" : op);
@@ -28,8 +28,8 @@ export const driver: Driver = {
     await nextStage(page);
     await fill(page, puzzle.operators[2]);
     await nextStage(page);
-    // The last tap solves the puzzle; the shot follows completeShotMs later.
+    // The last tap solves the puzzle; the shot follows solveShotsMs later.
     await fill(page, puzzle.operators[3], 0);
   },
-  completeShotMs: 500,
+  solveShotsMs: [500],
 };

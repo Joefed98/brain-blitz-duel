@@ -5,9 +5,9 @@ const moves = (full: { solution: number[] }) => full.solution;
 
 export const driver: Driver = {
   board: ".puzzle-board",
-  mid: (full) => ({ tileMoves: moves(full).slice(0, Math.floor(moves(full).length / 2)) }),
-  nearSolved: (full) => ({ tileMoves: moves(full).slice(0, -1) }),
-  finish: async (page, full) => {
+  seedMid: (full) => ({ tileMoves: moves(full).slice(0, Math.floor(moves(full).length / 2)) }),
+  seedNearSolved: (full) => ({ tileMoves: moves(full).slice(0, -1) }),
+  solve: async ({ page, puzzle: full }) => {
     const last = moves(full).at(-1)!;
     // Tiles act on pointerdown; a real click fires it.
     await page.locator(`[data-game-stage] button[aria-label="Tile ${last}"]`).first().click();

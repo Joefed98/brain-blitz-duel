@@ -5,7 +5,7 @@
  *  - Letterfall's end-of-run shimmer is earned only at the end of a run worth 120+, and only the live stage starts it;
  *  - boards that moved reject coordinate demos recorded before the move;
  *  - reveals keep their score lines (the text the reveal prints is unchanged).
- * Source and module level only: no browser (scripts/word-polish-shots.ts measures layouts in Chromium).
+ * Source and module level only: no browser (scripts/shots/capture.ts measures layouts in Chromium).
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

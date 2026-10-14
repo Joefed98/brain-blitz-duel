@@ -5,7 +5,8 @@ Drawing, animation, layout and effects for the eleven Logic games. No sim, rule,
 
 ## How they were made
 
-`bun scripts/logic-polish-shots.ts --url=<dev server> --tag=before|after` (in this repo). PR #9's capture
+`bun scripts/logic-polish-shots.ts --url=<dev server> --tag=before|after`, now the shared screenshot tool
+(`bun scripts/shots/capture.ts --category=logic --tag=before|after --phases=intro,play,solve,reveal,timeout`). PR #9's capture
 scripts were never committed, so this re-creates its method: Playwright driving the pre-installed Chromium at
 device scale 1, each game opened from `/practice` with the generate request switched to the fixed intro example
 (`INTRO_EXAMPLE_SEED`) and `Math.random` seeded, so before and after show the same puzzle. The script builds the

@@ -3,6 +3,7 @@ import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
 import { drawClayFinalBurst } from '@/lib/arcade/clayShootArt.renderer';
 import { END_OF_RUN_FX_SCORE, playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
+import { clayTapWorld } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -18,12 +19,10 @@ import {
 import {
   clayCheckpoint,
   clayGameFor,
-  clayView,
   unpackClayLog,
   clayFlight,
   CLAY_CHECKPOINT_INTERVAL,
   CLAY_COUNT,
-  CLAY_H,
   CLAY_KIND_GOLD,
   CLAY_HIT,
   CLAY_INPUT_SHOT,
@@ -331,11 +330,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (locked || submitted.current || game.isOver(state.current)) return;
           const box = board.current?.getBoundingClientRect();
           if (!box) return;
-          const { scaleX, scaleY } = clayView({ width: box.width, height: box.height });
-          const wx = Math.round((event.clientX - box.left) / scaleX);
-          const wy = Math.round((event.clientY - box.top) / scaleY);
-          if (wx < 0 || wx > CLAY_W || wy < 0 || wy > CLAY_H) return;
-          pending.current.push({ t: 0, k: CLAY_INPUT_SHOT, a: wx, b: wy, c: 0, d: 0 });
+          const shot = clayTapWorld(box, event.clientX, event.clientY);
+          if (!shot) return;
+          pending.current.push({ t: 0, k: CLAY_INPUT_SHOT, a: shot.wx, b: shot.wy, c: 0, d: 0 });
         }}
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />

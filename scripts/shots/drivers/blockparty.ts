@@ -70,9 +70,10 @@ async function play(page: Page, full: FullPuzzle, count: number) {
 }
 
 export const driver: Driver = {
+  solveFromStart: true,
   board: BOARD,
-  midPlay: (page, full) => play(page, full, 4),
-  finish: async (page, full) => {
+  partial: ({ page, puzzle: full }) => play(page, full, 4),
+  solve: async ({ page, puzzle: full }) => {
     const all = full.solution as BlockPlacement[];
     await play(page, { ...full, solution: all.slice(0, -1) }, all.length - 1);
     // The last piece: resolve on its release (the solving drop).

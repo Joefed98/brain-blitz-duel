@@ -11,11 +11,11 @@ const LAST = 0;
 
 export const driver: Driver = {
   board: ".pipes-play-board",
-  mid: (full) => ({
+  seedMid: (full) => ({
     pipeSides: full.tiles.map((tile: { sides: number }, cell: number) => (cell % 2 ? tile.sides : full.solution[cell])),
   }),
-  nearSolved: (full) => ({ pipeSides: backOne(full, [LAST]) }),
-  finish: async (page) => {
+  seedNearSolved: (full) => ({ pipeSides: backOne(full, [LAST]) }),
+  solve: async ({ page }) => {
     await page.getByRole("button", { name: `Pipe tile ${LAST + 1}`, exact: true }).first().click();
   },
 };

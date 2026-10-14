@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 /*
  * Brimful: the example's `solutions` are comma lists of F<i> (fill), E<i> (empty) and
@@ -40,5 +40,5 @@ export const driver: Driver = {
     await play(page, moves(puzzle, 2), 2, false);
     await play(page, moves(puzzle, 3), 3, true);
   },
-  completeShotMs: 380,
+  solveShotsMs: [380],
 };

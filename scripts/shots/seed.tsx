@@ -1,5 +1,5 @@
 /**
- * Browser-side helper for the Pattern capture tool (served by the Vite dev
+ * Browser-side helper for the screenshot tool, scripts/shots/capture.ts (served by the Vite dev
  * server, imported from Playwright). Writes stage-state values into a round's
  * bucket through the real `useStageState` hook, so a Stage mounted afterwards
  * starts from that position. Never imported by the app.

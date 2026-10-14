@@ -7,13 +7,15 @@ changes and no stamps. "Before" is `main` at eb143ad; "after" is this branch.
 
 `scripts/pattern-shots/capture.ts` (Playwright with the pre-installed Chromium, device scale 1) drives a local
 `vite dev` server through the real `/practice` route. The capture scripts from the October snapshots (#9) were
-never committed, so this is a new tool built the same way:
+never committed, so this is a new tool built the same way. It is now the shared screenshot tool,
+`scripts/shots/capture.ts` (`bun scripts/shots/capture.ts --category=pattern --tag=after`), with these drivers in
+`scripts/shots/drivers/` and `scripts/shots/sheets.ts` for the sheets:
 
 - The generate request is rewritten to `example: true`, so every run plays the game's fixed intro example.
   `Math.random` is seeded. Supabase is unreachable from the container, so Gridlock uses the built-in bank
-  (`scripts/pattern-shots/examples.ts` reproduces it) and intro demos show the app's fallback.
+  (`scripts/shots/examples.ts` reproduces it) and intro demos show the app's fallback.
 - Games whose stage keeps `useStageState` are seeded part-way (mid-play) or one step short of the solve through
-  the real hook (`scripts/pattern-shots/seed.tsx`). The solving input is then made for real. Gridlock and
+  the real hook (`scripts/shots/seed.tsx`). The solving input is then made for real. Gridlock and
   Tessellate keep local state, so their drivers play every move with real drags. Every reveal shows a real
   solved round graded by the server.
 - **Intro**: the RoundIntro screen, 2.5 s after it opens. **Mid-play**: about 1.8 s after Ready, with the
@@ -21,7 +23,7 @@ never committed, so this is a new tool built the same way:
   Lightbender are timed from when the slide or shot ends. **Reveal**: 1.5 s after the score lands.
 - The practice grade request is held for 2.2 s so the solved board stays up long enough to photograph. A room
   keeps the locked board up instead, dimmed by the shared frame.
-- `scripts/pattern-shots/sheets.py` builds one sheet per game and viewport (before row, after row, half scale).
+- A sheet script (now `scripts/shots/sheets.ts --scale=0.5`) builds one sheet per game and viewport (before row, after row, half scale).
 
 ## Contact sheets
 

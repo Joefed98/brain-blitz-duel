@@ -7,7 +7,8 @@ is this branch. No rules, scoring, generation or sim changes.
 
 ## How they were made
 
-`scripts/word-polish-shots.ts` (the October snapshot method from #9, now in the repo): a local
+`scripts/word-polish-shots.ts`, now the shared screenshot tool (`bun scripts/shots/capture.ts --category=word
+--phases=intro,play,solve,reveal,full`; the October snapshot method from #9): a local
 `vite dev` server, Playwright driving the pre-installed Chromium at device scale 1, each game
 opened from `/practice` with the generate request rewritten to the fixed intro example and
 `Math.random` seeded, so before and after show the same puzzle. One contact sheet per game and
@@ -20,7 +21,7 @@ size (`<game>-375x667.jpg`, `<game>-390x844.jpg`): the before row above the afte
   show it on a mid-play board, and the other games on a partly solved one. Before = the same moment on `main`, which has no effect.
 - **Reveal (timed out)**: the page clock is run past the buzzer, so practice grades what was entered (as #9).
 - **Reveal (full answer)**: a layout stress test. The grade request carries a full answer from
-  `scripts/word-polish-answers.ts` (every Nucleus word, Forage's 30 longest, the solutions elsewhere), so the
+  `scripts/shots/word-answers.ts` (every Nucleus word, Forage's 30 longest, the solutions elsewhere), so the
   reveal shows its fullest list or grid with the real server score. Slider and Letterfall have none (no solver / an engine run).
 
 Headless Chromium on Linux, not a phone: Joe does the device testing.

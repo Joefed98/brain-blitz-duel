@@ -2,6 +2,7 @@ import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
+import { beatLaneAt } from "@/components/puzzles/tapMapping";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
@@ -25,7 +26,6 @@ import {
   BEAT_GOLD,
   BEAT_INPUT_RELEASE,
   BEAT_INPUT_TAP,
-  BEAT_LANES,
   BEAT_LANE_COLOURS,
   BEAT_RUN_TICKS,
   BEAT_WORLD_H,
@@ -228,10 +228,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   /** Which lane the finger is in, from the sim's own mapping. */
   const laneAt = (event: React.PointerEvent<HTMLCanvasElement>): number => {
-    const box = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - box.left) / box.width) * BEAT_WORLD_W;
-    const lane = Math.floor((x / BEAT_WORLD_W) * BEAT_LANES);
-    return Math.max(0, Math.min(BEAT_LANES - 1, lane));
+    return beatLaneAt(event.currentTarget.getBoundingClientRect(), event.clientX);
   };
 
   const liftFinger = (pointerId: number) => {

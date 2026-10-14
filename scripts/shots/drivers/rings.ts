@@ -9,9 +9,9 @@ const BAND = [0.25, 0.42, 0.58, 0.74, 0.9].map((r) => r * 0.86);
 
 export const driver: Driver = {
   board: '[data-game-arena="board"] svg',
-  mid: (full) => ({ ringTaps: taps(full).slice(0, Math.floor(taps(full).length / 2)) }),
-  nearSolved: (full) => ({ ringTaps: taps(full).slice(0, -1) }),
-  finish: async (page, full) => {
+  seedMid: (full) => ({ ringTaps: taps(full).slice(0, Math.floor(taps(full).length / 2)) }),
+  seedNearSolved: (full) => ({ ringTaps: taps(full).slice(0, -1) }),
+  solve: async ({ page, puzzle: full }) => {
     const last = taps(full).at(-1)!;
     const ring = Math.floor(last / 2);
     const clockwise = last % 2 === 0;

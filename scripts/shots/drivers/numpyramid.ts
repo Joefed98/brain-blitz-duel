@@ -1,5 +1,5 @@
 import type { Page } from "playwright";
-import type { Driver } from "../number-drivers";
+import type { Driver } from "../driver";
 
 const stage = (page: Page) => page.locator("[data-game-stage]");
 
@@ -31,5 +31,5 @@ export const driver: Driver = {
       await fill(page, puzzle, index);
     }
   },
-  completeShotMs: 450,
+  solveShotsMs: [450],
 };

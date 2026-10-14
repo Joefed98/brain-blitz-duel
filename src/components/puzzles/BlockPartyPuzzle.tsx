@@ -318,8 +318,14 @@ export function BlockPartyPuzzle({
     const read = () => {
       const layoutRect = layout.getBoundingClientRect();
       const trayRect = tray.getBoundingClientRect();
-      setLayoutSize({ width: layoutRect.width, height: layoutRect.height });
-      setTraySize({ width: trayRect.width, height: trayRect.height });
+      // Unscaled CSS px. Inside a scale() transform (the intro-demo player) the rects
+      // shrink with it, and sizing the tray from them shrank it again on every resize
+      // until the pieces were a fraction of a pixel tall. Without a transform (practice,
+      // rooms) the ratio is 1 up to offsetWidth's rounding and the rects are used as is.
+      const ratio = layout.offsetWidth > 0 ? layoutRect.width / layout.offsetWidth : 1;
+      const k = Math.abs(ratio - 1) > 0.02 ? ratio : 1;
+      setLayoutSize({ width: layoutRect.width / k, height: layoutRect.height / k });
+      setTraySize({ width: trayRect.width / k, height: trayRect.height / k });
     };
     read();
     const observer = new ResizeObserver(read);

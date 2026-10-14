@@ -26,12 +26,12 @@ function beamMs(full: any): number {
 
 export const driver: Driver = {
   board: '[data-polish="laser"] [data-game-arena] > div',
-  mid: (full) => {
+  seedMid: (full) => {
     const some = pieces(full).slice(0, Math.ceil(pieces(full).length / 2));
     return { mirrors: some, history: some.map((p) => p.cell), fires: 0 };
   },
-  nearSolved: (full) => ({ mirrors: pieces(full), history: pieces(full).map((p) => p.cell), fires: 0 }),
-  finish: async (page, full) => {
+  seedNearSolved: (full) => ({ mirrors: pieces(full), history: pieces(full).map((p) => p.cell), fires: 0 }),
+  solve: async ({ page, puzzle: full }) => {
     await page.getByRole("button", { name: "Fire", exact: true }).first().click();
     // Pressing Fire starts the travelling beam; the solve lands when it reaches its last cell.
     await page.waitForTimeout(beamMs(full) + 30);
