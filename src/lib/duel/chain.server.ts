@@ -12,6 +12,7 @@ import { chainRequired } from "./chain";
 import {
   CHAIN_BLOCK,
   CHAIN_RULES_VERSION,
+  CHAIN_TIME_REV,
   CHAIN_BOARDS,
   CHAIN_BOARD_H_PX,
   CHAIN_BOARD_W_PX,
@@ -174,5 +175,5 @@ export function generateChain(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
       return { ...point, ...face };
     });
   });
-  return { type: "chain", rulesVersion: CHAIN_RULES_VERSION, seed, cycle: cycles[0] ?? [], cycles, boards };
+  return { type: "chain", rulesVersion: CHAIN_RULES_VERSION, chainTimeRev: CHAIN_TIME_REV, seed, cycle: cycles[0] ?? [], cycles, boards };
 }

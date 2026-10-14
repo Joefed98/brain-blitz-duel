@@ -18,6 +18,7 @@ import type {
 } from "../../src/lib/duel/types";
 import { applyOperation, encodeSteps, TARGET_OPERATORS } from "../../src/lib/duel/target";
 import { equationStageCorrect, joinStages } from "../../src/lib/duel/stagedRounds";
+import { balancePlaceLimits, equationTryLimit, joinCountSuffix } from "../../src/lib/duel/moveLimits";
 import { BAL_PEGS, encodeBalance, scaleSolved, type Placement } from "../../src/lib/duel/balance";
 import { NP_SET_SIZE, npComplete, npEncodeRound, type NpPlacements } from "../../src/lib/duel/numberPyramid";
 import { trComplete, trEncode, trSlots, trTapPath, trUndoPlayer, TR_CELLS } from "../../src/lib/duel/trail";
@@ -168,23 +169,32 @@ function equationOps(stage: { numbers: number[]; target: number }, stored: Opera
   return stored ?? [];
 }
 
+/** equationRev 1: the answer ends "#" and the full tries per equation (moveLimits.ts). */
+function equationEncode(puzzle: EquationPuzzleData, answers: string[], tries: number[]): string {
+  const body = joinStages(answers, puzzle.stages.length);
+  return equationTryLimit(puzzle) !== null ? joinCountSuffix(body, tries) : body;
+}
+
 const equationKit: PuzzleKit = {
   type: "equation",
-  nothing: (p) => joinStages(Array.from({ length: (p as EquationPuzzleData).stages.length }, () => ""), (p as EquationPuzzleData).stages.length),
+  nothing: (p) => equationEncode(p as EquationPuzzleData, Array.from({ length: (p as EquationPuzzleData).stages.length }, () => ""), (p as EquationPuzzleData).stages.map(() => 0)),
   spam(p, rng, limitMs) {
     const puzzle = p as EquationPuzzleData;
     const total = puzzle.stages.length;
+    const cap = equationTryLimit(puzzle) ?? Infinity;
     const out: SpamPlay[] = [];
-    // Random operator in every slot, then Next, every stage.
+    // Random operator in every slot, then Next, every stage (one try each).
     out.push({
       label: "random-next",
-      answer: joinStages(puzzle.stages.map((s) => Array.from({ length: s.numbers.length - 1 }, () => rng.pick(TARGET_OPERATORS)).join(",")), total),
+      answer: equationEncode(puzzle, puzzle.stages.map((s) => Array.from({ length: s.numbers.length - 1 }, () => rng.pick(TARGET_OPERATORS)).join(",")), puzzle.stages.map(() => 1)),
     });
     // The same operator everywhere.
-    out.push({ label: "all-plus", answer: joinStages(puzzle.stages.map((s) => Array(s.numbers.length - 1).fill("+").join(",")), total) });
+    out.push({ label: "all-plus", answer: equationEncode(puzzle, puzzle.stages.map((s) => Array(s.numbers.length - 1).fill("+").join(",")), puzzle.stages.map(() => 1)) });
     // Brute force: odometer through every combination (clear + tap per changed slot); a hit auto-advances.
+    // From equationRev 1 every full set is a try, and after the last try the equation locks: Next.
     {
       const answers = Array.from({ length: total }, () => "");
+      const tries = puzzle.stages.map(() => 0);
       let t = 0;
       let stage = 0;
       let live = "";
@@ -192,13 +202,14 @@ const equationKit: PuzzleKit = {
         const s = puzzle.stages[stage]!;
         const n = s.numbers.length - 1;
         let prev: Operator[] | null = null;
-        for (let code = 0; code < 4 ** n; code++) {
+        for (let code = 0; code < 4 ** n && tries[stage]! < cap; code++) {
           const ops = Array.from({ length: n }, (_, i) => TARGET_OPERATORS[Math.floor(code / 4 ** (n - 1 - i)) % 4]!);
           const changed = prev ? ops.filter((o, i) => o !== prev![i]).length : n;
           t += changed * (prev ? 2 : 1) * TAP_MS;
           if (t > limitMs) break outer;
           prev = ops;
           live = ops.join(",");
+          tries[stage]!++;
           if (equationStageCorrect(s.numbers, s.target, live)) {
             answers[stage] = live;
             live = "";
@@ -207,13 +218,14 @@ const equationKit: PuzzleKit = {
             continue outer;
           }
         }
-        // Nothing found (cannot happen): Next.
+        // Out of tries (or nothing found): Next.
         answers[stage] = live;
         live = "";
+        t += TAP_MS;
         stage++;
       }
       if (stage < total) answers[stage] = live;
-      out.push({ label: "brute-force", answer: joinStages(answers, total) });
+      out.push({ label: "brute-force", answer: equationEncode(puzzle, answers, tries) });
     }
     return out;
   },
@@ -222,21 +234,24 @@ const equationKit: PuzzleKit = {
     const BASE = 3.5;
     const puzzle = p as EquationPuzzleData;
     const total = puzzle.stages.length;
+    const cap = equationTryLimit(puzzle) ?? Infinity;
     const rec = recorder();
     const answers = Array.from({ length: total }, () => "");
+    const tries = puzzle.stages.map(() => 0);
     for (let st = 0; st < total; st++) {
       const stage = puzzle.stages[st]!;
       const want = equationOps(stage, puzzle.operators?.[st]);
       const slots: (Operator | null)[] = Array(want.length).fill(null);
-      const draft = () => joinStages(answers.map((a, i) => (i === st ? slots.filter(Boolean).join(",") : a)), total);
+      const draft = () => equationEncode(puzzle, answers.map((a, i) => (i === st ? slots.filter(Boolean).join(",") : a)), tries);
       for (let i = 0; i < want.length; i++) {
         rec.wait(thinkMs(rng, BASE, skill));
         slots[i] = rng.chance(skill.err) ? rng.pick(TARGET_OPERATORS.filter((o) => o !== want[i])) : want[i]!;
+        if (i === want.length - 1) tries[st]!++; // a full set is a try
         rec.push(draft());
       }
-      // No CORRECT flash: find the slip, clear it, tap the right one.
+      // No CORRECT flash: find the slip, clear it, tap the right one (another try), while tries last.
       let guard = 0;
-      while (!equationStageCorrect(stage.numbers, stage.target, slots.join(",")) && guard++ < 10) {
+      while (!equationStageCorrect(stage.numbers, stage.target, slots.join(",")) && tries[st]! < cap && guard++ < 10) {
         rec.wait(thinkMs(rng, BASE, skill));
         const bad = slots.findIndex((o, i) => o !== want[i]);
         if (bad < 0) break;
@@ -245,6 +260,7 @@ const equationKit: PuzzleKit = {
         rec.push(draft());
         rec.wait(thinkMs(rng, BASE * 0.4, skill));
         slots[bad] = want[bad]!;
+        tries[st]!++;
         rec.push(draft());
       }
       answers[st] = slots.join(",");
@@ -262,14 +278,21 @@ function balanceFreePegs(scale: BalancePuzzleData["scales"][number], placement: 
   );
 }
 
+/** balanceRev 1: the answer ends "#" and the hang count per scale (moveLimits.ts). */
+function balanceEncode(puzzle: BalancePuzzleData, placements: Placement[], hangs: number[]): string {
+  return balancePlaceLimits(puzzle) ? joinCountSuffix(encodeBalance(placements), hangs) : encodeBalance(placements);
+}
+
 const balanceKit: PuzzleKit = {
   type: "balance",
-  nothing: (p) => encodeBalance((p as BalancePuzzleData).scales.map((s) => s.tray.map(() => null))),
+  nothing: (p) => balanceEncode(p as BalancePuzzleData, (p as BalancePuzzleData).scales.map((s) => s.tray.map(() => null)), (p as BalancePuzzleData).scales.map(() => 0)),
   spam(p, rng, limitMs) {
     const puzzle = p as BalancePuzzleData;
+    const limits = balancePlaceLimits(puzzle);
     const out: SpamPlay[] = [];
     const randomHang = (gapMs: number, label: string) => {
       const placements: Placement[] = puzzle.scales.map((s) => s.tray.map(() => null));
+      const hangs = puzzle.scales.map(() => 0);
       let current = 0;
       let t = 0;
       while (current < puzzle.scales.length) {
@@ -280,9 +303,12 @@ const balanceKit: PuzzleKit = {
         const tray = rng.below(scale.tray.length);
         const free = balanceFreePegs(scale, pl, tray);
         pl[tray] = rng.pick(free);
+        hangs[current]!++;
         if (scaleSolved(scale, pl)) { current++; t += HOLD_MS; }
+        // Out of hangs (balanceRev 1): the phone ends the scale unbalanced and moves on.
+        else if (limits && hangs[current]! >= limits[current]!) { current++; t += HOLD_MS; }
       }
-      out.push({ label, answer: encodeBalance(placements) });
+      out.push({ label, answer: balanceEncode(puzzle, placements, hangs) });
     };
     randomHang(2 * TAP_MS + 300, "random-hang");
     randomHang(2 * TAP_MS, "random-hang-fast");
@@ -291,7 +317,7 @@ const balanceKit: PuzzleKit = {
       const placements: Placement[] = puzzle.scales.map((s) => s.tray.map(() => null));
       const scale = puzzle.scales[0]!;
       for (let i = 0; i < scale.tray.length; i++) placements[0]![i] = rng.pick(balanceFreePegs(scale, placements[0]!, i));
-      out.push({ label: "place-once", answer: encodeBalance(placements) });
+      out.push({ label: "place-once", answer: balanceEncode(puzzle, placements, puzzle.scales.map((_, s) => (s === 0 ? scale.tray.length : 0))) });
     }
     return out;
   },
@@ -299,34 +325,36 @@ const balanceKit: PuzzleKit = {
     // BASE 5 s per weight: work out a torque and hang the weight (two taps).
     const BASE = 5;
     const puzzle = p as BalancePuzzleData;
+    const limits = balancePlaceLimits(puzzle);
     const rec = recorder();
     const placements: Placement[] = puzzle.scales.map((s) => s.tray.map(() => null));
-    const answer = () => encodeBalance(placements);
+    const hangs = puzzle.scales.map(() => 0);
+    const answer = () => balanceEncode(puzzle, placements, hangs);
     for (let s = 0; s < puzzle.scales.length; s++) {
       const scale = puzzle.scales[s]!;
       const sol = puzzle.solutions?.[s] ?? [];
       const pl = placements[s]!;
+      // balanceRev 1: each hang counts; the phone refuses hangs past the scale's limit.
+      const canHang = () => !limits || hangs[s]! < limits[s]!;
+      const hang = (i: number, peg: number) => { pl[i] = peg; hangs[s]!++; rec.push(answer()); };
       const order = rng.shuffle(scale.tray.map((_, i) => i));
       const wrongs: number[] = [];
       for (const i of order) {
-        if (scaleSolved(scale, pl)) break;
+        if (scaleSolved(scale, pl) || !canHang()) break;
         rec.wait(thinkMs(rng, BASE, skill));
         const decoys = balanceFreePegs(scale, pl, i).filter((peg) => !sol.includes(peg));
-        if (rng.chance(skill.err) && decoys.length) { pl[i] = rng.pick(decoys); wrongs.push(i); }
-        else pl[i] = sol[i]!;
-        rec.push(answer());
+        if (rng.chance(skill.err) && decoys.length) { wrongs.push(i); hang(i, rng.pick(decoys)); }
+        else hang(i, sol[i]!);
       }
       // The beam still tips: move each misplaced weight to its peg.
       for (const i of wrongs) {
-        if (scaleSolved(scale, pl)) break;
+        if (scaleSolved(scale, pl) || !canHang()) break;
         rec.wait(thinkMs(rng, BASE * 0.7, skill));
-        pl[i] = sol[i]!;
-        rec.push(answer());
+        hang(i, sol[i]!);
       }
       if (!scaleSolved(scale, pl)) {
-        for (let i = 0; i < pl.length; i++) pl[i] = sol[i]!;
         rec.wait(thinkMs(rng, BASE, skill));
-        rec.push(answer());
+        for (let i = 0; i < pl.length && canHang(); i++) if (pl[i] !== sol[i]) hang(i, sol[i]!);
       }
       if (s < puzzle.scales.length - 1) rec.wait(HOLD_MS);
     }

@@ -177,10 +177,22 @@ export function scoreTargetNumber(
 /** Exact rev 1: beyond 10 away, credit falls this much per unit, as before (0 from about 103 away). */
 export const TARGET_REV1_FAR_SLOPE = 0.6;
 
-/** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, −8 per false start, 0…150. */
-export function scoreReaction(averageMs: number, falseStarts = 0): number {
+/** Flash: what a false start costs. tapRev 2: the first FLASH_REV2_CHEAP_FALSE_STARTS cost 8, every later one 11. */
+export const FLASH_FALSE_START_COST = 8;
+export const FLASH_REV2_CHEAP_FALSE_STARTS = 2;
+export const FLASH_REV2_FALSE_START_COST = 11;
+
+export function reactionFalseStartCost(falseStarts: number, tapRev = 0): number {
+  const n = Math.max(0, Math.round(falseStarts) || 0);
+  if (tapRev < 2) return FLASH_FALSE_START_COST * n;
+  const cheap = Math.min(n, FLASH_REV2_CHEAP_FALSE_STARTS);
+  return FLASH_FALSE_START_COST * cheap + FLASH_REV2_FALSE_START_COST * (n - cheap);
+}
+
+/** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, minus the false-start cost, 0…150. */
+export function scoreReaction(averageMs: number, falseStarts = 0, tapRev = 0): number {
   const base = averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
-  return clamp(base - 8 * Math.max(0, falseStarts), 0, 150);
+  return clamp(base - reactionFalseStartCost(falseStarts, tapRev), 0, 150);
 }
 
 /** Mirror Match: five shapes, accuracy out of 100 plus a bonus for all five. */
@@ -262,9 +274,21 @@ export function scoreNumberSequence(correctCount: number, msRemaining: number): 
 /** Bang On rev 1: where the curve's bottom starts its fall to 0 at an all-miss average (500 ms). */
 export const STOPWATCH_REV1_KNEE_MS = 300;
 
+/**
+ * Bang On tapRev 2: the same line down to STOPWATCH_REV2_KNEE_MS (101), then an
+ * even fall to 0 at STOPWATCH_REV2_ZERO_MS, so random taps (about 230 ms off)
+ * score about 70 while every average error under 200 ms scores as before.
+ */
+export const STOPWATCH_REV2_KNEE_MS = 200;
+export const STOPWATCH_REV2_ZERO_MS = 325;
+
 /** Bang On: 150 at ≤ 20 ms average, −0.27 per ms above (47 at 400 ms, 20 at an all-miss 500 ms). */
-export function scoreStopWatch(averageDistanceMs: number): number {
+export function scoreStopWatch(averageDistanceMs: number, tapRev = 0): number {
   if (averageDistanceMs <= 20) return 150;
+  if (tapRev >= 2 && averageDistanceMs > STOPWATCH_REV2_KNEE_MS) {
+    const knee = Math.round(150 - 0.27 * (STOPWATCH_REV2_KNEE_MS - 20));
+    return clamp(Math.round((knee * (STOPWATCH_REV2_ZERO_MS - averageDistanceMs)) / (STOPWATCH_REV2_ZERO_MS - STOPWATCH_REV2_KNEE_MS)), 0, 150);
+  }
   // Rev 1: the same line down to STOPWATCH_REV1_KNEE_MS, then an even fall to 0 at the 500 ms miss value.
   if (scoreRev1() && averageDistanceMs > STOPWATCH_REV1_KNEE_MS) {
     const knee = Math.round(150 - 0.27 * (STOPWATCH_REV1_KNEE_MS - 20));
@@ -944,6 +968,12 @@ export function scorePairMatch(
   return clamp(PAIR_PAIR_POINTS * clamp(Math.round(pairs), 0, PAIR_PAIRS), 0, MAX_ROUND_SCORE);
 }
 
+/** Colour Flood floodRev 1 waste factor: 1 up to par, falling evenly to 0 at the move limit. */
+export function floodLimitWaste(moves: number, par: number, moveLimit: number): number {
+  if (!Number.isFinite(moves) || moves <= par) return 1;
+  return clamp((moveLimit - moves) / (moveLimit - par), 0, 1);
+}
+
 /** Colour Flood (C). Unfinished round(110 × region ÷ 196). */
 export function scoreFlood(
   solved: boolean,
@@ -953,10 +983,15 @@ export function scoreFlood(
   msRemaining: number,
   timeLimitMs: number = FLOOD_TIME_MS,
   regionAtStart = 0,
+  /** floodRev 1 (moveLimits.ts): the stored move limit; null on stored rounds. */
+  moveLimit: number | null = null,
 ): number {
   if (solved) return scoreSolvedMoves(moves, par, msRemaining, timeLimitMs, "C");
-  // Rev 1: only cells the player flooded beyond the starting region count.
-  if (scoreRev1()) return partialParts(((110 * Math.max(0, region - regionAtStart)) / Math.max(1, FLOOD_CELLS - regionAtStart)) * wasteFactor(moves, par));
+  // Rev 1: only cells the player flooded beyond the starting region count. floodRev 1: the waste
+  // factor falls from 1 at par to 0 at the move limit (par + 2) instead of at 4× par, so a board
+  // that runs out of moves (random taps, colour cycling) scores 0.
+  const waste = moveLimit !== null && moveLimit > par ? floodLimitWaste(moves, par, moveLimit) : wasteFactor(moves, par);
+  if (scoreRev1()) return partialParts(((110 * Math.max(0, region - regionAtStart)) / Math.max(1, FLOOD_CELLS - regionAtStart)) * waste);
   return clamp(
     Math.round((FLOOD_PARTIAL_POINTS * clamp(region, 0, FLOOD_CELLS)) / FLOOD_CELLS),
     0,

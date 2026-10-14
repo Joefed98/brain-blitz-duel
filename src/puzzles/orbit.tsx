@@ -101,8 +101,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }}
       footer={(send) => (
-        // The 44 px button sits 16 px up from the bottom edge, easier to reach (display only).
-        <div data-game-controls="checkpoint" className="flex h-16 shrink-0 items-center justify-center pb-4">
+        // The 44 px button sits 28 px up from the bottom edge, clear of the phone's edge (display only).
+        <div data-game-controls="checkpoint" className="flex h-[76px] shrink-0 items-center justify-center pb-7">
           {canSet && !locked && (
             <ArcadeControlButton
               type="button"

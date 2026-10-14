@@ -92,7 +92,17 @@ export const CLAY_CONFIG = {
 
 /** Bird-hazard revisions. Stored rounds without clayRev retain the clay-only sim and score. */
 export const CLAY_REV2 = 2;
-export const CLAY_REV = 3;
+export const CLAY_REV3 = 3;
+/**
+ * rev 4 (13 Oct 2026): rev 3's clays and birds, plus a cost for shots that hit
+ * nothing (no clay, no bird): the first CLAY_FREE_EMPTY_SHOTS are free, then 1
+ * point for every CLAY_EMPTY_SHOTS_PER_POINT more. Honest runs miss well under
+ * the allowance; mashing (300+ empty shots) loses about 15.
+ */
+export const CLAY_REV4 = 4;
+export const CLAY_REV = CLAY_REV4;
+export const CLAY_FREE_EMPTY_SHOTS = 30;
+export const CLAY_EMPTY_SHOTS_PER_POINT = 20;
 /** rev2 legacy cadence: 3-4 birds, replays unchanged. */
 export const CLAY_BIRD_MIN = 3;
 export const CLAY_BIRD_MAX = 4;
@@ -117,7 +127,18 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4;
+}
+
+/** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
+export function clayEmptyShots(shots: number, hits: number, birdHits: number): number {
+  return Math.max(0, shots - hits - birdHits);
+}
+
+/** rev 4: the points lost to empty shots beyond the free allowance (0 before rev 4). */
+export function clayEmptyShotCost(emptyShots: number, rev?: number | null): number {
+  if (rev !== CLAY_REV4) return 0;
+  return Math.floor(Math.max(0, emptyShots - CLAY_FREE_EMPTY_SHOTS) / CLAY_EMPTY_SHOTS_PER_POINT);
 }
 
 export const CLAY_RUN_TICKS = CLAY_CONFIG.runSeconds * TICKS_PER_SECOND;
@@ -448,14 +469,14 @@ function initRev2(seed: number): ClayState {
   };
 }
 
-function initRev3(seed: number): ClayState {
+function initRev3(seed: number, rev: number = CLAY_REV3): ClayState {
   const base = init(seed);
   const built = buildBirdScheduleV3(base.rng);
   const count = built.schedule.launch.length;
   return {
     ...base,
     rng: built.rng,
-    rev: CLAY_REV,
+    rev,
     birds: built.schedule,
     birdX: new Array(count).fill(0),
     birdY: new Array(count).fill(0),
@@ -624,18 +645,23 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   return next;
 }
 
-export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, rev?: number): number {
+export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, rev?: number, emptyShots = 0): number {
   const hasBirds = clayHasBirds(rev);
   const all = orangeHits === CLAY_CONFIG.orangeClays && goldHits === CLAY_CONFIG.goldClays && (!hasBirds || birdHits === 0);
   return clampInt(
-    orangeHits * CLAY_CONFIG.orangePoints + goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0) - (hasBirds ? birdHits * CLAY_CONFIG.birdPenalty : 0),
+    orangeHits * CLAY_CONFIG.orangePoints +
+      goldHits * CLAY_CONFIG.goldPoints +
+      (all ? CLAY_CONFIG.perfectBonus : 0) -
+      (hasBirds ? birdHits * CLAY_CONFIG.birdPenalty : 0) -
+      clayEmptyShotCost(emptyShots, rev),
     0,
     150,
   );
 }
 
 function score(state: ClayState): number {
-  return clayScore(state.orangeHits, state.goldHits, state.birdHits ?? 0, state.rev);
+  const birdHits = state.birdHits ?? 0;
+  return clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits));
 }
 
 /* ============================= Checkpoints ============================= */
@@ -809,10 +835,12 @@ export const clayGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 };
 
 export const clayRev2Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: initRev2 };
-export const clayRev3Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: initRev3 };
+export const clayRev3Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed) };
+export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV4) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
-  if (rev === CLAY_REV) return clayRev3Game;
+  if (rev === CLAY_REV4) return clayRev4Game;
+  if (rev === CLAY_REV3) return clayRev3Game;
   if (rev === CLAY_REV2) return clayRev2Game;
   return clayGame;
 }

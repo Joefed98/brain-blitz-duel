@@ -7,7 +7,9 @@ import {
   WINNER_VOICE_MS,
   winnerRevealFrame,
 } from "@/lib/duel/startPresentation";
+import { WINNER_SPEC } from "@/lib/fx/roomMoments";
 import { playSound, playVoice, stopMusic, stopSound } from "@/lib/sound";
+import { RoomMomentFx } from "./RoomMomentFx";
 
 /** Shared-clock cue: skipped entirely when the player arrives after its start time. */
 function schedule(startedAt: number, atMs: number, run: () => void): (() => void) | undefined {
@@ -73,6 +75,7 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
 
   return (
     <div className="duel-start-screen" aria-label="Winner reveal">
+      <RoomMomentFx spec={WINNER_SPEC} startedAt={startedAt} />
       <h1 ref={text} className="winner-reveal-text">
         AND THE WINNER IS…
       </h1>

@@ -5,6 +5,8 @@ import { DUEL_START_MS, DUEL_START_VOICE_MS, duelStartFrame } from "@/lib/duel/s
 import type { PuzzleType } from "@/lib/duel/types";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareRoundMusic, stopMusic } from "@/lib/sound";
+import { PREPARE_SPEC } from "@/lib/fx/roomMoments";
+import { RoomMomentFx } from "./RoomMomentFx";
 import { BoltGlyph } from "./Wordmark";
 
 /** No shell, controls or local animation clock: refresh resumes the shared frame. */
@@ -55,6 +57,7 @@ export function DuelStart({ startedAt, type }: { startedAt: number; type: Puzzle
 
   return (
     <div className="duel-start-screen" aria-label="Duel starting">
+      <RoomMomentFx spec={PREPARE_SPEC} startedAt={startedAt} />
       <div ref={bolt} className="duel-start-bolt" aria-hidden="true">
         <BoltGlyph className="h-full w-full" viewBox="5 2 14 20" />
       </div>

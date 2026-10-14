@@ -587,6 +587,8 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
   world: "space",
   width: WAV_WORLD_W,
   height: WAV_WORLD_H,
+  // SAUCER! (a saucer hit at the world's edge) stays whole, clear of the hull frame.
+  textInset: 12,
   events: [
     {
       kind: "perfect",

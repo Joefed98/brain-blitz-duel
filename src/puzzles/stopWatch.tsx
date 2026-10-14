@@ -7,7 +7,8 @@ import { markerState, targetCentre } from "@/lib/duel/stopWatch";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV,
+  TAP_REV_CARELESS,
+  tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
   replayBangOn,
@@ -60,7 +61,7 @@ export function buildStopWatch(): StopWatchPuzzleData {
       if (accelerating) spec.passSweepMs = Array.from({ length: index + 2 }, (_, pass) => Math.max(420, sweepMs - pass * 55));
       return spec;
     }),
-    tapRev: TAP_REV,
+    tapRev: TAP_REV_CARELESS,
   };
 }
 
@@ -145,7 +146,7 @@ function IntroExample() {
       <Bar spec={{ centre: 0.62, half: 0.07, sweepMs: 1_100, hidden: false, wrap: false, passes: 2 }} marker={0.58} passesLeft={2} />
       <p className="text-center text-xs text-muted-foreground">
         Some targets move, hide, turn vertical or accelerate. The counter starts at 2 on Watch 1 and reaches 11 on
-        Watch 10. Watches 8-10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more to 74 at 300 ms, then down to 0 at 500 ms; a missed watch counts 500 ms.
+        Watch 10. Watches 8-10 wrap from right to left. Score: 150 at 20 ms average error or closer, −27 per 100 ms more to 101 at 200 ms, then falling faster to 0 at 325 ms; a missed watch counts 500 ms.
       </p>
     </div>
   );
@@ -449,7 +450,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       errors={errors}
       onTap={handleTap}
       runKey={key}
-      fxScore={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? localBangOnScore(errors, watches.length) : null}
+      fxScore={done && last && upTo >= last.at + STOPWATCH_GAP_MS ? localBangOnScore(errors, watches.length, tapRevOf(puzzle)) : null}
     />
   );
 }
@@ -458,10 +459,23 @@ function Stage(props: PuzzleStageProps) {
   return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/** tapRev 2: the stored distances, average and score curve (the server's figures). */
+function storedBangOn(extra: Record<string, unknown> | null | undefined) {
+  const distances = extra?.["distances"];
+  const averageMs = extra?.["averageMs"];
+  const kneeMs = extra?.["kneeMs"];
+  const zeroMs = extra?.["zeroMs"];
+  if (!Array.isArray(distances) || typeof averageMs !== "number" || typeof kneeMs !== "number" || typeof zeroMs !== "number") return null;
+  return { distances: distances.filter((v): v is number => typeof v === "number"), averageMs, kneeMs, zeroMs };
+}
+
+function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "stopwatch") return null;
+  const stored = storedBangOn(myExtra);
   // Tap logs are replayed exactly as the server scored them; older rounds list their distances.
-  const parsed = usesTapLog(puzzle)
+  const parsed = stored
+    ? stored.distances
+    : usesTapLog(puzzle)
     ? myAnswer?.startsWith(TAP_LOG_PREFIX)
       ? replayBangOn(puzzle.watches, decodeTapTimes(myAnswer, STOPWATCH_ROUND_MS).times, STOPWATCH_ROUND_MS).results.map(
           (r) => r.distance ?? STOPWATCH_MISS_MS,
@@ -472,7 +486,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         .map((v) => Number.parseInt(v, 10))
         .filter((v) => Number.isFinite(v));
   const errors = Array.from({ length: puzzle.watches?.length ?? 5 }, (_, i) => parsed[i] ?? STOPWATCH_MISS_MS);
-  const avg = Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
+  const avg = stored ? stored.averageMs : Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
 
   return (
     <>
@@ -486,6 +500,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
+        {stored && avg > stored.kneeMs ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Over {stored.kneeMs} ms the score falls faster: 0 at {stored.zeroMs} ms.
+          </p>
+        ) : null}
       </div>
     </>
   );

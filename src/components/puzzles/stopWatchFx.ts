@@ -9,11 +9,11 @@ import { STOPWATCH_MISS_MS } from "@/lib/duel/types";
 import { END_OF_RUN_FX_SCORE, bump, playOverlayFx, relRect, soundCue } from "./speedFx";
 
 /** The phone's local Bang On score (read-only) from its distances, as the server averages them. */
-export function localBangOnScore(distances: number[], watchCount: number): number {
+export function localBangOnScore(distances: number[], watchCount: number, tapRev = 0): number {
   const count = Math.max(1, watchCount);
   let total = 0;
   for (let i = 0; i < count; i++) total += Math.min(STOPWATCH_MISS_MS, distances[i] ?? STOPWATCH_MISS_MS);
-  return scoreStopWatch(Math.round(total / count));
+  return scoreStopWatch(Math.round(total / count), tapRev);
 }
 
 export function bangOnEarnsGoldFaces(score: number): boolean {

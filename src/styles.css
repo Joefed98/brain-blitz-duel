@@ -153,6 +153,284 @@
   will-change: transform, opacity;
 }
 
+/*
+ * Room moments (src/lib/fx/roomMoments.ts): display-only effects on Prepare to
+ * Duel, the round titles, Final Round and the winner reveal. Parts animate
+ * transform and opacity only, over static fills; delays and durations come
+ * inline from the moment's table (started at the shared-clock elapsed time).
+ */
+.duel-start-screen > :not(.room-fx) { position: relative; z-index: 1; }
+.room-fx { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.room-fx[data-over] { z-index: 2; }
+.room-fx [data-part] {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+}
+
+/* Prepare to Duel */
+[data-moment="prepare"] [data-part="glow"] {
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 184, 46, 0.3) 0%, rgba(245, 184, 46, 0.08) 34%, transparent 62%);
+  animation-name: rfx-prepare-glow;
+  animation-timing-function: linear;
+}
+[data-moment="prepare"] [data-part="ring"],
+[data-moment="final"] [data-part="ring"] {
+  left: calc(50% - 25vmin);
+  top: calc(50% - 25vmin);
+  width: 50vmin;
+  height: 50vmin;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  animation-name: rfx-ring-out;
+}
+[data-moment="prepare"] [data-part="streak"] {
+  left: calc(50% - 1px);
+  top: calc(50% - 8vmin);
+  width: 2px;
+  height: 16vmin;
+  border-radius: 2px;
+  background: var(--primary);
+  animation-name: rfx-streak-in;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.75, 0.6);
+}
+[data-moment="prepare"] [data-part="flash"] {
+  inset: 0;
+  background: var(--primary);
+  animation-name: rfx-flash;
+}
+@keyframes rfx-prepare-glow { 0% { opacity: 0; } 30% { opacity: 0.35; } 88% { opacity: 0.75; } 100% { opacity: 0; } }
+@keyframes rfx-ring-out {
+  0% { opacity: 0; transform: scale(0.2); }
+  15% { opacity: 0.75; }
+  100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes rfx-streak-in {
+  0% { opacity: 0; transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-58vmax) scaleY(0.4); }
+  20% { opacity: 0.9; }
+  85% { opacity: 0.9; }
+  100% { opacity: 0; transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-12vmin) scaleY(1.2); }
+}
+@keyframes rfx-flash { 0% { opacity: 0; } 45% { opacity: 0.45; } 100% { opacity: 0; } }
+
+/* Round titles 1–6: one quiet look each, in the category colour */
+[data-effect="hairline"] [data-part="line"] {
+  left: calc(50% - min(35vw, 150px));
+  top: calc(50% + 58px);
+  width: min(70vw, 300px);
+  height: 1px;
+  background: var(--category-accent);
+  animation-name: rfx-hairline;
+}
+[data-effect="sheen"] [data-part="band"] {
+  left: calc(50% - 45px);
+  top: calc(50% - 80px);
+  width: 90px;
+  height: 120px;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 255, 255, 0.2), transparent 100%);
+  animation-name: rfx-sheen;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-effect="sheen"] [data-part="rule"] {
+  left: calc(50% - 20px);
+  top: calc(50% + 58px);
+  width: 40px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--category-accent);
+  animation-name: rfx-settle;
+}
+[data-effect="brackets"] [data-part^="c-"] {
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--category-accent);
+  animation-name: rfx-corner;
+}
+[data-effect="brackets"] [data-part="c-tl"] { left: calc(50% - min(36vw, 150px)); top: calc(50% - 72px); border-top-width: 2px; border-left-width: 2px; --dx: -14px; --dy: -14px; }
+[data-effect="brackets"] [data-part="c-tr"] { right: calc(50% - min(36vw, 150px)); top: calc(50% - 72px); border-top-width: 2px; border-right-width: 2px; --dx: 14px; --dy: -14px; }
+[data-effect="brackets"] [data-part="c-bl"] { left: calc(50% - min(36vw, 150px)); bottom: calc(50% - 72px); border-bottom-width: 2px; border-left-width: 2px; --dx: -14px; --dy: 14px; }
+[data-effect="brackets"] [data-part="c-br"] { right: calc(50% - min(36vw, 150px)); bottom: calc(50% - 72px); border-bottom-width: 2px; border-right-width: 2px; --dx: 14px; --dy: 14px; }
+[data-effect="halo"] [data-part="halo"] {
+  left: calc(50% - 32vmin);
+  top: calc(50% - 32vmin);
+  width: 64vmin;
+  height: 64vmin;
+  border: 1px solid var(--category-accent);
+  border-radius: 50%;
+  animation-name: rfx-halo;
+  animation-timing-function: cubic-bezier(0.2, 0.6, 0.3, 1);
+}
+:is([data-effect="rails"], [data-effect="final"]) [data-part^="rail-"] {
+  left: calc(50% - min(40vw, 160px));
+  width: min(80vw, 320px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--category-accent) 30%, var(--category-accent) 70%, transparent);
+  animation-name: rfx-rail;
+}
+:is([data-effect="rails"], [data-effect="final"]) [data-part="rail-a"] { top: calc(50% - 64px); --from: -100vw; }
+:is([data-effect="rails"], [data-effect="final"]) [data-part="rail-b"] { top: calc(50% + 62px); --from: 100vw; }
+[data-effect="dial"] [data-part="dial"] {
+  left: calc(50% - 35vmin);
+  top: calc(50% - 35vmin);
+  width: 70vmin;
+  height: 70vmin;
+  animation-name: rfx-dial;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-effect="dial"] [data-part="dial"] > i {
+  position: absolute;
+  left: calc(50% - 0.5px);
+  top: 0;
+  width: 1px;
+  height: 7px;
+  background: var(--category-accent);
+  transform-origin: 50% 35vmin;
+  transform: rotate(calc(var(--i) * 360deg / var(--n)));
+}
+[data-effect="dial"] [data-part="dial"] > i:nth-child(9n + 1) { height: 14px; }
+@keyframes rfx-hairline {
+  0% { opacity: 0; transform: scaleX(0); }
+  10% { opacity: 0.9; }
+  30% { transform: scaleX(1); }
+  85% { opacity: 0.9; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes rfx-sheen {
+  0% { opacity: 0; transform: translateX(-46vw) skewX(-18deg); }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(46vw) skewX(-18deg); }
+}
+@keyframes rfx-settle {
+  0% { opacity: 0; transform: translateY(6px); }
+  20% { opacity: 0.9; transform: translateY(0); }
+  85% { opacity: 0.9; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(0); }
+}
+@keyframes rfx-corner {
+  0% { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+  18% { opacity: 0.9; transform: translate(0, 0); }
+  85% { opacity: 0.9; transform: translate(0, 0); }
+  100% { opacity: 0; transform: translate(0, 0); }
+}
+@keyframes rfx-halo {
+  0% { opacity: 0; transform: scale(0.55); }
+  25% { opacity: 0.5; }
+  100% { opacity: 0; transform: scale(1.2); }
+}
+@keyframes rfx-rail {
+  0% { opacity: 0; transform: translateX(var(--from)); }
+  12% { opacity: 0.85; }
+  30% { transform: translateX(0); }
+  85% { opacity: 0.85; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(0); }
+}
+@keyframes rfx-dial {
+  0% { opacity: 0; transform: rotate(-24deg) scale(0.94); }
+  25% { opacity: 0.7; }
+  70% { transform: rotate(0deg) scale(1); }
+  88% { opacity: 0.7; }
+  100% { opacity: 0; transform: rotate(0deg) scale(1); }
+}
+
+/* Final Round: gold edges, shock rings, gold rails, a punch on the title */
+[data-moment="final"] { --category-accent: var(--primary); }
+[data-moment="final"] [data-part^="rail-"] { height: 2px; }
+[data-moment="final"] [data-part="edge"] {
+  inset: 0;
+  box-shadow: inset 0 0 64px rgba(245, 184, 46, 0.55);
+  animation-name: rfx-edge;
+  animation-timing-function: linear;
+}
+.round-title-lines[data-final] {
+  animation-name: rfx-punch;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes rfx-edge {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  30% { opacity: 0.45; }
+  45% { opacity: 0.85; }
+  70% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+@keyframes rfx-punch { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* The winner reveal: ray wheel, sweeping spotlights that lock at the cut, dimmed edges */
+[data-moment="winner"] [data-part="wheel"] {
+  left: calc(50% - 60vmax);
+  top: calc(50% - 60vmax);
+  width: 120vmax;
+  height: 120vmax;
+  animation-name: rfx-wheel;
+  animation-timing-function: linear;
+}
+[data-moment="winner"] [data-part="wheel"] > i {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: 0;
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(180deg, transparent, rgba(245, 184, 46, 0.22) 70%, transparent);
+  transform-origin: 50% 100%;
+  transform: rotate(calc(var(--i) * 360deg / var(--n)));
+}
+[data-moment="winner"] [data-part^="beam-"] {
+  top: -10vh;
+  width: 46vw;
+  height: 130vh;
+  background: linear-gradient(180deg, rgba(245, 184, 46, 0.3), rgba(245, 184, 46, 0.07) 70%, transparent);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 0;
+  animation-name: rfx-beam;
+  animation-timing-function: ease-in-out;
+}
+[data-moment="winner"] [data-part="beam-l"] { left: calc(15% - 23vw); --swing: 1; }
+[data-moment="winner"] [data-part="beam-r"] { left: calc(85% - 23vw); --swing: -1; }
+[data-moment="winner"] [data-part="spot"] {
+  inset: 0;
+  background: radial-gradient(ellipse 60% 22% at 50% 50%, rgba(245, 184, 46, 0.28), transparent 70%);
+  animation-name: rfx-build;
+  animation-timing-function: linear;
+}
+[data-moment="winner"] [data-part="dim"] {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 32%, rgba(0, 0, 0, 0.75) 88%);
+  animation-name: rfx-build;
+  animation-timing-function: linear;
+}
+@keyframes rfx-wheel {
+  0% { opacity: 0; transform: rotate(0deg); }
+  15% { opacity: 0.8; }
+  100% { opacity: 0.8; transform: rotate(40deg); }
+}
+@keyframes rfx-beam {
+  0% { opacity: 0; transform: rotate(calc(var(--swing) * 25deg)); }
+  10% { opacity: 1; }
+  28% { transform: rotate(calc(var(--swing) * -35deg)); }
+  56% { transform: rotate(calc(var(--swing) * 8deg)); }
+  92% { transform: rotate(calc(var(--swing) * -20deg)); }
+  100% { opacity: 1; transform: rotate(calc(var(--swing) * -20deg)); }
+}
+@keyframes rfx-build { 0% { opacity: 0; } 70% { opacity: 0.55; } 90% { opacity: 1; } 100% { opacity: 1; } }
+
+/* Reduced motion: every part a calm fade in place; movement-only parts hidden. */
+@keyframes rfx-calm { 0% { opacity: 0; } 20% { opacity: 0.5; } 80% { opacity: 0.5; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .room-fx [data-part] {
+    animation-name: rfx-calm !important;
+    animation-duration: var(--rfx-dur) !important;
+    transform: none !important;
+  }
+  .room-fx [data-motion] { display: none; }
+  .round-title-lines[data-final] { animation: none; }
+}
+
 .arcade-frame-timing {
   position: absolute;
   z-index: 30;

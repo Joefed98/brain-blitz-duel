@@ -15,6 +15,7 @@ import {
   type MeasureAction,
 } from "@/lib/duel/measure";
 import { useStageState } from "@/lib/duel/stageState";
+import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
 import { buzz, useReducedMotion } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -429,7 +430,9 @@ function Stage({
 
   const board = data?.boards[Math.min(stage, MEASURE_BOARDS - 1)];
   const actions = allActions[stage] ?? NO_ACTIONS;
-  const replay = useMemo(() => (board ? replayMeasure(board, actions) : null), [board, actions]);
+  // measureRev 2 (moveLimits.ts): a generous visible move limit per puzzle; running out ends the run unfinished.
+  const moveLimit = data ? (measureMoveLimits(data)?.[Math.min(stage, MEASURE_BOARDS - 1)] ?? null) : null;
+  const replay = useMemo(() => (board ? replayMeasure(board, actions, moveLimit) : null), [board, actions, moveLimit]);
   const encoded = encodeMeasureRound(allActions);
 
   useEffect(() => {
@@ -451,6 +454,14 @@ function Stage({
   }, [flow]);
 
   const complete = replay?.solved ?? false;
+  const outOfMoves = replay?.outOfMoves ?? false;
+  useEffect(() => {
+    // Out of moves: puzzles are played in order, so the run ends here and goes in now.
+    if (!outOfMoves || locked || submitted.current) return;
+    submitted.current = true;
+    setSelected(null);
+    onSubmit(encodeMeasureRound(allActions));
+  }, [outOfMoves, locked, allActions, onSubmit, setSelected]);
   // Completion effect: only when the last board (the whole puzzle) is solved.
   const solveFx = useSolveFx(complete && stage >= MEASURE_BOARDS - 1, "measure.solve", SOLVE_MS);
   const advance = () => {
@@ -475,7 +486,7 @@ function Stage({
   });
 
   if (!data || !board || !replay) return null;
-  const busy = locked || submitted.current || complete;
+  const busy = locked || submitted.current || complete || outOfMoves;
 
   const reject = (jug: number) => {
     setShake(jug);
@@ -553,7 +564,9 @@ function Stage({
       <div className="flex h-9 w-full shrink-0 items-center justify-between gap-2">
         <p className="font-mono text-xs uppercase text-muted-foreground">
           Puzzle {stage + 1} of {MEASURE_BOARDS} · moves{" "}
-          <span className="text-primary">{replay.moves}</span>
+          <span className={outOfMoves ? "text-warn" : "text-primary"} data-move-limit={moveLimit ?? undefined}>
+            {moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}
+          </span>
         </p>
         <p className="font-display text-sm font-bold text-primary" data-measure-goal>
           {goalText(board)}
@@ -641,7 +654,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <PolishStyle id="measure" css={MEASURE_CSS} />
       {puzzle.boards.map((board, index) => {
         const mine = open
-          ? replayMeasure(board, decodeMeasureActions(parts[index] ?? "", board.caps.length))
+          ? replayMeasure(board, decodeMeasureActions(parts[index] ?? "", board.caps.length), measureMoveLimits(puzzle)?.[index] ?? null)
           : null;
         if (!mine?.solved) open = false;
         const min = puzzle.minMoves?.[index];
@@ -662,7 +675,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               <span
                 className={`ml-auto whitespace-nowrap ${mine?.solved ? "font-bold text-primary" : "text-warn"}`}
               >
-                {mine?.solved ? `✓ ${mine.moves} moves` : mine ? "✗ unsolved" : "—"}
+                {mine?.solved ? `✓ ${mine.moves} moves` : mine ? (mine.outOfMoves ? "✗ out of moves" : "✗ unsolved") : "—"}
                 <span className="mj-dim"> · best {min ?? "?"}</span>
               </span>
             </div>
