@@ -24,12 +24,12 @@ import {
   CROSS_INPUT_MOVE,
   CROSS_KIND_CYCLE,
   CROSS_LANES,
-  CROSS_PLAYER_HALF_FP,
   CROSS_WORLD_W,
   crossBlocked,
   crossClosed,
   crossColumnCentreFp,
   crossCourse,
+  crossPlayerHalfFp,
   type CrossCourse,
   type CrossState,
 } from "../../../src/lib/arcade/cross";
@@ -273,10 +273,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const seenAt = Math.round(tPer + (tau - tPer) / warpFor(course, lane));
     const centre = crossColumnCentreFp(col);
     const rel = seenAt - s.crossStart;
-    if (!crossBlocked(def, centre, rel)) return false;
+    const half = crossPlayerHalfFp(s);
+    if (!crossBlocked(def, centre, rel, half)) return false;
     // Which vehicle is it, and had it been on screen a reaction time before the look?
-    const left = centre - CROSS_PLAYER_HALF_FP;
-    const span = 2 * CROSS_PLAYER_HALF_FP;
+    const left = centre - half;
+    const span = 2 * half;
     const u = mod(left - def.dir * def.speed * rel - def.phase, def.period);
     const back = seenAt - (tPer - noticeFor(lane));
     for (const start of def.offsets ?? [0]) {

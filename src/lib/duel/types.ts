@@ -2043,7 +2043,7 @@ export interface SnakePuzzleData {
   type: "snake";
   /** Draws the whole star queue (and rock schedule) — identical for everyone in the room. */
   seed: number;
-  /** Rule revision (2 = asteroids); absent = original rules. */
+  /** Rule revision (2 = asteroids; 3 = shower; 4 = score bands; 5 = taller grid, Tuning E; 6 = more rocks, Tuning F); absent = original rules. */
   snakeRev?: number;
 }
 
@@ -2078,7 +2078,7 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B); absent = original rules. */
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B; 5 = 2.5 s Fireball, Tuning F); absent = original rules. */
   brkRev?: number;
 }
 
@@ -2099,7 +2099,7 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
-  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B). Absent on rounds stored before rev 2. */
+  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B); 5 = a second bumper from 45 s (Tuning F). Absent on rounds stored before rev 2. */
   rallyRev?: number;
 }
 
@@ -2192,7 +2192,7 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
-  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C). Absent on rounds stored before rev 2. */
+  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C); 5 = a tenth fewer notes (Tuning F). Absent on rounds stored before rev 2. */
   beatRev?: number;
 }
 
@@ -2356,7 +2356,7 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];

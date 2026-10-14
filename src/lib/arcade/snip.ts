@@ -223,6 +223,15 @@ const SNIP_BANK6_SOURCES: readonly SnipTemplate[] = [
   { name: "Branch basket", sweet: [191, 142], pins: [[223, 110, 0], [391, 53, 0]], platforms: [], hooks: [[200, 379, 78]], mouth: [152, 590], stars: [[194, 463]], slide: [42, 227], nests: [[138, 512, 21]], springs: [[266, 492, 363, 524], [211, 390, 290, 387]] }, // worst fast 367 ticks, cuts 3
   { name: "Long gutter", sweet: [283, 186], pins: [[271, 98, 0]], platforms: [], hooks: [[275, 361, 76], [297, 463, 105]], mouth: [357, 577], stars: [[271, 420]], gutters: [[211, 499, 114, 548]], nests: [[185, 470, 23]] }, // worst fast 394 ticks, cuts 3
 ];
+/**
+ * snipRev 7 (proven deals): fixed copies of snipRev 6 levels that lose at some
+ * per-pin deal, appended after snipRev 6's (index SNIP_PROVEN_FIRST on); the
+ * originals stay as they were for stored rounds.
+ */
+const SNIP_PROVEN_SOURCES: readonly SnipTemplate[] = [
+  // Crook gutter run (116) with its two pins drawn apart: at pin wobble +10 / 0 the original's pins met at x 208 and no human-paced plan fed the apple.
+  { name: "Crook gutter run", sweet: [210, 142], pins: [[188, 47, 0], [224, 64, 0]], platforms: [], hooks: [[197, 354, 81]], mouth: [149, 584], stars: [[213, 292]], gutters: [[318, 554, 215, 591]], nests: [[198, 478, 23]] },
+];
 export const SNIP_TALL_FIRST = 60;
 const tallIds = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => SNIP_TALL_FIRST + from + i);
 export const SNIP_BANDS_TALL = {
@@ -278,7 +287,7 @@ export const SNIP_CONFIG = {
   springMax: 2_560,
   maxScore: 150,
   /** Ten levels in play order, easiest first (then the banks drawn by revision; Tuning E's tall ones last). */
-  templates: [...SNIP_SOURCES, ...SNIP_TALL_SOURCES, ...SNIP_BANK6_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H }))].map(placeSnipTemplate) as readonly SnipTemplate[],
+  templates: [...SNIP_SOURCES, ...SNIP_TALL_SOURCES, ...SNIP_BANK6_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H })), ...SNIP_PROVEN_SOURCES.map((t) => ({ ...t, h: SNIP_TALL_H }))].map(placeSnipTemplate) as readonly SnipTemplate[],
 } as const;
 
 /** A designed template placed in the wide world (exported for level-design scripts). */
@@ -406,7 +415,7 @@ export function snipWorldH(state: { worldH?: number }): number {
   return state.worldH ?? SNIP_CONFIG.worldH;
 }
 
-function buildLevel(state: SnipState, level: number, fixedJitter?: number): SnipState {
+function buildLevel(state: SnipState, level: number, fixedJitter?: number | readonly number[]): SnipState {
   const c = SNIP_CONFIG;
   let rng = state.rng;
   const t = state.order[Math.min(level, state.order.length - 1)]!;
@@ -414,10 +423,20 @@ function buildLevel(state: SnipState, level: number, fixedJitter?: number): Snip
   const ropes: SnipRope[] = [];
   const sx = tpl.sweet[0] * 256;
   const sy = tpl.sweet[1] * 256;
-  for (const [px, py, slack] of tpl.pins) {
-    const r = rngBelow(rng, 2 * c.pinJitter + 1);
-    rng = r.state;
-    const x0 = (px + (fixedJitter ?? r.value - c.pinJitter)) * 256;
+  tpl.pins.forEach(([px, py, slack], pin) => {
+    const fixed = typeof fixedJitter === "number" ? fixedJitter : fixedJitter?.[pin];
+    let wobble: number;
+    if (state.rev === SNIP_REV_PROVEN) {
+      // snipRev 7: each pin on its own seeded 5 px step (−10, −5, 0, +5, +10).
+      const r = rngBelow(rng, SNIP_PROVEN_WOBBLES.length);
+      rng = r.state;
+      wobble = SNIP_PROVEN_WOBBLES[r.value]!;
+    } else {
+      const r = rngBelow(rng, 2 * c.pinJitter + 1);
+      rng = r.state;
+      wobble = r.value - c.pinJitter;
+    }
+    const x0 = (px + (fixed ?? wobble)) * 256;
     const y0 = py * 256;
     const n = c.ropeNodes;
     const dist = isqrt((sx - x0) * (sx - x0) + (sy - y0) * (sy - y0)) + slack * 256;
@@ -428,7 +447,7 @@ function buildLevel(state: SnipState, level: number, fixedJitter?: number): Snip
       y.push(y0 + Math.trunc(((sy - y0) * i) / n));
     }
     ropes.push({ alive: 1, len: Math.trunc(dist / n), x, y, ox: [...x], oy: [...y] });
-  }
+  });
   return {
     ...state,
     rng,
@@ -516,8 +535,11 @@ function initRev2(seed: number): SnipState {
   return buildLevel({ ...s, rng: seed | 0, order: snipLevelOrder(seed) }, 0);
 }
 
-/** Scripts only: one level of a template with every pin moved by `jitter` px (a tall template plays in the tall world). */
-export function snipTestLevel(template: number, jitter: number): SnipState {
+/**
+ * Scripts only: one level of a template with every pin moved by `jitter` px, or
+ * pin i by `jitter[i]` px (a tall template plays in the tall world).
+ */
+export function snipTestLevel(template: number, jitter: number | readonly number[]): SnipState {
   const s = init(1);
   const h = SNIP_CONFIG.templates[template]?.h;
   return buildLevel({ ...s, order: [template], ...(h ? { rev: SNIP_REV_TALL, worldH: h } : {}) }, 0, jitter);
@@ -1081,6 +1103,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_PROVEN) return snipProvenGame;
   if (rev === SNIP_REV_BANK6) return snipBank6Game;
   if (rev === SNIP_REV_TALL) return snipTallGame;
   if (rev === SNIP_REV_BAND) return snipBandGame;
@@ -1151,7 +1174,7 @@ export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ..
 
 /** The world height (px) a stored round's snipRev plays in. */
 export function snipWorldHFor(rev?: number | null): number {
-  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 ? SNIP_TALL_H : SNIP_H;
+  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN ? SNIP_TALL_H : SNIP_H;
 }
 
 /* ================= Bank growth (snipRev 6, Oct 2026) ================= */
@@ -1195,3 +1218,47 @@ function initBank6(seed: number): SnipState {
 }
 
 export const snipBank6Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipTallGame, init: initBank6 };
+
+/* ================= Proven deals (snipRev 7, Oct 2026) ================= */
+
+/**
+ * snipRev 7: snipRev 6's tall game (rules, physics, timing, scoring, world,
+ * inputs and level draw unchanged) with every deal proven winnable. Each pin
+ * still shifts on its own seeded wobble, but in 5 px steps
+ * (−10, −5, 0, +5, +10; the same pin stream, five values instead of 21), so a
+ * level with k pins has exactly 5^k deals; levels that lose at some deal are
+ * dealt as fixed copies (SNIP_PROVEN_SWAPS). Every template in SNIP_BANDS_V7
+ * keeps a stored human-paced winning plan for every per-pin deal
+ * (fixtures/snip-rev7-proofs.json, scripts/snip-rev7-check.ts). snipRev 6
+ * rounds keep SNIP_BANDS_V6 and the 1 px wobble.
+ */
+export const SNIP_REV_PROVEN = 7;
+/** snipRev 7's per-pin wobbles (px), drawn by index from the level's pin stream. */
+export const SNIP_PROVEN_WOBBLES: readonly number[] = [-10, -5, 0, 5, 10];
+/** snipRev 7's fixed copies start here (after snipRev 6's 26 new levels). */
+export const SNIP_PROVEN_FIRST = SNIP_BANK6_FIRST + SNIP_BANK6_SOURCES.length;
+/** snipRev 6 template → its fixed snipRev 7 copy. */
+export const SNIP_PROVEN_SWAPS: Readonly<Record<number, number>> = { [SNIP_BANK6_FIRST + 13]: SNIP_PROVEN_FIRST };
+const provenBand = (band: readonly number[]) => band.map((t) => SNIP_PROVEN_SWAPS[t] ?? t);
+/** snipRev 6's bands with each failing level swapped for its fixed copy (same band, same slot). */
+export const SNIP_BANDS_V7 = {
+  easy: provenBand(SNIP_BANDS_V6.easy),
+  medium: provenBand(SNIP_BANDS_V6.medium),
+  hard: provenBand(SNIP_BANDS_V6.hard),
+};
+
+/**
+ * The ten-level order for a snipRev-7 seed: snipRev 6's draw for the same seed
+ * (its stream and bands), with each swapped level dealt as its fixed copy, so
+ * a seed meets the same levels on both revisions.
+ */
+export function snipLevelOrderV7(seed: number): number[] {
+  return snipLevelOrderV6(seed).map((t) => SNIP_PROVEN_SWAPS[t] ?? t);
+}
+
+function initProven(seed: number): SnipState {
+  const s = init(seed);
+  return bandInit(buildLevel({ ...s, rng: seed | 0, order: snipLevelOrderV7(seed), rev: SNIP_REV_PROVEN, worldH: SNIP_TALL_H }, 0));
+}
+
+export const snipProvenGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipTallGame, init: initProven };

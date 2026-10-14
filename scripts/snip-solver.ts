@@ -27,8 +27,8 @@ export interface SnipPlay {
   outcome: number;
 }
 
-/** Plays one level of `template` with every pin moved by `jitter` px. */
-export function playSnipLevel(template: number, jitter: number, plan: SnipPlan): SnipPlay {
+/** Plays one level of `template` with every pin moved by `jitter` px (or pin i by `jitter[i]` px). */
+export function playSnipLevel(template: number, jitter: number | readonly number[], plan: SnipPlan): SnipPlay {
   let s: SnipState = snipTestLevel(template, jitter);
   const log: ArcadeInputEvent[] = [];
   const game = s.worldH ? snipTallGame : snipGame;
@@ -78,14 +78,16 @@ export interface SnipSolution {
  * Best plans for a template at one wobble: the fastest feed, and the fastest
  * feed that also takes the golden leaf (null when none was found).
  */
-export function solveSnip(template: number, jitter: number, samples = 1500, seed = 1): { fast: SnipSolution | null; leaf: SnipSolution | null; wins: number; tries: number } {
+export function solveSnip(template: number, jitter: number | readonly number[], samples = 1500, seed = 1): { fast: SnipSolution | null; leaf: SnipSolution | null; wins: number; tries: number } {
   const tpl = SNIP_CONFIG.templates[template]!;
   // A crook's vine is one more rope to cut, once it has caught the apple.
   const n = tpl.pins.length + (tpl.hooks?.length ?? 0);
   // Tall (Tuning E) plans must use every planned cut: no cut at a rope that is not there.
   const strict = Boolean(tpl.h);
   const perms = permutations(n);
-  const r = rng(seed * 7919 + template * 31 + jitter + 100);
+  // Per-pin wobbles fold into the search seed (a single wobble keeps its old seed).
+  const jit = typeof jitter === "number" ? jitter : jitter.reduce((a, j) => a * 31 + j + 10, 0);
+  const r = rng(seed * 7919 + template * 31 + jit + 100);
   let fast: SnipSolution | null = null;
   let leaf: SnipSolution | null = null;
   let wins = 0;

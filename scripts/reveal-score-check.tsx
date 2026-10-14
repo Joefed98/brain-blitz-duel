@@ -17,7 +17,8 @@ import assert from "node:assert/strict";
 import { renderToString } from "react-dom/server";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
-import { ARCADE_REVEAL_TYPES, buildArcadeReveal } from "@/lib/arcade/reveal";
+import { revealShown } from "@/components/duel/ArcadeReveal";
+import { ARCADE_REVEAL_TYPES, buildArcadeReveal, type ArcadeRevealData } from "@/lib/arcade/reveal";
 import { crossGame, crossTotalLanes, CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "@/lib/arcade/cross";
 import { bubbleGame, bubRemaining } from "@/lib/arcade/bubble";
 import { puzzleUsesBands } from "@/lib/arcade/bandParts";
@@ -158,7 +159,13 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
           : first.endsWith(`→ ${stored.score}`) || first.endsWith(`→ 130 · time +${stored.score - 130}`));
         if (!ok) failures.push(`${type}: stored ${stored.score}, breakdown "${reveal?.lines.join("; ") ?? "missing"}"`);
         if (banded && reveal) {
+          // The reveal shows each fact once: the only stored line it may leave out is a
+          // "Total → N" repeating the big stored score (ArcadeReveal revealShown).
+          const shownLines = revealShown(reveal as ArcadeRevealData, stored.score).lines;
           for (const line of reveal.lines) {
+            if (!shownLines.includes(line) && line !== `Total → ${stored.score}`) failures.push(`${type}: stored line left out: "${line}"`);
+          }
+          for (const line of shownLines) {
             if (!html.includes(line)) failures.push(`${type}: stored breakdown not rendered: "${line}"`);
           }
         }

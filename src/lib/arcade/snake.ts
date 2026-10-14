@@ -143,6 +143,8 @@ export interface SnakeState extends BandFields {
   showerDone?: number;
   /** snakeRev 5 only (Tuning E): the taller grid's row count (SNAKE_TALL_ROWS). Absent = SNAKE_ROWS. */
   rows?: number;
+  /** snakeRev 6 only (Tuning F): 1 = more rocks (snakeRocksEarned's Tuning F pace). Absent on every earlier round. */
+  tunef?: number;
 }
 
 /** Grid rows a state plays on: Tuning E's taller grid, or the original 20. */
@@ -304,11 +306,12 @@ function initRev3(seed: number, rows: number = SNAKE_ROWS): SnakeState {
   };
 }
 
-/** Rocks a meteor of this many stars has earned (length 10, then every 5 stars, at most 8). */
-export function snakeRocksEarned(eaten: number): number {
+/** Rocks a meteor of this many stars has earned (length 10, then every 5 stars, at most 8; snakeRev 6: length 9, every 4, at most 11). */
+export function snakeRocksEarned(eaten: number, tunef?: number): number {
   const length = SNAKE_START_LEN + eaten;
-  if (length < SNAKE_ROCK_START_LEN) return 0;
-  return Math.min(SNAKE_ROCK_MAX, 1 + Math.trunc((length - SNAKE_ROCK_START_LEN) / SNAKE_ROCK_EVERY));
+  const [start, every, max] = tunef ? [SNAKE_ROCK_START_LEN_V6, SNAKE_ROCK_EVERY_V6, SNAKE_ROCK_MAX_V6] : [SNAKE_ROCK_START_LEN, SNAKE_ROCK_EVERY, SNAKE_ROCK_MAX];
+  if (length < start) return 0;
+  return Math.min(max, 1 + Math.trunc((length - start) / every));
 }
 
 function isOver(state: SnakeState): boolean {
@@ -428,7 +431,7 @@ function stepRev2(state: SnakeState, input: ArcadeInputEvent | null): SnakeState
     // Shower rocks (rev 3) do not count against the asteroids a meteor has earned.
     const showerCells = next.showerCells ?? [];
     const asteroids = showerCells.length > 0 ? landed.filter((cell) => !showerCells.includes(cell)).length : landed.length;
-    if (warn < 0 && snakeRocksEarned(next.eaten) > asteroids) {
+    if (warn < 0 && snakeRocksEarned(next.eaten, next.tunef) > asteroids) {
       warn = due.cell;
       landTick = due.tick;
     }
@@ -522,6 +525,8 @@ export function snakeCheckpoint(state: SnakeState): SnakeCheckpoint {
   if (state.rev === SNAKE_REV) extra.push(state.showerSlot ?? 0, state.showerDone ?? 0, state.showerLandTick ?? 0, ...(state.showerWarn ?? []));
   // snakeRev 5 (Tuning E): the taller grid's rows, last.
   if (state.rows) extra.push(state.rows);
+  // snakeRev 6 (Tuning F): its marker after that, so rev-2 to rev-5 checksums are unchanged.
+  if (state.tunef) extra.push(state.tunef);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -640,6 +645,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_ROCKS) return snakeRocksGame;
   if (rev === SNAKE_REV_TALL) return snakeTallGame;
   if (rev === SNAKE_REV_BAND) return snakeBandGame;
   if (rev === SNAKE_REV) return snakeRev3Game;
@@ -655,7 +661,7 @@ export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 
 
 export function snakeBandParts(state: SnakeState): BandParts {
   const units = Math.max(0, state.eaten);
-  return { units, points: bandPoints(state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
+  return { units, points: bandPoints(state.tunef ? SNAKE_V6_BAND_CURVE : state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
 }
 
 function scoreBand(state: SnakeState): number {
@@ -684,5 +690,24 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_TALL ? SNAKE_TALL_H : SNAKE_WORLD_H;
+  return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
+
+/* ================= Tuning F (snakeRev 6, Oct 2026) ================= */
+
+/**
+ * snakeRev 6 (Tuning F): snakeRev 5's taller grid with a few more rocks, since
+ * the grid is 40 % bigger. The room's rock schedule, squares and shower are
+ * drawn exactly as on snakeRev 5; a meteor earns its first rock a star sooner
+ * (length 9), then one more every 4 stars (was 5), up to 11 asteroids (was 8),
+ * so up to 14 rocks with the shower. Slots still come one every 3 s, so rocks
+ * can never land faster than before. States add `tunef: 1`, folded into the
+ * checkpoint checksum last.
+ */
+export const SNAKE_REV_ROCKS = 6;
+export const SNAKE_ROCK_START_LEN_V6 = 9;
+export const SNAKE_ROCK_EVERY_V6 = 4;
+export const SNAKE_ROCK_MAX_V6 = 11;
+/** Stars eaten with the extra rocks: the same skill eats a star or two fewer; 150 at 33 (re-measured with scripts/arcade-skill-bands.ts --rev=f). */
+export const SNAKE_V6_BAND_CURVE = bandCurve([0, 15, 21, 26, 29, 33], [0, 70, 100, 125, 142, 150]);
+export const snakeRocksGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeTallGame, init: (seed) => ({ ...snakeTallGame.init(seed), tunef: 1 }) };

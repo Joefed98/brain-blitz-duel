@@ -193,7 +193,7 @@ Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 1
 | Game | Change (new rounds) | Stamp |
 |---|---|---|
 | Counterweight | A fourth scale, slightly harder: 10 notches (5 each side, distances 1–5), three fixed and five tray weights, 12 hangs (limits 6 / 8 / 10 / 12). 120 s (was 90). Scales 15 / 25 / 30 / 55 in any order (any three ≤ 110); all four = 120 + PAR(30). | `balanceRev 2`, `timeLimitMs` 120,000 |
-| Ballpark | 90 s (was 75). Full 8 within 1 % (was 2 %), falling evenly to 0 at 10 % (was 8 %); a wild placement (25 % or more) still costs 1. The speed part is PAR(30) × the share of numbers placed within 1 % (was × accuracy ÷ 120). | `numlineRev 2`, `timeLimitMs` 90,000 |
+| Ballpark | 90 s (was 75). Full 8 within 1 % (was 2 %), falling evenly to 0 at 10 % (was 8 % under the 13 Oct score shape; 15 % on rounds dealt before it); a wild placement (25 % or more) still costs 1. The speed part is PAR(30) × the share of numbers placed within 1 % (was × accuracy ÷ 120). | `numlineRev 2`, `timeLimitMs` 90,000 |
 
 **Bands, median per level, 30 room seeds (5001–5030), before (main, 14 Oct) → after** (finish rate after in brackets), and the spam strategies' median / max. Measured with `bun scripts/puzzle-fairness.ts balance numline --seeds=30` on main and on this change.
 

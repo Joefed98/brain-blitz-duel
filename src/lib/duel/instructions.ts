@@ -15,18 +15,18 @@ import {
   TILT_V2_PARTIAL_MAX,
   TILT_V2_STAR_POINTS,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
 import { WAV_BOSS_HP, WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
 import { FLIP_V4_BAND_CURVE } from "@/lib/arcade/flip";
 import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
-import { MATCHUP_V5_BAND_CURVE } from "@/lib/arcade/matchup";
+import { MATCHUP_V6_BAND_CURVE } from "@/lib/arcade/matchup";
 import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
 import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
-import { RALLY_V4_BAND_CURVE } from "@/lib/arcade/rally";
-import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V5_BAND_CURVE } from "@/lib/arcade/snake";
+import { RALLY_V5_BAND_CURVE } from "@/lib/arcade/rally";
+import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V6_BAND_CURVE } from "@/lib/arcade/snake";
 import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
 import { SNIP_V5_BAND_CURVE } from "@/lib/arcade/snip";
 import { HOVER_V5_BAND_CURVE } from "@/lib/arcade/hover";
@@ -47,7 +47,7 @@ import {
 } from "@/lib/arcade/pinball";
 import { TILT_V4_BAND_CURVE } from "@/lib/arcade/tilt";
 import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
-import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
+import { BEAT_V5_BAND_CURVE } from "@/lib/arcade/beat";
 import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
 import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
@@ -699,7 +699,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V5_BAND_CURVE),
+    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V6_BAND_CURVE),
   },
   snake: {
     goal: "Eat the stars; don't crash.",
@@ -708,13 +708,13 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Red shadow?", detail: "A rock lands there in 2 s." },
       { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!" },
       { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks.", helpOnly: true },
-      { action: "Rocks start at length 10:", detail: "one more every 5 stars, up to 8. Stars never appear on a rock.", helpOnly: true },
-      { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 11 rocks.", helpOnly: true },
+      { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
+      { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
       { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
       { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
-    score: bandHelp("Each star eaten counts 1.", SNAKE_V5_BAND_CURVE),
+    score: bandHelp("Each star eaten counts 1.", SNAKE_V6_BAND_CURVE),
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -724,6 +724,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Three lives.", detail: "A hit sends you back to the start of this crossing." },
       { action: "The first two crossings", detail: "always leave wide gaps in every lane. Later traffic is tighter and faster.", helpOnly: true },
       { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
+      { action: "Only the walker counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
     ],
     score: bandHelp("Each lane crossed counts 1 and each full crossing 2 more.", CROSS_BAND_CURVE),
   },
@@ -751,7 +752,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Green L = laser:", detail: "one beam straight up from the paddle that hits the first 4 bricks above it.", helpOnly: true },
       { action: "Silver ×3 = three shots:", detail: "each tap fires an extra ball straight up; it vanishes at the first wall it hits.", helpOnly: true },
       { action: "Bronze ×2 = double balls", detail: "at once. There is one per board.", helpOnly: true },
-      { action: "Orange flame = Fireball:", detail: "for 3.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
+      { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
     score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
@@ -783,9 +784,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A gold ball drops in", detail: "every ten seconds - only gold balls score.", helpOnly: true },
       { action: "Two pink target pads", detail: "sit on the far wall, one in each half. A gold ball that hits one scores 3, and the pad moves somewhere new in its own half, so the two never overlap.", helpOnly: true },
       { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
+      { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
       { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V4_BAND_CURVE),
+    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V5_BAND_CURVE),
   },
 
   steady: {
@@ -807,7 +809,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
       { action: "Cut a bottle:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together." },
       { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
-      { action: "One finger-down-to-up path counts together", detail: "- curves too, up to about three-quarters of the screen. Each combo resets a 10-second timer.", helpOnly: true },
+      { action: "One finger-down-to-up path counts together", detail: "- curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
     score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_V4_BAND_CURVE),
   },
@@ -816,9 +818,10 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Drag to aim,", detail: "let go to shoot." },
       { action: "Crown Joker", detail: "matches any colour." },
-      { action: "Mines blast;", detail: "torpedoes clear a whole row." },
+      { action: "Mines blast;", detail: "torpedoes drill where aimed." },
       { action: "Three of a colour pop", detail: "when they touch; bubbles left hanging fall. Bounce shots off the walls.", helpOnly: true },
       { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: "joins every colour it touches and pops each group that reaches three. A mine clears the bubbles around it.", helpOnly: true },
+      { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
       { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
       { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
@@ -836,7 +839,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 - a miss resets it.", helpOnly: true },
     ],
-    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V4_BAND_CURVE),
+    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V5_BAND_CURVE),
   },
 
   ricochet: {
@@ -1013,6 +1016,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring - it turns once every 12 seconds.", helpOnly: true },
       { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops - never at the crossing.", helpOnly: true },
       { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
+      { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
     ],
     score: bandHelp("Each planet reached counts 1.", ORBIT_BAND_CURVE, "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
   },
@@ -1044,7 +1048,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
       { action: "Loose stalactites crumble, shedding grit,", detail: "for two seconds before they fall. Don't be under one.", helpOnly: true },
       { action: "Lava bubbles before it jets up.", detail: "Don't be over a jet when it erupts.", helpOnly: true },
-      { action: "Ten stars float along the way,", detail: "some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
+      { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
       { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
     score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_V7_BAND_CURVE, "Reaching 500 m adds 10."),
