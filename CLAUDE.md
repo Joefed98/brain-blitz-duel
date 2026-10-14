@@ -48,6 +48,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `src/components/puzzles/LetterKeypad.tsx`.
 - `src/lib/fx/signature.ts` — the shared signature beat (gold flash + app-logo burst on every
   solve/finish, fired only from the common points: the rooms/practice verdict and arcadeFeedback);
+  `src/lib/fx/roomMoments.ts` — the room's big-moment effects (Prepare to Duel, round titles 1–6, Final
+  Round, the winner reveal; display only, CSS `rfx-*`, cues `room.*`, `room-moments-check`);
   `src/lib/fx/soundCues.ts` and `docs/sound-cues/` — named sound cues (`duelz-sound` events,
   `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
@@ -146,7 +148,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 2. **Version-stamp every gameplay change.** Any change to rules, generation, physics,
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
-   `sliceRev`, `tapRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, and the move-limit stamps
+   `sliceRev`, `tapRev`, `chainTimeRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, and the move-limit stamps
    `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev`). Unstamped/older rounds must replay and score exactly as before.
    Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
