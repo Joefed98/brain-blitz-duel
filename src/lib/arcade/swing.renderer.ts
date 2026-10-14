@@ -26,6 +26,7 @@ import {
   SWING_ROCK_WARN_V6,
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
+  SWING_REV_SPREAD,
   SWING_STAR_R,
   swingStarTotal,
   SWING_GOLD,
@@ -601,16 +602,26 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     if (chase !== 0) {
       const behind = Math.max(0, Math.trunc((state.x - chase - SWING_CHASE_REACH) / (40 * FP)));
       if (sx(chase + SWING_CHASE_REACH) < 0) {
-        ctx.fillStyle = behind < 4 ? "#FF4D5E" : "rgba(255,77,94,0.75)";
+        ctx.fillStyle = behind < 4 ? "#FF4D5E" : "#FF7884";
         ctx.beginPath();
         ctx.moveTo(4, state.y / FP);
         ctx.lineTo(16, state.y / FP - 9);
         ctx.lineTo(16, state.y / FP + 9);
         ctx.closePath();
         ctx.fill();
-        ctx.font = "700 11px 'JetBrains Mono', ui-monospace, monospace";
-        ctx.textAlign = "left";
-        ctx.fillText(`DRAGON ${behind} m`, 20, state.y / FP + 4);
+        // The distance label grows as the dragon closes in (display only, every revision).
+        const k = swingDragonLabelScale(behind);
+        if (k > 0) {
+          const px = Math.round(SWING_DRAGON_LABEL_PX * k * 10) / 10;
+          const ty = Math.max(px + 4, Math.min(SWING_WORLD_H - 6, state.y / FP + px * 0.36));
+          ctx.font = `800 ${px}px 'JetBrains Mono', ui-monospace, monospace`;
+          ctx.textAlign = "left";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = Math.max(2, px * 0.22);
+          ctx.strokeStyle = "rgba(7,7,13,0.85)";
+          ctx.strokeText(`DRAGON ${behind} m`, 20, ty);
+          ctx.fillText(`DRAGON ${behind} m`, 20, ty);
+        }
       }
     }
     for (const r of state.rocks ?? []) {
@@ -749,15 +760,32 @@ function drawRockMass(ctx: CanvasRenderingContext2D, state: SwingState, first: n
   ctx.stroke();
 }
 
+/** The "DRAGON N m" label's full size (world px), reached at 10 m or closer. */
+export const SWING_DRAGON_LABEL_PX = 16;
+/**
+ * The label's size as a share of full size for the dragon `metres` behind:
+ * 1 at 10 m or closer, easing smoothly down to 0.55 at 40 m, 0.55 from 40 to
+ * 50 m, and 0 (hidden) beyond 50 m. Never larger further away.
+ */
+export function swingDragonLabelScale(metres: number): number {
+  if (metres > 50) return 0;
+  if (metres >= 40) return 0.55;
+  if (metres <= 10) return 1;
+  const t = (metres - 10) / 30;
+  return 1 - 0.45 * t * t * (3 - 2 * t);
+}
+
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
-export const swingArtGame = { ...swingGame, draw: drawSwingArt };
+export const swingArtGame ={ ...swingGame, draw: drawSwingArt };
 const dragonArtGameV2 = { ...swingGameFor(2), draw: drawSwingArt };
 const dragonArtGameV3 = { ...swingGameFor(3), draw: drawSwingArt };
 const chaseArtGameV4 = { ...swingGameFor(SWING_REV), draw: drawSwingArt };
 const bandArtGameV5 = { ...swingGameFor(SWING_REV_BAND), draw: drawSwingArt };
 const tunedArtGameV6 = { ...swingGameFor(SWING_REV_TUNED), draw: drawSwingArt };
 const tunecArtGameV7 = { ...swingGameFor(SWING_REV_TUNEC), draw: drawSwingArt };
+const spreadArtGameV8 = { ...swingGameFor(SWING_REV_SPREAD), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_SPREAD) return spreadArtGameV8;
   if (rev === SWING_REV_TUNEC) return tunecArtGameV7;
   if (rev === SWING_REV_TUNED) return tunedArtGameV6;
   if (rev === SWING_REV_BAND) return bandArtGameV5;

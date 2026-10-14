@@ -157,10 +157,11 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning C stamps; Junction is practice only");
 {
   const stamps: [string, number | undefined, number][] = [
-    // Tuning F (Oct 2026) moved Gemstone on to its 2,800 par (matchupRev 6) and Slice on to its
-    // longer slice (sliceRev 5), the same play otherwise; arcade-tuning-f-check covers them.
+    // Tuning F (Oct 2026) moved Gemstone on to its 2,800 par (matchupRev 6), Slice on to its longer
+    // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
+    // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
     ["matchup", generateMatchup().matchupRev, MATCHUP_REV_PAR],
-    ["swing", generateSwing().swingRev, SWING_REV_TUNEC],
+    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 1],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", generateHover().hoverRev, HOVER_REV_TALL],
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],

@@ -1044,7 +1044,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The dragon flies at a steady pace behind you.", detail: "Slow down or stall and it catches you, which ends the run. A marker at the left edge shows how far back it is.", helpOnly: true },
       { action: "Loose stalactites crumble, shedding grit,", detail: "for two seconds before they fall. Don't be under one.", helpOnly: true },
       { action: "Lava bubbles before it jets up.", detail: "Don't be over a jet when it erupts.", helpOnly: true },
-      { action: "Ten stars float along the way,", detail: "some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
+      { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
       { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
     score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_V7_BAND_CURVE, "Reaching 500 m adds 10."),
