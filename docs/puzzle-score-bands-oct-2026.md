@@ -278,3 +278,21 @@ Medians on 30 room seeds (5001–5030), `bun scripts/speed-bands-oct14.ts --md`;
 - **Bang On** stays above 70 / 100 for average and good players: the ask kept the 13 Oct curve from 200 ms down (101 at 200 ms), and simulated average players are about 165 ms off (good about 110 ms), so they cannot fall below about 101–110 without moving that knee. The top tightened as asked (near-perfect 148 → 133; 20 ms now scores 137). Lowering the knee would be a new decision.
 - **Pull!** honest bands do not move: kit players aim at clays and rarely hit a bird (about 0.1–0.2 per run before and after), so more birds mainly hurt careless mashing (16 → 0). Pull!'s 5 / 10 per clay was kept; reaching the targets would need a scoring change or real-play evidence that players shoot more birds.
 - **Chain** average players stay low (15 → 20): their chains break within the first few links, which now pay 4 each. Good players held (80 → 82); great players fell slightly (141 → 135) from breaks at the reversal.
+
+## Word batch 2 (14 Oct 2026)
+
+Six Word games changed on 14 Oct (each behind its own stamp; stored rounds grade exactly as before). Medians from `scripts/puzzle-fairness.ts <game>` run on the unmodified tree (before) and the batch (after), same seeds (30 room seeds unless noted), finish rate after in brackets. Targets for average / good / great / near-perfect: about 70 / 100 / 125 / 140–150; random and careless play near 0.
+
+| Game (stamp) | Average | Good | Great | Near-perfect | Random / careless (median) |
+|---|---|---|---|---|---|
+| Strikeout (`strikeoutRev 2`) | 83 → **66** (0/30) | 135 → **110** (13/30) | 141 → **135** (21/30) | 144 → **141** (23/30) | frequency-order letters 83 → **6**; A–Z 0 → 4; random letters 0 → 2 |
+| Roundabout (`wheelRev 1`) | 83 → **72** (0/30) | 132 → **102** (5/30) | 150 → **143** (30/30) | 150 → **150** (30/30) | random traces 16 → **0**; random 3–5 letter traces 14 → **0**; 3-letter sweep (new) 0 |
+| Lookout (`wordSearchRev 1`) | 131 → **121** (16/30) | 148 → **147** | 150 → **150** | 150 → **150** | random drags 0, sweeping every cell 0 |
+| Cryptogrid (`codewordRev 2`, 100 seeds) | 84 → **91** (16/100) | 139 → **142** | 150 → **150** | 150 → **150** | spam medians 0 (random reassign max 29 on one seed) |
+| Swapword (`swapwordRev 2`, 100 seeds) | 136 → **136** (67/100) | 148 → **148** | 150 → **150** | 150 → **150** | random swaps 0; mark-reading swap-non-green 24 → 28, swap-amber 28 → 31 (flagged, real play) |
+| Letterfall (`wordfallRev 2`, kit bots) | 105 → **105** (p10 50 → 70) | 150 → **150** | 150 → **150** | 150 → **150** | random taps + Enter 0 (max 5); random 3–4 tile chains 25 → 25 (open game, flagged) |
+
+- **Strikeout** lands near the targets (66 / 110 / 135 / 141). Good sits at 110 because its four-word runs hit the unfinished cap; strikes, not time, stop the strong solvers, so near-perfect finishes about four boards in five. The old rule-b flag (frequency-order guessing 83) is closed.
+- **Roundabout** lands near the targets apart from great (143): the kit's great player finishes every board with about a quarter of the time left, and pulling great to 125 would sink average well below 70. Unfinished credit is front-loaded (12 a word for the first 6, then 5) so average lands near 70 while good stays near 100. The rule-b flag (random traces 16) is closed by the attempt log.
+- **Lookout, Cryptogrid and Swapword** were already above the targets for good and great before the batch, and the requested changes (a bigger bank and counted chips, a fifth given, a budget of at least 16) do not pull them down: the kits play at a flat speed with perfect deduction (Lookout 9 s a word, Cryptogrid 6 s a number, Swapword the optimal swap every 5 s), so theme, word length and deduction difficulty don't show. Bringing them to the band needs harder formats (more words per grid, fewer givens, a tighter budget) or timings measured from real play; left for Joe.
+- **Letterfall** keeps par 30, so good and better still reach 150; the slower, less vowel-heavy drops bury the good bot far less (15/30 → 3/30) while its raw points fall (40 → 34). On these bots a par of about 40–45 would hit the band; **par needs setting from real play**.

@@ -84,7 +84,7 @@ import { gradeCheckoutStages, scoreCheckout } from "./checkout";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
-import { lwDecode, lwGrade, scoreLetterWheel } from "./letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeRicoRun, replayRicoRun } from "./ricochet";
@@ -132,7 +132,20 @@ import { solvedFrame } from "./tiles";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
-import { decodeStrikeout, encodeStrikeout, replayStrikeout, scoreStrikeout, soTally } from "./strikeout";
+import {
+  STRIKEOUT_REV2,
+  decodeStrikeout,
+  decodeStrikeout2,
+  encodeStrikeout,
+  encodeStrikeout2,
+  replayStrikeout,
+  replayStrikeout2,
+  scoreStrikeout,
+  scoreStrikeout2,
+  so2Tally,
+  soTally,
+  strikeoutRevOf,
+} from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
@@ -2218,6 +2231,27 @@ function gradeUnderRev(
       break;
     }
     case "letterwheel": {
+      if (lwUsesLog(puzzle)) {
+        // wheelRev 1: the answer is every submitted trace; slot words are found in the log itself and misses cost.
+        const tally = lwTallyLog(puzzle.words ?? [], puzzle.letters, lwDecodeLog(answer), isWord);
+        const total = puzzle.slots.length;
+        const cells = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, tally.slots.map((i) => puzzle.words![i]!));
+        isCorrect = total > 0 && tally.slots.length >= total;
+        correctCount = tally.slots.length;
+        errors = tally.misses;
+        score = scoreLetterWheelLog(tally.slots.length, total, tally.misses, ms, timeLimitMs);
+        extraDetail = {
+          slots: tally.slots.length,
+          total,
+          cells: cells.cells,
+          totalCells: cells.totalCells,
+          traces: tally.traces,
+          misses: tally.misses,
+          freeMisses: LW_FREE_MISSES,
+          neutral: tally.neutral,
+        };
+        break;
+      }
       // Each submitted word is matched against the stored crossword.
       const words = lwDecode(answer);
       const v = lwGrade(puzzle.words ?? [], puzzle.slots, puzzle.cols, words);
@@ -2230,6 +2264,30 @@ function gradeUnderRev(
       break;
     }
     case "strikeout": {
+      if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
+        // Rev 2: one word at a time, givens public, two vowel guesses per word, strikes shared.
+        const state2 = replayStrikeout2(
+          puzzle.words ?? [],
+          puzzle.givens ?? [],
+          decodeStrikeout2(answer),
+          isWord,
+        );
+        const tally2 = so2Tally(state2);
+        isCorrect = tally2.done;
+        correctCount = tally2.solvedWords;
+        errors = tally2.strikes;
+        score = scoreStrikeout2(tally2, ms, timeLimitMs);
+        storedAnswer = encodeStrikeout2(state2.effective);
+        extraDetail = {
+          solvedRows: tally2.solvedWords,
+          foundTiles: tally2.foundTiles,
+          strikes: tally2.strikes,
+          done: tally2.done,
+          over: state2.over,
+          strikeoutRev: puzzle.strikeoutRev,
+        };
+        break;
+      }
       // Every guess and solve is replayed on the stored words; solves are checked against the dictionary.
       const state = replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), isWord);
       const tally = soTally(state);

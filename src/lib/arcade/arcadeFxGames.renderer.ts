@@ -123,7 +123,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 import { SNIP_CONFIG, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
-import { wfWord, WF_H, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
+import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
   matchupParRaw,
@@ -1314,7 +1314,11 @@ export const WORDFALL_FX: ArcadeFxSpec<WordfallState> = {
   ],
 };
 
-/** Specs for ENGINE_GAME_WORLDS, keyed the same way. */
+/** wordfallRev 2's taller world (the Enter box under the well); stored rev-1 rounds keep WORDFALL_FX. */
+export const WORDFALL_FX_TALL = fxSpecAt(WORDFALL_FX, WF_H_V2);
+export const wordfallFxFor = (s: WordfallState): ArcadeFxSpec<WordfallState> => fxSpecAt(WORDFALL_FX, wfWorldH(s));
+
+/** Specs for ENGINE_GAME_WORLDS, keyed the same way (the worlds rooms deal today). */
 export const ENGINE_FX_SPECS = {
-  wordfall: WORDFALL_FX,
+  wordfall: WORDFALL_FX_TALL,
 } satisfies Record<EngineFxGame, ArcadeFxSpec<never>>;

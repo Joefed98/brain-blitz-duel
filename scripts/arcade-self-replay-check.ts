@@ -101,7 +101,7 @@ import { orbitRev3PlanetsForSeed } from "@/lib/duel/orbitRev3Course.server";
 import { binTossGameFor, BINTOSS_REV2, BINTOSS_REV3 } from "@/lib/arcade/binToss";
 import { inkBridgeGameFor, INK_REV3, INK_REV4 } from "@/lib/arcade/inkBridge";
 import { swingGameFor, SWING_REV, SWING_REV_V3 } from "@/lib/arcade/swing";
-import { wordfallCheckpoint, wordfallGame } from "@/lib/arcade/wordfall";
+import { wordfallCheckpoint, wordfallGame, wordfallGameFor } from "@/lib/arcade/wordfall";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 // Letterfall's replay checks words: install the same list the server grades with.
 import "@/lib/duel/wordfallDict.server";
@@ -566,6 +566,8 @@ const GAMES: Game[] = [
   { key: "pinball", game: pinballGameFor(PIN_REV), checkpoint: pinCheckpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV) },
   // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.
   { key: "wordfall", game: wordfallGame, checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: encodeWordfallRun, replay: (seed: number, raw: string) => replayWordfallRun(seed, raw) },
+  // wordfallRev 2: slower drops, fewer vowels, the Enter box in a taller world.
+  { key: "wordfall", game: wordfallGameFor(2), checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: (run: Parameters<typeof encodeWordfallRun>[0]) => encodeWordfallRun(run, 2), replay: (seed: number, raw: string) => replayWordfallRun(seed, raw, 2) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

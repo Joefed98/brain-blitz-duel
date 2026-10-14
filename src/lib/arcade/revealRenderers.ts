@@ -47,8 +47,8 @@ import { CLAY_H, CLAY_W } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
 import { TD_H, TD_W, type TenDropState } from "./tenDrop";
 import { drawTenDrop } from "./tenDrop.renderer";
-import { wordfallGame, WF_H, WF_W } from "./wordfall";
-import { wordfallArtGame } from "./wordfall.renderer";
+import { wfWorldHFor, wordfallGameFor, WF_H, WF_W } from "./wordfall";
+import { wordfallArtGameFor } from "./wordfall.renderer";
 import { loadWordfallDict, wordfallDictReady } from "./wordfallDict";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "./colourClash";
 import { colourClashArtGameFor } from "./colourClash.renderer";
@@ -261,13 +261,16 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: "#D4A84A",
     worldW: WF_W,
     worldH: WF_H,
+    // wordfallRev 2 adds the Enter box under the well (a taller world).
+    heightFor: (puzzle) => wfWorldHFor(puzzle.type === "wordfall" ? puzzle.wordfallRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "wordfall") return null;
+      const rev = puzzle.wordfallRev;
       // The final well needs the word list; without it (a cold reload) draw the start well and fetch it.
       const state = wordfallDictReady()
-        ? replayWordfallRun(puzzle.seed, answer, puzzle.wordfallRev).state
-        : (void loadWordfallDict().catch(() => undefined), wordfallGame.init(puzzle.seed));
-      wordfallArtGame.draw(ctx, state, { width: WF_W, height: WF_H });
+        ? replayWordfallRun(puzzle.seed, answer, rev).state
+        : (void loadWordfallDict().catch(() => undefined), wordfallGameFor(rev).init(puzzle.seed));
+      wordfallArtGameFor(rev).draw(ctx, state, { width: WF_W, height: wfWorldHFor(rev) });
       return null;
     },
   },

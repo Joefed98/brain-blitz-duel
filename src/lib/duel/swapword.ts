@@ -22,7 +22,8 @@
 import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { movesPoints, speedPoints } from "./scoring";
 
-export const SWAPWORD_REV = 1;
+/** Rev 1: budget minimum + 5. Rev 2 (14 Oct 2026): budget max(16, minimum + 5); same boards. */
+export const SWAPWORD_REV = 2;
 export const SW_COLS = 6;
 export const SW_ROWS = 6;
 /** Grid cell (row × 6 + col) of each tile, in reading order. */
@@ -30,6 +31,13 @@ export const SW_TILE_CELLS: readonly number[] = [0, 1, 2, 3, 6, 9, 12, 15, 17, 1
 export const SW_TILES = SW_TILE_CELLS.length;
 /** Extra swaps on top of the proven minimum. */
 export const SW_SPARE_SWAPS = 5;
+/** Rev 2: the budget never drops below this. */
+export const SW_MIN_BUDGET = 16;
+
+/** Swap budget for a board of this revision (stored on the puzzle as maxSwaps; the grader reads the stored value). */
+export function swapwordBudget(minSwaps: number, rev: number): number {
+  return rev >= 2 ? Math.max(SW_MIN_BUDGET, minSwaps + SW_SPARE_SWAPS) : minSwaps + SW_SPARE_SWAPS;
+}
 export const SW_MAX_ACTIONS = 60;
 
 export interface SwSlot {

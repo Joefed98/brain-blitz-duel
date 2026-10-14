@@ -145,7 +145,7 @@ export function generateTenDrop(): TenDropPuzzleData {
   return { type: "tendrop", seed: arcadeSeed(), tenRev: TEN_DROP_SCORE_REV };
 }
 
-/** Letterfall: the seed draws the letter queue and drop columns; stamped rev 1 and speed-par 1. */
+/** Letterfall: the seed draws the letter queue and drop columns; stamped WORDFALL_REV (2) and speed-par 1. */
 export function generateWordfall(): WordfallPuzzleData {
   return { type: "wordfall", seed: arcadeSeed(), wordfallRev: WORDFALL_REV, speedPar: 1 };
 }

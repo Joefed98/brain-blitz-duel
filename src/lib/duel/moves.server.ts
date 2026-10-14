@@ -7,7 +7,7 @@ export async function checkPuzzleMoves(puzzle: PuzzleData, rawMoves: unknown): P
   const moves = typeof rawMoves === "string" ? rawMoves.slice(0, MOVES_MAX_CHARS) : "";
   if (puzzle.type === "strikeout") {
     const { checkStrikeoutMoves } = await import("./strikeout.server");
-    return { type: "strikeout", ...checkStrikeoutMoves(puzzle.words ?? [], moves) };
+    return { type: "strikeout", ...checkStrikeoutMoves(puzzle, moves) };
   }
   if (puzzle.type === "codeword") {
     const { checkCodewordMoves } = await import("./codeword.server");

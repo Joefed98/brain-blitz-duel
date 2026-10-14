@@ -1598,7 +1598,9 @@ const wordSearchSummary: SummaryBuilder = (result) => {
 const letterWheelSummary: SummaryBuilder = (result) => {
   const slots = Number(result.extra?.["slots"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 0);
-  return { summary: `${slots} / ${total} words`, detail: [] };
+  // wheelRev 1 rounds store their misses (traces that were not words); older rounds have none.
+  const misses = Number(result.extra?.["misses"] ?? 0);
+  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}`, detail: [] };
 };
 
 const strikeoutSummary: SummaryBuilder = (result) => {

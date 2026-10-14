@@ -2627,6 +2627,8 @@ export interface LetterWheelPuzzleData {
   slots: LetterWheelSlot[];
   /** Word for each slot — private until the reveal. */
   words?: string[];
+  /** 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules. */
+  wheelRev?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2634,10 +2636,13 @@ export const STRIKEOUT_TIME_MS = 100_000;
 
 export interface StrikeoutPuzzleData {
   type: "strikeout";
-  /** Rules revision (1 = first release). */
+  /** Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026). */
   strikeoutRev: number;
   rows: number;
+  /** Rev 1: every word's length; rev 2: the longest word's length (each word's own length is its givens pattern's). */
   length: number;
+  /** Rev 2: each word's starting letters as a public pattern ("__N_____"; every copy of a starting letter shows). */
+  givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
 }
@@ -2647,7 +2652,7 @@ export const CODEWORD_TIME_MS = 120_000;
 
 export interface CodewordPuzzleData {
   type: "codeword";
-  /** Rules revision (1 = first release). */
+  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026). */
   codewordRev: number;
   size: number;
   /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
@@ -2665,13 +2670,13 @@ export const SWAPWORD_TIME_MS = 120_000;
 
 export interface SwapwordPuzzleData {
   type: "swapword";
-  /** Rules revision (1 = first release; also fixes the board shape). */
+  /** Rules revision (1 = first release, also fixes the board shape; 2 = budget at least 16, 14 Oct 2026). */
   swapwordRev: number;
   /** Starting letters, one per tile in the layout's tile order, upper case. */
   start: string;
   /** Proven fewest swaps that solve the board. */
   minSwaps: number;
-  /** Swap budget: minSwaps + 5. Running out ends the round. */
+  /** Swap budget: rev 1 minSwaps + 5; rev 2 max(16, minSwaps + 5). Running out ends the round. */
   maxSwaps: number;
   /** Solved letters in tile order — private until the reveal. */
   solution?: string;
@@ -2689,6 +2694,10 @@ export interface WordSearchPuzzleData {
   grid: string;
   category: string;
   wordCount: number;
+  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths. Absent on stored rounds. */
+  wordSearchRev?: number;
+  /** Rev 1: each hidden word's letter count, in placement order (public: the chips show it before a word is found). */
+  wordLengths?: number[];
   /** Where each hidden word lies — private until the reveal. */
   placements?: WordSearchPlacement[];
 }
