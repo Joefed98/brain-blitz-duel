@@ -26,7 +26,7 @@ import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
-import { decodeTubeMoves, replayTubes } from "./tubes";
+import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
@@ -55,6 +55,7 @@ import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
 import { decodeClayRun, replayClayRun } from "./clayShoot";
+import { clayEmptyShotCost, clayEmptyShots, CLAY_REV4 } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
@@ -107,6 +108,7 @@ import {
   replayBangOn,
   replayFlash,
   usesTapLog,
+  tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
 import { countPatternAnswers } from "./pattern";
@@ -121,6 +123,7 @@ import { decodeStrikeout, encodeStrikeout, replayStrikeout, scoreStrikeout, soTa
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
+import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo } from "./moveLimits";
 import {
   scoreGoNoGo,
   scoreGroups,
@@ -133,6 +136,9 @@ import {
   scorePercentSprint,
   scorePatternCompletion,
   scoreReaction,
+  reactionFalseStartCost,
+  STOPWATCH_REV2_KNEE_MS,
+  STOPWATCH_REV2_ZERO_MS,
   scoreRound,
   scoreSpotDifference,
   SPOT_REV1_WRONG_LIMIT,
@@ -181,6 +187,8 @@ import {
   INTRUDER_BOARDS,
   WORDMATCH_ITEMS,
   FLOW_PAIRS,
+  CHAIN_TIME_MS,
+  CHAIN_TIME_REV,
   type PuzzleData,
 } from "./types";
 
@@ -344,14 +352,21 @@ function gradeUnderRev(
     }
     case "balance": {
       // The server recomputes every torque; any balanced arrangement counts.
-      const placements = decodeBalance(answer, puzzle.scales);
-      const solved = balanceSolvedCount(puzzle.scales, placements);
+      // balanceRev 1: the answer ends "#h1,h2,h3", the phone's hang count per scale; a scale hung more
+      // often than its stored limit does not count (the counts are the phone's word: moveLimits.ts).
+      const placeLimits = balancePlaceLimits(puzzle);
+      const { body, counts: hangs } = placeLimits ? splitCountSuffix(answer) : { body: answer, counts: [] };
+      const placements = decodeBalance(body, puzzle.scales);
+      const withinLimit = (s: number) => !placeLimits || (hangs[s] ?? 0) <= (placeLimits[s] ?? 0);
+      const verdicts = balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && withinLimit(s));
+      const firstOpen = verdicts.indexOf(false);
+      const solved = placeLimits ? (firstOpen < 0 ? BAL_SCALES : firstOpen) : balanceSolvedCount(puzzle.scales, placements);
       // Rev 1 credits every balanced scale in any order.
-      const scales = scoreRev1() ? balanceScalesSolved(puzzle.scales, placements) : undefined;
+      const scales = scoreRev1() ? verdicts : undefined;
       correctCount = scales ? scales.filter(Boolean).length : solved;
       isCorrect = scales ? correctCount === BAL_SCALES : solved === BAL_SCALES;
       score = balanceRoundScore(solved, ms, timeLimitMs, scales);
-      extraDetail = scales ? { solved, scales } : { solved };
+      extraDetail = scales ? { solved, scales, ...(placeLimits ? { hangs: puzzle.scales.map((_, s) => hangs[s] ?? 0), placeLimits } : {}) } : { solved };
       break;
     }
     case "wordslide": {
@@ -406,12 +421,15 @@ function gradeUnderRev(
         reactionAvgMs = Math.round(total.reduce((sum, v) => sum + v, 0) / Math.max(1, flashCount));
         isCorrect = true;
         errors = falseStarts;
-        score = scoreReaction(reactionAvgMs, falseStarts);
+        const tapRev = tapRevOf(puzzle);
+        score = scoreReaction(reactionAvgMs, falseStarts, tapRev);
         storedMs = 0;
         extraDetail = {
           times: total,
           falseStarts,
           misses: total.filter((v) => v >= REACTION_MISS_MS).length,
+          // tapRev 2: the stored false-start cost, so the reveal never recomputes it.
+          ...(tapRev >= 2 ? { falseStartCost: reactionFalseStartCost(falseStarts, tapRev) } : {}),
           ...tapLogDetail(diag),
         };
         break;
@@ -551,9 +569,16 @@ function gradeUnderRev(
         });
         reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / STOPWATCH_ATTEMPTS);
         isCorrect = true;
-        score = scoreStopWatch(reactionAvgMs);
+        const tapRev = tapRevOf(puzzle);
+        score = scoreStopWatch(reactionAvgMs, tapRev);
         storedMs = 0;
-        extraDetail = { distances: total, signed: replay.results.map((r) => r.signed), ...tapLogDetail(diag) };
+        extraDetail = {
+          distances: total,
+          signed: replay.results.map((r) => r.signed),
+          // tapRev 2: the curve this round was scored on, for the reveal.
+          ...(tapRev >= 2 ? { averageMs: reactionAvgMs, kneeMs: STOPWATCH_REV2_KNEE_MS, zeroMs: STOPWATCH_REV2_ZERO_MS } : {}),
+          ...tapLogDetail(diag),
+        };
         break;
       }
       const distances = answer.split(",").slice(0, STOPWATCH_ATTEMPTS).map((v) => Number.parseInt(v, 10));
@@ -874,7 +899,11 @@ function gradeUnderRev(
     }
     case "tubes": {
       // Every pour is replayed on the stored board, so illegal pours never count.
-      const replay = replayTubes(puzzle.tubes, decodeTubeMoves(answer));
+      // tubesRev 1: the log carries Undo and Reset, every pour counts and nothing past the pour limit does.
+      const pourLimit = tubesPourLimit(puzzle);
+      const replay = tubesSendsUndo(puzzle)
+        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit)
+        : replayTubes(puzzle.tubes, decodeTubeMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.moves;
       const colours = new Set(puzzle.tubes.flat()).size;
@@ -884,6 +913,7 @@ function gradeUnderRev(
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         sorted: replay.sorted,
+        ...(pourLimit !== null ? { pourLimit, outOfPours: "outOfPours" in replay && replay.outOfPours } : {}),
       };
       break;
     }
@@ -932,7 +962,9 @@ function gradeUnderRev(
     }
     case "gravity": {
       // Every tilt is replayed on the stored board, all four balls at once.
-      const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer));
+      // gravityRev 1: nothing past the stored tilt limit counts.
+      const tiltLimit = gravityTiltLimit(puzzle);
+      const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer), tiltLimit);
       isCorrect = replay.solved;
       correctCount = replay.tilts;
       const lockedAtStart = scoreRev1() ? replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, []).locked : 0;
@@ -942,6 +974,7 @@ function gradeUnderRev(
         tilts: replay.tilts,
         minMoves: puzzle.minMoves ?? 0,
         locked: replay.locked,
+        ...(tiltLimit !== null ? { tiltLimit, outOfTilts: replay.outOfTilts } : {}),
       };
       break;
     }
@@ -952,7 +985,11 @@ function gradeUnderRev(
       isCorrect = replay.reason === "complete";
       correctCount = replay.links;
       errors = replay.reason === "wrong" ? 1 : 0;
-      score = scoreChain(replay.links, ms, puzzle);
+      // chainTimeRev 1: time left is the claim (already held to the receipt
+      // check), but never more than the replayed last tap allows.
+      if (puzzle.chainTimeRev === CHAIN_TIME_REV && isCorrect && replay.lastT !== null)
+        storedMs = Math.min(ms, clamp(CHAIN_TIME_MS - replay.lastT, 0, CHAIN_TIME_MS));
+      score = scoreChain(replay.links, storedMs, puzzle);
       extraDetail = {
         links: replay.links,
         reason: replay.reason,
@@ -1004,15 +1041,18 @@ function gradeUnderRev(
     }
     case "flood": {
       // Every tapped colour is replayed on the stored grid.
-      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer));
+      // floodRev 1: taps beyond the stored move limit are ignored, so running out ends the board unfinished.
+      const moveLimit = floodMoveLimit(puzzle);
+      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer), undefined, moveLimit);
       isCorrect = replay.solved;
       correctCount = replay.region;
-      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0);
+      score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0, moveLimit);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
         par: puzzle.par,
         region: replay.region,
+        ...(moveLimit !== null ? { moveLimit, outOfMoves: replay.outOfMoves } : {}),
       };
       break;
     }
@@ -1591,6 +1631,13 @@ function gradeUnderRev(
         perfect: run.perfect,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
+        // clayRev 4: the stored empty-shot cost, so the reveal never recomputes it.
+        ...(puzzle.clayRev === CLAY_REV4
+          ? (() => {
+              const emptyShots = clayEmptyShots(run.shots, run.hits, run.birdHits);
+              return { emptyShots, emptyShotCost: clayEmptyShotCost(emptyShots, puzzle.clayRev) };
+            })()
+          : {}),
         flagged: run.flagged,
         clientLag: run.clientLag,
         clientTick: run.clientTick,
@@ -2039,7 +2086,8 @@ function gradeUnderRev(
     }
     case "measure": {
       // Each board's action list is replayed on the stored jugs; the minimums are the server's own.
-      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer);
+      // measureRev 2: a board stops at its stored move limit (and so ends the run unfinished).
+      const results = gradeMeasureBoards(puzzle.boards, puzzle.minMoves ?? [], answer, measureMoveLimits(puzzle));
       const solved = results.filter((r) => r.solved).length;
       isCorrect = solved === puzzle.boards.length;
       correctCount = solved;
@@ -2313,11 +2361,17 @@ function gradeUnderRev(
     }
 
     case "equation": {
-      const parts = splitStages(answer, puzzle.stages.length);
-      const correct = puzzle.stages.map((stage, i) => equationStageCorrect(stage.numbers, stage.target, parts[i] ?? ""));
+      // equationRev 1: the answer ends "#t1,t2,t3,t4", the phone's full tries per equation; an
+      // equation tried more often than the stored limit does not count (the phone's word: moveLimits.ts).
+      const tryLimit = equationTryLimit(puzzle);
+      const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(answer) : { body: answer, counts: [] };
+      const parts = splitStages(body, puzzle.stages.length);
+      const correct = puzzle.stages.map((stage, i) =>
+        equationStageCorrect(stage.numbers, stage.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
       correctCount = correct.filter(Boolean).length;
       isCorrect = puzzle.stages.length > 0 && correctCount === puzzle.stages.length;
       score = scoreEquationStages(correct, ms);
+      if (tryLimit !== null) extraDetail = { tries: puzzle.stages.map((_, i) => tries[i] ?? 0), tryLimit };
       break;
     }
     case "countup": {

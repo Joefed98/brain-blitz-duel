@@ -20,7 +20,7 @@ import { TILT_TIME_MS, type TiltPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 
 /** Tilt's arena sits this far below the other arcade arenas' fixed top edge (display only). */
-const TILT_ARENA_DROP = 24;
+const TILT_ARENA_DROP = 40;
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 

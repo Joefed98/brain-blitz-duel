@@ -319,6 +319,11 @@ export interface ArcadeFxSpec<S> {
   /** Clip effects to this rectangle (default: the whole width × height). */
   clip?: { x: number; y: number; w: number; h: number };
   /**
+   * Keep pop and banner text at least this many px inside the clip, clear of
+   * frame art and HUD drawn along the world's edge (default 0). Text only.
+   */
+  textInset?: number;
+  /**
    * How width × height maps onto the canvas size passed to the wrapped draw:
    * centred uniform "fit" (default), "stretch" per axis, or "world" when the
    * caller has already applied the world transform.
@@ -1221,9 +1226,11 @@ function paint<S>(
     ctx.lineWidth = Math.max(2, size / 5);
     ctx.strokeStyle = pop.outline;
     // Keep the whole text inside the arena, wherever the event happened (an edge or the top).
-    const half = ctx.measureText(pop.text).width / 2 + ctx.lineWidth;
+    const inset = spec.textInset ?? 0;
+    const half = ctx.measureText(pop.text).width / 2 + ctx.lineWidth + inset;
+    const halfH = size / 2 + ctx.lineWidth + inset;
     const x = Math.min(Math.max(pop.x, clip.x + half), clip.x + clip.w - half);
-    const y = Math.min(Math.max(pop.y - rise, clip.y + size / 2 + ctx.lineWidth), clip.y + clip.h - size / 2 - ctx.lineWidth);
+    const y = Math.min(Math.max(pop.y - rise, clip.y + halfH), clip.y + clip.h - halfH);
     ctx.strokeText(pop.text, x, y);
     ctx.fillStyle = pop.colour;
     ctx.fillText(pop.text, x, y);

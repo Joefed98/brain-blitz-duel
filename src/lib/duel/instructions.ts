@@ -51,7 +51,7 @@ import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
 import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
 import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
-import { BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
 import { bandHelp } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "./types";
 
@@ -121,8 +121,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Double-tap a kettlebell", detail: "to put it back." },
       { action: "A 2 on peg 3", detail: "equals a 3 on peg 2.", helpOnly: true },
       { action: "Dark iron weights", detail: "with a lock are fixed.", helpOnly: true },
+      { action: "Hangs are limited:", detail: "each scale allows its weights plus 4 / 5 / 6 more hangs (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
     ],
-    score: "Each balanced scale scores, in any order: 20, 35 and 75 (any two at most 110). All three = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: "Each balanced scale scores, in any order: 20, 35 and 75 (any two at most 110). All three = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. A scale that runs out of hangs scores nothing.",
   },
   wordslide: {
     goal: "Slide rows and columns until every row is a word.",
@@ -171,8 +172,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four equations,", detail: "each harder. Next skips." },
       { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
       { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
+      { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
     ],
-    score: "Stages: 20 / 30 / 35 / 45, in any order (the best three = 110). All four: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: "Stages: 20 / 30 / 35 / 45, in any order (the best three = 110). All four: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. An equation still wrong after 3 tries scores nothing.",
   },
   chaincalc: {
     goal: "Work out the final number in the chain.",
@@ -218,7 +220,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't guess:", detail: "early taps are false starts." },
       { action: "False starts:", detail: "a tap on a decoy colour or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
     ],
-    score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
+    score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.",
   },
   gonogo: {
     goal: "Tap every gold circle; ignore the rest.",
@@ -320,7 +322,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
       { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
     ],
-    score: "150 at 20 ms average error or closer, −27 per 100 ms more down to 74 at 300 ms, then falling evenly to 0 at 500 ms; misses count 500 ms.",
+    score: "150 at 20 ms average error or closer, −27 per 100 ms more down to 101 at 200 ms, then falling evenly to 0 at 325 ms; misses count 500 ms.",
   },
   countup: {
     goal: "Count the shapes each question asks for.",
@@ -467,8 +469,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Undo or Reset", detail: "if you get stuck." },
       { action: "Pour", detail: "onto the same colour or an empty flask; as many layers move as fit (5 per flask).", helpOnly: true },
       { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
+      { action: "Pours are limited", detail: "(the counter). Undo and Reset don't give a pour back; out of pours, the board ends.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × flasks you corked ÷ (colours − 1), less for wasted moves (nothing at 4× the minimum).",
+    score: "Solved = 120 + up to 15 for moves (every pour counts, Undo included: full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished, or out of pours (about 6 over the minimum, rounded up to a 5): 110 × flasks you corked ÷ (colours − 1), less for wasted moves (nothing at 4× the minimum).",
   },
   safe: {
     goal: "Find the four-digit code that fits every clue.",
@@ -497,8 +500,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Every ball slides", detail: "until it hits something." },
       { action: "A ball on its target", detail: "locks and becomes a wall." },
       { action: "A locked ball", detail: "can help or block the others.", helpOnly: true },
+      { action: "Tilts are limited", detail: "(the counter). Undo and Reset don't give a tilt back; out of tilts, the board ends.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × balls you parked ÷ 3 (about 37 each), less for wasted moves (nothing at 4× the minimum).",
+    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished, or out of tilts (about 6 over the minimum, rounded up to a 5): 110 × balls you parked ÷ 3 (about 37 each), less for wasted moves (nothing at 4× the minimum).",
   },
   chain: {
     goal: "Tap 40 charms, following the cycle.",
@@ -548,8 +552,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a colour", detail: "to repaint your region." },
       { action: "Your region grows", detail: "into touching cells of it." },
       { action: "You start", detail: "from the top-left corner." },
+      { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise 110 × cells you flooded beyond the start ÷ cells left, less for wasted moves (nothing at 4× par).",
+    score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × cells you flooded beyond the start ÷ cells left, in full up to par moves, half at par + 1 and nothing at the limit (par + 2), so running out of moves scores 0.",
   },
   stroke: {
     goal: "Trace every line in one stroke.",
@@ -679,7 +684,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         helpOnly: true,
       },
     ],
-    score: bandHelp("Your dart total: rings 10 in the centre down to 1 (an inner bull 12), plus +1, +2 or +3 for each balloon popped on the way in.", BULLSEYE_V4_BAND_CURVE),
+    score: bandHelp(`Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, BULLSEYE_V4_BAND_CURVE),
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -854,7 +859,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles drop faster", detail: "every 18 seconds; Qu counts as two letters.", helpOnly: true },
       { action: "If a new tile can't fit", detail: "into a full column, the run ends.", helpOnly: true },
     ],
-    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11; score = 150 × points ÷ par (30), capped at 150.",
+    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11 (a Qu tile counts as two letters); score = 150 × points ÷ par (30), capped at 150.",
   },
   tendrop: {
     goal: "Make the running total hit each target.",
@@ -876,8 +881,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Unlimited shots,", detail: "no reload.", helpOnly: true },
       { action: "Later on, two fly at once", detail: "- keep watching both edges.", helpOnly: true },
       { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
+      { action: "Aim, don't spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
     ],
-    score: "5 per orange, 10 per gold, −10 per bird. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
+    score: "5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
   },
   whack: {
     goal: "Bonk gophers whose hats match the banner.",
@@ -964,7 +970,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads - give them green before they reach the line.", helpOnly: true },
       { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: bandHelp("Each car counts 2 and each bus 3; an ambulance through +4, one stopped −4; a driver who gives up −1.", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
+    score: bandHelp("Each car counts 2 units and each bus 3; an ambulance through adds 4 units and one stopped takes 4 off; a driver who gives up takes 1 unit off (never below 0 units).", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
   },
   inkbridge: {
     goal: "Roll the coin into the pot.",
@@ -994,7 +1000,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "- it takes the next hit for you.", helpOnly: true },
       { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "- every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
     ],
-    score: bandHelp("Each atom hit counts 1; each life lost takes 5 off.", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
+    score: bandHelp("Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
   },
   orbit: {
     goal: "Fly planet to planet to the sun.",
@@ -1103,8 +1109,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
       { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
       { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
+      { action: "Moves are limited", detail: "to about 3× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
     ],
-    score: "Puzzles solved in order: 30 / 35 / 45 (three = 110). All four: 120 + up to 15 for moves (each puzzle full at the fewest possible, none at twice that) + up to 15 for speed (the full 15 if you finish with at least half the time left).",
+    score: "Puzzles solved in order: 30 / 35 / 45 (three = 110). All four: 120 + up to 15 for moves (each puzzle full at the fewest possible, none at twice that) + up to 15 for speed (the full 15 if you finish with at least half the time left). A puzzle that runs out of moves (about 3× the fewest, rounded up to a 5) ends the run there.",
   },
   checkout: {
     goal: "Score exactly the target with your darts.",

@@ -287,6 +287,10 @@ export interface EquationPuzzleData {
   stages: EquationStage[];
   /** Server-side only until reveal: the one operator set per stage. */
   operators?: Operator[][];
+  /** Try limit revision (moveLimits.ts, 13 Oct 2026): 1 = `tryLimit` full wrong tries per equation, recorded in the answer. Absent = no limit. */
+  equationRev?: number;
+  /** Full operator sets a player may try on each equation (equationRev 1). */
+  tryLimit?: number;
 }
 
 export const EQUATION_TIME_MS = 90_000;
@@ -654,6 +658,22 @@ export interface RoundRevealData {
   /** Compact correct-answer text for the result header, when the type has one. */
   correctAnswer: string | null;
   players: PlayerRoundDetail[];
+  /**
+   * True while the round still takes late answers (the reveal phase): `players`
+   * holds only the caller's own detail. Fetch again once the round closes.
+   */
+  partial?: boolean;
+  /**
+   * Reveal phase, arcade rounds: where each other player's run ended on the
+   * reveal track (the reveal's progress axis only, never their answer).
+   */
+  progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string } }[];
+  /**
+   * Reveal phase, caller has no answer in yet: no answer detail at all (only
+   * the public puzzle), so it can't be sent as a late answer. Fetch again once
+   * the caller's answer is stored or the round closes.
+   */
+  awaitingAnswer?: boolean;
 }
 
 export const ROUND_MS = 30_000;
@@ -906,6 +926,8 @@ export interface CountUpPuzzleData {
   stages: CountUpStage[];
   /** Server-side only: how many shapes match each stage's question. */
   counts?: number[];
+  /** Count range revision (13 Oct 2026): 1 = the wider per-tray ranges (`COUNTUP_STAGE_COUNTS_REV1`). Generation only; grading is unchanged. */
+  countRev?: number;
 }
 
 export const COUNTUP_STAGE_SIZES = [50, 80, 110] as const;
@@ -1525,6 +1547,10 @@ export interface TubesPuzzleData {
   minMoves?: number;
   /** Server-side only: one shortest pour list, as `0>3,1>2`. */
   solution?: string;
+  /** Pour limit revision (moveLimits.ts, 13 Oct 2026): 1 = Undo and Reset are sent as `u` / `r` and every pour counts toward `pourLimit`. Absent = no limit. */
+  tubesRev?: number;
+  /** Pours allowed (tubesRev 1); public, rounded so it never shows the minimum. */
+  pourLimit?: number;
 }
 
 /* ============================= Safe Cracker ============================= */
@@ -1641,6 +1667,10 @@ export interface GravityPuzzleData {
   minMoves?: number;
   /** Server-side only: one shortest tilt list, as `URDL`. */
   solution?: string;
+  /** Tilt limit revision (moveLimits.ts, 13 Oct 2026): 1 = at most `tiltLimit` tilts count. Absent = no limit. */
+  gravityRev?: number;
+  /** Tilts allowed (gravityRev 1); public, rounded so it never shows the minimum. */
+  tiltLimit?: number;
 }
 
 /* ======================= Don't Break the Chain ========================== */
@@ -1658,6 +1688,11 @@ export const CHAIN_CYCLE = 3;
 export const CHAIN_LINK_POINTS = 3.5;
 export const CHAIN_FINISH_BONUS = 10;
 export const CHAIN_RULES_VERSION = 2;
+/**
+ * Finish-bonus time (13 Oct 2026): stamped rounds take time left as no more than
+ * the replayed last tap allows (45 s less its time), never the claimed time alone.
+ */
+export const CHAIN_TIME_REV = 1;
 /** Momentum windows, in ms, to make the given link after the previous one. */
 export const CHAIN_MOMENTUM_MS = [
   { upTo: 13, ms: 3_000 },
@@ -1704,6 +1739,8 @@ export interface ChainPuzzleData {
   type: "chain";
   /** Versioned rules; unversioned stored boards retain their original rules. */
   rulesVersion?: number;
+  /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
+  chainTimeRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
@@ -1836,6 +1873,10 @@ export interface FloodPuzzleData {
   par: number;
   /** Server-side only: one route that floods the board in par moves. */
   solution?: number[];
+  /** Move limit revision (moveLimits.ts, 13 Oct 2026): 1 = at most `moveLimit` taps count. Absent = no limit. */
+  floodRev?: number;
+  /** Taps allowed (floodRev 1). */
+  moveLimit?: number;
 }
 
 /* ============================== One-Stroke ============================== */
@@ -2201,6 +2242,10 @@ export interface BalancePuzzleData {
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
+  /** Placement limit revision (moveLimits.ts, 13 Oct 2026): 1 = harder small scales, `placeLimits` hangs per scale, the hang counts recorded in the answer. Absent = no limit. */
+  balanceRev?: number;
+  /** Hangs allowed per scale (balanceRev 1). */
+  placeLimits?: number[];
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2394,8 +2439,10 @@ export interface MeasureBoardData {
 
 export interface MeasurePuzzleData {
   type: "measure";
-  /** Rules revision; 1 = the first rules. */
+  /** Rules revision; 1 = the first rules; 2 = a per-board move limit (`moveLimits`, moveLimits.ts, 13 Oct 2026). */
   measureRev: number;
+  /** Moves allowed per board (measureRev 2); public, rounded so it never shows the minimum. */
+  moveLimits?: number[];
   boards: MeasureBoardData[];
   /** Breadth-first minimum moves per board — private until the reveal. */
   minMoves?: number[];

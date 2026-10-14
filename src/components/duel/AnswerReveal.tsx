@@ -3,7 +3,7 @@ import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
-import { ArcadeReveal, type RevealPlayer } from "@/components/duel/ArcadeReveal";
+import { ArcadeReveal, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
@@ -227,6 +227,7 @@ export function AnswerReveal({
           myAnswer={myAnswer}
           myScore={myScore}
           nearMissLine={nearMiss(puzzle.type, myExtra)}
+          costRows={storedCostRows(puzzle.type, myExtra)}
           personalBest={personalBest}
           round={round}
           myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}
@@ -260,6 +261,7 @@ export function AnswerReveal({
               timeLimitMs={puzzleTimeLimitMs(puzzle)}
               validRows={Array.isArray(myExtra?.["validRows"]) ? (myExtra["validRows"] as number[]) : undefined}
               scoreParts={storedScoreParts(myExtra)}
+              myExtra={myExtra ?? null}
             />
           ) : (
             <div className="flex justify-center">

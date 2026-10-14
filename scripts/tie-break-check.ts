@@ -13,7 +13,11 @@
  *    as the original formula did;
  *  - equal totals with equal times still draw and share a position;
  *  - Mixed Signals stores its finishing time from the sim's finishing tick on
- *    stamped rounds (0 before), and its reveal bonus is the bonus in the score.
+ *    stamped rounds (0 before), and its reveal bonus is the bonus in the score;
+ *  - Play again's saved winner (the history entry restart_duel_room appends,
+ *    which breaks equal points by slot) is the standings' winner on stamped
+ *    rooms, through the real rematch code against an in-memory database;
+ *    older rooms keep the entry the reset saved.
  *
  *   bun scripts/tie-break-check.ts
  */
@@ -29,6 +33,9 @@ import {
 } from "../src/lib/arcade/colourClash";
 import { TICKS_PER_SECOND, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { buildStroop } from "../src/puzzles/stroop";
+import { recordTieWinnerInHistory, tieWinnerRecord } from "../src/lib/duel/historyWinner.server";
+import { readFileSync } from "node:fs";
+import { memoryDb } from "./fixtures/memoryDb";
 
 let failures = 0;
 let passes = 0;
@@ -295,6 +302,64 @@ console.log(`  Mixed Signals: the old linear line would have differed on ${bonus
 const idle = gradeAnswer({ ...buildStroop(), seed: 3, tieRev: TIE_REV } as unknown as PuzzleData, "", 0);
 check(idle.storedMs === 0 && roundTimeUsedMs(row(1, 1, 0, idle.storedMs), tieRoundFor({ type: "stroop", tieRev: TIE_REV } as unknown as PuzzleData)) === 75_000,
   "Mixed Signals: an unfinished run used the whole 75 s run");
+
+/* ---------------- Play again's saved winner ---------------- */
+/** restart_duel_room's ranking, written out from the SQL: points, then player slot. */
+function rpcWinner(players: DuelPlayerRow[], rows: RoundResultRow[]): { winner: string; score: number } {
+  const ranked = players
+    .map((p) => ({ p, points: rows.filter((r) => r.player_slot === p.player_slot).reduce((a, r) => a + r.score, 0) }))
+    .sort((a, b) => b.points - a.points || a.p.player_slot - b.p.player_slot);
+  return { winner: ranked[0]!.p.display_name, score: ranked[0]!.points };
+}
+{
+  // Slots 1 and 2 level on points; slot 2 used less time, so the standings put it first.
+  const level = [...rowsFor(1, p2Used, scores), ...rowsFor(2, p1Used, scores), ...rowsFor(3, p1Used, scores.map((x) => x - 10))];
+  const trio = [player(1), player(2), player(3)];
+  const earlier = { winner: "P3", date: "2026-10-12T00:00:00Z", score: 400, round_order: [] };
+  const room = { puzzles_public: roomPuzzles, round_count: 7, tournament_history: [earlier] };
+  const top = standings(trio, level, 7, undefined, tie)[0]!;
+  const saved = rpcWinner(trio, level);
+  check(top.slot === 2 && saved.winner === "P1", `saved winner: the fixture ties on points (standings ${top.name}, reset ${saved.winner})`);
+  const record = tieWinnerRecord(room as never, trio, level);
+  check(record?.winner === top.name && record.score === top.total && record.historyIndex === 1,
+    `saved winner: tieRev room records the standings' winner (${JSON.stringify(record)})`);
+  // The reset appends its entry; Play again then writes the standings' winner over it.
+  const appended = { ...saved, date: "2026-10-13T00:00:00Z", round_order: ["groups"], word_match_words: [] };
+  const db = memoryDb({ duels: [{ id: "room", status: "waiting", tournament_history: [earlier, appended] }], round_results: level.map((r) => ({ ...r })) });
+  const before = JSON.stringify(db.tables["round_results"]);
+  check(await recordTieWinnerInHistory(db.client, "room", record!), "saved winner: written after the reset");
+  const history = db.tables["duels"]![0]!["tournament_history"] as Record<string, unknown>[];
+  const hist = history[1]!;
+  check(
+    hist["winner"] === standings(trio, level, 7, undefined, tie)[0]!.name && hist["score"] === top.total &&
+      hist["date"] === appended.date && JSON.stringify(hist["round_order"]) === JSON.stringify(appended.round_order),
+    `saved winner: the history entry matches the standings (${JSON.stringify(hist)})`,
+  );
+  check(JSON.stringify(history[0]) === JSON.stringify(earlier), "saved winner: earlier entries untouched");
+  check(JSON.stringify(db.tables["round_results"]) === before && db.writes.every((w) => w.table === "duels"), "saved winner: round scores never written");
+  // Guards: only the entry the reset just appended, only in the lobby.
+  const writes = db.writes.length;
+  check(!(await recordTieWinnerInHistory(db.client, "room", { ...record!, historyIndex: 0 })), "saved winner: refuses another entry");
+  db.tables["duels"]![0]!["status"] = "in_progress";
+  check(!(await recordTieWinnerInHistory(db.client, "room", record!)), "saved winner: refuses unless the room is back in its lobby");
+  check(db.writes.length === writes, "saved winner: refused calls write nothing");
+  // Still level after the tie-break time: the table lists the lower slot first, as the reset does.
+  const even = [...rowsFor(1, p1Used, scores), ...rowsFor(2, p1Used, scores)];
+  const evenRecord = tieWinnerRecord(room as never, [player(1), player(2)], even);
+  check(evenRecord?.winner === standings([player(1), player(2)], even, 7, undefined, tie)[0]!.name && evenRecord?.winner === rpcWinner([player(1), player(2)], even).winner,
+    "saved winner: a full draw keeps the lower slot, as the standings list it");
+  // Older rooms keep the reset's saved result.
+  const unstamped = roomPuzzles.map((p) => ({ ...p, tieRev: undefined }));
+  const mixed = roomPuzzles.map((p, i) => (i === 3 ? { ...p, tieRev: undefined } : p));
+  check(tieWinnerRecord({ ...room, puzzles_public: unstamped } as never, trio, level) === null &&
+    tieWinnerRecord({ ...room, puzzles_public: mixed } as never, trio, level) === null,
+    "saved winner: older rooms (unstamped or partly stamped) keep the saved result");
+  // Wiring: read before the reset, written after it; a forfeit's own record wins.
+  const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
+  const rematch = server.slice(server.indexOf("export const rematchFn"), server.indexOf("export const checkWordFn"));
+  check(/const tieWinner = forfeit\s*\?\s*null\s*:\s*tieWinnerRecord\(room, roomPlayers,[\s\S]*client\.rpc\("restart_duel_room"[\s\S]*recordTieWinnerInHistory\(client, room\.id, tieWinner\)/.test(rematch),
+    "saved winner: Play again reads the standings' winner before the reset and records it after (not on a forfeit)");
+}
 
 console.log(`tie-break-check: ${passes} passed, ${failures} failed`);
 if (failures) {

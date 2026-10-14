@@ -319,7 +319,7 @@ if (want("orbit")) {
   }
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
-  ok(/data-game-controls="checkpoint" className="flex h-16 shrink-0 items-center justify-center pb-4"/.test(footer) && /className="h-11 /.test(footer), "SET CHECKPOINT sits 16 px up from the bottom edge, still 44 px tall");
+  ok(/data-game-controls="checkpoint" className="flex h-\[76px\] shrink-0 items-center justify-center pb-7"/.test(footer) && /className="h-11 /.test(footer), "SET CHECKPOINT sits 28 px up from the bottom edge, still 44 px tall");
 }
 
 /* =============================== 2d. Grappler =============================== */
