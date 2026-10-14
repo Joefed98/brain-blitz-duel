@@ -305,7 +305,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
         <div className="relative" style={NO_TOUCH}>
           <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} plinth />
-          <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4 }}>
+          {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
+              placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
+          <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>
             {Array.from({ length: board.rows }, (_, r) => <div key={r} className="flex" style={{ gap: 4 }}>
               {Array.from({ length: r + 1 }, (_, c) => { const cell = npIndex(r, c); const tray = placements[cell]; return <div key={c} data-np-cell={board.givens[cell] == null ? cell : undefined} className={`rounded-md ${tray !== undefined && selected?.tray === tray ? "ring-2 ring-foreground" : ""}`} style={{ width: cellW, height: cellH }} onPointerDown={tray !== undefined ? (e) => start(e, tray, cell) : undefined} />; })}
             </div>)}
@@ -316,7 +318,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}np-quarry flex w-full shrink-0 flex-wrap content-start justify-center gap-1.5 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
         {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 21 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
       </div>
-      {drag?.moved && <div className="np-stone np-loose np-ghost pointer-events-none fixed z-50 font-mono" style={{ width: cellW, height: cellH, fontSize, left: drag.x - cellW / 2, top: drag.y - cellH - 12 }}>{board.tray[drag.tray]}</div>}
+      {/* position is inline: .np-stone's position: relative (NP_CSS, injected after the utilities) beat the fixed class, so the
+          ghost joined the column, pushed the pyramid up mid-drag and drops landed between cells. */}
+      {drag?.moved && <div className="np-stone np-loose np-ghost pointer-events-none z-50 font-mono" style={{ position: "fixed", width: cellW, height: cellH, fontSize, left: drag.x - cellW / 2, top: drag.y - cellH - 12 }}>{board.tray[drag.tray]}</div>}
     </div>
   );
 }

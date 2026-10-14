@@ -185,3 +185,26 @@ Every honest band moves by at most 1 except Colour Flood's average (98 → 96: a
 **What the server verifies.** Colour Flood, Polypotions (Undo and Reset now in the log), Topsy-Turvy and Brimful send every move, and the server replays only the moves inside the stored limit. Counterweight and Operator send the final placement / operators plus the phone's hang / try counts; the server refuses a count over the limit, but the count is the phone's word (a modified phone could send fewer). Counterweight's harder small scales are verifiable: with no limit at all, random hanging scores a median of 20 (was 38–55).
 
 **Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).
+
+## Number tuning (14 Oct 2026)
+
+Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 100 / 125 / 140–150** (average / good / great / near-perfect), with random play at or below about 60. Both changes are stamped and both clocks are stored on the puzzle, so stored rounds keep their 90 s / 75 s and their rules (`move-limits-check`, `number-batch-check`).
+
+| Game | Change (new rounds) | Stamp |
+|---|---|---|
+| Counterweight | A fourth scale, slightly harder: 10 notches (5 each side, distances 1–5), three fixed and five tray weights, 12 hangs (limits 6 / 8 / 10 / 12). 120 s (was 90). Scales 15 / 25 / 30 / 55 in any order (any three ≤ 110); all four = 120 + PAR(30). | `balanceRev 2`, `timeLimitMs` 120,000 |
+| Ballpark | 90 s (was 75). Full 8 within 1 % (was 2 %), falling evenly to 0 at 10 % (was 8 %); a wild placement (25 % or more) still costs 1. The speed part is PAR(30) × the share of numbers placed within 1 % (was × accuracy ÷ 120). | `numlineRev 2`, `timeLimitMs` 90,000 |
+
+**Bands, median per level, 30 room seeds (5001–5030), before (main, 14 Oct) → after** (finish rate after in brackets), and the spam strategies' median / max. Measured with `bun scripts/puzzle-fairness.ts balance numline --seeds=30` on main and on this change.
+
+| Game | Average | Good | Great | Near-perfect | Random / spam median / max |
+|---|---|---|---|---|---|
+| Counterweight | 55 → **70** (0/30) | 145 → **126** (23/30) | 150 → **142** (30/30) | 150 → **150** (30/30) | random hanging 0 / 75 → **0 / 80**; fast 0 / 20 → **0 / 30**; place once 0 → 0 |
+| Ballpark | 59 → **72** (6/30) | 116 → **105** (30/30) | 144 → **126** (30/30) | 150 → **142** (30/30) | random 2 / 24 → **5 / 27**; all middle 4 / 12 → **5 / 12**; either end 0 → 0 |
+
+**How they were set.**
+
+- **Counterweight.** The kit keeps its 5 s per weight on the 8-notch scales; the wide scale takes 10 s a weight (five weights over seven free notches at distances to 5 is a search, not a sum). At 6.5 s good players finished every round (good 135), at 8 s 131, at 10 s 126 (23 finishes in 30) and at 12 s half finished (median 70 or 120 either side). Good players either finish (121–138) or stop on the wide scale with 70, so their band is two-humped: median 126, mean 115. Average players balance the three 8-notch scales and run out of time on the fourth, which the points put at 15 + 25 + 30 = **70**. Reaching the good target of 100 would need a fourth scale that good players fail in about half their rounds, which is more than "slightly harder". Random hanging stays at a median of 0: the hang limits hold and the wide scale has many arrangements but 12 hangs over five weights rarely land one.
+- **Ballpark.** At 90 s with the rev-1 curve the bands were 70 / 122 / 146 / 150: the longer clock lets everyone finish, and the speed part scaled by accuracy lets rough finishes keep most of it. Linear curves alone could not separate good from average (full within 0.5–1 %, zero at 8–15 %: good 107–126 whenever average reached 70). Scaling the speed part by the share placed within 1 % does: good players (about 2.5 % typical error) keep 10–15 of the 30, near-perfect players nearly all of it. Full within 1 % and zero at 10 % gave 72 / 105 / 126 / 142 (60 seeds: 70 / 104 / 125 / 142, random 5 / 37). Spam stays at a median of 5 or less.
+
+Rules a, c and e still pass for both (nothing scores 0; Counterweight's lowest finish 121 against its highest unfinished 80; every intro SCORE line and "?" help states the numbers).

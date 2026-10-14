@@ -114,16 +114,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "10 per stage; clear the whole grid to finish for the time bonus (the full bonus if you finish with at least half the time left).",
   },
   balance: {
-    goal: "Balance each of the three scales.",
+    goal: "Balance each of the four scales.",
     how: [
       { action: "Tap a kettlebell,", detail: "then a notch on the beam." },
       { action: "Further out", detail: "counts for more." },
       { action: "Double-tap a kettlebell", detail: "to put it back." },
       { action: "A 2 on peg 3", detail: "equals a 3 on peg 2.", helpOnly: true },
       { action: "Dark iron weights", detail: "with a lock are fixed.", helpOnly: true },
-      { action: "Hangs are limited:", detail: "each scale allows its weights plus 4 / 5 / 6 more hangs (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
+      { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
+      { action: "Hangs are limited:", detail: "6 / 8 / 10 / 12 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
     ],
-    score: "Each balanced scale scores, in any order: 20, 35 and 75 (any two at most 110). All three = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. A scale that runs out of hangs scores nothing.",
+    score: "Each balanced scale scores, in any order: 15, 25, 30 and 55 (any three at most 110). All four = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. A scale that runs out of hangs scores nothing.",
   },
   wordslide: {
     goal: "Slide rows and columns until every row is a word.",
@@ -1135,7 +1136,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
       { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
     ],
-    score: "Up to 8 per number: full 8 within 2% of the line, falling evenly to 0 at 8% away; 25% or more away costs 1. With numbers unplaced, at most 110. Place all 15 for up to 30 more for speed (the full 30 with at least half the time left), multiplied by your accuracy share (points ÷ 120).",
+    score: "Up to 8 per number (120 for all 15): full 8 within 1% of the line, falling evenly to 0 at 10% away; 25% or more away costs 1. With numbers unplaced, at most 110. Place all 15 for up to 30 more for speed (the full 30 with at least half the time left), multiplied by the share of numbers placed within 1%.",
   },
   numpyramid: {
     goal: "Each cell is the sum of the two below it.",
