@@ -4,6 +4,7 @@
  * and the router to render, so their phase layout is not covered here.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
@@ -14,7 +15,7 @@ import { PUZZLE_REGISTRY } from "../src/lib/duel/registry";
 import { wordSearchPuzzle } from "../src/puzzles/wordSearch";
 
 const active = Object.entries(PUZZLE_REGISTRY).filter(([, definition]) => !definition.retired);
-const LOCKED_SHELL = /no-overscroll h-full overflow-hidden/;
+const LOCKED_SHELL = /no-overscroll (?:game-viewport|h-full) overflow-hidden/;
 for (const [width, height] of [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const) {
   const header = <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact />;
   for (const [type] of active) {
@@ -23,8 +24,10 @@ for (const [width, height] of [[390, 700], [375, 667], [390, 844], [430, 932], [
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden" />
       </PhoneShell>,
     );
-    // Play shells fill the locked root rather than sizing themselves to the viewport.
+    // Play shells are the dynamic viewport (.game-viewport: 100dvh, never vh) and the column fills them.
     assert.equal((markup.match(new RegExp(LOCKED_SHELL, "g")) ?? []).length, 2, `${type}: outer and column locked`);
+    assert.match(markup, /no-overscroll game-viewport overflow-hidden/, `${type}: shell is the dynamic viewport`);
+    assert.match(markup, /no-overscroll h-full overflow-hidden/, `${type}: column fills the shell`);
     assert.doesNotMatch(markup, /100vh|min-h-\[100dvh\]/);
     assert.equal((markup.match(/pad-game-safe/g) ?? []).length, 1, `${type}: one safe-area owner`);
     assert.match(markup, /game-screen/);
@@ -38,6 +41,18 @@ const lobby = renderToStaticMarkup(<PhoneShell><span /></PhoneShell>);
 assert.match(lobby, /min-h-\[100dvh\]/);
 assert.doesNotMatch(lobby, LOCKED_SHELL);
 assert.doesNotMatch(lobby, /pad-game-safe|game-screen/);
+
+// Bottom clearance (14 Oct 2026): the shell is the dynamic viewport (100% only where dvh is
+// unsupported), the column pads the home-bar inset plus 16px under the bottom controls, and
+// the viewport reaches the edges so env(safe-area-inset-*) is reported at all.
+{
+  const css = readFileSync("src/styles.css", "utf8");
+  assert.match(css, /\.game-viewport \{\s*height: 100%;\s*\}\s*@supports \(height: 100dvh\) \{\s*\.game-viewport \{\s*height: 100dvh;/);
+  assert.match(css, /@utility pad-game-safe \{[^}]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 16px\);/);
+  assert.doesNotMatch(css, /\b100vh\b/);
+  assert.match(readFileSync("src/routes/__root.tsx", "utf8"), /content: "width=device-width, initial-scale=1, viewport-fit=cover"/);
+  console.log("PASS play shell: 100dvh shell, safe-area inset + 16px under the controls, viewport-fit=cover");
+}
 
 // Mount real shells: a play screen locks the page (html/body game-lock) and
 // scrolls to the top; nested locks are counted; a lobby shell never locks.

@@ -25,6 +25,8 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "arcade-play-check.ts": 1_500_000,
   // Five stored rounds in the replay player in headless Chromium, plus starting a dev server.
   "replay-play-check.ts": 900_000,
+  // 73 active games × ~10 s each in headless Chromium (4 viewports each), plus starting a dev server.
+  "bottom-clearance-check.ts": 1_200_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);

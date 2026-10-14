@@ -1,0 +1,62 @@
+/*
+ * Bottom clearance (14 Oct 2026, layout only; GAME_COLUMN_LAYOUT 3).
+ *
+ * The shared game column already ends 16px above the visible bottom plus the
+ * home-bar inset (pad-game-safe, .game-viewport = 100dvh). These games lift
+ * their bottom controls further: extra padding under the stage column, so the
+ * flexible board gives up that height (or, once capped, the centred board moves
+ * up by half of it) and the controls rise. Scoped to .game-column-lifted: live
+ * stages carry it, intro demos only when recorded on layout 3, so older recorded
+ * touches still land on the layout they were recorded against.
+ * scripts/bottom-clearance-check.ts proves every control clears the visible
+ * bottom by 12px at 375x667 and 390x844, with and without an 80px toolbar.
+ */
+.game-column-lifted {
+  --lift-1: 12px;
+  --lift-2: 20px;
+}
+
+/* Raise the board a little and the bottom buttons (Nucleus, Forage). */
+.game-column-lifted [data-stage-column]:is([data-word-polish="wordsmith"], [data-polish="wordhunt"]) {
+  padding-bottom: var(--lift-2);
+}
+
+/* Exact: the large target box gives up the lift, so the tiles, operators and
+   Undo / Reset / Lock rise. */
+.game-column-lifted [data-polish="target"][data-stage-column] {
+  padding-bottom: var(--lift-2);
+}
+
+/* Raise Undo / Reset and the other bottom buttons and text. */
+.game-column-lifted [data-stage-column]:is(
+    [data-polish="tilegrid"],
+    [data-polish="trail"],
+    [data-polish="unblock"],
+    [data-logic-stage="lightsout"],
+    [data-logic-stage="tower"],
+    [data-polish="equation"],
+    [data-polish="measure"],
+    [data-checkout-root],
+    [data-polish="maze"],
+    [data-polish="iceslide"],
+    [data-polish="push"],
+    [data-polish="rings"],
+    [data-polish="laser"],
+    [data-logic-stage="sudoku"],
+    [data-logic-stage="safe"],
+    [data-logic-stage="bomb"]
+  ) {
+  padding-bottom: var(--lift-1);
+}
+
+/* Checkout: a larger "Finish on a double · up to 3 darts" line (over the
+   puzzle surface's 14px text rule). */
+.game-column-lifted [data-stage-column] [data-checkout-rule][data-checkout-rule] {
+  height: 22px;
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 0.02em;
+}
+.game-column-lifted [data-stage-column] [data-checkout-rule][data-checkout-rule] span {
+  font-size: inherit;
+}
