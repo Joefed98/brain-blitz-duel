@@ -979,7 +979,13 @@ export const checkWordFn = createServerFn({ method: "POST" })
     await requireParticipant(client, data.roomId, context.userId);
     const room = await getRoom(client, data.roomId);
 
-    if (room.status !== "in_progress" || room.current_round !== data.roundNumber) {
+    // Only while the puzzle is live: during the reveal a lagging player could
+    // otherwise keep probing the private solution before sending a late answer.
+    if (
+      room.status !== "in_progress" ||
+      room.current_round !== data.roundNumber ||
+      room.phase !== "puzzle"
+    ) {
       return { valid: false as const, points: 0, word: "", reason: "That round is over." };
     }
     const pub = room.puzzles_public[data.roundNumber - 1];

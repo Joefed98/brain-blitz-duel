@@ -472,11 +472,13 @@ function DuelScreen() {
     if (!duel || round < 1 || (phase !== "reveal" && phase !== "result" && phase !== "standings"))
       return;
     // A reveal-phase fetch holds only my own answer (late answers are still
-    // accepted then); fetch again once the round has closed for everyone.
+    // accepted then), or nothing at all before my answer is in; fetch again
+    // once my answer is stored or the round has closed for everyone.
     if (
       revealed?.round === round &&
       revealed.tournamentKey === tournamentKey &&
-      (!revealed.data.partial || phase === "reveal")
+      (!revealed.data.partial ||
+        (phase === "reveal" && !(revealed.data.awaitingAnswer && myResult)))
     )
       return;
     let cancelled = false;
@@ -486,7 +488,7 @@ function DuelScreen() {
     return () => {
       cancelled = true;
     };
-  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey, revealed?.data.partial]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey, revealed?.data.partial, revealed?.data.awaitingAnswer, !!myResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
   const musicScreen =
@@ -912,7 +914,7 @@ function DuelScreen() {
           round={round}
           totalRounds={duel.round_count ?? TOTAL_ROUNDS}
           puzzle={currentReveal?.puzzle ?? puzzle}
-          answersReady={!!currentReveal}
+          answersReady={!!currentReveal && !currentReveal.awaitingAnswer}
           myAnswer={myResult?.answer ?? null}
           myCorrect={!!myResult?.is_correct}
           myReactionAvgMs={myResult?.reaction_avg_ms ?? null}

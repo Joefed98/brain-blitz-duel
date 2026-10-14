@@ -662,6 +662,12 @@ export interface RoundRevealData {
    * reveal track (the reveal's progress axis only, never their answer).
    */
   progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string } }[];
+  /**
+   * Reveal phase, caller has no answer in yet: no answer detail at all (only
+   * the public puzzle), so it can't be sent as a late answer. Fetch again once
+   * the caller's answer is stored or the round closes.
+   */
+  awaitingAnswer?: boolean;
 }
 
 export const ROUND_MS = 30_000;

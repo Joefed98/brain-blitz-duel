@@ -46,7 +46,12 @@ the same cutoff as replays (`result`, `standings`, `winner_reveal`, a later roun
 room); a player's own row stays readable. `revealAnswerFn` (`reveal.server.ts`) returns only the
 caller's own detail during the reveal phase, plus where the others' arcade runs ended on the reveal
 track; the phone fetches the reveal and the results again once the round closes
-(`reveal-window-check`).
+(`reveal-window-check`). A player with no answer in gets no answer detail at all during the
+reveal phase (only the public puzzle, `awaitingAnswer`; `duel_secrets` is not read): the correct
+answer would otherwise be sendable as their late answer. Their phone fetches again once their
+answer is stored or the round closes. The word checker (`checkWordFn`), the only other path to a
+round's private solution after the puzzle phase, now works only in the puzzle phase, like
+`checkMovesFn` and `checkGroupFn`.
 
 ## Replay player
 

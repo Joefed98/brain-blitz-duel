@@ -18,9 +18,17 @@
  *     (no other player's answer, summary or score), plus, for arcade rounds,
  *     where the others' runs ended on the track; from the results screen on it
  *     returns every player's detail.
- *  4. Wiring: submit_answer is gated by acceptsAnswers before grading,
+ *  4. A player with no answer in: before the cutoff the reveal carries no
+ *     correct answer and no private solution (duel_secrets is never read);
+ *     once their own answer is stored, or the cutoff passes, it does. Over
+ *     every status, phase and round, whenever the reveal would hand a player
+ *     with no answer the solution, submit_answer no longer takes an answer,
+ *     so a late answer sent after fetching it is refused. The word checker
+ *     (the other path to the private solution) works only in the puzzle phase.
+ *  5. Wiring: submit_answer is gated by acceptsAnswers before grading,
  *     revealAnswerFn goes through loadRoundReveal with the caller's slot, and
- *     the phone fetches the reveal and the results again once the round closes.
+ *     the phone fetches the reveal and the results again once its answer is
+ *     stored or the round closes.
  *
  *   bun scripts/reveal-window-check.ts
  */
@@ -190,7 +198,73 @@ for (const phase of ["reveal", "result", "standings", "winner_reveal"] as DuelPh
   check(done.ok && done.data.players.length === 3, "a finished room reveals everyone");
 }
 
-/* 4: wiring */
+/* 4: a player with no answer in */
+const SECRET = "SECRET-SOLUTION-STEP";
+function noAnswerDb(room: Record<string, unknown>, mineIn: boolean) {
+  const row = (slot: number) => ({
+    duel_id: "r1", round_number: 2, player_slot: slot, answer: `answer-${slot}`, score: 40, is_correct: false,
+    ms_remaining: 0, reaction_avg_ms: null, correct_count: null, errors: null, extra: null,
+  });
+  const store = memoryDb({
+    duels: [],
+    duel_secrets: [{ duel_id: "r1", puzzles_private: [{}, { solution: [SECRET] }] }],
+    // Slot 2 has answered; slot 1 (the caller) only when mineIn.
+    round_results: mineIn ? [row(1), row(2)] : [row(2)],
+  });
+  const reads: string[] = [];
+  const client = { from: (table: string) => (reads.push(table), store.client.from(table)) };
+  const fullRoom = {
+    id: "r1",
+    puzzles_public: [{ type: "target", numbers: [1, 2], target: 3 }, { type: "target", numbers: [2, 3, 4], target: 24 }],
+    ...room,
+  } as unknown as DuelRow;
+  return { client, reads, room: fullRoom };
+}
+{
+  const reveal = noAnswerDb({ status: "in_progress", current_round: 2, phase: "reveal" }, false);
+  const res = await loadRoundReveal(reveal.client, reveal.room, 2, 1);
+  const json = JSON.stringify(res);
+  check(res.ok && res.data.awaitingAnswer === true && res.data.partial === true, "no answer, reveal phase: marked awaiting so the phone fetches again");
+  check(res.ok && res.data.correctAnswer === null && res.data.players.length === 0 && !json.includes(SECRET),
+    `no answer, reveal phase: no correct answer or solution (${json.slice(0, 160)})`);
+  check(!reveal.reads.includes("duel_secrets"), "no answer, reveal phase: the private solution is never read");
+  check(res.ok && JSON.stringify(res.data.puzzle) === JSON.stringify(reveal.room.puzzles_public[1]), "no answer, reveal phase: only the public puzzle the phone already holds");
+  check(acceptsAnswers(reveal.room, 2), "no answer, reveal phase: this is the late-answer window");
+
+  const answered = noAnswerDb({ status: "in_progress", current_round: 2, phase: "reveal" }, true);
+  const mine = await loadRoundReveal(answered.client, answered.room, 2, 1);
+  check(mine.ok && !mine.data.awaitingAnswer && JSON.stringify(mine).includes(SECRET) && mine.data.players.map((p) => p.playerSlot).join() === "1",
+    "answered, reveal phase: the solution and my own detail, as before");
+
+  for (const phase of ["result", "standings", "winner_reveal"] as DuelPhase[]) {
+    const after = noAnswerDb({ status: "in_progress", current_round: 2, phase }, false);
+    const res2 = await loadRoundReveal(after.client, after.room, 2, 1);
+    check(res2.ok && !res2.data.awaitingAnswer && !res2.data.partial && JSON.stringify(res2).includes(SECRET) && res2.data.players.map((p) => p.playerSlot).join() === "2",
+      `no answer, ${phase}: the full reveal once late answers stop`);
+  }
+  const finished = noAnswerDb({ status: "finished", current_round: 2, phase: "reveal" }, false);
+  const res3 = await loadRoundReveal(finished.client, finished.room, 2, 1);
+  check(res3.ok && JSON.stringify(res3).includes(SECRET), "no answer, finished room: the full reveal");
+
+  // Fetch, then answer: wherever a player with no answer can read the solution,
+  // submit_answer refuses (and wherever it still takes answers, the reveal holds it back).
+  let exposedWhileOpen = 0;
+  let exposures = 0;
+  for (const status of STATUSES)
+    for (const phase of PHASES)
+      for (const current of [1, 2, 3]) {
+        const state = noAnswerDb({ status, current_round: current, phase }, false);
+        const got = await loadRoundReveal(state.client, state.room, 2, 1);
+        const exposed = got.ok && JSON.stringify(got).includes(SECRET);
+        if (exposed) exposures++;
+        if (exposed && acceptsAnswers(state.room, 2)) exposedWhileOpen++;
+        if (acceptsAnswers(state.room, 2) && state.reads.includes("duel_secrets")) exposedWhileOpen++;
+      }
+  check(exposures > 0, "the fetch-then-answer sweep does reach states where the solution is shown");
+  check(exposedWhileOpen === 0, `a player with no answer could read the solution and still send a late answer in ${exposedWhileOpen} states`);
+}
+
+/* 5: wiring */
 {
   const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
   const submit = server.slice(server.indexOf("export const submitAnswerFn"), server.indexOf("export const readyUpFn"));
@@ -200,7 +274,20 @@ for (const phase of ["reveal", "result", "standings", "winner_reveal"] as DuelPh
   check(/return loadRoundReveal\(client, room, data\.roundNumber, me\.player_slot\)/.test(reveal), "revealAnswerFn goes through loadRoundReveal with the caller's slot");
   check(!/round_results/.test(reveal), "revealAnswerFn reads no results itself");
   const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
-  check(/!revealed\.data\.partial \|\| phase === "reveal"/.test(route), "the phone fetches the reveal again once the round closes");
+  check(/!revealed\.data\.partial \|\|\s*\(phase === "reveal" && !\(revealed\.data\.awaitingAnswer && myResult\)\)/.test(route),
+    "the phone fetches the reveal again once its answer is stored or the round closes");
+  check(/answersReady=\{!!currentReveal && !currentReveal\.awaitingAnswer\}/.test(route), "an awaiting reveal shows no answer (the reveal waits, the score line shows Scoring…)");
+  const word = server.slice(server.indexOf("export const checkWordFn"), server.indexOf("export const checkMovesFn"));
+  check(/room\.phase !== "puzzle"/.test(word.slice(0, word.indexOf("privatePuzzles("))), "the word checker reads the private solution only in the puzzle phase");
+  for (const fn of ["checkMovesFn", "checkGroupFn"]) {
+    const body = server.slice(server.indexOf(`export const ${fn}`));
+    check(/room\.phase !== "puzzle"/.test(body.slice(0, body.indexOf("privatePuzzles("))), `${fn} reads the private solution only in the puzzle phase`);
+  }
+  const fnsWithSecrets = [...server.matchAll(/export const (\w+Fn)[\s\S]*?(?=export const |$)/g)]
+    .filter((m) => /privatePuzzles\(|duel_secrets/.test(m[0]))
+    .map((m) => m[1]);
+  check(JSON.stringify(fnsWithSecrets.sort()) === JSON.stringify(["checkGroupFn", "checkMovesFn", "checkWordFn", "startRoomFn", "submitAnswerFn"]),
+    `room server functions touching the private solution: ${fnsWithSecrets.join(", ")}`);
   check(/currentReveal\?\.progress\?\.find/.test(route), "the arcade reveal track uses the reveal's progress for the others");
   const hook = readFileSync("src/lib/duel/useDuel.ts", "utf8");
   check(/\[userId, duel\?\.status, duel\?\.current_round, duel\?\.phase\]/.test(hook), "the phone fetches the results again on every phase change");
@@ -213,4 +300,4 @@ if (failures) {
   console.log("FAIL");
   process.exit(1);
 }
-console.log("PASS: no other player's answer is readable (reveal, replays or the round_results policy) while late answers are still accepted");
+console.log("PASS: no other player's answer is readable (reveal, replays or the round_results policy) while late answers are still accepted, and a player with no answer can't read the correct answer or solution until then");

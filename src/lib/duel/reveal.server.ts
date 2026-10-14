@@ -10,13 +10,25 @@
  * phone fetches again on the results screen, where everything is open. The
  * round_results read policy (duel_round_ended) follows the same cutoff.
  *
+ * A caller with no answer in yet gets no answer detail at all until the cutoff
+ * (only the public puzzle, `awaitingAnswer`): the correct answer and the
+ * private solution would let a lagging (or modified) phone send them as its
+ * late answer. Once their own answer is stored, or the cutoff passes, the
+ * reveal is as above; the phone fetches again on either.
+ *
  * The database client is passed in, so scripts/reveal-window-check.ts drives
  * this exact code with an in-memory stand-in.
  */
 import { puzzleDef } from "./registry";
 import { mergePuzzle } from "./secrets";
 import { othersAnswersReadable } from "./answerWindow";
-import type { DuelRow, PlayerRoundDetail, RoundResultRow, RoundRevealData } from "./types";
+import type {
+  DuelRow,
+  PlayerRoundDetail,
+  PuzzleData,
+  RoundResultRow,
+  RoundRevealData,
+} from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -46,14 +58,6 @@ export async function loadRoundReveal(
   }
   const pub = room.puzzles_public[roundNumber - 1];
   if (!pub) return { ok: false, message: "Unknown round." };
-  const { data: secretRow } = await client
-    .from("duel_secrets")
-    .select("puzzles_private")
-    .eq("duel_id", room.id)
-    .maybeSingle();
-  const priv = ((secretRow?.puzzles_private ?? []) as Record<string, unknown>[])[roundNumber - 1];
-  const puzzle = mergePuzzle(pub, priv);
-  const definition = puzzleDef(puzzle.type);
   const { data: resultRows, error } = await client
     .from("round_results")
     .select("*")
@@ -63,6 +67,28 @@ export async function loadRoundReveal(
   if (error) throw new Error(error.message);
   const rows = (resultRows ?? []) as RoundResultRow[];
   const open = othersAnswersReadable(room, roundNumber);
+  // No answer in yet and late answers still accepted: nothing beyond the public
+  // puzzle the phone already holds, and the private solution is never read.
+  if (!open && !rows.some((row) => row.player_slot === mySlot)) {
+    return {
+      ok: true,
+      data: {
+        puzzle: pub as PuzzleData,
+        correctAnswer: null,
+        players: [],
+        partial: true,
+        awaitingAnswer: true,
+      },
+    };
+  }
+  const { data: secretRow } = await client
+    .from("duel_secrets")
+    .select("puzzles_private")
+    .eq("duel_id", room.id)
+    .maybeSingle();
+  const priv = ((secretRow?.puzzles_private ?? []) as Record<string, unknown>[])[roundNumber - 1];
+  const puzzle = mergePuzzle(pub, priv);
+  const definition = puzzleDef(puzzle.type);
   const shown = open ? rows : rows.filter((row) => row.player_slot === mySlot);
   // A reveal must never break the round: a summary that throws falls back.
   const players: PlayerRoundDetail[] = shown.map((result) => {
