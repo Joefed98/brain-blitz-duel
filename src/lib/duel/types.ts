@@ -231,14 +231,26 @@ export interface SpotDifference {
   /** The cells that count as this difference — two when a shape moved. */
   cells: number[];
   label: string;
+  /** spotRev 1: which picture (0 sweet shop, 1 rock pool); absent = picture 0. */
+  scene?: number;
 }
 
 export interface SpotPuzzleData {
   type: "spotdiff";
+  /** Picture 1 (the sweet shop). */
   top: SpotShape[];
   bottom: SpotShape[];
-  /** Server-side only until the reveal: the five differences. */
+  /**
+   * Server-side only until the reveal: the six differences (stored rounds), or on
+   * `spotRev: 1` the twelve, each tagged with its picture (`scene` 0 or 1).
+   */
   differences?: SpotDifference[];
+  /** Two-picture revision (14 Oct 2026): 1 = the sweet shop, then the rock pool, 60 s. */
+  spotRev?: number;
+  /** spotRev 1: picture 2 (the rock pool), drawn from the same shape kinds. */
+  reef?: { top: SpotShape[]; bottom: SpotShape[] };
+  /** spotRev 1 carries its own 60 s clock; stored rounds use SPOT_TIME_MS. */
+  timeLimitMs?: number;
 }
 
 export interface ChainOperation {
@@ -402,6 +414,8 @@ export type ArrowDir = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
 export interface SymbolScanStage {
   target: ArrowDir;
+  /** scanRev 1, grid 3 only: a second target direction (tap eagles facing either). */
+  alsoTarget?: ArrowDir;
   cols: number;
   /** cols × cols cells, row-major. */
   cells: ArrowDir[];
@@ -413,6 +427,8 @@ export interface SymbolScanPuzzleData {
   stages: SymbolScanStage[];
   /** Server-side only until reveal: indices matching each stage's target. */
   targets?: number[][];
+  /** Two-direction revision (14 Oct 2026): 1 = grid 3 has two target directions, rebalanced stage scores. */
+  scanRev?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -930,6 +946,12 @@ export interface CountUpStage {
   shapes: CountUpShape[];
   targetShape: GlyphShape | "hexagon";
   targetColour: GlyphColour;
+  /**
+   * countRev 2, tray 4: a comparison question, "How many more <more> than <less>?",
+   * counting every shape of each colour. The answer is count(more) − count(less);
+   * targetColour is `more` there and targetShape is unused.
+   */
+  compare?: { more: GlyphColour; less: GlyphColour };
 }
 
 export interface CountUpPuzzleData {
@@ -938,8 +960,14 @@ export interface CountUpPuzzleData {
   stages: CountUpStage[];
   /** Server-side only: how many shapes match each stage's question. */
   counts?: number[];
-  /** Count range revision (13 Oct 2026): 1 = the wider per-tray ranges (`COUNTUP_STAGE_COUNTS_REV1`). Generation only; grading is unchanged. */
+  /**
+   * Count revision. 1 (13 Oct 2026) = the wider per-tray ranges (`COUNTUP_STAGE_COUNTS_REV1`),
+   * generation only. 2 (14 Oct 2026) = the same three trays plus a fourth comparison tray,
+   * 60 s, scored on the four-tray weights (attentionRev.ts).
+   */
   countRev?: number;
+  /** countRev 2 carries its own 60 s clock; stored rounds use COUNTUP_TIME_MS. */
+  timeLimitMs?: number;
 }
 
 export const COUNTUP_STAGE_SIZES = [50, 80, 110] as const;

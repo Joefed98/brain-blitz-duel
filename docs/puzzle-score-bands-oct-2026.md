@@ -186,6 +186,31 @@ Every honest band moves by at most 1 except Colour Flood's average (98 → 96: a
 
 **Colour Flood's unfinished rule (Joe's ruling, 14 Oct).** With the limit alone, colour cycling kept 85 and random colours 54–59 on the existing unfinished credit (cycling floods most of the board within par + 2). On `floodRev 1` the waste factor is now 1 up to par, ½ at par + 1 and 0 at the limit (it was 0 at 4× par), so a board that runs out of moves scores 0. Three steps on the same 30 seeds, before the limits → limit only → limit and the new waste factor: average 98 → 98 → **96**, good 146 → 146 → **146**, great 150 → 150 → **150**, near-perfect 150 → 150 → **150**; random colours 2 / s 120 → 54 → **0**, colour cycling 126 → 85 → **0**, random colours 0.5 / s 99 → 59 → **0**. Stored rounds keep the old factor (`move-limits-check`).
 
+## Attention rework (14 Oct 2026): Eagle Eye, Double Take, Tally
+
+Each game gained a harder part and was re-weighted on the puzzle score shape (a finish = 120 + PAR(30), unfinished credit at most 110). Every change is gated on its own stamp, so stored rounds grade as before (`scripts/attention-rework-check.ts`: 770 answers on main's puzzles and 841 on the new stamps grade identically). Formulas: `docs/duelz-scoring-reference.md` section 7; code `src/lib/duel/attentionRev.ts`.
+
+| Game | Change | Stage scores |
+|---|---|---|
+| Eagle Eye (`scanRev 1`) | Grid 3 has two target directions, at least 90° apart, 4–6 eagles each; tap every eagle facing either. Still 30 s. | Grids 40 / 40 / 30 (was 25 / 40 / 45), −3 per wrong tap |
+| Double Take (`spotRev 1`) | Two pictures with their own six differences: the sweet shop, then a new rock pool (pufferfish, crab, seahorse, starfish, shell, fish). 30 s → 60 s, stored on the puzzle. **Next picture** moves on early, no way back. | 10 per difference (was 22), −4 per wrong tap (was 5); a finish needs all 12 with at most 5 wrong taps **in each picture** |
+| Tally (`countRev 2`) | A fourth, 50-shape tray asks "How many more A than B?" (every shape of each colour counts; B 3–6, the answer 1–13). 45 s → 60 s, stored on the puzzle. Each tray now has 13 possible answers: 3–15, 5–17, 7–19 (#55's 5–11, 7–13, 9–15 widened around nearly the same middles), placed with spacing so every counted shape stays at least half visible. | Trays 40 / 30 / 25 / 15 (was 25 / 40 / 45); one off = 15 %, two or more off = 0 (was 60 % / 30 %) |
+
+Measured with the fairness kits (`scripts/puzzle-fairness.ts symscan spotdiff countup --seeds=30`, seeds 5001–5030). Before = main (`1c0deac`) as rooms deal it today; after = the new stamps. Median score per level (finishes out of 30); random = the spam strategies' medians.
+
+| Game | Average | Good | Great | Near-perfect | Random (median) | Highest unfinished / lowest finish |
+|---|---|---|---|---|---|---|
+| Eagle Eye | 51 → **66** (0/30) | 125 → **103** (9/30) | 144 → **135** (28/30) | 150 → **150** (28/30) | tap-all 0, random half 0, random quarter 0 → **0 / 0 / 0** | 107 / 122 → **108 / 120** |
+| Double Take | 86 → **73** (0/30) | 142 → **136** (30/30) | 150 → **148** (30/30) | 150 → **150** (30/30) | 0 / 0 / 0 → **0 / 0 / 0**, skip-then-tap-all **0** | 110 / 120 → **110 / 127** |
+| Tally | 55 → **49** (0/30) | 97 → **92** (8/30) | 150 → **150** (25/30) | 150 → **150** (27/30) | guess the middle 53 → **5**, random guess 44 → **4** | 100 / 124 → **97 / 128** |
+
+Target bands were about 70 / 100 / 125 / 140–150 with random at or below about 60.
+
+- **Eagle Eye** lands close: the two-target grid costs good players their finish about half as often as before (17 → 9 of 30), and the front-loaded grid weights lift the average player, who rarely reaches grid 3 (51 → 66). Great is 135 (target 125): great players still finish 28 of 30 with time to spare. A −2 wrong-tap cost was tried and rejected: tapping every eagle then scored a median of 6.
+- **Double Take** stays high for good and great players (136 / 148, target 100 / 125). Twelve differences in 60 s is the old pace (six in 30 s); the kit gives the rock pool 3.5 s a difference against the shop's 3 s, and a good player still finishes with about 18 s left. Reaching about 100 would need a shorter clock than the 60 s asked for, or a harder picture than a fair one. The average falls 86 → 73 because nobody can finish on a strong first half alone any more. Random play scores 0 in every strategy (the per-picture allowance and −4 cost make blanket tapping worthless).
+- **Tally** (revised before merge): guessing paid too well with one off at 60 % and two off at 30 % (guess the middle 51, a random guess 45 on the first version of this change). Two off now scores nothing, one off 15 % of the tray, and every tray has 13 possible answers, so a blind guess lands within one of the answer on about one tray in four and earns a few points (median 5 / 4, at most 70–74). On 120 seeds (30 are noisy for Tally's average): first version 72 / 98 / 149 / 150 with guesses 48 / 39 → now **70 / 95 / 147 / 150** with guesses **5 / 4**. One off at 30 % (as first suggested) left the guess median at 9 and 20 % at 6, so 15 % was taken; the weights moved to the early trays (40 / 30 / 25 / 15), which good players miss least, to keep good players near 100 (88 at 30 / 30 / 30 / 20). Great and near-perfect players still count all four exactly with half the time left (150).
+- **Kit assumptions** (`scripts/puzzle-fairness/kits-speed.ts`): Eagle Eye grid 3 takes 1.2 s to read two targets and 1.05 s per eagle (grids 1–2: 0.8 s and 0.85 s); Double Take 3 s a difference in the shop, 3.5 s in the rock pool and 1.2 s for the picture change; Tally's comparison tray takes 2 s + 0.55 s per counted shape (both colours) + 1.2 s + 1 s to subtract; Tally's guessers guess each tray's middle (9 / 11 / 13 / 7 on countRev 2) or a random count in range.
+
 ## Number tuning (14 Oct 2026)
 
 Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 100 / 125 / 140–150** (average / good / great / near-perfect), with random play at or below about 60. Both changes are stamped and both clocks are stored on the puzzle, so stored rounds keep their 90 s / 75 s and their rules (`move-limits-check`, `number-batch-check`).

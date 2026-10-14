@@ -8,7 +8,7 @@
  *      stored it: score, verdict, counts, errors, stored time and the whole extra.
  *   2. Stamps: every new Colour Flood, Polypotions, Topsy-Turvy, Counterweight,
  *      Operator and Brimful puzzle carries its own revision and a public limit
- *      (rounded to a 5 where the minimum is private), Tally carries countRev 1,
+ *      (rounded to a 5 where the minimum is private), Tally carries countRev 2 (1 before 14 Oct),
  *      and no other game carries any of these fields.
  *   3. Enforcement on the server: the solution inside the limit solves; the same
  *      solution pushed one move past the limit (wasted moves first) is an
@@ -62,7 +62,7 @@ import {
   joinCountSuffix,
 } from "../src/lib/duel/moveLimits";
 import { EQUATION_TRIES, FLOOD_SPARE_MOVES } from "../src/lib/duel/moveLimits.server";
-import { COUNTUP_STAGE_COUNTS_REV1 } from "../src/puzzles/countUp";
+import { COUNTUP_STAGE_COUNTS_REV2 } from "../src/puzzles/countUp";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
@@ -363,8 +363,9 @@ for (let i = 0; i < 12; i++) {
       `balance ${seed}: limits ${b.placeLimits?.join("/")} / clock ${b.timeLimitMs}`,
     );
     const c = roomPuzzle("countup", seed) as Extract<PuzzleData, { type: "countup" }>;
-    (c.counts ?? []).forEach((n, k) => {
-      const [lo, hi] = COUNTUP_STAGE_COUNTS_REV1[k]!;
+    // countRev 2 adds a fourth (comparison) tray: attention-rework-check covers it.
+    (c.counts ?? []).slice(0, 3).forEach((n, k) => {
+      const [lo, hi] = COUNTUP_STAGE_COUNTS_REV2[k]!; // countRev 2: 13 values a tray (countRev 1 had 7)
       ok(n >= lo && n <= hi, `countup ${seed}: tray ${k + 1} count ${n} outside ${lo}–${hi}`);
       used[k]!.add(n);
     });
