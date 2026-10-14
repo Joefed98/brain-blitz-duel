@@ -39,6 +39,7 @@ import {
   MATCHUP_DROP_MS,
   MATCHUP_INPUT_SWAP,
   MATCHUP_REV_BAND,
+  MATCHUP_REV_PAR,
   MATCHUP_REV_WAIT,
   MATCHUP_ROWS,
   MATCHUP_SIZE,
@@ -50,7 +51,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
 import {
   wavDropPx,
   wavefrontGameFor,
@@ -80,7 +81,7 @@ import {
   TILT_V4_FINISH_MIN,
   type TiltState,
 } from "../src/lib/arcade/tilt";
-import { sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
+import { sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
 import { generateBeat, generateFlip, generateInkBridge, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, typesInCategory } from "../src/lib/duel/registry";
@@ -156,16 +157,20 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning C stamps; Junction is practice only");
 {
   const stamps: [string, number | undefined, number][] = [
-    ["matchup", generateMatchup().matchupRev, MATCHUP_REV_WAIT],
-    ["swing", generateSwing().swingRev, SWING_REV_TUNEC],
+    // Tuning F (Oct 2026) moved Gemstone on to its 2,800 par (matchupRev 6), Slice on to its longer
+    // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
+    // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
+    ["matchup", generateMatchup().matchupRev, MATCHUP_REV_PAR],
+    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 1],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", generateHover().hoverRev, HOVER_REV_TALL],
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],
     ["flip", generateFlip().flipRev, FLIP_REV_TUNEC],
-    ["beat", generateBeat().beatRev, BEAT_REV_TUNEC],
+    // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
+    ["beat", generateBeat().beatRev, BEAT_REV_TUNEF],
     ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC],
     ["tilt", generateTilt().tiltRev, TILT_REV_TUNEC],
-    ["slice", generateSlice().sliceRev, SLICE_REV_TUNEC],
+    ["slice", generateSlice().sliceRev, SLICE_REV_LONG],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {
@@ -215,7 +220,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
     }
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("63") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("103") && PUZZLE_INSTRUCTIONS.beat.score.includes("77"), "the \"?\" help states the new knots");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("63") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("103") && PUZZLE_INSTRUCTIONS.beat.score.includes("114"), "the \"?\" help states the new knots (Tempo's are Tuning F's since beatRev 5, which keeps Tuning C's levels)");
 }
 
 /* ================================ 4a. Gemstone ================================ */
@@ -223,7 +228,8 @@ if (want("matchup")) {
   section("Gemstone matchupRev 5: wait for the gems to fall, par 2,500");
   const game = matchupGameFor(MATCHUP_REV_WAIT);
   ok(bandTop(MATCHUP_V5_BAND_CURVE) === 2500 && bandPoints(MATCHUP_V5_BAND_CURVE, 2500) === 150 && bandPoints(MATCHUP_V5_BAND_CURVE, 2499) < 150, "150 needs 2,500 match points");
-  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("2,500") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
+  // The live help shows the curve rooms deal today (Tuning F: 150 at 2,800, arcade-tuning-f-check).
+  ok(PUZZLE_INSTRUCTIONS.matchup.score.includes("2,800") && PUZZLE_INSTRUCTIONS.matchup.how.some((h) => h.detail.includes("wait")), "the \"?\" help and intro say so");
   // Find a valid swap on a fresh board, make it, then check the wait.
   const swaps: [number, number, number, number][] = [];
   for (let r = 0; r < MATCHUP_ROWS; r++)

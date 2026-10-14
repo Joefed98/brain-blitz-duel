@@ -23,7 +23,7 @@ import { createElement } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { buildRoomPuzzles, gradeAnswer, generatePuzzle } from "@/lib/duel/generate.server";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
-import { ACTIVE_PUZZLE_TYPES, puzzleDef, typesInCategory } from "@/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, puzzleDef, puzzleTimeLimitMs, typesInCategory } from "@/lib/duel/registry";
 import { splitPuzzle } from "@/lib/duel/secrets";
 import { MEASURE_LIMIT_REV } from "../src/lib/duel/moveLimits";
 import {
@@ -50,7 +50,7 @@ import {
   CHECKOUT_TARGETS,
   generateCheckout,
 } from "@/lib/duel/checkout.server";
-import { numlineShare, numlineValue, NUMLINE_REV, NUMLINE_SCALE } from "@/lib/duel/numline";
+import { numlineShare, numlineValue, NUMLINE_REV, NUMLINE_REV2_TIME_MS, NUMLINE_SCALE } from "@/lib/duel/numline";
 import { generateNumline } from "@/lib/duel/numline.server";
 import type {
   CheckoutPuzzleData,
@@ -89,12 +89,21 @@ const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
 const SCORE_LINES = {
   measure: "30, 35, 45 for puzzles 1-3, moves limited; all four for 120, more for few moves and speed",
   checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
-  numline: "Up to 8 per number for accuracy (120 for all 15), more if quick; far-off ones lose 1",
+  numline: "Up to 8 per number (120 for all 15), more if quick and close; far-off ones lose 1",
 };
-/** The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). */
+/**
+ * The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). Ballpark's copy
+ * is also numlineRev 1 with no clock of its own, as every round stored before 14 Oct 2026.
+ */
 const storedCopy = <T extends object>(puzzle: T): T => {
   const { puzzleScoreRev: _rev, ...rest } = puzzle as T & { puzzleScoreRev?: number };
-  return rest as T;
+  return rev1Numline(rest as T);
+};
+/** Ballpark as stored from 12 to 14 Oct 2026: numlineRev 1, the registry's 75 s (other games unchanged). */
+const rev1Numline = <T extends object>(puzzle: T): T => {
+  if ((puzzle as { type?: string }).type !== "numline") return puzzle;
+  const { timeLimitMs: _limit, ...rest } = puzzle as T & { timeLimitMs?: number };
+  return { ...rest, numlineRev: 1 } as T;
 };
 for (const type of TYPES) {
   const def = puzzleDef(type);
@@ -110,7 +119,8 @@ for (const type of TYPES) {
   const made = generatePuzzle(type, { bankSeed: 12345 }) as unknown as Record<string, unknown>;
   ok(made["speedPar"] === 1, `${type}: speedPar stamp`);
   // Brimful's marker is 2 on new puzzles since the 13 Oct 2026 move limit (moveLimits.ts MEASURE_LIMIT_REV).
-  const wantRev = type === "measure" ? MEASURE_LIMIT_REV : 1;
+  // Ballpark's is 2 since 14 Oct 2026 (90 s on the puzzle, the rev-2 item curve).
+  const wantRev = type === "measure" ? MEASURE_LIMIT_REV : type === "numline" ? 2 : 1;
   ok(made[REV_KEY[type]] === wantRev, `${type}: ${REV_KEY[type]} stamp ${String(made[REV_KEY[type]])}, want ${wantRev}`);
   const { pub, priv } = splitPuzzle(made as unknown as PuzzleData);
   for (const key of PRIVATE[type]) {
@@ -118,7 +128,12 @@ for (const type of TYPES) {
     ok(key in priv, `${type}: ${key} missing from secrets`);
   }
 }
-ok(MEASURE_REV === 1 && CHECKOUT_REV === 1 && NUMLINE_REV === 1, "revisions start at 1");
+ok(MEASURE_REV === 1 && CHECKOUT_REV === 1 && NUMLINE_REV === 2, "revisions: Brimful and Checkout 1, Ballpark 2");
+ok(
+  (generatePuzzle("numline", { bankSeed: 12345 }) as NumlinePuzzleData).timeLimitMs === NUMLINE_REV2_TIME_MS &&
+    NUMLINE_REV2_TIME_MS === 90_000,
+  "numline: new puzzles carry their own 90 s clock",
+);
 
 /* ------------------------ 2. Determinism and timing ------------------------ */
 
@@ -611,6 +626,20 @@ const anchors: string[] = [];
   };
   ok(scores.perfect === 150, `numline perfect ${scores.perfect}`);
   ok(scores.bestUnfinished === 110, `numline best unfinished ${scores.bestUnfinished}`);
+  // numlineRev 2: full 8 within 1 %, 0 at 10 %; the speed part scales with the share placed within 1 %.
+  {
+    // Each marker moved towards the line's far end, so none is clamped at an end.
+    const off = (share: number) => truths.map((t) => t + (t > NUMLINE_SCALE / 2 ? -1 : 1) * Math.round(share * NUMLINE_SCALE)).join(",");
+    const at1 = grade(p, off(0.009), NUMLINE_REV2_TIME_MS);
+    const at55 = grade(p, off(0.055), NUMLINE_REV2_TIME_MS);
+    const at10 = grade(p, off(0.1), NUMLINE_REV2_TIME_MS);
+    ok(at1 === 150, `numline rev 2: every number within 1 % at full time scores ${at1}, want 150`);
+    ok(at55 === 60, `numline rev 2: every number 5.5 % off scores ${at55}, want 60 (4 each, no speed part)`);
+    ok(at10 === 0, `numline rev 2: every number 10 % off scores ${at10}, want 0`);
+    const rev1 = rev1Numline(p);
+    ok(grade(rev1, off(0.05), 75_000) === 75, `numline rev 1 (stored 12-14 Oct): 5 % off keeps the old curve (60 + 15), ${grade(rev1, off(0.05), 75_000)}`);
+    ok(puzzleTimeLimitMs(p) === 90_000 && puzzleTimeLimitMs(rev1) === 75_000, "numline: rev 2 runs 90 s, stored rounds 75 s");
+  }
   ok(grade(storedCopy(p), truths.slice(0, 14).join(","), LIMIT.numline) === 112, "numline stored best unfinished 112");
   ok(scores.nothing === 0, `numline nothing ${scores.nothing}`);
   ok(scores.carelessFinish <= 3, `numline careless fast finish earns ${scores.carelessFinish}`);

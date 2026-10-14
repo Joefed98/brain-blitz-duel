@@ -34,8 +34,8 @@ import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "./orbit";
-import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initTunedFrom, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "./orbit";
+import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initSweptFrom, initTunedFrom, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
 import { snipCamera, snipWorldH, snipWorldHFor, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
@@ -194,13 +194,15 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     worldH: 620,
     drawFinal: (ctx, puzzle, answer) => {
       const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined);
-      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED) && puzzle.planets) {
+      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED || puzzle.orbitRev === ORBIT_REV_SWEPT) && puzzle.planets) {
         // Visual reconstruction only: scoring above still uses the original replay.
         const run = decodeOrbitRun(answer);
         const checked = checkInputEvents(run.events, orbitRev3ArtGame.runTicks, orbitRev3ArtGame.inputRanges ?? []);
         const events = new Map(checked.events.map(event => [event.t, event]));
         let visual: OrbitRev3State =
-          puzzle.orbitRev === ORBIT_REV_TUNED
+          puzzle.orbitRev === ORBIT_REV_SWEPT
+            ? initSweptFrom(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
+            : puzzle.orbitRev === ORBIT_REV_TUNED
             ? initTunedFrom(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
             : puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND
             ? initRev4From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))

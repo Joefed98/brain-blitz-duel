@@ -25,6 +25,10 @@
  * "next" the Tuning E one.
  * --rev=bank measures a bank-only revision (a game's `bank`: Scrumper snipRev 6)
  * against its Tuning E one: "live" is the Tuning E revision, "next" the new bank.
+ * --rev=f measures Tuning F (a game's `tunef`: Breaker, Rally, Tempo, Meteor and
+ * Orbit; Jaywalk, Slice, Coral Pop, Grappler, Gemstone and Scrumper) against the
+ * revision rooms stamped before it (liveBefore: its `bank`, `tunee`, `tunec`,
+ * `tuned`, `current` or `next`): "live" is the old revision, "next" the Tuning F one.
  * --levels=average,near limits the levels. --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
@@ -35,7 +39,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
-import { GAMES, type GameSpec } from "./arcade-skill-bands/games";
+import { GAMES, liveBefore, type GameSpec } from "./arcade-skill-bands/games";
 import { Human, LEVELS, LEVEL_LABEL, type SkillLevel } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 import { UNITS } from "./arcade-skill-bands/units";
@@ -43,7 +47,7 @@ import { UNITS } from "./arcade-skill-bands/units";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 30);
-const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank";
+const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank" | "f";
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
@@ -123,7 +127,15 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     return [];
   }
   const revs: ["live" | "next" | "tuned", number | null][] = [];
-  if (REV_MODE === "bank") {
+  if (REV_MODE === "f") {
+    // Tuning F: the revision rooms stamped before it ("live") against the Tuning F one ("next").
+    // (liveBefore: a bank-only revision first, so Scrumper measures snipRev 6 → 7). A game with no
+    // `tunef` plays only "live" (how the pre-change fixtures were saved).
+    const before = liveBefore(spec);
+    if (before === undefined) console.error(`${spec.type}: no revision to measure`);
+    else revs.push(["live", before]);
+    if (spec.tunef !== undefined) revs.push(["next", spec.tunef]);
+  } else if (REV_MODE === "bank") {
     // A bank-only revision ("next") against the Tuning E one rooms stamped before it ("live").
     if (spec.bank === undefined || spec.tunee === undefined) console.error(`${spec.type}: no bank revision`);
     else revs.push(["live", spec.tunee], ["next", spec.bank]);
@@ -145,7 +157,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     if (spec.current === undefined || spec.next === undefined) console.error(`${spec.type}: no current revision past the band revision`);
     else revs.push(["live", spec.next], ["next", spec.current]);
   } else if (REV_MODE !== "next") revs.push(["live", spec.live]);
-  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank") {
+  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank" && REV_MODE !== "f") {
     if (spec.next === undefined) console.error(`${spec.type}: no next revision`);
     else revs.push(["next", spec.next]);
   }

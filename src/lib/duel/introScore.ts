@@ -44,14 +44,14 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Number
   target: "Hit the target exactly for 120, more if you're quick. Close answers still score.",
   equation: "Points for each part you solve, 3 tries each. Solve all 4 for 120, more if you're quick.",
-  balance: "Scales score 20, 35 and 75; hangs are limited. All three for 120, more if you're quick.",
+  balance: "Scales score 15, 25, 30 and 55; hangs are limited. All four for 120, more if you're quick.",
   numpyramid: "27 for each pyramid you finish. All four for 120, more if you're quick.",
   trail: "Complete the path for 120, more if you're quick. Otherwise about 4 per tile in place.",
   measure: "30, 35, 45 for puzzles 1-3, moves limited; all four for 120, more for few moves and speed",
   // "board" for the brief's "stage": the intro wording check rejects "stage".
   checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
   // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
-  numline: "Up to 8 per number for accuracy (120 for all 15), more if quick; far-off ones lose 1",
+  numline: "Up to 8 per number (120 for all 15), more if quick and close; far-off ones lose 1",
   tendrop: "12 points for each target you hit. Clear all ten for 120, more if you're quick.",
   numseq: "20 points for each sequence. Get all five quickly for extra points.",
   chaincalc: "Get it right quickly for the most points.",
@@ -60,15 +60,15 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   numclimb: "Each digit you recall in order raises your score.",
 
   // Attention
-  reaction: "Tap fast: 200 ms or quicker on average scores 150. Early taps cost 8, then 11 after two.",
-  stopwatch: "Stop each watch as close to the zone as you can, up to 150. Over 200 ms off drops fast.",
+  reaction: "Tap fast: 150 ms or quicker on average scores 150. Early taps cost 8, then 11 after two.",
+  stopwatch: "Stop on the line: 5 ms or closer on average scores 150. Over 200 ms off drops fast.",
   numhunt: "Tap all 24 in order for 120, more if you're quick. Wrong taps lose 5.",
-  chain: "About 3 points per link. Finish all 40 for 120, more if you're quick.",
+  chain: "About 4 points a link at first, less later. Finish all 40 for 120, more if you're quick.",
   whack: "Points for each target you hit; all of them scores 150. Wrong taps lose points.",
   clayshoot: "5 per orange clay, 10 per gold. A bird costs 10; past 30 empty shots, each 20 cost 1.",
   symscan: "Points for each eagle you find. All three grids perfect: 120, more if you're quick.",
-  countup: "Points for each tray; one off still scores. All three exact: 120, more if quick.",
-  spotdiff: "Find all six for 120, more if you're quick. Otherwise 22 each; wrong taps lose 5.",
+  countup: "Points for each tray; one off still scores. All four exact: 120, more if quick.",
+  spotdiff: "Find all twelve for 120, more if you're quick. Otherwise 10 each; wrong taps lose 4.",
   pairmatch: "Find all fifteen pairs for 120, more if you're quick. Otherwise about 8 per pair.",
   maze: "Reach the exit for 120, more if you're quick. Otherwise points for how far you got.",
   intruder: legacyStandard("Get all five boards right", "24 per board"),

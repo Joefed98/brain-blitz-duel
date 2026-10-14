@@ -19,7 +19,7 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `chain.finishShine` | Don't Break the Chain | Chain completed: gold chain glows, shine runs along every link | 1.1 s |
 | `countup.countersTick` | Tally | Final answer submitted: tray counters start ticking up | 1.1 s (effect) |
 | `countup.countersLock` | Tally | The last counter locks (about 790 ms into the effect) | instant |
-| `countup.trayIn` | Tally | Stage 2 or 3 tray slides in | 280 ms |
+| `countup.trayIn` | Tally | Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) | 280 ms |
 | `pairmatch.cardWave` | Matchmaker | Last pair matched: the cards flip in a wave | 1.1 s |
 | `whack.finale` | Bonk | End of run, local `whackGame.score` ≥ 120: hard hats fly up as gophers pop out together | 1.1 s |
 | `clayshoot.finalBurst` | Pull! | End of run, local clay score ≥ 120: final burst of clay fragments | 1.1 s (effect) |
@@ -33,9 +33,10 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `symscan.mark` | Eagle Eye | A cell is marked (pop) | 200 ms |
 | `symscan.unmark` | Eagle Eye | A cell is unmarked | instant |
 | `symscan.revealGrid` | Eagle Eye | Reveal: a different grid is shown | instant |
-| `spotdiff.allFound` | Double Take | Sixth difference found: all six glow in both pictures | 1.1 s |
+| `spotdiff.allFound` | Double Take | Sixth difference of a picture found: all six glow in both panels (spotRev 1: after picture 1 too, then picture 2 slides in) | 1.1 s |
 | `spotdiff.found` | Double Take | A difference found (ring draws in) | 260 ms |
 | `spotdiff.miss` | Double Take | A wrong tap (the existing shake) | about 250 ms |
+| `spotdiff.nextPicture` | Double Take | spotRev 1: Next picture pressed before all six were found (picture 2 slides in) | 320 ms |
 | `maze.trace` | Labyrinth | Exit reached: glowing line traces the route from start to exit | 1.1 s |
 
 There are no `shared.*` cues: the shared signature beat belongs to Rotation and shared screens.

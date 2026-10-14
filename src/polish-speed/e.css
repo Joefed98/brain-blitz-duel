@@ -22,6 +22,15 @@
   --dt-gloss: #FFFFFF;
   --dt-shade: #17141D;
   --dt-missed: var(--warn);
+  /* Double Take picture 2, the rock pool (spotRev 1, 14 Oct 2026). */
+  --reef-water-top: #173A4C;
+  --reef-water-deep: #0C1F2B;
+  --reef-ray: rgba(190, 236, 255, 0.045);
+  --reef-niche: rgba(205, 235, 245, 0.06);
+  --reef-sand: #8C7650;
+  --reef-sand-top: #C2A774;
+  --reef-outline: rgba(6, 14, 20, 0.55);
+  --reef-eye: #0B1116;
 
   --maze-floor: #1A1F26;
   --maze-floor-alt: #1D232B;
@@ -104,8 +113,13 @@
 .dt-ring-found { animation: dt-ring-in 260ms cubic-bezier(.2, .9, .3, 1.25) both; transform-box: fill-box; transform-origin: center; }
 @keyframes dt-ring-in { from { transform: scale(1.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .dt-reveal-panels { flex: 0 0 auto; }
+.dt-panel[data-dt-theme="reef"] { background: var(--reef-water-deep); }
+.dt-arena[data-dt-theme="reef"] { background: linear-gradient(180deg, #16323F, #0B1A24); }
+/* The next picture slides in (display only; the round clock never pauses). */
+.dt-scene-in { animation: dt-scene-in 320ms cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes dt-scene-in { from { transform: translateX(14%); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .dt-ring-found { animation: none; }
+  .dt-ring-found, .dt-scene-in { animation: none; }
 }
 
 /* ------------------------------------------------------------------ */

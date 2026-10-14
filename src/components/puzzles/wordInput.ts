@@ -31,6 +31,23 @@ export const SPEED_POLISH_PRESENTATION = "oct13-speed-polish";
 export const MOVE_LIMIT_DEMOS = new Set(["equation"]);
 export const MOVE_LIMIT_PRESENTATION = "oct13-move-limits";
 /**
+ * Attention rework (14 Oct 2026): Eagle Eye's grid 3 header shows two targets, Double Take
+ * has a picture counter, a misses counter and a Next picture button, and Tally has four trays,
+ * so every board moved; older coordinate demos are rejected until re-recorded.
+ */
+export const ATTENTION_REWORK_DEMOS = new Set(["symscan", "spotdiff", "countup"]);
+export const ATTENTION_REWORK_PRESENTATION = "oct14-attention-rework";
+/** Speed tuning (14 Oct 2026): Ascend's move timer sits above the board, so the board moves; older coordinate demos are rejected. */
+export const SPEED_TUNING_DEMOS = new Set(["numhunt"]);
+export const SPEED_TUNING_PRESENTATION = "oct14-speed-tuning";
+/**
+ * Number tuning (14 Oct 2026): Counterweight's rack and Ballpark's Place button stand 16 px higher, which moves
+ * both boards (and Counterweight deals a fourth, 10-notch scale); older coordinate demos would miss, so they are
+ * rejected until re-recorded. Integer Pyramid's fix there changes no layout and keeps its demos.
+ */
+export const NUMBER_TUNING_DEMOS = new Set(["balance", "numline"]);
+export const NUMBER_TUNING_PRESENTATION = "oct14-number-tuning";
+/**
  * Word batch (14 Oct 2026): Strikeout's one-word-at-a-time board, Lookout's larger themed bank and counted
  * chips, Roundabout's bigger crosswords with raised buttons and Cryptogrid's fifth starting letter change
  * the fixed intro examples and move their boards; older coordinate demos are rejected until re-recorded.
@@ -39,6 +56,9 @@ export const WORD_BATCH_DEMOS = new Set(["strikeout", "wordsearch", "letterwheel
 export const WORD_BATCH_PRESENTATION = "oct14-word-batch";
 export function puzzlePresentation(type: string): string {
   if (WORD_BATCH_DEMOS.has(type)) return WORD_BATCH_PRESENTATION;
+  if (ATTENTION_REWORK_DEMOS.has(type)) return ATTENTION_REWORK_PRESENTATION;
+  if (SPEED_TUNING_DEMOS.has(type)) return SPEED_TUNING_PRESENTATION;
+  if (NUMBER_TUNING_DEMOS.has(type)) return NUMBER_TUNING_PRESENTATION;
   if (MOVE_LIMIT_DEMOS.has(type)) return MOVE_LIMIT_PRESENTATION;
   if (PATTERN_POLISH_DEMOS.has(type)) return PATTERN_POLISH_PRESENTATION;
   if (SPEED_POLISH_DEMOS.has(type)) return SPEED_POLISH_PRESENTATION;
@@ -47,7 +67,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...WORD_BATCH_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

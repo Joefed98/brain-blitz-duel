@@ -4,7 +4,7 @@
  *  1. Every replayable engine game (the 22 arcade games, Letterfall, Tenfall,
  *     Bonk, Pull! and Mixed Signals) has a stored fixture run on today's
  *     revision (scripts/fixtures/replay-runs.json), and the stored runs of the
- *     score-band and Tuning A/C/E fixtures cover the older revisions. For each,
+ *     score-band and Tuning A/C/E/F fixtures cover the older revisions. For each,
  *     the phone's replay stepper (src/lib/replay/steppers.ts) reaches a final
  *     state deep-equal to the server replay's, on the same tick, with the same
  *     score, and that score is the stored score (today's fixtures: also what
@@ -108,6 +108,7 @@ for (const file of [
   "arcade-tuning-a-legacy",
   "arcade-tuning-c-legacy",
   "arcade-tuning-e-legacy",
+  "arcade-tuning-f-legacy",
 ]) {
   const fixture = JSON.parse(readFileSync(`scripts/fixtures/${file}.json`, "utf8")) as {
     runs: {
@@ -121,7 +122,7 @@ for (const file of [
   };
   for (const run of fixture.runs) {
     cases.push({
-      label: `${run.type} rev ${run.rev} ${run.level} (${file})`,
+      label: `${run.type} rev ${run.rev} ${run.level}${"when" in run ? ` ${(run as { when?: string }).when}` : ""} (${file})`,
       puzzle: legacyPuzzle(run.type, run.seed, run.rev),
       answer: gunzipSync(Buffer.from(run.raw, "base64")).toString(),
       score: run.score,
