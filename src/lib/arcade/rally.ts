@@ -94,6 +94,9 @@ export const RALLY_BUMPER_X_MIN = 90;
 export const RALLY_BUMPER_X_SPAN = 211;
 export const RALLY_BUMPER_Y_MIN = 220;
 export const RALLY_BUMPER_Y_SPAN = 141;
+/** rallyRev 5 (Tuning F): a second mirror bumper for the final 15 seconds, at least this far (px, centres) from the first. */
+export const RALLY_BUMPER2_FROM = 45 * TICKS_PER_SECOND;
+export const RALLY_BUMPER2_GAP = 90;
 
 /** Left edge (px) of the target pad at a spot index. */
 export function rallyTargetLeft(spots: readonly number[], index: number): number {
@@ -150,6 +153,10 @@ export interface RallyState extends BandFields {
   struckLeft?: number;
   /** rallyRev 4 only (Tuning B): 1 = each pad keeps to its own half of the wall. Absent on every earlier round. */
   tune?: number;
+  /** rallyRev 5 only (Tuning F): the second bumper, live from 45 s. Absent on every earlier round. */
+  bumper2?: { x: number; y: number };
+  /** rallyRev 5 only, render only: which bumper (0 or 1) the latest bounce came off. */
+  bumped?: number;
 }
 
 /** Total returns, which is what shrinks the paddle. */
@@ -244,7 +251,11 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
   let bounces = state.bounces ?? 0;
   let struckTick = state.struckTick ?? 0;
   let struckLeft = state.struckLeft ?? 0;
-  const bumper = rev2 && tick >= RALLY_BUMPER_FROM ? (state.bumper ?? null) : null;
+  // Live bumpers in a fixed order: the first from 30 s, rallyRev 5's second from 45 s.
+  const bumpers: { x: number; y: number }[] = [];
+  if (rev2 && tick >= RALLY_BUMPER_FROM && state.bumper) bumpers.push(state.bumper);
+  if (rev2 && tick >= RALLY_BUMPER2_FROM && state.bumper2) bumpers.push(state.bumper2);
+  let bumped = state.bumped ?? 0;
   const top = (RALLY_HUD_H + RALLY_WALL) * 256;
   const leftWall = RALLY_WALL * 256;
   const rightWall = (RALLY_WORLD_W - RALLY_WALL) * 256;
@@ -300,7 +311,8 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
       }
 
       // Rev 2: the bumper reflects the ball like a mirror about the contact normal, speed kept.
-      if (bumper) {
+      for (let bi = 0; bi < bumpers.length; bi++) {
+        const bumper = bumpers[bi]!;
         const dx = x - bumper.x * 256;
         const dy = y - bumper.y * 256;
         const reach = (RALLY_BUMPER_R + RALLY_BALL_R) * 256;
@@ -318,6 +330,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
               vx = out.vx;
               vy = out.vy;
               bounces += 1;
+              bumped = bi;
             }
           }
         }
@@ -375,6 +388,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
     next.bounces = bounces;
     next.struckTick = struckTick;
     next.struckLeft = struckLeft;
+    if (state.bumper2) next.bumped = bumped;
   }
   if (next.dead || tick >= RALLY_RUN_TICKS) next.endedTick = tick;
   return next;
@@ -437,6 +451,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   if (state.rev === RALLY_REV) values.push(state.targetHits ?? 0, state.bounces ?? 0, ...(state.live ?? []));
   // rallyRev 4 adds its marker last, so rev-2/3 checksums are unchanged.
   if (state.tune !== undefined) values.push(state.tune);
+  // rallyRev 5 adds its second bumper after that, so rev-2/3/4 checksums are unchanged.
+  if (state.bumper2) values.push(state.bumper2.x, state.bumper2.y);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -551,6 +567,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_TUNEF) return rallyTunefGame;
   if (rev === RALLY_REV_TUNED) return rallyTunedGame;
   if (rev === RALLY_REV_BAND) return rallyBandGame;
   return rev === RALLY_REV ? rallyRev2Game : rallyGame;
@@ -569,7 +586,8 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 
 export function rallyBandParts(state: RallyState): BandParts {
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
-  return { units, points: bandPoints(state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
+  const curve = state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE;
+  return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
 }
 
 function scoreBand(state: RallyState): number {
@@ -596,4 +614,49 @@ export const RALLY_V4_BAND_CURVE = bandCurve([0, 105, 139, 154, 195, 240], [0, 7
 export const rallyTunedGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   ...rallyRev2Game,
   init: (seed) => bandInit({ ...rallyRev2Game.init(seed), tune: RALLY_TUNE }),
+};
+
+/* ================= Tuning F (rallyRev 5): a second bumper ================= */
+
+/**
+ * rallyRev 5 (Tuning F, Oct 2026): rallyRev 4 play, pads and bands, plus a
+ * second mirror bumper live for the final 15 seconds (from 45 s), alongside the
+ * first (from 30 s). Its spot comes from a stream of its own keyed by the seed,
+ * so the opening, gold balls, pads, first bumper and every bounce before 45 s
+ * are exactly rallyRev 4's. It sits in the same band as the first, at least
+ * RALLY_BUMPER2_GAP px (centres) from it, so a ball always fits between them.
+ * States keep `rev: 2` and `tune: 1` and add `bumper2`.
+ */
+export const RALLY_REV_TUNEF = 5;
+/**
+ * rallyRev 5 band knots: the second bumper costs the same players a few hits, so
+ * the knots come down (refitted with scripts/arcade-skill-bands.ts --rev=f, 30
+ * seeds: medians 72 / 78 / 125 / 145; the simulated average and good players
+ * barely separate in Rally, see docs/arcade-score-bands-oct-2026.md); 150 at 250.
+ */
+export const RALLY_V5_BAND_CURVE = bandCurve([0, 105, 130, 146, 185, 250], [0, 70, 100, 125, 145, 150]);
+
+/** The second bumper's centre for a seed and the first bumper. */
+export function rallyBumper2(seed: number, first: { x: number; y: number }): { x: number; y: number } {
+  let rng = (seed ^ 0x52414c35) | 0;
+  for (let tries = 0; tries < 16; tries++) {
+    const bx = rngBelow(rng, RALLY_BUMPER_X_SPAN);
+    const by = rngBelow(bx.state, RALLY_BUMPER_Y_SPAN);
+    rng = by.state;
+    const x = RALLY_BUMPER_X_MIN + bx.value;
+    const y = RALLY_BUMPER_Y_MIN + by.value;
+    const dx = x - first.x;
+    const dy = y - first.y;
+    if (dx * dx + dy * dy >= RALLY_BUMPER2_GAP * RALLY_BUMPER2_GAP) return { x, y };
+  }
+  // A fixed fallback 100 px across from the first, still inside the band.
+  return { x: first.x < RALLY_BUMPER_X_MIN + 105 ? first.x + 100 : first.x - 100, y: first.y };
+}
+
+export const rallyTunefGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyRev2Game,
+  init: (seed) => {
+    const base = rallyTunedGame.init(seed);
+    return { ...base, bumper2: rallyBumper2(seed, base.bumper!), bumped: 0 };
+  },
 };

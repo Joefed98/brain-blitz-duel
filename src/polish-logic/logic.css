@@ -407,14 +407,15 @@
 }
 /* A layer's top edge meets the layer above it: a same-colour one joins with a hairline. */
 .logic-potion.potion-layer[data-same-above] { box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.12); }
-/* Colour-blind symbols: small, faint, sitting in the liquid. */
+/* Colour-blind symbols: the size and contrast they had before the liquid look (14 px, as the shared
+   puzzle surface set the old text-[10px] glyph, at 30 % of the ink), drawn above the depth shading. */
 .logic-potion-glyph {
   position: relative;
   z-index: 2;
-  font-size: 8px;
+  font-size: 14px;
   line-height: 1;
   color: var(--guest-ink);
-  opacity: 0.26;
+  opacity: 0.3;
   pointer-events: none;
 }
 .logic-potion-surface {

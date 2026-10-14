@@ -5,20 +5,30 @@
  *   3. minimum-swap proof: minSwaps (exhaustive cycle-decomposition search) equals a
  *      breadth-first search over swap sequences on 400 small random boards with
  *      repeated letters; every generated board has a replayed witness of exactly
- *      minSwaps swaps, a 9–12 minimum, 3–5 tiles in place, budget minimum + 5;
+ *      minSwaps swaps, a 9–12 minimum, 3–5 tiles in place, budget max(16, minimum + 5)
+ *      (swapwordRev 2; rev 1 kept minimum + 5);
  *   4. needed-elsewhere rule: gold exactly when in place; teal only when a word
  *      through the tile still needs that letter elsewhere; per word, no letter is
  *      shown teal more often than it is still needed (duplicates), and every such
  *      need is shown while copies remain; hand cases with repeated letters;
  *   5. generator rules over 300 seeds (six different common words) and < 1 s each;
- *   6. score anchors: perfect 150, minimum finish ≥ 111, best unfinished ≤ 100 and
- *      below every finish, nothing 0; cap 150.
+ *   6. score anchors: perfect 150, minimum finish (whole budget, buzzer) ≥ 120, best unfinished ≤ 110 and
+ *      below every finish, nothing 0; cap 150;
+ *   7. swapwordRev 2: 40 rev-1 boards recorded on main before the change
+ *      (scripts/fixtures/swapword-rev1-legacy.json.gz): the same seed now deals the same
+ *      scramble, words and minimum with only the stamp and budget changed, and every
+ *      recorded answer on the stored board grades identically; a swap past a rev-1
+ *      budget still counts on a rev-2 board and never on the stored one.
  *
  *   bun scripts/swapword-check.ts
  */
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+
 import { answerWords, isWord } from "../src/lib/duel/dictionary.server";
 import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
+import { withPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import {
   SW_SLOT_TILES,
   SW_SLOTS,
@@ -27,6 +37,7 @@ import {
   encodeSwapword,
   replaySwapword,
   scoreSwapword,
+  swapwordBudget,
   swapwordMarks,
   type SwSwap,
 } from "../src/lib/duel/swapword";
@@ -37,7 +48,7 @@ import {
   swapwordWords,
   witnessSwaps,
 } from "../src/lib/duel/swapword.server";
-import { SWAPWORD_TIME_MS, type SwapwordPuzzleData } from "../src/lib/duel/types";
+import { SWAPWORD_TIME_MS, type PuzzleData, type SwapwordPuzzleData } from "../src/lib/duel/types";
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
 
 const failures: string[] = [];
@@ -64,7 +75,8 @@ check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)
   }
   check("a word room deals Swapword", dealt === 5);
   const p = gen(31337);
-  check("stamped speedPar 1 and swapwordRev 1", (p as { speedPar?: number }).speedPar === 1 && p.swapwordRev === 1);
+  check("stamped speedPar 1 and swapwordRev 2", (p as { speedPar?: number }).speedPar === 1 && p.swapwordRev === 2);
+  check("budget rule: rev 1 minimum + 5, rev 2 at least 16", swapwordBudget(9, 1) === 14 && swapwordBudget(12, 1) === 17 && swapwordBudget(9, 2) === 16 && swapwordBudget(11, 2) === 16 && swapwordBudget(12, 2) === 17);
 }
 
 // 2. Secrecy.
@@ -137,7 +149,7 @@ for (let seed = 1; seed <= 300; seed++) {
   check(`seed ${seed}: six different words`, new Set(words).size === 6);
   words.forEach((w, s) => check(`${w}: common answer word`, commonByLen.get(SW_SLOTS[s]!.len)!.has(w) && isWord(w) && !isPluralForm(w)));
   check(`seed ${seed}: minimum ${p.minSwaps} in 9–12`, p.minSwaps >= 9 && p.minSwaps <= 12);
-  check(`seed ${seed}: budget = minimum + 5`, p.maxSwaps === p.minSwaps + 5);
+  check(`seed ${seed}: budget ${p.maxSwaps} = max(16, minimum ${p.minSwaps} + 5)`, p.maxSwaps === Math.max(16, p.minSwaps + 5));
   const inPlace = [...p.start].filter((ch, t) => ch === solution[t]).length;
   check(`seed ${seed}: ${inPlace} start in place`, inPlace >= 3 && inPlace <= 5);
   const witness = witnessSwaps(p.start, solution);
@@ -159,8 +171,9 @@ for (let seed = 1; seed <= 300; seed++) {
   const waste: SwSwap[] = [[free, other], [free, other], [free, other], [free, other]];
   const slow = gradeAnswer(p, encodeSwapword([...waste, ...witness]), 0);
   check(`seed ${seed}: finish with min + 4 swaps at the buzzer is solved`, slow.isCorrect);
-  // The lowest a finish can score: the whole budget used, at the buzzer.
-  const minimumFinish = scoreSwapword(true, p.maxSwaps, p.minSwaps, 0, 0, LIMIT);
+  // The lowest a finish can score: the whole budget used, at the buzzer (rev-2 boards are always
+  // stamped puzzleScoreRev 1; stored rev-1 boards keep their own anchors, proved by section 7's fixture).
+  const minimumFinish = withPuzzleScoreRev(1, () => scoreSwapword(true, p.maxSwaps, p.minSwaps, 0, 0, LIMIT));
   minFinish = Math.min(minFinish, minimumFinish, slow.score);
   // Best unfinished: everything placed but the last witness swap.
   const almost = gradeAnswer(p, encodeSwapword(witness.slice(0, -1)), LIMIT);
@@ -178,7 +191,7 @@ for (let seed = 1; seed <= 300; seed++) {
   check(`seed ${seed}: new shape nothing 0`, gradeAnswer(fresh, "", LIMIT).score === 0);
 }
 check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
-check(`finishing beats any unfinished (${minFinish} > ${maxUnfinished})`, minFinish > maxUnfinished && minFinish >= 111);
+check(`finishing beats any unfinished (${minFinish} > ${maxUnfinished})`, minFinish > maxUnfinished && minFinish >= 120);
 check("unfinished cap 100", scoreSwapword(false, 99, 9, 30, LIMIT, LIMIT) === 100);
 check("cap 150", scoreSwapword(true, 9, 9, 0, LIMIT, LIMIT) === 150 && scoreSwapword(true, 5, 9, 0, LIMIT, LIMIT) === 150);
 
@@ -233,6 +246,47 @@ for (let seed = 1; seed <= 80; seed++) {
   const tile3Crossing = SW_TILE_SLOTS[3]!.length > 1;
   check("duplicates: second spare L not teal from the top word", tile3Crossing ? marksOk(board, sol) === null : m[3] === 0);
   check("duplicates: misplaced A teal", m[2] === 1);
+}
+
+// 7. swapwordRev 2 against rev-1 boards recorded on main.
+{
+  type Entry = { scoreRev: number; answer: string; ms: number; score: number; isCorrect: boolean; correctCount: number | null; errors: number | null; extra: string };
+  const fixture = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/swapword-rev1-legacy.json.gz")).toString("utf8")) as {
+    cases: { seed: number; puzzle: SwapwordPuzzleData; entries: Entry[] }[];
+  };
+  let graded = 0, past = 0;
+  for (const c of fixture.cases) {
+    const old = c.puzzle;
+    check(`legacy seed ${c.seed}: stored rev 1, budget minimum + 5`, old.swapwordRev === 1 && old.maxSwaps === old.minSwaps + 5);
+    const now = gen(c.seed);
+    check(
+      `legacy seed ${c.seed}: same board, only stamp and budget changed`,
+      JSON.stringify({ ...now, swapwordRev: 1, maxSwaps: now.minSwaps + 5 }) === JSON.stringify(old) && now.maxSwaps === Math.max(16, old.minSwaps + 5),
+    );
+    const unstamped = (() => {
+      const { puzzleScoreRev: _drop, ...rest } = old as SwapwordPuzzleData & { puzzleScoreRev?: number };
+      return rest as PuzzleData;
+    })();
+    for (const e of c.entries) {
+      const g = gradeAnswer(e.scoreRev ? old : unstamped, e.answer, e.ms);
+      const same = g.score === e.score && g.isCorrect === e.isCorrect && g.correctCount === e.correctCount && g.errors === e.errors && JSON.stringify(g.extra) === e.extra;
+      check(`legacy seed ${c.seed} "${e.answer.slice(0, 30)}" ms ${e.ms} rev ${e.scoreRev}: ${g.score} vs main ${e.score}`, same);
+      graded++;
+    }
+    // Wasted swaps then the witness: past the rev-1 budget, solved only on the rev-2 board.
+    const witness = witnessSwaps(old.start, old.solution!);
+    const extra = old.maxSwaps - witness.length + 1;
+    if (now.maxSwaps >= witness.length + extra + (extra % 2)) {
+      const free = [...Array(SW_TILES).keys()].filter((t) => old.start[t] !== old.solution![t]);
+      const waste: SwSwap[] = Array.from({ length: extra + (extra % 2) }, () => [free[0]!, free[1]!]);
+      const answer = encodeSwapword([...waste, ...witness]);
+      check(`legacy seed ${c.seed}: past the rev-1 budget unsolved on the stored board`, !gradeAnswer(old, answer, LIMIT).isCorrect);
+      check(`legacy seed ${c.seed}: same swaps solve the rev-2 board`, gradeAnswer(now, answer, LIMIT).isCorrect);
+      past++;
+    }
+  }
+  check(`budget-past cases ran (${past})`, past >= 10);
+  console.log(`legacy rev 1: ${fixture.cases.length} stored boards dealt identically bar the budget, ${graded} answers grade identically, ${past} budget-past cases`);
 }
 
 if (failures.length) {

@@ -205,6 +205,8 @@ export interface BeatState extends BandFields {
   swipesMissed?: number;
   /** beatRev 4 only (Tuning C): 1 = scored on BEAT_V4_BAND_CURVE. Absent on every earlier round. */
   tunec?: number;
+  /** beatRev 5 only (Tuning F): 1 = the chart thinned by a tenth at init. Absent on every earlier round. */
+  tunef?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -511,6 +513,8 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   if (state.rev === BEAT_REV) values.push(state.swipesHit ?? 0, state.swipesMissed ?? 0);
   // beatRev 4 (Tuning C) adds its marker last.
   if (state.tunec) values.push(state.tunec);
+  // beatRev 5 (Tuning F) adds its marker after that, so rev-2/3/4 checksums are unchanged.
+  if (state.tunef) values.push(state.tunef);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -669,6 +673,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_TUNEF) return beatTunefGame;
   if (rev === BEAT_REV_TUNEC) return beatTunecGame;
   if (rev === BEAT_REV_BAND) return beatBandGame;
   return rev === BEAT_REV ? beatRev2Game : beatGame;
@@ -692,7 +697,7 @@ export const BEAT_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 70, 
 export function beatBandParts(state: BeatState): BandParts {
   const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
   const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
-  return { units, points: bandPoints(state.tunec ? BEAT_V4_BAND_CURVE : BEAT_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
+  return { units, points: bandPoints(state.tunef ? BEAT_V5_BAND_CURVE : state.tunec ? BEAT_V4_BAND_CURVE : BEAT_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
 }
 
 function scoreBand(state: BeatState): number {
@@ -712,3 +717,71 @@ export const beatBandGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 export const BEAT_REV_TUNEC = 4;
 export const BEAT_V4_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 77, 110, 137, 148, 150]);
 export const beatTunecGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatBandGame, init: (seed) => ({ ...beatBandGame.init(seed), tunec: 1 }) };
+
+/* ================= Tuning F (beatRev 5, Oct 2026) ================= */
+
+/**
+ * beatRev 5 (Tuning F): beatRev 4 play and curve on a chart with about a tenth
+ * fewer notes (Joe: slightly fewer notes, not more). The beatRev 4 chart is
+ * built exactly as before, then round(notes ÷ 10) plain notes are dropped by a
+ * stream of its own keyed by the seed: notes in the busiest spots first (a chord
+ * partner or an eighth within an eighth of another note), never a hold or a
+ * swipe note, and never the first note. Dropping notes only widens lane gaps
+ * and leaves every swipe on a tick of its own, so every rule still holds.
+ * States add `tunef: 1`.
+ */
+export const BEAT_REV_TUNEF = 5;
+/**
+ * beatRev 5 band knots: with fewer notes the same players land a larger share
+ * of the chart (scripts/arcade-skill-bands.ts --rev=f, 30 seeds: unit medians
+ * 579 / 828 / 935 / 990 on beatRev 4, 662 / 869 / 951 / 989 on beatRev 5), so
+ * each knot sits at the new median and keeps the points that level scored on
+ * beatRev 4 (Tuning C's deliberately kinder level): fewer notes, same scores.
+ * Every note Perfect is still 150.
+ */
+export const BEAT_V5_BAND_CURVE = bandCurve([0, 662, 869, 951, 990, 1000], [0, 75, 114, 140, 149, 150]);
+/** The share of notes beatRev 5 drops, in per cent. */
+export const BEAT_THIN_PERCENT = 10;
+
+/** Indexes of the notes beatRev 5 drops from a beatRev 4 chart, ascending. */
+export function beatThinned(seed: number, chart: BeatChart): number[] {
+  const { ticks, holds } = chart;
+  const swipes = chart.swipes ?? [];
+  const n = ticks.length;
+  const want = Math.round((n * BEAT_THIN_PERCENT) / 100);
+  const busy: number[] = [];
+  const plain: number[] = [];
+  for (let i = 1; i < n; i++) {
+    if (holds[i]! > 0 || (swipes[i] ?? 0) !== 0) continue;
+    const near = (j: number) => j >= 0 && j < n && Math.abs(ticks[j]! - ticks[i]!) <= BEAT_EIGHTH_TICKS;
+    (near(i - 1) || near(i + 1) ? busy : plain).push(i);
+  }
+  // A seeded shuffle of each pool (Fisher–Yates on its own stream), busy notes first.
+  let rng = (seed ^ 0x54454d35) | 0;
+  const shuffle = (pool: number[]) => {
+    for (let i = pool.length - 1; i > 0; i--) {
+      const draw = rngBelow(rng, i + 1);
+      rng = draw.state;
+      const t = pool[i]!;
+      pool[i] = pool[draw.value]!;
+      pool[draw.value] = t;
+    }
+    return pool;
+  };
+  return [...shuffle(busy), ...shuffle(plain)].slice(0, want).sort((a, b) => a - b);
+}
+
+function initTunef(seed: number): BeatState {
+  const base = beatTunecGame.init(seed);
+  const drop = new Set(beatThinned(seed, base.chart));
+  const keep = (_: unknown, i: number) => !drop.has(i);
+  const chart: BeatChart = {
+    ticks: base.chart.ticks.filter(keep),
+    lanes: base.chart.lanes.filter(keep),
+    holds: base.chart.holds.filter(keep),
+    ...(base.chart.swipes ? { swipes: base.chart.swipes.filter(keep) } : {}),
+  };
+  return { ...base, chart, judged: chart.ticks.map(() => BEAT_JUDGE_NONE), tunef: 1 };
+}
+
+export const beatTunefGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatTunecGame, init: initTunef };

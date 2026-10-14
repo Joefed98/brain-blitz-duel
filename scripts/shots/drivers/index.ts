@@ -2,6 +2,7 @@
 import type { Driver } from "../driver";
 import { LOGIC_DRIVERS } from "./logic";
 import { WORD_DRIVERS } from "./word";
+import { ATTENTION_DRIVERS } from "./attention";
 
 // Pattern (#44)
 import { driver as unblock } from "./unblock";
@@ -28,6 +29,7 @@ import { driver as tendrop } from "./tendrop";
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
   ...WORD_DRIVERS,
+  ...ATTENTION_DRIVERS,
   unblock,
   blockparty,
   iceslide,

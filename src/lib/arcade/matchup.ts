@@ -352,6 +352,8 @@ export interface MatchupState extends BandFields {
    * last swap's gems clear and fall at the original speed. Absent on every earlier round.
    */
   busyUntil?: number;
+  /** matchupRev 6 only (Tuning F): rev-5 play scored on the 2,800 par curve. Absent on every earlier round. */
+  tunef?: number;
 }
 
 function drawSymbol(rng: number): { state: number; value: number } {
@@ -918,6 +920,7 @@ export function matchupCheckpoint(state: MatchupState): MatchupCheckpoint {
   const extra = matchupConstantPlay(state) ? [state.pendingTick ?? 0, state.resolveSerial ?? 0, state.jackpots ?? 0, state.jackpotsFired ?? 0] : [];
   // matchupRev 5 folds its wait and jackpots in after the unchanged fields.
   if (state.busyUntil !== undefined) extra.push(state.busyUntil, state.jackpots ?? 0, state.jackpotsFired ?? 0);
+  // matchupRev 6 (tunef) changes only the curve, so its checksum is matchupRev 5's: the same play replays without desync.
   return { ...snapshot, checksum: fnv([...Object.values(snapshot), ...extra]) };
 }
 
@@ -1370,6 +1373,7 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_PAR) return matchupParGame;
   if (rev === MATCHUP_REV_WAIT) return matchupWaitGame;
   if (rev === MATCHUP_REV_BAND) return matchupBandGame;
   if (rev === MATCHUP_REV) return matchupRev3Game;
@@ -1414,7 +1418,8 @@ export const MATCHUP_REV_WAIT = 5;
 export const MATCHUP_V5_BAND_CURVE = bandCurve([0, 620, 900, 1300, 2000, 2500], [0, 70, 100, 125, 145, 150]);
 
 /** The band curve a banded state scores on. */
-export function matchupBandCurve(state: Pick<MatchupState, "rev">): BandCurve {
+export function matchupBandCurve(state: Pick<MatchupState, "rev" | "tunef">): BandCurve {
+  if (state.tunef) return MATCHUP_V6_BAND_CURVE;
   return state.rev === MATCHUP_REV_WAIT ? MATCHUP_V5_BAND_CURVE : MATCHUP_BAND_CURVE;
 }
 
@@ -1510,3 +1515,20 @@ function initWait(seed: number): MatchupState {
 }
 
 export const matchupWaitGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupGame, init: initWait };
+
+/* ============ Tuning F (matchupRev 6): par 2,800 ============ */
+
+/**
+ * matchupRev 6 (Tuning F, Oct 2026): matchupRev 5's play unchanged (the state
+ * keeps rev 5 and adds `tunef: 1`), scored on a curve with 150 at 2,800 match
+ * points (Joe found 2,500 slightly generous). The knots from 100 up move up
+ * in the same proportion, so the same good-or-better run scores a little less.
+ */
+export const MATCHUP_REV_PAR = 6;
+/**
+ * matchupRev 6 band knots: from 100 up, matchupRev 5's knots × 1.12 (2,500 → 2,800);
+ * the 70 knot stays at 620 so the simulated average player stays near 70.
+ */
+export const MATCHUP_V6_BAND_CURVE = bandCurve([0, 620, 1008, 1456, 2240, 2800], [0, 70, 100, 125, 145, 150]);
+
+export const matchupParGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupWaitGame, init: (seed) => ({ ...initWait(seed), tunef: 1 }) };

@@ -1,12 +1,12 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { lwDecode, lwGrade, lwSlotCells } from "@/lib/duel/letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwSlotCells, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
-import { Shuffle } from "lucide-react";
+import { Shuffle, X } from "lucide-react";
 import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
@@ -79,6 +79,7 @@ function Wheel({
   path,
   onPath,
   onRelease,
+  onCancel,
   onTap,
   disabled,
   shake,
@@ -88,6 +89,8 @@ function Wheel({
   path: readonly number[];
   onPath?: (path: number[]) => void;
   onRelease?: () => void;
+  /** A drag lifted outside the wheel: the trace is dropped, not submitted. */
+  onCancel?: () => void;
   onTap?: (index: number) => void;
   disabled?: boolean;
   shake?: boolean;
@@ -103,14 +106,15 @@ function Wheel({
   const displayed = order ?? Array.from({ length: n }, (_, i) => i);
   const position = (index: number) => wheelPos(displayed.indexOf(index), n);
 
-  const hit = (x: number, y: number): number | null => {
+  /** Letter under a point: the whole tile (radius 12 %) for a press, a slightly smaller core while dragging so a chord past a neighbour does not pick it up. */
+  const hit = (x: number, y: number, radius = 12): number | null => {
     const box = ref.current?.getBoundingClientRect();
     if (!box) return null;
     const px = ((x - box.left) / box.width) * 100;
     const py = ((y - box.top) / box.height) * 100;
     for (let i = 0; i < n; i++) {
       const [cx, cy] = position(i);
-      if ((px - cx) ** 2 + (py - cy) ** 2 < 12 ** 2) return i;
+      if ((px - cx) ** 2 + (py - cy) ** 2 < radius ** 2) return i;
     }
     return null;
   };
@@ -123,10 +127,19 @@ function Wheel({
     else return;
     onPath?.(live.current);
   };
-  const end = () => {
+  /** Outside the wheel's round face (a little slack at the rim). */
+  const outside = (x: number, y: number): boolean => {
+    const box = ref.current?.getBoundingClientRect();
+    if (!box || !box.width) return false;
+    const dx = (x - box.left) / box.width - 0.5;
+    const dy = (y - box.top) / box.height - 0.5;
+    return dx * dx + dy * dy > 0.54 * 0.54;
+  };
+  const end = (e?: { clientX: number; clientY: number; type?: string }) => {
     if (!down.current) return;
     down.current = false;
-    if (dragging.current) onRelease?.();
+    if (dragging.current && (e?.type === "pointercancel" || (e && outside(e.clientX, e.clientY)))) onCancel?.();
+    else if (dragging.current) onRelease?.();
     else if (startIndex.current !== null) onTap?.(startIndex.current);
     live.current = [];
     startPoint.current = null;
@@ -157,7 +170,7 @@ function Wheel({
           dragging.current = true;
           onPath?.([...live.current]);
         }
-        if (dragging.current) visit(hit(e.clientX, e.clientY));
+        if (dragging.current) visit(hit(e.clientX, e.clientY, 10));
       }}
       onPointerUp={end}
       onPointerCancel={end}
@@ -220,6 +233,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const data: LetterWheelPuzzleData | null = puzzle.type === "letterwheel" ? puzzle : null;
   const key = stateKey ?? "letterwheel";
   const [filled, setFilled] = useStageState<(string | undefined)[]>(key, "lwFilled", () => []);
+  // wheelRev 1: every submitted trace, in order (the answer), and the phone's own count of "Not a word" verdicts.
+  const [log, setLog] = useStageState<string[]>(key, "lwLog", () => []);
+  const [misses, setMisses] = useStageState<number>(key, "lwMisses", () => 0);
   const [path, setPath] = useState<number[]>([]);
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -232,7 +248,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const slotCount = data?.slots.length ?? 0;
   const filledCount = filled.filter(Boolean).length;
   const words = filled.filter((w): w is string => !!w);
-  const encoded = words.join(",");
+  const usesLog = lwUsesLog(data);
+  const encoded = usesLog ? lwEncodeLog(log) : words.join(",");
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -279,9 +296,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     });
   };
 
+  const clear = () => setPath([]);
+
   const release = () => {
     const word = path.map((i) => wheel[i]).join("");
     setPath([]);
+    if (word.length >= 3 && checkWord && usesLog && log.length < LW_MAX_TRACES) setLog((l) => [...l, word]);
     if (word.length < 3 || !checkWord) {
       if (word.length > 0 && word.length < 3) {
         setShake(true);
@@ -304,6 +324,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setFlash("Not in this puzzle");
         setTimeout(() => setFlash(null), 900);
       } else {
+        if (usesLog && v.reason === "Not a word") setMisses((m) => m + 1);
         setShake(true);
         setTimeout(() => setShake(false), 350);
       }
@@ -311,8 +332,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   };
 
   return (
-    <div ref={stageRef} data-polish="letterwheel" data-word-polish="letterwheel" data-stage-column="1" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1">
-      <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[6] items-center justify-center" style={{ containerType: "size" }}>
+    <div
+      ref={stageRef}
+      data-polish="letterwheel"
+      data-word-polish="letterwheel"
+      data-stage-column="1"
+      className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1"
+      // The bigger crosswords (up to 11 × 9) take height from the wheel: 180–240 px instead of 200–240 px.
+      style={{ "--lw-wheel": "clamp(180px, calc(100cqh - 330px), 240px)" } as CSSProperties}
+    >
+      <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[7] items-center justify-center" style={{ containerType: "size" }}>
         <div
           style={{
             width: `min(334px, 100cqw, calc(100cqh * ${data.cols / data.rows}))`,
@@ -323,16 +352,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
         </div>
       </div>
-      <div data-arena-part="letterwheel-word" className="relative flex h-8 shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
+      <div data-arena-part="letterwheel-word" className="relative flex h-8 w-full shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
         <span>{current || flash || ""}</span>
+        {/* The found-word chip shares the trace row (the trace is already cleared when a word lands). */}
+        <div className="pointer-events-none absolute inset-0">
+          <FoundWordMoment value={accepted} />
+        </div>
       </div>
-      <FoundWordMoment value={accepted} />
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
-        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onTap={tapLetter} disabled={done} shake={shake} />
+        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} />
       </div>
-      <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pt-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          <span className="text-primary">{filledCount}</span> / {slotCount} words
+      {/* Raised inside the Stage (pb-3) so the buttons sit clear of the screen's bottom edge. */}
+      <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pb-3 pt-2">
+        <span className="flex h-11 flex-col justify-center font-mono text-xs uppercase leading-4 tracking-widest text-muted-foreground">
+          <span>
+            <span className="text-primary">{filledCount}</span> / {slotCount} words
+          </span>
+          {usesLog && misses > 0 ? (
+            <span
+              data-lw-misses={misses}
+              title={`${LW_FREE_MISSES} misses are free`}
+              className={`whitespace-nowrap normal-case tracking-normal ${misses > LW_FREE_MISSES ? "text-destructive" : ""}`}
+            >
+              {misses} miss{misses === 1 ? "" : "es"}
+            </span>
+          ) : null}
         </span>
         <Button
           type="button"
@@ -342,16 +386,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         >
           Submit
         </Button>
-        <Button type="button" variant="outline" className="h-11 w-11 justify-self-end p-0" title="Shuffle letters" aria-label="Shuffle letters" disabled={done} onClick={() => setOrder(previous => shuffleLetterOrder(previous))}><Shuffle className="h-5 w-5" /></Button>
+        <div className="flex items-center gap-2 justify-self-end">
+          <Button type="button" variant="outline" className="h-11 w-11 p-0" title="Clear letters" aria-label="Clear letters" data-lw-clear="" disabled={done || path.length === 0} onClick={clear}><X className="h-5 w-5" /></Button>
+          <Button type="button" variant="outline" className="h-11 w-11 p-0" title="Shuffle letters" aria-label="Shuffle letters" disabled={done} onClick={() => setOrder(previous => shuffleLetterOrder(previous))}><Shuffle className="h-5 w-5" /></Button>
+        </div>
       </div>
     </div>
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "letterwheel") return null;
   const words = puzzle.words ?? [];
-  const v = lwGrade(words, puzzle.slots, puzzle.cols, lwDecode(myAnswer ?? ""));
+  // wheelRev 1: the answer is the attempt log; its slot words are the ones the server counted.
+  const logged = lwUsesLog(puzzle);
+  const v = lwGrade(words, puzzle.slots, puzzle.cols, logged ? lwDecodeLog(myAnswer ?? "").filter((t) => words.includes(t)) : lwDecode(myAnswer ?? ""));
+  const storedMisses = logged ? Number(myExtra?.["misses"] ?? 0) : 0;
   const got = new Set(v.slots);
   const mine = letterMap(puzzle.cols, puzzle.slots, words.map((w, i) => (got.has(i) ? w : undefined)));
   const all = letterMap(puzzle.cols, puzzle.slots, words);
@@ -370,6 +420,11 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
           ? `${words.length} / ${words.length} · ${(elapsed / 1000).toFixed(1)}s`
           : `${v.slots.length} / ${words.length} words`}
       </p>
+      {storedMisses > 0 ? (
+        <p data-lw-reveal-misses={storedMisses} className="font-mono text-xs text-muted-foreground">
+          {storedMisses} miss{storedMisses === 1 ? "" : "es"} · {LW_FREE_MISSES} free
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -8,10 +8,10 @@ import {
   SWAPWORD_REV,
   SW_SLOTS,
   SW_SLOT_TILES,
-  SW_SPARE_SWAPS,
   SW_TILES,
   decodeSwapword,
   replaySwapword,
+  swapwordBudget,
   swapwordMarks,
   type SwSwap,
   type SwView,
@@ -157,14 +157,14 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
   const min = minSwaps(p.start, solution);
   if (min !== p.minSwaps) return `stored minimum ${p.minSwaps}, search says ${min}`;
   if (min < SW_MIN_TARGET || min > SW_MAX_TARGET) return `minimum ${min} outside ${SW_MIN_TARGET}-${SW_MAX_TARGET}`;
-  if (p.maxSwaps !== min + SW_SPARE_SWAPS) return "budget is not minimum + 5";
+  if (p.maxSwaps !== swapwordBudget(min, p.swapwordRev)) return `budget ${p.maxSwaps} is not ${swapwordBudget(min, p.swapwordRev)} (rev ${p.swapwordRev})`;
   const inPlace = [...p.start].filter((ch, t) => ch === solution[t]).length;
   if (inPlace < SW_MIN_IN_PLACE || inPlace > SW_MAX_IN_PLACE) return `${inPlace} tiles start in place`;
   if (SW_SLOT_TILES.some((tiles) => tiles.every((t) => p.start[t] === solution[t]))) return "a word starts solved";
   return null;
 }
 
-/** Six crossing common words, scrambled to a proven 9–12-swap minimum. */
+/** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 2: budget max(16, minimum + 5)). */
 export function generateSwapword(seed: number): SwapwordPuzzleData {
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {
@@ -194,7 +194,7 @@ export function generateSwapword(seed: number): SwapwordPuzzleData {
         swapwordRev: SWAPWORD_REV,
         start,
         minSwaps: min,
-        maxSwaps: min + SW_SPARE_SWAPS,
+        maxSwaps: swapwordBudget(min, SWAPWORD_REV),
         solution,
       };
       if (swapwordRuleBreak(puzzle) === null) return puzzle;

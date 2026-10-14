@@ -7,10 +7,10 @@
  * a phone records (cutFor), at human pace (first cut ≥ 24 ticks into the level,
  * cuts ≥ 12 apart).
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { snipCheckpoint, SNIP_CHECKPOINT_INTERVAL, SNIP_CONFIG, SNIP_LEVEL_TICKS, type SnipState } from "../src/lib/arcade/snip";
+import { snipCheckpoint, SNIP_CHECKPOINT_INTERVAL, SNIP_CONFIG, SNIP_LEVEL_TICKS, SNIP_PROVEN_WOBBLES, SNIP_REV_PROVEN, type SnipState } from "../src/lib/arcade/snip";
 import { cutFor } from "./snip-check-lib";
 import { SNIP_CUT_GAP, SNIP_FIRST_CUT, type SnipPlan } from "./snip-solver";
 import type { SnipProofs } from "./snip-rev3-proofs";
@@ -22,6 +22,35 @@ export const SNIP_PROOFS: SnipProofs = {
   // snipRev 6's new tall templates (SNIP_BANK6_FIRST on).
   ...JSON.parse(readFileSync(new URL("./fixtures/snip-rev6-proofs.json", import.meta.url), "utf8")),
 };
+
+/** snipRev 7's per-deal plans (fixtures/snip-rev7-proofs.json): each template's plans and, per pin-wobble deal, the one that wins it. */
+const DEAL_PROOFS_URL = new URL("./fixtures/snip-rev7-proofs.json", import.meta.url);
+export const SNIP_DEAL_PROOFS: Record<string, { name: string; pins: number; plans: SnipPlan[]; deal: string; worst: number }> = existsSync(DEAL_PROOFS_URL) ? JSON.parse(readFileSync(DEAL_PROOFS_URL, "utf8")) : {};
+export const SNIP_PLAN_SYMBOLS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/** Each pin's wobble (px) on a level's first state, read off its rope's pin node. */
+export function snipPinWobbles(s: SnipState): number[] {
+  return SNIP_CONFIG.templates[s.template]!.pins.map(([px], i) => s.ropes[i]!.x[0]! / 256 - px);
+}
+
+/** The index of a per-pin deal in snipRev 7's order (pin 0 the slowest-changing digit); -1 if a wobble is not one of SNIP_PROVEN_WOBBLES. */
+export function snipDealIndex(wobbles: readonly number[]): number {
+  let idx = 0;
+  for (const w of wobbles) {
+    const k = SNIP_PROVEN_WOBBLES.indexOf(w);
+    if (k < 0) return -1;
+    idx = idx * SNIP_PROVEN_WOBBLES.length + k;
+  }
+  return idx;
+}
+
+/** The stored snipRev 7 plan for a level's actual deal (null when there is none). */
+export function snipDealPlan(s: SnipState): SnipPlan | null {
+  const proof = SNIP_DEAL_PROOFS[String(s.template)];
+  const idx = snipDealIndex(snipPinWobbles(s));
+  if (!proof || idx < 0) return null;
+  return proof.plans[SNIP_PLAN_SYMBOLS.indexOf(proof.deal[idx] ?? "-")] ?? null;
+}
 
 type Game = ArcadeGame<SnipState, ArcadeInputEvent | null>;
 
@@ -60,6 +89,12 @@ export function playSnipRun(game: Game, seed: number, opts: { leaves?: boolean; 
   while (!game.isOver(s)) {
     const proofs = SNIP_PROOFS[String(s.template)] ?? {};
     const plans: SnipPlan[] = [];
+    // snipRev 7 only: the plan proven for this exact deal, then the template's other proven plans (older revisions search as before).
+    if (s.rev === SNIP_REV_PROVEN) {
+      const own = snipDealPlan(s);
+      if (own) plans.push(own);
+      for (const p of SNIP_DEAL_PROOFS[String(s.template)]?.plans ?? []) if (p !== own) plans.push(p);
+    }
     for (const p of Object.values(proofs)) {
       if (p.leaf) plans.push(p.leaf.plan);
       if (p.fast) plans.push(p.fast.plan);

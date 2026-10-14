@@ -8,7 +8,7 @@
  *      stored it: score, verdict, counts, errors, stored time and the whole extra.
  *   2. Stamps: every new Colour Flood, Polypotions, Topsy-Turvy, Counterweight,
  *      Operator and Brimful puzzle carries its own revision and a public limit
- *      (rounded to a 5 where the minimum is private), Tally carries countRev 1,
+ *      (rounded to a 5 where the minimum is private), Tally carries countRev 2 (1 before 14 Oct),
  *      and no other game carries any of these fields.
  *   3. Enforcement on the server: the solution inside the limit solves; the same
  *      solution pushed one move past the limit (wasted moves first) is an
@@ -18,7 +18,7 @@
  *   4. Generation: Counterweight's two small scales have exactly one balanced
  *      arrangement; Tally's counts stay inside the wider ranges and use them.
  *   5. Random play: over 24 room seeds no spam strategy finishes more than 2
- *      boards (Colour Flood 8 since floodRev 2's flat 15), and every spam median is at most 60. Colour Flood (floodRev 1 / 2,
+ *      boards, and every spam median is at most 60. Colour Flood (floodRev 1 / 2,
  *      unfinished credit falls to 0 at the move limit): every random-colour and
  *      colour-cycling run that does not finish scores exactly 0, while the same
  *      answers on the stored shape (no floodRev) still score what they did.
@@ -31,7 +31,7 @@ import { gunzipSync } from "node:zlib";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
+import { ACTIVE_PUZZLE_TYPES, puzzleDef, puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { encodeFloodMoves, replayFlood } from "../src/lib/duel/flood";
 import { unfinishedCredit, wasteFactor } from "../src/lib/duel/puzzleScoreRev";
@@ -42,7 +42,7 @@ import {
   type TubeToken,
 } from "../src/lib/duel/tubes";
 import { decodeGravityTilts, encodeGravityTilts } from "../src/lib/duel/gravity";
-import { encodeBalance } from "../src/lib/duel/balance";
+import { BAL_REV2, BAL_REV2_TIME_MS, encodeBalance } from "../src/lib/duel/balance";
 import { balancedArrangements } from "../src/lib/duel/numberRounds.server";
 import {
   decodeMeasureActions,
@@ -53,18 +53,16 @@ import {
 } from "../src/lib/duel/measure";
 import { joinStages } from "../src/lib/duel/stagedRounds";
 import {
-  BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_FLAT_LIMIT,
-  FLOOD_FLAT_LIMIT_REV,
+  FLOOD_LIMIT_REV2,
   GRAVITY_LIMIT_REV,
   MEASURE_LIMIT_REV,
   TUBES_LIMIT_REV,
   joinCountSuffix,
 } from "../src/lib/duel/moveLimits";
 import { EQUATION_TRIES } from "../src/lib/duel/moveLimits.server";
-import { COUNTUP_STAGE_COUNTS_REV1 } from "../src/puzzles/countUp";
+import { COUNTUP_STAGE_COUNTS_REV2 } from "../src/puzzles/countUp";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
@@ -114,11 +112,12 @@ type Loose = Record<string, unknown>;
 
 /* ---------------------------------- 2. Stamps ---------------------------------- */
 const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: string }>> = {
-  // Colour Flood's new rounds moved to floodRev 2 (a flat 15) on 14 Oct 2026 (pattern-logic-oct14-check).
-  flood: { rev: "floodRev", value: FLOOD_FLAT_LIMIT_REV, limit: "moveLimit" },
+  // Colour Flood's new rounds are floodRev 2 (the Pattern / Logic batch, 14 Oct 2026; still par + 2; pattern-logic-oct14-check).
+  flood: { rev: "floodRev", value: FLOOD_LIMIT_REV2, limit: "moveLimit" },
   tubes: { rev: "tubesRev", value: TUBES_LIMIT_REV, limit: "pourLimit" },
   gravity: { rev: "gravityRev", value: GRAVITY_LIMIT_REV, limit: "tiltLimit" },
-  balance: { rev: "balanceRev", value: BALANCE_LIMIT_REV, limit: "placeLimits" },
+  // Counterweight's four-scale puzzles (14 Oct 2026) are balanceRev 2, which keeps the rev-1 limits and adds the fourth.
+  balance: { rev: "balanceRev", value: BAL_REV2, limit: "placeLimits" },
   equation: { rev: "equationRev", value: EQUATION_LIMIT_REV, limit: "tryLimit" },
   measure: { rev: "measureRev", value: MEASURE_LIMIT_REV, limit: "moveLimits" },
   countup: { rev: "countRev", value: COUNTUP_COUNT_REV },
@@ -158,7 +157,7 @@ for (let i = 0; i < 12; i++) {
   const seed = 7001 + i;
   const flood = roomPuzzle("flood", seed) as Loose & { par: number; moveLimit: number };
   ok(
-    flood.moveLimit === FLOOD_FLAT_LIMIT && flood.par >= 10 && flood.par <= 14,
+    flood.moveLimit === flood.par + 2 && flood.par >= 10 && flood.par <= 14,
     `flood ${seed}: limit ${flood.moveLimit} for par ${flood.par}`,
   );
   for (const [type, key] of [
@@ -353,9 +352,21 @@ for (let i = 0; i < 12; i++) {
       balancedArrangements(b.scales[0]!) === 1 && balancedArrangements(b.scales[1]!) === 1,
       `balance ${seed}: a small scale has more than one balanced arrangement`,
     );
+    // balanceRev 2: a fourth scale with 10 notches and five weights; 6 / 8 / 10 / 12 hangs; 120 s on the puzzle.
+    ok(
+      b.scales.length === 4 && b.scales[3]!.pegs === 10 && b.scales[3]!.tray.length === 5 &&
+        b.scales.slice(0, 3).every((s) => s.pegs === undefined) &&
+        balancedArrangements(b.scales[3]!) >= 1,
+      `balance ${seed}: fourth scale not 10 notches with five weights`,
+    );
+    ok(
+      (b.placeLimits ?? []).join(",") === "6,8,10,12" && b.timeLimitMs === BAL_REV2_TIME_MS,
+      `balance ${seed}: limits ${b.placeLimits?.join("/")} / clock ${b.timeLimitMs}`,
+    );
     const c = roomPuzzle("countup", seed) as Extract<PuzzleData, { type: "countup" }>;
-    (c.counts ?? []).forEach((n, k) => {
-      const [lo, hi] = COUNTUP_STAGE_COUNTS_REV1[k]!;
+    // countRev 2 adds a fourth (comparison) tray: attention-rework-check covers it.
+    (c.counts ?? []).slice(0, 3).forEach((n, k) => {
+      const [lo, hi] = COUNTUP_STAGE_COUNTS_REV2[k]!; // countRev 2: 13 values a tray (countRev 1 had 7)
       ok(n >= lo && n <= hi, `countup ${seed}: tray ${k + 1} count ${n} outside ${lo}–${hi}`);
       used[k]!.add(n);
     });
@@ -375,7 +386,7 @@ for (let i = 0; i < 12; i++) {
     for (let i = 0; i < 24; i++) {
       const seed = 5001 + i;
       const p = roomPuzzle(type, seed);
-      const limit = puzzleDef(type).timeLimitMs;
+      const limit = puzzleTimeLimitMs(p);
       for (const sp of kit.spam(p, makeRng(hashText(`${type}:spam:${seed}`)), limit)) {
         const g = gradeAnswer(p, sp.answer, 0);
         (scores[sp.label] ??= []).push(g.score);
@@ -399,8 +410,7 @@ for (let i = 0; i < 12; i++) {
     for (const [label, xs] of Object.entries(scores)) {
       ok(median(xs) <= 60, `${type}: spam "${label}" median ${median(xs)} > 60`);
       ok(
-        // floodRev 2's flat 15 lets colour cycling flood about one board in five (median still 0; docs/puzzle-score-bands-oct-2026.md).
-        (solved[label] ?? 0) <= (type === "flood" ? 8 : 2),
+        (solved[label] ?? 0) <= 2,
         `${type}: spam "${label}" finished ${solved[label]} of 24 boards`,
       );
     }

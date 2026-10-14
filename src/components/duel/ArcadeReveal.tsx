@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 
 import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/ArcadeCelebration";
@@ -49,6 +49,132 @@ export function storedCostRows(type: string, extra: Record<string, unknown> | nu
     { label: `Hit nothing (${CLAY_FREE_EMPTY_SHOTS} free)`, value: String(empty) },
     { label: "Empty-shot cost", value: cost > 0 ? `−${cost}` : "0" },
   ];
+}
+
+/**
+ * The words a stored breakdown line uses for the fact a tile shows, by tile label. A tile
+ * is left out only when a stored line states its exact value next to one of these words
+ * ("8 / 10 barriers", "Boss destroyed", "time bonus +12"); labels not listed always show.
+ */
+const TILE_WORDS: Record<string, string> = {
+  Barriers: "barriers?",
+  Blocks: "blocks?",
+  "Perfect drops": "perfect",
+  Perfects: "perfect",
+  Buckets: "buckets?",
+  Darts: "darts?",
+  "Gold hits": "gold(?: hits?)?",
+  Targets: "targets?",
+  "All hits": "hits?",
+  Chillies: "chillies|chilli",
+  Atoms: "atoms?",
+  "Lives lost": "lives? lost",
+  "Lanes crossed": "lanes?",
+  "Crossings completed": "crossings?",
+  Saucers: "saucers?",
+  "Armour hits": "armour hits?",
+  Boss: "boss",
+  Levels: "levels?",
+  Leaves: "leaves?",
+  Mazes: "mazes?",
+  "Marbles home": "marbles? home|home",
+  "Birds hit": "birds? hit",
+  Correct: "correct",
+  Wrong: "wrong",
+  "Time bonus": "time bonus",
+  "Buses through": "buses?",
+  "Ambulances through": "ambulances?",
+  "Gave up": "gave up",
+  Overflowed: "overflowed at",
+};
+
+/** Tiles holding a run time ("60 s"), left out when a line gives the same time or says the run lasted. */
+const TIME_LABELS = new Set(["Survived", "Crashed at"]);
+
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function tileInLines(tile: ArcadeRevealData["tiles"][number], lines: string[]): boolean {
+  if (TIME_LABELS.has(tile.label)) {
+    const seconds = /^(\d+(?:\.\d+)?) s$/.exec(tile.value);
+    if (!seconds) return false;
+    const value = Number(seconds[1]);
+    return lines.some(
+      (line) =>
+        [...line.matchAll(/(?<![\d.])(\d+(?:\.\d+)?) s\b/g)].some((m) => Number(m[1]) === value) ||
+        (tile.label === "Survived" && value === 60 && /^Lasted the minute\b/.test(line)),
+    );
+  }
+  const words = TILE_WORDS[tile.label];
+  if (!words || !tile.value) return false;
+  const value = escape(tile.value);
+  const outOf = /^\d+$/.test(tile.value) ? "(?: / \\d+)?" : "";
+  const valueFirst = new RegExp(`(?<![\\d.,+−-])${value}${outOf} (?:${words})(?![a-z])`, "i");
+  const wordsFirst = new RegExp(`(?<![a-z])(?:${words})[: ]+\\+?${value}(?![\\d.a-z])`, "i");
+  return lines.some((line) => valueFirst.test(line) || wordsFirst.test(line));
+}
+
+/**
+ * What the reveal shows of the stored summary, each fact once: the stored lines less a
+ * "Total → N" that only repeats the big stored score, and the stored tiles less any whose
+ * value a stored line already states. Display only: it filters the stored strings and
+ * never recomputes a number.
+ */
+export function revealShown(reveal: ArcadeRevealData, score: number | null): { lines: string[]; tiles: ArcadeRevealData["tiles"] } {
+  const lines = reveal.lines.filter((line) => score === null || line !== `Total → ${score}`);
+  return { lines, tiles: reveal.tiles.filter((tile) => !tileInLines(tile, reveal.lines)) };
+}
+
+/** Where a line too long for one row breaks: its " · " (else ", ", else a space) nearest the middle. */
+function halves(text: string): [string, string] | null {
+  for (const [sep, keep] of [[" · ", 0], [", ", 1], [" ", 0]] as const) {
+    let best = -1;
+    for (let at = text.indexOf(sep); at >= 0; at = text.indexOf(sep, at + 1)) {
+      if (best < 0 || Math.abs(at - text.length / 2) < Math.abs(best - text.length / 2)) best = at;
+    }
+    if (best > 0) return [text.slice(0, best + keep), text.slice(best + sep.length)];
+  }
+  return null;
+}
+
+/**
+ * One stored line kept on one row: 14 px, down to 12 px when it must; a line too long even
+ * at 12 px (Wavefront's, Junction's on a 375 px phone) breaks once, between whole phrases,
+ * so no row wraps mid-phrase or clips. The text is the stored string, never rewritten.
+ */
+function FitLine({ text, className }: { text: string; className: string }) {
+  const box = useRef<HTMLParagraphElement>(null);
+  const probe = useRef<HTMLSpanElement>(null);
+  const [px, setPx] = useState(14);
+  useLayoutEffect(() => {
+    const node = box.current;
+    if (!node || !probe.current) return;
+    const measure = () => {
+      // The probe holds the text at 14 px; a monospaced line scales with its font size.
+      const wide = probe.current?.getBoundingClientRect().width ?? 0;
+      const room = node.clientWidth;
+      setPx([14, 13, 12].find((size) => (wide * size) / 14 <= room) ?? 0);
+    };
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(node);
+    return () => watch.disconnect();
+  }, [text]);
+  const split = px === 0 ? halves(text) : null;
+  return (
+    <p ref={box} className={`relative w-full whitespace-nowrap text-center font-mono ${className}`} style={{ fontSize: px || 12 }}>
+      <span ref={probe} aria-hidden="true" className="invisible absolute left-0 top-0" style={{ fontSize: 14 }}>
+        {text}
+      </span>
+      {split ? (
+        <>
+          <span className="block">{split[0]}</span>
+          <span className="block">{split[1]}</span>
+        </>
+      ) : (
+        text
+      )}
+    </p>
+  );
 }
 
 const PLAYER_COLOURS = [
@@ -233,12 +359,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
   const scoreRef = useRef<HTMLParagraphElement>(null);
   usePerfectBurst(scoreRef, myScore);
+  const shown = myReveal ? revealShown(myReveal, myScore) : null;
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
       <Backdrop puzzle={puzzle} answer={myAnswer ?? ""} outcome={myReveal?.outcome ?? null} />
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-4">
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex w-full flex-col items-center gap-1">
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
               <WaitingLine label="Scoring…" />
@@ -254,19 +381,15 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             </p>
           )}
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">points</p>
-          {myReveal
-            ? myReveal.lines.map((line) => (
-                <p key={line} className="text-center font-mono text-sm text-foreground animate-fade-in">
-                  {line}
-                </p>
-              ))
+          {shown
+            ? shown.lines.map((line) => <FitLine key={line} text={line} className="text-foreground animate-fade-in" />)
             : null}
-          {myScore !== null && nearMissLine ? <p className="text-center font-mono text-sm text-primary">{nearMissLine}</p> : null}
+          {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-primary" /> : null}
         </div>
 
         <Track players={players} axis={myReveal?.axis ?? null} accent={accent} />
 
-        {myReveal && myReveal.tiles.length + costRows.length > 0 ? (
+        {shown && shown.tiles.length + costRows.length > 0 ? (
           // One full-width row per stored tile (label left, value right), so a label as
           // long as "Crossings completed" stays on one line at 12 px on a 375 px phone.
           <div
@@ -274,7 +397,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
             className="flex w-full shrink-0 flex-col divide-y rounded-lg border bg-background/70 px-3 animate-fade-in"
             style={{ borderColor: accent }}
           >
-            {[...myReveal.tiles.slice(0, 4), ...costRows].map((tile) => (
+            {[...shown.tiles.slice(0, 4), ...costRows].map((tile) => (
               <div key={tile.label} className="flex min-w-0 items-baseline justify-between gap-3 py-1" style={{ borderColor: "color-mix(in srgb, var(--muted-foreground) 25%, transparent)" }}>
                 <span className="min-w-0 truncate whitespace-nowrap text-xs uppercase tracking-wider text-muted-foreground">{tile.label}</span>
                 <span className="shrink-0 whitespace-nowrap font-mono text-lg font-bold tabular-nums leading-tight" style={{ color: accent }}>

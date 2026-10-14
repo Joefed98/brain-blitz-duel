@@ -12,15 +12,17 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { Button } from "@/components/ui/button";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import {
-  BAL_PEGS,
   BAL_REVEAL_MS,
-  BAL_SCALES,
   BAL_TIME_MS,
+  balanceScaleCount,
   balanceScalesSolved,
   balanceSolvedCount,
   balanceTilt,
   decodeBalance,
   encodeBalance,
+  pegDistance,
+  pegIsLeft,
+  scalePegs,
   scaleSolved,
   type Placement,
 } from "@/lib/duel/balance";
@@ -33,7 +35,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
-const pegDistanceLabel = (peg: number) => (peg < 4 ? 4 - peg : peg - 3);
+/** balanceRev 2's 10-notch scale: ten notches must fit a 375 px phone, so each may narrow to this. */
+const MIN_WIDE_PEG_WIDTH = 32;
 
 function Disc({ value, fixed, width, height }: { value: number; fixed: boolean; width: number; height: number }) {
   return <IronKettlebell value={value} fixed={fixed} width={width} height={height} />;
@@ -71,7 +74,8 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
 }) {
   const tilt = visibleTilt(scale, placement);
   const balanced = scaleSolved(scale, placement);
-  const width = spacing * BAL_PEGS;
+  const pegs = scalePegs(scale);
+  const width = spacing * pegs;
   const big = height !== undefined;
   const weight = big ? 52 : Math.min(44, spacing);
   // A weight's art is exactly its button: 44 × 52 on the live beam, 44 × 44 in the old layout.
@@ -108,7 +112,7 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
         <rect className="bal-beam-rect" x="2" y={beamY - barH / 2} width={width - 4} height={barH} rx={barH / 2.5} fill="url(#bal-brass)" stroke="#5A3A0C" strokeWidth="1"/>
         <path d={`M${barH / 2} ${beamY - barH / 2 + 1.5}H${width - barH / 2}`} stroke="#FFF6D6" strokeOpacity="0.75" strokeWidth="1"/>
         <path d={`M${barH / 2} ${beamY + barH / 2 - 2}H${width - barH / 2}`} stroke="#4A2F08" strokeOpacity="0.45" strokeWidth="1"/>
-        {Array.from({ length: BAL_PEGS - 1 }, (_, i) => i + 1).filter((peg) => peg !== 4).map((peg) => {
+        {Array.from({ length: pegs - 1 }, (_, i) => i + 1).filter((peg) => peg !== pegs / 2).map((peg) => {
           const x = peg * spacing, h = barH / 2 - 1.5;
           return <g key={peg}>
             <path d={`M${x} ${beamY - h}V${beamY + h}`} stroke="#3E2805" strokeWidth="1.4"/>
@@ -128,14 +132,14 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
       <circle className="bal-boss-glow" cx={cx} cy={beamY} r={big ? 11 : 7} fill="var(--primary)" opacity="0.4"/>
       <circle cx={cx} cy={beamY} r={big ? 5 : 3.5} fill={balanced ? "var(--primary)" : "url(#bal-brass-h)"} stroke="#3E2805" strokeWidth="1"/>
     </svg>
-    {Array.from({ length: BAL_PEGS }, (_, peg) => {
+    {Array.from({ length: pegs }, (_, peg) => {
       const item = onPeg.get(peg), available = selected != null && !item;
       return <div key={peg} className="absolute flex flex-col items-center" style={{ top: beamY - 32, left: peg * spacing, width: spacing, transform: `translateY(${offset(peg)}px)`, transition: TILT_EASE }}>
         {showControls ? <Button type="button" variant="ghost" onClick={() => { if (available) onPlace?.(peg); }}
-          aria-label={`Place at distance ${pegDistanceLabel(peg)} on the ${peg < 4 ? 'left' : 'right'}`} aria-disabled={!available}
+          aria-label={`Place at distance ${pegDistance(peg, pegs)} on the ${pegIsLeft(peg, pegs) ? 'left' : 'right'}`} aria-disabled={!available}
           className="balance-notch h-11 w-full min-w-0 px-0 font-mono text-sm">
-          <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistanceLabel(peg)}</span>
-        </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistanceLabel(peg)}</span></div>}
+          <span className={available ? 'bal-notch-label bal-notch-active' : 'bal-notch-label'} style={{ width: labelW }}>{pegDistance(peg, pegs)}</span>
+        </Button> : <div className="flex h-11 w-full items-center justify-center font-mono text-sm"><span className="bal-notch-label" style={{ width: labelW }}>{pegDistance(peg, pegs)}</span></div>}
         {item && <div key={item.fixed ? 'f' : `t${item.tray}`} className={`flex flex-col items-center ${showControls && !item.fixed ? 'bal-drop' : ''}`}>
           <svg className="bal-hook" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M4 0V3.2a2.1 2.1 0 1 1-2.1 2.1" fill="none" stroke="#D9A940" strokeWidth="1.6" strokeLinecap="round"/></svg>
           {item.fixed ? <Disc value={item.w} fixed width={bellW} height={bellH} /> : <Button variant="ghost" className={`min-w-0 p-0 ${big ? 'h-[52px]' : 'h-11'} w-full hover:bg-transparent ${item.tray === selected ? 'ring-2 ring-primary' : ''}`} onClick={() => { if (item.tray !== undefined) onWeightTap?.(item.tray); }} aria-label={`Select weight ${item.w}`}><Disc value={item.w} fixed={false} width={bellW} height={bellH}/></Button>}
@@ -170,17 +174,19 @@ function IntroExample() {
   );
 }
 
-function useSpacing(ref: React.RefObject<HTMLDivElement | null>): number {
+/** Notch width for the current scale: 44 px on 8 notches; a 10-notch scale shares the width, down to 32 px. */
+function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number): number {
   const [spacing, setSpacing] = useState(44);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const measure = () => setSpacing(Math.max(MIN_PEG_WIDTH, Math.min(44, Math.floor((el.clientWidth - PEG_GAP * (BAL_PEGS - 1)) / BAL_PEGS))));
+    const min = pegs > 8 ? MIN_WIDE_PEG_WIDTH : MIN_PEG_WIDTH;
+    const measure = () => setSpacing(Math.max(min, Math.min(44, Math.floor((el.clientWidth - PEG_GAP * (pegs - 1)) / pegs))));
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [ref, pegs]);
   return spacing;
 }
 
@@ -192,6 +198,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const reduced = useReducedMotion();
   const data: BalancePuzzleData | null = puzzle.type === "balance" ? puzzle : null;
   const scales = data?.scales ?? [];
+  // balanceRev 2: four scales and the puzzle's own 120 s; stored rounds three scales and the registry's 90 s.
+  const total = data ? balanceScaleCount(data) : 3;
+  const limitMs = data?.timeLimitMs ?? BAL_TIME_MS;
   const [placements, setPlacements] = useStageState<Placement[]>(stateKey, "placements", () =>
     scales.map((s) => s.tray.map(() => null)),
   );
@@ -199,7 +208,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const placeLimits = data ? balancePlaceLimits(data) : null;
   const [hangs, setHangs] = useStageState<number[]>(stateKey, "balanceHangs", () => scales.map(() => 0));
   const [selected, setSelected] = useState<number | null>(null);
-  const [current, setCurrentStage] = useStageState<number>(stateKey, "balanceStage", () => Math.min(balanceSolvedCount(scales, placements), BAL_SCALES - 1));
+  const [current, setCurrentStage] = useStageState<number>(stateKey, "balanceStage", () => Math.min(balanceSolvedCount(scales, placements), total - 1));
   const [progressTarget, setProgressTarget] = useState<HTMLElement | null>(null);
   // Set by the move that balances the last scale (never on a restore), to start the completion effect.
   const [solvedHere, setSolvedHere] = useState(false);
@@ -208,7 +217,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const submitted = useRef(false);
   const root = useRef<HTMLDivElement | null>(null);
   useNoTouchScroll(root);
-  const spacing = useSpacing(root);
+  const spacing = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8);
   const arena = useRef<HTMLDivElement | null>(null);
   const arenaHeight = useHeight(arena);
 
@@ -221,13 +230,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const solved = placeLimits ? verdicts.filter(Boolean).length : balanceSolvedCount(scales, placements);
   const encoded = placeLimits ? joinCountSuffix(encodeBalance(placements), hangs) : encodeBalance(placements);
   const outOfHangs = !!placeLimits && !verdicts[current] && (hangs[current] ?? 0) >= (placeLimits[current] ?? 0);
-  const allDone = placeLimits ? current >= BAL_SCALES - 1 && (verdicts[current] || outOfHangs) : solved === BAL_SCALES;
+  const allDone = placeLimits ? current >= total - 1 && (verdicts[current] || outOfHangs) : solved === total;
   const holding = useStageCorrectHold({
-    complete: (placeLimits ? !!verdicts[current] : solved > current) && current < BAL_SCALES - 1,
+    complete: (placeLimits ? !!verdicts[current] : solved > current) && current < total - 1,
     finalStage: false,
     locked: locked || submitted.current,
     stateKey,
-    onAdvance: () => setCurrentStage(Math.min(current + 1, BAL_SCALES - 1)),
+    onAdvance: () => setCurrentStage(Math.min(current + 1, total - 1)),
   });
 
   useEffect(() => {
@@ -237,10 +246,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   useEffect(() => {
     // Out of hangs on a scale before the last: it ends unbalanced and the next scale starts.
-    if (!outOfHangs || current >= BAL_SCALES - 1 || locked || submitted.current) return;
+    if (!outOfHangs || current >= total - 1 || locked || submitted.current) return;
     soundCue("balance.level");
     setCurrentStage(current + 1);
-  }, [outOfHangs, current, locked, setCurrentStage]);
+  }, [outOfHangs, current, total, locked, setCurrentStage]);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -250,14 +259,14 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (!data || locked || submitted.current) return;
     if (allDone) {
       submitted.current = true;
-      if (solved === BAL_SCALES) playLock();
+      if (solved === total) playLock();
       onSubmit(encoded);
       return;
     }
-    if (now < phaseStartedAt + BAL_TIME_MS - 400) return;
+    if (now < phaseStartedAt + limitMs - 400) return;
     submitted.current = true;
     onSubmit(encoded);
-  }, [now, phaseStartedAt, locked, data, encoded, onSubmit, solved, allDone]);
+  }, [now, phaseStartedAt, limitMs, locked, data, encoded, onSubmit, solved, allDone, total]);
 
   if (!data) return null;
   const scale = scales[current];
@@ -272,13 +281,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     if (hung && placeLimits) setHangs(hangs.map((n, i) => (i === current ? n + 1 : n)));
     if (scaleSolved(scale, next)) {
       playCorrect();
-      if ((placeLimits ? balanceScalesSolved(scales, all).filter(Boolean).length : balanceSolvedCount(scales, all)) === BAL_SCALES) setSolvedHere(true);
+      if ((placeLimits ? balanceScalesSolved(scales, all).filter(Boolean).length : balanceSolvedCount(scales, all)) === total) setSolvedHere(true);
       else soundCue("balance.level");
     }
   };
 
 
-  const available = (tray: number) => Array.from({ length: BAL_PEGS }, (_, peg) => peg).filter((peg) =>
+  const available = (tray: number) => Array.from({ length: scalePegs(scale) }, (_, peg) => peg).filter((peg) =>
     !scale.fixed.some((f) => f.peg === peg) && !placement.some((p, i) => i !== tray && p === peg));
   const hang = (tray: number, peg: number) => {
     if (!available(tray).includes(peg)) return puzzleReject();
@@ -327,8 +336,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     >
       <BalanceArt />
       {progressTarget && createPortal(
-        <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${BAL_SCALES} scales balanced`}>
-          {Array.from({ length: BAL_SCALES }, (_, i) => (
+        <div className="flex h-3 w-full shrink-0 gap-1.5 px-4" aria-label={`${solved} of ${total} scales balanced`}>
+          {Array.from({ length: total }, (_, i) => (
             <span key={i} className={`h-3 flex-1 rounded-full ${(placeLimits ? verdicts[i] : i < solved) ? "bg-primary" : i === current ? "bg-primary/35" : "bg-border"}`} />
           ))}
         </div>, progressTarget,
@@ -356,9 +365,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               />
             </div>
           </div>
-          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-2">
+          {/* The rack stands 16 px clear of the bottom of the screen. */}
+          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-2 pb-4">
             <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-              scale {current + 1} / {BAL_SCALES}
+              scale {current + 1} / {total}
               {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : "text-primary"} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
             </p>
             <div className="bal-rack flex min-h-[68px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
@@ -382,7 +392,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             />
           </div>
           <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
-            scale {current + 1} / {BAL_SCALES}
+            scale {current + 1} / {total}
             {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : undefined} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
           </p>
           <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
@@ -394,7 +404,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-const SIDE = (peg: number) => `${peg < 4 ? "left" : "right"} ${pegDistanceLabel(peg)}`;
+/** Reveal notch width: three scales at 36 px; four (balanceRev 2) a little tighter so all four fit a 375 × 667 screen. */
+const revealSpacing = (scale: BalanceScale, total: number) => (total > 3 ? (scalePegs(scale) > 8 ? 27 : 32) : 36);
+
+const SIDE = (peg: number, pegs: number) => `${pegIsLeft(peg, pegs) ? "left" : "right"} ${pegDistance(peg, pegs)}`;
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   if (puzzle.type !== "balance") return null;
@@ -404,6 +417,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   // Limited rounds credit each scale on its own (hung within its limit); stored rounds count scales in order.
   const okAt = placeLimits ? balanceScalesSolved(puzzle.scales, placements).map((ok, s) => ok && (hangs[s] ?? 0) <= (placeLimits[s] ?? 0)) : null;
   const solved = okAt ? okAt.filter(Boolean).length : balanceSolvedCount(puzzle.scales, placements);
+  const total = balanceScaleCount(puzzle);
   const elapsed = myMsRemaining === undefined ? null : ((timeLimitMs - myMsRemaining) / 1000).toFixed(1);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto py-1">
@@ -416,21 +430,21 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
             <div key={s} className="flex shrink-0 flex-col items-center gap-0.5">
               <div className="flex items-center gap-2">
                 <span className={`w-4 font-mono text-base font-bold ${ok ? "text-primary" : "text-warn"}`}>{ok ? "✓" : "✗"}</span>
-                <Beam scale={scale} placement={placements[s] ?? []} spacing={36} compact />
+                <Beam scale={scale} placement={placements[s] ?? []} spacing={revealSpacing(scale, total)} compact />
                 <span className="w-4" />
               </div>
               {!ok && solution && (
                 <p className="px-2 text-center text-sm leading-snug text-foreground">
                   <span className="text-[#E8D9B0]">One balanced way: </span>
-                  {solution.map((peg, i) => peg === null ? null : `${scale.tray[i]} on ${SIDE(peg)}`).filter(Boolean).join(" · ")}
+                  {solution.map((peg, i) => peg === null ? null : `${scale.tray[i]} on ${SIDE(peg, scalePegs(scale))}`).filter(Boolean).join(" · ")}
                 </p>
               )}
             </div>
           );
         })}
       </div>
-      <p className={`text-center font-mono text-base font-bold ${solved === BAL_SCALES ? "text-primary" : "text-foreground"}`}>
-        {solved === BAL_SCALES ? `3 / 3${elapsed ? ` · ${elapsed}s` : ""}` : `${solved} / 3`}
+      <p className={`text-center font-mono text-base font-bold ${solved === total ? "text-primary" : "text-foreground"}`}>
+        {solved === total ? `${total} / ${total}${elapsed ? ` · ${elapsed}s` : ""}` : `${solved} / ${total}`}
       </p>
     </div>
   );

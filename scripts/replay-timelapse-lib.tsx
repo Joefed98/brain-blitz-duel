@@ -26,7 +26,8 @@ function answerFor(type: string, p: any): string {
     case "rings":
       return (p.solution as number[]).join(",");
     case "strikeout":
-      return "E,A,R,S,T,O,I,N";
+      // strikeoutRev 2: one word at a time, so solve each in turn (every frame reveals a word).
+      return p.strikeoutRev >= 2 ? (p.words ?? []).map((w: string, i: number) => `${i}${w}`).join(",") : "E,A,R,S,T,O,I,N";
     case "wordslide":
       return "r0+,r1+,c2-,r3+,c0+,r4-";
     case "push":

@@ -427,6 +427,8 @@ function spawned(object: SliceObject, tick: number): SliceObject {
 export interface SliceState extends BandFields {
   /** sliceRev 4 only (Tuning C): 1 = the wider, longer blade (SLICE_BLADE_V4, SLICE_REACH_V4_NUM). Absent on every earlier round. */
   tunec?: number;
+  /** sliceRev 5 only (Tuning F): 1 = the longer slice (SLICE_MAX_PATH_V5). Absent on every earlier round. */
+  tunef?: number;
   tick: number;
   rng: number;
   objects: SliceObject[];
@@ -551,14 +553,14 @@ export function sliceSlowOn(state: SliceState, tick: number): boolean {
  * path. Shared by the phone (before recording) and the sim (enforcing it).
  */
 export function sliceClipSegment(
-  state: Pick<SliceState, "strokeX" | "strokeY" | "strokeLen"> & { strokeActive?: number },
+  state: Pick<SliceState, "strokeX" | "strokeY" | "strokeLen"> & { strokeActive?: number; tunef?: number },
   a: number,
   b: number,
   c: number,
   d: number,
 ): { c: number; d: number; length: number; used: number } | null {
   const used = state.strokeActive || (a === state.strokeX && b === state.strokeY) ? state.strokeLen : 0;
-  const left = SLICE_MAX_PATH - used;
+  const left = sliceMaxPath(state) - used;
   if (left <= 0) return null;
   const dx = c - a;
   const dy = d - b;
@@ -812,6 +814,8 @@ export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
   const values = Object.values(snapshot);
   // sliceRev 4 adds its marker last, so older sums are unchanged.
   if (state.tunec) values.push(state.tunec);
+  // sliceRev 5 adds its marker after that.
+  if (state.tunef) values.push(state.tunef);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1023,6 +1027,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_LONG) return sliceLongGame;
   if (rev === SLICE_REV_TUNEC) return sliceTunecGame;
   if (rev === SLICE_REV_BAND) return sliceBandGame;
   return rev === SLICE_REV ? sliceRev2Game : sliceGame;
@@ -1072,3 +1077,20 @@ export const SLICE_REV_TUNEC = 4;
  */
 export const SLICE_V4_BAND_CURVE = bandCurve([0, 435, 670, 755, 835, 900], [0, 78, 105, 130, 147, 150]);
 export const sliceTunecGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceBandGame, init: (seed) => ({ ...sliceBandGame.init(seed), tunec: 1 }) };
+
+/* ================= Tuning F (sliceRev 5, Oct 2026) ================= */
+
+/**
+ * sliceRev 5 (Tuning F): sliceRev 4 play (blade, reach, foods, curve) with a
+ * longer slice: one continuous finger-down path may run SLICE_MAX_PATH_V5 px
+ * (the world's full height) before the blade lifts, up from ¾ of it. States add `tunef: 1`.
+ */
+export const SLICE_REV_LONG = 5;
+export const SLICE_MAX_PATH_V5 = Math.max(SLICE_WORLD_W, SLICE_WORLD_H);
+
+/** The most one continuous path may cut on this run, in world px. */
+export function sliceMaxPath(state: { tunef?: number }): number {
+  return state.tunef ? SLICE_MAX_PATH_V5 : SLICE_MAX_PATH;
+}
+
+export const sliceLongGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceTunecGame, init: (seed) => ({ ...sliceTunecGame.init(seed), tunef: 1 }) };

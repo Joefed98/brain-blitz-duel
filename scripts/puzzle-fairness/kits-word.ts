@@ -3,7 +3,8 @@
  * Nucleus, Forage, Interlock, Slider, Lookout, Roundabout, Strikeout, Cryptogrid, Swapword.
  * Each kit builds the answer string the phone's Stage would hold; gradeAnswer does all scoring.
  */
-import { answerWords, commonWords, isWord } from "../../src/lib/duel/dictionary.server";
+import { answerWords, commonWords, isWord, wordsFrom } from "../../src/lib/duel/dictionary.server";
+import { lwEncodeLog, lwUsesLog } from "../../src/lib/duel/letterWheel";
 import { checkWordsmithWord, gradeWordsmith } from "../../src/lib/duel/wordsmith.server";
 import { checkWordHuntPath, gradeWordHunt } from "../../src/lib/duel/wordHunt.server";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
@@ -12,6 +13,17 @@ import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
 import { applyShift, markedRowWord, shiftToken, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
 import { wsEncode, wsLine, wsMatch } from "../../src/lib/duel/wordSearch";
 import { encodeStrikeout, replayStrikeout, soRowSolved, SO_LEN, type SoAction, type SoState } from "../../src/lib/duel/strikeout";
+import {
+  encodeStrikeout2,
+  replayStrikeout2,
+  so2GivenLetters,
+  strikeoutRevOf,
+  SO2_MAX_VOWELS,
+  SO2_VOWELS,
+  type So2Action,
+  type So2State,
+} from "../../src/lib/duel/strikeout";
+import { strikeoutAnswerWords } from "../../src/lib/duel/strikeout.server";
 import { encodeCodeword, replayCodeword, type CwAction } from "../../src/lib/duel/codeword";
 import { encodeSwapword, replaySwapword, swapwordMarks, SW_TILES, type SwSwap } from "../../src/lib/duel/swapword";
 import { witnessSwaps } from "../../src/lib/duel/swapword.server";
@@ -28,7 +40,7 @@ import type {
   WordSlidePuzzleData,
   WordsmithPuzzleData,
 } from "../../src/lib/duel/types";
-import { thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
+import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type SpamPlay, type Step } from "./kit";
 
 const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const FREQ = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
@@ -422,6 +434,12 @@ const lookout: PuzzleKit = {
 
 // ───────────────────────── Roundabout (letterwheel) ─────────────────────────
 
+/** wheelRev 1: real words on this wheel that are not in the crossword (neutral traces). */
+function wheelOtherWords(d: LetterWheelPuzzleData): string[] {
+  const words = new Set(d.words ?? []);
+  return wordsFrom(d.letters, 3, true).map((w) => w.toUpperCase()).filter((w) => !words.has(w));
+}
+
 const roundabout: PuzzleKit = {
   type: "letterwheel",
   nothing: () => "",
@@ -429,35 +447,66 @@ const roundabout: PuzzleKit = {
     const d = p as LetterWheelPuzzleData;
     const words = d.words ?? [];
     const wheel = [...d.letters];
-    const run = (label: string, perTryMs: number, len: () => number): SpamPlay => {
+    // wheelRev 1: the phone logs every trace; older rounds kept only words that filled a slot.
+    const log = lwUsesLog(d);
+    const answerOf = (traces: string[]) => {
+      if (log) return lwEncodeLog(traces);
       const filled: (string | undefined)[] = [];
-      for (let at = perTryMs; at <= limitMs; at += perTryMs) {
-        const w = rng.shuffle(wheel).slice(0, Math.min(wheel.length, len())).join("");
+      for (const w of traces) {
         const i = words.indexOf(w);
         if (i >= 0 && !filled.includes(w)) filled[i] = w;
       }
-      return { label, answer: filled.filter(Boolean).join(",") };
+      return filled.filter(Boolean).join(",");
     };
-    return [run("random-3", 1000, () => 3), run("random-3to5", 1300, () => rng.int(3, 5))];
+    const run = (label: string, perTryMs: number, len: () => number): SpamPlay => {
+      const traces: string[] = [];
+      for (let at = perTryMs; at <= limitMs; at += perTryMs) traces.push(rng.shuffle(wheel).slice(0, Math.min(wheel.length, len())).join(""));
+      return { label, answer: answerOf(traces) };
+    };
+    // Every 3-letter trace in turn (no repeats), one a second.
+    const sweep: string[] = [];
+    for (let a = 0; a < wheel.length; a++)
+      for (let b = 0; b < wheel.length; b++)
+        for (let c = 0; c < wheel.length; c++)
+          if (a !== b && b !== c && a !== c) sweep.push(wheel[a]! + wheel[b]! + wheel[c]!);
+    const sweepTraces = rng.shuffle([...new Set(sweep)]).slice(0, Math.floor(limitMs / 1000));
+    return [run("random-3", 1000, () => 3), run("random-3to5", 1300, () => rng.int(3, 5)), { label: "sweep-3", answer: answerOf(sweepTraces) }];
   },
   play(p, rng, skill) {
     const d = p as LetterWheelPuzzleData;
     const words = d.words ?? [];
+    const log = lwUsesLog(d);
+    const others = log ? wheelOtherWords(d) : [];
     // BASE 7 s per crossword word: spot it in the wheel (helped by the crossing letters) and trace it.
     const BASE = 7;
     const order = words.map((w, i) => ({ i, key: w.length + rng.next() * 3 })).sort((a, b) => a.key - b.key);
     const filled: (string | undefined)[] = [];
+    const traces: string[] = [];
+    const answer = () => (log ? lwEncodeLog(traces) : filled.filter(Boolean).join(","));
     const steps: Step[] = [];
     let at = 0;
     for (const { i } of order) {
       while (rng.chance(skill.err * 1.5)) {
-        // A real word that is not in this crossword, or a mis-trace: time only.
+        // A real word that is not in this crossword, or a mis-trace (two letters swapped or one dropped): time only,
+        // but wheelRev 1 logs it (a mis-trace that is not a word is a miss).
         at += thinkMs(rng, BASE * 0.5, skill);
-        steps.push({ answer: filled.filter(Boolean).join(","), atMs: at });
+        if (log) {
+          const w = words[i]!;
+          if (others.length && rng.chance(0.5)) traces.push(rng.pick(others));
+          else if (rng.chance(0.5) && w.length > 3) {
+            const k = rng.below(w.length);
+            traces.push(w.slice(0, k) + w.slice(k + 1));
+          } else {
+            const k = rng.below(w.length - 1);
+            traces.push(w.slice(0, k) + w[k + 1] + w[k] + w.slice(k + 2));
+          }
+        }
+        steps.push({ answer: answer(), atMs: at });
       }
       at += thinkMs(rng, BASE * (0.7 + words[i]!.length * 0.08), skill);
       filled[i] = words[i];
-      steps.push({ answer: filled.filter(Boolean).join(","), atMs: at });
+      traces.push(words[i]!);
+      steps.push({ answer: answer(), atMs: at });
     }
     return { steps };
   },
@@ -483,10 +532,95 @@ function soCandidates(p: StrikeoutPuzzleData, state: SoState, row: number): stri
   });
 }
 
+// Rev 2 (strikeoutRev 2): one 7–8 letter word at a time, two vowel guesses per word, strikes shared.
+const so2Replay = (p: StrikeoutPuzzleData, actions: So2Action[]) => replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord);
+
+/** Letters the phone lets the player press on the current word (not guessed, not showing, vowels while allowed). */
+function so2Open(p: StrikeoutPuzzleData, state: So2State): string[] {
+  const shown = so2GivenLetters(p.givens ?? [], state.word);
+  return [...ALPHA].filter((l) => !state.guessed.includes(l) && !shown.has(l) && !(SO2_VOWELS.includes(l) && state.vowelsUsed >= SO2_MAX_VOWELS));
+}
+
+/** Words still possible for the current word given what it shows. */
+function so2Candidates(p: StrikeoutPuzzleData, state: So2State): string[] {
+  const w = state.word;
+  const target = (p.words ?? [])[w] ?? "";
+  const shown = [...target].map((ch, i) => (state.revealed[w]![i] ? ch : ""));
+  const out = new Set([...state.guessed, ...shown.filter(Boolean)]);
+  const wrong = new Set(state.effective.filter((a) => a.kind === "solve" && a.word === w).map((a) => (a as { guess: string }).guess));
+  return strikeoutAnswerWords(target.length).filter((c) => {
+    if (wrong.has(c)) return false;
+    for (let i = 0; i < c.length; i++) {
+      if (shown[i]) { if (c[i] !== shown[i]) return false; }
+      else if (out.has(c[i]!)) return false;
+    }
+    return true;
+  });
+}
+
+function so2Spam(p: StrikeoutPuzzleData, label: string, next: (open: string[]) => string, limitMs: number): SpamPlay {
+  // About one key a second until the buzzer, always on the word the board shows.
+  const actions: So2Action[] = [];
+  for (let at = 0; at < limitMs; at += 1000) {
+    const state = so2Replay(p, actions);
+    if (state.done || state.over) break;
+    const open = so2Open(p, state);
+    if (!open.length) break;
+    actions.push({ kind: "guess", word: state.word, letter: next(open) });
+  }
+  return { label, answer: encodeStrikeout2(actions) };
+}
+
+function so2Play(d: StrikeoutPuzzleData, rng: Rng, skill: Skill): Play {
+  // BASE 4 s per letter guess (read the word, pick a letter); a solve takes 1.6× (type the missing letters).
+  const BASE = 4;
+  const actions: So2Action[] = [];
+  const steps: Step[] = [];
+  let at = 0;
+  for (let guard = 0; guard < 150; guard++) {
+    const state = so2Replay(d, actions);
+    if (state.done || state.over) break;
+    const c = so2Candidates(d, state);
+    // A person solves once the word is certain; a strong player will also gamble on two options with strikes to spare.
+    if (c.length === 1 || (c.length === 2 && state.strikes <= 2 && rng.chance(0.3))) {
+      at += thinkMs(rng, BASE * 1.6, skill);
+      actions.push({ kind: "solve", word: state.word, guess: rng.pick(c) });
+      steps.push({ answer: encodeStrikeout2(actions), atMs: at });
+      continue;
+    }
+    const open = so2Open(d, state);
+    let letter: string;
+    if (rng.chance(skill.err) || !c.length) {
+      // A hunch letter: a common letter not yet tried, regardless of the candidates.
+      letter = FREQ.split("").filter((l) => open.includes(l)).slice(0, 8)[rng.below(4)] ?? open[0]!;
+    } else {
+      // The letter appearing in most remaining candidates.
+      let best = open[0]!, bestScore = -1;
+      for (const l of open) {
+        const sc = c.filter((w) => w.includes(l)).length;
+        if (sc > bestScore) { bestScore = sc; best = l; }
+      }
+      letter = best;
+    }
+    at += thinkMs(rng, BASE, skill);
+    actions.push({ kind: "guess", word: state.word, letter });
+    steps.push({ answer: encodeStrikeout2(actions), atMs: at });
+  }
+  return { steps };
+}
+
 const strikeout: PuzzleKit = {
   type: "strikeout",
   nothing: () => "",
-  spam(_p, rng) {
+  spam(_p, rng, limitMs) {
+    const p2 = _p as StrikeoutPuzzleData;
+    if (strikeoutRevOf(p2) >= 2) {
+      return [
+        so2Spam(p2, "alphabet", (open) => open[0]!, limitMs),
+        so2Spam(p2, "frequency-order", (open) => FREQ.split("").find((l) => open.includes(l)) ?? open[0]!, limitMs),
+        so2Spam(p2, "random-letters", (open) => rng.pick(open), limitMs),
+      ];
+    }
     const g = (letters: string): string => encodeStrikeout([...letters].map((letter) => ({ kind: "guess", letter })));
     return [
       { label: "alphabet", answer: g(ALPHA) },
@@ -496,6 +630,7 @@ const strikeout: PuzzleKit = {
   },
   play(p, rng, skill) {
     const d = p as StrikeoutPuzzleData;
+    if (strikeoutRevOf(d) >= 2) return so2Play(d, rng, skill);
     // BASE 4 s per letter guess (read five rows, pick a letter); a solve takes 1.6× (choose the row, type five letters).
     const BASE = 4;
     const actions: SoAction[] = [];

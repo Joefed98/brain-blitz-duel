@@ -4,26 +4,32 @@
  *
  *   bun scripts/pattern-logic-oct14-check.ts
  *
+ * 0. Stored rounds from before the batch: every answer in
+ *    scripts/fixtures/pattern-logic-oct14-legacy.json.gz, recorded ON UNMODIFIED MAIN
+ *    (pattern-logic-oct14-legacy-record.ts) on room puzzles as main dealt them (Jumbled's
+ *    3×3 with no tilesRev, Colour Flood floodRev 1, Box Six with no sudokuRev, Bomb
+ *    bombVersion 2) and on the same puzzles with every score / limit stamp removed,
+ *    replays and grades exactly as main graded it.
  * 1. Stored-round identity: every answer in scripts/fixtures/pattern-logic-oct14.json.gz
  *    (recorded by pattern-logic-oct14-record.ts when the stamps shipped) grades
  *    exactly as recorded: score, verdict, counts, errors, stored time, extra.
  * 2. New rounds carry the stamps: Jumbled's extra-cell board (ten cells, 1–9, one
- *    line of four, a minimum of 18–24 proved by IDA*), Colour Flood's flat
- *    15-move limit on a par 10–14 board, Box Six's 13–15 givens with exactly one
+ *    line of four, a minimum of 18–24 proved by IDA*), Colour Flood's par + 2
+ *    limit on a par 10–14 board, Box Six's 13–15 givens with exactly one
  *    solution (60 seeds), Bomb Defusal version 3 (proved card by card in
  *    bomb-v3-check).
  * 3. Older stamps unchanged: an unstamped (stored) Jumbled frame plays the 3×3
  *    rules (a "9" is dropped, as before); a floodRev 1 board keeps par + 2; an
  *    unstamped Box Six grades the same with or without the new field.
- * 4. Colour Flood floodRev 2 rules: the par route solves, a run that uses all 15
- *    taps without flooding scores 0, credit falls from full at par to 0 at 15.
+ * 4. Colour Flood floodRev 2 rules: the par route solves, a run that uses every
+ *    tap without flooding scores 0, credit falls from full at par to 0 at the limit.
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { countSudokuSolutions } from "../src/lib/duel/logic.server";
 import { encodeFloodMoves, floodApply, floodSolved } from "../src/lib/duel/flood";
-import { FLOOD_FLAT_LIMIT, FLOOD_FLAT_LIMIT_REV, floodMoveLimit } from "../src/lib/duel/moveLimits";
+import { FLOOD_LIMIT_REV2, FLOOD_REV2_SPARE_MOVES, floodMoveLimit } from "../src/lib/duel/moveLimits";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { floodLimitWaste } from "../src/lib/duel/scoring";
 import { decodeTileMoves, replayTiles, tilesLayout, TILES_REV_EXTRA } from "../src/lib/duel/tiles";
@@ -41,12 +47,29 @@ import {
 } from "../src/lib/duel/types";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { OCT14_FIXTURE } from "./pattern-logic-oct14-record";
+import { OCT14_LEGACY_FIXTURE } from "./pattern-logic-oct14-legacy-record";
 
 let failures = 0;
 const fail = (msg: string) => {
   failures++;
   if (failures <= 30) console.log(`FAIL ${msg}`);
 };
+
+// 0. Rounds without the new stamps, recorded on unmodified main.
+const legacy = JSON.parse(gunzipSync(readFileSync(OCT14_LEGACY_FIXTURE)).toString("utf8")) as { recordedOn: string; cases: LegacyCase[] };
+let legacyAnswers = 0;
+for (const c of legacy.cases) {
+  const p = c.puzzle as unknown as Record<string, unknown>;
+  if ("tilesRev" in p || "sudokuRev" in p || (p["floodRev"] ?? 1) !== 1 || (c.type === "bomb" && p["bombVersion"] !== 2)) fail(`${c.type} ${c.label}: legacy fixture puzzle carries a new stamp`);
+  for (const e of c.entries) {
+    legacyAnswers++;
+    const g = gradeAnswer(c.puzzle, e.answer, e.ms);
+    const same = g.score === e.score && g.isCorrect === e.isCorrect && g.correctCount === e.correctCount && g.errors === e.errors && g.storedMs === e.storedMs && stableExtra(g.extra) === e.extra;
+    if (!same) fail(`legacy ${c.type} ${c.label}: "${e.answer.slice(0, 40)}" at ${e.ms} ms now ${g.score} (${stableExtra(g.extra)}), main graded ${e.score} (${e.extra})`);
+  }
+}
+for (const type of ["tiles", "flood", "sudoku", "bomb"]) if (!legacy.cases.some((c) => c.type === type && c.label.endsWith(":main")) || !legacy.cases.some((c) => c.type === type && c.label.endsWith(":unstamped"))) fail(`legacy fixture is missing ${type}`);
+console.log(`stored rounds before the batch: ${legacyAnswers} answers on ${legacy.cases.length} puzzles (recorded on ${legacy.recordedOn}) replay and grade exactly as main graded them`);
 
 // 1. Stored-round identity.
 const fixture = JSON.parse(gunzipSync(readFileSync(OCT14_FIXTURE)).toString("utf8")) as { cases: LegacyCase[] };
@@ -88,14 +111,15 @@ console.log(`Jumbled tilesRev 1: 40 boards, minimum ${[...histogram].sort((a, b)
 
 for (let seed = 1; seed <= 40; seed++) {
   const f = withSeededRandom(seed, () => generatePuzzle("flood")) as FloodPuzzleData;
-  if (f.floodRev !== FLOOD_FLAT_LIMIT_REV || f.moveLimit !== FLOOD_FLAT_LIMIT || floodMoveLimit(f) !== 15) fail(`flood seed ${seed}: limit ${f.moveLimit} rev ${f.floodRev}`);
+  const lim = f.par + FLOOD_REV2_SPARE_MOVES;
+  if (f.floodRev !== FLOOD_LIMIT_REV2 || f.moveLimit !== lim || floodMoveLimit(f) !== lim) fail(`flood seed ${seed}: limit ${f.moveLimit} rev ${f.floodRev} for par ${f.par}`);
   if (f.par < 10 || f.par > 14) fail(`flood seed ${seed}: par ${f.par}`);
   const route = gradeAnswer(f, encodeFloodMoves(f.solution!), 30_000);
   if (!route.isCorrect || route.score !== 150) fail(`flood seed ${seed}: the par route scored ${route.score}`);
-  // Fifteen taps that never flood the board: the board ends and scores 0.
+  // A full limit of taps that never floods the board: the board ends and scores 0.
   let grid = f.grid;
   const taps: number[] = [];
-  for (let i = 0; taps.length < 15 && i < 200; i++) {
+  for (let i = 0; taps.length < lim && i < 200; i++) {
     const c = i % FLOOD_COLOURS === grid[0] ? (i + 1) % FLOOD_COLOURS : i % FLOOD_COLOURS;
     const next = floodApply(grid, c);
     if (floodSolved(next)) break;
@@ -103,16 +127,16 @@ for (let seed = 1; seed <= 40; seed++) {
     grid = next;
     taps.push(c);
   }
-  if (taps.length === 15) {
+  if (taps.length === lim) {
     const out = gradeAnswer(f, encodeFloodMoves(taps), 0);
-    if (out.isCorrect || out.score !== 0) fail(`flood seed ${seed}: 15 taps without a flood scored ${out.score}`);
+    if (out.isCorrect || out.score !== 0) fail(`flood seed ${seed}: ${lim} taps without a flood scored ${out.score}`);
     // Taps past the limit are ignored.
     const past = gradeAnswer(f, encodeFloodMoves([...taps, ...f.solution!]), 0);
-    if (past.isCorrect) fail(`flood seed ${seed}: a tap past the 15-move limit counted`);
+    if (past.isCorrect) fail(`flood seed ${seed}: a tap past the limit counted`);
   }
 }
-if (floodLimitWaste(10, 10, 15) !== 1 || floodLimitWaste(15, 10, 15) !== 0 || Math.abs(floodLimitWaste(12, 10, 15) - 0.6) > 1e-9) fail("flood waste factor not full at par and 0 at 15");
-console.log("Colour Flood floodRev 2: 40 boards, par 10–14, limit 15; par route 150, 15 taps without a flood 0, credit full at par falling to 0 at 15");
+if (floodLimitWaste(10, 10, 12) !== 1 || floodLimitWaste(12, 10, 12) !== 0 || Math.abs(floodLimitWaste(11, 10, 12) - 0.5) > 1e-9) fail("flood waste factor not full at par, half at par + 1 and 0 at the limit");
+console.log("Colour Flood floodRev 2: 40 boards, par 10–14, limit par + 2; par route 150, a full limit of taps without a flood 0, credit full at par falling to 0 at the limit");
 
 const givens = new Map<number, number>();
 for (let seed = 1; seed <= 60; seed++) {

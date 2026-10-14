@@ -123,7 +123,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 import { SNIP_CONFIG, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
-import { wfWord, WF_H, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
+import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
   matchupParRaw,
@@ -220,7 +220,7 @@ export type ArcadeFxGame = keyof typeof ARCADE_GAME_WORLDS;
  * Junction (retired in Tuning C) and Pinball until PINBALL_IN_ROOMS (pinball.ts) is switched on.
  */
 export const RETIRED_ARCADE_GAMES: readonly ArcadeFxGame[] = PINBALL_IN_ROOMS ? ["junction"] : ["junction", "pinball"];
-/** The 21 active arcade games (rooms deal these; 22 once Pinball is switched on). */
+/** The 22 active arcade games (rooms deal these; Pinball joined on 14 Oct 2026 with PINBALL_IN_ROOMS on). */
 export const ACTIVE_ARCADE_GAMES = (Object.keys(ARCADE_GAME_WORLDS) as ArcadeFxGame[]).filter((g) => !RETIRED_ARCADE_GAMES.includes(g));
 
 /**
@@ -260,6 +260,14 @@ export const RALLY_GOLD_BULBS = ["#FFD84A", "#FFFFFF"] as const;
 export const BREAKER_BULBS = ["#FFFFFF", "#5CB8FF", "#2A6BFF"] as const;
 /** Hover: the border flashes the next colour of this cycle at every barrier passed. */
 export const HOVER_STEP_COLOURS = ["#3DFFE0", "#FF4DFF", "#FFD84A", "#4BFF7A", "#5CB8FF", "#FF6A5C"] as const;
+/**
+ * Tuning F (display only): Hover's arena border lights (the edge bulbs and edge
+ * stroke round the arena) were too strong. Passing a barrier now gives a very
+ * faint border flash and every 7th barrier a stronger one, still well below the
+ * full strength they had before (1). The barriers' own art is untouched.
+ */
+export const HOVER_BARRIER_LIGHT = 0.18;
+export const HOVER_ZONE_LIGHT = 0.35;
 
 /** Rally's tension, 0…1: the longer of the rally (40 returns) and the ball's speed-up. */
 export function rallyHeat(s: RallyState): number {
@@ -275,15 +283,15 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
   height: HOVER_WORLD_H,
   fit: "world",
   events: [
-    // Polish G: every barrier passed flashes the border in the next colour of the cycle.
+    // Polish G: every barrier passed flashes the border in the next colour of the cycle (very faintly since Tuning F).
     {
       kind: "pop",
       count: (s) => s.gates,
       label: () => null,
       textOnly: true,
-      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS },
+      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, level: HOVER_BARRIER_LIGHT },
     },
-    // Every seventh barrier changes colour: a new "zone" reached (the border blinks its colour three times).
+    // Every seventh barrier changes colour: a new "zone" reached (the border blinks its colour three times, at under half strength since Tuning F).
     {
       kind: "streak",
       count: (s) => s.gates,
@@ -291,7 +299,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }),
       label: (_s, n) => `ZONE ${Math.floor(n / 7) + 1}`,
       textOnly: true,
-      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
+      bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true, level: HOVER_ZONE_LIGHT },
     },
     // hoverRev 2 success moments: a gold star, a two-gap barrier, a moving barrier.
     {
@@ -454,7 +462,11 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       // Rev 2: a ball came off the bumper.
       kind: "pop",
       count: (s) => s.bounces ?? 0,
-      at: (s) => (s.bumper ? { x: s.bumper.x, y: s.bumper.y - 20 } : null),
+      // rallyRev 5: from the bumper the bounce came off (`bumped`; the first on older rounds).
+      at: (s) => {
+        const b = s.bumped === 1 && s.bumper2 ? s.bumper2 : s.bumper;
+        return b ? { x: b.x, y: b.y - 20 } : null;
+      },
       label: () => "BOING",
       textOnly: true,
     },
@@ -1302,7 +1314,11 @@ export const WORDFALL_FX: ArcadeFxSpec<WordfallState> = {
   ],
 };
 
-/** Specs for ENGINE_GAME_WORLDS, keyed the same way. */
+/** wordfallRev 2's taller world (the Enter box under the well); stored rev-1 rounds keep WORDFALL_FX. */
+export const WORDFALL_FX_TALL = fxSpecAt(WORDFALL_FX, WF_H_V2);
+export const wordfallFxFor = (s: WordfallState): ArcadeFxSpec<WordfallState> => fxSpecAt(WORDFALL_FX, wfWorldH(s));
+
+/** Specs for ENGINE_GAME_WORLDS, keyed the same way (the worlds rooms deal today). */
 export const ENGINE_FX_SPECS = {
-  wordfall: WORDFALL_FX,
+  wordfall: WORDFALL_FX_TALL,
 } satisfies Record<EngineFxGame, ArcadeFxSpec<never>>;
