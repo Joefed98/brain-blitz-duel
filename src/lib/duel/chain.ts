@@ -10,7 +10,10 @@ import { speedBonusCurve } from "./speedPar";
 import {
   CHAIN_BLOCK,
   CHAIN_CYCLE,
+  CHAIN_CYCLE_REV,
   CHAIN_LENGTH,
+  CHAIN_REVERSE_AT,
+  CHAIN_REVERSE_LINKS,
   CHAIN_LINK_POINTS,
   CHAIN_FINISH_BONUS,
   CHAIN_RULES_VERSION,
@@ -37,7 +40,26 @@ export function chainRuleStep(puzzle: ChainPuzzleData, links: number): number {
   return puzzle.cycles ? links % CHAIN_BLOCK : links;
 }
 
+/** chainCycleRev 1: five-symbol cycles, reversed on the board from CHAIN_REVERSE_AT. */
+export function chainLongCycles(puzzle: ChainPuzzleData | undefined): boolean {
+  return puzzle?.chainCycleRev === CHAIN_CYCLE_REV;
+}
+
+/** chainCycleRev 1: this link (0-based, the links already made) is on the reversed board. */
+export function chainReversedAt(puzzle: ChainPuzzleData | undefined, links: number): boolean {
+  return chainLongCycles(puzzle) && links >= CHAIN_REVERSE_AT && links < CHAIN_REVERSE_AT + CHAIN_REVERSE_LINKS;
+}
+
+/** Which preview item the next tap needs: its index in the board's cycle. */
+export function chainCycleIndex(puzzle: ChainPuzzleData, links: number): number {
+  if (!chainLongCycles(puzzle)) return chainRuleStep(puzzle, links) % CHAIN_CYCLE;
+  const cycle = chainCycleAt(puzzle, links);
+  const step = chainRuleStep(puzzle, links) % cycle.length;
+  return chainReversedAt(puzzle, links) ? cycle.length - 1 - step : step;
+}
+
 export function chainRequiredAt(puzzle: ChainPuzzleData, links: number): ChainRuleItem | undefined {
+  if (chainLongCycles(puzzle)) return chainCycleAt(puzzle, links)[chainCycleIndex(puzzle, links)];
   return chainRequired(chainCycleAt(puzzle, links), chainRuleStep(puzzle, links));
 }
 
@@ -70,6 +92,15 @@ export function chainBoardIndex(links: number, puzzle?: ChainPuzzleData): number
   return Math.min(Math.floor(links / CHAIN_BLOCK), Math.floor((chainRules(puzzle).length - 1) / CHAIN_BLOCK));
 }
 
+/**
+ * chainCycleRev 1: unfinished credit by links made, floor(110 × (links ÷ 39)^0.45),
+ * written out so phone and server never depend on Math.pow rounding.
+ */
+export const CHAIN_CYCLE_REV_CREDIT: readonly number[] = [
+  0, 21, 28, 34, 39, 43, 47, 50, 53, 56, 59, 62, 64, 67, 69, 71, 73, 75, 77, 79,
+  81, 83, 85, 86, 88, 90, 91, 93, 94, 96, 97, 99, 100, 102, 103, 104, 106, 107, 108, 110,
+];
+
 /** Shared server-scoring rule, with the original rule for stored rounds. */
 export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleData): number {
   const rules = chainRules(puzzle);
@@ -77,6 +108,9 @@ export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleD
   if (scoreRev1()) {
     // Rev 1: all links = 120 + PAR(30); otherwise 110 × links ÷ (links − 1) of the chain, so one short is 110.
     if (count === rules.length) return finishParts(speedBonusCurve(30, msRemaining, CHAIN_TIME_MS));
+    // chainCycleRev 1: the same 110 one short, on a concave curve, so a chain that
+    // breaks at the reversed board (link 20) keeps most of its credit.
+    if (chainLongCycles(puzzle)) return partialParts(CHAIN_CYCLE_REV_CREDIT[count] ?? 110);
     return partialParts(Math.floor((110 * count) / Math.max(1, rules.length - 1)));
   }
   const bonus = count === rules.length
@@ -84,9 +118,9 @@ export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleD
   return Math.min(150, Math.floor(rules.points * count) + bonus);
 }
 
-/** Old recordings use the old timing bands and must be recorded again. */
+/** Old recordings use the old timing bands (or, before chainCycleRev 1, three-symbol cycles) and must be recorded again. */
 export function chainDemoCompatible(puzzle: ChainPuzzleData): boolean {
-  return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK;
+  return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK && chainLongCycles(puzzle);
 }
 
 const EPSILON = 0.0001;

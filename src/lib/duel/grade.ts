@@ -55,7 +55,7 @@ import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
 import { decodeClayRun, replayClayRun } from "./clayShoot";
-import { clayEmptyShotCost, clayEmptyShots, CLAY_REV4 } from "@/lib/arcade/clayShoot";
+import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
@@ -1632,7 +1632,7 @@ function gradeUnderRev(
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         // clayRev 4: the stored empty-shot cost, so the reveal never recomputes it.
-        ...(puzzle.clayRev === CLAY_REV4
+        ...(clayChargesEmptyShots(puzzle.clayRev)
           ? (() => {
               const emptyShots = clayEmptyShots(run.shots, run.hits, run.birdHits);
               return { emptyShots, emptyShotCost: clayEmptyShotCost(emptyShots, puzzle.clayRev) };

@@ -100,7 +100,15 @@ export const CLAY_REV3 = 3;
  * the allowance; mashing (300+ empty shots) loses about 15.
  */
 export const CLAY_REV4 = 4;
-export const CLAY_REV = CLAY_REV4;
+/**
+ * rev 5 (14 Oct 2026, Speed tuning): rev 4's clays, scoring and empty-shot cost
+ * with more birds, 14–16 instead of 10–12 (CLAY_BIRD_MIN_V5 / MAX_V5), on the same
+ * cadence rules (the gap shrinks so every bird still crosses before the end).
+ */
+export const CLAY_REV5 = 5;
+export const CLAY_REV = CLAY_REV5;
+export const CLAY_BIRD_MIN_V5 = 14;
+export const CLAY_BIRD_MAX_V5 = 16;
 export const CLAY_FREE_EMPTY_SHOTS = 30;
 export const CLAY_EMPTY_SHOTS_PER_POINT = 20;
 /** rev2 legacy cadence: 3-4 birds, replays unchanged. */
@@ -127,7 +135,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5;
+}
+
+/** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
+export function clayChargesEmptyShots(rev?: number | null): boolean {
+  return rev === CLAY_REV4 || rev === CLAY_REV5;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -137,7 +150,7 @@ export function clayEmptyShots(shots: number, hits: number, birdHits: number): n
 
 /** rev 4: the points lost to empty shots beyond the free allowance (0 before rev 4). */
 export function clayEmptyShotCost(emptyShots: number, rev?: number | null): number {
-  if (rev !== CLAY_REV4) return 0;
+  if (!clayChargesEmptyShots(rev)) return 0;
   return Math.floor(Math.max(0, emptyShots - CLAY_FREE_EMPTY_SHOTS) / CLAY_EMPTY_SHOTS_PER_POINT);
 }
 
@@ -331,7 +344,7 @@ function buildBirdSchedule(rngStart: number): { rng: number; schedule: ClayBirdS
   return { rng, schedule: { launch, side, launchY, vx, vy } };
 }
 
-function buildBirdScheduleV3(rngStart: number): { rng: number; schedule: ClayBirdSchedule } {
+function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxBirds = CLAY_BIRD_MAX_V3): { rng: number; schedule: ClayBirdSchedule } {
   const c = CLAY_CONFIG;
   let rng = rngStart | 0;
   const draw = (bound: number) => {
@@ -339,7 +352,7 @@ function buildBirdScheduleV3(rngStart: number): { rng: number; schedule: ClayBir
     rng = out.state;
     return out.value;
   };
-  const count = CLAY_BIRD_MIN_V3 + draw(CLAY_BIRD_MAX_V3 - CLAY_BIRD_MIN_V3 + 1);
+  const count = minBirds + draw(maxBirds - minBirds + 1);
   const launch: number[] = [];
   const side: number[] = [];
   const launchY: number[] = [];
@@ -471,7 +484,7 @@ function initRev2(seed: number): ClayState {
 
 function initRev3(seed: number, rev: number = CLAY_REV3): ClayState {
   const base = init(seed);
-  const built = buildBirdScheduleV3(base.rng);
+  const built = rev === CLAY_REV5 ? buildBirdScheduleV3(base.rng, CLAY_BIRD_MIN_V5, CLAY_BIRD_MAX_V5) : buildBirdScheduleV3(base.rng);
   const count = built.schedule.launch.length;
   return {
     ...base,
@@ -838,7 +851,10 @@ export const clayRev2Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev3Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed) };
 export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV4) };
 
+export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
+
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV5) return clayRev5Game;
   if (rev === CLAY_REV4) return clayRev4Game;
   if (rev === CLAY_REV3) return clayRev3Game;
   if (rev === CLAY_REV2) return clayRev2Game;

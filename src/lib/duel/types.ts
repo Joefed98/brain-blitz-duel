@@ -258,8 +258,12 @@ export interface ReactionPuzzleData {
   type: "reaction";
   /** When each gold flash starts, in ms from the round start (generated once). */
   flashes: number[];
-  /** Seeded decoy pulses before the gold flashes: start time and colour. */
-  decoys: { at: number; color: "teal" | "red" | "blue" }[];
+  /**
+   * Seeded decoy pulses before the gold flashes: start time and colour. `tapRev: 3`
+   * (14 Oct 2026) adds gold-like decoys: near-gold amber, a gold border only, the
+   * word GOLD on a dark screen and a half-screen gold (REACTION_GOLD_LIKE_DECOYS).
+   */
+  decoys: { at: number; color: ReactionDecoyColour }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
 }
@@ -727,6 +731,10 @@ export const REACTION_FLASH_MS = 1_500;
 export const REACTION_MISS_MS = 1_200;
 /** How long a decoy pulse stays on screen. */
 export const REACTION_DECOY_MS = 600;
+/** Flash decoys: the original colours, plus the gold-like ones `tapRev: 3` deals. */
+export const REACTION_PLAIN_DECOYS = ["teal", "red", "blue"] as const;
+export const REACTION_GOLD_LIKE_DECOYS = ["amber", "border", "word", "half"] as const;
+export type ReactionDecoyColour = (typeof REACTION_PLAIN_DECOYS)[number] | (typeof REACTION_GOLD_LIKE_DECOYS)[number];
 
 /** Every run holds at least this many of each instruction. */
 export const STROOP_MIN_PER_INSTRUCTION = 4;
@@ -873,6 +881,10 @@ export interface StopWatchSpec {
   moving?: { amplitude: number; cycleMs: number; phase: number };
   /** Draw and move this watch vertically instead of horizontally. */
   vertical?: boolean;
+  /** `tapRev: 3`: draw the bar corner to corner (bottom left to top right); the marker rules are unchanged. */
+  diagonal?: boolean;
+  /** `tapRev: 3`: black blind spots, [from, to] as fractions of the bar, where the marker vanishes (drawing only). */
+  blind?: [number, number][];
   /** Optional traversal times, one per pass. */
   passSweepMs?: number[];
   /** Right-boundary arrivals allowed before this watch is missed. */
@@ -1693,6 +1705,19 @@ export const CHAIN_RULES_VERSION = 2;
  * the replayed last tap allows (45 s less its time), never the claimed time alone.
  */
 export const CHAIN_TIME_REV = 1;
+/**
+ * Five-symbol cycles (14 Oct 2026, Speed tuning): each board's cycle is five
+ * different charms, all shown in the preview (no symbol repeats within a board),
+ * and the board starting at link CHAIN_REVERSE_AT is played in reverse order for
+ * CHAIN_REVERSE_LINKS links, after a banner warning. Absent = three-symbol cycles.
+ */
+export const CHAIN_CYCLE_REV = 1;
+export const CHAIN_CYCLE_LONG = 5;
+/** chainCycleRev 1: links already made when the reversed board starts (0-based link 20 = the 21st tap). */
+export const CHAIN_REVERSE_AT = 20;
+export const CHAIN_REVERSE_LINKS = 5;
+/** chainCycleRev 1: the reverse warning banner shows from this many links made. */
+export const CHAIN_REVERSE_WARN_AT = 17;
 /** Momentum windows, in ms, to make the given link after the previous one. */
 export const CHAIN_MOMENTUM_MS = [
   { upTo: 13, ms: 3_000 },
@@ -1741,6 +1766,8 @@ export interface ChainPuzzleData {
   rulesVersion?: number;
   /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
   chainTimeRev?: number;
+  /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
+  chainCycleRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
