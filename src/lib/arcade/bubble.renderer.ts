@@ -158,8 +158,10 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
  *    amber warning bubble.
  *  - Torpedo: a silver torpedo side-on (red-banded nose, cross fins, propeller)
  *    with arrowheads at both ends of the bubble: it clears the whole row.
+ *    bubbleRev 4 (`directional`): one arrowhead, at the nose only, and the
+ *    sprite is turned to the way it travels (it destroys what it runs into).
  */
-function paintSpecial(value: number) {
+function paintSpecial(value: number, directional: boolean) {
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
     c.save();
@@ -282,9 +284,9 @@ function paintSpecial(value: number) {
       sea.addColorStop(1, "#0D3550");
       c.fillStyle = sea;
       c.fillRect(0, 0, size, size);
-      // Arrowheads at both edges: it clears left and right.
+      // Arrowheads at both edges: it clears left and right (rev 4: the nose only, it runs where it points).
       c.fillStyle = "#FFE14D";
-      for (const side of [-1, 1]) {
+      for (const side of directional ? [-1] : [-1, 1]) {
         c.beginPath();
         c.moveTo(r + side * r * 0.86, r);
         c.lineTo(r + side * r * 0.64, r - r * 0.26);
@@ -339,7 +341,7 @@ function paintSpecial(value: number) {
 }
 
 function paintBubble(value: number) {
-  if (bubIsSpecial(value)) return paintSpecial(value);
+  if (bubIsSpecial(value)) return paintSpecial(value, false);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
     const colour = bubColour(value);
@@ -413,26 +415,55 @@ function paintReef(c: CanvasRenderingContext2D, w: number, h: number, margin: nu
   }
 }
 
-/** Blits a cached bubble sprite at CSS-px centre with CSS-px radius. */
-function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1): void {
-  const key = bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}`;
-  const sprite = seaSprite(key, radius * 2 * dpr, paintBubble(value));
+/**
+ * Blits a cached bubble sprite at CSS-px centre with CSS-px radius. `heading`
+ * (radians, screen space) is given only for a bubbleRev-4 Torpedo: its
+ * one-arrow sprite is turned so the nose points that way (the circle, the
+ * collision bound, is unchanged by the turn).
+ */
+function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1, heading?: number): void {
+  const directional = heading !== undefined && value === BUB_LINE;
+  const key = directional ? `bub-special4-${value}` : bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}`;
+  const sprite = seaSprite(key, radius * 2 * dpr, directional ? paintSpecial(value, true) : paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
-  ctx.drawImage(sprite as CanvasImageSource, x - radius, y - radius, radius * 2, radius * 2);
+  if (directional) {
+    // The sprite's nose points left (angle π).
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(heading - Math.PI);
+    ctx.drawImage(sprite as CanvasImageSource, -radius, -radius, radius * 2, radius * 2);
+    ctx.restore();
+  } else ctx.drawImage(sprite as CanvasImageSource, x - radius, y - radius, radius * 2, radius * 2);
   if (alpha !== 1) ctx.globalAlpha = 1;
+}
+
+/** Torpedo heading for the art: up while loaded (bubbleRev 4 only; undefined otherwise). */
+function loadedHeading(state: BubState, value: number): number | undefined {
+  return state.lineRev !== undefined && value === BUB_LINE ? -Math.PI / 2 : undefined;
 }
 
 /** kind 0 pop, 1 drop; bubbleRev 2: 2 bomb blast, 3 torpedo row flash, 4 joker sparkle. */
 interface Fx { kind: 0 | 1 | 2 | 3 | 4; value: number; x: number; y: number; born: number; seed: number }
-interface Memo { tick: number; grid: number[]; descents: number; fx: Fx[]; specials: number; blast: Fx | null; cleared: number; rise: { born: number; seed: number } | null }
+interface Memo {
+  tick: number;
+  grid: number[];
+  descents: number;
+  fx: Fx[];
+  specials: number;
+  blast: Fx | null;
+  cleared: number;
+  rise: { born: number; seed: number } | null;
+  /** bubbleRev 4: where the Torpedo in flight has been (world px), newest last; empty otherwise. */
+  wake: { x: number; y: number }[];
+}
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
 
 function memoFor(ctx: CanvasRenderingContext2D, state: BubState): Memo {
   let m = memos.get(ctx);
   if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null, cleared: state.popped + state.dropped, rise: null };
+    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null, cleared: state.popped + state.dropped, rise: null, wake: [] };
     memos.set(ctx, m);
   }
   return m;
@@ -457,16 +488,26 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
   const cleared = state.popped + state.dropped;
   if (cleared - m.cleared >= BIG_HIT && !reducedMotion()) m.rise = { born: now, seed: state.tick };
   m.cleared = cleared;
+  // bubbleRev 4: the Torpedo's wake follows its path; what it runs into pops as it goes.
+  const drilling = state.lineRev !== undefined && state.flightColour === BUB_LINE;
+  if (drilling) {
+    m.wake.push({ x: state.x / 256, y: state.y / 256 });
+    if (m.wake.length > WAKE_LEN) m.wake.shift();
+  }
   // bubbleRev 2: a special went off since the last frame; what it cleared pops (no fall).
   const special = specialCount(state) > m.specials;
-  if (special && (state.lastSpecialCell ?? -1) >= 0) {
+  if (special && state.lineRev !== undefined && state.lastSpecial === BUB_LINE) {
+    // bubbleRev 4: the Torpedo bursts where it stopped (the sim's last position).
+    m.blast = { kind: 3, value: BUB_LINE, x: state.x / 256, y: state.y / 256, born: now, seed: state.tick };
+  } else if (special && (state.lastSpecialCell ?? -1) >= 0) {
     const cell = state.lastSpecialCell!;
     const row = Math.floor(cell / BUB_COLS);
     const kind = state.lastSpecial === BUB_BOMB ? 2 : state.lastSpecial === BUB_LINE ? 3 : 4;
     m.blast = { kind, value: state.lastSpecial ?? 0, x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, m.descents), born: now, seed: cell };
   }
   m.specials = specialCount(state);
-  if (special) colour = -1;
+  if (special || drilling) colour = -1;
+  if (!drilling) m.wake = [];
   if (state.popped + state.dropped > 0 && state.grid !== m.grid) {
     for (let row = 0; row < BUB_MAX_ROWS; row++) {
       for (let col = 0; col < bubRowCols(row); col++) {
@@ -491,6 +532,8 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
 }
 
 let lastFlight = 0;
+/** bubbleRev 4: wake points kept behind the Torpedo (one a tick). */
+const WAKE_LEN = 18;
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
@@ -659,6 +702,17 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
         ctx.beginPath();
         ctx.arc(X(f.x), Y(f.y), BUB_R * rs * (1.2 - k * 0.6), 0, Math.PI * 2);
         ctx.fill();
+      } else if (f.kind === 3 && state.lineRev !== undefined) {
+        // bubbleRev 4: a burst where the Torpedo stopped (no row flash: it never clears a row).
+        ctx.strokeStyle = "#7FE6F5";
+        ctx.lineWidth = Math.max(2, 4 * rs * (1 - k));
+        ctx.beginPath();
+        ctx.arc(X(f.x), Y(f.y), (BUB_R + (still ? 2 : k * 22)) * rs, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(220,250,255,0.6)";
+        ctx.beginPath();
+        ctx.arc(X(f.x), Y(f.y), BUB_R * rs * (1 - k * 0.6), 0, Math.PI * 2);
+        ctx.fill();
       } else if (f.kind === 3) {
         ctx.fillStyle = "rgba(200,250,255,0.75)";
         const h = BUB_R * 2 * sy * (1 - k * 0.7);
@@ -748,7 +802,7 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   ctx.arc(gx, gy, (BUB_R + 1) * rs, Math.PI * 0.3, Math.PI * 0.7);
   ctx.stroke();
   const holding = bubNextColour(state, 0);
-  if (holding) blitBubble(ctx, holding, gx, gy, radius, dpr);
+  if (holding) blitBubble(ctx, holding, gx, gy, radius, dpr, 1, loadedHeading(state, holding));
 
   // Loaded queue: the next three in a brass magazine beside the gun.
   const qy = gy + 19 * sy;
@@ -765,10 +819,42 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   ctx.fill();
   for (let ahead = 1; ahead <= 3; ahead++) {
     const value = bubNextColour(state, ahead);
-    if (value) blitBubble(ctx, value, gx + (30 + ahead * 20 - 6) * rs, qy, 8 * rs, dpr);
+    if (value) blitBubble(ctx, value, gx + (30 + ahead * 20 - 6) * rs, qy, 8 * rs, dpr, 1, loadedHeading(state, value));
   }
 
-  if (state.flightColour) blitBubble(ctx, state.flightColour, X(state.x / 256), Y(state.y / 256), radius, dpr);
+  // bubbleRev 4: the Torpedo's wake (a fading trail of fizz along the path it drilled), then the
+  // Torpedo itself turned to the way it travels.
+  const drillingNow = state.lineRev !== undefined && state.flightColour === BUB_LINE;
+  if (drillingNow && m.wake.length > 1) {
+    ctx.save();
+    ctx.lineCap = "round";
+    for (let i = 1; i < m.wake.length; i++) {
+      const a = m.wake[i - 1]!;
+      const b = m.wake[i]!;
+      const k = i / m.wake.length;
+      ctx.strokeStyle = `rgba(190,245,255,${(0.5 * k).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, (3 + 7 * k) * rs);
+      ctx.beginPath();
+      ctx.moveTo(X(a.x), Y(a.y));
+      ctx.lineTo(X(b.x), Y(b.y));
+      ctx.stroke();
+    }
+    if (!still) {
+      ctx.fillStyle = "rgba(230,250,255,0.7)";
+      for (let i = 0; i < m.wake.length; i += 3) {
+        const p = m.wake[i]!;
+        const wob = (((i * 7919 + state.tick) % 9) - 4) * 0.8;
+        ctx.beginPath();
+        ctx.arc(X(p.x) + wob * rs, Y(p.y), Math.max(0.8, (1 + (i % 2)) * rs), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  if (state.flightColour) {
+    const heading = drillingNow ? Math.atan2(state.vy * sy, state.vx * sx) : undefined;
+    blitBubble(ctx, state.flightColour, X(state.x / 256), Y(state.y / 256), radius, dpr, 1, heading);
+  }
 
   // HUD readout on the rock.
   ctx.fillStyle = SEA_GOLD;
