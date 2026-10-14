@@ -66,7 +66,9 @@ import {
   type MatchupState,
 } from "../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
-import { generateCross, generateMatchup, generateSlice } from "../src/lib/duel/arcade.server";
+import { generateBubble, generateCross, generateMatchup, generateSlice, generateSwing } from "../src/lib/duel/arcade.server";
+import { BUB_REV_TORPEDO } from "../src/lib/arcade/bubble";
+import { SWING_REV_SPREAD } from "../src/lib/arcade/swing";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
@@ -135,6 +137,9 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     ["cross", "crossRev", generateCross().crossRev, CROSS_REV_SMALL],
     ["slice", "sliceRev", generateSlice().sliceRev, SLICE_REV_LONG],
     ["matchup", "matchupRev", generateMatchup().matchupRev, MATCHUP_REV_PAR],
+    // Their rules are proved by bubble-rev4-check and swing-rev8-check.
+    ["bubble", "bubbleRev", generateBubble().bubbleRev, BUB_REV_TORPEDO],
+    ["swing", "swingRev", generateSwing().swingRev, SWING_REV_SPREAD],
   ];
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
