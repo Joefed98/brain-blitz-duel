@@ -8,7 +8,10 @@
  * and asserts (arcade summaries check their total; Cross checks both terms and cap):
  *   1. the rendered data-reveal-score equals the stored score;
  *   2. with no stored row yet, the reveal shows "Scoring…" and no number;
- *   3. no puzzle Reveal source computes a score locally (static scan).
+ *   3. no puzzle Reveal source computes a score locally (static scan);
+ *   4. a stored round of each game deleted on 14 Oct 2026 (removedGames.ts)
+ *      shows its stored score and never "Scoring…" (no grader is asked;
+ *      removed-games-check covers the rest of their read-only path).
  *
  *   bun scripts/reveal-score-check.tsx [samplesPerType]
  */
@@ -25,6 +28,7 @@ import { puzzleUsesBands } from "@/lib/arcade/bandParts";
 import { generatePuzzle, gradeAnswer } from "@/lib/duel/generate.server";
 import { ACTIVE_PUZZLE_TYPES, RETIRED_PUZZLE_TYPES, puzzleDef } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
+import { REMOVED_PUZZLE_TYPES, scoreStoredRound } from "@/lib/duel/removedGames";
 
 const samples = Number(process.argv[2] ?? 5);
 const failures: string[] = [];
@@ -191,6 +195,22 @@ for (const type of [...ACTIVE_PUZZLE_TYPES, ...RETIRED_PUZZLE_TYPES]) {
   }
 }
 
+// Deleted games: the stored score is the only score, with or without a row.
+for (const type of REMOVED_PUZZLE_TYPES) {
+  const puzzle = { type, seed: 1 } as unknown as PuzzleData;
+  for (const storedScore of [0, 64, 150]) {
+    const score = scoreStoredRound(puzzle, { score: storedScore }, () => {
+      throw new Error("a deleted game was regraded");
+    });
+    const html = render(puzzle, { answer: "x", isCorrect: false, score, storedMs: 0, reactionAvgMs: null, extra: null });
+    const shown = [...html.matchAll(/data-reveal-score="([^"]*)"/g)].map((m) => m[1]);
+    if (shown.length !== 1 || shown[0] !== String(storedScore) || html.includes("Scoring"))
+      failures.push(`${type} (deleted): stored ${storedScore}, reveal shows ${shown.join(",") || "nothing"}`);
+    checked++;
+  }
+  if (render(puzzle, null).includes("Scoring")) failures.push(`${type} (deleted): "Scoring…" with no stored row`);
+}
+
 // Static guard: no puzzle Reveal may work out a score of its own.
 const banned = /\bscore[A-Z]\w*\(|\.score\b|Game\.score\(|\w+Points\((?!word)|\bclaimedScore\b/;
 for (const file of readdirSync("src/puzzles").filter((f) => f.endsWith(".tsx"))) {
@@ -204,7 +224,7 @@ for (const file of readdirSync("src/puzzles").filter((f) => f.endsWith(".tsx")))
   if (hit) failures.push(`${file}: Reveal computes a score locally → ${hit.trim()}`);
 }
 
-console.log(`checked ${checked} stored rows across ${ACTIVE_PUZZLE_TYPES.length} active + ${RETIRED_PUZZLE_TYPES.length} practice-only types`);
+console.log(`checked ${checked} stored rows across ${ACTIVE_PUZZLE_TYPES.length} active + ${RETIRED_PUZZLE_TYPES.length} practice-only + ${REMOVED_PUZZLE_TYPES.length} deleted types`);
 if (skipped.length) console.log("skipped:\n  " + skipped.join("\n  "));
 if (failures.length) {
   console.log("FAIL\n  " + failures.join("\n  "));

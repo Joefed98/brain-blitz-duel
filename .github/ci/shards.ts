@@ -42,7 +42,7 @@ export const SHARDS: Record<string, string[]> = {
     "rings5-check.ts",
     "room-viewport-check.tsx",
     "slice-kitchen-check.ts",
-    "stroke-tiles-rings-check.ts",
+    "tiles-rings-check.ts",
     "puzzle-bank-check.ts@2/4",
   ],
   b: [
@@ -59,7 +59,7 @@ export const SHARDS: Record<string, string[]> = {
     "duel-start-check.ts",
     "eight-tuning-check.ts",
     "flip-bend-check.ts",
-    "gravity-chain-intruder-check.ts",
+    "gravity-maze-check.ts",
     "hover-check.ts",
     // Pinball: stored rev-1 runs, long replays, swept-contact proofs (~11 s).
     "pinball-check.ts",
@@ -91,7 +91,8 @@ export const SHARDS: Record<string, string[]> = {
     "standard-scoring-check.ts",
     "stopwatch-chain-check.ts",
     "success-effects-check.ts",
-    "sum-hunt-check.ts",
+    // Rounds of the 19 games deleted on 14 Oct 2026: name and stored score only (~2 s; takes sum-hunt-check's slot).
+    "removed-games-check.tsx",
     "tendrop-check.ts",
     "tie-break-check.ts",
     "tile-grid-word-count-check.ts",

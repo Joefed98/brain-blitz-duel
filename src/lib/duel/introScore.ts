@@ -17,10 +17,6 @@ import type { PuzzleType } from "./types";
  * 2026 puzzle score shape (puzzleScoreRev.ts): a finish scores 120 plus up to 30.
  */
 
-/** Interloper is retiring on its own formula: finish for 130 plus a speed bonus; partial credit otherwise. */
-const legacyStandard = (finish: string, notFinished: string) =>
-  `${finish} for 130, more if you're quick. Otherwise ${notFinished}.`;
-
 /** Arcade open-ended. */
 const arcadeOpen = (counts: string, penalty?: string) =>
   `Points for ${counts}.${penalty ? ` ${penalty}.` : ""}`;
@@ -36,10 +32,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   strikeout: "Solve all five words for 120, more for strikes left and speed. Otherwise 30 per word.",
   codeword: "Credit per letter decoded; crack the whole grid for 120 + speed",
   swapword: "Solve it for 120, more for few swaps and speed. Otherwise points per tile placed.",
-  ladder: "Finish the ladder quickly for the most points. Getting close still scores.",
-  groups: "Points for each group. Find all four quickly for extra points.",
   wordfall: "Longer words score more; Qu counts as two letters. Reach the target for 150.",
-  wordmatch: "Get all eight right for 100, more if you're quick. Otherwise 13 per pair.",
 
   // Number
   target: "Hit the target exactly for 120, more if you're quick. Close answers still score.",
@@ -53,11 +46,6 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
   numline: "Up to 8 per number (120 for all 15), more if quick and close; far-off ones lose 1",
   tendrop: "12 points for each target you hit. Clear all ten for 120, more if you're quick.",
-  numseq: "20 points for each sequence. Get all five quickly for extra points.",
-  chaincalc: "Get it right quickly for the most points.",
-  pctsprint: "Points for each right answer. Get all five quickly for extra points.",
-  sumhunt: "10 points for each board you clear. Clear the whole grid quickly for extra points.",
-  numclimb: "Each digit you recall in order raises your score.",
 
   // Attention
   reaction: "Tap fast: 150 ms or quicker on average scores 150. Early taps cost 8, then 11 after two.",
@@ -71,16 +59,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   spotdiff: "Find all twelve for 120, more if you're quick. Otherwise 10 each; wrong taps lose 4.",
   pairmatch: "Find all fifteen pairs for 120, more if you're quick. Otherwise about 8 per pair.",
   maze: "Reach the exit for 120, more if you're quick. Otherwise points for how far you got.",
-  intruder: legacyStandard("Get all five boards right", "24 per board"),
   stroop: `Sort all ${CLASH_QUEUE}, 2 wrong at most, for ${PUZZLE_FINISH_BASE}, more if quick. Otherwise points per word right.`,
-  sortrush: "Points for each one you sort correctly. Wrong gate: lose 2.",
-  gonogo: "Points for each right choice. A perfect run scores extra if you're quick.",
-  sequence: "Repeat the whole sequence quickly for the most points.",
-  reverse: "Repeat the whole sequence quickly for the most points.",
-  spatial: "Find every tile quickly for the most points.",
-  spin: "Points for each right answer. A perfect run scores extra if you're quick.",
-  mirmatch: "Points for each right answer. Get all five quickly for extra points.",
-  patcomp: "Points for each right pattern. Get all three quickly for extra points.",
 
   // Logic and pattern
   unblock: "Free the gold block for 120, more for few moves and speed. Clearing its lane scores.",
@@ -104,7 +83,6 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   shikaku: "Fill the grid for 120, more if you're quick. Otherwise points per right rectangle.",
   lightup: "Light every cell for 120, more if you're quick. Otherwise points per right bulb.",
   tents: "Place every tent for 120, more if you're quick. Otherwise 10 per right tent, −10 wrong.",
-  stroke: "Finish on your first try for a bonus.",
   dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
   // Arcade
@@ -136,7 +114,6 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   steady: "Start on 150. Touching the edge: lose 5.",
   ricochet: arcadeOpen("each metre you climb"),
   rooftop: "The longer you last, the more you score. The full minute is 150.",
-  parry: arcadeOpen("each arrow you deflect", "Losing a life costs 10"),
   bastion: arcadeOpen("each shape you destroy, with a bonus for keeping the base alive"),
   hotfloor: arcadeOpen("each stage you survive"),
 };

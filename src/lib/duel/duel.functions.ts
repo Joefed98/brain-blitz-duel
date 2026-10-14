@@ -37,6 +37,7 @@ import {
   type DuelRow,
   type PuzzleData,
   type PuzzleType,
+  type StoredPuzzleType,
   type PuzzleCategory,
   type RoundResultRow,
 } from "./types";
@@ -243,42 +244,14 @@ async function markInactivity(client: any, roomId: string, round: number): Promi
 }
 
 /**
- * The opening Go / No-Go item of the host's most recent room that played the
- * type, so the next room never opens on the same symbol.
- */
-async function previousGoNoGoFirst(
-  client: any,
-  room: DuelRow,
-  hostUserId: string | null,
-): Promise<unknown> {
-  if (!hostUserId) return null;
-  const { data } = await client
-    .from("duels")
-    .select("puzzles_public")
-    .eq("host_user_id", hostUserId)
-    .neq("id", room.id)
-    .order("created_at", { ascending: false })
-    .limit(RECENT_ROOMS);
-  for (const row of (data ?? []) as { puzzles_public: unknown }[]) {
-    const puzzles = Array.isArray(row.puzzles_public) ? row.puzzles_public : [];
-    for (const puzzle of puzzles as { type?: string; items?: unknown[] }[]) {
-      if (puzzle?.type === "gonogo" && Array.isArray(puzzle.items) && puzzle.items.length > 0) {
-        return puzzle.items[0] ?? null;
-      }
-    }
-  }
-  return null;
-}
-
-/**
  * The round orders of the host's last three tournaments, including this room.
  */
 async function recentRoundOrders(
   client: any,
   room: DuelRow,
   hostUserId: string | null,
-): Promise<PuzzleType[][]> {
-  const orders: PuzzleType[][] = [];
+): Promise<StoredPuzzleType[][]> {
+  const orders: StoredPuzzleType[][] = [];
 
   if (hostUserId) {
     const { data } = await client
@@ -287,7 +260,7 @@ async function recentRoundOrders(
       .eq("host_user_id", hostUserId)
       .order("created_at", { ascending: false })
       .limit(15);
-    const tournaments: { date: string; order: PuzzleType[] }[] = [];
+    const tournaments: { date: string; order: StoredPuzzleType[] }[] = [];
     for (const row of (data ?? []) as DuelRow[]) {
       if (row.status === "finished" && row.round_order?.length && !row.disbanded_at)
         tournaments.push({ date: row.phase_started_at ?? row.created_at, order: row.round_order });
@@ -301,27 +274,6 @@ async function recentRoundOrders(
 
   // Repeated orders represent separate tournaments and still count toward recency.
   return orders.slice(0, RECENT_ROOMS);
-}
-
-/** Keep the last ten Word Match draws across rooms and rematches, keyed to the host. */
-async function recentWordMatchWords(client: any, hostUserId: string | null): Promise<string[]> {
-  if (!hostUserId) return [];
-  const { data } = await client.from("duels")
-    .select("puzzles_public, tournament_history, status, phase_started_at, created_at")
-    .eq("host_user_id", hostUserId)
-    .order("created_at", { ascending: false }).limit(30);
-  const runs: { date: string; words: string[] }[] = [];
-  for (const row of data ?? []) {
-    const prompts = (puzzles: unknown) => Array.isArray(puzzles)
-      ? puzzles.flatMap((p: { type?: string; items?: { prompt?: string }[] }) =>
-          p?.type === "wordmatch" && Array.isArray(p.items)
-            ? p.items.map((item) => item.prompt).filter((word): word is string => typeof word === "string") : [])
-      : [];
-    if (row.status !== "waiting") runs.push({ date: row.phase_started_at ?? row.created_at, words: prompts(row.puzzles_public) });
-    for (const entry of row.tournament_history ?? [])
-      runs.push({ date: entry.date, words: Array.isArray(entry.word_match_words) ? entry.word_match_words : [] });
-  }
-  return runs.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).flatMap((run) => run.words);
 }
 
 /** Banked boards (puzzleBank.server.ts) from the host's recent rooms, so a new room skips them. */
@@ -455,8 +407,6 @@ export const startRoomFn = createServerFn({ method: "POST" })
     const { drawUnblockRow } = await import("./unblock.server");
     const unblockRow = await drawUnblockRow(client);
     const recent = await recentRoundOrders(client, room, room.host_user_id);
-    const recentWords = await recentWordMatchWords(client, room.host_user_id);
-    const lastGoNoGoFirst = await previousGoNoGoFirst(client, room, room.host_user_id);
     const recentBanked = await recentBankKeys(client, room.host_user_id);
     const categories = normaliseCategories(room.selected_categories);
     if (!categories.some((category) => typesInCategory(category).length > 0))
@@ -471,9 +421,7 @@ export const startRoomFn = createServerFn({ method: "POST" })
       seed: roomSeed,
       recent,
       categories,
-      previousGoNoGoFirst: lastGoNoGoFirst as never,
       unblockRow,
-      recentWordMatchWords: recentWords,
       recentBankKeys: recentBanked,
     });
     console.log(
@@ -1022,11 +970,6 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const { checkWordSlideRow } = await import("./wordSlide.server");
       return checkWordSlideRow(String(data.word ?? ""));
     }
-    if (pub?.type === "ladder") {
-      const { checkLadderRung } = await import("./wordLadder.server");
-      const previous = found.at(-1) ?? pub.startWord;
-      return { ...checkLadderRung(previous, String(data.word ?? "")), points: 0 };
-    }
     if (!pub || pub.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
@@ -1059,33 +1002,3 @@ export const checkMovesFn = createServerFn({ method: "POST" })
     return checkPuzzleMoves(mergePuzzle(pub, priv), data.moves);
   });
 
-/** Groups only: validates four selected tile indices without revealing either partition. */
-export const checkGroupFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomId: string; roundNumber: number; indices: number[] }) => input)
-  .handler(async ({ data, context }) => {
-    const client = await db();
-    await requireParticipant(client, data.roomId, context.userId);
-    const room = await getRoom(client, data.roomId);
-    if (
-      room.status !== "in_progress" ||
-      room.current_round !== data.roundNumber ||
-      room.phase !== "puzzle"
-    )
-      return { valid: false as const };
-
-    const pub = room.puzzles_public[data.roundNumber - 1];
-    if (!pub || pub.type !== "groups") return { valid: false as const };
-    const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
-    const puzzle = mergePuzzle(pub, priv);
-    if (puzzle.type !== "groups") return { valid: false as const };
-    const { matchGroupsSelection } = await import("./groups.server");
-    const indices = Array.isArray(data.indices) ? data.indices.slice(0, 4).map(Number) : [];
-    const groupIndex = matchGroupsSelection(puzzle, indices);
-    if (groupIndex === null) return { valid: false as const };
-    return {
-      valid: true as const,
-      groupIndex,
-      theme: puzzle.groups?.[groupIndex]?.theme ?? "Group",
-    };
-  });

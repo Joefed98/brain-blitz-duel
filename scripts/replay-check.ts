@@ -25,6 +25,7 @@ import { gunzipSync } from "node:zlib";
 import "../src/lib/duel/wordfallDict.server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { REMOVED_PUZZLE_TYPES } from "../src/lib/duel/removedGames";
 import { makeStepper, replayToEnd, REPLAY_TYPES } from "../src/lib/replay/steppers";
 import { ReplayTimeline } from "../src/lib/replay/timeline";
 import { runAtTick } from "../src/lib/arcade/introDemo";
@@ -129,6 +130,13 @@ for (const file of [
       today: false,
     });
   }
+}
+
+// Games deleted on 14 Oct 2026 (removedGames.ts) have no replay: their stored rounds show name and score only.
+for (const type of REMOVED_PUZZLE_TYPES) {
+  ok(!REPLAY_TYPES.includes(type), `${type}: deleted, still replayable`);
+  ok(makeStepper({ type, seed: 1 } as unknown as PuzzleData, "1|0||0|") === null, `${type}: deleted, still has a stepper`);
+  ok(!today.runs.some((r) => r.type === type), `${type}: deleted, still has a fixture run`);
 }
 
 const covered = new Set(today.runs.map((r) => r.type));

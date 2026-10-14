@@ -51,7 +51,6 @@ const risks: Record<string, string> = {
   bomb: "Six-rule panel plus actions; 14px text wrapping needs both-size device checks.",
   gravity: "Square board plus directions; ball/target colours and tilt preserved.",
   chain: "Scattered nodes and rule strip; small nodes cannot gain overlapping hit areas.",
-  intruder: "Measured symbol grid; glyph semantics preserved.",
   nonogram: "Clue alignment tracks unchanged; 14px clues and dense cells need checks.",
   pairmatch: "Six-by-five grid; pair colours/symbols and face states preserved.",
   flood: "Square coloured region board; colour choices retain exact meaning.",

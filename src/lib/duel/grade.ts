@@ -1,6 +1,7 @@
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
+import { isRemovedType } from "./removedGames";
 import { ACTION_LOG_ANSWER_CAP, usesActionLog, type ActionLogDiag } from "./actionLog";
 import { replayLaserLog } from "./laserLog";
 import { ARCADE_DIAG_KEYS, buildArcadeDiag, type ArcadeDiag } from "@/lib/arcade/diagnostics";
@@ -16,10 +17,8 @@ import {
   splitStages,
 } from "./stagedRounds";
 import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
-import { decodeGroupsAnswer, matchGroupsSelection } from "./groups.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
-import { numberClimbSpan } from "./numberClimb";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
@@ -32,11 +31,9 @@ import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb"
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
 import { decodeChainAnswer, replayChain } from "./chain";
-import { decodeIntruderTaps, replayIntruder } from "./intruder";
 import { decodeNonoCells, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
 import { decodeFloodMoves, replayFlood } from "./flood";
-import { decodeStrokeAttempts, replayStroke } from "./stroke";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
@@ -59,9 +56,7 @@ import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
-import { decodeSortRushRun, replaySortRushRun } from "./sortRush";
 import { decodeFlipRun, replayFlipRun } from "./flip";
-import { decodeParryRun, replayParryRun } from "./parry";
 import { decodeJunctionRun, replayJunctionRun } from "./junction";
 import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
@@ -92,10 +87,8 @@ import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
-import { validateLadder } from "./wordLadder.server";
 import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
-import { decodeSumPaths, replaySumHunt, sumHuntRoundScore, SH_STAGES } from "./sumHunt";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved } from "./wordSlide.server";
@@ -111,7 +104,6 @@ import {
   tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
-import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
 import {
   COUNT_REV2_TRAYS,
@@ -150,16 +142,9 @@ import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from ".
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo } from "./moveLimits";
 import {
-  scoreGoNoGo,
-  scoreGroups,
-  scoreWordLadder,
   scoreWordSlide,
   wordSpeedBonus,
-  scoreNumberClimb,
   scoreNumberHunt,
-  scoreNumberSequence,
-  scorePercentSprint,
-  scorePatternCompletion,
   scoreReaction,
   reactionFalseStartCost,
   STOPWATCH_REV2_KNEE_MS,
@@ -169,11 +154,8 @@ import {
   SPOT_REV1_WRONG_LIMIT,
   scoreStopWatch,
   scoreBlockParty,
-  scoreMirrorMatch,
-  scoreSpin,
   scoreUnblock,
   scoreTargetNumber,
-  scoreWordMatch,
   scoreLightsOut,
   scorePipes,
   scoreSudoku,
@@ -188,29 +170,20 @@ import {
   scoreBomb,
   scoreGravity,
   scoreChain,
-  scoreIntruder,
   scoreNonogram,
   scorePairMatch,
   scoreFlood,
-  scoreStroke,
   scoreTiles,
   scoreRings,
 } from "./scoring";
 import {
   BOMB_V2,
-  GONOGO_ITEMS,
   NUMHUNT_COUNT,
-  NUMSEQ_ITEMS,
-  PCTSPRINT_ITEMS,
   REACTION_MISS_MS,
   ROUND_MS,
   SPOT_DIFFERENCES,
   STOPWATCH_ATTEMPTS,
   STOPWATCH_MISS_MS,
-  MIRMATCH_ITEMS,
-  SPIN_ITEMS,
-  INTRUDER_BOARDS,
-  WORDMATCH_ITEMS,
   FLOW_PAIRS,
   CHAIN_TIME_MS,
   CHAIN_TIME_REV,
@@ -303,6 +276,8 @@ export function gradeSubmission(
   rawExtra?: SubmitExtra,
   receivedMsRemaining?: number,
 ): Graded {
+  // A deleted game (removedGames.ts) has no grader left: nothing is scored for it.
+  if (isRemovedType(puzzle.type)) return gradeRemoved(rawAnswer);
   // The score shape follows the stored stamp (puzzleScoreRev.ts); unstamped rounds grade as they always did.
   const rev = puzzleScoreRevOf(puzzle);
   return withPuzzleScoreRev(rev, () => {
@@ -312,6 +287,16 @@ export function gradeSubmission(
     if (rev >= PUZZLE_SCORE_REV && parts) graded.extra = { ...(graded.extra ?? {}), parts };
     return graded;
   });
+}
+
+/**
+ * A submission that still arrives for a deleted game (a room dealt before the
+ * deletion) is stored as an unscored answer, so the room can move on. Stored
+ * rounds of these games are never graded again (`scoreStoredRound`).
+ */
+export function gradeRemoved(rawAnswer: string): Graded {
+  const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, 4_000) : "";
+  return { answer, isCorrect: false, score: 0, reactionAvgMs: null, correctCount: null, errors: null, extra: { removed: true }, storedMs: 0 };
 }
 
 function gradeUnderRev(
@@ -345,18 +330,6 @@ function gradeUnderRev(
   let storedAnswer: string | null = null;
 
   switch (puzzle.type) {
-    case "groups": {
-      const matches = new Set(
-        decodeGroupsAnswer(answer)
-          .map((selection) => matchGroupsSelection(puzzle, selection))
-          .filter((index): index is number => index !== null),
-      );
-      correctCount = matches.size;
-      isCorrect = correctCount === 4;
-      score = scoreGroups(correctCount, ms);
-      extraDetail = { foundGroups: correctCount };
-      break;
-    }
     case "tilegrid": {
       // The placed grid is re-checked against the tray and the dictionary here.
       const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
@@ -364,15 +337,6 @@ function gradeUnderRev(
       correctCount = verdict.placed;
       score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
-      break;
-    }
-    case "sumhunt": {
-      // Every path is replayed on the seeded board; wrong sums never count.
-      const replay = replaySumHunt(puzzle.seed, puzzle.target, decodeSumPaths(answer));
-      correctCount = replay.paths;
-      score = sumHuntRoundScore(replay.stage, ms);
-      isCorrect = replay.stage > SH_STAGES;
-      extraDetail = { stage: replay.stage, paths: replay.paths };
       break;
     }
     case "balance": {
@@ -409,31 +373,6 @@ function gradeUnderRev(
       score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
         validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
-      break;
-    }
-    case "ladder": {
-      const verdict = validateLadder(puzzle, answer);
-      const shortestLength = puzzle.shortestLength ?? 0;
-      isCorrect = verdict.solved;
-      correctCount = verdict.validRungs.length;
-      // How close the last good rung came: the positions that still differ.
-      const last = verdict.validRungs[verdict.validRungs.length - 1] ?? puzzle.startWord;
-      const target = puzzle.targetWord;
-      const lettersAway =
-        last.length === target.length
-          ? [...target].filter((letter, i) => last[i] !== letter).length
-          : target.length;
-      score = scoreWordLadder(isCorrect, correctCount, shortestLength, ms, lettersAway);
-      extraDetail = { rungsUsed: correctCount + 1, shortestLength, lettersAway };
-      break;
-    }
-    case "numclimb": {
-      const expected = puzzle.answerDigits ?? "";
-      const span = numberClimbSpan(answer, expected);
-      correctCount = span;
-      isCorrect = span === 12;
-      score = scoreNumberClimb(span, ms);
-      extraDetail = { span };
       break;
     }
     case "reaction": {
@@ -479,17 +418,6 @@ function gradeUnderRev(
       storedMs = 0;
       break;
     }
-    case "gonogo": {
-      correctCount = clamp(extra.correctCount ?? 0, 0, GONOGO_ITEMS);
-      reactionAvgMs =
-        extra.reactionAvgMs === undefined || extra.reactionAvgMs === null
-          ? null
-          : clamp(extra.reactionAvgMs, 0, 5_000);
-      isCorrect = correctCount >= GONOGO_ITEMS;
-      score = scoreGoNoGo(correctCount, reactionAvgMs);
-      storedMs = 0;
-      break;
-    }
     case "stroop": {
       const replay = replayColourClashRun(puzzle.seed, answer, clashVariantOf(puzzle));
       revealRun = replay;
@@ -508,52 +436,6 @@ function gradeUnderRev(
           ? Math.min(ms, clamp(timeLimitMs - (finishTick * 1000) / TICKS_PER_SECOND, 0, timeLimitMs))
           : 0;
       extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
-      break;
-    }
-    case "mirmatch": {
-      // The correct candidate of each item lives server-side only.
-      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
-      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-      isCorrect = correctCount >= MIRMATCH_ITEMS;
-      score = scoreMirrorMatch(correctCount, ms);
-      break;
-    }
-    case "patcomp": {
-      correctCount = countPatternAnswers(puzzle, answer);
-      isCorrect = correctCount === 3;
-      score = scorePatternCompletion(correctCount, ms);
-      break;
-    }
-    case "spin": {
-      // Same again: the transform used for each item is never sent to the phone.
-      const picks = answer.split(",").filter(Boolean);
-      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-      isCorrect = correctCount >= SPIN_ITEMS;
-      score = scoreSpin(correctCount, ms);
-      break;
-    }
-    case "wordmatch": {
-      // Checked here against the stored answers — the client never sees them.
-      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
-      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-      isCorrect = correctCount >= WORDMATCH_ITEMS;
-      score = scoreWordMatch(correctCount, ms);
-      break;
-    }
-    case "numseq": {
-      // The five correct option indices live server-side only.
-      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
-      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-      isCorrect = correctCount >= NUMSEQ_ITEMS;
-      score = scoreNumberSequence(correctCount, ms);
-      break;
-    }
-    case "pctsprint": {
-      // Same again: the three correct option indices live server-side only.
-      const picks = answer.split(",").map((v) => Number.parseInt(v, 10));
-      correctCount = (puzzle.answers ?? []).filter((a, i) => picks[i] === a).length;
-      isCorrect = correctCount >= PCTSPRINT_ITEMS;
-      score = scorePercentSprint(correctCount, ms);
       break;
     }
     case "spotdiff": {
@@ -1044,19 +926,6 @@ function gradeUnderRev(
       };
       break;
     }
-    case "intruder": {
-      // Taps are checked against the stored changed cells, never a client verdict.
-      const replay = replayIntruder(puzzle.answers ?? [], decodeIntruderTaps(answer));
-      isCorrect = replay.correct >= (puzzle.answers ?? puzzle.boards).length;
-      correctCount = replay.correct;
-      score = scoreIntruder(replay.points, replay.correct >= INTRUDER_BOARDS, ms, timeLimitMs);
-      extraDetail = {
-        correct: replay.correct,
-        allFirstTry: replay.allFirstTry,
-        boards: puzzle.boards.length,
-      };
-      break;
-    }
     case "nonogram": {
       // The submitted cells are checked against the stored picture, never a client verdict.
       const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer));
@@ -1100,21 +969,6 @@ function gradeUnderRev(
         par: puzzle.par,
         region: replay.region,
         ...(moveLimit !== null ? { moveLimit, outOfMoves: replay.outOfMoves } : {}),
-      };
-      break;
-    }
-    case "stroke": {
-      // Each attempt is re-walked over the stored figure; no client verdict.
-      const replay = replayStroke(puzzle.edges, decodeStrokeAttempts(answer));
-      isCorrect = replay.solved;
-      correctCount = replay.best;
-      score = scoreStroke(replay.solved, replay.solvedOn, replay.best, replay.total, ms);
-      extraDetail = {
-        solved: replay.solved,
-        solvedOn: replay.solvedOn,
-        attempts: replay.attempts,
-        best: replay.best,
-        total: replay.total,
       };
       break;
     }
@@ -1776,33 +1630,6 @@ function gradeUnderRev(
       };
       break;
     }
-    case "sortrush": {
-      const replayStart = performance.now();
-      const run = replaySortRushRun(puzzle.seed, answer);
-      revealRun = run;
-      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500)
-        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
-      isCorrect = run.state.ended === 1;
-      correctCount = run.sorted;
-      score = run.score;
-      extraDetail = {
-        sorted: run.sorted,
-        wrong: run.wrong,
-        total: run.total,
-        survivedSeconds: run.survivedSeconds,
-        survived: run.survived,
-        endedSeconds: run.endedSeconds,
-        flagged: run.flagged,
-        clientLag: run.clientLag,
-        clientTick: run.clientTick,
-        desyncTick: run.desyncTick,
-        inputs: decodeSortRushRun(answer).events.length,
-        claimedScore: decodeSortRushRun(answer).claimedScore,
-        ...(run.reason ? { reason: run.reason } : {}),
-      };
-      break;
-    }
     case "flip": {
       const replayStart = performance.now();
       const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
@@ -1824,33 +1651,6 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeFlipRun(answer).events.length,
         claimedScore: decodeFlipRun(answer).claimedScore,
-        ...(run.reason ? { reason: run.reason } : {}),
-      };
-      break;
-    }
-    case "parry": {
-      const replayStart = performance.now();
-      const run = replayParryRun(puzzle.seed, answer);
-      revealRun = run;
-      arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-      if (arcadeDiag.replayMs > 500)
-        console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
-      isCorrect = run.state.ended === 1;
-      correctCount = run.deflected;
-      score = run.score;
-      extraDetail = {
-        deflected: run.deflected,
-        hits: run.hits,
-        total: run.total,
-        survivedSeconds: run.survivedSeconds,
-        survived: run.survived,
-        endedSeconds: run.endedSeconds,
-        flagged: run.flagged,
-        clientLag: run.clientLag,
-        clientTick: run.clientTick,
-        desyncTick: run.desyncTick,
-        inputs: decodeParryRun(answer).events.length,
-        claimedScore: decodeParryRun(answer).claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

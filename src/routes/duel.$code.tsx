@@ -53,7 +53,6 @@ import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
 import {
   advancePhase,
-  checkGroup,
   checkMoves,
   checkWord,
   continueOn,
@@ -621,11 +620,6 @@ function DuelScreen() {
     [],
   );
 
-  const handleCheckGroup = useCallback(
-    (indices: number[]) => checkGroup(latest.current.duel!.id, latest.current.round, indices),
-    [],
-  );
-
   const handleCheckMoves = useCallback(
     (moves: string) => checkMoves(latest.current.duel!.id, latest.current.round, moves),
     [],
@@ -1119,7 +1113,6 @@ function DuelScreen() {
             onSubmit={handleSubmit}
             onDraftAnswer={handleDraftAnswer}
             checkWord={handleCheckWord}
-            checkGroup={handleCheckGroup}
             checkMoves={handleCheckMoves}
           />
         )}

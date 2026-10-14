@@ -6,7 +6,7 @@ export const PUZZLE_PRIMARY_ACTIONS = /^(fire|defuse|submit|enter|check|done|loc
 export const MEANINGFUL_SURFACE_GAMES = new Set([
   "flow", "flood", "lightsout", "tents", "shikaku", "lightup", "pairmatch", "spotdiff", "symscan",
   "pipes", "iceslide", "push", "gravity", "unblock", "blockparty", "rings", "tubes", "balance", "tower", "laser",
-  "reaction", "stopwatch", "bomb", "chain", "intruder", "numhunt",
+  "reaction", "stopwatch", "bomb", "chain", "numhunt",
   "strikeout", "codeword", "swapword",
 ]);
 export function surfaceState(classes: string, given = false): string {

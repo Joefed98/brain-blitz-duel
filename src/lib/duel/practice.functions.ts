@@ -141,7 +141,7 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     };
   });
 
-/** Word puzzles: checks one word or ladder rung using server-only vocabulary. */
+/** Word puzzles: checks one word using server-only vocabulary. */
 export const practiceCheckWordFn = createServerFn({ method: "POST" })
   .inputValidator(
     (input: { puzzle: PuzzleData; word: string; found: string[]; path?: number[]; sealed?: string }) => input,
@@ -180,35 +180,11 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       const { checkWordSlideRow } = await import("./wordSlide.server");
       return checkWordSlideRow(String(data.word ?? ""));
     }
-    if (data.puzzle.type === "ladder") {
-      const { checkLadderRung } = await import("./wordLadder.server");
-      const previous = found.at(-1) ?? data.puzzle.startWord;
-      return { ...checkLadderRung(previous, data.word), points: 0 };
-    }
     if (data.puzzle.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
     const { checkWordsmithWord } = await import("./wordsmith.server");
     return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found);
-  });
-
-/** Groups practice: checks one candidate against the sealed private partition. */
-export const practiceCheckGroupFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { puzzle: PuzzleData; sealed: string; indices: number[] }) => input)
-  .handler(async ({ data }) => {
-    if (data.puzzle.type !== "groups") return { valid: false as const };
-    const priv = await unseal(data.sealed);
-    if (priv["type"] !== "groups") throw new Error("Bad practice puzzle.");
-    const puzzle = mergePuzzle(data.puzzle, priv);
-    if (puzzle.type !== "groups") return { valid: false as const };
-    const { matchGroupsSelection } = await import("./groups.server");
-    const groupIndex = matchGroupsSelection(puzzle, data.indices.slice(0, 4));
-    if (groupIndex === null) return { valid: false as const };
-    return {
-      valid: true as const,
-      groupIndex,
-      theme: puzzle.groups?.[groupIndex]?.theme ?? "Group",
-    };
   });
 
 /** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */

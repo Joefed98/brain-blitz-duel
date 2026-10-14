@@ -196,6 +196,13 @@ interface Run {
   samples: Sample[];
   /** When the board left (practice) or dimmed (room), from the solve; null if never. */
   releasedAt: number | null;
+  /**
+   * Tap case: when the page itself handled the tap (a capture pointerdown listener) and when the
+   * board left the page (a MutationObserver), both from the solve on the page's own clock. A slow
+   * runner can deliver the tap late; the reveal is judged from the tap's handling, not from 0.6 s.
+   */
+  tapHandledAt: number | null;
+  boardGoneAt: number | null;
 }
 
 async function play(opts: {
@@ -284,6 +291,21 @@ async function play(opts: {
   }
   await page.waitForSelector("[data-game-stage]", { timeout: 30_000 });
   await page.waitForTimeout(700);
+  // In-page stamps for the tap case: the tap's handling and the board leaving.
+  await page.evaluate(() => {
+    const w = window as unknown as { __tapAt: number | null; __boardGoneAt: number | null };
+    w.__tapAt = null;
+    w.__boardGoneAt = null;
+    // The practice screen skips on a capture pointerdown on document; window's capture runs first.
+    const stamp = () => {
+      if (w.__tapAt === null) w.__tapAt = Date.now();
+    };
+    window.addEventListener("pointerdown", stamp, { capture: true });
+    window.addEventListener("touchstart", stamp, { capture: true });
+    new MutationObserver(() => {
+      if (w.__boardGoneAt === null && !document.querySelector("[data-game-stage]")) w.__boardGoneAt = Date.now();
+    }).observe(document.body, { childList: true, subtree: true });
+  });
 
   // The solve: the Stage's own onSubmit (found on the React fiber under the board),
   // exactly as the game calls it when the board is solved.
@@ -355,7 +377,8 @@ async function play(opts: {
     const h = (window as unknown as {
       __harness: { submissions: { at: number; msRemaining: number }[]; verdictAt: number | null };
     }).__harness;
-    return { submissions: h.submissions, verdictAt: h.verdictAt };
+    const w = window as unknown as { __tapAt: number | null; __boardGoneAt: number | null };
+    return { submissions: h.submissions, verdictAt: h.verdictAt, tapAt: w.__tapAt, goneAt: w.__boardGoneAt };
   });
   for (const e of errors) ok(false, `${opts.mode} ${type}: page error ${e}`);
   await context.close();
@@ -369,6 +392,8 @@ async function play(opts: {
     verdictAt: state.verdictAt,
     samples,
     releasedAt: released ? released.t : null,
+    tapHandledAt: state.tapAt === null ? null : state.tapAt - solveAt,
+    boardGoneAt: state.goneAt === null ? null : state.goneAt - solveAt,
   };
 }
 
@@ -455,11 +480,21 @@ try {
     tapAfter: 600,
   });
   submittedAtSolve("practice tap", tap);
+  // Judged from the tap's own handling: the tap must land inside the beat (from 0.6 s, before the
+  // beat ends), the board must still be up until then, and the reveal must follow within SLACK.
+  const tapAt = tap.tapHandledAt;
+  const goneAt = tap.boardGoneAt;
   ok(
-    tap.releasedAt !== null && tap.releasedAt >= 600 && tap.releasedAt <= 600 + SLACK,
-    `practice tap: a tap at 0.6 s goes to the reveal at once (${tap.releasedAt} ms)`,
+    tapAt !== null && tapAt >= 600 && tapAt < BEAT_END - SLACK,
+    `practice tap: the tap was handled during the beat, from 0.6 s (${tapAt} ms; beat ends ${BEAT_END} ms)`,
   );
-  report.push(`practice tap at 600 ms: reveal at ${tap.releasedAt} ms`);
+  ok(
+    tapAt !== null && goneAt !== null && goneAt >= tapAt && goneAt - tapAt <= SLACK,
+    `practice tap: the tap goes to the reveal at once (board gone ${goneAt} ms, ${tapAt === null || goneAt === null ? "?" : goneAt - tapAt} ms after the tap was handled)`,
+  );
+  report.push(
+    `practice tap: handled at ${tapAt} ms, board gone at ${goneAt} ms (${tapAt === null || goneAt === null ? "?" : goneAt - tapAt} ms after the tap); sampled reveal at ${tap.releasedAt} ms`,
+  );
 } finally {
   await browser.close();
   await server.close();

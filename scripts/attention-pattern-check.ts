@@ -1,6 +1,5 @@
 /** Focused generator and symbol checks for the Oct 2 Attention/Pattern tuning. */
-import { generateIntruder } from "../src/lib/duel/intruder.server";
-import { INTRUDER_CHANGE_COUNTS, COUNTUP_STAGE_SIZES } from "../src/lib/duel/types";
+import { COUNTUP_STAGE_SIZES } from "../src/lib/duel/types";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { countUpCounts, countUpStageTruth } from "../src/lib/duel/attentionRev";
@@ -19,21 +18,6 @@ import { directionalChevronPoints } from "../src/puzzles/laser";
 
 function check(ok: boolean, message: string): void {
   if (!ok) throw new Error(message);
-}
-
-for (let round = 0; round < 100; round += 1) {
-  const puzzle = generateIntruder();
-  check(puzzle.boards.length === 5 && puzzle.answers?.length === 5, "Intruder must have five boards and answers");
-  puzzle.boards.forEach((board, index) => {
-    check(board.size === 3 && board.cells.length === 9 && board.after.length === 9, `Intruder board ${index + 1} is not 3x3`);
-    const changed = board.cells.flatMap((original, cell) => { let before = original;
-      const after = board.after[cell]!; before = board.perm ? board.cells[board.perm[cell]!]! : before;
-      return before.shape !== after.shape || before.colour !== after.colour || before.rot !== after.rot ? [cell] : [];
-    });
-    check(changed.length === INTRUDER_CHANGE_COUNTS[index], `Intruder board ${index + 1} change count`);
-    check(JSON.stringify([...changed].sort()) === JSON.stringify([...(puzzle.answers?.[index]?.cells ?? [])].sort()), `Intruder board ${index + 1} stored targets`);
-    check(index >= 3 ? board.perm !== undefined : board.perm === undefined, `Intruder board ${index + 1} shuffle metadata`);
-  });
 }
 
 let minimumVisibility = 1;
@@ -83,6 +67,5 @@ for (const dir of ["U", "D", "L", "R"] as const) {
   check(coordinates.every((value) => Number.isFinite(value) && value >= 0 && value <= 24), `Laser ${dir} marker is clipped`);
 }
 
-console.log(`Intruder: 100/100 five-board sets are 3x3 with exact changes and required shuffles`);
 console.log(`Count Up: ${rev1.length} stored countRev 1 three-tray sets and 100/100 countRev 2 four-tray sets are contained and in range; minimum sampled target visibility ${(minimumVisibility * 100).toFixed(1)}%`);
 console.log("Laser: directional chevrons stay inside all four cell sides; shared board renderer covers intro, play and reveal");

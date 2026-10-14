@@ -66,12 +66,8 @@ import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
 import { encodeBastionRun, replayBastionRun } from "@/lib/duel/bastion";
 import { roofCheckpoint, rooftopGame } from "@/lib/arcade/rooftop";
 import { encodeRooftopRun, replayRooftopRun } from "@/lib/duel/rooftop";
-import { sortCheckpoint, sortRushGame } from "@/lib/arcade/sortRush";
-import { encodeSortRushRun, replaySortRushRun } from "@/lib/duel/sortRush";
 import { flipCheckpoint, flipGame, flipGameFor, FLIP_REV } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
-import { parryCheckpoint, parryGame } from "@/lib/arcade/parry";
-import { encodeParryRun, replayParryRun } from "@/lib/duel/parry";
 import { juncCheckpoint, junctionGame, junctionGameFor, JUNC_REV } from "@/lib/arcade/junction";
 import { encodeJunctionRun, replayJunctionRun } from "@/lib/duel/junction";
 import { inkBridgeGame, inkCheckpoint } from "@/lib/arcade/inkBridge";
@@ -352,9 +348,7 @@ const GAMES: Game[] = [
     encode: encodeRooftopRun,
     replay: replayRooftopRun,
   },
-  { key: "sortrush", game: sortRushGame, checkpoint: sortCheckpoint, mode: "events", rate: 60, encode: encodeSortRushRun, replay: replaySortRushRun },
   { key: "flip", game: flipGame, checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: replayFlipRun },
-  { key: "parry", game: parryGame, checkpoint: parryCheckpoint, mode: "events", rate: 120, encode: encodeParryRun, replay: replayParryRun },
   { key: "junction", game: junctionGame, checkpoint: juncCheckpoint, mode: "events", rate: 15, encode: encodeJunctionRun, replay: replayJunctionRun },
   { key: "inkbridge", game: inkBridgeGame, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: replayInkBridgeRun },
   { key: "burst", game: burstGame, checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: replayBurstRun },

@@ -1,6 +1,6 @@
 /**
  * Server-only British English dictionary (SCOWL size 70, British spellings),
- * shared by every word game: Wordsmith, Word Hunt, Word Ladder, Tile Grid and
+ * shared by every word game: Wordsmith, Word Hunt, Tile Grid and
  * Word Slide. Loaded once per worker and cached in memory.
  * The word data never leaves the server: only the letters of a board and the
  * verdict on a submitted word ever reach a device.

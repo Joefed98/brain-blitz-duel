@@ -61,7 +61,7 @@ Scoring shapes: **A** = standard (130 + up to 20 speed, flat per-item credit whe
 | Magic Square | Drag nine or sixteen numbers so every row, column and diagonal hits the target | drag | A | Medium |
 | Prime Rush | Numbers stream past; tap only the primes, faster each phase | tap, engine | Arcade | Low: also fits Speed |
 
-Open points: name Cages and Merge Target clear of KenKen and 2048-branded titles; decide whether Memory is revived with new games or dropped.
+Open points: name Cages and Merge Target clear of KenKen and 2048-branded titles; Memory was dropped on 14 Oct 2026 (its four games and 15 other retired games deleted; scoring reference section 12.1).
 
 ## Phase 3: Platform and competitive layer (Claude Code, not Lovable credits)
 
@@ -142,7 +142,7 @@ For discussion once tuning is finished. The deterministic engine makes all of th
 
 **Action games.** These work when the opponent or course is scripted from the seed:
 
-- Fighting: every player faces the same scripted opponent, so it becomes a test of reading and countering. Check first what didn't work in the retired Parry.
+- Fighting: every player faces the same scripted opponent, so it becomes a test of reading and countering. Check first what didn't work in Parry (retired, then deleted on 14 Oct 2026).
 - Runners and platformers on seeded courses, like Grappler and Roofbound.
 - Flick games: the engine's physics is deterministic, so the same flick always gives the same result.
 

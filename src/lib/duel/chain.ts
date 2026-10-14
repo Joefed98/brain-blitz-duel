@@ -126,44 +126,6 @@ export function chainDemoCompatible(puzzle: ChainPuzzleData): boolean {
   return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK && chainLongCycles(puzzle);
 }
 
-const EPSILON = 0.0001;
-
-/** Any positioned point — One-Stroke dots use the segment test below. */
-type Point = { x: number; y: number };
-
-function orientation(a: Point, b: Point, c: Point): number {
-  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-}
-
-function onSegment(a: Point, b: Point, point: Point): boolean {
-  return (
-    point.x >= Math.min(a.x, b.x) - EPSILON &&
-    point.x <= Math.max(a.x, b.x) + EPSILON &&
-    point.y >= Math.min(a.y, b.y) - EPSILON &&
-    point.y <= Math.max(a.y, b.y) + EPSILON
-  );
-}
-
-/** True when two closed line segments touch or cross. */
-export function chainSegmentsIntersect(a: Point, b: Point, c: Point, d: Point): boolean {
-  const abC = orientation(a, b, c);
-  const abD = orientation(a, b, d);
-  const cdA = orientation(c, d, a);
-  const cdB = orientation(c, d, b);
-  if (
-    ((abC > EPSILON && abD < -EPSILON) || (abC < -EPSILON && abD > EPSILON)) &&
-    ((cdA > EPSILON && cdB < -EPSILON) || (cdA < -EPSILON && cdB > EPSILON))
-  ) {
-    return true;
-  }
-  return (
-    (Math.abs(abC) <= EPSILON && onSegment(a, b, c)) ||
-    (Math.abs(abD) <= EPSILON && onSegment(a, b, d)) ||
-    (Math.abs(cdA) <= EPSILON && onSegment(c, d, a)) ||
-    (Math.abs(cdB) <= EPSILON && onSegment(c, d, b))
-  );
-}
-
 /** One tap: node index on the board showing at the time, ms since the round began. */
 export interface ChainTap {
   node: number;

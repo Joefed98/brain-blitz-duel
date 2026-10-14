@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleName } from "@/lib/duel/registry";
 import type { Standing } from "@/lib/duel/scoring";
-import type { PuzzleType, RoundResultRow } from "@/lib/duel/types";
+import type { RoundResultRow, StoredPuzzleType } from "@/lib/duel/types";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
@@ -61,7 +61,7 @@ interface PodiumProps {
   rows: Standing[];
   mySlot: number;
   results: RoundResultRow[];
-  roundOrder: PuzzleType[];
+  roundOrder: StoredPuzzleType[];
   isHost: boolean;
   busy: boolean;
   onPlayAgain: () => void;

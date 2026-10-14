@@ -5,7 +5,6 @@ import { trackSubmission } from "@/lib/appUpdate";
 import {
   advancePhaseFn,
   checkWordFn,
-  checkGroupFn,
   checkMovesFn,
   createRoomFn,
   heartbeatFn,
@@ -176,15 +175,6 @@ export async function checkWord(
   return checkWordFn({
     data: { roomId: duelId, roundNumber, word, found, path: path ?? [] },
   });
-}
-
-/** Groups: validates one selected set against the private answer. */
-export async function checkGroup(
-  duelId: string,
-  roundNumber: number,
-  indices: number[],
-): Promise<{ valid: boolean; groupIndex?: number; theme?: string }> {
-  return checkGroupFn({ data: { roomId: duelId, roundNumber, indices } });
 }
 
 /** Strikeout, Cryptogrid and Swapword: the server's view of the board after these moves. */

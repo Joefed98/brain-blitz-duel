@@ -67,7 +67,6 @@ const PUZZLE_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   whack: "music_speed_3",
   clayshoot: "music_speed_3",
   spotdiff: "music_attention_1",
-  intruder: "music_attention_1",
   countup: "music_attention_1",
   symscan: "music_attention_2",
   pairmatch: "music_attention_2",

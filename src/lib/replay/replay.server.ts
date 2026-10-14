@@ -6,6 +6,7 @@
  * scripts/replay-access-check.ts can drive this exact code with a stub.
  */
 import { mergePuzzle } from "@/lib/duel/secrets";
+import { isRemovedType } from "@/lib/duel/removedGames";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { replayGameClosed, replayRoundClosed, REPLAY_MAX_ANSWER_CHARS } from "./access";
 import { roundWinnerSlot, runnerUpScore } from "./pick";
@@ -74,6 +75,8 @@ async function buildRounds(client: any, room: DuelRow, rounds: number[]): Promis
   for (const round of rounds) {
     const pub = room.puzzles_public[round - 1];
     if (!pub) continue;
+    // Rounds of deleted games (removedGames.ts) keep only their name and stored score: no replay.
+    if (isRemovedType((pub as { type?: unknown }).type)) continue;
     const puzzle = mergePuzzle(pub, secrets[round - 1]);
     const slot = roundWinnerSlot(players, results, round);
     const row =
