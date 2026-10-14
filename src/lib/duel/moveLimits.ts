@@ -33,6 +33,16 @@ import type {
 } from "./types";
 
 export const FLOOD_LIMIT_REV = 1;
+/**
+ * Colour Flood floodRev 2 (Pattern / Logic batch, 14 Oct 2026): par + FLOOD_REV2_SPARE_MOVES taps,
+ * stored on the puzzle (`moveLimit`) like floodRev 1. A flat 15 was tried first and par + 3
+ * measured; par + 2 kept good players' median at 146 (docs/puzzle-score-bands-oct-2026.md), so
+ * the limit rule matches floodRev 1 and the stamp marks the batch's boards (the raised colours).
+ * Every rule that reads the stored limit (the counter, the server's cut-off, the waste factor
+ * reaching 0 at the limit) is unchanged.
+ */
+export const FLOOD_LIMIT_REV2 = 2;
+export const FLOOD_REV2_SPARE_MOVES = 2;
 export const TUBES_LIMIT_REV = 1;
 export const GRAVITY_LIMIT_REV = 1;
 export const BALANCE_LIMIT_REV = 1;

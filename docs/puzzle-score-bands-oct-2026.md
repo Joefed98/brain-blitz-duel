@@ -296,3 +296,32 @@ Six Word games changed on 14 Oct (each behind its own stamp; stored rounds grade
 - **Roundabout** lands near the targets apart from great (143): the kit's great player finishes every board with about a quarter of the time left, and pulling great to 125 would sink average well below 70. Unfinished credit is front-loaded (12 a word for the first 6, then 5) so average lands near 70 while good stays near 100. The rule-b flag (random traces 16) is closed by the attempt log.
 - **Lookout, Cryptogrid and Swapword** were already above the targets for good and great before the batch, and the requested changes (a bigger bank and counted chips, a fifth given, a budget of at least 16) do not pull them down: the kits play at a flat speed with perfect deduction (Lookout 9 s a word, Cryptogrid 6 s a number, Swapword the optimal swap every 5 s), so theme, word length and deduction difficulty don't show. Bringing them to the band needs harder formats (more words per grid, fewer givens, a tighter budget) or timings measured from real play; left for Joe.
 - **Letterfall** keeps par 30, so good and better still reach 150; the slower, less vowel-heavy drops bury the good bot far less (15/30 → 3/30) while its raw points fall (40 → 34). On these bots a par of about 40–45 would hit the band; **par needs setting from real play**.
+
+## Pattern / Logic batch (14 Oct 2026)
+
+Jumbled `tilesRev 1` (the 3 × 3 grid plus one extra cell, minimum 18–24), Colour Flood `floodRev 2` (raised colours; the limit stays par + 2 after measuring a flat 15 and par + 3), Box Six `sudokuRev 1` (13–15 givens) and Bomb Defusal `bombVersion 3` (plain clues) change difficulty, not formulas; Polypotions (look and buttons only) and Topsy-Turvy are unchanged. Measured with `scripts/puzzle-fairness.ts tiles flood sudoku bomb tubes --seeds=30` on main (before) and on the branch (after), the same 30 room seeds (5001–5030) and kits. Median score (finishes of 30); the target is about 70 / 100 / 125 / 140–150 with random play at or below about 60.
+
+| Game | Average | Good | Great | Near-perfect | Nothing | Random / spam median (max) |
+|---|---|---|---|---|---|---|
+| Jumbled | 137 (26) → **30** (0) | 147 (30) → **138** (27) | 150 (30) → **148** (30) | 150 → **150** (30) | 0 → 0 | random slides 1.5 / 3 a second 0 (120) → **0 (2)** |
+| Box Six | 65 (0) → **58** (0) | 123 (23) → **113** (15) | 142 (30) → **140** (30) | 150 → **150** (30) | 0 → 0 | random digits, one digit, row fill 0 (38) → **0 (28)** |
+| Bomb Defusal | 117 (15) → **125** (16) | 150 (25) → **150** (25) | 150 (28) → **150** (28) | 150 (29) → **150** (29) | 0 → 0 | tapping everything, random steps 0 (44) → **0 (44)** |
+| Colour Flood (par + 2, shipped) | 96 (1) → **96** (1) | 146 (29) → **146** (29) | 150 → **150** (30) | 150 → **150** (30) | 0 → 0 | random colours 2 / s 0 (0) → **0 (0)**; cycling 0 (135) → **0 (135)**; random 0.5 / s 0 → **0** |
+| Colour Flood (par + 3, measured) | 96 → 96 (1) | 146 → 146 (29) | 150 → 150 (30) | 150 → 150 (30) | 0 → 0 | random colours 2 / s 0 (0); cycling 0 (135); random 0.5 / s 0 |
+| Polypotions | 24 → 24 | 139 → 139 | 148 → 148 | 150 → 150 | 0 → 0 | random pours 41–42 (132), unchanged (pour limit) |
+
+Rules a–e still pass for all five (finishes ≥ 120, unfinished ≤ 110, nothing 0, the intro and help state 120 and the game's own numbers).
+
+**Jumbled.** The kits play the stored shortest route with each level's think time and mistakes; a slide on the extra-cell board is taken as 1.8 s for a good player (1.5 s on the 3 × 3: nine tiles and a line of four need a longer look ahead; an assumption, as every kit's base is). With 1.5 s the after bands are 55 (1) / 142 (30) / 149 / 150. Either way the average player now rarely finishes inside 60 s (it finished 26 of 30 on the 3 × 3) and good, great and near-perfect move by at most 9. The fewest-moves shape can't put a median between 70 and 120 for long: a finish is 120 or more and a slide puzzle's unfinished credit (tiles placed × waste) is small mid-solve, so the average band lands low and the good band high. Tried: minimum 14–20 (average 37–56, good 139–142), 16–22 (34–49, 138–141), 18–24 kept.
+
+**Box Six.** One fewer given moves every band down a little (good 123 → 113, half the good players now finish). The kit counts seconds per blank cell, not the harder deduction a sparser grid needs, so real play likely drops a little more.
+
+**Bomb Defusal.** The kit reads each clue for a fixed 5 s (good player) and makes the same share of slips on any wording, so it cannot see clearer clues: the bands move only with card size (version 3 cards are mostly 6 clues). By the kit Bomb stays above the target (average 125, good 150); Joe's device testing should say whether the plain card plays easier. A shorter clock would be the lever if so (not changed tonight).
+
+**Colour Flood.** Three limits were measured for `floodRev 2`; the batch ships par + 2, the rule `floodRev 1` already used, because good players' median stays at 146 (the bar was 140). The stamp now marks the batch's boards (raised colours, moves line above them). Honest medians are the same under all three (average 96, good 146, great and near-perfect 150). Random play, 120 room seeds (5001–5120), boards flooded / median / mean:
+
+| Limit | Colour cycling 2 / s | Random colours 2 / s | Random colours 0.5 / s |
+|---|---|---|---|
+| **par + 2 (shipped)** | **11 / 0 / 12.2** | **0 / 0 / 0.0** | **0 / 0 / 0.0** |
+| par + 3 | 14 / 0 / 15.5 | 4 / 0 / 4.4 | 0 / 0 / 0.0 |
+| flat 15 (first version of this batch) | 24 / 0 / 26 | 2 / 0 / 2 | 0 / 0 / 0 |

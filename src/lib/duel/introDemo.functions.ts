@@ -59,8 +59,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
-    // Four-step bomb demos cannot replay the six-step example.
-    if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 2) return null;
+    // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
+    if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds: an older demo would show 10–12, so only a rev-5 demo plays.

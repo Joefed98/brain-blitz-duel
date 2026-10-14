@@ -18,7 +18,7 @@
  *   4. Generation: Counterweight's two small scales have exactly one balanced
  *      arrangement; Tally's counts stay inside the wider ranges and use them.
  *   5. Random play: over 24 room seeds no spam strategy finishes more than 2
- *      boards, and every spam median is at most 60. Colour Flood (floodRev 1,
+ *      boards, and every spam median is at most 60. Colour Flood (floodRev 1 / 2,
  *      unfinished credit falls to 0 at the move limit): every random-colour and
  *      colour-cycling run that does not finish scores exactly 0, while the same
  *      answers on the stored shape (no floodRev) still score what they did.
@@ -55,13 +55,13 @@ import { joinStages } from "../src/lib/duel/stagedRounds";
 import {
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV,
+  FLOOD_LIMIT_REV2,
   GRAVITY_LIMIT_REV,
   MEASURE_LIMIT_REV,
   TUBES_LIMIT_REV,
   joinCountSuffix,
 } from "../src/lib/duel/moveLimits";
-import { EQUATION_TRIES, FLOOD_SPARE_MOVES } from "../src/lib/duel/moveLimits.server";
+import { EQUATION_TRIES } from "../src/lib/duel/moveLimits.server";
 import { COUNTUP_STAGE_COUNTS_REV2 } from "../src/puzzles/countUp";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { KITS } from "./puzzle-fairness/kits";
@@ -112,7 +112,8 @@ type Loose = Record<string, unknown>;
 
 /* ---------------------------------- 2. Stamps ---------------------------------- */
 const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: string }>> = {
-  flood: { rev: "floodRev", value: FLOOD_LIMIT_REV, limit: "moveLimit" },
+  // Colour Flood's new rounds are floodRev 2 (the Pattern / Logic batch, 14 Oct 2026; still par + 2; pattern-logic-oct14-check).
+  flood: { rev: "floodRev", value: FLOOD_LIMIT_REV2, limit: "moveLimit" },
   tubes: { rev: "tubesRev", value: TUBES_LIMIT_REV, limit: "pourLimit" },
   gravity: { rev: "gravityRev", value: GRAVITY_LIMIT_REV, limit: "tiltLimit" },
   // Counterweight's four-scale puzzles (14 Oct 2026) are balanceRev 2, which keeps the rev-1 limits and adds the fourth.
@@ -156,7 +157,7 @@ for (let i = 0; i < 12; i++) {
   const seed = 7001 + i;
   const flood = roomPuzzle("flood", seed) as Loose & { par: number; moveLimit: number };
   ok(
-    flood.moveLimit === flood.par + FLOOD_SPARE_MOVES,
+    flood.moveLimit === flood.par + 2 && flood.par >= 10 && flood.par <= 14,
     `flood ${seed}: limit ${flood.moveLimit} for par ${flood.par}`,
   );
   for (const [type, key] of [
@@ -390,7 +391,7 @@ for (let i = 0; i < 12; i++) {
         const g = gradeAnswer(p, sp.answer, 0);
         (scores[sp.label] ??= []).push(g.score);
         if (type === "flood") {
-          // floodRev 1: a board that runs out of moves (or stops past par + 1) unfinished scores 0.
+          // floodRev 1 / 2: a board that runs out of moves unfinished scores 0.
           ok(g.isCorrect || g.score === 0, `flood ${seed}: spam "${sp.label}" unfinished scores ${g.score}, want 0`);
           // Stored rounds: the same answer without the stamp scores on the old waste factor (0 at 4× par).
           const stored = { ...(p as unknown as Loose) };

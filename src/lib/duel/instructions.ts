@@ -406,6 +406,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap a cell,", detail: "then a number." },
       { action: "Use 1-6 once", detail: "in each row, column and box." },
       { action: "Pencil marks", detail: "are for notes." },
+      { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
     ],
     score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × correct cells ÷ empty cells, −5 per wrong digit, at most 110.",
   },
@@ -494,10 +495,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
   bomb: {
     goal: "Defuse the bomb in six steps.",
     how: [
-      { action: "Read every rule:", detail: "only one plan fits." },
-      { action: "Do six actions,", detail: "then tap DEFUSE." },
+      { action: "Read every clue:", detail: "together they fix six steps in one order." },
+      { action: "Do the six steps,", detail: "then tap DEFUSE." },
       { action: "One wrong step", detail: "and it explodes." },
-      { action: "Only one plan fits", detail: "the rules together allow exactly one six-action sequence, and every rule is needed.", helpOnly: true },
+      { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. \"Before\" means any time earlier.", helpOnly: true },
+      { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
       { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
     ],
     score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 22 per correct step before the strike (five of six = 110).",
@@ -576,10 +578,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "First try earns a bonus.",
   },
   tiles: {
-    goal: "Slide the tiles into order, 1 to 8.",
+    goal: "Slide the tiles into order, 1 to 9.",
     how: [
       { action: "Tap a tile", detail: "next to the gap to slide it." },
-      { action: "Finish in order", detail: "with the gap bottom-right." },
+      { action: "One extra cell", detail: "sits beside the 3 × 3, so one row or column has four." },
+      { action: "Finish in reading order,", detail: "row by row, with the gap in the last cell.", helpOnly: true },
       { action: "Undo or Reset", detail: "takes slides back." },
       { action: "Every slide counts", detail: "as a move, undone ones too.", helpOnly: true },
     ],

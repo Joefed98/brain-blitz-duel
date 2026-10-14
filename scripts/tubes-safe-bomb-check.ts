@@ -108,7 +108,7 @@ console.log(
   `Safe Cracker: ${ROUNDS} cards of ${SAFE_CLUE_COUNT} clues, each unique with all ${SAFE_CLUE_COUNT} clues necessary`,
 );
 
-// Version 2 (six steps): every panel in the server-only bank, plus a few fresh ones.
+// Version 2 (six steps, stored rounds): every panel in its server-only bank, plus a few fresh ones.
 let bombAttempts = 0;
 const fresh: BombPuzzleData[] = [];
 for (let i = 0; i < 3; i++) {
@@ -123,8 +123,9 @@ for (const bomb of v2Panels) checkPanel(bomb, BOMB_V2_STEPS, true);
 for (const bomb of v2Panels) for (const rule of bomb.rules) families.add(familyName(rule.id));
 assert(families.size === 4, "bank does not use all four rule families");
 const drawn = generatePuzzle("bomb") as BombPuzzleData;
-assert(generateBomb().bombVersion === BOMB_V2, "bank draw not v2");
-assert(drawn.bombVersion === BOMB_V2 && drawn.timeLimitMs === BOMB_V2_TIME_MS && drawn.stepCount === BOMB_V2_STEPS, "new rounds are not six-step version 2");
+// New rounds draw version 3 (plain clues, 14 Oct 2026; proved by bomb-v3-check): six steps, 90 s, graded like version 2.
+assert(generateBomb().bombVersion === 3, "bank draw not v3");
+assert(drawn.bombVersion === 3 && drawn.timeLimitMs === BOMB_V2_TIME_MS && drawn.stepCount === BOMB_V2_STEPS, "new rounds are not six-step version 3");
 console.log(
   `Bomb Defusal v2: ${BOMB_V2_BANK.length} bank + ${fresh.length} fresh panels, each with exactly one six-action sequence ` +
     `of 60,480, every rule necessary, ${BOMB_V2_NECESSARY}–${BOMB_V2_RULES} rules, ≤${BOMB_V2_FAMILY_CAP} per family; ` +
