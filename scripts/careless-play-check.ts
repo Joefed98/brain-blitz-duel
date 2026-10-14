@@ -14,6 +14,11 @@
  * seeded room puzzles played by the fairness kits (scripts/puzzle-fairness/),
  * that the careless lines land where asked while honest medians move by at most 3.
  *
+ * Since the 14 Oct 2026 Speed tuning rooms deal Flash and Bang On `tapRev: 3` and
+ * Pull! `clayRev: 5` (scripts/speed-oct14-check.ts), so this check deals the
+ * 13 Oct puzzles itself (scripts/speed-oct14-legacy-generators.ts, the same seeds
+ * main dealt) to keep proving the tapRev 2 / clayRev 4 change.
+ *
  *   bun scripts/careless-play-check.ts            # 30 seeds (5001–5030)
  *   bun scripts/careless-play-check.ts --md       # also print the markdown table
  */
@@ -25,7 +30,8 @@ import { TAP_REV, TAP_REV_CARELESS } from "../src/lib/duel/tapLog";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { LEVELS } from "./puzzle-fairness/kit";
 import { KITS } from "./puzzle-fairness/kits";
-import { grade, roomPuzzle, runPlay, runSpam, type GradedRun } from "./puzzle-fairness/run";
+import { grade, runPlay, runSpam, type GradedRun } from "./puzzle-fairness/run";
+import { beforePuzzle } from "./speed-bands-oct14";
 
 const MD = process.argv.includes("--md");
 const SEEDS = Array.from({ length: 30 }, (_, i) => 5001 + i);
@@ -81,7 +87,7 @@ for (let orange = 0; orange <= 22; orange++)
         if (clayScore(orange, gold, birds, CLAY_REV4, empty) !== want) fail(`Pull! rev 4 ${orange}/${gold}/${birds}/${empty}`);
       }
 if (clayEmptyShotCost(30, CLAY_REV4) !== 0 || clayEmptyShotCost(49, CLAY_REV4) !== 0 || clayEmptyShotCost(50, CLAY_REV4) !== 1 || clayEmptyShotCost(330, CLAY_REV4) !== 15 || clayEmptyShotCost(330, CLAY_REV3) !== 0) fail("Pull! empty-shot cost anchors");
-if (CLAY_REV !== CLAY_REV4 || CLAY_CONFIG.birdPenalty !== 10) fail("Pull! current revision");
+if (CLAY_REV < CLAY_REV4 || CLAY_CONFIG.birdPenalty !== 10) fail("Pull! current revision");
 console.log(`anchors: ${anchorCount} score points; older stamps match independent copies of the old formulas; new anchors hold`);
 
 /* ------------------------ 2. room puzzles: before / after + identity ------------------------ */
@@ -101,10 +107,10 @@ function audit(type: PuzzleType): Row[] {
   };
   let identity = 0;
   for (const seed of SEEDS) {
-    const after = roomPuzzle(type, seed);
+    const after = beforePuzzle(type, seed);
     const wantRev = type === "clayshoot" ? CLAY_REV4 : TAP_REV_CARELESS;
     const rev = type === "clayshoot" ? (after as { clayRev?: number }).clayRev : (after as { tapRev?: number }).tapRev;
-    if (rev !== wantRev) fail(`${type} seed ${seed}: room puzzle stamped ${rev}, want ${wantRev}`);
+    if (rev !== wantRev) fail(`${type} seed ${seed}: 13 Oct puzzle stamped ${rev}, want ${wantRev}`);
     const before = restamp(after);
     const runs: { label: string; answer: string; ms: number }[] = [
       ...runSpam(kit, after, seed).map((s) => ({ label: s.label, answer: s.answer, ms: s.msRemaining })),

@@ -223,11 +223,12 @@ function AscendBoard({
   useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}
         </span>
-        <span className="font-mono text-xs text-muted-foreground">
+        <MoveTimer elapsed={elapsed} />
+        <span className="text-right font-mono text-xs text-muted-foreground">
           {errors} {errors === 1 ? "error" : "errors"}
         </span>
       </div>
@@ -247,10 +248,26 @@ function AscendBoard({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <p data-game-controls="status" className="text-center font-mono text-xs text-muted-foreground">
-        {(elapsed / 1000).toFixed(1)}s
-      </p>
+/**
+ * The count-up timer centred above the board: 0 to 15 s, back to 0 when the
+ * untapped discs move (every NUMHUNT_MOVE_MS), then up again. Display only.
+ */
+function MoveTimer({ elapsed }: { elapsed: number }) {
+  const inCycle = Math.max(0, elapsed) % NUMHUNT_MOVE_MS;
+  const fraction = inCycle / NUMHUNT_MOVE_MS;
+  const soon = NUMHUNT_MOVE_MS - inCycle <= 3_000;
+  return (
+    <div data-ascend-timer="" aria-label={`${Math.floor(inCycle / 1000)} seconds since the discs moved`} className="ascend-move-timer flex min-w-24 flex-col items-center gap-1">
+      <span className={`font-mono text-2xl font-bold leading-none tabular-nums ${soon ? "text-warn" : "text-foreground"}`}>
+        {(inCycle / 1000).toFixed(1)}s
+      </span>
+      <span aria-hidden="true" className="relative h-1 w-20 overflow-hidden rounded-full bg-muted">
+        <span className={`absolute inset-y-0 left-0 rounded-full ${soon ? "bg-warn" : "bg-primary"}`} style={{ width: `${fraction * 100}%` }} />
+      </span>
     </div>
   );
 }

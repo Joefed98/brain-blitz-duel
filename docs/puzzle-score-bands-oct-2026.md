@@ -208,3 +208,48 @@ Counterweight and Ballpark were re-tuned towards the target bands **about 70 / 1
 - **Ballpark.** At 90 s with the rev-1 curve the bands were 70 / 122 / 146 / 150: the longer clock lets everyone finish, and the speed part scaled by accuracy lets rough finishes keep most of it. Linear curves alone could not separate good from average (full within 0.5–1 %, zero at 8–15 %: good 107–126 whenever average reached 70). Scaling the speed part by the share placed within 1 % does: good players (about 2.5 % typical error) keep 10–15 of the 30, near-perfect players nearly all of it. Full within 1 % and zero at 10 % gave 72 / 105 / 126 / 142 (60 seeds: 70 / 104 / 125 / 142, random 5 / 37). Spam stays at a median of 5 or less.
 
 Rules a, c and e still pass for both (nothing scores 0; Counterweight's lowest finish 121 against its highest unfinished 80; every intro SCORE line and "?" help states the numbers).
+
+## Speed tuning (14 Oct 2026): Flash, Bang On, Don't Break the Chain, Pull!
+
+Aimed at the shared targets (average about 70, good 100, great 125, near-perfect 140–150), without pushing Chain's good players (about 80) any lower. Each change rides its own stamp; stored rounds grade exactly as before (`scripts/speed-oct14-check.ts`: 700 answers recorded on main before the change, plus 698 on the new stamps).
+
+- **Flash (`tapRev: 3`).** Gold-like decoys join teal, red and blue: near-gold amber, a gold border only, the word GOLD on a dark screen and the top half of the screen gold (each at least once a round; the first decoy is always plain). Curve: 150 at ≤ 150 ms average, 128 at 200, 100 at 300, 0 at 800 (straight lines between; was 150 at ≤ 200 ms, −16 per 100 ms). False starts cost as `tapRev: 2`. "Wait for gold…" is larger.
+- **Bang On (`tapRev: 3`).** From watch 2: black blind spots where the marker vanishes (0.05 of the bar on watch 2, growing to 0.13 on watch 10; two from watch 6; never over the target), watches 2, 4 and 7 sweep 40 % slower, watches 6 and 9 run corner to corner. Full marks need ≤ 5 ms (was 20 ms); 20 ms scores 137; then a straight line to the 13 Oct knee (101 at 200 ms) and its fall to 0 at 325 ms, kept as decided. Ten watches on the fixed schedule: a player stopping at each first crossing is done by about 14 s.
+- **Don't Break the Chain (`chainCycleRev: 1`).** Each board's cycle is five different charms (no shape or colour more than twice; neighbours share neither), all shown in the preview and each needed once per board, so nothing repeats inside a board. The board for links 21–25 runs last to first: a banner warns from link 17 ("Reverse after link 20!"), a "← REVERSE" flash marks link 20, and the preview's arrows point back. Unfinished credit (`CHAIN_CYCLE_REV_CREDIT`) pays 4 a link up to five links (20), then about 4 a link to 79 at 19 links, then flattens to 110 one short (floor(79 + 31 × ((links − 19) ÷ 20)^0.7)), so a chain that breaks at the reversal keeps most of its credit while a few early links earn little; a finish is still 120 + up to 30. (The first draft, floor(110 × (links ÷ 39)^0.45), paid 21 for one link and lifted average players to 43; revised 14 Oct before merging.)
+- **Pull! (`clayRev: 5`).** 14–16 birds instead of 10–12, on the same cadence rules (the gap shrinks to fit), the same clays and the same scoring and empty-shot cost.
+- **Ascend** (display only): the count-up timer sits centred above the board, 0 to 15 s, back to 0 when the untapped discs move. **Bonk** (display only): the "TAP GOLD / TAP RED" box is bigger and outlined in the rule colour.
+
+**Kit modelling added for the new rules** (`scripts/puzzle-fairness/kits-speed.ts`, `kits-engine.ts`; script-only assumptions, applied to before and after alike where they apply): a gold-like decoy pulls a reflex tap 1.3–2.2 times as often as a plain one (amber 2.2, half 2, border 1.5, word 1.3); Bang On's timing spread grows 25 % per 0.1 of bar blacked out before the target, 15 % on a diagonal face and by √1.4 on a slower sweep; chain players read five charms 6 % slower, take 25 % longer per link on the reversed board, slip 1.5 times as often there, and on its first link sometimes tap forwards (1.5 × the slip rate); a Pull! player now and then takes a flying bird for a clay on the first look (a quarter of the slip rate, every revision).
+
+Medians on 30 room seeds (5001–5030), `bun scripts/speed-bands-oct14.ts --md`; "before" is the same seed dealt by main's generators (Flash and Bang On `tapRev: 2`, three-symbol chains, Pull! `clayRev: 4`), "after" today's room puzzle:
+
+| Game | Player | Before | After |
+|---|---|---|---|
+| Flash | average | 110 | **70** |
+| Flash | good | 135 | **104** |
+| Flash | great | 150 | **127** |
+| Flash | near-perfect | 150 | **144** |
+| Flash | **tap every colour (careless)** | 54 | **30** |
+| Flash | tap every 150–300 ms / every 1 s | 0 / 0 | 0 / 0 |
+| Bang On | average | 116 | **109** |
+| Bang On | good | 136 | **119** |
+| Bang On | great | 144 | **129** |
+| Bang On | near-perfect | 148 | **133** |
+| Bang On | **tap at a random time (careless)** | 72 | **49** |
+| Bang On | tap at the start / every 150–300 ms | 0 / 0 | 0 / 0 |
+| Don't Break the Chain | average | 15 | **20** |
+| Don't Break the Chain | good | 80 | **82** |
+| Don't Break the Chain | great | 141 | **135** |
+| Don't Break the Chain | near-perfect | 150 | **150** |
+| Don't Break the Chain | tap at random / in screen order (careless) | 0 / 0 (max 2) | 0 / 0 (max 4: one lucky link) |
+| Pull! | average | 90 | **90** |
+| Pull! | good | 125 | **130** |
+| Pull! | great | 150 | **150** |
+| Pull! | near-perfect | 150 | **150** |
+| Pull! | **mash on whatever flies (careless)** | 16 | **0** |
+| Pull! | random shots 6 / 3 a second | 0 / 0 | 0 / 0 |
+
+**Where the targets were not reached, and why.**
+- **Bang On** stays above 70 / 100 for average and good players: the ask kept the 13 Oct curve from 200 ms down (101 at 200 ms), and simulated average players are about 165 ms off (good about 110 ms), so they cannot fall below about 101–110 without moving that knee. The top tightened as asked (near-perfect 148 → 133; 20 ms now scores 137). Lowering the knee would be a new decision.
+- **Pull!** honest bands do not move: kit players aim at clays and rarely hit a bird (about 0.1–0.2 per run before and after), so more birds mainly hurt careless mashing (16 → 0). Pull!'s 5 / 10 per clay was kept; reaching the targets would need a scoring change or real-play evidence that players shoot more birds.
+- **Chain** average players stay low (15 → 20): their chains break within the first few links, which now pay 4 each. Good players held (80 → 82); great players fell slightly (141 → 135) from breaks at the reversal.
