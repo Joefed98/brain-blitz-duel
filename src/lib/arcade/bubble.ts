@@ -16,6 +16,13 @@
  *    cells.
  *  - Torpedo (BUB_LINE): clears the whole row it lands in.
  * Specials never stay on the field and never appear in it at the start.
+ *
+ * bubbleRev 4 (BUB_REV_TORPEDO, Tuning F) changes only the Torpedo: it never
+ * lands. It flies like any shot (same aim, speed and wall bounces) and, once it
+ * touches the field, keeps going in the direction it points, destroying each
+ * bubble it touches (the same contact distance a shot sticks at) until it has
+ * destroyed BUB_TORPEDO_HITS bubbles, reaches the top row's line or empties
+ * the field. Then bubbles no longer held from the top drop, as after any pop.
  */
 
 import {
@@ -151,6 +158,9 @@ export interface BubState extends BandFields {
   lastSpecial?: number;
   lastSpecialCell?: number;
   lastSpecialCleared?: number;
+  /** bubbleRev 4 only (absent otherwise): the torpedo rule revision, and bubbles the torpedo in flight has destroyed so far. */
+  lineRev?: number;
+  drilled?: number;
 }
 
 function cellIndex(row: number, col: number): number {
@@ -477,7 +487,9 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     next.vy = aimed.vy;
   }
 
-  if (next.flightColour !== 0) {
+  if (next.flightColour === BUB_LINE && next.lineRev === BUB_REV_TORPEDO) {
+    torpedoFlight(next);
+  } else if (next.flightColour !== 0) {
     let { x, y, vx } = next;
     const vy = next.vy;
     const leftWall = (BUB_WALL + BUB_R) * 256;
@@ -582,6 +594,79 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
   return next;
 }
 
+/**
+ * bubbleRev 4: one tick of the Torpedo's run (in place on `next`). It moves
+ * exactly as a shot does, in four sub-steps with the same wall bounce, and
+ * destroys every bubble within contact distance of it (cell order, up to its
+ * remaining hits). It ends at the top row's line, on its last hit, or when the
+ * field is empty; then loose bubbles drop and the shot counts as usual.
+ */
+function torpedoFlight(next: BubState): void {
+  let { x, y, vx } = next;
+  const vy = next.vy;
+  const leftWall = (BUB_WALL + BUB_R) * 256;
+  const rightWall = (BUB_WORLD_W - BUB_WALL - BUB_R) * 256;
+  const reach = (BUB_D - 2) * (BUB_D - 2);
+  const ceiling = BUB_TOP + BUB_R + next.descents * BUB_ROW_H;
+  let grid = next.grid;
+  let drilled = next.drilled ?? 0;
+  let lastHit = drilled > 0 ? next.lastSpecialCell ?? -1 : -1;
+  let done = false;
+  for (let sub = 0; sub < 4 && !done; sub++) {
+    const sx = sub === 3 ? vx - 3 * Math.trunc(vx / 4) : Math.trunc(vx / 4);
+    const sy = sub === 3 ? vy - 3 * Math.trunc(vy / 4) : Math.trunc(vy / 4);
+    x += sx;
+    y += sy;
+    if (x < leftWall) {
+      x = leftWall + (leftWall - x);
+      vx = -vx;
+    } else if (x > rightWall) {
+      x = rightWall - (x - rightWall);
+      vx = -vx;
+    }
+    const xPx = Math.trunc(x / 256);
+    const yPx = Math.trunc(y / 256);
+    for (let row = 0; row < BUB_MAX_ROWS && drilled < BUB_TORPEDO_HITS; row++) {
+      for (let col = 0; col < bubRowCols(row) && drilled < BUB_TORPEDO_HITS; col++) {
+        const index = cellIndex(row, col);
+        if (!grid[index]) continue;
+        const dx = bubCellX(row, col) - xPx;
+        const dy = bubCellY(row, next.descents) - yPx;
+        if (dx * dx + dy * dy > reach) continue;
+        if (grid === next.grid) grid = [...grid];
+        grid[index] = 0;
+        drilled += 1;
+        lastHit = index;
+      }
+    }
+    done = yPx <= ceiling || drilled >= BUB_TORPEDO_HITS || bubOccupied(grid) === 0;
+  }
+  next.popped = next.popped + (drilled - (next.drilled ?? 0));
+  next.x = x;
+  next.y = y;
+  next.vx = vx;
+  next.drilled = drilled;
+  next.lastSpecialCell = lastHit;
+  if (!done) {
+    next.grid = grid;
+    return;
+  }
+  grid = [...grid];
+  next.flightColour = 0;
+  next.shots = next.shots + 1;
+  if (drilled > 0) next.lines = (next.lines ?? 0) + 1;
+  next.lastSpecial = BUB_LINE;
+  next.lastSpecialCleared = drilled;
+  next.drilled = 0;
+  const loose = unattached(grid);
+  for (const index of loose) grid[index] = 0;
+  next.dropped = next.dropped + loose.length;
+  if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+  next.grid = grid;
+  if (bubOccupied(grid) === 0) next.cleared = true;
+  else if (reachedShooter(grid, next.descents)) next.dead = true;
+}
+
 function score(state: BubState): number {
   if (state.cleared) return finishScore(BUB_RUN_TICKS, state.endedTick);
   const start = Math.max(1, state.startCount);
@@ -642,6 +727,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   let checksum = 0x811c9dc5;
   // bubbleRev 2 folds its special counters into the checksum; the encoded fields stay the same.
   const extra = state.rev === BUB_REV ? [state.jokers ?? 0, state.bombs ?? 0, state.lines ?? 0, state.queueAt] : [];
+  // bubbleRev 4 folds the torpedo's rule revision and its hits so far in last.
+  if (state.lineRev !== undefined) extra.push(state.lineRev, state.drilled ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -823,6 +910,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_TORPEDO) return bubbleTorpedoGame;
   if (rev === BUB_REV_BAND) return bubbleBandGame;
   return rev === BUB_REV ? bubbleRev2Game : bubbleGame;
 }
@@ -862,3 +950,19 @@ function scoreBand(state: BubState): number {
 }
 
 export const bubbleBandGame: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: (seed) => bandInit(initRev2(seed, true)) };
+
+/* ============== Tuning F directional torpedo (bubbleRev 4) ============== */
+
+/**
+ * bubbleRev 4 (Tuning F, Oct 2026): rev-3 play (same field, queue, specials and
+ * band curve) with the directional Torpedo (torpedoFlight) instead of the
+ * row-clearing one. States add only `lineRev` and `drilled`.
+ */
+export const BUB_REV_TORPEDO = 4;
+/** The most bubbles one rev-4 Torpedo destroys on its run (a row holds 9 or 10). */
+export const BUB_TORPEDO_HITS = 6;
+
+export const bubbleTorpedoGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleGame,
+  init: (seed) => ({ ...bandInit(initRev2(seed, true)), lineRev: BUB_REV_TORPEDO, drilled: 0 }),
+};

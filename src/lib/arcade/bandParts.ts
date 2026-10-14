@@ -10,7 +10,7 @@ import { wavefrontBandParts, WAV_BAND_CURVE, WAV_REV_BAND, WAV_REV_SHAPES } from
 import { flipBandParts, FLIP_BAND_CURVE, FLIP_REV_BAND } from "./flip";
 import { inkBridgeBandParts, INK_BAND_CURVE, INK_REV_BAND } from "./inkBridge";
 import { matchupBandParts, MATCHUP_BAND_CURVE, MATCHUP_REV_BAND } from "./matchup";
-import { bubbleBandParts, BUB_BAND_CURVE, BUB_REV_BAND } from "./bubble";
+import { bubbleBandParts, BUB_BAND_CURVE, BUB_REV_BAND, BUB_REV_TORPEDO } from "./bubble";
 import { crossBandParts, CROSS_BAND_CURVE, CROSS_REV_BAND } from "./cross";
 import { rallyBandParts, RALLY_BAND_CURVE, RALLY_REV_BAND } from "./rally";
 import { snakeBandParts, SNAKE_BAND_CURVE, SNAKE_REV_BAND } from "./snake";
@@ -81,7 +81,7 @@ export const BAND_STAMPS: Record<string, readonly [field: string, rev: number, .
   flip: ["flipRev", FLIP_REV_BAND],
   inkbridge: ["inkRev", INK_REV_BAND],
   matchup: ["matchupRev", MATCHUP_REV_BAND],
-  bubble: ["bubbleRev", BUB_REV_BAND],
+  bubble: ["bubbleRev", BUB_REV_BAND, BUB_REV_TORPEDO],
   cross: ["crossRev", CROSS_REV_BAND],
   rally: ["rallyRev", RALLY_REV_BAND],
   snake: ["snakeRev", SNAKE_REV_BAND],

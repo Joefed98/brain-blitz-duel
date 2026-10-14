@@ -4,7 +4,7 @@ import { FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { CROSS_REV_BAND } from "@/lib/arcade/cross";
 import { INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TALL } from "@/lib/arcade/snake";
-import { BUB_REV_BAND } from "@/lib/arcade/bubble";
+import { BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { SNIP_REV_BANK6 } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
@@ -134,7 +134,7 @@ export function generateSlice(): SlicePuzzleData {
 }
 
 export function generateBubble(): BubblePuzzleData {
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_BAND };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_TORPEDO };
 }
 
 export function generateBeat(): BeatPuzzleData {
