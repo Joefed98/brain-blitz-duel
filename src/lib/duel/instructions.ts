@@ -257,16 +257,19 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap each eagle", detail: "facing the target's way." },
       { action: "Press Submit", detail: "to lock the grid." },
       { action: "Three grids,", detail: "each bigger, in 30 seconds." },
+      { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one." },
     ],
-    score: "Stages worth 25 / 40 / 45 (110 in all): share of eagles found, −3 per wrong tap. All three perfect: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: "Grids worth 40 / 40 / 30 (110 in all): share of eagles found, −3 per wrong tap. All three perfect: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
   },
   spotdiff: {
-    goal: "Find the six differences between the pictures.",
+    goal: "Find six differences in each of two pictures.",
     how: [
       { action: "Compare", detail: "the two panels." },
       { action: "Tap a difference", detail: "in either panel." },
+      { action: "Sweet shop first,", detail: "then the rock pool; 60 seconds for both." },
+      { action: "Next picture", detail: "moves on early; you can't go back.", helpOnly: true },
     ],
-    score: "All six with at most 5 wrong taps = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 22 per difference found, −5 per wrong tap, at most 110.",
+    score: "All twelve with at most 5 wrong taps in each picture = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 10 per difference found, −4 per wrong tap, at most 110.",
   },
   patcomp: {
     goal: "Complete all three visual patterns.",
@@ -329,10 +332,11 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Read the question:", detail: "a shape and a colour." },
       { action: "Type the total;", detail: "ENTER goes to the next." },
-      { action: "Three trays", detail: "share 45 seconds." },
+      { action: "Tray 4 compares:", detail: "how many more of one colour than another?" },
+      { action: "Four trays", detail: "share 60 seconds." },
       { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
     ],
-    score: "Stages worth 25 / 40 / 45 (110 in all): exact = full, off by 1 = 60%, off by 2 = 30%. All three exact: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: "Trays worth 30 / 30 / 30 / 20 (110 in all): exact = full, off by 1 = 60%, off by 2 = 30%. All four exact: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
   },
   mirmatch: {
     goal: "Pick the exact mirror image of each shape.",

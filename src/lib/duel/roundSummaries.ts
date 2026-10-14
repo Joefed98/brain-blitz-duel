@@ -1,4 +1,16 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import {
+  SPOT_REV1_PER_SCENE,
+  SPOT_REV1_SCENES,
+  countUpStageTruth,
+  parseSpotTaps,
+  scanRev1StageResult,
+  scanStageMatches,
+  spotTwoResult,
+  usesCountRev2,
+  usesScanRev1,
+  usesSpotRev1,
+} from "./attentionRev";
 import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
 import { crossLine } from "@/lib/duel/crossLine";
@@ -199,6 +211,8 @@ const DIRECT_LIMITS: Partial<Record<PuzzleType, number>> = {
 };
 
 function elapsedMs(result: RoundResultRow, puzzle: PuzzleData): number {
+  // Double Take spotRev 1 and Tally countRev 2 carry their own 60 s clock.
+  if ((puzzle.type === "spotdiff" || puzzle.type === "countup") && puzzle.timeLimitMs) return Math.max(0, puzzle.timeLimitMs - result.ms_remaining);
   const direct = DIRECT_LIMITS[puzzle.type];
   if (direct) return Math.max(0, direct - result.ms_remaining);
   const limit =
@@ -314,7 +328,9 @@ function sequenceAnswer(result: RoundResultRow, puzzle: PuzzleData): string | nu
 function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "symscan") return { summary: "No answer", detail: [] };
   const parts = splitStages(result.answer);
-  const results = puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
+  const results = usesScanRev1(puzzle)
+    ? puzzle.stages.map((stage, i) => scanRev1StageResult(i, parseSelection(parts[i] ?? ""), scanStageMatches(stage)))
+    : puzzle.stages.map((_, i) => scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []));
   const perfect = results.filter((r) => r.perfect).length;
   return {
     summary: `${perfect} / 3 grids perfect · ${seconds(elapsedMs(result, puzzle))}`,
@@ -334,11 +350,12 @@ function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetai
 
 function countUpSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "countup") return { summary: "No answer", detail: [] };
-  const parts = splitStages(result.answer);
-  const counts = puzzle.counts ?? [];
+  const trays = usesCountRev2(puzzle) ? puzzle.stages.length : 3;
+  const parts = splitStages(result.answer, trays);
+  const counts = usesCountRev2(puzzle) ? puzzle.stages.map(countUpStageTruth) : (puzzle.counts ?? []);
   const exact = counts.filter((c, i) => parseCount(parts[i] ?? "") === c).length;
   return {
-    summary: `${exact} / 3 exact · ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${exact} / ${trays} exact · ${seconds(elapsedMs(result, puzzle))}`,
     detail: counts.map((c, i) => `Count ${i + 1}: ${parts[i] || "—"} (answer ${c})`),
   };
 }
@@ -495,6 +512,17 @@ function patternSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail
 }
 
 function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  if (puzzle.type === "spotdiff" && usesSpotRev1(puzzle)) {
+    const taps = parseSpotTaps(result.answer, SPOT_REV1_SCENES);
+    const r = spotTwoResult(puzzle, result.answer);
+    const total = SPOT_REV1_SCENES * SPOT_REV1_PER_SCENE;
+    const found = r.found.reduce((a, b) => a + b, 0);
+    const detail = (puzzle.differences ?? []).map((difference, index) => {
+      const got = difference.cells.some((cell) => (taps[difference.scene ?? 0] ?? []).includes(cell));
+      return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label} · ${got ? "✓" : "✗"}`;
+    });
+    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${found} / ${total}`, detail };
+  }
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
     .split(",")

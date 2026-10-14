@@ -39,8 +39,12 @@ export const BALANCE_LIMIT_REV = 1;
 export const EQUATION_LIMIT_REV = 1;
 /** Brimful's rules marker moves from 1 to 2 with the per-board move limit. */
 export const MEASURE_LIMIT_REV = 2;
-/** Tally's wider count ranges (generation only). */
-export const COUNTUP_COUNT_REV = 1;
+/**
+ * Tally's current count revision: 1 (13 Oct 2026) = the wider count ranges (generation
+ * only); 2 (14 Oct 2026) = the same ranges plus the comparison tray and 60 s
+ * (attentionRev.ts COUNT_COMPARE_REV).
+ */
+export const COUNTUP_COUNT_REV = 2;
 
 const positive = (n: unknown): number | null =>
   typeof n === "number" && Number.isInteger(n) && n > 0 ? n : null;

@@ -113,6 +113,19 @@ import {
 } from "./tapLog";
 import { countPatternAnswers } from "./pattern";
 import { decodeMoves, replayUnblock } from "./unblock";
+import {
+  COUNT_REV2_TRAYS,
+  countUpStageTruth,
+  scanRev1StageResult,
+  scanStageMatches,
+  scoreCountRev2,
+  scoreScanRev1,
+  scoreSpotTwo,
+  spotTwoResult,
+  usesCountRev2,
+  usesScanRev1,
+  usesSpotRev1,
+} from "./attentionRev";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { solvedFrame } from "./tiles";
@@ -530,6 +543,16 @@ function gradeUnderRev(
       break;
     }
     case "spotdiff": {
+      if (usesSpotRev1(puzzle)) {
+        // spotRev 1: two pictures, "cells|cells"; a finish needs all twelve and at most 5 wrong taps in each picture.
+        const result = spotTwoResult(puzzle, answer);
+        correctCount = result.found.reduce((a, b) => a + b, 0);
+        errors = result.wrong.reduce((a, b) => a + b, 0);
+        isCorrect = result.finished;
+        score = scoreSpotTwo(result, ms, timeLimitMs);
+        extraDetail = { found: result.found, wrong: result.wrong };
+        break;
+      }
       // The phone sends every cell it tapped; the six differences live
       // server-side, so only the stored answers decide the score.
       const tapped = answer
@@ -547,6 +570,16 @@ function gradeUnderRev(
       break;
     }
     case "symscan": {
+      if (usesScanRev1(puzzle)) {
+        // scanRev 1: grid 3 counts eagles facing either target; truth comes from the stored cells.
+        const parts = splitStages(answer);
+        const results = puzzle.stages.map((stage, i) => scanRev1StageResult(i, parseSelection(parts[i] ?? ""), scanStageMatches(stage)));
+        correctCount = results.filter((r) => r.perfect).length;
+        errors = results.reduce((sum, r) => sum + r.wrong, 0);
+        isCorrect = correctCount === STAGE_COUNT;
+        score = scoreScanRev1(results, ms, timeLimitMs);
+        break;
+      }
       const parts = splitStages(answer);
       const results = puzzle.stages.map((_, i) =>
         scanStageResult(i, parseSelection(parts[i] ?? ""), puzzle.targets?.[i] ?? []),
@@ -2375,6 +2408,16 @@ function gradeUnderRev(
       break;
     }
     case "countup": {
+      if (usesCountRev2(puzzle)) {
+        // countRev 2: four trays, the fourth a comparison; truth from the stored scenes.
+        const parts = splitStages(answer, COUNT_REV2_TRAYS);
+        const truths = puzzle.stages.map(countUpStageTruth);
+        const given = truths.map((_, i) => parseCount(parts[i] ?? ""));
+        correctCount = truths.filter((truth, i) => given[i] === truth).length;
+        isCorrect = truths.length === COUNT_REV2_TRAYS && correctCount === COUNT_REV2_TRAYS;
+        score = scoreCountRev2(given, truths, ms, timeLimitMs);
+        break;
+      }
       const parts = splitStages(answer);
       // Truth is derived from the stored scene, never accepted from a client or
       // a duplicated hidden count.

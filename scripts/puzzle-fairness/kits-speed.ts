@@ -43,7 +43,8 @@ import {
   type StopWatchSpec,
   type SymbolScanPuzzleData,
 } from "../../src/lib/duel/types";
-import { thinkMs, type PuzzleKit, type Rng, type Step } from "./kit";
+import { countUpCounts, countUpStageTruth, spotScenes, usesSpotRev1 } from "../../src/lib/duel/attentionRev";
+import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
 const sortedUnique = (times: number[]) => [...new Set(times.map((t) => Math.max(0, Math.round(t))))].sort((a, b) => a - b);
 
@@ -334,7 +335,9 @@ const eagleEye: PuzzleKit = {
     s.stages.forEach((stage, si) => {
       const targets = rng.shuffle(s.targets?.[si] ?? []);
       const others = stage.cells.map((_, i) => i).filter((i) => !targets.includes(i));
-      t += thinkMs(rng, 0.8, skill); // read the target arrow
+      // scanRev 1 grid 3: two target facings to hold in mind, so reading and each find take longer.
+      const two = stage.alsoTarget !== undefined;
+      t += thinkMs(rng, two ? 1.2 : 0.8, skill); // read the target arrow(s)
       for (const target of targets) {
         if (rng.chance(skill.err) && others.length) {
           // Mis-tap a similar arrow; nearly always noticed and untapped before Submit.
@@ -348,7 +351,7 @@ const eagleEye: PuzzleKit = {
             steps.push({ answer: enc(), atMs: t });
           }
         }
-        t += thinkMs(rng, 0.85, skill);
+        t += thinkMs(rng, two ? 1.05 : 0.85, skill);
         sel[si]!.push(target);
         steps.push({ answer: enc(), atMs: t });
       }
@@ -361,6 +364,36 @@ const eagleEye: PuzzleKit = {
 
 /* ------------------------------ Double Take ----------------------------- */
 
+/** spotRev 1: two pictures, answers "cells|cells". */
+function doubleTakeTwo(d: SpotPuzzleData, rng: Rng, skill: Skill): Play {
+  const scenes = spotScenes(d);
+  const taps: number[][] = scenes.map(() => []);
+  const steps: Step[] = [];
+  const enc = () => taps.map((x) => x.join(",")).join("|");
+  let t = 0;
+  scenes.forEach((scene, si) => {
+    // BASE 3 s per difference in the sweet shop (as before); 3.5 s in the rock pool, whose
+    // fish and seahorses turn as often as they change colour (subtler changes).
+    const base = scene.theme === "reef" ? 3.5 : 3;
+    if (si > 0) t += thinkMs(rng, 1.2, skill); // the next picture slides in
+    const diffs = rng.shuffle((d.differences ?? []).filter((x) => (x.scene ?? 0) === si));
+    const cells = new Set(diffs.flatMap((x) => x.cells));
+    const others = scene.top.map((s) => s.cell).filter((c) => !cells.has(c));
+    for (const diff of diffs) {
+      if (rng.chance(skill.err) && others.length) {
+        t += thinkMs(rng, 2, skill);
+        const wrong = rng.pick(others);
+        if (!taps[si]!.includes(wrong)) taps[si]!.push(wrong);
+        steps.push({ answer: enc(), atMs: t });
+      }
+      t += thinkMs(rng, base, skill);
+      taps[si]!.push(rng.pick(diff.cells));
+      steps.push({ answer: enc(), atMs: t });
+    }
+  });
+  return { steps };
+}
+
 const doubleTake: PuzzleKit = {
   type: "spotdiff",
   // No draft: the taps go up just before the buzzer.
@@ -368,6 +401,20 @@ const doubleTake: PuzzleKit = {
   spam(p, rng, limitMs) {
     const d = p as SpotPuzzleData;
     const cells = d.top.length;
+    if (usesSpotRev1(d)) {
+      // ~3 taps a second: the whole of picture 1 (which finds all six and moves on), then picture 2.
+      const order = (n: number) => rng.shuffle(Array.from({ length: n }, (_, i) => i));
+      const fit = Math.floor(limitMs / 330);
+      const first = order(cells);
+      const second = order(cells).slice(0, Math.max(0, fit - cells));
+      const half = () => Array.from({ length: cells }, (_, i) => i).filter(() => rng.chance(0.5)).join(",");
+      return [
+        { label: "tap-all-random-order", answer: `${first.join(",")}|${second.join(",")}` },
+        { label: "tap-all-in-order", answer: `${[...first].sort((a, b) => a - b).join(",")}|${[...second].sort((a, b) => a - b).join(",")}` },
+        { label: "tap-random-half", answer: `${half()}|${half()}` },
+        { label: "skip-then-tap-all", answer: `|${order(cells).join(",")}` },
+      ];
+    }
     // ~3 taps a second across the grid; the server never charges a wrong tap.
     const fit = Math.min(cells, Math.floor(limitMs / 330));
     const all = rng.shuffle(Array.from({ length: cells }, (_, i) => i)).slice(0, fit);
@@ -380,6 +427,7 @@ const doubleTake: PuzzleKit = {
   },
   play(p, rng, skill) {
     const d = p as SpotPuzzleData;
+    if (usesSpotRev1(d)) return doubleTakeTwo(d, rng, skill);
     const diffs = rng.shuffle(d.differences ?? []);
     const differenceCells = new Set(diffs.flatMap((x) => x.cells));
     const others = d.top.map((s) => s.cell).filter((c) => !differenceCells.has(c));
@@ -407,28 +455,35 @@ const doubleTake: PuzzleKit = {
 
 const tally: PuzzleKit = {
   type: "countup",
-  nothing: () => joinStages(["", "", ""]),
+  nothing: (p) => joinStages((p as CountUpPuzzleData).stages.map(() => ""), (p as CountUpPuzzleData).stages.length),
   spam(p, rng) {
-    // Guesses without counting: the stage's typical count, or a random one.
-    const mid = [8, 10, 12];
+    // Guesses without counting: the stage's typical count, or a random one (countRev 2's comparison tray: 2–7).
+    const c = p as CountUpPuzzleData;
+    const n = c.stages.length;
+    const mid = [8, 10, 12, 5].slice(0, n);
+    const random = (i: number) => (i === 3 ? rng.int(2, 7) : rng.int(mid[i]! - 3, mid[i]! + 3));
     return [
-      { label: "guess-typical", answer: joinStages(mid.map(String)) },
-      { label: "guess-random", answer: joinStages([0, 1, 2].map((i) => String(rng.int(mid[i]! - 3, mid[i]! + 3)))) },
+      { label: "guess-typical", answer: joinStages(mid.map(String), n) },
+      { label: "guess-random", answer: joinStages(mid.map((_, i) => String(random(i))), n) },
     ];
   },
   play(p, rng, skill) {
     const c = p as CountUpPuzzleData;
-    const counts = c.stages.map((s) => s.shapes.filter((x) => x.shape === s.targetShape && x.colour === s.targetColour).length);
-    const answers = ["", "", ""];
+    const n = c.stages.length;
+    const counts = c.stages.map(countUpStageTruth);
+    const answers = c.stages.map(() => "");
     const steps: Step[] = [];
     let t = 0;
     counts.forEach((truth, i) => {
+      const stage = c.stages[i]!;
       // BASE 2 s to read the question and scan, plus 0.55 s per matching shape counted, plus 1.2 s to type and submit.
-      t += thinkMs(rng, 2 + 0.55 * truth + 1.2, skill, 0.25);
+      // A comparison tray counts both colours and takes 1 s more to subtract.
+      const counted = stage.shapes.filter((x) => countUpCounts(stage, x)).length;
+      t += thinkMs(rng, 2 + 0.55 * counted + 1.2 + (stage.compare ? 1 : 0), skill, 0.25);
       // Miscount: ±1 mostly, ±2 sometimes; bigger fields are harder.
       const off = rng.chance(Math.min(0.85, skill.err * (1.5 + 0.5 * i))) ? (rng.chance(0.7) ? 1 : 2) * (rng.chance(0.5) ? 1 : -1) : 0;
       answers[i] = String(Math.max(0, truth + off));
-      steps.push({ answer: joinStages(answers), atMs: t });
+      steps.push({ answer: joinStages(answers, n), atMs: t });
     });
     return { steps };
   },

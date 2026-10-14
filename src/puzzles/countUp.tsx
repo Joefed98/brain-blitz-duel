@@ -7,7 +7,7 @@ import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { useStageState } from "@/lib/duel/stageState";
-import { STAGE_COUNT, countStagePoints, joinStages, parseCount, splitStages } from "@/lib/duel/stagedRounds";
+import { STAGE_COUNT, joinStages, parseCount, splitStages } from "@/lib/duel/stagedRounds";
 import {
   COUNTUP_STAGE_SIZES,
   COUNTUP_TIME_MS,
@@ -18,6 +18,7 @@ import {
   type GlyphShape,
 } from "@/lib/duel/types";
 
+import { ATTENTION_REWORK_TIME_MS, COUNT_COMPARE_REV, countUpCounts, countUpStageTruth, usesCountRev2 } from "@/lib/duel/attentionRev";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 type SceneShape = CountUpShape["shape"];
@@ -52,6 +53,12 @@ export function tallyColourName(colour: GlyphColour): string {
 
 export function countUpQuestion(colour: GlyphColour, shape: SceneShape): string {
   return `How many ${tallyColourName(colour)} ${PLURAL[shape]}?`;
+}
+
+/** The tray's question: a count, or on countRev 2's fourth tray a comparison of two colours. */
+export function countUpStageQuestion(stage: CountUpStage): string {
+  if (stage.compare) return `How many more ${tallyColourName(stage.compare.more)} than ${tallyColourName(stage.compare.less)}?`;
+  return countUpQuestion(stage.targetColour, stage.targetShape);
 }
 
 const STAR_POINTS = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7 7.3,14.4 1.6,9.5 9.1,8.9";
@@ -109,7 +116,7 @@ function Field({
   cols: number;
   rows: number;
   shapes: CountUpShape[];
-  highlight?: { shape: SceneShape; colour: GlyphColour };
+  highlight?: (item: CountUpShape) => boolean;
   height?: number;
   size?: number;
   play?: boolean;
@@ -122,10 +129,7 @@ function Field({
     >
       <TallyDefs />
       {shapes.map((item, index) => {
-        const lit =
-          highlight !== undefined &&
-          item.shape === highlight.shape &&
-          item.colour === highlight.colour;
+        const lit = highlight !== undefined && highlight(item);
         return (
           <span
             key={index}
@@ -172,7 +176,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }: PuzzleStageProps) {
   const data = puzzle.type === "countup" ? puzzle : null;
   const [stage, setStage] = useStageState<number>(stateKey, "countStage", () => 0);
-  const [answers, setAnswers] = useStageState<string[]>(stateKey, "countAnswers", () => ["", "", ""]);
+  const trays = data && usesCountRev2(data) ? data.stages.length : STAGE_COUNT;
+  const [answers, setAnswers] = useStageState<string[]>(stateKey, "countAnswers", () => Array.from({ length: trays }, () => ""));
   const done = useRef(false);
   const spaceRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState({ width: 0, height: 0 });
@@ -185,7 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const draft = joinStages(answers);
+  const draft = joinStages(answers, trays);
   useEffect(() => {
     onDraftAnswer?.(draft);
   }, [draft, onDraftAnswer]);
@@ -197,10 +202,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   );
   // The next tray slides onto the shelf (CSS, display only).
   useEffect(() => {
-    if (stage > 0 && stage < STAGE_COUNT) soundCue("countup.trayIn");
-  }, [stage]);
+    if (stage > 0 && stage < trays) soundCue("countup.trayIn");
+  }, [stage, trays]);
 
-  const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+  const current = data?.stages[Math.min(stage, trays - 1)];
   if (!data || !current) return null;
   const { cols, rows } = current;
   // The board is sized from the visible slot, capped so small grids stay readable.
@@ -211,13 +216,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 
   const submitStage = (value: string) => {
     if (done.current) return;
-    const next = answers.map((a, i) => (i === stage ? value : a));
+    const next = Array.from({ length: trays }, (_, i) => (i === stage ? value : (answers[i] ?? "")));
     setAnswers(next);
-    if (stage >= STAGE_COUNT - 1) {
+    if (stage >= trays - 1) {
       done.current = true;
       // Finish effect fires synchronously, then the answers are submitted exactly as before.
       fireTallyFinish(spaceRef.current?.querySelector(".tally-tray") ?? null, next.map((a) => parseCount(a)));
-      onSubmit(joinStages(next));
+      onSubmit(joinStages(next, trays));
     } else {
       setStage(stage + 1);
     }
@@ -226,7 +231,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   return (
     <div data-polish="countup" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <NumberEntry
-        label={`${stage + 1} / 3 · ${countUpQuestion(current.targetColour, current.targetShape)}`}
+        label={`${stage + 1} / ${trays} · ${countUpStageQuestion(current)}`}
         resetKey={`stage-${stage}`}
         locked={locked || done.current}
         maxLength={2}
@@ -235,7 +240,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
         compactKeypad
         onSubmit={submitStage}
       >
-        <StageProgress stage={stage} />
+        <StageProgress stage={stage} total={trays} />
         <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
           {cellSize > 0 && (
             <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
@@ -248,30 +253,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "countup") return null;
-  const parts = splitStages(myAnswer);
+  const rev2 = usesCountRev2(puzzle);
+  const parts = splitStages(myAnswer, rev2 ? puzzle.stages.length : STAGE_COUNT);
   // Compact rows (Polish, 13 Oct 2026): a small tray beside each question, so all three
   // stages fit one phone screen. The answer line renders the same text as before.
   return (
-    <div data-polish-reveal="countup" className="flex w-full flex-col gap-2">
+    <div data-polish-reveal="countup" className={`flex w-full flex-col ${rev2 ? "gap-1.5" : "gap-2"}`}>
       {puzzle.stages.map((stage, i) => {
-        const truth = puzzle.counts?.[i] ?? null;
+        const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
         const given = parseCount(parts[i] ?? "");
         const exact = truth !== null && given === truth;
-        const near = truth !== null && !exact && countStagePoints(i, given, truth) > 0;
+        // One or two off still scores on every revision (60 % / 30 %).
+        const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= 2;
         return (
-          <div key={i} className="tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 py-2">
-            <div className="w-[112px] shrink-0">
+          <div key={i} className={`tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 ${rev2 ? "py-1" : "py-2"}`}>
+            <div className={`${rev2 ? "w-[80px]" : "w-[112px]"} shrink-0`}>
               <Field
                 shapes={stage.shapes}
                 cols={stage.cols}
                 rows={stage.rows}
-                highlight={{ shape: stage.targetShape, colour: stage.targetColour }}
-                height={Math.round(9.7 * stage.rows)}
+                highlight={(item) => countUpCounts(stage, item)}
+                height={Math.round((rev2 ? 6.9 : 9.7) * stage.rows)}
                 size={10}
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="font-display text-sm font-bold leading-snug">{countUpQuestion(stage.targetColour, stage.targetShape)}</p>
+              <p className="font-display text-sm font-bold leading-snug">{countUpStageQuestion(stage)}</p>
               <p className="font-mono text-base font-bold leading-snug">
                 <span className="text-primary">Answer {truth ?? "—"}</span>
                 <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
@@ -340,7 +347,7 @@ export function countUpVisibleShare(item: CountUpShape, shapes: CountUpShape[]):
 
 export function countUpSceneValid(stage: CountUpStage): boolean {
   return stage.shapes.every(insideScene) && stage.shapes
-    .filter((item) => item.shape === stage.targetShape && item.colour === stage.targetColour)
+    .filter((item) => countUpCounts(stage, item))
     .every((item) => countUpVisibleShare(item, stage.shapes) >= 0.5);
 }
 
@@ -392,9 +399,62 @@ function buildStage(total: number, [min, max]: [number, number]): { stage: Count
   throw new Error(`${gameDisplayName("countup")} scene generation exhausted visibility attempts`);
 }
 
+/** countRev 2 tray 4: shapes on the tray, the larger colour's count, and the gap to the smaller. */
+export const COUNTUP_COMPARE_SIZE = 50;
+export const COUNTUP_COMPARE_MORE: [number, number] = [8, 13];
+export const COUNTUP_COMPARE_GAP: [number, number] = [2, 7];
+
+/** "How many more red than blue?": every shape of each colour counts, whatever its kind. */
+function buildCompareStage(total: number): { stage: CountUpStage; count: number } {
+  const more = pick(COLOURS);
+  const less = pick(COLOURS.filter((c) => c !== more && !tooClose(c, more)));
+  const moreCount = randInt(COUNTUP_COMPARE_MORE[0], COUNTUP_COMPARE_MORE[1]);
+  const lessCount = Math.max(3, moreCount - randInt(COUNTUP_COMPARE_GAP[0], COUNTUP_COMPARE_GAP[1]));
+  // Fillers never use a colour that could be mistaken for either counted one.
+  const fillers = COLOURS.filter((c) => c !== more && c !== less && !tooClose(c, more) && !tooClose(c, less));
+  const slots: Slot[] = [];
+  for (let i = 0; i < moreCount; i++) slots.push({ shape: pick(SHAPES), colour: more });
+  for (let i = 0; i < lessCount; i++) slots.push({ shape: pick(SHAPES), colour: less });
+  while (slots.length < total) slots.push({ shape: pick(SHAPES), colour: pick(fillers) });
+  const compare = { more, less };
+  const place = (slot: Slot, layer: number, maxSize: number): CountUpShape => {
+    const size = randInt(28, maxSize);
+    const bound = Math.ceil(size * Math.SQRT1_2);
+    const xMargin = Math.ceil((bound / SCENE_W) * 100) + 1;
+    const yMargin = Math.ceil((bound / SCENE_H) * 100) + 1;
+    return { shape: slot.shape, colour: slot.colour, x: randInt(xMargin, 100 - xMargin), y: randInt(yMargin, 100 - yMargin), size, rotation: randInt(0, 359), layer };
+  };
+  const apart = (a: CountUpShape, b: CountUpShape) =>
+    Math.hypot(((a.x - b.x) / 100) * SCENE_W, ((a.y - b.y) / 100) * SCENE_H) >= 0.62 * (a.size + b.size) / 2;
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    // Fillers underneath, then each counted shape placed clear enough of the counted ones before it.
+    const ordered = shuffled(slots);
+    const fill = ordered.filter((slot) => slot.colour !== more && slot.colour !== less);
+    const counted = ordered.filter((slot) => slot.colour === more || slot.colour === less);
+    const shapes: CountUpShape[] = fill.map((slot, index) => place(slot, index, 56));
+    const top: CountUpShape[] = [];
+    for (const [index, slot] of counted.entries()) {
+      let item = place(slot, total + index, 44);
+      for (let tries = 0; tries < 60 && !top.every((other) => apart(item, other)); tries += 1) item = place(slot, total + index, 44);
+      top.push(item);
+    }
+    const stage = { cols: 10, rows: 10, shapes: [...shapes, ...top], targetShape: "circle", targetColour: more, compare } satisfies CountUpStage;
+    if (countUpSceneValid(stage)) return { stage, count: moreCount - lessCount };
+  }
+  throw new Error(`${gameDisplayName("countup")} comparison tray exhausted visibility attempts`);
+}
+
 export function buildCountUp(): CountUpPuzzleData {
   const built = COUNTUP_STAGE_SIZES.map((total, i) => buildStage(total, COUNTUP_STAGE_COUNTS_REV1[i]!));
-  return { type: "countup", stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
+  // countRev 2 (14 Oct 2026): a fourth, comparison tray and a 60 s clock stored on the puzzle.
+  built.push(buildCompareStage(COUNTUP_COMPARE_SIZE));
+  return {
+    type: "countup",
+    stages: built.map((b) => b.stage),
+    counts: built.map((b) => b.count),
+    countRev: COUNT_COMPARE_REV,
+    timeLimitMs: ATTENTION_REWORK_TIME_MS,
+  };
 }
 
 export const countUpPuzzle: PuzzleDefinition = {
@@ -405,6 +465,10 @@ export const countUpPuzzle: PuzzleDefinition = {
   generate: buildCountUp,
   check: (answer, puzzle) => {
     if (puzzle.type !== "countup") return false;
+    if (usesCountRev2(puzzle)) {
+      const parts4 = splitStages(answer, puzzle.stages.length);
+      return puzzle.stages.every((stage, i) => parseCount(parts4[i] ?? "") === countUpStageTruth(stage));
+    }
     const parts = splitStages(answer);
     const counts = puzzle.counts ?? [];
     return counts.length === STAGE_COUNT && counts.every((c, i) => parseCount(parts[i] ?? "") === c);

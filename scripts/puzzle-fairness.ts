@@ -67,7 +67,7 @@ const moreHelp: Partial<Record<PuzzleType, string[]>> = {
   codeword: ["110", "−5"], swapword: ["15", "110"], target: ["110"], equation: ["20 / 30 / 35 / 45"], balance: ["20, 35 and 75"],
   numpyramid: ["27.5"], trail: ["110"], measure: ["30 / 35 / 45", "15"], checkout: ["22, 24, 26, 28 and 32", "3 per board"],
   numline: ["8", "8%"], tendrop: ["110", "30"], numhunt: ["5", "110"], chain: ["110", "30"], stroop: ["110", "30"],
-  symscan: ["25 / 40 / 45", "30"], spotdiff: ["22", "5 wrong"], countup: ["25 / 40 / 45", "30"], maze: ["110"],
+  symscan: ["40 / 40 / 30", "30"], spotdiff: ["10 per", "5 wrong"], countup: ["30 / 30 / 30 / 20", "30"], maze: ["110"],
   pairmatch: ["110", "25"], unblock: ["15", "110"], blockparty: ["110"], iceslide: ["15", "110"], gravity: ["15"], tiles: ["15"],
   rings: ["15"], laser: ["15 / 8 / 0", "22"], pipes: ["110"], lightsout: ["15", "110"], sudoku: ["−5"], flow: ["110"],
   push: ["15"], tower: ["15"], tubes: ["15"], safe: ["15 / 8 / 0"], bomb: ["22"], nonogram: ["−5"], flood: ["15"],

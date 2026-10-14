@@ -73,8 +73,9 @@ export function RoundIntro({
   const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
-  // Six-step Bomb Defusal carries its own 90 s clock; stored four-step rounds and other games use the type limit.
-  const ownLimit = puzzle?.type === "bomb" ? puzzle.timeLimitMs : undefined;
+  // Six-step Bomb Defusal carries its own 90 s clock, as do Double Take (spotRev 1) and Tally (countRev 2)
+  // at 60 s; stored rounds and other games use the type limit.
+  const ownLimit = puzzle?.type === "bomb" || puzzle?.type === "spotdiff" || puzzle?.type === "countup" ? puzzle.timeLimitMs : undefined;
   const limitMs = typeof ownLimit === "number" && ownLimit > 0 ? ownLimit : typeTimeLimitMs(type);
   const seconds = Math.round((limitMs - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
   const twoPlayer = activeCount === 2;
