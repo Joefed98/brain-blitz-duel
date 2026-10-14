@@ -48,8 +48,8 @@ const arcadeRows = [
   // Tuning B: Fission has no FIRE button (a tap on the arena fires); two 76px arrows, 16px apart, raised 12px.
   { file: "burst", row: /data-game-controls="pad" className="grid h-\[88px\] shrink-0[^"]*grid-cols-2[^"]*gap-4[^"]*pb-3/, button: /className="h-\[76px\] w-full/g, count: 2, width: (w: number) => (w - 8 - 16) / 2, tall: 76 },
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
-  // Orbit's 64 px row holds its 44 px button 16 px up from the bottom edge (Tuning A).
-  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-16 shrink-0 items-center justify-center pb-4"/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
+  // Orbit's 76 px row holds its 44 px button 28 px up from the bottom edge (13 Oct display fix; Tuning A had 64 / 16).
+  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-\[76px\] shrink-0 items-center justify-center pb-7"/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
 ];
 for (const { file, row, button, count, width, tall } of arcadeRows) {
   const source = readFileSync(`src/puzzles/${file}.tsx`, "utf8");

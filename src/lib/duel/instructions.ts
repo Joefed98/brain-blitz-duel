@@ -39,7 +39,7 @@ import { BEAT_V4_BAND_CURVE } from "@/lib/arcade/beat";
 import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
 import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
 import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
-import { BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
 import { bandHelp } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "./types";
 
@@ -672,7 +672,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         helpOnly: true,
       },
     ],
-    score: bandHelp("Your dart total: rings 10 in the centre down to 1 (an inner bull 12), plus +1, +2 or +3 for each balloon popped on the way in.", BULLSEYE_V4_BAND_CURVE),
+    score: bandHelp(`Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, BULLSEYE_V4_BAND_CURVE),
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -831,7 +831,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles drop faster", detail: "every 18 seconds; Qu counts as two letters.", helpOnly: true },
       { action: "If a new tile can't fit", detail: "into a full column, the run ends.", helpOnly: true },
     ],
-    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11; score = 150 × points ÷ par (30), capped at 150.",
+    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11 (a Qu tile counts as two letters); score = 150 × points ÷ par (30), capped at 150.",
   },
   tendrop: {
     goal: "Make the running total hit each target.",
@@ -942,7 +942,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads - give them green before they reach the line.", helpOnly: true },
       { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: bandHelp("Each car counts 2 and each bus 3; an ambulance through +4, one stopped −4; a driver who gives up −1.", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
+    score: bandHelp("Each car counts 2 units and each bus 3; an ambulance through adds 4 units and one stopped takes 4 off; a driver who gives up takes 1 unit off (never below 0 units).", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
   },
   inkbridge: {
     goal: "Roll the coin into the pot.",
@@ -972,7 +972,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "- it takes the next hit for you.", helpOnly: true },
       { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "- every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
     ],
-    score: bandHelp("Each atom hit counts 1; each life lost takes 5 off.", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
+    score: bandHelp("Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
   },
   orbit: {
     goal: "Fly planet to planet to the sun.",
