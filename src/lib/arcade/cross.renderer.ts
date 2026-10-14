@@ -4,8 +4,9 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { CROSS_FX } from "./arcadeFxGames.renderer";
 /**
  * Cross art pass. Render only: reads CrossState and never mutates it. Vehicles
- * fill exactly their collision boxes; the walker stays inside the sim's 16 px
- * half-width player disc.
+ * fill exactly their collision boxes; the walker's arms reach about 13.75 px
+ * either side, inside the original 16 px half-width disc and within 1 px of
+ * crossRev 5's 13 px one.
  */
 import { px, type CanvasSize } from "./engine";
 import {
@@ -34,7 +35,7 @@ import {
   CROSS_LIVES,
   CROSS_PAUSE_TICKS,
   CROSS_PLAYER,
-  CROSS_PLAYER_R,
+  crossPlayerR,
   CROSS_WORLD_H,
   CROSS_WORLD_W,
   type CrossState,
@@ -634,7 +635,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     if (flash && crashIndicator) {
       ctx.fillStyle = "rgba(255,77,77,0.55)";
       ctx.beginPath();
-      ctx.arc(memory.hitX, memory.hitY, CROSS_PLAYER_R, 0, Math.PI * 2);
+      ctx.arc(memory.hitX, memory.hitY, crossPlayerR(state), 0, Math.PI * 2);
       ctx.fill();
     }
     drawWalker(ctx, memory.hitX, memory.hitY, memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5);
