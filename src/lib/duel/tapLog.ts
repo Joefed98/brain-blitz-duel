@@ -31,6 +31,12 @@ import {
 
 /** The tap-log answer format and its rules (Flash's 100 ms floor, Bang On's fixed watch schedule). */
 export const TAP_REV = 1;
+/**
+ * Flash and Bang On (13 Oct 2026): the same tap logs as TAP_REV, scored with the
+ * careless-play costs (scoring.ts: Flash's 11 per false start from the third,
+ * Bang On's steeper fall above 200 ms). Ascend stays on TAP_REV.
+ */
+export const TAP_REV_CARELESS = 2;
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */
 export const TAP_LOG_PREFIX = "log1:";
 /** The most taps the server reads; the phone stops logging here. */
@@ -42,8 +48,14 @@ export const FLASH_FASTEST_MS = 100;
 /** Flash: false starts closer together than this count once. */
 export const FLASH_FALSE_START_GAP_MS = 250;
 
+/** The stored tap revision (0 = unstamped). */
+export function tapRevOf(puzzle: unknown): number {
+  const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS ? rev : 0;
+}
+
 export function usesTapLog(puzzle: unknown): boolean {
-  return (puzzle as { tapRev?: number } | null)?.tapRev === TAP_REV;
+  return tapRevOf(puzzle) !== 0;
 }
 
 /** Ascend: one tap, by the number on the disc. */

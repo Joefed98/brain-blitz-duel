@@ -208,7 +208,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Don't guess:", detail: "early taps are false starts." },
       { action: "False starts:", detail: "a tap on a decoy colour or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
     ],
-    score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; −8 per false start.",
+    score: "150 at 200 ms average or faster, −16 per 100 ms slower; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.",
   },
   gonogo: {
     goal: "Tap every gold circle; ignore the rest.",
@@ -310,7 +310,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
       { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
     ],
-    score: "150 at 20 ms average error or closer, −27 per 100 ms more down to 74 at 300 ms, then falling evenly to 0 at 500 ms; misses count 500 ms.",
+    score: "150 at 20 ms average error or closer, −27 per 100 ms more down to 101 at 200 ms, then falling evenly to 0 at 325 ms; misses count 500 ms.",
   },
   countup: {
     goal: "Count the shapes each question asks for.",
@@ -853,8 +853,9 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Unlimited shots,", detail: "no reload.", helpOnly: true },
       { action: "Later on, two fly at once", detail: "- keep watching both edges.", helpOnly: true },
       { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
+      { action: "Aim, don't spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
     ],
-    score: "5 per orange, 10 per gold, −10 per bird. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
+    score: "5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
   },
   whack: {
     goal: "Bonk gophers whose hats match the banner.",

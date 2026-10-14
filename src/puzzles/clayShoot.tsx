@@ -34,7 +34,7 @@ import {
   CLAY_W,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
-import { CLAY_REV } from "@/lib/arcade/clayShoot";
+import { CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV4 } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
@@ -345,15 +345,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
   const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
+  // clayRev 4: the stored empty-shot count and cost.
+  const empty = typeof myExtra?.["emptyShots"] === "number" ? (myExtra["emptyShots"] as number) : null;
+  const cost = typeof myExtra?.["emptyShotCost"] === "number" ? (myExtra["emptyShotCost"] as number) : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
         {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
       </p>
       <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Don't shoot the birds — each one costs 10.</p>
+      {empty !== null && cost !== null ? (
+        <p className="text-center text-sm text-muted-foreground">
+          {empty} hit nothing{cost > 0 ? ` · −${cost}` : ""} (first {CLAY_FREE_EMPTY_SHOTS} free, then −1 per {CLAY_EMPTY_SHOTS_PER_POINT})
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -369,7 +377,10 @@ export const clayShootPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "clayshoot", seed: 1, clayRev: CLAY_REV }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
-  introLine: () => "Don't shoot the birds — each one costs 10.",
+  introLine: (puzzle) =>
+    puzzle.type === "clayshoot" && puzzle.clayRev === CLAY_REV4
+      ? `Don't shoot the birds — each one costs 10. Aim: after ${CLAY_FREE_EMPTY_SHOTS} shots that hit nothing, every ${CLAY_EMPTY_SHOTS_PER_POINT} more cost 1.`
+      : "Don't shoot the birds — each one costs 10.",
   IntroExample,
   Stage,
   Reveal,

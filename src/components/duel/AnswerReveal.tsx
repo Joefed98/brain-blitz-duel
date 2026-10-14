@@ -260,6 +260,7 @@ export function AnswerReveal({
               timeLimitMs={puzzleTimeLimitMs(puzzle)}
               validRows={Array.isArray(myExtra?.["validRows"]) ? (myExtra["validRows"] as number[]) : undefined}
               scoreParts={storedScoreParts(myExtra)}
+              myExtra={myExtra ?? null}
             />
           ) : (
             <div className="flex justify-center">

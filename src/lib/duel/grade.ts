@@ -54,6 +54,7 @@ import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
 import { decodeClayRun, replayClayRun } from "./clayShoot";
+import { clayEmptyShotCost, clayEmptyShots, CLAY_REV4 } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
 import { decodeRooftopRun, replayRooftopRun } from "./rooftop";
@@ -106,6 +107,7 @@ import {
   replayBangOn,
   replayFlash,
   usesTapLog,
+  tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
 import { countPatternAnswers } from "./pattern";
@@ -133,6 +135,9 @@ import {
   scorePercentSprint,
   scorePatternCompletion,
   scoreReaction,
+  reactionFalseStartCost,
+  STOPWATCH_REV2_KNEE_MS,
+  STOPWATCH_REV2_ZERO_MS,
   scoreRound,
   scoreSpotDifference,
   SPOT_REV1_WRONG_LIMIT,
@@ -415,12 +420,15 @@ function gradeUnderRev(
         reactionAvgMs = Math.round(total.reduce((sum, v) => sum + v, 0) / Math.max(1, flashCount));
         isCorrect = true;
         errors = falseStarts;
-        score = scoreReaction(reactionAvgMs, falseStarts);
+        const tapRev = tapRevOf(puzzle);
+        score = scoreReaction(reactionAvgMs, falseStarts, tapRev);
         storedMs = 0;
         extraDetail = {
           times: total,
           falseStarts,
           misses: total.filter((v) => v >= REACTION_MISS_MS).length,
+          // tapRev 2: the stored false-start cost, so the reveal never recomputes it.
+          ...(tapRev >= 2 ? { falseStartCost: reactionFalseStartCost(falseStarts, tapRev) } : {}),
           ...tapLogDetail(diag),
         };
         break;
@@ -560,9 +568,16 @@ function gradeUnderRev(
         });
         reactionAvgMs = Math.round(total.reduce((a, b) => a + b, 0) / STOPWATCH_ATTEMPTS);
         isCorrect = true;
-        score = scoreStopWatch(reactionAvgMs);
+        const tapRev = tapRevOf(puzzle);
+        score = scoreStopWatch(reactionAvgMs, tapRev);
         storedMs = 0;
-        extraDetail = { distances: total, signed: replay.results.map((r) => r.signed), ...tapLogDetail(diag) };
+        extraDetail = {
+          distances: total,
+          signed: replay.results.map((r) => r.signed),
+          // tapRev 2: the curve this round was scored on, for the reveal.
+          ...(tapRev >= 2 ? { averageMs: reactionAvgMs, kneeMs: STOPWATCH_REV2_KNEE_MS, zeroMs: STOPWATCH_REV2_ZERO_MS } : {}),
+          ...tapLogDetail(diag),
+        };
         break;
       }
       const distances = answer.split(",").slice(0, STOPWATCH_ATTEMPTS).map((v) => Number.parseInt(v, 10));
@@ -1582,6 +1597,13 @@ function gradeUnderRev(
         perfect: run.perfect,
         finished: run.finished,
         endedSeconds: run.endedSeconds,
+        // clayRev 4: the stored empty-shot cost, so the reveal never recomputes it.
+        ...(puzzle.clayRev === CLAY_REV4
+          ? (() => {
+              const emptyShots = clayEmptyShots(run.shots, run.hits, run.birdHits);
+              return { emptyShots, emptyShotCost: clayEmptyShotCost(emptyShots, puzzle.clayRev) };
+            })()
+          : {}),
         flagged: run.flagged,
         clientLag: run.clientLag,
         clientTick: run.clientTick,
