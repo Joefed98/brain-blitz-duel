@@ -164,6 +164,17 @@ const NO_FINISH = pub("numline", 42);
 const BEAT_END = SIGNATURE_DELAY_MS + SIGNATURE_MS;
 /** Rendering and the 100 ms screen ticker: how far a sample may sit from the exact moment. */
 const SLACK = 250;
+/**
+ * How far the submission may land from the solve moment (and its msRemaining from the time
+ * measured there). Both stamps already come from the page's own Date.now(), so the gap is
+ * only the main thread getting from the Stage's onSubmit to the (stubbed) server call:
+ * React's state update and render, with the dev server's modules and the beat starting.
+ * That is 0-2 ms in practice and 17-25 ms in a room on a dev machine, but a 2-core GitHub runner has measured 53 ms
+ * (#54, #56). CI therefore gets 150 ms; locally the tight 50 ms stays. A real regression
+ * (the submission held for the beat, or queued behind a timer) shows up as
+ * SIGNATURE_DELAY_MS (1,000 ms) or more, which both windows still catch.
+ */
+const SUBMIT_WINDOW_MS = process.env.CI === "true" ? 150 : 50;
 
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -363,11 +374,15 @@ async function play(opts: {
 
 function submittedAtSolve(tag: string, run: Run) {
   const sub = run.submissions[0];
+  if (sub) console.log(`     ${tag}: submission ${sub.at - run.solveAt} ms after the solve (window ${SUBMIT_WINDOW_MS} ms)`);
   ok(run.submissions.length === 1, `${tag}: one submission (${run.submissions.length})`);
   if (!sub) return;
-  ok(Math.abs(sub.at - run.solveAt) <= 50, `${tag}: submitted at the solve moment (${sub.at - run.solveAt} ms)`);
   ok(
-    Math.abs(sub.msRemaining - run.expectedMs) <= 50,
+    Math.abs(sub.at - run.solveAt) <= SUBMIT_WINDOW_MS,
+    `${tag}: submitted at the solve moment (${sub.at - run.solveAt} ms, window ${SUBMIT_WINDOW_MS} ms)`,
+  );
+  ok(
+    Math.abs(sub.msRemaining - run.expectedMs) <= SUBMIT_WINDOW_MS,
     `${tag}: submitted time unchanged (${sub.msRemaining} ms vs ${run.expectedMs} ms measured at the solve)`,
   );
 }
