@@ -7,12 +7,7 @@
 @import "./polish-b/c.css";
 @import "./polish-b/d.css";
 @import "./polish-b/feel-b.css";
-@import "./polish-speed/a.css";
-@import "./polish-speed/b.css";
-@import "./polish-speed/c.css";
-@import "./polish-speed/d.css";
-@import "./polish-speed/e.css";
-@import "./polish-speed/f.css";
+@import "./polish-speed/index.css";
 @import "./polish-pattern/index.css";
 @import "./polish-layout/bottom.css";
 
@@ -476,7 +471,6 @@
   --letter-tile-bottom: color-mix(in oklab, var(--puzzle-surface) 82%, var(--background));
   --letter-tile-edge: color-mix(in oklab, var(--puzzle-edge) 72%, var(--foreground));
   --letter-tile-shadow: inset 0 -3px 0 color-mix(in oklab, var(--background) 65%, var(--puzzle-surface));
-  --trail-entered: color-mix(in oklab, var(--puzzle-given) 88%, var(--foreground));
   --wordsmith-paper: var(--background);
   --wordsmith-tile-surface: var(--puzzle-given);
   --wordsmith-tile-edge: color-mix(in oklab, var(--category-accent) 45%, var(--foreground));
@@ -514,12 +508,9 @@
   --ice-portal-one: #AD128C;
   --ice-portal-two: #BB4B08;
   --grappler-rim: #D2EEF0;
-  --balance-metal: #778594;
-  --balance-metal-dark: #35414B;
   --balance-highlight: #DFE9EC;
   --balance-handle: #BDA168;
   --balance-weight-edge: #805511;
-  --eagle-sky: #1A2631;
   --sweet-red: #EA5153;
   --sweet-blue: #409CFF;
   --sweet-green: #CDD76A;
@@ -1191,11 +1182,9 @@ body.game-lock {
   overscroll-behavior: none;
 }
 
-.logic-square-area,
 .puzzle-square-space {
   container-type: size;
 }
-.logic-square-board,
 .puzzle-square-board {
   width: min(100cqw, 100cqh);
   aspect-ratio: 1;
@@ -1206,16 +1195,8 @@ body.game-lock {
   aspect-ratio: 1;
   flex-shrink: 0;
 }
-.tubes-play-space {
-  container-type: size;
-}
 .tubes-play-board {
   height: 80cqh;
-}
-.tubes-play-ball {
-  /* Six ball diameters leave one diameter of clearance above five balls. */
-  width: min(calc((40cqh - 30px) / 6), calc((100cqw - 32px) / 5 - 16px));
-  aspect-ratio: 1;
 }
 .logic-nonogram-board {
   width: 100%;
@@ -1293,7 +1274,7 @@ body.game-lock {
 .screen-background::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent)); }
 .screen-drift { position: absolute; inset: -6%; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 65%); animation: screen-drift 30s ease-in-out infinite alternate; }
 @keyframes screen-drift { from { transform: translate3d(-2%, 0, 0); } to { transform: translate3d(2%, 3%, 0); } }
-.game-screen :is([data-play-area], .puzzle-square-board, .logic-square-board, .pipes-play-board, .logic-nonogram-board) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--category-accent) 24%, transparent), 0 0 8px color-mix(in srgb, var(--category-accent) 8%, transparent); }
+.game-screen :is([data-play-area], .puzzle-square-board, .pipes-play-board, .logic-nonogram-board) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--category-accent) 24%, transparent), 0 0 8px color-mix(in srgb, var(--category-accent) 8%, transparent); }
 .fx-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 30; contain: layout paint; }
 .fx-particle { position: absolute; top: 12%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--category-accent); opacity: 0.75; }
 [data-particle-shape="square"] .fx-particle { border-radius: 0; }
@@ -1315,7 +1296,7 @@ body.game-lock {
 }
 @keyframes fx-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
 @keyframes fx-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
-.animate-pop-in, .animate-tile-flash { animation: fx-pop 180ms ease-out; }
+.animate-pop-in { animation: fx-pop 180ms ease-out; }
 .animate-shake { animation: fx-shake 250ms ease-out; }
 .category-header { border-bottom: 1px solid color-mix(in srgb, var(--category-accent) 35%, transparent); }
 .category-tag { color: var(--category-accent); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
@@ -1325,7 +1306,7 @@ body.game-lock {
   .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: none !important; }
   /* Reduced motion: brighter red, no swell. */
   .fx-timer-critical .fx-timer-ring, .fx-timer-critical > span { filter: brightness(1.35) drop-shadow(0 0 3px color-mix(in oklab, var(--destructive) 70%, transparent)); }
-  .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-tile-flash, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
+  .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
   @keyframes fx-fade { from { opacity: 0.65; } to { opacity: 1; } }
 }
 
@@ -1530,13 +1511,8 @@ body.game-lock {
 }
 
 /* Visual refresh A: presentation-only instruments and icon surfaces. */
-.balance-metal { fill: var(--balance-metal); stroke: var(--balance-metal-dark); stroke-width: 1; }
 .balance-notch { background: transparent !important; border-radius: 0 !important; box-shadow: none !important; }
-.balance-notch-label { display: flex; align-items: center; justify-content: center; width: 26px; height: 24px; margin-top: 20px; background: var(--balance-metal-dark); border: 1px solid var(--balance-metal); border-radius: 4px; }
-.balance-notch-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 22%, var(--balance-metal-dark)); }
-.balance-chain { background: var(--balance-handle); }
 .balance-weight { filter: drop-shadow(0 2px 2px var(--background)); }
-.eagle-sky { background: linear-gradient(145deg, var(--eagle-sky), var(--card)) !important; }
 .eagle-cell { height: auto; }
 .eagle-cell[aria-pressed="true"] { background: color-mix(in srgb, var(--primary) 15%, var(--card)); color: var(--primary); border-color: var(--primary); }
 .tally-tray { background: linear-gradient(160deg, var(--tray-glass), transparent 55%), var(--card); border-color: var(--tray-glass-edge); box-shadow: inset 0 1px 0 var(--tray-glass-edge), inset 0 -8px 18px rgba(0,0,0,.25); }
@@ -1545,7 +1521,6 @@ body.game-lock {
 .chain-strain { animation: chain-strain 420ms ease-out; }
 @keyframes chain-strain { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-4px); filter: drop-shadow(0 0 6px var(--color-warn)); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
 @media (prefers-reduced-motion: reduce) { .chain-strain { animation: none; filter: drop-shadow(0 0 6px var(--color-warn)); } }
-.party-cell { background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--primary) 6%, var(--card)), var(--card)) !important; }
 .sweet-panel { background: linear-gradient(145deg, var(--card), var(--background)); }
 .bonk-example { background: var(--bonk-ground); border-radius: 8px; padding: 2px; }
 .bonk-burrow { border-radius: 50%; background: var(--bonk-hole); }
@@ -1597,10 +1572,6 @@ body.game-lock {
   --sign: #8A5E36;
   --sign-edge: #4E321B;
   --sign-ink: #F6E7CF;
-  --velvet: #1A0F1F;
-  --velvet-deep: #0C070F;
-  --spot: rgba(255, 240, 210, 0.13);
-  --spot-bright: rgba(255, 230, 160, 0.38);
   --plinth: #17181C;
   --plinth-edge: #2C2E35;
   --platter: #8F959E;
@@ -1612,8 +1583,6 @@ body.game-lock {
   box-shadow: inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.45);
 }
 .hanoi-lifted { box-shadow: 0 0 10px 2px color-mix(in oklab, var(--primary) 65%, transparent), inset 0 -1px 0 rgba(0,0,0,.35); }
-.hanoi-post { background: linear-gradient(90deg, var(--wood-dark), var(--wood-light) 45%, var(--wood) 70%, var(--wood-dark)); }
-.hanoi-base { background: linear-gradient(180deg, var(--wood-light), var(--wood) 40%, var(--wood-dark)); box-shadow: 0 2px 3px rgba(0,0,0,.5); }
 @layer components {
 .flask {
   background: linear-gradient(90deg, var(--glass) 0, rgba(255,255,255,.02) 55%, var(--glass));
@@ -1638,14 +1607,8 @@ body.game-lock {
   background-image: none;
 }
 .camp-sign { background: linear-gradient(180deg, var(--sign), var(--sign-edge)); color: var(--sign-ink); border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
-.party-room { background: radial-gradient(ellipse at 50% 0%, var(--velvet), var(--velvet-deep)); border-radius: 16px; transition: filter 260ms ease; }
-.party-dim { filter: brightness(.35); }
-.party-spot { background: radial-gradient(circle at 50% 58%, var(--spot) 0 42%, transparent 70%); }
-.party-spot-bright { background: radial-gradient(circle at 50% 58%, var(--spot-bright) 0 44%, transparent 72%); }
-.deck-plinth { background: linear-gradient(160deg, var(--plinth-edge), var(--plinth) 40%); border-radius: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 14px rgba(0,0,0,.45); }
 .ring-turn { animation: ring-turn var(--turn-ms, 220ms) cubic-bezier(.2,.9,.25,1.12) both; }
 @keyframes ring-turn { from { transform: rotate(var(--turn-from)); } to { transform: rotate(0deg); } }
-.ring-glow { filter: drop-shadow(0 0 4px var(--primary)); }
 @media (prefers-reduced-motion: reduce) {
   .potion-bubble, .flood-ripple, .ring-turn, .potion-sparkle { animation: none; }
 }
@@ -1687,9 +1650,6 @@ body.game-lock {
 [data-game-stage] [data-puzzle-rejected] { outline: 2px solid var(--destructive) !important; outline-offset: -2px; }
 .lookout-word-placeholder { background: var(--background); }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile { background: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)) !important; color: var(--foreground) !important; border-color: var(--category-accent); box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
-[data-puzzle-surface="trail"] .trail-given { background: var(--puzzle-given) !important; color: var(--foreground) !important; }
-[data-puzzle-surface="trail"] .trail-entered { background: var(--trail-entered) !important; color: var(--primary) !important; }
-[data-puzzle-surface="trail"] .trail-empty { background: var(--puzzle-surface) !important; }
 [data-puzzle-surface="trail"] [data-puzzle-path] { stroke-width: 11px !important; }
 [data-puzzle-surface="wordhunt"] [data-puzzle-path] { stroke: var(--category-accent); opacity: .5; }
 .reaction-tap-ripple { position: absolute; width: 24px; height: 24px; border: 2px solid var(--foreground); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); animation: reaction-tap-ripple 300ms ease-out both; }
@@ -1699,9 +1659,6 @@ body.game-lock {
 /* Button defaults must not shrink the enlarged equation back to text-sm. */
 .polish-equation { font-size: 32px; }
 .polish-equation .equation-slot { width: 56px; height: 56px; padding: 0; font-size: 28px; }
-[data-polish="equation"] .grid-cols-4 > button { font-size: 32px; }
-[data-puzzle-surface="numpyramid"] .pyramid-paint-cell[data-puzzle-cell="overlay"] { background: var(--puzzle-surface) !important; box-shadow: inset 0 0 0 1px var(--puzzle-edge); }
-[data-puzzle-surface="numpyramid"] .pyramid-paint-cell.bg-muted { background: var(--puzzle-given) !important; }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-cell] { background: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)) !important; color: var(--foreground) !important; box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface="numpyramid"] .pyramid-tray-tile[data-puzzle-state="selected"] { box-shadow: inset 0 0 0 2px var(--primary), var(--letter-tile-shadow) !important; }
 
@@ -1734,9 +1691,4 @@ body.game-lock {
   .arcade-score-celebrate { animation: none; }
 }
 
-/* Brimful: clear glass jugs, water and the pour stream (presentation only). */
-.measure-glass { background: var(--glass); box-shadow: inset 6px 0 0 rgba(255, 255, 255, 0.06); }
-.measure-water { background: linear-gradient(to bottom, color-mix(in oklab, var(--measure-water) 80%, white), var(--measure-water)); }
-@keyframes measure-pour-stream { 0% { opacity: 0; stroke-dasharray: 0 400; } 25% { opacity: 1; } 100% { opacity: 0; stroke-dasharray: 400 0; } }
-.animate-pour-stream path { animation: measure-pour-stream 520ms ease-in-out forwards; }
-@media (prefers-reduced-motion: reduce) { .animate-pour-stream path { animation: none; opacity: 0; } .measure-water { transition: none !important; } }
+

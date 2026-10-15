@@ -1,0 +1,14 @@
+/* Speed & Attention polish (13–14 Oct 2026), presentation only: one file per group of games,
+   named by puzzle id. These groups never style each other's elements; order matters only
+   inside a file. styles.css's own rules load after every polish folder, and
+   src/polish-layout/bottom.css (the per-game bottom lifts, layout 3) loads last.
+     reaction-stopwatch-numhunt  Flash, Bang On, Ascend (and the 14 Oct speed tuning)
+     chain-countup-pairmatch     Don't Break the Chain, Tally, Matchmaker
+     clayshoot                   Pull!
+     whack-stroop                Bonk (and the 14 Oct speed tuning), Mixed Signals
+     symscan-spotdiff-maze       Eagle Eye, Double Take, Labyrinth */
+@import "./reaction-stopwatch-numhunt.css";
+@import "./chain-countup-pairmatch.css";
+@import "./clayshoot.css";
+@import "./whack-stroop.css";
+@import "./symscan-spotdiff-maze.css";

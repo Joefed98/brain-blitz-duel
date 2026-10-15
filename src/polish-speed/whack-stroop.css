@@ -1,4 +1,4 @@
-/* Speed & Attention polish (d), 13 Oct 2026: presentation only. */
+/* Speed & Attention polish, 13 Oct 2026: presentation only. */
 
 /* ---- Bonk (whack) ---- */
 /* Banner + hit line + square board, centred as one block between the top bar and the column bottom. */
@@ -63,3 +63,14 @@ div.bonk-example .bonk-burrow {
   content: "";
   flex: 0 0 12px;
 }
+
+/* ============================================================ Speed tuning, 14 Oct 2026 */
+/* Presentation only; kept after the Bonk rules above, which it refines. */
+
+/* ------------------------------------------------------------ Bonk */
+/* The bigger "Tap gold / Tap red" box: reserve its extra height above the board
+   (the Bonk rules above reserve 84 px for the small pill and the hit line). */
+.game-column [data-polish="whack"][data-stage-column] > [data-game-arena] {
+  height: min(100cqw, calc(100cqh - 104px));
+}
+.bonk-banner-large { box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4), 0 6px 18px -8px currentColor; line-height: 1.1; }

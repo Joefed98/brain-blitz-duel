@@ -19,4 +19,3 @@
 .game-column [data-polish="pairmatch"] > [data-game-arena="fixed"] { max-width: min(440px, 94cqw); }
 .game-column [data-polish="pairmatch"] > [data-game-controls="status"] { flex: 0 0 auto; }
 
-.unblock-exit-arrow { z-index: 5; filter: drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 70%, transparent)); }

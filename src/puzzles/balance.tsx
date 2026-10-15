@@ -1,4 +1,4 @@
-import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, TripleLevelFx } from "@/components/puzzles/balanceArt";
+import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, ScalesLevelFx } from "@/components/puzzles/balanceArt";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
@@ -350,7 +350,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               <div className="bal-table" style={{ top: beamTop + beamHeight - 28, height: "auto" }} />
             </div>
             <div className="absolute inset-x-0 top-4"><StageCorrect visible={holding} /></div>
-            {solveFx && <TripleLevelFx reduced={reduced} />}
+            {solveFx && <ScalesLevelFx reduced={reduced} count={total} />}
             <div className="absolute left-1/2 -translate-x-1/2" style={{ top: beamTop }}>
               <Beam
                 scale={scale}
