@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { beatLaneAt } from "@/components/puzzles/tapMapping";
@@ -242,7 +241,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={BEAT_WORLD_W} height={BEAT_WORLD_H} background={ARCADE_ARENA_FILL.beat}>
+    <ArcadeArenaSlot width={BEAT_WORLD_W} height={BEAT_WORLD_H}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

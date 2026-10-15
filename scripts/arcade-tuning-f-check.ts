@@ -496,8 +496,9 @@ section("Hover's arena border lights are faint; Fission's arrows sit higher");
   const others = [specs.RALLY_FX, specs.BREAKER_FX, specs.PINBALL_FX].flatMap((spec: any) => spec.events).filter((e: any) => e.bulbs);
   ok(others.every((e: any) => e.bulbs.level === undefined), "Rally, Breaker and Pinball lights are unchanged");
   const burst = readFileSync("src/puzzles/burst.tsx", "utf8");
-  ok(/data-game-controls="pad" className="grid h-\[96px\][^"]*pb-5"/.test(burst) && /h-\[76px\]/.test(burst), "Fission: the 76 px arrows sit 20 px off the bottom (were 12 px)");
-  ok(/burst: 12 \+ 80/.test(readFileSync("scripts/presentation-geometry-check.tsx", "utf8")), "Fission: the arena geometry accounts for the higher arrows");
+  // Superseded 15 Oct 2026 (arcade play screen): the 76 px arrows end exactly 16 px above the visible bottom.
+  ok(/data-game-controls="pad" className="grid h-\[76px\][^"]*gap-4">/.test(burst) && !/pb-5/.test(burst), "Fission: the 76 px arrows' row ends 16 px above the bottom (no extra padding)");
+  ok(/burst: 8 \+ 76/.test(readFileSync("scripts/presentation-geometry-check.tsx", "utf8")), "Fission: the arena geometry accounts for the arrows");
 }
 
 /* ============================== 6. Help ============================== */

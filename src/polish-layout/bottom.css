@@ -62,18 +62,77 @@
 }
 
 /*
- * Arcade play screens (15 Oct 2026, display only): the arcade games and the engine
- * games on the arcade stage (data-arcade-screen: category arcade or arcadeRun, so
- * Letterfall, Tenfall, Bonk, Pull! and Mixed Signals too) keep the play-screen size
- * they had before the bottom-clearance pass: the column ends 8px above the bottom of
- * the dynamic viewport, whatever the home-bar inset (before viewport-fit=cover the
- * phone reported no inset, so 8px was what every phone got). The arena slot takes
- * that height back; world sizes and tap mapping are unchanged. Controls below an
- * arena keep their own positions (Fission's taller pad included).
- * bottom-clearance-check and arcade-play-check prove the 8px.
+ * Arcade play screen (15 Oct 2026, display only; data-arcade-play: the live round of
+ * an arcade game or an engine game on the arcade stage, so Letterfall, Tenfall, Bonk,
+ * Pull! and Mixed Signals too; never its intro or reveal). The play screen gives the
+ * game every pixel it can:
+ * - One compact 44px header row (GameLayout, data-arcade-header) just below the
+ *   safe-area top (4px down without a notch): score or PRACTICE left, the timer and
+ *   round pips centred, "?" and sound right. The arena starts 4px under it.
+ * - The arena slot runs edge to edge (no side insets) and down to the controls, or to
+ *   16px above the bottom of the visible screen; the lowest control row ends exactly
+ *   16px above it, whatever the home-bar inset (as the 8px rule this replaces).
+ * - Every gap (beside and below the world, around the controls, the bottom strip, the
+ *   safe-area strips and the page behind) is the screen edge's black (--screen-edge),
+ *   so nothing shows a step. The worlds, their scale rule and tap mapping are unchanged.
+ * presentation-geometry-check, arcade-play-check and bottom-clearance-check prove it.
  */
-[data-arcade-screen] > [data-game-column]:has([data-game-stage]) {
-  padding-bottom: 8px;
+html:has([data-arcade-play]),
+html:has([data-arcade-play]) body,
+[data-arcade-play] {
+  background-color: var(--screen-edge);
+}
+[data-arcade-play] > .screen-background {
+  display: none;
+}
+[data-arcade-play] > [data-game-column] {
+  padding-top: max(4px, env(safe-area-inset-top, 0px));
+  padding-bottom: 16px;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+/* The slot's square corners: the world meets the screen's edge. */
+[data-arcade-play] [data-arena-slot] :is([data-game-arena], canvas) {
+  border-radius: 0;
+}
+/* 8px from the arena slot to the controls under it. */
+[data-arcade-play] [data-game-stage] {
+  row-gap: 8px;
+}
+[data-arcade-play] .game-column [data-stage-column] > [data-arena-slot] + * {
+  margin-top: calc(8px - var(--stage-gap));
+}
+/* Button rows keep a 4px side margin inside the edge-to-edge column. */
+[data-arcade-play] [data-game-stage] :is([data-game-controls="pad"], [data-game-controls="tools"]) {
+  padding-inline: 4px;
+}
+/* Mixed Signals' shared ArrowPad: arrows (44px) and the joystick (52px) bottom-aligned
+   in a fixed 52px row, so both modes end exactly 16px up and the arena never resizes. */
+[data-arcade-play] [data-game-stage] [data-game-controls="arrows"] {
+  height: 52px;
+  padding-top: 0;
+  padding-bottom: 0;
+  align-items: end;
+}
+/* The header's timer: centred, a 22px ring and 18px seconds (red pulse and ticks unchanged). */
+[data-arcade-header] [role="timer"] {
+  width: auto;
+  height: 22px;
+  justify-content: center;
+  gap: 4px;
+}
+[data-arcade-header] [role="timer"] > svg {
+  width: 22px;
+  height: 22px;
+}
+[data-arcade-header] [role="timer"] > span {
+  width: auto;
+  min-width: 2ch;
+  font-size: 18px;
+  text-align: left;
+}
+[data-arcade-header] [aria-label="Round progress"] {
+  gap: 4px;
 }
 
 /*

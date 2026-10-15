@@ -1,4 +1,3 @@
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
@@ -78,7 +77,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="orbit"
       label={gameDisplayName("orbit")}
       background="transparent"
-      arenaBackground={ARCADE_ARENA_FILL.orbit}
       fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null}
@@ -101,8 +99,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }}
       footer={(send) => (
-        // The 44 px button sits 28 px up from the bottom edge, clear of the phone's edge (display only).
-        <div data-game-controls="checkpoint" className="flex h-[76px] shrink-0 items-center justify-center pb-7">
+        // The 44 px button's row ends 16 px above the visible bottom, as every arcade control row (display only).
+        <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">
           {canSet && !locked && (
             <ArcadeControlButton
               type="button"

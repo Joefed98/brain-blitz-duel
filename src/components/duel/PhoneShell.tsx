@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
@@ -23,7 +23,22 @@ interface PhoneShellProps {
   gameHeader?: ReactNode;
   /** A small control beside the mute toggle (a guest's Leave between rounds). */
   topAction?: ReactNode;
+  /**
+   * The live round (GameLayout's play screen), as opposed to its intro or reveal. An
+   * arcade play screen (isArcadeScreenType) then gives its top bar to GameLayout's one
+   * compact header row and paints every gap the screen edge's black (display only).
+   */
+  play?: boolean;
 }
+
+/** Arcade games and the engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals). */
+export function isArcadeScreenType(type: PuzzleType | undefined): boolean {
+  const definition = type ? puzzleDef(type) : undefined;
+  return Boolean(definition && (definition.arcadeRun || definition.category === "arcade"));
+}
+
+/** What an arcade play screen's shell hands to GameLayout's compact header (null on every other screen). */
+const ArcadePlayHeader = createContext<{ gameHeader?: ReactNode; topAction?: ReactNode } | null>(null);
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
 export const NO_SELECT_STYLE = {
@@ -50,6 +65,39 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
   /** A locked board held at full brightness while the signature beat plays (dims after). */
   held?: boolean;
 }) {
+  const arcade = useContext(ArcadePlayHeader);
+  const stage = (
+    <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
+        <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
+      </div>
+      {overlay}
+    </div>
+  );
+  if (arcade) {
+    // Arcade play screens (15 Oct 2026, display only): one 44px row under the safe-area
+    // top: the score (or PRACTICE and the game) left, the timer and round pips centred,
+    // "?" and sound right; the arena starts 4px under it (styles.css "Arcade play screen").
+    return (
+      <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">
+        <div data-round-heading data-game-topbar data-arcade-header className="grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-1" style={NO_SELECT_STYLE}>
+          <div className="min-w-0">
+            {arcade.gameHeader ?? (
+              <div className="flex min-w-0 flex-col gap-0.5 leading-none">
+                <span className="truncate font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+                <span className="truncate font-display text-xs font-bold text-foreground">{title}</span>
+              </div>
+            )}
+          </div>
+          <div data-arcade-timer className="flex min-w-[52px] flex-col items-center justify-center gap-1">{timer}{progress}</div>
+          <div className="flex min-w-0 items-center justify-end gap-1">{help}{arcade.topAction}<MuteToggle /></div>
+        </div>
+        {beforeGame}
+        {stage}
+        <GameLayoutDevOverlay />
+      </div>
+    );
+  }
   return (
     <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
       <div data-round-heading data-game-topbar className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
@@ -61,12 +109,7 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
       </div>
       {timer}
       {beforeGame}
-      <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
-          <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
-        </div>
-        {overlay}
-      </div>
+      {stage}
       <GameLayoutDevOverlay />
     </div>
   );
@@ -122,13 +165,15 @@ function useRootSelectionLock(active: boolean) {
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
   const puzzleSurface = Boolean(gameScreen && definition && !definition.retired && !definition.arcadeRun && definition.category !== "arcade");
-  /** Arcade games and the engine games on the arcade stage: their play screen keeps the pre-#61 bottom spacing (polish-layout/bottom.css). */
-  const arcadeScreen = Boolean(gameScreen && definition && (definition.arcadeRun || definition.category === "arcade"));
+  /** Arcade games and the engine games on the arcade stage (their live round is the arcade play screen, polish-layout/bottom.css). */
+  const arcadeScreen = Boolean(gameScreen && isArcadeScreenType(gameType));
+  /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
+  const arcadePlay = arcadeScreen && play;
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -143,6 +188,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-category={theme?.accent}
       data-puzzle-surface={puzzleSurface ? gameType : undefined}
       data-arcade-screen={arcadeScreen ? "" : undefined}
+      data-arcade-play={arcadePlay ? "" : undefined}
       data-puzzle-screen={puzzleScreen ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       style={gameScreen ? NO_SELECT_STYLE : undefined}
@@ -154,13 +200,13 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
           constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
-        {!bare && (
+        {!bare && !arcadePlay && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
           </div>
         )}
-        {children}
+        {arcadePlay ? <ArcadePlayHeader.Provider value={{ gameHeader, topAction }}>{children}</ArcadePlayHeader.Provider> : children}
       </div>
       <FxLayer theme={theme} />
     </div>

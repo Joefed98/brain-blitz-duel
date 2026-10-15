@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { flightpathColour, flightpathInk } from "@/lib/arcade/flightpathPalette.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -293,7 +292,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H} background={ARCADE_ARENA_FILL.bullseye}>
+    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H}>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

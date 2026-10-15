@@ -17,12 +17,13 @@
  * and it must not be clipped by the game region (its bottom inside the region's bottom).
  * Controls inside their own scroller ([data-scrollable]) are skipped.
  *
- * Arcade play screens (15 Oct 2026: data-arcade-screen, the arcade games and the engine
- * games on the arcade stage) keep their pre-14 Oct size instead: the play column ends
- * exactly 8 px above the visible bottom, with or without a 34 px home bar emulated (CDP
- * Emulation.setSafeAreaInsetsOverride). Their controls must stay inside the column and
- * unclipped; one closer than 12 px to the bottom (or, with the home bar emulated, to the
- * home bar) is reported as a NOTE, not a failure. Their intros keep the 12 px rule.
+ * Arcade play screens (15 Oct 2026: data-arcade-play, the live round of the arcade games
+ * and the engine games on the arcade stage) are as large as possible instead: the play
+ * column ends exactly 16 px above the visible bottom and the lowest control (button or
+ * [data-game-controls] row) ends exactly 16 px above it, with or without a 34 px home bar
+ * emulated (CDP Emulation.setSafeAreaInsetsOverride). Their controls must stay inside the
+ * column and unclipped; one inside the 34 px home-bar zone is reported as a NOTE, not a
+ * failure. Their intros keep the 12 px rule.
  *
  * Seams (15 Oct 2026): every puzzle's intro, live stage and timed-out reveal is drawn with a
  * 47 px notch and 34 px home bar emulated at 375×667 and 390×844, and fails if the strips
@@ -31,6 +32,13 @@
  * behind it (html and body): the screen background's top and bottom rows must be the page
  * colour (within 2 per channel), no row step over 2 in either strip or at its edge, and
  * nothing painting a strip another colour (rows within 10 px of content, its glow, excepted).
+ *
+ * Arcade seams (15 Oct 2026): every arcade play screen is drawn with the 47 px notch and 34 px
+ * home bar emulated at 375×667 and 390×844 and fails if any pixel outside its content (the
+ * world, the header and HUD text, controls and painted boxes, each with its shadow and 4 px of
+ * anti-aliasing) is not the screen edge's black #070709 (within 2 per channel): the sides and
+ * the space below the world, around the controls, the 16 px bottom strip, the safe-area strips
+ * and the page behind (html and body) are one colour.
  *
  *   bun scripts/bottom-clearance-check.ts [games…] [--part=k/n] [--url=<origin>] [--verbose]
  */
@@ -55,8 +63,10 @@ const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5195;
 export const CLEARANCE_PX = 12;
 export const TOOLBAR_PX = 80;
-/** Arcade play screens end this far above the visible bottom (pre-14 Oct spacing, restored 15 Oct 2026). */
-export const ARCADE_BOTTOM_PX = 8;
+/** Arcade play screens and their lowest control end exactly this far above the visible bottom (15 Oct 2026). */
+export const ARCADE_BOTTOM_PX = 16;
+/** The screen edge's black (--screen-edge): every gap on an arcade play screen. */
+const SCREEN_EDGE: [number, number, number] = [7, 7, 9];
 /** The emulated notch and home bar (an iPhone 14 in portrait), as safe-area-screens-check. */
 const INSETS = { top: 47, bottom: 34, left: 0, right: 0 };
 const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -84,6 +94,8 @@ interface Measure {
   arcade: boolean;
   /** Px from the visible bottom to the end of the play column's content box. */
   columnGap: number | null;
+  /** Px from the bottom of the screen (inset or not) to the lowest control's bottom edge, outside the arena box (null: none). */
+  lowestGap: number | null;
   shellBottom: number | null;
   worst: { label: string; bottom: number; clearance: number; clipped: boolean } | null;
   bad: { label: string; bottom: number; clearance: number; clipped: boolean }[];
@@ -103,7 +115,7 @@ function measure(scope: "stage" | "intro"): Measure {
   const visibleBottom = Math.min(window.innerHeight, dvh) - inset;
   const column = document.querySelector("[data-game-column]");
   const shell = column?.parentElement ?? null;
-  const arcade = Boolean(shell?.hasAttribute("data-arcade-screen"));
+  const arcade = Boolean(shell?.hasAttribute("data-arcade-play"));
   const columnGap = column
     ? Math.round(
         (Math.min(window.innerHeight, dvh) -
@@ -127,6 +139,7 @@ function measure(scope: "stage" | "intro"): Measure {
   const all: Measure["bad"] = [];
   let worst: Measure["worst"] = null;
   let count = 0;
+  let lowest = -Infinity;
   const nodes = root
     ? Array.from(
         root.querySelectorAll(
@@ -152,11 +165,13 @@ function measure(scope: "stage" | "intro"): Measure {
       ((el.textContent ?? "").trim().slice(0, 24) || el.tagName.toLowerCase());
     const row = { label, bottom: Math.round(b.bottom), clearance, clipped };
     all.push(row);
+    // The lowest control below the box: a control drawn in the world (Letterfall's Enter box) moves with the world.
+    if (!el.closest("[data-arena-slot]")) lowest = Math.max(lowest, b.bottom);
     if (!worst || clearance < worst.clearance) worst = row;
-    // Arcade play screens: inside the column (ends 8 px up) and unclipped; nearer than 12 px is a note.
+    // Arcade play screens: inside the column (ends 16 px up) and unclipped; in the home-bar zone is a note.
     const bad =
       scope === "stage" && arcade
-        ? clipped || visibleBottom + inset - b.bottom < 8 - 0.5
+        ? clipped || visibleBottom + inset - b.bottom < 16 - 0.5
         : clipped || clearance < 12;
     if (bad) out.push(row);
   }
@@ -166,6 +181,7 @@ function measure(scope: "stage" | "intro"): Measure {
     inset,
     arcade,
     columnGap,
+    lowestGap: lowest > -Infinity ? Math.round((Math.min(window.innerHeight, dvh) - lowest) * 10) / 10 : null,
     shellBottom: shell ? Math.round(shell.getBoundingClientRect().bottom) : null,
     worst,
     bad: out,
@@ -206,6 +222,12 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   throw new Error("dev server did not start");
 }
 
+/** Arcade games and the engine games on the arcade stage (their live round is an arcade play screen). */
+function isArcadeGame(game: string): boolean {
+  const definition = puzzleDef(game as PuzzleType);
+  return Boolean(definition.arcadeRun || definition.category === "arcade");
+}
+
 /** Contiguous-free split: every n-th game from k, so each part mixes categories. */
 function partOf<T>(items: T[], k: number, n: number): T[] {
   return items.filter((_, i) => i % n === k - 1);
@@ -230,10 +252,11 @@ async function measureAll(
         failures.push(
           `${where}: arcade play column ends ${m.columnGap}px above the bottom (want ${ARCADE_BOTTOM_PX})`,
         );
-      for (const c of m.all)
-        if (c.clearance < CLEARANCE_PX)
-          notes.push(`${where}: "${c.label}" ${c.clearance}px above the visible bottom`);
+      if (m.lowestGap != null && Math.abs(m.lowestGap - ARCADE_BOTTOM_PX) > 0.5)
+        failures.push(`${where}: lowest control ends ${m.lowestGap}px above the bottom (want exactly ${ARCADE_BOTTOM_PX})`);
     }
+    if (scope === "stage" && m.arcade !== isArcadeGame(game))
+      failures.push(`${where}: ${m.arcade ? "a puzzle marked" : "not"} an arcade play screen (data-arcade-play)`);
     if (scope === "intro" && m.count === 0) failures.push(`${where}: no Ready button found`);
     for (const b of m.bad)
       failures.push(
@@ -249,7 +272,7 @@ async function measureAll(
   }
 }
 
-/** Arcade stage with a 34 px home bar: the column still ends 8 px up; controls near the home bar are noted. */
+/** Arcade stage with a 34 px home bar: the column and its lowest control still end 16 px up; controls in the home-bar zone are noted. */
 async function homeBar(page: Page, game: string, failures: string[], notes: string[]) {
   const cdp = await page.context().newCDPSession(page);
   try {
@@ -262,11 +285,14 @@ async function homeBar(page: Page, game: string, failures: string[], notes: stri
       if (m.inset !== INSETS.bottom) failures.push(`${where}: inset emulation not applied (${m.inset})`);
       if (m.columnGap == null || Math.abs(m.columnGap - ARCADE_BOTTOM_PX) > 0.5)
         failures.push(`${where}: arcade play column ends ${m.columnGap}px above the bottom (want ${ARCADE_BOTTOM_PX})`);
+      if (m.lowestGap != null && Math.abs(m.lowestGap - ARCADE_BOTTOM_PX) > 0.5)
+        failures.push(`${where}: lowest control ends ${m.lowestGap}px above the bottom (want exactly ${ARCADE_BOTTOM_PX})`);
       for (const b of m.bad)
         failures.push(`${where}: "${b.label}" bottom ${b.bottom}px${b.clipped ? ", clipped by the game region" : ", below the play column"}`);
+      // In the home-bar zone: the control's bottom under the top of the 34 px inset.
       for (const c of m.all)
-        if (c.clearance < CLEARANCE_PX)
-          notes.push(`${where}: "${c.label}" ${c.clearance < 0 ? `${-c.clearance}px under` : `${c.clearance}px above`} the home bar`);
+        if (c.clearance < 0)
+          notes.push(`${where}: "${c.label}" ends ${-c.clearance}px into the ${INSETS.bottom}px home-bar zone (${m.innerHeight - c.bottom}px above the bottom)`);
     }
   } finally {
     await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: NO_INSETS } as never).catch(() => {});
@@ -435,6 +461,100 @@ async function seams(page: Page, game: string, screen: string, failures: string[
   }
 }
 
+/** In-page: the arcade play screen's content boxes (each grown by its shadow and 4 px), and the page colours behind it. */
+function arcadeContent(): { rects: [number, number, number, number][]; html: string; body: string; shell: string } | null {
+  const shell = document.querySelector("[data-arcade-play]");
+  if (!shell) return null;
+  const visible = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) return false;
+    }
+    return true;
+  };
+  const opaque = (c: string) => !/rgba\([^)]*,\s*0\)|transparent/.test(c);
+  /** How far a box-shadow can paint outside its box: every px length in it, summed (an overestimate). */
+  const shadowReach = (shadow: string) =>
+    shadow === "none" ? 0 : Math.min(48, Math.max(...shadow.split(/,(?![^(]*\))/).map((one) => [...one.matchAll(/(-?[\d.]+)px/g)].reduce((sum, m) => sum + Math.abs(Number(m[1])), 0))));
+  const rects: [number, number, number, number][] = [];
+  for (const el of shell.querySelectorAll("*")) {
+    // The screen's own layers paint black (or nothing): they are what is being tested.
+    if (el.matches("[data-game-column], [data-round-layout], [data-game-region], [data-game-stage], [data-stage-column], [data-arena-slot], .screen-background, .screen-background *")) continue;
+    if (el.matches(".fx-layer")) continue;
+    const cs = getComputedStyle(el);
+    // Effects (.fx-layer particles and score pops: a paused clock can hold one on screen) are content, not gaps.
+    const media = el.matches("button, input, select, textarea, canvas, svg, img, [role='button'], [data-game-arena], [data-game-controls], .fx-layer > *");
+    const text = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim());
+    const painted =
+      opaque(cs.backgroundColor) || cs.backgroundImage !== "none" || cs.boxShadow !== "none" ||
+      ["top", "bottom", "left", "right"].some((side) => parseFloat(cs.getPropertyValue(`border-${side}-width`)) > 0 && opaque(cs.getPropertyValue(`border-${side}-color`)));
+    if (!media && !text && !painted) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1 || !visible(el)) continue;
+    const grow = 4 + shadowReach(cs.boxShadow);
+    rects.push([r.left - grow, r.top - grow, r.right + grow, r.bottom + grow]);
+  }
+  return {
+    rects,
+    html: getComputedStyle(document.documentElement).backgroundColor,
+    body: getComputedStyle(document.body).backgroundColor,
+    shell: getComputedStyle(shell).backgroundColor,
+  };
+}
+
+/**
+ * An arcade play screen with the notch and home bar emulated: every pixel outside its content
+ * (the world, header, HUD, controls) is the screen edge's black, and so is the page behind.
+ */
+async function arcadeSeams(page: Page, game: string, failures: string[]) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: INSETS } as never);
+    for (const [w, h] of PHONES) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.waitForTimeout(400);
+      const where = `${game} stage ${w}x${h} (${INSETS.top}px notch, ${INSETS.bottom}px home bar)`;
+      const probe = await page.evaluate(arcadeContent);
+      if (!probe) {
+        failures.push(`${where}: no arcade play screen ([data-arcade-play])`);
+        continue;
+      }
+      for (const [name, colour] of [["html", probe.html], ["body", probe.body], ["screen", probe.shell]] as const) {
+        const rgb = rgbOf(colour);
+        if (!rgb || step(rgb, SCREEN_EDGE) > SEAM_TOLERANCE) failures.push(`${where}: seam: ${name} behind the play screen is ${colour}, not ${hex(SCREEN_EDGE)}`);
+      }
+      const img = await loadImage(await page.screenshot());
+      const canvas = createCanvas(img.width, img.height);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const { data, width, height } = ctx.getImageData(0, 0, img.width, img.height);
+      const covered = new Uint8Array(width * height);
+      for (const [x0, y0, x1, y1] of probe.rects)
+        for (let y = Math.max(0, Math.floor(y0)); y < Math.min(height, Math.ceil(y1)); y++)
+          covered.fill(1, y * width + Math.max(0, Math.floor(x0)), y * width + Math.min(width, Math.ceil(x1)));
+      let off = 0;
+      let first: [number, number, number[]] | null = null;
+      let tested = 0;
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++) {
+          const i = y * width + x;
+          if (covered[i]) continue;
+          tested++;
+          const px = [data[i * 4]!, data[i * 4 + 1]!, data[i * 4 + 2]!];
+          if (step(px, SCREEN_EDGE) > SEAM_TOLERANCE) {
+            off++;
+            first ??= [x, y, px];
+          }
+        }
+      if (off) failures.push(`${where}: seam: ${off} gap pixel(s) not ${hex(SCREEN_EDGE)}, first ${hex(first![2])} at (${first![0]}, ${first![1]})`);
+      if (VERBOSE) console.log(`  ${where}: ${tested} gap pixels tested, ${off} off the screen edge's black`);
+    }
+  } finally {
+    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: NO_INSETS } as never).catch(() => {});
+    await cdp.detach().catch(() => {});
+  }
+}
+
 const REVEAL = "[data-reveal-score], [data-arcade-reveal]";
 
 /** Time runs out (as scripts/shots/capture.ts): jump the page clock past the round, stepping it for games whose loop needs frames. */
@@ -527,8 +647,10 @@ async function main() {
         if (arcade) await page.clock.pauseAt(Date.now() + 200);
         await page.waitForTimeout(1500);
         await measureAll(page, "stage", game, failures, notes);
-        if (arcade) await homeBar(page, game, failures, notes);
-        else {
+        if (arcade) {
+          await homeBar(page, game, failures, notes);
+          await arcadeSeams(page, game, failures);
+        } else {
           await seams(page, game, "stage", failures);
           await page.setViewportSize({ width: 375, height: 667 });
           await timeUp(page);
@@ -546,7 +668,7 @@ async function main() {
           mine
             ? `${mine} problem(s)`
             : arcade
-              ? `play column ends ${ARCADE_BOTTOM_PX}px up with and without a home bar, intro Ready ≥ ${CLEARANCE_PX}px clear`
+              ? `play column and lowest control end ${ARCADE_BOTTOM_PX}px up with and without a home bar, every gap #070709 (notch and home bar emulated), intro Ready ≥ ${CLEARANCE_PX}px clear`
               : `every control ≥ ${CLEARANCE_PX}px clear at 4 viewports; no seam on intro, stage or reveal`
         }`,
       );
@@ -561,12 +683,12 @@ async function main() {
   for (const f of failures) console.log(`  ${f}`);
   if (failures.length) {
     console.log(
-      `FAIL: ${failures.length} problem(s): a control under ${CLEARANCE_PX}px clearance or clipped, an arcade column not ${ARCADE_BOTTOM_PX}px up, or a seam (${measured}/${games.length} games measured)`,
+      `FAIL: ${failures.length} problem(s): a control under ${CLEARANCE_PX}px clearance or clipped, an arcade column or lowest control not ${ARCADE_BOTTOM_PX}px up, or a seam (${measured}/${games.length} games measured)`,
     );
     process.exit(1);
   }
   console.log(
-    `PASS: ${measured} games: puzzle controls at least ${CLEARANCE_PX}px above the visible bottom and no seam (notch and home bar emulated); arcade play columns ${ARCADE_BOTTOM_PX}px up (${notes.length} control(s) noted nearer than ${CLEARANCE_PX}px); at 375x667, 390x844 and both with an ${TOOLBAR_PX}px toolbar`,
+    `PASS: ${measured} games: puzzle controls at least ${CLEARANCE_PX}px above the visible bottom and no seam (notch and home bar emulated); arcade play columns and their lowest controls ${ARCADE_BOTTOM_PX}px up, every gap the screen edge's black (${notes.length} control(s) noted inside the ${INSETS.bottom}px home-bar zone); at 375x667, 390x844 and both with an ${TOOLBAR_PX}px toolbar`,
   );
 }
 

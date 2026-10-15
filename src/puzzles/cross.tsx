@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { crossSounds } from "@/lib/fx/gameSounds";
@@ -225,7 +224,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={CROSS_WORLD_W} height={CROSS_WORLD_H} background={ARCADE_ARENA_FILL.cross}>
+    <ArcadeArenaSlot width={CROSS_WORLD_W} height={CROSS_WORLD_H}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

@@ -40,10 +40,6 @@ interface Props<S, C> {
    * that fits (ArcadeArenaSlot), so the world is never stretched or cropped.
    */
   fitWorld?: boolean;
-  /** The fitted arena's slot colour when the canvas background is transparent. */
-  arenaBackground?: string;
-  /** Tilt only (an exception to the fixed arena top): px the fitted arena sits below the usual top edge. Display only. */
-  arenaDrop?: number;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -310,7 +306,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   return (
     <>
     {props.fitWorld ? (
-      <ArcadeArenaSlot width={props.worldW} height={props.worldH} background={props.arenaBackground ?? props.background} drop={props.arenaDrop}>{arena}</ArcadeArenaSlot>
+      <ArcadeArenaSlot width={props.worldW} height={props.worldH}>{arena}</ArcadeArenaSlot>
     ) : arena}
     {props.footer?.(push)}
     </>

@@ -9,7 +9,7 @@ import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner";
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { FinalResult } from "@/components/duel/FinalResult";
-import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -1042,6 +1042,8 @@ function DuelScreen() {
 
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
+  // Arcade play screens carry the score in their one compact header row, on two 20px lines.
+  const stackedScore = isArcadeScreenType(puzzle?.type);
   const roomGameHeader =
     puzzle?.type === "spotdiff" || puzzle?.type === "blockparty" ? undefined : isMulti ? (
       <SoloScoreStrip
@@ -1050,6 +1052,7 @@ function DuelScreen() {
         position={myStanding?.position ?? 1}
         playerCount={roomPlayers.length}
         compact
+        stacked={stackedScore}
       />
     ) : (
       <ScoreStrip
@@ -1058,10 +1061,11 @@ function DuelScreen() {
         myTotal={myTotal}
         opponentTotal={opponentTotal}
         compact
+        stacked={stackedScore}
       />
     );
   return (
-    <PhoneShell constrained gameScreen gameType={puzzle?.type} gameHeader={roomGameHeader}>
+    <PhoneShell constrained gameScreen play gameType={puzzle?.type} gameHeader={roomGameHeader}>
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
         title={puzzle ? puzzleName(puzzle.type) : ""}

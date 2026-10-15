@@ -1,3 +1,4 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -45,7 +46,6 @@ const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "
 
 /** Toybox look (Number polish, Oct 2026): the HUD plank, its pegs and the effects. Presentation only. */
 const TD_CSS = `
-.game-column-centred [data-polish="tendrop"][data-stage-column] > [data-game-arena][data-play-area].td-board { margin-top: 0; margin-bottom: 0; }
 [data-polish="tendrop"] .td-hud { background: linear-gradient(180deg, #5A3A20, #3E2716); border: 2px solid #2B1A0E; border-bottom: 3px solid #D4A84A; border-radius: 12px 12px 0 0; box-shadow: inset 0 1px 0 rgba(255,230,180,0.25); }
 [data-polish="tendrop"] .td-label { font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; line-height: 1; color: rgba(255,244,222,0.85); }
 [data-polish="tendrop"] .td-total { color: #F7CF63; display: inline-block; }
@@ -304,6 +304,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div ref={wrap} data-polish="tendrop" data-solve={solveFx ? "1" : undefined} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <PolishStyle id="tendrop" css={TD_CSS} />
       <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} />
+      {/* The world at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; tdView maps through this box). */}
+      <ArcadeArenaSlot width={TD_W} height={TD_H}>
       <div
         ref={board}
         data-play-area
@@ -325,6 +327,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
+      </ArcadeArenaSlot>
       {dev ? <p className="truncate font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
     </div>
   );

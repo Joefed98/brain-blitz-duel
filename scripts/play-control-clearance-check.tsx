@@ -42,14 +42,19 @@ assert.match(readFileSync("src/puzzles/trail.tsx", "utf8"), /26/);
 assert.match(readFileSync("src/puzzles/rotatingRings.tsx", "utf8"), /ring \{selectedRing \+ 1\} selected/);
 // Arcade controls stay below the fitted arena (ArcadeArenaSlot), in fixed rows the
 // slot never takes: Fission's pad, Rainbow Bridge's tools, Orbit's checkpoint button.
+// Arcade play screen (15 Oct 2026): every row ends exactly 16px above the visible bottom (the
+// column's own 16px padding), so no row carries bottom padding of its own; pad and tools rows
+// keep 4px side margins inside the edge-to-edge column (polish-layout/bottom.css).
 const arcadeRows = [
-  // Tuning B: Fission has no FIRE button (a tap on the arena fires); two 76px arrows, 16px apart, raised 12px.
-  // Tuning F (14 Oct 2026): the pad is 96px tall with pb-5, so the 76px arrows sit 20px off the bottom (8px higher).
-  { file: "burst", row: /data-game-controls="pad" className="grid h-\[96px\] shrink-0[^"]*grid-cols-2[^"]*gap-4[^"]*pb-5/, button: /className="h-\[76px\] w-full/g, count: 2, width: (w: number) => (w - 8 - 16) / 2, tall: 76 },
+  // Tuning B: Fission has no FIRE button (a tap on the arena fires); two 76px arrows, 16px apart.
+  { file: "burst", row: /data-game-controls="pad" className="grid h-\[76px\] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">/, button: /className="h-\[76px\] w-full/g, count: 2, width: (w: number) => (w - 8 - 16) / 2, tall: 76 },
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
-  // Orbit's 76 px row holds its 44 px button 28 px up from the bottom edge (13 Oct display fix; Tuning A had 64 / 16).
-  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-\[76px\] shrink-0 items-center justify-center pb-7"/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
+  // Orbit's 44 px row holds its 44 px button (it was a 76 px row with the button 28 px up from its bottom).
+  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
 ];
+const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] :is\(\[data-game-controls="pad"\], \[data-game-controls="tools"\]\) \{\s*padding-inline: 4px;\s*\}/, "pad and tools rows keep 4px side margins");
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: end;\s*\}/, "Mixed Signals' ArrowPad: one fixed 52px row, both modes bottom-aligned");
 for (const { file, row, button, count, width, tall } of arcadeRows) {
   const source = readFileSync(`src/puzzles/${file}.tsx`, "utf8");
   assert.match(source, row, `${file}: control row`);

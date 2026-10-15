@@ -320,7 +320,8 @@ if (want("orbit")) {
   }
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
-  ok(/data-game-controls="checkpoint" className="flex h-\[76px\] shrink-0 items-center justify-center pb-7"/.test(footer) && /className="h-11 /.test(footer), "SET CHECKPOINT sits 28 px up from the bottom edge, still 44 px tall");
+  // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
+  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall");
 }
 
 /* =============================== 2d. Grappler =============================== */
@@ -398,7 +399,7 @@ if (want("swing")) {
 
 /* ================================= 2e. Tilt ================================= */
 if (want("tilt")) {
-  section("Tilt: every cup reachable, the orange marble always drawn, arena lower");
+  section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
   // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check); every cup stays reachable.
   ok(p.tiltRev === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
@@ -420,8 +421,8 @@ if (want("tilt")) {
   ok(/TILT_MARBLE_AMBER, -rot, 3\);\s*ctx\.restore\(\);/.test(art) && /Math\.hypot\(bx - mx, by - my\) < mr/.test(art), "an orange marble under the blue one is drawn over it (half and half)");
   ok(/!prev2\.bHome\) toyMarble/.test(art), "an orange marble finishing last sinks into its own cup");
   const stage = readFileSync("src/puzzles/tilt.tsx", "utf8");
-  ok(/arenaDrop=\{TILT_ARENA_DROP\}/.test(stage), "Tilt's arena sits lower than the fixed top");
-  ok(!readFileSync("src/lib/arcade/arenaFill.renderer.ts", "utf8").includes("ARENA_DROP"), "arenaFill.renderer.ts untouched");
+  // Superseded 15 Oct 2026 (arcade play screen): Tilt's arena starts under the compact header like every other.
+  ok(!/arenaDrop|TILT_ARENA_DROP/.test(stage) && /fitWorld/.test(stage), "Tilt's arena sits at the shared fixed top, no drop");
 }
 
 /* ============================ 3. Help copy rules ============================ */
