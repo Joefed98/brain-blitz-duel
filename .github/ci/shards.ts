@@ -25,11 +25,19 @@ export const SHARDS: Record<string, string[]> = {
   // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server).
   play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],
   // bottom-clearance-check (every active game's controls ≥12px above the visible bottom at
-  // 375x667 / 390x844, with and without an 80px toolbar): one third per job (~25 games,
-  // ~4.5-5.5 min with its dev server). It used to ride play1-play3, which made those ~9 min.
-  play6: ["bottom-clearance-check.ts@1/3"],
-  play7: ["bottom-clearance-check.ts@2/3"],
-  play8: ["bottom-clearance-check.ts@3/3"],
+  // 375x667 / 390x844, with and without an 80px toolbar; since 15 Oct 2026 also arcade play
+  // columns 8px up with a home bar emulated, and every puzzle's intro, stage and timed-out
+  // reveal drawn with a notch and home bar for colour seams, which roughly doubled it): one
+  // eighth per job (~9-10 games; ~4.2 min a part locally on 4 cores with its dev server,
+  // aiming at ~5 min on a 2-core runner plus setup). It was in thirds (~25 games) before.
+  play6: ["bottom-clearance-check.ts@1/8"],
+  play7: ["bottom-clearance-check.ts@2/8"],
+  play8: ["bottom-clearance-check.ts@3/8"],
+  play9: ["bottom-clearance-check.ts@4/8"],
+  play10: ["bottom-clearance-check.ts@5/8"],
+  play11: ["bottom-clearance-check.ts@6/8"],
+  play12: ["bottom-clearance-check.ts@7/8"],
+  play13: ["bottom-clearance-check.ts@8/8"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

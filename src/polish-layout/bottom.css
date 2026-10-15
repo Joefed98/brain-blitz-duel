@@ -60,3 +60,44 @@
 .game-column-lifted [data-stage-column] [data-checkout-rule][data-checkout-rule] span {
   font-size: inherit;
 }
+
+/*
+ * Arcade play screens (15 Oct 2026, display only): the arcade games and the engine
+ * games on the arcade stage (data-arcade-screen: category arcade or arcadeRun, so
+ * Letterfall, Tenfall, Bonk, Pull! and Mixed Signals too) keep the play-screen size
+ * they had before the bottom-clearance pass: the column ends 8px above the bottom of
+ * the dynamic viewport, whatever the home-bar inset (before viewport-fit=cover the
+ * phone reported no inset, so 8px was what every phone got). The arena slot takes
+ * that height back; world sizes and tap mapping are unchanged. Controls below an
+ * arena keep their own positions (Fission's taller pad included).
+ * bottom-clearance-check and arcade-play-check prove the 8px.
+ */
+[data-arcade-screen] > [data-game-column]:has([data-game-stage]) {
+  padding-bottom: 8px;
+}
+
+/*
+ * Puzzle screens: no colour seam at the top or bottom edge (15 Oct 2026, display
+ * only). The screen's own background (.screen-background: a gradient with an
+ * edge vignette) ends near-black (--screen-edge); the page behind it was the
+ * lighter --background, which a phone shows past the shell (under the home bar or
+ * notch, below a short dynamic viewport, on overscroll) as a line across the
+ * screen. On a puzzle's game screen, intro and reveal (data-puzzle-screen) the page
+ * behind is --screen-edge, and the shell's top and bottom strips (the safe-area
+ * padding: the inset, plus 16px at the bottom) fade to exactly that colour, so the
+ * edge and whatever lies past it are one colour. bottom-clearance-check proves it.
+ */
+html:has([data-puzzle-screen]),
+html:has([data-puzzle-screen]) body {
+  background-color: var(--screen-edge);
+}
+[data-puzzle-screen] {
+  background-color: var(--screen-edge);
+}
+/* On the vignette layer (::after), so the category glow (.screen-drift) fades too. */
+[data-puzzle-screen] > .screen-background::after {
+  background:
+    linear-gradient(to bottom, var(--screen-edge), transparent) top / 100% max(0.5rem, env(safe-area-inset-top, 0px)) no-repeat,
+    linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
+    radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent));
+}

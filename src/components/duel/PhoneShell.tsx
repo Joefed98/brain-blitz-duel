@@ -127,6 +127,10 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
   const puzzleSurface = Boolean(gameScreen && definition && !definition.retired && !definition.arcadeRun && definition.category !== "arcade");
+  /** Arcade games and the engine games on the arcade stage: their play screen keeps the pre-#61 bottom spacing (polish-layout/bottom.css). */
+  const arcadeScreen = Boolean(gameScreen && definition && (definition.arcadeRun || definition.category === "arcade"));
+  /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
+  const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
@@ -138,6 +142,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       }`}
       data-category={theme?.accent}
       data-puzzle-surface={puzzleSurface ? gameType : undefined}
+      data-arcade-screen={arcadeScreen ? "" : undefined}
+      data-puzzle-screen={puzzleScreen ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       style={gameScreen ? NO_SELECT_STYLE : undefined}
     >

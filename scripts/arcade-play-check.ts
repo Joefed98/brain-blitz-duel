@@ -27,7 +27,9 @@
  *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
  *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
  *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
- *    16 px above the bottom (pad-game-safe: inset + 16 px since the 14 Oct bottom-clearance pass; 6-8 px before); a control below the arena under 44 px or off screen;
+ *    8 px above the bottom (the pre-14 Oct arcade spacing, restored 15 Oct 2026: data-arcade-screen,
+ *    whatever the home-bar inset; at 390x844 also with a 34 px inset emulated, where the arena must
+ *    keep its no-inset size); a control below the arena under 44 px or off screen;
  *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none;
  *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
@@ -294,6 +296,9 @@ async function main() {
   console.log(`Arcade play: ${results.length} of ${results.length} games covered 15 s of live play, advanced, timed, error-free, within frame-time and movement limits`);
 }
 
+/** Px from the bottom of the screen to the end of an arcade play column (pre-14 Oct spacing, restored 15 Oct 2026). */
+const ARCADE_BOTTOM_PX = 8;
+
 /** Viewports the arena layout is proved at: four phones and a laptop window. */
 const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];
 
@@ -368,8 +373,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (m.fill !== rgb) problems.push(`${at}: space below the arena painted ${m.fill}, not the arena fill ${rgb}`);
     if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: fill below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
     const gap = h - m.stageBottom;
-    // pad-game-safe leaves the home-bar inset + 16 px (no inset in headless Chromium); was 6-8 px.
-    if (Math.abs(gap - 16) > 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want 16)`);
+    // Arcade play screens end 8 px above the bottom whatever the inset (bottom.css, data-arcade-screen).
+    if (Math.abs(gap - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want ${ARCADE_BOTTOM_PX})`);
     for (const c of m.controls) {
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
@@ -377,6 +382,27 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     tops.push(arena.y);
   }
   if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
+  // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await nextFrames(page);
+  const arenaBox = () => page.evaluate(() => {
+    const stage = document.querySelector("[data-game-stage]");
+    const arena = stage?.querySelector("[data-arena-slot] > [data-game-arena]")?.getBoundingClientRect();
+    const column = document.querySelector("[data-game-column]");
+    return { w: arena?.width ?? 0, h: arena?.height ?? 0, pad: column ? Number.parseFloat(getComputedStyle(column).paddingBottom) : -1 };
+  });
+  const plain = await arenaBox();
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 34, left: 0, right: 0 } } as never);
+    await nextFrames(page);
+    const inset = await arenaBox();
+    if (Math.abs(inset.w - plain.w) > 0.5 || Math.abs(inset.h - plain.h) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: arena ${inset.w.toFixed(1)}x${inset.h.toFixed(1)}, not its no-inset ${plain.w.toFixed(1)}x${plain.h.toFixed(1)}`);
+    if (Math.abs(inset.pad - ARCADE_BOTTOM_PX) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: play column padded ${inset.pad} px at the bottom (want ${ARCADE_BOTTOM_PX})`);
+  } finally {
+    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 0, left: 0, right: 0 } } as never).catch(() => {});
+    await cdp.detach().catch(() => {});
+  }
   await page.setViewportSize({ width: 390, height: 700 });
   await nextFrames(page);
 }

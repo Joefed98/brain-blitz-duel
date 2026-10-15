@@ -64,9 +64,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into fifteen parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
-  `play1`–`play5` for arcade-play-check and `play6`–`play8` for bottom-clearance-check), each
-  about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
+  request open/push/reopen, split into twenty parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
+  `play1`–`play5` for arcade-play-check and `play6`–`play13` for bottom-clearance-check, one eighth each
+  since its 15 Oct seam pass), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
   with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
   `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
@@ -144,14 +144,19 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `--part=k/n` for one CI group (`play4` holds flip, Roofbound).
   It starts its own Vite dev server (or `--url=<origin>`) and needs the pre-installed
   Chromium; run-checks gives it 1,500 s.
-- **Bottom clearance** (14 Oct 2026): bottom-clearance-check (headless Chromium, ~10 s a game, split
-  over `play6`–`play8` as `@1/3`–`@3/3`) opens every active game's intro and live stage in practice at
+- **Bottom clearance** (14 Oct 2026): bottom-clearance-check (headless Chromium, ~10 s a game, ~20 s a puzzle with
+  the 15 Oct seam pass, split over `play6`–`play13` as `@1/8`–`@8/8`) opens every active game's intro and live stage in practice at
   375×667 and 390×844, each also 80 px shorter (a browser bottom toolbar shortens the dynamic viewport by
   its height), and fails if any control in the stage (or the intro's Ready) sits under 12 px above the
   visible bottom, is clipped by the game region, or the shell does not end at the dynamic viewport's
   bottom. Game screens are `.game-viewport` (100dvh) with the inset + 16 px under the controls; per-game
   lifts live in `src/polish-layout/bottom.css` (layout 3, `.game-column-lifted`). Run it after a stage
-  layout change.
+  layout change. Arcade play screens (15 Oct 2026, `data-arcade-screen`, the engine games on the arcade
+  stage included) keep their pre-14 Oct size instead: the column ends 8 px above the bottom whatever the
+  home-bar inset (also proved with a 34 px home bar emulated, here and in arcade-play-check); controls
+  nearer than 12 px are printed as NOTE lines, not failures. Each puzzle's intro, stage and timed-out
+  reveal is also drawn with a 47 px notch and 34 px home bar and fails on a colour seam in the top or
+  bottom strip (`data-puzzle-screen`: the page behind is `--screen-edge` and the strips fade to it).
 - **Safe areas on the other screens** (14 Oct 2026): `viewport-fit=cover` lets every page draw under a
   notch and home bar, so safe-area-screens-check (headless Chromium, ~2 min, shard `play4`) draws the home /
   room join, practice list, sound settings, practice and room round intros, a help sheet, and the room's
