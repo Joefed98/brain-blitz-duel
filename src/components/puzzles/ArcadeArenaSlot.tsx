@@ -17,10 +17,12 @@ import type { ArenaScenePainter } from "@/lib/arcade/arenaScene.renderer";
  * Presentation only: games keep mapping pointers through the arena element's own
  * box, so world coordinates, input logs and replays are unchanged.
  */
-export function ArcadeArenaSlot({ width, height, scene, sceneKey, children }: {
+export function ArcadeArenaSlot({ width, height, centre = false, scene, sceneKey, children }: {
   /** World (view) size the game draws, in world units. */
   width: number;
   height: number;
+  /** Centre the world vertically in the slot (its spare height split above and below) instead of top-anchoring it. */
+  centre?: boolean | undefined;
   /** The game's own scenery beyond the world (display only); see arenaScene.renderer.ts. */
   scene?: ArenaScenePainter | undefined;
   /** Repaints the scene when it changes (e.g. a new level's ground line). */
@@ -91,6 +93,7 @@ export function ArcadeArenaSlot({ width, height, scene, sceneKey, children }: {
     <div
       ref={slot}
       data-arena-slot=""
+      data-arena-centred={centre ? "" : undefined}
       data-scene={scene ? "" : undefined}
       style={{ "--arena-w": width, "--arena-h": height } as CSSProperties}
     >

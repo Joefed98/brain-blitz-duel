@@ -164,6 +164,51 @@ function useRootSelectionLock(active: boolean) {
   }, [active]);
 }
 
+/**
+ * iOS home-screen apps (15 Oct 2026, display only). With viewport-fit=cover and a
+ * black-translucent status bar, WebKit lays a home-screen app out in a viewport short by
+ * the top safe-area inset (https://bugs.webkit.org/show_bug.cgi?id=254868), drawn from the
+ * top of the screen: on an iPhone 11, 100dvh is 848px of an 896px screen, so a 100dvh
+ * shell ended 48px early. While an arcade play screen is up, this measures that shortfall
+ * (the screen's height less 100dvh, at most the top inset, 0 anywhere but an iOS
+ * home-screen app: navigator.standalone) into --standalone-short on the root, which the
+ * play screen adds to its height (polish-layout/bottom.css). Once WebKit lays the app out
+ * full height the shortfall measures 0 and nothing changes. arcade-device-bottom-check
+ * proves it.
+ */
+function useStandaloneShortfall(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const root = document.documentElement;
+    const update = () => {
+      let short = 0;
+      if ((navigator as Navigator & { standalone?: boolean }).standalone === true) {
+        const probe = document.createElement("div");
+        probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:100dvh;padding-top:env(safe-area-inset-top,0px);box-sizing:content-box;visibility:hidden;pointer-events:none";
+        document.body.appendChild(probe);
+        const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+        const dvh = probe.getBoundingClientRect().height - inset;
+        probe.remove();
+        const portrait = window.innerHeight >= window.innerWidth;
+        const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+        short = Math.round(Math.min(inset, Math.max(0, screenH - dvh)));
+      }
+      if (short > 0) root.style.setProperty("--standalone-short", `${short}px`);
+      else root.style.removeProperty("--standalone-short");
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+      window.visualViewport?.removeEventListener("resize", update);
+      root.style.removeProperty("--standalone-short");
+    };
+  }, [active]);
+}
+
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
@@ -174,6 +219,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   const arcadeScreen = Boolean(gameScreen && isArcadeScreenType(gameType));
   /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
   const arcadePlay = arcadeScreen && play;
+  useStandaloneShortfall(arcadePlay && constrained);
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);

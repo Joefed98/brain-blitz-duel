@@ -1,8 +1,12 @@
 /**
  * Per-game sound observers. They read sim state after each frame and play
  * manifest sounds on transitions; they never feed anything back to the sim.
+ *
+ * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
+ * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { ensureLoop, playSound, stopLoop } from "@/lib/sound";
+import { ensureSlotLoop, playSlotOr as sfx, stopSlotLoop } from "@/lib/sound";
+import type { SoundId } from "@/lib/fx/manifest";
 import type { OrbitState } from "@/lib/arcade/orbit";
 import type { ClashState } from "@/lib/arcade/colourClash";
 import type { SwingState } from "@/lib/arcade/swing";
@@ -39,16 +43,16 @@ export function orbitSounds(): GameSounds<OrbitState> {
   let prev: OrbitState | null = null;
   return {
     frame(state, running) {
-      if (running) ensureLoop("arc_space_ambience", AMBIENCE_VOLUME);
-      else stopLoop("arc_space_ambience");
+      if (running) ensureSlotLoop("orbit.ambience", "arc_space_ambience", AMBIENCE_VOLUME);
+      else stopSlotLoop("orbit.ambience", "arc_space_ambience");
       if (prev && state.tick > prev.tick) {
-        if (state.releaseTick !== prev.releaseTick && state.flying > 0) playSound("arc_thruster");
-        if (prev.checkpoint < 0 && state.checkpoint >= 0) playSound("arc_pickup");
-        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) playSound("arc_crash");
+        if (state.releaseTick !== prev.releaseTick && state.flying > 0) sfx("orbit.launch", "arc_thruster");
+        if (prev.checkpoint < 0 && state.checkpoint >= 0) sfx("orbit.checkpoint", "arc_pickup");
+        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) sfx("orbit.crash", "arc_crash");
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_space_ambience"),
+    stop: () => stopSlotLoop("orbit.ambience", "arc_space_ambience"),
   };
 }
 
@@ -58,13 +62,13 @@ export function swingSounds(): GameSounds<SwingState> {
     frame(state, running) {
       void running;
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
-        else if (prev.rope < 0 && state.rope >= 0) playSound("arc_grapple");
+        if (state.ended === 2 && prev.ended !== 2) sfx("swing.crash", "arc_crash");
+        else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
-        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_pickup", 0.9);
-        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) playSound("arc_siren", 0.6);
-        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) playSound("arc_clank", 0.5);
-        if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) playSound("arc_wood_knock", 0.5);
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
+        if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) sfx("swing.dragon", "arc_siren", 0.6);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) sfx("swing.rockShake", "arc_clank", 0.5);
+        if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) sfx("swing.rockLand", "arc_wood_knock", 0.5);
       }
       prev = state;
     },
@@ -77,16 +81,16 @@ export function wavefrontSounds(): GameSounds<WavState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.fireIn > prev.fireIn) playSound("arc_blaster", 0.6, 1, true);
-        if (state.pierce > prev.pierce) playSound("arc_retro_pickup");
+        if (state.fireIn > prev.fireIn) sfx("wavefront.fire", "arc_blaster", 0.6, 1, true);
+        if (state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
         // Ships and the armoured ship destroyed this frame (bursts carry the kill tick).
-        if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) playSound("arc_big_explode", 0.8);
-        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) playSound("arc_shape_pop", 0.7);
-        if (state.lives < prev.lives) playSound("arc_lose_life");
+        if (state.bursts.some((b) => b.t > prev!.tick && (b.c === 3 || b.c === 4))) sfx("wavefront.bigExplode", "arc_big_explode", 0.8);
+        else if (state.bursts.some((b) => b.t > prev!.tick && b.c !== 3)) sfx("wavefront.shapePop", "arc_shape_pop", 0.7);
+        if (state.lives < prev.lives) sfx("wavefront.lifeLost", "arc_lose_life");
         // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
-        if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) playSound("arc_retro_hit", 0.7, 1, true);
-        if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) playSound("stage_complete", 0.8);
-        if ((state.divers ?? []).length > (prev.divers ?? []).length) playSound("arc_retro_blip", 0.5, 1, true);
+        if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) sfx("wavefront.bossHit", "arc_retro_hit", 0.7, 1, true);
+        if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) sfx("wavefront.formation", "stage_complete", 0.8);
+        if ((state.divers ?? []).length > (prev.divers ?? []).length) sfx("wavefront.dive", "arc_retro_blip", 0.5, 1, true);
       }
       prev = state;
     },
@@ -99,9 +103,9 @@ export function crossSounds(): GameSounds<CrossState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.lives < prev.lives) playSound("arc_lose_life");
-        else if (state.crossings > prev.crossings) playSound("stage_complete");
-        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) playSound("arc_honk", 0.6);
+        if (state.lives < prev.lives) sfx("cross.lifeLost", "arc_lose_life");
+        else if (state.crossings > prev.crossings) sfx("cross.crossed", "stage_complete");
+        else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
       }
       prev = state;
     },
@@ -115,8 +119,8 @@ export function flipSounds(): GameSounds<FlipState> {
     frame(state, running) {
       void running;
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) playSound("arc_crash");
-        else if (state.flipT > prev.flipT) playSound("arc_gravity_flip", 0.7);
+        if (state.ended === 2 && prev.ended !== 2) sfx("flip.crash", "arc_crash");
+        else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
       }
       prev = state;
     },
@@ -127,28 +131,28 @@ export function flipSounds(): GameSounds<FlipState> {
 /* ============================ Retro Arcade world ============================ */
 
 /** Coin once when the run starts; shared by every Retro Arcade game. */
-function retroStart() {
+function retroStart(cue: SoundId) {
   let started = false;
   return (running: boolean) => {
     if (running && !started) {
       started = true;
-      playSound("arc_retro_coin");
+      sfx(cue, "arc_retro_coin");
     }
   };
 }
 
 export function hoverSounds(): GameSounds<HoverState> {
   let prev: HoverState | null = null;
-  const start = retroStart();
+  const start = retroStart("hover.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.crashed && !prev.crashed) playSound("arc_retro_explode");
+        if (state.crashed && !prev.crashed) sfx("hover.crash", "arc_retro_explode");
         else {
-          if (state.gates > prev.gates) playSound("arc_retro_note");
+          if (state.gates > prev.gates) sfx("hover.gate", "arc_retro_note");
           // hoverRev 2: a gold star collected.
-          if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_retro_coin", 0.8);
+          if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("hover.star", "arc_retro_coin", 0.8);
         }
       }
       prev = state;
@@ -159,18 +163,18 @@ export function hoverSounds(): GameSounds<HoverState> {
 
 export function snakeSounds(): GameSounds<SnakeState> {
   let prev: SnakeState | null = null;
-  const start = retroStart();
+  const start = retroStart("snake.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.dead && !prev.dead) playSound("arc_retro_explode");
-        else if (state.eaten > prev.eaten) playSound("arc_retro_blip");
+        if (state.dead && !prev.dead) sfx("snake.dead", "arc_retro_explode");
+        else if (state.eaten > prev.eaten) sfx("snake.eat", "arc_retro_blip");
         // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
-        else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) playSound("arc_retro_hit", 0.7);
-        else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) playSound("arc_retro_note", 0.5, 0.7);
+        else if ((state.rocks?.length ?? 0) > (prev.rocks?.length ?? 0)) sfx("snake.rockLand", "arc_retro_hit", 0.7);
+        else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) sfx("snake.rockWarn", "arc_retro_note", 0.5, 0.7);
         // snakeRev 3 meteor shower: a low alarm as the three shadows appear.
-        if ((state.showerDone ?? 0) > (prev.showerDone ?? 0)) playSound("arc_retro_note", 0.7, 0.5, true);
+        if ((state.showerDone ?? 0) > (prev.showerDone ?? 0)) sfx("snake.showerAlarm", "arc_retro_note", 0.7, 0.5, true);
       }
       prev = state;
     },
@@ -183,15 +187,16 @@ const BEAT_LANE_RATES = [1, 2 ** (4 / 12), 2 ** (7 / 12), 2 ** (12 / 12)];
 
 export function beatSounds(): GameSounds<BeatState> {
   let prev: BeatState | null = null;
-  const start = retroStart();
+  const start = retroStart("beat.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.misses > prev.misses) playSound("arc_retro_hit");
+        if (state.misses > prev.misses) sfx("beat.miss", "arc_retro_hit");
         const hits = state.perfect + state.good + state.ok - (prev.perfect + prev.good + prev.ok);
         const heldNew = state.lastJudge === BEAT_JUDGE_PENDING && state.judgeAge === 0;
-        if (hits > 0 || heldNew) playSound("arc_retro_note", 0.8, BEAT_LANE_RATES[Math.max(0, state.lastLane)] ?? 1, true);
+        // An own file keeps the lane pitch.
+        if (hits > 0 || heldNew) sfx("beat.note", "arc_retro_note", 0.8, BEAT_LANE_RATES[Math.max(0, state.lastLane)] ?? 1, true, true);
       }
       prev = state;
     },
@@ -201,25 +206,25 @@ export function beatSounds(): GameSounds<BeatState> {
 
 export function breakerSounds(): GameSounds<BrkState> {
   let prev: BrkState | null = null;
-  const start = retroStart();
+  const start = retroStart("breaker.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.losses > prev.losses) playSound("arc_retro_explode");
-        if (state.powerUps > prev.powerUps) playSound("arc_retro_pickup");
+        if (state.losses > prev.losses) sfx("breaker.ballLost", "arc_retro_explode");
+        if (state.powerUps > prev.powerUps) sfx("breaker.powerUp", "arc_retro_pickup");
         // brkRev 2: Fireball lit.
-        if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) playSound("arc_retro_coin", 0.8);
-        if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
+        if ((state.fireballs ?? 0) > (prev.fireballs ?? 0)) sfx("breaker.fireballLit", "arc_retro_coin", 0.8);
+        if (state.hits > prev.hits) sfx("breaker.brickHit", "arc_retro_hit", 0.8, 1, true);
         // Laser fired: the beam timer jumps to full; one instance per fired ball.
-        if (state.beam > prev.beam) playSound("arc_laser_beam", 0.8);
-        for (let b = 0; b < state.balls.length - prev.balls.length; b++) playSound("arc_multiball", 0.7);
+        if (state.beam > prev.beam) sfx("breaker.laser", "arc_laser_beam", 0.8);
+        for (let b = 0; b < state.balls.length - prev.balls.length; b++) sfx("breaker.multiball", "arc_multiball", 0.7);
         // Paddle hit: a ball near the paddle that was falling and now rises.
         const paddleHit = state.balls.some((ball, i) => {
           const before = prev!.balls[i];
           return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (BRK_PADDLE_Y - 40) * 256;
         });
-        if (paddleHit) playSound("arc_retro_blip", 0.8, 1, true);
+        if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 1, true);
       }
       prev = state;
     },
@@ -229,21 +234,21 @@ export function breakerSounds(): GameSounds<BrkState> {
 
 export function pinballSounds(): GameSounds<PinState> {
   let prev: PinState | null = null;
-  const start = retroStart();
+  const start = retroStart("pinball.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.lost > prev.lost) playSound("arc_retro_explode");
-        if (state.live && !prev.live) playSound("arc_bounce", 0.8);
-        if (state.bumps > prev.bumps) playSound("arc_retro_hit", 0.8, 1, true);
-        if (state.slings > prev.slings) playSound("arc_retro_blip", 0.6, 1.3, true);
-        if (state.drops > prev.drops) playSound("arc_retro_coin", 0.8, 1, true);
-        if (state.banks > prev.banks || state.laneSets > prev.laneSets) playSound("arc_retro_pickup");
-        else if (state.laneLights > prev.laneLights) playSound("arc_retro_note", 0.8);
-        if (state.spins > prev.spins) playSound("arc_retro_blip", 0.5, 1.6, true);
+        if (state.lost > prev.lost) sfx("pinball.ballLost", "arc_retro_explode");
+        if (state.live && !prev.live) sfx("pinball.launch", "arc_bounce", 0.8);
+        if (state.bumps > prev.bumps) sfx("pinball.bumperHit", "arc_retro_hit", 0.8, 1, true);
+        if (state.slings > prev.slings) sfx("pinball.sling", "arc_retro_blip", 0.6, 1.3, true);
+        if (state.drops > prev.drops) sfx("pinball.dropTarget", "arc_retro_coin", 0.8, 1, true);
+        if (state.banks > prev.banks || state.laneSets > prev.laneSets) sfx("pinball.bankComplete", "arc_retro_pickup");
+        else if (state.laneLights > prev.laneLights) sfx("pinball.laneLight", "arc_retro_note", 0.8);
+        if (state.spins > prev.spins) sfx("pinball.spinner", "arc_retro_blip", 0.5, 1.6, true);
         // A flipper raised (each side once per press).
-        if ((state.held & ~prev.held) !== 0) playSound("arc_retro_blip", 0.7, 0.8, true);
+        if ((state.held & ~prev.held) !== 0) sfx("pinball.flipper", "arc_retro_blip", 0.7, 0.8, true);
       }
       prev = state;
     },
@@ -253,14 +258,14 @@ export function pinballSounds(): GameSounds<PinState> {
 
 export function rallySounds(): GameSounds<RallyState> {
   let prev: RallyState | null = null;
-  const start = retroStart();
+  const start = retroStart("rally.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.dead && !prev.dead) playSound("arc_retro_explode");
-        if (state.goldHits > prev.goldHits) playSound("arc_retro_note");
-        if (state.hits > prev.hits) playSound("arc_retro_blip");
+        if (state.dead && !prev.dead) sfx("rally.dead", "arc_retro_explode");
+        if (state.goldHits > prev.goldHits) sfx("rally.goldHit", "arc_retro_note");
+        if (state.hits > prev.hits) sfx("rally.hit", "arc_retro_blip");
       }
       prev = state;
     },
@@ -270,18 +275,18 @@ export function rallySounds(): GameSounds<RallyState> {
 
 export function burstSounds(): GameSounds<BurstState> {
   let prev: BurstState | null = null;
-  const start = retroStart();
+  const start = retroStart("burst.start");
   return {
     frame(state, running) {
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) playSound("arc_retro_explode");
-        else if (state.lives < prev.lives) playSound("arc_lose_life");
-        if (state.hits > prev.hits) playSound("arc_retro_hit", 0.8, 1, true);
-        if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) playSound("arc_retro_pickup");
+        if (state.ended === 2 && prev.ended !== 2) sfx("burst.gameOver", "arc_retro_explode");
+        else if (state.lives < prev.lives) sfx("burst.lifeLost", "arc_lose_life");
+        if (state.hits > prev.hits) sfx("burst.hit", "arc_retro_hit", 0.8, 1, true);
+        if ((state.shield && !prev.shield) || (state.burst && !prev.burst)) sfx("burst.powerUp", "arc_retro_pickup");
         // burstRev 2: a FREEZE icon caught.
-        if ((state.freezes ?? 0) > (prev.freezes ?? 0)) playSound("arc_retro_coin", 0.8);
-        if (state.shots.length > prev.shots.length) playSound("arc_retro_blip", 0.6, 1, true);
+        if ((state.freezes ?? 0) > (prev.freezes ?? 0)) sfx("burst.freezeCaught", "arc_retro_coin", 0.8);
+        if (state.shots.length > prev.shots.length) sfx("burst.shot", "arc_retro_blip", 0.6, 1, true);
       }
       prev = state;
     },
@@ -292,27 +297,27 @@ export function burstSounds(): GameSounds<BurstState> {
 /* ============================== Fairground world ============================= */
 
 /** Sting once when a run finishes perfect; shared by every Fairground game. */
-function fairPerfect() {
+function fairPerfect(cue: SoundId) {
   let played = false;
   return (perfect: boolean) => {
     if (perfect && !played) {
       played = true;
-      playSound("arc_fair_sting");
+      sfx(cue, "arc_fair_sting");
     }
   };
 }
 
 export function binTossSounds(): GameSounds<BinTossState> {
   let prev: BinTossState | null = null;
-  const perfect = fairPerfect();
+  const perfect = fairPerfect("bintoss.perfect");
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (state.baskets > prev.baskets) {
-          playSound("arc_fair_bucket");
-          if (state.baskets === BINTOSS_THROWS) playSound("arc_fair_bell");
-        } else if (state.resolved > prev.resolved) playSound("arc_bounce", 0.7);
-        if (state.wobbleTick !== prev.wobbleTick && state.wobbleTick > 0) playSound("arc_bounce", 0.7, 1, true);
+          sfx("bintoss.basket", "arc_fair_bucket");
+          if (state.baskets === BINTOSS_THROWS) sfx("bintoss.allBaskets", "arc_fair_bell");
+        } else if (state.resolved > prev.resolved) sfx("bintoss.missBounce", "arc_bounce", 0.7);
+        if (state.wobbleTick !== prev.wobbleTick && state.wobbleTick > 0) sfx("bintoss.wobble", "arc_bounce", 0.7, 1, true);
         perfect(state.baskets === BINTOSS_THROWS);
       }
       prev = state;
@@ -323,13 +328,13 @@ export function binTossSounds(): GameSounds<BinTossState> {
 
 export function bullseyeSounds(): GameSounds<BullseyeState> {
   let prev: BullseyeState | null = null;
-  const perfect = fairPerfect();
+  const perfect = fairPerfect("bullseye.perfect");
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (prev.flightTick > 0 && state.flightTick === 0 && state.hits.length > 0) {
-          playSound("arc_fair_thud");
-          if (state.hits[state.hits.length - 1]!.value === 10) playSound("arc_fair_bell");
+          sfx("bullseye.thud", "arc_fair_thud");
+          if (state.hits[state.hits.length - 1]!.value === 10) sfx("bullseye.bull", "arc_fair_bell");
         }
         perfect(state.hits.length === BULLSEYE_ARROWS && state.flightTick === 0 && state.total === BULLSEYE_ARROWS * 10);
       }
@@ -345,20 +350,20 @@ const ROLL_VOLUME = 0.14;
 const KNOCK_GAP_MS = 80;
 
 /** Wood knock on ball-to-wall contact, at most one per 80 ms. */
-function toyKnock() {
+function toyKnock(cue: SoundId) {
   let lastAt = -Infinity;
   return () => {
     const now = typeof performance === "undefined" ? 0 : performance.now();
     if (now - lastAt < KNOCK_GAP_MS) return;
     lastAt = now;
-    playSound("arc_wood_knock", 0.7, 1, true);
+    sfx(cue, "arc_wood_knock", 0.7, 1, true);
   };
 }
 
 /** Quiet marble-roll loop while the player's ball moves. */
-function toyRoll(moving: boolean) {
-  if (moving) ensureLoop("arc_marble_roll", ROLL_VOLUME);
-  else stopLoop("arc_marble_roll");
+function toyRoll(cue: SoundId, moving: boolean) {
+  if (moving) ensureSlotLoop(cue, "arc_marble_roll", ROLL_VOLUME);
+  else stopSlotLoop(cue, "arc_marble_roll");
 }
 
 /** Speed (1/256 px a tick) above which a stop against a wall counts as a knock. */
@@ -367,17 +372,17 @@ const TILT_ROLL_SPEED = 40;
 
 export function tiltSounds(): GameSounds<TiltState> {
   let prev: TiltState | null = null;
-  const knock = toyKnock();
+  const knock = toyKnock("tilt.knock");
   return {
     frame(state, running) {
-      toyRoll(running && Math.abs(state.vx) + Math.abs(state.vy) > TILT_ROLL_SPEED);
+      toyRoll("tilt.roll", running && Math.abs(state.vx) + Math.abs(state.vy) > TILT_ROLL_SPEED);
       if (prev && state.tick > prev.tick) {
-        if (state.caught && !prev.caught) playSound("arc_crash");
-        if (state.mazes > prev.mazes) playSound("arc_marble_clink");
-        else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) playSound("arc_marble_clink", 0.7);
-        if ((state.stars ?? 0) > (prev.stars ?? 0)) playSound("arc_leaf_collect", 0.8);
+        if (state.caught && !prev.caught) sfx("tilt.caught", "arc_crash");
+        if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
+        else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) sfx("tilt.cup", "arc_marble_clink", 0.7);
+        if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8);
         if (state.mazes === prev.mazes && state.level === prev.level) {
-          if (state.gate && !prev.gate) playSound("arc_latch");
+          if (state.gate && !prev.gate) sfx("tilt.gate", "arc_latch");
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
           const hitY = Math.abs(prev.vy) > TILT_KNOCK_SPEED && state.vy === 0;
           if (hitX || hitY) knock();
@@ -385,7 +390,7 @@ export function tiltSounds(): GameSounds<TiltState> {
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_marble_roll"),
+    stop: () => stopSlotLoop("tilt.roll", "arc_marble_roll"),
   };
 }
 
@@ -393,15 +398,15 @@ export function ballTrackSounds(): GameSounds<BtState> {
   let prev: BtState | null = null;
   return {
     frame(state, running) {
-      toyRoll(running && state.balls.some((b) => b.cell >= 0));
+      toyRoll("balltrack.roll", running && state.balls.some((b) => b.cell >= 0));
       if (prev && state.tick > prev.tick) {
-        if (state.home > prev.home) playSound("arc_marble_clink");
-        if (state.wrong > prev.wrong) playSound("arc_wood_knock");
-        if (state.actions > prev.actions) playSound("arc_latch", 0.8, 1, true);
+        if (state.home > prev.home) sfx("balltrack.marbleHome", "arc_marble_clink");
+        if (state.wrong > prev.wrong) sfx("balltrack.wrong", "arc_wood_knock");
+        if (state.actions > prev.actions) sfx("balltrack.switch", "arc_latch", 0.8, 1, true);
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_marble_roll"),
+    stop: () => stopSlotLoop("balltrack.roll", "arc_marble_roll"),
   };
 }
 
@@ -419,16 +424,16 @@ export function junctionSounds(): GameSounds<JuncState> {
           const now = typeof performance === "undefined" ? 0 : performance.now();
           if (now - hornAt >= HORN_GAP_MS) {
             hornAt = now;
-            playSound("arc_horn", 0.6);
+            sfx("junction.horn", "arc_horn", 0.6);
           }
         }
         const known = new Set(prev.cars.map((c) => c.id));
-        if (state.cars.some((c) => c.amb && !known.has(c.id))) playSound("arc_siren", 0.5);
+        if (state.cars.some((c) => c.amb && !known.has(c.id))) sfx("junction.siren", "arc_siren", 0.5);
         // junctionRev 2: a new road opens; a bus clears the junction.
-        if (state.rev && Math.trunc(state.tick / JUNC_BUILD_EVERY) > Math.trunc(prev.tick / JUNC_BUILD_EVERY) && state.tick <= JUNC_BUILDS * JUNC_BUILD_EVERY) playSound("arc_clank", 0.7);
-        if ((state.busCleared ?? 0) > (prev.busCleared ?? 0)) playSound("arc_honk", 0.4);
-        if (state.ended === 2 && prev.ended === 0) playSound("arc_crash");
-        else if (state.ended === 1 && prev.ended === 0) playSound("stage_complete");
+        if (state.rev && Math.trunc(state.tick / JUNC_BUILD_EVERY) > Math.trunc(prev.tick / JUNC_BUILD_EVERY) && state.tick <= JUNC_BUILDS * JUNC_BUILD_EVERY) sfx("junction.newRoad", "arc_clank", 0.7);
+        if ((state.busCleared ?? 0) > (prev.busCleared ?? 0)) sfx("junction.busCleared", "arc_honk", 0.4);
+        if (state.ended === 2 && prev.ended === 0) sfx("junction.crash", "arc_crash");
+        else if (state.ended === 1 && prev.ended === 0) sfx("junction.complete", "stage_complete");
       }
       prev = state;
     },
@@ -442,12 +447,12 @@ export function skylineSounds(): GameSounds<SkylineState> {
     frame(state) {
       if (prev && state.tick > prev.tick) {
         if (state.blocks.length > prev.blocks.length) {
-          playSound("arc_clank", 0.8, 1, true);
-          if (state.perfectTick === state.tick) playSound("correct");
+          sfx("skyline.drop", "arc_clank", 0.8, 1, true);
+          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
           // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
-          if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) playSound("arc_retro_coin", 0.7);
+          if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) sfx("skyline.streakDrop", "arc_retro_coin", 0.7);
         }
-        if (state.missed && !prev.missed) playSound("arc_crash");
+        if (state.missed && !prev.missed) sfx("skyline.miss", "arc_crash");
       }
       prev = state;
     },
@@ -466,14 +471,14 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         // Keep one draw sound after the first segment of each stroke.
         if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1] ?? -1;
         if (armed >= 0 && state.segs.length > armed) {
-          playSound("arc_rainbow", 0.6);
+          sfx("inkbridge.draw", "arc_rainbow", 0.6);
           armed = -1;
         }
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
-            playSound("arc_rainbow_pot");
+            sfx("inkbridge.pot", "arc_rainbow_pot");
           } else if (inkFailedOnBlock(state)) {
-            playSound("arc_rainbow_bump");
+            sfx("inkbridge.bump", "arc_rainbow_bump");
           }
         }
       }
@@ -492,25 +497,25 @@ export function bubbleSounds(): GameSounds<BubState> {
   let lastPop = -1e9;
   return {
     frame(state, running) {
-      if (running) ensureLoop("arc_sea_waves", WAVES_VOLUME);
-      else stopLoop("arc_sea_waves");
+      if (running) ensureSlotLoop("bubble.waves", "arc_sea_waves", WAVES_VOLUME);
+      else stopSlotLoop("bubble.waves", "arc_sea_waves");
       if (prev && state.tick > prev.tick) {
-        if (state.queueAt > prev.queueAt) playSound("arc_sea_bubble", 0.7);
+        if (state.queueAt > prev.queueAt) sfx("bubble.load", "arc_sea_bubble", 0.7);
         if (state.popped > prev.popped) {
           const now = typeof performance === "undefined" ? 0 : performance.now();
           if (now - lastPop >= 40) {
             lastPop = now;
-            playSound("arc_sea_pop", 0.7, 1, true);
+            sfx("bubble.pop", "arc_sea_pop", 0.7, 1, true);
           }
         }
         // bubbleRev 2 specials layer their own sound over the pop.
-        if ((state.bombs ?? 0) > (prev.bombs ?? 0)) playSound("arc_big_explode", 0.6, 1, true);
-        if ((state.lines ?? 0) > (prev.lines ?? 0)) playSound("arc_laser_beam", 0.55, 1.2, true);
-        if ((state.jokers ?? 0) > (prev.jokers ?? 0)) playSound("arc_rainbow", 0.6, 1, true);
+        if ((state.bombs ?? 0) > (prev.bombs ?? 0)) sfx("bubble.bomb", "arc_big_explode", 0.6, 1, true);
+        if ((state.lines ?? 0) > (prev.lines ?? 0)) sfx("bubble.line", "arc_laser_beam", 0.55, 1.2, true);
+        if ((state.jokers ?? 0) > (prev.jokers ?? 0)) sfx("bubble.jokerLand", "arc_rainbow", 0.6, 1, true);
       }
       prev = state;
     },
-    stop: () => stopLoop("arc_sea_waves"),
+    stop: () => stopSlotLoop("bubble.waves", "arc_sea_waves"),
   };
 }
 
@@ -520,18 +525,18 @@ export function snipSounds(): GameSounds<SnipState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.cuts > prev.cuts) playSound("arc_rope_cut", 0.8, 1, true);
+        if (state.cuts > prev.cuts) sfx("snip.cut", "arc_rope_cut", 0.8, 1, true);
         // snipRev 3: a springy branch bounce.
-        if ((state.springHits ?? 0) > (prev.springHits ?? 0)) playSound("arc_bounce", 0.7);
+        if ((state.springHits ?? 0) > (prev.springHits ?? 0)) sfx("snip.springBounce", "arc_bounce", 0.7);
         // snipRev 5: a picker's crook snags the apple (a low, slow bounce: the vine taking it).
-        if (state.hookTick !== undefined && state.hookTick !== prev.hookTick) playSound("arc_bounce", 0.6, 0.7, true);
+        if (state.hookTick !== undefined && state.hookTick !== prev.hookTick) sfx("snip.hook", "arc_bounce", 0.6, 0.7, true);
         const got = (s: SnipState) => s.starGot.reduce((n, g) => n + g, 0);
         const levelChanged = state.endTick !== prev.endTick;
-        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) playSound("arc_leaf_collect");
+        if (!levelChanged && state.level === prev.level && got(state) > got(prev)) sfx("snip.star", "arc_leaf_collect");
         if (levelChanged) {
-          if (state.stars > prev.stars && got(prev) === 0) playSound("arc_leaf_collect");
-          if (state.lastOutcome === SNIP_EATEN) playSound("arc_orchard_basket");
-          else playSound("arc_orchard_miss");
+          if (state.stars > prev.stars && got(prev) === 0) sfx("snip.star", "arc_leaf_collect");
+          if (state.lastOutcome === SNIP_EATEN) sfx("snip.basket", "arc_orchard_basket");
+          else sfx("snip.miss", "arc_orchard_miss");
         }
       }
       prev = state;
@@ -550,15 +555,15 @@ export function sliceSounds(): GameSounds<SliceState> {
       if (prev && state.tick > prev.tick) {
         if (state.slices > prev.slices && now - lastCut >= 60) {
           lastCut = now;
-          playSound("arc_knife_slice", 0.8, 1, true);
+          sfx("slice.cut", "arc_knife_slice", 0.8, 1, true);
         }
-        if (state.bombsHit > prev.bombsHit) { playSound("arc_crash"); playSound("arc_chilli_bell"); }
-        if (state.frenzyFrom.length > prev.frenzyFrom.length) playSound("arc_ketchup");
-        if (state.slowFrom.length > prev.slowFrom.length) playSound("arc_mustard");
+        if (state.bombsHit > prev.bombsHit) { sfx("slice.bomb", "arc_crash"); sfx("slice.bombBell", "arc_chilli_bell"); }
+        if (state.frenzyFrom.length > prev.frenzyFrom.length) sfx("slice.frenzyStart", "arc_ketchup");
+        if (state.slowFrom.length > prev.slowFrom.length) sfx("slice.slow", "arc_mustard");
         // Slice owns its combo cue; slice.tsx passes { combo: false } to arcadeFeedback.
         const combo = state.comboLive ? 1 + state.streak : 0;
         const prevCombo = prev.comboLive ? 1 + prev.streak : 0;
-        if (combo > prevCombo && combo > 1) playSound("arc_slice_combo", 0.8);
+        if (combo > prevCombo && combo > 1) sfx("slice.comboUp", "arc_slice_combo", 0.8);
       }
       prev = state;
     },
@@ -572,9 +577,9 @@ export function colourClashSounds(): GameSounds<ClashState> {
   return {
     frame(state) {
       if (prev && state.tick > prev.tick) {
-        if (state.lane !== prev.lane) playSound("pz_clash_lane", 0.8, 1, true);
-        if (state.correct > prev.correct) playSound("pz_clash_right");
-        if (state.wrong > prev.wrong) playSound("pz_clash_wrong");
+        if (state.lane !== prev.lane) sfx("stroop.lane", "pz_clash_lane", 0.8, 1, true);
+        if (state.correct > prev.correct) sfx("stroop.right", "pz_clash_right");
+        if (state.wrong > prev.wrong) sfx("stroop.wrong", "pz_clash_wrong");
       }
       prev = state;
     },

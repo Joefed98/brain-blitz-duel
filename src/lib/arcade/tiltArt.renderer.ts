@@ -479,7 +479,7 @@ export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, Arcad
 
 /**
  * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more of the lamp-lit
- * table round the board. The board's own dark rim (just outside the world, as toyBoard
+ * table round the board (above and below it: the stage centres Tilt's world in its box). The board's own dark rim (just outside the world, as toyBoard
  * draws it) sits on wooden table planks; the board, disc and maze are unchanged.
  */
 export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
@@ -492,7 +492,7 @@ export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   ctx.fillRect(view.left, view.top, vw, vh);
   // Table planks: long seams with a little grain, darker than the board's oak.
   ctx.save();
-  for (let y = H + 10 + 46, i = 0; y < view.bottom + 46; y += 46, i++) {
+  for (let y = H + 56 - 46 * Math.ceil((H + 56 - view.top) / 46), i = 0; y < view.bottom + 46; y += 46, i++) {
     ctx.fillStyle = "rgba(10,5,2,0.45)";
     ctx.fillRect(view.left, y, vw, 1.5);
     ctx.fillStyle = "rgba(255,220,170,0.05)";

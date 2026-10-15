@@ -11,7 +11,7 @@ import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/
 import { isRemovedType } from "@/lib/duel/removedGames";
 import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playSound, stopMusic } from "@/lib/sound";
+import { playSound, stopMusicExcept } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
 import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
@@ -223,7 +223,7 @@ function LiveAnswerReveal({
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
     cued.current = round;
-    stopMusic(200);
+    stopMusicExcept("music_reveal", 200);
     // One verdict (none for partial credit), then the score cue 0.35 s later.
     if (puzzle.type === "bomb" && bombRevealExploded(puzzle, myAnswer)) {
       playSound("pz_bomb_explode");

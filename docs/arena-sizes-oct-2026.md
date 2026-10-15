@@ -7,62 +7,101 @@ or PRACTICE, the timer and round pips centred, "?" and sound), 4px under the top
 (the arena slot) starts 4px under it (52px down without a notch), below any of the game's own HUD rows. The box runs edge
 to edge and down to the controls (8px above them) or 16px above the bottom of the visible screen; the lowest control row
 ends exactly 16px above it. A home-bar inset does not change any of it (a notch moves the header and box down by its inset).
-The world is drawn at the largest uniform scale that fits the box, top-anchored and centred across; every gap is the
+That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play
+screen adds the shortfall to its height (15 Oct 2026; arcade-device-bottom-check reproduces it in Chromium).
+The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the
 screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,
 below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
 browser by arcade-play-check; not device measurements.
 
-| Game | World | 375x667 | 390x700 | 390x844 | 430x932 | 1280x800 | Scale at 390x844 | Box top | Black below | Black across | Bottom control (gap to bottom) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hover | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 41px | 0px | - |
-| Breaker | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Rally | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Tempo | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 52px | 0px | - |
-| Fission | 390x560 | 375x515 → 359x515 | 390x548 → 382x548 | 390x692 → 390x560 | 430x780 → 430x617 | 1280x648 → 451x648 | 1.000x | 52px | 132px | 0px | Fission's two 76px arrows: 16px |
-| Wavefront | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Orbit | 390x620 | 375x547 → 344x547 | 390x580 → 365x580 | 390x724 → 390x620 | 430x812 → 430x684 | 1280x680 → 428x680 | 1.000x | 52px | 104px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
-| High Rise | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 41px | 0px | - |
-| Jaywalk | 390x580 | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 430x864 → 430x639 | 1280x732 → 492x732 | 1.000x | 52px | 196px | 0px | - |
-| Junction | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Rainbow Bridge | 390x620 | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 430x808 → 430x684 | 1280x676 → 425x676 | 1.000x | 52px | 100px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
-| Slice | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Swish | 390x560 | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 430x792 → 430x617 | 1280x660 → 460x660 | 1.000x | 52px | 144px | 0px | Swish's cancel strip (72px): 16px |
-| Flightpath | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 216px | 0px | - |
-| Coral Pop | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Roofbound | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Grappler | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 156px | 0px | - |
-| Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 59px | 0px | - |
-| Tilt | 440x470 | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 430x864 → 430x459 | 1280x732 → 685x732 | 0.886x | 52px | 359px | 0px | - |
-| Ball Tracker | 700x1000 | 375x563 → 375x536 | 390x596 → 390x557 | 390x740 → 390x557 | 430x828 → 430x614 | 1280x696 → 487x696 | 0.557x | 52px | 183px | 0px | Ball Tracker's status row (28px): 16px |
-| Gemstone | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 216px | 0px | - |
-| Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 76px | 0px | - |
-| Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 76px | 0px | - |
-| Tenfall | 360x520 | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 430x808 → 430x621 | 1280x676 → 468x676 | 1.083x | 108px | 157px | 0px | - |
-| Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 286px | 0px | - |
-| Pull! | 360x400 | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 430x838 → 430x478 | 1280x706 → 635x706 | 1.083x | 78px | 317px | 0px | - |
-| Mixed Signals | 390x560 | 375x539 → 375x538 | 390x572 → 390x560 | 390x716 → 390x560 | 430x804 → 430x617 | 1280x672 → 468x672 | 1.000x | 52px | 156px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
+| Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Hover | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |
+| Breaker | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Rally | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Tempo | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 0px | 52px | 0px | - |
+| Fission | 390x560 | 375x515 → 359x515 | 390x548 → 382x548 | 390x692 → 390x560 | 414x700 → 414x594 | 430x780 → 430x617 | 1280x648 → 451x648 | 1.000x | 52px | 0px | 132px | 0px | Fission's two 76px arrows: 16px |
+| Wavefront | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Orbit | 390x620 | 375x547 → 344x547 | 390x580 → 365x580 | 390x724 → 390x620 | 414x732 → 414x658 | 430x812 → 430x684 | 1280x680 → 428x680 | 1.000x | 52px | 0px | 104px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
+| High Rise | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |
+| Jaywalk | 390x580 | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | 1.000x | 52px | 0px | 196px | 0px | - |
+| Junction | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Rainbow Bridge | 390x620 | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | 1.000x | 52px | 0px | 100px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
+| Slice | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Swish | 390x560 | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | 1.000x | 52px | 0px | 144px | 0px | Swish's cancel strip (72px): 16px |
+| Flightpath | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
+| Coral Pop | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Roofbound | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Grappler | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 0px | 59px | 0px | - |
+| Tilt | 440x470 | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | 0.886x | 52px | 180px | 180px | 0px | - |
+| Ball Tracker | 700x1000 | 375x563 → 375x536 | 390x596 → 390x557 | 390x740 → 390x557 | 414x748 → 414x591 | 430x828 → 430x614 | 1280x696 → 487x696 | 0.557x | 52px | 0px | 183px | 0px | Ball Tracker's status row (28px): 16px |
+| Gemstone | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
+| Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
+| Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
+| Tenfall | 360x520 | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | 1.083x | 108px | 0px | 157px | 0px | - |
+| Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 0px | 286px | 0px | - |
+| Pull! | 360x400 | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | 1.083x | 78px | 0px | 317px | 0px | - |
+| Mixed Signals | 390x560 | 375x539 → 375x538 | 390x572 → 390x560 | 390x716 → 390x560 | 414x724 → 414x594 | 430x804 → 430x617 | 1280x672 → 468x672 | 1.000x | 52px | 0px | 156px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
 
 ## Arena scenes (15 Oct 2026)
 
 Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen
 only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is
-unchanged (same size, scale, top-anchored place and pointer mapping), and the scene takes no touches. Scene box → world
+unchanged (same size, scale, place and pointer mapping), and the scene takes no touches. Scene box → world
 box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a
 390x733 scene).
 
-| Game | 375x667 | 390x700 | 390x844 | 430x932 | 1280x800 | Scene beyond the world |
-|---|---|---|---|---|---|---|
-| Gemstone | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 430x864 → 430x617 | 1280x732 → 510x732 | more starry velvet backdrop below the board |
-| Tilt | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 430x864 → 430x459 | 1280x732 → 685x732 | the board's rim on more of the lamp-lit wooden table |
-| Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 430x764 → 430x430 | 1280x632 → 632x632 | more grass below the 4x4 field |
-| Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
-| Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
-| Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
-| Pull! | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 430x838 → 430x478 | 1280x706 → 635x706 | more field below |
-| Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 430x864 → 430x684 | 1280x732 → 460x732 | still deep rock below the floor's rock |
-| Rainbow Bridge | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 430x808 → 430x684 | 1280x676 → 425x676 | grass and hillside below the ground (sky, hills and ground beside the world) |
-| Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip |
+| Game | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scene beyond the world |
+|---|---|---|---|---|---|---|---|
+| Gemstone | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | more starry velvet backdrop below the board |
+| Tilt | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | the board's rim on more of the lamp-lit wooden table |
+| Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | more grass below the 4x4 field |
+| Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
+| Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
+| Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
+| Pull! | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | more field below |
+| Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | still deep rock below the floor's rock |
+| Rainbow Bridge | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | grass and hillside below the ground (sky, hills and ground beside the world) |
+| Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip |
+
+## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
+
+414x896 with a 48px notch and 34px home bar. Before, the app was laid out in WebKit's 848px viewport and the column ended
+16px above that: 64px above the bottom of the screen (measured on a device as about 65px). Box → world, then the gap from the
+lowest control (or the box) to the bottom of the screen. Safari (toolbars collapsed) was already the "after" column.
+
+| Game | Before (home-screen app) | After |
+|---|---|---|
+| Hover | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px |
+| Breaker | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Rally | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Tempo | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Meteor | 414x736 → 396x736, 64px | 414x784 → 414x769, 16px |
+| Fission | 414x652 → 414x594, 64px | 414x700 → 414x594, 16px |
+| Wavefront | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Orbit | 414x684 → 414x658, 64px | 414x732 → 414x658, 16px |
+| High Rise | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px |
+| Jaywalk | 414x736 → 414x616, 64px | 414x784 → 414x616, 16px |
+| Junction | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Rainbow Bridge | 414x680 → 414x658, 64px | 414x728 → 414x658, 16px |
+| Slice | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Swish | 414x664 → 414x594, 64px | 414x712 → 414x594, 16px |
+| Flightpath | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px |
+| Coral Pop | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Roofbound | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Grappler | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
+| Scrumper | 414x712 → 401x712, 64px | 414x760 → 414x736, 16px |
+| Tilt | 414x736 → 414x442, 64px | 414x784 → 414x442, 16px |
+| Ball Tracker | 414x700 → 414x591, 64px | 414x748 → 414x591, 16px |
+| Gemstone | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px |
+| Pinball | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px |
+| Letterfall | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px |
+| Tenfall | 414x680 → 414x598, 64px | 414x728 → 414x598, 16px |
+| Bonk | 414x636 → 414x414, 64px | 414x684 → 414x414, 16px |
+| Pull! | 414x710 → 414x460, 64px | 414x758 → 414x460, 16px |
+| Mixed Signals | 414x676 → 414x594, 64px | 414x724 → 414x594, 16px |
 
 ## Before 15 Oct 2026 (arcade games)
 

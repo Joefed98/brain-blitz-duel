@@ -99,13 +99,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }}
       footer={(send) => (
-        // The 44 px button's row ends 16 px above the visible bottom, as every arcade control row (display only).
+        // The 44 px button's row ends 16 px above the bottom of the screen, as every arcade control row; the
+        // button is 44 px tall with 11 px text and 12 px sides, narrower than before (15 Oct 2026, display only).
         <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">
           {canSet && !locked && (
             <ArcadeControlButton
               type="button"
               aria-label="Set checkpoint"
-              className="h-11 px-5 text-xs font-bold before:content-['SET_CHECKPOINT']"
+              className="h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
               onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
             />
           )}

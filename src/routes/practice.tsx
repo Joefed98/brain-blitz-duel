@@ -50,6 +50,7 @@ import {
 } from "@/lib/sound";
 import { roundMusicFor } from "@/lib/fx/theme";
 import { roundMusicRemaining, useRoundMusic } from "@/lib/duel/useRoundMusic";
+import { useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
@@ -175,6 +176,9 @@ function PracticeScreen() {
       releaseRoomMusic();
     };
   }, []);
+  // Silent until the slots get files (docs/sound-cues/music.md).
+  useScreenMusic("music_practice", stage === "list");
+  useScreenMusic("music_reveal", stage === "reveal");
 
   const load = useCallback(
     async (next: PuzzleType) => {

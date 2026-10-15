@@ -10,7 +10,7 @@ import {
 import type { PuzzleType } from "@/lib/duel/types";
 import { FINAL_PUNCH_MS, roundMomentSpec } from "@/lib/fx/roomMoments";
 import { roundMusicFor } from "@/lib/fx/theme";
-import { playVoice, prepareRoundMusic, stopMusic, type VoiceId } from "@/lib/sound";
+import { playVoice, prepareRoundMusic, stopMusicExcept, type VoiceId } from "@/lib/sound";
 import { useMomentElapsed } from "@/lib/fx/useRoomMoments";
 import { RoomMomentFx } from "./RoomMomentFx";
 
@@ -35,7 +35,7 @@ export function RoundTitle({
   const elapsed = useMomentElapsed(startedAt);
 
   useEffect(() => {
-    stopMusic(0);
+    stopMusicExcept("music_round_title", 0);
     prepareRoundMusic(roundMusicFor(type, category));
   }, [type, category]);
 

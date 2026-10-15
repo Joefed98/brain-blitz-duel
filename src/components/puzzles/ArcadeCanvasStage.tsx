@@ -48,6 +48,8 @@ interface Props<S, C> {
   scene?: (ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: S) => void;
   /** Repaints the scene when this changes (e.g. the level, whose ground the scene meets). */
   sceneKey?: (state: S) => string | number;
+  /** With fitWorld: centre the world vertically in its box instead of top-anchoring it (Tilt; display only). */
+  centreWorld?: boolean;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -324,6 +326,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       <ArcadeArenaSlot
         width={props.worldW}
         height={props.worldH}
+        centre={props.centreWorld}
         scene={props.scene ? (ctx, view) => propsRef.current.scene?.(ctx, view, state.current) : undefined}
         sceneKey={sceneKey ?? props.sceneKey?.(state.current)}
       >

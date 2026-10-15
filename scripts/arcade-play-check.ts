@@ -28,8 +28,9 @@
  *    one 44 px row 4 px from the top (its timer centred, its text 12 px or more); the box
  *    (arena slot) not the full screen width or not starting 4 px under the header (below
  *    the game's own HUD rows, ABOVE); the arena not the game's world aspect (within 1 px),
- *    not the largest uniform fit of its box, not top-anchored and centred, or its top
- *    moving between sizes; the box or the space below the arena not the screen edge's
+ *    not the largest uniform fit of its box, not top-anchored (Tilt, since 15 Oct 2026:
+ *    centred vertically, data-arena-centred) and centred across, or its top moving between
+ *    sizes (centred worlds excepted); the box or the space below the arena not the screen edge's
  *    black (#070709), or the page behind not that black; the column not ending 16 px
  *    above the bottom, or the lowest control not exactly 16 px above it, whatever the
  *    home-bar inset (at 390x844 also with a 34 px home bar emulated, where the arena must
@@ -397,6 +398,9 @@ function playScreen() {
   };
 }
 
+/** Games whose world is centred vertically in its box (ArcadeCanvasStage centreWorld). */
+const CENTRED_WORLDS = new Set(["tilt"]);
+
 /**
  * The live arcade play screen at every layout viewport: the compact header, the edge-to-edge
  * box, the world's aspect at the largest uniform scale that fits it, top-anchored at a fixed
@@ -410,6 +414,8 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
   }
   const engine = game in ENGINE_GAME_WORLDS || (ENGINE_PLAY_GAMES as readonly string[]).includes(game);
   const tops: number[] = [];
+  /** Tilt's world sits centred vertically in its box (data-arena-centred, 15 Oct 2026); every other world is top-anchored. */
+  const centred = CENTRED_WORLDS.has(game);
   for (const [w, h] of LAYOUT_VIEWPORTS) {
     await page.setViewportSize({ width: w, height: h });
     await nextFrames(page);
@@ -431,7 +437,9 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
     if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
     if (arena.w < slot.w - 1 && arena.h < slot.h - 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the largest fit in ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
-    if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
+    if (centred) {
+      if (Math.abs(arena.y - slot.y - (slot.h - arena.h) / 2) > 0.5) problems.push(`${at}: arena not centred vertically in its slot`);
+    } else if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
     if (Math.abs(arena.x - slot.x - (slot.w - arena.w) / 2) > 0.5) problems.push(`${at}: arena not centred across its slot`);
     if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
     if ((ARENA_SCENE_GAMES as readonly string[]).includes(game)) {
@@ -455,7 +463,7 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
     }
-    tops.push(arena.y);
+    if (!centred) tops.push(arena.y);
   }
   if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
   // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end;

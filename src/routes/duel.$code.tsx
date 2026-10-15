@@ -43,6 +43,7 @@ import {
   playLock,
   playPlayerJoined,
   playSound,
+  screenMusic,
   startMusic,
   releaseRoomMusic,
   holdMusicBed,
@@ -490,6 +491,7 @@ function DuelScreen() {
   }, [tournamentKey, phase, round, revealed?.round, revealed?.tournamentKey, revealed?.data.partial, revealed?.data.awaitingAnswer, !!myResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Beds are requested only outside rounds; manifest music is silent until supplied.
+  // The prepare, title, reveal and winner screens stay silent until their slot has a file.
   const musicScreen =
     duel?.status === "waiting"
       ? "lobby_loop"
@@ -497,7 +499,15 @@ function DuelScreen() {
         ? "podium_loop"
         : phase === "result" || phase === "standings"
           ? "standings_loop"
-          : null;
+          : phase === "starting"
+            ? screenMusic("music_prepare")
+            : phase === "round_title"
+              ? screenMusic("music_round_title")
+              : phase === "reveal"
+                ? screenMusic("music_reveal")
+                : phase === "winner_reveal"
+                  ? screenMusic("music_winner")
+                  : null;
   useEffect(() => {
     if (musicScreen) startMusic(musicScreen);
     // The intro screen owns its own bed (intro_loop).

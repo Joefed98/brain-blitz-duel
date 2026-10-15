@@ -48,6 +48,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   scale that fits, top-anchored. The lowest control row ends exactly 16 px above the bottom, inset or not. Every gap is
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
   same world and inputs everywhere, no seams. `docs/arena-sizes-oct-2026.md` lists every box and world size.
+  "The bottom" is the physical bottom of the screen: an iOS home-screen app is laid out short by the top inset (WebKit bug
+  254868), so the play screen adds the measured shortfall (`--standalone-short`, PhoneShell) to its height. Tilt's world is
+  centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower. arcade-device-bottom-check (headless Chromium,
+  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry; run it after any
+  arcade play-screen layout change.
 - **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
   Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
   behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
@@ -68,7 +73,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `src/lib/fx/roomMoments.ts` — the room's big-moment effects (Prepare to Duel, round titles 1–6, Final
   Round, the winner reveal; display only, CSS `rfx-*`, cues `room.*`, `room-moments-check`);
   `src/lib/fx/soundCues.ts` and `docs/sound-cues/` — named sound cues (`duelz-sound` events,
-  `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them).
+  `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them). Every cue, arcade moment and music slot has
+  an entry in `src/lib/fx/manifest.ts` (`url: null` until a file is set; `docs/sound-cues/README.md` says how);
+  `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

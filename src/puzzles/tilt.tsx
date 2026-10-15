@@ -47,6 +47,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("tilt")}
       background={TILT_BG}
       fitWorld
+      centreWorld
       scene={tiltArenaScene}
       seed={data?.seed ?? 1}
       enabled={data !== null}

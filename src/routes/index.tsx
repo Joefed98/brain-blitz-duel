@@ -12,6 +12,7 @@ import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 import { gameCounts } from "@/lib/duel/registry";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
+import { useScreenMusic } from "@/lib/useScreenMusic";
 
 const GAME_COUNTS = gameCounts();
 
@@ -51,6 +52,8 @@ function Home() {
   const codeRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => setName(getStoredName()), []);
+  // Silent until the slot gets a file (docs/sound-cues/music.md).
+  useScreenMusic("music_home");
 
   const fail = (message: string) => {
     setError(message);
