@@ -49,8 +49,9 @@ const arcadeRows = [
   // Tuning B: Fission has no FIRE button (a tap on the arena fires); two 76px arrows, 16px apart.
   { file: "burst", row: /data-game-controls="pad" className="grid h-\[76px\] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">/, button: /className="h-\[76px\] w-full/g, count: 2, width: (w: number) => (w - 8 - 16) / 2, tall: 76 },
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
-  // Orbit's 44 px row holds its 44 px button (it was a 76 px row with the button 28 px up from its bottom).
-  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/, button: /className="h-11 px-5/g, count: 1, width: () => 44, tall: 44 },
+  // Orbit's 44 px row holds its 44 px button (it was a 76 px row with the button 28 px up from its bottom);
+  // since 15 Oct 2026 the button is narrower: 11 px text, 12 px sides.
+  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/, button: /className="h-11 px-3 text-\[11px\]/g, count: 1, width: () => 44, tall: 44 },
 ];
 const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
 assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] :is\(\[data-game-controls="pad"\], \[data-game-controls="tools"\]\) \{\s*padding-inline: 4px;\s*\}/, "pad and tools rows keep 4px side margins");
