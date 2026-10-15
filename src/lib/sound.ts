@@ -16,6 +16,7 @@
  */
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
+import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
 import { devDisplayAllowed } from "./devDisplay";
 import {
   changeChannelMuted,
@@ -42,19 +43,42 @@ export type Cue =
   | "round_won"
   | "podium_fanfare";
 
-export type Track = "lobby_loop" | "tension_loop" | "standings_loop" | "podium_loop" | "intro_loop";
+export type Track =
+  | "lobby_loop"
+  | "tension_loop"
+  | "standings_loop"
+  | "podium_loop"
+  | "intro_loop"
+  // Screen slots with no file yet (docs/sound-cues/music.md); screenMusic() skips them until they get one.
+  | "music_home"
+  | "music_practice"
+  | "music_prepare"
+  | "music_round_title"
+  | "music_reveal"
+  | "music_winner";
 
 /** First-tap preload: effects and voice only; music loads on demand per screen/round. */
-const FILES = Object.fromEntries(
-  Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) =>
-    entry.url && entry.channel !== "music" ? [[id, entry.url]] : [],
-  ),
-) as Partial<Record<SoundId, string>>;
+function preloadFiles(): [string, string][] {
+  return Object.entries(SOUND_MANIFEST).flatMap(([id, entry]) =>
+    entry.url && entry.channel !== "music" ? [[id, entry.url] as [string, string]] : [],
+  );
+}
 export const SOUND_NAMES = Object.keys(SOUND_MANIFEST) as SoundId[];
 
 const FADE_MS = 400;
-/** Effects played through ensureLoop. */
-const EFFECT_LOOPS = new Set<SoundId>(["arc_space_ambience", "arc_marble_roll", "arc_sea_waves"]);
+/** Effects played through ensureLoop (plus any slot marked `loop` in the manifest). */
+const EFFECT_LOOPS = new Set<SoundId>([
+  "arc_space_ambience",
+  "arc_marble_roll",
+  "arc_sea_waves",
+  ...SOUND_NAMES.filter((id) => SOUND_MANIFEST[id].loop),
+]);
+
+/** A file's own level from the manifest (1 unless the entry sets `volume`). */
+function entryVolume(id: SoundId): number {
+  const level = SOUND_MANIFEST[id]?.volume;
+  return typeof level === "number" ? Math.max(0, Math.min(1, level)) : 1;
+}
 
 type AnyContextState = AudioContextState | "interrupted";
 
@@ -153,7 +177,7 @@ export const onMuteChange = onSoundSettingsChange;
 async function preload(): Promise<void> {
   if (!ctx) return;
   await Promise.all(
-    Object.entries(FILES).map(async ([name, url]) => {
+    preloadFiles().map(async ([name, url]) => {
       if (buffers.has(name)) return;
       try {
         if (!url) return;
@@ -320,7 +344,10 @@ export function soundDiagnostics(): SoundDiagnostics {
     currentTrack: currentTrack?.name ?? null,
     loaded: SOUND_NAMES.filter((name) => buffers.has(name)),
     failed: SOUND_NAMES.filter((name) => failedFiles.has(name)),
-    pending: SOUND_NAMES.filter((name) => !buffers.has(name) && !failedFiles.has(name)),
+    // Empty slots (no file yet) are never pending.
+    pending: SOUND_NAMES.filter(
+      (name) => !!SOUND_MANIFEST[name].url && !buffers.has(name) && !failedFiles.has(name),
+    ),
   };
 }
 
@@ -373,7 +400,9 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
     if (rate !== 1) source.playbackRate.setValueAtTime(rate, ctx.currentTime);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(
-      (cue === "podium_fanfare" ? FANFARE_GAIN : 1) * Math.max(0, Math.min(1, volume)),
+      (cue === "podium_fanfare" ? FANFARE_GAIN : 1) *
+        Math.max(0, Math.min(1, volume)) *
+        entryVolume(cue),
       ctx.currentTime,
     );
     source.connect(gain).connect(entry.channel === "voice" && voiceGain ? voiceGain : effectsGain);
@@ -483,7 +512,10 @@ export function ensureLoop(id: SoundId, volume = 0.3): void {
     }
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(Math.max(0, Math.min(1, volume)), ctx.currentTime + 0.4);
+    gain.gain.linearRampToValueAtTime(
+      Math.max(0, Math.min(1, volume)) * entryVolume(id),
+      ctx.currentTime + 0.4,
+    );
     source.connect(gain).connect(effectsGain);
     source.start(0, points?.start ?? 0);
     loops.set(id, { source, gain });
@@ -531,6 +563,71 @@ export function stopSound(id: SoundId): void {
     /* finished */
   }
 }
+/** True once the slot's own file is set and decoded; a missing or failed file is false. */
+function slotReady(id: string): boolean {
+  return (
+    !!(SOUND_MANIFEST as Record<string, { url: string | null } | undefined>)[id]?.url &&
+    buffers.has(id)
+  );
+}
+
+/**
+ * Plays a named cue's own file (`duelz-sound` cues, docs/sound-cues/README.md).
+ * A cue whose slot has no file (or whose file failed to load) plays nothing and
+ * returns false, so callers keep whatever they did before. Replay cues such as
+ * `<gameId>.final-second` share one `*.<event>` slot unless the game has its own.
+ */
+export function playCueSlot(cue: string, volume = 1, rate = 1): boolean {
+  const dot = cue.indexOf(".");
+  const id = slotReady(cue)
+    ? cue
+    : dot > 0 && slotReady(`*${cue.slice(dot)}`)
+      ? `*${cue.slice(dot)}`
+      : null;
+  if (!id || SOUND_MANIFEST[id as SoundId].channel === "music") return false;
+  playSound(id as SoundId, volume, rate, true);
+  return true;
+}
+
+/** Plays a cue's own file when its slot has a loaded one, else the shared sound it played before. */
+export function playSlotOr(
+  cue: SoundId,
+  fallback: SoundId,
+  volume = 1,
+  rate = 1,
+  overlap = false,
+  keepRate = false,
+): void {
+  if (slotReady(cue)) playSound(cue, volume, keepRate ? rate : 1, overlap);
+  else playSound(fallback, volume, rate, overlap);
+}
+
+/** The looping counterpart of playSlotOr: the slot's own loop once its file is loaded. */
+export function ensureSlotLoop(cue: SoundId, fallback: SoundId, volume = 0.3): void {
+  if (slotReady(cue)) {
+    stopLoop(fallback, 120);
+    ensureLoop(cue, volume);
+  } else ensureLoop(fallback, volume);
+}
+export function stopSlotLoop(cue: SoundId, fallback: SoundId, fadeMs = 300): void {
+  stopLoop(cue, fadeMs);
+  stopLoop(fallback, fadeMs);
+}
+
+let cueBridge = false;
+/**
+ * Listens for every named cue and plays the file in its manifest slot, if any.
+ * Installed once from the root; cues without a file stay silent as before.
+ */
+export function installSoundCueBridge(): void {
+  if (cueBridge || typeof window === "undefined") return;
+  cueBridge = true;
+  window.addEventListener(SOUND_CUE_EVENT, (event) => {
+    const cue = (event as CustomEvent<SoundCueDetail>).detail?.cue;
+    if (typeof cue === "string") playCueSlot(cue);
+  });
+}
+
 export function playCue(cue: Cue, volume = 1): void {
   if (demoHushed()) return;
   playSound(cue, volume);
@@ -729,8 +826,10 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
   const buffer = musicBuffers.get(name);
   if (!buffer) {
     // Loaded the first time a screen needs it; starts once decoded if still wanted.
+    // A file that failed to load is not retried here (the screen stays silent).
     void loadMusicBuffer(name).then(() => {
-      if (desiredTrack?.name === name && !currentTrack) startMusic(name, desiredTrack.options);
+      if (musicBuffers.has(name) && desiredTrack?.name === name && !currentTrack)
+        startMusic(name, desiredTrack.options);
     });
     return;
   }
@@ -745,7 +844,7 @@ export function startMusic(name: Track, options: MusicOptions = {}): void {
     const gain = ctx.createGain();
     const t = ctx.currentTime;
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(1, t + fade / 1000);
+    gain.gain.linearRampToValueAtTime(entryVolume(name), t + fade / 1000);
     if (options.rate) source.playbackRate.setValueAtTime(options.rate, t);
     if (options.rampToRate && options.rampMs) {
       source.playbackRate.linearRampToValueAtTime(options.rampToRate, t + options.rampMs / 1000);
@@ -764,6 +863,17 @@ export function stopMusic(fadeMs: number = FADE_MS): void {
   if (!currentTrack) return;
   fadeOut(currentTrack, fadeMs);
   currentTrack = null;
+}
+
+/** Stops whatever bed is on unless it is (or is about to be) `name`. */
+export function stopMusicExcept(name: Track, fadeMs: number = FADE_MS): void {
+  if (currentTrack?.name === name || desiredTrack?.name === name) return;
+  stopMusic(fadeMs);
+}
+
+/** A screen's bed if its slot has a file, else null (the screen stays as it is today). */
+export function screenMusic(name: Track): Track | null {
+  return SOUND_MANIFEST[name]?.url ? name : null;
 }
 
 /** Stops the bed only if it is (or is about to be) `name`; other beds are untouched. */
@@ -816,7 +926,7 @@ function detectLoopPoints(buffer: AudioBuffer): { start: number; end: number } {
 }
 
 function loadMusicBuffer(id: SoundId): Promise<void> {
-  if (musicBuffers.has(id)) return Promise.resolve();
+  if (musicBuffers.has(id) || failedFiles.has(id)) return Promise.resolve();
   const existing = musicLoads.get(id);
   if (existing) return existing;
   const url = SOUND_MANIFEST[id]?.url;
@@ -834,6 +944,8 @@ function loadMusicBuffer(id: SoundId): Promise<void> {
       if (/\.mp3$/i.test(url)) loopPoints.set(id, detectLoopPoints(decoded));
       musicBuffers.set(id, decoded);
     } catch (error) {
+      // Remembered so a missing bed is not fetched again and again; a new round retries once.
+      failedFiles.add(id);
       warnOnce(`could not load ${url}`, error);
     } finally {
       if (musicTokens.get(id) === token) musicLoads.delete(id);
@@ -844,6 +956,8 @@ function loadMusicBuffer(id: SoundId): Promise<void> {
 }
 
 function releaseMusicBuffer(id: SoundId): void {
+  // Released beds may be fetched again later (a file that failed gets one more try).
+  failedFiles.delete(id);
   musicBuffers.delete(id);
   musicLoads.delete(id);
   musicTokens.delete(id);
@@ -883,7 +997,7 @@ let pendingRoundMusic: SoundId | null = null;
 
 function applyRoundLevel(rampSeconds: number): void {
   if (!ctx || !roundTrack) return;
-  const target = isMusicMuted() ? 0 : roundLevel * musicVolume();
+  const target = isMusicMuted() ? 0 : roundLevel * musicVolume() * entryVolume(roundTrack.id);
   const g = roundTrack.gain.gain;
   const t = ctx.currentTime;
   try {
@@ -993,6 +1107,7 @@ export function syncRoundMusic(next: RoundMusicPlan): void {
     haltRoundMusic("next-round");
     roundBegan = false;
     roundDone = false;
+    if (next.track) failedFiles.delete(next.track);
   }
   if (next.track && next.track !== plan.track) {
     roundArcade = !/^music_(word|number|speed|attention|pattern|logic)_/.test(next.track);
@@ -1049,8 +1164,8 @@ function startRoundTrack(id: SoundId): void {
         awaitingLoad.add(id);
         void load.then(() => {
           awaitingLoad.delete(id);
-          // The moment it is ready: same rules (still wanted, >10 s left).
-          if (wantedRound === id && plan.track === id) applyRoundPlan();
+          // The moment it is ready: same rules (still wanted, >10 s left). A failed load waits.
+          if (musicBuffers.has(id) && wantedRound === id && plan.track === id) applyRoundPlan();
         });
       }
     }
@@ -1069,7 +1184,10 @@ function startRoundTrack(id: SoundId): void {
   try {
     const source = loopingSource(id, buffer);
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(isMusicMuted() ? 0 : roundLevel * musicVolume(), ctx.currentTime);
+    gain.gain.setValueAtTime(
+      isMusicMuted() ? 0 : roundLevel * musicVolume() * entryVolume(id),
+      ctx.currentTime,
+    );
     source.connect(gain).connect(masterGain);
     source.start(0, source.loopStart);
     roundTrack = { id, source, gain };

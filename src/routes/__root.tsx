@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
-import { installSoundUnlock } from "../lib/sound";
+import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
@@ -147,6 +147,8 @@ function RootComponent() {
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).
   useEffect(() => installSoundUnlock(), []);
+  // Named cues (docs/sound-cues) play their manifest file once one is set.
+  useEffect(() => installSoundCueBridge(), []);
 
   // A stale copy of the app updates itself, never mid-round (lib/appUpdate).
   const router = useRouter();

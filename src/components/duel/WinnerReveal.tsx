@@ -8,7 +8,7 @@ import {
   winnerRevealFrame,
 } from "@/lib/duel/startPresentation";
 import { WINNER_SPEC } from "@/lib/fx/roomMoments";
-import { playSound, playVoice, stopMusic, stopSound } from "@/lib/sound";
+import { playSound, playVoice, stopMusicExcept, stopSound } from "@/lib/sound";
 import { RoomMomentFx } from "./RoomMomentFx";
 
 /** Shared-clock cue: skipped entirely when the player arrives after its start time. */
@@ -29,7 +29,7 @@ export function WinnerReveal({ startedAt }: { startedAt: number }) {
   const text = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    stopMusic(0);
+    stopMusicExcept("music_winner", 0);
     const cancels = [
       schedule(startedAt, WINNER_VOICE_MS, () => playVoice("winnerIs")),
       schedule(startedAt, WINNER_ROLL_MS, () => playSound("winner_drumroll")),
