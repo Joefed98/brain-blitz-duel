@@ -49,7 +49,8 @@ browser by arcade-play-check; not device measurements.
 
 Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen
 only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is
-unchanged (same size, scale, place and pointer mapping), and the scene takes no touches. Scene box → world
+unchanged (same size, scale, place and pointer mapping). The scene is drawn once per screen size (never per frame) on a
+pointer-events: none canvas, so a tap or drag in it reaches no game handler and records no input. Scene box → world
 box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a
 390x733 scene).
 

@@ -56,7 +56,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
   Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
   behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
-  size, `pointer-events: none`); the world, its place and its tap mapping are unchanged, and the gap is black elsewhere.
+  screen size, never per frame, `pointer-events: none`, so a tap or drag in it records no input); the world, its place
+  and its tap mapping are unchanged, and the gap is black elsewhere.
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.
