@@ -2238,12 +2238,16 @@ export const STRIKEOUT_TIME_MS = 100_000;
 
 export interface StrikeoutPuzzleData {
   type: "strikeout";
-  /** Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026). */
+  /**
+   * Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026;
+   * 3 = rev 2 with ten strikes, three vowel guesses per word, one more starting letter on words 1–3 and
+   * 1.5 per strike left, 15 Oct 2026).
+   */
   strikeoutRev: number;
   rows: number;
   /** Rev 1: every word's length; rev 2: the longest word's length (each word's own length is its givens pattern's). */
   length: number;
-  /** Rev 2: each word's starting letters as a public pattern ("__N_____"; every copy of a starting letter shows). */
+  /** Rev 2 and 3: each word's starting letters as a public pattern ("__N_____"; every copy of a starting letter shows). */
   givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
