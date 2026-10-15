@@ -85,6 +85,12 @@ html:has([data-arcade-play]) body,
 [data-arcade-play] > .screen-background {
   display: none;
 }
+/* An iOS home-screen app is laid out in a viewport short by the top inset (WebKit bug
+   254868): the play screen reaches the bottom of the screen all the same. PhoneShell
+   measures the shortfall into --standalone-short (0 in Safari and everywhere else). */
+[data-arcade-play].game-viewport {
+  height: calc(100dvh + var(--standalone-short, 0px));
+}
 [data-arcade-play] > [data-game-column] {
   padding-top: max(4px, env(safe-area-inset-top, 0px));
   padding-bottom: 16px;

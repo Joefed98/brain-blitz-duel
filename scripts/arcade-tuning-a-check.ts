@@ -321,7 +321,7 @@ if (want("orbit")) {
   ok(puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_TUNED }) && puzzleUsesBands({ type: "orbit", orbitRev: ORBIT_REV_BAND }), "orbitRev 5 and 6 both score on the band curve");
   const footer = readFileSync("src/puzzles/orbit.tsx", "utf8");
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
-  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall");
+  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
 /* =============================== 2d. Grappler =============================== */

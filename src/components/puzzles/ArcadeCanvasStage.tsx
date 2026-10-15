@@ -40,6 +40,8 @@ interface Props<S, C> {
    * that fits (ArcadeArenaSlot), so the world is never stretched or cropped.
    */
   fitWorld?: boolean;
+  /** With fitWorld: centre the world vertically in its box instead of top-anchoring it (Tilt; display only). */
+  centreWorld?: boolean;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -306,7 +308,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   return (
     <>
     {props.fitWorld ? (
-      <ArcadeArenaSlot width={props.worldW} height={props.worldH}>{arena}</ArcadeArenaSlot>
+      <ArcadeArenaSlot width={props.worldW} height={props.worldH} centre={props.centreWorld}>{arena}</ArcadeArenaSlot>
     ) : arena}
     {props.footer?.(push)}
     </>

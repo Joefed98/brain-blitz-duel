@@ -1481,6 +1481,14 @@ body.game-lock {
   min-height: 0;
   background: var(--screen-edge);
 }
+/* A centred slot (Tilt, 15 Oct 2026): the spare height splits evenly above and below the world. */
+[data-arena-slot][data-arena-centred]::before {
+  content: "";
+  flex: 1 1 0;
+  width: min(100cqw, 100cqh * var(--arena-w) / var(--arena-h));
+  min-height: 0;
+  background: var(--screen-edge);
+}
 .game-column [data-stage-column] > [data-arena-slot] {
   flex-grow: 1;
   flex-basis: 0;

@@ -16,8 +16,10 @@ export const SHARDS: Record<string, string[]> = {
   // Tenfall, Mixed Signals, Bonk, Pull!) in five groups (one job each, one game at a time, so
   // frame times compare fairly with the CI baseline; the groups are unchanged). The workflow
   // installs the browser and swaps in the CI frame-time baseline for these.
-  play1: ["arcade-play-check.ts@1/5"],
-  play2: ["arcade-play-check.ts@2/5"],
+  // arcade-device-bottom-check (15 Oct 2026: every arcade play screen on iPhone 11 / 14 home-screen
+  // app and Safari geometry, ~5 min whole) rides here in halves.
+  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/2"],
+  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/2"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) rides here.
   play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx"],
   // safe-area-screens-check (non-game screens, notch and home bar emulated, ~2 min) rides here.

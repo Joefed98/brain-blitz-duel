@@ -13,14 +13,16 @@ import type { CSSProperties, ReactNode } from "react";
  * Presentation only: games keep mapping pointers through the arena element's own
  * box, so world coordinates, input logs and replays are unchanged.
  */
-export function ArcadeArenaSlot({ width, height, children }: {
+export function ArcadeArenaSlot({ width, height, centre = false, children }: {
   /** World (view) size the game draws, in world units. */
   width: number;
   height: number;
+  /** Centre the world vertically in the slot (its spare height split above and below) instead of top-anchoring it. */
+  centre?: boolean | undefined;
   children: ReactNode;
 }) {
   return (
-    <div data-arena-slot="" style={{ "--arena-w": width, "--arena-h": height } as CSSProperties}>
+    <div data-arena-slot="" data-arena-centred={centre ? "" : undefined} style={{ "--arena-w": width, "--arena-h": height } as CSSProperties}>
       {children}
     </div>
   );

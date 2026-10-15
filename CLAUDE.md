@@ -48,6 +48,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   scale that fits, top-anchored. The lowest control row ends exactly 16 px above the bottom, inset or not. Every gap is
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
   same world and inputs everywhere, no seams. `docs/arena-sizes-oct-2026.md` lists every box and world size.
+  "The bottom" is the physical bottom of the screen: an iOS home-screen app is laid out short by the top inset (WebKit bug
+  254868), so the play screen adds the measured shortfall (`--standalone-short`, PhoneShell) to its height. Tilt's world is
+  centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower. arcade-device-bottom-check (headless Chromium,
+  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry; run it after any
+  arcade play-screen layout change.
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.
