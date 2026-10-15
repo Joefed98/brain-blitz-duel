@@ -16,7 +16,7 @@ import {
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
-import { drawInkRainbowExample, inkBridgeArtGameFor, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
+import { drawInkRainbowExample, inkArenaScene, inkBridgeArtGameFor, inkSceneGround, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
 import { inkBridgeSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("inkbridge")}
         background={INK_ART_BG}
         fitWorld
+        scene={(ctx, view, state) => inkArenaScene(ctx, view, inkSceneGround(state))}
+        sceneKey={inkSceneGround}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}

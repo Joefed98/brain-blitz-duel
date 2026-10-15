@@ -42,6 +42,7 @@ import {
 } from "./cross";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 // Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
 // realworld.renderer re-exports drawVehicle from this module).
@@ -547,11 +548,11 @@ function roadLayer(ctx: CanvasRenderingContext2D, course: ReturnType<typeof cros
 }
 
 /** The game's drawing through the shared success layer (presentation only). */
-export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
-  arcadeFx(ctx, CROSS_FX, state, () => drawCrossArtWorld(ctx, state, size, crashIndicator), size);
+export function drawCrossArt(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
+  arcadeFx(ctx, CROSS_FX, state, () => drawCrossArtWorld(ctx, state, size, crashIndicator, pavedFoot), size);
 }
 
-function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true): void {
+function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize, crashIndicator = true, pavedFoot = false): void {
   const still = reducedMotion();
   const scale = Math.min(size.width / CROSS_WORLD_W, size.height / CROSS_WORLD_H);
   const offsetX = (size.width - CROSS_WORLD_W * scale) / 2;
@@ -575,6 +576,13 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
 
   // Verges, pavements, road surface, markings and roadworks: one cached layer per crossing.
   const layer = roadLayer(ctx, course, tex);
+  // The play screen's arena scene (crossArenaScene) widens the start pavement downwards: the
+  // grass strip under it is paved too, so pavement runs on unbroken past the world's edge.
+  if (pavedFoot) {
+    const foot = CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H + CROSS_KERB_H - 2;
+    ctx.fillStyle = tex.paving ?? "#BCC1C8";
+    ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, CROSS_WORLD_H - foot);
+  }
   // Finish pavement pulse after a clean crossing.
   const age = state.tick - memory.pulseTick;
   if (age >= 0 && age < 45) {
@@ -703,3 +711,32 @@ export function crossArtGameFor(rev?: number | null): typeof crossArtGame {
   return game;
 }
 export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: CrossState, size: CanvasSize) => drawCrossArt(ctx, state, size, false) };
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): a wider start pavement.
+ * Below the world the same paving (the same slab pattern, anchored to the world) runs on
+ * between the same grass verges, down to a grass strip along the arena box's bottom. The
+ * play screen's stage draws the world with `pavedFoot`, so the pavement is unbroken. The
+ * lanes, kerbs and the walker's start are unchanged; nothing here moves or takes a touch.
+ */
+export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const tex = texture(ctx);
+  for (const side of sceneSides(view)) paintGrass(ctx, side.x, side.y, side.w, side.h);
+  const below = sceneBelow(view);
+  if (!below) return;
+  paintGrass(ctx, below.x, below.y, below.w, below.h);
+  const verge = Math.min(14, below.h);
+  const paved = below.h - verge;
+  if (paved > 0) {
+    ctx.fillStyle = tex.paving ?? "#BCC1C8";
+    ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
+    // The paving's outer edge: a low edging stone, then the grass edge's shadow.
+    ctx.fillStyle = REAL_KERB;
+    ctx.fillRect(CROSS_BOARD_X, below.y + paved - 3, CROSS_BOARD_W, 3);
+    ctx.fillStyle = "rgba(30,38,48,0.35)";
+    ctx.fillRect(CROSS_BOARD_X, below.y + paved - 1, CROSS_BOARD_W, 1);
+    ctx.fillStyle = "rgba(30,50,20,0.18)";
+    ctx.fillRect(CROSS_BOARD_X - 2, below.y, 2, paved);
+    ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, below.y, 2, paved);
+  }
+}

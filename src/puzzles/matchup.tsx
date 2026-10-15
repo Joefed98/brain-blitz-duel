@@ -33,6 +33,7 @@ import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel
 import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
   matchupStepOffsets, matchupStepSound, MATCHUP_SWAP_MS, type MatchupSwapTween,
+  matchupArenaScene,
 } from "@/lib/arcade/matchup.renderer";
 import { playSound } from "@/lib/sound";
 import type { SoundId } from "@/lib/fx/manifest";
@@ -340,7 +341,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H}>
+    <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H} scene={matchupArenaScene}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

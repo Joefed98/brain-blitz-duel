@@ -48,6 +48,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   scale that fits, top-anchored. The lowest control row ends exactly 16 px above the bottom, inset or not. Every gap is
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
   same world and inputs everywhere, no seams. `docs/arena-sizes-oct-2026.md` lists every box and world size.
+- **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
+  Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
+  behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
+  size, `pointer-events: none`); the world, its place and its tap mapping are unchanged, and the gap is black elsewhere.
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.

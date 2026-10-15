@@ -18,8 +18,9 @@ import { flightpathColour, flightpathInk } from "./flightpathPalette.renderer";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import {
-  FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairChangeAge, fairPennant, fairScreen, fairTransform,
+  FAIR_CHALK, FAIR_WOOD, FAIR_WOOD_DARK, fairArenaScene, fairChangeAge, fairPennant, fairScreen, fairTransform,
 } from "./fairground.renderer";
+import type { ArenaSceneView } from "./arenaScene.renderer";
 
 /** The counter line: below the resting dart's flights. */
 const COUNTER_Y = 546;
@@ -468,4 +469,9 @@ export function bullseyeArtAim(ctx: CanvasRenderingContext2D, size: CanvasSize, 
   ctx.arc(landing.x, landing.y, 8, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
+}
+
+/** Arena scene (15 Oct 2026, display only): the stall's sky, counter and floor beyond the world. */
+export function bullseyeArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  fairArenaScene(ctx, view, COUNTER_Y);
 }

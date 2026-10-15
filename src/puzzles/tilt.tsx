@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
+import { tiltArenaScene, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
 import { useRef } from "react";
 
@@ -47,6 +47,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("tilt")}
       background={TILT_BG}
       fitWorld
+      scene={tiltArenaScene}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

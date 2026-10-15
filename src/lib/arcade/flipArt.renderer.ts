@@ -12,6 +12,7 @@ import {
 import { flipSurfaceLine } from "./flip.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 const FP = 256;
 const RUNNER_X = 90;
@@ -715,4 +716,68 @@ export function flipArtGameFor(rev?: number | null): typeof flipArtGame {
   let game = flipArtGames.get(key);
   if (!game) flipArtGames.set(key, (game = { ...flipGameFor(rev), draw: drawFlipArt }));
   return game;
+}
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more rock past the
+ * world, out to the arena box's edges: deep basalt under the floor's rock, held still
+ * (the world's rock scrolls; this is the far, unmoving bedrock), with faint joints,
+ * strata and speckle. No lava rails, pools, spikes, stars or tunnel air, so the run
+ * corridor ends where it always did. Beside the world (a wide screen) it is all rock.
+ */
+export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const H = FLIP_WORLD_H;
+  const paintRock = (r: { x: number; y: number; w: number; h: number }, seed: number) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+    // Basalt joints: slanted seams with a faint lit edge.
+    for (let x = r.x - 20, k = 0; x < r.x + r.w; k++) {
+      const h = artHash(k, seed);
+      const w = 22 + (h % 20);
+      const lean = ((h >>> 5) % 9) - 4;
+      ctx.fillStyle = h % 3 === 0 ? "rgba(255,255,255,0.018)" : "rgba(0,0,0,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(x, r.y);
+      ctx.lineTo(x + w, r.y);
+      ctx.lineTo(x + w + lean * (r.h / 260), r.y + r.h);
+      ctx.lineTo(x + lean * (r.h / 260), r.y + r.h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, r.y);
+      ctx.lineTo(x + lean * (r.h / 260), r.y + r.h);
+      ctx.stroke();
+      x += w;
+    }
+    for (let band = 0, y = r.y + 30; y < r.y + r.h; band++, y += 56) {
+      ctx.strokeStyle = band % 2 ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.03)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let px = r.x; px <= r.x + r.w + 12; px += 12) {
+        const yy = y + Math.sin((px / 390) * Math.PI * 4 + band) * 5;
+        if (px === r.x) ctx.moveTo(px, yy);
+        else ctx.lineTo(px, yy);
+      }
+      ctx.stroke();
+    }
+    const specks = Math.round((r.w * r.h) / 300);
+    for (let k = 0; k < specks; k++) {
+      const h = artHash(k, seed + 1);
+      ctx.fillStyle = h % 5 === 0 ? "rgba(255,190,150,0.06)" : "rgba(0,0,0,0.3)";
+      ctx.fillRect(r.x + ((h >>> 3) % 10007) / 10007 * r.w, r.y + ((h >>> 15) % 9973) / 9973 * r.h, 1 + ((h >>> 28) & 1), 1);
+    }
+    ctx.restore();
+  };
+  for (const side of sceneSides(view)) {
+    sceneFill(ctx, side, 0, H, [[0, "#111115"], [0.5, "#1A191F"], [1, "#111115"]]);
+    paintRock(side, 911);
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  sceneFill(ctx, below, H, view.bottom, [[0, "#121216"], [Math.min(1, 160 / below.h), "#0E0E11"], [1, "#0B0B0D"]]);
+  paintRock(below, 907);
 }

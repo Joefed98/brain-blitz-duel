@@ -1492,6 +1492,31 @@ body.game-lock {
 /* The arena stops 16px above the bottom of the visible screen: the arcade play
    column's own 16px padding (polish-layout/bottom.css), so no top-up here. */
 
+/*
+ * Arena scenes (15 Oct 2026, display only; arenaScene.renderer.ts, ARENA_SCENE_GAMES):
+ * a game's own scenery painted behind its world out to the slot's edges, on the arcade
+ * play screen only (never an intro, demo or reveal). It takes no touches, so a tap or
+ * drag there reaches no game handler and nothing is recorded. The world box above it
+ * keeps its size, place and pointer mapping; the slot's black stays underneath.
+ */
+[data-arena-slot][data-scene] {
+  position: relative;
+}
+[data-arena-slot][data-scene] > [data-game-arena] {
+  position: relative;
+}
+[data-arena-slot] > [data-arena-scene] {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+[data-arcade-play] [data-arena-slot] > [data-arena-scene] {
+  display: block;
+}
+
 /* Chat message list: its own finger-scrollable area, never chaining to the page. */
 .ice-board { background: linear-gradient(145deg, var(--ice-surface), color-mix(in srgb, var(--ice-surface) 88%, var(--ice-grid))); }
 .ice-board-grid { background: var(--ice-grid); }

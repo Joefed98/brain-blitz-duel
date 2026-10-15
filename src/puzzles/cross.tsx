@@ -2,7 +2,7 @@ import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { crossSounds } from "@/lib/fx/gameSounds";
-import { drawCrossArt } from "@/lib/arcade/cross.renderer";
+import { crossArenaScene, drawCrossArt } from "@/lib/arcade/cross.renderer";
 import { crossLine } from "@/lib/duel/crossLine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -175,7 +175,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
-      if (size && context) drawCrossArt(context, state.current, size);
+      if (size && context) drawCrossArt(context, state.current, size, true, true);
 
       if (!submitted.current && time - draftAt >= 500) {
         draftAt = time;
@@ -224,7 +224,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={CROSS_WORLD_W} height={CROSS_WORLD_H}>
+    <ArcadeArenaSlot width={CROSS_WORLD_W} height={CROSS_WORLD_H} scene={crossArenaScene}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

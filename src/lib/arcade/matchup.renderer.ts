@@ -16,6 +16,7 @@ import {
   type MatchupAnimStep, type MatchupState,
 } from "./matchup";
 import { artHash, reducedMotion } from "./art.renderer";
+import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { successHud } from "./success.renderer";
 
@@ -828,3 +829,44 @@ export function drawMatchupSwap(
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
 export const matchupArtGame = { ...matchupGame, draw: drawMatchupArt };
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): the velvet backdrop
+ * continues past the world to the arena box's edges, starting from the world's own
+ * bottom colour, with faint margin sparkles. No gems, sockets or anything that moves.
+ */
+export function matchupArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const W = MATCHUP_WORLD_W, H = MATCHUP_WORLD_H;
+  for (const side of sceneSides(view))
+    sceneFill(ctx, side, 0, H, [[0, "#1B1131"], [0.55, "#130E21"], [1, "#0B0B0F"]]);
+  const below = sceneBelow(view);
+  if (!below) return;
+  sceneFill(ctx, below, H, view.bottom, [[0, "#0B0B0F"], [Math.min(0.5, 90 / below.h), "#120D1F"], [1, "#160F28"]]);
+  const glow = ctx.createRadialGradient(W / 2, view.bottom, 10, W / 2, view.bottom, Math.max(below.h, W * 0.6));
+  glow.addColorStop(0, "rgba(120,80,200,0.14)");
+  glow.addColorStop(1, "rgba(120,80,200,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(below.x, below.y, below.w, below.h);
+  // Sparkles at the backdrop's own density, clear of the world's edge.
+  const count = Math.round((below.w * below.h) / 4700);
+  for (let k = 0; k < count; k++) {
+    const h = artHash(k, 977);
+    const x = below.x + (h % 10007) / 10007 * below.w;
+    const y = below.y + 10 + ((h >>> 14) % 10009) / 10009 * Math.max(0, below.h - 14);
+    const r = 0.8 + ((h >>> 20) % 3) * 0.6;
+    ctx.globalAlpha = 0.25 + ((h >>> 4) % 4) * 0.08;
+    ctx.fillStyle = MATCHUP_COLOURS[k % MATCHUP_COLOURS.length] ?? MATCHUP_GOLD;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r * 2.2);
+    ctx.lineTo(x + r * 0.5, y - r * 0.5);
+    ctx.lineTo(x + r * 2.2, y);
+    ctx.lineTo(x + r * 0.5, y + r * 0.5);
+    ctx.lineTo(x, y + r * 2.2);
+    ctx.lineTo(x - r * 0.5, y + r * 0.5);
+    ctx.lineTo(x - r * 2.2, y);
+    ctx.lineTo(x - r * 0.5, y - r * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}

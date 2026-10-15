@@ -14,7 +14,11 @@
  * Since 15 Oct 2026 (arcade play screen) the engine games on the arcade stage draw in the
  * same slot (Tenfall, Pull!, Bonk, Mixed Signals), so their taps are proved here too.
  *
- *   bun scripts/arcade-input-identity-proof.ts [--url=http://127.0.0.1:5173] [games...]
+ * Arena scenes (15 Oct 2026): for the ten ARENA_SCENE_GAMES it also taps, long-presses and
+ * drags in the scene below the world (390x844, a 47 px notch and 34 px home bar emulated)
+ * and proves nothing is recorded: the scene takes no touches.
+ *
+ *   bun scripts/arcade-input-identity-proof.ts [--url=http://127.0.0.1:5173] [--no-scene] [games...]
  */
 import { spawn, type ChildProcess } from "node:child_process";
 
@@ -23,10 +27,12 @@ import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const ONLY = args.filter((a) => !a.startsWith("--"));
+const SCENE = !args.includes("--no-scene");
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5183;
 const VIEWPORTS: [number, number][] = [[375, 667], [430, 932], [1280, 800]];
@@ -131,12 +137,83 @@ async function run(browser: import("playwright").Browser, origin: string, game: 
   }
 }
 
+/** Opens a game's live practice round at w x h with recordInput instrumented (as run does). */
+async function openLive(browser: import("playwright").Browser, origin: string, game: string, [w, h]: [number, number]) {
+  const page = await browser.newPage({ viewport: { width: w, height: h } });
+  await page.route(/\/src\/lib\/arcade\/engine\.ts(\?.*)?$/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.text();
+    await route.fulfill({ response, body: body.replace("log.push(recorded);", `log.push(recorded); ${INSTRUMENT}`) });
+  });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 47, bottom: 34, left: 0, right: 0 } } as never);
+  await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+  const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
+  await button.waitFor({ timeout: 60_000 });
+  await page.waitForTimeout(1500);
+  await button.click();
+  const ready = page.getByRole("button", { name: /^Ready/ });
+  await ready.waitFor({ timeout: 60_000 });
+  await ready.click();
+  await page.locator("[data-game-region] [data-arena-slot] > [data-game-arena]").first().waitFor({ timeout: 10_000 });
+  await page.waitForTimeout(800);
+  return page;
+}
+
+/** Taps, a long press and drags in the arena scene below the world: nothing may be recorded. */
+async function sceneRun(browser: import("playwright").Browser, origin: string, game: string) {
+  const page = await openLive(browser, origin, game, [390, 844]);
+  try {
+    const log = () => page.evaluate(() => ((globalThis as { __inputLog?: unknown[] }).__inputLog ?? []).length);
+    const clear = () => page.evaluate(() => { (globalThis as { __inputLog?: unknown[] }).__inputLog = []; });
+    const slot = (await page.locator("[data-game-region] [data-arena-slot]").first().boundingBox())!;
+    const arena = (await page.locator("[data-game-region] [data-arena-slot] > [data-game-arena]").first().boundingBox())!;
+    const scene = await page.locator("[data-game-region] [data-arena-slot] > [data-arena-scene]").first().boundingBox();
+    const top = arena.y + arena.height + 3, bottom = slot.y + slot.height - 3;
+    // Control: the same time with no touches (a game recording on its own would show here).
+    await clear();
+    await page.waitForTimeout(2600);
+    const idle = await log();
+    await clear();
+    const ys = [top, (top + bottom) / 2, bottom];
+    for (const y of ys)
+      for (const fx of [0.1, 0.5, 0.9]) {
+        await page.mouse.move(slot.x + slot.width * fx, y);
+        await page.mouse.down();
+        await page.waitForTimeout(60);
+        await page.mouse.up();
+        await page.waitForTimeout(120);
+      }
+    await page.mouse.move(slot.x + slot.width / 2, ys[1]!);
+    await page.mouse.down();
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+    for (const [x0, x1] of [[0.1, 0.9], [0.9, 0.1]]) {
+      await page.mouse.move(slot.x + slot.width * x0!, ys[1]!);
+      await page.mouse.down();
+      for (let k = 1; k <= 8; k++) {
+        await page.mouse.move(slot.x + slot.width * (x0! + ((x1! - x0!) * k) / 8), ys[1]! + (k % 2 ? -6 : 6));
+        await page.waitForTimeout(40);
+      }
+      await page.mouse.up();
+      await page.waitForTimeout(150);
+    }
+    await page.waitForTimeout(300);
+    const touched = await log();
+    return { slot, arena, scene, band: bottom - top + 6, idle, touched };
+  } finally {
+    await page.close();
+  }
+}
+
 async function main() {
   const { chromium } = await import("playwright");
   const games = Object.keys(GESTURES).filter((g) => ONLY.length === 0 || ONLY.includes(g));
   const { origin, proc } = await startServer();
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   let failed = 0;
+  let sceneFailed = 0;
+  const sceneGames = SCENE ? ARENA_SCENE_GAMES.filter((g) => ONLY.length === 0 || ONLY.includes(g)) : [];
   try {
     for (const game of games) {
       const runs = [];
@@ -149,15 +226,25 @@ async function main() {
       if (!same) runs.forEach((r, i) => console.log(`       ${VIEWPORTS[i]!.join("x")}: ${r.payloads.join(" | ") || "(none)"}`));
       else console.log(`       ${base.join(" | ")}`);
     }
+    for (const game of sceneGames) {
+      const r = await sceneRun(browser, origin, game);
+      const ok = r.scene !== null && r.band > 20 && r.touched === 0 && r.idle === 0;
+      if (!ok) sceneFailed++;
+      console.log(`${ok ? "PASS" : "FAIL"} ${game.padEnd(10)} scene below the world (${r.band.toFixed(0)} px band, scene ${r.scene ? `${r.scene.width.toFixed(0)}x${r.scene.height.toFixed(0)}` : "missing"}): 9 taps, a long press and 2 drags recorded ${r.touched} inputs (idle control ${r.idle})`);
+    }
   } finally {
     await browser.close();
     if (proc?.pid) try { process.kill(-proc.pid); } catch { /* already gone */ }
+  }
+  if (sceneFailed) {
+    console.log(`FAIL: ${sceneFailed} of ${sceneGames.length} games recorded input from a touch in the arena scene`);
+    process.exit(1);
   }
   if (failed) {
     console.log(`FAIL: ${failed} of ${games.length} games recorded different inputs at different sizes`);
     process.exit(1);
   }
-  console.log(`PASS input identity: ${games.length} games record the same input payloads at ${VIEWPORTS.map((v) => v.join("x")).join(", ")}`);
+  console.log(`PASS input identity: ${games.length} games record the same input payloads at ${VIEWPORTS.map((v) => v.join("x")).join(", ")}${sceneGames.length ? `; touches in the arena scene of ${sceneGames.length} games record nothing` : ""}`);
 }
 
 await main();

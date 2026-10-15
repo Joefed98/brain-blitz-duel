@@ -15,6 +15,7 @@ import {
 } from "@/lib/arcade/engine";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
+import type { ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
 import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 
@@ -40,6 +41,13 @@ interface Props<S, C> {
    * that fits (ArcadeArenaSlot), so the world is never stretched or cropped.
    */
   fitWorld?: boolean;
+  /**
+   * The game's own scenery beyond the world on the arcade play screen (fitWorld only;
+   * display only, painted once per size and per sceneKey, never per frame).
+   */
+  scene?: (ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: S) => void;
+  /** Repaints the scene when this changes (e.g. the level, whose ground the scene meets). */
+  sceneKey?: (state: S) => string | number;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -92,6 +100,8 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   const pointerId = useRef<number | null>(null);
   const submitted = useRef(false);
   const [, forceRedraw] = useState(0);
+  const [sceneKey, setSceneKey] = useState<string | number | undefined>(undefined);
+  const sceneKeyRef = useRef<string | number | undefined>(undefined);
   useNoTouchScroll(wrap);
 
   const propsRef = useRef(props);
@@ -182,6 +192,11 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
           }
           if (game.isOver(state.current)) break;
         }
+      }
+      const key = propsRef.current.sceneKey?.(state.current);
+      if (key !== undefined && key !== sceneKeyRef.current) {
+        sceneKeyRef.current = key;
+        setSceneKey(key);
       }
       reportArcadeTick(tickOf(), game.isOver(state.current));
       feedback(state.current as object, game.isOver(state.current));
@@ -306,7 +321,14 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   return (
     <>
     {props.fitWorld ? (
-      <ArcadeArenaSlot width={props.worldW} height={props.worldH}>{arena}</ArcadeArenaSlot>
+      <ArcadeArenaSlot
+        width={props.worldW}
+        height={props.worldH}
+        scene={props.scene ? (ctx, view) => propsRef.current.scene?.(ctx, view, state.current) : undefined}
+        sceneKey={sceneKey ?? props.sceneKey?.(state.current)}
+      >
+        {arena}
+      </ArcadeArenaSlot>
     ) : arena}
     {props.footer?.(push)}
     </>

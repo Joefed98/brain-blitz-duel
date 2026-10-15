@@ -1,7 +1,7 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
-import { drawClayFinalBurst } from '@/lib/arcade/clayShootArt.renderer';
+import { clayArenaScene, drawClayFinalBurst } from '@/lib/arcade/clayShootArt.renderer';
 import { END_OF_RUN_FX_SCORE, playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { clayTapWorld } from "@/components/puzzles/tapMapping";
@@ -322,7 +322,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       </p>
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       {/* The sky at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; clayTapWorld maps through this box). */}
-      <ArcadeArenaSlot width={CLAY_W} height={CLAY_H}>
+      <ArcadeArenaSlot width={CLAY_W} height={CLAY_H} scene={clayArenaScene}>
       <div
         ref={board}
         data-play-area
