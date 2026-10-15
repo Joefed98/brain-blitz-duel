@@ -2,29 +2,8 @@
 
 /*
  * Pull! (clayshoot): the sky keeps the engine world's true aspect (360 x 400) at the
- * largest size that fits, and the HUD + sky block is centred in the column. The board's
- * pointer mapping reads its own box, so world coordinates are unchanged.
- * 26px = the HUD line (12px) + pips (6px) + two 4px gaps.
+ * largest size that fits, now through the shared arcade arena slot (ArcadeArenaSlot,
+ * 15 Oct 2026): top-anchored under the HUD line and pips, edge to edge, the gaps the
+ * screen edge's black. The board's pointer mapping reads its own box, so world
+ * coordinates are unchanged.
  */
-.game-column [data-polish="clayshoot"][data-stage-column] {
-  container-type: size;
-  justify-content: center;
-}
-.game-column [data-polish="clayshoot"][data-stage-column] > [data-game-arena="canvas"] {
-  flex: 0 0 auto;
-  align-self: center;
-  width: min(100cqw, calc((100cqh - 26px) * 0.9));
-  aspect-ratio: 360 / 400;
-  max-height: none;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-
-/* Main's centred column (layout 2) puts auto margins on every arena, which would split the HUD
-   line and pips from the sky. The block is already centred as a whole (justify-content above),
-   so the sky keeps no margins of its own. */
-.game-column.game-column-centred [data-polish="clayshoot"][data-stage-column] > [data-game-arena][data-game-arena] {
-  margin-top: 0;
-  margin-bottom: 0;
-}

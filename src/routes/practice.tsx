@@ -587,7 +587,7 @@ function PracticeScreen() {
   const StageComponent = puzzleDef(puzzle.type).Stage;
   const clockActive = clockStart !== null && now >= clockStart;
   return (
-    <PhoneShell constrained gameScreen gameType={type}>
+    <PhoneShell constrained gameScreen play gameType={type}>
       <GameLayout
         label="PRACTICE"
         title={puzzleName(puzzle.type)}

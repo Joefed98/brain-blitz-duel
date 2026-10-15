@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -340,9 +339,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <div
       ref={wrap}
-      className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl bg-card"
+      className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
     >
-      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H} background={ARCADE_ARENA_FILL.bintoss}>
+      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H}>
       <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
       <canvas
         ref={canvas}
@@ -413,6 +412,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       </ArcadeArenaSlot>
       <div
         ref={cancelZone}
+        data-game-controls="cancel"
         className={`flex h-[72px] shrink-0 items-center justify-center border-t text-center font-mono text-xs transition-colors ${
           cancelHighlighted
             ? "border-foreground/35 bg-muted text-foreground"

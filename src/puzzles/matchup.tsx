@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
@@ -341,7 +340,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H} background={ARCADE_ARENA_FILL.matchup}>
+    <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

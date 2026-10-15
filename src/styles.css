@@ -1450,7 +1450,9 @@ body.game-lock {
  * uniform scale that fits the slot, top-anchored and centred across. Every phone
  * therefore shows the same world, undistorted; games map pointers through that
  * box, so world coordinates and input logs are unchanged. Spare height below the
- * arena is painted --arena-fill (::after, the arena's width); spare width stays page.
+ * arena (::after) and spare width beside it are the screen edge's black
+ * (--screen-edge, 15 Oct 2026; the per-game arena fills are gone), as is the rest of
+ * the arcade play screen (polish-layout/bottom.css, "Arcade play screen").
  */
 [data-arena-slot] {
   container-type: size;
@@ -1462,7 +1464,7 @@ body.game-lock {
   width: 100%;
   min-height: 0;
   overflow: hidden;
-  border-radius: 0.75rem;
+  background: var(--screen-edge);
 }
 [data-arena-slot] > [data-game-arena],
 .game-column [data-arena-slot] > [data-game-arena] {
@@ -1477,7 +1479,7 @@ body.game-lock {
   flex: 1 1 0;
   width: min(100cqw, 100cqh * var(--arena-w) / var(--arena-h));
   min-height: 0;
-  background: var(--arena-fill);
+  background: var(--screen-edge);
 }
 .game-column [data-stage-column] > [data-arena-slot] {
   flex-grow: 1;
@@ -1487,8 +1489,8 @@ body.game-lock {
 .game-column [data-stage-column] > [data-arena-slot] + * {
   margin-top: calc(12px - var(--stage-gap));
 }
-/* The arena stops 16px above the bottom edge and the safe area: the column's own
-   padding (pad-game-safe, inset + 16px) is enough, so no top-up here. */
+/* The arena stops 16px above the bottom of the visible screen: the arcade play
+   column's own 16px padding (polish-layout/bottom.css), so no top-up here. */
 
 /* Chat message list: its own finger-scrollable area, never chaining to the page. */
 .ice-board { background: linear-gradient(145deg, var(--ice-surface), color-mix(in srgb, var(--ice-surface) 88%, var(--ice-grid))); }
@@ -1633,7 +1635,7 @@ body.game-lock {
 .game-column [data-polish="numpyramid"] > [data-game-arena] { flex: 0 1 auto; }
 .game-column [data-polish="stopwatch"] > [data-game-arena="tall"] { height: min(288px, calc(100cqh - 200px)); }
 .game-column [data-polish="stopwatch"] > [data-game-arena="tall"] > div { min-height: 0; width: 80px; }
-.game-column :is([data-polish="numhunt"], [data-polish="reaction"], [data-polish="tendrop"]) > [data-game-arena] { flex: 1 1 auto; }
+.game-column :is([data-polish="numhunt"], [data-polish="reaction"]) > [data-game-arena] { flex: 1 1 auto; }
 .word-letter-tile, [data-puzzle-surface] .word-letter-tile[data-puzzle-cell] { background-image: linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom)); color: var(--foreground) !important; box-shadow: inset 0 0 0 1px var(--letter-tile-edge), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="active"], [data-puzzle-surface] .word-letter-tile[data-puzzle-state="selected"], .word-letter-tile[data-valid-row="true"] { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--category-accent) 22%, var(--letter-tile-top)), var(--letter-tile-bottom)); box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="error"] { box-shadow: inset 0 0 0 2px var(--destructive), var(--letter-tile-shadow) !important; }

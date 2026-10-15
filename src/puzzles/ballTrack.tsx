@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -229,7 +228,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
-      <ArcadeArenaSlot width={BT_W} height={BT_H} background={ARCADE_ARENA_FILL.balltrack}>
+      <ArcadeArenaSlot width={BT_W} height={BT_H}>
         <div
           ref={board}
           data-play-area

@@ -1,3 +1,4 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { clayArtGameFor } from '@/lib/arcade/clayShoot.renderer';
 import { drawClayFinalBurst } from '@/lib/arcade/clayShootArt.renderer';
@@ -30,6 +31,7 @@ import {
   CLAY_LOG_HIT,
   CLAY_MISSED,
   CLAY_ORANGE,
+  CLAY_H,
   CLAY_W,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
@@ -319,6 +321,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
       </p>
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
+      {/* The sky at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; clayTapWorld maps through this box). */}
+      <ArcadeArenaSlot width={CLAY_W} height={CLAY_H}>
       <div
         ref={board}
         data-play-area
@@ -337,6 +341,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       >
         <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
       </div>
+      </ArcadeArenaSlot>
       {dev ? <p className="whitespace-pre-wrap break-all font-mono text-[10px] text-muted-foreground">{dev}</p> : null}
     </div>
   );

@@ -11,11 +11,17 @@
  * in the browser (test-only instrumentation; app code is untouched). Gestures move in
  * single steps with a pause of several sim ticks, so each point is sampled once.
  *
+ * Since 15 Oct 2026 (arcade play screen) the engine games on the arcade stage draw in the
+ * same slot (Tenfall, Pull!, Bonk, Mixed Signals), so their taps are proved here too.
+ *
  *   bun scripts/arcade-input-identity-proof.ts [--url=http://127.0.0.1:5173] [games...]
  */
 import { spawn, type ChildProcess } from "node:child_process";
 
 import { ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
+import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 const args = process.argv.slice(2);
@@ -25,7 +31,18 @@ const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5183;
 const VIEWPORTS: [number, number][] = [[375, 667], [430, 932], [1280, 800]];
 
+/** World (view) sizes of the engine games in the shared slot; Bonk's world is its square board (0–1). */
+const ENGINE_WORLDS: Record<string, { width: number; height: number }> = {
+  tendrop: { width: TD_W, height: TD_H },
+  clayshoot: { width: CLAY_W, height: CLAY_H },
+  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
+  whack: { width: 1, height: 1 },
+};
+
 type Step = { kind: "down" | "move" | "up"; x: number; y: number } | { kind: "wait"; ms: number };
+const tap = (x: number, y: number, waitAfter = 300): Step[] => [
+  { kind: "down", x, y }, { kind: "wait", ms: 60 }, { kind: "up", x, y }, { kind: "wait", ms: waitAfter },
+];
 const drag = (points: [number, number][], waitAfter = 400): Step[] => [
   { kind: "down", x: points[0]![0], y: points[0]![1] },
   { kind: "wait", ms: 90 },
@@ -48,6 +65,12 @@ const GESTURES: Record<string, Step[]> = {
   snip: drag([[90, 200], [140, 210], [190, 220], [240, 230]]),
   // Fit transform (letterboxed before): a second drag-to-aim game, one dart.
   bullseye: drag([[195, 420], [185, 450], [175, 480], [170, 500]], 500),
+  // Engine games (15 Oct 2026): Tenfall's column taps (tdView), Pull!'s shots (clayTapWorld),
+  // Mixed Signals' lane taps (the shared stage), Bonk's hole taps (gridCellAt on the board).
+  tendrop: [...tap(45, 200), ...tap(135, 260), ...tap(225, 320), ...tap(315, 380)],
+  clayshoot: [...tap(60, 80), ...tap(180, 200), ...tap(300, 320)],
+  stroop: [...tap(65, 300, 500), ...tap(195, 300, 500), ...tap(325, 300, 500)],
+  whack: [...tap(0.125, 0.125), ...tap(0.625, 0.375), ...tap(0.875, 0.875)],
 };
 
 const INSTRUMENT = "(globalThis.__inputLog ??= []).push(recorded);";
@@ -66,7 +89,7 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
 }
 
 async function run(browser: import("playwright").Browser, origin: string, game: string, [w, h]: [number, number]) {
-  const spec = (ARCADE_FX_SPECS as Record<string, { width: number; height: number }>)[game]!;
+  const spec = ({ ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS })[game]!;
   const page = await browser.newPage({ viewport: { width: w, height: h } });
   await page.route(/\/src\/lib\/arcade\/engine\.ts(\?.*)?$/, async (route) => {
     const response = await route.fetch();

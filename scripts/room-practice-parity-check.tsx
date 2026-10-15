@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { GameLayout, PhoneShell } from "../src/components/duel/PhoneShell";
+import { GameLayout, PhoneShell, isArcadeScreenType } from "../src/components/duel/PhoneShell";
 import { ScoreStrip } from "../src/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "../src/components/duel/SoloScoreStrip";
 import { TimerBar } from "../src/components/duel/TimerBar";
@@ -15,7 +15,6 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
 import type { PuzzleType } from "../src/lib/duel/types";
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
-import { ARCADE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 
 // Happy DOM parses DOM only. Budgets below are CSS arithmetic, NOT pixel measurements.
 const room = readFileSync("src/routes/duel.$code.tsx", "utf8").split("const roomGameHeader")[1] ?? "";
@@ -29,6 +28,7 @@ const active = Object.entries(PUZZLE_REGISTRY).filter(([, d]) => !d.retired);
 let comparisons = 0;
 let controls = 0;
 let arenas = 0;
+let arcadeHeaders = 0;
 // Phones from the smallest supported to the tallest, plus a laptop window.
 const SIZES = [[390, 700], [375, 667], [390, 844], [430, 932], [1280, 800]] as const;
 const ARCADE_WORLDS = ARCADE_FX_SPECS as Record<string, { width: number; height: number }>;
@@ -39,7 +39,7 @@ for (const [key, definition] of active) {
   assert.ok(stage.length, `${key}: empty stage`);
   const world = ARCADE_WORLDS[key];
   if (world) {
-    // Arcade: exactly one arena slot (painted the arena fill, carrying the world size)
+    // Arcade: exactly one arena slot (carrying the world size; no per-game fill since 15 Oct 2026)
     // whose only arena child is the world rectangle; controls follow the slot, never inside it.
     const host = window.document.createElement("div");
     host.innerHTML = stage;
@@ -48,8 +48,7 @@ for (const [key, definition] of active) {
     const slot = slots[0]!;
     const style = (slot.getAttribute("style") ?? "").replace(/\s/g, "");
     assert.ok(style.includes(`--arena-w:${world.width}`) && style.includes(`--arena-h:${world.height}`), `${key}: slot world ${style}`);
-    const fill = (ARCADE_ARENA_FILL as Record<string, string>)[key]!;
-    assert.ok(style.toLowerCase().includes(`--arena-fill:${fill.toLowerCase()}`), `${key}: slot fill ${style}`);
+    assert.ok(!style.includes("--arena-fill"), `${key}: no per-game slot fill ${style}`);
     assert.equal([...slot.children].filter((c) => c.hasAttribute("data-game-arena")).length, 1, `${key}: one arena in the slot`);
     assert.equal(host.querySelectorAll("[data-game-arena]").length, 1, `${key}: no arena outside the slot`);
     assert.equal(slot.querySelectorAll("[data-game-controls], button").length, 0, `${key}: controls sit below the slot`);
@@ -59,12 +58,14 @@ for (const [key, definition] of active) {
     window.happyDOM.setWindowSize({ width, height });
     let baseline = "";
     for (const mode of ["practice", "room", "multi"] as const) {
+      // Arcade play screens carry the score stacked in their one compact header row (as the room route passes it).
+      const arcade = isArcadeScreenType(type);
       const header = mode === "practice" || type === "spotdiff" || type === "blockparty" ? undefined : mode === "multi"
-        ? <SoloScoreStrip name="A long player name" total={149} position={10} playerCount={10} compact />
-        : <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact />;
+        ? <SoloScoreStrip name="A long player name" total={149} position={10} playerCount={10} compact stacked={arcade} />
+        : <ScoreStrip myName="A long player name" opponentName="Another long player name" myTotal={123} opponentTotal={149} compact stacked={arcade} />;
       const root = window.document.createElement("div");
       root.innerHTML = renderToStaticMarkup(
-        <PhoneShell constrained gameScreen gameType={type} gameHeader={header}>
+        <PhoneShell constrained gameScreen play gameType={type} gameHeader={header}>
           <GameLayout label={mode === "practice" ? "PRACTICE" : "Round 6 of 6"} title={definition.name}
             help={<PuzzleHelpButton onClick={() => {}} />}
             progress={mode === "practice" ? undefined : <RoundPips currentRound={6} outcomes={[]} />}
@@ -92,9 +93,20 @@ for (const [key, definition] of active) {
         comparisons++;
       }
       const heading = root.querySelector("[data-round-heading]");
-      assert.match(heading?.getAttribute("class") ?? "", /h-7 shrink-0/);
       const top = root.querySelector(".pad-game-safe")?.firstElementChild;
-      assert.match(top?.getAttribute("class") ?? "", /h-9 shrink-0/);
+      if (arcade) {
+        // Arcade play screen (15 Oct 2026): one 44px header row in place of the 36px top bar, 28px heading and 20px timer.
+        assert.match(heading?.getAttribute("class") ?? "", /^grid h-11 shrink-0/, `${key}: one 44px header row`);
+        assert.ok(heading?.hasAttribute("data-arcade-header") && heading.querySelector("[data-sound-controls]"), `${key}: sound controls in the header`);
+        assert.ok(root.querySelector("[data-arcade-play]"), `${key}: arcade play screen`);
+        assert.ok(top?.hasAttribute("data-round-layout"), `${key}: no separate top bar`);
+        if (puzzleShowsTimer(puzzle)) assert.ok(heading?.querySelector("[data-arcade-timer] [role='timer']"), `${key}: the timer in the header's centre`);
+        arcadeHeaders++;
+      } else {
+        assert.match(heading?.getAttribute("class") ?? "", /h-7 shrink-0/);
+        assert.match(top?.getAttribute("class") ?? "", /h-9 shrink-0/);
+        assert.ok(!root.querySelector("[data-arcade-play]"), `${key}: not an arcade play screen`);
+      }
       assert.equal(root.querySelectorAll(".pad-game-safe").length, 1);
       // Single safe-area owner; equal available height for any inset value.
       for (const bottomInset of [0, 34]) {
@@ -108,6 +120,7 @@ for (const [key, definition] of active) {
 // Junction (practice only since Tuning C) is not an active type; every active arcade game is.
 assert.equal(arenas, ACTIVE_ARCADE_GAMES.length, "every active arcade game has its arena slot");
 console.log(`PASS ${active.length} active games, ${comparisons} room/multi versus practice DOM comparisons at 390×700, 375×667, 390×844, 430×932 and 1280×800; ${controls} control nodes covered.`);
-console.log(`PASS ${arenas} arcade stages: one arena slot each with the game's world size and arena fill, one world-aspect arena inside, controls below it.`);
-console.log("PASS fixed 36px top bar, 28px heading, shared 20px timer and identical stage ancestry; calculated room/practice height delta 0px, including 34px bottom inset.");
+console.log(`PASS ${arenas} arcade stages: one arena slot each with the game's world size (no per-game fill), one world-aspect arena inside, controls below it.`);
+console.log("PASS puzzles: fixed 36px top bar, 28px heading, shared 20px timer and identical stage ancestry; calculated room/practice height delta 0px, including 34px bottom inset.");
+console.log(`PASS arcade play screens: ${arcadeHeaders} renders with one 44px header row (score or PRACTICE, centred timer, "?" and sound) and no separate top bar, in practice, duel and multi alike.`);
 console.log("No source-level game differences. Actual control positions within 4px, font rendering, 44px target fit and no-scroll visibility remain UNMEASURED: no browser tests ran.");

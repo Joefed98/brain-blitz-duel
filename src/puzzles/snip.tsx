@@ -1,5 +1,4 @@
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import { ARCADE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters, devDiagnosticsOn } from "@/lib/arcade/diagnostics";
@@ -204,17 +203,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const active = () => !locked && !submitted.current && !snipGame.isOver(state.current);
 
   return (
-    <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2 select-none" style={GAME_ROOT_STYLE}>
-      <div className="flex items-baseline justify-between px-1 font-mono text-sm text-muted-foreground">
+    <div data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
+      {/* One 20px line under the compact header (15 Oct 2026, display only; it was 32px). */}
+      <div data-snip-hud className="flex h-5 shrink-0 items-center justify-between px-2 font-mono text-xs leading-none text-muted-foreground">
         <span>Level {hud.level}</span>
-        <span className="text-2xl font-bold text-foreground">
+        <span className="text-base font-bold text-foreground">
           <span className="text-primary">{hud.score}</span>
         </span>
         <span>
           {hud.eaten} picked · {hud.stars} leaves
         </span>
       </div>
-      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)} background={ARCADE_ARENA_FILL.snip}>
+      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)}>
         <div
           ref={board}
           data-play-area

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
-import { ENGINE_ARENA_FILL } from "@/lib/arcade/arenaFill.renderer";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
   unpackWfLog,
@@ -171,7 +170,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       diagKey="wordfall"
       label={`${gameDisplayName("wordfall")} well`}
       background="transparent"
-      arenaBackground={ENGINE_ARENA_FILL.wordfall}
       fitWorld
       seed={data?.seed ?? 1}
       enabled={data !== null && dict.ready}

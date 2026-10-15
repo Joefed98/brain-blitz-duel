@@ -1,3 +1,4 @@
+import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { BonkIcon } from "@/components/puzzles/BonkIcon";
 import { drawBonkFinale, whackArtGame } from "@/lib/arcade/whack.renderer";
 import { END_OF_RUN_FX_SCORE, playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
@@ -239,6 +240,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         Hits <span className="text-primary">{hud.hits}</span> / {total} · Wrong{" "}
         <span className="text-destructive">{hud.wrong}</span>
       </p>
+      {/* The square board at the largest fit, top-anchored (15 Oct 2026, display only; gridCellAt maps through the board). */}
+      <ArcadeArenaSlot width={1} height={1}>
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <div
           ref={board}
@@ -267,6 +270,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
         </div>
       </div>
+      </ArcadeArenaSlot>
     </div>
   );
 }

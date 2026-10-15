@@ -6,7 +6,10 @@ import { WordsmithRing } from "../src/components/puzzles/WordsmithRing";
 import { miniSudokuPuzzle } from "../src/puzzles/miniSudoku";
 import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
-import { ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { ARCADE_FX_SPECS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
+import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
+import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.
@@ -95,72 +98,130 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
   rows.push(`| Shikaku | ${width}x${height} | PASS both individual grids and pair: clipped board/labels, equal tracks; ${pairedWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }
-// Arcade arenas (styles.css "Arcade arena slot"), CSS arithmetic. Every arcade arena
-// starts 116px down (8px pad + 36px top bar + 8px + 28px heading + 8px + 20px timer
-// + 8px; Scrumper adds its 32px HUD row + 8px, Tilt drops 40px), spans the column (viewport - 8px) and
-// its slot ends at the controls or 8px above the bottom, whatever the safe-area inset (data-arcade-screen
-// in polish-layout/bottom.css: the pre-14 Oct arcade spacing, restored 15 Oct 2026; puzzles keep
-// pad-game-safe's inset + 16px).
-// The arena is the world at min(slot width / W, slot height / H): one factor both ways.
+// Arcade play screens (15 Oct 2026, display only; polish-layout/bottom.css "Arcade play screen"), CSS
+// arithmetic. The live round of every arcade game and every engine game on the arcade stage has one
+// compact header row: 4px under the top (or just under a notch's safe-area inset), 44px tall, then 4px, so
+// the arena slot starts 52px down, below any of the game's own HUD rows (Scrumper's 20px line, Tenfall's
+// 56px HUD, Bonk's rule box and hit line, Pull!'s hit line and pips). The slot runs the full width, edge
+// to edge, down to its controls (8px above them) or 16px above the bottom, and the lowest control row ends
+// exactly 16px above the bottom, whatever the home-bar inset. The arena is the world at
+// min(slot width / W, slot height / H): one factor both ways, top-anchored and centred across.
+// Until 15 Oct 2026 the arena started 116px down (8px pad + 36px top bar + 8px + 28px heading + 8px + 20px
+// timer + 8px; Scrumper +40px for its 32px HUD row, Tilt +40px drop) inside 4px side insets and ended at
+// the controls or 8px above the bottom; that arithmetic is kept below as OLD_* to prove every arena grew.
 const css2 = readFileSync("src/styles.css", "utf8");
 assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*width: min\(100cqw, 100cqh \* var\(--arena-w\) \/ var\(--arena-h\)\)/);
 assert.match(css2, /\[data-arena-slot\] > \[data-game-arena\][^}]*height: min\(100cqh, 100cqw \* var\(--arena-h\) \/ var\(--arena-w\)\)/);
 assert.match(css2, /\[data-arena-slot\] \{[^}]*container-type: size;[^}]*align-items: center;[^}]*justify-content: flex-start/);
-assert.match(css2, /@utility pad-game-safe \{[^}]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 16px\);/);
-assert.doesNotMatch(css2, /\.game-column:has\(\[data-arena-slot\]\) \{/, "no arcade bottom top-up on the inner column");
+assert.match(css2, /\[data-arena-slot\] \{[^}]*background: var\(--screen-edge\);/, "slot paints the screen edge's black");
+assert.match(css2, /\[data-arena-slot\]::after \{[^}]*background: var\(--screen-edge\);/, "the space below the world is the screen edge's black");
+assert.doesNotMatch(css2, /--arena-fill/, "no per-game arena fill");
+assert.match(css2, /--screen-edge: #070709;/);
+assert.match(css2, /@utility pad-game-safe \{[^}]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 16px\);/, "puzzles keep inset + 16px");
 const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
-assert.match(bottomCss, /\[data-arcade-screen\] > \[data-game-column\]:has\(\[data-game-stage\]\) \{\s*padding-bottom: 8px;\s*\}/, "arcade play screens end 8px above the bottom, inset or not");
-/** Px from an arcade play column's end to the bottom of the screen (no inset term: restored 15 Oct 2026). */
-const ARCADE_BOTTOM = 8;
-/** Height taken below each slot: 12px gap + control row (Swish: its 72px cancel strip; Fission's arrows sit 8px higher since Tuning F). */
-const BELOW: Record<string, number> = { burst: 12 + 80, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
+assert.match(bottomCss, /\[data-arcade-play\] > \[data-game-column\] \{\s*padding-top: max\(4px, env\(safe-area-inset-top, 0px\)\);\s*padding-bottom: 16px;\s*padding-left: env\(safe-area-inset-left, 0px\);\s*padding-right: env\(safe-area-inset-right, 0px\);\s*\}/, "arcade play column: 4px or the notch on top, 16px at the bottom whatever the inset, no side insets");
+assert.match(bottomCss, /html:has\(\[data-arcade-play\]\),\s*html:has\(\[data-arcade-play\]\) body,\s*\[data-arcade-play\] \{\s*background-color: var\(--screen-edge\);\s*\}/, "page and screen are the screen edge's black");
+assert.match(bottomCss, /\[data-arcade-play\] > \.screen-background \{\s*display: none;\s*\}/);
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \{\s*row-gap: 8px;\s*\}/);
+assert.match(bottomCss, /\[data-arcade-play\] \.game-column \[data-stage-column\] > \[data-arena-slot\] \+ \* \{\s*margin-top: calc\(8px - var\(--stage-gap\)\);\s*\}/);
+assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-controls="arrows"\] \{\s*height: 52px;\s*padding-top: 0;\s*padding-bottom: 0;\s*align-items: end;\s*\}/);
+assert.doesNotMatch(bottomCss, /padding-bottom: 8px;/, "the 8px arcade bottom is gone");
+const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
+assert.match(shell, /data-arcade-header className="grid h-11 shrink-0 grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-1 px-1"/, "one 44px header row, timer in the centre column");
+assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">\s*<div data-round-heading data-game-topbar data-arcade-header/, "4px from the header to the arena");
+assert.match(shell, /\{!bare && !arcadePlay && \(/, "the shell's own top bar gives way on arcade play screens");
+/** Px from the top of the screen (no notch) to the arena slot: 4px + 44px header + 4px. */
+const HEADER = 4 + 44 + 4;
+/** Px from the bottom of the visible screen to the end of an arcade play column, inset or not. */
+const ARCADE_BOTTOM = 16;
+/** The game's own HUD rows between the header and the slot (each with the stage column's gap under it). */
+const ABOVE: Record<string, number> = {
+  snip: 20 + 4,
+  tendrop: 56,
+  // Bonk: the rule box (10px padding each side, 36px text at line-height 1.1, 2px border each side) and the 20px hit line, 8px gaps.
+  whack: (10 + 36 * 1.1 + 10 + 4) + 8 + 20 + 8,
+  // Pull!: the 12px hit line and 6px pips, 4px gaps.
+  clayshoot: 12 + 4 + 6 + 4,
+};
+/** Height taken below each slot: 8px gap + control row (Swish: its 72px cancel strip, flush). */
+const BELOW: Record<string, number> = { burst: 8 + 76, inkbridge: 8 + 48, orbit: 8 + 44, balltrack: 8 + 28, bintoss: 72, stroop: 8 + 52 };
+const BELOW_CONTROLS: Record<string, string> = {
+  burst: "Fission's two 76px arrows", inkbridge: "Rainbow Bridge's Undo / Reset / Release / Drop again (48px)", orbit: "Orbit's SET CHECKPOINT (44px row)",
+  balltrack: "Ball Tracker's status row (28px)", bintoss: "Swish's cancel strip (72px)", stroop: "Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned",
+};
+/** Until 15 Oct 2026: arena top, the bottom term and the rows below (OLD_BELOW), 4px side insets. */
+const OLD_TOP = (game: string) => 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 40 : 0);
+const OLD_BELOW: Record<string, number> = { burst: 12 + 80, inkbridge: 12 + 48, orbit: 12 + 76, balltrack: 12 + 28, bintoss: 72 };
 /** Smallest touch target edge in each control row, by viewport width. */
 const TARGETS: Record<string, (w: number) => number> = {
-  burst: (w) => Math.min(56, (w - 8 - 2 * 12) / 3),
+  burst: (w) => (w - 8 - 16) / 2,
   inkbridge: (w) => Math.min(48, (w - 8 - 3 * 6) / 4),
   orbit: () => 44,
+  stroop: (w) => Math.min(44, (w - 16 - 44 - 12 - 2 * 12) / 3),
+};
+/** Engine games on the arcade stage: their world (view) size. Bonk's world is its square board. */
+const ENGINE_WORLDS: Record<string, { width: number; height: number }> = {
+  wordfall: ENGINE_FX_SPECS.wordfall,
+  tendrop: { width: TD_W, height: TD_H },
+  whack: { width: 1, height: 1 },
+  clayshoot: { width: CLAY_W, height: CLAY_H },
+  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
 };
 let arenaChecks = 0;
 const ARENA_SIZES = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]] as const;
-/** Per game: arena size at each viewport, then scale, fill and side space at 390x844. */
-const arenaTable = new Map<string, { sizes: string[]; detail: string }>();
+/** Per game: the box (slot) and world (arena) at each viewport, then scale and spare space at 390x844. */
+const arenaTable = new Map<string, { world: string; sizes: string[]; detail: string; before: string[] }>();
+const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
 for (const [width, height] of ARENA_SIZES) {
-  for (const [game, spec] of Object.entries(ARCADE_FX_SPECS)) {
-    // Tilt sits TILT_ARENA_DROP (40px) lower, the one exception to the fixed top.
-    const top = 116 + (game === "snip" ? 40 : 0) + (game === "tilt" ? 40 : 0);
-    const slotW = width - 8, slotH = height - ARCADE_BOTTOM - top - (BELOW[game] ?? 0);
+  for (const [game, spec] of Object.entries(WORLDS)) {
+    const top = HEADER + (ABOVE[game] ?? 0);
+    const slotW = width, slotH = height - ARCADE_BOTTOM - top - (BELOW[game] ?? 0);
     const scale = Math.min(slotW / spec.width, slotH / spec.height);
     const w = spec.width * scale, h = spec.height * scale;
     assert.ok(w <= slotW + 1e-9 && h <= slotH + 1e-9, `${game} ${width}x${height}: fits`);
     assert.ok(Math.abs(w - slotW) < 1e-9 || Math.abs(h - slotH) < 1e-9, `${game} ${width}x${height}: largest fit`);
     assert.ok(Math.abs(w / h - spec.width / spec.height) < 1e-9, `${game} ${width}x${height}: uniform`);
-    // The old cap (150cqw) with letterbox/stretch never beat the new uniform scale.
-    const oldH = Math.min(slotH, 1.5 * slotW);
-    assert.ok(scale + 1e-9 >= Math.min(slotW / spec.width, oldH / spec.height), `${game} ${width}x${height}: never smaller than before`);
-    assert.ok(slotH > 0 && top + slotH + (BELOW[game] ?? 0) + ARCADE_BOTTOM === height, `${game} ${width}x${height}: column ends 8px above the bottom`);
+    assert.ok(slotH > 0 && top + slotH + (BELOW[game] ?? 0) + ARCADE_BOTTOM === height, `${game} ${width}x${height}: column ends 16px above the bottom`);
     if (TARGETS[game]) assert.ok(TARGETS[game]!(width) >= 44, `${game} ${width}x${height}: 44px targets`);
-    const entry = arenaTable.get(game) ?? { sizes: [], detail: "" };
-    entry.sizes.push(`${w.toFixed(0)}x${h.toFixed(0)}`);
-    if (width === 390 && height === 844) entry.detail = `${scale.toFixed(3)}x | ${top}px | ${(slotH - h).toFixed(0)}px | ${(slotW - w).toFixed(0)}px`;
+    const entry = arenaTable.get(game) ?? { world: game === "whack" ? "square" : `${spec.width}x${spec.height}`, sizes: [], detail: "", before: [] };
+    entry.sizes.push(`${slotW}x${slotH.toFixed(0)} → ${w.toFixed(0)}x${h.toFixed(0)}`);
+    if (game in ARCADE_FX_SPECS) {
+      // Every arcade arena is larger than before 15 Oct 2026, at every size.
+      const oldW = width - 8, oldH = height - 8 - OLD_TOP(game) - (OLD_BELOW[game] ?? 0);
+      const oldScale = Math.min(oldW / spec.width, oldH / spec.height);
+      assert.ok(scale > oldScale, `${game} ${width}x${height}: larger than before (${oldScale.toFixed(3)} → ${scale.toFixed(3)})`);
+      entry.before.push(`${oldW}x${oldH} → ${(spec.width * oldScale).toFixed(0)}x${(spec.height * oldScale).toFixed(0)}`);
+    }
+    if (width === 390 && height === 844) entry.detail = `${scale.toFixed(3)}x | ${top}px | ${(slotH - h).toFixed(0)}px | ${(slotW - w).toFixed(0)}px | ${BELOW[game] ? `${BELOW_CONTROLS[game]}: 16px` : "-"}`;
     arenaTable.set(game, entry);
     arenaChecks++;
   }
 }
-console.log(`PASS ${arenaChecks} arcade arena geometries (22 games × 375x667, 390x700, 390x844, 430x932, 1280x800): uniform world-aspect, largest fit, fixed top, column 8px above the bottom, control targets ≥44px.`);
+const gameCount = Object.keys(WORLDS).length;
+console.log(`PASS ${arenaChecks} arcade play-screen geometries (${gameCount} games × 375x667, 390x700, 390x844, 430x932, 1280x800): 52px header, edge-to-edge box, uniform world-aspect, largest fit, column 16px above the bottom, lowest control row 16px up, control targets ≥44px, every arcade arena larger than before.`);
 // The arena table is project documentation, not a Lovable audit: docs/, never .lovable/.
+const PHONE_SIZES = ARENA_SIZES.map(([w, h]) => `${w}x${h}`);
 writeFileSync("docs/arena-sizes-oct-2026.md", [
   "# Arcade arena sizes (Oct 2026)", "",
-  "Generated by `bun scripts/presentation-geometry-check.tsx` from the CSS arithmetic of the arcade arena slot",
-  "(styles.css, \"Arcade arena slot\"): each arena is the game's world at the largest uniform scale that fits below its",
-  "fixed top edge, above its controls and 8px above the bottom. A home-bar inset does not change them (since 15 Oct 2026",
-  "the arcade play screen ends 8px up whatever the inset, as before 14 Oct; puzzles keep inset + 16px). Sizes are CSS px, width x height.",
-  "Analytic geometry, cross-checked in the browser by arcade-play-check; not device measurements.", "",
-  `| Game | World | ${ARENA_SIZES.map(([w, h]) => `${w}x${h}`).join(" | ")} | Scale at 390x844 | Top | Fill below | Space across |`,
-  `|---|---|${ARENA_SIZES.map(() => "---").join("|")}|---|---|---|---|`,
-  ...[...arenaTable].map(([game, { sizes, detail }]) => {
-    const spec = ARCADE_FX_SPECS[game as keyof typeof ARCADE_FX_SPECS];
-    return `| ${gameDisplayName(game as never)} | ${spec.width}x${spec.height} | ${sizes.join(" | ")} | ${detail} |`;
-  }), "",
+  "Generated by `bun scripts/presentation-geometry-check.tsx` from the CSS arithmetic of the arcade play screen",
+  "(polish-layout/bottom.css, \"Arcade play screen\", and styles.css, \"Arcade arena slot\"), 15 Oct 2026. Every arcade game",
+  "and every engine game on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals) has one 44px header row (score",
+  "or PRACTICE, the timer and round pips centred, \"?\" and sound), 4px under the top or just under a notch, and the box",
+  "(the arena slot) starts 4px under it (52px down without a notch), below any of the game's own HUD rows. The box runs edge",
+  "to edge and down to the controls (8px above them) or 16px above the bottom of the visible screen; the lowest control row",
+  "ends exactly 16px above it. A home-bar inset does not change any of it (a notch moves the header and box down by its inset).",
+  "The world is drawn at the largest uniform scale that fits the box, top-anchored and centred across; every gap is the",
+  "screen edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
+  "browser by arcade-play-check; not device measurements.", "",
+  `| Game | World | ${PHONE_SIZES.join(" | ")} | Scale at 390x844 | Box top | Black below | Black across | Bottom control (gap to bottom) |`,
+  `|---|---|${ARENA_SIZES.map(() => "---").join("|")}|---|---|---|---|---|`,
+  ...[...arenaTable].map(([game, { world, sizes, detail }]) => `| ${gameDisplayName(game as never)} | ${world} | ${sizes.join(" | ")} | ${detail} |`), "",
+  "## Before 15 Oct 2026 (arcade games)", "",
+  "Box top 116px (Scrumper 156px, Tilt 156px), 4px side insets, ending at the controls (12px above them) or 8px above the",
+  "bottom; the spare space was the game's arena fill or the page colour. Same arithmetic, box → world.", "",
+  `| Game | ${PHONE_SIZES.join(" | ")} |`,
+  `|---|${ARENA_SIZES.map(() => "---").join("|")}|`,
+  ...[...arenaTable].filter(([game]) => game in ARCADE_FX_SPECS).map(([game, { before }]) => `| ${gameDisplayName(game as never)} | ${before.join(" | ")} |`), "",
 ].join("\n"));
 mkdirSync(".lovable/audits", { recursive: true });
 writeFileSync(".lovable/audits/presentation-geometry-oct6.md", [

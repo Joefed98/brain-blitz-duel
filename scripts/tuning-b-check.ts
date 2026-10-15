@@ -12,8 +12,8 @@
  *  2. Breaker brkRev 4: stamped 4; a caught Fireball lasts 3.5 s (rev 3: 5 s).
  *  3. Rally rallyRev 4: stamped 4; the two +3 pads never overlap, before or
  *     after they move, each staying in its own half (rev 3 could overlap).
- *  4. Arena fill: none for Hover, Tilt, Roofbound, Rainbow Bridge, Junction and
- *     High Rise; every other game keeps its fill exactly.
+ *  4. Arena fill: Tuning B gave each arena a fill; since 15 Oct 2026 every gap on an
+ *     arcade play screen is the screen edge's black and the per-game fills are gone.
  *  5. Fission: no FIRE button; the arena tap sends the same fire input.
  *
  * Older revisions' identity is proved elsewhere (arcade-score-bands-check,
@@ -22,7 +22,7 @@
  *   bun scripts/tuning-b-check.ts
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { playFlightpath, playRally } from "./arcade-batch5-bots";
 import {
   bullseyeBalloonV4At,
@@ -75,7 +75,6 @@ import {
   type RallyState,
 } from "../src/lib/arcade/rally";
 import { generateBreaker, generateBullseye, generateRally } from "../src/lib/duel/arcade.server";
-import { ARCADE_ARENA_FILL, ARENA_NO_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { BURST_INPUT_FIRE, BURST_INPUT_RANGES } from "../src/lib/arcade/burst";
 
 let checks = 0;
@@ -273,37 +272,14 @@ section("Rally rallyRev 4 (pads never overlap)");
 /* ============================ 4. Arena fill ============================ */
 section("Arena fill below the arena");
 {
-  const before: Record<string, string> = {
-    hover: "#2C0A0F", breaker: "#000000", rally: "#061821", beat: "#0B0A10", snake: "#000000", burst: "#000000",
-    wavefront: "#07070C", orbit: "#06060F", skyline: "#1C2839", cross: "#0B0B0F", junction: "#86BF63", inkbridge: "#65B94B",
-    slice: "#70492F", bintoss: "#B37A41", bullseye: "#BB8044", bubble: "#06172E", flip: "#2A2A32", swing: "#4F0C08",
-    snip: "#408B37", tilt: "#AC8353", balltrack: "#7E5C38", matchup: "#0B0B0F",
-  };
-  /**
-   * Fills changed on purpose after Tuning B, each with the change that made it. Every other game
-   * must keep its Tuning B fill above.
-   * - cross: Polish F (Oct 2026) moved Jaywalk to the Real World daylight palette; its bottom edge
-   *   is now grass, so the fill is REAL_GRASS_DARK (#6FA851) instead of the night road's #0B0B0F.
-   */
-  const changed: Record<string, { from: string; to: string }> = {
-    cross: { from: "#0B0B0F", to: "#6FA851" },
-  };
-  /**
-   * Arcade games added after Tuning B, each with its own fill; the 22 above must keep theirs.
-   * - pinball (13 Oct 2026, practice only): its Retro screen ends black.
-   */
-  const added: Record<string, string> = { pinball: "#000000" };
-  const none = new Set(["hover", "tilt", "flip", "inkbridge", "junction", "skyline"]);
-  ok(Object.keys(ARCADE_ARENA_FILL).length === 22 + Object.keys(added).length, "22 Tuning B arcade games plus the ones added since");
-  ok(Object.keys(before).every((game) => game in ARCADE_ARENA_FILL), "every Tuning B arcade game keeps a fill");
-  for (const [game, fill] of Object.entries(ARCADE_ARENA_FILL)) {
-    if (added[game]) ok(fill === added[game], `${game}: added after Tuning B with fill ${added[game]} (${fill})`);
-    else if (none.has(game)) ok(fill === ARENA_NO_FILL, `${game}: no fill (page colour)`);
-    else if (changed[game]) {
-      ok(before[game] === changed[game].from, `${game}: deliberate change starts from its Tuning B fill (${before[game]})`);
-      ok(fill === changed[game].to, `${game}: fill is the deliberate ${changed[game].to} (${fill})`);
-    } else ok(fill === before[game], `${game}: fill unchanged (${fill})`);
-  }
+  // Tuning B gave each arena a fill (its art's bottom-edge colour, or none for the page colour).
+  // Superseded 15 Oct 2026 (arcade play screen, display only): every gap on an arcade play
+  // screen, the space below the world included, is the screen edge's black, so the per-game
+  // fills (arenaFill.renderer.ts) are gone; arcade-play-check and bottom-clearance-check prove the black.
+  const css = readFileSync("src/styles.css", "utf8");
+  ok(!existsSync("src/lib/arcade/arenaFill.renderer.ts"), "no per-game arena fill table");
+  ok(!/--arena-fill/.test(css), "no --arena-fill in the arena slot");
+  ok(/\[data-arena-slot\]::after \{[^}]*background: var\(--screen-edge\);/.test(css), "the space below every arena is the screen edge's black");
 }
 
 /* ============================== 5. Fission ============================== */

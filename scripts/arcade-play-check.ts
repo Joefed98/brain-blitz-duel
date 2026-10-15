@@ -3,7 +3,7 @@
  *
  * For each of the 22 active arcade games (Pinball dealt in rooms since 14 Oct 2026; Junction is practice only since Tuning C), plus the engine games of other categories
  * that draw in an arcade world (ENGINE_GAME_WORLDS: Letterfall) and the engine games that draw their own
- * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!; no arena-layout proof), it opens /practice at 390 × 700, starts
+ * board (ENGINE_PLAY_GAMES: Tenfall, Mixed Signals, Bonk, Pull!), it opens /practice at 390 × 700, starts
  * the run and feeds seeded taps and swipes until 15 s of LIVE play are covered: a run
  * that ends early by game-over is restarted (a fresh practice run) and play continues.
  * It fails if:
@@ -22,15 +22,20 @@
  *  - a tracked drawn object moves further between two frames than it physically can
  *    (per-game px-per-tick limits; respawns, new throws/levels and other listed
  *    resets are exempt);
- *  - the arena layout is wrong at any of 375 × 667, 390 × 700, 390 × 844, 430 × 932
- *    or a 1280 × 800 laptop window (checked once per game, before play): READY off
- *    screen or the page scrolls; the arena not the game's world aspect (within 1 px),
- *    not the largest uniform fit of its slot, not top-anchored and centred, or its top
- *    moving between sizes; the space below the arena not painted the arena fill at the arena's width; the column not ending
- *    8 px above the bottom (the pre-14 Oct arcade spacing, restored 15 Oct 2026: data-arcade-screen,
- *    whatever the home-bar inset; at 390x844 also with a 34 px inset emulated, where the arena must
- *    keep its no-inset size); a control below the arena under 44 px or off screen;
- *    for ENGINE_GAME_WORLDS games, the play column or the arena canvas not touch-action: none;
+ *  - the arcade play screen (15 Oct 2026, polish-layout/bottom.css) is wrong at any of
+ *    375 × 667, 390 × 700, 390 × 844, 430 × 932 or a 1280 × 800 laptop window (checked once
+ *    per game, before play): READY off screen or the page scrolls; the compact header not
+ *    one 44 px row 4 px from the top (its timer centred, its text 12 px or more); the box
+ *    (arena slot) not the full screen width or not starting 4 px under the header (below
+ *    the game's own HUD rows, ABOVE); the arena not the game's world aspect (within 1 px),
+ *    not the largest uniform fit of its box, not top-anchored and centred, or its top
+ *    moving between sizes; the box or the space below the arena not the screen edge's
+ *    black (#070709), or the page behind not that black; the column not ending 16 px
+ *    above the bottom, or the lowest control not exactly 16 px above it, whatever the
+ *    home-bar inset (at 390x844 also with a 34 px home bar emulated, where the arena must
+ *    keep its no-inset size, and with a 47 px notch, where the header must sit just under
+ *    the inset and the arena directly under it); a control below the arena under 44 px or
+ *    off screen; the play column or the arena canvas not touch-action: none (engine games);
  *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
@@ -54,7 +59,9 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
-import { ARCADE_ARENA_FILL, ARENA_NO_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
+import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
+import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { gotoRetried, warmUp } from "./browser-load";
@@ -67,10 +74,17 @@ const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
  * Engine games of other categories that draw in their own canvas or board rather than an
  * arcade world (Tenfall, Mixed Signals, Bonk, Pull!). They run on the same engine and feed
  * the same per-frame probe (arcadeFeedback), so every play rule applies (sim tick and HUD
- * timer advance, no errors, frame time, READY on screen); only the arcade-world arena
- * layout proof is skipped, as they have no world spec or arena fill.
+ * timer advance, no errors, frame time, READY on screen), and since 15 Oct 2026 their
+ * board sits in the shared arena slot, so the layout proof applies too (ENGINE_PLAY_WORLDS).
  */
 const ENGINE_PLAY_GAMES = ["tendrop", "stroop", "whack", "clayshoot"] as const;
+/** Their world (view) sizes; Bonk's world is its square board. */
+const ENGINE_PLAY_WORLDS: Record<(typeof ENGINE_PLAY_GAMES)[number], { width: number; height: number }> = {
+  tendrop: { width: TD_W, height: TD_H },
+  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
+  whack: { width: 1, height: 1 },
+  clayshoot: { width: CLAY_W, height: CLAY_H },
+};
 /**
  * New arcade games still practice only (not yet dealt in rooms), played with every rule,
  * the arena-layout proof included: Pinball until PINBALL_IN_ROOMS (then it is in ACTIVE_ARCADE_GAMES).
@@ -296,8 +310,15 @@ async function main() {
   console.log(`Arcade play: ${results.length} of ${results.length} games covered 15 s of live play, advanced, timed, error-free, within frame-time and movement limits`);
 }
 
-/** Px from the bottom of the screen to the end of an arcade play column (pre-14 Oct spacing, restored 15 Oct 2026). */
-const ARCADE_BOTTOM_PX = 8;
+/** Px from the bottom of the visible screen to the end of an arcade play column and its lowest control (15 Oct 2026). */
+const ARCADE_BOTTOM_PX = 16;
+/** The compact header: 4 px from the top (or the notch's inset), one 44 px row, 4 px to the box. */
+const HEADER_TOP_PX = 4;
+const HEADER_ROW_PX = 44;
+/** The game's own HUD rows between the header and the box (presentation-geometry-check's ABOVE). */
+const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26 };
+/** The screen edge's black (--screen-edge), every gap on an arcade play screen. */
+const EDGE_RGB = "rgb(7, 7, 9)";
 
 /** Viewports the arena layout is proved at: four phones and a laptop window. */
 const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];
@@ -317,42 +338,62 @@ async function readyFits(page: import("playwright").Page, problems: string[]): P
   await nextFrames(page);
 }
 
+/** In-page: the play screen's header, box, arena, controls and colours. */
+function playScreen() {
+  const box = (el: Element | null) => {
+    if (!el) return null;
+    const b = el.getBoundingClientRect();
+    return { x: b.x, y: b.y, w: b.width, h: b.height };
+  };
+  const stage = document.querySelector("[data-game-stage]");
+  const slot = stage?.querySelector("[data-arena-slot]") ?? null;
+  const arena = slot?.querySelector(":scope > [data-game-arena]") ?? null;
+  const canvas = arena ? (arena instanceof HTMLCanvasElement ? arena : arena.querySelector("canvas")) : null;
+  const below = slot ? [...(stage?.querySelectorAll("button, [data-game-controls]") ?? [])].filter((b) => slot.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING && !slot.contains(b) && b.getBoundingClientRect().height > 0) : [];
+  const column = document.querySelector("[data-game-column]");
+  const pad = column ? Number.parseFloat(getComputedStyle(column).paddingBottom) : 0;
+  const header = document.querySelector("[data-arcade-header]");
+  const timer = header?.querySelector("[role='timer']") ?? null;
+  const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
+  const doc = document.scrollingElement!;
+  const shell = document.querySelector("[data-arcade-play]");
+  return {
+    slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
+    header: box(header), timer: box(timer), smallestText: Math.min(...texts.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))),
+    colours: {
+      slot: slot ? getComputedStyle(slot).backgroundColor : "",
+      below: slot ? getComputedStyle(slot, "::after").backgroundColor : "",
+      shell: shell ? getComputedStyle(shell).backgroundColor : "missing",
+      html: getComputedStyle(document.documentElement).backgroundColor,
+      body: getComputedStyle(document.body).backgroundColor,
+    },
+    fillW: slot ? Number.parseFloat(getComputedStyle(slot, "::after").width) : 0,
+    columnEnd: column ? column.getBoundingClientRect().bottom - pad : 0, pad,
+    controls: below.filter((b) => b.tagName === "BUTTON").map((b) => box(b)!),
+    lowest: Math.max(0, ...below.map((b) => b.getBoundingClientRect().bottom)),
+    scroll: doc.scrollHeight - doc.clientHeight,
+    // Only elements that take touches count (Tenfall, Pull! and Bonk draw on a pointer-events: none canvas).
+    touch: [canvas, stage?.querySelector("[data-play-area]") ?? arena?.querySelector(".puzzle-board") ?? null].filter((el) => !el || getComputedStyle(el).pointerEvents !== "none").map((el) => (el ? getComputedStyle(el).touchAction : "missing")),
+  };
+}
+
 /**
- * The live arena at every layout viewport: the world's aspect at the largest uniform
- * scale that fits its slot, top-anchored at a fixed edge, controls 44 px or more.
+ * The live arcade play screen at every layout viewport: the compact header, the edge-to-edge
+ * box, the world's aspect at the largest uniform scale that fits it, top-anchored at a fixed
+ * edge, every gap black, the column and the lowest control 16 px up, controls 44 px or more.
  */
 async function arenaFits(page: import("playwright").Page, game: string, problems: string[]): Promise<void> {
-  const spec = ({ ...ARCADE_FX_SPECS, ...ENGINE_FX_SPECS } as Record<string, { width: number; height: number }>)[game];
-  const fill = ({ ...ARCADE_ARENA_FILL, ...ENGINE_ARENA_FILL } as Record<string, string>)[game];
-  if (!spec || !fill) {
-    problems.push(`layout: no world size or arena fill for ${game}`);
+  const spec = ({ ...ARCADE_FX_SPECS, ...ENGINE_FX_SPECS, ...ENGINE_PLAY_WORLDS } as Record<string, { width: number; height: number }>)[game];
+  if (!spec) {
+    problems.push(`layout: no world size for ${game}`);
     return;
   }
+  const engine = game in ENGINE_GAME_WORLDS || (ENGINE_PLAY_GAMES as readonly string[]).includes(game);
   const tops: number[] = [];
   for (const [w, h] of LAYOUT_VIEWPORTS) {
     await page.setViewportSize({ width: w, height: h });
     await nextFrames(page);
-    const m = await page.evaluate(() => {
-      const box = (el: Element | null) => {
-        if (!el) return null;
-        const b = el.getBoundingClientRect();
-        return { x: b.x, y: b.y, w: b.width, h: b.height };
-      };
-      const stage = document.querySelector("[data-game-stage]");
-      const slot = stage?.querySelector("[data-arena-slot]") ?? null;
-      const arena = slot?.querySelector(":scope > [data-game-arena]") ?? null;
-      const canvas = arena ? (arena instanceof HTMLCanvasElement ? arena : arena.querySelector("canvas")) : null;
-      const below = slot ? [...(stage?.querySelectorAll("button") ?? [])].filter((b) => slot.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING && !slot.contains(b)) : [];
-      const pad = stage ? Number.parseFloat(getComputedStyle(stage).paddingBottom) : 0;
-      const doc = document.scrollingElement!;
-      return {
-        slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
-        fill: slot ? getComputedStyle(slot, "::after").backgroundColor : "",
-        fillW: slot ? Number.parseFloat(getComputedStyle(slot, "::after").width) : 0, stageBottom: stage ? stage.getBoundingClientRect().bottom - pad : 0,
-        controls: below.map((b) => box(b)!), scroll: doc.scrollHeight - doc.clientHeight,
-        touch: [canvas, stage?.querySelector("[data-play-area]") ?? null].map((el) => (el ? getComputedStyle(el).touchAction : "missing")),
-      };
-    });
+    const m = await page.evaluate(playScreen);
     const at = `layout ${w}x${h}`;
     if (m.slots !== 1 || !m.slot || !m.arena) {
       problems.push(`${at}: expected one arena slot holding the arena (slots ${m.slots})`);
@@ -360,21 +401,25 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     }
     const { slot, arena } = m;
     if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
-    if (game in ENGINE_GAME_WORLDS && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
+    if (!m.header || Math.abs(m.header.y - HEADER_TOP_PX) > 0.5 || Math.abs(m.header.h - HEADER_ROW_PX) > 0.5) problems.push(`${at}: header ${m.header ? `${m.header.h.toFixed(1)} px tall at ${m.header.y.toFixed(1)}` : "missing"}, want one ${HEADER_ROW_PX} px row ${HEADER_TOP_PX} px down`);
+    if (!m.timer || Math.abs(m.timer.x + m.timer.w / 2 - w / 2) > 1) problems.push(`${at}: header timer not centred`);
+    if (!(m.smallestText >= 12)) problems.push(`${at}: header text ${m.smallestText} px, want 12 px or more`);
+    const boxTop = HEADER_TOP_PX + HEADER_ROW_PX + 4 + (ABOVE_PX[game] ?? 0);
+    if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (4 px under the header${ABOVE_PX[game] ? " and the game's HUD" : ""})`);
+    if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
+    if (engine && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
     if (Math.abs(arena.h - (arena.w * spec.height) / spec.width) > 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the ${spec.width}:${spec.height} world aspect`);
     if (arena.w > slot.w + 0.5 || arena.h > slot.h + 0.5) problems.push(`${at}: arena overflows its slot`);
     if (arena.w < slot.w - 1 && arena.h < slot.h - 1) problems.push(`${at}: arena ${arena.w.toFixed(1)}x${arena.h.toFixed(1)} is not the largest fit in ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
     if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
     if (Math.abs(arena.x - slot.x - (slot.w - arena.w) / 2) > 0.5) problems.push(`${at}: arena not centred across its slot`);
     if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
-    const hex = fill.replace("#", "");
-    // ARENA_NO_FILL ("transparent", Tuning B): the space below shows the page colour.
-    const rgb = fill === ARENA_NO_FILL ? "rgba(0, 0, 0, 0)" : `rgb(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)})`;
-    if (m.fill !== rgb) problems.push(`${at}: space below the arena painted ${m.fill}, not the arena fill ${rgb}`);
-    if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: fill below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
-    const gap = h - m.stageBottom;
-    // Arcade play screens end 8 px above the bottom whatever the inset (bottom.css, data-arcade-screen).
+    for (const [where, colour] of Object.entries(m.colours))
+      if (colour !== EDGE_RGB) problems.push(`${at}: ${where} painted ${colour}, not the screen edge's black ${EDGE_RGB}`);
+    if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: black below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);
+    const gap = h - m.columnEnd;
     if (Math.abs(gap - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: play column ends ${gap.toFixed(1)} px above the bottom (want ${ARCADE_BOTTOM_PX})`);
+    if (m.lowest > 0 && Math.abs(h - m.lowest - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: lowest control ends ${(h - m.lowest).toFixed(1)} px above the bottom (want exactly ${ARCADE_BOTTOM_PX})`);
     for (const c of m.controls) {
       if (Math.min(c.w, c.h) < 44) problems.push(`${at}: control ${c.w.toFixed(0)}x${c.h.toFixed(0)} under 44 px`);
       if (c.y < slot.y + slot.h - 0.5 || c.y + c.h > h + 0.5) problems.push(`${at}: control not between the arena and the bottom edge`);
@@ -382,23 +427,27 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     tops.push(arena.y);
   }
   if (tops.length && Math.max(...tops) - Math.min(...tops) > 0.5) problems.push(`layout: arena top moves between sizes (${tops.map((t) => t.toFixed(1)).join(", ")})`);
-  // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end.
+  // A 34 px home bar (CDP safe-area emulation) must not shrink the arena or move the column's end;
+  // a 47 px notch puts the header just under it and the box directly under the header.
   await page.setViewportSize({ width: 390, height: 844 });
   await nextFrames(page);
-  const arenaBox = () => page.evaluate(() => {
-    const stage = document.querySelector("[data-game-stage]");
-    const arena = stage?.querySelector("[data-arena-slot] > [data-game-arena]")?.getBoundingClientRect();
-    const column = document.querySelector("[data-game-column]");
-    return { w: arena?.width ?? 0, h: arena?.height ?? 0, pad: column ? Number.parseFloat(getComputedStyle(column).paddingBottom) : -1 };
-  });
-  const plain = await arenaBox();
+  const plain = await page.evaluate(playScreen);
   const cdp = await page.context().newCDPSession(page);
   try {
     await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 34, left: 0, right: 0 } } as never);
     await nextFrames(page);
-    const inset = await arenaBox();
-    if (Math.abs(inset.w - plain.w) > 0.5 || Math.abs(inset.h - plain.h) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: arena ${inset.w.toFixed(1)}x${inset.h.toFixed(1)}, not its no-inset ${plain.w.toFixed(1)}x${plain.h.toFixed(1)}`);
+    const inset = await page.evaluate(playScreen);
+    if (!plain.arena || !inset.arena || Math.abs(inset.arena.w - plain.arena.w) > 0.5 || Math.abs(inset.arena.h - plain.arena.h) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: arena ${inset.arena?.w.toFixed(1)}x${inset.arena?.h.toFixed(1)}, not its no-inset ${plain.arena?.w.toFixed(1)}x${plain.arena?.h.toFixed(1)}`);
     if (Math.abs(inset.pad - ARCADE_BOTTOM_PX) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: play column padded ${inset.pad} px at the bottom (want ${ARCADE_BOTTOM_PX})`);
+    if (inset.lowest > 0 && Math.abs(844 - inset.lowest - ARCADE_BOTTOM_PX) > 0.5) problems.push(`layout 390x844 with a 34 px home bar: lowest control ${(844 - inset.lowest).toFixed(1)} px above the bottom (want ${ARCADE_BOTTOM_PX})`);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 47, bottom: 34, left: 0, right: 0 } } as never);
+    await nextFrames(page);
+    const notch = await page.evaluate(playScreen);
+    if (!notch.header || Math.abs(notch.header.y - 47) > 0.5) problems.push(`layout 390x844 with a 47 px notch: header at ${notch.header?.y.toFixed(1)} px, want just under the inset (47)`);
+    const notchTop = 47 + HEADER_ROW_PX + 4 + (ABOVE_PX[game] ?? 0);
+    if (!notch.slot || Math.abs(notch.slot.y - notchTop) > 0.5) problems.push(`layout 390x844 with a 47 px notch: box at ${notch.slot?.y.toFixed(1)} px, want ${notchTop.toFixed(1)} (directly under the header)`);
+    for (const [where, colour] of Object.entries(notch.colours))
+      if (colour !== EDGE_RGB) problems.push(`layout 390x844 with a notch and home bar: ${where} painted ${colour}, not ${EDGE_RGB}`);
   } finally {
     await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 0, left: 0, right: 0 } } as never).catch(() => {});
     await cdp.detach().catch(() => {});
@@ -468,7 +517,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
       await ready.click();
       await page.waitForTimeout(400);
       if (segment === 0) {
-        if (!(ENGINE_PLAY_GAMES as readonly string[]).includes(game)) await arenaFits(page, game, problems);
+        await arenaFits(page, game, problems);
         // Resizing reallocates the canvas: frame gaps count from here.
         await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
       }
