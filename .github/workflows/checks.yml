@@ -48,8 +48,9 @@ jobs:
       fail-fast: false
       matrix:
         # Keys must match .github/ci/shards.ts. Recording the baseline is one job
-        # (all 22 games, one at a time, as each play group plays them).
-        shard: ${{ fromJSON(inputs.record_arcade_baseline && '["play"]' || '["play1","play2","play3","play4","play5","a","b","c","d"]') }}
+        # (all 22 games, one at a time, as each play group plays them). play6-play8 run
+        # bottom-clearance-check only; they install the browser like the other play jobs.
+        shard: ${{ fromJSON(inputs.record_arcade_baseline && '["play"]' || '["play1","play2","play3","play4","play5","play6","play7","play8","a","b","c","d","e","f","g"]') }}
     env:
       CHECKS_FULL: ${{ inputs.full && '1' || '' }}
     steps:

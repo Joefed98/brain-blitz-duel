@@ -36,6 +36,7 @@ import {
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { SIGNATURE_DELAY_MS, SIGNATURE_HOLD_MAX_MS, SIGNATURE_MS } from "../src/lib/fx/signature";
+import { gotoRetried, warmUp } from "./browser-load";
 
 const failures: string[] = [];
 const ok = (cond: boolean, message: string) => {
@@ -178,6 +179,24 @@ const SUBMIT_WINDOW_MS = process.env.CI === "true" ? 150 : 50;
 
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
+// Compile the harness once, unmeasured, so the first case's load does not race the cold dev server.
+await warmUp(
+  browser,
+  `${origin}/beat-hold.html?mode=practice`,
+  (page) => page.waitForSelector("#root *", { timeout: 180_000 }),
+  {
+    init: () => {
+      (window as unknown as { __harness: unknown }).__harness = {
+        puzzles: {},
+        verdict: { isCorrect: true, score: 150 },
+        latencyMs: 50,
+        submissions: [],
+        verdictAt: null,
+        room: null,
+      };
+    },
+  },
+);
 
 interface Sample {
   t: number;
@@ -283,7 +302,7 @@ async function play(opts: {
           : null,
     },
   );
-  await page.goto(`${origin}/beat-hold.html?mode=${opts.mode}`);
+  await gotoRetried(page, `${origin}/beat-hold.html?mode=${opts.mode}`, `${opts.mode} ${type}`);
 
   if (opts.mode === "practice") {
     await page.getByRole("button", { name: puzzleDef(type).name, exact: true }).click();

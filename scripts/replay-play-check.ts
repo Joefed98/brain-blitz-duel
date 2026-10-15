@@ -22,6 +22,7 @@
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
+import { gotoRetried, warmUp } from "./browser-load";
 
 const args = process.argv.slice(2);
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
@@ -77,6 +78,10 @@ const { chromium } = await import("playwright");
 const base = await origin();
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 try {
+  // Compile the app once, unmeasured, so the first replay's load does not race the cold dev server.
+  await warmUp(browser, `${base}/replay-lab?view=player&game=${PLAY[0]}`, (page) =>
+    page.waitForFunction(() => window.__replayLab?.ready === true, undefined, { timeout: 180_000 }),
+  );
   for (const game of PLAY) {
     const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
     const errors: string[] = [];
@@ -85,7 +90,7 @@ try {
       if (m.type() === "error" && !NOISE.test(m.text()))
         errors.push(`console: ${m.text().slice(0, 200)}`);
     });
-    await page.goto(`${base}/replay-lab?view=player&game=${game}`);
+    await gotoRetried(page, `${base}/replay-lab?view=player&game=${game}`, game);
     await page
       .waitForFunction(() => window.__replayLab?.ready === true, undefined, { timeout: 90_000 })
       .catch(() => undefined);
@@ -171,7 +176,7 @@ try {
     ["podium&game=matchup", "Play again", [390, 700]],
   ] as const) {
     const page = await browser.newPage({ viewport: { width: size[0], height: size[1] } });
-    await page.goto(`${base}/replay-lab?view=${view}`);
+    await gotoRetried(page, `${base}/replay-lab?view=${view}`, view);
     await page.waitForSelector("[data-replay-panel]", { timeout: 60_000 }).catch(() => undefined);
     await page.waitForTimeout(2500);
     const seen = await page.evaluate((label) => {

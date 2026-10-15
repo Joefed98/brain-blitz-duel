@@ -8,7 +8,12 @@
  * The server replay of it must reach the identical final state and score, with
  * no repaired events and no checkpoint mismatch. Also reports replay wall time.
  *
- *   bun scripts/arcade-self-replay-check.ts [runsPerGame]
+ * Each GAMES entry draws from its own PRNG stream (seeded from its index), so an entry's
+ * seeds and inputs are the same whether it runs alone, in a part or in a whole run.
+ * --part=k/n runs one of n disjoint groups of entries, balanced by ENTRY_COST (CI shards
+ * split the check this way); together the n parts check exactly what one whole run does.
+ *
+ *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
 import {
@@ -129,10 +134,16 @@ import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } fr
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const RUNS = Number(process.argv[2] ?? 40);
+const POSITIONAL = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const RUNS = Number(POSITIONAL[0] ?? 40);
+const PART_ARG = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
 const INTERVAL = 300;
 
 let rng = 12345;
+/** Entry i's own stream; entry 0 starts where the single shared stream used to (12345). */
+const seedStream = (i: number) => {
+  rng = (12345 + Math.imul(i, 0x9e3779b9)) >>> 0;
+};
 const rand = (n: number) => {
   rng = (Math.imul(rng, 1103515245) + 12345) >>> 0;
   return rng % Math.max(1, n);
@@ -578,9 +589,49 @@ function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+/**
+ * Seconds per entry at 40 runs (local whole run, 15 Oct 2026: 346 s), only to balance
+ * --part groups; keyed by the entry's index in GAMES. Unlisted entries count 0.2.
+ */
+const ENTRY_COST: Record<number, number> = {
+  8: 1.6, 10: 1.2, 11: 1.1, 14: 1.0, 15: 0.8, 19: 0.5, 20: 2.6, 21: 0.6, 23: 59.4, 26: 56.9,
+  29: 2.8, 30: 2.8, 35: 4.2, 36: 4.2, 37: 1.3, 38: 0.7, 41: 1.2, 42: 3.7, 44: 1.1, 54: 32.1,
+  55: 32.8, 56: 0.5, 57: 3.1, 58: 0.5, 59: 1.2, 60: 33.6, 62: 1.2, 63: 1.3, 64: 3.8, 69: 4.1,
+  73: 1.1, 74: 1.1, 75: 0.7, 77: 0.9, 79: 3.2, 82: 0.5, 83: 3.5, 88: 0.9, 89: 3.7, 91: 3.4,
+  92: 3.6, 94: 33.8, 95: 1.2, 97: 0.6, 98: 0.7, 99: 0.9, 103: 4.9, 104: 1.1, 109: 3.7, 110: 4.0,
+  115: 2.1,
+};
+
+/** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
+function partOf(indexes: number[], k: number, n: number): number[] {
+  const load = Array.from({ length: n }, () => 0);
+  const groups: number[][] = Array.from({ length: n }, () => []);
+  const cost = (i: number) => ENTRY_COST[i] ?? 0.2;
+  for (const i of [...indexes].sort((a, b) => cost(b) - cost(a) || a - b)) {
+    const g = load.indexOf(Math.min(...load));
+    load[g] += cost(i);
+    groups[g]!.push(i);
+  }
+  return groups[k - 1]!.sort((a, b) => a - b);
+}
+
 let failures = 0;
-const ONLY = process.argv[3]?.split(",");
-for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
+const ONLY = POSITIONAL[1]?.split(",");
+let selected = GAMES.map((_, i) => i).filter((i) => !ONLY || ONLY.includes(GAMES[i]!.key));
+let [PART, PARTS] = [1, 1];
+if (PART_ARG) {
+  [PART, PARTS] = PART_ARG.split("/").map(Number) as [number, number];
+  if (!(PARTS >= 1 && PART >= 1 && PART <= PARTS)) {
+    console.log(`FAIL: bad --part=${PART_ARG} (expected k/n with 1 <= k <= n)`);
+    process.exit(1);
+  }
+  selected = partOf(selected, PART, PARTS);
+  console.log(`part ${PART}/${PARTS}: entries ${selected.join(", ")}`);
+}
+for (const index of selected) {
+  const spec = GAMES[index]!;
+  seedStream(index);
+  const entryStarted = performance.now();
   let worstMs = 0;
   let maxEvents = 0;
   let failed = 0;
@@ -643,12 +694,12 @@ for (const spec of GAMES.filter((g) => !ONLY || ONLY.includes(g.key))) {
   }
   if (failed) failures += 1;
   console.log(
-    `${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${RUNS} — ${reason}` : `ok ${RUNS}/${RUNS}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms`,
+    `#${String(index).padEnd(3)} ${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${RUNS} — ${reason}` : `ok ${RUNS}/${RUNS}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms · ${((performance.now() - entryStarted) / 1000).toFixed(1)} s`,
   );
 }
 
-// Run the unrelated repair check only when Breaker is selected.
-if (!ONLY || ONLY.includes("breaker")) {
+// Run the unrelated repair check only when Breaker is selected, in part 1.
+if ((!ONLY || ONLY.includes("breaker")) && PART === 1) {
   const seed = 777;
   const events: ArcadeInputEvent[] = [
     { t: 10, k: 7, a: 200, b: 0, c: 0, d: 0 },
@@ -672,4 +723,4 @@ if (failures) {
   console.error(`${failures} check(s) failed`);
   process.exit(1);
 }
-console.log(`self-replay checks passed for ${GAMES.filter((g) => !ONLY || ONLY.includes(g.key)).length} selected games`);
+console.log(`self-replay checks passed for ${selected.length} selected entries${PARTS > 1 ? ` (part ${PART}/${PARTS})` : ""}`);
