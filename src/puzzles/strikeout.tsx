@@ -4,12 +4,12 @@ import { Delete } from "lucide-react";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  SO2_MAX_VOWELS,
   SO2_VOWELS,
   SO2_WORDS,
   SO_LEN,
   SO_MAX_STRIKES,
   SO_ROWS,
+  SO3_RULES,
   STRIKEOUT_REV2,
   decodeStrikeout,
   decodeStrikeout2,
@@ -18,6 +18,7 @@ import {
   replayStrikeout,
   replayStrikeout2,
   so2GivenLetters,
+  so2Rules,
   strikeoutRevOf,
   type So2Action,
   type SoAction,
@@ -35,14 +36,15 @@ import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** Five strike markers; used ones are filled red. */
-function Strikes({ used, markerRef }: { used: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
+/** One strike marker per strike allowed (five, or ten from rev 3, drawn smaller); used ones are filled red. */
+function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
+  const many = max > SO_MAX_STRIKES;
   return (
-    <div ref={markerRef} className="flex items-center justify-center gap-2" aria-label={`${used} of ${SO_MAX_STRIKES} strikes`}>
-      {Array.from({ length: SO_MAX_STRIKES }, (_, i) => (
+    <div ref={markerRef} className={`flex items-center justify-center ${many ? "gap-1.5" : "gap-2"}`} aria-label={`${used} of ${max} strikes`}>
+      {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className={`flex h-6 w-6 items-center justify-center rounded-full border-2 font-display text-sm font-bold leading-none ${
+          className={`flex ${many ? "h-5 w-5" : "h-6 w-6"} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
             i < used ? "border-destructive bg-destructive text-destructive-foreground" : "border-border text-transparent"
           }`}
         >
@@ -343,12 +345,12 @@ function RevealRev1({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleReve
 
 // ───────────────────────── Rev 2: five long words, one at a time ─────────────────────────
 
-/** Vowel guesses left on the current word: filled dots are still available. */
-function VowelsLeft({ left }: { left: number }) {
+/** Vowel guesses left on the current word (two, or three from rev 3): filled dots are still available. */
+function VowelsLeft({ left, max }: { left: number; max: number }) {
   return (
     <div data-so-vowels={left} className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground" aria-label={`${left} vowel guess${left === 1 ? "" : "es"} left`}>
       <span>Vowels</span>
-      {Array.from({ length: SO2_MAX_VOWELS }, (_, i) => (
+      {Array.from({ length: max }, (_, i) => (
         <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < left ? "bg-primary" : "border border-border bg-transparent"}`} />
       ))}
     </div>
@@ -367,19 +369,19 @@ function WordDots({ solved, current }: { solved: number; current: number }) {
   );
 }
 
-/** Fixed example (rev 2): one word with a starting letter, two letters found, one strike, one vowel guess left. */
+/** Fixed example (rev 3, SPLINTER): a first word with two starting letters, two letters found, one strike, two vowel guesses left. */
 function IntroExample() {
   const keys: [string, string][] = [["E", "bg-primary text-primary-foreground"], ["R", "bg-primary text-primary-foreground"], ["Z", "bg-destructive/80 text-destructive-foreground"], ["T", "bg-secondary text-foreground"]];
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex shrink-0 flex-col items-center gap-1.5">
-        <div className="flex items-center gap-3">
-          <Strikes used={1} />
-          <VowelsLeft left={1} />
+        <div className="flex flex-col items-center gap-1">
+          <Strikes used={1} max={SO3_RULES.maxStrikes} />
+          <VowelsLeft left={SO3_RULES.maxVowels - 1} max={SO3_RULES.maxVowels} />
         </div>
         <Row
-          letters={["", "", "", "", "", "", "", ""].map((_, i) => ({ 1: "L", 3: "E", 6: "E", 7: "R" } as Record<number, string>)[i] ?? "")}
-          looks={["hidden", "given", "hidden", "shown", "hidden", "hidden", "shown", "shown"]}
+          letters={["", "", "", "", "", "", "", ""].map((_, i) => ({ 0: "S", 4: "N", 6: "E", 7: "R" } as Record<number, string>)[i] ?? "")}
+          looks={["given", "hidden", "hidden", "hidden", "given", "hidden", "shown", "shown"]}
           tile={24}
           rowIndex={0}
         />
@@ -392,7 +394,7 @@ function IntroExample() {
         </div>
       </div>
       <p className="max-w-[270px] text-center text-xs text-muted-foreground">
-        One word at a time; L was showing. E and R fill every match, Z is a strike. Two vowel guesses per word.
+        One word at a time; S and N were showing. E and R fill every match, Z is a strike. Three vowel guesses per word.
       </p>
     </div>
   );
@@ -401,6 +403,8 @@ function IntroExample() {
 function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }: PuzzleStageProps) {
   const data: StrikeoutPuzzleData | null = puzzle.type === "strikeout" ? puzzle : null;
   const key = stateKey ?? "strikeout";
+  const rev = data ? strikeoutRevOf(data) : STRIKEOUT_REV2;
+  const rules = so2Rules(rev);
   const [actions, setActions] = useStageState<So2Action[]>(key, "so2Actions", () => []);
   const [view, setView] = useStageState<SoView | null>(key, "so2View", () => null);
   const [solving, setSolving] = useStageState<boolean>(key, "so2Solving", () => false);
@@ -516,7 +520,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const hits = new Set(fresh ? (view?.hits ?? "") : "");
   const misses = new Set(fresh ? (view?.misses ?? "") : "");
   const vowelsTried = [...guessed].filter((l) => SO2_VOWELS.includes(l)).length;
-  const vowelsLeft = Math.max(0, Math.min(SO2_MAX_VOWELS - vowelsTried, fresh ? (view?.vowelsLeft ?? SO2_MAX_VOWELS) : SO2_MAX_VOWELS));
+  const vowelsLeft = Math.max(0, Math.min(rules.maxVowels - vowelsTried, fresh ? (view?.vowelsLeft ?? rules.maxVowels) : rules.maxVowels));
   const holes = [...shown].map((ch, i) => (ch === "_" ? i : -1)).filter((i) => i >= 0);
   const isSolving = solving && !done && holes.length > 0;
   const answered = view ? Math.min(actions.length, view.count) : 0;
@@ -584,16 +588,16 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       ref={root}
       data-stage-column="1"
       data-word-polish="strikeout"
-      data-strikeout-rev="2"
+      data-strikeout-rev={rev}
       className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1"
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
-        <Strikes used={strikes} markerRef={strikeRef} />
+        <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} />
       </div>
       <div className="flex h-6 w-full shrink-0 items-center justify-between px-2">
         <WordDots solved={solvedCount} current={view?.word ?? 0} />
-        <VowelsLeft left={vowelsLeft} />
+        <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div ref={board} className="flex flex-col items-center gap-3" style={{ ["--so-tile" as string]: tileSize }}>
@@ -656,13 +660,15 @@ function Reveal2({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealP
   if (puzzle.type !== "strikeout") return null;
   const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
   const givens = puzzle.givens ?? [];
+  const rev = strikeoutRevOf(puzzle);
+  const rules = so2Rules(rev);
   // The stored answer is the canonical list: every solve in it already passed the dictionary.
-  const state = replayStrikeout2(words, givens, decodeStrikeout2(myAnswer ?? ""), () => true);
+  const state = replayStrikeout2(words, givens, decodeStrikeout2(myAnswer ?? ""), () => true, rules);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   const strikeText = `${state.strikes} strike${state.strikes === 1 ? "" : "s"}`;
   return (
-    <div data-word-reveal="strikeout" data-strikeout-rev="2" className="flex w-full flex-col items-center gap-2">
-      <Strikes used={state.strikes} />
+    <div data-word-reveal="strikeout" data-strikeout-rev={rev} className="flex w-full flex-col items-center gap-2">
+      <Strikes used={state.strikes} max={rules.maxStrikes} />
       <div className="flex flex-col items-center gap-1">
         {words.map((w, wi) => {
           const solved = wi < state.solvedWords;
@@ -704,7 +710,7 @@ export const strikeoutPuzzle: PuzzleDefinition = {
     ({ type: "strikeout", strikeoutRev: 1, rows: SO_ROWS, length: SO_LEN }) satisfies StrikeoutPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "strikeout") return false;
-    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true).done;
+    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true, so2Rules(strikeoutRevOf(puzzle))).done;
     return replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), () => true).done;
   },
   revealHeading: "The five words",

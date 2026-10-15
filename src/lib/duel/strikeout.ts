@@ -12,6 +12,12 @@
  * R on word 0) or "0BLANKET" (solve word 0); an action for any word but the
  * current one is ignored. See replayStrikeout2.
  *
+ * Rev 3 (`strikeoutRev: 3`, 15 Oct 2026): rev 2's board and actions with ten
+ * strikes shared over the round, three vowel guesses per word, one more
+ * starting letter on words 1–3, and 1.5 points (not 3) per strike left on a
+ * finish. The replay, view and scorer take the rules for the stored rev
+ * (so2Rules); rev-2 rounds keep five strikes, two vowels and 3 per strike.
+ *
  * Both: the server replays the list against the stored words; a solve that is
  * not a dictionary word is rejected with no effect, so the grader stores the
  * canonical list (rejected solves and anything after the round ended removed)
@@ -233,6 +239,38 @@ export const SO2_WORD_POINTS = 30;
 export const SO2_TILE_POINTS = 2;
 export const SO2_STRIKE_POINTS = 3;
 
+// Rev 3 (15 Oct 2026): rev 2's game with more room for mistakes.
+export const STRIKEOUT_REV3 = 3;
+export const SO3_MAX_STRIKES = 10;
+export const SO3_MAX_VOWELS = 3;
+/** 1.5 per strike left: ten left = 15, so a finish still tops out at 120 + 15 + PAR(15) = 150. */
+export const SO3_STRIKE_POINTS = 1.5;
+/** Words 1–3 (indexes below this) start with one more letter showing than rev 2's so2GivenCount. */
+export const SO3_EXTRA_GIVEN_WORDS = 3;
+
+/** The per-rev rules the rev-2 style replay, view and scorer read. */
+export interface So2Rules {
+  /** Strikes (shared over the round) that end it. */
+  maxStrikes: number;
+  /** Vowel guesses allowed per word. */
+  maxVowels: number;
+  /** Finish points per strike left. */
+  strikePoints: number;
+}
+
+export const SO2_RULES: So2Rules = { maxStrikes: SO_MAX_STRIKES, maxVowels: SO2_MAX_VOWELS, strikePoints: SO2_STRIKE_POINTS };
+export const SO3_RULES: So2Rules = { maxStrikes: SO3_MAX_STRIKES, maxVowels: SO3_MAX_VOWELS, strikePoints: SO3_STRIKE_POINTS };
+
+/** The rules for a stored rev (2 or 3; rev 1 has its own replay). */
+export function so2Rules(rev: number): So2Rules {
+  return rev >= STRIKEOUT_REV3 ? SO3_RULES : SO2_RULES;
+}
+
+/** Rev 3: extra starting letters on word w (one on words 1–3, none after). */
+export function so3ExtraGivens(w: number): number {
+  return w < SO3_EXTRA_GIVEN_WORDS ? 1 : 0;
+}
+
 export function strikeoutRevOf(puzzle: { strikeoutRev?: number } | null | undefined): number {
   const rev = puzzle?.strikeoutRev;
   return typeof rev === "number" && Number.isFinite(rev) ? rev : 1;
@@ -292,17 +330,20 @@ export function so2GivenLetters(givens: readonly string[], w: number): Set<strin
 /**
  * Rev 2 replay. Word by word: a guess on the current word reveals every copy
  * of the letter (a miss is a strike); a letter already guessed or already
- * showing is ignored; a third vowel guess on one word is refused ("vowels": no
- * effect, no strike). A solve must be the current word's length; a non-word is
+ * showing is ignored; a vowel guess past the rules' maxVowels on one word (the
+ * third under rev 2, the fourth under rev 3) is refused ("vowels": no effect,
+ * no strike). A solve must be the current word's length; a non-word is
  * refused free, a wrong word is a strike, the right one completes the word. A
  * completed word (by guesses or Solve) moves play to the next word with a fresh
- * keypad. Strikes are shared: five end the round.
+ * keypad. Strikes are shared: the rules' maxStrikes (five under rev 2, ten
+ * under rev 3) end the round.
  */
 export function replayStrikeout2(
   words: readonly string[],
   givens: readonly string[],
   actions: readonly So2Action[],
   isWord: (word: string) => boolean,
+  rules: So2Rules = SO2_RULES,
 ): So2State {
   const target = words.map((w) => w.toUpperCase());
   const given = target.map((w, wi) => [...w].map((_, i) => (givens[wi]?.[i] ?? "_") !== "_"));
@@ -344,7 +385,7 @@ export function replayStrikeout2(
         continue;
       }
       const vowel = SO2_VOWELS.includes(letter);
-      if (vowel && state.vowelsUsed >= SO2_MAX_VOWELS) {
+      if (vowel && state.vowelsUsed >= rules.maxVowels) {
         state.outcomes.push("vowels");
         continue;
       }
@@ -381,7 +422,7 @@ export function replayStrikeout2(
         state.outcomes.push("wrong");
       }
     }
-    state.over = !state.done && state.strikes >= SO_MAX_STRIKES;
+    state.over = !state.done && state.strikes >= rules.maxStrikes;
   }
   return state;
 }
@@ -405,13 +446,15 @@ export function so2Tally(state: So2State): So2Tally {
 
 /**
  * Rev 2: all five solved = 120 + 3 per strike left + PAR(15) (123–150).
- * Unfinished: 25 per word solved + 2 per tile found in the current word, cap 110.
- * Starting letters earn nothing.
+ * Rev 3: all five solved = 120 + 1.5 per strike left (rounded as finishParts
+ * rounds each part) + PAR(15) (122–150).
+ * Unfinished (both): 30 per word solved + 2 per tile found in the current word,
+ * cap 110. Starting letters earn nothing.
  */
-export function scoreStrikeout2(tally: So2Tally, msRemaining: number, timeLimitMs: number): number {
+export function scoreStrikeout2(tally: So2Tally, msRemaining: number, timeLimitMs: number, rules: So2Rules = SO2_RULES): number {
   if (tally.done) {
-    const left = Math.max(0, SO_MAX_STRIKES - tally.strikes);
-    return finishParts(timeLimitMs > 0 ? speedBonusCurve(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs) : 0, SO2_STRIKE_POINTS * left, "strikes");
+    const left = Math.max(0, rules.maxStrikes - tally.strikes);
+    return finishParts(timeLimitMs > 0 ? speedBonusCurve(PUZZLE_SPEED_POINTS, msRemaining, timeLimitMs) : 0, rules.strikePoints * left, "strikes");
   }
   return partialParts(SO2_WORD_POINTS * tally.solvedWords + SO2_TILE_POINTS * tally.foundTiles);
 }
@@ -421,7 +464,7 @@ export function scoreStrikeout2(tally: So2Tally, msRemaining: number, timeLimitM
  * as far as it shows, later words blank), `hits` / `misses` the current word's
  * keys only, plus the current word and its vowel guesses left.
  */
-export function so2View(words: readonly string[], state: So2State, count: number): SoView {
+export function so2View(words: readonly string[], state: So2State, count: number, rules: So2Rules = SO2_RULES): SoView {
   return {
     rows: words.map((w, wi) =>
       [...w.toUpperCase()].map((ch, i) => (wi <= state.word && state.revealed[wi]![i] ? ch : "_")).join(""),
@@ -434,6 +477,6 @@ export function so2View(words: readonly string[], state: So2State, count: number
     last: state.outcomes.at(-1) ?? null,
     count,
     word: state.word,
-    vowelsLeft: Math.max(0, SO2_MAX_VOWELS - state.vowelsUsed),
+    vowelsLeft: Math.max(0, rules.maxVowels - state.vowelsUsed),
   };
 }

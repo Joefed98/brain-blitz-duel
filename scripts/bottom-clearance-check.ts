@@ -27,6 +27,7 @@ import type { Page } from "playwright";
 import { ACTIVE_PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
+import { gotoRetried, warmUp } from "./browser-load";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -210,6 +211,18 @@ async function main() {
   const failures: string[] = [];
   let measured = 0;
   try {
+    // Compile the app once, unmeasured, so the first game's load does not race the cold dev server.
+    if (games.length)
+      await warmUp(
+        browser,
+        `${origin}/practice`,
+        (page) =>
+          page
+            .getByRole("button", { name: gameDisplayName(games[0]!), exact: true })
+            .first()
+            .waitFor({ timeout: 180_000 }),
+        { verbose: VERBOSE },
+      );
     for (const game of games) {
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
       await context.addInitScript(SEED_RANDOM);
@@ -232,7 +245,7 @@ async function main() {
       });
       const before = failures.length;
       try {
-        await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+        await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
         const button = page
           .getByRole("button", { name: gameDisplayName(game), exact: true })
           .first();

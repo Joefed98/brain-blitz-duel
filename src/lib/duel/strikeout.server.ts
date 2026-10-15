@@ -13,11 +13,14 @@ import {
   SO_ROWS,
   STRIKEOUT_REV,
   STRIKEOUT_REV2,
+  STRIKEOUT_REV3,
   decodeStrikeout,
   decodeStrikeout2,
   replayStrikeout,
   replayStrikeout2,
+  so2Rules,
   so2View,
+  so3ExtraGivens,
   soView,
   strikeoutRevOf,
   type SoView,
@@ -110,8 +113,14 @@ export const SO2_MAX_GIVEN_TILES = 3;
 
 const tailOf = (w: string) => SO2_TAILS.find((t) => w.endsWith(t)) ?? null;
 
-/** Null when one word and its starting pattern meet the rev-2 rules, else the rule broken. */
-export function strikeoutWordRuleBreak(word: string, pattern: string): string | null {
+/**
+ * Null when one word and its starting pattern meet the rev-2 rules, else the
+ * rule broken. `extra` (rev 3, words 1–3: 1) is the number of starting letters
+ * beyond so2GivenCount; each one also allows one more starting tile, one fewer
+ * hidden letter and one fewer hidden consonant (a word with an extra starting
+ * consonant has that consonant fewer to hide), so the rules keep their shape.
+ */
+export function strikeoutWordRuleBreak(word: string, pattern: string, extra = 0): string | null {
   if (word.length < SO2_MIN_LEN || word.length > SO2_MAX_LEN) return `${word} is ${word.length} letters`;
   if (!strikeoutAnswerWords(word.length).includes(word)) return `${word} is not a common answer word`;
   if (pattern.length !== word.length) return `${word}: pattern length`;
@@ -124,26 +133,26 @@ export function strikeoutWordRuleBreak(word: string, pattern: string): string | 
     givens.add(ch);
     givenTiles++;
   }
-  if (givens.size !== so2GivenCount(word.length)) return `${word}: ${givens.size} starting letters`;
+  if (givens.size !== so2GivenCount(word.length) + extra) return `${word}: ${givens.size} starting letters`;
   for (const g of givens) {
     if (SO2_VOWELS.includes(g)) return `${word}: starting vowel ${g}`;
     for (let i = 0; i < word.length; i++) if (word[i] === g && pattern[i] !== g) return `${word}: only some copies of ${g} show`;
   }
-  if (givenTiles > SO2_MAX_GIVEN_TILES) return `${word}: ${givenTiles} starting tiles`;
+  if (givenTiles > SO2_MAX_GIVEN_TILES + extra) return `${word}: ${givenTiles} starting tiles`;
   const hidden = new Set([...word].filter((ch) => !givens.has(ch)));
-  if (hidden.size < word.length - SO2_HIDDEN_SLACK) return `${word}: ${hidden.size} hidden letters`;
-  if ([...hidden].filter((ch) => !SO2_VOWELS.includes(ch)).length < SO2_MIN_HIDDEN_CONSONANTS) return `${word}: vowels nearly finish it`;
+  if (hidden.size < word.length - SO2_HIDDEN_SLACK - extra) return `${word}: ${hidden.size} hidden letters`;
+  if ([...hidden].filter((ch) => !SO2_VOWELS.includes(ch)).length < SO2_MIN_HIDDEN_CONSONANTS - extra) return `${word}: vowels nearly finish it`;
   return null;
 }
 
-/** Null when the five words and patterns meet every rev-2 generator rule, else the rule broken. */
-export function strikeout2RuleBreak(words: readonly string[], givens: readonly string[]): string | null {
+/** Null when the five words and patterns meet every generator rule of `rev` (2 or 3), else the rule broken. */
+export function strikeout2RuleBreak(words: readonly string[], givens: readonly string[], rev: number = STRIKEOUT_REV2): string | null {
   if (words.length !== SO2_WORDS || givens.length !== SO2_WORDS) return "not five words";
   if (new Set(words).size !== SO2_WORDS) return "repeated word";
   const lengths = words.map((w) => w.length);
   if (!lengths.includes(7) || !lengths.includes(8)) return "no mix of 7 and 8 letters";
   for (let i = 0; i < SO2_WORDS; i++) {
-    const broken = strikeoutWordRuleBreak(words[i]!, givens[i]!);
+    const broken = strikeoutWordRuleBreak(words[i]!, givens[i]!, rev >= STRIKEOUT_REV3 ? so3ExtraGivens(i) : 0);
     if (broken) return broken;
     for (let j = 0; j < i; j++) {
       if (words[i]!.slice(0, 4) === words[j]!.slice(0, 4)) return `${words[j]} and ${words[i]} start alike`;
@@ -160,9 +169,14 @@ export function strikeout2RuleBreak(words: readonly string[], givens: readonly s
  * chosen by the seed). A starting letter shows every copy of itself in that
  * word, so its key is already used; starting letters are never vowels, so the
  * two vowel guesses stay the player's.
+ *
+ * Rev 3 (the default since 15 Oct 2026): the same draw, with one more starting
+ * consonant on words 1–3 (taken from the same seeded shuffle of the word's
+ * consonants; so3ExtraGivens). `rev` 2 deals exactly as before.
  */
-export function generateStrikeout(seed: number): StrikeoutPuzzleData {
+export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV3): StrikeoutPuzzleData {
   const rng = seededRng(seed);
+  const rev3 = rev >= STRIKEOUT_REV3;
   for (let attempt = 0; attempt < 20_000; attempt++) {
     const sevens = 2 + rngBelow(rng, 2);
     const lengths = rngShuffle(rng, Array.from({ length: SO2_WORDS }, (_, i) => (i < sevens ? 7 : 8)));
@@ -170,15 +184,16 @@ export function generateStrikeout(seed: number): StrikeoutPuzzleData {
     const givens: string[] = [];
     let ok = true;
     for (const len of lengths) {
+      const extra = rev3 ? so3ExtraGivens(words.length) : 0;
       let placed = false;
       for (let tries = 0; tries < 200 && !placed; tries++) {
         const pool = strikeoutAnswerWords(len);
         const w = pool[rngBelow(rng, pool.length)]!;
         if (words.includes(w)) continue;
         const consonants = rngShuffle(rng, [...new Set([...w].filter((ch) => !SO2_VOWELS.includes(ch)))]);
-        const shown = new Set(consonants.slice(0, so2GivenCount(len)));
+        const shown = new Set(consonants.slice(0, so2GivenCount(len) + extra));
         const pattern = [...w].map((ch) => (shown.has(ch) ? ch : "_")).join("");
-        if (strikeoutWordRuleBreak(w, pattern) !== null) continue;
+        if (strikeoutWordRuleBreak(w, pattern, extra) !== null) continue;
         const trial = [...words, w];
         const clash = trial.some((a, i) => trial.some((b, j) => j < i && (a.slice(0, 4) === b.slice(0, 4) || (tailOf(a) !== null && tailOf(a) === tailOf(b)))));
         if (clash) continue;
@@ -188,8 +203,8 @@ export function generateStrikeout(seed: number): StrikeoutPuzzleData {
       }
       if (!placed) { ok = false; break; }
     }
-    if (ok && strikeout2RuleBreak(words, givens) === null) {
-      return { type: "strikeout", strikeoutRev: STRIKEOUT_REV2, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
+    if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2) === null) {
+      return { type: "strikeout", strikeoutRev: rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
     }
   }
   throw new Error("Strikeout: no word set found");
@@ -200,7 +215,8 @@ export function checkStrikeoutMoves(puzzle: StrikeoutPuzzleData, moves: string):
   const words = puzzle.words ?? [];
   if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
     const actions = decodeStrikeout2(moves);
-    return so2View(words, replayStrikeout2(words, puzzle.givens ?? [], actions, isWord), actions.length);
+    const rules = so2Rules(strikeoutRevOf(puzzle));
+    return so2View(words, replayStrikeout2(words, puzzle.givens ?? [], actions, isWord, rules), actions.length, rules);
   }
   const actions = decodeStrikeout(moves);
   return soView(words, replayStrikeout(words, actions, isWord), actions.length);

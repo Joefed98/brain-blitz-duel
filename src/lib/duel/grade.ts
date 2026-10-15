@@ -133,6 +133,7 @@ import {
   replayStrikeout2,
   scoreStrikeout,
   scoreStrikeout2,
+  so2Rules,
   so2Tally,
   soTally,
   strikeoutRevOf,
@@ -2066,18 +2067,21 @@ function gradeUnderRev(
     }
     case "strikeout": {
       if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
-        // Rev 2: one word at a time, givens public, two vowel guesses per word, strikes shared.
+        // Rev 2: one word at a time, givens public, two vowel guesses per word, five strikes shared.
+        // Rev 3: the same with three vowel guesses, ten strikes and 1.5 per strike left (so2Rules).
+        const rules2 = so2Rules(strikeoutRevOf(puzzle));
         const state2 = replayStrikeout2(
           puzzle.words ?? [],
           puzzle.givens ?? [],
           decodeStrikeout2(answer),
           isWord,
+          rules2,
         );
         const tally2 = so2Tally(state2);
         isCorrect = tally2.done;
         correctCount = tally2.solvedWords;
         errors = tally2.strikes;
-        score = scoreStrikeout2(tally2, ms, timeLimitMs);
+        score = scoreStrikeout2(tally2, ms, timeLimitMs, rules2);
         storedAnswer = encodeStrikeout2(state2.effective);
         extraDetail = {
           solvedRows: tally2.solvedWords,
