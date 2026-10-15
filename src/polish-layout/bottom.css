@@ -91,6 +91,15 @@ html:has([data-arcade-play]) body,
 [data-arcade-play].game-viewport {
   height: calc(100dvh + var(--standalone-short, 0px));
 }
+/* The page's own boxes agree (fix-up, 15 Oct 2026): html and body are 100% of that short
+   layout viewport and, locked (html.game-lock / body.game-lock: overflow hidden), clip at
+   it, which cut the bottom of tall worlds (High Rise, Meteor) and the lowest controls
+   (Orbit, Mixed Signals) at the inset's height above the screen's bottom. The root grows
+   by the same shortfall (body is 100% of it), so every box ends at the screen's bottom and
+   nothing clips above the 16px strip. arcade-device-bottom-check proves no box clips. */
+html:has([data-arcade-play]) {
+  height: calc(100% + var(--standalone-short, 0px));
+}
 [data-arcade-play] > [data-game-column] {
   padding-top: max(4px, env(safe-area-inset-top, 0px));
   padding-bottom: 16px;

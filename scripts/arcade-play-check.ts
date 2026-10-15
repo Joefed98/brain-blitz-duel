@@ -37,6 +37,12 @@
  *    keep its no-inset size, and with a 47 px notch, where the header must sit just under
  *    the inset and the arena directly under it); a control below the arena under 44 px or
  *    off screen; the play column or the arena canvas not touch-action: none (engine games);
+ *    and, as an iPhone 11 home-screen app (fix-up, 15 Oct 2026; scripts/device-emulation.ts:
+ *    414 × 896 with 48 / 34 px insets, laid out in WebKit's 848 px viewport, navigator.standalone
+ *    and display-mode: standalone), the column and the lowest control (or the box) not ending
+ *    16 px above the screen's bottom, the arena not the same size as in Safari on that phone, the
+ *    page scrolled, or the box, the world or a control cut short by any clipping ancestor (html
+ *    and body included);
  *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
@@ -66,6 +72,7 @@ import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { gotoRetried, warmUp } from "./browser-load";
+import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
@@ -358,7 +365,17 @@ function playScreen() {
   const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
   const doc = document.scrollingElement!;
   const shell = document.querySelector("[data-arcade-play]");
+  // The box, the world and every control, each with the lowest point a clipping ancestor lets it draw to.
+  const clipBottom = (window as unknown as { __clipBottom: (el: Element) => Clip }).__clipBottom;
+  const clips: { what: string; bottom: number; clip: Clip }[] = [];
+  if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
+  if (arena) clips.push({ what: "world", bottom: arena.getBoundingClientRect().bottom, clip: clipBottom(arena) });
+  for (const b of below) clips.push({ what: `control "${b.getAttribute("aria-label") ?? b.getAttribute("data-game-controls") ?? (b.textContent ?? "").trim().slice(0, 24)}"`, bottom: b.getBoundingClientRect().bottom, clip: clipBottom(b) });
   return {
+    clips,
+    scrolled: doc.scrollTop,
+    standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    displayMode: matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
     slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
     header: box(header), timer: box(timer), smallestText: Math.min(...texts.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))),
     colours: {
@@ -460,6 +477,31 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 0, left: 0, right: 0 } } as never).catch(() => {});
     await cdp.detach().catch(() => {});
   }
+  // An iPhone 11 home-screen app (fix-up, 15 Oct 2026): laid out 48 px short of its 896 px screen, the play
+  // screen adds the shortfall, so the column and the lowest control (or box) end 16 px above the screen's
+  // bottom, the arena is the size Safari shows on that phone, and nothing (html and body included) clips
+  // the box, the world or a control.
+  const at = `layout ${IPHONE11_APP.label}`;
+  try {
+    await emulateDevice(page, { ...IPHONE11_APP, key: "iphone11-safari", standalone: false, h: IPHONE11_APP.screenH });
+    await nextFrames(page);
+    const safari = await page.evaluate(playScreen);
+    await emulateDevice(page, IPHONE11_APP);
+    await nextFrames(page);
+    const app = await page.evaluate(playScreen);
+    if (!app.standalone || app.displayMode !== "standalone") problems.push(`${at}: home-screen app emulation not applied (standalone ${app.standalone}, display-mode ${app.displayMode})`);
+    if (app.scrolled) problems.push(`${at}: page scrolled by ${app.scrolled} px`);
+    if (!app.header || Math.abs(app.header.y - IPHONE11_APP.top) > 0.5) problems.push(`${at}: header at ${app.header?.y.toFixed(1)} px, want just under the inset (${IPHONE11_APP.top})`);
+    const screenGap = IPHONE11_APP.screenH - app.columnEnd;
+    if (Math.abs(screenGap - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: play column ends ${screenGap.toFixed(1)} px above the bottom of the screen (want ${ARCADE_BOTTOM_PX})`);
+    const lowest = app.lowest > 0 ? app.lowest : app.slot ? app.slot.y + app.slot.h : 0;
+    if (Math.abs(IPHONE11_APP.screenH - lowest - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: ${app.lowest > 0 ? "lowest control" : "arena box"} ends ${(IPHONE11_APP.screenH - lowest).toFixed(1)} px above the bottom of the screen (want exactly ${ARCADE_BOTTOM_PX})`);
+    if (!safari.arena || !app.arena || Math.abs(app.arena.w - safari.arena.w) > 0.5 || Math.abs(app.arena.h - safari.arena.h) > 0.5) problems.push(`${at}: arena ${app.arena?.w.toFixed(1)}x${app.arena?.h.toFixed(1)}, not Safari's ${safari.arena?.w.toFixed(1)}x${safari.arena?.h.toFixed(1)} on the same phone`);
+    for (const c of app.clips)
+      if (c.clip.bottom < c.bottom - 0.5) problems.push(`${at}: ${c.what} (ends ${c.bottom.toFixed(1)} px down) is cut ${(c.bottom - c.clip.bottom).toFixed(1)} px short by ${c.clip.by} (ends ${c.clip.bottom.toFixed(1)} px down)`);
+  } finally {
+    await emulateDevice(page, BROWSER);
+  }
   await page.setViewportSize({ width: 390, height: 700 });
   await nextFrames(page);
 }
@@ -486,6 +528,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
     if (!NOISE.some((re) => re.test(text))) problems.push(`console error: ${text.slice(0, 200)}`);
   });
   await page.addInitScript(INIT);
+  await page.addInitScript(DEVICE_INIT);
   const result: Result = { game, ok: false, problems, ticks: 0, timer: [Number.NaN, Number.NaN], meanFrameMs: 0, maxStep: 0, maxStepAt: "" };
   const rand = seeded(game.length * 7919 + 17);
   const segments: Segment[] = [];

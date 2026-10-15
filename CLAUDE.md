@@ -49,10 +49,16 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
   same world and inputs everywhere, no seams. `docs/arena-sizes-oct-2026.md` lists every box and world size.
   "The bottom" is the physical bottom of the screen: an iOS home-screen app is laid out short by the top inset (WebKit bug
-  254868), so the play screen adds the measured shortfall (`--standalone-short`, PhoneShell) to its height. Tilt's world is
+  254868), so the play screen adds the measured shortfall (`--standalone-short`, PhoneShell) to its height, and so does the
+  page's root (`html:has([data-arcade-play])`, body being 100 % of it): html and body are locked `overflow: hidden`, and at
+  100 % of the short viewport they cut tall worlds and the lowest controls 48 px above the screen's bottom (fix-up, 15 Oct
+  2026). Every clipping box ends at the screen's bottom; nothing clips above the 16 px strip. Tilt's world is
   centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower. arcade-device-bottom-check (headless Chromium,
-  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry; run it after any
-  arcade play-screen layout change.
+  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
+  the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
+  standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
+  cuts the box, the world or a control; arcade-play-check and bottom-clearance-check measure every arcade play screen as an
+  iPhone 11 home-screen app once more the same way. Run them after any arcade play-screen layout change.
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.
@@ -172,7 +178,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   bottom whatever the home-bar inset (also proved with a 34 px home bar emulated, here and in
   arcade-play-check); controls inside a 34 px home-bar zone are printed as NOTE lines, not failures, and a
   pixel test fails on any gap pixel that is not `--screen-edge` (#070709) with a notch and home bar
-  emulated (`docs/arena-sizes-oct-2026.md` has every box and world size). Each puzzle's intro, stage and timed-out
+  emulated (`docs/arena-sizes-oct-2026.md` has every box and world size, 414×896 included), and once more as an iPhone 11
+  home-screen app (414×896, 48/34 px insets, laid out 848 px short, `navigator.standalone`), where the column and lowest
+  control end 16 px above the screen's bottom and nothing clips. Each puzzle's intro, stage and timed-out
   reveal is also drawn with a 47 px notch and 34 px home bar and fails on a colour seam in the top or
   bottom strip (`data-puzzle-screen`: the page behind is `--screen-edge` and the strips fade to it).
 - **Safe areas on the other screens** (14 Oct 2026): `viewport-fit=cover` lets every page draw under a
