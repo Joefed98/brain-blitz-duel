@@ -55,6 +55,7 @@ import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARCADE_ARENA_FILL, ARENA_NO_FILL, ENGINE_ARENA_FILL } from "../src/lib/arcade/arenaFill.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
+import { gotoRetried, warmUp } from "./browser-load";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
@@ -260,6 +261,10 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROMIUM });
   const results: Result[] = [];
   try {
+    // Compile the app once, unmeasured, so the first game's load does not race the cold dev server.
+    if (games.length)
+      await warmUp(browser, `${origin}/practice`, (page) =>
+        page.getByRole("button", { name: gameDisplayName(games[0] as never), exact: true }).first().waitFor({ timeout: 180_000 }));
     for (const [index, game] of games.entries()) {
       const r = await playOne(browser, origin, game, baseline[game]);
       results.push(r);
@@ -413,7 +418,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
   let liveTotal = 0;
   try {
     for (let segment = 0; segment < MAX_SEGMENTS && liveTotal < PLAY_MS; segment++) {
-      await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+      await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
       const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
       await button.waitFor({ timeout: 60_000 });
       await page.waitForTimeout(1500); // hydration
