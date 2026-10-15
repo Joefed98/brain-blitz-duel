@@ -6,12 +6,14 @@
  * Slow checks run at quick depth unless --full is given (it sets CHECKS_FULL=1
  * for every check; see scripts/check-depth.ts). A filter of the form
  * `<file>@<k>/<n>` runs just that check with --part=<k>/<n> (one of n disjoint
- * parts; arcade-play-check and puzzle-bank-check support it, CI shards use it).
+ * parts; arcade-play-check, bottom-clearance-check, puzzle-bank-check and
+ * arcade-self-replay-check support it, CI shards use it).
  *
  *   bun scripts/run-checks.ts            # run every routine check
  *   bun scripts/run-checks.ts --include-optional # include deep Orbit (300s) and the full puzzle-bank rebuild (3600s)
  *   bun scripts/run-checks.ts --json=/tmp/check-results.json # save full results
  *   bun scripts/run-checks.ts foo bar    # run only checks whose filename includes "foo" or "bar"
+ *   bun scripts/run-checks.ts replay-check.ts # an exact filename runs only that check
  *   bun scripts/run-checks.ts --full snip # full depth (what the manual full CI run does)
  *   bun scripts/run-checks.ts puzzle-bank-check.ts@1/4 # part 1 of 4
  */
@@ -47,7 +49,10 @@ for (const entry of parted)
 const files = [
   ...allFiles
     .filter((f) => includeOptional || !OPTIONAL_CHECKS.has(f))
-    .filter((f) => filters.length === 0 || plain.some((s) => f.includes(s)))
+    // A filter naming a check file exactly selects only that file (CI shards pass exact
+    // names: "replay-check.ts" must not also run orbit-rev3-replay-check.ts); any other
+    // filter matches by substring.
+    .filter((f) => filters.length === 0 || plain.some((s) => (allFiles.includes(s) ? f === s : f.includes(s))))
     .sort(),
   ...parted,
 ];

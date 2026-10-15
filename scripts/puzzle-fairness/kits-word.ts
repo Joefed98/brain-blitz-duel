@@ -18,7 +18,7 @@ import {
   replayStrikeout2,
   so2GivenLetters,
   strikeoutRevOf,
-  SO2_MAX_VOWELS,
+  so2Rules,
   SO2_VOWELS,
   type So2Action,
   type So2State,
@@ -532,13 +532,13 @@ function soCandidates(p: StrikeoutPuzzleData, state: SoState, row: number): stri
   });
 }
 
-// Rev 2 (strikeoutRev 2): one 7–8 letter word at a time, two vowel guesses per word, strikes shared.
-const so2Replay = (p: StrikeoutPuzzleData, actions: So2Action[]) => replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord);
+// Rev 2 / 3 (strikeoutRev 2, 3): one 7–8 letter word at a time, two / three vowel guesses per word, five / ten strikes shared.
+const so2Replay = (p: StrikeoutPuzzleData, actions: So2Action[]) => replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord, so2Rules(strikeoutRevOf(p)));
 
 /** Letters the phone lets the player press on the current word (not guessed, not showing, vowels while allowed). */
 function so2Open(p: StrikeoutPuzzleData, state: So2State): string[] {
   const shown = so2GivenLetters(p.givens ?? [], state.word);
-  return [...ALPHA].filter((l) => !state.guessed.includes(l) && !shown.has(l) && !(SO2_VOWELS.includes(l) && state.vowelsUsed >= SO2_MAX_VOWELS));
+  return [...ALPHA].filter((l) => !state.guessed.includes(l) && !shown.has(l) && !(SO2_VOWELS.includes(l) && state.vowelsUsed >= so2Rules(strikeoutRevOf(p)).maxVowels));
 }
 
 /** Words still possible for the current word given what it shows. */
@@ -581,8 +581,8 @@ function so2Play(d: StrikeoutPuzzleData, rng: Rng, skill: Skill): Play {
     const state = so2Replay(d, actions);
     if (state.done || state.over) break;
     const c = so2Candidates(d, state);
-    // A person solves once the word is certain; a strong player will also gamble on two options with strikes to spare.
-    if (c.length === 1 || (c.length === 2 && state.strikes <= 2 && rng.chance(0.3))) {
+    // A person solves once the word is certain; a strong player will also gamble on two options with three or more strikes to spare.
+    if (c.length === 1 || (c.length === 2 && so2Rules(strikeoutRevOf(d)).maxStrikes - state.strikes >= 3 && rng.chance(0.3))) {
       at += thinkMs(rng, BASE * 1.6, skill);
       actions.push({ kind: "solve", word: state.word, guess: rng.pick(c) });
       steps.push({ answer: encodeStrikeout2(actions), atMs: at });

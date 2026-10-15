@@ -64,8 +64,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into nine parallel jobs (`.github/ci/shards.ts`: `a`–`d`,
-  and `play1`–`play5` for arcade-play-check). Each job's summary lists every check by name
+  request open/push/reopen, split into twenty parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
+  `play1`–`play5` for arcade-play-check and `play6`–`play13` for bottom-clearance-check, one eighth each
+  since its 15 Oct seam pass), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
   with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
   `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
@@ -78,9 +79,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     (`CHECKS_FULL=1`). Use full depth after changing Snip's sim or templates, or a
     banked generator or verifier.
   - Split checks: an entry `<file>@<k>/<n>` in `shards.ts` runs part k of n
-    (`--part=k/n`). puzzle-bank-check's every-entry verification is split over `a`–`d`
+    (`--part=k/n`). puzzle-bank-check's every-entry verification is split over four of `a`–`g`
     (one part each, under 90 s on a 2-core runner); arcade-play-check's 22 active arcade games (and Letterfall) over
-    `play1`–`play5`. Together the parts check exactly what one whole run does.
+    `play1`–`play5`; arcade-self-replay-check's entries over two (`@1/2`, `@2/2`, each entry on its own
+    PRNG stream, so a part runs the same seeds as a whole run). Together the parts check exactly what one whole run does.
   - While working, run only the checks for what you changed (`bun scripts/<name>-check.ts`,
     or `bun scripts/run-checks.ts <filter>`). **Don't run the full suite locally.**
   - When done, open or update the PR and let Actions run the suite. Don't watch the run
@@ -96,6 +98,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     the artifact's file there). Without that file it applies only the absolute
     under-30-fps ceiling. Re-record after a change that should alter frame times on
     purpose. Never loosen the limits to get green.
+  - Browser checks that load a page first (arcade-play, bottom-clearance, replay-play,
+    beat-hold-browser, safe-area-screens) warm the cold dev server once, unmeasured, before
+    anything is judged, and retry a page load that timed out once (`scripts/browser-load.ts`;
+    safe-area-screens-check keeps its own copy from #64). Every wait after the load and every
+    limit stands.
   - A new `scripts/*-check.ts` runs automatically (in the catch-all shard); add it to a
     shard in `.github/ci/shards.ts` if it is slow.
 - Run all (Actions does this; locally only if Joe asks): `bun scripts/run-checks.ts`
@@ -119,8 +126,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Baseline:** whatever the latest green PR run of the Checks workflow reports (143
   routine checks as of 14 Oct 2026, after the deletion and the 14 Oct batches: the 145
   `scripts/*-check.ts(x)` less the two `--include-optional` ones, which never run in CI; the CI
-  summary lists puzzle-bank-check as its 4 parts, arcade-play-check as its 5 and
-  bottom-clearance-check as its 3, 152 rows in all. The 14 Oct deletion removed sum-hunt-check, added
+  summary lists puzzle-bank-check as its 4 parts, arcade-play-check as its 5,
+  bottom-clearance-check as its 3 and arcade-self-replay-check as its 2, 153 rows in all. The 14 Oct deletion removed sum-hunt-check, added
   removed-games-check and renamed stroke-tiles-rings-check to tiles-rings-check and
   gravity-chain-intruder-check to gravity-maze-check). CI times (2-core runners), quick depth: arcade-play-check ~3 min per play job
   (~11 min whole), snip-check ~90 s (full ~8 min CI, ~12 min locally), each
@@ -137,8 +144,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `--part=k/n` for one CI group (`play4` holds flip, Roofbound).
   It starts its own Vite dev server (or `--url=<origin>`) and needs the pre-installed
   Chromium; run-checks gives it 1,500 s.
-- **Bottom clearance** (14 Oct 2026): bottom-clearance-check (headless Chromium, ~10 s a game, split
-  over `play1`–`play3` as `@1/3`–`@3/3`) opens every active game's intro and live stage in practice at
+- **Bottom clearance** (14 Oct 2026): bottom-clearance-check (headless Chromium, ~10 s a game, ~20 s a puzzle with
+  the 15 Oct seam pass, split over `play6`–`play13` as `@1/8`–`@8/8`) opens every active game's intro and live stage in practice at
   375×667 and 390×844, each also 80 px shorter (a browser bottom toolbar shortens the dynamic viewport by
   its height), and fails if any control in the stage (or the intro's Ready) sits under 12 px above the
   visible bottom, is clipped by the game region, or the shell does not end at the dynamic viewport's
@@ -158,7 +165,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   emulated (`Emulation.setSafeAreaInsetsOverride`) at 375×667 and 390×844. It fails if text or a control
   sits under either inset (a scrolling page at its scroll end), a control is covered, or an intro or room
   moment scrolls. Run it after changing a non-game screen's layout.
-- **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s, shard `d`) draws frames with the
+- **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre
   must hit and a tap 3 px past the drawn edge must miss (clays and birds all round, each drawn over a zone at

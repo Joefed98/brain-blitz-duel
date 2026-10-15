@@ -63,7 +63,7 @@ export const OPEN_GAMES: PuzzleType[] = ["wordsmith", "wordhunt", "wordfall", "r
 export const TEXT: Partial<Record<PuzzleType, { intro: string[]; help: string[] }>> = {};
 for (const t of FINISH_GAMES) TEXT[t] = { intro: ["120"], help: ["120", "half the time"] };
 const moreHelp: Partial<Record<PuzzleType, string[]>> = {
-  tilegrid: ["30", "110"], wordslide: ["15", "27.5"], wordsearch: ["22"], letterwheel: ["110"], strikeout: ["3 per strike", "30 per solved word"],
+  tilegrid: ["30", "110"], wordslide: ["15", "27.5"], wordsearch: ["22"], letterwheel: ["110"], strikeout: ["1.5 per strike", "30 per solved word"],
   codeword: ["110", "−5"], swapword: ["15", "110"], target: ["110"], equation: ["20 / 30 / 35 / 45"], balance: ["15, 25, 30 and 55"],
   numpyramid: ["27.5"], trail: ["110"], measure: ["30 / 35 / 45", "15"], checkout: ["22, 24, 26, 28 and 32", "3 per board"],
   numline: ["8", "10%"], tendrop: ["110", "30"], numhunt: ["5", "110"], chain: ["110", "30"], stroop: ["110", "30"],
@@ -84,7 +84,14 @@ for (const [t, extra] of Object.entries(moreHelp)) TEXT[t as PuzzleType]!.help.p
 const STRATEGY = "a weak but real strategy: it reads the screen's feedback";
 export const KNOWN_SPAM: Partial<Record<PuzzleType, Record<string, string>>> = {
   wordslide: { "spin-rows-lock-green": `${STRATEGY} (turns each row until it reads as a word)` },
-  strikeout: { "frequency-order": `${STRATEGY} (guessing letters in frequency order is how the game is played)` },
+  // strikeoutRev 3 (15 Oct 2026, Joe's chosen rules: ten strikes, three vowel guesses, one more starting letter on
+  // words 1–3) gives blind keypad mashing a median of about 6 (it often finds a few letters of word 1 before ten
+  // misses); reported in docs/puzzle-score-bands-oct-2026.md, not tuned away.
+  strikeout: {
+    "frequency-order": `${STRATEGY} (guessing letters in frequency order is how the game is played)`,
+    alphabet: "strikeoutRev 3's ten strikes and three vowel guesses let A–Z find a few letters of word 1 (median about 6); chosen rules, reported",
+    "random-letters": "strikeoutRev 3's ten strikes and three vowel guesses let random keys find a few letters of word 1 (median about 6); chosen rules, reported",
+  },
   codeword: { "frequency-fill": `${STRATEGY} (letter-frequency code breaking)` },
   swapword: { "swap-non-green": `${STRATEGY} (uses the tile marks)`, "swap-amber": `${STRATEGY} (uses the tile marks)` },
   equation: { "brute-force": "3 tries per equation (equationRev 1): trying operator orders until CORRECT now reaches stage 1 on about half the boards and rarely stage 2 (median 20, was 68)" },

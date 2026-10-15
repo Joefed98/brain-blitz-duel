@@ -1026,17 +1026,17 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: "Unfinished: 12 per word for the first 6, then 5 per word, at most 110, minus 3 per miss after the first 5. Find them all for 120 + up to 15 for accuracy (15, minus 3 per miss after the first 5) + up to 15 for speed: the full 15 if you finish with at least half the time left.",
   },
   strikeout: {
-    goal: "Reveal five long words, one at a time, before five strikes.",
+    goal: "Reveal five long words, one at a time, before ten strikes.",
     how: [
       { action: "Tap a letter", detail: "to fill every matching tile in the word." },
-      { action: "Two vowel guesses", detail: "per word (A E I O U); the keypad resets for each word." },
+      { action: "Three vowel guesses", detail: "per word (A E I O U; the dots show how many are left); the keypad resets for each word." },
       { action: "Tap Solve", detail: "to guess the word; a wrong guess is a strike." },
-      { action: "Starting letters", detail: "show from the start (every copy) and earn nothing.", helpOnly: true },
+      { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
       { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
       { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
-      { action: "Five strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
+      { action: "Ten strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
     ],
-    score: "Unfinished: 30 per solved word plus 2 per letter you found in the current word, up to 110. All five: 120 + 3 per strike left (15 with none used) + up to 15 for speed (the full 15 if you finish with at least half the time left).",
+    score: "Unfinished: 30 per solved word plus 2 per letter you found in the current word, up to 110. All five: 120 + 1.5 per strike left (15 with none of the ten used) + up to 15 for speed (the full 15 if you finish with at least half the time left).",
   },
   codeword: {
     goal: "Crack the code: each number is one letter.",
