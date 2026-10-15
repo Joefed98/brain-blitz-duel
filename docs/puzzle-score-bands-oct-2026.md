@@ -31,7 +31,7 @@ The Oct 2026 puzzle score shape (`puzzleScoreRev: 1`; `docs/duelz-scoring-refere
 | Operator | trying every operator order | 20 / 65 since 3 tries; was 68 / 120 | **3 tries per equation (13 Oct, `equationRev 1`)**: brute force reaches stage 1 on about half the boards, stage 2 rarely. The try count is the phone's word. |
 | Tally | guessing in range | 53 / 79 (random 44 / 100) since `countRev 1`; was 66 / 79 | **Seven count values per tray (13 Oct)**: 5–11, 7–13, 9–15, so a blind guess is less often exact or one off. Near misses still score by design (60 % / 30 %). |
 | Roundabout | random traces | 16 / 47 | The phone keeps only words that fill a slot, so a scoring trace is a real find; costing misses needs an attempt log. |
-| Strikeout | letters in frequency order | 83 / 126 | That is how the game is played (a weak but real strategy). Random letters and A–Z score 0. |
+| Strikeout | letters in frequency order | 83 / 126 | That is how the game is played (a weak but real strategy). Random letters and A–Z score 0. **`strikeoutRev 3` (15 Oct):** frequency order 7 / 66, and A–Z (6 / 34) and random letters (6 / 32) join the list: Joe's chosen rules (ten strikes, three vowels), reported, not tuned away. See "Strikeout rev 3" below. |
 | Swapword | swapping non-green / amber tiles | 30 / 66 | Uses the tile marks: real play. Random swaps score 0. |
 | Checkout | biggest dart, then a finisher | 22 / 46 | A real (weak) strategy. Random darts score 0. |
 | Labyrinth | wall-following every dead end at 6 cells a second | 100 / 120 | A real strategy that doesn't read the whole maze. A random scribble scores 0. |
@@ -296,6 +296,26 @@ Six Word games changed on 14 Oct (each behind its own stamp; stored rounds grade
 - **Roundabout** lands near the targets apart from great (143): the kit's great player finishes every board with about a quarter of the time left, and pulling great to 125 would sink average well below 70. Unfinished credit is front-loaded (12 a word for the first 6, then 5) so average lands near 70 while good stays near 100. The rule-b flag (random traces 16) is closed by the attempt log.
 - **Lookout, Cryptogrid and Swapword** were already above the targets for good and great before the batch, and the requested changes (a bigger bank and counted chips, a fifth given, a budget of at least 16) do not pull them down: the kits play at a flat speed with perfect deduction (Lookout 9 s a word, Cryptogrid 6 s a number, Swapword the optimal swap every 5 s), so theme, word length and deduction difficulty don't show. Bringing them to the band needs harder formats (more words per grid, fewer givens, a tighter budget) or timings measured from real play; left for Joe.
 - **Letterfall** keeps par 30, so good and better still reach 150; the slower, less vowel-heavy drops bury the good bot far less (15/30 → 3/30) while its raw points fall (40 → 34). On these bots a par of about 40–45 would hit the band; **par needs setting from real play**.
+
+## Strikeout rev 3 (15 Oct 2026)
+
+`strikeoutRev 3`: ten strikes shared over the round (was 5), three vowel guesses per word (was 2), one more starting letter on words 1–3, and a finish of 120 + 1.5 per strike left (ten left = 15) + up to 15 for speed; unfinished credit unchanged (30 per word + 2 per found tile, cap 110). These are Joe's chosen rules: the numbers below are reported, nothing was tuned to them. Measured with `scripts/puzzle-fairness.ts strikeout --seeds=30` on unmodified main (before, `strikeoutRev 2`) and on the branch (after), the same 30 room seeds (5001–5030) and kits. Median score, finishes of 30 in brackets. Targets about 70 / 100 / 125 / 140–150, random and careless play near 0.
+
+| Level / strategy | Before (`strikeoutRev 2`) | After (`strikeoutRev 3`) |
+|---|---|---|
+| Average | 66 (0/30) | **97** (3/30) |
+| Good | 110 (13/30) | **140** (24/30) |
+| Great | 135 (21/30) | **146** (30/30) |
+| Near-perfect | 141 (23/30) | **147** (30/30) |
+| Letters in frequency order (median / p90 / max) | 6 / 12 / 12 | **7 / 34 / 66** |
+| Random letters (median / p90 / max) | 2 / – / 10 | **6 / 8 / 32** |
+| A–Z (median / p90 / max) | 4 / – / 10 | **6 / 30 / 34** |
+| Nothing | 0 | 0 |
+| Lowest finish / highest unfinished | ≥ 124 / ≤ 110 | ≥ 127 / ≤ 110 |
+
+- Every band rises above its target (average 97 against about 70, good 140 against about 100): with ten strikes and the extra starting letters the kit's good player finishes 24 boards in 30 and great and near-perfect every board, so the top three bands sit within 7 of each other and are separated mostly by speed and strikes left (1.5 each).
+- Blind play rises a little: A–Z and random letters now find a few letters of word 1 before the tenth strike (median 6, so they break rule b's median ≤ 5 by 1 and are listed as known exceptions in `scripts/puzzle-fairness.ts`); none of them finishes, and every finish (≥ 122) still beats every unfinished run (≤ 110). Frequency-order guessing (a real if weak strategy) occasionally solves a word or two (max 66).
+- The kit's strong players gamble on a two-way choice only with three or more strikes to spare (unchanged for rev 2, where that meant two strikes used or fewer).
 
 ## Pattern / Logic batch (14 Oct 2026)
 
