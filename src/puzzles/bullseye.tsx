@@ -39,7 +39,8 @@ import {
   BULLSEYE_WORLD_W,
 } from "@/lib/arcade/bullseye";
 import { decodeBullseyeRun, encodeBullseyeRun, replayBullseyeRun } from "@/lib/duel/bullseye";
-import { bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { bullseyeArenaScene, bullseyeArtAim, drawBullseye } from "@/lib/arcade/bullseye.renderer";
+import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
 import { bullseyeSounds } from "@/lib/fx/gameSounds";
 import { ARCADE_CRASH_FREEZE_MS, type BullseyePuzzleData } from "@/lib/duel/types";
 
@@ -108,6 +109,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BullseyePuzzleData | null = puzzle.type === "bullseye" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const fairSceneKey = useFairSceneKey();
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -292,7 +294,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H}>
+    <ArcadeArenaSlot width={BULLSEYE_WORLD_W} height={BULLSEYE_WORLD_H} scene={bullseyeArenaScene} sceneKey={fairSceneKey}>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

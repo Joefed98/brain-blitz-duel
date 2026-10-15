@@ -38,7 +38,7 @@ import { TENDROP_TIME_MS, type TenDropPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { drawTenDrop } from "@/lib/arcade/tenDrop.renderer";
+import { drawTenDrop, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -305,7 +305,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <PolishStyle id="tendrop" css={TD_CSS} />
       <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} />
       {/* The world at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; tdView maps through this box). */}
-      <ArcadeArenaSlot width={TD_W} height={TD_H}>
+      <ArcadeArenaSlot width={TD_W} height={TD_H} scene={tenDropArenaScene}>
       <div
         ref={board}
         data-play-area

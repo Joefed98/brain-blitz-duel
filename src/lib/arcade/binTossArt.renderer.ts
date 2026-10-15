@@ -12,7 +12,8 @@ import {
   type BinTossGhost, type BinTossHoop, type BinTossLandingPresentation, type BinTossState,
 } from "./binToss";
 import { reducedMotion } from "./art.renderer";
-import { FAIR_TEXT, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
+import { FAIR_TEXT, fairArenaScene, fairChangeAge, fairPennant, fairScreen, fairTransform } from "./fairground.renderer";
+import type { ArenaSceneView } from "./arenaScene.renderer";
 
 const px = (v: number) => v / 256;
 export const BINTOSS_RUBBER = "#A72B32";
@@ -455,3 +456,8 @@ export function binTossArtLanding(
 }
 
 export const binTossArtGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, draw };
+
+/** Arena scene (15 Oct 2026, display only): the stall's sky, counter and floor beyond the world. */
+export function binTossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  fairArenaScene(ctx, view, FLOOR);
+}

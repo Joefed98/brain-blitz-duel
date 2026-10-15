@@ -15,6 +15,7 @@
  * shimmer band is one sprite. Frames only blit, stroke and fill flat colours.
  */
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
 import {
@@ -404,4 +405,73 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+}
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): the cabinet goes on
+ * below the play columns. A thick dark sill closes the columns at the world's bottom
+ * edge; under it the frame's rails and a shaded oak backing run on to the arena box's
+ * bottom, darker than the board and with no grooves, tiles or drop slots, so it reads
+ * as the cabinet's lower panel, never as more of the columns.
+ */
+export function tenDropArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const W = TD_W, H = TD_H;
+  for (const side of sceneSides(view)) {
+    ctx.fillStyle = TOY_WOOD_DEEP;
+    ctx.fillRect(side.x, side.y, side.w, side.h);
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  const SILL = 14;
+  // Backing: oak in shadow, lit a little where the sill throws light down.
+  sceneFill(ctx, below, H, view.bottom, [[0, "#7A5531"], [Math.min(1, 120 / below.h), "#5E4026"], [1, "#4A321D"]]);
+  ctx.save();
+  ctx.strokeStyle = TOY_OAK_GRAIN;
+  ctx.lineWidth = 1;
+  for (let i = 0, gy = H + SILL + 8; gy < view.bottom; gy += 12 + (i % 3) * 3, i++) {
+    ctx.globalAlpha = 0.1 + (i % 4) * 0.03;
+    ctx.beginPath();
+    ctx.moveTo(below.x, gy);
+    ctx.bezierCurveTo(below.x + below.w * 0.3, gy + (i % 2 ? 4 : -3), below.x + below.w * 0.7, gy + (i % 2 ? -4 : 3), below.x + below.w, gy + 1);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // The frame's rails continue down the panel (the same x as the lane dividers and the outer frame).
+  for (let col = 0; col <= TD_CONFIG.cols; col++) {
+    const x = col * TD_COL_W;
+    const w = col === 0 || col === TD_CONFIG.cols ? 8 : 6;
+    const x0 = col === 0 ? x : col === TD_CONFIG.cols ? x - w : x - w / 2;
+    ctx.fillStyle = TOY_WOOD_DARK;
+    ctx.fillRect(x0, H, w, below.h);
+    ctx.fillStyle = "rgba(255,226,170,0.22)";
+    ctx.fillRect(x0, H, 1, below.h);
+    ctx.fillStyle = "rgba(20,10,4,0.35)";
+    ctx.fillRect(x0 + w - 1, H, 1, below.h);
+  }
+  // A soft shadow under the sill, then the sill itself with brass screws.
+  const shade = ctx.createLinearGradient(0, H + SILL, 0, H + SILL + 18);
+  shade.addColorStop(0, "rgba(20,10,4,0.5)");
+  shade.addColorStop(1, "rgba(20,10,4,0)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(below.x, H + SILL, below.w, 18);
+  ctx.fillStyle = TOY_WOOD_DEEP;
+  ctx.fillRect(below.x, H, below.w, SILL);
+  ctx.fillStyle = TOY_WOOD_DARK;
+  ctx.fillRect(below.x, H + 3, below.w, SILL - 6);
+  ctx.fillStyle = "rgba(255,226,170,0.3)";
+  ctx.fillRect(below.x, H + 3, below.w, 1);
+  for (let col = 0; col <= TD_CONFIG.cols; col++) {
+    const x = Math.min(W - 8, Math.max(8, col * TD_COL_W));
+    ctx.fillStyle = TOY_BRASS;
+    ctx.beginPath();
+    ctx.arc(x, H + SILL / 2, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // The cabinet's foot rail along the arena box's bottom.
+  if (below.h > SILL * 3) {
+    ctx.fillStyle = TOY_WOOD_DEEP;
+    ctx.fillRect(below.x, view.bottom - 8, below.w, 8);
+    ctx.fillStyle = "rgba(255,226,170,0.16)";
+    ctx.fillRect(below.x, view.bottom - 8, below.w, 1);
+  }
 }

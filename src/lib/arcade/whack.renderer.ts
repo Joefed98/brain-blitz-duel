@@ -3,6 +3,7 @@ import { whackGame, WHACK_COLS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, W
 import type { CanvasSize } from './engine';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { BONK_BODY, BONK_HAT, BONK_SPIKES } from './bonkShapes.renderer';
+import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 
 /**
  * Bonk art (Polish, 13 Oct 2026): a meadow with earth burrows, hard-hatted gophers and
@@ -331,3 +332,36 @@ export function drawBonkFinale(ctx: CanvasRenderingContext2D, ms: number, width:
 }
 
 export const whackArtGame = { ...whackGame, draw: drawBonk };
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): the meadow's grass
+ * continues past the 4×4 field to the arena box's edges. Grass and a few flowers only:
+ * no burrows, gophers or anything that moves. The world is the square board (0–1), so
+ * this paints in CSS px from the board's top-left corner.
+ */
+export function bonkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const k = view.scale;
+  ctx.scale(1 / k, 1 / k);
+  const px = { left: view.left * k, right: view.right * k, top: view.top * k, bottom: view.bottom * k, side: k };
+  for (const side of sceneSides(view)) {
+    const r = { x: side.x * k, y: side.y * k, w: side.w * k, h: side.h * k };
+    sceneFill(ctx, r, 0, px.side, [[0, PALETTE.meadowTop], [1, PALETTE.meadowBottom]]);
+    sceneBlades(ctx, r, 0xb0b6, ["rgba(78,118,56,0.5)", "rgba(30,51,24,0.5)"], 70, 5);
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  const r = { x: below.x * k, y: below.y * k, w: below.w * k, h: below.h * k };
+  sceneFill(ctx, r, r.y, r.y + Math.max(r.h, 1), [[0, PALETTE.meadowBottom], [1, "#1E3318"]]);
+  sceneBlades(ctx, r, 0xb0b7, ["rgba(78,118,56,0.5)", "rgba(30,51,24,0.55)", "rgba(78,118,56,0.35)"], 70, 5);
+  const petals = ["#E9E4D2", "#E8C95A", "#D99BB4"];
+  const flowers = Math.round((r.w * r.h) / 9000);
+  for (let i = 0; i < flowers; i++) {
+    const h = prng(0xf10e + i);
+    const x = r.x + 6 + h() * (r.w - 12), y = r.y + 8 + h() * Math.max(0, r.h - 14);
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = petals[i % petals.length]!;
+    for (let p = 0; p < 5; p++) { const a = (p / 5) * Math.PI * 2; ctx.beginPath(); ctx.arc(x + Math.cos(a) * 1.6, y + Math.sin(a) * 1.6, 1.1, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = "#F2C94C"; ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}

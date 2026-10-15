@@ -41,7 +41,8 @@ import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
-import { binTossArtGame, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
+import { binTossArenaScene, binTossArtGame, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
+import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
 import { binTossSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -93,6 +94,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BinTossPuzzleData | null = puzzle.type === "bintoss" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  const fairSceneKey = useFairSceneKey();
   const binTossGame = binTossGameFor(data?.binRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
@@ -341,7 +343,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       ref={wrap}
       className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
     >
-      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H}>
+      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H} scene={binTossArenaScene} sceneKey={fairSceneKey}>
       <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
       <canvas
         ref={canvas}
