@@ -1,5 +1,5 @@
 import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
-import type { SoundId } from "./manifest";
+import { SOUND_MANIFEST, type SoundId } from "./manifest";
 
 export const FX_HOOKS = [
   "onRoundStart",
@@ -120,8 +120,23 @@ const WORLD_MUSIC: Partial<Record<PuzzleType, SoundId>> = {
   bubble: "music_bubble",
   matchup: "music_matchup",
 };
+/**
+ * A game's own bed once its slot has a file (docs/sound-cues/music.md):
+ * `music_<gameId>` for arcade, `music_<category>_<gameId>` for puzzles (so the
+ * puzzle volume ramp still applies). Null until then: the shared bed plays.
+ */
+function ownMusic(id: string): SoundId | null {
+  const entry = (
+    SOUND_MANIFEST as Record<string, { channel: string; url: string | null } | undefined>
+  )[id];
+  return entry?.channel === "music" && entry.url ? (id as SoundId) : null;
+}
 function puzzleMusic(type: PuzzleType | undefined, category: PuzzleCategory): SoundId | null {
-  return (type ? PUZZLE_MUSIC[type] : undefined) ?? CATEGORY_MUSIC[category] ?? null;
+  return (
+    (type ? (ownMusic(`music_${category}_${type}`) ?? PUZZLE_MUSIC[type]) : undefined) ??
+    CATEGORY_MUSIC[category] ??
+    null
+  );
 }
 export function roundMusicFor(
   type: PuzzleType | undefined,
@@ -129,7 +144,7 @@ export function roundMusicFor(
 ): SoundId | null {
   return category === "arcade"
     ? type
-      ? (WORLD_MUSIC[type] ?? null)
+      ? (ownMusic(`music_${type}`) ?? WORLD_MUSIC[type] ?? null)
       : null
     : puzzleMusic(type, category);
 }
