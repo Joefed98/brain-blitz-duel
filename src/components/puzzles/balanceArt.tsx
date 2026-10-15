@@ -79,12 +79,12 @@ export function IronKettlebell({ value, fixed, width, height }: { value: number;
   );
 }
 
-/** Three small level beams that settle in a row: the "all three balanced" moment. */
-export function TripleLevelFx({ reduced }: { reduced: boolean }) {
+/** One small level beam per scale, settling in a row: the "every scale balanced" moment (four on balanceRev 2, three on older rounds). */
+export function ScalesLevelFx({ reduced, count = 3 }: { reduced: boolean; count?: number }) {
   return (
     <div className={`bal-solve-fx${reduced ? " bal-reduced" : ""}`} aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <svg key={i} className="bal-mini" style={{ ["--i" as string]: i, ["--from" as string]: `${i === 1 ? -9 : 9}deg` }} width="72" height="34" viewBox="0 0 72 34">
+      {Array.from({ length: count }, (_, i) => (
+        <svg key={i} className="bal-mini" style={{ ["--i" as string]: i, ["--from" as string]: `${i % 2 === 1 ? -9 : 9}deg` }} width="72" height="34" viewBox="0 0 72 34">
           <path d="M33 14h6l4 16H29Z" fill="url(#bal-column)" stroke="#0B0D10" strokeWidth="0.8" />
           <rect x="22" y="29" width="28" height="4" rx="1.5" fill="url(#bal-wood)" />
           <g className="bal-mini-beam">

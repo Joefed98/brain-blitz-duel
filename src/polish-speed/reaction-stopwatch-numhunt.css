@@ -1,4 +1,4 @@
-/* Speed & Attention polish (a), 13 Oct 2026: presentation only. */
+/* Speed & Attention polish, 13 Oct 2026: presentation only. */
 /* Flash (reaction), Bang On (stopwatch), Ascend (numhunt). No sizes of anything the
    game counts as a tap change; textures are static CSS (deterministic, no per-frame work). */
 
@@ -155,3 +155,63 @@
   pointer-events: none;
 }
 .ascend-reveal-result { background: linear-gradient(to bottom, color-mix(in oklab, var(--card) 85%, white), var(--card)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.35); }
+
+/* ============================================================ Speed tuning, 14 Oct 2026 */
+/* Flash's gold-like decoys (tapRev 3) and Bang On's blind spots and diagonal faces (tapRev 3).
+   Presentation only; kept after the rules above, which they refine. */
+
+/* ------------------------------------------------------------ Flash */
+/* Near-gold amber: a little deeper and warmer than the gold surface. */
+.flash-decoy-amber { background-color: oklch(0.76 0.165 64); }
+.flash-arena[data-flash-decoy-kind="border"] .flash-art,
+.flash-arena[data-flash-decoy-kind="word"] .flash-art,
+.flash-arena[data-flash-decoy-kind="half"] .flash-art {
+  background: radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.55) 100%);
+  box-shadow: inset 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+/* A gold frame only: the screen inside stays dark. */
+.flash-decoy-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 14px solid var(--primary);
+  pointer-events: none;
+}
+/* The top half of the screen gold, the bottom half dark. */
+.flash-decoy-half {
+  position: absolute;
+  inset: 0 0 50% 0;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: var(--primary);
+  pointer-events: none;
+}
+/* The word GOLD in gold on the dark screen. */
+.flash-decoy-word {
+  color: var(--primary);
+  font-size: clamp(3rem, 18vw, 5.5rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* ------------------------------------------------------------ Bang On */
+/* Blind spots: black bands where the marker vanishes (the sim never reads them). */
+.bangon-blind {
+  z-index: 2;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+/* Diagonal watch: the bar turned corner to corner (bottom left to top right) in a square. */
+.bangon-diagonal { max-width: min(100%, 300px); }
+.bangon-face.bangon-face-diagonal,
+.game-column [data-polish="stopwatch"] .bangon-face.bangon-face-diagonal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 118%;
+  height: 72px;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
