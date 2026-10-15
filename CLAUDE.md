@@ -144,7 +144,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   visible bottom, is clipped by the game region, or the shell does not end at the dynamic viewport's
   bottom. Game screens are `.game-viewport` (100dvh) with the inset + 16 px under the controls; per-game
   lifts live in `src/polish-layout/bottom.css` (layout 3, `.game-column-lifted`). Run it after a stage
-  layout change.
+  layout change. Arcade play screens (15 Oct 2026, `data-arcade-screen`, the engine games on the arcade
+  stage included) keep their pre-14 Oct size instead: the column ends 8 px above the bottom whatever the
+  home-bar inset (also proved with a 34 px home bar emulated, here and in arcade-play-check); controls
+  nearer than 12 px are printed as NOTE lines, not failures. Each puzzle's intro, stage and timed-out
+  reveal is also drawn with a 47 px notch and 34 px home bar and fails on a colour seam in the top or
+  bottom strip (`data-puzzle-screen`: the page behind is `--screen-edge` and the strips fade to it).
 - **Safe areas on the other screens** (14 Oct 2026): `viewport-fit=cover` lets every page draw under a
   notch and home bar, so safe-area-screens-check (headless Chromium, ~2 min, shard `play4`) draws the home /
   room join, practice list, sound settings, practice and room round intros, a help sheet, and the room's

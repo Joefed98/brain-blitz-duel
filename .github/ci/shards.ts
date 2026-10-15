@@ -14,8 +14,9 @@ export const SHARDS: Record<string, string[]> = {
   // one game at a time, so frame times compare fairly with the CI baseline). The
   // workflow installs the browser and swaps in the CI frame-time baseline for these.
   // bottom-clearance-check (every active game's controls ≥12px above the visible bottom at
-  // 375x667 / 390x844, with and without an 80px toolbar) rides play1-play3 for the browser,
-  // one third each (~25 games, ~4 min), after the arcade games.
+  // 375x667 / 390x844, with and without an 80px toolbar; arcade play columns 8px up; no colour
+  // seam on puzzle intros, stages and reveals with a notch and home bar) rides play1-play3 for
+  // the browser, one third each (~25 games, ~8-10 min since the 15 Oct seam pass), after the arcade games.
   play1: ["arcade-play-check.ts@1/5", "bottom-clearance-check.ts@1/3"],
   play2: ["arcade-play-check.ts@2/5", "bottom-clearance-check.ts@2/3"],
   play3: ["arcade-play-check.ts@3/5", "bottom-clearance-check.ts@3/3"],
