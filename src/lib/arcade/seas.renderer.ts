@@ -5,6 +5,7 @@
  * the presentation clock (frozen under reduced motion), cached sprites and
  * background pieces (water, light rays, kelp, rigging, deck, rope).
  */
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
@@ -39,7 +40,8 @@ export function seaNow(): number {
 /** Device pixels per CSS px of the current transform. */
 export function seaDeviceScale(ctx: CanvasRenderingContext2D): number {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  return t ? Math.max(1, Math.min(2, Math.hypot(t.a, t.b))) : 1;
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): below 1 too, so layers and sprites are copied 1:1.
+  return t ? Math.max(arcadeReducedEffects() ? 0.25 : 1, Math.min(2, Math.hypot(t.a, t.b))) : 1;
 }
 
 const sprites = new Map<string, ArtCanvas | null>();
@@ -129,6 +131,8 @@ export function seaWater(ctx: CanvasRenderingContext2D, w: number, h: number): v
 
 /** Soft light rays from above, swaying on the presentation clock. */
 export function seaRays(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  // Reduced effects (slow devices only): no additive light rays.
+  if (arcadeReducedEffects()) return;
   const t = seaClock();
   ctx.save();
   ctx.globalCompositeOperation = "lighter";

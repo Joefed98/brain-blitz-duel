@@ -36,6 +36,7 @@ import { gridCellAt } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** The rule box. Live (14 Oct 2026): a bigger box, outlined in the rule's colour; the intro still keeps the small pill. */
 function Banner({ red, flash, small = false }: { red: boolean; flash: boolean; small?: boolean }) {
@@ -222,12 +223,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const ratio = arcadeCanvasRatio();
         const width = Math.round(box.width);
         const height = Math.round(box.height);
-        if (node.width !== width * ratio || node.height !== height * ratio) {
-          node.width = width * ratio;
-          node.height = height * ratio;
+        if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
+          node.width = Math.round(width * ratio);
+          node.height = Math.round(height * ratio);
         }
         const ctx = node.getContext("2d");
         if (ctx) {

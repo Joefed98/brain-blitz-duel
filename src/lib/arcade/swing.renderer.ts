@@ -36,6 +36,7 @@ import {
   type SwingState,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { drawGrapplerHood } from "./grapplerFigure.renderer";
 import { drawGrapplerDragon } from "./grapplerDragon.renderer";
 import { drawGrapplerDragonV3 } from "./grapplerDragonV3.renderer";
@@ -64,6 +65,9 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const SWING_WORLD_H = swingWorldH(state);
   const deep = SWING_WORLD_H - 620;
   const still = reducedMotion();
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): no distant parallax rock, lava light,
+  // molten swirls, floating crust or soft surface glow. Nothing that collides or scores is skipped.
+  const lite = arcadeReducedEffects();
   const t = still ? 0 : state.tick / 60;
   const scale = Math.min(size.width / SWING_WORLD_W, size.height / SWING_WORLD_H);
   const ox = (size.width - SWING_WORLD_W * scale) / 2;
@@ -102,7 +106,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.fillStyle = haze;
   ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
   // The distant rock keeps its height above the lava.
-  for (const [par, base, span, colour, step] of [[0.15, 250 + deep, 90, "#160D10", 46], [0.3, 330 + deep, 70, "#21131A", 30]] as const) {
+  for (const [par, base, span, colour, step] of lite ? [] : ([[0.15, 250 + deep, 90, "#160D10", 46], [0.3, 330 + deep, 70, "#21131A", 30]] as const)) {
     ctx.fillStyle = colour;
     ctx.beginPath();
     ctx.moveTo(-20, SWING_WORLD_H);
@@ -121,11 +125,13 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   }
   // Lava light cast up onto nearby rock.
   const lavaTop = Math.min(...state.floor.slice(first, last + 1)) / FP;
-  const cast = ctx.createLinearGradient(0, lavaTop - 160, 0, lavaTop + 10);
-  cast.addColorStop(0, "rgba(255,90,30,0)");
-  cast.addColorStop(1, `rgba(255,90,30,${0.26 + (still ? 0 : 0.04 * Math.sin(t * 1.7))})`);
-  ctx.fillStyle = cast;
-  ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, SWING_WORLD_H - lavaTop + 160);
+  if (!lite) {
+    const cast = ctx.createLinearGradient(0, lavaTop - 160, 0, lavaTop + 10);
+    cast.addColorStop(0, "rgba(255,90,30,0)");
+    cast.addColorStop(1, `rgba(255,90,30,${0.26 + (still ? 0 : 0.04 * Math.sin(t * 1.7))})`);
+    ctx.fillStyle = cast;
+    ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, SWING_WORLD_H - lavaTop + 160);
+  }
 
   // Narrow rock band begins at the sim's ceiling line and faces down into the cave.
   ctx.beginPath();
@@ -379,7 +385,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.globalAlpha = 0.18;
   ctx.strokeStyle = "#FFE08A";
   ctx.lineWidth = 2;
-  for (let k = 0; k < 3; k++) {
+  if (!lite) for (let k = 0; k < 3; k++) {
     ctx.beginPath();
     for (let px = 0; px <= SWING_WORLD_W; px += 10) {
       const y = lavaTop + 14 + k * 16 + Math.sin((px + cam) * 0.03 + t * (0.5 + k * 0.2) + k) * 4;
@@ -398,7 +404,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.fillRect(Math.min(x0, x1), lavaTop - 4, 40, SWING_WORLD_H);
   }
   // Floating crust plates.
-  for (let k = Math.floor(cam / 90) - 1; k < Math.floor(cam / 90) + 6; k++) {
+  if (!lite) for (let k = Math.floor(cam / 90) - 1; k < Math.floor(cam / 90) + 6; k++) {
     const h = artHash(k, 77);
     if (h % 3) continue;
     const wx = k * 90 + (h % 60);
@@ -412,24 +418,26 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   ctx.restore();
   // Glowing surface line.
   // Polish G: the glow is two soft strokes above the surface (no shadowBlur), then the bright line.
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
-  ctx.moveTo(-4, SWING_WORLD_H);
-  for (const [px, py] of surface) ctx.lineTo(px, py);
-  ctx.lineTo(SWING_WORLD_W + 4, SWING_WORLD_H);
-  ctx.closePath();
-  ctx.clip("evenodd");
-  ctx.beginPath();
-  surface.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "rgba(255,120,40,0.16)";
-  ctx.lineWidth = 14;
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255,150,60,0.3)";
-  ctx.lineWidth = 6;
-  ctx.stroke();
-  ctx.restore();
+  if (!lite) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
+    ctx.moveTo(-4, SWING_WORLD_H);
+    for (const [px, py] of surface) ctx.lineTo(px, py);
+    ctx.lineTo(SWING_WORLD_W + 4, SWING_WORLD_H);
+    ctx.closePath();
+    ctx.clip("evenodd");
+    ctx.beginPath();
+    surface.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(255,120,40,0.16)";
+    ctx.lineWidth = 14;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,150,60,0.3)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.strokeStyle = "#FFD27A";
   ctx.lineWidth = 1.5;
   ctx.beginPath();

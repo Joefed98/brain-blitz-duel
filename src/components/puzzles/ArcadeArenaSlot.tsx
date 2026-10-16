@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 import type { ArenaScenePainter } from "@/lib/arcade/arenaScene.renderer";
+import { watchArcadeFrames } from "@/lib/fx/lowEnd";
 
 /**
  * The space an arcade arena may grow into: from the arena's fixed top edge (just under
@@ -33,6 +34,10 @@ export function ArcadeArenaSlot({ width, height, centre = false, scene, sceneKey
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const painter = useRef(scene);
   painter.current = scene;
+
+  // Low-end performance (16 Oct 2026, presentation only): every arena watches its frame gaps and
+  // steps into reduced effects when frames run long (lib/fx/lowEnd.ts); a fast phone never does.
+  useEffect(() => watchArcadeFrames(), []);
 
   useEffect(() => {
     const node = canvas.current;

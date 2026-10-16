@@ -3,6 +3,7 @@
  * mutates it. Gems sit on the sim's cell centres at the sim's symbol radius;
  * each colour keeps its own cut so shapes stay distinguishable.
  */
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MATCHUP_FX } from "./arcadeFxGames.renderer";
@@ -309,7 +310,7 @@ export function drawMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: 
  if (stamp) ctx.drawImage(stamp, cx-radius-1, cy-radius-1, stamp.width/2, stamp.height/2);
  else paintMatchupGem(ctx, kind, cx, cy, radius, time);
 }
-const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[] }>();
+const boardLayers = new WeakMap<CanvasRenderingContext2D, { canvas: ArtCanvas; cells: number[]; k: number }>();
 
 /* ================================ Board =============================== */
 
@@ -461,7 +462,8 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
 const backdrops = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
 function drawBackdrop(ctx: CanvasRenderingContext2D): void {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  const scale = Math.min(3, Math.max(1, t ? Math.hypot(t.a, t.b) : 1));
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): at the canvas's own scale even below 1, so it is copied 1:1.
+  const scale = Math.min(3, Math.max(arcadeReducedEffects() ? 0.25 : 1, t ? Math.hypot(t.a, t.b) : 1));
   const key = scale.toFixed(3);
   let cached = backdrops.get(ctx);
   if (!cached || cached.key !== key) {
@@ -504,10 +506,14 @@ function drawNextStrip(ctx: CanvasRenderingContext2D, state: MatchupState, time:
 
 function drawSettled(ctx: CanvasRenderingContext2D, cells: readonly number[], time: number, skip?: ReadonlySet<number>): void {
  if (!skip) {
+  // The settled board is a 2× layer; in reduced effects (lib/fx/lowEnd.ts, slow devices only) it is
+  // painted at the canvas's own scale instead, so it is copied 1:1 rather than resampled every frame.
+  const t=typeof ctx.getTransform==="function"&&arcadeReducedEffects()?ctx.getTransform():null;
+  const k=t?Math.round(Math.max(0.25,Math.min(2,Math.hypot(t.a,t.b)))*1000)/1000:2;
   let layer=boardLayers.get(ctx);
-  if (!layer) { const canvas=artCanvas(MATCHUP_BOARD_W*2,MATCHUP_BOARD_H*2); if(canvas){layer={canvas,cells:[]};boardLayers.set(ctx,layer);} }
+  if (!layer||layer.k!==k) { const canvas=artCanvas(Math.round(MATCHUP_BOARD_W*k),Math.round(MATCHUP_BOARD_H*k)); layer=undefined; if(canvas){layer={canvas,cells:[],k};boardLayers.set(ctx,layer);} }
   const native=layer&&artContext(layer.canvas);
-  if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(2,2);
+  if(layer&&native){const c=native as CanvasRenderingContext2D;c.save();c.scale(layer.canvas.width/MATCHUP_BOARD_W,layer.canvas.height/MATCHUP_BOARD_H);
    for(let i=0;i<cells.length;i++){if(layer.cells[i]===cells[i])continue;const x=(i%MATCHUP_SIZE)*MATCHUP_CELL_PX,y=Math.floor(i/MATCHUP_SIZE)*MATCHUP_CELL_PX;
     c.clearRect(x,y,MATCHUP_CELL_PX,MATCHUP_CELL_PX);drawSocket(c,x,y,(Math.floor(i/MATCHUP_SIZE)+i%MATCHUP_SIZE)%2);
     drawMatchupGem(c,cells[i]??0,x+MATCHUP_CELL_PX/2,y+MATCHUP_CELL_PX/2,RADIUS,time);layer.cells[i]=cells[i]??0;

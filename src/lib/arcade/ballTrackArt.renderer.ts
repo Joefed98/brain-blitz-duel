@@ -1,4 +1,5 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { balltrackFxFor } from "./arcadeFxGames.renderer";
 /**
@@ -16,7 +17,7 @@ import {
   TOY_BRASS, TOY_INK, TOY_OAK, TOY_OAK_LIGHT, TOY_WOOD_DARK, TOY_WOOD_DEEP,
   toyBoard, toyMarble, toyTabletop,
 } from "./toybox.renderer";
-import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 
 const BALL_R = 22.5;
 const SLOT = 100;
@@ -136,7 +137,6 @@ function symbol(ctx: CanvasRenderingContext2D, kind: number, x: number, y: numbe
 
 /* ----------------------------- Cached board layer ----------------------------- */
 
-const layers = new Map<string, ArtCanvas | null>();
 
 /** Device pixels per world unit under the current transform. */
 function deviceScale(ctx: CanvasRenderingContext2D): number {
@@ -144,30 +144,76 @@ function deviceScale(ctx: CanvasRenderingContext2D): number {
   return t ? Math.max(0.1, Math.hypot(t.a, t.b)) : 1;
 }
 
+/** The board layer per device size and board height: its canvas and the masks it was painted with. */
+interface BoardLayer {
+  canvas: ArtCanvas;
+  c: CanvasRenderingContext2D;
+  masks: readonly number[];
+}
+const layers = new Map<string, BoardLayer | null>();
+/** World px round a changed cell that a repaint covers: its own and its neighbours' shadows reach 4 px past a tile. */
+const REPAINT_MARGIN = 6;
+/** More changed cells than this (a new course, a drop row flipping) repaint the whole layer. */
+const REPAINT_MAX_CELLS = 8;
+
 /**
- * Draws the world-sized layer `key` (painted once per key and device size by
- * `paint` in world units), or paints straight onto ctx where no offscreen
- * canvas exists (SSR, Node checks).
+ * Draws the world-sized board layer (board, plank seams, shelves and settled channels, painted by
+ * paintBoardLayer for `masks`), or paints straight onto ctx where no offscreen canvas exists (SSR,
+ * Node checks). One layer per size is repainted when the masks change (the same pixels as before).
+ * Low-end performance (16 Oct 2026): in reduced effects (lib/fx/lowEnd.ts) a tap that turns a tube
+ * changes only that tube's cells, so only their tiles (plus REPAINT_MARGIN) are repainted, clipped to
+ * whole device pixels, instead of the whole board twice per tap.
  */
-function btLayer(ctx: CanvasRenderingContext2D, key: string, paint: (c: CanvasRenderingContext2D) => void, BT_H = BT_BASE_H): void {
+function btBoardLayer(ctx: CanvasRenderingContext2D, masks: readonly number[], BT_ROWS: number, BT_H: number): void {
   const k = deviceScale(ctx);
   const pw = Math.max(1, Math.round(BT_W * k));
   const ph = Math.max(1, Math.round(BT_H * k));
-  const id = `${pw}x${ph}|${key}`;
+  const id = `${pw}x${ph}|${BT_ROWS}`;
   let layer = layers.get(id);
   if (layer === undefined) {
-    if (layers.size >= 6) layers.clear();
+    if (layers.size >= 4) layers.clear();
     const canvas = artCanvas(pw, ph);
-    const c = canvas ? artContext(canvas) : null;
+    const c = canvas ? (artContext(canvas) as CanvasRenderingContext2D | null) : null;
+    layer = null;
     if (canvas && c) {
       c.scale(pw / BT_W, ph / BT_H);
-      paint(c as CanvasRenderingContext2D);
+      paintBoardLayer(c, masks, BT_ROWS, BT_H);
+      layer = { canvas, c, masks: [...masks] };
     }
-    layer = canvas && c ? canvas : null;
     layers.set(id, layer);
+  } else if (layer) {
+    const changed: number[] = [];
+    for (let cell = 0; cell < Math.max(masks.length, layer.masks.length); cell++) if (masks[cell] !== layer.masks[cell]) changed.push(cell);
+    if (changed.length) {
+      const { c } = layer;
+      const sx = pw / BT_W;
+      const sy = ph / BT_H;
+      // Reduced effects (slow devices only): one pixel-aligned rectangle per changed cell. A partial
+      // clip moves anti-aliased edges inside it by a few levels (≤ 17 of 255), so at full effects
+      // the whole layer is repainted, exactly as before.
+      const boxes: [number, number, number, number][] = changed.length > REPAINT_MAX_CELLS || !arcadeReducedEffects() ? [[0, 0, pw, ph]] : changed.map((cell) => {
+        const x0 = (cell % BT_COLS) * BT_TILE - REPAINT_MARGIN;
+        const y0 = BT_HOPPER_H + Math.floor(cell / BT_COLS) * BT_TILE - REPAINT_MARGIN;
+        const left = Math.max(0, Math.floor(x0 * sx));
+        const top = Math.max(0, Math.floor(y0 * sy));
+        return [left, top, Math.min(pw, Math.ceil((x0 + BT_TILE + REPAINT_MARGIN * 2) * sx)) - left, Math.min(ph, Math.ceil((y0 + BT_TILE + REPAINT_MARGIN * 2) * sy)) - top];
+      });
+      for (const [x, y, w, h] of boxes) {
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.beginPath();
+        c.rect(x, y, w, h);
+        c.clip();
+        c.clearRect(x, y, w, h);
+        c.setTransform(sx, 0, 0, sy, 0, 0);
+        paintBoardLayer(c, masks, BT_ROWS, BT_H);
+        c.restore();
+      }
+      layer.masks = [...masks];
+    }
   }
-  if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, BT_W, BT_H);
-  else paint(ctx);
+  if (layer) ctx.drawImage(layer.canvas as CanvasImageSource, 0, 0, BT_W, BT_H);
+  else paintBoardLayer(ctx, masks, BT_ROWS, BT_H);
 }
 
 /**
@@ -310,8 +356,16 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   const { rows: BT_ROWS, kind: BT_KIND, corner: BT_CORNER, h: BT_H } = btLayout(course);
   const gridY = BT_HOPPER_H;
   const rot = rotatable ?? new Set(btRotatable(course));
-  toyTabletop(ctx);
-  toyBoard(ctx, 0, 0, BT_W, BT_H, 14);
+  // Low-end performance (16 Oct 2026): the tabletop and board never change, so they are one cached
+  // layer (cache.renderer deviceLayer: the same pixels, one copy a frame instead of a gradient fill,
+  // grain strokes and a vignette).
+  // In reduced effects (lib/fx/lowEnd.ts, slow devices only) it is skipped: the board layer below
+  // paints the whole world opaque, so only sub-pixel edges of the table ever showed.
+  if (!arcadeReducedEffects())
+    deviceLayer(ctx, `bt-table:${BT_H}`, (c) => {
+      toyTabletop(c);
+      toyBoard(c, 0, 0, BT_W, BT_H, 14);
+    });
 
   const v2 = s.rev === BT_REV;
   const liveDrop = (cell: number) => cell >= (BT_ROWS - 1) * BT_COLS && (btTraysAt(course, s.tick)[cell % BT_COLS] ?? -1) >= 0;
@@ -323,7 +377,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   // a tube turns or a drop changes); tubes mid-turn are drawn on top, swung by the turn still to come.
   const masks: number[] = [];
   for (let cell = 0; cell < BT_KIND.length; cell++) masks.push(BT_KIND[cell] && !turning.has(cell) ? maskOf(cell) * 2 + (rot.has(cell) ? 1 : 0) : 0);
-  btLayer(ctx, masks.join(","), (c) => paintBoardLayer(c, masks, BT_ROWS, BT_H), BT_H);
+  btBoardLayer(ctx, masks, BT_ROWS, BT_H);
   for (const cell of turning) {
     const { x, y } = cellCentre(cell);
     const { u, sign } = turnOf(s, cell);

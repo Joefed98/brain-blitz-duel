@@ -13,7 +13,8 @@ import {
   toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { reducedMotion } from "./art.renderer";
-import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 
 const FP = 256;
@@ -155,6 +156,28 @@ function drawDiscSurface(ctx: CanvasRenderingContext2D): void {
   else paintDisc(ctx);
 }
 
+/** The disc's carved groove and bevelled rim, about the disc's centre (static: in the cached board layer). */
+function drawDiscBed(ctx: CanvasRenderingContext2D): void {
+  // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
+  const groove = ctx.createRadialGradient(3, 4, TILT_DISC_R - 4, 3, 4, TILT_DISC_R + 12);
+  groove.addColorStop(0, "rgba(40,20,6,0.55)");
+  groove.addColorStop(1, "rgba(40,20,6,0)");
+  ctx.fillStyle = groove;
+  ctx.beginPath();
+  ctx.arc(3, 4, TILT_DISC_R + 12, 0, Math.PI * 2);
+  ctx.fill();
+  // Disc rim: darker wood ring just outside the sim's disc, bevelled (lit upper left).
+  ctx.fillStyle = TOY_WOOD_DARK;
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(255,220,170,0.35)";
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 1.2, Math.PI * 0.9, Math.PI * 1.7);
+  ctx.stroke();
+}
+
 /** tiltRev 2 bonus star: a gold five-point star filling most of its dead-end cell. */
 function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
   ctx.save();
@@ -208,6 +231,92 @@ function padlock(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.restore();
 }
 
+/** The maze's pits, in the disc's rotating frame. */
+function drawPits(ctx: CanvasRenderingContext2D, m: Maze): void {
+  const cs = m.cs / FP;
+  const o = (m.n * cs) / 2;
+  // Full square collision footprint; rounded bevel stays inside the dark cut.
+  const pr = cs / 4;
+  for (const p of m.pits) {
+    const x = (p % m.n) * cs + cs / 2 - o;
+    const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
+    ctx.fillStyle = "#120A05";
+    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
+    // Polish G: depth inside the square: black at the centre, warm wood showing at the sides.
+    const deep = ctx.createRadialGradient(x, y, 0, x, y, pr * 1.3);
+    deep.addColorStop(0, "#000000");
+    deep.addColorStop(0.6, "#0E0703");
+    deep.addColorStop(1, "#3A2210");
+    ctx.fillStyle = deep;
+    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
+    ctx.strokeStyle = TOY_WOOD_DARK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x - pr + 0.75, y - pr + 0.75, pr * 2 - 1.5, pr * 2 - 1.5, 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,230,190,0.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x - pr + 2, y + pr - 0.5);
+    ctx.lineTo(x + pr - 2, y + pr - 0.5);
+    ctx.stroke();
+  }
+}
+
+/** Raised wooden strips with a slight shadow, in the disc's rotating frame. */
+function drawStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void {
+  const o = (m.n * (m.cs / FP)) / 2;
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): the strips keep their shadow, body and
+  // top edge; the soft outer shadow and the faint highlight are skipped (the strips' footprint is unchanged).
+  ctx.lineCap = "round";
+  if (!lite) {
+    ctx.strokeStyle = "rgba(30,15,5,0.22)";
+    ctx.lineWidth = 4;
+    walls(ctx, m, o, 2, 2.6);
+  }
+  ctx.strokeStyle = "rgba(30,15,5,0.35)";
+  ctx.lineWidth = 3;
+  walls(ctx, m, o, 1.2, 1.6);
+  ctx.strokeStyle = STRIP;
+  ctx.lineWidth = 3;
+  walls(ctx, m, o, 0, 0);
+  ctx.strokeStyle = STRIP_TOP;
+  ctx.lineWidth = 1;
+  walls(ctx, m, o, -0.5, -0.5);
+  if (!lite) {
+    ctx.strokeStyle = "rgba(255,236,200,0.35)";
+    ctx.lineWidth = 0.5;
+    walls(ctx, m, o, -0.9, -0.9);
+  }
+}
+
+/** Reduced effects only: the disc, pits and strips of one maze at the canvas's scale (null without offscreen canvases). */
+const mazeSprites = new WeakMap<Maze, { k: number; sprite: ArtCanvas | null }>();
+function mazeSprite(ctx: CanvasRenderingContext2D, m: Maze): ArtCanvas | null {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = Math.round(Math.max(0.25, Math.min(2, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100;
+  const old = mazeSprites.get(m);
+  if (old && old.k === k) return old.sprite;
+  const size = Math.ceil((TILT_DISC_R * 2 + 2) * k);
+  const canvas = artCanvas(size, size);
+  const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+  if (canvas && c) {
+    c.scale(size / (TILT_DISC_R * 2 + 2), size / (TILT_DISC_R * 2 + 2));
+    c.translate(TILT_DISC_R + 1, TILT_DISC_R + 1);
+    c.save();
+    c.beginPath();
+    c.arc(0, 0, TILT_DISC_R + 1, 0, Math.PI * 2);
+    c.clip();
+    paintDisc(c);
+    drawPits(c, m);
+    drawStrips(c, m, true);
+    c.restore();
+  }
+  const sprite = canvas && c ? canvas : null;
+  mazeSprites.set(m, { k, sprite });
+  return sprite;
+}
+
 /** The maze drawing through the shared success layer (presentation only). */
 function draw(ctx: CanvasRenderingContext2D, state: TiltState, size: CanvasSize): void {
   arcadeFx(ctx, TILT_FX, state, () => drawWorld(ctx, state, size), size);
@@ -239,11 +348,22 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   const gate = toyChangeAge(ctx, "tilt-gate", state.level * 2 + state.gate);
   const rot = (state.angle / 65536) * Math.PI * 2;
 
-  toyTabletop(ctx);
+  // Low-end performance (16 Oct 2026): the tabletop, board and the disc's groove and rim never move,
+  // so they are one cached layer (cache.renderer deviceLayer; the same pixels). The maze text above
+  // the groove is drawn after it, as before (they never overlap: the text ends 8 px above the groove).
+  deviceLayer(ctx, `tilt-board:${ox},${oy},${scale}`, (c) => {
+    toyTabletop(c);
+    c.save();
+    c.translate(ox, oy);
+    c.scale(scale, scale);
+    toyBoard(c, 0, 0, TILT_WORLD_W, TILT_WORLD_H, 10);
+    c.translate(CX, CY);
+    drawDiscBed(c);
+    c.restore();
+  });
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
-  toyBoard(ctx, 0, 0, TILT_WORLD_W, TILT_WORLD_H, 10);
 
   ctx.fillStyle = TOY_INK;
   ctx.font = "600 16px ui-monospace, monospace";
@@ -256,67 +376,30 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   }
 
   ctx.translate(CX, CY);
-  // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
-  const groove = ctx.createRadialGradient(3, 4, TILT_DISC_R - 4, 3, 4, TILT_DISC_R + 12);
-  groove.addColorStop(0, "rgba(40,20,6,0.55)");
-  groove.addColorStop(1, "rgba(40,20,6,0)");
-  ctx.fillStyle = groove;
-  ctx.beginPath();
-  ctx.arc(3, 4, TILT_DISC_R + 12, 0, Math.PI * 2);
-  ctx.fill();
-  // Disc rim: darker wood ring just outside the sim's disc, bevelled (lit upper left).
-  ctx.fillStyle = TOY_WOOD_DARK;
-  ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(255,220,170,0.35)";
-  ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 1.2, Math.PI * 0.9, Math.PI * 1.7);
-  ctx.stroke();
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
   ctx.clip();
   ctx.rotate(rot);
-  drawDiscSurface(ctx);
-  ctx.save();
-  ctx.rotate(-rot);
-  const gloss = ctx.createRadialGradient(-TILT_DISC_R * 0.45, -TILT_DISC_R * 0.5, 10, 0, 0, TILT_DISC_R);
-  gloss.addColorStop(0, "rgba(255,246,220,0.28)");
-  gloss.addColorStop(0.6, "rgba(255,246,220,0)");
-  gloss.addColorStop(1, "rgba(60,30,10,0.22)");
-  ctx.fillStyle = gloss;
-  ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // Full square collision footprint; rounded bevel stays inside the dark cut.
-  const pr = cs / 4;
-  for (const p of m.pits) {
-    const x = (p % m.n) * cs + cs / 2 - o;
-    const y = Math.trunc(p / m.n) * cs + cs / 2 - o;
-    ctx.fillStyle = "#120A05";
-    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
-    // Polish G: depth inside the square: black at the centre, warm wood showing at the sides.
-    const deep = ctx.createRadialGradient(x, y, 0, x, y, pr * 1.3);
-    deep.addColorStop(0, "#000000");
-    deep.addColorStop(0.6, "#0E0703");
-    deep.addColorStop(1, "#3A2210");
-    ctx.fillStyle = deep;
-    ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
-    ctx.strokeStyle = TOY_WOOD_DARK;
-    ctx.lineWidth = 1.5;
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): the disc, its pits and its strips are one
+  // sprite per maze, drawn rotated in one copy (no gloss; cups and stars then sit over the strips).
+  // The sprite is the same geometry at the canvas's scale: nothing that collides moves.
+  const baked = arcadeReducedEffects() ? mazeSprite(ctx, m) : null;
+  if (baked) ctx.drawImage(baked as CanvasImageSource, -TILT_DISC_R - 1, -TILT_DISC_R - 1, TILT_DISC_R * 2 + 2, TILT_DISC_R * 2 + 2);
+  else {
+    drawDiscSurface(ctx);
+    ctx.save();
+    ctx.rotate(-rot);
+    const gloss = ctx.createRadialGradient(-TILT_DISC_R * 0.45, -TILT_DISC_R * 0.5, 10, 0, 0, TILT_DISC_R);
+    gloss.addColorStop(0, "rgba(255,246,220,0.28)");
+    gloss.addColorStop(0.6, "rgba(255,246,220,0)");
+    gloss.addColorStop(1, "rgba(60,30,10,0.22)");
+    ctx.fillStyle = gloss;
     ctx.beginPath();
-    ctx.roundRect(x - pr + 0.75, y - pr + 0.75, pr * 2 - 1.5, pr * 2 - 1.5, 2);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,230,190,0.45)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x - pr + 2, y + pr - 0.5);
-    ctx.lineTo(x + pr - 2, y + pr - 0.5);
-    ctx.stroke();
+    ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    drawPits(ctx, m);
   }
 
   if (state.rev) {
@@ -353,22 +436,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   ctx.stroke();
   }
 
-  // Raised wooden strips with a slight shadow.
-  ctx.lineCap = "round";
-  ctx.strokeStyle = "rgba(30,15,5,0.22)";
-  ctx.lineWidth = 4;
-  walls(ctx, m, o, 2, 2.6);
-  ctx.strokeStyle = "rgba(30,15,5,0.35)";
-  ctx.lineWidth = 3;
-  walls(ctx, m, o, 1.2, 1.6);
-  ctx.strokeStyle = STRIP;
-  walls(ctx, m, o, 0, 0);
-  ctx.strokeStyle = STRIP_TOP;
-  ctx.lineWidth = 1;
-  walls(ctx, m, o, -0.5, -0.5);
-  ctx.strokeStyle = "rgba(255,236,200,0.35)";
-  ctx.lineWidth = 0.5;
-  walls(ctx, m, o, -0.9, -0.9);
+  if (!baked) drawStrips(ctx, m, false);
 
   if (m.crevice >= 0) {
     const lx = (m.lock % m.n) * cs + cs / 2 - o;

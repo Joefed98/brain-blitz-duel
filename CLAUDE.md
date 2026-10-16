@@ -219,6 +219,14 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   exactly its sim hit area; gates and lanes left and right, since lanes are picked by x). Bonk is reported,
   not enforced: its whole-cell tap box is intended. Run it after changing one of those renderers, their tap
   handlers or tapMapping.ts.
+- **Low-end performance** (16 Oct 2026, presentation only): `src/lib/fx/lowEnd.ts` steps an arena into reduced
+  effects after sustained slow frames (pixel ratio ≤ 1, then 0.75; decorative passes skipped; the screen clock at 4 Hz
+  instead of 10 while an arena is live), never at full frame rate; every arcade-stage canvas sizes through `arcadeCanvasRatio()`. `bun scripts/arcade-perf.ts [games] [--rates=1,4,6]
+  [--profile] [--raster]` measures frame times under CDP CPU slowdown and attributes them (a tool, not a check);
+  arcade-lowend-check (~4 min, shard `play5`) fails if Tilt, Ball Tracker, Ink Bridge, Grappler or Orbit average
+  under 30 fps at 4× slowdown (390×844), or if reduced effects switch on at normal speed (plain, a 30 Hz-capped
+  screen, one 500 ms stall; slowness is judged by each frame's own work, never the gap between frames). Before → after for every game:
+  `docs/arcade-lowend-oct-2026.md`. Geometry/pixel browser checks pin full effects (`DEVICE_INIT`).
 - puzzle-input-tuning rewrites `.lovable/audits/puzzle-input-oct6.md`; restore it
   (`git checkout`) before committing.
 - `scripts/*-bank.ts` rebuild server-only banks; run them only when a bank must change.

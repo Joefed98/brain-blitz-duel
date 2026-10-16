@@ -35,6 +35,7 @@ import { TOY_TABLE } from "@/lib/arcade/toybox.renderer";
 import { ballTrackSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Practice fallback course (the first bank course). */
 const PRACTICE_COURSE: BtCourse = {"trays":[-1,-1,2,0,1,-1,3],"relay":{"tick":1414,"trays":[-1,2,-1,0,1,3,-1]},"shuffle":{"tick":2596,"trays":[-1,0,-1,2,3,1,-1]},"balls":[3,3,1,2,2,1,0,0,2,0,2,0,3,2,1,2,2,1,3,0,0,3,1,2,3,1,1,3,0,1],"fixed":[8,9,11,12,18,23,26,29,37,39,44,46,47,50]};
@@ -185,11 +186,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const ratio = arcadeCanvasRatio();
         const w = Math.round(box.width), h = Math.round(box.height);
-        if (node.width !== w * ratio || node.height !== h * ratio) {
-          node.width = w * ratio;
-          node.height = h * ratio;
+        if (node.width !== Math.round(w * ratio) || node.height !== Math.round(h * ratio)) {
+          node.width = Math.round(w * ratio);
+          node.height = Math.round(h * ratio);
         }
         const ctx = node.getContext("2d");
         if (ctx) {

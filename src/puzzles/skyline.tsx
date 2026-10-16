@@ -33,6 +33,7 @@ import { drawSkylineArt, SKYLINE_ART_BG } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Fixed intro still: a three-block tower with one overhang. */
 function IntroExample() {
@@ -204,10 +205,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
     const height = Math.round(box.height);
-    if (node.width !== width * ratio || node.height !== height * ratio) {
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
       node.width = Math.round(width * ratio);
       node.height = Math.round(height * ratio);
       node.style.width = `${width}px`;

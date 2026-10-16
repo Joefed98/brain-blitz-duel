@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { supabase } from "@/integrations/supabase/client";
 
 import { checkHostPresence, fetchDuelByCode, fetchPlayers, fetchResults, heartbeat } from "./api";
@@ -28,10 +29,12 @@ export interface DuelState {
 /** Ticking clock so timers and deadlines re-render smoothly. */
 export function useNow(intervalMs = 100): number {
   const [now, setNow] = useState(() => serverNow());
+  // Low-end performance (16 Oct 2026): 4 Hz instead of 10 while reduced effects are on in a live arena (lib/fx/lowEnd.ts).
+  const tickMs = useArcadeScreenTickMs(intervalMs);
   useEffect(() => {
-    const id = window.setInterval(() => setNow(serverNow()), intervalMs);
+    const id = window.setInterval(() => setNow(serverNow()), tickMs);
     return () => window.clearInterval(id);
-  }, [intervalMs]);
+  }, [tickMs]);
   return now;
 }
 
