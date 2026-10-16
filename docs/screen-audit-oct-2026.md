@@ -72,8 +72,8 @@ These show on every game's screens, so they are listed once here and not repeate
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| All | **Practice reveal says "Round 1 of 6"** in its header, though practice is a single game ([iss-practice-reveal-round](screen-audit-oct-2026/iss-practice-reveal-round.jpg)). | Must | Pass a `practice` flag; show "Practice" in place of the round. | `src/routes/practice.tsx`, `src/components/duel/AnswerReveal.tsx` |
-| All 22 arcade + 5 engine games | **The game shows through the arcade reveal**: its HUD text ("pts", "Throw 1 / 10", "SORT BY INK", "Sta…") sits half-faded behind "0 POINTS" ([iss-arcade-reveal-bleed](screen-audit-oct-2026/iss-arcade-reveal-bleed.jpg)). | Must | Make the reveal's backdrop opaque over the top 30 % (or crop the frozen world below the score) so no world text sits behind it. | `src/components/duel/ArcadeReveal.tsx` |
+| All | **Practice reveal says "Round 1 of 6"** in its header, though practice is a single game ([iss-practice-reveal-round](screen-audit-oct-2026/iss-practice-reveal-round.jpg)). | Must · **Done** (Batch 2 fix-up, 16 Oct 2026) | Pass a `practice` flag; show "Practice" in place of the round. | `src/routes/practice.tsx`, `src/components/duel/AnswerReveal.tsx` |
+| All 22 arcade + 5 engine games | **The game shows through the arcade reveal**: its HUD text ("pts", "Throw 1 / 10", "SORT BY INK", "Sta…") sits half-faded behind "0 POINTS" ([iss-arcade-reveal-bleed](screen-audit-oct-2026/iss-arcade-reveal-bleed.jpg)). | Must · **Done** (Batch 2 fix-up, 16 Oct 2026) | Make the reveal's backdrop opaque over the top 30 % (or crop the frozen world below the score) so no world text sits behind it. | `src/components/duel/ArcadeReveal.tsx` |
 | All | The room reveal's top-right number ("0s", "6s") has no label. | Nice | "Next in 6 s", or drop it. | `src/components/duel/AnswerReveal.tsx` |
 | All | **Help "?" button is 28 × 28** on every play screen. | Must | 44 × 44 hit area (keep the 28 px circle drawn inside). | `src/components/duel/PuzzleInstructions.tsx` (`PuzzleHelpButton`) |
 | All | **Sound controls:** mute buttons 36 × 36; the volume chevrons **16 × 36** on every screen. | Must | 44 px hit areas; one chevron per control is enough if room is short. | `src/components/duel/MuteToggle.tsx` |
@@ -192,7 +192,7 @@ Examples: [ex-final-2p](screen-audit-oct-2026/ex-final-2p.jpg), [ex-podium](scre
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
 | All | "AND THE WINNER IS…" wraps with "IS…" alone on line 2 at 390 and 414 px, and mid-animation the scaled heading box (with its padding) reaches 9 px past both edges of a 390 px screen; the letters stayed on screen in the frames taken ([iss-winner-wrap](screen-audit-oct-2026/iss-winner-wrap.jpg)). | Nice | A deliberate break ("And the winner / is…") and `clamp(26px, 8vw, 44px)`; sentence case in the source with CSS uppercase. | `src/styles.css` (`.winner-reveal-text`), `src/components/duel/WinnerReveal.tsx` |
-| 10 players | **The sticky "Waiting for host… / Leave" footer is translucent**: rows 8–10 show through it and through the chat bar ([iss-podium-footer](screen-audit-oct-2026/iss-podium-footer.jpg)). | Must | Opaque `bg-background` on the footer with a short fade above it. | `src/components/duel/Podium.tsx` |
+| 10 players | **The sticky "Waiting for host… / Leave" footer is translucent**: rows 8–10 show through it and through the chat bar ([iss-podium-footer](screen-audit-oct-2026/iss-podium-footer.jpg)). | Must · **Done** (Batch 3 fix-up, 16 Oct 2026) | Opaque `bg-background` on the footer with a short fade above it. | `src/components/duel/Podium.tsx` |
 | All | Podium rows ("Joe: 863 points. Show round scores") are 40 px tall. | Nice | 44. | `src/components/duel/Podium.tsx` |
 | All | Leaving the room is "HOME" on the 2-player result and "LEAVE" on the podium; guests see "Waiting for host…" on one and "Waiting for the host to play again" on the other. | Nice | "Leave" and "Waiting for the host to play again" on both. | `src/components/duel/FinalResult.tsx`, `src/components/duel/Podium.tsx` |
 | 2 players | Game names in the breakdown are all caps and letter-spaced ("DON'T BREAK THE CHAIN"); elsewhere names are Title Case. | Nice | Title Case. | `src/components/duel/FinalResult.tsx` |
@@ -216,12 +216,12 @@ Examples: [ex-link-join](screen-audit-oct-2026/ex-link-join.jpg), [ex-chat](scre
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| Lobby (host) | **The sticky START GAME / Disband bar is translucent**: category chips and "Keep at least one category." show through it and between it and the chat bar; at 390 px with long names the chips are drawn below the chat bar, in the home-bar zone ([iss-lobby-footer](screen-audit-oct-2026/iss-lobby-footer.jpg), [iss-lobby-long-names-390](screen-audit-oct-2026/iss-lobby-long-names-390.jpg)). | Must | One opaque sticky footer holding Start, Disband and the chat bar, with `padding-bottom: env(safe-area-inset-bottom)`. | `src/components/duel/RoomLobby.tsx`, `src/components/duel/RoomChat.tsx` |
-| Lobby (host, 1 player) | "WAITING FOR 1 MORE PLAYER" (disabled) is 2.42:1 and covers the "6 rounds… about 12 min" line above it ([iss-lobby-one-player](screen-audit-oct-2026/iss-lobby-one-player.jpg)). | Must | Not a disabled button: a plain status line at 4.5:1, with the share buttons as the call to action. | `src/components/duel/RoomLobby.tsx` |
+| Lobby (host) | **The sticky START GAME / Disband bar is translucent**: category chips and "Keep at least one category." show through it and between it and the chat bar; at 390 px with long names the chips are drawn below the chat bar, in the home-bar zone ([iss-lobby-footer](screen-audit-oct-2026/iss-lobby-footer.jpg), [iss-lobby-long-names-390](screen-audit-oct-2026/iss-lobby-long-names-390.jpg)). | Must · **Done** (Batch 3 fix-up, 16 Oct 2026) | One opaque sticky footer holding Start, Disband and the chat bar, with `padding-bottom: env(safe-area-inset-bottom)`. | `src/components/duel/RoomLobby.tsx`, `src/components/duel/RoomChat.tsx` |
+| Lobby (host, 1 player) | "WAITING FOR 1 MORE PLAYER" (disabled) is 2.42:1 and covers the "6 rounds… about 12 min" line above it ([iss-lobby-one-player](screen-audit-oct-2026/iss-lobby-one-player.jpg)). | Must · **Done** (Batch 3 fix-up, 16 Oct 2026) | Not a disabled button: a plain status line at 4.5:1, with the share buttons as the call to action. | `src/components/duel/RoomLobby.tsx` |
 | Lobby (host) | Category chips are 34 px tall; "Disband room" is 20 px tall. | Nice | 44 px. | `src/components/duel/RoomLobby.tsx` |
 | Lobby (host) | "🔊 Chat: mute that player's chat for everyone · ×: remove them" is a legend for icons. | Nice | Label the buttons ("Mute", "Remove") or put the legend in the long-press menu. | `src/components/duel/RoomLobby.tsx` |
 | Lobby | "HOST" and "YOU" badges are 10 px. | Nice | 11 px. | `src/components/duel/RoomLobby.tsx` |
-| Chat | **The button that opens chat shows only the message count ("0")**, no icon or word ([iss-chat-composer-390](screen-audit-oct-2026/iss-chat-composer-390.jpg)). | Must | A chat icon with the count as a badge. | `src/components/duel/RoomChat.tsx` |
+| Chat | **The button that opens chat shows only the message count ("0")**, no icon or word ([iss-chat-composer-390](screen-audit-oct-2026/iss-chat-composer-390.jpg)). | Must · **Done** (Batch 3 fix-up, 16 Oct 2026) | A chat icon with the count as a badge. | `src/components/duel/RoomChat.tsx` |
 | Chat | The placeholder is cut to "Say some" (414) and "Say so" (390) by the six emoji buttons, which are 28 × 44. | Nice | Move reactions into the open sheet, or show three; 44 px each. | `src/components/duel/RoomChat.tsx` |
 | Chat (open) | The sheet's scrim button ("Close messages") covers the whole page, including the notch area. That is intended; it is listed only because the measurements flag it. | — | — | — |
 | Room header (in-game, puzzles) | The score pill ("JOE 143 1ST OF 3") sits 4 px from the left edge, its text runs together ("143 1ST OF 3"). | Nice | Margin fix (app-wide); a separator between score and place. | `src/components/duel/SoloScoreStrip.tsx` |
@@ -329,6 +329,9 @@ Files: `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/RoundRe
 
 ### Batch 2 — Reveal screens (Must)
 
+**Done (16 Oct 2026):** the two Must rows (practice reveal header, arcade reveal backdrop). Its other bullets are
+Nice rows in the tables above and stay open.
+
 Files: `src/components/duel/AnswerReveal.tsx`, `src/components/duel/ArcadeReveal.tsx`, `src/routes/practice.tsx`.
 
 - Practice reveal shows "Practice", not "Round 1 of 6".
@@ -338,6 +341,9 @@ Files: `src/components/duel/AnswerReveal.tsx`, `src/components/duel/ArcadeReveal
 - Checks: reveal-score-check, arcade-fx-check, safe-area-screens-check, bottom-clearance-check.
 
 ### Batch 3 — Lobby, chat, podium and winner (Must)
+
+**Done (16 Oct 2026):** the four Must rows (lobby footer, 1-player waiting line, chat icon and badge, podium
+footer). Its other bullets are Nice rows in the tables above and stay open.
 
 Files: `src/components/duel/RoomLobby.tsx`, `src/components/duel/RoomChat.tsx`, `src/components/duel/Podium.tsx`,
 `src/components/duel/FinalResult.tsx`, `src/components/duel/WinnerReveal.tsx`, `src/styles.css`,

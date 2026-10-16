@@ -24,6 +24,8 @@ interface AnswerRevealProps {
   round: number;
   /** The room's own round count; practice/older rooms default to six. */
   totalRounds?: number;
+  /** Practice: one game, so the header says "Practice" in place of the round. */
+  practice?: boolean;
   puzzle: PuzzleData;
   /** The player's own submitted answer, or null if they never submitted. */
   myAnswer: string | null;
@@ -195,6 +197,7 @@ function RemovedRoundReveal({ round, totalRounds = TOTAL_ROUNDS, puzzle, myScore
 function LiveAnswerReveal({
   round,
   totalRounds = TOTAL_ROUNDS,
+  practice = false,
   puzzle,
   myAnswer,
   myCorrect,
@@ -244,7 +247,7 @@ function LiveAnswerReveal({
     <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
       <div className="flex items-center justify-between gap-2">
         <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Round {round} of {totalRounds}
+          {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
         </span>
         <span className="min-w-0 flex-1 whitespace-normal break-words text-center font-display text-sm font-bold leading-none text-foreground">{def.name}</span>
         <span className="shrink-0 font-mono text-xs text-muted-foreground">{secondsLeft}s</span>
