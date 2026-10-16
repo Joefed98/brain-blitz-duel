@@ -63,6 +63,8 @@
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # play the same way, judge liveness, rewrite the frame-time baseline
  *   bun scripts/arcade-play-check.ts --url=http://127.0.0.1:5174
+ *   bun scripts/arcade-play-check.ts snip --cpu-throttle=4   # a slow runner stand-in (CDP Emulation.setCPUThrottlingRate)
+ *                                                         # on every page; frame times are reported, not judged
  *
  * Needs the pre-installed Chromium (/opt/pw-browsers/chromium, or PLAYWRIGHT_CHROMIUM);
  * a missing browser is an environment problem, reported as such.
@@ -78,11 +80,13 @@ import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
+/** --cpu-throttle=N: slow every page N× (a CI runner stand-in); frame times are then reported, not judged. */
+const CPU_THROTTLE = Number(args.find((a) => a.startsWith("--cpu-throttle="))?.slice(15) ?? 0) || 0;
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
 /**
@@ -556,16 +560,25 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
   await nextFrames(page);
 }
 
+/** --cpu-throttle: slow the page's CPU N× through CDP. */
+async function throttle(page: import("playwright").Page): Promise<void> {
+  if (!CPU_THROTTLE) return;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_THROTTLE });
+}
+
 /**
  * The layout proof (READY on screen, then the live play screen at every size and as an iPhone 11
- * home-screen app) on its own practice run, with the clock frozen once the run is live, so the
- * run cannot end while it is measured and no played run loses time to it.
+ * home-screen app) on its own practice run, with the clock frozen once the run is live (freezeClock:
+ * relative to the page's own clock, never a time already past), so the run cannot end while it is
+ * measured and no played run loses time to it.
  */
 async function layoutProof(browser: import("playwright").Browser, origin: string, game: string, problems: string[]): Promise<void> {
   const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
   page.on("pageerror", (e) => problems.push(`page error (layout): ${String(e.message ?? e).slice(0, 200)}`));
   await page.addInitScript(DEVICE_INIT);
   await page.clock.install();
+  await throttle(page);
   try {
     await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
     const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
@@ -578,7 +591,8 @@ async function layoutProof(browser: import("playwright").Browser, origin: string
     await ready.click();
     await page.locator("[data-arcade-play] [data-game-stage]").first().waitFor({ timeout: 30_000 });
     // Freeze the run where it stands (Hover can crash within 1.5 s without input).
-    await page.clock.pauseAt(Date.now() + 200);
+    const margin = await freezeClock(page);
+    if (margin > 100) console.log(`  ${game}: layout clock paused ${margin} ms ahead (the page's clock outran the first ${margin / 2} ms margin)`);
     await page.waitForTimeout(600);
     await arenaFits(page, game, problems);
   } catch (e) {
@@ -612,6 +626,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
   });
   await page.addInitScript(INIT);
   await page.addInitScript(DEVICE_INIT);
+  await throttle(page);
   const result: Result = { game, ok: false, problems, ticks: 0, timer: [Number.NaN, Number.NaN], meanFrameMs: 0, maxStep: 0, maxStepAt: "" };
   const rand = seeded(game.length * 7919 + 17);
   const segments: Segment[] = [];
@@ -795,7 +810,8 @@ function judge(result: Result, segments: Segment[], liveTotal: number, base: num
     problems.push(`HUD timer counted down only ${timerDrop} s over ${(liveTotal / 1000).toFixed(1)} s of live play`);
   (result as Result & { runs: number }).runs = segments.length;
   // Recording measures frame times (and movement) without judging them; every liveness rule above still applies.
-  if (RECORD) return;
+  // So does a --cpu-throttle run: the baseline was recorded unthrottled.
+  if (RECORD || CPU_THROTTLE) return;
   if (result.meanFrameMs > 33.4) problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms (under 30 fps)`);
   if (base !== undefined && result.meanFrameMs > base * 1.5 + 4)
     problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms vs baseline ${base.toFixed(1)} ms`);

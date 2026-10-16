@@ -11,6 +11,16 @@
  *  - gotoRetried retries a goto once if the load itself timed out. Any other error, and a
  *    second timeout, stand. Every wait after the load keeps its own timeout.
  * Neither changes what a check measures or how it judges it.
+ *
+ * freezeClock (16 Oct 2026) stops a page's installed clock (page.clock.install) where it
+ * stands. Playwright's pauseAt takes an absolute time and throws "Cannot fast-forward to the
+ * past" when the page's clock has already passed it by the time the command lands; a target of
+ * Node's Date.now() + 200 ms did exactly that on a loaded CI runner (arcade-play-check's layout
+ * proof on Scrumper). So the target is read from the page's own clock and set a short margin
+ * ahead; if the clock still gets there first, the margin doubles and the time is read again, so
+ * the request can never be in the past whatever the machine's speed. The pause jumps the page
+ * at most that margin forward (100 ms, then 200, 400…: a few sim ticks, so a game that dies in
+ * seconds without input stays on its play screen).
  */
 import type { Browser, Page } from "playwright";
 
@@ -38,6 +48,19 @@ export async function warmUp(
 }
 
 /** page.goto, retried once if the load itself times out (a slow first compile); any other error stands. */
+/** Freeze the page's installed clock where it stands; returns the margin (ms) it was paused ahead by. */
+export async function freezeClock(page: Page): Promise<number> {
+  for (let margin = 100; ; margin *= 2) {
+    const now = await page.evaluate(() => Date.now());
+    try {
+      await page.clock.pauseAt(now + margin);
+      return margin;
+    } catch (error) {
+      if (!/past/i.test(String((error as Error).message ?? error)) || margin >= 12_800) throw error;
+    }
+  }
+}
+
 export async function gotoRetried(
   page: Page,
   url: string,

@@ -42,7 +42,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip, type DeviceConfig } from "./device-emulation";
 
 const args = process.argv.slice(2);
@@ -243,7 +243,8 @@ async function main() {
         await page.waitForTimeout(600);
         await ready.click();
         await page.locator("[data-arcade-play] [data-game-stage]").first().waitFor({ timeout: 30_000 });
-        await page.clock.pauseAt(Date.now() + 200);
+        // Freeze the run where it stands (freezeClock: relative to the page's own clock, never a time already past).
+        await freezeClock(page);
         await page.waitForTimeout(1200);
         for (const config of CONFIGS) {
           await emulateDevice(page, config);

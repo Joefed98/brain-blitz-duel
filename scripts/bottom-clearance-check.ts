@@ -60,7 +60,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
 import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 
 const args = process.argv.slice(2);
@@ -759,8 +759,9 @@ async function main() {
         await page.setViewportSize({ width: 375, height: 667 });
         await readyButton.click();
         await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
-        // Freeze an arcade run where it stands, so it cannot end (Hover can within 1.5 s) while it is measured.
-        if (arcade) await page.clock.pauseAt(Date.now() + 200);
+        // Freeze an arcade run where it stands, so it cannot end (Hover can within 1.5 s) while it is measured
+        // (freezeClock: relative to the page's own clock, never a time already past).
+        if (arcade) await freezeClock(page);
         await page.waitForTimeout(1500);
         await measureAll(page, "stage", game, failures, notes);
         if (arcade) {
