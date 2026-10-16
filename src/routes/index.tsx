@@ -86,7 +86,7 @@ function Home() {
       const duel =
         mode === "create"
           ? await createRoom(trimmed)
-          : await joinRoomByCode(code.trim().toUpperCase(), trimmed);
+          : await joinRoomByCode(code.trim().toUpperCase(), trimmed, "code");
       await navigate({ to: "/duel/$code", params: { code: duel.roomCode } });
     } catch (err) {
       setBusy(false);

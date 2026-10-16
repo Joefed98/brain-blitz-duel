@@ -5,6 +5,7 @@
  * the room exactly once. Server-only; the client is the service-role
  * Supabase client (or an in-memory stand-in in scripts/*-check.ts).
  */
+import { gameIndexOf, recordRoomEvent } from "./betaRecord.server";
 import { canFinishNow, continueMark, forfeitOutcome, type ContinuePhase } from "./roomFlow";
 import { totalScore } from "./scoring";
 import {
@@ -22,20 +23,27 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-/** Guarded so several phones calling at the same moment can never skip a screen. */
+/**
+ * Guarded so several phones calling at the same moment can never skip a screen.
+ * Returns the new phase's start stamp to the one call that moved the room
+ * (null to every other), so the beta recording logs each move once.
+ */
 export async function setPhase(
   client: any,
   roomId: string,
   round: number,
   from: DuelPhase,
   to: DuelPhase,
-): Promise<void> {
-  await client
+): Promise<string | null> {
+  const at = nowIso();
+  const { data } = await client
     .from("duels")
-    .update({ phase: to, phase_started_at: nowIso() })
+    .update({ phase: to, phase_started_at: at })
     .eq("id", roomId)
     .eq("current_round", round)
-    .eq("phase", from);
+    .eq("phase", from)
+    .select("id");
+  return Array.isArray(data) && data.length > 0 ? at : null;
 }
 
 /**
@@ -45,24 +53,44 @@ export async function setPhase(
  */
 export async function leaveBetweenRoundScreen(
   client: any,
-  room: Pick<DuelRow, "id" | "phase" | "round_count">,
+  room: Pick<DuelRow, "id" | "phase" | "round_count"> & Partial<Pick<DuelRow, "tournament_history">>,
   round: number,
 ): Promise<void> {
   const lastRound = round >= (room.round_count ?? TOTAL_ROUNDS);
   if (room.phase === "result") {
     // Last round: the shared winner reveal replaces the overall standings.
-    await setPhase(client, room.id, round, "result", lastRound ? "winner_reveal" : "standings");
+    const at = await setPhase(client, room.id, round, "result", lastRound ? "winner_reveal" : "standings");
+    // Beta recording: reaching the winner reveal is the game's end.
+    if (at && lastRound)
+      await recordRoomEvent(client, {
+        duel_id: room.id,
+        game_index: gameIndexOf(room),
+        round_number: 0,
+        event: "game_ended",
+        reason: "completed",
+        at,
+      });
     return;
   }
   if (room.phase !== "standings") return;
 
   if (lastRound) {
-    await client
+    const { data: ended } = await client
       .from("duels")
       .update({ status: "finished" })
       .eq("id", room.id)
       .eq("current_round", round)
-      .eq("phase", "standings");
+      .eq("phase", "standings")
+      .select("id");
+    // Older rooms end on the last round's standings.
+    if (Array.isArray(ended) && ended.length > 0)
+      await recordRoomEvent(client, {
+        duel_id: room.id,
+        game_index: gameIndexOf(room),
+        round_number: 0,
+        event: "game_ended",
+        reason: "completed",
+      });
     return;
   }
 
@@ -102,7 +130,8 @@ export async function recordContinue(
  */
 export async function finishGame(
   client: any,
-  room: Pick<DuelRow, "id" | "status" | "phase" | "current_round" | "disbanded_at">,
+  room: Pick<DuelRow, "id" | "status" | "phase" | "current_round" | "disbanded_at"> &
+    Partial<Pick<DuelRow, "tournament_history">>,
   players: readonly DuelPlayerRow[],
   userId: string,
   now: number,
@@ -124,6 +153,13 @@ export async function finishGame(
   if (!claimed) return { ok: true, finished: false };
   for (const gone of players.filter((p) => p.user_id !== userId && p.status !== "left"))
     await client.from("duel_players").update({ status: "left" }).eq("id", gone.id);
+  await recordRoomEvent(client, {
+    duel_id: room.id,
+    game_index: gameIndexOf(room),
+    round_number: 0,
+    event: "game_ended",
+    reason: "finish_now",
+  });
   return { ok: true, finished: true };
 }
 
