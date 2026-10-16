@@ -21,7 +21,8 @@ import {
   WAV_ROWS,
   WAV_SHIP_H,
   WAV_SHIP_W,
-  WAV_SHIP_Y,
+  wavShipY,
+  wavBoltSpeedFp,
   WAV_WORLD_W,
   type WavState,
 } from "../../../src/lib/arcade/wavefront";
@@ -35,9 +36,12 @@ const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, nea
 /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
 const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
 
-const BOLT_SPEED = 8;
-const BOLT_Y0 = WAV_SHIP_Y - 14 - 12;
-const SHIP_TOP = WAV_SHIP_Y - WAV_SHIP_H / 2;
+/** The ship's bolt speed, px a tick (set per run: 10 in wavRev 6's taller world). */
+let BOLT_SPEED = 8;
+/** The ship's line, set per run from the game's own world (wavRev 6's taller world). */
+let WAV_SHIP_Y = 0;
+let BOLT_Y0 = 0;
+let SHIP_TOP = 0;
 const MIN_X = 24;
 const MAX_X = WAV_WORLD_W - 24;
 const SAUCER_Y = 62;
@@ -49,6 +53,10 @@ interface Red {
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
+  WAV_SHIP_Y = wavShipY(game.init(seed));
+  BOLT_SPEED = wavBoltSpeedFp(game.init(seed)) / 256;
+  BOLT_Y0 = WAV_SHIP_Y - 14 - 12;
+  SHIP_TOP = WAV_SHIP_Y - WAV_SHIP_H / 2;
   const level = human.level;
   const speed = FINGER[level]!;
   const history: WavState[] = [];

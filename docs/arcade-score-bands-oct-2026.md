@@ -397,3 +397,36 @@ Tuning F one, same simulated players and seeds.
   reaches the 140s.
 - **Pinball** moves into rooms (Arcade 22 active, 74 in all) with a display-only table polish (cached table layer,
   lit inserts by gradient, bevels inside each solid's outline); pinRev 1 and its curve are unchanged.
+
+## Taller worlds, batch 1 (16 Oct 2026): Breaker, Rally, Wavefront, Fission
+
+Following Tuning E (High Rise, Meteor, Scrumper, Hover), four more worlds grow so the arena fills a modern phone after the
+bottom-gap fix: Breaker, Rally and Wavefront 390 × 730 (were 390 × 620), Fission 390 × 650 (was 390 × 560; its arrow row
+stays below). The world height rides in the state (`worldH`, folded into the checkpoint checksum last); stages size from
+`<game>WorldHFor(rev)`, reveals and intro demos from `revealWorldH`, effects through `fxSpecAt`. Older rounds replay and
+score exactly as before (`scripts/arcade-tuning-g1-check.ts` replays 88 runs recorded on main before the change, on every
+revision the four games ever stamped, `scripts/fixtures/arcade-tuning-g1-legacy.json`, and 32 on the new stamps,
+`scripts/fixtures/arcade-tuning-g1-runs.json`). Medians (p10–p90) from
+`bun scripts/arcade-skill-bands.ts breaker rally wavefront burst --rev=g1 --seeds=60`: the revision rooms stamped before →
+the taller one, same simulated players and seeds, every run through the server's own encode + replay (none flagged or
+disagreeing):
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Breaker | brkRev 5 → 6 | 390 × 730 court: the wall stays at the top, the paddle 72 px above the new bottom, so 110 px more between bricks and paddle. Same 80 bricks, capsules, sliding rows and 2.5 s Fireball. Knots refitted: 44 → 70, 57 → 100, 70 → 125, 74 → 138, 80 → 140 | 70 (44–125) → 70 (42–132) | 103 (47–133) → 101 (58–139) | 129 (90–143) → 125 (72–139) | 142 (122–148) → 138 (89–146) |
+| Rally | rallyRev 5 → 6 | 390 × 730 court, the paddle 60 px above the new bottom. Same pads, gold balls and rules; each bumper keeps its spot across and its height is stretched down the longer court (both still ≥ 90 px apart). Knots refitted: 85 → 70, 111 → 100, 116 → 125, 122 → 142, 220 → 150 | 64 (41–127) → 70 (34–136) | 99 (56–143) → 100 (51–145) | 127 (68–146) → 125 (60–145) | 143 (93–150) → 139 (73–148) |
+| Wavefront | wavRev 5 → 6 | 390 × 730 world: formations, saucer and boss keep their places, the ship 66 px above the new bottom, drags from the bottom quarter (548 px). The ship's bolts fly 10 px a tick (were 8) so they reach the formation in the same time from the lower line. Same five waves, slow drops, divers and timed boss. Knots refitted: 100 → 20, 200 → 45, 249 → 70, 259 → 100, 263 → 125, 268 → 138, 269 → 140 | 72 (64–111) → 72 (63–138) | 100 (70–150) → 100 (68–150) | 128 (94–150) → 125 (69–150) | 139 (100–150) → 138 (82–150) |
+| Fission | burstRev 3 → 4 | 390 × 650 arena (floor at 650). Every height scales with the arena: each atom size bounces to the same share of it (75 / 60 / 45 / 30 %), the ceiling comes down 46 px a wave (was 40) to 60 % of it. Same waves, drops and lives. Knots refitted: 55 → 70, 79 → 100, 84 → 125, 95 → 140 | 62 (15–131) → 69 (24–130) | 111 (44–148) → 104 (42–148) | 132 (76–150) → 130 (92–150) | 137 (117–150) → 135 (92–150) |
+
+- **Before refitting** (the taller revision on its predecessor's curve): Breaker 51 / 67 / 108 / 119, Rally 56 / 77 / 83 / 89,
+  Wavefront 115 / 120 / 123 / 138, Fission 69 / 108 / 124 / 126. Breaker and Rally get harder (the ball takes longer to come
+  back, so fewer bricks and returns fit in the clock); Wavefront gets easier (more time to see bolts and divers coming);
+  Fission's slower, taller bounces cost a few atoms.
+- **Wavefront's bolts.** At 8 px a tick the lower ship's bolts took a quarter longer to reach the formation, every wave
+  took longer, and near-perfect players met the boss too late to kill it (median 111). At 10 px a tick a bolt reaches the
+  top row in 52.8 ticks (55.5 before) and the boss is killed as often as before (22 of 60 near-perfect runs, 22 before).
+- **Close players.** Rally's simulated good, great and near-perfect players sit within 10 units of each other (one or two
+  gold hits), so its middle knots are close together; Fission's great and near-perfect players barely separate (83 and 84
+  units), as before.
+- **Best scores** through the server replay: 150 on all four new stamps (`arcade-tuning-g1-check`).
+- Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.

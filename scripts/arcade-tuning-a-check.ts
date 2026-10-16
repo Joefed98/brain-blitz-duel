@@ -127,7 +127,8 @@ if (want("skyline")) {
 /* ============================== 2b. Wavefront ============================== */
 if (want("wavefront")) {
   section("Wavefront wavRev 4: shaped formations");
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 1, "new Wavefront rounds are stamped wavRev 5 (Tuning C, after wavRev 4)");
+  // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
+  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 2, "new Wavefront rounds are stamped wavRev 6 (the taller world, after Tuning C's wavRev 5 and wavRev 4)");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;

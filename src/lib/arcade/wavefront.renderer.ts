@@ -1,7 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { WAVEFRONT_FX } from "./arcadeFxGames.renderer";
+import { wavefrontFxFor } from "./arcadeFxGames.renderer";
 /**
  * Wavefront art pass. Render only: reads WavState and never mutates it. Hulls
  * fill each shape's 28 px hit cell, armour fills its block, the saucer stays
@@ -31,7 +31,7 @@ import {
   WAV_CELL,
   WAV_COLOURS,
   WAV_COLS,
-  WAV_DRAG_ZONE_TOP,
+  wavDragZoneTop,
   WAV_DROP_R,
   WAV_FIRE_EVERY,
   WAV_GOLD,
@@ -41,8 +41,9 @@ import {
   WAV_SAUCER_R,
   WAV_SHIP_H,
   WAV_SHIP_W,
-  WAV_SHIP_Y,
-  WAV_WORLD_H,
+  wavShipY,
+  wavWorldH,
+  WAV_REV_TALL,
   WAV_WORLD_W,
   type WavArmour,
   type WavState,
@@ -198,8 +199,8 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
  * (ending in the arena fill colour), two soft nebulae, three sizes of stars
  * with a few cross glints, and a dim ringed planet low in a corner.
  */
-function paintSpace(c: CanvasRenderingContext2D): void {
-  const W = WAV_WORLD_W, H = WAV_WORLD_H;
+function paintSpace(c: CanvasRenderingContext2D, H: number): void {
+  const W = WAV_WORLD_W;
   const sky = c.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, "#0D0B22");
   sky.addColorStop(0.6, "#08081A");
@@ -236,7 +237,7 @@ function paintSpace(c: CanvasRenderingContext2D): void {
     c.stroke();
   }
   // A dim ringed planet low on the left, behind everything.
-  const px = 34, py = 470, pr = 26;
+  const px = 34, py = 470 + (H - 620), pr = 26;
   const planet = c.createRadialGradient(px - 9, py - 9, 2, px, py, pr);
   planet.addColorStop(0, "#3A3060");
   planet.addColorStop(1, "#120E24");
@@ -252,17 +253,18 @@ function paintSpace(c: CanvasRenderingContext2D): void {
 }
 
 const spaceLayers = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
-function drawSpace(ctx: CanvasRenderingContext2D, t: number): void {
+function drawSpace(ctx: CanvasRenderingContext2D, t: number, WAV_WORLD_H: number): void {
   const tr = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   const scale = Math.min(3, Math.max(1, tr ? Math.hypot(tr.a, tr.b) : 1));
-  const key = scale.toFixed(3);
+  // wavRev 6: the world height is part of the key (the taller world has its own layer).
+  const key = `${scale.toFixed(3)}:${WAV_WORLD_H}`;
   let cached = spaceLayers.get(ctx);
   if (!cached || cached.key !== key) {
     const layer = artCanvas(Math.ceil(WAV_WORLD_W * scale), Math.ceil(WAV_WORLD_H * scale));
     const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
     if (layer && c) {
       c.scale(scale, scale);
-      paintSpace(c);
+      paintSpace(c, WAV_WORLD_H);
     }
     spaceLayers.set(ctx, (cached = { key, layer: layer && c ? layer : null }));
   }
@@ -550,12 +552,16 @@ const motion = { tick: -1, shipX: 0, movedTick: -100 };
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawWavefrontArt(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
-  arcadeFx(ctx, WAVEFRONT_FX, state, () => drawWavefrontArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, wavefrontFxFor(state), state, () => drawWavefrontArtWorld(ctx, state, size), size);
 }
 
 function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
   const still = reducedMotion();
   const t = still ? 0 : state.tick / 60;
+  // wavRev 6: the taller world's height and ship line (620 / 554 otherwise).
+  const WAV_WORLD_H = wavWorldH(state);
+  const WAV_SHIP_Y = wavShipY(state);
+  const WAV_DRAG_ZONE_TOP = wavDragZoneTop(WAV_WORLD_H);
   const scale = Math.min(size.width / WAV_WORLD_W, size.height / WAV_WORLD_H);
   const ox = (size.width - WAV_WORLD_W * scale) / 2;
   const oy = (size.height - WAV_WORLD_H * scale) / 2;
@@ -564,7 +570,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
-  drawSpace(ctx, t);
+  drawSpace(ctx, t, WAV_WORLD_H);
 
   const latest=state.bursts.at(-1);
   successFrame(ctx,{id:'wavefront-hit',tick:state.tick,count:state.shapesDown+state.armourHits,eventTick:latest?.t,misses:WAV_LIVES-state.lives,colour:WAV_GOLD,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:latest?.x??state.shipX,y:latest?.y??WAV_SHIP_Y,shape:'pixel'},hud:{x:14,y:14,text:`Wave ${state.wave}`}});
@@ -690,8 +696,10 @@ const wavefrontArtGameV2 = { ...wavefrontGameFor(WAV_REV), draw: drawWavefrontAr
 const wavefrontArtGameBand = { ...wavefrontGameFor(WAV_REV_BAND), draw: drawWavefrontArt };
 const wavefrontArtGameShapes = { ...wavefrontGameFor(WAV_REV_SHAPES), draw: drawWavefrontArt };
 const wavefrontArtGameTunec = { ...wavefrontGameFor(WAV_REV_TUNEC), draw: drawWavefrontArt };
+const wavefrontArtGameTall = { ...wavefrontGameFor(WAV_REV_TALL), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_TALL) return wavefrontArtGameTall;
   if (rev === WAV_REV_TUNEC) return wavefrontArtGameTunec;
   if (rev === WAV_REV_SHAPES) return wavefrontArtGameShapes;
   if (rev === WAV_REV_BAND) return wavefrontArtGameBand;

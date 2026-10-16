@@ -12,12 +12,12 @@ import { tiltSeedCupsReachable, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SWING_REV_SPREAD } from "@/lib/arcade/swing";
-import { BURST_REV_BAND } from "@/lib/arcade/burst";
-import { BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BURST_REV_TALL } from "@/lib/arcade/burst";
+import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { PIN_REV } from "@/lib/arcade/pinball";
-import { WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
+import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_SWEPT } from "@/lib/arcade/orbit";
-import { RALLY_REV_TUNEF } from "@/lib/arcade/rally";
+import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -112,7 +112,7 @@ export function generateRicochet(): RicoPuzzleData {
 }
 
 export function generateBreaker(): BreakerPuzzleData {
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TUNEF };
+  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_TALL };
 }
 
 export function generatePinball(): PinballPuzzleData {
@@ -120,7 +120,7 @@ export function generatePinball(): PinballPuzzleData {
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_TUNEF };
+  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_TALL };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -157,7 +157,7 @@ export function generateWhack(): WhackPuzzleData {
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_TUNEC };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_TALL };
 }
 
 export function generateBastion(): BastionPuzzleData {
@@ -185,7 +185,7 @@ export function generateInkBridge(): InkBridgePuzzleData {
 }
 
 export function generateBurst(): BurstPuzzleData {
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_BAND };
+  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_TALL };
 }
 
 export function generateOrbit(): OrbitPuzzleData {

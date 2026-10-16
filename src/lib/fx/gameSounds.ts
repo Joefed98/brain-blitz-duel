@@ -15,7 +15,7 @@ import type { CrossState } from "@/lib/arcade/cross";
 import type { FlipState } from "@/lib/arcade/flip";
 import { type HoverState } from "@/lib/arcade/hover";
 import type { SnakeState } from "@/lib/arcade/snake";
-import { BRK_PADDLE_Y, type BrkState } from "@/lib/arcade/breaker";
+import { brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
 import type { RallyState } from "@/lib/arcade/rally";
 import type { PinState } from "@/lib/arcade/pinball";
 import type { BurstState } from "@/lib/arcade/burst";
@@ -222,7 +222,7 @@ export function breakerSounds(): GameSounds<BrkState> {
         // Paddle hit: a ball near the paddle that was falling and now rises.
         const paddleHit = state.balls.some((ball, i) => {
           const before = prev!.balls[i];
-          return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (BRK_PADDLE_Y - 40) * 256;
+          return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (brkPaddleY(state) - 40) * 256;
         });
         if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 1, true);
       }
