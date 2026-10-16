@@ -82,6 +82,8 @@ export function retroScreen(
   drawWorld: (ctx: CanvasRenderingContext2D) => void,
   /** 0…1: tints the bezel red (e.g. a life lost). Margins only. */
   bezelFlash = 0,
+  /** The screen's corner radius (canvas px); 0 for a screen that meets the canvas's own edges. */
+  corner = 6,
 ): RetroFrame {
   let scaleX: number;
   let scaleY: number;
@@ -107,17 +109,17 @@ export function retroScreen(
     ctx.fillRect(0, 0, size.width, size.height);
   }
   ctx.fillStyle = RETRO_BLACK;
-  roundRect(ctx, offsetX, offsetY, screenW, screenH, 6);
+  roundRect(ctx, offsetX, offsetY, screenW, screenH, corner);
   ctx.fill();
   if (offsetX >= 2 || offsetY >= 2) {
     ctx.strokeStyle = bezelFlash > 0 ? RETRO_RED : RETRO_BEZEL_EDGE;
     ctx.lineWidth = 1;
-    roundRect(ctx, offsetX - 1, offsetY - 1, screenW + 2, screenH + 2, 7);
+    roundRect(ctx, offsetX - 1, offsetY - 1, screenW + 2, screenH + 2, corner + 1);
     ctx.stroke();
   }
 
   ctx.save();
-  roundRect(ctx, offsetX, offsetY, screenW, screenH, 6);
+  roundRect(ctx, offsetX, offsetY, screenW, screenH, corner);
   ctx.clip();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scaleX, scaleY);
@@ -147,7 +149,7 @@ export function retroScreen(
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
-  if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, r);
+  if (r > 0 && typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, r);
   else ctx.rect(x, y, w, h);
 }
 

@@ -221,22 +221,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 
+  /**
+   * The canvas fills its world box to whole CSS pixels, never past it (16 Oct 2026, display only).
+   * The box is the world's aspect at the slot's scale, so it is often a fractional height (768.55 px
+   * at 414 px wide). Rounding to the nearest pixel made the canvas 769 px: it overran the box's clip
+   * part-way through a device row, with a part-covered edge row the scanlines flickered. Whole CSS
+   * pixels are whole device pixels at any integer pixel ratio, and engines snap a canvas's displayed
+   * size to them, so its backing store maps 1:1; the sliver under it (under 1 px) is the same gap
+   * black as below the world. The box itself (the world's place and scale, and what swipes measure)
+   * is unchanged.
+   */
   const sizeCanvas = (): CanvasSize | null => {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.round(box.width);
-    const height = Math.round(box.height);
-    if (node.width !== width * ratio || node.height !== height * ratio) {
-      node.width = Math.round(width * ratio);
-      node.height = Math.round(height * ratio);
+    const width = Math.floor(box.width + 0.01);
+    const height = Math.floor(box.height + 0.01);
+    const pw = Math.round(width * ratio);
+    const ph = Math.round(height * ratio);
+    if (node.width !== pw || node.height !== ph) {
+      node.width = pw;
+      node.height = ph;
+    }
+    if (node.style.width !== `${width}px` || node.style.height !== `${height}px`) {
       node.style.width = `${width}px`;
       node.style.height = `${height}px`;
     }
     const ctx = node.getContext("2d");
     if (!ctx) return null;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.setTransform(pw / width, 0, 0, ph / height, 0, 0);
     return { width, height };
   };
 
