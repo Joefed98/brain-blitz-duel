@@ -111,9 +111,9 @@ Examples: puzzle in a room [ex-play-puzzle-room](screen-audit-oct-2026/ex-play-p
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| Bomb Defusal | **Wires are 26 px tall tap targets**; A / B buttons 40 × 40; DEFUSE 36 tall ([iss-bomb-play](screen-audit-oct-2026/iss-bomb-play.jpg)). | Must | 44 px hit areas (wire rows can stay drawn thin). | `src/puzzles/bombDefusal.tsx` |
-| Tally | **Keypad keys 35 × 36** (the only input). | Must | Two rows of keys at 44 px, or full-width keys. | `src/puzzles/countUp.tsx` |
-| Safe Cracker | **Dial Up / Down arrows 36 × 36** (the only input). | Must | 44 × 44. | `src/puzzles/safeCracker.tsx` |
+| Bomb Defusal | **Wires are 26 px tall tap targets**; A / B buttons 40 × 40; DEFUSE 36 tall ([iss-bomb-play](screen-audit-oct-2026/iss-bomb-play.jpg)). | Must · Done | 44 px hit areas (wire rows can stay drawn thin). **Done (Batch 6):** wire rows up to 44 px (44 at 414 × 896; at 390 × 844 they share what the rules leave, 32–38 px with 9–10 rule lines), A / B 44 × 44, Defuse 44 tall. | `src/puzzles/bombDefusal.tsx`, `src/polish-logic/logic.css` |
+| Tally | **Keypad keys 35 × 36** (the only input). | Must · Done | Two rows of keys at 44 px, or full-width keys. **Done (Batch 6):** two rows of six 44 px keys, field and Enter 44 tall. | `src/puzzles/countUp.tsx`, `src/components/puzzles/NumberEntry.tsx` |
+| Safe Cracker | **Dial Up / Down arrows 36 × 36** (the only input). | Must · Done | 44 × 44. **Done (Batch 6).** | `src/puzzles/safeCracker.tsx` |
 | Checkout | Target chips (89, 104…) 76 × 36. | Nice | 44 tall. | `src/puzzles/checkout.tsx` |
 | Cryptogrid | The number-to-letter strip keys are 23 × 31 and their numbers about 8 px; the grid's clue numbers are under 11 px. | Nice | Bigger strip or make it display-only; clue numbers 10→11 px where the cell allows. | `src/puzzles/codeword.tsx` |
 | Strikeout | Keyboard keys 37–40 px wide (QWERTY on a phone). | Nice | Acceptable for a full keyboard; keep 44 tall. | `src/components/puzzles/LetterKeypad.tsx` |
@@ -143,10 +143,10 @@ Example: [ex-reveal-puzzle](screen-audit-oct-2026/ex-reveal-puzzle.jpg). App-wid
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| Counterweight | **"One balanced way: …" text is overlapped by the kettlebells** of the next scale ("One b▢lanced way") ([iss-balance-reveal](screen-audit-oct-2026/iss-balance-reveal.jpg)). | Must | Give each scale's caption its own row below the beam, with spacing for the hanging weights. | `src/puzzles/balance.tsx` |
-| Double Take | **"A ice cream cone became a candy cane"** (should be "An"); four rows of just "A sweet changed colour" ([iss-doubletake-reveal](screen-audit-oct-2026/iss-doubletake-reveal.jpg)). | Must | Pick "a"/"an" when the label is drawn (the stored label stays as is); name the sweet. | `src/puzzles/spotTheDifference.tsx` |
-| Interlock | **"0 / 15 · invalid at the timer"** ([iss-interlock-reveal](screen-audit-oct-2026/iss-interlock-reveal.jpg)). | Must | "0 / 15 · not a valid grid when time ran out". | `src/puzzles/tileGrid.tsx` (and `roundSummaries.ts`, Wording batch) |
-| Exact | "Target Number Achieved" uses the game's old name and Title Case. | Must | "Target hit!". | `src/puzzles/targetNumber.tsx` |
+| Counterweight | **"One balanced way: …" text is overlapped by the kettlebells** of the next scale ("One b▢lanced way") ([iss-balance-reveal](screen-audit-oct-2026/iss-balance-reveal.jpg)). | Must · Done | Give each scale's caption its own row below the beam, with spacing for the hanging weights. **Done (Batch 6):** each reveal beam reserves the room its tilt swings the labels up and the weights down. | `src/puzzles/balance.tsx` |
+| Double Take | **"A ice cream cone became a candy cane"** (should be "An"); four rows of just "A sweet changed colour" ([iss-doubletake-reveal](screen-audit-oct-2026/iss-doubletake-reveal.jpg)). | Must · Done | Pick "a"/"an" when the label is drawn (the stored label stays as is); name the sweet. **Done (Batch 6).** | `src/puzzles/spotTheDifference.tsx` |
+| Interlock | **"0 / 15 · invalid at the timer"** ([iss-interlock-reveal](screen-audit-oct-2026/iss-interlock-reveal.jpg)). | Must · Done (reveal) | "0 / 15 · not a valid grid when time ran out". **Done in the reveal (Batch 6)** as "not a valid grid at time-up" (the longer phrase wraps at 414 px); the results summary is Batch 5's. | `src/puzzles/tileGrid.tsx` (and `roundSummaries.ts`, Wording batch) |
+| Exact | "Target Number Achieved" uses the game's old name and Title Case. | Must · Done | "Target hit!". **Done (Batch 6).** | `src/puzzles/targetNumber.tsx` |
 | Flash | Room reveal before any tap: "YOUR AVERAGE — ms" ([iss-flash-reveal](screen-audit-oct-2026/iss-flash-reveal.jpg)); practice shows "1200 ms" while the rows say "1,200 ms". | Nice | "No taps" instead of "— ms"; one number format. | `src/puzzles/reaction.tsx` |
 | Flash, Bang On | Rows use a spaced hyphen: "Flash 1 - missed (1,200 ms)". | Nice | En dash or "·". | `src/puzzles/reaction.tsx`, `src/puzzles/stopWatch.tsx` |
 | Exact, Operator, Eagle Eye, Tally | Heading "THE ANSWER WAS" sits over the score ("0 points"), not over the answer. | Nice | Put the score first, then the heading over the answer panel. | `src/components/duel/AnswerReveal.tsx` |
@@ -154,7 +154,7 @@ Example: [ex-reveal-puzzle](screen-audit-oct-2026/ex-reveal-puzzle.jpg). App-wid
 | Pipeline, Chroma Lines, Lightbender, Tessellate, Turntable, Shikaku, Tents | Panel labels disagree: SOLVED / SOLUTION / ONE SOLUTION; YOURS / YOUR BOARD / "Your result"; Turntable's are sentence case. | Nice | "Solution" and "Yours" everywhere. | `src/puzzles/pipes.tsx`, `flow.tsx`, `laser.tsx`, `blockParty.tsx`, `rotatingRings.tsx`, `shikaku.tsx`, `tents.tsx` |
 | Lightbender | Reveal verdict is just "MISSED". | Nice | "Missed: 0 of 6 gems lit". | `src/puzzles/laser.tsx` |
 | Nucleus, Forage | "YOU MISSED" two-column word list runs to the screen edges (4 px). | Nice | Covered by the app-wide margin fix. | (app-wide) |
-| Colour Flood vs Slider | "Par 11 — you used" vs "Par 6 - you used". | Must | One dash style (Wording batch). | `src/puzzles/colourFlood.tsx`, `src/puzzles/wordSlide.tsx` |
+| Colour Flood vs Slider | "Par 11 — you used" vs "Par 6 - you used". | Must · Done | One dash style (Wording batch). **Done (Batch 6):** "Par 11 – you used" in both. | `src/puzzles/colourFlood.tsx`, `src/puzzles/wordSlide.tsx` |
 | Don't Break the Chain | Only reveal without the ✗/✓ badge and heading; large empty space. | Nice | Same header as the others. | `src/puzzles/chainTap.tsx` |
 
 ## Round results (rooms)
@@ -257,7 +257,7 @@ Read from source (`instructions.ts`, `gameNames.ts`, every active puzzle file, `
 
 | Game | Issue | Suggested fix | File to change |
 |---|---|---|---|
-| Labyrinth | Example caption says "You have 45 seconds"; the limit is 60 s (`MAZE_TIME_MS`). | Remove the seconds from the caption (the intro prints the real time). | `src/puzzles/mazeDash.tsx` |
+| Labyrinth | Example caption says "You have 45 seconds"; the limit is 60 s (`MAZE_TIME_MS`). | Remove the seconds from the caption (the intro prints the real time). **Done (Batch 6).** | `src/puzzles/mazeDash.tsx` |
 | Rainbow Bridge | Levels are called "rounds", which clashes with the room's rounds: "Reached round N of 10", "Rounds 5-8 move". | "level". | `src/lib/duel/nearMiss.ts`, `src/puzzles/inkBridge.tsx` |
 | Scrumper | Results summary says "N sweets · N★"; the game has apples and leaves ([iss-scrumper-results](screen-audit-oct-2026/iss-scrumper-results.jpg)). | "N apples · N leaves". | `src/lib/duel/roundSummaries.ts` |
 | Slice | Summary "N bombs hit"; the game has chillies. `slice.tsx` says "cream bottle"; instructions say "mayo". | "N chillies cut"; "mayo bottle". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/slice.tsx` |
@@ -269,10 +269,10 @@ Read from source (`instructions.ts`, `gameNames.ts`, every active puzzle file, `
 | All | "game" means the whole match ("Start game", "Leave this game?"), each round's game and practice. | "room" for the session, "game" for a round's title. | `src/components/duel/RoomLobby.tsx`, `src/components/duel/DropoutBanner.tsx`, `src/components/duel/Onboarding.tsx` |
 | All | Dashes: spaced hyphen " - " 31 times in instructions and 18 in puzzle UI, em dash 5 times, en dash elsewhere; Colour Flood "Par — you used" vs Slider "Par - you used"; Flightpath goal "Hit the centre - ten darts"; Roofbound goal "Run the corridor - flip…". | Spaced en dash " – " everywhere. | `src/lib/duel/instructions.ts` (Batch 5), then the puzzle files in Batch 6 and 7 |
 | Pinball | Help prints "1000" next to "2,500". | `toLocaleString("en-GB")` for both. | `src/lib/duel/instructions.ts` |
-| Skid, Blackout, Heave, Gridlock, Hanoi | "Fewer moves earns a bonus" (and presses / pushes). | "earn". | `src/puzzles/iceSlide.tsx`, `lightsOut.tsx`, `push.tsx`, `unblock.tsx`, `tower.tsx` |
-| Interlock | "invalid at the timer" (results summary, reveal). | "not a valid grid at time-up". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/tileGrid.tsx` |
-| Exact | "Target Number Achieved" (old name, Title Case). | "Target hit!". | `src/puzzles/targetNumber.tsx` |
-| Double Take | "A ice cream cone…". | a/an chosen at display. | `src/puzzles/spotTheDifference.tsx` |
+| Skid, Blackout, Heave, Gridlock, Hanoi | "Fewer moves earns a bonus" (and presses / pushes). | "earn". **Done (Batch 6).** | `src/puzzles/iceSlide.tsx`, `lightsOut.tsx`, `push.tsx`, `unblock.tsx`, `tower.tsx` |
+| Interlock | "invalid at the timer" (results summary, reveal). | "not a valid grid at time-up". **Reveal done (Batch 6)**; the results summary is Batch 5's. | `src/lib/duel/roundSummaries.ts`, `src/puzzles/tileGrid.tsx` |
+| Exact | "Target Number Achieved" (old name, Title Case). | "Target hit!". **Done (Batch 6).** | `src/puzzles/targetNumber.tsx` |
+| Double Take | "A ice cream cone…". | a/an chosen at display. **Done (Batch 6).** | `src/puzzles/spotTheDifference.tsx` |
 | Jaywalk, Pinball, Slice, Roofbound, Ball Tracker, Strikeout | Intro lines of 75–107 characters. Suggested: Jaywalk "Swipe to hop. \| Up goes forward; down and sideways step." / "Bikes from crossing 3, \| cones from 4: find the gap."; Pinball "Hold left or right \| to flip; both thumbs for both."; Slice "Swipe through food. \| 3+ in one swipe: combo ×2, ×3." / "Cut a bottle: \| ketchup, mustard or mayo power-up."; Roofbound "Tap to flip sides; \| run on the side without spikes." / "Cracked tiles break; \| flip off fast."; Ball Tracker "Tap a gold tube \| to turn it." / "Tap a cup's drop \| to close it; tap again to open."; Strikeout "Three vowel guesses \| per word (the dots)." | As given. | `src/lib/duel/instructions.ts` |
 
 ### Nice to have
@@ -390,7 +390,9 @@ Files (puzzle modules only; none is in another batch): `src/puzzles/balance.tsx`
 
 - Must: Counterweight reveal captions clear of the weights; Double Take a/an; Interlock and Exact wording;
   Bomb wires / A / B / Defuse, Tally keypad and Safe arrows at 44 px; Labyrinth's wrong "45 seconds";
-  "Fewer moves earn".
+  "Fewer moves earn". **Done (16 Oct 2026)**, with Colour Flood / Slider's "Par – you used" dash; Tally's keypad
+  lives in `NumberEntry.tsx` (only Tally uses it) and the bomb board's height in `src/polish-logic/logic.css`.
+  Not done here: the app-wide spaced-hyphen sweep of the other puzzle files (left for the Nice pass with the ranges).
 - Nice: Lightbender "3 fires left", Flash "No taps" and number format, ✗ before the count, one solution/yours
   label, in-game hints shown only until the first tap, counters in one case, Chain's reveal header, example
   captions without repeats.

@@ -137,7 +137,7 @@ function IntroExample() {
         <Pegs pegs={pegs} discs={9} targetPeg={3} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Nine rings on 3 or 4 posts - the line below says which. Fewest moves earns a bonus. You have 90 seconds.
+        Nine rings on 3 or 4 posts – the line below says which. Fewest moves earn a bonus. You have 90 seconds.
       </p>
     </div>
   );

@@ -59,7 +59,7 @@ function Dial({
       onPressStart={() => hold(delta)}
       onPressEnd={stop}
       aria-label={delta > 0 ? "Up" : "Down"}
-      className="flex size-9 items-center justify-center font-mono text-sm leading-none text-muted-foreground disabled:opacity-40"
+      className="flex size-11 items-center justify-center font-mono text-sm leading-none text-muted-foreground disabled:opacity-40"
     >{label}</ArcadeControlButton>
   );
 

@@ -322,7 +322,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         )}
       </div>
       <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
-        {myCorrect ? `${count} / ${TG_TILES} tiles · valid` : `${count} / ${TG_TILES} · invalid at the timer`}
+        {myCorrect ? `${count} / ${TG_TILES} tiles · valid` : `${count} / ${TG_TILES} · not a valid grid at time-up`}
       </p>
     </div>
   );
