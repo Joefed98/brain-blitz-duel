@@ -11,17 +11,17 @@ import { SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
-import { SWING_REV_SPREAD } from "@/lib/arcade/swing";
+import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { PIN_REV } from "@/lib/arcade/pinball";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_SWEPT } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TALL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
-import { SWING_V4_BANK } from "./swingBankV4.server";
+import { SWING_V9_BANK } from "./swingBankV9.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { CLASH_QUEUE, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
@@ -196,9 +196,10 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 6 (Tuning A): the rev-5 band rules with the course's proved black holes
   // (scripts/orbit-hole-bank.ts), or none, plus the 1 s fly-in after a hole and a quicker end to a miss.
   // Rev 7 (Tuning F): the same with swept black holes (every hole ahead swallows the rocket's whole body).
+  // Rev 8 (taller worlds, batch 3): rev-7 play framed in a taller 390 × 650 view.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  return { type: "orbit", seed, orbitRev: ORBIT_REV_SWEPT, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
+  return { type: "orbit", seed, orbitRev: ORBIT_REV_TALL, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 
 export function generateSnip(): SnipPuzzleData {
@@ -211,13 +212,14 @@ export function generateSnip(): SnipPuzzleData {
  */
 export function generateSwing(): SwingPuzzleData {
   const roomSeed = arcadeSeed();
-  if (SWING_V4_BANK.length > 0) {
-    const index = ((roomSeed % SWING_V4_BANK.length) + SWING_V4_BANK.length) % SWING_V4_BANK.length;
-    return { type: "swing", seed: SWING_V4_BANK[index]!.seed, swingRev: SWING_REV_SPREAD };
+  // swingRev 9 (taller worlds, batch 3): from the bank courses re-proved on the taller cavern (scripts/swing-bank.ts --tall).
+  if (SWING_V9_BANK.length > 0) {
+    const index = ((roomSeed % SWING_V9_BANK.length) + SWING_V9_BANK.length) % SWING_V9_BANK.length;
+    return { type: "swing", seed: SWING_V9_BANK[index]!.seed, swingRev: SWING_REV_TALL };
   }
   for (let attempt = 0; attempt < 8; attempt++) {
     const seed = attempt === 0 ? roomSeed : arcadeSeed();
-    if (proveSwingSeed(seed, SWING_REV_SPREAD)) return { type: "swing", seed, swingRev: SWING_REV_SPREAD };
+    if (proveSwingSeed(seed, SWING_REV_TALL)) return { type: "swing", seed, swingRev: SWING_REV_TALL };
   }
   throw new Error("Could not verify a safe Grappler course; try again.");
 }

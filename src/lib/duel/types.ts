@@ -2013,7 +2013,7 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
@@ -2023,7 +2023,7 @@ export interface OrbitPuzzleData {
 
 export interface SwingPuzzleData {
   type: "swing";
-  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C). */
+  /** 4 = dragon chase; 5 = score bands; 6 = touch stars (Tuning A); 7 = about 10% lower (Tuning C); 8 = stars spread evenly (Tuning F); 9 = the taller 390 × 730 cavern. */
   swingRev?: number;
   /** Draws the cavern — identical for everyone. */
   seed: number;
@@ -2206,7 +2206,7 @@ export interface BallTrackPuzzleData {
   /** Playbook piece actions and the proving event log — private until the reveal. */
   par?: number;
   playbook?: string;
-  /** Rules revision (2 = turn occupied tubes, bottom-row switch points); absent = original. */
+  /** Rules revision (2 = turn occupied tubes, bottom-row switch points; 3 = rev 2 on the score bands; 4 = the taller 12-row board, its course from the tall bank); absent = original. */
   btRev?: number;
 }
 

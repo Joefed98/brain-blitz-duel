@@ -4,6 +4,16 @@ import type { OrbitRev3State } from "./orbitRev3";
 const FP = 256;
 export const ORBIT_CAM_VIEW_W = 390;
 export const ORBIT_CAM_VIEW_H = 620;
+/**
+ * orbitRev 8 (taller worlds, batch 3): the view is ORBIT_TALL_VIEW_H tall and
+ * every extra pixel goes above the framing line, so the course shows that much
+ * further ahead (it runs up the screen). Earlier revisions keep the 620 view.
+ */
+export const ORBIT_TALL_VIEW_H = 650;
+/** The view height (px) a state is framed in: orbitRev 8's taller view (its `worldH`), or 620. */
+export function orbitViewH(state: { worldH?: number } | null | undefined): number {
+  return state?.worldH ?? ORBIT_CAM_VIEW_H;
+}
 /** Pan for a normal hop (~0.45 s); longer pans scale up to double this (~0.9 s). */
 export const ORBIT_CAPTURE_PAN_TICKS = 27;
 export const ORBIT_REDUCED_PAN_TICKS = 15;
@@ -94,6 +104,7 @@ function ringPath(p: Planet): OrbitCamOffset[] {
 }
 /** Arc-length share of the actual circular/elliptical/figure-eight path. */
 export function orbitNextRingShare(s: Rev3Like, cam: OrbitCamOffset): number {
+  const ORBIT_CAM_VIEW_H = orbitViewH(s);
   const p = s.planets[nextIndex(s)];
   if (!p) return 1;
   let memo = shares.get(p);
@@ -143,8 +154,9 @@ export function orbitCameraClampOverrideCount(): number {
 }
 /** Full path bounds, not the circling rocket: this target never oscillates. */
 function framedPlanet(s: Rev3Like): OrbitCamOffset {
+  const ORBIT_CAM_VIEW_H = orbitViewH(s);
   const p = s.planets[s.cur];
-  if (!p) return pushSafe(rocketOf(s), { x: 0, y: 0 });
+  if (!p) return pushSafe(rocketOf(s), { x: 0, y: 0 }, ORBIT_CAM_VIEW_H);
   let b = envelopes.get(p);
   if (!b) {
     b = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
@@ -159,7 +171,8 @@ function framedPlanet(s: Rev3Like): OrbitCamOffset {
   }
   const next = s.planets[nextIndex(s)] ?? p;
   const wantX = next.x / FP - ORBIT_CAM_VIEW_W / 2;
-  const wantY = next.y / FP - ORBIT_CAM_VIEW_H / 2;
+  // The next planet sits 310 px from the view's bottom; a taller view (orbitRev 8) adds its height above it.
+  const wantY = next.y / FP - (ORBIT_CAM_VIEW_H - FRAME_BELOW);
   // Constrain the lean so the entire path remains in the safe box.
   const x = Math.max(
     b.right - (ORBIT_CAM_VIEW_W - SAFE_INSET_X),
@@ -171,26 +184,29 @@ function framedPlanet(s: Rev3Like): OrbitCamOffset {
   );
   return { x, y };
 }
-function pushInside(r: OrbitCamOffset, c: OrbitCamOffset, m: number): OrbitCamOffset {
+/** How far below the next planet's centre the view reaches when framed (half the original 620 view). */
+const FRAME_BELOW = 310;
+function pushInside(r: OrbitCamOffset, c: OrbitCamOffset, m: number, ORBIT_CAM_VIEW_H: number): OrbitCamOffset {
   return {
     x: Math.max(r.x - (ORBIT_CAM_VIEW_W - m), Math.min(r.x - m, c.x)),
     y: Math.max(r.y - (ORBIT_CAM_VIEW_H - m), Math.min(r.y - m, c.y)),
   };
 }
-function pushSafe(r: OrbitCamOffset, c: OrbitCamOffset): OrbitCamOffset {
+function pushSafe(r: OrbitCamOffset, c: OrbitCamOffset, ORBIT_CAM_VIEW_H: number): OrbitCamOffset {
   return {
     x: Math.max(r.x - (ORBIT_CAM_VIEW_W - SAFE_INSET_X), Math.min(r.x - SAFE_INSET_X, c.x)),
     y: Math.max(r.y - (ORBIT_CAM_VIEW_H - SAFE_INSET_Y), Math.min(r.y - SAFE_INSET_Y, c.y)),
   };
 }
 function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
+  const viewH = orbitViewH(s);
   const map = still ? reduced : normal;
   const previous = map.get(s.planets);
   if (previous?.tick === s.tick) return { x: previous.x, y: previous.y };
   const target = framedPlanet(s);
   let e: Entry;
   if (!previous || s.tick < previous.tick) {
-    const at = pushSafe(rocketOf(s), target);
+    const at = pushSafe(rocketOf(s), target, viewH);
     e = {
       ...at,
       tick: s.tick,
@@ -256,14 +272,14 @@ function advance(s: Rev3Like, still: boolean): OrbitCamOffset {
       // Flight: hold, moving only toward the minimum safe-box push, at most
       // ORBIT_FLIGHT_CATCH units a tick (so a tap mid-pan cannot snap), while
       // the rocket always stays fully on screen.
-      const wanted = pushSafe(rocketOf(s), at);
+      const wanted = pushSafe(rocketOf(s), at, viewH);
       const dx = wanted.x - at.x,
         dy = wanted.y - at.y,
         len = Math.hypot(dx, dy);
       const k = len > ORBIT_FLIGHT_CATCH ? ORBIT_FLIGHT_CATCH / len : 1;
-      safe = pushInside(rocketOf(s), { x: at.x + dx * k, y: at.y + dy * k }, ROCKET_ON_SCREEN);
-    } else if (panning) safe = pushInside(rocketOf(s), at, ROCKET_ON_SCREEN);
-    else safe = pushSafe(rocketOf(s), at);
+      safe = pushInside(rocketOf(s), { x: at.x + dx * k, y: at.y + dy * k }, ROCKET_ON_SCREEN, viewH);
+    } else if (panning) safe = pushInside(rocketOf(s), at, ROCKET_ON_SCREEN, viewH);
+    else safe = pushSafe(rocketOf(s), at, viewH);
     // Capture visibility takes priority over easing, just like rocket safety.
     // Project only as far toward the safe whole-orbit target as necessary.
     // Visibility correction only once settled, and as an eased pan, never a jump.
@@ -307,6 +323,7 @@ export function orbitCamera(state: Rev3Like, opts?: { reducedMotion?: boolean })
 /** Visible planet indices for the current camera (view rect + one ring margin either side). */
 export function orbitVisiblePlanets(state: Rev3Like, cam: OrbitCamOffset): number[] {
   if (!isRev3(state)) return [];
+  const ORBIT_CAM_VIEW_H = orbitViewH(state);
   const planets = state.planets as PlanetLike[];
   const out: number[] = [];
   for (let i = Math.max(0, curIndex(state) - 2); i < planets.length; i++) {

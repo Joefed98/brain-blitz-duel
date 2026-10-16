@@ -472,3 +472,36 @@ taller one, every run through the server's own encode + replay:
 - **Best scores** through the server replay: 150 on beatRev 6 and bubbleRev 5, 149 on sliceRev 6 (no simulated player reaches
   Slice's 900 ‰ on any revision) (`arcade-tuning-g2-check`).
 - Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.
+
+## Taller worlds, batch 3 (16 Oct 2026): Grappler, Orbit, Ball Tracker
+
+The same pattern again: Grappler's cavern grows to 390 × 730 (was 390 × 620), Orbit's view to 390 × 650 (was 390 × 620; its
+SET CHECKPOINT row stays below the arena) and Ball Tracker's board to 12 rows of the same tiles, 700 × 1300 (was 9 rows,
+700 × 1000; 390 × 724 on a 390-wide arena). The world height rides in the state (`worldH`, folded into the checkpoint
+checksum last); stages size from `<game>WorldHFor(rev)` (Ball Tracker from its stored course's `rows`), reveals and intro
+demos from `revealWorldH`, effects through `fxSpecAt`. Older rounds replay and score exactly as before
+(`scripts/arcade-tuning-g3-check.ts`: 72 runs recorded on main before the change on every revision the three games ever
+stamped, `scripts/fixtures/arcade-tuning-g3-legacy.json`, and 24 on the new stamps, `scripts/fixtures/arcade-tuning-g3-runs.json`).
+Medians (p10–p90) from `bun scripts/arcade-skill-bands.ts swing balltrack --rev=g3 --seeds=60` (Orbit at 30 seeds), the
+revision rooms stamped before → the taller one, every run through the server's own encode + replay:
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Grappler | swingRev 8 → 9 | 390 × 730 cavern: the same ceiling, anchors, spikes and stalactites; the lava 110 px lower and each jet 110 px taller, so it still tops out at the same height; the stars re-proved on the taller cavern. Knots refitted to the band targets: 87 → 70, 204 → 100, 290 → 125, 400 → 130, 499 → 133, 550 → 140 | 63 (20–95) → 70 (23–95) | 100 (41–122) → 100 (46–130) | 114 (83–142) → 125 (84–146) | 131 (108–140) → 135 (108–145) |
+| Orbit | orbitRev 7 → 8 | 390 × 650 view, the extra 30 px above the next planet; play identical (no step reads the view) | 76 (0–109) → 76 (0–109) | 100 (29–122) → 100 (29–122) | 128 (96–148) → 128 (96–148) | 136 (125–150) → 136 (125–150) |
+| Ball Tracker | btRev 3 → 4 | 12-row board from its own proved bank; the same 30 marbles, release pace and rules; the speed window from tick 3228. Knots refitted: 10 → 32, 20 → 70, 26 → 100, 28 → 130, 29 → 139, 30 → 140 | 72 (48–104) → 70 (43–91) | 99 (89–116) → 100 (85–130) | 126 (104–138) → 130 (100–150) | 138 (126–150) → 130 (115–139) |
+
+- **Before refitting** (the taller revision on its predecessor's curve): Grappler 63 / 101 / 115 / 129 (unit medians 87 /
+  204.5 / 290.5 / 500, the same players: the lower lava only removes a few deaths), Ball Tracker 74 / 104 / 126 / 126 (unit
+  medians 20 / 26 / 28 / 28 against 19.5 / 25 / 28 / 29 on 9 rows).
+- **Grappler leaves Tuning C's lower level.** swingRev 7–8 sat about 10 % under the targets by Joe's ruling (63 / 100 / 114 /
+  131); swingRev 9 is fitted to 70 / 100 / 125 / 140–150 as asked for this batch. Its near-perfect median (135) is half
+  finishes and half runs that stop short, so it sits a little under 140.
+- **Ball Tracker's great and near-perfect players** both bring 28 marbles home at the median on the taller board (near-perfect
+  ones 29 almost as often: 27 runs at 28 and 21 at 29 of 60), so one curve cannot put them at 125 and 140–150; 28 → 130 splits
+  the difference (great 130, near-perfect 130, their p90 150 and 139).
+- **Orbit's curve is unchanged**: the taller view shows more of the course ahead (settled in orbit, the view reaches 286 →
+  309 px above the rocket, 1.39 → 1.49 planets ahead, on 40 bank courses) but the bots, and the scores, are the same.
+- **Best scores** through the server replay: 150 on swingRev 9 (a bank course's proof witness), orbitRev 8 (a near-perfect
+  run) and btRev 4 (a great run) (`arcade-tuning-g3-check`).
+- Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.

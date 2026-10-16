@@ -94,6 +94,7 @@ import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
 import { btCheckpoint, makeBallTrackGame, BT_REV } from "@/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "@/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "@/lib/duel/ballTrackBank.server";
+import { BALL_TRACK_BANK_TALL } from "@/lib/duel/ballTrackBankTall.server";
 import { ORBIT_REV3, ORBIT_REV4 } from "@/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev3From, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "@/lib/duel/orbitHoleBank.server";
@@ -107,7 +108,7 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 // Letterfall's replay checks words: install the same list the server grades with.
 import "@/lib/duel/wordfallDict.server";
 
-import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
+import { BT_REV_BAND, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
@@ -125,12 +126,12 @@ import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { initBandFrom, initSweptFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { initBandFrom, initSweptFrom, initTallFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -168,6 +169,7 @@ interface Game {
 
 /** Ball Tracker: the server deals a bank course; the replay is against that stored course. */
 const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
+const btCourseTall = (seed: number) => BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course;
 /** Orbit rev 3: rooms only deal bank seeds, with the proved planets stored in the puzzle. */
 const orbitPlanets = (seed: number) => {
   const planets = orbitRev3PlanetsForSeed(seed);
@@ -583,6 +585,29 @@ const GAMES: Game[] = [
   { key: "slice/tall", game: sliceGameFor(SLICE_REV_TALL), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_TALL) },
   { key: "bubble/tall", game: bubbleGameFor(BUB_REV_TALL), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_TALL) },
   { key: "stroop", game: colourClashRev5Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 5) },
+  // Taller worlds batch 3 (16 Oct 2026), appended: Grappler's taller cavern, Orbit's taller view, Ball Tracker's 12-row board.
+  { key: "swing/tall", game: swingGameFor(SWING_REV_TALL), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_TALL) },
+  {
+    key: "orbit/tall",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initTallFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed))) }),
+    seedFor: (n: number) => ORBIT_HOLE_BANK[n % ORBIT_HOLE_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_TALL, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed)),
+  },
+  {
+    key: "balltrack/tall",
+    game: makeBallTrackGame(btCourseTall(0), BT_REV_TALL),
+    gameFor: (seed: number) => makeBallTrackGame(btCourseTall(seed), BT_REV_TALL),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -610,6 +635,8 @@ const ENTRY_COST: Record<number, number> = {
   73: 1.1, 74: 1.1, 75: 0.7, 77: 0.9, 79: 3.2, 82: 0.5, 83: 3.5, 88: 0.9, 89: 3.7, 91: 3.4,
   92: 3.6, 94: 33.8, 95: 1.2, 97: 0.6, 98: 0.7, 99: 0.9, 103: 4.9, 104: 1.1, 109: 3.7, 110: 4.0,
   115: 2.1,
+  // Taller worlds batch 3 (16 Oct 2026, measured locally at 40 runs).
+  126: 2.2, 128: 0.6,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */

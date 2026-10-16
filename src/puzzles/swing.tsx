@@ -11,12 +11,13 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
+  SWING_REV_TALL,
+  swingWorldHFor,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
   SWING_INPUT_HOLD,
   SWING_RED,
-  SWING_WORLD_H,
   SWING_WORLD_W,
 } from "@/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
@@ -61,7 +62,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={SWING_WORLD_W}
-      worldH={SWING_WORLD_H}
+      // swingRev 9: the taller cavern; every phone draws the stored revision's world.
+      worldH={swingWorldHFor(data?.swingRev)}
       game={swingArtGameFor(data?.swingRev)}
       sounds={swingSounds}
       checkpoint={swingCheckpoint}
@@ -104,7 +106,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD) && (
+      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL) && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
@@ -121,7 +123,7 @@ export const swingPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SWING_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV }) satisfies SwingPuzzleData,
+  generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV_TALL }) satisfies SwingPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

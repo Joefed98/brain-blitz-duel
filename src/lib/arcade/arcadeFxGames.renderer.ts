@@ -76,11 +76,13 @@ import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WOR
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
-import { ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W } from "./orbitCamera";
+import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
 import type { OrbitRev3State } from "./orbitRev3";
 import {
   SWING_FINISH_M,
   SWING_WORLD_H,
+  SWING_TALL_H,
+  swingWorldH,
   SWING_WORLD_W,
   swingMetres,
   type SwingState,
@@ -124,7 +126,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { BT_BALLS, BT_H, BT_W, type BtState } from "./ballTrack";
+import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -1202,7 +1204,8 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
 /**
  * Tuning E (Oct 2026): a game whose world height depends on the stored round
  * (High Rise, Meteor, Scrumper, Hover; taller worlds batch 1: Breaker, Rally,
- * Wavefront, Fission; batch 2: Tempo, Slice, Coral Pop) draws through its spec at that height;
+ * Wavefront, Fission; batch 2: Tempo, Slice, Coral Pop; batch 3: Grappler, Orbit's view, Ball
+ * Tracker) draws through its spec at that height;
  * events, colours and memory key are the spec's own. Cached per height.
  */
 const specAtCache = new Map<string, ArcadeFxSpec<never>>();
@@ -1241,6 +1244,13 @@ export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
+/** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
+export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
+export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => fxSpecAt(ORBIT3_FX, orbitViewH(s));
+export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
+export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
+export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
 
 /* ================================ Pinball ================================ */
 
@@ -1288,7 +1298,8 @@ export const ARCADE_FX_SPECS = {
   snake: SNAKE_FX_TALL,
   burst: BURST_FX_TALL,
   wavefront: WAVEFRONT_FX_TALL,
-  orbit: ORBIT_FX,
+  // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
+  orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
   skyline: SKYLINE_FX_TALL,
   cross: CROSS_FX,
   junction: JUNCTION_FX,
@@ -1298,10 +1309,10 @@ export const ARCADE_FX_SPECS = {
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,
-  swing: SWING_FX,
+  swing: SWING_FX_TALL,
   snip: SNIP_FX_TALL,
   tilt: TILT_FX,
-  balltrack: BALLTRACK_FX,
+  balltrack: BALLTRACK_FX_TALL,
   matchup: MATCHUP_FX,
   pinball: PINBALL_FX,
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;

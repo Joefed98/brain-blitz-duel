@@ -35,6 +35,7 @@
  * "next" the taller one. --rev=g2 does the same for batch 2 (a game's `tuneg2`:
  * Tempo, Slice and Coral Pop; Mixed Signals and Pull! are engine games, measured
  * by scripts/arcade-tuning-g2-engine-bands.ts with the puzzle-fairness kits).
+ * --rev=g3 does the same for batch 3 (a game's `tuneg3`: Grappler, Orbit and Ball Tracker).
  * --levels=average,near limits the levels. --save=<dir> writes each run's
  * encoded log (for fixtures). Not a check: it has no pass/fail and is not run
  * by run-checks or CI. One game at 30 seeds × 4 levels takes ~10 s to a few
@@ -53,7 +54,7 @@ import { UNITS } from "./arcade-skill-bands/units";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 30);
-const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank" | "f" | "g1" | "g2";
+const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank" | "f" | "g1" | "g2" | "g3";
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
@@ -133,7 +134,13 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     return [];
   }
   const revs: ["live" | "next" | "tuned", number | null][] = [];
-  if (REV_MODE === "g2") {
+  if (REV_MODE === "g3") {
+    // Taller worlds batch 3: the revision rooms stamped before it ("live") against the taller one ("next").
+    const before = liveBeforeG1(spec);
+    if (before === undefined) console.error(`${spec.type}: no revision to measure`);
+    else revs.push(["live", before]);
+    if (spec.tuneg3 !== undefined) revs.push(["next", spec.tuneg3]);
+  } else if (REV_MODE === "g2") {
     // Taller worlds batch 2: the revision rooms stamped before it ("live") against the taller one ("next").
     const before = liveBeforeG1(spec);
     if (before === undefined) console.error(`${spec.type}: no revision to measure`);
@@ -175,7 +182,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     if (spec.current === undefined || spec.next === undefined) console.error(`${spec.type}: no current revision past the band revision`);
     else revs.push(["live", spec.next], ["next", spec.current]);
   } else if (REV_MODE !== "next") revs.push(["live", spec.live]);
-  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank" && REV_MODE !== "f" && REV_MODE !== "g1" && REV_MODE !== "g2") {
+  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank" && REV_MODE !== "f" && REV_MODE !== "g1" && REV_MODE !== "g2" && REV_MODE !== "g3") {
     if (spec.next === undefined) console.error(`${spec.type}: no next revision`);
     else revs.push(["next", spec.next]);
   }

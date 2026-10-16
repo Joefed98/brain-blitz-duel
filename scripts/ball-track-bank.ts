@@ -1,10 +1,15 @@
 /**
  * Ball Track bank: 400 courses over the fixed serpentine.
  *   bun scripts/ball-track-bank.ts
+ *   bun scripts/ball-track-bank.ts --tall   (btRev 4: 400 courses on the 12-row board, own PRNG stream,
+ *                                            written to src/lib/duel/ballTrackBankTall.server.ts)
  * Seeds tray columns/order, the bottom-row re-lay, the tray colour shuffle, ball order and 8–10 upper fixed straights and sparse lower rotatables. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
  * (each tile set for the next ball due through it) must route every ball home in the
- * real sim; seeds that fail are rerolled.
+ * real sim; seeds that fail are rerolled. On the taller board the same rules
+ * scale with it: the hopper column is fixed down to three rows above the
+ * bottom, the two rows above the bottom are the sparse lower rows, and the
+ * upper rows take 12–15 seeded fixed straights (8–10 on the 9-row board).
  */
 import { writeFileSync } from "node:fs";
 import { encodeInputEvents, inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -12,21 +17,24 @@ import {
   btNext,
   btTraysAt,
   btRotatable,
+  btLayout,
   makeBallTrackGame,
-  BT_ALWAYS_FIXED,
   BT_BALLS,
   BT_COLOURS,
   BT_COLS,
   BT_HOPPER_COL,
-  BT_KIND,
   BT_K_ROTATE,
-  BT_ROWS,
+  BT_LAYOUT,
+  BT_LAYOUT_TALL,
+  BT_TALL_ROWS,
   type BtCourse,
+  type BtLayout,
 } from "../src/lib/arcade/ballTrack";
 
 const TARGET = Number(process.env.BT_TARGET ?? 400);
+const TALL = process.argv.includes("--tall");
 
-let seed = 0x5eed_ba11;
+let seed = TALL ? 0x7a11_ba11 : 0x5eed_ba11;
 const rnd = (n: number) => {
   seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0;
   return ((seed ^ (seed >>> 13)) >>> 0) % n;
@@ -42,6 +50,9 @@ const shuffle = <T,>(list: T[]) => {
 /** Shortest route into column `col`: visited cells with the vertical state each needs (-1 for corners). */
 export function routeTo(course: BtCourse, col: number, requireEarly = false, tick = 0): { cell: number; vert: number }[] | null {
   const rot = new Set(btRotatable(course));
+  const { kind: BT_KIND, rows } = btLayout(course);
+  /** The first of the two sparse lower rows (cell 42 on the 9-row board). */
+  const lower = (rows - 3) * BT_COLS;
   type Q = { cell: number; above: boolean; early: boolean; path: { cell: number; vert: number }[] };
   const queue: Q[] = [{ cell: BT_HOPPER_COL, above: true, early: false, path: [] }];
   const seen = new Set<string>();
@@ -53,7 +64,7 @@ export function routeTo(course: BtCourse, col: number, requireEarly = false, tic
     const options = BT_KIND[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
     for (const v of options) {
       const next = btNext(q.cell, q.above, v === 1, course, tick);
-      const early = q.early || (q.cell < 42 && v === 1);
+      const early = q.early || (q.cell < lower && v === 1);
       const path = [...q.path, { cell: q.cell, vert: v }];
       if (next.cell >= 100) { if (next.cell - 100 === col && (!requireEarly || early)) return path; continue; }
       if (next.cell < 0) continue;
@@ -64,27 +75,32 @@ export function routeTo(course: BtCourse, col: number, requireEarly = false, tic
 }
 
 /** Seed sparse lower rows; optimise upper fixed placements with no four-tube stacks. */
-function seededFixed(): number[] {
+function seededFixed(layout: BtLayout = BT_LAYOUT): number[] {
+  const { kind: BT_KIND, alwaysFixed: BT_ALWAYS_FIXED, rows } = layout;
+  // The two rows above the bottom (cells 42–55 on the 9-row board) and the upper rows' budget.
+  const lowerA = (rows - 3) * BT_COLS, lowerB = (rows - 2) * BT_COLS, bottom = (rows - 1) * BT_COLS;
+  const budgetMin = rows === BT_TALL_ROWS ? 12 : 8, budgetSpan = rows === BT_TALL_ROWS ? 4 : 3;
+  const budgetMax = budgetMin + budgetSpan - 1;
   const row8Cols = shuffle([1, 2, 3, 4, 5]).slice(0, 4);
   const row7Cols = shuffle([1, 2, 3, 4, 5]).slice(0, 2);
-  const lowerRot = [...row7Cols.map(c => 42 + c), ...row8Cols.map(c => 49 + c)];
-  const lowerFixed = BT_KIND.flatMap((k, c) => k === 1 && c >= 42 && c < 56 && !lowerRot.includes(c) ? [c] : []);
+  const lowerRot = [...row7Cols.map(c => lowerA + c), ...row8Cols.map(c => lowerB + c)];
+  const lowerFixed = BT_KIND.flatMap((k, c) => k === 1 && c >= lowerA && c < bottom && !lowerRot.includes(c) ? [c] : []);
   const patterns = Array.from({length: BT_COLS}, (_, col) => {
-    const candidates = BT_KIND.flatMap((k,c) => k === 1 && c < 42 && c % 7 === col && !BT_ALWAYS_FIXED.includes(c) ? [c] : []);
+    const candidates = BT_KIND.flatMap((k,c) => k === 1 && c < lowerA && c % 7 === col && !BT_ALWAYS_FIXED.includes(c) ? [c] : []);
     const options: {fixed: number[]; triples: number}[] = [];
     for(let mask=0; mask<2**candidates.length; mask++) {
       const fixed=candidates.filter((_,i)=>mask & (1<<i));
       const all=new Set([...BT_ALWAYS_FIXED,...lowerFixed,...fixed]);
       let run=0, triples=0, valid=true;
-      for(let row=0;row<8;row++) {const c=row*7+col;run=BT_KIND[c]===1&&!all.has(c)?run+1:0;if(run===3)triples++;if(run>3)valid=false;}
+      for(let row=0;row<rows-1;row++) {const c=row*7+col;run=BT_KIND[c]===1&&!all.has(c)?run+1:0;if(run===3)triples++;if(run>3)valid=false;}
       if(valid) options.push({fixed,triples});
     }
     return options;
   });
-  const costs=Array.from({length:8},()=>Array.from({length:11},()=>Infinity));
+  const costs=Array.from({length:8},()=>Array.from({length:budgetMax+1},()=>Infinity));
   const last=costs[7];if(!last)throw Error("Missing costs");last[0]=0;
-  for(let col=6;col>=0;col--) {const current=costs[col];if(!current)throw Error("Missing costs");for(let b=0;b<=10;b++) for(const p of patterns[col]??[]) if(p.fixed.length<=b)current[b]=Math.min(current[b]??Infinity,p.triples+(costs[col+1]?.[b-p.fixed.length]??Infinity));}
-  let budget=8+rnd(3);if(!Number.isFinite(costs[0]?.[budget]))return seededFixed();
+  for(let col=6;col>=0;col--) {const current=costs[col];if(!current)throw Error("Missing costs");for(let b=0;b<=budgetMax;b++) for(const p of patterns[col]??[]) if(p.fixed.length<=b)current[b]=Math.min(current[b]??Infinity,p.triples+(costs[col+1]?.[b-p.fixed.length]??Infinity));}
+  let budget=budgetMin+rnd(budgetSpan);if(!Number.isFinite(costs[0]?.[budget]))return seededFixed(layout);
   const fixed=[...lowerFixed];
   for(let col=0;col<7;col++){const options=(patterns[col]??[]).filter(p=>p.fixed.length<=budget&&p.triples+(costs[col+1]?.[budget-p.fixed.length]??Infinity)===costs[col]?.[budget]);const p=options[rnd(options.length)];if(!p)throw Error("Missing pattern");fixed.push(...p.fixed);budget-=p.fixed.length;}
   return fixed.sort((a,b)=>a-b);
@@ -114,8 +130,9 @@ function makeCourse(): BtCourse {
   // Balanced queue: seeded colours receive the remainder; triple runs are rerolled below.
   const extra = shuffle([0, 1, 2, 3]).slice(0, BT_BALLS % BT_COLOURS);
   const balls = shuffle([0, 1, 2, 3].flatMap((c) => Array.from({ length: Math.floor(BT_BALLS / BT_COLOURS) + (extra.includes(c) ? 1 : 0) }, () => c)));
-  const fixed = seededFixed();
-  return { trays, relay: { tick: 1200 + rnd(601), trays: relaid }, shuffle: { tick: 2400 + rnd(301), trays: after }, balls, fixed };
+  const fixed = seededFixed(TALL ? BT_LAYOUT_TALL : BT_LAYOUT);
+  const course: BtCourse = { trays, relay: { tick: 1200 + rnd(601), trays: relaid }, shuffle: { tick: 2400 + rnd(301), trays: after }, balls, fixed };
+  return TALL ? { ...course, rows: BT_TALL_ROWS } : course;
 }
 
 
@@ -187,7 +204,12 @@ if (import.meta.main) {
     const par = run.state.actions;
     entries.push({ course, tier: par < 20 ? 1 : par < 30 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
-  writeFileSync(
+  if (TALL)
+    writeFileSync(
+      "src/lib/duel/ballTrackBankTall.server.ts",
+      `/** Generated by scripts/ball-track-bank.ts --tall; do not hand-edit. btRev 4 courses on the 12-row board, each with its proving playbook. */\nimport type { BallTrackBankEntry } from "./ballTrackBank.server";\nexport const BALL_TRACK_BANK_TALL: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`,
+    );
+  else writeFileSync(
     "src/lib/duel/ballTrackBank.server.ts",
     `/** Generated by scripts/ball-track-bank.ts; do not hand-edit. */\nimport type { BtCourse } from "@/lib/arcade/ballTrack";\nexport interface BallTrackBankEntry { course: BtCourse; tier: number; par: number; endTick: number; playbook: string }\nexport const BALL_TRACK_BANK: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`,
   );

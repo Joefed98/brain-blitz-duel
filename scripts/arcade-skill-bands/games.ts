@@ -7,9 +7,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ArcadeGame } from "../../src/lib/arcade/engine";
 import type { PuzzleType } from "../../src/lib/duel/types";
-import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND } from "../../src/lib/arcade/ballTrack";
+import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
+import { BALL_TRACK_BANK_TALL } from "../../src/lib/duel/ballTrackBankTall.server";
 import { wavCheckpoint, wavefrontGameFor, WAV_REV, WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "../../src/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
 import { flipCheckpoint, flipGameFor, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC } from "../../src/lib/arcade/flip";
@@ -40,7 +41,7 @@ import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
@@ -51,9 +52,10 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LON
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND, BURST_REV_TALL } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
+import { SWING_V9_BANK } from "../../src/lib/duel/swingBankV9.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
 import { pinCheckpoint, pinballGameFor, PIN_REV } from "../../src/lib/arcade/pinball";
@@ -84,6 +86,8 @@ export interface GameSpec {
   tuneg?: number;
   /** The taller-worlds batch 2 revision (Oct 2026: Tempo, Slice, Coral Pop), measured with `--rev=g2` against liveBeforeG1(spec). */
   tuneg2?: number;
+  /** The taller-worlds batch 3 revision (Oct 2026: Grappler, Orbit, Ball Tracker), measured with `--rev=g3` against liveBeforeG1(spec). */
+  tuneg3?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -113,6 +117,8 @@ export function roomSeed(n: number): number {
 
 const plain = (n: number) => roomSeed(n);
 const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
+/** btRev 4 deals from the 12-row bank (the same seed picks a course there). */
+const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_TALL ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
 const orbitEntry = (seed: number) => ORBIT_HOLE_BANK.find((e) => e.seed === seed)!;
 const orbitPlanets = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
 
@@ -132,12 +138,13 @@ export const GAMES: GameSpec[] = [
     type: "balltrack",
     live: BT_REV,
     next: BT_REV_BAND,
+    tuneg3: BT_REV_TALL,
     // Rooms deal a bank course; the stored seed picks it.
     seedFor: (n) => roomSeed(n) % BALL_TRACK_BANK.length,
-    gameFor: (rev, seed) => makeBallTrackGame(btCourse(seed), rev),
+    gameFor: (rev, seed) => makeBallTrackGame(btCourseFor(rev, seed), rev),
     checkpoint: btCheckpoint,
-    encode: (run, rev, seed) => encodeBallTrackRun(btCourse(seed), run, rev),
-    replay: (seed, raw, rev) => replayBallTrackRun(btCourse(seed), seed, raw, rev),
+    encode: (run, rev, seed) => encodeBallTrackRun(btCourseFor(rev, seed), run, rev),
+    replay: (seed, raw, rev) => replayBallTrackRun(btCourseFor(rev, seed), seed, raw, rev),
   },
   { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES, tunec: WAV_REV_TUNEC, tuneg: WAV_REV_TALL },
   { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
@@ -160,6 +167,7 @@ export const GAMES: GameSpec[] = [
     next: ORBIT_REV_BAND,
     tuned: ORBIT_REV_TUNED,
     tunef: ORBIT_REV_SWEPT,
+    tuneg3: ORBIT_REV_TALL,
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
     gameFor: (rev, seed) => {
@@ -180,7 +188,9 @@ export const GAMES: GameSpec[] = [
     tuned: SWING_REV_TUNED,
     tunec: SWING_REV_TUNEC,
     tunef: SWING_REV_SPREAD,
-    // Rooms pick a proved course from the bank by the room seed.
+    tuneg3: SWING_REV_TALL,
+    // Rooms pick a proved course from the bank by the room seed (swingRev 9: from the 298 re-proved on the taller cavern,
+    // which keep SWING_V4_BANK's order, so a seed that is in both is the same course on both revisions).
     seedFor: (n) => SWING_V4_BANK[roomSeed(n) % SWING_V4_BANK.length]!.seed,
     gameFor: (rev) => swingGameFor(rev ?? undefined),
     checkpoint: swingCheckpoint,

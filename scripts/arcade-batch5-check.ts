@@ -348,8 +348,9 @@ if (want("orbit")) {
     let stamped = 0;
     for (let k = 0; k < 40; k++) {
       const p = generateOrbit();
-      // Score bands (Oct 2026), Tuning A, then Tuning F: every bank course is stamped orbitRev 7 (rev-6 play, swept holes), with its holes when it has them.
-      ok(p.orbitRev === ORBIT_REV_SWEPT && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 7 and ship their planets");
+      // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
+      // (rev-7 play, swept holes, in the taller view; arcade-tuning-g3-check), with its holes when it has them.
+      ok(p.orbitRev === ORBIT_REV_SWEPT + 1 && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 8 and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");
