@@ -170,7 +170,7 @@ assert.match(css2, /\[data-arena-slot\]\[data-arena-centred\]::before \{[^}]*fle
 assert.match(readFileSync("src/puzzles/tilt.tsx", "utf8"), /fitWorld\s+centreWorld/, "Tilt's world is centred in its box");
 const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
 assert.match(shell, /data-arcade-header className="grid h-11 shrink-0 grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-1 px-1"/, "one 44px header row, timer in the centre column");
-assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">\s*<div data-round-heading data-game-topbar data-arcade-header/, "4px from the header to the arena");
+assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-round-in">\s*<div data-round-heading data-game-topbar data-arcade-header/, "4px from the header to the arena");
 assert.match(shell, /\{!bare && !arcadePlay && \(/, "the shell's own top bar gives way on arcade play screens");
 // Rooms (16 Oct 2026, display only): the round and game (RoundLabel) between the score and the timer, 8px from each
 // (gap-2, pr-1 plus the grid's 4px), in place of the round pips; the 44px row and its centred column are unchanged.

@@ -22,7 +22,7 @@ export const SHARDS: Record<string, string[]> = {
   play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/2"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
-  play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts"],
+  play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts", "first-paint-check.ts"],
   // safe-area-screens-check (non-game screens, notch and home bar emulated, and the room play header's 36 cases, ~3–4 min) rides here.
   play4: ["arcade-play-check.ts@4/5", "safe-area-screens-check.tsx"],
   // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server)
@@ -34,7 +34,7 @@ export const SHARDS: Record<string, string[]> = {
   // reveal drawn with a notch and home bar for colour seams, which roughly doubled it): one
   // eighth per job (~9-10 games; ~4.2 min a part locally on 4 cores with its dev server,
   // aiming at ~5 min on a 2-core runner plus setup). It was in thirds (~25 games) before.
-  play6: ["bottom-clearance-check.ts@1/8"],
+  play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx"],
   play7: ["bottom-clearance-check.ts@2/8"],
   play8: ["bottom-clearance-check.ts@3/8"],
   play9: ["bottom-clearance-check.ts@4/8"],
