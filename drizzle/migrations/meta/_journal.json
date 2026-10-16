@@ -36,6 +36,13 @@
       "when": 1792167935415,
       "tag": "0004_beta_play_again_archive",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792188340109,
+      "tag": "0005_20261016170000_beta_archive_round_records",
+      "breakpoints": true
     }
   ]
 }
