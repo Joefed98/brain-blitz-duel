@@ -24,8 +24,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 
 import { ARCADE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
-import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
-import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
+import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 
@@ -40,8 +40,8 @@ const VIEWPORTS: [number, number][] = [[375, 667], [430, 932], [1280, 800]];
 /** World (view) sizes of the engine games in the shared slot; Bonk's world is its square board (0–1). */
 const ENGINE_WORLDS: Record<string, { width: number; height: number }> = {
   tendrop: { width: TD_W, height: TD_H },
-  clayshoot: { width: CLAY_W, height: CLAY_H },
-  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
+  clayshoot: { width: CLAY_W, height: CLAY_TALL_H },
+  stroop: { width: CLASH_WORLD_W, height: CLASH_TALL_H },
   whack: { width: 1, height: 1 },
 };
 

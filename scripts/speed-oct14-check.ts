@@ -81,14 +81,15 @@ function stampOf(p: PuzzleData): number | null {
 
 /* ------------------------------ 2. room stamps ------------------------------ */
 
-const WANT: Record<string, number> = { reaction: TAP_REV_SPEED_TUNING, stopwatch: TAP_REV_SPEED_TUNING, numhunt: TAP_REV, chain: CHAIN_CYCLE_REV, clayshoot: CLAY_REV5 };
+const WANT: Record<string, number> = { reaction: TAP_REV_SPEED_TUNING, stopwatch: TAP_REV_SPEED_TUNING, numhunt: TAP_REV, chain: CHAIN_CYCLE_REV, clayshoot: CLAY_REV5 + 1 };
 for (const [type, want] of Object.entries(WANT)) {
   for (let seed = 1; seed <= 20; seed++) {
     const got = stampOf(roomPuzzle(type as PuzzleData["type"], seed));
     if (got !== want) fail(`${type} seed ${seed}: rooms stamp ${got}, want ${want}`);
   }
 }
-if (CLAY_REV !== CLAY_REV5) fail("Pull! CLAY_REV is not 5");
+// Taller worlds batch 2 (16 Oct 2026) moved Pull! on to clayRev 6 (clayRev 5 under a taller sky); arcade-tuning-g2-check covers it.
+if (CLAY_REV !== CLAY_REV5 + 1) fail("Pull! CLAY_REV is not 6");
 lines.push(`rooms stamp Flash and Bang On tapRev ${TAP_REV_SPEED_TUNING}, Ascend tapRev ${TAP_REV}, chainCycleRev ${CHAIN_CYCLE_REV}, Pull! clayRev ${CLAY_REV5}`);
 
 /* --------------------------------- 3. Flash --------------------------------- */

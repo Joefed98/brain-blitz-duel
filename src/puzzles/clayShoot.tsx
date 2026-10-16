@@ -31,11 +31,11 @@ import {
   CLAY_LOG_HIT,
   CLAY_MISSED,
   CLAY_ORANGE,
-  CLAY_H,
   CLAY_W,
+  clayWorldHFor,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
-import { clayChargesEmptyShots, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV5 } from "@/lib/arcade/clayShoot";
+import { clayChargesEmptyShots, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV5, CLAY_REV_TALL } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
@@ -325,7 +325,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       </p>
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       {/* The sky at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; clayTapWorld maps through this box). */}
-      <ArcadeArenaSlot width={CLAY_W} height={CLAY_H} scene={clayArenaScene}>
+      <ArcadeArenaSlot width={CLAY_W} height={clayWorldHFor(data?.clayRev)} scene={clayArenaScene}>
       <div
         ref={board}
         data-play-area
@@ -337,7 +337,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (locked || submitted.current || game.isOver(state.current)) return;
           const box = board.current?.getBoundingClientRect();
           if (!box) return;
-          const shot = clayTapWorld(box, event.clientX, event.clientY);
+          const shot = clayTapWorld(box, event.clientX, event.clientY, clayWorldHFor(data?.clayRev));
           if (!shot) return;
           pending.current.push({ t: 0, k: CLAY_INPUT_SHOT, a: shot.wx, b: shot.wy, c: 0, d: 0 });
         }}
@@ -384,7 +384,7 @@ export const clayShootPuzzle: PuzzleDefinition = {
   revealHeading: "Your run",
   introLine: (puzzle) =>
     puzzle.type === "clayshoot" && clayChargesEmptyShots(puzzle.clayRev)
-      ? `${puzzle.clayRev === CLAY_REV5 ? "14–16 birds cross: don't" : "Don't"} shoot them — each one costs 10. Aim: after ${CLAY_FREE_EMPTY_SHOTS} shots that hit nothing, every ${CLAY_EMPTY_SHOTS_PER_POINT} more cost 1.`
+      ? `${puzzle.clayRev === CLAY_REV5 || puzzle.clayRev === CLAY_REV_TALL ? "14–16 birds cross: don't" : "Don't"} shoot them — each one costs 10. Aim: after ${CLAY_FREE_EMPTY_SHOTS} shots that hit nothing, every ${CLAY_EMPTY_SHOTS_PER_POINT} more cost 1.`
       : "Don't shoot the birds — each one costs 10.",
   IntroExample,
   Stage,

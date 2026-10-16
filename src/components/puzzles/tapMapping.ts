@@ -36,16 +36,17 @@ export function arcadeWorldPoint(
   return { x: Math.max(0, Math.min(worldW, x)), y: Math.max(0, Math.min(worldH, y)) };
 }
 
-/** Pull!: the shot's world point (the sim's 360 × 400 sky), or null off the sky. */
+/** Pull!: the shot's world point (the sim's 360 × 400 sky; clayRev 6: 360 × 680), or null off the sky. */
 export function clayTapWorld(
   box: TapBox,
   clientX: number,
   clientY: number,
+  worldH: number = CLAY_H,
 ): { wx: number; wy: number } | null {
-  const { scaleX, scaleY } = clayView({ width: box.width, height: box.height });
+  const { scaleX, scaleY } = clayView({ width: box.width, height: box.height }, worldH);
   const wx = Math.round((clientX - box.left) / scaleX);
   const wy = Math.round((clientY - box.top) / scaleY);
-  if (wx < 0 || wx > CLAY_W || wy < 0 || wy > CLAY_H) return null;
+  if (wx < 0 || wx > CLAY_W || wy < 0 || wy > worldH) return null;
   return { wx, wy };
 }
 

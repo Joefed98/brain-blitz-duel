@@ -20,7 +20,7 @@ browser by arcade-play-check; not device measurements.
 | Hover | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |
 | Breaker | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Rally | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
-| Tempo | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Tempo | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 0px | 52px | 0px | - |
 | Fission | 390x650 | 375x515 → 309x515 | 390x548 → 329x548 | 390x692 → 390x650 | 414x700 → 414x690 | 430x780 → 430x717 | 1280x648 → 389x648 | 1.000x | 52px | 0px | 42px | 0px | Fission's two 76px arrows: 16px |
 | Wavefront | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
@@ -29,10 +29,10 @@ browser by arcade-play-check; not device measurements.
 | Jaywalk | 390x580 | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | 1.000x | 52px | 0px | 196px | 0px | - |
 | Junction | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
 | Rainbow Bridge | 390x620 | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | 1.000x | 52px | 0px | 100px | 0px | Rainbow Bridge's Undo / Reset / Release / Drop again (48px): 16px |
-| Slice | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Slice | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Swish | 390x560 | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | 1.000x | 52px | 0px | 144px | 0px | Swish's cancel strip (72px): 16px |
 | Flightpath | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
-| Coral Pop | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Coral Pop | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Roofbound | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
 | Grappler | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
 | Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 0px | 59px | 0px | - |
@@ -43,8 +43,8 @@ browser by arcade-play-check; not device measurements.
 | Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
 | Tenfall | 360x520 | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | 1.083x | 108px | 0px | 157px | 0px | - |
 | Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 0px | 286px | 0px | - |
-| Pull! | 360x400 | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | 1.083x | 78px | 0px | 317px | 0px | - |
-| Mixed Signals | 390x560 | 375x539 → 375x538 | 390x572 → 390x560 | 390x716 → 390x560 | 414x724 → 414x594 | 430x804 → 430x617 | 1280x672 → 468x672 | 1.000x | 52px | 0px | 156px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
+| Pull! | 360x680 | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | 1.083x | 78px | 0px | 13px | 0px | - |
+| Mixed Signals | 390x650 | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x724 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | 1.000x | 52px | 0px | 66px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
 
 ## Arena scenes (15 Oct 2026)
 
@@ -63,7 +63,7 @@ box per size (a 47px notch moves both down 43px and shortens the box by 43px: 39
 | Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
 | Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
 | Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
-| Pull! | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | more field below |
+| Pull! | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | more field below |
 | Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | still deep rock below the floor's rock |
 | Rainbow Bridge | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | grass and hillside below the ground (sky, hills and ground beside the world) |
 | Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip |
@@ -83,7 +83,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Hover | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px | world 28px |
 | Breaker | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Rally | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
-| Tempo | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Tempo | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Meteor | 414x736 → 396x736, 64px | 414x784 → 414x769, 16px | world 17px |
 | Fission | 414x652 → 391x652, 64px | 414x700 → 414x690, 16px | world none, Fission's two 76px arrows 32px |
 | Wavefront | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
@@ -92,10 +92,10 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Jaywalk | 414x736 → 414x616, 64px | 414x784 → 414x616, 16px | world none |
 | Junction | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
 | Rainbow Bridge | 414x680 → 414x658, 64px | 414x728 → 414x658, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
-| Slice | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Slice | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Swish | 414x664 → 414x594, 64px | 414x712 → 414x594, 16px | world none, Swish's cancel strip (72px) 32px |
 | Flightpath | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px | world none |
-| Coral Pop | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Coral Pop | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Roofbound | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
 | Grappler | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
 | Scrumper | 414x712 → 401x712, 64px | 414x760 → 414x736, 16px | world 8px |
@@ -106,8 +106,8 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Letterfall | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px | world none |
 | Tenfall | 414x680 → 414x598, 64px | 414x728 → 414x598, 16px | world none |
 | Bonk | 414x636 → 414x414, 64px | 414x684 → 414x414, 16px | world none |
-| Pull! | 414x710 → 414x460, 64px | 414x758 → 414x460, 16px | world none |
-| Mixed Signals | 414x676 → 414x594, 64px | 414x724 → 414x594, 16px | world none, Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned 32px |
+| Pull! | 414x710 → 376x710, 64px | 414x758 → 401x758, 16px | world 32px |
+| Mixed Signals | 414x676 → 406x676, 64px | 414x724 → 414x690, 16px | world none, Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned 32px |
 
 ## Before 15 Oct 2026 (arcade games)
 
@@ -119,7 +119,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Hover | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
 | Breaker | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Rally | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Tempo | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
+| Tempo | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Meteor | 367x543 → 293x543 | 382x576 → 310x576 | 382x720 → 382x709 | 422x808 → 422x783 | 1272x676 → 364x676 |
 | Fission | 367x451 → 271x451 | 382x484 → 290x484 | 382x628 → 377x628 | 422x716 → 422x703 | 1272x584 → 350x584 |
 | Wavefront | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
@@ -128,10 +128,10 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Jaywalk | 367x543 → 365x543 | 382x576 → 382x568 | 382x720 → 382x568 | 422x808 → 422x628 | 1272x676 → 455x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
 | Rainbow Bridge | 367x483 → 304x483 | 382x516 → 325x516 | 382x660 → 382x607 | 422x748 → 422x671 | 1272x616 → 387x616 |
-| Slice | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
+| Slice | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Swish | 367x471 → 328x471 | 382x504 → 351x504 | 382x648 → 382x549 | 422x736 → 422x606 | 1272x604 → 421x604 |
 | Flightpath | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |
-| Coral Pop | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
+| Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Roofbound | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
 | Grappler | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
 | Scrumper | 367x503 → 283x503 | 382x536 → 302x536 | 382x680 → 382x679 | 422x768 → 422x750 | 1272x636 → 358x636 |

@@ -169,7 +169,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
       { action: "Sort the last word", detail: `to finish - the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
     ],
-    score: `All ${CLASH_QUEUE} sorted with at most 2 wrong gates: 120 + up to 30 for speed (the full 30 if you finish with at least half the time left), −5 per wrong gate from the 30. Otherwise round(110 × right ÷ ${CLASH_QUEUE}) − 2 per wrong gate, 0 to 110.`,
+    score: `All ${CLASH_QUEUE} sorted with at most 2 wrong gates: 120 + up to 30 for speed (the full 30 if you finish with at least half the time left), −5 per wrong gate from the 30. Otherwise words right less words wrong: 20 scores 70, 40 scores 100, 46 or more 110 (in between, in proportion; 0 or less scores 0).`,
   },
   symscan: {
     goal: "Find every eagle that matches the target.",

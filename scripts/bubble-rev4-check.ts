@@ -291,8 +291,9 @@ section("Older revisions are unchanged");
 /* ========================= 4. wiring ========================= */
 section("Wiring");
 {
-  const puzzle = generateBubble();
-  ok(puzzle.bubbleRev === BUB_REV_TORPEDO, `new rooms stamp bubbleRev ${puzzle.bubbleRev}`);
+  // Taller worlds batch 2 (16 Oct 2026) moved rooms on to bubbleRev 5 (bubbleRev 4 play in a deeper tank); arcade-tuning-g2-check covers it.
+  const puzzle = { ...generateBubble(), bubbleRev: BUB_REV_TORPEDO };
+  ok(generateBubble().bubbleRev === BUB_REV_TORPEDO + 1, `new rooms stamp bubbleRev ${generateBubble().bubbleRev}`);
   ok(puzzleUsesBands(puzzle as never), "bubbleRev 4 scores on the bands");
   const s = v4.init(5);
   const t = v3.init(5);

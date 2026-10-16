@@ -1,14 +1,13 @@
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BEAT_FX } from "./arcadeFxGames.renderer";
+import { beatFxFor } from "./arcadeFxGames.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 /** Beat in the Retro Arcade world. Render only; the chart, judging and score are untouched. */
 import {
   beatGame,
   BEAT_COMBO_TIERS,
   BEAT_FALL_TICKS,
-  BEAT_HIT_LINE_Y,
   BEAT_HUD_H,
   BEAT_JUDGE_MISS,
   BEAT_JUDGE_NONE,
@@ -18,9 +17,10 @@ import {
   BEAT_LANES,
   BEAT_NOTE_H,
   BEAT_OK_TICKS,
-  BEAT_WORLD_H,
   BEAT_WORLD_W,
+  beatHitLineY,
   beatLaneX,
+  beatWorldH,
   type BeatState,
 } from "./beat";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
@@ -32,10 +32,13 @@ const lanePulses=new WeakMap<CanvasRenderingContext2D,{tick:number;event:number;
 
 function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize): void {
   // Stretch, exactly as the original draw, so taps map to the same lanes.
-  retroScreen(ctx, size, BEAT_WORLD_W, BEAT_WORLD_H, "stretch", (c) => arcadeFx(c, BEAT_FX, state, () => drawWorld(c, state)));
+  retroScreen(ctx, size, BEAT_WORLD_W, beatWorldH(state), "stretch", (c) => arcadeFx(c, beatFxFor(state), state, () => drawWorld(c, state)));
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
+  // beatRev 6: the taller lanes and their hit line (the original 620 / 520 otherwise).
+  const BEAT_WORLD_H = beatWorldH(state);
+  const BEAT_HIT_LINE_Y = beatHitLineY(state);
   const laneW = BEAT_WORLD_W / BEAT_LANES;
   const bloom = retroBloom();
   const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
@@ -46,7 +49,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   pulse.tick=state.tick;lanePulses.set(ctx,pulse);
   const hit = !reducedMotion() && state.lastJudge === 1 && eventTick===pulse.at && state.judgeAge < 12;
 
-  drawStage(ctx);
+  drawStage(ctx, BEAT_WORLD_H);
   for (let lane = 0; lane < BEAT_LANES; lane++) {
     const x = lane * laneW;
     const colour = NEON[lane]!;
@@ -201,7 +204,8 @@ function noteSprite(colour: string, width: number): ArtCanvas | null {
  * darker strip below the hit line and a target pad outline per lane where the
  * notes land. Flat paint only.
  */
-function paintStage(c: CanvasRenderingContext2D): void {
+function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
+  const BEAT_HIT_LINE_Y = beatHitLineY({ worldH: BEAT_WORLD_H });
   const laneW = BEAT_WORLD_W / BEAT_LANES;
   const h = BEAT_WORLD_H - BEAT_HUD_H;
   c.fillStyle = "#0B0A10";
@@ -245,23 +249,23 @@ function paintStage(c: CanvasRenderingContext2D): void {
 }
 
 const stages = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
-function drawStage(ctx: CanvasRenderingContext2D): void {
+function drawStage(ctx: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   const sx = Math.min(3, Math.max(1, t ? Math.abs(t.a) : 1));
   const sy = Math.min(3, Math.max(1, t ? Math.abs(t.d) : 1));
-  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}`;
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${BEAT_WORLD_H}`;
   let cached = stages.get(ctx);
   if (!cached || cached.key !== key) {
     const layer = artCanvas(Math.ceil(BEAT_WORLD_W * sx), Math.ceil(BEAT_WORLD_H * sy));
     const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
     if (layer && c) {
       c.scale(sx, sy);
-      paintStage(c);
+      paintStage(c, BEAT_WORLD_H);
     }
     stages.set(ctx, (cached = { key, layer: layer && c ? layer : null }));
   }
   if (cached.layer) ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, BEAT_WORLD_W, BEAT_WORLD_H);
-  else paintStage(ctx);
+  else paintStage(ctx, BEAT_WORLD_H);
 }
 
 export const beatArtGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, draw };

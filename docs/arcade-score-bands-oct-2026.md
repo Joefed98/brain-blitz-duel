@@ -430,3 +430,36 @@ disagreeing):
   units), as before.
 - **Best scores** through the server replay: 150 on all four new stamps (`arcade-tuning-g1-check`).
 - Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.
+
+## Taller worlds, batch 2 (16 Oct 2026): Tempo, Slice, Coral Pop (and Mixed Signals, Pull!)
+
+The same pattern as batch 1: Tempo, Slice and Coral Pop grow to 390 × 730 (were 390 × 620); the engine games Mixed
+Signals (390 × 650, was 390 × 560; its arrows and joystick stay below) and Pull! (360 × 680, was 360 × 400; it draws
+390 × 737 on a 390 px phone) grow the same way. The world height rides in the state (`worldH`, folded into the checkpoint
+checksum last); stages size from `<game>WorldHFor(rev)`, reveals and intro demos from `revealWorldH`, effects through
+`fxSpecAt`. Older rounds replay and score exactly as before (`scripts/arcade-tuning-g2-check.ts`: 116 runs recorded on
+main before the change on every revision the five games ever stamped, `scripts/fixtures/arcade-tuning-g2-legacy.json`,
+and 40 on the new stamps, `scripts/fixtures/arcade-tuning-g2-runs.json`). Medians (p10–p90) from
+`bun scripts/arcade-skill-bands.ts beat slice bubble --rev=g2 --seeds=60`, the revision rooms stamped before → the
+taller one, every run through the server's own encode + replay:
+
+| Game | Stamp | Change | Average | Good | Great | Near-perfect |
+|---|---|---|---|---|---|---|
+| Tempo | beatRev 5 → 6 | 390 × 730 lanes, the hit line 100 px above the new bottom (630). A note still crosses its lane in 90 ticks (6.51 px a tick, was 5.29), so it is in view for the same 1.5 s; the same chart, hit windows and curve (judging is by tick alone) | 73 (67–87) → 73 (67–87) | 112 (102–126) → 112 (102–126) | 139 (130–145) → 139 (130–145) | 148 (146–150) → 148 (146–150) |
+| Slice | sliceRev 5 → 6 | 390 × 730 board: every throw starts below the new bottom and its rise (speed and gravity alike) × 730 ÷ 620, so it climbs proportionally higher and is in the air exactly as long; one path may run 730 px. Knots refitted: 436 → 79, 668 → 103, 747 → 131, 769 → 147, 900 → 150 | 71 (46–90) → 70 (46–92) | 105 (80–138) → 101 (79–147) | 130 (99–145) → 125 (96–148) | 131 (104–147) → 139 (101–148) |
+| Coral Pop | bubbleRev 4 → 5 | 390 × 730 tank: the field and the danger line stay put (the same rows apart), the gun 60 px above the new bottom, shots 7.35 px a tick (were 6) so they reach the ceiling in the old time. Knots refitted: 30 → 70, 52 → 100, 60 → 125, 62 → 138, 67 → 140 | 64 (38–104) → 69 (28–86) | 107 (80–126) → 102 (79–138) | 126 (118–140) → 125 (103–138) | 129 (118–141) → 138 (121–142) |
+
+- **Before refitting** (the taller revision on its predecessor's curve): Slice 69 / 102 / 122 / 131 (unit medians 428 / 688 /
+  766 / 769 → 436 / 668 / 747 / 769: the throws spread over more height, so long multi-food swipes come a little less often),
+  Coral Pop 57 / 105 / 120 / 126 (unit medians 33 / 53.5 / 62 / 63 → 29.5 / 52.5 / 60 / 62: longer shots from the lower gun).
+- **Slice's chillies.** −10 per chilli sits outside the curve, so each knot's points are set a few above the target for the
+  level to land there (the same as sliceRev 4–5's knots).
+- **Tempo keeps Tuning C's kinder level** (73 / 112 / 139 / 148, about 10 % above the band targets by Joe's ruling); the taller
+  lanes change nothing a player can score.
+- **Engine games** (no band curve; measured with the puzzle-fairness kits, `bun scripts/arcade-tuning-g2-engine-bands.ts`, 30
+  room puzzles): Mixed Signals 44 / 85 / 134 / 144 → 70 / 100 / 134 / 144 with clashRev 5's net-right unfinished credit (a
+  finish is unchanged; careless sorting still 0); Pull! 90 / 130 / 150 / 150 → 88 / 125 / 150 / 150 on its unchanged formula
+  (great and near-perfect players hit every clay, so a curve cannot separate them).
+- **Best scores** through the server replay: 150 on beatRev 6 and bubbleRev 5, 149 on sliceRev 6 (no simulated player reaches
+  Slice's 900 ‰ on any revision) (`arcade-tuning-g2-check`).
+- Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.

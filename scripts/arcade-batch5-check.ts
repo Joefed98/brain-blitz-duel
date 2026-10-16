@@ -275,7 +275,7 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(generateBeat().beatRev === BEAT_REV_TUNEF && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 5 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check)");
+  ok(generateBeat().beatRev === BEAT_REV_TUNEF + 1 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 6 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {

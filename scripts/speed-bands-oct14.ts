@@ -9,7 +9,7 @@
  *
  *   bun scripts/speed-bands-oct14.ts [--md] [types…]
  */
-import { CLAY_REV4 } from "../src/lib/arcade/clayShoot";
+import { CLAY_REV4, CLAY_REV5 } from "../src/lib/arcade/clayShoot";
 import { generateChainV2 } from "../src/lib/duel/chain.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
@@ -38,6 +38,15 @@ export function beforePuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: numb
   return { ...(roomPuzzle("clayshoot", seed) as Extract<PuzzleData, { type: "clayshoot" }>), clayRev: CLAY_REV4 };
 }
 
+/**
+ * The puzzle a room dealt for this seed right after the 14 Oct change. Pull! has since moved on to
+ * clayRev 6 (taller worlds batch 2, arcade-tuning-g2-check); this script keeps measuring clayRev 5.
+ */
+export function afterPuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: number): PuzzleData {
+  const p = roomPuzzle(type, seed);
+  return type === "clayshoot" ? ({ ...(p as Extract<PuzzleData, { type: "clayshoot" }>), clayRev: CLAY_REV5 }) : p;
+}
+
 export const median = (a: number[]) => {
   const s = [...a].sort((x, y) => x - y);
   return s.length % 2 ? s[(s.length - 1) / 2]! : Math.round((s[s.length / 2 - 1]! + s[s.length / 2]!) / 2);
@@ -54,7 +63,7 @@ export function bands(type: (typeof SPEED_BAND_TYPES)[number], seeds = SPEED_BAN
     rows.set(label, row);
   };
   for (const seed of seeds) {
-    for (const [side, puzzle] of [["before", beforePuzzle(type, seed)], ["after", roomPuzzle(type, seed)]] as const) {
+    for (const [side, puzzle] of [["before", beforePuzzle(type, seed)], ["after", afterPuzzle(type, seed)]] as const) {
       for (const level of LEVELS) add(level, side, runPlay(kit, puzzle, seed, level).score);
       for (const s of runSpam(kit, puzzle, seed)) add(s.label, side, s.score);
     }

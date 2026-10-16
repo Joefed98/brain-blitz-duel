@@ -29,8 +29,8 @@ import {
   BUB_SHOOTER_Y,
   BUB_SPEED,
   BUB_WALL,
-  BUB_WORLD_H,
   BUB_WORLD_W,
+  bubbleWorldHFor,
   type BubState,
 } from "@/lib/arcade/bubble";
 import { drawBubbleArt, drawBubbleAimTrail } from "@/lib/arcade/bubble.renderer";
@@ -92,6 +92,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BubblePuzzleData | null = puzzle.type === "bubble" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const bubbleGame = bubbleGameFor(data?.bubbleRev);
+  // bubbleRev 5: the deeper tank; every phone draws the stored revision's world.
+  const BUB_WORLD_H = bubbleWorldHFor(data?.bubbleRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);

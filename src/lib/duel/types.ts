@@ -252,7 +252,7 @@ export interface StroopPuzzleData {
   seed: number;
   /** Fixed queue length (current rounds); absent = legacy open-ended 60 s stream. */
   queue?: number;
-  /** Rules revision (3 = 75 s, five phases); absent = older rules by queue. */
+  /** Rules revision (3 = 75 s, five phases; 4 = the puzzle score shape; 5 = the taller 390 × 650 board and the gentler finish); absent = older rules by queue. */
   clashRev?: number;
 }
 
@@ -1833,7 +1833,7 @@ export interface ClayShootPuzzleData {
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
-  /** 2 = seeded white birds and bird-hit penalties. Absent = original clay-only run. */
+  /** 2 = seeded white birds and bird-hit penalties; 3 = 10–12 birds; 4 = empty shots cost beyond 30; 5 = 14–16 birds; 6 = the taller 360 × 680 sky. Absent = original clay-only run. */
   clayRev?: number;
 }
 
@@ -1857,7 +1857,7 @@ export interface SlicePuzzleData {
   type: "slice";
   /** Draws the whole launch schedule, bombs included — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo; 3 = score bands; 4 = wider, longer blade, Tuning C); absent = original. */
+  /** Rules revision (2 = mayonnaise bottle, chilli ends the combo; 3 = score bands; 4 = wider, longer blade, Tuning C; 5 = the 620 px slice, Tuning F; 6 = the taller 390 × 730 board); absent = original. */
   sliceRev?: number;
 }
 
@@ -1865,7 +1865,7 @@ export interface BubblePuzzleData {
   type: "bubble";
   /** Draws the starting field and the whole bubble queue — identical for everyone. */
   seed: number;
-  /** Rule revision (2 = Joker, Bomb and Torpedo bubbles in the queue); absent = original rules. */
+  /** Rule revision (2 = Joker, Bomb and Torpedo bubbles in the queue; 3 = score bands; 4 = the directional Torpedo, Tuning F; 5 = the deeper 390 × 730 tank); absent = original rules. */
   bubbleRev?: number;
 }
 
@@ -1873,7 +1873,7 @@ export interface BeatPuzzleData {
   type: "beat";
   /** Draws the whole chart — identical for everyone. */
   seed: number;
-  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C); 5 = a tenth fewer notes (Tuning F). Absent on rounds stored before rev 2. */
+  /** 2 = swipe notes in the second half; 3 = score bands; 4 = about 10% higher (Tuning C); 5 = a tenth fewer notes (Tuning F); 6 = the taller 390 × 730 lanes. Absent on rounds stored before rev 2. */
   beatRev?: number;
 }
 
