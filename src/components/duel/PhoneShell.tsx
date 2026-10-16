@@ -51,11 +51,16 @@ export const NO_SELECT_STYLE = {
 const CONTROL = "button, a, input, textarea, select, [role='button']";
 
 /** Identical round geometry: mode-specific text cannot resize the game region. */
-export function GameLayout({ label, title, help, progress, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+export function GameLayout({ label, title, help, progress, roundLabel, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   label: ReactNode;
   title: ReactNode;
   help: ReactNode;
   progress?: ReactNode;
+  /**
+   * A room's round and game (RoundLabel) for the arcade play header: beside the timer,
+   * after the score, in place of the round pips. Other screens ignore it.
+   */
+  roundLabel?: ReactNode;
   timer?: ReactNode;
   beforeGame?: ReactNode;
   children: ReactNode;
@@ -76,20 +81,28 @@ export function GameLayout({ label, title, help, progress, timer, beforeGame, ch
   );
   if (arcade) {
     // Arcade play screens (15 Oct 2026, display only): one 44px row under the safe-area
-    // top: the score (or PRACTICE and the game) left, the timer and round pips centred,
-    // "?" and sound right; the arena starts 4px under it (styles.css "Arcade play screen").
+    // top: the score (or PRACTICE and the game) left, the timer centred, "?" and sound
+    // right; the arena starts 4px under it (styles.css "Arcade play screen"). In a room
+    // (16 Oct 2026) the round and game (RoundLabel) sit between the score and the timer,
+    // 8px from each, and replace the round pips, which no phone width has room for beside it.
+    const roomLabel = arcade.gameHeader && roundLabel;
     return (
       <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">
         <div data-round-heading data-game-topbar data-arcade-header className="grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-1" style={NO_SELECT_STYLE}>
-          <div className="min-w-0">
+          {roomLabel ? (
+            <div data-header-left className="flex min-w-0 items-center gap-2 pr-1">
+              <div className="min-w-0 flex-1">{arcade.gameHeader}</div>
+              {roundLabel}
+            </div>
+          ) : <div className="min-w-0">
             {arcade.gameHeader ?? (
               <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
                 <span className="truncate font-display text-xs font-bold text-foreground">{title}</span>
               </div>
             )}
-          </div>
-          <div data-arcade-timer className="flex min-w-[52px] flex-col items-center justify-center gap-1">{timer}{progress}</div>
+          </div>}
+          <div data-arcade-timer className="flex min-w-[52px] flex-col items-center justify-center gap-1">{timer}{roomLabel ? null : progress}</div>
           <div className="flex min-w-0 items-center justify-end gap-1">{help}{arcade.topAction}<MuteToggle /></div>
         </div>
         {beforeGame}

@@ -23,7 +23,7 @@ export const SHARDS: Record<string, string[]> = {
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
   play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts"],
-  // safe-area-screens-check (non-game screens, notch and home bar emulated, ~2 min) rides here.
+  // safe-area-screens-check (non-game screens, notch and home bar emulated, and the room play header's 36 cases, ~3–4 min) rides here.
   play4: ["arcade-play-check.ts@4/5", "safe-area-screens-check.tsx"],
   // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server).
   play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],

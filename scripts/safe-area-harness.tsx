@@ -14,6 +14,7 @@ import { createRoot } from "react-dom/client";
 import "../src/styles.css";
 import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
+import { puzzleDef } from "@/lib/duel/registry";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
@@ -43,6 +44,8 @@ interface Harness {
   /** When the stubbed server's result reached the phone. */
   verdictAt: number | null;
   room: Room | null;
+  /** Display names drawn in place of a game's own (the room play header's longest-name case). */
+  names?: Record<string, string>;
   call: (module: string, name: string, args: unknown[]) => unknown;
 }
 
@@ -194,6 +197,9 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
 H.call = (_module, name) => IMPLEMENTATIONS[name] ?? (async () => null);
 
 /* --------------------------------------------------------------------- mount */
+
+for (const [type, name] of Object.entries(H.names ?? {}))
+  (puzzleDef(type as never) as { name: string }).name = name;
 
 const mode = new URLSearchParams(location.search).get("mode");
 const Screen = (mode === "room" ? DuelRoute : mode === "home" ? HomeRoute : PracticeRoute).options

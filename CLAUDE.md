@@ -44,7 +44,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Arcade play screen** (15 Oct 2026, display only; `data-arcade-play` in `src/polish-layout/bottom.css`): the live
   round of the 22 arcade games and the five engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed
   Signals) has one 52 px header (a 44 px row, 4 px from the top or just under a notch) with the timer centred, score or
-  PRACTICE left, "?" and sound right. Every arena sits in `ArcadeArenaSlot` (the five engine games use the same box):
+  PRACTICE left, "?" and sound right. In a room (16 Oct 2026) the round and game (`RoundLabel`) sit between the score and
+  the timer, 8 px from each, in place of the round pips, stepping down "Round 2 of 6 · Gemstone" → "Round 2 of 6" over the
+  name → "2/6 · Gemstone" → "2/6" over the name ellipsised (phones get the last; "Final round" on the last round). Every arena sits in `ArcadeArenaSlot` (the five engine games use the same box):
   edge to edge, down to 8 px above its controls or 16 px above the visible bottom, the world at the largest uniform
   scale that fits, top-anchored. The lowest control row ends exactly 16 px above the bottom, inset or not. Every gap is
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
@@ -203,7 +205,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   routes through `scripts/safe-area-harness.tsx`, network stubbed) with a 47 px notch and 34 px home bar
   emulated (`Emulation.setSafeAreaInsetsOverride`) at 375×667 and 390×844. It fails if text or a control
   sits under either inset (a scrolling page at its scroll end), a control is covered, or an intro or room
-  moment scrolls. Run it after changing a non-game screen's layout.
+  moment scrolls. It also draws the room's live round (arcade and puzzle screens; 6- and 7-round rooms, the final
+  round, the bank's longest name) at 414×896 as an iPhone 11 home-screen app, 390×844, 375×667, 360×800, 600×900 and
+  1024×768 and fails unless the arcade header stays 44 px (52 px to the arena) with the timer centred and the round label
+  in its widest fitting form, on at most two unwrapped lines, 8 px clear of every header item (`--geometry=<file>` writes
+  every box for a before → after run on main). Run it after changing a non-game screen's or the play header's layout.
 - **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre

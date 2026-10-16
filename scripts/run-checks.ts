@@ -29,6 +29,8 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "replay-play-check.ts": 900_000,
   // 74 active games × ~10 s each in headless Chromium (4 viewports each), plus starting a dev server.
   "bottom-clearance-check.ts": 1_200_000,
+  // 14 screens at two sizes, then 36 room play-header cases (16 Oct 2026), ~3–4 min on a 2-core runner.
+  "safe-area-screens-check.tsx": 600_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);

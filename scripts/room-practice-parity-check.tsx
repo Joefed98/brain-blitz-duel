@@ -8,6 +8,7 @@ import { SoloScoreStrip } from "../src/components/duel/SoloScoreStrip";
 import { TimerBar } from "../src/components/duel/TimerBar";
 import { PuzzleHelpButton } from "../src/components/duel/PuzzleInstructions";
 import { RoundPips } from "../src/components/duel/RoundPips";
+import { RoundLabel } from "../src/components/duel/RoundLabel";
 import { PUZZLE_REGISTRY, puzzleShowsTimer } from "../src/lib/duel/registry";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
@@ -69,6 +70,7 @@ for (const [key, definition] of active) {
           <GameLayout label={mode === "practice" ? "PRACTICE" : "Round 6 of 6"} title={definition.name}
             help={<PuzzleHelpButton onClick={() => {}} />}
             progress={mode === "practice" ? undefined : <RoundPips currentRound={6} outcomes={[]} />}
+            roundLabel={mode === "practice" ? undefined : <RoundLabel round={6} total={6} name={definition.name} />}
             timer={puzzleShowsTimer(puzzle) ? <TimerBar msRemaining={30_000} totalMs={60_000} active={false} /> : undefined}
             beforeGame={type === "balance" ? <div className="h-3 w-full shrink-0" /> : undefined}>
             <div data-stage-fixture dangerouslySetInnerHTML={{ __html: stage }} />
@@ -101,6 +103,11 @@ for (const [key, definition] of active) {
         assert.ok(root.querySelector("[data-arcade-play]"), `${key}: arcade play screen`);
         assert.ok(top?.hasAttribute("data-round-layout"), `${key}: no separate top bar`);
         if (puzzleShowsTimer(puzzle)) assert.ok(heading?.querySelector("[data-arcade-timer] [role='timer']"), `${key}: the timer in the header's centre`);
+        // Rooms (16 Oct 2026): the round and game beside the timer, after the score, in place of the pips.
+        const label = heading?.querySelector("[data-header-left] > [data-round-label]");
+        assert.equal(Boolean(label), mode !== "practice" && Boolean(header), `${key} ${mode}: round label beside the timer in rooms only`);
+        if (label) assert.ok(!heading?.querySelector("[aria-label='Round progress']"), `${key} ${mode}: the label replaces the round pips`);
+        if (label) assert.ok(label.previousElementSibling?.querySelector(".text-me"), `${key} ${mode}: the score before the label`);
         arcadeHeaders++;
       } else {
         assert.match(heading?.getAttribute("class") ?? "", /h-7 shrink-0/);
@@ -122,5 +129,5 @@ assert.equal(arenas, ACTIVE_ARCADE_GAMES.length, "every active arcade game has i
 console.log(`PASS ${active.length} active games, ${comparisons} room/multi versus practice DOM comparisons at 390×700, 375×667, 390×844, 430×932 and 1280×800; ${controls} control nodes covered.`);
 console.log(`PASS ${arenas} arcade stages: one arena slot each with the game's world size (no per-game fill), one world-aspect arena inside, controls below it.`);
 console.log("PASS puzzles: fixed 36px top bar, 28px heading, shared 20px timer and identical stage ancestry; calculated room/practice height delta 0px, including 34px bottom inset.");
-console.log(`PASS arcade play screens: ${arcadeHeaders} renders with one 44px header row (score or PRACTICE, centred timer, "?" and sound) and no separate top bar, in practice, duel and multi alike.`);
+console.log(`PASS arcade play screens: ${arcadeHeaders} renders with one 44px header row (score or PRACTICE, centred timer, "?" and sound; in rooms the round and game beside the timer in place of the pips) and no separate top bar, in practice, duel and multi alike.`);
 console.log("No source-level game differences. Actual control positions within 4px, font rendering, 44px target fit and no-scroll visibility remain UNMEASURED: no browser tests ran.");
