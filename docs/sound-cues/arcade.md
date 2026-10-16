@@ -11,6 +11,10 @@ normal speed (Tempo's note keeps its lane pitch). See [README.md](README.md).
 These names never reuse a replay moment cue (the generator checks it): replays use
 `<gameId>.<moment-id>` ([replays.md](replays.md)) and fire only during replays.
 
+The visual effects these moments don't cover (the shared layer's pops, streaks, clears and finishes, and
+renderer effects such as a capsule dropping or a lava jet erupting) have named cues of their own in
+[arcade-effects.md](arcade-effects.md).
+
 Retro Arcade games (Hover, Meteor, Tempo, Breaker, Pinball, Rally, Fission) also play a coin
 when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice only.
 

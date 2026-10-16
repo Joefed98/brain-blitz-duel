@@ -34,6 +34,8 @@ export interface SheetRow {
   cue: string;
   group: string;
   where: string;
+  /** What the effect looks like (arcade-effects.md), so a sound can be written for it; "" elsewhere. */
+  looks: string;
   perRound: string;
   status: Status;
   fileToday: string;
@@ -55,6 +57,12 @@ const manifest = SOUND_MANIFEST as Record<
   { url: string | null; channel: string; ms: number } | undefined
 >;
 const hasFile = (id: string) => !!manifest[id]?.url;
+/** The recording a slot borrows: an app-wide entry (no dot in its id) with the same URL. */
+const sharedRecording = (id: string) => {
+  const url = manifest[id]?.url;
+  if (!url) return null;
+  return Object.keys(manifest).find((other) => other !== id && !other.includes(".") && manifest[other]?.url === url) ?? null;
+};
 const strip = (text: string) => text.replace(/`/g, "").trim();
 
 /** Every table row in docs/sound-cues whose first column is a cue id. */
@@ -277,6 +285,7 @@ export function buildRows(dir = DIR): SheetRow[] {
         cue,
         group,
         where,
+        looks: "",
         perRound: "loop",
         status: file2 ? "recorded sound" : "silent",
         fileToday: file2
@@ -320,12 +329,14 @@ export function buildRows(dir = DIR): SheetRow[] {
     } else {
       slot = cue;
       status = hasFile(cue) ? "recorded sound" : "silent";
-      fileToday = hasFile(cue) ? cue : "";
+      const borrowed = sharedRecording(cue);
+      fileToday = hasFile(cue) ? (borrowed ? `${borrowed} (shared)` : cue) : "";
     }
     rows.push({
       cue,
       group: groupOf(cue, file),
       where: `${where} [${source}]`,
+      looks: strip(cells["looks like"] ?? ""),
       perRound,
       status,
       fileToday,
@@ -343,6 +354,7 @@ export function buildRows(dir = DIR): SheetRow[] {
     rows.push({
       cue: `music.${game.type}`,
       group: game.name,
+      looks: "",
       where: `${game.name} round bed${game.retired ? " (retired, practice)" : ""}: ${own ? slot : `${game.music ?? "none"} (${game.category} bed shared with other games)`}`,
       perRound: "loop",
       status: own || (game.music && hasFile(game.music)) ? "recorded sound" : "silent",
@@ -362,6 +374,7 @@ const COLUMNS: [keyof SheetRow, string][] = [
   ["cue", "cue id"],
   ["group", "game or screen"],
   ["where", "where and when it fires"],
+  ["looks", "what it looks like"],
   ["perRound", "how often in a typical round"],
   ["status", "status"],
   ["fileToday", "file it uses today"],
@@ -478,8 +491,10 @@ function writeSheet(rows: SheetRow[]): void {
     "moment's on-screen length, capped at 6 s for one-shots. **Manifest slot** is the entry in",
     "`src/lib/fx/manifest.ts` whose `url` a new file goes on.",
     "",
-    "Audio files are not stored in this repository: every recorded file is hosted by Lovable",
-    "(`/__l5e/assets-v1/<id>/<name>.mp3`, listed under [Recorded files](#recorded-files)).",
+    "Recorded files are hosted by Lovable (`/__l5e/assets-v1/<id>/<name>.mp3`) or, when they came in through git,",
+    "kept in `public/sounds/` (`/sounds/<recording>.mp3`), one file per recording: several slots may name the same",
+    "file. Every file is listed under [Recorded files](#recorded-files). **What it looks like** describes the arcade",
+    "effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for each.",
     "",
     "## Summary",
     "",
@@ -514,7 +529,7 @@ function writeSheet(rows: SheetRow[]): void {
       );
       for (const r of subset.filter((x) => x.group === group))
         lines.push(
-          `| \`${r.cue}\` | ${mdCell(r.where)} | ${mdCell(r.perRound)} | ${r.status} | ${fileCell(r.fileToday)} | ${r.suggestedMs} | ${r.category} | ${r.slot ? `\`${r.slot}\`` : "none"} |`,
+          `| \`${r.cue}\` | ${mdCell(r.where)} | ${mdCell(r.looks)} | ${mdCell(r.perRound)} | ${r.status} | ${fileCell(r.fileToday)} | ${r.suggestedMs} | ${r.category} | ${r.slot ? `\`${r.slot}\`` : "none"} |`,
         );
       lines.push("");
     }
@@ -551,8 +566,7 @@ function writeSheet(rows: SheetRow[]): void {
   lines.push("## Recorded files", "");
   lines.push(
     "Every file in the manifest. Length is the manifest's `ms` (the decoded length for effects and voice; music",
-    "loops are not measured there). Sizes could not be read from this repository: the files are hosted by Lovable",
-    "and the host is outside this environment's network allowlist.",
+    "loops are not measured there). Files in `public/sounds/` are listed once per slot that names them.",
     "",
     "| File (manifest id) | Channel | Used by | Length (ms) |",
     "|---|---|---|---|",

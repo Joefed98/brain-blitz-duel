@@ -45,7 +45,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Arcade play screen** (15 Oct 2026, display only; `data-arcade-play` in `src/polish-layout/bottom.css`): the live
   round of the 22 arcade games and the five engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed
   Signals) has one 52 px header (a 44 px row, 4 px from the top or just under a notch) with the timer centred, score or
-  PRACTICE left, "?" and sound right. Every arena sits in `ArcadeArenaSlot` (the five engine games use the same box):
+  PRACTICE left, "?" and sound right. In a room (16 Oct 2026) the round and game (`RoundLabel`) sit between the score and
+  the timer, 8 px from each, in place of the round pips, stepping down "Round 2 of 6 · Gemstone" → "Round 2 of 6" over the
+  name → "2/6 · Gemstone" → "2/6" over the name ellipsised (phones get the last; "Final round" on the last round). Every arena sits in `ArcadeArenaSlot` (the five engine games use the same box):
   edge to edge, down to 8 px above its controls or 16 px above the visible bottom, the world at the largest uniform
   scale that fits, top-anchored. The lowest control row ends exactly 16 px above the bottom, inset or not. Every gap is
   `--screen-edge` #070709; there are no per-game arena fills. Why: the largest undistorted world on every phone, the
@@ -62,7 +64,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   cuts the box, the world, a scene canvas or a control, and (16 Oct 2026, bottom-flash fix-up) fails unless the iPhone 11 home-screen
   pass holds still for 3 s after a dispatched resize: root, body and shell heights, `--standalone-short` and the scene canvas size
   unchanged, no root style rewrite, no scene redraw (PhoneShell measures the shortfall once per screen size, orientation and inset,
-  with the growth taken off, so it can't feed back); arcade-play-check and bottom-clearance-check measure every arcade play screen as an
+  with the growth taken off, so it can't feed back), and (16 Oct 2026, Meteor bottom-flash fix) plays Meteor for 5 s at DPR 2 on that setup with a scripted rock landing and shower, failing unless the arena's bottom device rows show exactly what its canvas painted every frame (Meteor's canvas is whole CSS pixels inside its box, never rounded past it, and its retro screen fills it edge to edge); arcade-play-check and bottom-clearance-check measure every arcade play screen as an
   iPhone 11 home-screen app once more the same way. Run them after any arcade play-screen layout change.
 - **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
   Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
@@ -87,7 +89,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `src/lib/fx/soundCues.ts` and `docs/sound-cues/` — named sound cues (`duelz-sound` events,
   `<gameId>.<event>` / `shared.<event>`; `?dev=1` logs them). Every cue, arcade moment and music slot has
   an entry in `src/lib/fx/manifest.ts` (`url: null` until a file is set; `docs/sound-cues/README.md` says how);
-  `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it.
+  `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it. Every arcade-stage visual effect has a cue
+  (`docs/sound-cues/arcade-effects.md`: success effects through `momentFrame` in `src/lib/fx/momentCues.ts`, renderer
+  effects in `gameSounds.ts`); audio files are one per recording in `public/sounds/`, several slots may share one.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -202,7 +206,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   routes through `scripts/safe-area-harness.tsx`, network stubbed) with a 47 px notch and 34 px home bar
   emulated (`Emulation.setSafeAreaInsetsOverride`) at 375×667 and 390×844. It fails if text or a control
   sits under either inset (a scrolling page at its scroll end), a control is covered, or an intro or room
-  moment scrolls. Run it after changing a non-game screen's layout.
+  moment scrolls. It also draws the room's live round (arcade and puzzle screens; 6- and 7-round rooms, the final
+  round, the bank's longest name) at 414×896 as an iPhone 11 home-screen app, 390×844, 375×667, 360×800, 600×900 and
+  1024×768 and fails unless the arcade header stays 44 px (52 px to the arena) with the timer centred and the round label
+  in its widest fitting form, on at most two unwrapped lines, 8 px clear of every header item (`--geometry=<file>` writes
+  every box for a before → after run on main). Run it after changing a non-game screen's or the play header's layout.
 - **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre

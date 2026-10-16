@@ -176,24 +176,31 @@ export const onMuteChange = onSoundSettingsChange;
 
 async function preload(): Promise<void> {
   if (!ctx) return;
+  // Several slots may share one recording: fetch and decode each URL once, then give
+  // every slot that names it the same buffer.
+  const byUrl = new Map<string, string[]>();
+  for (const [name, url] of preloadFiles()) {
+    if (buffers.has(name)) continue;
+    byUrl.set(url, [...(byUrl.get(url) ?? []), name]);
+  }
   await Promise.all(
-    preloadFiles().map(async ([name, url]) => {
-      if (buffers.has(name)) return;
+    [...byUrl].map(async ([url, names]) => {
       try {
-        if (!url) return;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`${response.status}`);
         const bytes = await response.arrayBuffer();
         const context = ctx;
         if (!context) return;
         const decoded = await context.decodeAudioData(bytes);
-        buffers.set(name, decoded);
-        // Looping effects trim MP3 padding at the same -60 dB edges as music.
-        if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url))
-          loopPoints.set(name as SoundId, detectLoopPoints(decoded));
-        failedFiles.delete(name);
+        for (const name of names) {
+          buffers.set(name, decoded);
+          // Looping effects trim MP3 padding at the same -60 dB edges as music.
+          if (EFFECT_LOOPS.has(name as SoundId) && /\.mp3$/i.test(url))
+            loopPoints.set(name as SoundId, detectLoopPoints(decoded));
+          failedFiles.delete(name);
+        }
       } catch (error) {
-        failedFiles.add(name);
+        for (const name of names) failedFiles.add(name);
         warnOnce(`could not load ${url}`, error);
       }
     }),

@@ -14,6 +14,7 @@ import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
+import { markOnboardingSeen } from "@/lib/onboarding";
 import { DuelStart } from "@/components/duel/DuelStart";
 import { RoundTitle } from "@/components/duel/RoundTitle";
 import {
@@ -25,6 +26,7 @@ import {
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
+import { RoundLabel } from "@/components/duel/RoundLabel";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundHighlight } from "@/components/replay/RoundHighlight";
 import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
@@ -239,6 +241,8 @@ function DuelScreen() {
   );
   // Accepted ?dev=1 key enables presentation-only readouts (layout overlay) in rooms too.
   useDemoKey();
+  // Arriving through a room link: no first-time intro now or later (lib/onboarding).
+  useEffect(() => markOnboardingSeen(), []);
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -1081,6 +1085,7 @@ function DuelScreen() {
         title={puzzle ? puzzleName(puzzle.type) : ""}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
+        roundLabel={puzzle ? <RoundLabel round={round} total={duel.round_count ?? TOTAL_ROUNDS} name={puzzleName(puzzle.type)} /> : undefined}
         timer={
           showTimer ? (
             <TimerBar

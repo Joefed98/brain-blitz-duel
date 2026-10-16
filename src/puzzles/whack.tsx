@@ -26,10 +26,12 @@ import {
   WHACK_INPUT_TAP,
   WHACK_RED,
   type WhackState,
+  WHACK_STATUS_RETIRED,
 } from "@/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "@/lib/duel/whack";
 import { WHACK_TIME_MS, type WhackPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
+import { momentFrame } from "@/lib/fx/momentCues";
 import { gridCellAt } from "@/components/puzzles/GridDrag";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
@@ -133,11 +135,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback({
+      game: "whack",
       completeCue: (s) =>
         whackGame.score(s as WhackState) >= END_OF_RUN_FX_SCORE ? "whack.finale" : null,
     });
     let hits = state.current.hits;
     let wrong = state.current.wrong;
+    let bombs = state.current.bombs;
+    let popped = state.current.next;
+    let sunk = 0;
     let flashUntil = 0;
     let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false };
 
@@ -169,10 +175,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (whackGame.isOver(state.current)) break;
         }
       }
+      // Success-effect cues (bonks streak, twenty clean); their own file stands in for the chime.
+      const quiet = momentFrame("whack", state.current);
       if (state.current.hits > hits) {
         hits = state.current.hits;
-        playCorrect();
+        if (!quiet.has("correct")) playCorrect();
       }
+      // A bomb tapped flashes its hole red (it was silent: wrong taps play their own sound).
+      if (state.current.bombs > bombs) {
+        bombs = state.current.bombs;
+        soundCue("whack.bomb");
+      }
+      // A gopher rises; one left unbonked sinks away.
+      if (state.current.next > popped) {
+        popped = state.current.next;
+        if (!whackGame.isOver(state.current)) soundCue("whack.popUp");
+      }
+      const retired = state.current.status.filter((status) => status === WHACK_STATUS_RETIRED).length;
+      if (retired > sunk) soundCue("whack.sink");
+      sunk = retired;
       if (state.current.wrong > wrong) {
         wrong = state.current.wrong;
         playWrong();

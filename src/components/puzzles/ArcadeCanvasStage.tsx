@@ -145,6 +145,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback({
+      game: props.diagKey,
       completeCue: (s) => propsRef.current.completeCue?.(s as S) ?? null,
     });
     const sounds = propsRef.current.sounds?.();
