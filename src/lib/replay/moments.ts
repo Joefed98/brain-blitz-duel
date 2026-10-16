@@ -265,7 +265,7 @@ export function fxEventsFor(game: string, spec?: "orbit3"): readonly ArcadeFxEve
   return specs[game]?.events ?? [];
 }
 
-interface Counter {
+export interface Counter {
   row: MomentRow;
   count: (s: any) => number;
   min?: number;
@@ -363,6 +363,61 @@ function specVariant(puzzle: PuzzleData): "orbit3" | undefined {
 }
 
 /**
+ * Every counter a game's moments read, weight-0 rows included: the shared success
+ * layer's events for the spec the run draws with, then the game's own counters.
+ * Also used live (src/lib/fx/momentCues.ts) so a cue fires on exactly the frame
+ * its effect starts.
+ */
+export function momentCounters(game: string, variant?: "orbit3"): Counter[] {
+  const counters: Counter[] = [];
+  const rows = momentRows(game);
+  const events = fxEventsFor(game, variant);
+  for (const row of rows) {
+    if (!row.fx || row.fx.spec !== variant) continue;
+    const event = events[row.fx.index];
+    if (!event || event.kind !== row.fx.kind) continue;
+    counters.push({
+      row,
+      count: event.count,
+      ...(event.min !== undefined ? { min: event.min } : {}),
+      ...(event.every !== undefined ? { every: event.every } : {}),
+      ...(event.minDelta !== undefined ? { minDelta: event.minDelta } : {}),
+      ...(event.when ? { when: event.when } : {}),
+      ...(event.label ? { label: event.label } : {}),
+      ...(event.at ? { at: event.at } : {}),
+    });
+  }
+  counters.push(...ownCounters(game, rows));
+  return counters;
+}
+
+/**
+ * The shared success layer's firing rule: the counter rises (to at least `min`,
+ * across a multiple of `every`, by at least `minDelta`, with `when` true).
+ */
+export function counterFired(
+  c: Counter,
+  previous: any,
+  state: any,
+): { before: number; after: number } | null {
+  let before: number;
+  let after: number;
+  try {
+    before = Number(c.count(previous)) || 0;
+    after = Number(c.count(state)) || 0;
+  } catch {
+    return null;
+  }
+  if (after <= before) return null;
+  if (c.min !== undefined && after < c.min) return null;
+  if (c.every !== undefined && Math.floor(after / c.every) <= Math.floor(before / c.every))
+    return null;
+  if (c.minDelta !== undefined && after - before < c.minDelta) return null;
+  if (c.when && !safe(() => c.when!(state), false)) return null;
+  return { before, after };
+}
+
+/**
  * Watches one replay tick by tick (feed it to ReplayTimeline as its observer)
  * and collects moments with the shared success layer's firing rule: a counter
  * rises (at `min`, crossing a multiple of `every`, by `minDelta`, `when` true).
@@ -384,44 +439,15 @@ export class MomentDetector {
     this.game = puzzle.type;
     this.lastTick = opts.lastTick;
     this.score = opts.score;
-    const variant = specVariant(puzzle);
-    const rows = momentRows(puzzle.type);
-    const events = fxEventsFor(puzzle.type, variant);
-    for (const row of rows) {
-      if (!row.fx || row.fx.spec !== variant) continue;
-      const event = events[row.fx.index];
-      if (!event || event.kind !== row.fx.kind) continue;
-      this.counters.push({
-        row,
-        count: event.count,
-        ...(event.min !== undefined ? { min: event.min } : {}),
-        ...(event.every !== undefined ? { every: event.every } : {}),
-        ...(event.minDelta !== undefined ? { minDelta: event.minDelta } : {}),
-        ...(event.when ? { when: event.when } : {}),
-        ...(event.label ? { label: event.label } : {}),
-        ...(event.at ? { at: event.at } : {}),
-      });
-    }
-    this.counters.push(...ownCounters(puzzle.type, rows));
+    this.counters = momentCounters(puzzle.type, specVariant(puzzle));
   }
 
   /** The observer: compare this tick's counters with the previous tick's. */
   observe = (state: any, tick: number, previous: any): void => {
     for (const c of this.counters) {
-      let before: number;
-      let after: number;
-      try {
-        before = Number(c.count(previous)) || 0;
-        after = Number(c.count(state)) || 0;
-      } catch {
-        continue;
-      }
-      if (after <= before) continue;
-      if (c.min !== undefined && after < c.min) continue;
-      if (c.every !== undefined && Math.floor(after / c.every) <= Math.floor(before / c.every))
-        continue;
-      if (c.minDelta !== undefined && after - before < c.minDelta) continue;
-      if (c.when && !safe(() => c.when!(state), false)) continue;
+      const fired = counterFired(c, previous, state);
+      if (!fired) continue;
+      const { after, before } = fired;
       if (c.row.weight <= 0) continue;
       // The text the effect shows today; an event with no text gets the row's name.
       const kind = c.row.fx?.kind;

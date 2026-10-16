@@ -110,6 +110,36 @@ for (const cue of new Set(dispatched))
     rows.some((r) => r.cue === cue),
     `code dispatches ${cue}: not in docs/sound-cues`,
   );
+// Arcade effect cues (arcade-effects.md): every success-effect row names a real moment and a
+// documented, slotted cue that is not a replay cue; every documented effect cue is fired somewhere.
+const { MOMENT_CUES } = await import("../src/lib/fx/momentCues");
+const { MOMENT_TABLE } = await import("../src/lib/replay/moments");
+const replayCues = new Set(MOMENT_TABLE.map((m) => `${m.game}.${m.id}`));
+const effectRows = rows.filter((r) => r.where.endsWith("[arcade-effects.md]"));
+const knownSounds = new Set([...ids, "complete", "combo", "correct"]);
+for (const m of MOMENT_CUES) {
+  check(
+    MOMENT_TABLE.some((row) => row.game === m.game && row.id === m.moment),
+    `MOMENT_CUES ${m.cue}: no moment ${m.game}.${m.moment}`,
+  );
+  check(m.cue.startsWith(`${m.game}.`), `MOMENT_CUES ${m.cue}: must be ${m.game}.<event>`);
+  check(!replayCues.has(m.cue), `MOMENT_CUES ${m.cue}: reuses a replay cue name`);
+  check(effectRows.some((r) => r.cue === m.cue), `MOMENT_CUES ${m.cue}: not in arcade-effects.md`);
+  for (const r of m.replaces ?? [])
+    check(knownSounds.has(r), `MOMENT_CUES ${m.cue}: replaces unknown sound ${r}`);
+}
+check(
+  new Set(MOMENT_CUES.map((m) => m.cue)).size === MOMENT_CUES.length,
+  "MOMENT_CUES: a cue is listed twice",
+);
+for (const row of effectRows) {
+  check(!replayCues.has(row.cue), `${row.cue}: reuses a replay cue name`);
+  check(!!row.looks, `${row.cue}: arcade-effects.md row has no "looks like"`);
+  check(
+    MOMENT_CUES.some((m) => m.cue === row.cue) || dispatched.includes(row.cue),
+    `arcade-effects.md lists ${row.cue}: nothing fires it`,
+  );
+}
 const gameSounds = readFileSync("src/lib/fx/gameSounds.ts", "utf8");
 const arcadeInCode = new Set(
   [

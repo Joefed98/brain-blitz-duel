@@ -13,6 +13,7 @@ import {
   WF_INPUT_ENTER,
   WF_INPUT_TAP,
   WF_PAR,
+  WF_ROWS,
   WF_W,
   WORDFALL_REV,
   type WordfallState,
@@ -25,6 +26,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { WORDFALL_TIME_MS, type WordfallPuzzleData } from "@/lib/duel/types";
 import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
+import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -117,6 +119,7 @@ function observer(setDev: (line: string | null) => void) {
     let seen: { tick: number; words: number; invalid: number; chain: number; over: number } | null = null;
     let lastDev = -1;
     let shimmered = false;
+    let danger = 0;
     return {
       frame: (s: WordfallState, running: boolean) => {
         // The renderer starts the end-of-run shimmer on this same frame.
@@ -125,8 +128,16 @@ function observer(setDev: (line: string | null) => void) {
           wordfallStartShimmer(s);
           wordCue("wordfall.finish");
         }
+        // Success-effect cues (a six-letter word, par reached); a long word's own file stands in for the chime.
+        const quiet = momentFrame("wordfall", s);
+        // A column one tile from full starts glowing red.
+        const near = s.well.filter((stack) => stack.length >= WF_ROWS - 1).length;
+        if (near > danger && running && !s.over) liveCue("wordfall.danger");
+        danger = near;
         if (seen && s.tick >= seen.tick && running) {
-          if (s.words > seen.words) playCorrect();
+          if (s.words > seen.words) {
+            if (!quiet.has("correct")) playCorrect();
+          }
           else if (s.invalid > seen.invalid || (s.over && !seen.over)) playWrong();
           else if (s.chain.length > seen.chain) playTick(0.6);
         }

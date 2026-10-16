@@ -194,12 +194,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback({
+      game: "tendrop",
       completeCue: (s) =>
         (s as { cleared: number }).cleared >= TD_TARGETS ? "tendrop.solve" : null,
     });
     let seenCleared = 0;
     let seenResets = 0;
     let seenRefused = 0;
+    let seenStage = 0;
     let seenLogTick = 0;
     let shownKey = "";
 
@@ -239,6 +241,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenRefused = s.refused;
         playTick();
         soundCue("tendrop.refused");
+      }
+      // The next target: the old lane's tiles fade out.
+      if (s.stage > seenStage) {
+        seenStage = s.stage;
+        if (!tenDropGame.isOver(s)) soundCue("tendrop.nextTarget");
       }
       for (const entry of s.log) {
         const e = unpackTdLog(entry);

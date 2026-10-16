@@ -35,10 +35,11 @@ import {
   CLAY_W,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
-import { clayChargesEmptyShots, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV5 } from "@/lib/arcade/clayShoot";
+import { CLAY_WAITING, clayChargesEmptyShots, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV5 } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
+import { momentFrame } from "@/lib/fx/momentCues";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -212,12 +213,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let accumulator = 0;
     let draftAt = 0;
     const feedback = arcadeFeedback({
+      game: "clayshoot",
       completeCue: (s) =>
         game.score(s as ClayState) >= END_OF_RUN_FX_SCORE ? "clayshoot.finalBurst" : null,
     });
     let seenHits = 0;
     let seenGold = 0;
     let seenBirds = 0;
+    let seenLaunched = 0;
+    let seenShot = -100;
     let shownKey = "";
 
     const loop = (time: number) => {
@@ -242,9 +246,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
       const s = state.current;
+      // Success-effect cues (clays streak, double): their own file stands in for the plain shatter cue.
+      const quiet = momentFrame("clayshoot", s);
+      // A clay leaves its trap.
+      const launched = s.status.filter((status) => status !== CLAY_WAITING).length;
+      if (launched > seenLaunched && !game.isOver(s)) soundCue("clayshoot.launch");
+      seenLaunched = launched;
+      // A shot that hits nothing leaves a smoke puff.
+      if (s.shotTick > seenShot && !s.shotHit) soundCue("clayshoot.missPuff");
+      seenShot = s.shotTick;
       if (s.hits > seenHits) {
         for (let n = seenHits; n < s.hits; n++) playSound("pz_clay_hit", 1, 1, true);
-        soundCue(s.goldHits > seenGold ? "clayshoot.goldShatter" : "clayshoot.shatter");
+        if (s.goldHits > seenGold) soundCue("clayshoot.goldShatter");
+        else if (!quiet.has("clayshoot.shatter")) soundCue("clayshoot.shatter");
         seenHits = s.hits;
         seenGold = s.goldHits;
       }
