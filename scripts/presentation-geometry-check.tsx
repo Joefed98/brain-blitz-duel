@@ -173,8 +173,13 @@ assert.match(shell, /data-arcade-header className="grid h-11 shrink-0 grid-cols-
 assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">\s*<div data-round-heading data-game-topbar data-arcade-header/, "4px from the header to the arena");
 assert.match(shell, /\{!bare && !arcadePlay && \(/, "the shell's own top bar gives way on arcade play screens");
 assert.match(shell, /useStandaloneShortfall\(arcadePlay && constrained\);/, "the play screen measures an iOS home-screen app's shortfall");
-assert.match(shell, /\(navigator as Navigator & \{ standalone\?: boolean \}\)\.standalone === true/, "only in an iOS home-screen app");
-assert.match(shell, /short = Math\.round\(Math\.min\(inset, Math\.max\(0, screenH - dvh\)\)\);/, "the shortfall is the screen less 100dvh, at most the top inset");
+assert.match(shell, /\(navigator as Navigator & \{ standalone\?: boolean \}\)\.standalone !== true\) return null;/, "only in an iOS home-screen app");
+assert.match(shell, /return Math\.round\(Math\.min\(inset, Math\.max\(0, screenH - dvh\)\)\);/, "the shortfall is the screen less 100dvh, at most the top inset");
+// No feedback (16 Oct 2026): measured once per geometry with the root's growth taken off first, written only on a change.
+assert.match(shell, /if \(key !== shortfall\.key\) \{/, "the shortfall is measured once per screen size, orientation and inset");
+assert.match(shell, /function measureShortfall[\s\S]*?root\.style\.removeProperty\("--standalone-short"\);[\s\S]*?height:100dvh/, "measured with the root at its own height");
+assert.match(shell, /if \(root\.style\.getPropertyValue\("--standalone-short"\) === want\) return;/, "an unchanged shortfall writes nothing");
+assert.match(readFileSync("src/components/puzzles/ArcadeArenaSlot.tsx", "utf8"), /if \(at === painted\) return;/, "the arena scene repaints only when its integer canvas size or the world's place changes");
 /** Px from the top of the screen to the arena slot: 4px (or the notch's inset) + 44px header + 4px. */
 const HEADER_AT = (inset: number) => Math.max(4, inset) + 44 + 4;
 const HEADER = HEADER_AT(0);
