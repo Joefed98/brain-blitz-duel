@@ -5,6 +5,8 @@ import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
 import type { CanvasSize } from './engine';
 import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_FAILS, INK_LEVELS, INK_NO_DRAW_ZONE_PX, INK_LIVE_PRE_CAP, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkState } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
+import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
+import { artHash } from './art.renderer';
 import { COUNTRY_SKY as SKY, COUNTRY_GRASS as GRASS, countryCloud as cloud, countryClock, countryStamp } from './countryside.renderer';
 
 /* Private geometry mirrors: 7px coin, 4px rim caps, 6px stroke. */
@@ -217,8 +219,13 @@ function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number): vo
   fill.addColorStop(0,'#78C957');fill.addColorStop(0.35,GRASS);fill.addColorStop(1,'#3C8A36');
   c.save();inkGroundPath(c,base,x);c.fillStyle=fill;c.fill();c.clip();
   stamp(c,'inkgrass',INK_WORLD_W,INK_WORLD_H,0,0,inkGrass);
-  // A sunlit crest line along the top of the hill (inside the ground).
-  inkGroundPath(c,base,x);c.strokeStyle='#B4E88A';c.lineWidth=3;c.stroke();
+  // A sunlit crest line along the top of the hill (inside the ground). Only the crest: the
+  // outline's sides and bottom are the world's edges, which meet the arena scene unlined.
+  c.beginPath();c.moveTo(0,base+12);
+  c.quadraticCurveTo(Math.max(0,x-80),base+12,x-32,base);
+  c.lineTo(x+32,base);
+  c.quadraticCurveTo(Math.min(INK_WORLD_W,x+80),base+12,INK_WORLD_W,base+12);
+  c.strokeStyle='#B4E88A';c.lineWidth=3;c.stroke();
   c.restore();
 }
 
@@ -311,3 +318,68 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
 export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more grass and hillside
+ * below the ground, out to the arena box's edges (and, beside the world on a narrower
+ * phone, the same sky, far hills and ground at this level's ground line, `groundY`). Grass,
+ * clover and a few flowers only: no pot, coin, birds, blocks or rainbow, and nothing moves.
+ */
+export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number): void {
+  const H = INK_WORLD_H;
+  for (const side of sceneSides(view)) {
+    const left = side.x < 0;
+    sceneFill(ctx, side, 0, H, [[0, '#3E9EE0'], [0.45, '#7CC6EF'], [0.85, '#C9EAF7'], [1, '#E4F5FA']]);
+    ctx.fillStyle = 'rgba(132,186,196,0.55)';
+    ctx.fillRect(side.x, left ? 548 : 528, side.w, H);
+    ctx.fillStyle = 'rgba(146,206,128,0.8)';
+    ctx.fillRect(side.x, left ? 578 : 570, side.w, H);
+    const ground = { x: side.x, y: groundY, w: side.w, h: H - groundY };
+    if (ground.h > 0) {
+      sceneFill(ctx, ground, groundY - 12, H, [[0, '#78C957'], [0.35, GRASS], [1, '#3C8A36']]);
+      ctx.fillStyle = '#B4E88A';
+      ctx.fillRect(side.x, groundY - 1.5, side.w, 3);
+    }
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  sceneFill(ctx, below, H, view.bottom, [[0, '#3C8A36'], [Math.min(1, 150 / below.h), '#347C30'], [1, '#2B6A2A']]);
+  // Hillside: soft rolling folds in the turf, lighter on their upper edge.
+  ctx.save();
+  for (let k = 0, y = H + 34; y < view.bottom - 10; k++, y += 46 + (k % 3) * 10) {
+    const lift = 10 + (k % 2) * 6;
+    ctx.fillStyle = k % 2 ? 'rgba(20,70,25,0.16)' : 'rgba(170,230,120,0.08)';
+    ctx.beginPath();
+    ctx.moveTo(below.x, y + lift);
+    ctx.quadraticCurveTo(below.x + below.w * (0.3 + (k % 3) * 0.15), y - lift, below.x + below.w, y + lift * 0.4);
+    ctx.lineTo(below.x + below.w, y + 40);
+    ctx.lineTo(below.x, y + 40);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Clover clumps, then blades in the world's two tones.
+  const clumps = Math.round((below.w * below.h) / 2200);
+  for (let i = 0; i < clumps; i++) {
+    const h = artHash(i, 517);
+    const x = below.x + (h % 10007) / 10007 * below.w, y = below.y + 6 + ((h >>> 14) % 9973) / 9973 * Math.max(0, below.h - 8);
+    ctx.fillStyle = i % 2 ? 'rgba(40,110,45,0.16)' : 'rgba(170,230,120,0.12)';
+    ctx.beginPath(); ctx.ellipse(x, y, 10 + (i % 4) * 3, 3 + (i % 3), 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  sceneBlades(ctx, below, 0x1b1d, ['rgba(220,255,170,0.2)', 'rgba(28,90,38,0.26)', 'rgba(70,150,60,0.22)'], 45, 6);
+  const petals = ['#FFFFFF', '#FFE45C', '#FF9EC4', '#C9B6FF'];
+  const flowers = Math.round((below.w * below.h) / 3600);
+  for (let i = 0; i < flowers; i++) {
+    const h = artHash(i, 523);
+    const x = below.x + 6 + (h % 10007) / 10007 * (below.w - 12), y = below.y + 10 + ((h >>> 14) % 9973) / 9973 * Math.max(0, below.h - 16), r = 1.3 + (i % 3) * 0.3;
+    ctx.fillStyle = petals[i % petals.length]!;
+    for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(x + Math.cos(k * Math.PI / 2) * r, y + Math.sin(k * Math.PI / 2) * r, r * 0.8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#F3B33D'; ctx.beginPath(); ctx.arc(x, y, r * 0.6, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+/** The world's ground line at its left and right edges for the current level (the scene meets it). */
+export function inkSceneGround(state: InkState): number {
+  const lvl = state.list[Math.min(state.level, state.list.length - 1)];
+  return lvl ? lvl.bucketY + INK_BUCKET_H + 12 : INK_WORLD_H;
+}

@@ -68,5 +68,6 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
   console.log(`PASS ${file}: controls below the fitted arena, ${tall}px tall, ≥${Math.min(...[375, 390, 430].map(width)).toFixed(1)}px wide at 375–430px.`);
 }
 const stage = readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8");
-assert.match(stage, /<ArcadeArenaSlot[^>]*>\{arena\}<\/ArcadeArenaSlot>[\s\S]*\{props\.footer\?\.\(push\)\}/, "footer renders after the slot");
+// The slot's props may span lines and hold an arrow function (the arena scene's `=>`), so match lazily to the tag's end.
+assert.match(stage, /<ArcadeArenaSlot\b[\s\S]*?>\s*\{arena\}\s*<\/ArcadeArenaSlot>[\s\S]*\{props\.footer\?\.\(push\)\}/, "footer renders after the slot");
 console.log("PASS eight instruction captions removed; live progress kept; action gaps 12px. Source arithmetic only: no browser/pixel measurements or identity proofs.");

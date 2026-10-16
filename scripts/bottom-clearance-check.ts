@@ -30,7 +30,7 @@
  * out in WebKit's 848 px viewport, navigator.standalone and display-mode: standalone), where
  * the play screen adds the shortfall to its height. It fails unless the column and the lowest
  * control (or the arena box) end exactly 16 px above the screen's bottom (896), nothing clips the
- * arena box, the world or a control above its own bottom (every clipping ancestor, html and body
+ * arena box, the world, the scene canvas or a control above its own bottom (every clipping ancestor, html and body
  * included, reaches at least as far down) and the page is not scrolled.
  *
  * Seams (15 Oct 2026): every puzzle's intro, live stage and timed-out reveal is drawn with a
@@ -335,6 +335,9 @@ function appMeasure(screenH: number): AppMeasure {
   const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
   if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
   if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
+  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
+  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
   const lowestIs = lowest > -Infinity ? "lowest control" : "arena box";
   const lowestBottom = lowest > -Infinity ? lowest : slot?.getBoundingClientRect().bottom ?? null;
   const round = (v: number) => Math.round(v * 10) / 10;

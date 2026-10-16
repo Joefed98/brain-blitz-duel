@@ -27,7 +27,7 @@
  *    the arena box does;
  *  - the header row starts max(4 px, top inset) down;
  *  - Tilt's world sits centred vertically in its box (its spare height split evenly);
- *  - nothing clips the arena box, the world or any control above its own bottom: every
+ *  - nothing clips the arena box, the world, the scene canvas (ARENA_SCENE_GAMES) or any control above its own bottom: every
  *    ancestor that clips (overflow other than visible, html and body included) reaches at
  *    least as far down (fix-up of 15 Oct 2026: html and body, 100% of the short viewport and
  *    overflow hidden under game-lock, cut tall worlds and the lowest controls at 848 px);
@@ -126,6 +126,9 @@ function geometry(): Geometry {
   const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
   if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
   if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
+  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
+  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
   return {
     shell: box(shell),
     columnEnd: columnEnd == null ? null : Math.round(columnEnd * 10) / 10,

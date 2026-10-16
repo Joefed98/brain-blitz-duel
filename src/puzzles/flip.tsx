@@ -12,7 +12,7 @@ import {
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
-import { flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
+import { flipArenaScene, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -45,6 +45,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={gameDisplayName("flip")}
       background={FLIP_BG}
       fitWorld
+      scene={flipArenaScene}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}

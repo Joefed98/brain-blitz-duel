@@ -11,7 +11,8 @@ That holds in an iOS home-screen app too, whose layout viewport is short by the 
 screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,
 arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).
 The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the
-screen edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
+screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,
+below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
 browser by arcade-play-check; not device measurements.
 
 | Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |
@@ -44,6 +45,28 @@ browser by arcade-play-check; not device measurements.
 | Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 0px | 286px | 0px | - |
 | Pull! | 360x400 | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | 1.083x | 78px | 0px | 317px | 0px | - |
 | Mixed Signals | 390x560 | 375x539 → 375x538 | 390x572 → 390x560 | 390x716 → 390x560 | 414x724 → 414x594 | 430x804 → 430x617 | 1280x672 → 468x672 | 1.000x | 52px | 0px | 156px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
+
+## Arena scenes (15 Oct 2026)
+
+Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen
+only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is
+unchanged (same size, scale, place and pointer mapping). The scene is drawn once per screen size (never per frame) on a
+pointer-events: none canvas, so a tap or drag in it reaches no game handler and records no input. Scene box → world
+box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a
+390x733 scene).
+
+| Game | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scene beyond the world |
+|---|---|---|---|---|---|---|---|
+| Gemstone | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | more starry velvet backdrop below the board |
+| Tilt | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | the board's rim on more of the lamp-lit wooden table |
+| Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | more grass below the 4x4 field |
+| Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
+| Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
+| Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
+| Pull! | 375x573 → 375x417 | 390x606 → 390x433 | 390x750 → 390x433 | 414x758 → 414x460 | 430x838 → 430x478 | 1280x706 → 635x706 | more field below |
+| Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | still deep rock below the floor's rock |
+| Rainbow Bridge | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | grass and hillside below the ground (sky, hills and ground beside the world) |
+| Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 

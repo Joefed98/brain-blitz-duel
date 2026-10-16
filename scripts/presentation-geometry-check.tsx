@@ -11,6 +11,25 @@ import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
+import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
+
+/** Arena scenes (15 Oct 2026): each scene game's stage file and what fills its box beyond the world. */
+const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
+  matchup: "matchup", tilt: "tilt", whack: "whack", tendrop: "tenDrop", bullseye: "bullseye",
+  bintoss: "binToss", clayshoot: "clayShoot", flip: "flip", inkbridge: "inkBridge", cross: "cross",
+};
+const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
+  matchup: "more starry velvet backdrop below the board",
+  tilt: "the board's rim on more of the lamp-lit wooden table",
+  whack: "more grass below the 4x4 field",
+  tendrop: "a sill closing the columns, then the frame's rails and a shaded backing to a foot rail",
+  bullseye: "the counter's front, a kick board and the fairground floor",
+  bintoss: "the counter's front, a kick board and the fairground floor (sky and counter beside the world)",
+  clayshoot: "more field below",
+  flip: "still deep rock below the floor's rock",
+  inkbridge: "grass and hillside below the ground (sky, hills and ground beside the world)",
+  cross: "the start pavement runs on between grass verges to a grass strip",
+};
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.
 const window = new Window();
@@ -117,6 +136,19 @@ assert.match(css2, /\[data-arena-slot\] \{[^}]*background: var\(--screen-edge\);
 assert.match(css2, /\[data-arena-slot\]::after \{[^}]*background: var\(--screen-edge\);/, "the space below the world is the screen edge's black");
 assert.doesNotMatch(css2, /--arena-fill/, "no per-game arena fill");
 assert.match(css2, /--screen-edge: #070709;/);
+// Arena scenes (15 Oct 2026): hidden off the play screen, shown on it, behind the world, never touched.
+assert.match(css2, /\[data-arena-slot\] > \[data-arena-scene\] \{[^}]*display: none;[^}]*position: absolute;[^}]*inset: 0;[^}]*pointer-events: none;/, "arena scene is an untouchable layer, hidden by default");
+assert.match(css2, /\[data-arcade-play\] \[data-arena-slot\] > \[data-arena-scene\] \{\s*display: block;\s*\}/, "arena scene shows on the arcade play screen only");
+assert.match(css2, /\[data-arena-slot\]\[data-scene\] > \[data-game-arena\] \{\s*position: relative;\s*\}/, "the world paints over its scene");
+{
+  const slotSrc = readFileSync("src/components/puzzles/ArcadeArenaSlot.tsx", "utf8");
+  assert.match(slotSrc, /data-arena-scene="" aria-hidden="true"/);
+  assert.doesNotMatch(slotSrc, /onPointer|onClick|onTouch/, "the arena slot and its scene have no input handlers");
+  for (const game of ARENA_SCENE_GAMES) {
+    const file = readFileSync(`src/puzzles/${SCENE_FILES[game]}.tsx`, "utf8");
+    assert.match(file, /scene=\{/, `${game}: stage passes its arena scene`);
+  }
+}
 assert.match(css2, /@utility pad-game-safe \{[^}]*padding-bottom: calc\(env\(safe-area-inset-bottom, 0px\) \+ 16px\);/, "puzzles keep inset + 16px");
 const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
 assert.match(bottomCss, /\[data-arcade-play\] > \[data-game-column\] \{\s*padding-top: max\(4px, env\(safe-area-inset-top, 0px\)\);\s*padding-bottom: 16px;\s*padding-left: env\(safe-area-inset-left, 0px\);\s*padding-right: env\(safe-area-inset-right, 0px\);\s*\}/, "arcade play column: 4px or the notch on top, 16px at the bottom whatever the inset, no side insets");
@@ -248,11 +280,22 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,",
   "arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).",
   "The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the",
-  "screen edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
+  "screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,",
+  "below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
   "browser by arcade-play-check; not device measurements.", "",
   `| Game | World | ${PHONE_SIZES.join(" | ")} | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |`,
   `|---|---|${ARENA_SIZES.map(() => "---").join("|")}|---|---|---|---|---|---|`,
   ...[...arenaTable].map(([game, { world, sizes, detail }]) => `| ${gameDisplayName(game as never)} | ${world} | ${sizes.join(" | ")} | ${detail} |`), "",
+  "## Arena scenes (15 Oct 2026)", "",
+  "Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen",
+  "only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is",
+  "unchanged (same size, scale, place and pointer mapping). The scene is drawn once per screen size (never per frame) on a",
+  "pointer-events: none canvas, so a tap or drag in it reaches no game handler and records no input. Scene box → world",
+  "box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a",
+  "390x733 scene).", "",
+  `| Game | ${PHONE_SIZES.join(" | ")} | Scene beyond the world |`,
+  `|---|${ARENA_SIZES.map(() => "---").join("|")}|---|`,
+  ...ARENA_SCENE_GAMES.map((game) => `| ${gameDisplayName(game)} | ${arenaTable.get(game)?.sizes.join(" | ") ?? "-"} | ${ARENA_SCENE_NOTES[game]} |`), "",
   "## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix", "",
   "414x896 with a 48px notch and 34px home bar. Before, the app was laid out in WebKit's 848px viewport and the column ended",
   "16px above that: 64px above the bottom of the screen (measured on a device as about 65px). Box → world, then the gap from the",

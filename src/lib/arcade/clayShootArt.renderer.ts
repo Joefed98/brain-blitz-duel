@@ -29,6 +29,7 @@ import {
 import type { CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
+import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
@@ -812,4 +813,42 @@ export function drawClayFinalBurst(c: CanvasRenderingContext2D, ms: number, widt
     }
   }
   c.globalAlpha = 1;
+}
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more of the field
+ * below the world (and sky and field beside it on a wide screen), from the world's own
+ * edge colours out to the arena box's edges. Grass and a few flowers only: no clays,
+ * birds, traps or clouds, and nothing moves.
+ */
+export function clayArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  for (const side of sceneSides(view)) {
+    sceneFill(ctx, side, 0, GRASS_TOP, [[0, "#1C4774"], [0.42, "#3A78AE"], [0.78, "#79AFD8"], [0.92, "#B4D3E7"], [1, "#CFE2EC"]]);
+    const field = { x: side.x, y: GRASS_TOP, w: side.w, h: side.y + side.h - GRASS_TOP };
+    if (field.h > 0) {
+      sceneFill(ctx, field, GRASS_TOP, H, [[0, "#557E3C"], [0.35, "#4A7436"], [1, "#2A4723"]]);
+      sceneBlades(ctx, field, 0xc1a5, ["rgba(170,205,120,0.3)", "rgba(15,45,20,0.34)", "rgba(110,150,80,0.3)"], 90, 5);
+    }
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  sceneFill(ctx, below, H, view.bottom, [[0, "#284421"], [Math.min(1, 140 / below.h), "#20391B"], [1, "#1A2F16"]]);
+  sceneBlades(ctx, below, 0xc1a6, ["rgba(170,205,120,0.26)", "rgba(15,45,20,0.4)", "rgba(110,150,80,0.28)"], 55, 6);
+  const flowers = Math.round((below.w * below.h) / 7000);
+  for (let i = 0; i < flowers; i++) {
+    const x = below.x + 4 + hash(i, 31) * (below.w - 8);
+    const y = below.y + 8 + hash(i, 32) * Math.max(0, below.h - 12);
+    ctx.fillStyle = i % 3 === 0 ? "rgba(255,230,120,0.6)" : "rgba(245,245,240,0.55)";
+    ctx.beginPath();
+    ctx.arc(x, y, 1.1, 0, TAU);
+    ctx.fill();
+  }
+  // The world's corner vignette, carried on down the sides.
+  for (const [x0, dir] of [[below.x, 1], [below.x + below.w, -1]] as const) {
+    const g = ctx.createLinearGradient(x0, 0, x0 + dir * 70, 0);
+    g.addColorStop(0, "rgba(5,15,35,0.2)");
+    g.addColorStop(1, "rgba(5,15,35,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(dir > 0 ? x0 : x0 - 70, below.y, 70, below.h);
+  }
 }

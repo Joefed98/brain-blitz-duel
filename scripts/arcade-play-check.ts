@@ -44,8 +44,11 @@
  *    414 × 896 with 48 / 34 px insets, laid out in WebKit's 848 px viewport, navigator.standalone
  *    and display-mode: standalone), the column and the lowest control (or the box) not ending
  *    16 px above the screen's bottom, the arena not the same size as in Safari on that phone, the
- *    page scrolled, or the box, the world or a control cut short by any clipping ancestor (html
- *    and body included);
+ *    page scrolled, or the box, the world, the scene canvas or a control cut short by any
+ *    clipping ancestor (html and body included);
+ *    for the ten ARENA_SCENE_GAMES (15 Oct 2026), the scene canvas missing, hidden, not
+ *    filling the box, not behind the world, or taking touches (a point below the world
+ *    must hit the bare slot); any other game carrying a scene;
  *  - Letterfall: its word list was not cached on the device (IndexedDB) after play.
  *
  * It starts its own Vite dev server unless --url=<origin> is given.
@@ -69,6 +72,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
+import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
 import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
@@ -382,6 +386,9 @@ function playScreen() {
   const clips: { what: string; bottom: number; clip: Clip }[] = [];
   if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
   if (arena) clips.push({ what: "world", bottom: arena.getBoundingClientRect().bottom, clip: clipBottom(arena) });
+  // Arena scenes (15 Oct 2026): the scene canvas fills the box, so its bottom is the box's.
+  const sceneEl = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (sceneEl) clips.push({ what: "scene canvas", bottom: sceneEl.getBoundingClientRect().bottom, clip: clipBottom(sceneEl) });
   for (const b of below) clips.push({ what: `control "${b.getAttribute("aria-label") ?? b.getAttribute("data-game-controls") ?? (b.textContent ?? "").trim().slice(0, 24)}"`, bottom: b.getBoundingClientRect().bottom, clip: clipBottom(b) });
   return {
     clips,
@@ -389,6 +396,22 @@ function playScreen() {
     standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
     displayMode: matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
     slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
+    // Arena scenes (15 Oct 2026): the game's own scenery canvas behind the world, if any.
+    scene: (() => {
+      const el = slot?.querySelector(":scope > [data-arena-scene]");
+      if (!el || !arena) return null;
+      const cs = getComputedStyle(el);
+      return {
+        box: box(el), display: cs.display, pointer: cs.pointerEvents,
+        behind: !!(el.compareDocumentPosition(arena) & Node.DOCUMENT_POSITION_FOLLOWING) && getComputedStyle(arena).position !== "static",
+        hit: (() => {
+          const s = slot!.getBoundingClientRect(), a = arena.getBoundingClientRect();
+          if (s.bottom - a.bottom < 4) return "none";
+          const top = document.elementFromPoint(s.left + s.width / 2, (a.bottom + s.bottom) / 2);
+          return top === el ? "scene" : top === slot ? "slot" : top?.tagName ?? "nothing";
+        })(),
+      };
+    })(),
     header: box(header), timer: box(timer), smallestText: Math.min(...texts.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))),
     colours: {
       slot: slot ? getComputedStyle(slot).backgroundColor : "",
@@ -451,6 +474,17 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     } else if (Math.abs(arena.y - slot.y) > 0.5) problems.push(`${at}: arena not top-anchored in its slot`);
     if (Math.abs(arena.x - slot.x - (slot.w - arena.w) / 2) > 0.5) problems.push(`${at}: arena not centred across its slot`);
     if (m.canvas && (Math.abs(m.canvas.w - arena.w) > 1 || Math.abs(m.canvas.h - arena.h) > 1)) problems.push(`${at}: canvas does not fill the arena`);
+    if ((ARENA_SCENE_GAMES as readonly string[]).includes(game)) {
+      const sc = m.scene;
+      if (!sc || !sc.box) problems.push(`${at}: no arena scene canvas`);
+      else {
+        if (sc.display === "none") problems.push(`${at}: arena scene hidden on the play screen`);
+        if (Math.abs(sc.box.x - slot.x) > 0.5 || Math.abs(sc.box.y - slot.y) > 0.5 || Math.abs(sc.box.w - slot.w) > 0.5 || Math.abs(sc.box.h - slot.h) > 0.5) problems.push(`${at}: arena scene ${sc.box.w.toFixed(1)}x${sc.box.h.toFixed(1)} does not fill the box ${slot.w.toFixed(1)}x${slot.h.toFixed(1)}`);
+        if (sc.pointer !== "none") problems.push(`${at}: arena scene takes touches (pointer-events ${sc.pointer})`);
+        if (!sc.behind) problems.push(`${at}: arena scene is not behind the world`);
+        if (sc.hit === "scene" || (sc.hit !== "none" && sc.hit !== "slot")) problems.push(`${at}: a touch below the world lands on ${sc.hit}, want the slot (no game handler)`);
+      }
+    } else if (m.scene) problems.push(`${at}: arena scene on a game not in ARENA_SCENE_GAMES`);
     for (const [where, colour] of Object.entries(m.colours))
       if (colour !== EDGE_RGB) problems.push(`${at}: ${where} painted ${colour}, not the screen edge's black ${EDGE_RGB}`);
     if (Math.abs(m.fillW - arena.w) > 1) problems.push(`${at}: black below the arena is ${m.fillW.toFixed(1)} px wide, not the arena's ${arena.w.toFixed(1)}`);

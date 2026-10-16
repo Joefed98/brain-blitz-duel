@@ -57,8 +57,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
   the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
   standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
-  cuts the box, the world or a control; arcade-play-check and bottom-clearance-check measure every arcade play screen as an
+  cuts the box, the world, a scene canvas or a control; arcade-play-check and bottom-clearance-check measure every arcade play screen as an
   iPhone 11 home-screen app once more the same way. Run them after any arcade play-screen layout change.
+- **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
+  Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
+  behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
+  screen size, never per frame, `pointer-events: none`, so a tap or drag in it records no input); the world, its place
+  and its tap mapping are unchanged, and the gap is black elsewhere.
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.

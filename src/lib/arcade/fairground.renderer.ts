@@ -13,6 +13,7 @@ import type { CanvasSize } from "./engine";
 import { artReady, drawArtSprite } from "./sprites.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 export const FAIR_SKY_TOP = "#0D1838";
 export const FAIR_SKY_MID = "#3B2C63";
@@ -404,4 +405,88 @@ export function fairChangeAge(ctx: CanvasRenderingContext2D, name: string, value
     old.at = grew ? now : -Infinity;
   }
   return now - old.at;
+}
+
+/**
+ * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts) for the fairground
+ * stalls: beside the world, more evening sky down to the counter line; below it, the
+ * stall counter's front runs on (the same wood and plank lines, or the same tiled art)
+ * to a kick board, then the fairground's trodden floor under the bulbs' warm light, out
+ * to the arena box's edges. No targets, bunting, pennants or anything that moves.
+ */
+export function fairArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, counterWorldY: number): void {
+  const art = artReady("fairground", "counter");
+  const wood = (x: number, y: number, w: number, h: number) => {
+    if (h <= 0 || w <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    if (art) {
+      const tile = 96;
+      const x0 = Math.floor(x / tile) * tile;
+      const y0 = counterWorldY + Math.floor((y - counterWorldY) / tile) * tile;
+      for (let ty = y0; ty < y + h; ty += tile)
+        for (let tx = x0; tx < x + w; tx += tile) drawArtSprite(ctx, "fairground", "counter", tx, ty, tile, tile);
+    } else {
+      ctx.fillStyle = FAIR_WOOD;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = FAIR_WOOD_DARK;
+      const lineW = 1 / Math.max(0.01, view.scale);
+      for (let px = Math.ceil(x / 48) * 48; px < x + w; px += 48) if (px > 0) ctx.fillRect(px, Math.max(y, counterWorldY + 4), lineW, h);
+    }
+    ctx.restore();
+  };
+  for (const side of sceneSides(view)) {
+    const skyH = Math.max(0, Math.min(side.h, counterWorldY - side.y));
+    if (skyH > 0) {
+      const g = ctx.createLinearGradient(0, 0, 0, counterWorldY);
+      g.addColorStop(0, FAIR_SKY_TOP);
+      g.addColorStop(0.6, FAIR_SKY_MID);
+      g.addColorStop(1, FAIR_HORIZON);
+      ctx.fillStyle = g;
+      ctx.fillRect(side.x, side.y, side.w, skyH);
+    }
+    wood(side.x, counterWorldY, side.w, side.y + side.h - counterWorldY);
+  }
+  const below = sceneBelow(view);
+  if (!below) return;
+  // The counter's front panel, then its kick board.
+  const front = Math.min(view.bottom, Math.max(below.y, counterWorldY + 72));
+  wood(below.x, below.y, below.w, front - below.y);
+  if (front >= view.bottom) return;
+  const shade = ctx.createLinearGradient(0, front - 16, 0, front);
+  shade.addColorStop(0, "rgba(30,16,6,0)");
+  shade.addColorStop(1, "rgba(30,16,6,0.4)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(below.x, Math.max(below.y, front - 16), below.w, front - Math.max(below.y, front - 16));
+  const kick = Math.min(6, view.bottom - front);
+  ctx.fillStyle = FAIR_WOOD_DARK;
+  ctx.fillRect(below.x, front, below.w, kick);
+  const floor = { x: below.x, y: front + kick, w: below.w, h: view.bottom - front - kick };
+  if (floor.h <= 0) return;
+  // The trodden floor: dark earth and sawdust, lit warm near the stall.
+  sceneFill(ctx, floor, floor.y, floor.y + Math.max(1, floor.h), [[0, "#3A2A1F"], [1, "#1E1612"]]);
+  const glow = ctx.createLinearGradient(0, floor.y, 0, floor.y + 40);
+  glow.addColorStop(0, "rgba(30,14,4,0.55)");
+  glow.addColorStop(1, "rgba(30,14,4,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(floor.x, floor.y, floor.w, Math.min(40, floor.h));
+  ctx.save();
+  for (let k = 0; k < 3; k++) {
+    const cx = floor.x + floor.w * (0.2 + k * 0.3);
+    const pool = ctx.createRadialGradient(cx, floor.y + floor.h * 0.55, 4, cx, floor.y + floor.h * 0.55, Math.max(40, floor.w * 0.28));
+    pool.addColorStop(0, "rgba(255,190,110,0.10)");
+    pool.addColorStop(1, "rgba(255,190,110,0)");
+    ctx.fillStyle = pool;
+    ctx.fillRect(floor.x, floor.y, floor.w, floor.h);
+  }
+  const specks = Math.round((floor.w * floor.h) / 90);
+  for (let i = 0; i < specks; i++) {
+    const h = artHash(i, 733);
+    ctx.globalAlpha = 0.12 + (h % 4) * 0.04;
+    ctx.fillStyle = h % 3 === 0 ? FAIR_BULB : FAIR_CREAM;
+    ctx.fillRect(floor.x + ((h >>> 4) % 10007) / 10007 * floor.w, floor.y + ((h >>> 16) % 9973) / 9973 * floor.h, 1.2, 0.8);
+  }
+  ctx.restore();
 }
