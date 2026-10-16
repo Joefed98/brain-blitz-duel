@@ -121,7 +121,7 @@ export function replaySliceRun(seed: number, raw: string, rev?: number | null): 
   const run = decodeSliceRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SLICE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SLICE_RUN_TICKS;
-  const check = checkInputEvents(run.events, SLICE_RUN_TICKS, SLICE_INPUT_RANGES);
+  const check = checkInputEvents(run.events, SLICE_RUN_TICKS, sliceGame.inputRanges ?? SLICE_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : SLICE_RUN_TICKS;

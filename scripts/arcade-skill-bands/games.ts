@@ -18,7 +18,7 @@ import { inkBridgeGameFor, inkCheckpoint, INK_REV4, INK_REV_BAND, INK_REV_TUNEC 
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { matchupCheckpoint, matchupGameFor, MATCHUP_REV, MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "../../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../../src/lib/duel/matchup";
-import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND, BUB_REV_TORPEDO } from "../../src/lib/arcade/bubble";
+import { bubCheckpoint, bubbleGameFor, BUB_REV, BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "../../src/lib/arcade/bubble";
 import { encodeBubbleRun, replayBubbleRun } from "../../src/lib/duel/bubble";
 import { crossCheckpoint, crossGameFor, CROSS_REV, CROSS_REV_BAND, CROSS_REV_SMALL } from "../../src/lib/arcade/cross";
 import { encodeCrossRun, replayCrossRun } from "../../src/lib/duel/cross";
@@ -45,9 +45,9 @@ import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, o
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
-import { beatCheckpoint, beatGameFor, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "../../src/lib/arcade/beat";
+import { beatCheckpoint, beatGameFor, BEAT_REV, BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "../../src/lib/arcade/beat";
 import { encodeBeatRun, replayBeatRun } from "../../src/lib/duel/beat";
-import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC } from "../../src/lib/arcade/slice";
+import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "../../src/lib/arcade/slice";
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND, BURST_REV_TALL } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
@@ -82,6 +82,8 @@ export interface GameSpec {
   tunef?: number;
   /** The taller-worlds batch 1 revision (Oct 2026: Breaker, Rally, Wavefront, Fission), measured with `--rev=g1` against liveBeforeG1(spec). */
   tuneg?: number;
+  /** The taller-worlds batch 2 revision (Oct 2026: Tempo, Slice, Coral Pop), measured with `--rev=g2` against liveBeforeG1(spec). */
+  tuneg2?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
@@ -141,7 +143,7 @@ export const GAMES: GameSpec[] = [
   { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
   { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
   { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
-  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO },
+  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
   { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },
@@ -168,8 +170,8 @@ export const GAMES: GameSpec[] = [
     encode: (run) => encodeOrbitRun(run),
     replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes),
   },
-  { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF },
-  { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG },
+  { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF, tuneg2: BEAT_REV_TALL },
+  { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG, tuneg2: SLICE_REV_TALL },
   { ...simple("burst", BURST_REV, BURST_REV_BAND, burstGameFor, burstCheckpoint, encodeBurstRun, replayBurstRun), tuneg: BURST_REV_TALL },
   {
     type: "swing",

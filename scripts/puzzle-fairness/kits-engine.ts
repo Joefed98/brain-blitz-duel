@@ -17,7 +17,7 @@ import {
 } from "../../src/lib/arcade/tenDrop";
 import { encodeTenDropRun } from "../../src/lib/duel/tenDrop";
 import {
-  clashCheckpoint, clashGatesAt, clashLaneCount, clashRuleAt, clashVariantOf, colourClashGameFor,
+  clashCheckpoint, clashDropFp, clashGateYFp, clashGatesAt, clashLaneCount, clashRuleAt, clashVariantOf, colourClashGameFor, CLASH_START_Y_FP,
   CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_LANE_EXPAND_TICK, CLASH_SET_LANE, CLASH_WORLD_W, type ClashState,
 } from "../../src/lib/arcade/colourClash";
 import { encodeColourClashRun } from "../../src/lib/duel/colourClash";
@@ -36,7 +36,7 @@ import {
 } from "../../src/lib/arcade/whack";
 import { encodeWhackRun } from "../../src/lib/duel/whack";
 import {
-  clayCheckpoint, clayGameFor, CLAY_BIRD_FLYING, CLAY_CHECKPOINT_INTERVAL, CLAY_CONFIG, CLAY_FLYING, CLAY_INPUT_SHOT, CLAY_W, CLAY_H,
+  clayCheckpoint, clayGameFor, clayGravity, clayWorldH, CLAY_BIRD_FLYING, CLAY_CHECKPOINT_INTERVAL, CLAY_FLYING, CLAY_INPUT_SHOT, CLAY_W,
   type ClayState,
 } from "../../src/lib/arcade/clayShoot";
 import { encodeClayRun } from "../../src/lib/duel/clayShoot";
@@ -228,11 +228,12 @@ const laneX = (lane: number, tick: number) => Math.floor(((lane + 0.5) * CLASH_W
 /** Tick the current word lands if swiped down on `dropAt` (or falls in on its own first). */
 function clashLanding(s: ClashState, t: number, dropAt: number): number {
   const item = s.items.at(-1)!;
-  const gate = 454 * 256;
-  const natural = Math.max(1, Math.trunc((gate - 92 * 256) / item.fallTicks));
+  // clashRev 5: the taller board's lower gates and faster drop (the sim's own numbers).
+  const gate = clashGateYFp(s);
+  const natural = Math.max(1, Math.trunc((gate - CLASH_START_Y_FP) / item.fallTicks));
   const y = s.itemY + natural * (dropAt - t);
   if (y >= gate) return t - 1 + Math.ceil((gate - s.itemY) / natural);
-  return dropAt - 1 + Math.ceil((gate - y) / (18 * 256));
+  return dropAt - 1 + Math.ceil((gate - y) / clashDropFp(s));
 }
 
 /** One word: optionally steer to `lane`, then swipe down, with these gaps (ticks). */
@@ -557,7 +558,8 @@ function clayAt(s: ClayState, i: number, dt: number): { x: number; y: number } {
   let x = s.x[i]!;
   let y = s.y[i]!;
   let vy = s.vy[i]!;
-  for (let k = 0; k < dt; k++) { x += s.schedule.vx[i]!; vy += CLAY_CONFIG.gravity; y += vy; }
+  const g = clayGravity(s);
+  for (let k = 0; k < dt; k++) { x += s.schedule.vx[i]!; vy += g; y += vy; }
   return { x: x / 256, y: y / 256 };
 }
 /** The flying bird nearest a point, or -1. */
@@ -576,7 +578,8 @@ function birdAt(s: ClayState, i: number, dt: number): { x: number; y: number } {
   const b = s.birds!;
   return { x: (s.birdX![i]! + b.vx[i]! * dt) / 256, y: (s.birdY![i]! + b.vy[i]! * dt) / 256 };
 }
-const shot = (x: number, y: number): Ev => ({ k: CLAY_INPUT_SHOT, a: Math.round(Math.max(0, Math.min(CLAY_W, x))), b: Math.round(Math.max(0, Math.min(CLAY_H, y))), c: 0 });
+/** A shot at (x, y), clamped to the sky (clayRev 6: the taller one). */
+const shotIn = (s: ClayState, x: number, y: number): Ev => ({ k: CLAY_INPUT_SHOT, a: Math.round(Math.max(0, Math.min(CLAY_W, x))), b: Math.round(Math.max(0, Math.min(clayWorldH(s), y))), c: 0 });
 
 const clayKit: PuzzleKit = {
   type: "clayshoot",
@@ -584,10 +587,10 @@ const clayKit: PuzzleKit = {
   spam(p, rng) {
     const randomAt = (lo: number, hi: number) => {
       let next = 1;
-      return clayDrive(p, (_s, t) => {
+      return clayDrive(p, (s, t) => {
         if (t < next) return null;
         next = t + rng.int(lo, hi);
-        return shot(rng.int(0, CLAY_W), rng.int(0, CLAY_H));
+        return shotIn(s, rng.int(0, CLAY_W), rng.int(0, clayWorldH(s)));
       }).raw;
     };
     // Mash on whatever is flying (clays or birds), no lead, ~6 a second.
@@ -598,8 +601,8 @@ const clayKit: PuzzleKit = {
       const things: { x: number; y: number }[] = [];
       s.status.forEach((st, i) => { if (st === CLAY_FLYING) things.push({ x: s.x[i]! / 256, y: s.y[i]! / 256 }); });
       s.birdStatus?.forEach((st, i) => { if (st === CLAY_BIRD_FLYING) things.push({ x: s.birdX![i]! / 256, y: s.birdY![i]! / 256 }); });
-      const at = things.length ? rng.pick(things) : { x: rng.int(0, CLAY_W), y: rng.int(0, CLAY_H) };
-      return shot(at.x, at.y);
+      const at = things.length ? rng.pick(things) : { x: rng.int(0, CLAY_W), y: rng.int(0, clayWorldH(s)) };
+      return shotIn(s, at.x, at.y);
     }).raw;
     return [
       { label: "random-6/s", answer: randomAt(8, 12) },
@@ -626,7 +629,7 @@ const clayKit: PuzzleKit = {
       const delayMs = first ? react(rng, skill) + thinkMs(rng, 0.25, skill) * 0.4 : Math.max(150, rng.normal(300, 60) * skill.pace);
       const dt = ticks(delayMs);
       const aim = clayAt(s, target, dt);
-      if (aim.x < -10 || aim.x > CLAY_W + 10 || aim.y > CLAY_H + 10) { nextFree = t + 3; return null; }
+      if (aim.x < -10 || aim.x > CLAY_W + 10 || aim.y > clayWorldH(s) + 10) { nextFree = t + 3; return null; }
       const slip = rng.chance(skill.err) ? 3 : 1;
       const late = Math.round((rng.normal(0, prof.timingSdMs) * slip) / TICK_MS);
       // A bird in flight is sometimes taken for a clay on the first look (a quarter of the slip rate,
@@ -634,7 +637,7 @@ const clayKit: PuzzleKit = {
       const bird = first ? flyingBird(s, aim) : -1;
       const fooled = bird >= 0 && rng.chance(skill.err * 0.25);
       const at = fooled ? birdAt(s, bird, dt) : aim;
-      pending = { tick: Math.max(t + 1, t + dt + late), ev: shot(at.x + rng.normal(0, prof.aimSdPx * slip), at.y + rng.normal(0, prof.aimSdPx * slip)) };
+      pending = { tick: Math.max(t + 1, t + dt + late), ev: shotIn(s, at.x + rng.normal(0, prof.aimSdPx * slip), at.y + rng.normal(0, prof.aimSdPx * slip)) };
       nextFree = pending.tick + ticks(Math.max(100, rng.normal(180, 40) * skill.pace));
       return null;
     });

@@ -167,11 +167,12 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],
     ["flip", generateFlip().flipRev, FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
-    ["beat", generateBeat().beatRev, BEAT_REV_TUNEF],
+    // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
+    ["beat", generateBeat().beatRev, BEAT_REV_TUNEF + 1],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC + 1],
     ["tilt", generateTilt().tiltRev, TILT_REV_TUNEC],
-    ["slice", generateSlice().sliceRev, SLICE_REV_LONG],
+    ["slice", generateSlice().sliceRev, SLICE_REV_LONG + 1],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {

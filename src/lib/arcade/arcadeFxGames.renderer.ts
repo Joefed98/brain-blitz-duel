@@ -45,7 +45,7 @@ function brkSlideDestroyed(s: BrkState): number {
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
 import { rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
-import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
+import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneX, beatWorldH, type BeatState } from "./beat";
 import {
   SNAKE_BOARD_X,
   SNAKE_BOARD_Y,
@@ -112,13 +112,13 @@ import {
   BULLSEYE_WORLD_W,
   type BullseyeState,
 } from "./bullseye";
-import { SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, type SliceState } from "./slice";
-import { bubCellX, bubCellY, BUB_COLS, BUB_WORLD_H, BUB_WORLD_W, type BubState } from "./bubble";
+import { SLICE_TALL_H, SLICE_WORLD_H, SLICE_WORLD_W, sliceMayoCount, sliceMultiplier, sliceWorldH, type SliceState } from "./slice";
+import { bubCellX, bubCellY, BUB_COLS, BUB_TALL_H, BUB_WORLD_H, BUB_WORLD_W, bubWorldH, type BubState } from "./bubble";
 
 /** Where the last special landed (bubbleRev 2), in world units. */
 function bubSpecialPoint(s: BubState): { x: number; y: number } {
   const cell = s.lastSpecialCell ?? -1;
-  if (cell < 0) return { x: BUB_WORLD_W / 2, y: BUB_WORLD_H / 2 };
+  if (cell < 0) return { x: BUB_WORLD_W / 2, y: bubWorldH(s) / 2 };
   const row = Math.floor(cell / BUB_COLS);
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
@@ -495,7 +495,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       kind: "combo",
       count: (s) => s.combo,
       every: 10,
-      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y }),
+      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: beatHitLineY(s) }),
       label: (_s, n) => `COMBO ${n}`,
       neon: true,
     },
@@ -503,7 +503,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       // Rev 2: a swipe note swiped the right way in time.
       kind: "pop",
       count: (s) => s.swipesHit ?? 0,
-      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: BEAT_HIT_LINE_Y - 20 }),
+      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: beatHitLineY(s) - 20 }),
       label: () => "SWIPE!",
     },
     {
@@ -1202,7 +1202,7 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
 /**
  * Tuning E (Oct 2026): a game whose world height depends on the stored round
  * (High Rise, Meteor, Scrumper, Hover; taller worlds batch 1: Breaker, Rally,
- * Wavefront, Fission) draws through its spec at that height;
+ * Wavefront, Fission; batch 2: Tempo, Slice, Coral Pop) draws through its spec at that height;
  * events, colours and memory key are the spec's own. Cached per height.
  */
 const specAtCache = new Map<string, ArcadeFxSpec<never>>();
@@ -1234,6 +1234,13 @@ export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(
 export const WAVEFRONT_FX_TALL = fxSpecAt(WAVEFRONT_FX, WAV_TALL_H);
 export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => fxSpecAt(BURST_FX, burstFloorY(s));
 export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
+/** Taller worlds batch 2 (Oct 2026): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5. */
+export const beatFxFor = (s: BeatState): ArcadeFxSpec<BeatState> => fxSpecAt(BEAT_FX, beatWorldH(s));
+export const BEAT_FX_TALL = fxSpecAt(BEAT_FX, BEAT_TALL_H);
+export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(SLICE_FX, sliceWorldH(s));
+export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
+export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
+export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 
 /* ================================ Pinball ================================ */
 
@@ -1277,7 +1284,7 @@ export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_TALL,
   breaker: BREAKER_FX_TALL,
   rally: RALLY_FX_TALL,
-  beat: BEAT_FX,
+  beat: BEAT_FX_TALL,
   snake: SNAKE_FX_TALL,
   burst: BURST_FX_TALL,
   wavefront: WAVEFRONT_FX_TALL,
@@ -1286,10 +1293,10 @@ export const ARCADE_FX_SPECS = {
   cross: CROSS_FX,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
-  slice: SLICE_FX,
+  slice: SLICE_FX_TALL,
   bintoss: BINTOSS_FX,
   bullseye: BULLSEYE_FX,
-  bubble: BUBBLE_FX,
+  bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,
   swing: SWING_FX,
   snip: SNIP_FX_TALL,

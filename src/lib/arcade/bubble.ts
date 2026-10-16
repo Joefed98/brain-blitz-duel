@@ -161,6 +161,8 @@ export interface BubState extends BandFields {
   /** bubbleRev 4 only (absent otherwise): the torpedo rule revision, and bubbles the torpedo in flight has destroyed so far. */
   lineRev?: number;
   drilled?: number;
+  /** bubbleRev 5 only (taller worlds batch 2): the tank's height in px (BUB_TALL_H). Absent = BUB_WORLD_H. */
+  worldH?: number;
 }
 
 function cellIndex(row: number, col: number): number {
@@ -478,11 +480,11 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
     input.b < 0 &&
     next.queueAt < next.queue.length
   ) {
-    const aimed = setLength(input.a, input.b, BUB_SPEED);
+    const aimed = setLength(input.a, input.b, bubSpeed(next));
     next.flightColour = next.queue[next.queueAt]!;
     next.queueAt = next.queueAt + 1;
     next.x = BUB_SHOOTER_X * 256;
-    next.y = BUB_SHOOTER_Y * 256;
+    next.y = bubShooterY(next) * 256;
     next.vx = aimed.vx;
     next.vy = aimed.vy;
   }
@@ -581,7 +583,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
 
       if (bubOccupied(grid) === 0) next.cleared = true;
       else if (reachedShooter(grid, next.descents)) next.dead = true;
-    } else if (Math.trunc(y / 256) > BUB_WORLD_H + BUB_D) {
+    } else if (Math.trunc(y / 256) > bubWorldH(next) + BUB_D) {
       // Nothing to stick to: the shot is simply spent.
       next.flightColour = 0;
       next.shots = next.shots + 1;
@@ -729,6 +731,8 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   const extra = state.rev === BUB_REV ? [state.jokers ?? 0, state.bombs ?? 0, state.lines ?? 0, state.queueAt] : [];
   // bubbleRev 4 folds the torpedo's rule revision and its hits so far in last.
   if (state.lineRev !== undefined) extra.push(state.lineRev, state.drilled ?? 0);
+  // bubbleRev 5 (taller worlds): the tank's height, last.
+  if (state.worldH) extra.push(state.worldH);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -810,6 +814,9 @@ export function bubDrawSymbol(
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
+  // bubbleRev 5: the deeper tank and its lower shooter (the original 620 / 560 otherwise).
+  const BUB_WORLD_H = bubWorldH(state);
+  const BUB_SHOOTER_Y = bubShooterY(state);
   const scaleX = size.width / BUB_WORLD_W;
   const scaleY = size.height / BUB_WORLD_H;
 
@@ -910,6 +917,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_TALL) return bubbleTallGame;
   if (rev === BUB_REV_TORPEDO) return bubbleTorpedoGame;
   if (rev === BUB_REV_BAND) return bubbleBandGame;
   return rev === BUB_REV ? bubbleRev2Game : bubbleGame;
@@ -933,10 +941,12 @@ export function bubbleBandParts(state: BubState): BandParts {
   const units = state.cleared ? start : clampInt(start - bubRemaining(state), 0, start);
   const finished = Boolean(state.cleared);
   // The curve's knots are in bubbles of the fixed field (67); scale in case it ever differs.
-  const scaled = Math.floor((units * bandTop(BUB_BAND_CURVE)) / start);
+  // bubbleRev 5 (the deeper tank) scores on its own refitted knots.
+  const curve = state.worldH ? BUB_V5_BAND_CURVE : BUB_BAND_CURVE;
+  const scaled = Math.floor((units * bandTop(curve)) / start);
   return {
     units,
-    points: bandPoints(BUB_BAND_CURVE, scaled),
+    points: bandPoints(curve, scaled),
     bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS), BUB_RUN_TICKS) : 0,
     penalty: 0,
     finished,
@@ -966,3 +976,59 @@ export const bubbleTorpedoGame: ArcadeGame<BubState, ArcadeInputEvent | null> = 
   ...bubbleGame,
   init: (seed) => ({ ...bandInit(initRev2(seed, true)), lineRev: BUB_REV_TORPEDO, drilled: 0 }),
 };
+
+/* ================= Taller worlds (bubbleRev 5, Oct 2026) ================= */
+
+/**
+ * bubbleRev 5 (taller worlds, batch 2): bubbleRev 4 play (the same field,
+ * queue, specials, directional Torpedo and descent) in a deeper tank, 390 ×
+ * BUB_TALL_H, the same for every player. The field still hangs from the same
+ * ceiling and the danger line stays where it was (BUB_SHOOTER_LINE, the same
+ * rows below the field: a run is lost after exactly as many descents as
+ * before). The shooter sits BUB_SHOOTER_LIFT above the new bottom, so the extra
+ * 110 px is open water between the danger line and the shooter; shots fly at
+ * BUB_SPEED_TALL so one still reaches the ceiling in the old time. Bubbles keep
+ * their size and contact distance. States add `worldH`, folded into the
+ * checkpoint checksum last; scored on BUB_V5_BAND_CURVE.
+ */
+export const BUB_REV_TALL = 5;
+export const BUB_TALL_H = 730;
+/**
+ * bubbleRev 5 band knots (bubbles cleared from the fixed 67-bubble field): the
+ * longer shots and steeper angles from the lower gun cost the same players a few
+ * bubbles (scripts/arcade-skill-bands.ts --rev=g2, 60 seeds: unit medians 33 /
+ * 53.5 / 62 / 63 on bubbleRev 4, 29.5 / 52.5 / 60 / 62 on bubbleRev 5), so each
+ * knot sits at the new median: 70 / 100 / 125 / 138; 140 at the whole field, a
+ * clear still adds up to 10 for speed.
+ */
+export const BUB_V5_BAND_CURVE = bandCurve([0, 30, 52, 60, 62, 67], [0, 70, 100, 125, 138, 140]);
+/** The shooter sits this far above the tank's bottom (560 in the 620 tank). */
+export const BUB_SHOOTER_LIFT = BUB_WORLD_H - BUB_SHOOTER_Y;
+/** bubbleRev 5 flight speed (1/256 px a tick): BUB_SPEED × the shooter-to-ceiling distance, taller ÷ original. */
+export const BUB_SPEED_TALL = Math.round((BUB_SPEED * (BUB_TALL_H - BUB_SHOOTER_LIFT - BUB_TOP)) / (BUB_SHOOTER_Y - BUB_TOP));
+
+/** The tank height (px) a state plays in: bubbleRev 5's deeper tank, or the original 620. */
+export function bubWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? BUB_WORLD_H;
+}
+/** The shooter's centre (px) in a state's tank: BUB_SHOOTER_LIFT above its bottom. */
+export function bubShooterY(state: { worldH?: number }): number {
+  return bubWorldH(state) - BUB_SHOOTER_LIFT;
+}
+/** A shot's flight speed (1/256 px a tick) in a state's tank. */
+export function bubSpeed(state: { worldH?: number }): number {
+  return state.worldH ? BUB_SPEED_TALL : BUB_SPEED;
+}
+
+export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleTorpedoGame,
+  init: (seed) => {
+    const base = bubbleTorpedoGame.init(seed);
+    return { ...base, y: (BUB_TALL_H - BUB_SHOOTER_LIFT) * 256, worldH: BUB_TALL_H };
+  },
+};
+
+/** The tank height (px) a stored round's bubbleRev plays in. */
+export function bubbleWorldHFor(rev?: number | null): number {
+  return rev === BUB_REV_TALL ? BUB_TALL_H : BUB_WORLD_H;
+}

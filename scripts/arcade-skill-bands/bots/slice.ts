@@ -27,8 +27,8 @@ import {
   sliceMaxPath,
   SLICE_R,
   SLICE_SPECIAL_R,
-  SLICE_WORLD_H,
   SLICE_WORLD_W,
+  sliceWorldH,
   type SliceObject,
   type SliceState,
 } from "../../../src/lib/arcade/slice";
@@ -57,6 +57,8 @@ interface Pt {
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
+  // sliceRev 6: the taller board (the bot reads the stored round's own world).
+  const SLICE_WORLD_H = sliceWorldH(game.init(seed) as SliceState);
   const speed = FINGER[level]!;
   const lag = human.lagTicks();
   const history: SliceState[] = [];

@@ -2,6 +2,8 @@
  * Mixed Signals (Colour Clash) art (Polish, 13 Oct 2026). Presentation only: wraps the
  * sim's game object with a new draw that reads state and never writes it. 390 × 560 world:
  * banner 65,10 260×44; lanes y 66–472; gates y 472, 22 tall; labels y 512; status y 548.
+ * clashRev 5 (taller worlds batch 2): a 390 × 650 board; everything from the gates down
+ * sits 90 px lower (clashDrop), so the lanes run y 66–562.
  * Lanes and gates sit on the sim's own lane grid (a tap at x picks lane
  * floor(x × lanes ÷ 390)), so a tap on a drawn gate picks that gate's lane and a tap just
  * past its edge picks the neighbour. The sim's original draw used x 16–374, which put a
@@ -14,11 +16,12 @@ import {
   CLASH_COLOURS,
   CLASH_FLASH_TICKS,
   CLASH_NAMES,
-  CLASH_WORLD_H,
   CLASH_WORLD_W,
+  clashDrop,
   clashGatesAt,
   clashLaneCount,
   clashRuleAt,
+  clashWorldH,
   colourClashGameFor,
   type ClashState,
 } from "./colourClash";
@@ -42,10 +45,10 @@ export function clashLaneRect(lane: number, lanes: number): { x: number; w: numb
   const laneW = LANES_W / lanes;
   return { x: LEFT + lane * laneW + 1, w: laneW - 2 };
 }
-/** Gate rectangle in world px: inside the sim lane, 2 px in from each boundary. */
-export function clashGateRect(lane: number, lanes: number): { x: number; y: number; w: number; h: number } {
+/** Gate rectangle in world px: inside the sim lane, 2 px in from each boundary (`low` px lower on a taller board). */
+export function clashGateRect(lane: number, lanes: number, low = 0): { x: number; y: number; w: number; h: number } {
   const laneW = LANES_W / lanes;
-  return { x: LEFT + lane * laneW + 2, y: GATE_Y, w: laneW - 4, h: GATE_H };
+  return { x: LEFT + lane * laneW + 2, y: GATE_Y + low, w: laneW - 4, h: GATE_H };
 }
 
 const layers = new Map<string, ArtCanvas | null>();
@@ -82,7 +85,9 @@ function roundRect(c: Ctx, x: number, y: number, w: number, h: number, r: number
 }
 
 /** Backdrop: night panel, faint dot grid, lane wells with rails, chevrons and gate sockets. */
-function paintBackdrop(c: Ctx, lanes: number): void {
+function paintBackdrop(c: Ctx, lanes: number, low: number): void {
+  const CLASH_WORLD_H = 560 + low;
+  const GATE_Y = 472 + low;
   c.fillStyle = BG; c.fillRect(0, 0, CLASH_WORLD_W, CLASH_WORLD_H);
   const vignette = c.createRadialGradient(195, 260, 60, 195, 280, 380);
   vignette.addColorStop(0, "rgba(40,44,72,0.35)"); vignette.addColorStop(1, "rgba(0,0,0,0)");
@@ -102,7 +107,7 @@ function paintBackdrop(c: Ctx, lanes: number): void {
     const cx = x + w / 2;
     for (let y = 120; y < GATE_Y - 40; y += 64) { c.beginPath(); c.moveTo(cx - 8, y); c.lineTo(cx, y + 7); c.lineTo(cx + 8, y); c.stroke(); }
     // Gate socket: a dark recess the glowing gate sits in.
-    const g = clashGateRect(lane, lanes);
+    const g = clashGateRect(lane, lanes, low);
     c.fillStyle = "#020205"; roundRect(c, g.x - 2, g.y - 3, g.w + 4, g.h + 6, 6); c.fill();
     c.strokeStyle = "rgba(255,255,255,0.08)"; c.lineWidth = 1; c.stroke();
   }
@@ -129,8 +134,7 @@ function paintGate(c: Ctx, colour: string, w: number): void {
 }
 
 /** Selected lane: a lit well with corner brackets. */
-function paintSelected(c: Ctx, w: number): void {
-  const h = GATE_Y - WELL_TOP;
+function paintSelected(c: Ctx, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "rgba(255,255,255,0.035)"); g.addColorStop(1, "rgba(255,255,255,0.075)");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -154,6 +158,10 @@ const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 const PULSE_TICKS = 18;
 
 function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize): void {
+  // clashRev 5: the taller board, its gates `low` px lower (the original 560 / 472 otherwise).
+  const low = clashDrop(state);
+  const CLASH_WORLD_H = clashWorldH(state);
+  const GATE_Y = 472 + low;
   const scale = Math.min(size.width / CLASH_WORLD_W, size.height / CLASH_WORLD_H);
   const ox = (size.width - CLASH_WORLD_W * scale) / 2;
   const oy = (size.height - CLASH_WORLD_H * scale) / 2;
@@ -161,7 +169,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   ctx.fillStyle = BG; ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(ox, oy); ctx.scale(scale, scale);
   const lanes = clashLaneCount(state.tick);
-  if (!blit(ctx, `back-${lanes}`, 0, 0, CLASH_WORLD_W, CLASH_WORLD_H, (c) => paintBackdrop(c, lanes))) paintBackdrop(ctx, lanes);
+  if (!blit(ctx, `back-${lanes}-${low}`, 0, 0, CLASH_WORLD_W, CLASH_WORLD_H, (c) => paintBackdrop(c, lanes, low))) paintBackdrop(ctx, lanes, low);
 
   // Landing pulses (presentation memory: the lane the word was in when it was sorted).
   let mem = memories.get(ctx);
@@ -184,17 +192,17 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   const gates = clashGatesAt(state, state.tick);
   const laneW = LANES_W / lanes;
   const sel = clashLaneRect(Math.min(lanes - 1, Math.max(0, state.lane)), lanes);
-  if (!blit(ctx, `sel-${lanes}`, sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP, (c) => paintSelected(c, sel.w))) { ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP); }
+  if (!blit(ctx, `sel-${lanes}-${low}`, sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP, (c) => paintSelected(c, sel.w, GATE_Y - WELL_TOP))) { ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP); }
   for (let lane = 0; lane < lanes; lane += 1) {
     const colour = gates[lane]!;
-    const g = clashGateRect(lane, lanes);
+    const g = clashGateRect(lane, lanes, low);
     if (!blit(ctx, `gate-${colour}-${lanes}`, g.x - GLOW, g.y - WASH, g.w + GLOW * 2, GATE_H + WASH + GLOW, (c) => paintGate(c, CLASH_COLOURS[colour]!, g.w))) { ctx.fillStyle = CLASH_COLOURS[colour]!; ctx.fillRect(g.x, g.y, g.w, g.h); }
-    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, LEFT + (lane + 0.5) * laneW, 512);
+    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, LEFT + (lane + 0.5) * laneW, 512 + low);
   }
   for (const p of mem.pulses) {
     if (p.lanes !== lanes) continue;
     const age = (state.tick - p.at) / PULSE_TICKS;
-    const g = clashGateRect(p.lane, lanes), grow = 2 + age * 8;
+    const g = clashGateRect(p.lane, lanes, low), grow = 2 + age * 8;
     ctx.globalAlpha = (1 - age) * (p.good ? 0.85 : 0.5);
     ctx.strokeStyle = p.good ? "#FFFFFF" : "#8A8A96"; ctx.lineWidth = p.good ? 2 : 1.5;
     roundRect(ctx, g.x - grow, g.y - grow, g.w + grow * 2, g.h + grow * 2, 6 + grow * 0.5); ctx.stroke();
@@ -212,7 +220,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
     ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.fillText(word, x, y);
   }
-  ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548);
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548 + low);
   ctx.restore();
 }
 
@@ -230,7 +238,9 @@ export function colourClashArtGameFor(variant: number): ArcadeGame<ClashState, A
  * faded by 1100 ms. Reduced motion: a single plain fade, no movement.
  */
 export function drawClashFinish(ctx: CanvasRenderingContext2D, ms: number, width: number, height: number, state: ClashState, reduced: boolean): void {
-  const sx = width / CLASH_WORLD_W, sy = height / CLASH_WORLD_H;
+  const low = clashDrop(state);
+  const GATE_Y = 472 + low;
+  const sx = width / CLASH_WORLD_W, sy = height / clashWorldH(state);
   const lanes = clashLaneCount(state.tick);
   const gates = clashGatesAt(state, state.tick);
   const beat = reduced ? Math.max(0, 1 - ms / 1100) : ms < 900 ? Math.max(0, Math.sin((ms / 300) * Math.PI)) * (1 - ms / 1400) : Math.max(0, 0.36 * (1 - (ms - 900) / 200));
@@ -238,7 +248,7 @@ export function drawClashFinish(ctx: CanvasRenderingContext2D, ms: number, width
   ctx.scale(sx, sy);
   for (let lane = 0; lane < lanes; lane += 1) {
     const colour = CLASH_COLOURS[gates[lane] ?? 0]!;
-    const g = clashGateRect(lane, lanes);
+    const g = clashGateRect(lane, lanes, low);
     const l = clashLaneRect(lane, lanes);
     ctx.fillStyle = colour;
     if (!reduced) {

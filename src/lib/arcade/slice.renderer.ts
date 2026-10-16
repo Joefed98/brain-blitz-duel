@@ -1,7 +1,7 @@
 import { successFrame, successHud } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { SLICE_FX } from "./arcadeFxGames.renderer";
+import { sliceFxFor } from "./arcadeFxGames.renderer";
 /** Slice Kitchen art only. World transform, collision radii and state are authoritative. */
 import type { CanvasSize } from './engine';
 import { TICKS_PER_SECOND } from './engine';
@@ -9,7 +9,7 @@ import { SLICE_BLADE_V4, sliceFrenzyOn, sliceGame, sliceGameFor, sliceMayoOn, sl
   SLICE_SPECIAL_MAYO,
   SLICE_COMBO_TICKS, SLICE_COMBO_FLASH_TICKS, SLICE_FLASH_TICKS, SLICE_HALVES_TICKS, SLICE_HUD_H, SLICE_R,
   SLICE_SPECIAL_FRENZY, SLICE_SPECIAL_NONE, SLICE_SPECIAL_R, SLICE_SPECIAL_SLOW,
-  SLICE_WORLD_H, SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, type SliceState } from './slice';
+  SLICE_WORLD_W, SLICE_RAINBOW, SLICE_SILVER, sliceWorldH, type SliceState } from './slice';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { reducedMotion } from './art.renderer';
 import { FX_PARTICLE_LIMIT } from '../fx/limits';
@@ -133,14 +133,14 @@ function paintChilli(c:CanvasRenderingContext2D,size:number) {
 function paintGlow(c:CanvasRenderingContext2D,size:number) {
   const r=size/2,g=c.createRadialGradient(r,r,r*.72,r,r,r);g.addColorStop(0,'rgba(255,38,45,0)');g.addColorStop(.84,K.glow);g.addColorStop(1,'rgba(255,38,45,0)');c.fillStyle=g;c.fillRect(0,0,size,size);
 }
-function paintBackground(c:CanvasRenderingContext2D) {
-  const W=SLICE_WORLD_W,H=SLICE_WORLD_H;
+function paintBackground(c:CanvasRenderingContext2D,H:number) {
+  const W=SLICE_WORLD_W;
   c.fillStyle=K.board;c.fillRect(0,0,W,H);
   // End-grain planks: three glued strips with slightly different tones and seams.
   for(let p=0;p<3;p++){c.fillStyle=p===1?'rgba(255,230,190,0.06)':'rgba(60,30,10,0.05)';c.fillRect(p*W/3,SLICE_HUD_H,W/3,H-SLICE_HUD_H);}
   c.strokeStyle='rgba(70,40,20,0.35)';c.lineWidth=1;for(let p=1;p<3;p++){c.beginPath();c.moveTo(p*W/3,SLICE_HUD_H);c.lineTo(p*W/3,H);c.stroke();}
   c.strokeStyle=K.grain;c.lineWidth=.7;
-  for(let i=0;i<60;i++){const y=SLICE_HUD_H+10+i*10;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(W*.3,y+Math.sin(i)*4,W*.7,y-3,W,y+2);c.stroke();}
+  for(let i=0;i<60+Math.ceil((H-620)/10);i++){const y=SLICE_HUD_H+10+i*10;c.beginPath();c.moveTo(0,y);c.bezierCurveTo(W*.3,y+Math.sin(i)*4,W*.7,y-3,W,y+2);c.stroke();}
   // Knots with rings, fixed positions.
   for(const [x,y,rr] of [[W*.22,SLICE_HUD_H+150,9],[W*.74,SLICE_HUD_H+330,7],[W*.48,H-90,6]] as const){
     c.fillStyle=K.knot;c.beginPath();c.ellipse(x,y,rr,rr*.6,0,0,Math.PI*2);c.fill();
@@ -178,20 +178,23 @@ function paintBackground(c:CanvasRenderingContext2D) {
   // Glazed tiles behind the HUD: a highlight on each tile's top edge.
   c.fillStyle='rgba(255,255,255,0.35)';for(let x=0;x<W;x+=48)c.fillRect(x+2,2,44,2);
 }
-function background():ArtCanvas|null {
-  const key='kitchen-background';const old=cache.get(key);if(old)return old;
-  const canvas=artCanvas(SLICE_WORLD_W,SLICE_WORLD_H),c=canvas?artContext(canvas):null;
-  if(!canvas||!c)return null;paintBackground(c as CanvasRenderingContext2D);cache.set(key,canvas);return canvas;
+function background(H:number):ArtCanvas|null {
+  // sliceRev 6: one board per world height (the taller board's plank lines run its whole height).
+  const key=`kitchen-background:${H}`;const old=cache.get(key);if(old)return old;
+  const canvas=artCanvas(SLICE_WORLD_W,H),c=canvas?artContext(canvas):null;
+  if(!canvas||!c)return null;paintBackground(c as CanvasRenderingContext2D,H);cache.set(key,canvas);return canvas;
 }
 interface Cut {angle:number;offset:number}
 interface Memo {tick:number;trail:{seg:readonly[number,number,number,number];at:number}[];cuts:Map<number,Cut>}
 const memos=new WeakMap<object,Memo>();
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSliceArt(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
-  arcadeFx(ctx, SLICE_FX, state, () => drawSliceArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, sliceFxFor(state), state, () => drawSliceArtWorld(ctx, state, size), size);
 }
 
 function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:CanvasSize):void {
+  // sliceRev 6: the taller board (the original 620 otherwise).
+  const SLICE_WORLD_H=sliceWorldH(state);
   const sx=size.width/SLICE_WORLD_W,sy=size.height/SLICE_WORLD_H;
   const tr=typeof ctx.getTransform==='function'?ctx.getTransform():null;
   const dpr=tr?Math.max(1,Math.min(2,Math.hypot(tr.a,tr.b))):1;
@@ -207,11 +210,11 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
     }});
   }
   memo.tick=state.tick;memo.trail=memo.trail.filter(e=>now-e.at<110).slice(-6);
-  ctx.save();ctx.scale(sx,sy);const bg=background();if(bg)ctx.drawImage(bg as CanvasImageSource,0,0,SLICE_WORLD_W,SLICE_WORLD_H);else paintBackground(ctx);
+  ctx.save();ctx.scale(sx,sy);const bg=background(SLICE_WORLD_H);if(bg)ctx.drawImage(bg as CanvasImageSource,0,0,SLICE_WORLD_W,SLICE_WORLD_H);else paintBackground(ctx,SLICE_WORLD_H);
   const latest=state.slicedAt.reduce((best,t,i)=>t>(state.slicedAt[best]??0)?i:best,0),object=state.objects[latest];
   const cutAt=object?sliceObjectAt(object,state.slicedAt[latest]??state.tick,state.slowFrom,state.mayo):null;
   drawSqueeze(ctx,state,still);
-  successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:310,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
+  successFrame(ctx,{id:'slice',tick:state.tick,count:state.slices,eventTick:state.slicedAt[latest],colour:object?colours[foodOf(object.colour)]:K.tomato,width:SLICE_WORLD_W,height:SLICE_WORLD_H,point:{x:cutAt?cutAt.x/256:195,y:cutAt?cutAt.y/256:SLICE_WORLD_H/2,shape:'splat'},hud:{x:20,y:14,text:`Sliced ${state.slices}`}});
   let particles=0;
   for(let i=0;i<state.objects.length;i++) {
     const o=state.objects[i];if(!o||sliceSuppressed(state,o))continue;
