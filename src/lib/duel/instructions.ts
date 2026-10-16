@@ -18,23 +18,9 @@ import {
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
-import { BT_BAND_CURVE } from "@/lib/arcade/ballTrack";
-import { WAV_BOSS_HP, WAV_V5_BAND_CURVE } from "@/lib/arcade/wavefront";
-import { FLIP_V4_BAND_CURVE } from "@/lib/arcade/flip";
-import { INK_V6_BAND_CURVE } from "@/lib/arcade/inkBridge";
-import { MATCHUP_V6_BAND_CURVE } from "@/lib/arcade/matchup";
-import { BUB_BAND_CURVE } from "@/lib/arcade/bubble";
-import { CROSS_BAND_CURVE } from "@/lib/arcade/cross";
-import { RALLY_V6_BAND_CURVE } from "@/lib/arcade/rally";
-import { SNAKE_COLS, SNAKE_TALL_ROWS, SNAKE_V6_BAND_CURVE } from "@/lib/arcade/snake";
-import { BINTOSS_BAND_CURVE } from "@/lib/arcade/binToss";
-import { SNIP_V5_BAND_CURVE } from "@/lib/arcade/snip";
-import { HOVER_V5_BAND_CURVE } from "@/lib/arcade/hover";
-import { SKYLINE_BAND_CURVE } from "@/lib/arcade/skyline";
-import { JUNC_BAND_CURVE } from "@/lib/arcade/junction";
-import { BRK_BAND_CURVE } from "@/lib/arcade/breaker";
+import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
+import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
 import {
-  PIN_BAND_CURVE,
   PIN_MULT_MAX,
   PIN_PTS_BANK,
   PIN_PTS_BUMPER,
@@ -45,14 +31,8 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
-import { TILT_V4_BAND_CURVE } from "@/lib/arcade/tilt";
-import { ORBIT_BAND_CURVE } from "@/lib/arcade/orbitRev3";
-import { BEAT_V5_BAND_CURVE } from "@/lib/arcade/beat";
-import { SLICE_V4_BAND_CURVE } from "@/lib/arcade/slice";
-import { BURST_BAND_CURVE } from "@/lib/arcade/burst";
-import { SWING_V7_BAND_CURVE } from "@/lib/arcade/swing";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V4_BAND_CURVE } from "@/lib/arcade/bullseye";
-import { bandHelp } from "@/lib/arcade/scoreBands";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
+import { liveBandHelp } from "@/lib/arcade/liveBands";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -453,7 +433,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Taller sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
       { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run and ${HOVER_STARS} gold stars.`, helpOnly: true },
     ],
-    score: bandHelp(`Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, HOVER_V5_BAND_CURVE, "Lasting the minute adds 10."),
+    score: liveBandHelp("hover", `Each of the ${HOVER_REACHABLE_GATES} barriers counts 3 and each gold star 2.`, { more: "More barriers and stars", good: (u) => `counts ${u} – about ${Math.round(u / 3)} barriers`, finish: "Lasting the minute adds 10." }),
   },
   swerve: {
     goal: "Collect coins while dodging the blocks.",
@@ -476,7 +456,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Taller view:", detail: "you see more of the tower and sky before the camera pulls back.", helpOnly: true },
       { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
     ],
-    score: bandHelp("Each block and each perfect drop counts 5, and each streak point 2 (a streak point for each perfect drop from the 3rd in a row).", SKYLINE_BAND_CURVE),
+    score: liveBandHelp("skyline", "Each block and each perfect drop counts 5, and each streak point 2 (a streak point for each perfect drop from the 3rd in a row).", { more: "More blocks and perfect drops", good: (u) => `counts ${u} – about ${Math.round(u / 5)} blocks` }),
   },
   bintoss: {
     goal: "Throw the ball into the bucket.",
@@ -503,7 +483,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       },
       { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
     ],
-    score: bandHelp("Each bucket counts 10 and each hoop bonus 3.", BINTOSS_BAND_CURVE, "All ten in adds 10."),
+    score: liveBandHelp("bintoss", "Each bucket counts 10 and each hoop bonus 3.", { more: "More buckets and hoops", good: (u) => `counts ${u} – about ${Math.round(u / 10)} buckets`, finish: "All ten in adds 10." }),
   },
   bullseye: {
     goal: "Hit the centre – ten darts.",
@@ -540,7 +520,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
         helpOnly: true,
       },
     ],
-    score: bandHelp(`Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, BULLSEYE_V4_BAND_CURVE),
+    score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
   },
   matchup: {
     goal: "Line up three or more gems.",
@@ -554,7 +534,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials", detail: "go off when you swap them or match next to them, and set each other off.", helpOnly: true },
       { action: "Sixty seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
     ],
-    score: bandHelp("Match points: longer lines, cascades and special gems score more.", MATCHUP_V6_BAND_CURVE),
+    score: liveBandHelp("matchup", "Match points: longer lines, cascades and special gems score more.", { more: "More match points", good: (u) => `scores ${u.toLocaleString("en-GB")} match points` }),
   },
   snake: {
     goal: "Eat the stars; don't crash.",
@@ -569,7 +549,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
       { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
     ],
-    score: bandHelp("Each star eaten counts 1.", SNAKE_V6_BAND_CURVE),
+    score: liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` }),
   },
   cross: {
     goal: "Get across the traffic as many times as you can.",
@@ -582,7 +562,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "After each crossing", detail: "you get a second on the kerb before the next one.", helpOnly: true },
       { action: "Only the walker counts:", detail: "traffic has to touch the figure itself (its arms' reach), not the space around it.", helpOnly: true },
     ],
-    score: bandHelp("Each lane crossed counts 1 and each full crossing 2 more.", CROSS_BAND_CURVE),
+    score: liveBandHelp("cross", "Each lane crossed counts 1 and each full crossing 2 more.", { more: "More lanes and crossings" }),
   },
   dual: {
     goal: "Keep both runners alive.",
@@ -611,7 +591,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
       { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
     ],
-    score: bandHelp("Each brick destroyed counts 1.", BRK_BAND_CURVE, "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: liveBandHelp("breaker", "Each brick destroyed counts 1.", { more: "More bricks", good: (u) => `clears ${u} bricks`, finish: "Clearing all 80 adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
   },
   pinball: {
     goal: "Keep the ball in play and rack up table points.",
@@ -628,7 +608,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Yellow slingshots", detail: `kick the ball back across (${PIN_PTS_SLING} each).`, helpOnly: true },
       { action: "A ball between the flippers drains.", detail: "Hold a flipper up to catch the ball on it, then let go and flip again to aim.", helpOnly: true },
     ],
-    score: bandHelp("Your table points count, multiplier included.", PIN_BAND_CURVE),
+    score: liveBandHelp("pinball", "Your table points count, multiplier included.", { more: "More table points", good: (u) => `scores ${u.toLocaleString("en-GB")} table points` }),
   },
   rally: {
     goal: "Keep the rally going.",
@@ -644,7 +624,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
       { action: "Miss the blue ball", detail: "and the run is over.", helpOnly: true },
     ],
-    score: bandHelp("Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", RALLY_V6_BAND_CURVE),
+    score: liveBandHelp("rally", "Each gold-ball hit counts 5 and each pink target 6. The blue ball scores nothing; losing it ends the run.", { more: "More gold hits and pink targets", good: (u) => `counts ${u} – about ${Math.round(u / 5)} gold-ball hits` }),
   },
 
   steady: {
@@ -669,7 +649,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
       { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
     ],
-    score: bandHelp("Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", SLICE_V4_BAND_CURVE),
+    score: liveBandHelp("slice", "Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", { more: "More combo slices", good: (u) => `reaches ${u}` }),
   },
   bubble: {
     goal: "Pop bubbles in threes.",
@@ -683,7 +663,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
       { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
     ],
-    score: bandHelp("Each bubble cleared from the field counts 1.", BUB_BAND_CURVE, "Clearing the field adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: liveBandHelp("bubble", "Each bubble cleared from the field counts 1.", { more: "More bubbles cleared", good: (u) => `clears ${u} bubbles`, finish: "Clearing the field adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
   },
   beat: {
     goal: "Tap the notes in time.",
@@ -697,7 +677,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
       { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
     ],
-    score: bandHelp("Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", BEAT_V5_BAND_CURVE),
+    score: liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` }),
   },
 
   ricochet: {
@@ -771,7 +751,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
       { action: "The boss slides side to side and fires in patterns.", detail: `Its bar shows the ${WAV_BOSS_HP} hits it can take; every hit counts, and destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
     ],
-    score: bandHelp("Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", WAV_V5_BAND_CURVE, "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s."),
+    score: liveBandHelp("wavefront", "Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", { more: "More ships, hits and waves", finish: "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s." }),
   },
   bastion: {
     goal: "Defend the base.",
@@ -800,7 +780,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Hazards ride the bends with you,", detail: "so the gap between floor and ceiling never changes.", helpOnly: true },
       { action: "A tile starts cracking", detail: "the moment you touch it and is gone less than half a second later.", helpOnly: true },
     ],
-    score: bandHelp("Each half second you last counts 1 and each gold star 3.", FLIP_V4_BAND_CURVE, "Lasting the full minute adds 10."),
+    score: liveBandHelp("flip", "Each half second you last counts 1 and each gold star 3.", { more: "More time and stars", finish: "Lasting the full minute adds 10." }),
   },
   junction: {
     goal: "Keep traffic moving, no crashes.",
@@ -816,7 +796,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ambulances (flashing blue)", detail: "come fast from 20 s on the main roads – give them green before they reach the line.", helpOnly: true },
       { action: "Everyone", detail: "gets the same new roads in the same order, and the same traffic.", helpOnly: true },
     ],
-    score: bandHelp("Each car counts 2 units and each bus 3; an ambulance through adds 4 units and one stopped takes 4 off; a driver who gives up takes 1 unit off (never below 0 units).", JUNC_BAND_CURVE, "Lasting the minute adds 10."),
+    score: liveBandHelp("junction", "Each car counts 2 units and each bus 3; an ambulance through adds 4 units and one stopped takes 4 off; a driver who gives up takes 1 unit off (never below 0 units).", { more: "More traffic through", good: (u) => `counts ${u} units`, finish: "Lasting the minute adds 10." }),
   },
   inkbridge: {
     goal: "Roll the coin into the pot.",
@@ -831,7 +811,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
       { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
     ],
-    score: bandHelp("Each level counts 10 and each gold star 2.", INK_V6_BAND_CURVE, "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: liveBandHelp("inkbridge", "Each level counts 10 and each gold star 2.", { more: "More levels and stars", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
   },
 
   burst: {
@@ -846,7 +826,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "– it takes the next hit for you.", helpOnly: true },
       { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "– every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
     ],
-    score: bandHelp("Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", BURST_BAND_CURVE, "Lasting the 90 s adds 10."),
+    score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: "Lasting the 90 s adds 10." }),
   },
   orbit: {
     goal: "Fly planet to planet to the sun.",
@@ -860,7 +840,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
       { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
     ],
-    score: bandHelp("Each planet reached counts 1.", ORBIT_BAND_CURVE, "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: liveBandHelp("orbit", "Each planet reached counts 1.", { more: "More planets", good: (u) => `reaches ${u} planets`, finish: "Reaching the sun adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
   },
 
   snip: {
@@ -879,7 +859,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Taller levels:", detail: "two easy levels, three medium and five hard ones, many with several steps: a cut, a catch, another cut.", helpOnly: true },
       { action: "Everyone", detail: "gets the same ten levels in the same order.", helpOnly: true },
     ],
-    score: bandHelp("Each apple counts 10 and each leaf 2.", SNIP_V5_BAND_CURVE, "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer."),
+    score: liveBandHelp("snip", "Each apple counts 10 and each leaf 2.", { more: "More apples and leaves", good: (u) => `counts ${u} – about ${Math.round(u / 10)} apples`, finish: "All ten apples adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
   },
   swing: {
     goal: "Swing the ninja to the 500 m line.",
@@ -894,7 +874,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ten stars float along the way,", detail: "spread evenly from start to finish: some high, some low, some on risky lines near the lava. Touch one to take it; they are optional.", helpOnly: true },
       { action: "Don't touch the spikes", detail: "or fall into the lava.", helpOnly: true },
     ],
-    score: bandHelp("Each metre counts 1 (up to 500) and each star 5.", SWING_V7_BAND_CURVE, "Reaching 500 m adds 10."),
+    score: liveBandHelp("swing", "Each metre counts 1 (up to 500) and each star 5.", { more: "More metres and stars", finish: "Reaching 500 m adds 10." }),
   },
   tilt: {
     goal: "Roll each marble into its own cup.",
@@ -907,7 +887,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Stars:", detail: `${TILT_STARS_PER_MAZE} per maze, at the mouth of a black hole beside the route where there is one, otherwise one step off the route. Roll either marble over one to collect it, without rolling on into the hole.`, helpOnly: true },
       { action: "Maze 2 only: the red ball waits behind a silver gate with a padlock.", detail: "Pass the brass padlock and it's free – it tilts with you. Touch the red ball and the run ends.", helpOnly: true },
     ],
-    score: bandHelp("Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", TILT_V4_BAND_CURVE, "All four mazes adds up to 10 for speed: the full 10 by 75 s, falling to 0 at the buzzer."),
+    score: liveBandHelp("tilt", "Each finished maze counts 30, getting closer to the exit in the maze you are on up to 29 more, and each star 5.", { more: "Further through the mazes and more stars", good: (u) => `counts ${u} – about ${Math.round(u / 30)} mazes`, finish: "All four mazes adds up to 10 for speed: the full 10 by 75 s, falling to 0 at the buzzer." }),
   },
   hotfloor: {
     goal: "Plan a route to the exit before the floor falls.",
@@ -1007,7 +987,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A marble drops about every two seconds", detail: "until 50 seconds; the run lasts a minute.", helpOnly: true },
       { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "a countdown warns you.", helpOnly: true },
     ],
-    score: bandHelp("Each marble home counts 1.", BT_BAND_CURVE, "All 30 home adds up to 10 for speed: the full 10 if the last marble lands by 56.5 s, falling to 0 at the buzzer."),
+    score: liveBandHelp("balltrack", "Each marble home counts 1.", { more: "More marbles home", good: (u) => `gets ${u} marbles home`, finish: "All 30 home adds up to 10 for speed: the full 10 if the last marble lands by 56.5 s, falling to 0 at the buzzer." }),
   },
   wordsearch: {
     goal: "Find the six hidden words in the category.",

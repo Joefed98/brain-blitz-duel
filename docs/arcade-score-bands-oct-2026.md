@@ -55,7 +55,7 @@ calibration; re-run the script after changing a bot or a curve.
   20 in Breaker, 19 in Junction and 16 in Wavefront.
 - Cap 150. Penalties that already existed stay where they mean something (Slice chilli −10, Junction give-ups and stopped
   ambulances, Tempo misses now −2 instead of −8, Fission −5 a life lost).
-- Every curve and finish rule is in the game's "?" help (generated from the sim's constants); the intro SCORE line says it
+- Every game's "?" help states its top, what a good run (100 points) takes and the finish rule, computed from the curve of the revision new rooms deal (16 Oct 2026: knot lists replaced by one plain line; `liveBands.ts`); the intro SCORE line says it
   in plain words.
 
 ## Old and new, per game

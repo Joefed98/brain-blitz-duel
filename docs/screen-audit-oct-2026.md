@@ -383,6 +383,18 @@ Files: `src/lib/duel/instructions.ts`, `src/lib/duel/roundSummaries.ts`, `src/li
   `sliceRev` 6, `bubbleRev` 5, `beatRev` 6, `wavRev` 6, `burstRev` 4, `swingRev` 9 and `btRev` 4 on their own curves.
   Display only (the help would print the new curves), but several tuning checks pin the old knot text, so it wants
   its own change. Rally's help was moved to rallyRev 6's knots here.
+  **Stale knots: done (16 Oct 2026, follow-up).** No arcade help lists knots any more. Every band game's "?" SCORE text
+  (all 23, Rally included) keeps its "what counts" sentence, then one plain line ("More bricks, higher score – up to
+  140." on finish games, "More stars, higher score – 150 at 33." on open ones), what a good run takes ("A good run (100
+  points) clears 57 bricks.", the band's "good" aim) and the finish rule. Every number is computed from the curve of the
+  revision new rooms deal: `src/lib/arcade/liveBands.ts` lists each game's stamp and curve, `liveBandHelp` /
+  `bandHelp` (`scoreBands.ts`) write the text. arcade-help-bands-check (~5 s) fails if a room generator deals another
+  revision than the one listed, if a sim exports a newer band curve, or if a help line lacks the plain line, the top or
+  the good run at the live units (or still lists knots). The tuning checks that pinned old knot text (arcade-tuning-c,
+  -e, -f, bullseye-cross-flip-tuning, intro-score-text) now check the new wording. Display text only: no sim, score,
+  curve, timing, stored round or stamp changes. Assumptions: "a good run" is the fewest units reaching 100 points
+  (the bands' "good" aim); weighted units (Hover, Swish, Scrumper, Rainbow Bridge, Rally, High Rise, Tilt) add a rounded
+  "about N barriers / buckets / …" for scale.
   arcade-tuning-a-check's help rule ("plain hyphens", no en dash) contradicted the dash row; it now asks for the
   spaced en dash (no em dash, no spaced or leading hyphen). Revert that if plain hyphens were a deliberate choice.
 

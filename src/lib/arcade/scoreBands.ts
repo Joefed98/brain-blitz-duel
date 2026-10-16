@@ -70,20 +70,38 @@ export function bandOpen(curve: BandCurve, achieved: number): number {
   return clampInt(bandPoints(curve, achieved), 0, 150);
 }
 
-/** The "?" help SCORE text for a band game: what counts, the curve's knots, and the finish rule. */
-export function bandHelp(units: string, curve: BandCurve, finish?: string): string {
-  const top = curve.points[curve.points.length - 1]!;
-  const knots = `Points follow ${bandKnotText(curve)}, in straight lines between`;
-  return finish ? `${units} ${knots} (up to ${top}). ${finish} Up to 150.` : `${units} ${knots}: 150 at ${bandTop(curve).toLocaleString("en-GB")}.`;
+/** The fewest whole units that reach `points` on a curve (its full-run figure if none short of it does). */
+export function bandUnitsFor(curve: BandCurve, points: number): number {
+  const top = bandTop(curve);
+  for (let u = 0; u < top; u++) if (bandPoints(curve, u) >= points) return u;
+  return top;
 }
 
-/** "a → p" pairs for the "?" help, e.g. "1 → 14, 5 → 80, 10 → 140". */
-export function bandKnotText(curve: BandCurve, unit = ""): string {
-  return curve.units
-    .map((u, i) => [u, curve.points[i]!] as const)
-    .filter(([u]) => u > 0)
-    .map(([u, p]) => `${u.toLocaleString("en-GB")}${unit} → ${p}`)
-    .join(", ");
+/** What the "?" help calls a good run: the band's "good" aim (docs/arcade-score-bands-oct-2026.md). */
+export const BAND_GOOD_POINTS = 100;
+
+export interface BandHelpWords {
+  /** The plain line's start, e.g. "More bricks" → "More bricks, higher score – up to 140." */
+  more: string;
+  /** What a good run does, given its unit count, e.g. (u) => `clears ${u} bricks`. Default: "counts u". */
+  good?: (units: number) => string;
+  /** The finish rule on finish games, e.g. "Clearing all 80 adds 10." */
+  finish?: string;
+}
+
+/**
+ * The "?" help SCORE text for a band game: what counts, one plain line (more of
+ * it, higher score, and the top), what a good run takes, and the finish rule.
+ * Every number comes from the curve, so it follows the revision passed in.
+ */
+export function bandHelp(units: string, curve: BandCurve, words: BandHelpWords): string {
+  const top = curve.points[curve.points.length - 1]!;
+  const n = (u: number) => u.toLocaleString("en-GB");
+  const goodUnits = bandUnitsFor(curve, BAND_GOOD_POINTS);
+  const good = `A good run (${BAND_GOOD_POINTS} points) ${words.good ? words.good(goodUnits) : `counts ${n(goodUnits)}`}.`;
+  return words.finish
+    ? `${units} ${words.more}, higher score – up to ${top}. ${good} ${words.finish} Up to 150.`
+    : `${units} ${words.more}, higher score – ${top} at ${n(bandTop(curve))}. ${good}`;
 }
 
 /* ============================ Stamped states ============================ */
