@@ -20,6 +20,7 @@ import {
 
 import { ATTENTION_REWORK_TIME_MS, COUNT_COMPARE_REV, countUpCounts, countUpStageTruth, usesCountRev2 } from "@/lib/duel/attentionRev";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 type SceneShape = CountUpShape["shape"];
 const SHAPES: SceneShape[] = ["circle", "square", "triangle", "star", "hexagon"];
@@ -181,7 +182,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   const done = useRef(false);
   const spaceRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState({ width: 0, height: 0 });
-  useEffect(() => {
+  useBeforePaint(() => {
     const node = spaceRef.current;
     if (!node) return;
     const measure = () => setSpace({ width: node.clientWidth, height: node.clientHeight });

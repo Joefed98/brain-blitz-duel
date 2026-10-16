@@ -32,6 +32,7 @@ import type { BalancePuzzleData, BalanceScale } from "@/lib/duel/types";
 import { playCorrect, playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
@@ -157,7 +158,7 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
 
 function useHeight(ref: React.RefObject<HTMLDivElement | null>): number {
   const [h, setH] = useState(0);
-  useEffect(() => {
+  useBeforePaint(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => setH(el.clientHeight);
@@ -183,7 +184,7 @@ function IntroExample() {
 /** Notch width for the current scale: 44 px on 8 notches; a 10-notch scale shares the width, down to 32 px. */
 function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number): number {
   const [spacing, setSpacing] = useState(44);
-  useEffect(() => {
+  useBeforePaint(() => {
     const el = ref.current;
     if (!el) return;
     const min = pegs > 8 ? MIN_WIDE_PEG_WIDTH : MIN_PEG_WIDTH;

@@ -21,6 +21,7 @@ import {
 import { SCAN_REV, scanRev1StageResult, scanStageMatches, usesScanRev1 } from "@/lib/duel/attentionRev";
 import { EagleArt as EagleIcon, playEagleTakeoff } from "./eagleEyeArt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 /** Compass order, so "adjacent" directions are simply the neighbours here. */
 const DIRECTIONS: ArrowDir[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -149,7 +150,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const takeoff = useRef<() => void>(() => undefined);
   useEffect(() => registerFxPreview("symscan", () => takeoff.current()), []);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const el = stageRef.current;
     const top = topRef.current;
     const submit = submitRef.current;

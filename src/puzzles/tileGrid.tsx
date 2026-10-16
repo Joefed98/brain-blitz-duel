@@ -23,6 +23,7 @@ import { playLock, playWrong } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
@@ -92,7 +93,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const [cellSize, setCellSize] = useState(40);
   const [finished, setFinished] = useState(false);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const space = boardSpace.current;
     if (!space) return;
     const measure = () => setCellSize(Math.max(44, Math.floor(Math.min(
@@ -321,8 +322,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
         )}
       </div>
-      <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
-        {myCorrect ? `${count} / ${TG_TILES} tiles · valid` : `${count} / ${TG_TILES} · not a valid grid at time-up`}
+      <p className={`text-balance text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
+        {myCorrect ? `${count} / ${TG_TILES} tiles · valid` : `${count} / ${TG_TILES} · not a valid grid when time ran out`}
       </p>
     </div>
   );

@@ -29,7 +29,7 @@ export function nearMiss(
       const levels = number("levels"),
         total = number("total");
       return levels !== null && total !== null && total > 0 && levels >= 0 && levels < total
-        ? `Reached round ${levels + 1} of ${total}`
+        ? `Reached level ${levels + 1} of ${total}`
         : null;
     }
     case "snip": {

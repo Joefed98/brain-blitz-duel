@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 
 import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
 import { Button } from "@/components/ui/button";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 /**
  * The shared grid drag-and-snap behaviour used by Unblock and Block Party.
@@ -143,7 +144,7 @@ export function useGridMetrics(
 ): GridMetrics | null {
   const [metrics, setMetrics] = useState<GridMetrics | null>(null);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const element = ref.current;
     if (!element) return;
 
