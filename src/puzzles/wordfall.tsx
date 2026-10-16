@@ -168,6 +168,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="wordfall"
+      completeCue={(s: WordfallState) => (wordfallEarnsShimmer(s) ? "wordfall.finish" : null)}
       label={`${gameDisplayName("wordfall")} well`}
       background="transparent"
       fitWorld

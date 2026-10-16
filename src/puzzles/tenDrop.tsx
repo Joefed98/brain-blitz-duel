@@ -193,7 +193,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({
+      completeCue: (s) =>
+        (s as { cleared: number }).cleared >= TD_TARGETS ? "tendrop.solve" : null,
+    });
     let seenCleared = 0;
     let seenResets = 0;
     let seenRefused = 0;
