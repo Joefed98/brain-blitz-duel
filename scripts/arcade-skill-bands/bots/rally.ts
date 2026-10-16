@@ -6,7 +6,7 @@
  * Gold balls are aimed off-centre towards a pink pad by the better levels.
  */
 import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
-import { rallyPaddleW, rallyTotalHits, rallyTargetLeft, RALLY_BALL_R, RALLY_PADDLE_Y, RALLY_TARGET_W, RALLY_WALL, RALLY_WORLD_W, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
+import { rallyPaddleW, rallyTotalHits, rallyTargetLeft, RALLY_BALL_R, rallyPaddleY, RALLY_TARGET_W, RALLY_WALL, RALLY_WORLD_W, type RallyBall, type RallyState } from "../../../src/lib/arcade/rally";
 import { driveEvents, type SkillBot } from "../bot";
 
 /** Finger top speed, px a tick (world px are phone px here). */
@@ -16,9 +16,12 @@ const READ: Record<string, number> = { average: 0.22, good: 0.15, great: 0.1, ne
 /** Chance of trying to steer a gold ball to a pad. */
 const STEER: Record<string, number> = { average: 0, good: 0.3, great: 0.6, near: 0.85 };
 
+/** The paddle line, set per run from the game's own court (rallyRev 6's taller court). */
+let PADDLE_Y = 0;
+
 function landing(b: RallyBall): { x: number; t: number } | null {
   if (b.vy <= 0) return null;
-  const t = ((RALLY_PADDLE_Y - RALLY_BALL_R) * 256 - b.y) / b.vy;
+  const t = ((PADDLE_Y - RALLY_BALL_R) * 256 - b.y) / b.vy;
   if (t < 0) return null;
   const lo = (RALLY_WALL + RALLY_BALL_R) * 256;
   const w = (RALLY_WORLD_W - RALLY_WALL - RALLY_BALL_R) * 256 - lo;
@@ -29,6 +32,7 @@ function landing(b: RallyBall): { x: number; t: number } | null {
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
+  PADDLE_Y = rallyPaddleY(game.init(seed));
   const level = human.level;
   const history: RallyState[] = [];
   let finger = RALLY_WORLD_W / 2;

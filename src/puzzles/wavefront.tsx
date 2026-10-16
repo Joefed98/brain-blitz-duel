@@ -4,10 +4,10 @@ import {
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
   WAV_COLOURS,
-  WAV_DRAG_ZONE_TOP,
   WAV_GOLD,
-  WAV_REV,
-  WAV_WORLD_H,
+  WAV_REV_TALL,
+  wavDragZoneTop,
+  wavefrontWorldHFor,
   WAV_WORLD_W,
 } from "@/lib/arcade/wavefront";
 import { encodeWavefrontRun, replayWavefrontRun } from "@/lib/duel/wavefront";
@@ -62,6 +62,8 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: WavefrontPuzzleData | null = puzzle.type === "wavefront" ? puzzle : null;
+  // wavRev 6: the taller world; drags start in the bottom quarter of the stored revision's world.
+  const worldH = wavefrontWorldHFor(data?.wavRev);
   return (
     <ArcadeCanvasStage
       diagKey="wavefront"
@@ -72,14 +74,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={WAV_WORLD_W}
-      worldH={WAV_WORLD_H}
+      worldH={worldH}
       game={wavefrontArtGameFor(data?.wavRev)}
       sounds={wavefrontSounds}
       checkpoint={wavCheckpoint}
       interval={WAV_CHECKPOINT_INTERVAL}
       encodeRun={encodeWavefrontRun}
       pointer={(kind, x, y) => {
-        if (kind === "down" && y < WAV_DRAG_ZONE_TOP) return null;
+        if (kind === "down" && y < wavDragZoneTop(worldH)) return null;
         return { a: x, b: 0, c: 0 };
       }}
       onSubmit={(answer) => onSubmit(answer)}
@@ -125,7 +127,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_TALL }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

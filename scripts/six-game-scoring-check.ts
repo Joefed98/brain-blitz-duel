@@ -183,5 +183,9 @@ for (let total = 0; total <= 120; total++) eq(bBand.score({ ...b0, ...acted, tot
 for (const [score, total] of [[150, 110], [70, 72]] as const) eq(bBand.score({ ...b0, ...acted, total }), score, "Flightpath band anchor");
 const demoGuard = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
 eq(demoGuard.includes('data.type === "balltrack"') && demoGuard.includes("course.balls.length !== BT_BALLS"), true, "Old Ball Track demo rejected");
-for (const type of ["matchup", "junction", "rally", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
+for (const type of ["matchup", "junction", "skyline", "bullseye"]) eq(demoGuard.includes(`data.type === "${type}"`), false, `${type} demo not invalidated`);
+// Taller worlds batch 1 (16 Oct 2026) deliberately stops Rally's intro demo: a demo recorded before rallyRev 6 shows the
+// 620 px court, so only a rallyRev 6 demo plays (arcade-tuning-g1-check). This flips back to "not invalidated" (and the
+// guard comes out of introDemo.functions.ts) once Rally's demo is re-recorded on rallyRev 6.
+eq(demoGuard.includes('data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null'), true, "rally demo stopped until re-recorded on rallyRev 6");
 console.log(`Six-game scoring: ${checks} formula/schedule/intro/reveal/demo checks passed (legacy rules and the Oct 2026 score bands); Bullseye anchors 100→150, 90→133, 70→99, 50→65; band 110→150, 72→70`);

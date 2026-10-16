@@ -40,6 +40,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `arcade/wordfallWords.data.ts`; both rebuilt by `scripts/wordfall-dict.ts`).
 - Tuning E taller worlds (High Rise skylineRev 4, Meteor snakeRev 5, Scrumper snipRev 5, Hover hoverRev 5): the world height rides in the state and stages, reveals and effects size from the stored revision (`<game>WorldHFor`, `revealWorldH`, `fxSpecAt`).
 - Tuning F (14 Oct 2026): Breaker brkRev 5 (2.5 s Fireball), Rally rallyRev 5 (second bumper from 45 s), Tempo beatRev 5 (a tenth fewer notes), Meteor snakeRev 6 (more rocks), Orbit orbitRev 7 (swept black holes: every hole ahead, the rocket's whole body; `orbitRev3StartFor(rev)` picks a bank course's start); Hover's faint arena border lights (`level` on the shared border lights; barriers unchanged) are display only.
+- Taller worlds batch 1 (16 Oct 2026, the Tuning E pattern): Breaker brkRev 6 and Rally rallyRev 6 (390×730 courts), Wavefront wavRev 6 (390×730, bolts 10 px a tick), Fission burstRev 4 (390×650, every bounce and ceiling height scaled by `burstGeometry`); knots refitted; arcade-tuning-g1-check (~2 s) replays 88 pre-change runs on every older revision and 32 on the new stamps; the four intro demos stay stopped until re-recorded on the tall revision.
 - **Arcade play screen** (15 Oct 2026, display only; `data-arcade-play` in `src/polish-layout/bottom.css`): the live
   round of the 22 arcade games and the five engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed
   Signals) has one 52 px header (a 44 px row, 4 px from the top or just under a notch) with the timer centred, score or
@@ -60,7 +61,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   cuts the box, the world, a scene canvas or a control, and (16 Oct 2026, bottom-flash fix-up) fails unless the iPhone 11 home-screen
   pass holds still for 3 s after a dispatched resize: root, body and shell heights, `--standalone-short` and the scene canvas size
   unchanged, no root style rewrite, no scene redraw (PhoneShell measures the shortfall once per screen size, orientation and inset,
-  with the growth taken off, so it can't feed back); arcade-play-check and bottom-clearance-check measure every arcade play screen as an
+  with the growth taken off, so it can't feed back), and (16 Oct 2026, Meteor bottom-flash fix) plays Meteor for 5 s at DPR 2 on that setup with a scripted rock landing and shower, failing unless the arena's bottom device rows show exactly what its canvas painted every frame (Meteor's canvas is whole CSS pixels inside its box, never rounded past it, and its retro screen fills it edge to edge); arcade-play-check and bottom-clearance-check measure every arcade play screen as an
   iPhone 11 home-screen app once more the same way. Run them after any arcade play-screen layout change.
 - **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
   Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
@@ -251,7 +252,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,

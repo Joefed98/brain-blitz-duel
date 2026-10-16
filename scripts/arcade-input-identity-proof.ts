@@ -77,6 +77,9 @@ const GESTURES: Record<string, Step[]> = {
   clayshoot: [...tap(60, 80), ...tap(180, 200), ...tap(300, 320)],
   stroop: [...tap(65, 300, 500), ...tap(195, 300, 500), ...tap(325, 300, 500)],
   whack: [...tap(0.125, 0.125), ...tap(0.625, 0.375), ...tap(0.875, 0.875)],
+  // Meteor's own stage (16 Oct 2026, its canvas now whole pixels inside the box): swipes, judged in
+  // screen px from where the finger went down, record one turn each: right, down, left.
+  snake: [...drag([[195, 300], [255, 300]], 250), ...drag([[195, 300], [195, 360]], 250), ...drag([[195, 300], [135, 300]], 250)],
 };
 
 const INSTRUMENT = "(globalThis.__inputLog ??= []).push(recorded);";

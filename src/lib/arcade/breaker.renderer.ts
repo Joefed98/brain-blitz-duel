@@ -1,7 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BREAKER_FX } from "./arcadeFxGames.renderer";
+import { breakerFxFor } from "./arcadeFxGames.renderer";
 import {
   breakerGame,
   breakerGameFor,
@@ -26,7 +26,8 @@ import {
   BRK_HUD_H,
   BRK_PADDLE_H,
   BRK_PADDLE_W,
-  BRK_PADDLE_Y,
+  brkPaddleY,
+  brkWorldH,
   BRK_POWER_COLOURS,
   BRK_POWER_LASER,
   BRK_POWER_MULTI,
@@ -35,7 +36,7 @@ import {
   BRK_WALL,
   BRK_WALL_X,
   BRK_WALL_Y,
-  BRK_WORLD_H,
+  BRK_REV_TALL,
   BRK_WORLD_W,
   type BrkState,
 } from "./breaker";
@@ -127,7 +128,7 @@ function getBrickSprite(colour: string, power: number, taken: number, bloom: num
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
-  retroScreen(ctx, size, BRK_WORLD_W, BRK_WORLD_H, "stretch", (c) => arcadeFx(c, BREAKER_FX, state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, BRK_WORLD_W, brkWorldH(state), "stretch", (c) => arcadeFx(c, breakerFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 
 /** A brick's top-left in world px; brkRev 2 sliding rows carry their sim offset at the drawn tick. */
@@ -149,6 +150,9 @@ function brickColour(state: BrkState, index: number, left: number): string {
 function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRenderingContext2D): void {
   const now = typeof performance === "undefined" ? 0 : performance.now();
   const bloom = retroBloom();
+  // brkRev 6: the taller court's height and paddle line (the original 620 / 548 otherwise).
+  const BRK_WORLD_H = brkWorldH(state);
+  const BRK_PADDLE_Y = brkPaddleY(state);
   let m = memo.get(key);
   if (!m || state.tick < m.tick) m = { tick: state.tick, bricks: state.bricks.slice(), deaths: [] };
   for (let i = 0; i < BRK_BRICKS; i++) {
@@ -292,8 +296,10 @@ const breakerArtGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...bre
 const breakerArtGameBand: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_BAND), draw };
 const breakerArtGameTuned: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TUNED), draw };
 const breakerArtGameTunef: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TUNEF), draw };
+const breakerArtGameTall: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TALL), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TALL) return breakerArtGameTall;
   if (rev === BRK_REV_TUNEF) return breakerArtGameTunef;
   if (rev === BRK_REV_TUNED) return breakerArtGameTuned;
   if (rev === BRK_REV_BAND) return breakerArtGameBand;

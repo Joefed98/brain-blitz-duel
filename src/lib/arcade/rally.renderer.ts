@@ -1,6 +1,6 @@
 import { reducedMotion } from "./art.renderer";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
-import { RALLY_FX } from "./arcadeFxGames.renderer";
+import { rallyFxFor } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import {
@@ -15,12 +15,12 @@ import {
   RALLY_GOLD_POINTS,
   RALLY_HUD_H,
   RALLY_PADDLE_H,
-  RALLY_PADDLE_Y,
+  rallyPaddleY,
+  rallyWorldH,
   RALLY_REV,
   RALLY_TARGET_POINTS,
   RALLY_TARGET_W,
   RALLY_WALL,
-  RALLY_WORLD_H,
   RALLY_WORLD_W,
   type RallyState,
 } from "./rally";
@@ -53,10 +53,10 @@ const PAD = "#FF6FD8";
 const BUMPER = "#B49CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => arcadeFx(c, RALLY_FX, state, () => drawWorld(c, state, ctx)));
+  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx)));
 }
 function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
-  retroScreen(ctx, size, RALLY_WORLD_W, RALLY_WORLD_H, "stretch", (c) => arcadeFx(c, RALLY_FX, state, () => drawWorld(c, state, ctx, false)));
+  retroScreen(ctx, size, RALLY_WORLD_W, rallyWorldH(state), "stretch", (c) => arcadeFx(c, rallyFxFor(state), state, () => drawWorld(c, state, ctx, false)));
 }
 
 /**
@@ -66,11 +66,13 @@ function drawReveal(ctx: CanvasRenderingContext2D, state: RallyState, size: Canv
  * here is something a ball can hit.
  */
 const courts = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
-function courtLayer(ctx: CanvasRenderingContext2D): ArtCanvas | null {
+function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCanvas | null {
   const t = ctx.getTransform();
   const sx = Math.max(1, Math.abs(t.a));
   const sy = Math.max(1, Math.abs(t.d));
-  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}`;
+  // rallyRev 6: the court's height is part of the key (the taller court has its own layer).
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${RALLY_WORLD_H}`;
+  const RALLY_PADDLE_Y = rallyPaddleY({ worldH: RALLY_WORLD_H });
   const old = courts.get(ctx);
   if (old && old.key === key) return old.layer;
   const layer = artCanvas(Math.ceil(RALLY_WORLD_W * sx), Math.ceil(RALLY_WORLD_H * sy));
@@ -128,7 +130,7 @@ function courtLayer(ctx: CanvasRenderingContext2D): ArtCanvas | null {
 }
 
 /** Side walls as neon tubes with running lights (presentation clock; still under reduced motion). */
-function drawWalls(ctx: CanvasRenderingContext2D, colour: string, bloom: number): void {
+function drawWalls(ctx: CanvasRenderingContext2D, colour: string, bloom: number, RALLY_WORLD_H: number): void {
   const top = RALLY_HUD_H + RALLY_WALL;
   pixelRect(ctx, RALLY_WALL - 2, top - 2, RALLY_WORLD_W - 2 * RALLY_WALL + 4, 2, colour, bloom * 0.5);
   pixelRect(ctx, RALLY_WALL - 2, top - 2, 2, RALLY_WORLD_H, colour, bloom * 0.5);
@@ -177,12 +179,15 @@ function drawBumper(ctx: CanvasRenderingContext2D, x: number, y: number, flash: 
 }
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: CanvasRenderingContext2D, crashIndicator = true): void {
+  // rallyRev 6: the taller court's height and paddle line (the original 620 / 560 otherwise).
+  const RALLY_WORLD_H = rallyWorldH(state);
+  const RALLY_PADDLE_Y = rallyPaddleY(state);
   const reward=successFrame(ctx,{id:'rally',tick:state.tick,count:rallyTotalHits(state),every:10,colour:GOLD,width:RALLY_WORLD_W,height:RALLY_WORLD_H,point:{x:px(state.x),y:RALLY_PADDLE_Y-4,shape:'spark'},hud:{x:14,y:26,text:`RALLY ${state.hits}`}});
   const heat=reward.chain>=20?SUCCESS_ACCENTS.orange:reward.chain>=10?GOLD:RETRO_WHITE;
   const bloom = retroBloom();
-  const layer = courtLayer(ctx);
+  const layer = courtLayer(ctx, RALLY_WORLD_H);
   if (layer) ctx.drawImage(layer as CanvasImageSource, 0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
-  drawWalls(ctx, !reducedMotion() && reward.milestoneAge < 30 ? GOLD : COURT, bloom);
+  drawWalls(ctx, !reducedMotion() && reward.milestoneAge < 30 ? GOLD : COURT, bloom, RALLY_WORLD_H);
 
   if (state.rev === RALLY_REV) {
     for (const spot of state.live ?? []) drawPad(ctx, rallyTargetLeft(state.spots ?? [], spot), bloom, false);

@@ -5,6 +5,8 @@ import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Wordmark } from "@/components/duel/Wordmark";
 import { MuteToggle } from "@/components/duel/MuteToggle";
+import { Onboarding } from "@/components/duel/Onboarding";
+import { onboardingSeen } from "@/lib/onboarding";
 import { createRoom, joinRoomByCode } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
@@ -50,8 +52,13 @@ function Home() {
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
   const codeRef = useRef<HTMLInputElement | null>(null);
+  // The first-time intro (lib/onboarding): once per device on a plain visit, or from "How it works".
+  const [intro, setIntro] = useState(false);
 
   useEffect(() => setName(getStoredName()), []);
+  useEffect(() => {
+    if (!onboardingSeen()) setIntro(true);
+  }, []);
   // Silent until the slot gets a file (docs/sound-cues/music.md).
   useScreenMusic("music_home");
 
@@ -92,6 +99,8 @@ function Home() {
     setMode(next);
     setError(null);
   };
+
+  if (intro) return <Onboarding onDone={() => setIntro(false)} />;
 
   return (
     <PhoneShell bare>
@@ -137,6 +146,17 @@ function Home() {
               className="press tap-target w-full rounded-xl border border-border bg-card/70 py-4 font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
             >
               Join room
+            </button>
+            <button
+              type="button"
+              data-how-it-works
+              onClick={() => {
+                unlockAudio();
+                setIntro(true);
+              }}
+              className="press tap-target w-full font-display text-sm uppercase tracking-widest text-muted-foreground"
+            >
+              How it works
             </button>
           </div>
         ) : (

@@ -41,6 +41,17 @@ export const RALLY_PADDLE_SHRINK = 5;
 export const RALLY_PADDLE_H = 12;
 export const RALLY_PADDLE_Y = 560;
 export const RALLY_PADDLE_Y_FP = RALLY_PADDLE_Y * 256;
+/** How far the paddle's top edge sits above the bottom of the court, px. */
+export const RALLY_PADDLE_LIFT = RALLY_WORLD_H - RALLY_PADDLE_Y;
+
+/** The world height (px) a state plays in: rallyRev 6's taller court, or the original 620. */
+export function rallyWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? RALLY_WORLD_H;
+}
+/** The paddle's top edge (px) in a state's world: always RALLY_PADDLE_LIFT above the bottom. */
+export function rallyPaddleY(state: { worldH?: number }): number {
+  return rallyWorldH(state) - RALLY_PADDLE_LIFT;
+}
 
 export const RALLY_BALL_R = 7;
 export const RALLY_BALL_R_FP = RALLY_BALL_R * 256;
@@ -157,6 +168,8 @@ export interface RallyState extends BandFields {
   bumper2?: { x: number; y: number };
   /** rallyRev 5 only, render only: which bumper (0 or 1) the latest bounce came off. */
   bumped?: number;
+  /** rallyRev 6 only (taller worlds): the court's height in px (RALLY_TALL_H). Absent = RALLY_WORLD_H. */
+  worldH?: number;
 }
 
 /** Total returns, which is what shrinks the paddle. */
@@ -259,6 +272,8 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
   const top = (RALLY_HUD_H + RALLY_WALL) * 256;
   const leftWall = RALLY_WALL * 256;
   const rightWall = (RALLY_WORLD_W - RALLY_WALL) * 256;
+  const paddleYFp = rallyPaddleY(state) * 256;
+  const worldHFp = rallyWorldH(state) * 256;
 
   let golds = state.golds.map((ball) => ({ ...ball }));
   for (const entry of state.entries) {
@@ -336,7 +351,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
         }
       }
 
-      if (vy > 0 && y + RALLY_BALL_R_FP >= RALLY_PADDLE_Y_FP && y < RALLY_PADDLE_Y_FP + 4 * 256) {
+      if (vy > 0 && y + RALLY_BALL_R_FP >= paddleYFp && y < paddleYFp + 4 * 256) {
         const offset = px(x) - (paddleX - half);
         if (offset >= -RALLY_BALL_R && offset <= width + RALLY_BALL_R) {
           if (gold) goldHits += 1;
@@ -351,11 +366,11 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
           );
           vx = steered.vx;
           vy = steered.vy;
-          y = RALLY_PADDLE_Y_FP - RALLY_BALL_R_FP;
+          y = paddleYFp - RALLY_BALL_R_FP;
         }
       }
 
-      if (y - RALLY_BALL_R_FP > RALLY_WORLD_H * 256) return null;
+      if (y - RALLY_BALL_R_FP > worldHFp) return null;
     }
     return { x, y, vx, vy };
   };
@@ -453,6 +468,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   if (state.tune !== undefined) values.push(state.tune);
   // rallyRev 5 adds its second bumper after that, so rev-2/3/4 checksums are unchanged.
   if (state.bumper2) values.push(state.bumper2.x, state.bumper2.y);
+  // rallyRev 6 (taller worlds): the court's height, last.
+  if (state.worldH) values.push(state.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -468,7 +485,8 @@ export const RALLY_BALL = "#4D8CFF";
 
 function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize): void {
   const scaleX = size.width / RALLY_WORLD_W;
-  const scaleY = size.height / RALLY_WORLD_H;
+  const worldH = rallyWorldH(state);
+  const scaleY = size.height / worldH;
 
   ctx.save();
   ctx.fillStyle = RALLY_BG;
@@ -481,14 +499,14 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.moveTo(RALLY_WALL, RALLY_HUD_H + RALLY_WALL);
   ctx.lineTo(RALLY_WORLD_W - RALLY_WALL, RALLY_HUD_H + RALLY_WALL);
   ctx.moveTo(RALLY_WALL, RALLY_HUD_H + RALLY_WALL);
-  ctx.lineTo(RALLY_WALL, RALLY_WORLD_H);
+  ctx.lineTo(RALLY_WALL, worldH);
   ctx.moveTo(RALLY_WORLD_W - RALLY_WALL, RALLY_HUD_H + RALLY_WALL);
-  ctx.lineTo(RALLY_WORLD_W - RALLY_WALL, RALLY_WORLD_H);
+  ctx.lineTo(RALLY_WORLD_W - RALLY_WALL, worldH);
   ctx.stroke();
 
   const width = rallyPaddleW(rallyTotalHits(state));
   ctx.fillStyle = RALLY_GOLD;
-  ctx.fillRect(state.paddleX - width / 2, RALLY_PADDLE_Y, width, RALLY_PADDLE_H);
+  ctx.fillRect(state.paddleX - width / 2, rallyPaddleY(state), width, RALLY_PADDLE_H);
 
   for (const ball of state.golds) {
     ctx.beginPath();
@@ -515,7 +533,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
 
   if (state.dead) {
     ctx.fillStyle = "rgba(255, 77, 77, 0.22)";
-    ctx.fillRect(0, 0, RALLY_WORLD_W, RALLY_WORLD_H);
+    ctx.fillRect(0, 0, RALLY_WORLD_W, worldH);
   }
 
   ctx.restore();
@@ -567,6 +585,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_TALL) return rallyTallGame;
   if (rev === RALLY_REV_TUNEF) return rallyTunefGame;
   if (rev === RALLY_REV_TUNED) return rallyTunedGame;
   if (rev === RALLY_REV_BAND) return rallyBandGame;
@@ -586,7 +605,7 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 
 export function rallyBandParts(state: RallyState): BandParts {
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
-  const curve = state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE;
+  const curve = state.worldH ? RALLY_V6_BAND_CURVE : state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE;
   return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
 }
 
@@ -660,3 +679,46 @@ export const rallyTunefGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
     return { ...base, bumper2: rallyBumper2(seed, base.bumper!), bumped: 0 };
   },
 };
+
+/* ================= Taller worlds (rallyRev 6, Oct 2026) ================= */
+
+/**
+ * rallyRev 6 (taller worlds, batch 1): rallyRev 5 play (pads, both bumpers,
+ * the gold-ball schedule and scoring rules) on a taller court, 390 ×
+ * RALLY_TALL_H, the same for every player. The paddle sits RALLY_PADDLE_LIFT
+ * above the new bottom, so the court is 110 px longer; each bumper keeps its
+ * seeded spot across, and its height is stretched over the longer court
+ * (rallyTallBumper), so the bumpers stay in the middle of the court and
+ * the second stays at least RALLY_BUMPER2_GAP from the first. States keep
+ * `rev: 2`, `tune: 1` and `bumper2` and add `worldH`, folded into the
+ * checkpoint checksum last. Scored on RALLY_V6_BAND_CURVE.
+ */
+export const RALLY_REV_TALL = 6;
+export const RALLY_TALL_H = 730;
+/**
+ * rallyRev 6 band knots (5 a gold-ball hit, 6 a pad): every return takes longer on
+ * the longer court, so the same players land fewer gold hits and pads and the knots
+ * come down (refitted with scripts/arcade-skill-bands.ts --rev=g1, 60 seeds: unit
+ * medians 84.5 / 111 / 116 / 121; the simulated good, great and near-perfect
+ * players sit close together in Rally, so the middle knots are close); 150 at 220.
+ */
+export const RALLY_V6_BAND_CURVE = bandCurve([0, 85, 111, 116, 122, 220], [0, 70, 100, 125, 142, 150]);
+
+/** A bumper's centre on the taller court: x unchanged, y stretched from the 620 court's top-to-paddle span to the taller one's. */
+export function rallyTallBumper(b: { x: number; y: number }, worldH = RALLY_TALL_H): { x: number; y: number } {
+  const top = RALLY_HUD_H + RALLY_WALL;
+  return { x: b.x, y: top + Math.trunc(((b.y - top) * (worldH - RALLY_PADDLE_LIFT - top)) / (RALLY_PADDLE_Y - top)) };
+}
+
+export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyRev2Game,
+  init: (seed) => {
+    const base = rallyTunefGame.init(seed);
+    return { ...base, bumper: rallyTallBumper(base.bumper!), bumper2: rallyTallBumper(base.bumper2!), worldH: RALLY_TALL_H };
+  },
+};
+
+/** The court height (px) a stored round's rallyRev plays on. */
+export function rallyWorldHFor(rev?: number | null): number {
+  return rev === RALLY_REV_TALL ? RALLY_TALL_H : RALLY_WORLD_H;
+}

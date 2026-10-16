@@ -153,8 +153,9 @@ section("Old rounds replay and score exactly as before; Tuning F runs replay as 
 section("New rounds carry the Tuning F stamps and score on the bands");
 {
   const stamps: [string, string, number | undefined, number, number][] = [
-    ["breaker", "brkRev", generateBreaker().brkRev, BRK_REV_TUNEF, 5],
-    ["rally", "rallyRev", generateRally().rallyRev, RALLY_REV_TUNEF, 5],
+    // Taller worlds batch 1 (16 Oct 2026) moved Breaker and Rally on to their taller courts (brkRev 6, rallyRev 6); arcade-tuning-g1-check covers them.
+    ["breaker", "brkRev", generateBreaker().brkRev, BRK_REV_TUNEF + 1, 6],
+    ["rally", "rallyRev", generateRally().rallyRev, RALLY_REV_TUNEF + 1, 6],
     ["beat", "beatRev", generateBeat().beatRev, BEAT_REV_TUNEF, 5],
     ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_ROCKS, 6],
     ["orbit", "orbitRev", generateOrbit().orbitRev, ORBIT_REV_SWEPT, 7],

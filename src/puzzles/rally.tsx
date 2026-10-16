@@ -26,7 +26,7 @@ import {
   RALLY_CHECKPOINT_INTERVAL,
   RALLY_GOLD,
   RALLY_RUN_TICKS,
-  RALLY_WORLD_H,
+  rallyWorldHFor,
   RALLY_WORLD_W,
   type RallyState,
 } from "@/lib/arcade/rally";
@@ -236,7 +236,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={RALLY_WORLD_W} height={RALLY_WORLD_H}>
+    <ArcadeArenaSlot width={RALLY_WORLD_W} height={rallyWorldHFor(data.rallyRev)}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
