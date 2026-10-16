@@ -219,6 +219,39 @@ export type Database = {
         }
         Relationships: []
       }
+      room_joins: {
+        Row: {
+          duel_id: string
+          game_index: number
+          id: number
+          joined_at: string
+          player_slot: number
+          rejoin: boolean
+          user_id: string
+          via: string | null
+        }
+        Insert: {
+          duel_id: string
+          game_index?: number
+          id?: never
+          joined_at?: string
+          player_slot: number
+          rejoin?: boolean
+          user_id: string
+          via?: string | null
+        }
+        Update: {
+          duel_id?: string
+          game_index?: number
+          id?: never
+          joined_at?: string
+          player_slot?: number
+          rejoin?: boolean
+          user_id?: string
+          via?: string | null
+        }
+        Relationships: []
+      }
       room_messages: {
         Row: {
           created_at: string

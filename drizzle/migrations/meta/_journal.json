@@ -8,6 +8,13 @@
       "when": 1792154370835,
       "tag": "0000_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792167864157,
+      "tag": "0001_beta_room_joins",
+      "breakpoints": true
     }
   ]
 }
