@@ -18,15 +18,17 @@
  *
  *   bun scripts/safe-area-screens-check.tsx [--verbose] [--shots=.shots]
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Page } from "playwright";
 import type { Plugin } from "vite";
 
+import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./device-emulation";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData } from "../src/lib/duel/types";
+import { gameDisplayName as gameName } from "../src/lib/duel/gameNames";
 
 const VERBOSE = process.argv.includes("--verbose");
 /** --shots=<dir>: save each screen (a design aid; keep it in the gitignored .shots/). */
@@ -258,6 +260,8 @@ const openGame = async (page: Page) => {
     .waitFor({ timeout: 30_000 });
 };
 const ONLY = process.argv.filter((a) => !a.startsWith("--")).slice(2);
+/** --geometry=<file>: write the room play-header cases' boxes as JSON (before → after comparisons). */
+const GEOMETRY = process.argv.find((a) => a.startsWith("--geometry="))?.slice(11);
 const ALL_SCREENS: Screen[] = [
   { name: "home (room join)", mode: "home" },
   { name: "practice list", mode: "practice" },
@@ -402,6 +406,223 @@ function underInsets(arg: {
   return out;
 }
 
+
+/* ------------------------------------------------- the room play header (16 Oct 2026) */
+
+/**
+ * The room's arcade play header carries the round and game (RoundLabel) between the score
+ * and the timer. Each case draws a room's live round through the real room route and
+ * checks: the header row is 44px under max(4px, the top inset) (52px to the arena), the
+ * timer is exactly centred, the label takes the widest form that fits ("Round 2 of 6 ·
+ * Gemstone", "Round 2 of 6" over the name, "2/6 · Gemstone", "2/6" over the name
+ * truncated), never wraps (two lines at most, each one line high) or overflows, reads
+ * "Final round" on the last round, and keeps 8px from the timer, the score and every
+ * other header item. Puzzle screens keep their own heading row (no RoundLabel there).
+ * Every box (header, arena slot, world, game region, controls) is written with
+ * --geometry=<file> so a run on main and one here compare before → after.
+ */
+interface HeaderSize {
+  name: string;
+  device: DeviceConfig;
+  w: number;
+  h: number;
+  top: number;
+  bottom: number;
+}
+/** A phone in the browser (not a home-screen app) with its insets. */
+const phone = (w: number, h: number, top: number, bottom: number): DeviceConfig => ({ key: `${w}x${h}`, label: `${w}x${h}`, w, h, screenH: h, top, bottom, standalone: false });
+const HEADER_SIZES: HeaderSize[] = [
+  { name: "414x896 iPhone 11 home-screen app", device: IPHONE11_APP, w: 414, h: 848, top: 48, bottom: 34 },
+  { name: "390x844", device: phone(390, 844, 47, 34), w: 390, h: 844, top: 47, bottom: 34 },
+  { name: "375x667", device: phone(375, 667, 0, 0), w: 375, h: 667, top: 0, bottom: 0 },
+  { name: "360x800", device: phone(360, 800, 0, 0), w: 360, h: 800, top: 0, bottom: 0 },
+  // Wider screens (a tablet, a desktop window) exercise the wider forms.
+  { name: "600x900", device: phone(600, 900, 0, 0), w: 600, h: 900, top: 0, bottom: 0 },
+  { name: "1024x768", device: phone(1024, 768, 0, 0), w: 1024, h: 768, top: 0, bottom: 0 },
+];
+/** The longest display name in the bank, drawn as an arcade game's name. */
+const LONGEST_NAME = "Don't Break the Chain";
+interface HeaderCase {
+  name: string;
+  type: string;
+  round: number;
+  rounds: number;
+  players: number;
+  /** A display name drawn in place of the game's own. */
+  as?: string;
+  /** Expected long round text ("Round 2 of 6" / "Final round"); undefined on a puzzle screen. */
+  long?: string;
+}
+const HEADER_CASES: HeaderCase[] = [
+  { name: "Gemstone 2 of 6", type: "matchup", round: 2, rounds: 6, players: 2, long: "Round 2 of 6" },
+  { name: "Rainbow Bridge 3 of 7", type: "inkbridge", round: 3, rounds: 7, players: 2, long: "Round 3 of 7" },
+  { name: "longest name, final of 7", type: "inkbridge", round: 7, rounds: 7, players: 3, as: LONGEST_NAME, long: "Final round" },
+  { name: "Mixed Signals 7 of 7", type: "stroop", round: 7, rounds: 7, players: 2, long: "Final round" },
+  { name: "puzzle Box Six 2 of 7", type: "sudoku", round: 2, rounds: 7, players: 2 },
+  { name: "puzzle Don't Break the Chain 6 of 6", type: "chain", round: 6, rounds: 6, players: 3 },
+];
+
+function headerRoom(c: HeaderCase, puzzle: PuzzleData) {
+  const base = roomNow("in_progress", "puzzle", {});
+  const extra = Array.from({ length: Math.max(0, c.players - 2) }, (_, i) => ({
+    ...base.players[1]!,
+    id: `p${i + 3}`,
+    player_slot: i + 3,
+    user_id: `u${i + 3}`,
+    display_name: `Player ${i + 3}`,
+  }));
+  return {
+    ...base,
+    duel: {
+      ...base.duel,
+      round_count: c.rounds,
+      round_order: Array.from({ length: c.rounds }, () => c.type),
+      puzzles_public: Array.from({ length: c.rounds }, () => puzzle),
+      current_round: c.round,
+    },
+    players: [...base.players, ...extra],
+    results: [],
+  };
+}
+
+/** In-page: the header's items, the label and every box that must not move. */
+function headerGeometry() {
+  const box = (el: Element | null) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: +r.left.toFixed(1), y: +r.top.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) };
+  };
+  const header = document.querySelector("[data-arcade-header]") ?? document.querySelector("[data-round-heading]");
+  const label = document.querySelector<HTMLElement>("[data-round-label]");
+  const shown = label?.firstElementChild as HTMLElement | null | undefined;
+  const lines = shown
+    ? (shown.matches(".flex-col") ? Array.from(shown.children) : [shown]).map((el) => {
+        const e = el as HTMLElement;
+        const cs = getComputedStyle(e);
+        const lineH = parseFloat(cs.fontSize) * (parseFloat(cs.lineHeight) / parseFloat(cs.fontSize) || 1);
+        const parts = e.children.length ? Array.from(e.children, (c) => c.textContent ?? "") : [e.textContent ?? ""];
+        return { text: parts.join(" ").replace(/\s+/g, " ").trim(), h: e.getBoundingClientRect().height, lineH, truncated: e.scrollWidth > e.clientWidth + 0.5, fontSize: parseFloat(cs.fontSize) };
+      })
+    : [];
+  const controls = Array.from(document.querySelectorAll("[data-game-stage] button, [data-game-stage] [role='button']")).map((el) => ({
+    label: (el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 24),
+    ...box(el)!,
+  }));
+  const headerItems = header
+    ? Array.from(header.querySelectorAll("button, [role='timer'], [aria-label='Round progress'], [data-sound-controls]"))
+        .filter((el) => !el.closest("[data-sound-controls]") || el.matches("[data-sound-controls]"))
+        .map((el) => ({ what: el.getAttribute("role") === "timer" ? "timer" : (el.getAttribute("aria-label") ?? el.getAttribute("data-sound-controls") ?? el.tagName).slice(0, 24) || "sound", ...box(el)! }))
+    : [];
+  const left = header?.querySelector("[data-header-left] > div");
+  const scoreContent = left ? Array.from(left.querySelectorAll("*")).map(box).filter(Boolean) : [];
+  const scoreRight = scoreContent.length ? Math.max(...scoreContent.map((b) => b!.x + b!.w)) : null;
+  return {
+    width: window.innerWidth,
+    header: box(header),
+    arcade: Boolean(document.querySelector("[data-arcade-header]")),
+    timer: box(header?.querySelector("[role='timer']") ?? null),
+    pips: box(header?.querySelector("[aria-label='Round progress']") ?? null),
+    label: label ? { form: label.dataset["roundLabel"], room: Number(label.style.maxWidth.replace("px", "")), ...box(shown ?? label)!, lines } : null,
+    headerItems,
+    scoreRight,
+    region: box(document.querySelector("[data-game-region]")),
+    slot: box(document.querySelector("[data-arena-slot]")),
+    world: box(document.querySelector("[data-arena-slot] [data-game-arena]") ?? document.querySelector("[data-arena-slot] canvas")),
+    stage: box(document.querySelector("[data-game-stage]")),
+    controls,
+  };
+}
+type HeaderGeometry = ReturnType<typeof headerGeometry>;
+
+async function roomPlayHeader(): Promise<{ rows: string[]; geometry: Record<string, HeaderGeometry> }> {
+  const rows: string[] = [];
+  const geometry: Record<string, HeaderGeometry> = {};
+  const puzzles = new Map<string, PuzzleData>();
+  for (const c of HEADER_CASES)
+    if (!puzzles.has(c.type))
+      puzzles.set(c.type, splitPuzzle(withSeededRandom(41, () => generatePuzzle(c.type as never))).pub as PuzzleData);
+  for (const size of HEADER_SIZES) {
+    for (const c of HEADER_CASES) {
+      const where = `room play header ${c.name} ${size.name}`;
+      const context = await browser.newContext({ viewport: { width: size.w, height: size.h } });
+      const page = await context.newPage();
+      await context.addInitScript(DEVICE_INIT);
+      const errors: string[] = [];
+      page.on("pageerror", (e) => errors.push(e.message.split("\n")[0]!));
+      await page.addInitScript(
+        (r) => {
+          (window as unknown as { __harness: unknown }).__harness = {
+            puzzles: {},
+            verdict: { isCorrect: true, score: 150 },
+            latencyMs: 50,
+            submissions: [],
+            verdictAt: null,
+            room: r.room,
+            names: r.names,
+          };
+        },
+        { room: headerRoom(c, puzzles.get(c.type)!), names: c.as ? { [c.type]: c.as } : {} },
+      );
+      const fails: string[] = [];
+      try {
+        await gotoRetried(page, `${origin}/safe-area.html?mode=room`, where);
+        await page.waitForSelector("[data-game-stage]", { timeout: 60_000 });
+        await emulateDevice(page, size.device);
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForTimeout(1200);
+        const g = await page.evaluate(headerGeometry);
+        geometry[`${c.name} | ${size.name}`] = g;
+        if (SHOTS) await page.screenshot({ path: `${SHOTS}/room-header-${c.name.replace(/\W+/g, "-")}-${size.w}x${size.device.screenH}.png`, clip: { x: 0, y: 0, width: size.w, height: Math.max(4, size.top) + 60 } });
+        const near = (a: number, b: number, tol = 0.6) => Math.abs(a - b) <= tol;
+        if (!c.long) {
+          // A puzzle screen: its own heading row, no RoundLabel in it.
+          if (g.arcade) fails.push("a puzzle screen drew the arcade header");
+          if (g.label) fails.push("a puzzle screen drew the arcade round label");
+          rows.push(`| ${c.name} | ${size.name} | puzzle heading row (unchanged) | - | - |`);
+        } else {
+          const top = Math.max(4, size.top);
+          if (!g.header || !near(g.header.h, 44) || !near(g.header.y, top)) fails.push(`header ${JSON.stringify(g.header)}: want 44px at y ${top}`);
+          if (!g.slot || !near(g.slot.y, top + 48)) fails.push(`arena slot at y ${g.slot?.y}: want ${top + 48} (52px header)`);
+          if (!g.timer || !near(g.timer.x + g.timer.w / 2, g.width / 2)) fails.push(`timer centre ${g.timer ? g.timer.x + g.timer.w / 2 : "?"}: want ${g.width / 2}`);
+          if (g.pips) fails.push("round pips drawn beside the label");
+          const L = g.label;
+          if (!L) fails.push("no round label");
+          else {
+            const compact = L.form === "compact-line" || L.form === "compact-stack";
+            const want = compact ? `${c.round}/${c.rounds}` : c.long;
+            const name = c.as ?? gameName(c.type);
+            const first = L.lines[0];
+            if (!first?.text.startsWith(want)) fails.push(`label reads "${first?.text}": want it to start "${want}"`);
+            if (L.lines.length > 2) fails.push(`label on ${L.lines.length} lines`);
+            for (const line of L.lines) if (line.h > line.lineH * 1.5) fails.push(`label line "${line.text}" wraps (${line.h}px high)`);
+            const nameLine = L.lines[L.lines.length - 1]!;
+            if (L.form !== "compact-stack" && (L.lines.some((l) => l.truncated) || !L.lines.map((l) => l.text).join(" ").includes(name)))
+              fails.push(`${L.form}: label cut ("${L.lines.map((l) => l.text).join(" / ")}")`);
+            if (L.form === "compact-stack" && L.lines[0]!.truncated) fails.push(`"${L.lines[0]!.text}" cut`);
+            if (!g.header || L.y < g.header.y - 0.5 || L.y + L.h > g.header.y + g.header.h + 0.5) fails.push("label outside the header row");
+            if (L.x < 0) fails.push("label off the left edge");
+            for (const item of g.headerItems) {
+              const gap = Math.max(item.x - (L.x + L.w), L.x - (item.x + item.w));
+              if (gap < 8 - 0.5) fails.push(`label ${gap.toFixed(1)}px from ${item.what} (want ≥ 8)`);
+            }
+            if (g.scoreRight !== null && L.x - g.scoreRight < 8 - 0.5) fails.push(`label ${(L.x - g.scoreRight).toFixed(1)}px from the score (want ≥ 8)`);
+            const shownText = L.lines.map((l) => l.text).join(L.form.endsWith("stack") ? " / " : "");
+            rows.push(`| ${c.name} | ${size.name} | ${L.form} | ${shownText}${nameLine.truncated ? " (name ellipsised)" : ""} | ${L.room}px |`);
+          }
+        }
+        if (errors.length) fails.push(`page errors: ${[...new Set(errors)].slice(0, 2).join(" | ")}`);
+      } catch (error) {
+        fails.push(String((error as Error).message ?? error).split("\n")[0]!);
+      } finally {
+        await context.close();
+      }
+      for (const f of fails) failures.push(`${where}: ${f}`);
+      console.log(`${fails.length ? "FAIL" : "PASS"} ${where}${fails.length ? `: ${fails[0]}` : ""}`);
+    }
+  }
+  return { rows, geometry };
+}
+
 const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const failures: string[] = [];
@@ -445,8 +666,15 @@ async function gotoRetried(page: import("playwright").Page, url: string, where: 
   }
 }
 
+const HEADER_RUN = !ONLY.length || ONLY.some((o) => "room play header".includes(o));
+let headerRows: string[] = [];
 try {
   await warmUp();
+  if (HEADER_RUN) {
+    const header = await roomPlayHeader();
+    headerRows = header.rows;
+    if (GEOMETRY) writeFileSync(GEOMETRY, JSON.stringify(header.geometry, null, 1));
+  }
   for (const [w, h] of SIZES) {
     for (const screen of SCREENS) {
       const context = await browser.newContext({ viewport: { width: w, height: h } });
@@ -562,6 +790,7 @@ try {
   await browser.close();
   await server.close();
 }
+if (headerRows.length) console.log(["| Case | Size | Label form | Drawn | Room |", "|---|---|---|---|---|", ...headerRows].join("\n"));
 for (const f of failures) console.log(`  ${f}`);
 if (failures.length) {
   console.log(
@@ -570,5 +799,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${SCREENS.length} screens at 375x667 and 390x844 keep text and controls clear of a ${INSETS.top}px notch and a ${INSETS.bottom}px home bar`,
+  `PASS: ${SCREENS.length} screens at 375x667 and 390x844 keep text and controls clear of a ${INSETS.top}px notch and a ${INSETS.bottom}px home bar${HEADER_RUN ? `; ${HEADER_CASES.length} room play-header cases at ${HEADER_SIZES.length} sizes keep a 52px header, a centred timer and the round label 8px clear` : ""}`,
 );

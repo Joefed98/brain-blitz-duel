@@ -25,6 +25,7 @@ import {
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
+import { RoundLabel } from "@/components/duel/RoundLabel";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundHighlight } from "@/components/replay/RoundHighlight";
 import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
@@ -1081,6 +1082,7 @@ function DuelScreen() {
         title={puzzle ? puzzleName(puzzle.type) : ""}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
+        roundLabel={puzzle ? <RoundLabel round={round} total={duel.round_count ?? TOTAL_ROUNDS} name={puzzleName(puzzle.type)} /> : undefined}
         timer={
           showTimer ? (
             <TimerBar
