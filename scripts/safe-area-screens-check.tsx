@@ -9,7 +9,7 @@
  * its scroll; or if a control at the top of the page is covered by another element
  * (the room's sticky chat bar over READY, for one).
  *
- * Screens: home (room join), practice list, the sound settings popover, a practice
+ * Screens: home (room join), the first-time intro (a fresh device), practice list, the sound settings popover, a practice
  * round intro, an in-game help sheet, and a room's lobby, link join, Prepare to Duel
  * (starting), round title, round intro, round result, standings, winner reveal and
  * podium. The room screens come from the real room route (src/routes/duel.$code.tsx)
@@ -19,9 +19,10 @@
  *   bun scripts/safe-area-screens-check.tsx [--verbose] [--shots=.shots]
  */
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { Page } from "playwright";
-import type { Plugin } from "vite";
+
+import { startSafeAreaServer } from "./safe-area-server";
+import { ONBOARDING_KEY } from "../src/lib/onboarding";
 
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -53,87 +54,6 @@ if (!CHROMIUM) {
   process.exit(1);
 }
 
-/* ------------------------------------------------- the stubbed network edge (as beat-hold) */
-
-const STUBBED = [
-  /\/src\/lib\/.*\.functions\.ts$/,
-  /\/src\/lib\/duel\/api\.ts$/,
-  /\/src\/lib\/duel\/useDuel\.ts$/,
-  /\/src\/lib\/duel\/useRoomChat\.ts$/,
-  /\/src\/integrations\/supabase\/client\.ts$/,
-];
-const ROUTER_STUB = `
-export const createFileRoute = () => (options) => ({
-  options,
-  useParams: () => ({ code: "SAFE" }),
-  useSearch: () => ({}),
-});
-export const useNavigate = () => () => undefined;
-export const useRouter = () => ({ navigate: () => undefined, invalidate: () => undefined });
-export const Link = ({ children }) => children;
-`;
-const START_STUB = `
-const builder = () => new Proxy(() => undefined, { get: () => builder, apply: () => builder() });
-export const createServerFn = builder;
-export const createMiddleware = builder;
-export const useServerFn = (fn) => fn;
-`;
-
-function stubSource(file: string): string {
-  const text = readFileSync(file, "utf8");
-  const names = new Set<string>();
-  const lines = [`const H = () => window.__harness;`];
-  for (const m of text.matchAll(/^export\s+(?:async\s+)?(function|const|let|class)\s+(\w+)/gm)) {
-    const [, kind, name] = m as unknown as [string, string, string];
-    if (names.has(name)) continue;
-    names.add(name);
-    if (kind === "class") lines.push(`export class ${name} extends Error {}`);
-    else if (name === "supabase")
-      lines.push(
-        `export const supabase = new Proxy({}, { get: (_t, k) => H().call(${JSON.stringify(file)}, "supabase", [])[k] });`,
-      );
-    else
-      lines.push(
-        `export function ${name}(...args) { return H().call(${JSON.stringify(file)}, ${JSON.stringify(name)}, args)(...args); }`,
-      );
-  }
-  return lines.join("\n");
-}
-
-function harnessEdge(): Plugin {
-  return {
-    name: "safe-area-edge",
-    enforce: "pre",
-    async resolveId(source, importer) {
-      if (source === "@tanstack/react-router") return "\0stub-router";
-      if (source === "@tanstack/react-start") return "\0stub-start";
-      if (source.startsWith("\0")) return null;
-      const resolved = await this.resolve(source, importer, { skipSelf: true });
-      if (resolved && STUBBED.some((re) => re.test(resolved.id.split("?")[0]!)))
-        return `\0stub:${resolved.id.split("?")[0]}`;
-      return null;
-    },
-    load(id) {
-      if (id === "\0stub-router") return ROUTER_STUB;
-      if (id === "\0stub-start") return START_STUB;
-      if (id.startsWith("\0stub:")) return stubSource(id.slice("\0stub:".length));
-      return null;
-    },
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith("/safe-area.html")) return next();
-        // The app's own viewport meta (src/routes/__root.tsx), so env(safe-area-inset-*) applies.
-        const html = await server.transformIndexHtml(
-          req.url,
-          `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body><div id="root"></div><script type="module" src="/scripts/safe-area-harness.tsx"></script></body></html>`,
-        );
-        res.setHeader("content-type", "text/html");
-        res.end(html);
-      });
-    },
-  };
-}
-
 const rootMeta = readFileSync("src/routes/__root.tsx", "utf8");
 if (!/viewport-fit=cover/.test(rootMeta)) {
   console.log(
@@ -142,23 +62,9 @@ if (!/viewport-fit=cover/.test(rootMeta)) {
   process.exit(1);
 }
 
-const { createServer } = await import("vite");
-const react = (await import("@vitejs/plugin-react")).default;
-const tailwind = (await import("@tailwindcss/vite")).default;
-const server = await createServer({
-  configFile: false,
-  root: process.cwd(),
-  logLevel: "error",
-  plugins: [harnessEdge(), react(), tailwind()],
-  resolve: { alias: { "@": resolve("src") } },
-  define: { __DUELZ_BUILD_ID__: JSON.stringify("safe-area-check") },
-  server: { host: "127.0.0.1", port: 0, hmr: false },
-  optimizeDeps: { entries: ["scripts/safe-area-harness.tsx"] },
-  cacheDir: "node_modules/.vite-safe-area",
-});
-await server.listen();
-const address = server.httpServer!.address();
-const origin = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
+// The stubbed network edge (as beat-hold) and the harness page: scripts/safe-area-server.ts.
+const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-safe-area", buildId: "safe-area-check" });
+const origin = server.origin;
 
 /* ---------------------------------------------------------------- the room states */
 
@@ -249,6 +155,8 @@ interface Screen {
   overlay?: boolean;
   /** The screen must fit without scrolling (RoundIntro never scrolls; the shared-clock moments). */
   fits?: boolean;
+  /** A fresh device: the first-time intro is up (every other screen has seen it, src/lib/onboarding.ts). */
+  fresh?: boolean;
 }
 const openGame = async (page: Page) => {
   await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
@@ -260,6 +168,7 @@ const openGame = async (page: Page) => {
 const ONLY = process.argv.filter((a) => !a.startsWith("--")).slice(2);
 const ALL_SCREENS: Screen[] = [
   { name: "home (room join)", mode: "home" },
+  { name: "first-time intro", mode: "home", fresh: true, fits: true },
   { name: "practice list", mode: "practice" },
   {
     name: "sound settings",
@@ -465,8 +374,9 @@ try {
             verdictAt: null,
             room: r.room,
           };
+          if (r.seen) localStorage.setItem(r.key, "1");
         },
-        { room: screen.room?.() ?? null, puzzle: PUZZLE },
+        { room: screen.room?.() ?? null, puzzle: PUZZLE, seen: !screen.fresh, key: ONBOARDING_KEY },
       );
       const where = `${screen.name} ${w}x${h}`;
       try {
