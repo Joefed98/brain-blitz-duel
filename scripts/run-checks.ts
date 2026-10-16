@@ -31,6 +31,8 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "bottom-clearance-check.ts": 1_200_000,
   // 14 screens at two sizes, then 36 room play-header cases (16 Oct 2026), ~3–4 min on a 2-core runner.
   "safe-area-screens-check.tsx": 600_000,
+  // Low-end performance (16 Oct 2026): five heavy arcade games at 4× CPU slowdown plus one unthrottled, ~4 min.
+  "arcade-lowend-check.ts": 900_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
 const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);

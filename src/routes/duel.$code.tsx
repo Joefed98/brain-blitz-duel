@@ -10,6 +10,7 @@ import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner"
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -1122,7 +1123,9 @@ function DuelScreen() {
       >
         {puzzle && Stage && (
           // Keyed by the round alone: mounted once, never re-keyed by room updates.
-          <Stage
+          <SteadyOrPlain
+            Stage={Stage}
+            steady={isArcadeScreenType(puzzle?.type)}
             key={stateKey}
             stateKey={stateKey}
             puzzle={puzzle}

@@ -1,4 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { ORBIT_FX, orbit3FxFor } from "./arcadeFxGames.renderer";
 /**
@@ -749,7 +750,9 @@ function rev3PlanetSprite(planets: Planet[], p: Planet, i: number, lobe: number,
 function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean, ORBIT_CAM_VIEW_H: number): void {
   // Same seeded hashed layout as rev1/2's drawStars, parallaxed at 0.3x in both axes
   // since rev3 scrolls sideways as well as vertically.
-  drawNebula(ctx, cam.x, cam.y, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): no nebula tiles and no star glints.
+  const lite = arcadeReducedEffects();
+  if (!lite) drawNebula(ctx, cam.x, cam.y, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   const par = 0.3;
   const gap = 46;
   const camX = cam.x * par;
@@ -768,7 +771,7 @@ function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: nu
       ctx.globalAlpha = (0.25 + ((h >>> 20) % 60) / 100) * twinkle;
       const size = 1 + ((h >>> 2) % 2) * 0.5;
       ctx.fillRect(sx, sy, size, size);
-      if (h % 13 === 0) {
+      if (h % 13 === 0 && !lite) {
         drawGlint(ctx, sx + size / 2, sy + size / 2, 1.5, twinkle);
         ctx.fillStyle = "#FFFFFF";
       }
@@ -896,7 +899,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   }
   ctx.globalAlpha = 1;
 
-  rev3GlowLayer(ctx, state, visible, cam, t);
+  // Reduced effects: the additive corona and halo pass is skipped (the sun and planets still draw).
+  if (!arcadeReducedEffects()) rev3GlowLayer(ctx, state, visible, cam, t);
 
   for (const i of visible) {
     const p = state.planets[i]!;

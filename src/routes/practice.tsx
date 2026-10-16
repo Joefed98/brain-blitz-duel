@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
-import { GameLayout, PhoneShell } from "@/components/duel/PhoneShell";
+import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { SteadyOrPlain } from "@/components/duel/SteadyStage";
+import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
 import { RoundIntro } from "@/components/duel/RoundIntro";
@@ -98,11 +100,13 @@ interface Graded {
 
 function useTicker(active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
+  // Low-end performance (16 Oct 2026): 4 Hz instead of 10 while reduced effects are on in a live arena (lib/fx/lowEnd.ts).
+  const tickMs = useArcadeScreenTickMs(100);
   useEffect(() => {
     if (!active) return;
-    const id = window.setInterval(() => setNow(Date.now()), 100);
+    const id = window.setInterval(() => setNow(Date.now()), tickMs);
     return () => window.clearInterval(id);
-  }, [active]);
+  }, [active, tickMs]);
   return now;
 }
 
@@ -617,7 +621,9 @@ function PracticeScreen() {
           <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
         }
       >
-        <StageComponent
+        <SteadyOrPlain
+          Stage={StageComponent}
+          steady={isArcadeScreenType(puzzle.type)}
           key={stateKey}
           stateKey={stateKey}
           puzzle={puzzle}

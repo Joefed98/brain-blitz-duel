@@ -38,6 +38,7 @@ import type { BreakerPuzzleData } from "@/lib/duel/types";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Fixed intro still: a paddle under a wall with a gold brick and a capsule. */
 function IntroExample() {
@@ -238,10 +239,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
     const height = Math.round(box.height);
-    if (node.width !== width * ratio || node.height !== height * ratio) {
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
       node.width = Math.round(width * ratio);
       node.height = Math.round(height * ratio);
       node.style.width = `${width}px`;

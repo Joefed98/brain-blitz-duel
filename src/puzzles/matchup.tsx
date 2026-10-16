@@ -46,6 +46,7 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { liveCue } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Fixed intro still: a 4×4 board with one swap making a line of three. */
 function IntroExample() {
@@ -311,10 +312,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     // Capped at 2: a 3× buffer on a tall phone starves the sim loop.
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
     const height = Math.round(box.height);
-    if (node.width !== width * ratio || node.height !== height * ratio) {
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
       node.width = Math.round(width * ratio);
       node.height = Math.round(height * ratio);
       node.style.width = `${width}px`;

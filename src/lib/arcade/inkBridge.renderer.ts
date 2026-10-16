@@ -1,4 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { INKBRIDGE_FX } from "./arcadeFxGames.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
@@ -46,15 +47,26 @@ function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: 
     if (img) c.drawImage(img, b.x0 + i * w, b.y, w, h);
   }
 }
-function sprite(key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void): ArtCanvas | null {
-  const cached = sprites.get(key); if (cached) return cached;
-  const surface = artCanvas(w * 2, h * 2); if (!surface) return null;
+function sprite(key: string, w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, k = 2): ArtCanvas | null {
+  const id = k === 2 ? key : `${key}@${k}`;
+  const cached = sprites.get(id); if (cached) return cached;
+  const surface = artCanvas(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))); if (!surface) return null;
   const native = artContext(surface); if (!native) return null;
-  const c = native as CanvasRenderingContext2D; c.scale(2, 2); draw(c);
-  sprites.set(key, surface); return surface;
+  const c = native as CanvasRenderingContext2D; c.scale(surface.width / w, surface.height / h); draw(c);
+  sprites.set(id, surface); return surface;
+}
+/**
+ * Low-end performance (16 Oct 2026): sprites are painted at 2× and scaled to the canvas every frame.
+ * In reduced effects (lib/fx/lowEnd.ts, slow devices only) the world-sized ones (sky, grass, the
+ * drawn bridge) are painted at the canvas's own scale instead, so they are copied 1:1, not resampled.
+ */
+function layerScale(c: CanvasRenderingContext2D, w: number): number {
+  if (w < INK_WORLD_W || !arcadeReducedEffects() || typeof c.getTransform !== "function") return 2;
+  const t = c.getTransform();
+  return Math.round(Math.max(0.25, Math.hypot(t.a, t.b)) * 1000) / 1000;
 }
 function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x: number, y: number, draw: (c: CanvasRenderingContext2D) => void): void {
-  const image = sprite(key, w, h, draw);
+  const image = sprite(key, w, h, draw, layerScale(c, w));
   if (image) c.drawImage(image, x, y, w, h);
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
 }
@@ -115,16 +127,18 @@ function paintBridge(c: CanvasRenderingContext2D,state:InkState):void {
     c.beginPath();c.moveTo(s.x0,s.y0);c.lineTo(s.x1,s.y1);c.stroke();distance+=len;
   }
 }
-type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts']};
+type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number};
 const bridges=new WeakMap<CanvasRenderingContext2D,BridgeCache>();
 function drawBridge(c:CanvasRenderingContext2D,state:InkState):void {
   let cache=bridges.get(c);
-  const same=cache && cache.segs.length===state.segs.length && cache.segs.every((s,i)=>s===state.segs[i]) && cache.starts.length===state.strokeStarts.length && cache.starts.every((s,i)=>s===state.strokeStarts[i]);
+  const k=layerScale(c,INK_WORLD_W);
+  const same=cache && cache.k===k && cache.segs.length===state.segs.length && cache.segs.every((s,i)=>s===state.segs[i]) && cache.starts.length===state.strokeStarts.length && cache.starts.every((s,i)=>s===state.strokeStarts[i]);
   if(!same) {
-    const surface=cache?.surface ?? artCanvas(INK_WORLD_W*2,INK_WORLD_H*2);
+    const pw=Math.max(1,Math.round(INK_WORLD_W*k)), ph=Math.max(1,Math.round(INK_WORLD_H*k));
+    const surface=cache?.surface && cache.k===k ? cache.surface : artCanvas(pw,ph);
     const native=surface?artContext(surface):null;
-    if(native) { const ctx=native as CanvasRenderingContext2D;ctx.clearRect(0,0,INK_WORLD_W*2,INK_WORLD_H*2);ctx.save();ctx.scale(2,2);paintBridge(ctx,state);ctx.restore(); }
-    cache={surface,segs:state.segs,starts:state.strokeStarts};bridges.set(c,cache);
+    if(native) { const ctx=native as CanvasRenderingContext2D;ctx.clearRect(0,0,pw,ph);ctx.save();ctx.scale(pw/INK_WORLD_W,ph/INK_WORLD_H);paintBridge(ctx,state);ctx.restore(); }
+    cache={surface,segs:state.segs,starts:state.strokeStarts,k};bridges.set(c,cache);
   }
   if(cache?.surface)c.drawImage(cache.surface,0,0,INK_WORLD_W,INK_WORLD_H);else paintBridge(c,state);
 }

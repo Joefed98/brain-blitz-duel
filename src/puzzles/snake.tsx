@@ -36,6 +36,7 @@ import { snakeSounds } from "@/lib/fx/gameSounds";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Fixed intro still: a short trail about to reach the star, and a rock's shadow. */
 function IntroExample() {
@@ -235,7 +236,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.floor(box.width + 0.01);
     const height = Math.floor(box.height + 0.01);
     const pw = Math.round(width * ratio);

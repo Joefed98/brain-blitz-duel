@@ -22,6 +22,7 @@
  * colour. Shake is at most ARCADE_FX_SHAKE_PX world pixels and is reserved for
  * clear/final moments; reduced motion turns off shake, flash and movement.
  */
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
 
 export type ArcadeWorld =
@@ -1097,6 +1098,9 @@ function paint<S>(
   )
     return;
 
+  // Reduced effects (lib/fx/lowEnd.ts: only once frames run long on a slow device): no additive
+  // light glows, every other particle, one stroke of the arena glow. Text, rings and borders stay.
+  const lite = arcadeReducedEffects();
   ctx.save();
   ctx.beginPath();
   ctx.rect(clip.x, clip.y, clip.w, clip.h);
@@ -1141,7 +1145,7 @@ function paint<S>(
     const pulse = still ? 0.6 : 0.55 + 0.45 * Math.sin(arenaAge / 110);
     const colour = still ? m.arenaColours[0]! : m.arenaColours[Math.floor(arenaAge / 220) % m.arenaColours.length]!;
     ctx.strokeStyle = colour;
-    for (const [inset, width, alpha] of [[7, 14, 0.07], [4, 8, 0.12], [1.5, 3, 0.3]] as const) {
+    for (const [inset, width, alpha] of lite ? ([[1.5, 3, 0.3]] as const) : ([[7, 14, 0.07], [4, 8, 0.12], [1.5, 3, 0.3]] as const)) {
       ctx.globalAlpha = alpha * pulse * fade;
       ctx.lineWidth = width;
       ctx.strokeRect(clip.x + inset, clip.y + inset, clip.w - inset * 2, clip.h - inset * 2);
@@ -1168,11 +1172,11 @@ function paint<S>(
 
   const previous = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = "lighter";
-  for (const r of m.rings) {
+  for (const r of lite ? [] : m.rings) {
     const p = (now - r.born) / r.life;
     drawGlow(ctx, r.colour, r.x, r.y, r.radius * (still ? 0.8 : 0.5 + p * 0.7), 0.55 * (1 - p));
   }
-  for (const l of m.lights) {
+  for (const l of lite ? [] : m.lights) {
     const p = (now - l.born) / ARCADE_FX_LIGHTS_MS;
     if (p < 0) continue;
     // Ease out: the lights fly fast, then hang and fade.
@@ -1194,7 +1198,8 @@ function paint<S>(
     ctx.stroke();
   }
 
-  for (const p of m.particles) {
+  for (let i = 0; i < m.particles.length; i += lite ? 2 : 1) {
+    const p = m.particles[i]!;
     const age = (now - p.born) / 1000;
     if (age < 0) continue;
     const life = p.life / 1000;

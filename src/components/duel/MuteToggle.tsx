@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Music2, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,11 @@ import {
 import type { SoundChannel } from "@/lib/soundSettings";
 
 /** Two stable 52px channel groups replace the old three 36px mute buttons. */
-export function MuteToggle() {
+/**
+ * Memoised (low-end performance, 16 Oct 2026): it takes no props, so the game screens' 10 Hz clock
+ * re-renders no longer reach its two popovers; its own state still updates it.
+ */
+export const MuteToggle = memo(function MuteToggle() {
   const [open, setOpen] = useState<SoundChannel | null>(null);
   const [settings, setSettings] = useState({
     effects: 1,
@@ -142,4 +146,4 @@ export function MuteToggle() {
       })}
     </div>
   );
-}
+});

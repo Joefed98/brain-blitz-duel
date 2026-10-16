@@ -53,6 +53,9 @@ export const BROWSER: DeviceConfig = { key: "browser", label: "browser", w: 0, h
  * per page through window.__device (off until emulateDevice sets it), plus __clipBottom.
  */
 export const DEVICE_INIT = `(() => {
+  // Geometry and pixel proofs run at full effects: the low-end governor (src/lib/fx/lowEnd.ts) must not
+  // resize a canvas mid-proof on a slow runner. arcade-lowend-check leaves it free to adapt.
+  window.__duelzEffects = "full";
   window.__device = { standalone: false, w: 0, h: 0 };
   Object.defineProperty(Navigator.prototype, "standalone", { configurable: true, get: () => window.__device.standalone });
   Object.defineProperty(Screen.prototype, "width", { configurable: true, get: () => window.__device.w || window.innerWidth });

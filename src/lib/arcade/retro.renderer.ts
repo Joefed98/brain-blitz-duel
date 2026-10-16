@@ -4,6 +4,7 @@
  * `retroScreen` with their world size and the same fit/stretch transform their
  * original draw used, then draw in world coordinates with the pixel helpers.
  */
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
@@ -129,7 +130,12 @@ export function retroScreen(
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  // Scanlines, in canvas pixels so they stay crisp at any scale.
+  // Scanlines, in canvas pixels so they stay crisp at any scale. Reduced effects (lib/fx/lowEnd.ts,
+  // slow devices only) skip them: a full-screen copy every frame, purely decorative.
+  if (arcadeReducedEffects()) {
+    ctx.restore();
+    return { scaleX, scaleY, offsetX, offsetY };
+  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(offsetX, offsetY, screenW, screenH);

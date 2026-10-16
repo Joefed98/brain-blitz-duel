@@ -18,6 +18,7 @@ import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import type { ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
 import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -245,7 +246,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     const node = canvas.current;
     const box = wrap.current?.getBoundingClientRect();
     if (!node || !box || box.width < 1 || box.height < 1) return null;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
     const height = Math.round(box.height);
     if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {

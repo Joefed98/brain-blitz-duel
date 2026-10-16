@@ -25,8 +25,9 @@ export const SHARDS: Record<string, string[]> = {
   play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts"],
   // safe-area-screens-check (non-game screens, notch and home bar emulated, and the room play header's 36 cases, ~3–4 min) rides here.
   play4: ["arcade-play-check.ts@4/5", "safe-area-screens-check.tsx"],
-  // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server).
-  play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts"],
+  // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server)
+  // and the low-end check (arcade-lowend-check, 16 Oct 2026: five heavy games at 4× CPU slowdown, ~4 min).
+  play5: ["arcade-play-check.ts@5/5", "replay-play-check.ts", "arcade-lowend-check.ts"],
   // bottom-clearance-check (every active game's controls ≥12px above the visible bottom at
   // 375x667 / 390x844, with and without an 80px toolbar; since 15 Oct 2026 also arcade play
   // columns 8px up with a home bar emulated, and every puzzle's intro, stage and timed-out

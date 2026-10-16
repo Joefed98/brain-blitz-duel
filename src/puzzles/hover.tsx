@@ -36,6 +36,7 @@ import { hoverSounds } from "@/lib/fx/gameSounds";
 import { playSound } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 /** Fixed intro still: the disc and two pillars with a gap. */
 function IntroExample() {
@@ -234,10 +235,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (!node || !box || box.width < 1 || box.height < 1) return null;
     // Capped at 2: a 3× buffer on a tall phone is over two million pixels a
     // frame and starves the sim loop.
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const ratio = arcadeCanvasRatio();
     const width = Math.round(box.width);
     const height = Math.round(box.height);
-    if (node.width !== width * ratio || node.height !== height * ratio) {
+    if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
       node.width = Math.round(width * ratio);
       node.height = Math.round(height * ratio);
       node.style.width = `${width}px`;

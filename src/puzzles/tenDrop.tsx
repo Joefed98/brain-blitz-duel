@@ -41,6 +41,7 @@ import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPo
 import { drawTenDrop, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, touchAction: "none", userSelect: "none", WebkitUserSelect: "none" } as const;
 
@@ -278,12 +279,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const node = canvas.current;
       const box = board.current?.getBoundingClientRect();
       if (node && box && box.width > 1) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const ratio = arcadeCanvasRatio();
         const width = Math.round(box.width);
         const height = Math.round(box.height);
-        if (node.width !== width * ratio || node.height !== height * ratio) {
-          node.width = width * ratio;
-          node.height = height * ratio;
+        if (node.width !== Math.round(width * ratio) || node.height !== Math.round(height * ratio)) {
+          node.width = Math.round(width * ratio);
+          node.height = Math.round(height * ratio);
         }
         const ctx = node.getContext("2d");
         if (ctx) drawTenDrop(ctx, s, { width, height }, ratio, time);

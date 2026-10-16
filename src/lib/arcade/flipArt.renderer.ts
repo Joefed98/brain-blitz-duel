@@ -1,4 +1,5 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { FLIP_FX } from "./arcadeFxGames.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
@@ -233,8 +234,11 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     ctx.fillStyle = MATERIAL.basalt;
     ctx.fillRect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
   }
+  // Reduced effects (lib/fx/lowEnd.ts, slow devices only): the rock wall keeps its tiled texture;
+  // the near outcrops, lava spouts and drifting dust behind the action are skipped.
+  const lite = arcadeReducedEffects();
   // One near layer of dark jagged outcrops at a faster parallax, for depth.
-  {
+  if (!lite) {
     const par = still ? 0 : cam * 0.6;
     const stride = 118;
     const start = Math.floor(par / stride) - 1;
@@ -262,7 +266,7 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     }
   }
   // Spouts sit only between all obstacle spans, and erupt away from the band.
-  for (let k = Math.floor(cam / 115) - 1; k < Math.floor(cam / 115) + 5; k++) {
+  if (!lite) for (let k = Math.floor(cam / 115) - 1; k < Math.floor(cam / 115) + 5; k++) {
     const h = artHash(k, side + 411);
     if (h % 3 !== 0) continue;
     const worldX = k * 115 + h % 40;
@@ -282,7 +286,7 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
     ctx.globalAlpha = 1;
   }
   // Low-contrast particles behind the action; reduced motion fixes their phase.
-  for (let k = 0; k < 16; k++) {
+  if (!lite) for (let k = 0; k < 16; k++) {
     const h = artHash(k, side + 702);
     const x = h % FLIP_WORLD_W + (still ? 0 : Math.sin(time * 0.4 + k) * 5);
     const age = still ? h % 120 : (state.tick + h % 120) % 120;
@@ -619,17 +623,20 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       }
       flipSurfaceLine(ctx, at, from, FLIP_WORLD_W);
     };
-    ctx.save();
-    rockPath(ctx, side, at);
-    ctx.clip();
-    rail();
-    ctx.strokeStyle = "rgba(255,69,24,0.1)";
-    ctx.lineWidth = 26;
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,76,24,0.2)";
-    ctx.lineWidth = 12;
-    ctx.stroke();
-    ctx.restore();
+    // Reduced effects: the soft glow strokes into the rock are skipped (the rail lines stay).
+    if (!arcadeReducedEffects()) {
+      ctx.save();
+      rockPath(ctx, side, at);
+      ctx.clip();
+      rail();
+      ctx.strokeStyle = "rgba(255,69,24,0.1)";
+      ctx.lineWidth = 26;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,76,24,0.2)";
+      ctx.lineWidth = 12;
+      ctx.stroke();
+      ctx.restore();
+    }
     rail();
     ctx.strokeStyle = MATERIAL.lava;
     ctx.lineWidth = 2;

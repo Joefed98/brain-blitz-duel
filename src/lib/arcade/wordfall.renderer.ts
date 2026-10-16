@@ -6,6 +6,7 @@
  * 2 px), so what a finger sees is what the sim picks. wordfallRev 2 draws its
  * Enter box exactly on the sim's tap box (WF_ENTER_V2) under the well.
  */
+import { deviceLayer } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { reducedMotion } from "./art.renderer";
 import { wordfallFxFor } from "./arcadeFxGames.renderer";
@@ -211,15 +212,10 @@ function drawEnterBox(ctx: CanvasRenderingContext2D, state: WordfallState): void
   ctx.fillText("ENTER", x + w / 2, y + h / 2 + 2, w - 24);
 }
 
-function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
+/** The tabletop, the well's board and its column grooves: static, so one cached layer in play. */
+function paintWell(ctx: CanvasRenderingContext2D): void {
   toyTabletop(ctx);
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  drawWordLine(ctx, state);
-  if (state.rev === 2) drawEnterBox(ctx, state);
   toyBoard(ctx, WF_WELL_X, WF_WELL_Y, WF_WELL_W, WF_WELL_H, 8);
-
   ctx.save();
   ctx.beginPath();
   ctx.rect(WF_WELL_X, WF_WELL_Y, WF_WELL_W, WF_WELL_H);
@@ -233,6 +229,25 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
     ctx.lineTo(WF_WELL_X + c * WF_CELL, WF_WELL_Y + WF_WELL_H);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawWorld(ctx: CanvasRenderingContext2D, state: WordfallState): void {
+  // Low-end performance (16 Oct 2026): the table, the well and its grooves are one cached layer
+  // (cache.renderer deviceLayer: the same pixels). The word line (y 8–55) and ENTER (from y 630)
+  // were painted between the table and the board; neither overlaps the board and its rim
+  // (y 64–620), so drawing them after it leaves every pixel as it was.
+  deviceLayer(ctx, "wordfall-well", paintWell);
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  drawWordLine(ctx, state);
+  if (state.rev === 2) drawEnterBox(ctx, state);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(WF_WELL_X, WF_WELL_Y, WF_WELL_W, WF_WELL_H);
+  ctx.clip();
   // Danger: a column one tile from full (or the one that overflowed) glows red at the top.
   const t = toyClock();
   state.well.forEach((stack, col) => {
