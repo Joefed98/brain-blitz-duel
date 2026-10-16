@@ -634,7 +634,8 @@
 .logic-bomb-board {
   flex: 1 1 auto;
   min-height: 196px;
-  max-height: 330px;
+  /* Tall enough for seven 44px wire rows, the top strip and the 44px A / B caps; it shrinks when the rules run long. */
+  max-height: 420px;
 }
 /* Casing: a dark metal box with a hazard-striped lip and a bevelled inner panel. */
 .logic-bomb.bomb-plate {
@@ -811,10 +812,10 @@
   45% { transform: scale(1.35); }
   100% { transform: none; }
 }
-/* Wire rows share the panel height evenly (unchanged row targets, up to 26px each). */
+/* Wire rows share the panel height evenly: each row is its wire's tap target, up to 44px tall (the wire stays drawn thin). */
 [data-logic-stage="bomb"] .bomb-wire-index { line-height: 1; }
 [data-logic-stage="bomb"] .bomb-plate > div:nth-of-type(2) { gap: 2px; padding-block: 2px; overflow: hidden; justify-content: space-evenly; }
-[data-logic-stage="bomb"] .bomb-plate > div:nth-of-type(2) > button { flex: 1 1 0; min-height: 0; max-height: 26px; }
+[data-logic-stage="bomb"] .bomb-plate > div:nth-of-type(2) > button { flex: 1 1 0; min-height: 0; max-height: 44px; }
 
 /* ------------------------------------------------------------------ Mosaic */
 .logic-nono-fit {

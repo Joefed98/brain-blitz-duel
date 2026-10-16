@@ -212,7 +212,7 @@ function IntroExample() {
         <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time. You have 45 seconds.
+        Wrong turns cost you time.
       </p>
     </div>
   );
