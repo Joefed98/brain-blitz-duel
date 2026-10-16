@@ -334,7 +334,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, valid
            : `${good.size} / 5 rows`}
       </p>
       <p className="text-center font-mono text-base text-muted-foreground">
-        Par {puzzle.par} - you used {replay.moves}
+        Par {puzzle.par} – you used {replay.moves}
       </p>
     </div>
   );

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
-import { DEMO_LENGTH_TICKS, demoTouches, placeholderRun, runAtTick as runFrame } from "@/lib/arcade/introDemo";
+import { DEMO_LENGTH_TICKS, demoTouches, runAtTick as runFrame } from "@/lib/arcade/introDemo";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { preloadGameArt } from "@/lib/arcade/gameArt.renderer";
 import { preloadGameData } from "@/lib/duel/gamePreload";
@@ -20,43 +20,51 @@ export function hasIntroDemo(type: PuzzleType): boolean {
   return Boolean(ARCADE_REVEAL_RENDERERS[type]);
 }
 
+/** A recorded demo the intro can play: its stored puzzle and run. */
+export interface ArcadeIntroDemo {
+  puzzle: PuzzleData;
+  run: string;
+}
+
 /**
- * Looping intro demo: the saved run replayed from its seed on the sim clock,
- * ticks 1–480, drawn with the game's own renderer. Visual only, silent.
+ * The saved engine demo for this type: "pending" while it loads, null when there is none to play
+ * (never recorded, unreachable, or stopped by revision in getIntroDemoFn until it is re-recorded).
  */
-export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleData | null }) {
-  const renderer = ARCADE_REVEAL_RENDERERS[type];
+export function useArcadeIntroDemo(type: PuzzleType): ArcadeIntroDemo | "pending" | null {
   const fetchDemo = useServerFn(getIntroDemoFn);
-  const { data: demo } = useQuery({
+  const { data: demo, isPending } = useQuery({
     queryKey: ["intro-demo", type],
     queryFn: () => fetchDemo({ data: { type } }),
     staleTime: 5 * 60_000,
   });
+  return useMemo(() => {
+    if (demo && demo.puzzle?.type === type && demo.input_log?.run) return { puzzle: demo.puzzle, run: demo.input_log.run };
+    return isPending ? "pending" : null;
+  }, [demo, isPending, type]);
+}
+
+/**
+ * Looping intro demo: the saved run replayed from its seed on the sim clock,
+ * ticks 1–480, drawn with the game's own renderer. Visual only, silent.
+ * Only a recorded demo is drawn: without one the intro shows no demo area
+ * (RoundIntro), never a still frame with a DEMO tag.
+ */
+export function IntroDemo({ type, demo }: { type: PuzzleType; demo: ArcadeIntroDemo }) {
+  const renderer = ARCADE_REVEAL_RENDERERS[type];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const source = useMemo(() => {
-    if (demo && demo.puzzle?.type === type && demo.input_log?.run) {
-      return { puzzle: demo.puzzle, run: demo.input_log.run, live: true };
-    }
-    if (puzzle && puzzle.type === type) {
-      const seed = "seed" in puzzle ? Number(puzzle.seed) : 1;
-      return { puzzle, run: placeholderRun(seed), live: false };
-    }
-    return null;
-  }, [demo, puzzle, type]);
-
-  const worldH = renderer ? revealWorldH(renderer, source?.puzzle ?? puzzle) : 0;
+  const worldH = renderer ? revealWorldH(renderer, demo.puzzle) : 0;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!renderer || !canvas || !source) return;
+    if (!renderer || !canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const scale = canvas.clientWidth / renderer.worldW;
     canvas.width = Math.round(canvas.clientWidth * dpr);
     canvas.height = Math.round(canvas.clientHeight * dpr);
-    const touches = source.live ? demoTouches(source.run, renderer.worldW, worldH) : [];
+    const touches = demoTouches(demo.run, renderer.worldW, worldH);
 
     const drawTick = (tick: number) => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -64,7 +72,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
       ctx.save();
       try {
-        renderer.drawFinal(ctx, source.puzzle, source.live ? runFrame(source.run, tick) : source.run, "demo");
+        renderer.drawFinal(ctx, demo.puzzle, runFrame(demo.run, tick), "demo");
       } catch (error) {
         console.error("[intro demo] draw failed", error);
       }
@@ -91,10 +99,6 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
     // Letterfall's demo replays words, so it also waits for its dictionary.
     void Promise.all([preloadGameArt(type), preloadGameData(type)]).then(() => {
       if (cancelled) return;
-      if (!source.live) {
-        drawTick(1);
-        return;
-      }
       let lastTick = -1;
       const started = performance.now();
       const loop = (now: number) => {
@@ -112,7 +116,7 @@ export function IntroDemo({ type, puzzle }: { type: PuzzleType; puzzle: PuzzleDa
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [renderer, source, type, worldH]);
+  }, [renderer, demo, type, worldH]);
 
   if (!renderer) return null;
   return (

@@ -432,7 +432,8 @@ if (want("tilt")) {
 for (const type of TUNING_A_GAMES) {
   if (!want(type)) continue;
   const help = INSTRUCTIONS[type]!;
-  for (const row of help.how) ok(!/[—–]/.test(`${row.action} ${row.detail}`), `${type}: help uses plain hyphens`);
+  // Screen audit Oct 2026 (Batch 5): a spaced en dash " – " everywhere; no em dash and no spaced or leading hyphen.
+  for (const row of help.how) ok(!/—|(^| )- /.test(`${row.action} ${row.detail}`), `${type}: help uses spaced en dashes`);
 }
 
 if (failures.length) {

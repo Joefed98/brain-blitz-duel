@@ -81,9 +81,13 @@ function shapePath(kind: SpotShapeKind, fill: string, theme: SpotTheme = "shop")
   return theme === "reef" ? <ReefArt kind={kind} fill={fill} /> : <SweetArt kind={kind} fill={fill} />;
 }
 
-/** A difference's label for the picture it belongs to (display only). */
-function themedLabel(label: string, theme: SpotTheme): string {
-  return theme === "reef" ? reefLabel(label) : sweetLabel(label);
+/** A difference's label for the picture it belongs to (display only): a colour change names the
+ *  sweet or creature from the top picture, and "a"/"an" is chosen for the word that follows. */
+function themedLabel(difference: SpotDifference, theme: SpotTheme, top: SpotShape[]): string {
+  const shape = top.find((s) => s.cell === difference.cells[0]);
+  const label = shape ? difference.label.replace(/^A shape\b/, `A ${shape.kind}`) : difference.label;
+  const named = theme === "reef" ? reefLabel(label) : sweetLabel(label);
+  return named.replace(/\b([Aa]) (?=[aeiou])/g, "$1n ");
 }
 
 /** Translate saved labels at display time; never rewrite generated or stored differences. */
@@ -531,7 +535,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           const got = pic.found.includes(difference);
           return (
             <div key={index} className="flex items-center justify-between text-base leading-6">
-              <span className="text-foreground/80">{themedLabel(difference.label, pic.scene.theme)}</span>
+              <span className="text-foreground/80">{themedLabel(difference, pic.scene.theme, pic.scene.top)}</span>
               <span className={`font-display font-bold ${got ? "text-primary" : "text-warn"}`}>
                 {got ? "✓" : "✗"}
               </span>
