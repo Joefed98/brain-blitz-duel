@@ -19,6 +19,7 @@ import {
   setPhase,
 } from "./roomPhase.server";
 import { recordTieWinnerInHistory, tieWinnerRecord } from "./historyWinner.server";
+import { gameIndexOf, joinViaFrom, recordJoin, recordRoomEvent } from "./betaRecord.server";
 import { loadRoundReveal } from "./reveal.server";
 import { acceptsAnswers } from "./answerWindow";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
@@ -199,6 +200,7 @@ async function createRoomRow(
 
     const room = data as DuelRow;
     await insertPlayer(client, room.id, 1, userId, displayName);
+    await recordJoin(client, { duel_id: room.id, user_id: userId, player_slot: 1, game_index: 0, via: "host" });
     return room;
   }
   throw new Error("Could not create a room right now. Please try again.");
@@ -356,12 +358,20 @@ export const roomPreviewFn = createServerFn({ method: "POST" })
 
 export const joinRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { roomCode: string; displayName: string }) => input)
+  .inputValidator(
+    (input: {
+      roomCode: string;
+      displayName: string;
+      /** How the phone reached this join (beta recording only); older copies send nothing. */
+      via?: "code" | "link";
+    }) => input,
+  )
   .handler(async ({ data, context }) => {
     const client = await db();
     const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
     if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
       return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+    const via = joinViaFrom(data.via);
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
       .from("duels")
@@ -380,6 +390,14 @@ export const joinRoomFn = createServerFn({ method: "POST" })
         if (room.status !== "waiting")
           return { ok: false as const, message: "Game already started." };
         await client.from("duel_players").update({ status: "active" }).eq("id", mine.id);
+        await recordJoin(client, {
+          duel_id: room.id,
+          user_id: context.userId,
+          player_slot: mine.player_slot,
+          game_index: gameIndexOf(room),
+          via,
+          rejoin: true,
+        });
       }
       return { ok: true as const, roomId: room.id, roomCode: room.room_code };
     }
@@ -392,6 +410,13 @@ export const joinRoomFn = createServerFn({ method: "POST" })
       return { ok: false as const, message: `That room is full (${room.max_players} players).` };
     }
     await insertPlayer(client, room.id, slot, context.userId, data.displayName);
+    await recordJoin(client, {
+      duel_id: room.id,
+      user_id: context.userId,
+      player_slot: slot,
+      game_index: gameIndexOf(room),
+      via,
+    });
     return { ok: true as const, roomId: room.id, roomCode: room.room_code };
   });
 
@@ -463,6 +488,13 @@ export const startRoomFn = createServerFn({ method: "POST" })
         puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
       });
       if (error) throw new Error(error.message);
+      await recordRoomEvent(client, {
+        duel_id: room.id,
+        game_index: gameIndexOf(room),
+        round_number: 0,
+        event: "game_started",
+        at: startedAt,
+      });
     }
     return { ok: true as const };
   });
@@ -533,11 +565,20 @@ export const leaveRoomFn = createServerFn({ method: "POST" })
       .eq("duel_id", room.id)
       .eq("user_id", context.userId);
 
-    if (room.host_user_id === context.userId)
+    if (room.host_user_id === context.userId) {
       await client
         .from("duels")
         .update({ disbanded_at: nowIso(), status: "finished" })
         .eq("id", room.id);
+      if (room.status === "in_progress")
+        await recordRoomEvent(client, {
+          duel_id: room.id,
+          game_index: gameIndexOf(room),
+          round_number: 0,
+          event: "game_ended",
+          reason: "host_left",
+        });
+    }
     return { ok: true as const };
   });
 
@@ -553,6 +594,14 @@ export const disbandRoomFn = createServerFn({ method: "POST" })
       .from("duels")
       .update({ disbanded_at: nowIso(), status: "finished" })
       .eq("id", room.id);
+    if (room.status === "in_progress")
+      await recordRoomEvent(client, {
+        duel_id: room.id,
+        game_index: gameIndexOf(room),
+        round_number: 0,
+        event: "game_ended",
+        reason: "disbanded",
+      });
     return { ok: true as const };
   });
 
@@ -627,7 +676,17 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
         await startIntroCountdown(client, room, round);
         return { ok: true };
       }
-      if (elapsed >= INTRO_MS) await setPhase(client, room.id, round, "intro", "puzzle");
+      if (elapsed >= INTRO_MS) {
+        const at = await setPhase(client, room.id, round, "intro", "puzzle");
+        if (at)
+          await recordRoomEvent(client, {
+            duel_id: room.id,
+            game_index: gameIndexOf(room),
+            round_number: round,
+            event: "round_started",
+            at,
+          });
+      }
       return { ok: true };
     }
 
@@ -635,7 +694,18 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
       const answered = await submissionCount(client, room.id, round);
       const allIn = waitingOn.length > 0 && answered >= waitingOn.length;
       const timeUp = elapsed > puzzleDurationMs(puzzle) + 800;
-      if (allIn || timeUp) await setPhase(client, room.id, round, "puzzle", "reveal");
+      if (allIn || timeUp) {
+        const at = await setPhase(client, room.id, round, "puzzle", "reveal");
+        if (at)
+          await recordRoomEvent(client, {
+            duel_id: room.id,
+            game_index: gameIndexOf(room),
+            round_number: round,
+            event: "round_ended",
+            reason: allIn ? "all_answered" : "timer",
+            at,
+          });
+      }
       return { ok: true };
     }
 
@@ -771,7 +841,16 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const waitingOn = activePlayers(players).length || 1;
     const answered = await submissionCount(client, room.id, data.roundNumber);
     if (answered >= waitingOn) {
-      await setPhase(client, room.id, data.roundNumber, "puzzle", "reveal");
+      const at = await setPhase(client, room.id, data.roundNumber, "puzzle", "reveal");
+      if (at)
+        await recordRoomEvent(client, {
+          duel_id: room.id,
+          game_index: gameIndexOf(room),
+          round_number: data.roundNumber,
+          event: "round_ended",
+          reason: "all_answered",
+          at,
+        });
     }
     return { ok: true as const };
   });

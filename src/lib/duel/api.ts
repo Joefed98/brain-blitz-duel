@@ -81,9 +81,11 @@ export async function createRoom(displayName: string): Promise<{ roomCode: strin
 export async function joinRoomByCode(
   roomCode: string,
   displayName: string,
+  /** How the player got here: the home screen's code boxes or a room link (beta recording only). */
+  via?: "code" | "link",
 ): Promise<{ roomCode: string }> {
   await ensureSession();
-  const result = await joinRoomFn({ data: { roomCode, displayName } });
+  const result = await joinRoomFn({ data: { roomCode, displayName, ...(via ? { via } : {}) } });
   if (!result.ok) throw new DuelError(result.message);
   return { roomCode: result.roomCode };
 }

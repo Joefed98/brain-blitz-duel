@@ -50,7 +50,7 @@ export function JoinFromLink({
     setError(null);
     try {
       setStoredName(trimmed);
-      await joinRoomByCode(roomCode, trimmed);
+      await joinRoomByCode(roomCode, trimmed, "link");
       await onJoined();
     } catch (err) {
       setBusy(false);

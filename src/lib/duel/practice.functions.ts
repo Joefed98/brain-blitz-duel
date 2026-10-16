@@ -11,7 +11,8 @@ import type { PuzzleData, PuzzleType } from "./types";
 /* -------------------------------------------------------------------------- */
 /*  Practice mode: one puzzle, on this device only.                            */
 /*                                                                             */
-/*  Nothing is stored — no room, no players, no results. The answer half of the */
+/*  No room, players or results. Each graded play adds one practice_plays row  */
+/*  (outcome only, for the beta numbers; betaRecord.server.ts). The answer half of the */
 /*  puzzle travels back to the device sealed (encrypted with a server-only key) */
 /*  so it stays unreadable until the practice answer has been graded here.      */
 /* -------------------------------------------------------------------------- */
@@ -127,11 +128,28 @@ export const practiceGradeFn = createServerFn({ method: "POST" })
     // Log only: grading never depends on the client's version.
     const staleNote = staleSubmissionNote("practice_grade", data.clientVersion, data.puzzle.type);
     if (staleNote) console.warn(staleNote);
-    const priv = await unseal(data.sealed);
+    const { __example: example, ...priv } = await unsealRaw(data.sealed);
     if (priv["type"] !== data.puzzle.type) throw new Error("Bad practice puzzle.");
     const puzzle = mergePuzzle(data.puzzle, priv);
     const { gradeAnswer } = await import("./generate.server");
     const graded = gradeAnswer(puzzle, data.answer, data.msRemaining, data.extra);
+    // Beta recording (practice_plays): the outcome only, best-effort, never blocks the answer.
+    // Skipped where there is no database (local dev servers in checks).
+    if (process.env["SUPABASE_SERVICE_ROLE_KEY"]) {
+      const { practicePlayRow, recordPracticePlay } = await import("./betaRecord.server");
+      const { puzzleTimeLimitMs } = await import("./registry");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await recordPracticePlay(supabaseAdmin, (userId) =>
+        practicePlayRow({
+          userId,
+          puzzle: puzzle as unknown as Record<string, unknown> & { type: string },
+          example: example !== undefined,
+          claimedMsRemaining: data.msRemaining,
+          timeLimitMs: puzzleTimeLimitMs(puzzle),
+          graded,
+        }),
+      );
+    }
     return {
       puzzle,
       isCorrect: graded.isCorrect,

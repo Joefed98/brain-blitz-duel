@@ -2,9 +2,14 @@
 // from().select()/.update()/.eq()/.lt()/.gt()/.order()/.maybeSingle() for the guarded
 // room writes in src/lib/duel/roomPhase.server.ts. Every write records the
 // table it touched, so checks can prove what was (and wasn't) written.
+// insert() appends rows (the beta recording tables); `unique` lists a table's
+// unique key, and a clashing insert returns Postgres's 23505 like the real one.
 type Row = Record<string, unknown>;
 
-export function memoryDb(tables: Record<string, Row[]>) {
+export function memoryDb(
+  tables: Record<string, Row[]>,
+  options: { unique?: Record<string, string[]> } = {},
+) {
   const writes: { table: string; values: Row; matched: number }[] = [];
   const client = {
     from(table: string) {
@@ -27,6 +32,23 @@ export function memoryDb(tables: Record<string, Row[]>) {
               resolve({ data: rows().map((row) => structuredClone(row)), error: null }),
           };
           return query;
+        },
+        insert(values: Row | Row[]) {
+          const list = Array.isArray(values) ? values : [values];
+          const key = options.unique?.[table];
+          const rows = (tables[table] ??= []);
+          for (const value of list) {
+            if (key && rows.some((row) => key.every((k) => row[k] === value[k]))) {
+              writes.push({ table, values: value, matched: 0 });
+              return Promise.resolve({
+                data: null,
+                error: { code: "23505", message: `duplicate key value violates unique constraint on ${table}` },
+              });
+            }
+            rows.push(structuredClone(value));
+            writes.push({ table, values: value, matched: 1 });
+          }
+          return Promise.resolve({ data: null, error: null });
         },
         update(values: Row) {
           const conditions: ((row: Row) => boolean)[] = [];

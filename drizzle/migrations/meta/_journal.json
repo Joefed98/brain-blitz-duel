@@ -8,6 +8,34 @@
       "when": 1792154370835,
       "tag": "0000_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792167864157,
+      "tag": "0001_beta_room_joins",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792167881069,
+      "tag": "0002_beta_room_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792167899294,
+      "tag": "0003_beta_practice_plays",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792167935415,
+      "tag": "0004_beta_play_again_archive",
+      "breakpoints": true
     }
   ]
 }

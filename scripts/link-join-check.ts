@@ -43,7 +43,7 @@ const card = readFileSync("src/components/duel/JoinFromLink.tsx", "utf8");
 assert.match(card, /setName\(getStoredName\(\)\)/);
 assert.match(
   card,
-  /setStoredName\(trimmed\);\s*await joinRoomByCode\(roomCode, trimmed\);\s*await onJoined\(\);/,
+  /setStoredName\(trimmed\);\s*await joinRoomByCode\(roomCode, trimmed, "link"\);\s*await onJoined\(\);/,
 );
 assert.equal((card.match(/<input/g) ?? []).length, 1, "only the display name is asked for");
 assert.match(card, /preview\.state !== "lobby"/);
