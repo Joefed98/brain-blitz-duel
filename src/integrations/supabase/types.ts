@@ -198,6 +198,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_hits: {
+        Row: {
+          bucket: string
+          hits: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       room_messages: {
         Row: {
           created_at: string
@@ -369,6 +390,15 @@ export type Database = {
       my_duel_slot: { Args: { _duel_id: string }; Returns: number }
       restart_duel_room: {
         Args: { p_host_id: string; p_room_id: string }
+        Returns: boolean
+      }
+      take_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_max: number
+          p_user_id: string
+          p_window_seconds: number
+        }
         Returns: boolean
       }
     }
