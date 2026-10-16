@@ -175,35 +175,74 @@ function useRootSelectionLock(active: boolean) {
  * play screen adds to its height (polish-layout/bottom.css). Once WebKit lays the app out
  * full height the shortfall measures 0 and nothing changes. arcade-device-bottom-check
  * proves it.
+ *
+ * No feedback (16 Oct 2026, fix-up of the home-screen bottom flash): the shortfall is
+ * measured once per geometry (screen size, orientation and top inset, none of which the
+ * grown root can change), always with the root's growth taken off first, and written only
+ * when it differs. A resize the growth itself sets off (iOS may fire one when the root
+ * outgrows its short viewport) finds the same geometry and does nothing, so the value can
+ * never feed back into itself and the root never flips between its two heights. Play
+ * screens share one root, so the value stays while any of them is up.
  */
+const shortfall = { users: 0, key: "", px: 0 };
+
+function standaloneGeometry(): { key: string; inset: number } | null {
+  if ((navigator as Navigator & { standalone?: boolean }).standalone !== true) return null;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
+  // The viewport's aspect, not screen.orientation (which some browsers misreport); 48px of growth can never flip it.
+  const portrait = window.innerHeight >= window.innerWidth;
+  return { key: `${screen.width}x${screen.height}:${portrait ? "p" : "l"}:${inset}`, inset };
+}
+
+/** The screen's height less 100dvh, at most the top inset; measured with the root at its own height. */
+function measureShortfall(inset: number, key: string): number {
+  const root = document.documentElement;
+  root.style.removeProperty("--standalone-short");
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:100dvh;visibility:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const dvh = probe.getBoundingClientRect().height;
+  probe.remove();
+  const portrait = key.includes(":p:");
+  const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  return Math.round(Math.min(inset, Math.max(0, screenH - dvh)));
+}
+
+function applyShortfall() {
+  const root = document.documentElement;
+  const geometry = standaloneGeometry();
+  const key = geometry?.key ?? "";
+  if (key !== shortfall.key) {
+    shortfall.key = key;
+    shortfall.px = geometry ? measureShortfall(geometry.inset, key) : 0;
+  }
+  const want = shortfall.px > 0 ? `${shortfall.px}px` : "";
+  if (root.style.getPropertyValue("--standalone-short") === want) return;
+  if (want) root.style.setProperty("--standalone-short", want);
+  else root.style.removeProperty("--standalone-short");
+}
+
 function useStandaloneShortfall(active: boolean) {
   useEffect(() => {
     if (!active) return;
     const root = document.documentElement;
-    const update = () => {
-      let short = 0;
-      if ((navigator as Navigator & { standalone?: boolean }).standalone === true) {
-        const probe = document.createElement("div");
-        probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:100dvh;padding-top:env(safe-area-inset-top,0px);box-sizing:content-box;visibility:hidden;pointer-events:none";
-        document.body.appendChild(probe);
-        const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
-        const dvh = probe.getBoundingClientRect().height - inset;
-        probe.remove();
-        const portrait = window.innerHeight >= window.innerWidth;
-        const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-        short = Math.round(Math.min(inset, Math.max(0, screenH - dvh)));
-      }
-      if (short > 0) root.style.setProperty("--standalone-short", `${short}px`);
-      else root.style.removeProperty("--standalone-short");
-    };
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
-    window.visualViewport?.addEventListener("resize", update);
+    if (shortfall.users++ === 0) {
+      // Each new play screen measures afresh; the listeners are shared by every play screen up.
+      shortfall.key = "\u0000";
+      window.addEventListener("resize", applyShortfall);
+      window.addEventListener("orientationchange", applyShortfall);
+      window.visualViewport?.addEventListener("resize", applyShortfall);
+    }
+    applyShortfall();
     return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
-      window.visualViewport?.removeEventListener("resize", update);
+      if (--shortfall.users > 0) return;
+      window.removeEventListener("resize", applyShortfall);
+      window.removeEventListener("orientationchange", applyShortfall);
+      window.visualViewport?.removeEventListener("resize", applyShortfall);
       root.style.removeProperty("--standalone-short");
     };
   }, [active]);

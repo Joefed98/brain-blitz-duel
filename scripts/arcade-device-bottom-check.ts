@@ -31,7 +31,13 @@
  *    ancestor that clips (overflow other than visible, html and body included) reaches at
  *    least as far down (fix-up of 15 Oct 2026: html and body, 100% of the short viewport and
  *    overflow hidden under game-lock, cut tall worlds and the lowest controls at 848 px);
- *  - the page is not scrolled.
+ *  - the page is not scrolled;
+ *  - on the iPhone 11 home-screen pass, the screen is stable (16 Oct 2026, the bottom-flash
+ *    fix-up): once settled, a window and a visualViewport resize are dispatched (what iOS fires
+ *    when the root outgrows its short viewport) and for 3 s (real time, the page's clock frozen)
+ *    the root, body and shell heights, --standalone-short and the scene canvas's size must not
+ *    change, the root's style must not be rewritten and the scene must not be redrawn. A
+ *    shortfall that fed back into itself would flip the root between 848 and 896 px.
  * It prints every game's box, world and bottom gap per configuration (--json=<path> saves them).
  *
  *   bun scripts/arcade-device-bottom-check.ts [games…] [--part=k/n] [--url=<origin>] [--json=<path>] [--verbose]
@@ -61,6 +67,47 @@ export const CONFIGS: DeviceConfig[] = [
   { key: "390x844", label: "390x844, no insets", w: 390, h: 844, screenH: 844, top: 0, bottom: 0, standalone: false },
   { key: "375x667", label: "375x667, no insets", w: 375, h: 667, screenH: 667, top: 0, bottom: 0, standalone: false },
 ];
+
+/** Stability pass: counts scene redraws (each paint clears the scene canvas first). */
+const STABILITY_INIT = `(() => {
+  window.__sceneDraws = 0;
+  const clear = CanvasRenderingContext2D.prototype.clearRect;
+  CanvasRenderingContext2D.prototype.clearRect = function (...a) {
+    if (this.canvas instanceof HTMLCanvasElement && this.canvas.hasAttribute("data-arena-scene")) window.__sceneDraws++;
+    return clear.apply(this, a);
+  };
+})();`;
+/** How long the settled iPhone 11 home-screen play screen must hold still. */
+const STABLE_MS = 3000;
+
+interface Stability { short: string; html: number; body: number; shell: number; scene: string; draws: number; styleWrites: number }
+
+/** In-page: what must hold still, and the counters since watchStability. */
+function stability(): Stability {
+  const w = window as unknown as { __sceneDraws: number; __styleWrites?: number };
+  const root = document.documentElement;
+  const scene = document.querySelector<HTMLCanvasElement>("[data-arcade-play] [data-arena-scene]");
+  return {
+    short: root.style.getPropertyValue("--standalone-short"),
+    html: root.getBoundingClientRect().height,
+    body: document.body.getBoundingClientRect().height,
+    shell: document.querySelector("[data-arcade-play]")?.getBoundingClientRect().height ?? -1,
+    scene: scene ? `${scene.width}x${scene.height}` : "-",
+    draws: w.__sceneDraws,
+    styleWrites: w.__styleWrites ?? 0,
+  };
+}
+
+/** In-page: start counting root style writes, then fire the resizes iOS may send when the root outgrows its viewport. */
+function watchStability() {
+  const w = window as unknown as { __styleWrites: number; __styleWatch?: MutationObserver };
+  w.__styleWrites = 0;
+  w.__styleWatch?.disconnect();
+  w.__styleWatch = new MutationObserver((records) => (w.__styleWrites += records.length));
+  w.__styleWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+  window.dispatchEvent(new Event("resize"));
+  window.visualViewport?.dispatchEvent(new Event("resize"));
+}
 
 /** Seeded Math.random and the arrow control, as bottom-clearance-check; the device comes from DEVICE_INIT. */
 const SEED_INIT = `(() => {
@@ -221,6 +268,7 @@ async function main() {
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
       await context.addInitScript(SEED_INIT);
       await context.addInitScript(DEVICE_INIT);
+      await context.addInitScript(STABILITY_INIT);
       const page = await context.newPage();
       await page.clock.install();
       await page.route("**/_serverFn/**", async (route) => {
@@ -272,6 +320,17 @@ async function main() {
           if (game === "tilt" && Math.abs(above - below) > 1) failures.push(`${where}: Tilt's world is not centred in its box (${above}px above, ${below}px below)`);
           for (const c of g.clips)
             if (c.clip.bottom < c.bottom - 0.5) failures.push(`${where}: ${c.what} (ends ${c.bottom.toFixed(1)}px down) is cut ${(c.bottom - c.clip.bottom).toFixed(1)}px short by ${c.clip.by} (ends ${c.clip.bottom.toFixed(1)}px down)`);
+          if (config === IPHONE11_APP) {
+            const before = await page.evaluate(stability);
+            await page.evaluate(watchStability);
+            await page.waitForTimeout(STABLE_MS);
+            const after = await page.evaluate(stability);
+            for (const k of ["short", "html", "body", "shell", "scene"] as const)
+              if (before[k] !== after[k]) failures.push(`${where}: not stable: ${k} changed from ${before[k]} to ${after[k]} within ${STABLE_MS / 1000} s of settling`);
+            if (after.draws !== before.draws) failures.push(`${where}: not stable: the arena scene was redrawn ${after.draws - before.draws} time(s) within ${STABLE_MS / 1000} s of settling`);
+            if (after.styleWrites) failures.push(`${where}: not stable: the root's style was rewritten ${after.styleWrites} time(s) after a resize that changed nothing`);
+            if (VERBOSE) console.log(`  ${where}: stable for ${STABLE_MS / 1000} s (short ${after.short || "0"}, root ${after.html}px, scene ${after.scene}, ${after.draws} scene paint(s) in all)`);
+          }
           if (VERBOSE) console.log(`  ${where}: box ${fmt(g.slot)} at ${g.slot.top}-${g.slot.bottom}, world ${fmt(g.world)}, column ${columnGap}px, bottom ${bottomGap}px, spare ${above}/${below}`);
         }
         measured++;
@@ -281,7 +340,7 @@ async function main() {
         await context.close();
       }
       const mine = failures.length - before;
-      console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations`}`);
+      console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations; stable for ${STABLE_MS / 1000} s as an iPhone 11 home-screen app`}`);
     }
   } finally {
     await browser.close();

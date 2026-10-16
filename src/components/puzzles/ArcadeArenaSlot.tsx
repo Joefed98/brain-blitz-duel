@@ -12,7 +12,7 @@ import type { ArenaScenePainter } from "@/lib/arcade/arenaScene.renderer";
  * world (beside it, below it) is the screen edge's black (--screen-edge, 15 Oct 2026),
  * the same as the rest of the arcade play screen, except where a game gives a `scene`:
  * then, on the arcade play screen only, its own scenery (arenaScene.renderer.ts) is
- * painted behind the world out to the slot's edges, once per size, and takes no touches.
+ * painted behind the world out to the slot's edges, once per integer canvas size, and takes no touches.
  *
  * Presentation only: games keep mapping pointers through the arena element's own
  * box, so world coordinates, input logs and replays are unchanged.
@@ -38,9 +38,12 @@ export function ArcadeArenaSlot({ width, height, centre = false, scene, sceneKey
     const node = canvas.current;
     const box = slot.current;
     if (!node || !box || typeof ResizeObserver === "undefined") return;
-    let frame = 0;
+    // Painted from the ResizeObserver callback (after layout, before the frame is drawn) and
+    // only when the integer canvas size or the world's place in it changes (16 Oct 2026):
+    // a callback that finds the same geometry repaints nothing, so no size echo can redraw
+    // the scene frame after frame. A new sceneKey re-runs this effect and paints afresh.
+    let painted = "";
     const paint = () => {
-      frame = 0;
       const draw = painter.current;
       const world = box.querySelector<HTMLElement>(":scope > [data-game-arena]");
       if (!draw || !world || getComputedStyle(node).display === "none") return;
@@ -50,6 +53,9 @@ export function ArcadeArenaSlot({ width, height, centre = false, scene, sceneKey
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const pw = Math.round(s.width * ratio);
       const ph = Math.round(s.height * ratio);
+      const at = `${pw}x${ph}:${Math.round((w.left - s.left) * ratio)},${Math.round((w.top - s.top) * ratio)},${Math.round(w.width * ratio)}`;
+      if (at === painted) return;
+      painted = at;
       if (node.width !== pw || node.height !== ph) {
         node.width = pw;
         node.height = ph;
@@ -74,19 +80,13 @@ export function ArcadeArenaSlot({ width, height, centre = false, scene, sceneKey
       });
       ctx.restore();
     };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(paint);
-    };
-    const observer = new ResizeObserver(schedule);
+    const observer = new ResizeObserver(paint);
     observer.observe(box);
     observer.observe(node);
     const world = box.querySelector(":scope > [data-game-arena]");
     if (world) observer.observe(world);
-    schedule();
-    return () => {
-      observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
-    };
+    paint();
+    return () => observer.disconnect();
   }, [width, height, sceneKey, scene !== undefined]);
 
   return (
