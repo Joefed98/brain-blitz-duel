@@ -198,6 +198,54 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_plays: {
+        Row: {
+          created_at: string
+          duration_ms: number
+          example: boolean
+          flagged: boolean
+          game_id: string
+          id: number
+          is_correct: boolean
+          ms_remaining: number
+          revision: Json
+          score: number
+          time_limit_ms: number
+          timed_out: boolean
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number
+          example?: boolean
+          flagged?: boolean
+          game_id: string
+          id?: never
+          is_correct?: boolean
+          ms_remaining?: number
+          revision?: Json
+          score?: number
+          time_limit_ms?: number
+          timed_out?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number
+          example?: boolean
+          flagged?: boolean
+          game_id?: string
+          id?: never
+          is_correct?: boolean
+          ms_remaining?: number
+          revision?: Json
+          score?: number
+          time_limit_ms?: number
+          timed_out?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       rate_limit_hits: {
         Row: {
           bucket: string
