@@ -25,6 +25,14 @@
  * column and unclipped; one inside the 34 px home-bar zone is reported as a NOTE, not a
  * failure. Their intros keep the 12 px rule.
  *
+ * Home-screen app (fix-up, 15 Oct 2026): every arcade play screen is measured once more as an
+ * iPhone 11 home-screen app (scripts/device-emulation.ts: 414 × 896 with 48 / 34 px insets, laid
+ * out in WebKit's 848 px viewport, navigator.standalone and display-mode: standalone), where
+ * the play screen adds the shortfall to its height. It fails unless the column and the lowest
+ * control (or the arena box) end exactly 16 px above the screen's bottom (896), nothing clips the
+ * arena box, the world, the scene canvas or a control above its own bottom (every clipping ancestor, html and body
+ * included, reaches at least as far down) and the page is not scrolled.
+ *
  * Seams (15 Oct 2026): every puzzle's intro, live stage and timed-out reveal is drawn with a
  * 47 px notch and 34 px home bar emulated at 375×667 and 390×844, and fails if the strips
  * (the notch's 47 px at the top, the home bar's 34 px + 16 px at the bottom, less any content
@@ -52,7 +60,8 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
+import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -269,6 +278,112 @@ async function measureAll(
     if (DUMP && scope === "stage" && !v.toolbar)
       for (const c of m.all)
         console.log(`  dump ${game} ${v.w}x${v.h} "${c.label}" ${c.clearance}`);
+  }
+}
+
+interface AppMeasure {
+  standalone: boolean;
+  displayMode: string;
+  innerHeight: number;
+  insetTop: number;
+  insetBottom: number;
+  scrolled: number;
+  columnGap: number | null;
+  /** The lowest control's gap to the screen's bottom, or the arena box's with no controls. */
+  lowestGap: number | null;
+  lowestIs: string;
+  clips: { what: string; bottom: number; clip: Clip }[];
+  controls: { label: string; bottom: number }[];
+}
+
+/** In-page: the arcade play screen in a home-screen app, measured against the physical screen's bottom. */
+function appMeasure(screenH: number): AppMeasure {
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;left:0;top:0;width:1px;height:1px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const insetTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  const insetBottom = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+  probe.remove();
+  const clipBottom = (window as unknown as { __clipBottom: (el: Element) => Clip }).__clipBottom;
+  const column = document.querySelector("[data-arcade-play] > [data-game-column]");
+  const columnEnd = column ? column.getBoundingClientRect().bottom - parseFloat(getComputedStyle(column).paddingBottom) : null;
+  const shown = (el: Element) => {
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) return false;
+    }
+    return true;
+  };
+  const clips: AppMeasure["clips"] = [];
+  const controls: AppMeasure["controls"] = [];
+  let lowest = -Infinity;
+  for (const el of document.querySelectorAll("[data-arcade-play] [data-game-stage] :is(button, a[href], input, select, textarea, [role='button'], [data-game-controls])")) {
+    if (el.closest("[data-scrollable]")) continue;
+    const b = el.getBoundingClientRect();
+    if (b.width < 1 || b.height < 1 || !shown(el)) continue;
+    const label =
+      el.getAttribute("aria-label") ??
+      (el.getAttribute("data-game-controls") ? `[controls=${el.getAttribute("data-game-controls")}]` : null) ??
+      ((el.textContent ?? "").trim().slice(0, 24) || el.tagName.toLowerCase());
+    clips.push({ what: `control "${label}"`, bottom: b.bottom, clip: clipBottom(el) });
+    if (el.closest("[data-arena-slot]")) continue;
+    controls.push({ label, bottom: b.bottom });
+    lowest = Math.max(lowest, b.bottom);
+  }
+  const slot = document.querySelector("[data-arcade-play] [data-arena-slot]");
+  const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
+  if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
+  if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
+  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
+  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
+  const lowestIs = lowest > -Infinity ? "lowest control" : "arena box";
+  const lowestBottom = lowest > -Infinity ? lowest : slot?.getBoundingClientRect().bottom ?? null;
+  const round = (v: number) => Math.round(v * 10) / 10;
+  return {
+    standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    displayMode: matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
+    innerHeight: window.innerHeight,
+    insetTop,
+    insetBottom,
+    scrolled: document.scrollingElement?.scrollTop ?? 0,
+    columnGap: columnEnd == null ? null : round(screenH - columnEnd),
+    lowestGap: lowestBottom == null ? null : round(screenH - lowestBottom),
+    lowestIs,
+    clips,
+    controls,
+  };
+}
+
+/**
+ * Arcade stage as an iPhone 11 home-screen app (laid out 48 px short of its 896 px screen): the column and
+ * the lowest control (or box) end 16 px above the screen's bottom, nothing is clipped, the page is not scrolled.
+ */
+async function homeScreenApp(page: Page, game: string, failures: string[], notes: string[]) {
+  const where = `${game} stage ${IPHONE11_APP.label}`;
+  try {
+    await emulateDevice(page, IPHONE11_APP);
+    const m = await page.evaluate(appMeasure, IPHONE11_APP.screenH);
+    if (m.insetTop !== IPHONE11_APP.top || m.insetBottom !== IPHONE11_APP.bottom) failures.push(`${where}: inset emulation not applied (${m.insetTop}/${m.insetBottom})`);
+    if (m.innerHeight !== IPHONE11_APP.h) failures.push(`${where}: viewport ${m.innerHeight}px tall (want ${IPHONE11_APP.h})`);
+    if (!m.standalone || m.displayMode !== "standalone") failures.push(`${where}: home-screen app emulation not applied (standalone ${m.standalone}, display-mode ${m.displayMode})`);
+    if (m.scrolled) failures.push(`${where}: page scrolled by ${m.scrolled}px`);
+    if (m.columnGap == null || Math.abs(m.columnGap - ARCADE_BOTTOM_PX) > 0.5)
+      failures.push(`${where}: arcade play column ends ${m.columnGap}px above the bottom of the screen (want ${ARCADE_BOTTOM_PX})`);
+    if (m.lowestGap == null || Math.abs(m.lowestGap - ARCADE_BOTTOM_PX) > 0.5)
+      failures.push(`${where}: ${m.lowestIs} ends ${m.lowestGap}px above the bottom of the screen (want exactly ${ARCADE_BOTTOM_PX})`);
+    for (const c of m.clips)
+      if (c.clip.bottom < c.bottom - 0.5)
+        failures.push(`${where}: ${c.what} (ends ${c.bottom.toFixed(1)}px down) is cut ${(c.bottom - c.clip.bottom).toFixed(1)}px short by ${c.clip.by} (ends ${c.clip.bottom.toFixed(1)}px down)`);
+    for (const c of m.controls) {
+      const into = c.bottom - (IPHONE11_APP.screenH - IPHONE11_APP.bottom);
+      if (into > 0) notes.push(`${where}: "${c.label}" ends ${into}px into the ${IPHONE11_APP.bottom}px home-bar zone (${IPHONE11_APP.screenH - c.bottom}px above the bottom)`);
+    }
+    if (VERBOSE) console.log(`  ${where}: column ${m.columnGap}px, ${m.lowestIs} ${m.lowestGap}px, ${m.clips.length} boxes unclipped`);
+  } finally {
+    await emulateDevice(page, BROWSER);
+    await page.setViewportSize({ width: 375, height: 667 });
   }
 }
 
@@ -607,6 +722,7 @@ async function main() {
       const arcade = Boolean(definition.arcadeRun || definition.category === "arcade");
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
       await context.addInitScript(SEED_RANDOM);
+      await context.addInitScript(DEVICE_INIT);
       const page = await context.newPage();
       // A controllable clock (flowing normally): arcade runs are frozen while measured, puzzles time out to their reveal.
       await page.clock.install();
@@ -643,12 +759,14 @@ async function main() {
         await page.setViewportSize({ width: 375, height: 667 });
         await readyButton.click();
         await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
-        // Freeze an arcade run where it stands, so it cannot end (Hover can within 1.5 s) while it is measured.
-        if (arcade) await page.clock.pauseAt(Date.now() + 200);
+        // Freeze an arcade run where it stands, so it cannot end (Hover can within 1.5 s) while it is measured
+        // (freezeClock: relative to the page's own clock, never a time already past).
+        if (arcade) await freezeClock(page);
         await page.waitForTimeout(1500);
         await measureAll(page, "stage", game, failures, notes);
         if (arcade) {
           await homeBar(page, game, failures, notes);
+          await homeScreenApp(page, game, failures, notes);
           await arcadeSeams(page, game, failures);
         } else {
           await seams(page, game, "stage", failures);
@@ -668,7 +786,7 @@ async function main() {
           mine
             ? `${mine} problem(s)`
             : arcade
-              ? `play column and lowest control end ${ARCADE_BOTTOM_PX}px up with and without a home bar, every gap #070709 (notch and home bar emulated), intro Ready ≥ ${CLEARANCE_PX}px clear`
+              ? `play column and lowest control end ${ARCADE_BOTTOM_PX}px up with and without a home bar and as an iPhone 11 home-screen app (nothing clipped), every gap #070709 (notch and home bar emulated), intro Ready ≥ ${CLEARANCE_PX}px clear`
               : `every control ≥ ${CLEARANCE_PX}px clear at 4 viewports; no seam on intro, stage or reveal`
         }`,
       );
@@ -683,12 +801,12 @@ async function main() {
   for (const f of failures) console.log(`  ${f}`);
   if (failures.length) {
     console.log(
-      `FAIL: ${failures.length} problem(s): a control under ${CLEARANCE_PX}px clearance or clipped, an arcade column or lowest control not ${ARCADE_BOTTOM_PX}px up, or a seam (${measured}/${games.length} games measured)`,
+      `FAIL: ${failures.length} problem(s): a control under ${CLEARANCE_PX}px clearance or clipped, an arcade column or lowest control not ${ARCADE_BOTTOM_PX}px up (in a browser or a home-screen app), or a seam (${measured}/${games.length} games measured)`,
     );
     process.exit(1);
   }
   console.log(
-    `PASS: ${measured} games: puzzle controls at least ${CLEARANCE_PX}px above the visible bottom and no seam (notch and home bar emulated); arcade play columns and their lowest controls ${ARCADE_BOTTOM_PX}px up, every gap the screen edge's black (${notes.length} control(s) noted inside the ${INSETS.bottom}px home-bar zone); at 375x667, 390x844 and both with an ${TOOLBAR_PX}px toolbar`,
+    `PASS: ${measured} games: puzzle controls at least ${CLEARANCE_PX}px above the visible bottom and no seam (notch and home bar emulated); arcade play columns and their lowest controls ${ARCADE_BOTTOM_PX}px up, nothing clipped as an iPhone 11 home-screen app, every gap the screen edge's black (${notes.length} control(s) noted inside the ${INSETS.bottom}px home-bar zone); at 375x667, 390x844 and both with an ${TOOLBAR_PX}px toolbar`,
   );
 }
 

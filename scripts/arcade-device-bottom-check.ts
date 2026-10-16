@@ -9,15 +9,16 @@
  * from the top of the screen. window.innerHeight and 100dvh are 848, not 896, so the 100dvh
  * shell ended 48 px early and the play column 16 px above that: 896 − 848 + 16 = 64 px.
  *
- * Headless Chromium reproduces that geometry: the page is laid out in a 414 × 848 viewport
- * (WebKit's short layout viewport) while the screen is 414 × 896, with the 48 / 34 px insets
- * emulated (CDP Emulation.setSafeAreaInsetsOverride) and navigator.standalone true (what iOS
- * reports in a home-screen app; Chromium cannot emulate the display-mode media feature).
- * The physical bottom of the screen is then y = 896, below the viewport; layout boxes are
- * still measured there. The same phone in Safari is a 414 × 896 viewport with the same insets
- * (toolbars collapsed) and a 414 × 715 one with no insets (status bar, address bar and tab bar
- * shown), where the bottom is the visible bottom. An iPhone 14 home-screen app (390 × 844,
- * 47 / 34 px insets, laid out 390 × 797) and the plain 390 × 844 and 375 × 667 viewports run too.
+ * Headless Chromium reproduces that geometry (scripts/device-emulation.ts): the page is laid
+ * out in a 414 × 848 viewport (WebKit's short layout viewport) while the screen is 414 × 896,
+ * with the 48 / 34 px insets emulated (CDP Emulation.setSafeAreaInsetsOverride), navigator.standalone
+ * true (what iOS reports in a home-screen app, and what the app keys on) and display-mode:
+ * standalone answered in-page (Chromium cannot emulate that media feature). The physical bottom
+ * of the screen is then y = 896, below the viewport; layout boxes are still measured there.
+ * The same phone in Safari is a 414 × 896 viewport with the same insets (toolbars collapsed)
+ * and a 414 × 715 one with no insets (status bar, address bar and tab bar shown), where the
+ * bottom is the visible bottom. An iPhone 14 home-screen app (390 × 844, 47 / 34 px insets,
+ * laid out 390 × 797) and the plain 390 × 844 and 375 × 667 viewports run too.
  *
  * For every arcade game and engine game on the arcade stage (the live round in practice, its
  * run frozen), at each of those configurations it fails unless:
@@ -25,7 +26,12 @@
  *  - the lowest control under the arena box ends exactly 16 px above it, or, with no controls,
  *    the arena box does;
  *  - the header row starts max(4 px, top inset) down;
- *  - Tilt's world sits centred vertically in its box (its spare height split evenly).
+ *  - Tilt's world sits centred vertically in its box (its spare height split evenly);
+ *  - nothing clips the arena box, the world, the scene canvas (ARENA_SCENE_GAMES) or any control above its own bottom: every
+ *    ancestor that clips (overflow other than visible, html and body included) reaches at
+ *    least as far down (fix-up of 15 Oct 2026: html and body, 100% of the short viewport and
+ *    overflow hidden under game-lock, cut tall worlds and the lowest controls at 848 px);
+ *  - the page is not scrolled.
  * It prints every game's box, world and bottom gap per configuration (--json=<path> saves them).
  *
  *   bun scripts/arcade-device-bottom-check.ts [games…] [--part=k/n] [--url=<origin>] [--json=<path>] [--verbose]
@@ -33,12 +39,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 
-import type { Page } from "playwright";
-
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import type { PuzzleType } from "../src/lib/duel/types";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
+import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip, type DeviceConfig } from "./device-emulation";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -48,21 +53,8 @@ const PORT = 5197;
 /** The play column and its lowest control end exactly this far above the physical bottom. */
 const BOTTOM_PX = 16;
 
-interface Config {
-  key: string;
-  label: string;
-  /** The layout viewport (what the page is laid out in). */
-  w: number;
-  h: number;
-  /** The physical screen: its bottom is where the 16 px is measured from. */
-  screenH: number;
-  top: number;
-  bottom: number;
-  standalone: boolean;
-}
-
-export const CONFIGS: Config[] = [
-  { key: "iphone11-app", label: "iPhone 11 home-screen app (414x896, 48/34 px insets, laid out 414x848)", w: 414, h: 848, screenH: 896, top: 48, bottom: 34, standalone: true },
+export const CONFIGS: DeviceConfig[] = [
+  IPHONE11_APP,
   { key: "iphone11-safari", label: "iPhone 11 Safari, toolbars collapsed (414x896, 48/34 px insets)", w: 414, h: 896, screenH: 896, top: 48, bottom: 34, standalone: false },
   { key: "iphone11-safari-bars", label: "iPhone 11 Safari, toolbars shown (414x715 visible, no insets)", w: 414, h: 715, screenH: 715, top: 0, bottom: 0, standalone: false },
   { key: "iphone14-app", label: "iPhone 14 home-screen app (390x844, 47/34 px insets, laid out 390x797)", w: 390, h: 797, screenH: 844, top: 47, bottom: 34, standalone: true },
@@ -70,15 +62,11 @@ export const CONFIGS: Config[] = [
   { key: "375x667", label: "375x667, no insets", w: 375, h: 667, screenH: 667, top: 0, bottom: 0, standalone: false },
 ];
 
-/** iOS's navigator.standalone and the screen size, switchable per configuration (window.__device). */
-const DEVICE_INIT = `(() => {
+/** Seeded Math.random and the arrow control, as bottom-clearance-check; the device comes from DEVICE_INIT. */
+const SEED_INIT = `(() => {
   let s = 20261013 >>> 0;
   Math.random = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   try { localStorage.setItem("duelz-arrow-control", "arrows"); } catch { /* ignore */ }
-  window.__device = { standalone: false, w: 0, h: 0 };
-  Object.defineProperty(Navigator.prototype, "standalone", { configurable: true, get: () => window.__device.standalone });
-  Object.defineProperty(Screen.prototype, "width", { configurable: true, get: () => window.__device.w || window.innerWidth });
-  Object.defineProperty(Screen.prototype, "height", { configurable: true, get: () => window.__device.h || window.innerHeight });
 })();`;
 
 interface Box { top: number; bottom: number; left: number; right: number; width: number; height: number }
@@ -89,6 +77,11 @@ interface Geometry {
   slot: Box | null;
   world: Box | null;
   lowestControl: number | null;
+  /** The box, the world and every control, each with the lowest point an ancestor lets it draw to. */
+  clips: { what: string; bottom: number; clip: Clip }[];
+  scrolled: number;
+  standalone: boolean;
+  displayMode: string;
   innerHeight: number;
   safeTop: number;
   safeBottom: number;
@@ -118,21 +111,35 @@ function geometry(): Geometry {
     }
     return true;
   };
+  const clipBottom = (window as unknown as { __clipBottom: (el: Element) => Clip }).__clipBottom;
+  const clips: Geometry["clips"] = [];
+  const label = (el: Element) => el.getAttribute("aria-label") ?? (el.getAttribute("data-game-controls") ? `[controls=${el.getAttribute("data-game-controls")}]` : null) ?? ((el.textContent ?? "").trim().slice(0, 24) || el.tagName.toLowerCase());
   let lowest = -Infinity;
   for (const el of shell?.querySelectorAll("[data-game-stage] :is(button, a[href], input, select, textarea, [role='button'], [data-game-controls])") ?? []) {
     if (el.closest("[data-arena-slot], [data-scrollable]")) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1 || !shown(el)) continue;
     lowest = Math.max(lowest, r.bottom);
+    clips.push({ what: `control "${label(el)}"`, bottom: r.bottom, clip: clipBottom(el) });
   }
   const slot = shell?.querySelector("[data-arena-slot]") ?? null;
+  const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
+  if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
+  if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
+  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
+  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
   return {
     shell: box(shell),
     columnEnd: columnEnd == null ? null : Math.round(columnEnd * 10) / 10,
     header: box(shell?.querySelector("[data-arcade-header]") ?? null),
     slot: box(slot),
-    world: box(slot?.querySelector(":scope > [data-game-arena]") ?? null),
+    world: box(world),
     lowestControl: lowest > -Infinity ? Math.round(lowest * 10) / 10 : null,
+    clips,
+    scrolled: document.scrollingElement?.scrollTop ?? 0,
+    standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    displayMode: matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
     innerHeight: window.innerHeight,
     safeTop,
     safeBottom,
@@ -177,22 +184,6 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   throw new Error("dev server did not start");
 }
 
-async function apply(page: Page, config: Config) {
-  const cdp = await page.context().newCDPSession(page);
-  try {
-    await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: config.top, bottom: config.bottom, left: 0, right: 0 } } as never);
-  } finally {
-    await cdp.detach().catch(() => {});
-  }
-  await page.evaluate(({ standalone, w, h }) => {
-    (window as unknown as { __device: { standalone: boolean; w: number; h: number } }).__device = { standalone, w, h };
-  }, { standalone: config.standalone, w: config.w, h: config.screenH });
-  await page.setViewportSize({ width: config.w, height: config.h });
-  // Re-dispatch resize in case the viewport did not change (the app reads the device on resize).
-  await page.evaluate(() => window.dispatchEvent(new Event("resize")));
-  await page.waitForTimeout(400);
-}
-
 const fmt = (b: Box | null) => (b ? `${Math.round(b.width)}x${Math.round(b.height)}` : "-");
 
 async function main() {
@@ -228,6 +219,7 @@ async function main() {
       await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(games[0]!), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
     for (const game of games) {
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
+      await context.addInitScript(SEED_INIT);
       await context.addInitScript(DEVICE_INIT);
       const page = await context.newPage();
       await page.clock.install();
@@ -251,14 +243,17 @@ async function main() {
         await page.waitForTimeout(600);
         await ready.click();
         await page.locator("[data-arcade-play] [data-game-stage]").first().waitFor({ timeout: 30_000 });
-        await page.clock.pauseAt(Date.now() + 200);
+        // Freeze the run where it stands (freezeClock: relative to the page's own clock, never a time already past).
+        await freezeClock(page);
         await page.waitForTimeout(1200);
         for (const config of CONFIGS) {
-          await apply(page, config);
+          await emulateDevice(page, config);
           const g = await page.evaluate(geometry);
           const where = `${game} ${config.key}`;
           if (g.safeTop !== config.top || g.safeBottom !== config.bottom) failures.push(`${where}: inset emulation not applied (${g.safeTop}/${g.safeBottom})`);
           if (g.innerHeight !== config.h) failures.push(`${where}: viewport ${g.innerHeight}px tall (want ${config.h})`);
+          if (g.standalone !== config.standalone || g.displayMode !== (config.standalone ? "standalone" : "browser")) failures.push(`${where}: home-screen app emulation not applied (standalone ${g.standalone}, display-mode ${g.displayMode})`);
+          if (g.scrolled) failures.push(`${where}: page scrolled by ${g.scrolled}px`);
           if (!g.shell || !g.slot || !g.world || !g.header || g.columnEnd == null) {
             failures.push(`${where}: no arcade play screen, arena box or world`);
             continue;
@@ -275,6 +270,8 @@ async function main() {
           const headerTop = Math.max(4, config.top);
           if (Math.abs(g.header.top - headerTop) > 0.5) failures.push(`${where}: header starts ${g.header.top}px down (want ${headerTop})`);
           if (game === "tilt" && Math.abs(above - below) > 1) failures.push(`${where}: Tilt's world is not centred in its box (${above}px above, ${below}px below)`);
+          for (const c of g.clips)
+            if (c.clip.bottom < c.bottom - 0.5) failures.push(`${where}: ${c.what} (ends ${c.bottom.toFixed(1)}px down) is cut ${(c.bottom - c.clip.bottom).toFixed(1)}px short by ${c.clip.by} (ends ${c.clip.bottom.toFixed(1)}px down)`);
           if (VERBOSE) console.log(`  ${where}: box ${fmt(g.slot)} at ${g.slot.top}-${g.slot.bottom}, world ${fmt(g.world)}, column ${columnGap}px, bottom ${bottomGap}px, spare ${above}/${below}`);
         }
         measured++;
@@ -284,7 +281,7 @@ async function main() {
         await context.close();
       }
       const mine = failures.length - before;
-      console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen in all ${CONFIGS.length} configurations`}`);
+      console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations`}`);
     }
   } finally {
     await browser.close();
@@ -297,7 +294,7 @@ async function main() {
     console.log(`FAIL: ${failures.length} problem(s) (${measured}/${games.length} games measured)`);
     process.exit(1);
   }
-  console.log(`PASS: ${measured} arcade play screens end ${BOTTOM_PX}px above the bottom of the screen: ${CONFIGS.map((c) => c.key).join(", ")}`);
+  console.log(`PASS: ${measured} arcade play screens end ${BOTTOM_PX}px above the bottom of the screen with nothing clipped: ${CONFIGS.map((c) => c.key).join(", ")}`);
 }
 
 if (import.meta.main) await main();

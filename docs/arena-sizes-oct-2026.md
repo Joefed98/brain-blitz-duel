@@ -8,7 +8,8 @@ or PRACTICE, the timer and round pips centred, "?" and sound), 4px under the top
 to edge and down to the controls (8px above them) or 16px above the bottom of the visible screen; the lowest control row
 ends exactly 16px above it. A home-bar inset does not change any of it (a notch moves the header and box down by its inset).
 That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play
-screen adds the shortfall to its height (15 Oct 2026; arcade-device-bottom-check reproduces it in Chromium).
+screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,
+arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).
 The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the
 screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,
 below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
@@ -72,37 +73,41 @@ box per size (a 47px notch moves both down 43px and shortens the box by 43px: 39
 414x896 with a 48px notch and 34px home bar. Before, the app was laid out in WebKit's 848px viewport and the column ended
 16px above that: 64px above the bottom of the screen (measured on a device as about 65px). Box → world, then the gap from the
 lowest control (or the box) to the bottom of the screen. Safari (toolbars collapsed) was already the "after" column.
+The fix alone left html and body at the 848px viewport, and locked (overflow hidden) they cut everything under it: the last
+column is what each game lost until the fix-up (same day) grew the page's root by the shortfall too (seen on a device as
+Meteor's missing bottom border, High Rise's cut block, Orbit's SET CHECKPOINT and Mixed Signals' arrows and joystick more
+than half hidden; Hover's world is cut the same way, its disc at the top).
 
-| Game | Before (home-screen app) | After |
-|---|---|---|
-| Hover | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px |
-| Breaker | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Rally | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Tempo | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Meteor | 414x736 → 396x736, 64px | 414x784 → 414x769, 16px |
-| Fission | 414x652 → 414x594, 64px | 414x700 → 414x594, 16px |
-| Wavefront | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Orbit | 414x684 → 414x658, 64px | 414x732 → 414x658, 16px |
-| High Rise | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px |
-| Jaywalk | 414x736 → 414x616, 64px | 414x784 → 414x616, 16px |
-| Junction | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Rainbow Bridge | 414x680 → 414x658, 64px | 414x728 → 414x658, 16px |
-| Slice | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Swish | 414x664 → 414x594, 64px | 414x712 → 414x594, 16px |
-| Flightpath | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px |
-| Coral Pop | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Roofbound | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Grappler | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px |
-| Scrumper | 414x712 → 401x712, 64px | 414x760 → 414x736, 16px |
-| Tilt | 414x736 → 414x442, 64px | 414x784 → 414x442, 16px |
-| Ball Tracker | 414x700 → 414x591, 64px | 414x748 → 414x591, 16px |
-| Gemstone | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px |
-| Pinball | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px |
-| Letterfall | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px |
-| Tenfall | 414x680 → 414x598, 64px | 414x728 → 414x598, 16px |
-| Bonk | 414x636 → 414x414, 64px | 414x684 → 414x414, 16px |
-| Pull! | 414x710 → 414x460, 64px | 414x758 → 414x460, 16px |
-| Mixed Signals | 414x676 → 414x594, 64px | 414x724 → 414x594, 16px |
+| Game | Before (home-screen app) | After | Cut at 848px between fix and fix-up |
+|---|---|---|---|
+| Hover | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px | world 28px |
+| Breaker | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Rally | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Tempo | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Meteor | 414x736 → 396x736, 64px | 414x784 → 414x769, 16px | world 17px |
+| Fission | 414x652 → 414x594, 64px | 414x700 → 414x594, 16px | world none, Fission's two 76px arrows 32px |
+| Wavefront | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Orbit | 414x684 → 414x658, 64px | 414x732 → 414x658, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
+| High Rise | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px | world 28px |
+| Jaywalk | 414x736 → 414x616, 64px | 414x784 → 414x616, 16px | world none |
+| Junction | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Rainbow Bridge | 414x680 → 414x658, 64px | 414x728 → 414x658, 16px | world none, Rainbow Bridge's Undo / Reset / Release / Drop again (48px) 32px |
+| Slice | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Swish | 414x664 → 414x594, 64px | 414x712 → 414x594, 16px | world none, Swish's cancel strip (72px) 32px |
+| Flightpath | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px | world none |
+| Coral Pop | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Roofbound | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Grappler | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Scrumper | 414x712 → 401x712, 64px | 414x760 → 414x736, 16px | world 8px |
+| Tilt | 414x736 → 414x442, 64px | 414x784 → 414x442, 16px | world none |
+| Ball Tracker | 414x700 → 414x591, 64px | 414x748 → 414x591, 16px | world none, Ball Tracker's status row (28px) 32px |
+| Gemstone | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px | world none |
+| Pinball | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px | world none |
+| Letterfall | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px | world none |
+| Tenfall | 414x680 → 414x598, 64px | 414x728 → 414x598, 16px | world none |
+| Bonk | 414x636 → 414x414, 64px | 414x684 → 414x414, 16px | world none |
+| Pull! | 414x710 → 414x460, 64px | 414x758 → 414x460, 16px | world none |
+| Mixed Signals | 414x676 → 414x594, 64px | 414x724 → 414x594, 16px | world none, Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned 32px |
 
 ## Before 15 Oct 2026 (arcade games)
 

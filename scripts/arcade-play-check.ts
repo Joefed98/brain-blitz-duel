@@ -11,7 +11,8 @@
  *    arcadeFeedback test hook, called once per drawn frame), or advances under half
  *    speed; time after game-over never counts;
  *  - the HUD timer can't be read (or reads NaN) while a run is live, or doesn't count
- *    down with live play;
+ *    down with live play (judged over the span the HUD was actually sampled: a run whose
+ *    samples cover 3 s or more without the seconds dropping fails);
  *  - fewer than 15 s of live play could be covered (30 restarts at most);
  *  - any uncaught page error, or any console error that is not known
  *    environment noise (asset 404s from the Lovable CDN, unreachable Supabase);
@@ -24,7 +25,9 @@
  *    resets are exempt);
  *  - the arcade play screen (15 Oct 2026, polish-layout/bottom.css) is wrong at any of
  *    375 × 667, 390 × 700, 390 × 844, 430 × 932 or a 1280 × 800 laptop window (checked once
- *    per game, before play): READY off screen or the page scrolls; the compact header not
+ *    per game on its own practice run with the clock frozen, as bottom-clearance-check, so a
+ *    game that dies in seconds without input, Hover, stays on its play screen, and no played
+ *    run loses its first seconds to the proof): READY off screen or the page scrolls; the compact header not
  *    one 44 px row 4 px from the top (its timer centred, its text 12 px or more); the box
  *    (arena slot) not the full screen width or not starting 4 px under the header (below
  *    the game's own HUD rows, ABOVE); the arena not the game's world aspect (within 1 px),
@@ -37,6 +40,12 @@
  *    keep its no-inset size, and with a 47 px notch, where the header must sit just under
  *    the inset and the arena directly under it); a control below the arena under 44 px or
  *    off screen; the play column or the arena canvas not touch-action: none (engine games);
+ *    and, as an iPhone 11 home-screen app (fix-up, 15 Oct 2026; scripts/device-emulation.ts:
+ *    414 × 896 with 48 / 34 px insets, laid out in WebKit's 848 px viewport, navigator.standalone
+ *    and display-mode: standalone), the column and the lowest control (or the box) not ending
+ *    16 px above the screen's bottom, the arena not the same size as in Safari on that phone, the
+ *    page scrolled, or the box, the world, the scene canvas or a control cut short by any
+ *    clipping ancestor (html and body included);
  *    for the ten ARENA_SCENE_GAMES (15 Oct 2026), the scene canvas missing, hidden, not
  *    filling the box, not behind the world, or taking touches (a point below the world
  *    must hit the bare slot); any other game carrying a scene;
@@ -54,6 +63,8 @@
  *   bun scripts/arcade-play-check.ts --part=2/5      # the second of five groups
  *   bun scripts/arcade-play-check.ts --record        # play the same way, judge liveness, rewrite the frame-time baseline
  *   bun scripts/arcade-play-check.ts --url=http://127.0.0.1:5174
+ *   bun scripts/arcade-play-check.ts snip --cpu-throttle=4   # a slow runner stand-in (CDP Emulation.setCPUThrottlingRate)
+ *                                                         # on every page; frame times are reported, not judged
  *
  * Needs the pre-installed Chromium (/opt/pw-browsers/chromium, or PLAYWRIGHT_CHROMIUM);
  * a missing browser is an environment problem, reported as such.
@@ -69,10 +80,13 @@ import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
 import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
-import { gotoRetried, warmUp } from "./browser-load";
+import { freezeClock, gotoRetried, warmUp } from "./browser-load";
+import { BROWSER, DEVICE_INIT, IPHONE11_APP, emulateDevice, type Clip } from "./device-emulation";
 
 const args = process.argv.slice(2);
 const RECORD = args.includes("--record");
+/** --cpu-throttle=N: slow every page N× (a CI runner stand-in); frame times are then reported, not judged. */
+const CPU_THROTTLE = Number(args.find((a) => a.startsWith("--cpu-throttle="))?.slice(15) ?? 0) || 0;
 const URL_ARG = args.find((a) => a.startsWith("--url="))?.slice(6);
 const PART_ARG = args.find((a) => a.startsWith("--part="))?.slice(7);
 /**
@@ -328,8 +342,17 @@ const EDGE_RGB = "rgb(7, 7, 9)";
 /** Viewports the arena layout is proved at: four phones and a laptop window. */
 const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];
 
-const nextFrames = (page: import("playwright").Page) =>
-  page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+/**
+ * Let a resized layout settle: a few frames of the draw loop, which sizes the canvas to its box.
+ * The layout page's clock is frozen (page.clock.pauseAt), which also holds requestAnimationFrame,
+ * so the frames are run by hand: 40 ms of fake time, two or three frames and sim ticks a pass,
+ * under half a second of play over the whole proof, so even Hover (which crashes within 1.5 s
+ * without input) stays on its play screen.
+ */
+const nextFrames = async (page: import("playwright").Page) => {
+  await page.clock.runFor(40);
+  await page.waitForTimeout(60);
+};
 
 /** READY must be on screen without scrolling at every layout viewport. */
 async function readyFits(page: import("playwright").Page, problems: string[]): Promise<void> {
@@ -362,7 +385,20 @@ function playScreen() {
   const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
   const doc = document.scrollingElement!;
   const shell = document.querySelector("[data-arcade-play]");
+  // The box, the world and every control, each with the lowest point a clipping ancestor lets it draw to.
+  const clipBottom = (window as unknown as { __clipBottom: (el: Element) => Clip }).__clipBottom;
+  const clips: { what: string; bottom: number; clip: Clip }[] = [];
+  if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
+  if (arena) clips.push({ what: "world", bottom: arena.getBoundingClientRect().bottom, clip: clipBottom(arena) });
+  // Arena scenes (15 Oct 2026): the scene canvas fills the box, so its bottom is the box's.
+  const sceneEl = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  if (sceneEl) clips.push({ what: "scene canvas", bottom: sceneEl.getBoundingClientRect().bottom, clip: clipBottom(sceneEl) });
+  for (const b of below) clips.push({ what: `control "${b.getAttribute("aria-label") ?? b.getAttribute("data-game-controls") ?? (b.textContent ?? "").trim().slice(0, 24)}"`, bottom: b.getBoundingClientRect().bottom, clip: clipBottom(b) });
   return {
+    clips,
+    scrolled: doc.scrollTop,
+    standalone: (navigator as Navigator & { standalone?: boolean }).standalone === true,
+    displayMode: matchMedia("(display-mode: standalone)").matches ? "standalone" : "browser",
     slot: box(slot), arena: box(arena), canvas: box(canvas), slots: stage?.querySelectorAll("[data-arena-slot]").length ?? 0,
     // Arena scenes (15 Oct 2026): the game's own scenery canvas behind the world, if any.
     scene: (() => {
@@ -491,8 +527,79 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     await cdp.send("Emulation.setSafeAreaInsetsOverride" as never, { insets: { top: 0, bottom: 0, left: 0, right: 0 } } as never).catch(() => {});
     await cdp.detach().catch(() => {});
   }
+  // An iPhone 11 home-screen app (fix-up, 15 Oct 2026): laid out 48 px short of its 896 px screen, the play
+  // screen adds the shortfall, so the column and the lowest control (or box) end 16 px above the screen's
+  // bottom, the arena is the size Safari shows on that phone, and nothing (html and body included) clips
+  // the box, the world or a control.
+  const at = `layout ${IPHONE11_APP.label}`;
+  try {
+    await emulateDevice(page, { ...IPHONE11_APP, key: "iphone11-safari", standalone: false, h: IPHONE11_APP.screenH });
+    await nextFrames(page);
+    const safari = await page.evaluate(playScreen);
+    await emulateDevice(page, IPHONE11_APP);
+    await nextFrames(page);
+    const app = await page.evaluate(playScreen);
+    if (app.slots !== 1 || !app.slot || !app.arena) {
+      problems.push(`${at}: no arcade play screen (slots ${app.slots}): the run ended before it was measured?`);
+      return;
+    }
+    if (!app.standalone || app.displayMode !== "standalone") problems.push(`${at}: home-screen app emulation not applied (standalone ${app.standalone}, display-mode ${app.displayMode})`);
+    if (app.scrolled) problems.push(`${at}: page scrolled by ${app.scrolled} px`);
+    if (!app.header || Math.abs(app.header.y - IPHONE11_APP.top) > 0.5) problems.push(`${at}: header at ${app.header?.y.toFixed(1)} px, want just under the inset (${IPHONE11_APP.top})`);
+    const screenGap = IPHONE11_APP.screenH - app.columnEnd;
+    if (Math.abs(screenGap - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: play column ends ${screenGap.toFixed(1)} px above the bottom of the screen (want ${ARCADE_BOTTOM_PX})`);
+    const lowest = app.lowest > 0 ? app.lowest : app.slot ? app.slot.y + app.slot.h : 0;
+    if (Math.abs(IPHONE11_APP.screenH - lowest - ARCADE_BOTTOM_PX) > 0.5) problems.push(`${at}: ${app.lowest > 0 ? "lowest control" : "arena box"} ends ${(IPHONE11_APP.screenH - lowest).toFixed(1)} px above the bottom of the screen (want exactly ${ARCADE_BOTTOM_PX})`);
+    if (!safari.arena || !app.arena || Math.abs(app.arena.w - safari.arena.w) > 0.5 || Math.abs(app.arena.h - safari.arena.h) > 0.5) problems.push(`${at}: arena ${app.arena?.w.toFixed(1)}x${app.arena?.h.toFixed(1)}, not Safari's ${safari.arena?.w.toFixed(1)}x${safari.arena?.h.toFixed(1)} on the same phone`);
+    for (const c of app.clips)
+      if (c.clip.bottom < c.bottom - 0.5) problems.push(`${at}: ${c.what} (ends ${c.bottom.toFixed(1)} px down) is cut ${(c.bottom - c.clip.bottom).toFixed(1)} px short by ${c.clip.by} (ends ${c.clip.bottom.toFixed(1)} px down)`);
+  } finally {
+    await emulateDevice(page, BROWSER);
+  }
   await page.setViewportSize({ width: 390, height: 700 });
   await nextFrames(page);
+}
+
+/** --cpu-throttle: slow the page's CPU N× through CDP. */
+async function throttle(page: import("playwright").Page): Promise<void> {
+  if (!CPU_THROTTLE) return;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_THROTTLE });
+}
+
+/**
+ * The layout proof (READY on screen, then the live play screen at every size and as an iPhone 11
+ * home-screen app) on its own practice run, with the clock frozen once the run is live (freezeClock:
+ * relative to the page's own clock, never a time already past), so the run cannot end while it is
+ * measured and no played run loses time to it.
+ */
+async function layoutProof(browser: import("playwright").Browser, origin: string, game: string, problems: string[]): Promise<void> {
+  const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
+  page.on("pageerror", (e) => problems.push(`page error (layout): ${String(e.message ?? e).slice(0, 200)}`));
+  await page.addInitScript(DEVICE_INIT);
+  await page.clock.install();
+  await throttle(page);
+  try {
+    await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
+    const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
+    await button.waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(1500); // hydration
+    await button.click();
+    const ready = page.getByRole("button", { name: /^Ready/ });
+    await ready.waitFor({ timeout: 60_000 });
+    await readyFits(page, problems);
+    await ready.click();
+    await page.locator("[data-arcade-play] [data-game-stage]").first().waitFor({ timeout: 30_000 });
+    // Freeze the run where it stands (Hover can crash within 1.5 s without input).
+    const margin = await freezeClock(page);
+    if (margin > 100) console.log(`  ${game}: layout clock paused ${margin} ms ahead (the page's clock outran the first ${margin / 2} ms margin)`);
+    await page.waitForTimeout(600);
+    await arenaFits(page, game, problems);
+  } catch (e) {
+    problems.push(`layout harness: ${String((e as Error).message ?? e).split("\n")[0]}`);
+  } finally {
+    await page.close();
+  }
 }
 
 /** How long a live run may go without its sim tick changing before it counts as frozen. */
@@ -500,7 +607,8 @@ const FROZEN_MS = 1000;
 /** Give up topping up play after this many restarts (a game that dies every second). */
 const MAX_SEGMENTS = 30;
 
-interface Segment { frames: Frame[]; gaps: number[]; liveMs: number; timer: number[]; ended: boolean }
+/** timer: the HUD's seconds at each sample while the run was live; timerAt: when (ms) each was read. */
+interface Segment { frames: Frame[]; gaps: number[]; liveMs: number; timer: number[]; timerAt: number[]; ended: boolean }
 
 /**
  * One game: plays segments (a fresh practice run each) until PLAY_MS of live play is
@@ -517,6 +625,8 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
     if (!NOISE.some((re) => re.test(text))) problems.push(`console error: ${text.slice(0, 200)}`);
   });
   await page.addInitScript(INIT);
+  await page.addInitScript(DEVICE_INIT);
+  await throttle(page);
   const result: Result = { game, ok: false, problems, ticks: 0, timer: [Number.NaN, Number.NaN], meanFrameMs: 0, maxStep: 0, maxStepAt: "" };
   const rand = seeded(game.length * 7919 + 17);
   const segments: Segment[] = [];
@@ -531,6 +641,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
   });
   let liveTotal = 0;
   try {
+    await layoutProof(browser, origin, game, problems);
     for (let segment = 0; segment < MAX_SEGMENTS && liveTotal < PLAY_MS; segment++) {
       await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
       const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
@@ -552,15 +663,11 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
         w.__arcadeLog = { game: g, frames: [], errors: [] };
         w.__frameGaps = [];
       }, { src: EXTRACT, g: game });
-      if (segment === 0) await readyFits(page, problems);
       await ready.click();
       await page.waitForTimeout(400);
-      if (segment === 0) {
-        await arenaFits(page, game, problems);
-        // Resizing reallocates the canvas: frame gaps count from here.
-        await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
-      }
-      const seg: Segment = { frames: [], gaps: [], liveMs: 0, timer: [], ended: false };
+      // The first run's frame gaps count from here, as they did after the layout proof's last resize.
+      if (segment === 0) await page.evaluate(() => { (window as unknown as { __frameGaps: number[] }).__frameGaps = []; });
+      const seg: Segment = { frames: [], gaps: [], liveMs: 0, timer: [], timerAt: [], ended: false };
       const startAt = Date.now();
       const arena = await page.locator("[data-game-arena]").first().boundingBox();
       // Play until the run ends or the game's 15 s of live play are covered.
@@ -574,7 +681,10 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
         const stillLive = !(await lastFrame())?.over;
         if (stillLive) {
           if (!Number.isFinite(t)) problems.push(`HUD timer unreadable while the run is live (segment ${segment + 1}, ${((Date.now() - startAt) / 1000).toFixed(1)} s in)`);
-          else seg.timer.push(t);
+          else {
+            seg.timer.push(t);
+            seg.timerAt.push(Date.now());
+          }
         }
         if (liveTotal + (Date.now() - startAt) >= PLAY_MS) break;
         if (arena) {
@@ -690,14 +800,18 @@ function judge(result: Result, segments: Segment[], liveTotal: number, base: num
   segments.forEach((seg, index) => {
     const liveS = seg.liveMs / 1000;
     const drop = (seg.timer[0] ?? Number.NaN) - (seg.timer[seg.timer.length - 1] ?? Number.NaN);
-    if (liveS >= 3 && !(drop >= 1)) problems.push(`run ${index + 1}: HUD timer did not count down (${seg.timer[0]} → ${seg.timer[seg.timer.length - 1]}) over ${liveS.toFixed(1)} s live`);
+    // Judged over the span the HUD was sampled (from the first read to the last while live), not the run's
+    // frame span: a run that ends soon after sampling began has shown nothing, and a frozen HUD still fails.
+    const sampledS = seg.timerAt.length ? (seg.timerAt[seg.timerAt.length - 1]! - seg.timerAt[0]!) / 1000 : 0;
+    if (sampledS >= 3 && !(drop >= 1)) problems.push(`run ${index + 1}: HUD timer did not count down (${seg.timer[0]} → ${seg.timer[seg.timer.length - 1]}) over ${sampledS.toFixed(1)} s sampled (${liveS.toFixed(1)} s live)`);
     required += Math.max(0, Math.floor(liveS) - 2);
   });
   if (timerDrop < Math.floor(required / 2))
     problems.push(`HUD timer counted down only ${timerDrop} s over ${(liveTotal / 1000).toFixed(1)} s of live play`);
   (result as Result & { runs: number }).runs = segments.length;
   // Recording measures frame times (and movement) without judging them; every liveness rule above still applies.
-  if (RECORD) return;
+  // So does a --cpu-throttle run: the baseline was recorded unthrottled.
+  if (RECORD || CPU_THROTTLE) return;
   if (result.meanFrameMs > 33.4) problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms (under 30 fps)`);
   if (base !== undefined && result.meanFrameMs > base * 1.5 + 4)
     problems.push(`average frame ${result.meanFrameMs.toFixed(1)} ms vs baseline ${base.toFixed(1)} ms`);

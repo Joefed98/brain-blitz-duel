@@ -161,6 +161,11 @@ assert.doesNotMatch(bottomCss, /padding-bottom: 8px;/, "the 8px arcade bottom is
 // iOS home-screen apps (15 Oct 2026): laid out in a viewport short by the top inset (WebKit bug 254868), the play
 // screen adds the measured shortfall to its 100dvh height, so the column still ends 16px above the screen's bottom.
 assert.match(bottomCss, /\[data-arcade-play\]\.game-viewport \{\s*height: calc\(100dvh \+ var\(--standalone-short, 0px\)\);\s*\}/, "the play screen reaches the bottom of the screen in an iOS home-screen app");
+// Fix-up: html and body (100% of the short viewport, overflow hidden under game-lock) grow by the same shortfall,
+// or they clip tall worlds and the lowest controls 48px above the screen's bottom.
+assert.match(bottomCss, /html:has\(\[data-arcade-play\]\) \{\s*height: calc\(100% \+ var\(--standalone-short, 0px\)\);\s*\}/, "the page's root grows by the shortfall too, so html and body clip nothing above the screen's bottom");
+assert.match(css2, /html,\s*body \{\s*height: 100%;\s*\}/, "body is 100% of html, so it grows with it");
+assert.match(css2, /html\.game-lock,\s*body\.game-lock \{\s*overflow: hidden;\s*\}/, "the locked page clips at its own boxes");
 assert.match(css2, /\[data-arena-slot\]\[data-arena-centred\]::before \{[^}]*flex: 1 1 0;[^}]*background: var\(--screen-edge\);/, "a centred slot splits its spare height evenly");
 assert.match(readFileSync("src/puzzles/tilt.tsx", "utf8"), /fitWorld\s+centreWorld/, "Tilt's world is centred in its box");
 const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
@@ -216,7 +221,7 @@ const ARENA_SIZES = [[375, 667, 0], [390, 700, 0], [390, 844, 0], [414, 896, 48]
 /** iPhone 11 home-screen app before the 15 Oct 2026 fix: laid out 48px short (100dvh 848 of 896), ending 64px up. */
 const IPHONE11 = { w: 414, h: 896, top: 48, short: 48 };
 /** Per game: the box (slot) and world (arena) at each viewport, then scale and spare space at 390x844. */
-const arenaTable = new Map<string, { world: string; sizes: string[]; detail: string; before: string[]; iphone: string }>();
+const arenaTable = new Map<string, { world: string; sizes: string[]; detail: string; before: string[]; iphone: string; cut: string }>();
 const WORLDS = { ...(ARCADE_FX_SPECS as Record<string, { width: number; height: number }>), ...ENGINE_WORLDS };
 for (const [width, height, inset] of ARENA_SIZES) {
   for (const [game, spec] of Object.entries(WORLDS)) {
@@ -229,7 +234,7 @@ for (const [width, height, inset] of ARENA_SIZES) {
     assert.ok(Math.abs(w / h - spec.width / spec.height) < 1e-9, `${game} ${width}x${height}: uniform`);
     assert.ok(slotH > 0 && top + slotH + (BELOW[game] ?? 0) + ARCADE_BOTTOM === height, `${game} ${width}x${height}: column ends 16px above the bottom`);
     if (TARGETS[game]) assert.ok(TARGETS[game]!(width) >= 44, `${game} ${width}x${height}: 44px targets`);
-    const entry = arenaTable.get(game) ?? { world: game === "whack" ? "square" : `${spec.width}x${spec.height}`, sizes: [], detail: "", before: [], iphone: "" };
+    const entry = arenaTable.get(game) ?? { world: game === "whack" ? "square" : `${spec.width}x${spec.height}`, sizes: [], detail: "", before: [], iphone: "", cut: "" };
     entry.sizes.push(`${slotW}x${slotH.toFixed(0)} → ${w.toFixed(0)}x${h.toFixed(0)}`);
     if (width === IPHONE11.w && height === IPHONE11.h) {
       // The home-screen app before the fix: the same column in a 48px shorter layout viewport.
@@ -237,6 +242,13 @@ for (const [width, height, inset] of ARENA_SIZES) {
       const oldScale = Math.min(slotW / spec.width, oldH / spec.height);
       const gap = ARCADE_BOTTOM + IPHONE11.short;
       entry.iphone = `${slotW}x${oldH.toFixed(0)} → ${(spec.width * oldScale).toFixed(0)}x${(spec.height * oldScale).toFixed(0)}, ${gap}px | ${slotW}x${slotH.toFixed(0)} → ${w.toFixed(0)}x${h.toFixed(0)}, ${ARCADE_BOTTOM}px`;
+      // Between the fix and its fix-up, html and body still clipped at the short viewport (848px): what the
+      // world (top-anchored, or centred) and the lowest control row lost.
+      const clipAt = height - IPHONE11.short;
+      const worldTop = top + (CENTRED.has(game) ? (slotH - h) / 2 : 0);
+      const worldCut = Math.max(0, worldTop + h - clipAt);
+      const controlCut = BELOW[game] ? Math.max(0, height - ARCADE_BOTTOM - clipAt) : 0;
+      entry.cut = `${worldCut ? `world ${worldCut.toFixed(0)}px` : "world none"}${BELOW[game] ? `, ${BELOW_CONTROLS[game]} ${controlCut.toFixed(0)}px` : ""}`;
     }
     if (inset === 0 && game in ARCADE_FX_SPECS) {
       // Every arcade arena is larger than before 15 Oct 2026, at every size.
@@ -265,7 +277,8 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "to edge and down to the controls (8px above them) or 16px above the bottom of the visible screen; the lowest control row",
   "ends exactly 16px above it. A home-bar inset does not change any of it (a notch moves the header and box down by its inset).",
   "That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play",
-  "screen adds the shortfall to its height (15 Oct 2026; arcade-device-bottom-check reproduces it in Chromium).",
+  "screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,",
+  "arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).",
   "The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the",
   "screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,",
   "below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
@@ -286,10 +299,14 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix", "",
   "414x896 with a 48px notch and 34px home bar. Before, the app was laid out in WebKit's 848px viewport and the column ended",
   "16px above that: 64px above the bottom of the screen (measured on a device as about 65px). Box → world, then the gap from the",
-  "lowest control (or the box) to the bottom of the screen. Safari (toolbars collapsed) was already the \"after\" column.", "",
-  "| Game | Before (home-screen app) | After |",
-  "|---|---|---|",
-  ...[...arenaTable].map(([game, { iphone }]) => `| ${gameDisplayName(game as never)} | ${iphone} |`), "",
+  "lowest control (or the box) to the bottom of the screen. Safari (toolbars collapsed) was already the \"after\" column.",
+  "The fix alone left html and body at the 848px viewport, and locked (overflow hidden) they cut everything under it: the last",
+  "column is what each game lost until the fix-up (same day) grew the page's root by the shortfall too (seen on a device as",
+  "Meteor's missing bottom border, High Rise's cut block, Orbit's SET CHECKPOINT and Mixed Signals' arrows and joystick more",
+  "than half hidden; Hover's world is cut the same way, its disc at the top).", "",
+  "| Game | Before (home-screen app) | After | Cut at 848px between fix and fix-up |",
+  "|---|---|---|---|",
+  ...[...arenaTable].map(([game, { iphone, cut }]) => `| ${gameDisplayName(game as never)} | ${iphone} | ${cut} |`), "",
   "## Before 15 Oct 2026 (arcade games)", "",
   "Box top 116px (Scrumper 156px, Tilt 156px), 4px side insets, ending at the controls (12px above them) or 8px above the",
   "bottom; the spare space was the game's arena fill or the page colour. Same arithmetic, box → world.", "",
