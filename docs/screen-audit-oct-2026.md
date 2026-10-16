@@ -97,9 +97,9 @@ Example: [ex-intro-practice](screen-audit-oct-2026/ex-intro-practice.jpg), [ex-i
 | Arcade (all) | The example is a narrow phone-shaped frame with a lot of empty space beside it; the Score block sits far below. | Nice | Wider example (or the score line beside it). | `src/components/duel/RoundIntro.tsx` |
 | Shikaku | The intro example is ten stacked "10" bars and doesn't show what a cut grid looks like. | Nice | A 4 × 4 example with two or three rectangles. | `src/puzzles/shikaku.tsx` |
 | Safe Cracker | The example clues ("① is even") are about 9 px. | Nice | 11 px. | `src/puzzles/safeCracker.tsx` |
-| Eagle Eye, Tally | Four how lines on the intro (meant to be three). | Must | Mark the 4th `helpOnly`. | `src/lib/duel/instructions.ts` |
-| Jaywalk, Pinball, Slice (2), Roofbound (2), Ball Tracker (2), Strikeout | How lines over about 70 characters (81–107) wrap to 2–3 lines on a phone. | Must | Shorten (suggested text in "Wording"). | `src/lib/duel/instructions.ts` |
-| Scrumper | Score says "each leaf 2" but no how line mentions leaves. | Must | Add "Grab leaves for +2". | `src/lib/duel/instructions.ts` |
+| Eagle Eye, Tally | Four how lines on the intro (meant to be three). **Done (Batch 5).** | Must | Mark the 4th `helpOnly`. | `src/lib/duel/instructions.ts` |
+| Jaywalk, Pinball, Slice (2), Roofbound (2), Ball Tracker (2), Strikeout | How lines over about 70 characters (81–107) wrap to 2–3 lines on a phone. **Done (Batch 5).** The suggested lines are used; the detail they drop moved to help-only lines. | Must | Shorten (suggested text in "Wording"). | `src/lib/duel/instructions.ts` |
+| Scrumper | Score says "each leaf 2" but no how line mentions leaves. **Done (Batch 5).** Added as a help-only line ("Golden leaves: … each counts 2"), keeping the intro at three lines. | Must | Add "Grab leaves for +2". | `src/lib/duel/instructions.ts` |
 | Room intro (all) | "Round 6 of 6" on the final round's intro, while the play header says "Final round". | Nice | "Final round" on the intro too. | `src/components/duel/RoundIntro.tsx` |
 
 ## In-game (practice and room)
@@ -258,22 +258,22 @@ Read from source (`instructions.ts`, `gameNames.ts`, every active puzzle file, `
 | Game | Issue | Suggested fix | File to change |
 |---|---|---|---|
 | Labyrinth | Example caption says "You have 45 seconds"; the limit is 60 s (`MAZE_TIME_MS`). | Remove the seconds from the caption (the intro prints the real time). | `src/puzzles/mazeDash.tsx` |
-| Rainbow Bridge | Levels are called "rounds", which clashes with the room's rounds: "Reached round N of 10", "Rounds 5-8 move". | "level". | `src/lib/duel/nearMiss.ts`, `src/puzzles/inkBridge.tsx` |
-| Scrumper | Results summary says "N sweets · N★"; the game has apples and leaves ([iss-scrumper-results](screen-audit-oct-2026/iss-scrumper-results.jpg)). | "N apples · N leaves". | `src/lib/duel/roundSummaries.ts` |
-| Slice | Summary "N bombs hit"; the game has chillies. `slice.tsx` says "cream bottle"; instructions say "mayo". | "N chillies cut"; "mayo bottle". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/slice.tsx` |
-| Bonk | Summary "Bombs N", "−3 per wrong ball · −5 per bomb"; the game has hats and hedgehogs. | "Hedgehogs N", "−3 per wrong hat · −5 per hedgehog". | `src/lib/duel/roundSummaries.ts` |
-| Swish | Summary "10 per basket"; the game says bucket. | "bucket". | `src/lib/duel/roundSummaries.ts` |
-| Rally | Point values disagree: a gold-ball hit "counts 5" in the score text but "× 2.5" in the reveal and HUD; a pink pad "scores 3" in the help and reveal but "6" in the score text. | One value for each, the same in all four places. | `src/lib/duel/instructions.ts`, `src/puzzles/rally.tsx` |
-| Breaker, Bullseye, Hover, Swish, Coral Pop, Rainbow Bridge, Orbit, Grappler, Tilt, Ball Tracker | Result detail lines show old score formulas ("floor(1.7 × ring points − 20)", "130 × bricks ÷ 80") that contradict today's score text. | Drop the formula lines, or gate them on the old revision (display only; scores unchanged). | `src/lib/duel/roundSummaries.ts` |
-| Nucleus | "floor(2.5 × word points)" in the score text and summary. | "2.5 × word points, rounded down". | `src/lib/duel/instructions.ts`, `src/lib/duel/roundSummaries.ts` |
-| All | "game" means the whole match ("Start game", "Leave this game?"), each round's game and practice. | "room" for the session, "game" for a round's title. | `src/components/duel/RoomLobby.tsx`, `src/components/duel/DropoutBanner.tsx`, `src/components/duel/Onboarding.tsx` |
-| All | Dashes: spaced hyphen " - " 31 times in instructions and 18 in puzzle UI, em dash 5 times, en dash elsewhere; Colour Flood "Par — you used" vs Slider "Par - you used"; Flightpath goal "Hit the centre - ten darts"; Roofbound goal "Run the corridor - flip…". | Spaced en dash " – " everywhere. | `src/lib/duel/instructions.ts` (Batch 5), then the puzzle files in Batch 6 and 7 |
-| Pinball | Help prints "1000" next to "2,500". | `toLocaleString("en-GB")` for both. | `src/lib/duel/instructions.ts` |
+| Rainbow Bridge | Levels are called "rounds", which clashes with the room's rounds: "Reached round N of 10", "Rounds 5-8 move". **Done (Batch 5)** for the near-miss line ("Reached level N of 10"); `inkBridge.tsx` is Batch 7. | "level". | `src/lib/duel/nearMiss.ts`, `src/puzzles/inkBridge.tsx` |
+| Scrumper | Results summary says "N sweets · N★"; the game has apples and leaves ([iss-scrumper-results](screen-audit-oct-2026/iss-scrumper-results.jpg)). **Done (Batch 5).** | "N apples · N leaves". | `src/lib/duel/roundSummaries.ts` |
+| Slice | Summary "N bombs hit"; the game has chillies. `slice.tsx` says "cream bottle"; instructions say "mayo". **Done (Batch 5)** for the summary ("N chillies cut"); `slice.tsx` is Batch 7. | "N chillies cut"; "mayo bottle". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/slice.tsx` |
+| Bonk | Summary "Bombs N", "−3 per wrong ball · −5 per bomb"; the game has hats and hedgehogs. **Done (Batch 5).** | "Hedgehogs N", "−3 per wrong hat · −5 per hedgehog". | `src/lib/duel/roundSummaries.ts` |
+| Swish | Summary "10 per basket"; the game says bucket. **Done (Batch 5).** The line went with the old formula lines. | "bucket". | `src/lib/duel/roundSummaries.ts` |
+| Rally | Point values disagree: a gold-ball hit "counts 5" in the score text but "× 2.5" in the reveal and HUD; a pink pad "scores 3" in the help and reveal but "6" in the score text. **Done (Batch 5)** for the help: the scorer (rallyRev 3 on) counts a gold hit 5 and a pink pad 6 on the band curve, so the help says 5 and 6 throughout, and its knots are now rallyRev 6's (what new rooms deal; it printed rallyRev 5's). The results summary shows each round's own values (unstamped 2.5, rallyRev 2 2.5 and 3, rallyRev 3+ counts only). The reveal and HUD (`rally.tsx`, `rally.renderer.ts`) are Batch 7. | One value for each, the same in all four places. | `src/lib/duel/instructions.ts`, `src/puzzles/rally.tsx` |
+| Breaker, Bullseye, Hover, Swish, Coral Pop, Rainbow Bridge, Orbit, Grappler, Tilt, Ball Tracker | Result detail lines show old score formulas ("floor(1.7 × ring points − 20)", "130 × bricks ÷ 80") that contradict today's score text. **Done (Batch 5).** Dropped (Tilt keeps its star count). | Drop the formula lines, or gate them on the old revision (display only; scores unchanged). | `src/lib/duel/roundSummaries.ts` |
+| Nucleus | "floor(2.5 × word points)" in the score text and summary. **Done (Batch 5).** | "2.5 × word points, rounded down". | `src/lib/duel/instructions.ts`, `src/lib/duel/roundSummaries.ts` |
+| All | "game" means the whole match ("Start game", "Leave this game?"), each round's game and practice. | "room" for the session, "game" for a round's title. Batch 5: `Onboarding.tsx` already uses "room" for the session and "game" only for a round's game; nothing to change there. | `src/components/duel/RoomLobby.tsx`, `src/components/duel/DropoutBanner.tsx`, `src/components/duel/Onboarding.tsx` |
+| All | Dashes: spaced hyphen " - " 31 times in instructions and 18 in puzzle UI, em dash 5 times, en dash elsewhere; Colour Flood "Par — you used" vs Slider "Par - you used"; Flightpath goal "Hit the centre - ten darts"; Roofbound goal "Run the corridor - flip…". **Done (Batch 5)** in `instructions.ts` (37 spaced or leading hyphens; it had no em dashes); the puzzle files are Batches 6 and 7. | Spaced en dash " – " everywhere. | `src/lib/duel/instructions.ts` (Batch 5), then the puzzle files in Batch 6 and 7 |
+| Pinball | Help prints "1000" next to "2,500". **Done (Batch 5).** | `toLocaleString("en-GB")` for both. | `src/lib/duel/instructions.ts` |
 | Skid, Blackout, Heave, Gridlock, Hanoi | "Fewer moves earns a bonus" (and presses / pushes). | "earn". | `src/puzzles/iceSlide.tsx`, `lightsOut.tsx`, `push.tsx`, `unblock.tsx`, `tower.tsx` |
-| Interlock | "invalid at the timer" (results summary, reveal). | "not a valid grid at time-up". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/tileGrid.tsx` |
+| Interlock | "invalid at the timer" (results summary, reveal). **Done (Batch 5)** for the results summary ("not a valid grid when time ran out"); the reveal (`tileGrid.tsx`) is Batch 6. | "not a valid grid at time-up". | `src/lib/duel/roundSummaries.ts`, `src/puzzles/tileGrid.tsx` |
 | Exact | "Target Number Achieved" (old name, Title Case). | "Target hit!". | `src/puzzles/targetNumber.tsx` |
 | Double Take | "A ice cream cone…". | a/an chosen at display. | `src/puzzles/spotTheDifference.tsx` |
-| Jaywalk, Pinball, Slice, Roofbound, Ball Tracker, Strikeout | Intro lines of 75–107 characters. Suggested: Jaywalk "Swipe to hop. \| Up goes forward; down and sideways step." / "Bikes from crossing 3, \| cones from 4: find the gap."; Pinball "Hold left or right \| to flip; both thumbs for both."; Slice "Swipe through food. \| 3+ in one swipe: combo ×2, ×3." / "Cut a bottle: \| ketchup, mustard or mayo power-up."; Roofbound "Tap to flip sides; \| run on the side without spikes." / "Cracked tiles break; \| flip off fast."; Ball Tracker "Tap a gold tube \| to turn it." / "Tap a cup's drop \| to close it; tap again to open."; Strikeout "Three vowel guesses \| per word (the dots)." | As given. | `src/lib/duel/instructions.ts` |
+| Jaywalk, Pinball, Slice, Roofbound, Ball Tracker, Strikeout | Intro lines of 75–107 characters. Suggested: Jaywalk "Swipe to hop. \| Up goes forward; down and sideways step." / "Bikes from crossing 3, \| cones from 4: find the gap."; Pinball "Hold left or right \| to flip; both thumbs for both."; Slice "Swipe through food. \| 3+ in one swipe: combo ×2, ×3." / "Cut a bottle: \| ketchup, mustard or mayo power-up."; Roofbound "Tap to flip sides; \| run on the side without spikes." / "Cracked tiles break; \| flip off fast."; Ball Tracker "Tap a gold tube \| to turn it." / "Tap a cup's drop \| to close it; tap again to open."; Strikeout "Three vowel guesses \| per word (the dots)." **Done (Batch 5).** | As given. | `src/lib/duel/instructions.ts` |
 
 ### Nice to have
 
@@ -377,6 +377,14 @@ Files: `src/lib/duel/instructions.ts`, `src/lib/duel/roundSummaries.ts`, `src/li
 - Display text only: no stored data, scores or stamps change.
 - Checks: reveal-score-check, arcade-score-bands-check, the arcade batch and tuning checks that import
   `instructions.ts` (arcade-batch1–5, arcade-input, arcade-tuning-a/c/e/f), and the touched games' own checks.
+- **Must items done (16 Oct 2026).** Nice items not started. Found on the way, not fixed (a follow-up for Joe): the "?"
+  help of Breaker, Slice, Coral Pop, Tempo, Wavefront, Fission, Grappler and Ball Tracker still prints the band knots
+  of the revision before the taller worlds (e.g. `BRK_BAND_CURVE`), while new rooms deal and score `brkRev` 6,
+  `sliceRev` 6, `bubbleRev` 5, `beatRev` 6, `wavRev` 6, `burstRev` 4, `swingRev` 9 and `btRev` 4 on their own curves.
+  Display only (the help would print the new curves), but several tuning checks pin the old knot text, so it wants
+  its own change. Rally's help was moved to rallyRev 6's knots here.
+  arcade-tuning-a-check's help rule ("plain hyphens", no en dash) contradicted the dash row; it now asks for the
+  spaced en dash (no em dash, no spaced or leading hyphen). Revert that if plain hyphens were a deliberate choice.
 
 ### Batch 6 — Per-game puzzle screens (Must, then Nice)
 
