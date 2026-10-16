@@ -1,4 +1,4 @@
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
+import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -15,8 +15,8 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
-import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { BT_BALLS } from "@/lib/arcade/ballTrack";
+import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { BT_BALLS, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
@@ -92,7 +92,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_TALL) return null;
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED && demo.puzzle.swingRev !== SWING_REV_TUNEC && demo.puzzle.swingRev !== SWING_REV_SPREAD) return null;
+    // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
+    // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
+    // until one is recorded on its tall revision.
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
+    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
     return demo;
   });
 

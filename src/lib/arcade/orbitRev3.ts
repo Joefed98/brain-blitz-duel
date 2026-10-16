@@ -47,6 +47,7 @@ import {
   ORBIT_REV_BAND,
   ORBIT_REV_TUNED,
   ORBIT_REV_SWEPT,
+  ORBIT_REV_TALL,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -553,6 +554,8 @@ export interface OrbitRev3State extends BandFields {
   warp?: number;
   /** orbitRev 7 only (Tuning F): 1 = swept black holes (orbitSweptHit). Absent on every earlier round. */
   swept?: number;
+  /** orbitRev 8 only (taller worlds): the view height in px (ORBIT_TALL_VIEW_H). Absent = 620. Display only: no step reads it. */
+  worldH?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -1137,8 +1140,27 @@ export function initSweptFrom(planets: Planet[], worldW: number, holes: OrbitHol
   return { ...initTunedFrom(planets, worldW, holes), swept: 1 };
 }
 
-/** The start for a stored bank-course orbitRev (4–7), or null for an earlier one. */
+/**
+ * orbitRev 8 start (taller worlds, batch 3): the rev-7 start plus the view
+ * height. Play is rev 7's tick for tick (no step reads `worldH`; the flight's
+ * world bounds are ABOVE_MARGIN / BELOW_MARGIN round the planet, not the view);
+ * only the capture-only camera (orbitCamera.ts) frames the course in the
+ * taller view, with every extra pixel above the framing line, so more of the
+ * course shows ahead. The height is folded into the checkpoint checksum last.
+ */
+export const ORBIT_TALL_H = 650;
+export function initTallFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return { ...initSweptFrom(planets, worldW, holes), worldH: ORBIT_TALL_H };
+}
+
+/** The view height (px) a stored round's orbitRev is framed in (620 for every earlier revision). */
+export function orbitWorldHFor(rev?: number | null): number {
+  return rev === ORBIT_REV_TALL ? ORBIT_TALL_H : 620;
+}
+
+/** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_TALL) return initTallFrom;
   if (rev === ORBIT_REV_SWEPT) return initSweptFrom;
   if (rev === ORBIT_REV_TUNED) return initTunedFrom;
   if (rev === ORBIT_REV_BAND) return initBandFrom;

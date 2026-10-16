@@ -13,7 +13,9 @@ import {
   MESSAGE_HISTORY_LIMIT,
   REACTION_LIFETIME_MS,
   REACTION_MIN_GAP_MS,
+  ROOM_EMOJI,
   type FloatingReaction,
+  type RoomEmoji,
   type RoomMessageRow,
 } from "./chatConstants";
 
@@ -119,6 +121,8 @@ export function useRoomChat(
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
         const data = payload as { emoji?: string; name?: string; userId?: string } | undefined;
         if (!data?.emoji || !data.userId) return;
+        // The channel is public to anyone holding the room id: show only the fixed emoji set.
+        if (!ROOM_EMOJI.includes(data.emoji as RoomEmoji)) return;
         // Every phone enforces the one-a-second limit, whoever sent it.
         const previous = lastReactionAt.current.get(data.userId) ?? 0;
         const now = Date.now();
@@ -127,7 +131,7 @@ export function useRoomChat(
         const bubble: FloatingReaction = {
           id: `${data.userId}-${now}-${Math.random().toString(36).slice(2, 7)}`,
           emoji: data.emoji,
-          name: data.name ?? "Player",
+          name: String(data.name ?? "Player").slice(0, 14),
           userId: data.userId,
           at: now,
         };

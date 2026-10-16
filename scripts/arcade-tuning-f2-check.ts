@@ -145,7 +145,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     ["swing", "swingRev", generateSwing().swingRev, SWING_REV_SPREAD],
     ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_PROVEN],
   ];
-  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1 };
+  // Taller worlds batch 3 (16 Oct 2026) moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
