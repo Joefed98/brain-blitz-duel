@@ -70,6 +70,60 @@ export type Database = {
           },
         ]
       }
+      duel_players_archive: {
+        Row: {
+          archive_id: number
+          archived_at: string
+          created_at: string | null
+          display_name: string
+          duel_id: string
+          game_index: number
+          id: string
+          intro_ready_round: number | null
+          joined_at: string | null
+          last_seen_at: string | null
+          muted_by_host: boolean | null
+          player_slot: number
+          ready_round: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          archive_id?: never
+          archived_at?: string
+          created_at?: string | null
+          display_name: string
+          duel_id: string
+          game_index: number
+          id: string
+          intro_ready_round?: number | null
+          joined_at?: string | null
+          last_seen_at?: string | null
+          muted_by_host?: boolean | null
+          player_slot: number
+          ready_round?: number | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          archive_id?: never
+          archived_at?: string
+          created_at?: string | null
+          display_name?: string
+          duel_id?: string
+          game_index?: number
+          id?: string
+          intro_ready_round?: number | null
+          joined_at?: string | null
+          last_seen_at?: string | null
+          muted_by_host?: boolean | null
+          player_slot?: number
+          ready_round?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       duel_secrets: {
         Row: {
           created_at: string
@@ -459,6 +513,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      round_results_archive: {
+        Row: {
+          answer: string | null
+          archive_id: number
+          archived_at: string
+          correct_count: number | null
+          duel_id: string
+          errors: number | null
+          extra: Json | null
+          game_id: string | null
+          game_index: number
+          id: string
+          is_correct: boolean
+          ms_remaining: number
+          player_slot: number
+          reaction_avg_ms: number | null
+          round_number: number
+          score: number
+          submitted_at: string
+          time_limit_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          answer?: string | null
+          archive_id?: never
+          archived_at?: string
+          correct_count?: number | null
+          duel_id: string
+          errors?: number | null
+          extra?: Json | null
+          game_id?: string | null
+          game_index: number
+          id: string
+          is_correct: boolean
+          ms_remaining: number
+          player_slot: number
+          reaction_avg_ms?: number | null
+          round_number: number
+          score: number
+          submitted_at: string
+          time_limit_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string | null
+          archive_id?: never
+          archived_at?: string
+          correct_count?: number | null
+          duel_id?: string
+          errors?: number | null
+          extra?: Json | null
+          game_id?: string | null
+          game_index?: number
+          id?: string
+          is_correct?: boolean
+          ms_remaining?: number
+          player_slot?: number
+          reaction_avg_ms?: number | null
+          round_number?: number
+          score?: number
+          submitted_at?: string
+          time_limit_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       unblock_bank: {
         Row: {
