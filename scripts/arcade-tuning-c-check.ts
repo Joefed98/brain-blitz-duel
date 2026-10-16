@@ -168,7 +168,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["flip", generateFlip().flipRev, FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     ["beat", generateBeat().beatRev, BEAT_REV_TUNEF],
-    ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC],
+    // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
+    ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC + 1],
     ["tilt", generateTilt().tiltRev, TILT_REV_TUNEC],
     ["slice", generateSlice().sliceRev, SLICE_REV_LONG],
   ];

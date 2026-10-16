@@ -8,11 +8,11 @@ import {
   BURST_BG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_COLOURS,
-  BURST_FLOOR_Y,
+  burstWorldHFor,
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV,
+  BURST_REV_TALL,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
@@ -83,7 +83,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={BURST_WORLD_W}
-      worldH={BURST_FLOOR_Y}
+      worldH={burstWorldHFor(data?.burstRev)}
       game={burstArtGameFor(data?.burstRev)}
       sounds={burstSounds}
       checkpoint={burstCheckpoint}
@@ -127,7 +127,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_TALL }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -12,6 +12,8 @@ import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { breakerArtGameFor } from "./breaker.renderer";
+import { breakerWorldHFor } from "./breaker";
+import { rallyWorldHFor } from "./rally";
 import { pinballArtGameFor } from "./pinball.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
@@ -24,12 +26,12 @@ import { hoverWorldHFor } from "./hover";
 import { skylineWorldHFor } from "./skyline";
 import { snakeArtGame as snakeGame } from "./snake.renderer";
 import { crossArtGame as crossGame, crossRevealGame } from "./cross.renderer";
-import { WAV_SHIP_Y } from "./wavefront";
+import { wavShipY, wavefrontWorldHFor } from "./wavefront";
 import { wavefrontArtGame as wavefrontGame } from "./wavefront.renderer";
 import { flipArtGame as flipGame } from "./flipArt.renderer";
 import { junctionArtGame as junctionGame, junctionRevealGame } from "./junction.renderer";
 import { inkBridgeArtGame as inkBridgeGame } from "./inkBridge.renderer";
-import { BURST_FLOOR_Y } from "./burst";
+import { BURST_FLOOR_Y, burstWorldHFor } from "./burst";
 import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
@@ -154,14 +156,15 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: 390,
     worldH: 620,
+    heightFor: (p) => breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: 620 });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: breakerWorldHFor(rev) });
       return null;
     },
   },
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, pinballArtGameFor(1), (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined)),
-  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame),
+  rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined)),
   slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined)),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined)),
@@ -173,7 +176,9 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     620,
     wavefrontGame,
     (p, a) => replayWavefrontRun(seedOf(p), a, p.type === "wavefront" ? p.wavRev : undefined),
-    (s) => ({ x: s.shipX, y: WAV_SHIP_Y }),
+    (s) => ({ x: s.shipX, y: wavShipY(s) }),
+    undefined,
+    (p) => wavefrontWorldHFor(p.type === "wavefront" ? p.wavRev : undefined),
   ),
   flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
@@ -182,9 +187,10 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: "#2ED3B7",
     worldW: 390,
     worldH: BURST_FLOOR_Y,
+    heightFor: (p) => burstWorldHFor(p.type === "burst" ? p.burstRev : undefined),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "burst" ? p.burstRev : undefined;
-      burstArtGameFor(rev).draw(ctx, replayBurstRun(seedOf(p), a, rev).state, { width: 390, height: BURST_FLOOR_Y });
+      burstArtGameFor(rev).draw(ctx, replayBurstRun(seedOf(p), a, rev).state, { width: 390, height: burstWorldHFor(rev) });
       return null;
     },
   },
