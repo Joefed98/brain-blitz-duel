@@ -90,7 +90,10 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: var(--background);
+  /* Its bottom strip: the home-bar inset solid in the page behind's black (--screen-edge), fading over the 16px above. */
+  background:
+    linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
+    var(--background);
   touch-action: none;
   user-select: none;
 }
@@ -795,6 +798,23 @@ body.game-lock {
   animation: phase-in 200ms ease-out both;
 }
 
+/* The live round's entrance (GameLayout, 16 Oct 2026, display only): a fade with no
+   movement. phase-in's 10px rise started its clock before a slow first frame was drawn,
+   so a phone painted the board several px low and then snapped it up; every frame of
+   this one shows the board in its final place. first-paint-check proves it. */
+@keyframes round-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@utility animate-round-in {
+  animation: round-in 200ms ease-out both;
+}
+
 /* --- Answer lock -------------------------------------------------------- */
 
 @keyframes lock-collapse {
@@ -1271,7 +1291,8 @@ body.game-lock {
 [data-category="arcade"] { --category-accent: var(--category-arcade); }
 .screen-background { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(155deg, var(--screen-mid), var(--background) 55%, var(--screen-edge)); }
 .screen-background::before { content: ""; position: absolute; inset: 0; opacity: 0.16; background-image: radial-gradient(var(--muted-foreground) 0.6px, transparent 0.6px); background-size: 24px 24px; }
-.screen-background::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent)); }
+/* The bottom strip: the home-bar inset solid in the screen edge's black, fading over the 16px above it; that black is the page behind every screen (polish-layout/bottom.css, "Every screen's bottom"). */
+.screen-background::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat, radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent)); }
 .screen-drift { position: absolute; inset: -6%; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 65%); animation: screen-drift 30s ease-in-out infinite alternate; }
 @keyframes screen-drift { from { transform: translate3d(-2%, 0, 0); } to { transform: translate3d(2%, 3%, 0); } }
 .game-screen :is([data-play-area], .puzzle-square-board, .pipes-play-board, .logic-nonogram-board) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--category-accent) 24%, transparent), 0 0 8px color-mix(in srgb, var(--category-accent) 8%, transparent); }
@@ -1306,7 +1327,7 @@ body.game-lock {
   .fx-timer-pulse .fx-timer-ring, .fx-timer-pulse > span { animation: none !important; }
   /* Reduced motion: brighter red, no swell. */
   .fx-timer-critical .fx-timer-ring, .fx-timer-critical > span { filter: brightness(1.35) drop-shadow(0 0 3px color-mix(in oklab, var(--destructive) 70%, transparent)); }
-  .animate-phase-in, .animate-rise-settle, .animate-pop-in, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
+  .animate-phase-in, .animate-round-in, .animate-rise-settle, .animate-pop-in, .animate-shake, .animate-stamp-in, .animate-tag-slam, .animate-word-scale-in, .animate-row-stagger, .animate-reaction-float { animation: fx-fade 160ms ease-out !important; }
   @keyframes fx-fade { from { opacity: 0.65; } to { opacity: 1; } }
 }
 

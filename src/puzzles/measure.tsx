@@ -21,6 +21,7 @@ import { buzz, useReducedMotion } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -438,7 +439,7 @@ function Stage({
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
-  useEffect(() => {
+  useBeforePaint(() => {
     const node = box.current;
     if (!node) return;
     const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });

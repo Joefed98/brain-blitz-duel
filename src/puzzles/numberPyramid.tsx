@@ -24,6 +24,7 @@ import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCor
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 const NO_TOUCH: CSSProperties = { touchAction: "none", userSelect: "none", WebkitUserSelect: "none" };
 
@@ -195,7 +196,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const encoded = npEncodeRound(stage, allPlacements);
 
   useEffect(() => { onDraftAnswer?.(encoded); }, [encoded, onDraftAnswer]);
-  useEffect(() => {
+  useBeforePaint(() => {
     const node = box.current;
     if (!node) return;
     const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });
@@ -329,7 +330,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 function useHostSpace(fallback: { w: number; h: number }) {
   const root = useRef<HTMLDivElement | null>(null);
   const [space, setSpace] = useState(fallback);
-  useEffect(() => {
+  useBeforePaint(() => {
     const host = root.current?.parentElement;
     if (!host) return;
     const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });
