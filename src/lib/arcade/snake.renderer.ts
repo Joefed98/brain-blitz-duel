@@ -314,7 +314,19 @@ function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, d
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Meteor's bottom-edge flash (16 Oct 2026, display only): on the play screen the canvas is the
+ * world's own box (its aspect to within a device pixel), and "fit" letterboxed the world inside it
+ * by a fraction of a pixel. That left an edge row part bezel, part screen, which the drifting
+ * scanlines darkened by a different amount every 90 ms: a faint flash along the arena's bottom.
+ * When the canvas is within a pixel of the world's aspect, the screen now fills it edge to edge
+ * with square corners (the play screen's corners are square; elsewhere the canvas's CSS rounds
+ * them), so every edge pixel is wholly screen. Any other size keeps the letterboxed fit.
+ */
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  retroScreen(ctx, size, SNAKE_WORLD_W, snakeWorldHFor(snakeRowsOf(state)), "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)));
+  const worldH = snakeWorldHFor(snakeRowsOf(state));
+  const s = Math.min(size.width / SNAKE_WORLD_W, size.height / worldH);
+  const ownBox = size.width - SNAKE_WORLD_W * s < 1 && size.height - worldH * s < 1;
+  retroScreen(ctx, size, SNAKE_WORLD_W, worldH, ownBox ? "stretch" : "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)), 0, ownBox ? 0 : 6);
 }
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };

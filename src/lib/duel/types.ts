@@ -1759,7 +1759,7 @@ export interface BreakerPuzzleData {
   type: "breaker";
   /** Draws the wall and which bricks are solid — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B; 5 = 2.5 s Fireball, Tuning F); absent = original rules. */
+  /** Rules revision (2 = sliding rows, one ×2, weaker laser and ×3, Fireball; 3 = rev 2 on the score bands; 4 = 3.5 s Fireball, Tuning B; 5 = 2.5 s Fireball, Tuning F; 6 = the taller 390 × 730 court); absent = original rules. */
   brkRev?: number;
 }
 
@@ -1780,7 +1780,7 @@ export interface RallyPuzzleData {
   type: "rally";
   /** Draws the opening angle and every bounce nudge — identical for everyone. */
   seed: number;
-  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B); 5 = a second bumper from 45 s (Tuning F). Absent on rounds stored before rev 2. */
+  /** 2 = far-wall targets and a bumper from 30 s; 3 = rev 2 on the score bands; 4 = pads keep to their own half (Tuning B); 5 = a second bumper from 45 s (Tuning F); 6 = the taller 390 × 730 court. Absent on rounds stored before rev 2. */
   rallyRev?: number;
 }
 
@@ -1933,7 +1933,7 @@ export interface WavefrontPuzzleData {
   type: "wavefront";
   /** Draws every wave and enemy shot — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = 90 s, continuous waves, divers, boss; 3 = score bands; 4 = shaped formations; 5 = slower waves 3–4 and a timed boss kill, Tuning C); absent = original 60 s rules. */
+  /** Rules revision (2 = 90 s, continuous waves, divers, boss; 3 = score bands; 4 = shaped formations; 5 = slower waves 3–4 and a timed boss kill, Tuning C; 6 = the taller 390 × 730 world); absent = original 60 s rules. */
   wavRev?: number;
 }
 
@@ -1990,7 +1990,7 @@ export interface BurstPuzzleData {
   type: "burst";
   /** Draws every wave — identical for everyone. */
   seed: number;
-  /** Rules revision (2 = halved BURST/SHIELD drops and the FREEZE drop); absent = original rules. */
+  /** Rules revision (2 = halved BURST/SHIELD drops and the FREEZE drop; 3 = rev 2 on the score bands; 4 = the taller 390 × 650 arena); absent = original rules. */
   burstRev?: number;
 }
 

@@ -38,6 +38,27 @@
  *    the root, body and shell heights, --standalone-short and the scene canvas's size must not
  *    change, the root's style must not be rewritten and the scene must not be redrawn. A
  *    shortfall that fed back into itself would flip the root between 848 and 896 px.
+ * Meteor's bottom edge (16 Oct 2026, the Meteor bottom-flash fix): after the stable pass above, Meteor
+ * (`snake`) is played again as an iPhone 11 home-screen app at device pixel ratio 2, its clock frozen
+ * and run frame by frame (page.clock.runFor, relative to the frozen time, never an absolute fake time).
+ * A bot steers the meteor round the board with real swipes, and the harness (this check only, in
+ * practice; app code unchanged) drops a falling rock and a three-rock meteor shower into the run's state
+ * on the bottom row, timed from the run's own first sampled tick, so within 5 s of play a rock lands and
+ * a shower lands. Headless Chromium composites only its layout viewport (and a capture beyond it drops
+ * the page to DPR 1), so the play screen is laid out as the home-screen app (414 × 848) and the window
+ * then grows to the whole 896 px screen, as the phone's window is: the arena box must not move. Every
+ * frame, from the canvas's bottom 3 device rows down to the box's last device row, the composited
+ * screen is compared with the canvas's own backing store; it fails if
+ *  - the canvas is not whole CSS pixels at the box's top, ends past the box, or ends 1 px or more short
+ *    of it (an offset edge), or its backing store is not 1:1 with device pixels;
+ *  - any of the canvas's bottom 3 rows is not fully opaque (a transparent edge);
+ *  - any composited pixel there differs from what the canvas painted, or, in the sub-pixel strip under
+ *    the canvas, from the gap's own #070709 (a hairline of the parent, a resampled or clipped edge row):
+ *    changes the scene itself paints are allowed;
+ *  - the rock or the shower did not land, or the run ended, within the 5 s.
+ * The cause it guards against: the canvas was rounded to the nearest CSS pixel (769 px over a 768.55 px
+ * box at 414 px wide) and the world letterboxed inside it, leaving an edge row part bezel, part screen,
+ * clipped mid-row by the box, which the drifting scanlines flickered every 90 ms.
  * It prints every game's box, world and bottom gap per configuration (--json=<path> saves them).
  *
  *   bun scripts/arcade-device-bottom-check.ts [games…] [--part=k/n] [--url=<origin>] [--json=<path>] [--verbose]
@@ -206,6 +227,244 @@ export interface Row {
   below: number | null;
 }
 
+/**
+ * Meteor bottom-edge pass: the page's per-frame probe (arcadeFeedback's __arcadeProbe) records the run
+ * and, once window.__meteorPlan is set, drops one falling rock and one meteor shower into the live
+ * state at fixed ticks after the run's first sampled tick (harness only: practice, display test).
+ */
+const METEOR_INIT = `(() => {
+  window.__meteor = null;
+  globalThis.__arcadeProbe = (s, over) => {
+    if (!s || !Array.isArray(s.body)) return;
+    const p = window.__meteorPlan;
+    if (p && !over && !s.dead) {
+      if (p.t0 == null) p.t0 = s.tick;
+      const rel = s.tick - p.t0;
+      if (!p.rock && rel >= p.rockAt) { s.rockWarn = p.rockCell; s.rockLandTick = s.tick + p.warn; p.rock = s.tick; }
+      if (!p.shower && rel >= p.showerAt) {
+        s.showerCells = p.showerCells.slice(); s.showerWarn = p.showerCells.slice();
+        s.showerLandTick = s.tick + p.warn; s.showerDone = 1; p.shower = s.tick;
+      }
+    }
+    window.__meteor = { tick: s.tick, head: s.body[0], nextDir: s.nextDir, rows: s.rows ?? 20, rocks: (s.rocks ?? []).length, dead: !!s.dead, over: !!over, t0: p ? p.t0 : null };
+  };
+})();`;
+const METEOR_DPR = 2;
+/** The iPhone 11 home-screen app with the window the whole screen (see meteorEdgePass). */
+const METEOR_WINDOW: DeviceConfig = { ...IPHONE11_APP, key: "iphone11-app-window", h: IPHONE11_APP.screenH };
+const METEOR_PLAY_TICKS = 300; // 5 s of sim ticks
+const METEOR_EDGE_ROWS = 3;
+/** Per-channel tolerance between the composited screen and the canvas's own pixels. */
+const METEOR_TOLERANCE = 3;
+
+interface MeteorFrame {
+  dpr: number;
+  box: { left: number; top: number; bottom: number; width: number };
+  canvas: { top: number; bottom: number; left: number; right: number; w: number; h: number };
+  /** The canvas's bottom METEOR_EDGE_ROWS backing rows, RGBA. */
+  rows: number[];
+}
+
+/** In-page: the world box, the canvas and its bottom backing rows. */
+function meteorFrame(edgeRows: number): MeteorFrame | null {
+  const world = document.querySelector("[data-arcade-play] [data-arena-slot] > [data-game-arena]");
+  const canvas = world?.querySelector("canvas");
+  if (!world || !canvas) return null;
+  const b = world.getBoundingClientRect();
+  const c = canvas.getBoundingClientRect();
+  const data = canvas.getContext("2d")!.getImageData(0, canvas.height - edgeRows, canvas.width, edgeRows).data;
+  return {
+    dpr: window.devicePixelRatio,
+    box: { left: b.left, top: b.top, bottom: b.bottom, width: b.width },
+    canvas: { top: c.top, bottom: c.bottom, left: c.left, right: c.right, w: canvas.width, h: canvas.height },
+    rows: Array.from(data),
+  };
+}
+
+/** Meteor on the iPhone 11 home-screen app at DPR 2: 5 s of scripted play, the arena's bottom 3 device rows every frame. */
+async function meteorEdgePass(browser: import("playwright").Browser, origin: string, failures: string[]): Promise<void> {
+  const { loadImage, createCanvas } = await import("@napi-rs/canvas");
+  const { SNAKE_COLS } = await import("../src/lib/arcade/snake");
+  const where = "snake iphone11-app bottom edge";
+  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, deviceScaleFactor: METEOR_DPR });
+  await context.addInitScript(SEED_INIT);
+  await context.addInitScript(DEVICE_INIT);
+  await context.addInitScript(METEOR_INIT);
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.clock.install();
+  try {
+    await gotoRetried(page, `${origin}/practice`, "snake", { waitUntil: "domcontentloaded" });
+    const button = page.getByRole("button", { name: gameDisplayName("snake"), exact: true }).first();
+    await button.waitFor({ timeout: 90_000 });
+    await page.waitForTimeout(1200);
+    await button.click();
+    const ready = page.getByRole("button", { name: /^Ready/ }).first();
+    await ready.waitFor({ timeout: 90_000 });
+    await emulateDevice(page, IPHONE11_APP);
+    await ready.click();
+    await page.locator("[data-arcade-play] [data-game-stage] canvas").first().waitFor({ timeout: 30_000 });
+    await page.waitForTimeout(600);
+    // Headless Chromium composites only the layout viewport, which in the home-screen emulation ends 48 px
+    // above the screen's bottom (and any capture beyond it drops the page to DPR 1 and lays it out again).
+    // So the box is laid out as the home-screen app first, then the window grows to the whole screen, as
+    // the phone's window is, with the insets, navigator.standalone and DPR unchanged: the arena box must
+    // not move by so much as a layout unit, and every sampled pixel is then composited.
+    const boxOf = () => page.evaluate(() => {
+      const r = document.querySelector("[data-arcade-play] [data-arena-slot] > [data-game-arena]")?.getBoundingClientRect();
+      return r ? `${r.left},${r.top} ${r.width}x${r.height}` : "none";
+    });
+    const appBox = await boxOf();
+    await emulateDevice(page, METEOR_WINDOW);
+    const windowBox = await boxOf();
+    if (windowBox !== appBox) {
+      failures.push(`${where}: the arena box moved when the window grew to the whole screen (${appBox} as laid out, ${windowBox} with the whole window)`);
+      return;
+    }
+    await freezeClock(page);
+    const step = () => page.clock.runFor(16);
+    for (let i = 0; i < 6; i++) await step();
+    const start = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; rows: number } | null }).__meteor);
+    if (!start) {
+      failures.push(`${where}: the run never reported a tick`);
+      return;
+    }
+    const rows = start.rows;
+    const bottomRow = rows - 1;
+    const cell = (r: number, c: number) => r * SNAKE_COLS + c;
+    // The rock lands at 2.3 s and the shower at 3.7 s (each after Meteor's 2 s warning), on the bottom row, clear of the bot's loop.
+    await page.evaluate((plan) => ((window as unknown as { __meteorPlan: unknown }).__meteorPlan = plan), {
+      t0: null, rockAt: 18, showerAt: 102, warn: 120, rockCell: cell(bottomRow, 7), showerCells: [cell(bottomRow, 2), cell(bottomRow, 5), cell(bottomRow, 11)],
+    });
+    let lastHead = -1;
+    let frames = 0;
+    let bad = 0;
+    let firstBad = "";
+    let rocksBefore = -1;
+    let rocksMax = 0;
+    let t0: number | null = null;
+    let ticks = 0;
+    const note = (what: string) => {
+      if (VERBOSE) console.log(`  ${where}: ${what}`);
+      bad++;
+      if (!firstBad) firstBad = what;
+    };
+    for (let guard = 0; guard < 600 && ticks < METEOR_PLAY_TICKS; guard++) {
+      await step();
+      const m = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; head: number; nextDir: number; rows: number; rocks: number; dead: boolean; over: boolean; t0: number | null } }).__meteor);
+      if (m.dead || m.over) {
+        failures.push(`${where}: the scripted run ended at tick ${m.tick} (${m.dead ? "crashed" : "over"}) before ${METEOR_PLAY_TICKS / 60} s of play`);
+        break;
+      }
+      if (t0 == null && m.t0 != null) {
+        t0 = m.t0;
+        rocksBefore = m.rocks;
+      }
+      if (t0 != null) ticks = m.tick - t0;
+      rocksMax = Math.max(rocksMax, m.rocks);
+      // Steer: round the board clockwise, two cells in from the sides and top, five rows clear of the bottom.
+      if (m.head !== lastHead) {
+        lastHead = m.head;
+        const r = Math.trunc(m.head / SNAKE_COLS);
+        const c = m.head % SNAKE_COLS;
+        const [dr, dc] = [[-1, 0], [0, 1], [1, 0], [0, -1]][m.nextDir] ?? [0, 0];
+        const nr = r + dr!;
+        const nc = c + dc!;
+        if (nr < 2 || nr > rows - 6 || nc < 2 || nc > SNAKE_COLS - 3) {
+          const turn = (m.nextDir + 1) % 4;
+          const [sx, sy] = [[0, -40], [40, 0], [0, 40], [-40, 0]][turn]!;
+          const box = await page.locator("[data-arcade-play] [data-game-arena] canvas").first().boundingBox();
+          if (box) {
+            const x = box.x + box.width / 2;
+            const y = box.y + box.height / 2;
+            await page.mouse.move(x, y);
+            await page.mouse.down();
+            await page.mouse.move(x + sx!, y + sy!);
+            await page.mouse.up();
+          }
+        }
+      }
+      // The arena's bottom edge, from the canvas's bottom 3 device rows down to the box's last device row:
+      // the composited screen against the canvas's own pixels. The page's clock is frozen, so nothing
+      // redraws while the compositor presents the frame just drawn (a short real-time wait first).
+      await page.waitForTimeout(40);
+      const f = await page.evaluate(meteorFrame, METEOR_EDGE_ROWS);
+      if (!f) {
+        note(`frame ${frames}: no arena canvas`);
+        continue;
+      }
+      frames++;
+      const dpr = f.dpr;
+      if (dpr !== METEOR_DPR) note(`frame ${frames}: the page is at DPR ${dpr}, not ${METEOR_DPR}`);
+      const cssW = f.canvas.right - f.canvas.left;
+      const cssH = f.canvas.bottom - f.canvas.top;
+      const boxBottom = Math.round(f.box.bottom * dpr);
+      const canvasTop = Math.round(f.canvas.top * dpr);
+      const canvasBottom = canvasTop + Math.round(cssH * dpr);
+      if (!Number.isInteger(cssW) || !Number.isInteger(cssH) || Math.abs(f.canvas.top - f.box.top) > 0.01)
+        note(`frame ${frames}: canvas ${cssW}x${cssH} px at ${f.canvas.top} px is not whole pixels at the box's top (${f.box.top} px)`);
+      if (f.canvas.bottom > f.box.bottom + 0.01 || f.box.bottom - f.canvas.bottom >= 1)
+        note(`frame ${frames}: canvas ends at ${f.canvas.bottom} px, box at ${f.box.bottom} px (want the canvas inside the box, under 1 px short: an offset edge)`);
+      if (f.canvas.w !== Math.round(cssW * dpr) || f.canvas.h !== Math.round(cssH * dpr))
+        note(`frame ${frames}: backing store ${f.canvas.w}x${f.canvas.h} is not 1:1 with the canvas's ${Math.round(cssW * dpr)}x${Math.round(cssH * dpr)} device pixels`);
+      let transparent = 0;
+      for (let i = 3; i < f.rows.length; i += 4) if (f.rows[i] !== 255) transparent++;
+      if (transparent) note(`frame ${frames}: ${transparent} pixel(s) of the canvas's bottom ${METEOR_EDGE_ROWS} rows not opaque`);
+      const firstRow = canvasBottom - METEOR_EDGE_ROWS;
+      const lastRow = Math.max(boxBottom, canvasBottom);
+      const shot = await page.screenshot({
+        clip: { x: f.box.left, y: firstRow / dpr, width: f.box.width, height: (lastRow - firstRow) / dpr },
+        scale: "device",
+        animations: "allow",
+        caret: "initial",
+      });
+      const img = await loadImage(shot);
+      const scratch = createCanvas(img.width, img.height);
+      const sctx = scratch.getContext("2d");
+      sctx.drawImage(img, 0, 0);
+      const px = sctx.getImageData(0, 0, img.width, img.height).data;
+      const canvasLeft = Math.round(f.canvas.left * dpr) - Math.round(f.box.left * dpr);
+      const close = (s: number, r: number, g: number, b: number) =>
+        Math.abs(px[s]! - r) <= METEOR_TOLERANCE && Math.abs(px[s + 1]! - g) <= METEOR_TOLERANCE && Math.abs(px[s + 2]! - b) <= METEOR_TOLERANCE;
+      let differ = 0;
+      let sample = "";
+      for (let y = 0; y < img.height; y++) {
+        const deviceRow = firstRow + y;
+        const canvasRow = deviceRow - (canvasBottom - METEOR_EDGE_ROWS);
+        for (let x = 0; x < img.width; x++) {
+          const s = (y * img.width + x) * 4;
+          const cx = x - canvasLeft;
+          let ok: boolean;
+          let want: string;
+          if (canvasRow < METEOR_EDGE_ROWS && cx >= 0 && cx < f.canvas.w) {
+            const c = (canvasRow * f.canvas.w + cx) * 4;
+            ok = close(s, f.rows[c]!, f.rows[c + 1]!, f.rows[c + 2]!);
+            want = `canvas ${f.rows[c]},${f.rows[c + 1]},${f.rows[c + 2]}`;
+          } else {
+            // Under the canvas (less than 1 px) or beside it: the gap's own black, as under every world.
+            ok = close(s, 7, 7, 9);
+            want = "the #070709 gap";
+          }
+          if (ok) continue;
+          differ++;
+          if (!sample) sample = `device row ${deviceRow}, x ${x}: screen ${px[s]},${px[s + 1]},${px[s + 2]}, want ${want}`;
+        }
+      }
+      if (differ) note(`frame ${frames} (tick ${m.tick}): ${differ} pixel(s) of the arena's bottom edge differ from what the canvas painted; first at ${sample}`);
+    }
+    if (ticks < METEOR_PLAY_TICKS && !failures.some((f) => f.startsWith(where))) failures.push(`${where}: only ${ticks} ticks played`);
+    if (rocksBefore < 0 || rocksMax < rocksBefore + 4) failures.push(`${where}: the scripted rock and shower did not both land (${rocksBefore < 0 ? "never started" : `${rocksMax - rocksBefore} of 4 rocks`})`);
+    if (bad) failures.push(`${where}: the bottom edge changed in ${bad} of ${frames} frame(s) in a way the scene did not paint; first: ${firstBad}`);
+    for (const e of errors) failures.push(`${where}: page error: ${e}`);
+    console.log(`${bad || ticks < METEOR_PLAY_TICKS ? "FAIL" : "PASS"} snake bottom edge (iPhone 11 home-screen app, DPR ${METEOR_DPR}): ${frames} frames over ${ticks} ticks, ${Math.max(0, rocksMax - rocksBefore)} rock(s) landed (1 rock, 3-rock shower); ${bad ? `${bad} bad frame(s)` : `the bottom edge matched what the canvas painted every frame (opaque, whole pixels, 1:1, only the gap's black below)`}`);
+  } catch (error) {
+    failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
+  } finally {
+    await context.close();
+  }
+}
+
 function serverFnName(url: string): string {
   const id = url.split("/_serverFn/")[1]?.split("?")[0] ?? "";
   try {
@@ -342,6 +601,7 @@ async function main() {
       const mine = failures.length - before;
       console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations; stable for ${STABLE_MS / 1000} s as an iPhone 11 home-screen app`}`);
     }
+    if (games.includes("snake")) await meteorEdgePass(browser, origin, failures);
   } finally {
     await browser.close();
     if (proc?.pid) process.kill(-proc.pid);

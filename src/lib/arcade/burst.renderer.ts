@@ -1,6 +1,6 @@
 import { successFrame, SUCCESS_ACCENTS, SUCCESS_PARTICLES, SUCCESS_TICKS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BURST_FX } from "./arcadeFxGames.renderer";
+import { burstFxFor } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
   burstCeiling,
@@ -10,7 +10,8 @@ import {
   BURST_ICON_FREEZE,
   BURST_REV,
   BURST_REV_BAND,
-  BURST_FLOOR_Y,
+  burstFloorY,
+  BURST_REV_TALL,
   BURST_LIVES,
   BURST_RADIUS,
   BURST_SHORT_LEN,
@@ -95,7 +96,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
   lifeMemo.set(ctx, { tick: state.tick, lives: state.lives });
   const age = retroEventAge(ctx, "life", lost);
   const flash = age < 400 ? 1 - age / 400 : 0;
-  retroScreen(ctx, size, BURST_WORLD_W, BURST_FLOOR_Y, "fit", (c) => arcadeFx(c, BURST_FX, state, () => drawWorld(c, state, flash)), flash);
+  retroScreen(ctx, size, BURST_WORLD_W, burstFloorY(state), "fit", (c) => arcadeFx(c, burstFxFor(state), state, () => drawWorld(c, state, flash)), flash);
 }
 
 type Stamp = { layer: ArtCanvas; width: number; height: number; pad: number };
@@ -188,7 +189,9 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: number): void {
   const tick = state.tick;
-  const ceil = burstCeiling(state.wave);
+  // burstRev 4: the taller arena's floor and its scaled ceiling (560 otherwise).
+  const BURST_FLOOR_Y = burstFloorY(state);
+  const ceil = burstCeiling(state.wave, BURST_FLOOR_Y);
 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
   const touching = state.balls.some((b) => b.y / FP - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
@@ -304,8 +307,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
 export const burstArtGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, draw };
 const burstArtGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV), draw };
 const burstArtGameBand: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BAND), draw };
+const burstArtGameTall: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_TALL), draw };
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_TALL) return burstArtGameTall;
   if (rev === BURST_REV_BAND) return burstArtGameBand;
   return rev === BURST_REV ? burstArtGameV2 : burstArtGame;
 }
