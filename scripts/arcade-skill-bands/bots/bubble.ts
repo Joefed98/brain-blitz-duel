@@ -15,7 +15,7 @@
  * jitter over the drag length, larger for bank shots.
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { bubIsSpecial, bubRemaining, bubCellY, BUB_COLS, BUB_INPUT_SHOT, BUB_MAX_ROWS, BUB_R, BUB_SHOOTER_LINE, BUB_SPEED, type BubState } from "../../../src/lib/arcade/bubble";
+import { bubIsSpecial, bubRemaining, bubCellY, BUB_COLS, BUB_INPUT_SHOT, BUB_MAX_ROWS, BUB_R, BUB_SHOOTER_LINE, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
@@ -93,7 +93,8 @@ function outcome(game: Parameters<SkillBot>[0]["game"], s: BubState, angle: numb
     if (f.flightColour !== 0 && Math.sign(f.vx) !== Math.sign(vx)) bounces++;
     vx = f.vx;
   }
-  return { key: f.grid.join(""), after: f, bank: bounces > 0, bounces, path: (ticks * BUB_SPEED) / 256 };
+  // bubbleRev 5 shots fly faster in the deeper tank.
+  return { key: f.grid.join(""), after: f, bank: bounces > 0, bounces, path: (ticks * bubSpeed(s)) / 256 };
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {

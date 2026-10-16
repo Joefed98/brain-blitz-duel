@@ -87,7 +87,7 @@ import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
-import { clashCheckpoint, colourClashGame, colourClashRev3Game, colourClashRev4Game } from "@/lib/arcade/colourClash";
+import { clashCheckpoint, colourClashGame, colourClashRev3Game, colourClashRev4Game, colourClashRev5Game } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import { snipCheckpoint, snipGameFor, SNIP_REV, SNIP_REV3 } from "@/lib/arcade/snip";
 import { encodeSnipRun, replaySnipRun } from "@/lib/duel/snip";
@@ -112,7 +112,7 @@ import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib
 import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
-import { BUB_REV_BAND, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
+import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
@@ -127,8 +127,8 @@ import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { initBandFrom, initSweptFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
-import { BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
-import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
+import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
+import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
@@ -577,7 +577,12 @@ const GAMES: Game[] = [
   // Letterfall (Word category, engine sim): taps and Enter presses, words checked by the shared list.
   { key: "wordfall", game: wordfallGame, checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: encodeWordfallRun, replay: (seed: number, raw: string) => replayWordfallRun(seed, raw) },
   // wordfallRev 2: slower drops, fewer vowels, the Enter box in a taller world.
-  { key: "wordfall", game: wordfallGameFor(2), checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: (run: Parameters<typeof encodeWordfallRun>[0]) => encodeWordfallRun(run, 2), replay: (seed: number, raw: string) => replayWordfallRun(seed, raw, 2) },
+  { key: "wordfall", game: wordfallGameFor(2), checkpoint: wordfallCheckpoint, mode: "events", rate: 120, encode: (run: Parameters<typeof encodeWordfallRun>[0]) => encodeWordfallRun(run, 2), replay: (seed: number, raw: string) => replayWordfallRun(seed, raw, 2) },  // Taller worlds batch 2 (16 Oct 2026), appended so every earlier entry keeps its index (ENTRY_COST, --part):
+  // Tempo's longer lanes, Slice's taller board, Coral Pop's deeper tank, Mixed Signals' taller board.
+  { key: "beat/tall", game: beatGameFor(BEAT_REV_TALL), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_TALL) },
+  { key: "slice/tall", game: sliceGameFor(SLICE_REV_TALL), checkpoint: sliceCheckpoint, mode: "events", rate: 1000, encode: encodeSliceRun, replay: (seed: number, raw: string) => replaySliceRun(seed, raw, SLICE_REV_TALL) },
+  { key: "bubble/tall", game: bubbleGameFor(BUB_REV_TALL), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_TALL) },
+  { key: "stroop", game: colourClashRev5Game, checkpoint: clashCheckpoint, mode: "events", rate: 18, encode: encodeColourClashRun, replay: (seed: number, raw: string) => replayColourClashRun(seed, raw, 5) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

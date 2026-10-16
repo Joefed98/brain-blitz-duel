@@ -8,8 +8,8 @@ import { shikakuPuzzle } from "../src/puzzles/shikaku";
 import { wordsmithPuzzle } from "../src/puzzles/wordsmith";
 import { ARCADE_FX_SPECS, ENGINE_FX_SPECS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
-import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
-import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
+import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 
@@ -230,8 +230,9 @@ const ENGINE_WORLDS: Record<string, { width: number; height: number }> = {
   wordfall: ENGINE_FX_SPECS.wordfall,
   tendrop: { width: TD_W, height: TD_H },
   whack: { width: 1, height: 1 },
-  clayshoot: { width: CLAY_W, height: CLAY_H },
-  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
+  // Taller worlds batch 2 (16 Oct 2026): the worlds rooms deal today (clayRev 6, clashRev 5).
+  clayshoot: { width: CLAY_W, height: CLAY_TALL_H },
+  stroop: { width: CLASH_WORLD_W, height: CLASH_TALL_H },
 };
 let arenaChecks = 0;
 /** Viewports; the third number is the top safe-area inset (414x896: an iPhone 11 with its 48px notch and 34px home bar). */
@@ -301,6 +302,11 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,",
   "below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
   "browser by arcade-play-check; not device measurements.", "",
+  "Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,",
+  "Meteor snakeRev 5, Scrumper snipRev 5; batch 1 (16 Oct 2026) Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6 (390x730),",
+  "Fission burstRev 4 (390x650); batch 2 (16 Oct 2026) Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5 (390x730),",
+  "Mixed Signals clashRev 5 (390x650) and Pull! clayRev 6 (360x680, so it draws 390x737 at 390px wide). Stored rounds on older",
+  "revisions keep their own world in reveals and replays.", "",
   `| Game | World | ${PHONE_SIZES.join(" | ")} | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |`,
   `|---|---|${ARENA_SIZES.map(() => "---").join("|")}|---|---|---|---|---|---|`,
   ...[...arenaTable].map(([game, { world, sizes, detail }]) => `| ${gameDisplayName(game as never)} | ${world} | ${sizes.join(" | ")} | ${detail} |`), "",

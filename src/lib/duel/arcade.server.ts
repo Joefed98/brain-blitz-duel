@@ -1,10 +1,10 @@
 import { TEN_DROP_SCORE_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_LONG } from "@/lib/arcade/slice";
+import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { CROSS_REV_SMALL } from "@/lib/arcade/cross";
 import { INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_ROCKS } from "@/lib/arcade/snake";
-import { BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
+import { BUB_REV_TALL } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_PAR } from "@/lib/arcade/matchup";
 import { SNIP_REV_PROVEN } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
@@ -18,13 +18,13 @@ import { PIN_REV } from "@/lib/arcade/pinball";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_SWEPT } from "@/lib/arcade/orbit";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
-import { BEAT_REV_TUNEF } from "@/lib/arcade/beat";
+import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V4_BANK } from "./swingBankV4.server";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
-import { CLASH_QUEUE, CLASH_REV } from "@/lib/arcade/colourClash";
+import { CLASH_QUEUE, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
  * course, so everyone in the room plays the identical run; practice draws a
@@ -128,15 +128,15 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_LONG };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_TALL };
 }
 
 export function generateBubble(): BubblePuzzleData {
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_TORPEDO };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_TALL };
 }
 
 export function generateBeat(): BeatPuzzleData {
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_TUNEF };
+  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_TALL };
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -169,7 +169,7 @@ export function generateRooftop(): RooftopPuzzleData {
 }
 
 export function generateColourClash(): StroopPuzzleData {
-  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV };
+  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV_TALL };
 }
 
 export function generateFlip(): FlipPuzzleData {

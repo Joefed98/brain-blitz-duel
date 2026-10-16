@@ -59,7 +59,7 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
   spotdiff: "Find all twelve for 120, more if you're quick. Otherwise 10 each; wrong taps lose 4.",
   pairmatch: "Find all fifteen pairs for 120, more if you're quick. Otherwise about 8 per pair.",
   maze: "Reach the exit for 120, more if you're quick. Otherwise points for how far you got.",
-  stroop: `Sort all ${CLASH_QUEUE}, 2 wrong at most, for ${PUZZLE_FINISH_BASE}, more if quick. Otherwise points per word right.`,
+  stroop: `Sort all ${CLASH_QUEUE}, 2 wrong at most, for ${PUZZLE_FINISH_BASE}, more if quick. Else right less wrong words.`,
 
   // Logic and pattern
   unblock: "Free the gold block for 120, more for few moves and speed. Clearing its lane scores.",

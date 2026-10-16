@@ -137,6 +137,7 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
 {
   const stamps: [string, string, number | undefined, number][] = [
     ["cross", "crossRev", generateCross().crossRev, CROSS_REV_SMALL],
+    // Taller worlds batch 2 (16 Oct 2026) moved Slice and Coral Pop on to their taller worlds (sliceRev 6, bubbleRev 5); arcade-tuning-g2-check covers them.
     ["slice", "sliceRev", generateSlice().sliceRev, SLICE_REV_LONG],
     ["matchup", "matchupRev", generateMatchup().matchupRev, MATCHUP_REV_PAR],
     // Their rules are proved by bubble-rev4-check, swing-rev8-check and snip-rev7-check.
@@ -144,9 +145,10 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     ["swing", "swingRev", generateSwing().swingRev, SWING_REV_SPREAD],
     ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_PROVEN],
   ];
+  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1 };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
-    ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);
+    ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
     ok(GAME_BY_TYPE.get(type as never)?.tunef === rev, `${type}: the skill-band tool measures ${rev} as Tuning F`);
   }

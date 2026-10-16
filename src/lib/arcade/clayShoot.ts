@@ -106,7 +106,9 @@ export const CLAY_REV4 = 4;
  * cadence rules (the gap shrinks so every bird still crosses before the end).
  */
 export const CLAY_REV5 = 5;
-export const CLAY_REV = CLAY_REV5;
+/** rev 6 (16 Oct 2026, taller worlds batch 2): rev 5 under the taller 360 × 680 sky (clayTallGame, below). */
+export const CLAY_REV_TALL = 6;
+export const CLAY_REV = CLAY_REV_TALL;
 export const CLAY_BIRD_MIN_V5 = 14;
 export const CLAY_BIRD_MAX_V5 = 16;
 export const CLAY_FREE_EMPTY_SHOTS = 30;
@@ -135,12 +137,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -436,6 +438,8 @@ export interface ClayState {
   birdDoneTick?: number[];
   birdNext?: number;
   birdHits?: number;
+  /** clayRev 6 only (taller worlds batch 2): the sky's height in px (CLAY_TALL_H). Absent = CLAY_H. */
+  worldH?: number;
 }
 
 function init(seed: number): ClayState {
@@ -547,10 +551,11 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     next.next = i + 1;
   }
 
+  const gravity = clayGravity(state);
   for (let i = 0; i < c.clays; i++) {
     if (status[i] !== CLAY_FLYING) continue;
     x[i] = x[i]! + vx[i]!;
-    vy[i] = vy[i]! + c.gravity;
+    vy[i] = vy[i]! + gravity;
     y[i] = y[i]! + vy[i]!;
   }
 
@@ -578,7 +583,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
 
   if (input && input.k === CLAY_INPUT_SHOT) {
     const sx = clampInt(input.a, 0, c.worldW) * 256;
-    const sy = clampInt(input.b, 0, c.worldH) * 256;
+    const sy = clampInt(input.b, 0, clayWorldH(state)) * 256;
     next.shots += 1;
     next.shotX = sx;
     next.shotY = sy;
@@ -633,12 +638,13 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   }
 
   const m = c.exitMargin * 256;
+  const skyH = clayWorldH(state) * 256;
   for (let i = 0; i < c.clays; i++) {
     if (status[i] !== CLAY_FLYING) continue;
     const gone =
       (vx[i]! > 0 && x[i]! > c.worldW * 256 + m) ||
       (vx[i]! < 0 && x[i]! < -m) ||
-      y[i]! > c.worldH * 256 + m;
+      y[i]! > skyH + m;
     if (gone) {
       status[i] = CLAY_MISSED;
       doneTick[i] = tick;
@@ -650,7 +656,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     const margin = (CLAY_BIRD_RX + 4) * 256;
     for (let i = 0; i < birds.launch.length; i++) {
       if (birdStatus[i] !== CLAY_BIRD_FLYING) continue;
-      if (birdX[i]! < -margin || birdX[i]! > c.worldW * 256 + margin || birdY[i]! < -margin || birdY[i]! > c.worldH * 256 + margin) {
+      if (birdX[i]! < -margin || birdX[i]! > c.worldW * 256 + margin || birdY[i]! < -margin || birdY[i]! > skyH + margin) {
         birdStatus[i] = CLAY_BIRD_GONE;
       }
     }
@@ -726,7 +732,8 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
     snapshot.birdPosHash = birdPosHash;
   }
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  // clayRev 6 (taller worlds): the sky's height, last (it is in no encoded field).
+  for (const value of [...Object.values(snapshot), ...(state.worldH ? [state.worldH] : [])]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -738,13 +745,13 @@ export function clayCheckpoint(state: ClayState): ClayCheckpoint {
 export const CLAY_ORANGE = "#E8762C";
 export const CLAY_GOLD = "#F5B82E";
 
-/** Full-stage mapping shared by drawing and tap conversion. */
-export function clayView(size: CanvasSize): { scaleX: number; scaleY: number } {
-  return { scaleX: size.width / CLAY_W, scaleY: size.height / CLAY_H };
+/** Full-stage mapping shared by drawing and tap conversion (clayRev 6: pass the taller sky's height). */
+export function clayView(size: CanvasSize, worldH: number = CLAY_H): { scaleX: number; scaleY: number } {
+  return { scaleX: size.width / CLAY_W, scaleY: size.height / worldH };
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize): void {
-  const { scaleX, scaleY } = clayView(size);
+  const { scaleX, scaleY } = clayView(size, clayWorldH(state));
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
   ctx.scale(scaleX, scaleY);
@@ -854,9 +861,60 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_TALL) return clayTallGame;
   if (rev === CLAY_REV5) return clayRev5Game;
   if (rev === CLAY_REV4) return clayRev4Game;
   if (rev === CLAY_REV3) return clayRev3Game;
   if (rev === CLAY_REV2) return clayRev2Game;
   return clayGame;
+}
+
+/* ================= Taller worlds (clayRev 6, Oct 2026) ================= */
+
+/**
+ * clayRev 6 (taller worlds, batch 2): clayRev 5 play (the same 25 clays, 14–16
+ * birds, scoring and empty-shot cost) under a taller sky, CLAY_W × CLAY_TALL_H,
+ * the same for every player. The schedule is built exactly as before; then every
+ * height is stretched by CLAY_TALL_NUM ÷ CLAY_TALL_DEN (1.7): each clay's and
+ * bird's launch height and vertical speed, and gravity (20 → 34). A clay climbs
+ * 1.7 times as high on the same timing, so it is in the air, and on screen, for
+ * as long as before and the shot window is unchanged. The width, clays, birds
+ * and every hit area keep their size. The stretched schedule is stored in the
+ * state at init; states add `worldH`, folded into the checkpoint checksum last.
+ */
+export const CLAY_TALL_NUM = 17;
+export const CLAY_TALL_DEN = 10;
+export const CLAY_TALL_H = (CLAY_H * CLAY_TALL_NUM) / CLAY_TALL_DEN;
+
+/** The sky's height (px) a state plays in: clayRev 6's taller sky, or the original 400. */
+export function clayWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? CLAY_H;
+}
+/** Gravity (1/256 px a tick²) in a state's sky. */
+export function clayGravity(state: { worldH?: number }): number {
+  return state.worldH ? Math.trunc((CLAY_CONFIG.gravity * CLAY_TALL_NUM) / CLAY_TALL_DEN) : CLAY_CONFIG.gravity;
+}
+const stretch = (v: number): number => Math.trunc((v * CLAY_TALL_NUM) / CLAY_TALL_DEN);
+
+export const CLAY_TALL_INPUT_RANGES: readonly InputRange[] = [inputRange(CLAY_INPUT_SHOT, [0, CLAY_W], [0, CLAY_TALL_H])];
+
+export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
+  ...clayGame,
+  init: (seed) => {
+    const base = initRev3(seed, CLAY_REV5);
+    const birds = base.birds!;
+    return {
+      ...base,
+      rev: CLAY_REV_TALL,
+      schedule: { ...base.schedule, launchY: base.schedule.launchY.map(stretch), vy: base.schedule.vy.map(stretch) },
+      birds: { ...birds, launchY: birds.launchY.map(stretch), vy: birds.vy.map(stretch) },
+      worldH: CLAY_TALL_H,
+    };
+  },
+  inputRanges: CLAY_TALL_INPUT_RANGES,
+};
+
+/** The sky's height (px) a stored round's clayRev plays in. */
+export function clayWorldHFor(rev?: number | null): number {
+  return rev === CLAY_REV_TALL ? CLAY_TALL_H : CLAY_H;
 }

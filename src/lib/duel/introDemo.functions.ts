@@ -6,6 +6,9 @@ import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
+import { BEAT_REV_TALL } from "@/lib/arcade/beat";
+import { SLICE_REV_TALL } from "@/lib/arcade/slice";
+import { BUB_REV_TALL } from "@/lib/arcade/bubble";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV3 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -14,7 +17,7 @@ import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
-import { clashPlays3 } from "@/lib/arcade/colourClash";
+import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -71,7 +74,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV3) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
-    // clayRev 5 (14 Oct 2026) flies 14–16 birds: an older demo would show 10–12, so only a rev-5 demo plays.
+    // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
+    // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
     // Rev-1 Letterfall demos fall faster, deal vowel-heavy runs and have no Enter box under the well.
@@ -82,6 +86,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
+    // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
+    // until a demo is recorded on its tall revision.
+    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_TALL) return null;
+    if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_TALL) return null;
+    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV && demo.puzzle.swingRev !== SWING_REV_BAND && demo.puzzle.swingRev !== SWING_REV_TUNED && demo.puzzle.swingRev !== SWING_REV_TUNEC && demo.puzzle.swingRev !== SWING_REV_SPREAD) return null;
     return demo;
   });

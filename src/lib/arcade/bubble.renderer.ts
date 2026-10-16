@@ -7,7 +7,7 @@
 import type { CanvasSize } from "./engine";
 import { artReady, drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BUBBLE_FX } from "./arcadeFxGames.renderer";
+import { bubbleFxFor } from "./arcadeFxGames.renderer";
 import { successHud, successFrame } from './success.renderer';
 import {
   bubbleGame,
@@ -28,11 +28,11 @@ import {
   BUB_ROW_H,
   BUB_SHOOTER_LINE,
   BUB_SHOOTER_X,
-  BUB_SHOOTER_Y,
   BUB_TOP,
   BUB_WALL,
-  BUB_WORLD_H,
   BUB_WORLD_W,
+  bubShooterY,
+  bubWorldH,
   type BubState,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
@@ -537,10 +537,13 @@ const WAKE_LEN = 18;
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawBubbleArt(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
-  arcadeFx(ctx, BUBBLE_FX, state, () => drawBubbleArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, bubbleFxFor(state), state, () => drawBubbleArtWorld(ctx, state, size), size);
 }
 
 function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size: CanvasSize): void {
+  // bubbleRev 5: the deeper tank and its lower gun (the original 620 / 560 otherwise).
+  const BUB_WORLD_H = bubWorldH(state);
+  const BUB_SHOOTER_Y = bubShooterY(state);
   const sx = size.width / BUB_WORLD_W;
   const sy = size.height / BUB_WORLD_H;
   const rs = Math.min(sx, sy);
@@ -877,6 +880,8 @@ export function drawBubbleAimTrail(
   state: BubState,
 ): void {
   if (!shot || state.flightColour !== 0) return;
+  const BUB_WORLD_H = bubWorldH(state);
+  const BUB_SHOOTER_Y = bubShooterY(state);
   const sx = size.width / BUB_WORLD_W;
   const sy = size.height / BUB_WORLD_H;
   const rs = Math.min(sx, sy);

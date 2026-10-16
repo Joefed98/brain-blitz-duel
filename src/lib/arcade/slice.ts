@@ -172,6 +172,8 @@ export interface SliceObject {
   special: number;
   /** What slicing this object launches; launch ticks are offsets. */
   payload: SliceObject[];
+  /** sliceRev 6 only (taller worlds): the world height it is thrown in; its rise scales with it. Absent = SLICE_WORLD_H. */
+  worldH?: number;
 }
 
 /** One throw's spot and velocity, drawn from the seed. */
@@ -376,9 +378,12 @@ function naturalAt(object: SliceObject, tick: number, slowFrom: readonly number[
   const age = worldAge(object, tick, slowFrom);
   if (age === null) return null;
   const drop = Math.trunc((SLICE_GRAV * age * (age + 10)) / 200);
+  const rise = Math.trunc((object.vy * age) / 10) + drop;
+  const worldH = object.worldH;
   return {
     x: object.x + Math.trunc((object.vx * age) / 10),
-    y: (SLICE_WORLD_H + SLICE_R) * 256 + Math.trunc((object.vy * age) / 10) + drop,
+    // sliceRev 6: thrown from below the taller board and rising in proportion to it, on the same timing.
+    y: worldH ? (worldH + SLICE_R) * 256 + Math.trunc((rise * worldH) / SLICE_WORLD_H) : (SLICE_WORLD_H + SLICE_R) * 256 + rise,
   };
 }
 
@@ -429,6 +434,8 @@ export interface SliceState extends BandFields {
   tunec?: number;
   /** sliceRev 5 only (Tuning F): 1 = the longer slice (SLICE_MAX_PATH_V5). Absent on every earlier round. */
   tunef?: number;
+  /** sliceRev 6 only (taller worlds batch 2): the world height in px (SLICE_TALL_H). Absent = SLICE_WORLD_H. */
+  worldH?: number;
   tick: number;
   rng: number;
   objects: SliceObject[];
@@ -679,7 +686,7 @@ function step(state: SliceState, rawInput: ArcadeInputEvent | null): SliceState 
       const cx = Math.trunc(at.x / 256);
       const cy = Math.trunc(at.y / 256);
       const radius = object.special ? SLICE_SPECIAL_R : SLICE_R;
-      if (cy - radius > SLICE_WORLD_H || cy + radius < SLICE_HUD_H) continue;
+      if (cy - radius > sliceWorldH(state) || cy + radius < SLICE_HUD_H) continue;
       if (!segmentHits(ax, ay, input.c, input.d, cx, cy, radius + blade)) continue;
       slicedAt ??= [...state.slicedAt];
       slicedAt[index] = tick;
@@ -816,6 +823,8 @@ export function sliceCheckpoint(state: SliceState): SliceCheckpoint {
   if (state.tunec) values.push(state.tunec);
   // sliceRev 5 adds its marker after that.
   if (state.tunef) values.push(state.tunef);
+  // sliceRev 6 (taller worlds): the world height, last.
+  if (state.worldH) values.push(state.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -875,6 +884,8 @@ function drawSpecial(ctx: CanvasRenderingContext2D, cx: number, cy: number, spec
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: SliceState, size: CanvasSize): void {
+  // sliceRev 6: the taller board (the original 620 otherwise).
+  const SLICE_WORLD_H = sliceWorldH(state);
   const scaleX = size.width / SLICE_WORLD_W;
   const scaleY = size.height / SLICE_WORLD_H;
 
@@ -1027,6 +1038,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_TALL) return sliceTallGame;
   if (rev === SLICE_REV_LONG) return sliceLongGame;
   if (rev === SLICE_REV_TUNEC) return sliceTunecGame;
   if (rev === SLICE_REV_BAND) return sliceBandGame;
@@ -1046,7 +1058,7 @@ export function sliceBandParts(state: SliceState): BandParts {
   const chillies = Math.max(0, state.bombsHit);
   return {
     units,
-    points: bandPoints(state.tunec ? SLICE_V4_BAND_CURVE : SLICE_BAND_CURVE, units),
+    points: bandPoints(state.worldH ? SLICE_V6_BAND_CURVE : state.tunec ? SLICE_V4_BAND_CURVE : SLICE_BAND_CURVE, units),
     bonus: 0,
     penalty: SLICE_BOMB_PENALTY * chillies,
     finished: false,
@@ -1088,9 +1100,67 @@ export const sliceTunecGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 export const SLICE_REV_LONG = 5;
 export const SLICE_MAX_PATH_V5 = Math.max(SLICE_WORLD_W, SLICE_WORLD_H);
 
-/** The most one continuous path may cut on this run, in world px. */
-export function sliceMaxPath(state: { tunef?: number }): number {
+/** The most one continuous path may cut on this run, in world px (sliceRev 6: the taller world's height). */
+export function sliceMaxPath(state: { tunef?: number; worldH?: number }): number {
+  if (state.worldH) return Math.max(SLICE_WORLD_W, state.worldH);
   return state.tunef ? SLICE_MAX_PATH_V5 : SLICE_MAX_PATH;
 }
 
 export const sliceLongGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = { ...sliceTunecGame, init: (seed) => ({ ...sliceTunecGame.init(seed), tunef: 1 }) };
+
+/* ================= Taller worlds (sliceRev 6, Oct 2026) ================= */
+
+/**
+ * sliceRev 6 (taller worlds, batch 2): sliceRev 5 play (the same throws, blade,
+ * reach, specials and curve) on a taller board, 390 × SLICE_TALL_H, the same for
+ * every player. Every throw starts just below the new bottom and its rise
+ * (velocity and gravity alike) is scaled by SLICE_TALL_H ÷ SLICE_WORLD_H, so it
+ * climbs proportionally higher and is in the air for exactly as long as before
+ * (the same schedule, launch ticks and last ticks). One continuous path may run
+ * the taller world's height (730 px). Foods, chillies and specials keep their
+ * size and hit radius. Each thrown object (frenzy payloads included) and the
+ * state carry `worldH`; the state's is folded into the checkpoint checksum last.
+ */
+export const SLICE_REV_TALL = 6;
+export const SLICE_TALL_H = 730;
+/**
+ * sliceRev 6 band knots (per mille of the most a run can earn, as before): the
+ * taller board spreads the same throws over more height, so the same players
+ * cut a little less (scripts/arcade-skill-bands.ts --rev=g2, 60 seeds: unit
+ * medians 428 / 688 / 766 / 769 on sliceRev 5, 436 / 668 / 747 / 769 on sliceRev
+ * 6). Each knot sits at the new median, its points set so the level's score
+ * (after −10 per chilli, which falls outside the curve) lands at 70 / 100 / 125 /
+ * 140: measured 70 / 101 / 125 / 139. 150 still at 900 (great and near-perfect
+ * players cut almost the same share, so the top knots are close together).
+ */
+export const SLICE_V6_BAND_CURVE = bandCurve([0, 436, 668, 747, 769, 900], [0, 79, 103, 131, 147, 150]);
+
+/** The world height (px) a state plays in: sliceRev 6's taller board, or the original 620. */
+export function sliceWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? SLICE_WORLD_H;
+}
+
+/** Input bounds on the taller board (the same kinds, y up to its height). */
+export const SLICE_TALL_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(SLICE_INPUT_BEGIN, [0, SLICE_WORLD_W], [0, SLICE_TALL_H]),
+  inputRange(SLICE_INPUT_END),
+  inputRange(SLICE_INPUT_SWIPE, [0, SLICE_WORLD_W], [0, SLICE_TALL_H], [0, SLICE_WORLD_W], [0, SLICE_TALL_H]),
+];
+
+function tallObject(object: SliceObject): SliceObject {
+  return { ...object, payload: object.payload.map(tallObject), worldH: SLICE_TALL_H };
+}
+
+export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
+  ...sliceLongGame,
+  init: (seed) => {
+    const base = sliceLongGame.init(seed);
+    return { ...base, objects: base.objects.map(tallObject), worldH: SLICE_TALL_H };
+  },
+  inputRanges: SLICE_TALL_INPUT_RANGES,
+};
+
+/** The world height (px) a stored round's sliceRev plays in. */
+export function sliceWorldHFor(rev?: number | null): number {
+  return rev === SLICE_REV_TALL ? SLICE_TALL_H : SLICE_WORLD_H;
+}
