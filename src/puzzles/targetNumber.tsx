@@ -479,7 +479,7 @@ function TargetReveal({
         {EXACT_RINGS}
         <p className="exact-reveal-target">Target {puzzle.target}</p>
         <p className="exact-reveal-value">{replay.value ?? "—"}</p>
-        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Target Number Achieved" : away === null ? "No number locked" : `${away} away from the target`}</p>
+        <p className="exact-reveal-verdict">{myCorrect || away === 0 ? "Target hit!" : away === null ? "No number locked" : `${away} away from the target`}</p>
       </div>
       {(puzzle.solution ?? []).length > 0 && (
         <div className="exact-reveal-way"><p>One way:</p>{puzzle.solution.map((step, index) => <p key={index}>{formatStep(step)}</p>)}</div>

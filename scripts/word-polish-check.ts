@@ -106,7 +106,7 @@ const keep: Record<string, string[]> = {
   "src/puzzles/swapword.tsx": ["`Solved · ${run.swaps} swaps (min ${puzzle.minSwaps}) · ${(elapsed / 1000).toFixed(1)}s`"],
   "src/puzzles/wordSearch.tsx": ["`6 / 6 · ${(elapsed / 1000).toFixed(1)}s`"],
   "src/puzzles/tileGrid.tsx": ["`${count} / ${TG_TILES} tiles · valid`"],
-  "src/puzzles/wordSlide.tsx": ["Par {puzzle.par} - you used {replay.moves}"],
+  "src/puzzles/wordSlide.tsx": ["Par {puzzle.par} – you used {replay.moves}"],
 };
 for (const [file, lines] of Object.entries(keep)) {
   const src = readFileSync(file, "utf8");

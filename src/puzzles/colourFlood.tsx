@@ -215,7 +215,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono text-muted-foreground">
-        Par {puzzle.par} — you used {replay.moves}{moveLimit !== null ? ` of ${moveLimit}` : ""}
+        Par {puzzle.par} – you used {replay.moves}{moveLimit !== null ? ` of ${moveLimit}` : ""}
       </p>
       <p
         className={`logic-reveal-text whitespace-normal break-words text-center font-mono font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}

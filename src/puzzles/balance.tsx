@@ -100,7 +100,13 @@ function Beam({ scale, placement, spacing, onWeightTap, onPlace, selected, showC
   const cx = width / 2;
   const top = beamY + barH / 2;
   const fx = showControls ? solving ? " bal-solving" : balanced ? " bal-level" : "" : "";
-  return <div className={`balance-instrument relative${fx}`} style={{ width, height: H }}>
+  // Reveal: a tilted beam swings its end labels up and its weights down past the box, so the compact
+  // beam reserves that room and the caption below (or the beam above) stays clear.
+  const offsets = Array.from({ length: pegs }, (_, peg) => offset(peg));
+  // Less the room the box already has: 3px above a label's top, 6px under a hanging weight.
+  const rise = compact ? Math.max(0, Math.ceil(Math.max(0, ...offsets.map((o) => -o))) - 3) : 0;
+  const drop = compact ? Math.max(0, Math.ceil(Math.max(0, ...[...onPeg.keys()].map(offset))) - 6) : 0;
+  return <div className={`balance-instrument relative${fx}`} style={{ width, height: H, marginTop: rise || undefined, marginBottom: drop || undefined }}>
     <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${width} ${H}`} aria-hidden="true">
       <ellipse cx={cx} cy={H - 1.5} rx={baseW + 8} ry={big ? 4 : 2.5} fill="#000" opacity="0.4"/>
       <path d={`M${cx - standW} ${top + 10} L${cx + standW} ${top + 10} L${cx + standW + 5} ${H - baseH} L${cx - standW - 5} ${H - baseH}Z`} fill="url(#bal-column)" stroke="#0B0D10" strokeWidth="1"/>
