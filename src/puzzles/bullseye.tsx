@@ -167,7 +167,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({ game: "bullseye" });
     const sounds = bullseyeSounds();
     let secondAt = last;
     let ticksThisSecond = 0;

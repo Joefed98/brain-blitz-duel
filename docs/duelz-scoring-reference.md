@@ -8,6 +8,7 @@ Every round scores 0–150. A room total is the sum of a player's round scores.
 
 ## What changed since the 11 Oct version
 
+- **Taller worlds, batch 1 (16 Oct 2026).** Breaker `brkRev 6` and Rally `rallyRev 6` (390 × 730 courts, the extra height between the top and the paddle), Wavefront `wavRev 6` (390 × 730, the extra height between the formation and the ship; the ship's bolts fly 10 px a tick) and Fission `burstRev 4` (a 390 × 650 arena, every bounce and ceiling height scaled with it). Same rules otherwise; knots refitted (sections 10.2, 10.3 and 11.2). Stored rounds replay unchanged (`arcade-tuning-g1-check`).
 - **Strikeout `strikeoutRev 3` (15 Oct 2026).** Ten strikes shared over the round (was 5), three vowel guesses per word (was 2), one more starting letter on words 1–3, and a finish pays 1.5 per strike left (ten left = 15, so 150 stays the top). Unfinished credit unchanged. Section 4; bands in `docs/puzzle-score-bands-oct-2026.md`. Stored rev-2 rounds grade exactly as before (`strikeout-check`, 3,510 cases recorded on main).
 - **Word batch 2 (14 Oct 2026).** Strikeout `strikeoutRev 2` (five 7–8 letter words one at a time), Lookout `wordSearchRev 1` (76-theme bank, counted chips), Roundabout `wheelRev 1` (11–14 word boards, attempt log with a miss cost), Cryptogrid `codewordRev 2` (five givens), Swapword `swapwordRev 2` (budget max(16, minimum + 5)), Letterfall `wordfallRev 2` (slower, fewer vowels, in-world Enter). Section 4 and 11; bands in `docs/puzzle-score-bands-oct-2026.md`. Stored rounds grade exactly as before.
 - **Names and counts.** Every table uses the current display names. 74 active games (Word 10, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11, Arcade 22 with Pinball dealt in rooms) and 9 retired (Swerve, Steady, Dual, Ricochet, Rooftop Run, Bastion, Junction and Hot Floor in Arcade; Dig in Logic), after the 14 Oct deletion of 19 retired games and the Memory category (section 12); 73 / 28 after the 13 Oct rotation, 74 / 27 before it, 68 / 26 in the 11 Oct version.
@@ -280,9 +281,9 @@ PAR(10) below is the 50 % par curve over the stated window. Penalties marked "un
 | Game (id) | Stamp | Run | Kind | Units counted | Knots (units → points) | Finish bonus | Penalties | File + function |
 |---|---|---|---|---|---|---|---|---|
 | Ball Tracker (`balltrack`) | btRev 3 | 60 s | finish | 1 per marble home (of 30) | 10 → 32, 19 → 70, 26 → 104, 28 → 126, 29 → 138, 30 → 140 | all 30 home: PAR(10) over the landing window (53 s to the buzzer): the full 10 if the last lands by 56.5 s | none (wrong trays are free) | `ballTrack.ts btBandParts` |
-| Breaker (`breaker`) | brkRev 5 | 90 s | finish | 1 per brick (of 80) | 60 → 70, 67 → 100, 76 → 125, 79 → 138, 80 → 140 | wall cleared: PAR(10) over 90 s | none (losing the last ball costs 3 s) | `breaker.ts breakerBandParts` |
+| Breaker (`breaker`) | brkRev 6 | 90 s | finish | 1 per brick (of 80) | 44 → 70, 57 → 100, 70 → 125, 74 → 138, 80 → 140 | wall cleared: PAR(10) over 90 s | none (losing the last ball costs 3 s) | `breaker.ts breakerBandParts` (`BRK_V6_BAND_CURVE`) |
 | Coral Pop (`bubble`) | bubbleRev 4 | 90 s | finish | 1 per bubble cleared (of 67) | 36 → 70, 50 → 100, 60 → 120, 64 → 132, 66 → 138, 67 → 140 | field cleared: PAR(10) over 90 s | none | `bubble.ts bubbleBandParts`; bubbleRev 4's torpedo flies where aimed and destroys only the bubbles it touches (up to 6), then the normal drop |
-| Fission (`burst`) | burstRev 3 | 90 s | finish | 1 per atom hit, −5 units per life lost | 55 → 70, 76 → 100, 88 → 125, 100 → 140 | flat 10 for lasting 90 s | −5 units per life (3 lives) | `burst.ts burstBandParts` |
+| Fission (`burst`) | burstRev 4 | 90 s | finish | 1 per atom hit, −5 units per life lost | 55 → 70, 79 → 100, 84 → 125, 95 → 140 | flat 10 for lasting 90 s | −5 units per life (3 lives) | `burst.ts burstBandParts` (`BURST_V4_BAND_CURVE`) |
 | Flightpath (`bullseye`) | bullRev 4 | 45 s | open | dart total: rings 10 / 9 / 8 / 3 / 2 / 1 from the centre (`BULLSEYE_RING_VALUES`; values swap places from dart 7), inner bull 12, balloons +1 / +2 / +3 | 75 → 70, 82 → 100, 92 → 125, 101 → 145, 112 → 150 | — | none | `bullseye.ts bullseyeBandParts` (`BULLSEYE_V4_BAND_CURVE`) |
 | Gemstone (`matchup`) | matchupRev 6 | 60 s | open | match points (longer lines, cascades and specials score more) | 620 → 70, 1,008 → 100, 1,456 → 125, 2,240 → 145, 2,800 → 150 | — | none | `matchup.ts matchupBandParts` (`MATCHUP_V6_BAND_CURVE`) |
 | Grappler (`swing`) | swingRev 8 | 60 s | finish | 1 per metre (to 500) + 5 per star (10, one per equal stretch of the run) | 86 → 63, 162 → 90, 245 → 112, 400 → 122, 499 → 124, 550 → 140 | flat 10 for reaching 500 m | none | `swing.ts swingBandParts` (`SWING_V7_BAND_CURVE`) |
@@ -292,14 +293,14 @@ PAR(10) below is the 50 % par curve over the stated window. Penalties marked "un
 | Meteor (`snake`) | snakeRev 6 | 60 s | open | 1 per star eaten | 15 → 70, 21 → 100, 26 → 125, 29 → 142, 33 → 150 | — | none | `snake.ts snakeBandParts` (`SNAKE_V6_BAND_CURVE`) |
 | Orbit (`orbit`) | orbitRev 7 | 90 s | finish | furthest planet reached (of 40; the sun is 40; black-hole skips count) | 12 → 70, 20 → 100, 30 → 125, 36 → 135, 39 → 138, 40 → 140 | sun reached: PAR(10) over 90 s | none | `orbitRev3.ts orbitBandParts` |
 | Rainbow Bridge (`inkbridge`) | inkRev 6 | 120 s | finish | 10 per level + 2 per star (4) | 10 → 33, 20 → 51, 40 → 79, 60 → 103, 80 → 120, 90 → 129, 108 → 140 | all ten levels: PAR(10) over 120 s | none (three failed drops end the run) | `inkBridge.ts inkBridgeBandParts` (`INK_V6_BAND_CURVE`) |
-| Rally (`rally`) | rallyRev 5 | 60 s | open | 5 per gold-ball hit + 6 per pink target | 105 → 70, 130 → 100, 146 → 125, 185 → 145, 250 → 150 | — | none (losing the blue ball ends the run) | `rally.ts rallyBandParts` (`RALLY_V5_BAND_CURVE`) |
+| Rally (`rally`) | rallyRev 6 | 60 s | open | 5 per gold-ball hit + 6 per pink target | 85 → 70, 111 → 100, 116 → 125, 122 → 142, 220 → 150 | — | none (losing the blue ball ends the run) | `rally.ts rallyBandParts` (`RALLY_V6_BAND_CURVE`) |
 | Roofbound (`flip`) | flipRev 4 | 60 s | finish | 1 per half second lasted + 3 per star (10) | 40 → 17, 105 → 77, 130 → 110, 140 → 132, 150 → 140 | flat 10 for lasting the minute | none | `flip.ts flipBandParts` (`FLIP_V4_BAND_CURVE`) |
 | Scrumper (`snip`) | snipRev 7 | 60 s | finish | 10 per apple + 2 per leaf | 54 → 70, 74 → 100, 90 → 134, 120 → 140 | all ten apples: PAR(10) over 60 s | none | `snip.ts snipBandParts` (`SNIP_V5_BAND_CURVE`) |
 | Slice (`slice`) | sliceRev 5 | 60 s | open | combo-weighted slices (one path up to 620 px, the world's height; 465 before sliceRev 5) ÷ the most the run offers (every food at ×3), in thousandths | 435 → 78, 670 → 105, 755 → 130, 835 → 147, 900 → 150 | — | −10 per chilli after the curve (the only post-curve penalty) | `slice.ts sliceBandParts` (`SLICE_V4_BAND_CURVE`) |
 | Swish (`bintoss`) | binRev 4 | 60 s | finish | 10 per bucket + 3 per hoop (3) | 45 → 70, 70 → 100, 80 → 118, 90 → 138, 109 → 140 | flat 10 for all ten in | none | `binToss.ts binTossBandParts` |
 | Tempo (`beat`) | beatRev 5 | 60 s | open | (4 × Perfect + 3 × Good + 1 × OK − 2 × miss) ÷ (4 × notes), in thousandths | 662 → 75, 869 → 114, 951 → 140, 990 → 149, 1,000 → 150 | — | a miss −2 quarter-notes (units) | `beat.ts beatBandParts` (`BEAT_V5_BAND_CURVE`) |
 | Tilt (`tilt`) | tiltRev 4 | 90 s | finish | 30 per maze (4) + best progress toward the exit in the current maze (0–29) + 5 per star (8) | 50 → 35, 86 → 70, 100 → 100, 114 → 125, 140 → 137, 160 → 140 | all four mazes: PAR(10) over 60 s to the buzzer (`TILT_V4_FINISH_MIN`): the full 10 by 75 s | none (a hole ends the run) | `tilt.ts tiltBandParts` (`TILT_V4_BAND_CURVE`) |
-| Wavefront (`wavefront`) | wavRev 5 | 90 s | finish | 1 per ship, armour hit, boss hit and saucer + 15 per wave cleared | 100 → 25, 180 → 50, 211 → 70, 218 → 100, 245 → 112, 266 → 125, 268 → 138, 269 → 140 | boss destroyed: PAR(10) over 40 s from its arrival: the full 10 within 20 s, 0 at 40 s | none (3 lives) | `wavefront.ts wavefrontBandParts` (`WAV_V5_BAND_CURVE`) |
+| Wavefront (`wavefront`) | wavRev 6 | 90 s | finish | 1 per ship, armour hit, boss hit and saucer + 15 per wave cleared | 100 → 20, 200 → 45, 249 → 70, 259 → 100, 263 → 125, 268 → 138, 269 → 140 | boss destroyed: PAR(10) over 40 s from its arrival: the full 10 within 20 s, 0 at 40 s | none (3 lives) | `wavefront.ts wavefrontBandParts` (`WAV_V6_BAND_CURVE`) |
 | Pinball (`pinball`) | pinRev 1 | 60 s, 3 balls | open | table points, multiplier included: bumper 100, slingshot 10, drop target 400, full bank of four 2,500, lane lit 100 (again 20), all three lanes 1,000 and the multiplier +1 (to ×5), spinner 25 a turn (100 while lit after a bank); a drain resets the multiplier, lanes, targets and spinner | 5,250 → 70, 7,400 → 100, 8,650 → 125, 15,000 → 145, 24,000 → 150 | — | none (a drained ball relaunches; three drains end the run) | `pinball.ts pinballBandParts` (`PIN_BAND_CURVE`) |
 | *Junction (`junction`), practice only* | junctionRev 3 | 60 s | finish | 2 per car + 3 per bus + 4 × (ambulances through − stopped) − 1 per driver who gives up | 50 → 40, 89 → 70, 108 → 100, 118 → 120, 130 → 140 | flat 10 for lasting the minute | in the units (a crash ends the run) | `junction.ts junctionBandParts` |
 
@@ -307,14 +308,14 @@ PAR(10) below is the 50 % par curve over the stated window. Penalties marked "un
 
 ### 10.3 Bands per game (measured medians at the current revision)
 
-Medians of the simulated players at each level (30–100 room seeds), from `docs/arcade-score-bands-oct-2026.md`, taking each game's latest measurement (the band pass, then Tuning A, B, C, E or F where the game changed).
+Medians of the simulated players at each level (30–100 room seeds), from `docs/arcade-score-bands-oct-2026.md`, taking each game's latest measurement (the band pass, then Tuning A, B, C, E or F, or the taller worlds' batch 1, where the game changed).
 
 | Game | Revision measured | Average | Good | Great | Near-perfect | Notes |
 |---|---|---|---|---|---|---|
 | Ball Tracker | btRev 3 | 70 | 102 | 126 | 138 | |
-| Breaker | brkRev 5 | 67 | 103 | 131 | 141 | |
+| Breaker | brkRev 6 | 70 | 101 | 125 | 138 | |
 | Coral Pop | bubbleRev 4 | 64 | 107 | 126 | 129 | Tuning F, 60 seeds (rev 3 on the same seeds 62 / 105 / 126 / 129); near-perfect bots barely beat great |
-| Fission | burstRev 3 | 70 | 111 | 136 | 137 | |
+| Fission | burstRev 4 | 69 | 104 | 130 | 135 | great and near-perfect players barely separate |
 | Flightpath | bullRev 4 | 68 | 100 | 125 | 142 | |
 | Gemstone | matchupRev 6 | 70 | 83 | 95 | 105 | Tuning F, 60 seeds (rev 5: 70 / 88 / 103 / 112); below band from good up: the bots never plan cascades; Joe's par is now 2,800 |
 | Grappler | swingRev 8 | 63 | 100 | 114 | 131 | Tuning F, 60 seeds (rev 7: 67 / 91 / 116 / 123); about 10 % lower by design (Joe found it lenient) |
@@ -324,14 +325,14 @@ Medians of the simulated players at each level (30–100 room seeds), from `docs
 | Meteor | snakeRev 6 | 68 | 100 | 125 | 142 | |
 | Orbit | orbitRev 7 | 76 | 100 | 128 | 136 | |
 | Rainbow Bridge | inkRev 6 | 33 | 51 | 67 | 92 | fitted low on purpose; Joe's 110–124 runs land about 103–116 |
-| Rally | rallyRev 5 | 72 | 78 | 124 | 145 | the simulated average and good players barely separate |
+| Rally | rallyRev 6 | 70 | 100 | 125 | 139 | the simulated good, great and near-perfect players sit close in units |
 | Roofbound | flipRev 4 | 85 | 147 | 147 | 150 | the game doesn't separate good from near; about 10 % higher by design |
 | Scrumper | snipRev 7 | 70 | 104 | 134 | 136 | Tuning F, 60 seeds (rev 6: 73 / 102 / 132 / 135); nearly flat from nine apples up |
 | Slice | sliceRev 5 | 71 | 105 | 130 | 131 | Tuning F, 60 seeds (rev 4: 74 / 105 / 129 / 126) |
 | Swish | binRev 4 | 69 | 100 | 127 | 138 | |
 | Tempo | beatRev 5 | 75 | 114 | 140 | 148 | about 10 % higher by design (Tuning C levels kept) |
 | Tilt | tiltRev 4 | 71 | 99 | 124 | 121 | near players fall chasing hole stars |
-| Wavefront | wavRev 5 | 72 | 100 | 128 | 139 | |
+| Wavefront | wavRev 6 | 72 | 100 | 125 | 138 | |
 | Junction (practice) | junctionRev 3 | 80 | 111 | 114 | 140 | |
 | Pinball | pinRev 1 | 70 | 100 | 123 | 144 | 30 seeds; p10–p90 23–102 / 41–137 / 74–145 / 119–149; near-perfect reaches 150 in 2 of 30 |
 
@@ -397,9 +398,9 @@ Each revision is chosen by `<game>GameFor(rev)`; new state fields exist only on 
 | Game | Revisions (unstamped → current) |
 |---|---|
 | Ball Tracker (`btRev`) | unstamped: round(130 × home ÷ 30), all home = `finishScore` on the 60 s timing (most 135) · 2 (Batch 1, 11 Oct): occupied tubes turn, bottom-row switch drops, bonus over the landing window · **3** (bands) |
-| Breaker (`brkRev`) | unstamped: full-column laser, ×5, two double-ball bricks; round(130 × bricks ÷ 80), clear = `finishScore` · 2 (Batch 3): 5 s Fireball, 4-brick laser, ×3, one double ball, two sliding rows · 3 (bands) · 4 (Tuning B): Fireball 3.5 s · **5** (Tuning F): Fireball 2.5 s |
+| Breaker (`brkRev`) | unstamped: full-column laser, ×5, two double-ball bricks; round(130 × bricks ÷ 80), clear = `finishScore` · 2 (Batch 3): 5 s Fireball, 4-brick laser, ×3, one double ball, two sliding rows · 3 (bands) · 4 (Tuning B): Fireball 3.5 s · 5 (Tuning F): Fireball 2.5 s · **6** (taller worlds, 16 Oct): 390 × 730 court, paddle 72 px above the bottom, knots refitted |
 | Coral Pop (`bubbleRev`) | unstamped: round(130 × share cleared), clear = `finishScore` · 2 (Batch 2): Joker every 15 shots, a mine and a torpedo every 60, partial out of 100 · 3 (bands): Joker every 22 shots, one mine or torpedo in the first 60 · **4** (Tuning F): the torpedo flies where aimed and destroys only what it touches, up to 6 (rev 2–3 clear its whole row) |
-| Fission (`burstRev`) | unstamped: 2 per hit − 9 per life; 150 for a full run with no life lost and 4+ waves · 2 (Batch 3): rarer BURST and SHIELD, FREEZE drop, partial cap 130 · **3** (bands) |
+| Fission (`burstRev`) | unstamped: 2 per hit − 9 per life; 150 for a full run with no life lost and 4+ waves · 2 (Batch 3): rarer BURST and SHIELD, FREEZE drop, partial cap 130 · 3 (bands) · **4** (taller worlds, 16 Oct): 390 × 650 arena, bounces and ceiling scaled with it, knots refitted |
 | Flightpath (`bullRev`) | unstamped: floor(1.7 × total − 20) · 2 (Batch 5): inner bull 12, 12-point balloon · 3 (bands) · **4** (Tuning B): drifting +1 / +2 / +3 balloons, knots refitted |
 | Gemstone (`matchupRev`) | unstamped: floor(150 × points ÷ 2,500) · 2 (Batch 2): Jackpot gem, constant play, par 5,000 · 3 (Batch 2 fixes): original-speed falls, par 5,500 · 4 (bands): 150 at 1,300 · 5 (Tuning C): each swap waits for the board to settle, 150 at 2,500 · **6** (Tuning F): rev-5 play, 150 at 2,800 (knots from 100 up × 1.12) |
 | Grappler (`swingRev`) | unstamped: round(130 × m ÷ 500), 500 m = `finishScore` · 2–3 (Lovable): small, then bigger dragons · 4 (Batch 3): chasing dragon from 200 m, stalactites, lava jets, star anchors; round(120 × m ÷ 500) + stars · 5 (bands) · 6 (Tuning A): touch stars on proved lines, 2 s stalactite crumble · 7 (Tuning C): about 10 % lower · **8** (Tuning F): the ten stars spread one per equal stretch of 30–490 m (same cavern, hazards and curve) |
@@ -409,14 +410,14 @@ Each revision is chosen by `<game>GameFor(rev)`; new state fields exist only on 
 | Meteor (`snakeRev`) | unstamped: 5 per star, 15 × 20 grid · 2 (Batch 2): seeded rocks, head-only hits · 3 (Batch 2 fixes): one 20-star meteor shower (at most 11 rocks) · 4 (bands) · 5 (Tuning E): 15 × 28 grid (390 × 724), 150 at 34 stars · **6** (Tuning F): more rocks (from length 9, every 4 stars, up to 11; 14 with the shower), 150 at 33 stars |
 | Orbit (`orbitRev`) | unstamped: original course; 3 per planet, sun = `finishScore` · 3 (Lovable): wide zig-zag course from the proved bank · 4 (Batch 5): three black holes · 5 (bands) · 6 (Tuning A): fly-in after a black hole, a missed hop ends sooner · **7** (Tuning F): swept black holes (every hole ahead, the rocket's whole body, ordered against belts) |
 | Rainbow Bridge (`inkRev`) | unstamped: block obstacles; 11 per level, all 10 = `finishScore` · 2–3 (Lovable): birds; moving pot on 5–8, live drawing on 9–10 · 4 (Batch 5): optional stars · 5 (bands) · **6** (Tuning C): knots at about 93.5 % |
-| Rally (`rallyRev`) | unstamped: floor(2.5 × gold hits) · 2 (Batch 5): two +3 pads, bumper from 30 s · 3 (bands) · 4 (Tuning B): each pad stays in its own half, knots refitted · **5** (Tuning F): a second bumper from 45 s, knots refitted |
+| Rally (`rallyRev`) | unstamped: floor(2.5 × gold hits) · 2 (Batch 5): two +3 pads, bumper from 30 s · 3 (bands) · 4 (Tuning B): each pad stays in its own half, knots refitted · 5 (Tuning F): a second bumper from 45 s, knots refitted · **6** (taller worlds, 16 Oct): 390 × 730 court, bumpers stretched down it, knots refitted |
 | Roofbound (`flipRev`) | unstamped: floor(150 × (s ÷ 60)²), bend from 20 s · 2 (Batch 1): crumble tiles, 10 proved stars, bend from 15 s · 3 (bands) · **4** (Tuning C): bend from 10 s, about 10 % higher |
 | Scrumper (`snipRev`) | unstamped: templates 0–9 in a fixed order · 2 (Lovable): 3 easy / 4 medium / 3 hard of 30 templates · 3 (Batch 4): 60 orchard templates (branches, planks, gutters, sliding basket, wasp nests) · 4 (bands) · 5 (Tuning E): tall 360 × 640 bank, 2 easy / 3 medium / 5 hard, picker's crooks, lower knots refitted · 6 (bank growth): 67 tall levels · **7** (Tuning F): each pin's wobble one of −10 / −5 / 0 / +5 / +10 px on the same stream, every one of the 4,435 deals proven by a stored plan, Crook gutter run dealt as a fixed copy (template 129) |
 | Slice (`sliceRev`) | unstamped: floor(235 × weighted ÷ (3 × foods)) − 10 per chilli · 2 (Batch 1): mayonnaise Squeeze, a chilli ends the combo · 3 (bands) · 4 (Tuning C): blade 4 px wider each side, cuts 50 % back past the start · **5** (Tuning F): one path may run 620 px (the world's height; was 465) |
 | Swish (`binRev`) | unstamped: 10 per bucket, 10/10 = `finishScore` · 2 (Lovable): catch zone 85 % · 3 (Batch 5): hoops and spinners, exact quarter-bucket wind · **4** (bands) |
 | Tempo (`beatRev`) | unstamped: floor((4P + 3G + OK − 8M) ÷ 4) · 2 (Batch 5): swipe notes from 30 s · 3 (bands; a miss −2) · 4 (Tuning C): about 10 % higher · **5** (Tuning F): a tenth fewer notes, knots moved to keep Tuning C's levels |
 | Tilt (`tiltRev`) | unstamped: 30 per maze, 4 = `finishScore` · 2 (Batch 4): stars, amber marble from maze 3 · 3 (bands; Tuning A re-deals seeds so every cup is reachable) · **4** (Tuning C): amber starts far from its cup, stars at hole mouths, finish window from 60 s, knots refitted |
-| Wavefront (`wavRev`) | unstamped: 60 s, floor(150 × units ÷ 248) · 2 (Batch 3): 90 s, fly-ins, divers, five waves and a boss · 3 (bands) · 4 (Tuning A): shaped waves 2–5 · **5** (Tuning C): waves 3–4 drop three quarters of a row, saucer 1 unit, timed kill bonus |
+| Wavefront (`wavRev`) | unstamped: 60 s, floor(150 × units ÷ 248) · 2 (Batch 3): 90 s, fly-ins, divers, five waves and a boss · 3 (bands) · 4 (Tuning A): shaped waves 2–5 · 5 (Tuning C): waves 3–4 drop three quarters of a row, saucer 1 unit, timed kill bonus · **6** (taller worlds, 16 Oct): 390 × 730 world, ship 66 px above the bottom, bolts 10 px a tick, knots refitted |
 | Pinball (`pinRev`) | **1** (13 Oct, new): the first table, born on the bands (no unstamped rounds exist; an unstamped puzzle plays rev 1); `scripts/fixtures/pinball-rev1.json` holds real rev-1 runs that must replay to their stored scores |
 | Junction (`junctionRev`) | unstamped: 2 per car ± 4 per ambulance − give-ups + 40 for the minute · 2 (Batch 4): diagonal roads every 12 s, buses, + 20 · **3** (bands); retired to practice in Tuning C with no new stamp |
 

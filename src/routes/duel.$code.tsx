@@ -14,6 +14,7 @@ import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
+import { markOnboardingSeen } from "@/lib/onboarding";
 import { DuelStart } from "@/components/duel/DuelStart";
 import { RoundTitle } from "@/components/duel/RoundTitle";
 import {
@@ -240,6 +241,8 @@ function DuelScreen() {
   );
   // Accepted ?dev=1 key enables presentation-only readouts (layout overlay) in rooms too.
   useDemoKey();
+  // Arriving through a room link: no first-time intro now or later (lib/onboarding).
+  useEffect(() => markOnboardingSeen(), []);
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);

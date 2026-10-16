@@ -20,6 +20,7 @@ import {
   MATCHUP_REV_WAIT,
   matchupCheckpoint,
   matchupGameFor,
+  matchupShowHint,
   MATCHUP_BG,
   MATCHUP_CHECKPOINT_INTERVAL,
   MATCHUP_COLOURS,
@@ -42,6 +43,7 @@ import type { SoundId } from "@/lib/fx/manifest";
 const MATCHUP_PITCH_RATES = [1, 1.12, 1.26, 1.41] as const;
 import { ARCADE_CRASH_FREEZE_MS, type MatchupPuzzleData } from "@/lib/duel/types";
 import { arcadeFeedback } from "@/lib/fx/arcade";
+import { liveCue } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -157,9 +159,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({ game: "matchup" });
     let secondAt = last;
     let ticksThisSecond = 0;
+    let hintShown = false;
 
     const finish = () => {
       if (submitted.current) return;
@@ -214,6 +217,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               next: 0,
             };
           }
+          // The swap slides, or slides out and back when it makes no match.
+          if (applied && state.current.swaps > before.swaps) liveCue("matchup.swap");
+          else if (applied && state.current.lastInvalidTick === state.current.tick) liveCue("matchup.invalid");
           if (applied && (state.current.swaps > before.swaps ||
             state.current.lastInvalidTick === state.current.tick)) {
             swapTween.current = {
@@ -231,6 +237,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
       feedback(state.current, matchupGame.isOver(state.current));
+      // The hint highlight appears after a spell without a move.
+      const hint = !matchupGame.isOver(state.current) && matchupShowHint(state.current);
+      if (hint && !hintShown) liveCue("matchup.hint");
+      hintShown = hint;
       const chime = chimes.current;
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
         // Cascade pitch ladder: chain depth 1-4 rises 1.0 / 1.12 / 1.26 / 1.41.

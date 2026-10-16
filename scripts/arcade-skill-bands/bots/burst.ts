@@ -11,7 +11,7 @@
  * Falling icons are chased when the player decides to and it looks safe.
  */
 import {
-  BURST_FLOOR_Y,
+  burstFloorY,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
   BURST_RADIUS,
@@ -42,8 +42,14 @@ const SHOT_SPEED = 9;
 const MIN_X = HALF_W;
 const MAX_X = BURST_WORLD_W - HALF_W;
 const APEX_PCT = [75, 60, 45, 30];
-const ARENA_H = BURST_FLOOR_Y - 40;
-const BOUNCE_V = APEX_PCT.map((pct) => Math.trunc(Math.sqrt(2 * GRAVITY * Math.trunc((ARENA_H * pct) / 100) * FP)));
+/** The floor and bounce speeds, set per run from the game's own arena (burstRev 4's taller one). */
+let BURST_FLOOR_Y = 0;
+let BOUNCE_V: number[] = [];
+function setArena(floor: number): void {
+  BURST_FLOOR_Y = floor;
+  const arenaH = floor - 40;
+  BOUNCE_V = APEX_PCT.map((pct) => Math.trunc(Math.sqrt(2 * GRAVITY * Math.trunc((arenaH * pct) / 100) * FP)));
+}
 
 interface Tracked {
   x: number;
@@ -96,6 +102,7 @@ function touches(bx: number, by: number, r: number, px: number, margin: number):
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
+  setArena(burstFloorY(game.init(seed)));
   const level = human.level;
   const read = READ[level]!;
   const horizon = LOOKAHEAD[level]!;
@@ -122,7 +129,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   return driveEvents(game, (s: BurstState, t) => {
     history.push(s);
     const seen = history[Math.max(0, history.length - 1 - lag)]!;
-    const ceil = burstCeiling(seen.wave);
+    const ceil = burstCeiling(seen.wave, BURST_FLOOR_Y);
 
     // Track atoms frame to frame; one born from a split (or a new wave) is seen a reaction later.
     const next: Tracked[] = [];

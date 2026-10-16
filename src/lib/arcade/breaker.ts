@@ -67,6 +67,15 @@ export const BRK_PADDLE_LIFT = 60;
 export const BRK_PADDLE_Y = BRK_WORLD_H - BRK_PADDLE_LIFT - BRK_PADDLE_H;
 export const BRK_PADDLE_Y_FP = BRK_PADDLE_Y * 256;
 
+/** The world height (px) a state plays in: brkRev 6's taller court, or the original 620. */
+export function brkWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? BRK_WORLD_H;
+}
+/** The paddle's top edge (px) in a state's world: always BRK_PADDLE_LIFT + BRK_PADDLE_H above the bottom. */
+export function brkPaddleY(state: { worldH?: number }): number {
+  return brkWorldH(state) - BRK_PADDLE_LIFT - BRK_PADDLE_H;
+}
+
 export const BRK_BALL_R = 6;
 export const BRK_BALL_R_FP = BRK_BALL_R * 256;
 /** At most eight balls are ever in play. */
@@ -204,6 +213,8 @@ export interface BrkState extends BandFields {
   fireballs?: number;
   /** brkRev 4 (Tuning B): 1 = the 3.5 s Fireball; brkRev 5 (Tuning F): 2 = the 2.5 s Fireball. Absent on every earlier round. */
   tune?: number;
+  /** brkRev 6 only (taller worlds): the world height in px (BRK_TALL_H). Absent = BRK_WORLD_H. */
+  worldH?: number;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -246,10 +257,10 @@ function paddleLeftOf(paddleX: number): number {
   return paddleX - BRK_PADDLE_W / 2;
 }
 
-function restBall(paddleX: number): BrkBall {
+function restBall(paddleX: number, paddleYFp: number): BrkBall {
   return {
     x: paddleX * 256,
-    y: BRK_PADDLE_Y_FP - BRK_BALL_R_FP,
+    y: paddleYFp - BRK_BALL_R_FP,
     vx: 0,
     vy: 0,
     spam: 0,
@@ -343,7 +354,7 @@ function initRev(seed: number, rev: number | undefined): BrkState {
 
   const paddleX = Math.round(BRK_WORLD_W / 2);
   const first = launch(rng, BRK_SPEED_START);
-  const ball = restBall(paddleX);
+  const ball = restBall(paddleX, BRK_PADDLE_Y_FP);
   ball.vx = first.vx;
   ball.vy = first.vy;
   return {
@@ -430,6 +441,8 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   let fire = Math.max(0, (state.fire ?? 0) - 1);
   let fireballs = state.fireballs ?? 0;
   let speed = brkSpeedFp(hits, tick);
+  const worldHFp = brkWorldH(state) * 256;
+  const paddleYFp = brkPaddleY(state) * 256;
 
   const breakBrick = (index: number): void => {
     const left = bricks[index] ?? 0;
@@ -483,7 +496,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   ) {
     balls.push({
       x: paddleX * 256,
-      y: BRK_PADDLE_Y_FP - BRK_BALL_R_FP,
+      y: paddleYFp - BRK_BALL_R_FP,
       vx: 0,
       vy: -speed,
       spam: 1,
@@ -494,7 +507,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
 
   if (next.pause > 0) {
     next.pause -= 1;
-    const resting = restBall(paddleX);
+    const resting = restBall(paddleX, paddleYFp);
     if (next.pause === 0) {
       const again = launch(rng, speed);
       rng = again.rng;
@@ -553,7 +566,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         }
 
         // The paddle: caught only while falling onto its top edge.
-        if (vy > 0 && y + BRK_BALL_R_FP >= BRK_PADDLE_Y_FP && y < BRK_PADDLE_Y_FP + 4 * 256) {
+        if (vy > 0 && y + BRK_BALL_R_FP >= paddleYFp && y < paddleYFp + 4 * 256) {
           const offset = px(x) - paddleLeftOf(paddleX);
           if (offset >= -BRK_BALL_R && offset <= BRK_PADDLE_W + BRK_BALL_R) {
             const zone = clampInt(
@@ -565,11 +578,11 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
             const launched = setLength(dir[0], dir[1], speed);
             vx = launched.vx;
             vy = launched.vy;
-            y = BRK_PADDLE_Y_FP - BRK_BALL_R_FP;
+            y = paddleYFp - BRK_BALL_R_FP;
           }
         }
 
-        if (y - BRK_BALL_R_FP > BRK_WORLD_H * 256) gone = true;
+        if (y - BRK_BALL_R_FP > worldHFp) gone = true;
       }
 
       if (!gone) survivors.push({ x, y, vx, vy, spam });
@@ -580,7 +593,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     if (balls.length === 0 && !wallGone) {
       losses += 1;
       next.pause = BRK_RELAUNCH_TICKS;
-      balls = [restBall(paddleX)];
+      balls = [restBall(paddleX, paddleYFp)];
     }
   }
 
@@ -589,8 +602,8 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   for (const capsule of capsules) {
     const y = capsule.y + BRK_CAPSULE_FALL;
     const caught =
-      y + (BRK_CAPSULE_H / 2) * 256 >= BRK_PADDLE_Y_FP &&
-      y <= BRK_PADDLE_Y_FP + BRK_PADDLE_H * 256 &&
+      y + (BRK_CAPSULE_H / 2) * 256 >= paddleYFp &&
+      y <= paddleYFp + BRK_PADDLE_H * 256 &&
       Math.abs(px(capsule.x) - paddleX) <= BRK_PADDLE_W / 2 + BRK_CAPSULE_W / 2;
     if (caught) {
       powerUps += 1;
@@ -613,7 +626,7 @@ function step(state: BrkState, input: ArcadeInputEvent | null): BrkState {
       }
       continue;
     }
-    if (y > BRK_WORLD_H * 256) continue;
+    if (y > worldHFp) continue;
     keptCapsules.push({ x: capsule.x, y, kind: capsule.kind });
   }
   capsules = keptCapsules;
@@ -701,6 +714,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.rev !== undefined) values.push(state.rev, state.fire ?? 0, state.fireballs ?? 0, ...(state.slide ?? []));
   // brkRev 4 adds its marker last, so rev-2/3 checksums are unchanged.
   if (state.tune !== undefined) values.push(state.tune);
+  // brkRev 6 (taller worlds): the world height, last.
+  if (state.worldH) values.push(state.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -734,8 +749,10 @@ function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: numb
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {
+  const worldH = brkWorldH(state);
+  const paddleY = brkPaddleY(state);
   const scaleX = size.width / BRK_WORLD_W;
-  const scaleY = size.height / BRK_WORLD_H;
+  const scaleY = size.height / worldH;
 
   ctx.save();
   ctx.fillStyle = BRK_BG;
@@ -783,7 +800,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
       BRK_WALL_X + col * BRK_BRICK_W + 6,
       BRK_WALL_Y,
       BRK_BRICK_W - 12,
-      BRK_PADDLE_Y - BRK_WALL_Y,
+      paddleY - BRK_WALL_Y,
     );
   }
 
@@ -807,7 +824,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
   }
 
   ctx.fillStyle = BRK_GOLD;
-  ctx.fillRect(paddleLeftOf(state.paddleX), BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H);
+  ctx.fillRect(paddleLeftOf(state.paddleX), paddleY, BRK_PADDLE_W, BRK_PADDLE_H);
 
   for (const ball of state.balls) {
     ctx.beginPath();
@@ -826,7 +843,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     ctx.fillText(
       state.held === BRK_POWER_LASER + 1 ? "Tap to fire laser" : `Tap to fire ×${state.charges}`,
       BRK_WORLD_W / 2,
-      BRK_PADDLE_Y + BRK_PADDLE_H + 14,
+      paddleY + BRK_PADDLE_H + 14,
     );
   }
 
@@ -843,7 +860,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     ctx.fillText(
       "Relaunching",
       BRK_WORLD_W / 2,
-      BRK_PADDLE_Y - 34,
+      paddleY - 34,
     );
   }
 
@@ -855,7 +872,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize):
     BRK_WALL - 1,
     BRK_HUD_H + BRK_WALL - 1,
     BRK_WORLD_W - 2 * BRK_WALL + 2,
-    BRK_WORLD_H - BRK_HUD_H - BRK_WALL + 2,
+    worldH - BRK_HUD_H - BRK_WALL + 2,
   );
 
   ctx.restore();
@@ -878,6 +895,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TALL) return breakerTallGame;
   if (rev === BRK_REV_TUNEF) return breakerTunefGame;
   if (rev === BRK_REV_TUNED) return breakerTunedGame;
   if (rev === BRK_REV_BAND) return breakerBandGame;
@@ -893,7 +911,7 @@ export const BRK_BAND_CURVE = bandCurve([0, 60, 67, 76, 79, 80], [0, 70, 100, 12
 export function breakerBandParts(state: BrkState): BandParts {
   const units = brkDestroyed(state);
   const finished = brkDestroyed(state) >= BRK_BRICKS;
-  return { units, points: bandPoints(BRK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
+  return { units, points: bandPoints(state.worldH ? BRK_V6_BAND_CURVE : BRK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
 }
 
 function scoreBand(state: BrkState): number {
@@ -930,3 +948,37 @@ export const breakerTunefGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   ...breakerGameV2,
   init: (seed) => bandInit({ ...breakerGameV2.init(seed), tune: BRK_TUNE_F }),
 };
+
+/* ================= Taller worlds (brkRev 6, Oct 2026) ================= */
+
+/**
+ * brkRev 6 (taller worlds, batch 1): brkRev 5 play (the 80 bricks, capsules,
+ * sliding rows and 2.5 s Fireball) in a taller court, 390 × BRK_TALL_H, the
+ * same for every player. The wall stays where it was; the paddle sits
+ * BRK_PADDLE_LIFT above the new bottom, so the extra 110 px is all between the
+ * bricks and the paddle. States keep `rev: 2` and `tune: 2` and add `worldH`,
+ * folded into the checkpoint checksum last. Scored on BRK_V6_BAND_CURVE.
+ */
+export const BRK_REV_TALL = 6;
+export const BRK_TALL_H = 730;
+/**
+ * brkRev 6 band knots (bricks destroyed): the ball takes longer to come back down
+ * the taller court, so the same players break fewer bricks in the 90 s and the
+ * knots come down (refitted with scripts/arcade-skill-bands.ts --rev=g1, 60 seeds:
+ * unit medians 44 / 57.5 / 70 / 74); 140 at all 80, a full clear still adds up to 10.
+ */
+export const BRK_V6_BAND_CURVE = bandCurve([0, 44, 57, 70, 74, 80], [0, 70, 100, 125, 138, 140]);
+
+export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerGameV2,
+  init: (seed) => {
+    const base = breakerTunefGame.init(seed);
+    const paddleYFp = (BRK_TALL_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
+    return { ...base, worldH: BRK_TALL_H, balls: base.balls.map((ball) => ({ ...ball, y: paddleYFp - BRK_BALL_R_FP })) };
+  },
+};
+
+/** The world height (px) a stored round's brkRev plays in. */
+export function breakerWorldHFor(rev?: number | null): number {
+  return rev === BRK_REV_TALL ? BRK_TALL_H : BRK_WORLD_H;
+}

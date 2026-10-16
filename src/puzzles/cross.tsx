@@ -129,7 +129,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({ game: "cross" });
     const sounds = crossSounds();
 
     const finish = () => {
