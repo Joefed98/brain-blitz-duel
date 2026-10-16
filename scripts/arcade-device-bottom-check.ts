@@ -59,6 +59,21 @@
  * The cause it guards against: the canvas was rounded to the nearest CSS pixel (769 px over a 768.55 px
  * box at 414 px wide) and the world letterboxed inside it, leaving an edge row part bezel, part screen,
  * clipped mid-row by the box, which the drifting scanlines flickered every 90 ms.
+ The same frames also judge the canvas's own bottom 48 device rows (the board's last cells, its border
+ * and the margin under it) and the top border's first row, against the frame before (16 Oct 2026, the
+ * Meteor border fix: the clock runs, so the scanlines drift as on the phone). It fails if
+ *  - any of those rows changes across 90 % or more of the board's width between two frames (a blink),
+ *    except rows inside the margin during a border pulse (meteorBorderLook: every 4 s, 0.6 s) and while
+ *    the success layer's own edge effects (a streak, SHOWER DODGED!, timed from the frame that fires
+ *    them) light the world's edges; the margin never changes in a pulse;
+ *  - a margin row under the border is more than half lit outside those effects;
+ *  - the border at rest is not its palette colour at 50 % (bottom edge, and the top edge, which no edge
+ *    effect reaches), or the border never glows and steps colour within the 5 s.
+ * The pass runs again with prefers-reduced-motion and with reduced effects pinned (level 1: a pixel
+ * ratio of 1, so the composited comparison and the 1:1 rule are skipped there), where the border must
+ * hold its first colour (#4BFF7A) with no pulse and the same blink rule holds. The cause it guards
+ * against: the border was a 35 % stroke in the grid's cached raster under the scanlines, which drift a
+ * pixel every 90 ms with a 3 px period, so one phase in three darkened the whole bottom line by 28 %.
  * It prints every game's box, world and bottom gap per configuration (--json=<path> saves them).
  *
  *   bun scripts/arcade-device-bottom-check.ts [games…] [--part=k/n] [--url=<origin>] [--json=<path>] [--verbose]
@@ -246,7 +261,14 @@ const METEOR_INIT = `(() => {
         s.showerLandTick = s.tick + p.warn; s.showerDone = 1; p.shower = s.tick;
       }
     }
-    window.__meteor = { tick: s.tick, head: s.body[0], nextDir: s.nextDir, rows: s.rows ?? 20, rocks: (s.rocks ?? []).length, dead: !!s.dead, over: !!over, t0: p ? p.t0 : null };
+    // The success layer's edge effects (arcadeFxGames.renderer.ts SNAKE_FX: a streak every 10 stars and
+    // for a meteor shower, its edge glow and sweep; SHOWER DODGED!, its edge glow and neon border) light
+    // all four edges for up to 900 ms: game effects, timed here from the frame that fires them.
+    const dodged = (s.showerCells ?? []).length > 0 && (s.rocks ?? []).includes(s.showerCells[0]) ? 1 : 0;
+    const fxKey = (s.showerDone ?? 0) + ":" + Math.floor((s.eaten ?? 0) / 10) + ":" + dodged;
+    if (window.__meteorFxKey !== undefined && window.__meteorFxKey !== fxKey) window.__meteorFxAt = performance.now();
+    window.__meteorFxKey = fxKey;
+    window.__meteor = { tick: s.tick, head: s.body[0], nextDir: s.nextDir, rows: s.rows ?? 20, rocks: (s.rocks ?? []).length, dead: !!s.dead, over: !!over, t0: p ? p.t0 : null, fxAt: window.__meteorFxAt ?? null };
   };
 })();`;
 const METEOR_DPR = 2;
@@ -281,14 +303,82 @@ function meteorFrame(edgeRows: number): MeteorFrame | null {
   };
 }
 
-/** Meteor on the iPhone 11 home-screen app at DPR 2: 5 s of scripted play, the arena's bottom 3 device rows every frame. */
-async function meteorEdgePass(browser: import("playwright").Browser, origin: string, failures: string[]): Promise<void> {
+/** The bottom device rows of Meteor's canvas judged for the border (its frame, the glow inside it, the margin under it). */
+const BORDER_ROWS = 48;
+/** A row "changes across the width" when at least this share of its pixels changed since the last frame. */
+const WIDE_CHANGE = 0.9;
+/** Slack (ms of page time) round a border pulse: the frame was drawn up to one 16 ms step before it was read. */
+const PULSE_SLACK_MS = 40;
+/** How long the success layer's edge effects light the world's edges (arcadeFx.renderer.ts: glow 600, sweep 800, neon 900 ms). */
+const EDGE_FX_MS = 900;
+/** The top border lies on the grid's own top line (7 % green), which shows through the frame's 50 %. */
+const TOP_BORDER_TOLERANCE = 14;
+
+interface BorderFrame {
+  /** Page time (ms, the frozen clock) when read: the frame was drawn at most one step earlier. */
+  now: number;
+  /** Per row, bottom BORDER_ROWS rows top to bottom: the share of its pixels across the board's width changed since the previous frame (-1: first frame). */
+  changed: number[];
+  /** Per row, the colour at the board's horizontal middle. */
+  mid: [number, number, number][];
+  /** Per row, the share of pixels that are not black. */
+  lit: number[];
+  /** The top border's first device row, at the board's horizontal middle (no edge effect reaches it). */
+  topMid: [number, number, number];
+}
+
+/** In-page: the canvas's bottom rows against the previous frame's (kept on window.__meteorRows). */
+function meteorBorderFrame({ k, top, x0, x1 }: { k: number; top: number; x0: number; x1: number }): BorderFrame | null {
+  const canvas = document.querySelector<HTMLCanvasElement>("[data-arcade-play] [data-arena-slot] > [data-game-arena] canvas");
+  if (!canvas) return null;
+  const w = canvas.width;
+  const data = canvas.getContext("2d")!.getImageData(0, canvas.height - k, w, k).data;
+  const store = window as unknown as { __meteorRows?: { w: number; data: Uint8ClampedArray } };
+  const prev = store.__meteorRows && store.__meteorRows.w === w ? store.__meteorRows.data : null;
+  const changed: number[] = [];
+  const mid: [number, number, number][] = [];
+  const lit: number[] = [];
+  for (let y = 0; y < k; y++) {
+    let diff = 0;
+    let on = 0;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i]! > 3 || data[i + 1]! > 3 || data[i + 2]! > 3) on++;
+      if (prev && x >= x0 && x < x1 && (Math.abs(data[i]! - prev[i]!) > 3 || Math.abs(data[i + 1]! - prev[i + 1]!) > 3 || Math.abs(data[i + 2]! - prev[i + 2]!) > 3)) diff++;
+    }
+    const m = (y * w + (w >> 1)) * 4;
+    changed.push(prev ? diff / (x1 - x0) : -1);
+    mid.push([data[m]!, data[m + 1]!, data[m + 2]!]);
+    lit.push(on / w);
+  }
+  store.__meteorRows = { w, data: data.slice() };
+  const t = canvas.getContext("2d")!.getImageData(w >> 1, top, 1, 1).data;
+  return { now: performance.now(), changed, mid, lit, topMid: [t[0]!, t[1]!, t[2]!] };
+}
+
+type MeteorMode = "full" | "reduced-motion" | "reduced-effects";
+
+/**
+ * Meteor on the iPhone 11 home-screen app at DPR 2: 5 s of scripted play, the arena's bottom 3 device rows every
+ * frame against the canvas, and the canvas's bottom BORDER_ROWS rows judged for the border (see the header). In
+ * the "reduced-motion" and "reduced-effects" modes the border must hold its first colour with no pulse; reduced
+ * effects render at a pixel ratio of 1, so there the composited comparison and the 1:1 rule are skipped.
+ */
+async function meteorEdgePass(browser: import("playwright").Browser, origin: string, failures: string[], mode: MeteorMode = "full"): Promise<void> {
   const { loadImage, createCanvas } = await import("@napi-rs/canvas");
-  const { SNAKE_COLS } = await import("../src/lib/arcade/snake");
-  const where = "snake iphone11-app bottom edge";
-  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, deviceScaleFactor: METEOR_DPR });
+  const { SNAKE_COLS, SNAKE_WORLD_W, snakeWorldHFor } = await import("../src/lib/arcade/snake");
+  const { meteorBorderLook, meteorBorderRect, METEOR_BORDER_COLOURS, METEOR_BORDER_PERIOD_MS, METEOR_BORDER_PULSE_MS, METEOR_BORDER_REST_ALPHA } = await import("../src/lib/arcade/snake.renderer");
+  const where = `snake iphone11-app bottom edge${mode === "full" ? "" : ` (${mode})`}`;
+  const hold = mode !== "full";
+  const composited = mode !== "reduced-effects";
+  const context = await browser.newContext({
+    viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h },
+    deviceScaleFactor: METEOR_DPR,
+    ...(mode === "reduced-motion" ? { reducedMotion: "reduce" as const } : {}),
+  });
   await context.addInitScript(SEED_INIT);
   await context.addInitScript(DEVICE_INIT);
+  if (mode === "reduced-effects") await context.addInitScript("window.__duelzEffects = 1;");
   await context.addInitScript(METEOR_INIT);
   const page = await context.newPage();
   const errors: string[] = [];
@@ -345,6 +435,17 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
     let rocksMax = 0;
     let t0: number | null = null;
     let ticks = 0;
+    // The border: frames read, frames in a pulse that showed it glowing, the border colours seen at rest.
+    let prevBorder: BorderFrame | null = null;
+    let pulseFrames = 0;
+    let edgeFxFrames = 0;
+    let glowFrames = 0;
+    const restColours = new Set<string>();
+    const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    const inPulse = (t: number) => {
+      const phase = ((t % METEOR_BORDER_PERIOD_MS) + METEOR_BORDER_PERIOD_MS) % METEOR_BORDER_PERIOD_MS;
+      return phase < METEOR_BORDER_PULSE_MS + PULSE_SLACK_MS || phase > METEOR_BORDER_PERIOD_MS - PULSE_SLACK_MS;
+    };
     const note = (what: string) => {
       if (VERBOSE) console.log(`  ${where}: ${what}`);
       bad++;
@@ -352,7 +453,7 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
     };
     for (let guard = 0; guard < 600 && ticks < METEOR_PLAY_TICKS; guard++) {
       await step();
-      const m = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; head: number; nextDir: number; rows: number; rocks: number; dead: boolean; over: boolean; t0: number | null } }).__meteor);
+      const m = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; head: number; nextDir: number; rows: number; rocks: number; dead: boolean; over: boolean; t0: number | null; fxAt: number | null } }).__meteor);
       if (m.dead || m.over) {
         failures.push(`${where}: the scripted run ended at tick ${m.tick} (${m.dead ? "crashed" : "over"}) before ${METEOR_PLAY_TICKS / 60} s of play`);
         break;
@@ -396,6 +497,46 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
       }
       frames++;
       const dpr = f.dpr;
+      // The border and the margin under it, from the canvas's own pixels (see the header).
+      const r = meteorBorderRect(f.canvas.w / SNAKE_WORLD_W, f.canvas.h / snakeWorldHFor(rows), 0, 0, rows);
+      const bf = await page.evaluate(meteorBorderFrame, { k: BORDER_ROWS, top: r.y0, x0: r.x0, x1: r.x1 });
+      if (bf) {
+        const top = f.canvas.h - BORDER_ROWS;
+        const border = [r.y1 - r.w - top, r.y1 - top];
+        const pulse = !hold && (inPulse(bf.now) || inPulse(bf.now - 16));
+        const edgeFx = m.fxAt != null && bf.now - m.fxAt <= EDGE_FX_MS + PULSE_SLACK_MS;
+        if (edgeFx) edgeFxFrames++;
+        if (border[0]! < 4 * r.w) note(`frame ${frames}: the border (device rows ${r.y1 - r.w}-${r.y1 - 1}) is not inside the canvas's bottom ${BORDER_ROWS} rows`);
+        for (let y = 0; y < BORDER_ROWS && prevBorder; y++) {
+          const margin = y >= border[1]!;
+          if (bf.changed[y]! < WIDE_CHANGE || (pulse && !margin) || edgeFx) continue;
+          note(`frame ${frames} (t ${Math.round(bf.now)} ms): device row ${top + y} (${margin ? "the margin under the border" : y >= border[0]! ? "the border" : "inside the border"}) changed across ${Math.round(bf.changed[y]! * 100)} % of its width${hold ? " with the border held" : " outside a border pulse"}: a blink`);
+        }
+        for (let y = border[1]!; y < BORDER_ROWS && !edgeFx; y++) {
+          if (bf.lit[y]! > 0.5) note(`frame ${frames}: device row ${top + y} of the margin under the border is ${Math.round(bf.lit[y]! * 100)} % lit (want the screen's black)`);
+        }
+        // The border's colour: the bottom edge (unless an edge effect lights it) and the top edge, which no
+        // edge effect reaches, so a pulse under an effect is still seen.
+        const steady = !inPulse(bf.now) && !inPulse(bf.now - 16);
+        const sides: [string, [number, number, number], number][] = [["top", bf.topMid, TOP_BORDER_TOLERANCE]];
+        if (!edgeFx) sides.push(["bottom", bf.mid[border[0]!]!, METEOR_TOLERANCE]);
+        if (hold || steady) {
+          const look = meteorBorderLook(bf.now, hold);
+          const before = meteorBorderLook(bf.now - 16, hold);
+          if (look.colour === before.colour) {
+            const want = hex(look.colour).map((c) => Math.round(c * METEOR_BORDER_REST_ALPHA));
+            for (const [side, mid, tolerance] of sides) {
+              if (mid.some((c, i) => Math.abs(c - want[i]!) > tolerance)) note(`frame ${frames} (t ${Math.round(bf.now)} ms): the ${side} border at rest is ${mid.join(",")}, want ${want.join(",")} (${look.colour} at ${METEOR_BORDER_REST_ALPHA})`);
+              else restColours.add(look.colour);
+            }
+          }
+        } else {
+          pulseFrames++;
+          const rest = METEOR_BORDER_COLOURS.map((c) => hex(c).map((v) => Math.round(v * METEOR_BORDER_REST_ALPHA)));
+          if (!rest.some((w) => w.every((v, i) => Math.abs(v - bf.topMid[i]!) <= TOP_BORDER_TOLERANCE))) glowFrames++;
+        }
+        prevBorder = bf;
+      }
       if (dpr !== METEOR_DPR) note(`frame ${frames}: the page is at DPR ${dpr}, not ${METEOR_DPR}`);
       const cssW = f.canvas.right - f.canvas.left;
       const cssH = f.canvas.bottom - f.canvas.top;
@@ -406,11 +547,12 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
         note(`frame ${frames}: canvas ${cssW}x${cssH} px at ${f.canvas.top} px is not whole pixels at the box's top (${f.box.top} px)`);
       if (f.canvas.bottom > f.box.bottom + 0.01 || f.box.bottom - f.canvas.bottom >= 1)
         note(`frame ${frames}: canvas ends at ${f.canvas.bottom} px, box at ${f.box.bottom} px (want the canvas inside the box, under 1 px short: an offset edge)`);
-      if (f.canvas.w !== Math.round(cssW * dpr) || f.canvas.h !== Math.round(cssH * dpr))
+      if (composited && (f.canvas.w !== Math.round(cssW * dpr) || f.canvas.h !== Math.round(cssH * dpr)))
         note(`frame ${frames}: backing store ${f.canvas.w}x${f.canvas.h} is not 1:1 with the canvas's ${Math.round(cssW * dpr)}x${Math.round(cssH * dpr)} device pixels`);
       let transparent = 0;
       for (let i = 3; i < f.rows.length; i += 4) if (f.rows[i] !== 255) transparent++;
       if (transparent) note(`frame ${frames}: ${transparent} pixel(s) of the canvas's bottom ${METEOR_EDGE_ROWS} rows not opaque`);
+      if (!composited) continue;
       const firstRow = canvasBottom - METEOR_EDGE_ROWS;
       const lastRow = Math.max(boxBottom, canvasBottom);
       const shot = await page.screenshot({
@@ -456,8 +598,15 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
     if (ticks < METEOR_PLAY_TICKS && !failures.some((f) => f.startsWith(where))) failures.push(`${where}: only ${ticks} ticks played`);
     if (rocksBefore < 0 || rocksMax < rocksBefore + 4) failures.push(`${where}: the scripted rock and shower did not both land (${rocksBefore < 0 ? "never started" : `${rocksMax - rocksBefore} of 4 rocks`})`);
     if (bad) failures.push(`${where}: the bottom edge changed in ${bad} of ${frames} frame(s) in a way the scene did not paint; first: ${firstBad}`);
+    if (hold && (pulseFrames || restColours.size !== 1 || !restColours.has(METEOR_BORDER_COLOURS[0])))
+      failures.push(`${where}: the border did not hold ${METEOR_BORDER_COLOURS[0]} (${[...restColours].join(", ") || "none"} seen at rest, ${pulseFrames} pulse frame(s))`);
+    if (!hold && (!glowFrames || restColours.size < 2))
+      failures.push(`${where}: the border did not pulse and step colour (${glowFrames} glowing frame(s) of ${pulseFrames} in a pulse; ${[...restColours].join(", ") || "none"} seen at rest)`);
     for (const e of errors) failures.push(`${where}: page error: ${e}`);
-    console.log(`${bad || ticks < METEOR_PLAY_TICKS ? "FAIL" : "PASS"} snake bottom edge (iPhone 11 home-screen app, DPR ${METEOR_DPR}): ${frames} frames over ${ticks} ticks, ${Math.max(0, rocksMax - rocksBefore)} rock(s) landed (1 rock, 3-rock shower); ${bad ? `${bad} bad frame(s)` : `the bottom edge matched what the canvas painted every frame (opaque, whole pixels, 1:1, only the gap's black below)`}`);
+    const borderNote = hold
+      ? `the border held ${[...restColours].join(", ")} with no pulse`
+      : `the border stepped ${[...restColours].join(" → ")} with ${glowFrames} glowing pulse frame(s)`;
+    console.log(`${failures.some((f) => f.startsWith(where)) ? "FAIL" : "PASS"} ${where.replace(" iphone11-app", "")} (iPhone 11 home-screen app, DPR ${METEOR_DPR}): ${frames} frames over ${ticks} ticks, ${Math.max(0, rocksMax - rocksBefore)} rock(s) landed (1 rock, 3-rock shower); ${bad ? `${bad} bad frame(s)` : `${composited ? "the bottom edge matched what the canvas painted every frame (opaque, whole pixels, 1:1, only the gap's black below); " : ""}no bottom row blinked across the width (margin, border, inside it) outside a border pulse`}; ${borderNote}; ${edgeFxFrames} frame(s) under the success layer's edge effects (streak, SHOWER DODGED!) not judged`);
   } catch (error) {
     failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
   } finally {
@@ -601,7 +750,11 @@ async function main() {
       const mine = failures.length - before;
       console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations; stable for ${STABLE_MS / 1000} s as an iPhone 11 home-screen app`}`);
     }
-    if (games.includes("snake")) await meteorEdgePass(browser, origin, failures);
+    if (games.includes("snake")) {
+      await meteorEdgePass(browser, origin, failures);
+      await meteorEdgePass(browser, origin, failures, "reduced-motion");
+      await meteorEdgePass(browser, origin, failures, "reduced-effects");
+    }
   } finally {
     await browser.close();
     if (proc?.pid) process.kill(-proc.pid);

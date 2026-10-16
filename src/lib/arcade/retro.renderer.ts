@@ -85,6 +85,11 @@ export function retroScreen(
   bezelFlash = 0,
   /** The screen's corner radius (canvas px); 0 for a screen that meets the canvas's own edges. */
   corner = 6,
+  /**
+   * Drawn last, over the scanlines, in world coordinates clipped to the screen: art the drifting
+   * scanlines must never shade (Meteor's board border, whose blink was the bottom-edge flash).
+   */
+  overlay?: (ctx: CanvasRenderingContext2D) => void,
 ): RetroFrame {
   let scaleX: number;
   let scaleY: number;
@@ -132,23 +137,31 @@ export function retroScreen(
 
   // Scanlines, in canvas pixels so they stay crisp at any scale. Reduced effects (lib/fx/lowEnd.ts,
   // slow devices only) skip them: a full-screen copy every frame, purely decorative.
-  if (arcadeReducedEffects()) {
+  if (!arcadeReducedEffects()) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(offsetX, offsetY, screenW, screenH);
+    ctx.clip();
+    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    const drift = Math.floor(retroClock() / 90) % 3;
+    const layer = cachedScanlines(ctx, screenW, screenH);
+    if (layer) {
+      ctx.drawImage(layer, offsetX, offsetY + drift - 3, Math.ceil(screenW), Math.ceil(screenH) + 6);
+    } else {
+      for (let y = offsetY + drift; y < offsetY + screenH; y += 3) ctx.fillRect(offsetX, Math.floor(y), screenW, 1);
+    }
     ctx.restore();
-    return { scaleX, scaleY, offsetX, offsetY };
   }
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(offsetX, offsetY, screenW, screenH);
-  ctx.clip();
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
-  const drift = Math.floor(retroClock() / 90) % 3;
-  const layer = cachedScanlines(ctx, screenW, screenH);
-  if (layer) {
-    ctx.drawImage(layer, offsetX, offsetY + drift - 3, Math.ceil(screenW), Math.ceil(screenH) + 6);
-  } else {
-    for (let y = offsetY + drift; y < offsetY + screenH; y += 3) ctx.fillRect(offsetX, Math.floor(y), screenW, 1);
+  if (overlay) {
+    ctx.save();
+    roundRect(ctx, offsetX, offsetY, screenW, screenH, corner);
+    ctx.clip();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scaleX, scaleY);
+    overlay(ctx);
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
-  ctx.restore();
   ctx.restore();
   return { scaleX, scaleY, offsetX, offsetY };
 }
