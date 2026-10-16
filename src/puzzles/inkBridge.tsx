@@ -22,6 +22,7 @@ import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
 import { InkInputQueue, type InkPayload } from "@/lib/arcade/inkInputQueue";
 import { useReducedMotion } from "@/lib/motion";
+import { liveCue } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -113,6 +114,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             const p = sent.payload;
             if (p.k === INK_INPUT_STROKE && state.draftPenDown === 0 && (p.c === 1 || sent.penDown === 1)) {
               setReject({ label: state.ink < 2 * 256 ? "No ink" : "Too close", at: Date.now() });
+              liveCue("inkbridge.reject", 300);
             }
           }
           const next = input.current.next(liveDroppingRef.current);

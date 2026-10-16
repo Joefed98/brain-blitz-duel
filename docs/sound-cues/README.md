@@ -37,21 +37,33 @@ changes.
 1. **Make the file.** MP3 (music must be MP3: its loop points are found by trimming the encoder's
    silence; looping effects marked `loop: true` are trimmed the same way). Cut it to about the
    **suggested length** in the sheet. Music beds are seamless loops.
-2. **Name it after the slot:** `<slot>.mp3`, exactly as the sheet's manifest slot column spells it, for
-   example `pinball.bumperHit.mp3`, `shared.signature.solve.mp3`, `room.finalRound.mp3`,
-   `music_pinball.mp3`, `music_pattern_tiles.mp3`. That is how every existing file is named
-   (`correct.mp3`, `music_rally.mp3`…).
-3. **Put it where the existing files are:** upload it to the Lovable project's assets, as every existing
-   file was. Lovable serves it at `/__l5e/assets-v1/<id>/<slot>.mp3`. (If a file has to come in through
-   git instead, put it in `public/sounds/<slot>.mp3` and use the URL `/sounds/<slot>.mp3`; the same loader
-   fetches it, and `sound-manifest-check` fails on any audio file in the repo that no slot uses.)
+2. **One file per recording, never one per slot.** When one recording serves several slots (every replay
+   moment, the menu music on the home and practice screens, a "done" sting shared by several puzzles), keep
+   **one** copy and point every slot's `url` at it. Name a file used by one slot after that slot
+   (`pinball.bumperHit.mp3`, `music_pinball.mp3`); name a file shared by several after the recording
+   (`replay.moment.mp3`, `music_menu.mp3`, `done.glowSweep.mp3`), as the batch's mapping sheet does.
+   Batch 1 (#78) saved a copy per slot (228 files for 72 recordings, 5.9 MB); they were folded back to 72
+   files (2.7 MB).
+3. **Put it where the existing files are:** upload it to the Lovable project's assets (served at
+   `/__l5e/assets-v1/<id>/<name>.mp3`), or bring it in through git as `public/sounds/<name>.mp3` with the URL
+   `/sounds/<name>.mp3`. The same loader fetches either, and `sound-manifest-check` fails on any audio file
+   in the repo that no slot uses. To give a slot an existing recording (a shared stand-in), set its `url` to
+   that recording's URL: no copy.
 4. **Set the slot's `url`** in `src/lib/fx/manifest.ts` to that URL, and its `ms` to the file's length
-   in milliseconds (used for ducking music before the file has decoded).
+   in milliseconds (used for ducking music before the file has decoded). Several slots naming one URL are
+   fetched and decoded once.
 5. **Set its volume** on the same entry if it needs one: `volume: 0.7` (0–1, default 1). It multiplies
    the game's own volume for that moment and the player's Effects or Music slider (Sound settings).
    Channels: effects and voice follow the Effects slider, music the Music slider.
 6. Run `bun scripts/sound-cue-sheet.ts` to refresh the sheet (it keeps the CSV's **new file** column),
    and `bun scripts/sound-manifest-check.ts`.
+
+**Loading.** Every effect and voice file (every manifest entry with a `url` that is not music) is preloaded
+when the first tap unlocks audio: fetched and decoded once per URL, so slots sharing a recording cost one
+download. Music beds load on demand when their screen or round starts and are released after. Git-route
+files in `public/sounds/` (October 2026): 72 files, 2.74 MB, of which effects 1.39 MB are preloaded and the
+two music loops (`music_menu.mp3` 0.62 MB, `music_pinball.mp3` 0.74 MB) load on demand. Before the
+de-duplication the preload fetched 225 separate effect files (3.93 MB) and the menu loop was two files.
 
 What each kind of slot does once it has a file:
 
@@ -63,6 +75,9 @@ What each kind of slot does once it has a file:
 - **Arcade moments** ([arcade.md](arcade.md)): the file replaces the shared sound the moment plays today
   (`playSlotOr` in `gameSounds.ts`), at normal speed; loops (`orbit.ambience`, `tilt.roll`…) replace the
   shared loop.
+- **Arcade effect cues** ([arcade-effects.md](arcade-effects.md)): named cues for every arcade-stage visual
+  effect that had no sound. A cue that starts on the same frame as an existing sound lists it in `replaces`
+  (`src/lib/fx/momentCues.ts`); once the cue has a file that sound is left out on that frame, for that game only.
 - **Placeholders**: a file on `chain.linkTone` / `chain.breakTone` replaces Don't Break the Chain's
   synthesised tones (the link tone keeps its climbing pitch).
 - **Music**: `music_<gameId>` (arcade) or `music_<category>_<gameId>` (puzzle) replaces the shared or
@@ -73,7 +88,7 @@ What each kind of slot does once it has a file:
   `stroop.gatesFlash`, `tendrop.solve`, `whack.finale`, `clayshoot.finalBurst`): these fire at the same moment as the
   generic `complete` sound, so once the cue's file has loaded the generic sound is left out there (`completeFx` in
   `src/lib/fx/index.ts`; the burst still shows). Every other completion cue plays on its own, so nothing else changes.
-- **Git-route files** live in `public/sounds/<slot>.mp3`; the shared replay slots `*.final-second` and `*.final` use
+- **Git-route files** live in `public/sounds/` (one per recording); the shared replay slots `*.final-second` and `*.final` use
   `any.final-second.mp3` and `any.final.mp3`, since `*` cannot be in a filename on Windows.
 
 Without a file every slot keeps today's behaviour exactly: named cues stay silent, arcade moments play
@@ -91,13 +106,16 @@ placed on any screen.
 - `src/lib/fx/soundCues.ts`: `SOUND_CUE_EVENT`, `soundCue()`, `installSoundCueLogger()`.
 - `src/lib/fx/manifest.ts`: every file and every empty slot.
 - `src/lib/sound.ts`: the loader and players; `installSoundCueBridge`, `playCueSlot`, `playSlotOr`, `screenMusic`.
-- `src/lib/fx/gameSounds.ts`: the arcade observers.
+- `src/lib/fx/gameSounds.ts`: the arcade observers (arcade moments and renderer-effect cues).
+- `src/lib/fx/momentCues.ts`: live cues for the shared arcade success effects (`MOMENT_CUES`, `momentFrame`, `liveCue`).
 - `docs/sound-cues/cue-sheet.md`, `cue-sheet.csv`: every cue (generated: `bun scripts/sound-cue-sheet.ts`).
 - `docs/sound-cues/shared.md`: the shared cues.
 - `docs/sound-cues/room.md`: the room's big-moment cues (`room.prepare`, `room.round.1`–`6`, `room.finalRound`, `room.winner`…).
 - `docs/sound-cues/word.md`, `number.md`, `speed-attention.md`, `pattern.md`, `logic.md`: the puzzle polish cues.
 - `docs/sound-cues/replays.md`: replay cues.
+- `docs/sound-cues/puzzle-move-cues.md`: what already plays at each silent puzzle move cue, and which are truly silent.
 - `docs/sound-cues/arcade.md`: the arcade games' live sounds and their slots.
+- `docs/sound-cues/arcade-effects.md`: the arcade-stage visual effects' cues, what each looks like, and what already sounds.
 - `docs/sound-cues/core.md`: the app's own recorded sounds, voice lines and the synthesised placeholders.
 - `docs/sound-cues/music.md`: music per screen and per game.
 - `scripts/sound-manifest-check.ts`: proves the manifest, the sheet and the players agree.
