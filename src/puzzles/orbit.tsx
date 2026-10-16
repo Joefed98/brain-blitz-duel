@@ -14,15 +14,14 @@ import {
   ORBIT_INPUT_TAP,
   ORBIT_INPUT_CHECKPOINT,
   ORBIT_RED,
-  ORBIT_WORLD_H,
   ORBIT_WORLD_W,
 } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
-import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitWorldHFor, ORBIT_REV3_WORLD_W } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -53,10 +52,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [devPlanet] = useState(() => (data ? orbitDevPlanet() : null));
   const game = useMemo(() => {
     if (devPlanet) return { ...orbitArtGame, init: (seed: number) => orbitDevStart(orbitArtGame.init(seed), devPlanet) };
-    if ((data?.orbitRev === ORBIT_REV4 || data?.orbitRev === ORBIT_REV_BAND || data?.orbitRev === ORBIT_REV_TUNED || data?.orbitRev === ORBIT_REV_SWEPT) && data.planets) {
+    if ((data?.orbitRev === ORBIT_REV4 || data?.orbitRev === ORBIT_REV_BAND || data?.orbitRev === ORBIT_REV_TUNED || data?.orbitRev === ORBIT_REV_SWEPT || data?.orbitRev === ORBIT_REV_TALL) && data.planets) {
       const planets = decodeRev3Planets(data.planets);
       const holes = decodeOrbitHoles(data.holes ?? []);
-      const start = data.orbitRev === ORBIT_REV_SWEPT ? initSweptFrom : data.orbitRev === ORBIT_REV_TUNED ? initTunedFrom : data.orbitRev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
+      const start = data.orbitRev === ORBIT_REV_TALL ? initTallFrom : data.orbitRev === ORBIT_REV_SWEPT ? initSweptFrom : data.orbitRev === ORBIT_REV_TUNED ? initTunedFrom : data.orbitRev === ORBIT_REV_BAND ? initBandFrom : initRev4From;
       return { ...orbitRev3ArtGame, init: () => start(planets, ORBIT_REV3_WORLD_W, holes) } as unknown as typeof orbitArtGame;
     }
     if (data?.orbitRev === ORBIT_REV3 && data.planets) {
@@ -82,7 +81,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       enabled={data !== null}
       locked={locked}
       worldW={ORBIT_WORLD_W}
-      worldH={ORBIT_WORLD_H}
+      // orbitRev 8: the taller view (620 on every earlier revision).
+      worldH={orbitWorldHFor(data?.orbitRev)}
       game={game}
       sounds={orbitSounds}
       checkpoint={orbitCheckpoint}

@@ -24,6 +24,11 @@ export const BT_CHECKPOINT_INTERVAL = 300;
 
 export const BT_K_ROTATE = 12;
 
+/** Board geometry (world px): square tiles under a hopper strip, over a tray shelf. */
+export const BT_TILE = 100;
+export const BT_HOPPER_H = 58;
+export const BT_TRAY_H = 42;
+
 /**
  * btRev 2 (stored as puzzle.btRev): tubes turn even with a marble inside (it
  * rides the turn and leaves by the new exit), and every tray drop in the bottom
@@ -45,25 +50,68 @@ export const BT_COLOUR_NAMES = ["Red", "Blue", "Green", "Yellow"] as const;
 
 /** Row direction: row 1 runs right, row 2 left, and so on. */
 export const rowDir = (row: number) => (row % 2 === 0 ? 1 : -1);
+
+/**
+ * A fixed serpentine of `rows` rows: tile kinds, corner masks and the straights
+ * fixed in every course (the hopper column down to three rows above the
+ * bottom). The original board has 9 rows; btRev 4 (taller worlds) has
+ * BT_TALL_ROWS, picked by the stored course's `rows`.
+ */
+export interface BtLayout {
+  rows: number;
+  /** Tile kind per cell: 0 empty, 1 straight, 2 corner. */
+  kind: number[];
+  /** Corner side masks (0 for non-corners). */
+  corner: number[];
+  /** Straights fixed in every course: the hopper column, rows 1 to rows − 3. */
+  alwaysFixed: number[];
+  /** First cell of the bottom (tray) row. */
+  bottom: number;
+  /** World height (px): hopper, rows, tray shelf. */
+  h: number;
+}
+
+function buildLayout(rows: number): BtLayout {
+  const kinds: number[] = [];
+  const corners: number[] = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < BT_COLS; c++) {
+      const d = rowDir(r);
+      const start = r === 0 ? BT_HOPPER_COL : d > 0 ? 0 : BT_COLS - 1;
+      const end = d > 0 ? BT_COLS - 1 : 0;
+      const onRow = d > 0 ? c >= start : c <= start;
+      let kind = onRow ? 1 : 0, mask = 0;
+      if (r === rows - 1) { kind = c === 0 ? 2 : 1; mask = c === 0 ? N | E : 0; } // entry corner + six fixed straights
+      else if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
+      else if (onRow && c === end && r < rows - 1) { kind = 2; mask = S | (d > 0 ? W : E); }
+      kinds.push(kind);
+      corners.push(mask);
+    }
+  const alwaysFixed = Array.from({ length: rows - 3 }, (_, r) => r * BT_COLS + BT_HOPPER_COL).filter((c) => kinds[c] === 1);
+  return { rows, kind: kinds, corner: corners, alwaysFixed, bottom: (rows - 1) * BT_COLS, h: BT_HOPPER_H + rows * BT_TILE + BT_TRAY_H };
+}
+
+/** The original 7 × 9 board. */
+export const BT_LAYOUT = buildLayout(BT_ROWS);
 /** Tile kind per cell: 0 empty, 1 straight, 2 corner. Fixed serpentine. */
-export const BT_KIND: number[] = [];
+export const BT_KIND: number[] = BT_LAYOUT.kind;
 /** Corner side masks (0 for non-corners). */
-export const BT_CORNER: number[] = [];
-for (let r = 0; r < BT_ROWS; r++)
-  for (let c = 0; c < BT_COLS; c++) {
-    const d = rowDir(r);
-    const start = r === 0 ? BT_HOPPER_COL : d > 0 ? 0 : BT_COLS - 1;
-    const end = d > 0 ? BT_COLS - 1 : 0;
-    const onRow = d > 0 ? c >= start : c <= start;
-    let kind = onRow ? 1 : 0, mask = 0;
-    if (r === BT_ROWS - 1) { kind = c === 0 ? 2 : 1; mask = c === 0 ? N | E : 0; } // entry corner + six fixed straights
-    else if (onRow && c === start) { kind = 2; mask = N | (d > 0 ? E : W); }
-    else if (onRow && c === end && r < BT_ROWS - 1) { kind = 2; mask = S | (d > 0 ? W : E); }
-    BT_KIND.push(kind);
-    BT_CORNER.push(mask);
-  }
+export const BT_CORNER: number[] = BT_LAYOUT.corner;
 /** Straights fixed in every course: column 4, rows 1–6. */
-export const BT_ALWAYS_FIXED = Array.from({ length: 6 }, (_, r) => r * BT_COLS + BT_HOPPER_COL).filter((c) => BT_KIND[c] === 1);
+export const BT_ALWAYS_FIXED = BT_LAYOUT.alwaysFixed;
+
+/**
+ * btRev 4 (taller worlds, batch 3): the same 700-wide board with BT_TALL_ROWS
+ * rows, 700 × BT_TALL_H (the shape of a 390 × 730 arena). Tall courses carry
+ * `rows: BT_TALL_ROWS`; every other course plays the 9-row board.
+ */
+export const BT_TALL_ROWS = 12;
+export const BT_LAYOUT_TALL = buildLayout(BT_TALL_ROWS);
+
+/** The board a course plays on (its stored `rows`, else the original 9). */
+export function btLayout(course?: { rows?: number } | null): BtLayout {
+  return course?.rows === BT_TALL_ROWS ? BT_LAYOUT_TALL : BT_LAYOUT;
+}
 
 /* ================================ Course ================================ */
 
@@ -78,12 +126,15 @@ export interface BtCourse {
   balls: number[];
   /** Seeded extra fixed straights (rows 1–8; bottom row is always fixed). */
   fixed: number[];
+  /** btRev 4 tall courses only: BT_TALL_ROWS. Absent = the original 9-row board. */
+  rows?: number;
 }
 
 /** Rotatable straights: every straight not in column 4 rows 1–6 and not a seeded fixed tile. */
 export function btRotatable(course: BtCourse): number[] {
-  const fixed = new Set([...BT_ALWAYS_FIXED, ...course.fixed]);
-  return BT_KIND.flatMap((k, cell) => (k === 1 && cell < (BT_ROWS - 1) * BT_COLS && !fixed.has(cell) ? [cell] : []));
+  const layout = btLayout(course);
+  const fixed = new Set([...layout.alwaysFixed, ...course.fixed]);
+  return layout.kind.flatMap((k, cell) => (k === 1 && cell < layout.bottom && !fixed.has(cell) ? [cell] : []));
 }
 
 const PIT = -2;
@@ -110,11 +161,12 @@ export function btSwitchedOn(sw: number | undefined, col: number): boolean {
 
 /** Next cell for a ball in `cell` (arrived from above if `fromAbove`): neighbour, SLOT + column, or PIT. */
 export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse, tick = 0, sw = 0): { cell: number; fromAbove: boolean } {
+  const { rows, kind } = btLayout(course);
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
-  const down = r === BT_ROWS - 1
+  const down = r === rows - 1
     ? c > 0 && (course ? btTraysAt(course, tick)[c]! : -1) >= 0 && !btSwitchedOn(sw, c)
-    : BT_KIND[cell] === 2 ? !fromAbove : vertical;
-  if (down) return r === BT_ROWS - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
+    : kind[cell] === 2 ? !fromAbove : vertical;
+  if (down) return r === rows - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
   return { cell: cell + rowDir(r), fromAbove: false };
@@ -160,12 +212,14 @@ export interface BtState extends BandFields {
   /** Rev 2 success counters: marbles home after riding a turn / after passing a switch point. */
   rideHomes?: number;
   switchHomes?: number;
+  /** btRev 4 only (taller worlds): the world height in px (BT_TALL_H). Absent = BT_H. */
+  worldH?: number;
 }
 
-export function btInit(_course: BtCourse): BtState {
+export function btInit(course: BtCourse): BtState {
   return {
     tick: 0,
-    vert: BT_KIND.map(() => 0),
+    vert: btLayout(course).kind.map(() => 0),
     balls: [],
     next: 0,
     home: 0,
@@ -180,9 +234,8 @@ export function btInit(_course: BtCourse): BtState {
 
 const keep = <T,>(list: T[], item: T) => [...list.slice(-11), item];
 
-const BOTTOM = (BT_ROWS - 1) * BT_COLS;
-
 export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, input: ArcadeInputEvent | null): BtState {
+  const BOTTOM = btLayout(course).bottom;
   const s: BtState = { ...prev, tick: prev.tick + 1, vert: [...prev.vert], balls: prev.balls.map((b) => ({ ...b })) };
   const t = s.tick;
   const v2 = s.rev === BT_REV;
@@ -304,6 +357,8 @@ export function btCheckpoint(s: BtState): BtCheckpoint {
   // Rev 2 also folds the switch points in (same encoded keys).
   if (s.rev === BT_REV) values.push(s.sw ?? 0);
   for (const b of s.balls) values.push(b.id, b.cell, b.at, b.above, b.steps);
+  // btRev 4 (taller worlds): the world height, last.
+  if (s.worldH) values.push(s.worldH);
   let checksum = 0x811c9dc5;
   for (const v of values) {
     checksum ^= v | 0;
@@ -314,11 +369,10 @@ export function btCheckpoint(s: BtState): BtCheckpoint {
 
 /* ================================ Drawing ================================ */
 
-export const BT_TILE = 100;
-export const BT_HOPPER_H = 58;
-export const BT_TRAY_H = 42;
 export const BT_W = BT_COLS * BT_TILE;
 export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
+/** btRev 4: the taller board's height (58 + 12 × 100 + 42). */
+export const BT_TALL_H = BT_LAYOUT_TALL.h;
 const BALL_R = 22.5;
 const BG = "#12161C";
 const TUBE = "#F5B82E";
@@ -328,14 +382,24 @@ const cellCentre = (cell: number) => ({
   x: (cell % BT_COLS) * BT_TILE + BT_TILE / 2,
   y: BT_HOPPER_H + Math.floor(cell / BT_COLS) * BT_TILE + BT_TILE / 2,
 });
-const pointOf = (cell: number) => {
+const pointOf = (cell: number, rows = BT_ROWS) => {
   if (cell < 0) return { x: BT_HOPPER_COL * BT_TILE + BT_TILE / 2, y: BT_HOPPER_H / 2 };
-  if (cell >= SLOT) return { x: (cell - SLOT) * BT_TILE + BT_TILE / 2, y: BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H / 2 };
+  if (cell >= SLOT) return { x: (cell - SLOT) * BT_TILE + BT_TILE / 2, y: BT_HOPPER_H + rows * BT_TILE + BT_TRAY_H / 2 };
   return cellCentre(cell);
 };
 
+/** The world height (px) a state plays in: btRev 4's taller board, or the original 1000. */
+export function btWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? BT_H;
+}
+/** The rows of the board a state plays on. */
+export function btRowsOf(state: { worldH?: number }): number {
+  return state.worldH === BT_TALL_H ? BT_TALL_ROWS : BT_ROWS;
+}
+
 export function btBallPoint(s: BtState, b: BtBall) {
-  const a = pointOf(b.from), z = pointOf(b.cell);
+  const rows = btRowsOf(s);
+  const a = pointOf(b.from, rows), z = pointOf(b.cell, rows);
   const k = Math.max(0, Math.min(1, (s.tick - b.arrived) / BT_STEP_TICKS));
   return { x: a.x + (z.x - a.x) * k, y: a.y + (z.y - a.y) * k };
 }
@@ -363,6 +427,8 @@ function tubePath(ctx: CanvasRenderingContext2D, cell: number, mask: number) {
 }
 
 export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
+  // btRev 4: the taller board's rows and tiles (the original 9 otherwise).
+  const { rows: BT_ROWS, kind: BT_KIND, corner: BT_CORNER } = btLayout(course);
   const gridY = BT_HOPPER_H;
   const rot = rotatable ?? new Set(btRotatable(course));
   ctx.fillStyle = BG;
@@ -409,7 +475,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   for (const m of s.falls) {
     const age = s.tick - m.tick;
     if (age >= 40) continue;
-    const p = pointOf(m.cell);
+    const p = pointOf(m.cell, BT_ROWS);
     ctx.globalAlpha = 1 - age / 40;
     ctx.strokeStyle = BT_PALETTE[m.colour]!;
     ctx.lineWidth = 4;
@@ -464,29 +530,34 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
 /* ================================ Game ================================= */
 
 export const BT_INPUT_RANGES = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_ROWS - 1])] as const;
+/** btRev 4: a tap may name any cell of the taller board. */
+export const BT_INPUT_RANGES_TALL = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_TALL_ROWS - 1])] as const;
 
 export type BtGame = ArcadeGame<BtState, ArcadeInputEvent | null> & { course: BtCourse; rotatable: Set<number> };
 
 /** One game per stored course (and puzzle.btRev); the seed is unused because the course is the content. */
 export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame {
   const rotatable = new Set(btRotatable(course));
+  const layout = btLayout(course);
   return {
     key: "balltrack",
     runTicks: BT_RUN_TICKS,
     course,
     rotatable,
     init: () => {
-      // btRev 3 (score bands) plays the rev-2 rules.
-      const state = rev === BT_REV || rev === BT_REV_BAND
-        ? { ...btInit(course), rev: BT_REV, sw: 0, turned: BT_KIND.map(() => -1000), rideHomes: 0, switchHomes: 0 }
+      // btRev 3 (score bands) and btRev 4 (taller worlds) play the rev-2 rules.
+      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL
+        ? { ...btInit(course), rev: BT_REV, sw: 0, turned: layout.kind.map(() => -1000), rideHomes: 0, switchHomes: 0 }
         : btInit(course);
+      // btRev 4 adds the board's height (folded into the checkpoint checksum last).
+      if (rev === BT_REV_TALL) return bandInit({ ...state, worldH: layout.h });
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
     isOver: btOver,
     score: bandScoreOf(btScore, scoreBand),
     draw: (ctx, state) => btDraw(ctx, course, state, rotatable),
-    inputRanges: BT_INPUT_RANGES,
+    inputRanges: layout.rows === BT_TALL_ROWS ? BT_INPUT_RANGES_TALL : BT_INPUT_RANGES,
   };
 }
 
@@ -500,11 +571,13 @@ export const BT_BAND_CURVE = bandCurve([0, 10, 19, 26, 28, 29, 30], [0, 32, 70, 
 export function btBandParts(state: BtState): BandParts {
   const units = clampInt(state.home, 0, BT_BALLS);
   const finished = units >= BT_BALLS;
-  const window = BT_RUN_TICKS - BT_LAST_LAND_MIN;
-  const left = BT_RUN_TICKS - Math.max(BT_LAST_LAND_MIN, Math.min(BT_RUN_TICKS, state.lastLand));
+  // btRev 4: the last marble has three more rows to fall, so its landing window starts later.
+  const landMin = state.worldH ? BT_LAST_LAND_MIN_TALL : BT_LAST_LAND_MIN;
+  const window = BT_RUN_TICKS - landMin;
+  const left = BT_RUN_TICKS - Math.max(landMin, Math.min(BT_RUN_TICKS, state.lastLand));
   return {
     units,
-    points: bandPoints(BT_BAND_CURVE, units),
+    points: bandPoints(state.worldH ? BT_V4_BAND_CURVE : BT_BAND_CURVE, units),
     bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, left, window) : 0,
     penalty: 0,
     finished,
@@ -515,4 +588,36 @@ export function btBandParts(state: BtState): BandParts {
 
 function scoreBand(state: BtState): number {
   return bandTotal(btBandParts(state), Boolean(state.acted));
+}
+
+/* ================= Taller worlds (btRev 4, Oct 2026) ================= */
+
+/**
+ * btRev 4 (taller worlds, batch 3): btRev 3 play (the rev-2 rules: tubes turn
+ * with a marble inside, switch points on the bottom row) and the same 30
+ * marbles, four colours, release pace, re-lay, colour shuffle and scoring
+ * rules, on a taller board: BT_TALL_ROWS rows of the same 100 px tiles,
+ * 700 × BT_TALL_H, so the board fills a 390 × 730 arena. Courses come from
+ * their own proved bank (src/lib/duel/ballTrackBankTall.server.ts,
+ * scripts/ball-track-bank.ts --tall) and carry `rows`; states add `worldH`,
+ * folded into the checkpoint checksum last. Scored on BT_V4_BAND_CURVE.
+ */
+export const BT_REV_TALL = 4;
+/**
+ * The earliest tick the last marble can land on the taller board: released at
+ * tick 2988, it needs at least 15 sixteen-tick steps (three rows more than the
+ * original 12). arcade-tuning-g3-check proves it.
+ */
+export const BT_LAST_LAND_MIN_TALL = 3228;
+/**
+ * btRev 4 band knots (marbles home), refitted on the taller board with
+ * scripts/arcade-skill-bands.ts --rev=g3 (60 seeds: unit medians 20 / 26 / 28 /
+ * 28; great and near-perfect players both bring 28 home at the median, near-
+ * perfect ones 29 almost as often); 140 at all 30, all home adds up to 10 for speed.
+ */
+export const BT_V4_BAND_CURVE = bandCurve([0, 10, 20, 26, 28, 29, 30], [0, 32, 70, 100, 130, 139, 140]);
+
+/** The world height (px) a stored round's btRev plays in. */
+export function ballTrackWorldHFor(rev?: number | null): number {
+  return rev === BT_REV_TALL ? BT_TALL_H : BT_H;
 }

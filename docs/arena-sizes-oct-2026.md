@@ -30,7 +30,7 @@ revisions keep their own world in reveals and replays.
 | Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 0px | 52px | 0px | - |
 | Fission | 390x650 | 375x515 → 309x515 | 390x548 → 329x548 | 390x692 → 390x650 | 414x700 → 414x690 | 430x780 → 430x717 | 1280x648 → 389x648 | 1.000x | 52px | 0px | 42px | 0px | Fission's two 76px arrows: 16px |
 | Wavefront | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
-| Orbit | 390x620 | 375x547 → 344x547 | 390x580 → 365x580 | 390x724 → 390x620 | 414x732 → 414x658 | 430x812 → 430x684 | 1280x680 → 428x680 | 1.000x | 52px | 0px | 104px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
+| Orbit | 390x650 | 375x547 → 328x547 | 390x580 → 348x580 | 390x724 → 390x650 | 414x732 → 414x690 | 430x812 → 430x717 | 1280x680 → 408x680 | 1.000x | 52px | 0px | 74px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
 | High Rise | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |
 | Jaywalk | 390x580 | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | 1.000x | 52px | 0px | 196px | 0px | - |
 | Junction | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
@@ -40,10 +40,10 @@ revisions keep their own world in reveals and replays.
 | Flightpath | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
 | Coral Pop | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Roofbound | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
-| Grappler | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
+| Grappler | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 0px | 59px | 0px | - |
 | Tilt | 440x470 | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | 0.886x | 52px | 180px | 180px | 0px | - |
-| Ball Tracker | 700x1000 | 375x563 → 375x536 | 390x596 → 390x557 | 390x740 → 390x557 | 414x748 → 414x591 | 430x828 → 430x614 | 1280x696 → 487x696 | 0.557x | 52px | 0px | 183px | 0px | Ball Tracker's status row (28px): 16px |
+| Ball Tracker | 700x1300 | 375x563 → 303x563 | 390x596 → 321x596 | 390x740 → 390x724 | 414x748 → 403x748 | 430x828 → 430x799 | 1280x696 → 375x696 | 0.557x | 52px | 0px | 16px | 0px | Ball Tracker's status row (28px): 16px |
 | Gemstone | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
 | Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
 | Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
@@ -93,7 +93,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Meteor | 414x736 → 396x736, 64px | 414x784 → 414x769, 16px | world 17px |
 | Fission | 414x652 → 391x652, 64px | 414x700 → 414x690, 16px | world none, Fission's two 76px arrows 32px |
 | Wavefront | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
-| Orbit | 414x684 → 414x658, 64px | 414x732 → 414x658, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
+| Orbit | 414x684 → 410x684, 64px | 414x732 → 414x690, 16px | world none, Orbit's SET CHECKPOINT (44px row) 32px |
 | High Rise | 414x736 → 391x736, 64px | 414x784 → 414x780, 16px | world 28px |
 | Jaywalk | 414x736 → 414x616, 64px | 414x784 → 414x616, 16px | world none |
 | Junction | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
@@ -103,10 +103,10 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 | Flightpath | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px | world none |
 | Coral Pop | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Roofbound | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
-| Grappler | 414x736 → 414x658, 64px | 414x784 → 414x658, 16px | world none |
+| Grappler | 414x736 → 393x736, 64px | 414x784 → 414x775, 16px | world 23px |
 | Scrumper | 414x712 → 401x712, 64px | 414x760 → 414x736, 16px | world 8px |
 | Tilt | 414x736 → 414x442, 64px | 414x784 → 414x442, 16px | world none |
-| Ball Tracker | 414x700 → 414x591, 64px | 414x748 → 414x591, 16px | world none, Ball Tracker's status row (28px) 32px |
+| Ball Tracker | 414x700 → 377x700, 64px | 414x748 → 403x748, 16px | world none, Ball Tracker's status row (28px) 32px |
 | Gemstone | 414x736 → 414x594, 64px | 414x784 → 414x594, 16px | world none |
 | Pinball | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px | world none |
 | Letterfall | 414x736 → 410x736, 64px | 414x784 → 414x743, 16px | world none |
@@ -129,7 +129,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Meteor | 367x543 → 293x543 | 382x576 → 310x576 | 382x720 → 382x709 | 422x808 → 422x783 | 1272x676 → 364x676 |
 | Fission | 367x451 → 271x451 | 382x484 → 290x484 | 382x628 → 377x628 | 422x716 → 422x703 | 1272x584 → 350x584 |
 | Wavefront | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
-| Orbit | 367x455 → 286x455 | 382x488 → 307x488 | 382x632 → 382x607 | 422x720 → 422x671 | 1272x588 → 370x588 |
+| Orbit | 367x455 → 273x455 | 382x488 → 293x488 | 382x632 → 379x632 | 422x720 → 422x703 | 1272x588 → 353x588 |
 | High Rise | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
 | Jaywalk | 367x543 → 365x543 | 382x576 → 382x568 | 382x720 → 382x568 | 422x808 → 422x628 | 1272x676 → 455x676 |
 | Junction | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
@@ -139,9 +139,9 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 | Flightpath | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |
 | Coral Pop | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Roofbound | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
-| Grappler | 367x543 → 342x543 | 382x576 → 362x576 | 382x720 → 382x607 | 422x808 → 422x671 | 1272x676 → 425x676 |
+| Grappler | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Scrumper | 367x503 → 283x503 | 382x536 → 302x536 | 382x680 → 382x679 | 422x768 → 422x750 | 1272x636 → 358x636 |
 | Tilt | 367x503 → 367x392 | 382x536 → 382x408 | 382x680 → 382x408 | 422x768 → 422x451 | 1272x636 → 595x636 |
-| Ball Tracker | 367x503 → 352x503 | 382x536 → 375x536 | 382x680 → 382x546 | 422x768 → 422x603 | 1272x636 → 445x636 |
+| Ball Tracker | 367x503 → 271x503 | 382x536 → 289x536 | 382x680 → 366x680 | 422x768 → 414x768 | 1272x636 → 342x636 |
 | Gemstone | 367x543 → 367x527 | 382x576 → 382x549 | 382x720 → 382x549 | 422x808 → 422x606 | 1272x676 → 471x676 |
 | Pinball | 367x543 → 303x543 | 382x576 → 321x576 | 382x720 → 382x686 | 422x808 → 422x757 | 1272x676 → 377x676 |

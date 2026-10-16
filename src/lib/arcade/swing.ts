@@ -440,6 +440,8 @@ export interface SwingState extends Body, BandFields {
   /** swingRev 8 only (Tuning F): 1 = stars spread evenly along the run. Absent on every earlier round. */
   spread?: number;
   starSpots?: [number, number][];
+  /** swingRev 9 only (taller worlds): the world height in px (SWING_TALL_H). Absent = SWING_WORLD_H. */
+  worldH?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -792,8 +794,10 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     if (state.tuned) values.push(state.tuned, ...(state.starsTaken ?? []));
     // swingRev 7 only.
     if (state.tunec) values.push(state.tunec);
-    // swingRev 8 only, last.
+    // swingRev 8 only.
     if (state.spread) values.push(state.spread);
+    // swingRev 9 (taller worlds): the world height, last.
+    if (state.worldH) values.push(state.worldH);
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -809,6 +813,8 @@ export const SWING_GOLD = "#F5B82E";
 export const SWING_RED = "#FF4D5E";
 
 function draw(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
+  // swingRev 9: the taller cavern's height (the original 620 otherwise).
+  const SWING_WORLD_H = swingWorldH(state);
   const scale = Math.min(size.width / SWING_WORLD_W, size.height / SWING_WORLD_H);
   const ox = (size.width - SWING_WORLD_W * scale) / 2;
   const oy = (size.height - SWING_WORLD_H * scale) / 2;
@@ -955,6 +961,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_TALL) return swingTallGame;
   if (rev === SWING_REV_SPREAD) return swingSpreadGame;
   if (rev === SWING_REV_TUNEC) return swingTunecGame;
   if (rev === SWING_REV_TUNED) return swingTunedGame;
@@ -974,7 +981,7 @@ export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 
 export function swingBandParts(state: SwingState): BandParts {
   const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
-  return { units, points: bandPoints(state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
+  return { units, points: bandPoints(state.worldH ? SWING_V9_BAND_CURVE : state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
 }
 
 function scoreBand(state: SwingState): number {
@@ -1244,3 +1251,69 @@ function initV8(seed: number): SwingState {
 
 /** swingRev 8: rev-7 play and curve (it carries `tunec`), stars spread evenly. */
 export const swingSpreadGame: typeof swingGame = { ...swingTunecGame, init: (seed) => bandInit(initV8(seed)) };
+
+/* ================= Taller worlds (swingRev 9, Oct 2026) ================= */
+
+/**
+ * swingRev 9 (taller worlds, batch 3): swingRev 8 play in a taller cavern,
+ * 390 × SWING_TALL_H, the same for every player. The ceiling, anchors, ceiling
+ * spikes, stalactites and every course draw are rev 8's; the lava floor sits
+ * SWING_TALL_DROP lower (every floor point moved down by the same 110 px), so
+ * the extra height is all between the swing lines and the lava. Each lava jet
+ * erupts that much higher from the lower lava, so its top (the height that
+ * kills) is exactly where it was; a loose stalactite falls on to the lower lava.
+ * The ten touch stars are re-proved on the taller cavern: rev 8's spread
+ * (swingSpreadAim, provedLines from a standard swing, the same clearances) run
+ * on the lowered floor. Lowering the floor only removes deaths, so every line
+ * proved on the rev-8 cavern still holds, and provedLines may now find lines
+ * that swoop below the old lava. States carry rev 8's fields plus `worldH`,
+ * folded into the checkpoint checksum last. Scored on SWING_V9_BAND_CURVE.
+ */
+export const SWING_REV_TALL = 9;
+export const SWING_TALL_H = 730;
+/** How far the rev-9 lava (and each jet's base) sits below rev 8's, 1/256 px. */
+export const SWING_TALL_DROP = (SWING_TALL_H - SWING_WORLD_H) * FP;
+
+/** The world height (px) a state plays in: swingRev 9's taller cavern, or the original 620. */
+export function swingWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? SWING_WORLD_H;
+}
+/** The world height (px) a stored round's swingRev plays in. */
+export function swingWorldHFor(rev?: number | null): number {
+  return rev === SWING_REV_TALL ? SWING_TALL_H : SWING_WORLD_H;
+}
+
+/**
+ * swingRev 9 band knots (metres + 5 a star, as rev 5), refitted on the taller
+ * cavern with scripts/arcade-skill-bands.ts --rev=g3 (60 seeds: unit medians
+ * 87 / 204.5 / 290.5 / 500, the near-perfect median a finish) to land average,
+ * good, great and near-perfect players near 70 / 100 / 125 / 140–150; 140 at
+ * 500 m with every star, reaching 500 m adds 10.
+ */
+export const SWING_V9_BAND_CURVE = bandCurve([0, 87, 204, 290, 400, 499, 550], [0, 70, 100, 125, 130, 133, 140]);
+
+const v9Cache = new Map<number, SwingState>();
+function initV9(seed: number): SwingState {
+  const cached = v9Cache.get(seed | 0);
+  if (cached) return { ...cached, rocks: cached.rocks!.map((r) => ({ ...r })) };
+  const v4 = initV4(seed);
+  const floor = v4.floor.map((y) => y + SWING_TALL_DROP);
+  const jets = (v4.jets ?? []).map((jet) => ({ ...jet, h: jet.h + SWING_TALL_DROP }));
+  const deep: SwingState = { ...v4, floor, jets };
+  const tall: SwingState = {
+    ...deep,
+    tuned: 1,
+    starAnchors: [],
+    starSpots: spreadSpots(deep, seed),
+    rocks: v4.rocks!.map((r) => ({ ...r, trigger: r.trigger + SWING_ROCK_LEAD_V6 })),
+    tunec: 1,
+    spread: 1,
+    worldH: SWING_TALL_H,
+  };
+  if (v9Cache.size > 16) v9Cache.clear();
+  v9Cache.set(seed | 0, tall);
+  return { ...tall, rocks: tall.rocks!.map((r) => ({ ...r })) };
+}
+
+/** swingRev 9: rev-8 play and stars in the taller cavern, on SWING_V9_BAND_CURVE. */
+export const swingTallGame: typeof swingGame = { ...swingTunecGame, init: (seed) => bandInit(initV9(seed)) };

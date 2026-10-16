@@ -117,6 +117,17 @@ export const reportMessageFn = createServerFn({ method: "POST" })
     const sender = await senderRow(context.supabase, data.roomId, context.userId);
     if (!sender) return { ok: false as const, message: "You're not in this room." };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // The reported message must be one of this room's (read through the caller's RLS).
+    const { data: message } = await context.supabase
+      .from("room_messages")
+      .select("id")
+      .eq("id", String(data.messageId ?? ""))
+      .eq("duel_id", data.roomId)
+      .maybeSingle();
+    if (!message) return { ok: false as const, message: "That message isn't in this room." };
+    const { REPORT_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(supabaseAdmin, context.userId, REPORT_LIMIT)))
+      return { ok: false as const, message: "Thanks, we've got your reports." };
     await supabaseAdmin.from("room_reports").insert({
       duel_id: data.roomId,
       message_id: data.messageId,

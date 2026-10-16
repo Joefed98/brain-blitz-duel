@@ -1,6 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
-import { ORBIT_FX, ORBIT3_FX } from "./arcadeFxGames.renderer";
+import { ORBIT_FX, orbit3FxFor } from "./arcadeFxGames.renderer";
 /**
  * Orbit art pass. Render only: reads OrbitState and never mutates it. Every
  * body, path and hazard arc is drawn from the sim's own geometry (planet
@@ -713,8 +713,8 @@ import {
   orbitCamera,
   orbitCameraObserve,
   orbitVisiblePlanets,
+  orbitViewH,
   ORBIT_CAM_VIEW_W,
-  ORBIT_CAM_VIEW_H,
   type OrbitCamOffset,
 } from "./orbitCamera";
 import { orbitHoleLive, orbitRev3Game, ORBIT_HOLE_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
@@ -746,7 +746,7 @@ function rev3PlanetSprite(planets: Planet[], p: Planet, i: number, lobe: number,
   return off;
 }
 
-function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean): void {
+function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean, ORBIT_CAM_VIEW_H: number): void {
   // Same seeded hashed layout as rev1/2's drawStars, parallaxed at 0.3x in both axes
   // since rev3 scrolls sideways as well as vertically.
   drawNebula(ctx, cam.x, cam.y, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
@@ -809,7 +809,7 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
 }
 
 function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
-  arcadeFx(ctx, ORBIT3_FX, state, () => drawOrbitRev3ArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, orbit3FxFor(state), state, () => drawOrbitRev3ArtWorld(ctx, state, size), size);
 }
 
 /**
@@ -818,7 +818,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
  * belongs to) brightens the rim; `since` is ticks since the last jump, for a
  * brief gold flash. Render only.
  */
-function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, armed: boolean, t: number, since: number): void {
+function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, armed: boolean, t: number, since: number, ORBIT_CAM_VIEW_H: number): void {
   const r = ORBIT_HOLE_R / FP;
   if (x < -r - 4 || y < -r - 4 || x > ORBIT_CAM_VIEW_W + r + 4 || y > ORBIT_CAM_VIEW_H + r + 4) return;
   ctx.save();
@@ -859,6 +859,8 @@ function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, arme
 }
 
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
+  // orbitRev 8: the taller view (620 otherwise).
+  const ORBIT_CAM_VIEW_H = orbitViewH(state);
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
   const cam = orbitCamera(state, { reducedMotion: still });
@@ -876,7 +878,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.clip();
 
   const capturePlanet=state.planets[state.cur];
-  rev3Starfield(ctx, cam, t, still);
+  rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H);
    drawOrbitShootingStar(ctx, state, cam, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
@@ -930,7 +932,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
       ctx.save();
       ctx.globalAlpha = 0.35;
     }
-    drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, live && state.flying === 0, t, state.tick - (state.holeTick ?? -100));
+    drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, live && state.flying === 0, t, state.tick - (state.holeTick ?? -100), ORBIT_CAM_VIEW_H);
     if (state.swept && !live) ctx.restore();
   }
 

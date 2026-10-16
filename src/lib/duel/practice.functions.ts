@@ -19,7 +19,10 @@ import type { PuzzleData, PuzzleType } from "./types";
 type Loose = Record<string, unknown>;
 
 async function sealKey(): Promise<CryptoKey> {
-  const material = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? process.env["SUPABASE_URL"] ?? "";
+  const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+  // The public URL is no secret: only a dev server (practice in checks) may seal with it.
+  if (!secret && import.meta.env.PROD) throw new Error("Practice is unavailable right now.");
+  const material = secret ?? process.env["SUPABASE_URL"] ?? "";
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
   return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
 }

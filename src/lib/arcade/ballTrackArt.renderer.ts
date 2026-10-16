@@ -1,15 +1,15 @@
 import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { BALLTRACK_FX } from "./arcadeFxGames.renderer";
+import { balltrackFxFor } from "./arcadeFxGames.renderer";
 /**
  * Ball Track in the Toybox world: a wooden marble run. Render only; mirrors
  * btDraw's private geometry (tile centres, tube path, ball radius 22.5) and
  * reads state without writing it.
  */
 import {
-  BT_BALLS, BT_COLS, BT_CORNER, BT_H, BT_HOPPER_COL, BT_HOPPER_H, BT_KIND, BT_PALETTE,
-  BT_REV, BT_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
-  btBallPoint, btEventCountdown, btRotatable, btSwitchedOn, btTraysAt, rowDir,
+  BT_BALLS, BT_COLS, BT_H as BT_BASE_H, BT_HOPPER_COL, BT_HOPPER_H, BT_PALETTE,
+  BT_REV, BT_ROWS as BT_BASE_ROWS, BT_SHUFFLE_TICKS, BT_TILE, BT_TRAY_H, BT_TURN_TICKS, BT_W, E, N, S, W,
+  btBallPoint, btEventCountdown, btLayout, btRotatable, btSwitchedOn, btTraysAt, rowDir,
   type BtBall, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
@@ -32,7 +32,7 @@ const cellCentre = (cell: number) => ({
   x: (cell % BT_COLS) * BT_TILE + BT_TILE / 2,
   y: BT_HOPPER_H + Math.floor(cell / BT_COLS) * BT_TILE + BT_TILE / 2,
 });
-const pointOf = (cell: number) => {
+const pointOf = (cell: number, BT_ROWS = BT_BASE_ROWS) => {
   if (cell < 0) return { x: BT_HOPPER_COL * BT_TILE + BT_TILE / 2, y: BT_HOPPER_H / 2 };
   if (cell >= SLOT) return { x: (cell - SLOT) * BT_TILE + BT_TILE / 2, y: BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H / 2 };
   return cellCentre(cell);
@@ -149,7 +149,7 @@ function deviceScale(ctx: CanvasRenderingContext2D): number {
  * `paint` in world units), or paints straight onto ctx where no offscreen
  * canvas exists (SSR, Node checks).
  */
-function btLayer(ctx: CanvasRenderingContext2D, key: string, paint: (c: CanvasRenderingContext2D) => void): void {
+function btLayer(ctx: CanvasRenderingContext2D, key: string, paint: (c: CanvasRenderingContext2D) => void, BT_H = BT_BASE_H): void {
   const k = deviceScale(ctx);
   const pw = Math.max(1, Math.round(BT_W * k));
   const ph = Math.max(1, Math.round(BT_H * k));
@@ -238,7 +238,7 @@ function shelf(c: CanvasRenderingContext2D, y: number, h: number): void {
 }
 
 /** Board, plank seams, shelves and settled channels (cached by btLayer). */
-function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[]): void {
+function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], BT_ROWS = BT_BASE_ROWS, BT_H = BT_BASE_H): void {
   toyBoard(c, 0, 0, BT_W, BT_H, 14);
   // Plank seams across the board, with a lit edge under each.
   const gridY = BT_HOPPER_H;
@@ -302,10 +302,12 @@ function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
 
 /** Ball Tracker drawing (world units; the caller scales) through the shared success layer. */
 export function btArtDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
-  arcadeFx(ctx, BALLTRACK_FX, s, () => btArtDrawWorld(ctx, course, s, rotatable));
+  arcadeFx(ctx, balltrackFxFor(s), s, () => btArtDrawWorld(ctx, course, s, rotatable));
 }
 
 function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtState, rotatable?: Set<number>) {
+  // btRev 4: the taller board's rows, tiles and height (the original 9 rows otherwise).
+  const { rows: BT_ROWS, kind: BT_KIND, corner: BT_CORNER, h: BT_H } = btLayout(course);
   const gridY = BT_HOPPER_H;
   const rot = rotatable ?? new Set(btRotatable(course));
   toyTabletop(ctx);
@@ -321,7 +323,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   // a tube turns or a drop changes); tubes mid-turn are drawn on top, swung by the turn still to come.
   const masks: number[] = [];
   for (let cell = 0; cell < BT_KIND.length; cell++) masks.push(BT_KIND[cell] && !turning.has(cell) ? maskOf(cell) * 2 + (rot.has(cell) ? 1 : 0) : 0);
-  btLayer(ctx, masks.join(","), (c) => paintBoardLayer(c, masks));
+  btLayer(ctx, masks.join(","), (c) => paintBoardLayer(c, masks, BT_ROWS, BT_H), BT_H);
   for (const cell of turning) {
     const { x, y } = cellCentre(cell);
     const { u, sign } = turnOf(s, cell);
@@ -419,7 +421,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   for (const m of s.falls) {
     const age = s.tick - m.tick;
     if (age >= 40) continue;
-    const p = pointOf(m.cell);
+    const p = pointOf(m.cell, BT_ROWS);
     ctx.globalAlpha = 1 - age / 40;
     ctx.strokeStyle = BT_PALETTE[m.colour]!;
     ctx.lineWidth = 4;

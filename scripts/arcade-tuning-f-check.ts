@@ -159,7 +159,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo on to its taller lanes (beatRev 6); arcade-tuning-g2-check covers it.
     ["beat", "beatRev", generateBeat().beatRev, BEAT_REV_TUNEF + 1, 6],
     ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_ROCKS, 6],
-    ["orbit", "orbitRev", generateOrbit().orbitRev, ORBIT_REV_SWEPT, 7],
+    // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
+    ["orbit", "orbitRev", generateOrbit().orbitRev, ORBIT_REV_SWEPT + 1, 8],
   ];
   for (const [type, field, got, rev, n] of stamps) {
     ok(got === rev && rev === n, `${type}: new rounds stamped ${field} ${n} (got ${got})`);

@@ -1,7 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { SWING_FX } from "./arcadeFxGames.renderer";
+import { swingFxFor } from "./arcadeFxGames.renderer";
 /**
  * Swing art pass. Render only: reads SwingState and never mutates it. The lava
  * surface is the sim's floor line, stalactites use the sim's spike polygon and
@@ -27,10 +27,11 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
+  SWING_REV_TALL,
   SWING_STAR_R,
   swingStarTotal,
   SWING_GOLD,
-  SWING_WORLD_H,
+  swingWorldH,
   SWING_WORLD_W,
   type SwingState,
 } from "./swing";
@@ -55,10 +56,13 @@ function lerpAt(arr: readonly number[], x: number): number {
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
-  arcadeFx(ctx, SWING_FX, state, () => drawSwingArtWorld(ctx, state, size), size);
+  arcadeFx(ctx, swingFxFor(state), state, () => drawSwingArtWorld(ctx, state, size), size);
 }
 
 function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
+  // swingRev 9: the taller cavern (its lava 110 px lower); 620 on every earlier revision.
+  const SWING_WORLD_H = swingWorldH(state);
+  const deep = SWING_WORLD_H - 620;
   const still = reducedMotion();
   const t = still ? 0 : state.tick / 60;
   const scale = Math.min(size.width / SWING_WORLD_W, size.height / SWING_WORLD_H);
@@ -97,7 +101,8 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   haze.addColorStop(1, "#2A0D08");
   ctx.fillStyle = haze;
   ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
-  for (const [par, base, span, colour, step] of [[0.15, 250, 90, "#160D10", 46], [0.3, 330, 70, "#21131A", 30]] as const) {
+  // The distant rock keeps its height above the lava.
+  for (const [par, base, span, colour, step] of [[0.15, 250 + deep, 90, "#160D10", 46], [0.3, 330 + deep, 70, "#21131A", 30]] as const) {
     ctx.fillStyle = colour;
     ctx.beginPath();
     ctx.moveTo(-20, SWING_WORLD_H);
@@ -784,7 +789,9 @@ const bandArtGameV5 = { ...swingGameFor(SWING_REV_BAND), draw: drawSwingArt };
 const tunedArtGameV6 = { ...swingGameFor(SWING_REV_TUNED), draw: drawSwingArt };
 const tunecArtGameV7 = { ...swingGameFor(SWING_REV_TUNEC), draw: drawSwingArt };
 const spreadArtGameV8 = { ...swingGameFor(SWING_REV_SPREAD), draw: drawSwingArt };
+const tallArtGameV9 = { ...swingGameFor(SWING_REV_TALL), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_TALL) return tallArtGameV9;
   if (rev === SWING_REV_SPREAD) return spreadArtGameV8;
   if (rev === SWING_REV_TUNEC) return tunecArtGameV7;
   if (rev === SWING_REV_TUNED) return tunedArtGameV6;

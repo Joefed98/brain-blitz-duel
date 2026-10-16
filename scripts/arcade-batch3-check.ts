@@ -122,7 +122,7 @@ section("legacy identity");
 }
 // Tuning A moved new Wavefront and Grappler rounds on to wavRev 4 / swingRev 6, Tuning C on to wavRev 5 / swingRev 7 (arcade-tuning-c-check), and Tuning F Grappler on to swingRev 8 (swing-rev8-check).
 // Taller worlds batch 1 (16 Oct 2026) moved Wavefront, Breaker and Fission on to wavRev 6, brkRev 6 and burstRev 4 (arcade-tuning-g1-check).
-ok(generateWavefront().wavRev === WAV_REV_TUNEC + 1 && generateBreaker().brkRev === BRK_REV_TUNEF + 1 && generateBurst().burstRev === BURST_REV_BAND + 1 && generateSwing().swingRev === SWING_REV_TUNEC + 1, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Tuning F's spread stars for Grappler; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
+ok(generateWavefront().wavRev === WAV_REV_TUNEC + 1 && generateBreaker().brkRev === BRK_REV_TUNEF + 1 && generateBurst().burstRev === BURST_REV_BAND + 1 && generateSwing().swingRev === SWING_REV_TUNEC + 2, "new rounds are stamped with the score-band revisions (the batch-3 rules plus the Oct 2026 bands; Tuning A then Tuning C for Wavefront and Grappler, Tuning F's spread stars and taller worlds batch 3's taller cavern for Grappler; Breaker brkRev 4 adds Tuning B's 3.5 s Fireball, brkRev 5 Tuning F's 2.5 s one, arcade-tuning-f-check)");
 
 /* ================================ 2a. Wavefront ================================ */
 if (want("wavefront")) {

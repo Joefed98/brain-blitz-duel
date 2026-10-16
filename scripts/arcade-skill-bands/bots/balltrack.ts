@@ -17,14 +17,13 @@
  */
 import {
   btNext,
+  btLayout,
   btRotatable,
   btTraysAt,
   BT_COLS,
   BT_HOPPER_COL,
   BT_HOPPER_H,
-  BT_KIND,
   BT_K_ROTATE,
-  BT_ROWS,
   BT_STEP_TICKS,
   BT_TILE,
   BT_W,
@@ -60,7 +59,7 @@ function routeFrom(course: BtCourse, rot: Set<number>, start: number, above: boo
     const key = `${q.cell}|${q.above}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const options = BT_KIND[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
+    const options = btLayout(course).kind[q.cell] === 2 ? [-1] : rot.has(q.cell) ? [0, 1] : [0];
     for (const v of options) {
       const next = btNext(q.cell, q.above, v === 1, course, tick);
       const path = [...q.path, { cell: q.cell, vert: rot.has(q.cell) ? v : -1 }];
@@ -79,6 +78,8 @@ export const bot: SkillBot = ({ game, human }) => {
   const level = human.level;
   const g = game as BtGame;
   const course = g.course;
+  // btRev 4: the taller board's rows (its course carries them).
+  const BT_ROWS = btLayout(course).rows;
   const rot = new Set(btRotatable(course));
   const init = g.init(0) as BtState;
   const history: BtState[] = [];
