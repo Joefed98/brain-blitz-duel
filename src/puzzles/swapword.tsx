@@ -16,7 +16,7 @@ import {
   type SwSwap,
 } from "@/lib/duel/swapword";
 import { SWAPWORD_TIME_MS, type SwapwordPuzzleData } from "@/lib/duel/types";
-import { fx } from "@/lib/fx";
+import { completeFx, fx } from "@/lib/fx";
 import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
@@ -182,7 +182,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     if (submitted.current || locked) return;
     if (result.solved || result.over) {
       submitted.current = true;
-      if (result.solved) fx.onComplete();
+      if (result.solved) completeFx("swapword.finish");
       onSubmit(encoded);
       return;
     }

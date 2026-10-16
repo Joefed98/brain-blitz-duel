@@ -20,7 +20,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 import { SOUND_CUE_EVENT } from "../src/lib/fx/soundCues";
-import { buildRows, parseCsv, sortRows } from "./sound-cue-sheet";
+import { buildRows, parseCsv, readDocRows, sortRows } from "./sound-cue-sheet";
 
 const failures: string[] = [];
 const notes: string[] = [];
@@ -327,8 +327,16 @@ const realWarn = console.warn;
 console.error = (...args: unknown[]) => errors.push(args);
 console.warn = (...args: unknown[]) => warns.push(args);
 
-// A file on every slot (the loader reads the manifest when sound.ts loads).
-const slotIds = ids.filter((id) => manifest[id]!.url === null && id !== "tension_loop");
+// A file on every slot (the loader reads the manifest when sound.ts loads). Slots are the unset
+// entries, those filled through git (public/sounds) and named cues pointed at another entry's
+// recording; each gets a test file here and is unset again below.
+const sharesFile = (id: string) =>
+  ids.some((other) => other !== id && manifest[other]!.url === manifest[id]!.url);
+const slotIds = ids.filter((id) => {
+  const url = manifest[id]!.url;
+  if (id === "tension_loop") return false;
+  return url === null || url.startsWith("/sounds/") || (id.includes(".") && sharesFile(id));
+});
 const testUrl = (id: string) => `/sounds/${id}.mp3`;
 for (const id of slotIds) manifest[id]!.url = testUrl(id);
 const MISS_CUE = "room.finalRound";
@@ -386,9 +394,18 @@ check(
   "orbit.final-second plays the shared *.final-second slot",
 );
 
-// Arcade moments: own file at normal speed instead of the shared sound.
+// Arcade moments: own file at normal speed instead of the shared sound. The shared sound each
+// one plays without its own file is arcade.md's "plays today".
+const arcadeFallback = new Map(
+  readDocRows()
+    .filter((r) => r.file === "arcade.md")
+    .map((r) => [
+      r.cells.cue!,
+      (r.cells["plays today"] ?? "").replace(/`/g, "").trim().split(/\s/)[0]!,
+    ]),
+);
 const sharedOf = (cue: string) =>
-  rows.find((r) => r.cue === cue)!.fileToday.replace(" (shared)", "");
+  arcadeFallback.get(cue) || rows.find((r) => r.cue === cue)!.fileToday.replace(" (shared)", "");
 const fileOf = (id: string) => manifest[id]!.url!;
 let arcadePlayed = 0;
 for (const cue of arcadeCues) {
@@ -519,7 +536,7 @@ console.error = realError;
 console.warn = realWarn;
 for (const note of notes) console.log(note);
 console.log(
-  `sound-manifest-check: ${rows.length} cue-sheet rows, ${ids.length} manifest entries (${slotIds.length} empty slots); ` +
+  `sound-manifest-check: ${rows.length} cue-sheet rows, ${ids.length} manifest entries (${slotIds.length} named slots); ` +
     `${namedPlayed} named cues, ${arcadePlayed} arcade moments, ${musicGames} game music slots and ${screenSlots.length} screen slots play their file; ${passes} assertions.`,
 );
 if (failures.length) {

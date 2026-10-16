@@ -1,8 +1,14 @@
-import { fx } from "./index";
+import { completeFx, fx } from "./index";
 import { signatureArcadeRunOver } from "./signature";
 
 /** HUD-only observer, called after a frame advances. Does not inspect inputs or score. */
-export function arcadeFeedback(options: { combo?: boolean } = {}) {
+export function arcadeFeedback(
+  options: {
+    combo?: boolean;
+    /** The game's own completion cue when it fires on this run's last frame (completeFx), else null. */
+    completeCue?: (state: object) => string | null;
+  } = {},
+) {
   const comboCue = options.combo !== false;
   let previousCombo = 0;
   let previousCascades = 0;
@@ -20,7 +26,10 @@ export function arcadeFeedback(options: { combo?: boolean } = {}) {
     if (over && !finished) {
       finished = true;
       // Complete means the run ended, not a claim of perfect server correctness.
-      fx.onComplete();
+      // A game whose own completion cue fires now leaves out the generic sound once that cue has a file.
+      const ownCue = options.completeCue?.(state) ?? null;
+      if (ownCue) completeFx(ownCue);
+      else fx.onComplete();
       // The shared signature beat: arcade finish reached, or an open run of 120+.
       signatureArcadeRunOver(state);
     }

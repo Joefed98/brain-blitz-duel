@@ -25,7 +25,7 @@ import {
   type SoView,
 } from "@/lib/duel/strikeout";
 import { STRIKEOUT_TIME_MS, type StrikeoutPuzzleData } from "@/lib/duel/types";
-import { fx } from "@/lib/fx";
+import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { buzz, prefersReducedMotion } from "@/lib/motion";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
@@ -174,7 +174,7 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
   useEffect(() => {
     if (submitted.current || locked || !view || (!view.done && !view.over)) return;
     submitted.current = true;
-    if (view.done) fx.onComplete();
+    if (view.done) completeFx("strikeout.finish");
     onSubmit(encoded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, locked]);
@@ -473,7 +473,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   useEffect(() => {
     if (submitted.current || locked || !view || (!view.done && !view.over)) return;
     submitted.current = true;
-    if (view.done) fx.onComplete();
+    if (view.done) completeFx("strikeout.finish");
     onSubmit(encoded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, locked]);
