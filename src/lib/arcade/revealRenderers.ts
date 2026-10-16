@@ -17,10 +17,12 @@ import { rallyWorldHFor } from "./rally";
 import { pinballArtGameFor } from "./pinball.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
-import { sliceGame } from "./slice";
+import { sliceGame, sliceWorldHFor } from "./slice";
 import { sliceArtGame } from "./slice.renderer";
 import { bubbleArtGame as bubbleGame } from "./bubble.renderer";
+import { bubbleWorldHFor } from "./bubble";
 import { beatArtGame as beatGame } from "./beat.renderer";
+import { beatWorldHFor } from "./beat";
 import { SNAKE_WORLD_H, SNAKE_WORLD_W, snakeWorldHForRev } from "./snake";
 import { hoverWorldHFor } from "./hover";
 import { skylineWorldHFor } from "./skyline";
@@ -45,14 +47,14 @@ import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { BT_H, BT_W, type BtState } from "./ballTrack";
 import { whackArtGame as whackGame } from "./whack.renderer";
-import { CLAY_H, CLAY_W } from "./clayShoot";
+import { CLAY_H, CLAY_W, clayWorldHFor } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
 import { TD_H, TD_W, type TenDropState } from "./tenDrop";
 import { drawTenDrop } from "./tenDrop.renderer";
 import { wfWorldHFor, wordfallGameFor, WF_H, WF_W } from "./wordfall";
 import { wordfallArtGameFor } from "./wordfall.renderer";
 import { loadWordfallDict, wordfallDictReady } from "./wordfallDict";
-import { CLASH_WORLD_H, CLASH_WORLD_W } from "./colourClash";
+import { CLASH_WORLD_H, CLASH_WORLD_W, clashWorldHFor } from "./colourClash";
 import { colourClashArtGameFor } from "./colourClash.renderer";
 
 import { replayHoverRun } from "@/lib/duel/hover";
@@ -165,9 +167,9 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   },
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, pinballArtGameFor(1), (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined)),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined)),
-  slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined)),
-  bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined)),
-  beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined)),
+  slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined)),
+  bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
+  beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),
   cross: simple("#2ED3B7", 390, 580, crossGame, (p, a) => replayCrossRun(seedOf(p), a, p.type === "cross" ? p.crossRev : undefined), undefined, crossRevealGame),
   wavefront: simple(
@@ -254,10 +256,12 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: "#E8762C",
     worldW: CLAY_W,
     worldH: CLAY_H,
+    // clayRev 6: the taller sky.
+    heightFor: (puzzle) => clayWorldHFor(puzzle.type === "clayshoot" ? puzzle.clayRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "clayshoot") return null;
       const state = replayClayRun(puzzle.seed, answer, puzzle.clayRev).state;
-      clayArtGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: CLAY_H });
+      clayArtGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: clayWorldHFor(puzzle.clayRev) });
       return null;
     },
   },
@@ -285,9 +289,11 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: CLASH_WORLD_W,
     worldH: CLASH_WORLD_H,
+    // clashRev 5: the taller board.
+    heightFor: (p) => clashWorldHFor(p.type === "stroop" ? clashVariantOf(p) : 0),
     drawFinal: (ctx, p, a) => {
       const variant = p.type === "stroop" ? clashVariantOf(p) : 0;
-      colourClashArtGameFor(variant).draw(ctx, replayColourClashRun(seedOf(p), a, variant).state, { width: CLASH_WORLD_W, height: CLASH_WORLD_H });
+      colourClashArtGameFor(variant).draw(ctx, replayColourClashRun(seedOf(p), a, variant).state, { width: CLASH_WORLD_W, height: clashWorldHFor(variant) });
       return null;
     },
   },

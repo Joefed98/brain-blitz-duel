@@ -26,7 +26,7 @@ import {
   SLICE_INPUT_BEGIN,
   SLICE_INPUT_END,
   SLICE_RUN_TICKS,
-  SLICE_WORLD_H,
+  sliceWorldHFor,
   SLICE_WORLD_W,
   type SliceState,
 } from "@/lib/arcade/slice";
@@ -63,6 +63,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SlicePuzzleData | null = puzzle.type === "slice" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const sliceGame = sliceGameFor(data?.sliceRev);
+  // sliceRev 6: the taller board; every phone draws the stored revision's world.
+  const SLICE_WORLD_H = sliceWorldHFor(data?.sliceRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);

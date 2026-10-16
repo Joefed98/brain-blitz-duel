@@ -19,6 +19,10 @@
  *  - Tempo (beat): every lane's drawn lane flash, left and right (lane by x
  *    alone); hit = the tap lands in that lane.
  *
+ * Taller worlds batch 2 (16 Oct 2026): Pull!, Mixed Signals and Tempo are each proved on the
+ * revision rooms dealt before (clayRev 5, clashRev 4, beatRev 5) and on the taller one (clayRev 6,
+ * clashRev 5, beatRev 6), at its own world height.
+ *
  * Reported, not enforced (printed with how often and how far a tap past the edge still hits):
  *  - Bonk (whack), by design: taps snap to the nearer hole across the 8 px gaps and
  *    35 % of a cell past the board's outer edge, so a tap well past a target still hits
@@ -208,12 +212,14 @@ const inside = (p: Point, w: number, h: number) => p.x >= 0 && p.y >= 0 && p.x <
 
 /* ------------------------------------------------------------------ Pull! */
 
-function clayShoot(): void {
+function clayShoot(rev: number): void {
   type S = ReturnType<typeof clay.clayRev3Game.init>;
-  const game = clay.clayGameFor(clay.CLAY_REV);
+  const game = clay.clayGameFor(rev);
+  // clayRev 6 (taller worlds batch 2): the 360 × 680 sky; clayRev 5 keeps 360 × 400.
+  const H = clay.clayWorldHFor(rev);
   const SIZES = [
-    [360, 400],
-    [390, 433],
+    [360, H],
+    [390, Math.round((390 * H) / 360)],
   ] as const;
   const zone = (s: S, i: number) =>
     s.schedule.kind[i] === clay.CLAY_KIND_GOLD
@@ -222,7 +228,7 @@ function clayShoot(): void {
   /** Where the next tick judges clay i / bird j (world px). */
   const clayAt = (s: S, i: number): Point => ({
     x: (s.x[i]! + s.schedule.vx[i]!) / 256,
-    y: (s.y[i]! + s.vy[i]! + clay.CLAY_CONFIG.gravity) / 256,
+    y: (s.y[i]! + s.vy[i]! + clay.clayGravity(s)) / 256,
   });
   const birdAt = (s: S, j: number): Point => ({
     x: (s.birdX![j]! + s.birds!.vx[j]!) / 256,
@@ -254,7 +260,7 @@ function clayShoot(): void {
           o.at.x < margin ||
           o.at.x > clay.CLAY_W - margin ||
           o.at.y < margin ||
-          o.at.y > clay.CLAY_H - margin
+          o.at.y > H - margin
         )
           continue;
         const without = structuredClone(s);
@@ -264,14 +270,14 @@ function clayShoot(): void {
           const a = render(w, h, (ctx) => drawClayArt(ctx, s, { width: w, height: h }));
           const b = render(w, h, (ctx) => drawClayArt(ctx, without, { width: w, height: h }));
           const box = { left: 0, top: 0, width: w, height: h };
-          const label = `Pull! seed ${seed} tick ${s.tick} ${o.kind === "clay" ? (s.schedule.kind[o.i] === clay.CLAY_KIND_GOLD ? "gold clay" : "orange clay") : "bird"} ${o.i} at ${w}x${h}`;
+          const label = `Pull! clayRev ${rev} seed ${seed} tick ${s.tick} ${o.kind === "clay" ? (s.schedule.kind[o.i] === clay.CLAY_KIND_GOLD ? "gold clay" : "orange clay") : "bird"} ${o.i} at ${w}x${h}`;
           probe(
             label,
             diffMask(a, b, w, h, 4),
             ["left", "right", "top", "bottom"],
             (p) => {
               if (!inside(p, w, h)) return false;
-              const shot = clayTapWorld(box, p.x, p.y);
+              const shot = clayTapWorld(box, p.x, p.y, H);
               if (!shot) return false;
               const next = game.step(s, {
                 t: s.tick + 1,
@@ -301,10 +307,10 @@ function clayShoot(): void {
   }
   if (clays < 20 || golds < 3 || birds < 10)
     failures.push(
-      `Pull!: too few clear targets sampled (${clays} orange, ${golds} gold, ${birds} birds)`,
+      `Pull! clayRev ${rev}: too few clear targets sampled (${clays} orange, ${golds} gold, ${birds} birds)`,
     );
   console.log(
-    `Pull!: ${clays} orange clays, ${golds} gold clays, ${birds} birds, each at ${SIZES.map(([w, h]) => `${w}x${h}`).join(" and ")}`,
+    `Pull! clayRev ${rev}: ${clays} orange clays, ${golds} gold clays, ${birds} birds, each at ${SIZES.map(([w, h]) => `${w}x${h}`).join(" and ")}`,
   );
 }
 
@@ -315,15 +321,16 @@ function hexRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function mixedSignals(): void {
+function mixedSignals(variant: number): void {
   type S = ReturnType<typeof clash.colourClashRev4Game.init>;
-  const variant = 4;
   const game = colourClashArtGameFor(variant);
+  // clashRev 5 (taller worlds batch 2): the 390 × 650 board, gates 90 px lower; clashRev 4 keeps 390 × 560.
   const W = clash.CLASH_WORLD_W,
-    H = clash.CLASH_WORLD_H;
+    H = clash.clashWorldHFor(variant);
+  const low = H - clash.CLASH_WORLD_H;
   const SIZES = [
-    [390, 560],
-    [358, 514],
+    [390, H],
+    [358, Math.round((358 * H) / W)],
   ] as const;
   let gates = 0;
   const seen = new Set<number>();
@@ -349,7 +356,7 @@ function mixedSignals(): void {
             game.draw(ctx, s, { width: W, height: H });
           });
           for (let lane = 0; lane < lanes; lane++) {
-            const rect = clashGateRect(lane, lanes);
+            const rect = clashGateRect(lane, lanes, low);
             // The gate bar: pixels in the gate band whose colour is nearer this gate's than any
             // neighbouring gate's or the dark sockets' (a neighbour's glow tints the bar's ends).
             const own = hexRgb(clash.CLASH_COLOURS[colours[lane]!]!);
@@ -386,7 +393,7 @@ function mixedSignals(): void {
             }
             const box = { left: 0, top: 0, width: w, height: h };
             probe(
-              `Mixed Signals seed ${seed} tick ${s.tick} ${lanes} lanes, gate ${lane} at ${w}x${h}`,
+              `Mixed Signals variant ${variant} seed ${seed} tick ${s.tick} ${lanes} lanes, gate ${lane} at ${w}x${h}`,
               { w, h, on },
               ["left", "right"],
               (p) => {
@@ -414,24 +421,25 @@ function mixedSignals(): void {
   }
   const counts = new Set([...seen].map((k) => Math.floor(k / 1000)));
   if (counts.size < 2)
-    failures.push(`Mixed Signals: only lane counts ${[...counts].join(", ")} sampled`);
+    failures.push(`Mixed Signals variant ${variant}: only lane counts ${[...counts].join(", ")} sampled`);
   console.log(
-    `Mixed Signals: ${gates} gates over lane counts ${[...counts].sort().join(" and ")}, each at ${SIZES.map(([w, h]) => `${w}x${h}`).join(" and ")}`,
+    `Mixed Signals variant ${variant}: ${gates} gates over lane counts ${[...counts].sort().join(" and ")}, each at ${SIZES.map(([w, h]) => `${w}x${h}`).join(" and ")}`,
   );
 }
 
 /* ------------------------------------------------------------------ Tempo */
 
-function tempo(): void {
+function tempo(rev: number | undefined): void {
   type S = ReturnType<typeof beat.beatGame.init>;
+  // beatRev 6 (taller worlds batch 2): the 390 × 730 lanes; older rounds keep 390 × 620.
   const W = beat.BEAT_WORLD_W,
-    H = beat.BEAT_WORLD_H;
+    H = beat.beatWorldHFor(rev);
   const SIZES = [
     [W, H],
     [375, Math.round((375 * H) / W)],
   ] as const;
-  let s = beatArtGame.init(5) as S;
-  for (let t = 0; t < 300; t++) s = beatArtGame.step(s, null) as S;
+  let s = beat.beatGameFor(rev).init(5) as S;
+  for (let t = 0; t < 300; t++) s = beat.beatGameFor(rev).step(s, null) as S;
   let lanes = 0;
   for (const [w, h] of SIZES) {
     for (let lane = 0; lane < beat.BEAT_LANES; lane++) {
@@ -442,7 +450,7 @@ function tempo(): void {
       const b = render(w, h, (ctx) => beatArtGame.draw(ctx, dark, { width: w, height: h }));
       const box = { left: 0, top: 0, width: w, height: h };
       probe(
-        `Tempo lane ${lane} at ${w}x${h}`,
+        `Tempo beatRev ${rev ?? "-"} lane ${lane} at ${w}x${h}`,
         diffMask(a, b, w, h, 8),
         ["left", "right"],
         (p) => inside(p, w, h) && beatLaneAt(box, p.x) === lane,
@@ -450,7 +458,7 @@ function tempo(): void {
       lanes++;
     }
   }
-  console.log(`Tempo: ${lanes} lanes`);
+  console.log(`Tempo beatRev ${rev ?? "-"}: ${lanes} lanes`);
 }
 
 /* ------------------------------------------------------------------- Bonk */
@@ -511,9 +519,12 @@ function bonk(): void {
   console.log(`Bonk: ${done.size} holes (reported only: the whole-cell tap box is intended)`);
 }
 
-clayShoot();
-mixedSignals();
-tempo();
+clayShoot(clay.CLAY_REV5);
+clayShoot(clay.CLAY_REV_TALL);
+mixedSignals(4);
+mixedSignals(clash.CLASH_REV_TALL);
+tempo(beat.BEAT_REV_TUNEF);
+tempo(beat.BEAT_REV_TALL);
 bonk();
 
 for (const [group, tally] of reported) {

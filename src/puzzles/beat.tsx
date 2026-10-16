@@ -27,8 +27,8 @@ import {
   BEAT_INPUT_TAP,
   BEAT_LANE_COLOURS,
   BEAT_RUN_TICKS,
-  BEAT_WORLD_H,
   BEAT_WORLD_W,
+  beatWorldHFor,
   type BeatState,
 } from "@/lib/arcade/beat";
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
@@ -81,6 +81,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BeatPuzzleData | null = puzzle.type === "beat" ? puzzle : null;
   const seed = data?.seed ?? 1;
   const beatGame = beatGameFor(data?.beatRev);
+  // beatRev 6: the taller lanes; every phone draws the stored revision's world.
+  const BEAT_WORLD_H = beatWorldHFor(data?.beatRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);

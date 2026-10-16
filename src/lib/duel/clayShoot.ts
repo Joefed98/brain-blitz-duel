@@ -99,7 +99,7 @@ export function replayClayRun(seed: number, raw: string, rev?: number | null): C
   const run = decodeClayRun(raw, rev);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, CLAY_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < CLAY_RUN_TICKS;
-  const check = checkInputEvents(run.events, CLAY_RUN_TICKS, CLAY_INPUT_RANGES);
+  const check = checkInputEvents(run.events, CLAY_RUN_TICKS, game.inputRanges ?? CLAY_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : CLAY_RUN_TICKS;

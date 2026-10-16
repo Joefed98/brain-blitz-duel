@@ -6,7 +6,7 @@ import { colourClashSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
 import { clashTapPayload } from "@/components/puzzles/tapMapping";
-import { CLASH_QUEUE, CLASH_REV, clashVariantOf, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_H, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
+import { CLASH_QUEUE, CLASH_REV_TALL, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "@/lib/duel/colourClash";
 import type { StroopPuzzleData } from "@/lib/duel/types";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -47,7 +47,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
   }).current;
   if (puzzle.type !== "stroop") return null;
-  return <div ref={column} data-stage-column="" data-polish="stroop" className="flex min-h-0 w-full flex-1 flex-col"><ArcadeCanvasStage diagKey="stroop" completeCue={() => "stroop.gatesFlash"} sounds={sounds} label={`${gameDisplayName("stroop")} lane board`} background="#07070D" fitWorld seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={CLASH_WORLD_H} game={colourClashArtGameFor(clashVariantOf(puzzle))} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={(answer) => { fireFinish(); onSubmit(answer); }} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
+  return <div ref={column} data-stage-column="" data-polish="stroop" className="flex min-h-0 w-full flex-1 flex-col"><ArcadeCanvasStage diagKey="stroop" completeCue={() => "stroop.gatesFlash"} sounds={sounds} label={`${gameDisplayName("stroop")} lane board`} background="#07070D" fitWorld seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={clashWorldHFor(clashVariantOf(puzzle))} game={colourClashArtGameFor(clashVariantOf(puzzle))} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={(answer) => { fireFinish(); onSubmit(answer); }} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
     if (kind === "down") { down.current = { x, y }; return null; }
     if (kind !== "up" || !down.current) return null;
     const from = down.current; down.current = null;
@@ -62,5 +62,5 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return <p className="text-center font-mono text-2xl font-bold text-primary">{replay ? `${replay.correct} / ${replay.total} · ${replay.wrong} wrong` : "No run"}</p>;
 }
 
-export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: CLASH_REV }; }
+export function buildStroop(): StroopPuzzleData { return { type: "stroop", seed: Math.floor(Math.random() * 0x7ffffffe) + 1, queue: CLASH_QUEUE, clashRev: CLASH_REV_TALL }; }
 export const stroopPuzzle: PuzzleDefinition = { key: "stroop", name: gameDisplayName("stroop"), category: "attention", timeLimitMs: 78_000, arcadeRun: true, generate: buildStroop, check: () => false, IntroExample, Stage, Reveal };

@@ -41,15 +41,16 @@ export const CLASH_QUEUE_FALL_TICKS = [95, 77, 65, 41] as const;
 export const CLASH_REV = 4;
 /** The 75 s, five-phase play revision; clashRev 3 and 4 both play it. */
 export const CLASH_REV_PLAY3 = 3;
-/** True for a state or stamp on the 75 s, five-phase play (clashRev 3 or 4). */
+/** True for a state or stamp on the 75 s, five-phase play (clashRev 3, 4 or 5). */
 export function clashPlays3(rev: number | null | undefined): boolean {
-  return rev === CLASH_REV_PLAY3 || rev === CLASH_REV;
+  return rev === CLASH_REV_PLAY3 || rev === CLASH_REV || rev === CLASH_REV_TALL;
 }
 export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
 /** One tick shorter than 108 / 96 / 84 / 72 / 60 so each word takes exactly 1.80 / 1.60 / 1.40 / 1.20 / 1.00 s. */
 export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
-/** Variant key: 4 = current (rev-3 play, new score shape), 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
+/** Variant key: 5 = the taller board (clashRev 5), 4 = rev-3 play with the puzzle score shape, 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
 export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV_TALL) return 5;
   if (p?.clashRev === CLASH_REV) return 4;
   if (p?.clashRev === CLASH_REV_PLAY3) return 3;
   return p?.queue === CLASH_QUEUE ? 2 : p?.queue === CLASH_QUEUE_V1 ? 1 : 0;
@@ -59,7 +60,6 @@ export const CLASH_COMPLETE_POINTS = 130;
 export const CLASH_SPEED_POINTS = 20;
 const FP = 256;
 const START_Y = 92 * FP;
-const GATE_Y = 454 * FP;
 const BASE_FALL_TICKS = 3 * TICKS_PER_SECOND;
 
 export const CLASH_INPUT_RANGES: readonly InputRange[] = [inputRange(CLASH_INPUT_LANE, [0, 3], [0, CLASH_WORLD_W - 1])];
@@ -88,6 +88,8 @@ export interface ClashState {
   finishTick: number;
   /** Set only on the current 75 s revision (absent keeps older states byte-identical). */
   rev?: number;
+  /** clashRev 5 only (taller worlds batch 2): the board's height in px (CLASH_TALL_H). Absent = CLASH_WORLD_H. */
+  worldH?: number;
 }
 
 export function clashLaneCount(tick: number): number { return tick >= CLASH_LANE_EXPAND_TICK ? CLASH_EXPANDED_LANES : CLASH_INITIAL_LANES; }
@@ -169,6 +171,7 @@ function init(seed: number): ClashState { return initWith(seed, 0); }
 function initQueue(seed: number): ClashState { return initWith(seed, CLASH_QUEUE); }
 function initRev3(seed: number): ClashState { return initWith(seed, CLASH_QUEUE, CLASH_REV_PLAY3); }
 function initRev4(seed: number): ClashState { return initWith(seed, CLASH_QUEUE, CLASH_REV); }
+function initRev5(seed: number): ClashState { return { ...initWith(seed, CLASH_QUEUE, CLASH_REV_TALL), worldH: CLASH_TALL_H }; }
 function initQueueV1(seed: number): ClashState { return initWith(seed, CLASH_QUEUE_V1); }
 
 function isOver(state: ClashState): boolean { return state.ended !== 0; }
@@ -201,9 +204,11 @@ function step(state: ClashState, input: ArcadeInputEvent | null): ClashState {
       else if (action === CLASH_SET_LANE) next.lane = clampInt(Math.floor((input.b * lanes) / CLASH_WORLD_W), 0, lanes - 1);
       else if (action === CLASH_DROP) next.dropping = 1;
     }
-    const speed = next.dropping ? 18 * FP : Math.max(1, Math.trunc((GATE_Y - START_Y) / item.fallTicks));
+    // clashRev 5: the gates sit lower, so a word falls (and drops) faster and lands in the same ticks.
+    const gate = clashGateYFp(next);
+    const speed = next.dropping ? clashDropFp(next) : Math.max(1, Math.trunc((gate - START_Y) / item.fallTicks));
     next.itemY += speed;
-    if (next.itemY >= GATE_Y) next = land(next, tick);
+    if (next.itemY >= gate) next = land(next, tick);
   }
   if (next.ended === 0 && tick >= clashRunTicksOf(next)) {
     if (next.items.length > next.correct + next.wrong) next.missed += 1;
@@ -242,6 +247,7 @@ export function clashRev4ScoreOf(correct: number, wrong: number, queue: number, 
   return clampInt(Math.round((110 * correct) / Math.max(1, queue)) - 2 * wrong, 0, 110);
 }
 function score(state: ClashState): number {
+  if (state.rev === CLASH_REV_TALL) return clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
   if (state.rev === CLASH_REV) return clashRev4ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
   return state.queue > 0 ? clashQueueScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)) : clashScoreOf(state.correct, state.wrong, state.items.length);
 }
@@ -252,14 +258,17 @@ export interface ClashCheckpoint { tick: number; lane: number; itemY: number; dr
 export function clashCheckpoint(state: ClashState): ClashCheckpoint {
   const snap = { tick: state.tick, lane: state.lane, itemY: state.itemY, dropping: state.dropping, correct: state.correct, wrong: state.wrong, missed: state.missed, ended: state.ended, rng: state.rng | 0 };
   let checksum = 0x811c9dc5;
-  for (const value of [...Object.values(snap), ...state.items.flatMap((item) => [item.spawn, item.word, item.ink, item.fallTicks])]) { checksum ^= value | 0; checksum = Math.imul(checksum, 0x01000193) >>> 0; }
+  // clashRev 5 (taller worlds): the board's height, last.
+  for (const value of [...Object.values(snap), ...state.items.flatMap((item) => [item.spawn, item.word, item.ink, item.fallTicks]), ...(state.worldH ? [state.worldH] : [])]) { checksum ^= value | 0; checksum = Math.imul(checksum, 0x01000193) >>> 0; }
   return { ...snap, checksum };
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize): void {
-  const scale = Math.min(size.width / CLASH_WORLD_W, size.height / CLASH_WORLD_H);
+  // clashRev 5: the taller board; everything under the banner sits `low` px lower.
+  const low = clashDrop(state);
+  const scale = Math.min(size.width / CLASH_WORLD_W, size.height / clashWorldH(state));
   const ox = (size.width - CLASH_WORLD_W * scale) / 2;
-  const oy = (size.height - CLASH_WORLD_H * scale) / 2;
+  const oy = (size.height - clashWorldH(state) * scale) / 2;
   ctx.save(); ctx.fillStyle = "#07070D"; ctx.fillRect(0, 0, size.width, size.height); ctx.translate(ox, oy); ctx.scale(scale, scale);
   const transition = state.tick % (15 * TICKS_PER_SECOND);
   const flash = transition < CLASH_FLASH_TICKS && state.tick > 0;
@@ -268,13 +277,13 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   ctx.fillStyle = flash && Math.trunc(state.tick / 5) % 2 === 0 ? "#07070D" : "#F5B82E"; ctx.font = "bold 21px ui-monospace, monospace"; ctx.textAlign = "center"; ctx.fillText(rule === 0 ? "SORT BY INK" : "SORT BY WORD", 195, 39);
   const lanes = clashLaneCount(state.tick); const laneW = 358 / lanes; const left = 16;
   for (let lane = 0; lane < lanes; lane += 1) {
-    ctx.fillStyle = lane === state.lane ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.035)"; ctx.fillRect(left + lane * laneW, 66, laneW - 2, 406);
+    ctx.fillStyle = lane === state.lane ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.035)"; ctx.fillRect(left + lane * laneW, 66, laneW - 2, 406 + low);
     const colour = clashGatesAt(state, state.tick)[lane]!;
     ctx.save();
     ctx.shadowColor = CLASH_COLOURS[colour]!; ctx.shadowBlur = 14;
-    ctx.fillStyle = CLASH_COLOURS[colour]!; ctx.fillRect(left + lane * laneW + 4, 472, laneW - 10, 22);
+    ctx.fillStyle = CLASH_COLOURS[colour]!; ctx.fillRect(left + lane * laneW + 4, 472 + low, laneW - 10, 22);
     ctx.restore();
-    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, left + (lane + 0.5) * laneW, 512);
+    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 12px ui-monospace, monospace"; ctx.fillText(CLASH_NAMES[colour]!, left + (lane + 0.5) * laneW, 512 + low);
   }
   const current = state.items.at(-1);
   if (current) {
@@ -284,7 +293,7 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.fillText(CLASH_NAMES[current.word]!, left + (state.lane + 0.5) * laneW, state.itemY / FP);
     ctx.restore();
   }
-  ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548);
+  ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548 + low);
   ctx.restore();
 }
 
@@ -300,5 +309,78 @@ export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 export const colourClashRev4Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev4 };
 /** Takes a clashVariantOf key. */
 export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  if (variant === 5) return colourClashRev5Game;
   return variant === 4 ? colourClashRev4Game : variant === 3 ? colourClashRev3Game : variant === 2 ? colourClashQueueGame : variant === 1 ? colourClashQueueV1Game : colourClashGame;
+}
+
+/* ================= Taller worlds (clashRev 5, Oct 2026) ================= */
+
+/**
+ * clashRev 5 (taller worlds, batch 2): clashRev 4 play (the same 52 words,
+ * gates, rule swaps, five 15 s phases and finish) on a taller board, 390 ×
+ * CLASH_TALL_H, the same for every player. The rule banner and a word's spawn
+ * point stay where they were; the gates sit CLASH_TALL_H − CLASH_WORLD_H lower,
+ * so the columns are 90 px longer. A word falls at (gate − spawn) ÷ its fall
+ * ticks, so it takes exactly as many ticks to land as before, and a swipe-down
+ * drop is faster by the same ratio. The lanes, their widths and the lane
+ * mapping are unchanged. States add `worldH`, folded into the checkpoint
+ * checksum last.
+ *
+ * Score (re-fitted with the taller board, Oct 2026): a finish is unchanged (all
+ * 52 sorted with at most 2 wrong: 120 + PAR(30) − 5 per wrong). Unfinished
+ * credit counts the words sorted right less those sorted wrong, on
+ * CLASH_V5_CURVE (0, then 70 at 20, 100 at 40, 110 at 46 or more): good players
+ * (all 52 sorted with about six wrong) scored about 85 on clashRev 4 and about
+ * 100 now; random or same-gate sorting is net negative and still scores 0.
+ */
+export const CLASH_REV_TALL = 5;
+export const CLASH_TALL_H = 650;
+const CLASH_GATE_Y_PX = 454;
+const CLASH_START_Y_PX = 92;
+/** A swipe-down drop moves this fast on the original board (px a tick). */
+const CLASH_DROP_PX = 18;
+
+/** The board height (px) a state plays in: clashRev 5's taller board, or the original 560. */
+export function clashWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? CLASH_WORLD_H;
+}
+/** How far (px) a state's board sits lower than the original: everything under the banner moves down by it. */
+export function clashDrop(state: { worldH?: number }): number {
+  return clashWorldH(state) - CLASH_WORLD_H;
+}
+/** The gate line a word lands on, in 1/256 px. */
+export function clashGateYFp(state: { worldH?: number }): number {
+  return (CLASH_GATE_Y_PX + clashDrop(state)) * FP;
+}
+/** A word's spawn line, in 1/256 px (the same on every board). */
+export const CLASH_START_Y_FP = CLASH_START_Y_PX * FP;
+/** A dropped word's speed (1/256 px a tick): 18 px on the original board, in proportion on the taller one. */
+export function clashDropFp(state: { worldH?: number }): number {
+  if (!state.worldH) return CLASH_DROP_PX * FP;
+  return Math.trunc((CLASH_DROP_PX * FP * (CLASH_GATE_Y_PX + clashDrop(state) - CLASH_START_Y_PX)) / (CLASH_GATE_Y_PX - CLASH_START_Y_PX));
+}
+
+/** clashRev 5 unfinished credit: (words right − words wrong) → points, 0 below 0, 110 at the top. */
+export const CLASH_V5_CURVE = { units: [0, 20, 40, 46], points: [0, 70, 100, 110] } as const;
+export function clashV5UnfinishedOf(correct: number, wrong: number): number {
+  const units = Math.max(0, correct - wrong);
+  const { units: u, points: p } = CLASH_V5_CURVE;
+  if (units >= u[u.length - 1]!) return p[p.length - 1]!;
+  for (let i = 1; i < u.length; i++) {
+    if (units <= u[i]!) return Math.round(p[i - 1]! + ((p[i]! - p[i - 1]!) * (units - u[i - 1]!)) / (u[i]! - u[i - 1]!));
+  }
+  return 0;
+}
+/** clashRev 5: a finish exactly as clashRev 4; unfinished on CLASH_V5_CURVE (at most 110). */
+export function clashRev5ScoreOf(correct: number, wrong: number, queue: number, finishTick: number, runTicks: number = CLASH_REV3_RUN_TICKS): number {
+  if (clashRev4Finished(correct, wrong, queue, finishTick)) return clashRev4ScoreOf(correct, wrong, queue, finishTick, runTicks);
+  return clampInt(clashV5UnfinishedOf(correct, wrong), 0, 110);
+}
+
+/** clashRev 5: the taller board, with the re-fitted unfinished credit. */
+export const colourClashRev5Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev5 };
+
+/** The board height (px) a stored round plays in, by its clashVariantOf key. */
+export function clashWorldHFor(variant: number): number {
+  return variant === 5 ? CLASH_TALL_H : CLASH_WORLD_H;
 }

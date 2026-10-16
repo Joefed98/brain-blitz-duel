@@ -12,7 +12,9 @@ import {
   CLAY_INPUT_SHOT,
   CLAY_KIND_GOLD,
   CLAY_KIND_ORANGE,
-  CLAY_REV,
+  // This check proves clayRev 5's sky (360 × 400). Rooms deal clayRev 6 since 16 Oct 2026: the same schedule
+  // stretched under a taller sky, proved by arcade-tuning-g2-check.
+  CLAY_REV5 as CLAY_REV,
   CLAY_REV2,
   CLAY_REV4,
   CLAY_BIRD_MAX_V5,
@@ -214,7 +216,7 @@ console.log(failures ? `${failures} FAILURES` : "ALL OK");
 
 // Trajectory guard: every clay covers ⅔ width and stays ≥ 0.6 s on screen.
 {
-  const { clayGameFor: gf, clayFlight: fl, CLAY_CONFIG: cc, CLAY_REV: rev } = await import("@/lib/arcade/clayShoot");
+  const { clayGameFor: gf, clayFlight: fl, CLAY_CONFIG: cc, CLAY_REV5: rev } = await import("@/lib/arcade/clayShoot");
   const g = gf(rev);
   let bad = 0, minCov = 1e9, minT = 1e9;
   for (let r = 0; r < 2000; r++) {

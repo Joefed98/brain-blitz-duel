@@ -76,8 +76,8 @@ import { ACTIVE_ARCADE_GAMES, ARCADE_FX_SPECS, ENGINE_FX_SPECS, ENGINE_GAME_WORL
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
 import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 import { TD_H, TD_W } from "../src/lib/arcade/tenDrop";
-import { CLAY_H, CLAY_W } from "../src/lib/arcade/clayShoot";
-import { CLASH_WORLD_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
+import { CLAY_TALL_H, CLAY_W } from "../src/lib/arcade/clayShoot";
+import { CLASH_TALL_H, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { WORDFALL_META } from "../src/lib/arcade/wordfallWords.meta";
 import { freezeClock, gotoRetried, warmUp } from "./browser-load";
@@ -100,9 +100,10 @@ const ENGINE_PLAY_GAMES = ["tendrop", "stroop", "whack", "clayshoot"] as const;
 /** Their world (view) sizes; Bonk's world is its square board. */
 const ENGINE_PLAY_WORLDS: Record<(typeof ENGINE_PLAY_GAMES)[number], { width: number; height: number }> = {
   tendrop: { width: TD_W, height: TD_H },
-  stroop: { width: CLASH_WORLD_W, height: CLASH_WORLD_H },
+  // Taller worlds batch 2 (16 Oct 2026): the worlds rooms and practice deal today (clashRev 5, clayRev 6).
+  stroop: { width: CLASH_WORLD_W, height: CLASH_TALL_H },
   whack: { width: 1, height: 1 },
-  clayshoot: { width: CLAY_W, height: CLAY_H },
+  clayshoot: { width: CLAY_W, height: CLAY_TALL_H },
 };
 /**
  * New arcade games still practice only (not yet dealt in rooms), played with every rule,

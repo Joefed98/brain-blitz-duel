@@ -24,6 +24,8 @@ import {
   CLAY_HIT,
   CLAY_KIND_GOLD,
   CLAY_W,
+  clayGravity,
+  clayWorldH,
   type ClayState,
 } from "./clayShoot";
 import type { CanvasSize } from "./engine";
@@ -34,12 +36,14 @@ import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } f
 type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
 const W = CLAY_W;
+/** The original sky's height; clayRev 6 draws a taller sky (the field band keeps its height at the bottom). */
 const H = CLAY_H;
 const R = CLAY_CONFIG.clayRadius;
 const RY = R * 0.55;
 const TAU = Math.PI * 2;
 /** Horizon rows (world px). */
 const GRASS_TOP = 356;
+const GRASS_TOP_ORIGINAL = GRASS_TOP;
 
 /** Deterministic hash → [0, 1). */
 function hash(a: number, b = 0): number {
@@ -54,16 +58,19 @@ function hash(a: number, b = 0): number {
 
 /* ============================== Scenery ============================== */
 
-function paintScenery(c: Ctx2D): void {
+function paintScenery(c: Ctx2D, worldH: number): void {
+  // clayRev 6: the sky runs `dy` px further down; the horizon, trees, fence, field and trap
+  // houses are the original band, moved down by it (no change at the original 400).
+  const dy = worldH - H;
   // Sky: deep blue overhead easing to a hazy pale horizon.
-  const sky = c.createLinearGradient(0, 0, 0, GRASS_TOP);
+  const sky = c.createLinearGradient(0, 0, 0, GRASS_TOP + dy);
   sky.addColorStop(0, "#1C4774");
   sky.addColorStop(0.42, "#3A78AE");
   sky.addColorStop(0.78, "#79AFD8");
   sky.addColorStop(0.92, "#B4D3E7");
   sky.addColorStop(1, "#CFE2EC");
   c.fillStyle = sky;
-  c.fillRect(0, 0, W, H);
+  c.fillRect(0, 0, W, worldH);
 
   // Soft sun, upper right: a wide warm glow and a pale core.
   const sx = 302;
@@ -83,6 +90,8 @@ function paintScenery(c: Ctx2D): void {
   c.arc(sx, sy, 15, 0, TAU);
   c.fill();
 
+  c.save();
+  c.translate(0, dy);
   // Far hills: two hazy ridges.
   const ridge = (base: number, amp: number, f1: number, f2: number, ph: number, colour: string) => {
     c.fillStyle = colour;
@@ -225,27 +234,28 @@ function paintScenery(c: Ctx2D): void {
   };
   trap(0, false);
   trap(W, true);
+  c.restore();
 
   // Gentle vignette at the top corners for depth.
-  const vig = c.createRadialGradient(W / 2, H * 0.55, H * 0.35, W / 2, H * 0.55, H * 0.85);
+  const vig = c.createRadialGradient(W / 2, worldH * 0.55, worldH * 0.35, W / 2, worldH * 0.55, worldH * 0.85);
   vig.addColorStop(0, "rgba(0,0,0,0)");
   vig.addColorStop(1, "rgba(5,15,35,0.22)");
   c.fillStyle = vig;
-  c.fillRect(0, 0, W, H);
+  c.fillRect(0, 0, W, worldH);
 }
 
 const sceneryCache = new Map<string, ArtCanvas | null>();
 
-function scenery(kx: number, ky: number): ArtCanvas | null {
+function scenery(kx: number, ky: number, worldH: number): ArtCanvas | null {
   const pw = Math.max(1, Math.min(2048, Math.round(W * kx)));
-  const ph = Math.max(1, Math.min(2048, Math.round(H * ky)));
-  const key = `${pw}x${ph}`;
+  const ph = Math.max(1, Math.min(2048, Math.round(worldH * ky)));
+  const key = `${pw}x${ph}:${worldH}`;
   if (sceneryCache.has(key)) return sceneryCache.get(key) ?? null;
   const surface = artCanvas(pw, ph);
   const c = surface ? artContext(surface) : null;
   if (surface && c) {
-    c.scale(pw / W, ph / H);
-    paintScenery(c);
+    c.scale(pw / W, ph / worldH);
+    paintScenery(c, worldH);
   }
   if (sceneryCache.size > 4) sceneryCache.delete(sceneryCache.keys().next().value as string);
   sceneryCache.set(key, c ? surface : null);
@@ -671,7 +681,9 @@ function drawBirds(c: CanvasRenderingContext2D, state: ClayState, still: boolean
 /* ================================ Draw ================================ */
 
 export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, size: CanvasSize): void {
-  const { scaleX, scaleY } = clayView(size);
+  // clayRev 6: the taller sky (the original 400 otherwise).
+  const worldH = clayWorldH(state);
+  const { scaleX, scaleY } = clayView(size, worldH);
   const tr = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   const devX = tr ? Math.hypot(tr.a, tr.b) || 1 : 1;
   const devY = tr ? Math.hypot(tr.c, tr.d) || 1 : 1;
@@ -685,11 +697,11 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
   ctx.clearRect(0, 0, size.width, size.height);
   ctx.scale(scaleX, scaleY);
 
-  const bg = scenery(kx, ky);
-  if (bg) ctx.drawImage(bg as CanvasImageSource, 0, 0, W, H);
+  const bg = scenery(kx, ky, worldH);
+  if (bg) ctx.drawImage(bg as CanvasImageSource, 0, 0, W, worldH);
   else {
     ctx.fillStyle = "#3A78AE";
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, worldH);
   }
 
   // Drifting clouds (pre-rendered sprites, position from the sim tick).
@@ -712,13 +724,13 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
   for (let i = 0; i < state.status.length; i++) {
     if (state.status[i] !== CLAY_FLYING) continue;
     const gold = state.schedule.kind[i] === CLAY_KIND_GOLD;
-    const vy = state.vy[i]! + CLAY_CONFIG.gravity * ahead;
+    const vy = state.vy[i]! + clayGravity(state) * ahead;
     drawShotZone(ctx, (state.x[i]! + state.schedule.vx[i]! * ahead) / 256, (state.y[i]! + vy * ahead) / 256, gold);
   }
   for (let i = 0; i < state.status.length; i++) {
     const st = state.status[i];
     if (st === CLAY_FLYING) {
-      const vy = state.vy[i]! + CLAY_CONFIG.gravity * ahead;
+      const vy = state.vy[i]! + clayGravity(state) * ahead;
       drawClay(ctx, (state.x[i]! + state.schedule.vx[i]! * ahead) / 256, (state.y[i]! + vy * ahead) / 256, state.schedule.kind[i] === CLAY_KIND_GOLD, i, tick, k, still);
     } else if (st === CLAY_HIT) {
       const age = tick - state.doneTick[i]!;
@@ -822,6 +834,9 @@ export function drawClayFinalBurst(c: CanvasRenderingContext2D, ms: number, widt
  * birds, traps or clouds, and nothing moves.
  */
 export function clayArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  // clayRev 6's taller sky: the horizon sits as far above the world's bottom as in the original sky.
+  const H = view.worldH;
+  const GRASS_TOP = H - (CLAY_H - GRASS_TOP_ORIGINAL);
   for (const side of sceneSides(view)) {
     sceneFill(ctx, side, 0, GRASS_TOP, [[0, "#1C4774"], [0.42, "#3A78AE"], [0.78, "#79AFD8"], [0.92, "#B4D3E7"], [1, "#CFE2EC"]]);
     const field = { x: side.x, y: GRASS_TOP, w: side.w, h: side.y + side.h - GRASS_TOP };

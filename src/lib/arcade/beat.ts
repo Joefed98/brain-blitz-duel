@@ -39,7 +39,9 @@ export const BEAT_HOLD_PERCENT = 20;
 export const BEAT_COMBO_TIERS = [10, 25, 50] as const;
 
 export const BEAT_LANES = 4;
-export const BEAT_HIT_LINE_Y = BEAT_WORLD_H - 100;
+/** The hit line sits this far above the world's bottom. */
+export const BEAT_HIT_LIFT = 100;
+export const BEAT_HIT_LINE_Y = BEAT_WORLD_H - BEAT_HIT_LIFT;
 export const BEAT_FALL_TICKS = 90;
 export const BEAT_NOTE_H = 16;
 
@@ -207,6 +209,8 @@ export interface BeatState extends BandFields {
   tunec?: number;
   /** beatRev 5 only (Tuning F): 1 = the chart thinned by a tenth at init. Absent on every earlier round. */
   tunef?: number;
+  /** beatRev 6 only (taller worlds batch 2): the world height in px (BEAT_TALL_H). Absent = BEAT_WORLD_H. */
+  worldH?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -515,6 +519,8 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   if (state.tunec) values.push(state.tunec);
   // beatRev 5 (Tuning F) adds its marker after that, so rev-2/3/4 checksums are unchanged.
   if (state.tunef) values.push(state.tunef);
+  // beatRev 6 (taller worlds): the world height, last.
+  if (state.worldH) values.push(state.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -541,6 +547,9 @@ export function beatLaneX(lane: number): number {
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize): void {
+  // beatRev 6: the taller lanes (the original 620 world otherwise).
+  const BEAT_WORLD_H = beatWorldH(state);
+  const BEAT_HIT_LINE_Y = beatHitLineY(state);
   const scaleX = size.width / BEAT_WORLD_W;
   const scaleY = size.height / BEAT_WORLD_H;
   const laneW = BEAT_WORLD_W / BEAT_LANES;
@@ -673,6 +682,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_TALL) return beatTallGame;
   if (rev === BEAT_REV_TUNEF) return beatTunefGame;
   if (rev === BEAT_REV_TUNEC) return beatTunecGame;
   if (rev === BEAT_REV_BAND) return beatBandGame;
@@ -785,3 +795,48 @@ function initTunef(seed: number): BeatState {
 }
 
 export const beatTunefGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatTunecGame, init: initTunef };
+
+/* ================= Taller worlds (beatRev 6, Oct 2026) ================= */
+
+/**
+ * beatRev 6 (taller worlds, batch 2): beatRev 5 play (the thinned chart, the
+ * same hit windows and curve) in taller lanes, 390 × BEAT_TALL_H, the same for
+ * every player. The hit line stays BEAT_HIT_LIFT above the new bottom, so the
+ * lanes are 110 px longer; a note still takes BEAT_FALL_TICKS from the top of
+ * its lane to the hit line, so it falls faster on screen and is in view for the
+ * same time as before. Judging is by tick alone, so nothing a player can score
+ * changes. States keep `tunec: 1` and `tunef: 1` and add `worldH`, folded into
+ * the checkpoint checksum last.
+ */
+export const BEAT_REV_TALL = 6;
+export const BEAT_TALL_H = 730;
+/**
+ * beatRev 6 scores on beatRev 5's curve, unchanged: judging is by tick alone, so
+ * the same players hit exactly the same notes in the taller lanes
+ * (scripts/arcade-skill-bands.ts --rev=g2, 60 seeds: 73 / 112 / 139 / 148 on both
+ * revisions; Tuning C's deliberately kinder level, Joe's ruling).
+ */
+export const BEAT_V6_BAND_CURVE = BEAT_V5_BAND_CURVE;
+
+/** The world height (px) a state plays in: beatRev 6's taller lanes, or the original 620. */
+export function beatWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? BEAT_WORLD_H;
+}
+/** The hit line (px) in a state's world: always BEAT_HIT_LIFT above the bottom. */
+export function beatHitLineY(state: { worldH?: number }): number {
+  return beatWorldH(state) - BEAT_HIT_LIFT;
+}
+/** A note's fall speed on screen, px a tick: the lane from the HUD to the hit line in BEAT_FALL_TICKS. */
+export function beatFallPxPerTick(state: { worldH?: number }): number {
+  return (beatHitLineY(state) - BEAT_HUD_H) / BEAT_FALL_TICKS;
+}
+
+export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatTunefGame,
+  init: (seed) => ({ ...beatTunefGame.init(seed), worldH: BEAT_TALL_H }),
+};
+
+/** The world height (px) a stored round's beatRev plays in. */
+export function beatWorldHFor(rev?: number | null): number {
+  return rev === BEAT_REV_TALL ? BEAT_TALL_H : BEAT_WORLD_H;
+}
