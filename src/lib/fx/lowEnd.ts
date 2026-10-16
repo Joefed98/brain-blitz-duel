@@ -2,9 +2,20 @@
  * Low-end performance governor for the arcade stage (16 Oct 2026, presentation only).
  *
  * Every arena (ArcadeArenaSlot: the arcade games and the five engine games on the arcade stage)
- * watches its own frame gaps while it is mounted. When frames run long for a sustained stretch
- * (SLOW_NEEDED of the last WINDOW gaps over SLOW_GAP_MS, after a settling period), the stage steps
- * into "reduced effects", one level at a time, at most once every SETTLE_MS:
+ * measures how long each of its frames' own work takes while it is mounted: from the frame's start
+ * (the requestAnimationFrame timestamp) to the end of that frame's work on the main thread (a
+ * message posted from the frame's callback runs once the frame's callbacks, the game's update and
+ * draw, and the browser's rendering of that frame are done). The wait between frames is not work,
+ * so a screen capped at 30 Hz (iPhone Low Power Mode, Android battery savers) whose frames finish in
+ * a few ms is never slow. The rule (workRunsLong):
+ *
+ *  - a frame is slow when its work exceeds SLOW_WORK_MS (20 ms: it cannot keep 50 fps);
+ *  - ignored: every frame in the first SETTLE_MS (1 s) after the arena mounts, after the page
+ *    becomes visible again (visibilitychange, pageshow) and after a step down; any single frame
+ *    whose work exceeds STALL_MS (100 ms: a stall, a GC, a cache build); frames while hidden;
+ *  - the stage steps down one level when, over the last WINDOW_MS (2 s) of counted frames, at least
+ *    SLOW_SHARE (70 %) were slow and at least MIN_FRAMES (20) were counted, and that window covers
+ *    a full 2 s of play since judging (re)started.
  *
  *  - level 1: canvases render at a device pixel ratio of at most 1 (arcadeCanvasRatio), and the
  *    shared success layer and the heaviest renderers skip or simplify decorative passes
@@ -13,8 +24,8 @@
  *
  * It never steps back within a tab session (no flicker between looks; the level is kept in
  * sessionStorage, so the next round starts where the last one ended), and it never switches on
- * when frames keep pace: a phone drawing at 60 fps (or 90 / 120) never has a slow gap counted, so
- * on a modern phone nothing here changes a single pixel. Nothing here reads or writes a sim, an
+ * when frames finish in time: a phone whose frames take under 20 ms of work (at 30, 60, 90 or
+ * 120 Hz) never has a slow frame counted, so on such a phone nothing here changes a single pixel. Nothing here reads or writes a sim, an
  * input, a score or a replay: it only changes how big the canvases' backing stores are and which
  * purely decorative layers are painted.
  *
@@ -25,15 +36,23 @@
 
 export type ReducedLevel = 0 | 1 | 2;
 
-/** A frame gap over this counts as slow (under about 40 fps). */
-export const SLOW_GAP_MS = 25;
-/** Gaps judged at a time, and how many of them must be slow to step down. */
-export const WINDOW = 30;
-export const SLOW_NEEDED = 22;
-/** No judging for this long after an arena mounts or a level changes (start-up, resized canvases, new caches). */
+/** A frame whose own work exceeds this is slow (it cannot keep 50 fps). */
+export const SLOW_WORK_MS = 20;
+/** A single frame over this is a stall (a GC, a cache build, a dialog), not a slow device: not counted. */
+export const STALL_MS = 100;
+/** Slow work must persist over this much play before the stage steps down. */
+export const WINDOW_MS = 2000;
+/** The share of counted frames in the window that must be slow, and the fewest frames counted. */
+export const SLOW_SHARE = 0.7;
+export const MIN_FRAMES = 20;
+/** No frame counts for this long after an arena mounts, the page becomes visible again, or a step down. */
 export const SETTLE_MS = 1000;
-/** A gap this long is a hidden tab, a dialog or a page load, not a slow frame: the window restarts. */
-const PAUSE_GAP_MS = 400;
+
+/** One counted frame: when it started (ms) and how long its own work took (ms). */
+export interface FrameWork {
+  at: number;
+  workMs: number;
+}
 
 let level: ReducedLevel = 0;
 let pinned = false;
@@ -111,17 +130,19 @@ export function arcadeScreenTickMs(ms: number): number {
 }
 
 /**
- * The pure decision (exported for checks): given the recent gaps (ms, oldest first), should the
- * stage step down a level?
+ * The pure decision (exported for checks). `frames` are the frames counted since judging last
+ * (re)started, oldest first; `now` the latest frame's start. Stalls (work over STALL_MS) are dropped
+ * here too, so callers may pass every frame. True when slow work has persisted for WINDOW_MS.
  */
-export function framesRunLong(gaps: readonly number[]): boolean {
-  if (gaps.length < WINDOW) return false;
-  let slow = 0;
-  for (let i = gaps.length - WINDOW; i < gaps.length; i++) if (gaps[i]! > SLOW_GAP_MS) slow++;
-  return slow >= SLOW_NEEDED;
+export function workRunsLong(frames: readonly FrameWork[], now: number): boolean {
+  const counted = frames.filter((f) => f.workMs <= STALL_MS);
+  if (!counted.length || now - counted[0]!.at < WINDOW_MS) return false;
+  const recent = counted.filter((f) => f.at > now - WINDOW_MS);
+  if (recent.length < MIN_FRAMES) return false;
+  return recent.filter((f) => f.workMs > SLOW_WORK_MS).length >= SLOW_SHARE * recent.length;
 }
 
-/** Watches frame gaps while an arena is mounted; returns the stop function. */
+/** Watches frame work while an arena is mounted; returns the stop function. */
 export function watchArcadeFrames(): () => void {
   if (typeof window === "undefined" || typeof requestAnimationFrame === "undefined") return () => {};
   readPin();
@@ -133,36 +154,48 @@ export function watchArcadeFrames(): () => void {
   };
   if ((window as { __duelzEffects?: unknown }).__duelzEffects === "full") return unmount;
   let raf = 0;
-  let last = 0;
   let judgeFrom = performance.now() + SETTLE_MS;
-  const gaps: number[] = [];
-  const frame = (t: number) => {
-    raf = requestAnimationFrame(frame);
-    const gap = last ? t - last : 0;
-    last = t;
-    if (!gap || level >= 2) return;
-    if (gap > PAUSE_GAP_MS) {
-      gaps.length = 0;
-      judgeFrom = Math.max(judgeFrom, t + 500);
-      return;
-    }
-    if (t < judgeFrom) return;
-    gaps.push(gap);
-    if (gaps.length > WINDOW) gaps.shift();
-    if (framesRunLong(gaps)) {
+  let frames: FrameWork[] = [];
+  const restart = () => {
+    frames = [];
+    judgeFrom = performance.now() + SETTLE_MS;
+  };
+  const onVisibility = () => {
+    if (document.visibilityState === "visible") restart();
+    else frames = [];
+  };
+  // A message posted from the frame's callback runs after the frame's work: its callbacks and the
+  // rendering of the frame (MessageChannel tasks are not throttled the way timers are).
+  const channel = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
+  const settle = (start: number) => {
+    const workMs = performance.now() - start;
+    if (level >= 2 || document.visibilityState !== "visible" || start < judgeFrom) return;
+    if (workMs > STALL_MS) return;
+    frames.push({ at: start, workMs });
+    while (frames.length && frames[0]!.at <= start - WINDOW_MS * 2) frames.shift();
+    if (workRunsLong(frames, start)) {
       setLevel((level + 1) as ReducedLevel);
       try {
         window.sessionStorage.setItem(STORE_KEY, String(level));
       } catch {
         /* storage blocked: the level holds for this page only */
       }
-      gaps.length = 0;
-      judgeFrom = t + SETTLE_MS;
+      restart();
     }
   };
+  if (channel) channel.port1.onmessage = (event: MessageEvent<number>) => settle(event.data);
+  const frame = (t: number) => {
+    raf = requestAnimationFrame(frame);
+    if (channel) channel.port2.postMessage(t);
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("pageshow", restart);
   raf = requestAnimationFrame(frame);
   return () => {
     cancelAnimationFrame(raf);
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pageshow", restart);
+    if (channel) channel.port1.onmessage = null;
     unmount();
   };
 }

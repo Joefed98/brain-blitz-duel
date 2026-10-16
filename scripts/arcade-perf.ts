@@ -19,6 +19,8 @@
  *                                                       # time goes, by call and by the renderer line that made it (slows play)
  *   PERF_FUNCS=1 bun scripts/arcade-perf.ts swing --profile   # also the 40 costliest functions by self time
  *   bun scripts/arcade-perf.ts --warmup=4000            # live play before the first run is measured (default 400 ms)
+ *   bun scripts/arcade-perf.ts --raf30                  # a screen capped at 30 Hz (rAF on every other vsync)
+ *   bun scripts/arcade-perf.ts --stall=500              # one 500 ms main-thread stall 2.5 s into the first run
  *   bun scripts/arcade-perf.ts --effects=full           # pin reduced effects (full: never; 1 or 2: that level)
  *   bun scripts/arcade-perf.ts --json=<path>            # save the results
  *   bun scripts/arcade-perf.ts --url=http://127.0.0.1:5174
@@ -32,6 +34,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { ACTIVE_ARCADE_GAMES, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { gotoRetried, warmUp } from "./browser-load";
+import { SLOW_WORK_MS, STALL_MS } from "../src/lib/fx/lowEnd";
 
 export const ARCADE_STAGE_GAMES = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), "tendrop", "stroop", "whack", "clayshoot"] as string[];
 
@@ -45,6 +48,8 @@ const PROFILE = args.includes("--profile");
 const JSON_PATH = opt("json");
 const RASTER = args.includes("--raster");
 const WARMUP = Number(opt("warmup") ?? 400);
+const RAF30 = args.includes("--raf30");
+const STALL = Number(opt("stall") ?? 0) || 0;
 const EFFECTS_ARG = opt("effects");
 /** --effects=full|1|2: pin the reduced-effects level (lib/fx/lowEnd.ts) instead of letting it adapt. */
 const EFFECTS = EFFECTS_ARG === "full" ? "full" : EFFECTS_ARG === "1" ? 1 : EFFECTS_ARG === "2" ? 2 : undefined;
@@ -54,10 +59,14 @@ const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
 const PORT = 5183;
 
 const INIT = String.raw`
-window.__perf = { gaps: null, over: false, frames: 0, live: false };
+window.__perf = { gaps: null, work: null, over: false, frames: 0, live: false };
+// Each frame's own work, measured as the governor does (src/lib/fx/lowEnd.ts): from the frame's
+// timestamp to a message posted from its callback, which runs once the frame's work is done.
+const workChannel = new MessageChannel();
+workChannel.port1.onmessage = (e) => { const p = window.__perf; if (p.work && !p.over && p.live) p.work.push(performance.now() - e.data); };
 (function sample(last) {
   // Only gaps between two frames of live play count (the probe runs once per drawn arcade frame).
-  requestAnimationFrame((t) => { const p = window.__perf; if (p.gaps && !p.over && p.live) p.gaps.push(t - last); p.live = p.frames > 0 && !p.over; sample(t); });
+  requestAnimationFrame((t) => { const p = window.__perf; if (p.gaps && !p.over && p.live) p.gaps.push(t - last); p.live = p.frames > 0 && !p.over; workChannel.port2.postMessage(t); sample(t); });
 })(performance.now());
 window.__arcadeProbe = (state, over) => { const p = window.__perf; p.over = over; p.frames++; };
 `;
@@ -96,6 +105,28 @@ const RASTER_INIT = String.raw`
 })();
 `;
 
+/**
+ * --raf30: requestAnimationFrame callbacks run on every other real frame (with that frame's
+ * timestamp), as on a screen capped at 30 Hz. Installed before any page script.
+ */
+const RAF30_INIT = String.raw`
+(() => {
+  const real = window.requestAnimationFrame.bind(window);
+  let pending = new Map(), next = 1, odd = false;
+  const tick = (t) => {
+    real(tick);
+    odd = !odd;
+    if (odd) return;
+    const run = pending;
+    pending = new Map();
+    for (const cb of run.values()) cb(t);
+  };
+  real(tick);
+  window.requestAnimationFrame = (cb) => { const id = next++; pending.set(id, cb); return id; };
+  window.cancelAnimationFrame = (id) => { pending.delete(id); };
+})();
+`;
+
 export interface PerfResult {
   game: string;
   rate: number;
@@ -106,6 +137,10 @@ export interface PerfResult {
   runs: number;
   canvases: string[];
   reduced: string | null;
+  /** Each live frame's own work (the governor's measure): median, the share over SLOW_WORK_MS (stalls aside), the longest. */
+  workMedianMs: number;
+  workSlowShare: number;
+  workMaxMs: number;
   categories?: Record<string, number>;
   files?: [string, number][];
   /** --raster: draw-call ms per frame, by method and by caller. */
@@ -199,6 +234,10 @@ export interface MeasureOptions {
   effects?: "full" | 1 | 2;
   /** Live play before the first run's measurement starts (the governor settling), ms; default 400. */
   warmupMs?: number;
+  /** A display capped at 30 Hz (iPhone Low Power Mode, Android battery saver): requestAnimationFrame fires every other vsync. */
+  raf30?: boolean;
+  /** One main-thread stall of this many ms, 2.5 s into the first run's play (after the governor's 1 s settle). */
+  stallMs?: number;
 }
 
 /** One game at one CPU slowdown: the mean frame gap over `seconds` of live play (restarting runs that end). */
@@ -208,6 +247,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
   const context = await browser.newContext({ viewport: { width: o.width, height: o.height }, deviceScaleFactor: o.dpr });
   const page = await context.newPage();
   if (o.effects !== undefined) await page.addInitScript(`window.__duelzEffects = ${JSON.stringify(o.effects)};`);
+  if (o.raf30) await page.addInitScript(RAF30_INIT);
   await page.addInitScript(INIT);
   if (o.raster) await page.addInitScript(RASTER_INIT);
   const cdp = await context.newCDPSession(page);
@@ -218,6 +258,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
   let canvases: string[] = [];
   let reduced: string | null = null;
   let profileOut: ReturnType<typeof attribute> | undefined;
+  const work: number[] = [];
   let raster: { byMethod: Record<string, number>; byCaller: Record<string, number> } | undefined;
   const wantMs = SECONDS * 1000;
   try {
@@ -231,11 +272,19 @@ export async function measure(browser: import("playwright").Browser, origin: str
       const ready = page.getByRole("button", { name: /^Ready/ });
       await ready.waitFor({ timeout: 90_000 });
       await ready.click();
+      if (o.stallMs && runs === 1)
+        await page.evaluate((ms) => {
+          setTimeout(() => {
+            const end = performance.now() + ms;
+            while (performance.now() < end) { /* the injected stall */ }
+          }, 2500);
+        }, o.stallMs);
       // Settle (first frames, lazy sprite caches; with warmupMs, the governor too), then measure.
       await page.waitForTimeout(runs === 1 ? (o.warmupMs ?? 400) : 400);
       await page.evaluate(() => {
         const w = window as never as { __perf: { gaps: number[] | null }; __raster?: { on: boolean } };
         w.__perf.gaps = [];
+        (w.__perf as { work?: number[] }).work = [];
         if (w.__raster) w.__raster.on = true;
       });
       if (PROFILE) {
@@ -264,11 +313,14 @@ export async function measure(browser: import("playwright").Browser, origin: str
         await page.waitForTimeout(150 + Math.floor(rand() * 200));
       }
       const got = await page.evaluate(() => {
-        const p = (window as never as { __perf: { gaps: number[] } }).__perf;
+        const p = (window as never as { __perf: { gaps: number[]; work: number[] } }).__perf;
         const g = p.gaps;
+        const work = p.work ?? [];
         p.gaps = null as never;
+        p.work = null as never;
         return {
           gaps: g,
+          work,
           canvases: [...document.querySelectorAll("[data-game-stage] canvas")].map((c) => {
             const el = c as HTMLCanvasElement;
             return `${el.width}x${el.height}${el.hasAttribute("data-arena-scene") ? " scene" : ""}`;
@@ -278,6 +330,7 @@ export async function measure(browser: import("playwright").Browser, origin: str
         };
       });
       gaps.push(...got.gaps);
+      work.push(...got.work);
       if (got.raster) {
         raster ??= { byMethod: {}, byCaller: {} };
         for (const [k, v] of Object.entries(got.raster.byMethod)) raster.byMethod[k] = (raster.byMethod[k] ?? 0) + v;
@@ -300,10 +353,14 @@ export async function measure(browser: import("playwright").Browser, origin: str
   }
   const sum = gaps.reduce((a, b) => a + b, 0);
   const sorted = [...gaps].sort((a, b) => a - b);
+  const workSorted = [...work].sort((a, b) => a - b);
   const frameMs = gaps.length ? sum / gaps.length : 0;
   return {
     game, rate, frameMs, p95Ms: sorted[Math.ceil(sorted.length * 0.95) - 1] ?? 0, fps: frameMs ? 1000 / frameMs : 0,
     frames: gaps.length, runs, canvases, reduced,
+    workMedianMs: workSorted[Math.floor(workSorted.length / 2)] ?? 0,
+    workSlowShare: work.length ? work.filter((w) => w > SLOW_WORK_MS && w <= STALL_MS).length / work.length : 0,
+    workMaxMs: workSorted[workSorted.length - 1] ?? 0,
     ...(profileOut ? { categories: profileOut.cats, files: profileOut.files } : {}),
     ...(raster ? { raster: { perFrameMs: Object.values(raster.byMethod).reduce((a, b) => a + b, 0) / Math.max(1, gaps.length), byMethod: top(raster.byMethod, gaps.length, 12), byCaller: top(raster.byCaller, gaps.length, 16) } } : {}),
   };
@@ -323,10 +380,10 @@ async function main() {
     await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(games[0] as never), exact: true }).first().waitFor({ timeout: 180_000 }));
     for (const game of games) {
       for (const rate of RATES) {
-        const r = await measure(browser, origin, game, rate, { width: VW, height: VH, dpr: DPR, seconds: SECONDS, profile: PROFILE, raster: RASTER, warmupMs: WARMUP, ...(EFFECTS ? { effects: EFFECTS } : {}) });
+        const r = await measure(browser, origin, game, rate, { width: VW, height: VH, dpr: DPR, seconds: SECONDS, profile: PROFILE, raster: RASTER, warmupMs: WARMUP, raf30: RAF30, stallMs: STALL, ...(EFFECTS ? { effects: EFFECTS } : {}) });
         results.push(r);
         const cats = r.categories ? " · " + Object.entries(r.categories).filter(([k]) => k !== "idle").sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", ") : "";
-        console.log(`${game.padEnd(10)} ${String(rate).padStart(2)}× ${r.frameMs.toFixed(1).padStart(6)} ms ${r.fps.toFixed(1).padStart(5)} fps p95 ${r.p95Ms.toFixed(1).padStart(6)} · ${r.frames} frames ${r.runs} runs · ${r.canvases.join(", ")}${r.reduced ? ` · reduced ${r.reduced}` : ""}${cats}`);
+        console.log(`${game.padEnd(10)} ${String(rate).padStart(2)}× ${r.frameMs.toFixed(1).padStart(6)} ms ${r.fps.toFixed(1).padStart(5)} fps p95 ${r.p95Ms.toFixed(1).padStart(6)} · ${r.frames} frames ${r.runs} runs · ${r.canvases.join(", ")}${` · work median ${r.workMedianMs.toFixed(1)} ms, ${(r.workSlowShare * 100).toFixed(0)} % slow, max ${r.workMaxMs.toFixed(0)} ms`}${r.reduced ? ` · reduced ${r.reduced}` : " · full effects"}${cats}`);
         if (r.raster) {
           console.log(`      raster ${r.raster.perFrameMs.toFixed(2)} ms a frame`);
           for (const [k, ms] of r.raster.byMethod) console.log(`      ${ms.toFixed(3).padStart(7)}  ${k}`);

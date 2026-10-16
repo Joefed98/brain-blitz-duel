@@ -79,10 +79,21 @@ full-canvas fills, gradients, multi-pass strokes and 2× layers resampled every 
 - **Stage re-renders** (`src/components/duel/SteadyStage.tsx`): arcade-screen stages never read `now`, so the
   screens render them through a memo boundary that re-renders only on a new puzzle, key or `locked`; callbacks are
   stable wrappers calling the latest handler. `MuteToggle` is memoised. Identical output everywhere.
-- **Governor** (`src/lib/fx/lowEnd.ts`): each arena watches its frame gaps; after 22 of 30 gaps over 25 ms (past a
-  1 s settle) it steps to reduced effects level 1, and if still slow to level 2. It never steps back within a tab
-  session (sessionStorage) and never switches on at 60, 90 or 120 fps. `window.__duelzEffects` pins a level (the
-  geometry and pixel browser checks pin full effects through `DEVICE_INIT`).
+- **Governor** (`src/lib/fx/lowEnd.ts`): each arena measures every frame's own work: from the frame's
+  requestAnimationFrame timestamp to a message posted from its callback, which runs once the frame's callbacks
+  (the game's update and draw) and the browser's rendering of that frame are done. The wait between frames is not
+  work, so a screen capped at 30 Hz (iPhone Low Power Mode, Android battery savers) is never judged slow. The rule
+  (17 Oct 2026; it judged frame gaps before):
+  - a frame is slow when its work exceeds 20 ms (`SLOW_WORK_MS`: it cannot keep 50 fps);
+  - not counted: frames in the first second after the arena mounts, after the page becomes visible again
+    (`visibilitychange`, `pageshow`) and after a step down (`SETTLE_MS`); any single frame over 100 ms
+    (`STALL_MS`: a stall, a GC, a cache build); frames while the page is hidden;
+  - the stage steps down one level when, over the last 2 s of counted play (`WINDOW_MS`), at least 70 %
+    (`SLOW_SHARE`) of at least 20 counted frames (`MIN_FRAMES`) were slow, and judging has run a full 2 s since it
+    last (re)started.
+
+  It never steps back within a tab session (sessionStorage). `window.__duelzEffects` pins a level (the geometry and
+  pixel browser checks pin full effects through `DEVICE_INIT`).
   - Level 1: canvas pixel ratio capped at 1 (every arcade-stage canvas sizes through `arcadeCanvasRatio`); the
     shared success layer draws no additive light glows, every other particle and one arena-glow stroke; the
     screens' clocks tick at 4 Hz instead of 10 while an arena is live; per game, decorative passes are skipped:
