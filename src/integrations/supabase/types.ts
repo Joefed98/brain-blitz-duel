@@ -219,6 +219,36 @@ export type Database = {
         }
         Relationships: []
       }
+      room_events: {
+        Row: {
+          at: string
+          duel_id: string
+          event: string
+          game_index: number
+          id: number
+          reason: string | null
+          round_number: number
+        }
+        Insert: {
+          at?: string
+          duel_id: string
+          event: string
+          game_index?: number
+          id?: never
+          reason?: string | null
+          round_number?: number
+        }
+        Update: {
+          at?: string
+          duel_id?: string
+          event?: string
+          game_index?: number
+          id?: never
+          reason?: string | null
+          round_number?: number
+        }
+        Relationships: []
+      }
       room_joins: {
         Row: {
           duel_id: string
