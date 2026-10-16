@@ -8,7 +8,9 @@ version stamp or stored row.
 Written 16 Oct 2026 against `supabase/migrations/` (32 files, latest `20261016130300`). Updated the same
 day for the beta recording (gaps G1–G4, now recorded from the four `2026101613xxxx_beta_*` migrations:
 archived rounds and players, practice plays, game and round events, join methods); those tables are
-not in `src/integrations/supabase/types.ts` until Lovable regenerates it. Section 5 says how each query
+not in `src/integrations/supabase/types.ts` until Lovable regenerates it. Updated again the same day for
+the G1 fix-up (`20261016170000_beta_archive_round_records.sql`, not yet applied): archived rounds now
+record the time limit they actually used and their version stamps, as `practice_plays` does. Section 5 says how each query
 was run; section 6 lists what the data still doesn't record.
 
 **Recording starts when the migrations are applied and the code is published.** Rows from before then
@@ -28,10 +30,10 @@ and a host removing a player in the lobby (`removePlayerFn` deletes that `duel_p
 | `duels` | room (one code, possibly several games through Play again) | `id`, `room_code`, `host_user_id` (the device that created it), `created_at`, `status` (`waiting` / `in_progress` / `finished`), `phase`, `phase_started_at` (start of the current phase only; overwritten), `current_round`, `round_count`, `round_order` (jsonb array of game ids, one per round), `puzzles_public` (jsonb, one puzzle per round, each with `type` and sometimes `timeLimitMs`), `selected_categories`, `tournament_history` (jsonb: one entry per earlier game in the room, `{winner, date, score, round_order, forfeit?, forfeited_by?}`), `disbanded_at`. `next_duel_id` is never written. |
 | `duel_players` | device in a room | `duel_id`, `user_id` (device id), `player_slot` (1–10), `display_name`, `status` (`active` / `inactive` / `left`), `joined_at`, `created_at`, `last_seen_at` (heartbeat), `ready_round`, `intro_ready_round`, `muted_by_host`. |
 | `round_results` | answer (device × round) of the room's **current** game | `duel_id`, `player_slot` (→ `duel_players.user_id`), `round_number` (game id = `round_order[round_number - 1]`), `score` (the server's own, 0–1000-ish per round), `is_correct`, `ms_remaining` (time left when answered, after the server's 1.5 s clamp), `submitted_at`, `answer`, `reaction_avg_ms`, `correct_count`, `errors`, `extra` (jsonb; arcade runs carry `flagged`, `diag`, `claimedScore`, `endedSeconds`; tap- and action-log rounds carry `repaired`, `clamped`, `dropped`). |
-| `duel_secrets` | room | answers (server-only); not needed here. |
+| `duel_secrets` | room | answers (server-only), and `round_records` (G1 fix-up: per round `{time_limit_ms, revision}`, written by `startRoomFn` at the deal, copied into `round_results_archive` by Play again); not read by the queries. |
 | `room_messages`, `room_reports` | chat line / report | `duel_id`, sender / reporter device id, `created_at`. |
 | `intro_demos`, `unblock_bank` | — | content, not plays. |
-| `round_results_archive` (G1) | answer of an **earlier** game in a room | every `round_results` column (`id` is the original row's) plus `game_index` (the room's Play again count before that game: 0 = its first game, = the index of its `tournament_history` entry), `game_id`, `time_limit_ms` (the puzzle's own `timeLimitMs`, else null), `user_id` (the slot's device), `archived_at`. Written by `restart_duel_room` just before it deletes `round_results`. |
+| `round_results_archive` (G1) | answer of an **earlier** game in a room | every `round_results` column (`id` is the original row's) plus `game_index` (the room's Play again count before that game: 0 = its first game, = the index of its `tournament_history` entry), `game_id`, `time_limit_ms` (the limit the round actually used: its own `timeLimitMs`, else its game's default, by the same rule as `practice_plays.time_limit_ms`), `revision` (the round puzzle's numeric version stamps, as `practice_plays.revision`), `user_id` (the slot's device), `archived_at`. Written by `restart_duel_room` just before it deletes `round_results`. Rows archived before the fix-up migration `20261016170000` (the first 12), and games dealt before its code shipped, have `time_limit_ms` only when the puzzle had its own limit (else null) and `revision` null; use `coalesce(time_limit_ms, <game default>)` as Q4 does. |
 | `duel_players_archive` (G1) | device that **left** before a Play again | every `duel_players` column but `last_reaction_at`, plus `game_index` and `archived_at`. Written by `restart_duel_room` just before it deletes the `left` players. |
 | `room_events` (G3) | game or round moment | `duel_id`, `game_index`, `round_number` (0 for game events), `event`, `reason`, `at`. `game_started` (the host's start claimed the room, `startRoomFn`); `round_started` (the round's clock started: intro → puzzle); `round_ended` with `all_answered` (every active player had answered) or `timer` (the clock ran out first); `game_ended` with `completed` (the winner reveal, or the last standings in older rooms), `finish_now`, `host_left` or `disbanded` (only for a game in progress). One row per (room, game, round, event). |
 | `room_joins` (G4) | arrival of a device in a room's game | `duel_id`, `user_id`, `player_slot`, `game_index`, `via` (`host` = created it, `code` = home screen's code boxes, `link` = the room link's join card, `play_again` = still in the room when the host pressed Play again; null = a phone on a build from before this), `rejoin` (came back after leaving, in the lobby), `joined_at`. A device's first row in a room is how it got in. |
@@ -61,6 +63,20 @@ there in `room_joins` as joining the next game by `play_again`. A room's games a
 earlier ones in the archive (and `tournament_history[game_index]`), the current one in `round_results`
 (`game_index = jsonb_array_length(tournament_history)`). Rooms that pressed Play again before the
 migration still lost those earlier games' rounds.
+
+**Archived limits and stamps (fix-up, migration `20261016170000_beta_archive_round_records.sql`).**
+The first version copied `time_limit_ms` only when the puzzle had its own `timeLimitMs`, so normal rounds
+archived null while `practice_plays` stored the limit actually used (e.g. 63,000). Now `startRoomFn`
+stores each dealt round's effective limit (`registry.puzzleTimeLimitMs`: the puzzle's own limit, else its
+game's default; the same call `practiceGradeFn` and the room's grading use) and its version stamps
+(`revisionStamps` on the full puzzle, as practice) in `duel_secrets.round_records`, best-effort, and
+`restart_duel_room` copies them into `round_results_archive.time_limit_ms` and the new `revision`
+column. The limit is fixed by the stored puzzle, so storing it at the deal equals storing it when the
+round starts. Room rows and practice rows for the same game and revision now compare directly
+(`GROUP BY game_id, revision`). The 12 rows archived before this are not backfilled (rule 4): their
+`time_limit_ms` is null unless the puzzle had its own limit, and `revision` is null; games dealt before
+the code ships (or while the migration isn't applied) archive the same way. Nothing here changes play,
+scoring, timing or the stamps.
 
 ## 2. Assumptions
 
@@ -968,7 +984,8 @@ order, insert test rows, and run each block with `psql -v ON_ERROR_STOP=1`.
 ## 6. Gaps: what isn't recorded today
 
 G1–G4 are **done** (16 Oct 2026; recording starts once the four `2026101613xxxx_beta_*` migrations are
-applied and the code is published). G5–G8 are not made; each is the smallest change that would record the
+applied and the code is published; the G1 fix-up `20261016170000_beta_archive_round_records.sql`, which
+stores archived rounds' effective limits and version stamps, needs applying too). G5–G8 are not made; each is the smallest change that would record the
 missing fact. None of them touches a game, sim, score, timing, input, replay or version stamp, and none
 rewrites stored rows (rule 4): they only add new rows from now on. Every recording write is best-effort
 (`src/lib/duel/betaRecord.server.ts`; the archive's own sub-block in `restart_duel_room`): a failure is
@@ -977,7 +994,7 @@ PostgreSQL when one is installed.
 
 | # | Missing | Needed by | Smallest change |
 |---|---|---|---|
-| G1 | **Done.** Earlier games' rounds after Play again, and the devices that left. | Q1b, Q2, Q3, Q4, Q6, Q7 | `restart_duel_room` (migration `20261016130300_beta_play_again_archive.sql`) copies the room's `round_results` into `round_results_archive` and its `left` players into `duel_players_archive`, with `game_index` (the Play again count before that game), `game_id`, the puzzle's own `time_limit_ms` and the slot's `user_id`, before its deletes; the rest of the reset is unchanged. |
+| G1 | **Done.** Earlier games' rounds after Play again, and the devices that left. | Q1b, Q2, Q3, Q4, Q6, Q7 | `restart_duel_room` (migration `20261016130300_beta_play_again_archive.sql`) copies the room's `round_results` into `round_results_archive` and its `left` players into `duel_players_archive`, with `game_index` (the Play again count before that game), `game_id`, `time_limit_ms`, `revision` and the slot's `user_id`, before its deletes; the rest of the reset is unchanged. Fix-up (migration `20261016170000_beta_archive_round_records.sql`): `time_limit_ms` is the limit the round used (own `timeLimitMs`, else the game default) and `revision` its version stamps, both by `practice_plays`' rule (`registry.puzzleTimeLimitMs`, `revisionStamps`), taken from `duel_secrets.round_records`, which `startRoomFn` writes once per game at the deal because the database can't see the game defaults. |
 | G2 | **Done.** Practice plays. | Q5, Q7 | `practice_plays` (migration `20261016130200`), one row per graded play from `practiceGradeFn` after grading: device id read from the call's bearer token (the global `attachSupabaseAuth` already sends it; no auth requirement was added, so practice still works without a session and records `user_id` null), game id, revision stamps, score, solved, timed out, duration, limit, time left, intro example, flagged. Outcome only. |
 | G3 | **Done.** Game and round start/end times, and why a round ended. | Q1a, Q4 | `room_events` (migration `20261016130100`): `game_started` (`startRoomFn`'s claim), `round_started` (intro → puzzle in `advancePhaseFn`), `round_ended` with `all_answered` (`advancePhaseFn`'s `allIn`, or `submitAnswerFn`'s last answer) or `timer` (`advancePhaseFn`'s `timeUp`), `game_ended` with `completed` (`leaveBetweenRoundScreen`: result → winner reveal, or older rooms' last standings), `finish_now` (`finishGame`), `host_left` (`leaveRoomFn`) or `disbanded` (`disbandRoomFn`), the last two only mid-game. Written only by the call whose guarded update moved the room (`setPhase` now returns its stamp to that call), and a unique index keeps one row per room, game, round and event. |
 | G4 | **Done.** Joined by code or by link. | Q3b, Q3c | `room_joins` (migration `20261016130000`): `host` (`createRoomRow`), `code` / `link` from an optional `via` that the home screen's code boxes and `JoinFromLink` pass to `joinRoomFn` (rejoins in the lobby flagged `rejoin`), and `play_again` for everyone `restart_duel_room` carries into the next game. Older phones send no `via` and are stored as null. A link pasted into the code boxes counts as `code`. |

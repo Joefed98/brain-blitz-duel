@@ -19,7 +19,14 @@ import {
   setPhase,
 } from "./roomPhase.server";
 import { recordTieWinnerInHistory, tieWinnerRecord } from "./historyWinner.server";
-import { gameIndexOf, joinViaFrom, recordJoin, recordRoomEvent } from "./betaRecord.server";
+import {
+  gameIndexOf,
+  joinViaFrom,
+  recordJoin,
+  recordRoomEvent,
+  recordRoundRecords,
+  roundRecords,
+} from "./betaRecord.server";
 import { loadRoundReveal } from "./reveal.server";
 import { acceptsAnswers } from "./answerWindow";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
@@ -488,6 +495,15 @@ export const startRoomFn = createServerFn({ method: "POST" })
         puzzles_private: JSON.parse(JSON.stringify(split.map((s) => s.priv))),
       });
       if (error) throw new Error(error.message);
+      // Beta recording (G1 archive): each round's effective limit and stamps, best-effort.
+      const { puzzleTimeLimitMs } = await import("./registry");
+      await recordRoundRecords(
+        client,
+        room.id,
+        roundRecords(puzzles as unknown as (Record<string, unknown> & { type: string })[], (p) =>
+          puzzleTimeLimitMs(p as unknown as PuzzleData),
+        ),
+      );
       await recordRoomEvent(client, {
         duel_id: room.id,
         game_index: gameIndexOf(room),

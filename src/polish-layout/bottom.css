@@ -176,3 +176,25 @@ html:has([data-puzzle-screen]) body {
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
     radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent));
 }
+
+/*
+ * Every screen's bottom (16 Oct 2026, display only): black to the screen's bottom edge on
+ * the home, practice, lobby, round result, standings, podium and every other non-game
+ * screen, as on the game screens above. What a phone shows past the app's own boxes (the
+ * 34px home-bar area, the strip an iOS home-screen app is laid out short by, WebKit bug
+ * 254868, the space below a page shorter than the screen and the overscroll bounce) is
+ * the page behind (html, body): --screen-edge, never the lighter --background. A page
+ * shell (PhoneShell outside a game screen) pins its screen background to the viewport, so
+ * a page that scrolls keeps it behind the whole screen at any scroll position, and every
+ * screen background's bottom strip is that black across the home-bar inset, fading over the 16px above,
+ * black, as do the shared-clock moments (Prepare to Duel, round titles, the winner
+ * reveal). screen-bottom-check proves it at 414x896 as a home-screen app.
+ */
+html,
+body {
+  background-color: var(--screen-edge);
+}
+:not(.game-viewport) > .screen-background {
+  position: fixed;
+}
+/* The bottom strips themselves: styles.css (.screen-background::after, .duel-start-screen). */

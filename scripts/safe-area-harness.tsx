@@ -181,8 +181,18 @@ async function fetchRoomPreview(roomCode: string) {
   return { found: true, roomCode, state: "lobby", playerCount: 2, maxPlayers: 10 };
 }
 
+/** Word checks (practice and room): every word is "not a word", so word boards (Slider) can be drawn. */
+async function practiceCheckWordFn({ data }: { data: { word: string } }) {
+  return { valid: false, points: 0, word: data.word, reason: "harness" };
+}
+async function checkWord(_duelId: string, _round: number, word: string) {
+  return { valid: false, points: 0, word, reason: "harness" };
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
   fetchRoomPreview,
+  practiceCheckWordFn,
+  checkWord,
   useDuel,
   useNow,
   useRoomChat,
