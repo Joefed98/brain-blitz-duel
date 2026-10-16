@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode, type Ref } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
 import { Wordmark } from "./Wordmark";
@@ -87,7 +87,7 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
     // 8px from each, and replace the round pips, which no phone width has room for beside it.
     const roomLabel = arcade.gameHeader && roundLabel;
     return (
-      <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-phase-in">
+      <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-round-in">
         <div data-round-heading data-game-topbar data-arcade-header className="grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-1" style={NO_SELECT_STYLE}>
           {roomLabel ? (
             <div data-header-left className="flex min-w-0 items-center gap-2 pr-1">
@@ -112,7 +112,7 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
     );
   }
   return (
-    <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+    <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-round-in">
       <div data-round-heading data-game-topbar className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
@@ -128,6 +128,9 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
   );
 }
 
+/** useLayoutEffect in the browser (before the first paint), a no-op on the server. */
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 /**
  * While any game screen is mounted, lock selection at the document root:
  * html/body get the `game-lock` class, `selectstart` is cancelled, and touches
@@ -136,7 +139,10 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
  * passive, so they cannot do this.
  */
 function useRootSelectionLock(active: boolean) {
-  useEffect(() => {
+  // Before paint (16 Oct 2026, display only): a round that starts on a timer (a room's
+  // server deadline, practice's intro countdown) runs passive effects after its first
+  // frame, which a scrolled intro page then drew offset before the scroll reset snapped it.
+  useIsoLayoutEffect(() => {
     if (!active) return;
     const root = document.documentElement;
     const body = document.body;
