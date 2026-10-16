@@ -38,14 +38,15 @@ import { burstArtGameFor } from "./burst.renderer";
 import { orbitArtGame as orbitGame, orbitArtGameFor, orbitRev3ArtGame } from "./orbit.renderer";
 import { decodeOrbitRun } from "@/lib/duel/orbit";
 import { checkInputEvents } from "./engine";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "./orbit";
-import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initSweptFrom, initTunedFrom, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "./orbit";
+import { decodeOrbitHoles, decodeRev3Planets, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTunedFrom, orbitWorldHFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "./orbitRev3";
 import { swingArtGame as swingGame } from "./swing.renderer";
 import { drawSnipArt as drawSnip } from "./snip.renderer";
 import { snipCamera, snipWorldH, snipWorldHFor, SNIP_CONFIG, SNIP_H, type SnipState } from "./snip";
 import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
-import { BT_H, BT_W, type BtState } from "./ballTrack";
+import { ballTrackWorldHFor, BT_H, BT_W, type BtState } from "./ballTrack";
+import { swingWorldHFor } from "./swing";
 import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W, clayWorldHFor } from "./clayShoot";
 import { clayArtGameFor } from './clayShoot.renderer';
@@ -200,15 +201,19 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: 390,
     worldH: 620,
+    // orbitRev 8: the taller view.
+    heightFor: (puzzle) => orbitWorldHFor(puzzle.type === "orbit" ? puzzle.orbitRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined);
-      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED || puzzle.orbitRev === ORBIT_REV_SWEPT) && puzzle.planets) {
+      if (puzzle.type === "orbit" && (puzzle.orbitRev === ORBIT_REV3 || puzzle.orbitRev === ORBIT_REV4 || puzzle.orbitRev === ORBIT_REV_BAND || puzzle.orbitRev === ORBIT_REV_TUNED || puzzle.orbitRev === ORBIT_REV_SWEPT || puzzle.orbitRev === ORBIT_REV_TALL) && puzzle.planets) {
         // Visual reconstruction only: scoring above still uses the original replay.
         const run = decodeOrbitRun(answer);
         const checked = checkInputEvents(run.events, orbitRev3ArtGame.runTicks, orbitRev3ArtGame.inputRanges ?? []);
         const events = new Map(checked.events.map(event => [event.t, event]));
         let visual: OrbitRev3State =
-          puzzle.orbitRev === ORBIT_REV_SWEPT
+          puzzle.orbitRev === ORBIT_REV_TALL
+            ? initTallFrom(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
+            : puzzle.orbitRev === ORBIT_REV_SWEPT
             ? initSweptFrom(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
             : puzzle.orbitRev === ORBIT_REV_TUNED
             ? initTunedFrom(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
@@ -216,7 +221,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
             ? initRev4From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(puzzle.holes ?? []))
             : initRev3From(decodeRev3Planets(puzzle.planets), ORBIT_REV3_WORLD_W);
         for (let tick = 1; tick <= state.tick; tick++) visual = orbitRev3ArtGame.step(visual, events.get(tick) ?? null);
-        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: 620 });
+        orbitRev3ArtGame.draw(ctx, visual, { width: 390, height: orbitWorldHFor(puzzle.orbitRev) });
         return null;
       }
       // Dispatches on the replayed state's own rev field (rev3 draws via the
@@ -226,7 +231,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return (state as { rev?: number }).rev === 3 ? null : { x: state.x / FP, y: (state.y - state.camY) / FP };
     },
   },
-  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined)),
+  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined), undefined, undefined, (p) => swingWorldHFor(p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,
@@ -244,6 +249,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     accent: GOLD,
     worldW: BT_W,
     worldH: BT_H,
+    // btRev 4: the taller board.
+    heightFor: (puzzle) => ballTrackWorldHFor(puzzle.type === "balltrack" ? puzzle.btRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "balltrack") return null;
       const state = replayBallTrackRun(puzzle.course, puzzle.seed, answer, puzzle.btRev).state as BtState;

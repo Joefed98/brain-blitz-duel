@@ -161,7 +161,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
     // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
     ["matchup", generateMatchup().matchupRev, MATCHUP_REV_PAR],
-    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 1],
+    // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
+    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", generateHover().hoverRev, HOVER_REV_TALL],
     ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],

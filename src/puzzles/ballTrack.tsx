@@ -13,13 +13,13 @@ import {
   BT_BALLS,
   BT_CHECKPOINT_INTERVAL,
   BT_COLS,
-  BT_H,
+  btLayout,
   BT_HOPPER_H,
   BT_K_ROTATE,
   BT_REV,
   BT_REV_BAND,
+  BT_REV_TALL,
   BT_PALETTE,
-  BT_ROWS,
   BT_TILE,
   BT_W,
   type BtCheckpoint,
@@ -79,7 +79,7 @@ function IntroExample() {
 
 const GAME_ROOT_STYLE = { ...NO_SCROLL_STYLE, userSelect: "none", WebkitUserSelect: "none" } as const;
 
-function view(width: number, height: number) {
+function view(width: number, height: number, BT_H: number) {
   const scale = Math.min(width / BT_W, height / BT_H);
   return { scale, ox: (width - BT_W * scale) / 2, oy: (height - BT_H * scale) / 2 };
 }
@@ -90,6 +90,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const seed = data?.seed ?? 1;
   const rev = data?.btRev;
   const game = useMemo(() => makeBallTrackGame(course, rev), [course, rev]);
+  // btRev 4: the taller board (its course carries the rows); every phone draws the stored course's board.
+  const { rows: BT_ROWS, h: BT_H } = btLayout(course);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -191,7 +193,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
         const ctx = node.getContext("2d");
         if (ctx) {
-          const v = view(w, h);
+          const v = view(w, h, BT_H);
           ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
           ctx.clearRect(0, 0, w, h);
           ctx.translate(v.ox, v.oy);
@@ -220,7 +222,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const world = (clientX: number, clientY: number) => {
     const box = board.current?.getBoundingClientRect();
     if (!box) return null;
-    const v = view(box.width, box.height);
+    const v = view(box.width, box.height, BT_H);
     return { x: (clientX - box.left - v.ox) / v.scale, y: (clientY - box.top - v.oy) / v.scale };
   };
 
@@ -245,7 +247,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
             const cell = row * BT_COLS + col;
             // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-            const switchPoint = (rev === BT_REV || rev === BT_REV_BAND) && row === BT_ROWS - 1 && col > 0;
+            const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL) && row === BT_ROWS - 1 && col > 0;
             if (!game.rotatable.has(cell) && !switchPoint) return;
             push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
           }}

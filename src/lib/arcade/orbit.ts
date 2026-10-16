@@ -46,6 +46,8 @@ export const ORBIT_REV_BAND = 5;
 export const ORBIT_REV_TUNED = 6;
 /** Rev 7 (Tuning F): rev-6 play with swept black holes: every hole ahead swallows the rocket the moment its drawn body touches the disc (orbitRev3.ts). */
 export const ORBIT_REV_SWEPT = 7;
+/** Rev 8 (taller worlds, batch 3): rev-7 play framed in a taller 390 × 650 view (orbitRev3.ts, orbitCamera.ts). */
+export const ORBIT_REV_TALL = 8;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */
@@ -708,12 +710,14 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   let checksum = 0x811c9dc5;
   const values = Object.values(snap);
   // Rev 4 folds its black-hole counters in; older states never have them, so their sums are unchanged.
-  const holes = state as { jumps?: number; skipped?: number; tuned?: number; warp?: number; swept?: number };
+  const holes = state as { jumps?: number; skipped?: number; tuned?: number; warp?: number; swept?: number; worldH?: number };
   if (holes.jumps !== undefined) values.push(holes.jumps, holes.skipped ?? 0);
   // orbitRev 6 folds in its fly-in after those.
   if (holes.tuned) values.push(holes.tuned, holes.warp ?? 0);
   // orbitRev 7 (swept black holes) adds its marker last, so rev-4/5/6 checksums are unchanged.
   if (holes.swept) values.push(holes.swept);
+  // orbitRev 8 (taller worlds): the view height, last.
+  if (holes.worldH) values.push(holes.worldH);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
