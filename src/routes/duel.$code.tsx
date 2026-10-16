@@ -366,9 +366,13 @@ function DuelScreen() {
   });
   const myStanding = table.find((r) => r.slot === mySlot);
   const opponentStanding = table.find((r) => r.slot === opponentSlot);
-  const roundTitle = puzzle
-    ? `Round ${round} · ${puzzleName(puzzle.type)}${currentReveal?.correctAnswer ? ` · ${currentReveal.correctAnswer}` : ""}`
-    : `Round ${round}`;
+  const roundTitle = puzzle ? `Round ${round} · ${puzzleName(puzzle.type)}` : `Round ${round}`;
+  /** Only a single fewest-moves count makes a short "Best: 17 moves" line; longer answers stay off the title. */
+  const bestLine = /^\d+ (moves|presses|pushes|pours|tilts)$/.test(
+    currentReveal?.correctAnswer ?? "",
+  )
+    ? `Best: ${currentReveal!.correctAnswer}`
+    : null;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
   const roundTimes = new Map(
@@ -968,6 +972,7 @@ function DuelScreen() {
           <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
           <RoundResultsTable
             roundTitle={roundTitle}
+            best={bestLine}
             rows={table}
             times={roundTimes}
             mySlot={mySlot}
@@ -994,6 +999,7 @@ function DuelScreen() {
         <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
         <RoundResult
           roundTitle={roundTitle}
+          best={bestLine}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
           myRoundScore={myResult?.score ?? 0}

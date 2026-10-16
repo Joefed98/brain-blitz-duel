@@ -27,13 +27,13 @@ export function DuelOverall({
     <div className="flex flex-1 flex-col justify-between gap-6 pt-8 animate-phase-in">
       <div>
         <header className="relative px-12 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
             Overall standings
           </p>
           <h1 className="mt-1 font-display text-lg font-bold text-foreground">
             After round {round} of {totalRounds}
           </h1>
-          <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+          <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
             Overall
           </span>
         </header>
@@ -54,7 +54,7 @@ export function DuelOverall({
                 <p className="mt-2 font-mono text-xs text-foreground/80">
                   +{row.roundScore} this round · {positionChange(row)}
                 </p>
-                <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                   #{index + 1}
                 </p>
               </div>

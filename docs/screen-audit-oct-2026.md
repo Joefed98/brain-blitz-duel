@@ -164,13 +164,13 @@ Examples: 2 players [ex-results-2p](screen-audit-oct-2026/ex-results-2p.jpg), 10
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| All (3–9 players) | **Rows stretch to fill the screen**: with 3 players each card is about 170 px tall with its text floating in the middle ([iss-results-stretched](screen-audit-oct-2026/iss-results-stretched.jpg)). | Must | `auto-rows-min` / `content-start` on the grid; let the gap sit below the list. | `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/Standings.tsx` |
-| 14 arcade games + Interlock, Ballpark | **Summaries are cut with "…"** at 414 px (more at 390): Rally "0 gold hits (2.5 each, ro…", Bonk "Hits 0 / 0 · Wrong 0 · Bo…", Wavefront, Fission, Pinball, Breaker, Coral Pop, Slice, Tempo, Tilt, Gemstone, Hover, Ballpark ([iss-results-truncated](screen-audit-oct-2026/iss-results-truncated.jpg)). | Must | Let the summary wrap to two lines (rows are tall enough), and shorten the long summaries (Wording batch). | `src/components/duel/RoundResultsTable.tsx` |
-| Operator, Brimful, Checkout, Tally, Eagle Eye, Mosaic, Slider | **The round title appends the answer**: "Round 2 · Operator · × − − − × × + + − · × × − ÷" (wraps, unreadable), "Brimful · 6 · 8 · 9 · 11 moves", "Checkout · 2 · 2 · 2 · 3 · 4 darts", "Mosaic · The picture", "Slider · SWIPE · MACRO · PLUNK…" ([iss-results-title-answer](screen-audit-oct-2026/iss-results-title-answer.jpg)). | Must | Title "Round 2 · Operator" only; show `correctAnswer` as its own "Best: 17 moves" line, and only for short answers (moves, a number). | `src/routes/duel.$code.tsx` (`roundTitle`) |
-| All | **"CONTINUE (5S)"**: the uppercase style turns "5s" into "5S" (also on standings). | Must | Drop `uppercase` on the count, or write "Continue · 5". | `src/components/duel/ContinueFooter.tsx` |
+| All (3–9 players) | **Rows stretch to fill the screen**: with 3 players each card is about 170 px tall with its text floating in the middle ([iss-results-stretched](screen-audit-oct-2026/iss-results-stretched.jpg)). | Must · **Done** (Batch 1) | `auto-rows-min` / `content-start` on the grid; let the gap sit below the list. Done: rows take their content's height from the top. | `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/Standings.tsx` |
+| 14 arcade games + Interlock, Ballpark | **Summaries are cut with "…"** at 414 px (more at 390): Rally "0 gold hits (2.5 each, ro…", Bonk "Hits 0 / 0 · Wrong 0 · Bo…", Wavefront, Fission, Pinball, Breaker, Coral Pop, Slice, Tempo, Tilt, Gemstone, Hover, Ballpark ([iss-results-truncated](screen-audit-oct-2026/iss-results-truncated.jpg)). | Must · **Done** (Batch 1) (the wrap; shortening stays in Batch 5) | Let the summary wrap to two lines (rows are tall enough), and shorten the long summaries (Wording batch). Done: two lines with up to 8 players; 9–10 players keep one line (the rows would not fit), tap a row for the whole summary as before. Summaries longer than two lines (Rally) still end in "…" until Batch 5 shortens them. | `src/components/duel/RoundResultsTable.tsx` |
+| Operator, Brimful, Checkout, Tally, Eagle Eye, Mosaic, Slider | **The round title appends the answer**: "Round 2 · Operator · × − − − × × + + − · × × − ÷" (wraps, unreadable), "Brimful · 6 · 8 · 9 · 11 moves", "Checkout · 2 · 2 · 2 · 3 · 4 darts", "Mosaic · The picture", "Slider · SWIPE · MACRO · PLUNK…" ([iss-results-title-answer](screen-audit-oct-2026/iss-results-title-answer.jpg)). | Must · **Done** (Batch 1) | Title "Round 2 · Operator" only; show `correctAnswer` as its own "Best: 17 moves" line, and only for short answers (moves, a number). Done: the title never carries the answer; "Best: 17 moves" shows only for a single fewest-moves count (moves, presses, pushes, pours, tilts). | `src/routes/duel.$code.tsx` (`roundTitle`) |
+| All | **"CONTINUE (5S)"**: the uppercase style turns "5s" into "5S" (also on standings). | Must · **Done** (Batch 1) | Drop `uppercase` on the count, or write "Continue · 5". | `src/components/duel/ContinueFooter.tsx` |
 | All | "ROUND RESULTS" plus a corner tag "THIS ROUND" says the same thing twice; the corner tag is 10 px and overlaps the heading's box. | Nice | Drop the corner tag (keep "Final round" as the heading on the last round). | `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/RoundResult.tsx` |
 | All | The category tag ("LOGIC", 10 px, top left) sits above results and standings, where it means little. | Nice | Remove it from results and standings. | `src/routes/duel.$code.tsx` |
-| All | "ROUND WON" badge is 9 px; "Round results" / "This round" 10 px. | Must | 11 px minimum. | `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/RoundResult.tsx` |
+| All | "ROUND WON" badge is 9 px; "Round results" / "This round" 10 px. | Must · **Done** (Batch 1) | 11 px minimum. | `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/RoundResult.tsx` |
 | 2 players | The loser's card is dimmed to 4.36:1 (name) and 3.53:1 ("✓ Correct", 11 px); the summary wraps to three lines in the half-width card; the cards sit at the top with a large empty gap below. | Nice | Dim less (≥ 4.5:1); full-width stacked cards. | `src/components/duel/RoundResult.tsx` |
 
 ## Leaderboard (standings)
@@ -179,7 +179,7 @@ Example: [ex-standings](screen-audit-oct-2026/ex-standings.jpg).
 
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
-| All (3–9 players) | Rows stretch to fill the screen (as round results). | Must | As round results. | `src/components/duel/Standings.tsx` |
+| All (3–9 players) | Rows stretch to fill the screen (as round results). | Must · **Done** (Batch 1) | As round results. | `src/components/duel/Standings.tsx` |
 | All | "OVERALL STANDINGS" plus corner tag "OVERALL". | Nice | Drop the tag. | `src/components/duel/Standings.tsx`, `src/components/duel/DuelOverall.tsx` |
 | All | Legend "▲▼ places moved · +points this round · total" is 10 px and cryptic. | Nice | 11 px; "+130 this round" already explains itself, so drop the legend. | `src/components/duel/Standings.tsx` |
 | 2 players | "+130 this round · –" and "#1" (10 px): the trailing "· –" is a movement dash with nothing to say. | Nice | Hide the movement on 2-player standings. | `src/components/duel/DuelOverall.tsx` |
@@ -326,6 +326,11 @@ Files: `src/components/duel/RoundResultsTable.tsx`, `src/components/duel/RoundRe
 - The Roofbound lock overlay ("Waiting for other players" with the LOCKED card on a scrim).
 - "Back" in place of "Back to home" on the room's error screens (same file).
 - Checks: safe-area-screens-check, bottom-clearance-check (puzzle parts), room-moments-check.
+- **Done (16 Oct 2026), Must rows only:** rows sized to content (results and standings), summaries on two lines,
+  the title without the answer plus a "Best:" line, "Continue (5s)", and every label on these screens at 11 px
+  ("Round won", "Round results", "This round", "Overall standings", "Overall", the legend, "#1"). The bullets above
+  that the tables mark Nice (dropping the corner and category tags, the 2-player "· –", the Roofbound lock overlay,
+  "Back") were left for a later pass.
 
 ### Batch 2 — Reveal screens (Must)
 
