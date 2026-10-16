@@ -15,6 +15,12 @@ screen edge's black (#070709), except where one of ten games extends its own sce
 below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
 browser by arcade-play-check; not device measurements.
 
+Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,
+Meteor snakeRev 5, Scrumper snipRev 5; batch 1 (16 Oct 2026) Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6 (390x730),
+Fission burstRev 4 (390x650); batch 2 (16 Oct 2026) Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5 (390x730),
+Mixed Signals clashRev 5 (390x650) and Pull! clayRev 6 (360x680, so it draws 390x737 at 390px wide). Stored rounds on older
+revisions keep their own world in reveals and replays.
+
 | Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Hover | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |

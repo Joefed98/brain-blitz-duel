@@ -457,9 +457,18 @@ taller one, every run through the server's own encode + replay:
 - **Tempo keeps Tuning C's kinder level** (73 / 112 / 139 / 148, about 10 % above the band targets by Joe's ruling); the taller
   lanes change nothing a player can score.
 - **Engine games** (no band curve; measured with the puzzle-fairness kits, `bun scripts/arcade-tuning-g2-engine-bands.ts`, 30
-  room puzzles): Mixed Signals 44 / 85 / 134 / 144 → 70 / 100 / 134 / 144 with clashRev 5's net-right unfinished credit (a
-  finish is unchanged; careless sorting still 0); Pull! 90 / 130 / 150 / 150 → 88 / 125 / 150 / 150 on its unchanged formula
-  (great and near-perfect players hit every clay, so a curve cannot separate them).
+  room puzzles):
+  - **Mixed Signals clashRev 4 → 5** (390 × 650 board, gates 90 px lower at y 544; a word falls (gate − spawn) ÷ its fall
+    ticks and a drop runs 22.47 px a tick, so every word lands in the same ticks on the same three, then four, lanes):
+    44 / 85 / 134 / 144 → 70 / 100 / 134 / 144. Unfinished credit is now net = words right − words wrong on
+    `CLASH_V5_CURVE`: net ≤ 0 → 0, 20 → 70, 40 → 100, 46 or more → 110, straight lines between (was round(110 × right ÷ 52)
+    − 2 per wrong). Good players sort all 52 with about six wrong (net about 40). A finish (all 52, at most 2 wrong:
+    120 + PAR(30) − 5 per wrong) is unchanged, so great and near-perfect players, who mostly finish, stay at 134 / 144.
+    Random-gate, same-gate and drop-where-spawned sorting still score 0 (their net is negative).
+  - **Pull! clayRev 5 → 6** (360 × 680 sky, drawn 390 × 737 on a 390 px phone; launch heights, vertical speeds and gravity
+    × 1.7, so every clay and bird is in the air as long as before; clays and hit areas unchanged): 90 / 130 / 150 / 150 →
+    88 / 125 / 150 / 150 on its unchanged formula (great and near-perfect players hit every clay, so a curve cannot separate
+    them).
 - **Best scores** through the server replay: 150 on beatRev 6 and bubbleRev 5, 149 on sliceRev 6 (no simulated player reaches
   Slice's 900 ‰ on any revision) (`arcade-tuning-g2-check`).
 - Each game's intro demo stays stopped (`introDemo.functions.ts`) until one is recorded on the taller revision.
