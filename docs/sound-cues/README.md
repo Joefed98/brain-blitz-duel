@@ -69,6 +69,12 @@ What each kind of slot does once it has a file:
   borrowed bed for that game (`roundMusicFor`); the screen slots `music_home`, `music_practice`,
   `music_prepare`, `music_round_title`, `music_reveal` and `music_winner` start playing on their screens.
 - **Replacing an existing recording**: change the `url` of its own entry (`correct`, `arc_retro_hit`…).
+- **A game's own completion cue** (`strikeout.finish`, `codeword.finish`, `swapword.finish`, `wordfall.finish`,
+  `stroop.gatesFlash`, `tendrop.solve`, `whack.finale`, `clayshoot.finalBurst`): these fire at the same moment as the
+  generic `complete` sound, so once the cue's file has loaded the generic sound is left out there (`completeFx` in
+  `src/lib/fx/index.ts`; the burst still shows). Every other completion cue plays on its own, so nothing else changes.
+- **Git-route files** live in `public/sounds/<slot>.mp3`; the shared replay slots `*.final-second` and `*.final` use
+  `any.final-second.mp3` and `any.final.mp3`, since `*` cannot be in a filename on Windows.
 
 Without a file every slot keeps today's behaviour exactly: named cues stay silent, arcade moments play
 their shared sound, the chain keeps its tones, games keep their shared bed and the screens stay silent.

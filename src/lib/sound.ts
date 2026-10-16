@@ -571,6 +571,11 @@ function slotReady(id: string): boolean {
   );
 }
 
+/** True once a named cue's own file is set and decoded (the moment will play it, not silence). */
+export function cueHasFile(cue: string): boolean {
+  return slotReady(cue);
+}
+
 /**
  * Plays a named cue's own file (`duelz-sound` cues, docs/sound-cues/README.md).
  * A cue whose slot has no file (or whose file failed to load) plays nothing and

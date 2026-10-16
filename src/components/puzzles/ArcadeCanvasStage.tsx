@@ -72,6 +72,8 @@ interface Props<S, C> {
   discrete?: boolean;
   /** Called every tick; a non-null payload replaces the pointer's wanted payload. */
   tickInput?: (state: S) => PointerPayload | null;
+  /** The game's own completion cue when it fires as the run ends (state: the last frame), else null; see completeFx. */
+  completeCue?: (state: S) => string | null;
   /** Render-side sound observer, created per run and stopped on teardown. */
   sounds?: () => { frame: (state: S, running: boolean) => void; stop: () => void };
   /** Controls drawn over the canvas (absolute), never shrinking the play area. */
@@ -142,7 +144,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({
+      completeCue: (s) => propsRef.current.completeCue?.(s as S) ?? null,
+    });
     const sounds = propsRef.current.sounds?.();
     const tickOf = () => (state.current as { tick: number }).tick;
 
