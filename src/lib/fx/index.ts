@@ -1,4 +1,4 @@
-import { demoHushed, playSound, startWarning10 } from "@/lib/sound";
+import { cueHasFile, demoHushed, playSound, startWarning10 } from "@/lib/sound";
 import { DEFAULT_SOUNDS, type FxHook, type GameTheme, type Primitive } from "./theme";
 
 export const FX_EVENT = "duelz-fx";
@@ -48,3 +48,12 @@ export function triggerFx(hook: FxHook, value?: number | string, theme?: GameThe
 export const fx = Object.fromEntries(Object.keys(PRIMITIVES).map(hook => [hook,
   (value?: number | string, theme?: GameTheme) => triggerFx(hook as FxHook, value, theme),
 ])) as Record<FxHook, (value?: number | string, theme?: GameTheme) => void>;
+/**
+ * onComplete for a game with its own completion cue (`ownCue`, fired at this same moment): once
+ * that cue has a loaded file, the generic "complete" sound is left out so the two don't stack.
+ * The burst still shows; without the file, or with ownCue null, it is fx.onComplete exactly.
+ */
+export function completeFx(ownCue: string | null): void {
+  if (ownCue && cueHasFile(ownCue)) visualFx("onComplete");
+  else fx.onComplete();
+}

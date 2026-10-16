@@ -132,7 +132,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({
+      completeCue: (s) =>
+        whackGame.score(s as WhackState) >= END_OF_RUN_FX_SCORE ? "whack.finale" : null,
+    });
     let hits = state.current.hits;
     let wrong = state.current.wrong;
     let flashUntil = 0;

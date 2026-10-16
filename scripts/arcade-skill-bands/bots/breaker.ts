@@ -20,7 +20,7 @@ import {
   BRK_BRICK_W,
   BRK_COLS,
   BRK_PADDLE_W,
-  BRK_PADDLE_Y,
+  brkPaddleY,
   BRK_POWER_LASER,
   BRK_ROWS,
   BRK_ROW_PITCH,
@@ -48,7 +48,9 @@ const REGRIP: Record<string, number> = { average: 12, good: 10, great: 8, near: 
 
 const LO = BRK_WALL + BRK_BALL_R;
 const HI = BRK_WORLD_W - BRK_WALL - BRK_BALL_R;
-const CATCH_Y = BRK_PADDLE_Y - BRK_BALL_R;
+/** The paddle line the ball is caught on: set per run from the game's own world (brkRev 6's taller court). */
+let PADDLE_Y = 0;
+let CATCH_Y = 0;
 
 /** Where and when a falling ball reaches the paddle line, bouncing off the side walls only. */
 function landing(b: BrkBall): { x: number; t: number } | null {
@@ -102,6 +104,8 @@ function columnBricks(s: BrkState, x: number): number {
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
+  PADDLE_Y = brkPaddleY(game.init(seed));
+  CATCH_Y = PADDLE_Y - BRK_BALL_R;
   const level = human.level;
   const speed = FINGER[level]!;
   const history: BrkState[] = [];
@@ -152,7 +156,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const key = `c${c.x}:${c.kind}`;
       if (!capsuleWill.has(key)) capsuleWill.set(key, human.chance(CAPSULE[level]!));
       if (!capsuleWill.get(key)) continue;
-      const ct = (BRK_PADDLE_Y * 256 - c.y) / 640;
+      const ct = (PADDLE_Y * 256 - c.y) / 640;
       if (ct < 0) continue;
       const cx = c.x / 256;
       // Go for it only if, after catching it, the finger can still reach the next ball in time

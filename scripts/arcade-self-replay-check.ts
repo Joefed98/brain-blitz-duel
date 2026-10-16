@@ -108,20 +108,20 @@ import { encodeWordfallRun, replayWordfallRun } from "@/lib/duel/wordfall";
 import "@/lib/duel/wordfallDict.server";
 
 import { BT_REV_BAND } from "@/lib/arcade/ballTrack";
-import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
+import { WAV_REV_BAND, WAV_REV_SHAPES, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_SMALL } from "@/lib/arcade/cross";
-import { RALLY_REV_BAND, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
+import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
 import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
@@ -129,7 +129,7 @@ import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TUNED } from "@/lib/arcade/o
 import { initBandFrom, initSweptFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
 import { BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
-import { BURST_REV_BAND } from "@/lib/arcade/burst";
+import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD } from "@/lib/arcade/swing";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -550,6 +550,11 @@ const GAMES: Game[] = [
   { key: "rally/tunef", game: rallyGameFor(RALLY_REV_TUNEF), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TUNEF) },
   { key: "beat/tunef", game: beatGameFor(BEAT_REV_TUNEF), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_TUNEF) },
   { key: "snake/rocks", game: snakeGameFor(SNAKE_REV_ROCKS), checkpoint: snakeCheckpoint, mode: "events", rate: 40, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_ROCKS) },
+  // Taller worlds batch 1 (Oct 2026): Breaker's and Rally's taller courts, Wavefront's taller world, Fission's taller arena.
+  { key: "breaker/tall", game: breakerGameFor(BRK_REV_TALL), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_TALL) },
+  { key: "rally/tall", game: rallyGameFor(RALLY_REV_TALL), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_TALL) },
+  { key: "wavefront/tall", game: wavefrontGameFor(WAV_REV_TALL), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, WAV_REV_TALL) },
+  { key: "burst/tall", game: burstGameFor(BURST_REV_TALL), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, BURST_REV_TALL) },
   {
     key: "orbit/swept",
     game: orbitRev3Game,

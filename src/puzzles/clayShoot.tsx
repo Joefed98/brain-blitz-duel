@@ -211,7 +211,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback();
+    const feedback = arcadeFeedback({
+      completeCue: (s) =>
+        game.score(s as ClayState) >= END_OF_RUN_FX_SCORE ? "clayshoot.finalBurst" : null,
+    });
     let seenHits = 0;
     let seenGold = 0;
     let seenBirds = 0;

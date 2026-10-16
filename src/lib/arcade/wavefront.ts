@@ -39,6 +39,27 @@ const SHIP_MIN_X = 24;
 const SHIP_MAX_X = WAV_WORLD_W - 24;
 /** Drags only start in the bottom quarter. */
 export const WAV_DRAG_ZONE_TOP = Math.round((WAV_WORLD_H * 3) / 4);
+/** How far the ship's centre line sits above the bottom of the world, px. */
+export const WAV_SHIP_LIFT = WAV_WORLD_H - WAV_SHIP_Y;
+
+/** The world height (px) a state plays in: wavRev 6's taller world, or the original 620. */
+export function wavWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? WAV_WORLD_H;
+}
+/** The ship's centre line (px) in a state's world: always WAV_SHIP_LIFT above the bottom. */
+export function wavShipY(state: { worldH?: number }): number {
+  return wavWorldH(state) - WAV_SHIP_LIFT;
+}
+/** wavRev 6: the ship's bolts fly 10 px a tick, so they reach the formation and boss in the same time from the lower ship line. */
+export const WAV_TALL_BOLT_SPEED = 10;
+/** The ship's bolt speed (1/256 px a tick) in a state's world: 8 px a tick, 10 in wavRev 6's taller world. */
+export function wavBoltSpeedFp(state: { worldH?: number }): number {
+  return state.worldH ? WAV_TALL_BOLT_SPEED * FP : BOLT_SPEED_FP;
+}
+/** Where drags may start (the bottom quarter) in a world of this height, px. */
+export function wavDragZoneTop(worldH: number): number {
+  return Math.round((worldH * 3) / 4);
+}
 
 export const WAV_FIRE_EVERY = 20;
 export const WAV_MAX_BOLTS = 3;
@@ -247,6 +268,8 @@ export interface WavState extends BandFields {
   tunec?: number;
   /** wavRev 5 only: the tick the boss appeared (its fly-in starts), for the kill's speed bonus; 0 before. */
   bossAt?: number;
+  /** wavRev 6 only (taller worlds): the world height in px (WAV_TALL_H). Absent = WAV_WORLD_H. */
+  worldH?: number;
   /** wavRev 2: ships that rammed the player while diving (destroyed, no points), and divers shot down. */
   rammed?: number;
   diversDown?: number;
@@ -409,6 +432,10 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   };
   const v2 = state.rev === WAV_REV;
   const runTicks = v2 ? WAV_V2_RUN_TICKS : WAV_RUN_TICKS;
+  // wavRev 6: the taller world's ship line and bottom edge (554 / 620 otherwise).
+  const shipY = wavShipY(state);
+  const worldH = wavWorldH(state);
+  const boltSpeed = wavBoltSpeedFp(state);
   if (v2) {
     s.divers = (state.divers ?? []).map((d) => ({ ...d }));
     s.boss = state.boss ? { ...state.boss } : null;
@@ -464,7 +491,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   // Ship fire.
   if (s.fireIn > 0) s.fireIn -= 1;
   if (s.fireIn <= 0 && s.bolts.length < WAV_MAX_BOLTS) {
-    const bolt: WavBolt = { x: s.shipX * FP, y: (WAV_SHIP_Y - 14 - WAV_BOLT_H) * FP };
+    const bolt: WavBolt = { x: s.shipX * FP, y: (shipY - 14 - WAV_BOLT_H) * FP };
     if (s.pierce > 0) {
       bolt.p = WAV_PIERCE_HITS;
       s.pierce -= 1;
@@ -510,7 +537,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
       if (s.shapes[d.cell] === 0) continue;
       if (d.t <= WAV_DIVE_TICKS) {
         // Down past the ship's line on a sine sway toward the aim point, then off the bottom.
-        const exitY = (WAV_WORLD_H + WAV_CELL) * FP;
+        const exitY = (worldH + WAV_CELL) * FP;
         d.y = d.y0 + Math.trunc(((exitY - d.y0) * d.t) / WAV_DIVE_TICKS);
         const sway = Math.trunc((d.sway * FP * isin(Math.trunc((32768 * d.t) / WAV_DIVE_TICKS))) / TRIG_ONE);
         d.x = d.x0 + Math.trunc(((d.tx - d.x0) * d.t) / WAV_DIVE_TICKS) + sway;
@@ -532,7 +559,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
       const c = wavDiverCentre(d);
       if (
         Math.abs(c.x - s.shipX) < (WAV_SHIP_W + WAV_CELL) / 2 &&
-        Math.abs(c.y - WAV_SHIP_Y) < (WAV_SHIP_H + WAV_CELL) / 2
+        Math.abs(c.y - shipY) < (WAV_SHIP_H + WAV_CELL) / 2
       ) {
         if (s.invuln === 0) {
           s.lives -= 1;
@@ -589,7 +616,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   // Bolts up, and what they hit.
   const kept: WavBolt[] = [];
   for (const bolt of s.bolts) {
-    bolt.y -= BOLT_SPEED_FP;
+    bolt.y -= boltSpeed;
     if (bolt.y + WAV_BOLT_H * FP < WAV_HUD_H * FP) continue;
     let hit = false;
     for (let i = 0; i < WAV_SHAPES && !hit; i++) {
@@ -705,11 +732,11 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
       s.drop.y += DROP_SPEED_FP;
       const caught =
         Math.abs(s.drop.x - s.shipX * FP) < (WAV_SHIP_W / 2 + WAV_DROP_R) * FP &&
-        Math.abs(s.drop.y - WAV_SHIP_Y * FP) < (WAV_SHIP_H / 2 + WAV_DROP_R) * FP;
+        Math.abs(s.drop.y - shipY * FP) < (WAV_SHIP_H / 2 + WAV_DROP_R) * FP;
       if (caught) {
         s.pierce = WAV_PIERCE_SHOTS;
         s.drop = null;
-      } else if (s.drop.y > WAV_WORLD_H * FP) s.drop = null;
+      } else if (s.drop.y > worldH * FP) s.drop = null;
     }
   }
 
@@ -751,11 +778,11 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   const redsKept: WavBolt[] = [];
   for (const red of s.reds) {
     red.y += s.redSpeed;
-    if (red.y > WAV_WORLD_H * FP) continue;
+    if (red.y > worldH * FP) continue;
     const overlaps =
       Math.abs(red.x - s.shipX * FP) < (WAV_SHIP_W / 2 + 2) * FP &&
-      red.y + WAV_BOLT_H * FP >= (WAV_SHIP_Y - WAV_SHIP_H / 2) * FP &&
-      red.y <= (WAV_SHIP_Y + WAV_SHIP_H / 2) * FP;
+      red.y + WAV_BOLT_H * FP >= (shipY - WAV_SHIP_H / 2) * FP &&
+      red.y <= (shipY + WAV_SHIP_H / 2) * FP;
     if (overlaps) {
       if (s.invuln === 0) {
         s.lives -= 1;
@@ -835,7 +862,7 @@ function step(state: WavState, input: ArcadeInputEvent | null): WavState {
   s.shapes.forEach((code, i) => {
     if (code !== 0) lowest = Math.max(lowest, shapedForm ? shapedForm[i]![1] : Math.trunc(i / WAV_COLS) * PITCH_Y);
   });
-  const reached = lowest >= 0 && s.fy + lowest + WAV_CELL >= WAV_SHIP_Y - WAV_SHIP_H / 2;
+  const reached = lowest >= 0 && s.fy + lowest + WAV_CELL >= shipY - WAV_SHIP_H / 2;
 
   if (s.lives <= 0 || reached) {
     s.lives = Math.max(0, s.lives);
@@ -973,8 +1000,10 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
     for (const d of state.divers ?? []) extra.push(d.cell, d.t, d.x, d.y);
     // wavRev 4 only, after every rev-2 value.
     if (state.shaped) extra.push(state.shaped);
-    // wavRev 5 only, last.
+    // wavRev 5 only, after every rev-4 value.
     if (state.tunec) extra.push(state.tunec, state.bossAt ?? 0);
+    // wavRev 6 (taller worlds): the world height, last.
+    if (state.worldH) extra.push(state.worldH);
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1095,15 +1124,16 @@ function drawWavArmour(ctx: CanvasRenderingContext2D, state: WavState, a: WavArm
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize): void {
-  const scale = Math.min(size.width / WAV_WORLD_W, size.height / WAV_WORLD_H);
+  const H = wavWorldH(state);
+  const scale = Math.min(size.width / WAV_WORLD_W, size.height / H);
   const ox = (size.width - WAV_WORLD_W * scale) / 2;
-  const oy = (size.height - WAV_WORLD_H * scale) / 2;
+  const oy = (size.height - H * scale) / 2;
   ctx.save();
   ctx.fillStyle = WAV_BG;
   ctx.fillRect(0, 0, size.width, size.height);
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
-  drawStars(ctx, WAV_WORLD_W, WAV_WORLD_H, 91);
+  drawStars(ctx, WAV_WORLD_W, H, 91);
 
   state.shapes.forEach((code, i) => {
     if (code === 0 || code === WAV_ARMOUR_CODE) return;
@@ -1149,10 +1179,10 @@ function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize):
   drawBursts(ctx, state.bursts, state.tick, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"]);
 
   const flashing = state.invuln > 0 && state.tick % 8 < 4;
-  if (!flashing && state.ended !== 2) drawWavShip(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W);
+  if (!flashing && state.ended !== 2) drawWavShip(ctx, state.shipX, wavShipY(state), WAV_SHIP_W);
   if (state.ended === 2) {
     ctx.globalAlpha = 0.4;
-    drawWavShip(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W);
+    drawWavShip(ctx, state.shipX, wavShipY(state), WAV_SHIP_W);
     ctx.globalAlpha = 1;
   }
 
@@ -1160,8 +1190,8 @@ function draw(ctx: CanvasRenderingContext2D, state: WavState, size: CanvasSize):
   ctx.strokeStyle = "rgba(245,184,46,0.12)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(8, WAV_DRAG_ZONE_TOP);
-  ctx.lineTo(WAV_WORLD_W - 8, WAV_DRAG_ZONE_TOP);
+  ctx.moveTo(8, wavDragZoneTop(H));
+  ctx.lineTo(WAV_WORLD_W - 8, wavDragZoneTop(H));
   ctx.stroke();
 
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
@@ -1200,6 +1230,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_TALL) return wavefrontTallGame;
   if (rev === WAV_REV_TUNEC) return wavefrontTunecGame;
   if (rev === WAV_REV_SHAPES) return wavefrontShapesGame;
   if (rev === WAV_REV_BAND) return wavefrontBandGame;
@@ -1222,7 +1253,7 @@ export function wavefrontBandParts(state: WavState): BandParts {
   // older revisions a flat 10.
   const fight = state.tick - (state.bossAt ?? 0);
   const bonus = !finished ? 0 : state.tunec ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(WAV_KILL_WINDOW_V5 - fight, 0, WAV_KILL_WINDOW_V5), WAV_KILL_WINDOW_V5) : BAND_FINISH_BONUS;
-  return { units, points: bandPoints(state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
+  return { units, points: bandPoints(state.worldH ? WAV_V6_BAND_CURVE : state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
 }
 
 function scoreBand(state: WavState): number {
@@ -1341,3 +1372,35 @@ export const wavefrontTunecGame: ArcadeGame<WavState, ArcadeInputEvent | null> =
   ...wavefrontShapesGame,
   init: (seed) => ({ ...wavefrontShapesGame.init(seed), tunec: 1 }),
 };
+
+/* ================= Taller worlds (wavRev 6, Oct 2026) ================= */
+
+/**
+ * wavRev 6 (taller worlds, batch 1): wavRev 5 play (the five waves, their
+ * shapes and slow drops, divers, the timed boss, 90 s) in a taller world, 390 ×
+ * WAV_TALL_H, the same for every player. The formations, saucer and boss keep
+ * their places at the top; the ship sits WAV_SHIP_LIFT above the new bottom, so
+ * the extra 110 px is all between the formation and the ship (red bolts and
+ * divers have further to come, and a formation further to march down before it
+ * reaches the ship's line). Drags start in the bottom quarter of the taller
+ * world. States keep `shaped: 1` and `tunec: 1` and add `worldH`, folded into
+ * the checkpoint checksum last. Scored on WAV_V6_BAND_CURVE.
+ */
+export const WAV_REV_TALL = 6;
+export const WAV_TALL_H = 730;
+/**
+ * wavRev 6 knots (the wavRev 5 units; 269 = every ship, armour hit, wave and boss
+ * hit = 140): with more room to see bolts and divers coming, the same players get
+ * further, so the knots go up (refitted with scripts/arcade-skill-bands.ts
+ * wavefront --rev=g1, 60 seeds: unit medians 249.5 / 259 / 263 / 268).
+ */
+export const WAV_V6_BAND_CURVE = bandCurve([0, 100, 200, 249, 259, 263, 268, WAV_PAR_V5 - WAV_POINTS_BOSS], [0, 20, 45, 70, 100, 125, 138, 140]);
+export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontTunecGame,
+  init: (seed) => ({ ...wavefrontTunecGame.init(seed), worldH: WAV_TALL_H }),
+};
+
+/** The world height (px) a stored round's wavRev plays in. */
+export function wavefrontWorldHFor(rev?: number | null): number {
+  return rev === WAV_REV_TALL ? WAV_TALL_H : WAV_WORLD_H;
+}

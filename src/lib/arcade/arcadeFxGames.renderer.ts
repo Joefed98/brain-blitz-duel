@@ -28,9 +28,11 @@ import {
   BRK_ROW_PITCH,
   BRK_WALL_X,
   BRK_WALL_Y,
+  BRK_TALL_H,
   BRK_WORLD_H,
   BRK_WORLD_W,
   brkDestroyed,
+  brkWorldH,
   brkRowOffset,
   type BrkState,
 } from "./breaker";
@@ -42,7 +44,7 @@ function brkSlideDestroyed(s: BrkState): number {
   return n;
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
-import { RALLY_PADDLE_Y, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
+import { rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
 import { BEAT_HIT_LINE_Y, BEAT_WORLD_H, BEAT_WORLD_W, beatLaneX, type BeatState } from "./beat";
 import {
   SNAKE_BOARD_X,
@@ -57,7 +59,7 @@ import {
   snakeRow,
   type SnakeState,
 } from "./snake";
-import { BURST_FLOOR_Y, BURST_LIVES, BURST_WORLD_W, type BurstState } from "./burst";
+import { burstFloorY, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
@@ -72,7 +74,7 @@ import {
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
-import { WAV_SHIP_Y, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
+import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W } from "./orbitCamera";
 import type { OrbitRev3State } from "./orbitRev3";
@@ -387,7 +389,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
     {
       kind: "perfect",
       count: (s) => s.powerUps,
-      at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 80 }),
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 80 }),
       label: () => "POWER-UP!",
       ...BREAKER_TEXT,
       bulbs: BREAKER_CHASE,
@@ -396,7 +398,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
       kind: "streak",
       count: (s) => brkDestroyed(s),
       every: 10,
-      at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 90 }),
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 90 }),
       label: (_s, n) => `${n} BRICKS`,
       ...BREAKER_TEXT,
     },
@@ -404,7 +406,7 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
     {
       kind: "perfect",
       count: (s) => s.fireballs ?? 0,
-      at: (s) => ({ x: s.paddleX, y: BRK_WORLD_H - 96 }),
+      at: (s) => ({ x: s.paddleX, y: brkWorldH(s) - 96 }),
       label: () => "FIREBALL!",
       ...BREAKER_TEXT,
       colour: () => "#FF6A2B",
@@ -436,7 +438,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       kind: "streak",
       count: (s) => s.hits,
       every: 10,
-      at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 8 }),
+      at: (s) => ({ x: px(s.x), y: rallyPaddleY(s) - 8 }),
       label: (_s, n) => `RALLY ${n}`,
       textOnly: true,
       bulbs: { pattern: "flash", colours: RALLY_BULBS, heat: rallyHeat, strong: true },
@@ -444,7 +446,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
     {
       kind: "pop",
       count: (s) => s.goldHits,
-      at: (s) => ({ x: s.paddleX, y: RALLY_PADDLE_Y - 10 }),
+      at: (s) => ({ x: s.paddleX, y: rallyPaddleY(s) - 10 }),
       label: () => "GOLD!",
       textOnly: true,
       bulbs: { pattern: "flash", colours: RALLY_GOLD_BULBS, heat: rallyHeat },
@@ -474,7 +476,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       // Every paddle hit flashes the court lights (no text), building with the rally.
       kind: "pop",
       count: (s) => s.hits,
-      at: (s) => ({ x: px(s.x), y: RALLY_PADDLE_Y - 4 }),
+      at: (s) => ({ x: px(s.x), y: rallyPaddleY(s) - 4 }),
       label: () => null,
       textOnly: true,
       bulbs: { pattern: "flash", colours: RALLY_BULBS, heat: rallyHeat },
@@ -583,7 +585,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
     {
       kind: "perfect",
       count: (s) => s.freezes ?? 0,
-      at: (s) => ({ x: s.x / 256, y: BURST_FLOOR_Y - 60 }),
+      at: (s) => ({ x: s.x / 256, y: burstFloorY(s) - 60 }),
       label: () => "FREEZE!",
       colour: () => "#9FE8FF",
       neon: true,
@@ -622,7 +624,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
     {
       kind: "clear",
       count: (s) => s.wavesCleared,
-      at: (s) => ({ x: s.shipX, y: WAV_SHIP_Y - 30 }),
+      at: (s) => ({ x: s.shipX, y: wavShipY(s) - 30 }),
       label: (_s, n) => `WAVE ${n} CLEARED`,
       sweep: true,
     },
@@ -632,7 +634,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       count: (s) => s.diversDown ?? 0,
       at: (s) => {
         const b = s.bursts.at(-1);
-        return b ? { x: b.x, y: b.y - 18 } : { x: s.shipX, y: WAV_SHIP_Y - 60 };
+        return b ? { x: b.x, y: b.y - 18 } : { x: s.shipX, y: wavShipY(s) - 60 };
       },
       label: () => "DIVER DOWN!",
     },
@@ -1199,7 +1201,8 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
 /** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */
 /**
  * Tuning E (Oct 2026): a game whose world height depends on the stored round
- * (High Rise, Meteor, Scrumper, Hover) draws through its spec at that height;
+ * (High Rise, Meteor, Scrumper, Hover; taller worlds batch 1: Breaker, Rally,
+ * Wavefront, Fission) draws through its spec at that height;
  * events, colours and memory key are the spec's own. Cached per height.
  */
 const specAtCache = new Map<string, ArcadeFxSpec<never>>();
@@ -1222,6 +1225,15 @@ export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
+/** Taller worlds batch 1 (Oct 2026): Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6, Fission burstRev 4. */
+export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => fxSpecAt(BREAKER_FX, brkWorldH(s));
+export const BREAKER_FX_TALL = fxSpecAt(BREAKER_FX, BRK_TALL_H);
+export const rallyFxFor = (s: RallyState): ArcadeFxSpec<RallyState> => fxSpecAt(RALLY_FX, rallyWorldH(s));
+export const RALLY_FX_TALL = fxSpecAt(RALLY_FX, RALLY_TALL_H);
+export const wavefrontFxFor = (s: WavState): ArcadeFxSpec<WavState> => fxSpecAt(WAVEFRONT_FX, wavWorldH(s));
+export const WAVEFRONT_FX_TALL = fxSpecAt(WAVEFRONT_FX, WAV_TALL_H);
+export const burstFxFor = (s: BurstState): ArcadeFxSpec<BurstState> => fxSpecAt(BURST_FX, burstFloorY(s));
+export const BURST_FX_TALL = fxSpecAt(BURST_FX, BURST_TALL_H);
 
 /* ================================ Pinball ================================ */
 
@@ -1263,12 +1275,12 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 
 export const ARCADE_FX_SPECS = {
   hover: HOVER_FX_TALL,
-  breaker: BREAKER_FX,
-  rally: RALLY_FX,
+  breaker: BREAKER_FX_TALL,
+  rally: RALLY_FX_TALL,
   beat: BEAT_FX,
   snake: SNAKE_FX_TALL,
-  burst: BURST_FX,
-  wavefront: WAVEFRONT_FX,
+  burst: BURST_FX_TALL,
+  wavefront: WAVEFRONT_FX_TALL,
   orbit: ORBIT_FX,
   skyline: SKYLINE_FX_TALL,
   cross: CROSS_FX,

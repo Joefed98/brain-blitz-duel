@@ -23,13 +23,13 @@ import {
   BRK_TAP_PX,
   brkCheckpoint,
   breakerGameFor,
-  BRK_REV,
   BRK_BG,
   BRK_CHECKPOINT_INTERVAL,
   BRK_GOLD,
   BRK_RUN_TICKS,
   BRK_TEAL,
-  BRK_WORLD_H,
+  breakerWorldHFor,
+  BRK_REV_TALL,
   BRK_WORLD_W,
   type BrkState,
 } from "@/lib/arcade/breaker";
@@ -78,6 +78,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const seed = data?.seed ?? 1;
   const game = breakerGameFor(data?.brkRev);
   const art = breakerArtGameFor(data?.brkRev);
+  // brkRev 6: the taller court; every phone draws the stored revision's world.
+  const BRK_WORLD_H = breakerWorldHFor(data?.brkRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -376,7 +378,7 @@ export const breakerPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (BRK_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV }) satisfies BreakerPuzzleData,
+  generate: () => ({ type: "breaker", seed: 1, brkRev: BRK_REV_TALL }) satisfies BreakerPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

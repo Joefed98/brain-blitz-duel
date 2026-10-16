@@ -12,7 +12,7 @@ import {
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
 import { CODEWORD_TIME_MS, type CodewordPuzzleData } from "@/lib/duel/types";
-import { fx } from "@/lib/fx";
+import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { buzz } from "@/lib/motion";
 import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
@@ -187,7 +187,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   useEffect(() => {
     if (submitted.current || locked || !solved) return;
     submitted.current = true;
-    fx.onComplete();
+    completeFx("codeword.finish");
     buzz(20);
     onSubmit(encoded);
     // eslint-disable-next-line react-hooks/exhaustive-deps
