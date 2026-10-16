@@ -304,6 +304,9 @@ export const createRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
+    const { CREATE_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, CREATE_ROOM_LIMIT)))
+      throw new Error("You've made a lot of rooms. Try again later.");
     // Remember the host's category choices from their last room.
     const { data: previous } = await client
       .from("duels")
@@ -328,8 +331,11 @@ export const createRoomFn = createServerFn({ method: "POST" })
 export const roomPreviewFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { roomCode: string }) => input)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const client = await db();
+    const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
+      throw new Error("Too many room lookups. Try again in a few minutes.");
     const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
       .from("duels")
@@ -353,7 +359,10 @@ export const joinRoomFn = createServerFn({ method: "POST" })
   .inputValidator((input: { roomCode: string; displayName: string }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
-    const code = (data.roomCode ?? "").trim().toUpperCase();
+    const { ROOM_LOOKUP_LIMIT, withinRateLimit } = await import("./rateLimit.server");
+    if (!(await withinRateLimit(client, context.userId, ROOM_LOOKUP_LIMIT)))
+      return { ok: false as const, message: "Too many tries. Wait a few minutes and try again." };
+    const code = String(data.roomCode ?? "").trim().toUpperCase().slice(0, 8);
     const { data: found } = await client
       .from("duels")
       .select("*")
