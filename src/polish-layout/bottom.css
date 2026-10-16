@@ -198,3 +198,17 @@ body {
   position: fixed;
 }
 /* The bottom strips themselves: styles.css (.screen-background::after, .duel-start-screen). */
+
+/*
+ * A reopened home-screen app's late geometry (17 Oct 2026, fix-up after #95, display only):
+ * a puzzle's live round is held hidden, its entrance fade not yet started, until the safe-area
+ * insets and the layout viewport have settled (PhoneShell useGeometryHold, standalone only),
+ * so its first visible frame is already in its final place. The screen behind still shows.
+ * first-paint-check's standalone pass proves it.
+ */
+[data-geometry-hold] > [data-game-column] {
+  visibility: hidden;
+}
+[data-geometry-hold] [data-round-layout] {
+  animation-play-state: paused;
+}
