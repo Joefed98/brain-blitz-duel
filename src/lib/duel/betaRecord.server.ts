@@ -3,7 +3,8 @@
  * beta queries see how rooms and practice are used. Server-only; the client is
  * the service-role Supabase client (or the in-memory stand-in in
  * scripts/*-check.ts). Tables: room_events, room_joins and practice_plays
- * (migrations 20261016130000–20261016130200), RLS on with no client access.
+ * (migrations 20261016130000–20261016130200), RLS on with no client access,
+ * and duel_secrets.round_records for the G1 archive (20261016170000).
  *
  * Never part of play: nothing here is read back by any game, score, timing or
  * replay path. Every write is best-effort: an error (the migration not applied
@@ -111,6 +112,49 @@ export function revisionStamps(puzzle: Record<string, unknown>): Record<string, 
   for (const [key, value] of Object.entries(puzzle))
     if (typeof value === "number" && /(Rev|Version|Revision|speedPar)$/.test(key)) out[key] = value;
   return out;
+}
+
+/* ------------------------------------------------------- G1 rounds ---- */
+
+/** What one room round actually used, by the same rule as a practice_plays row. */
+export interface RoundRecord {
+  time_limit_ms: number;
+  revision: Record<string, number>;
+}
+
+/**
+ * One entry per round of a newly dealt room (index = round_number - 1): the
+ * effective clock (`timeLimitMs`, the puzzle's own limit or else its game's
+ * default, from registry.puzzleTimeLimitMs as practice uses) and the full
+ * puzzle's version stamps (revisionStamps, as practice). Fixed at the deal, so
+ * the round's start would store the same values.
+ */
+export function roundRecords(
+  puzzles: readonly (Record<string, unknown> & { type: string })[],
+  timeLimitMs: (puzzle: Record<string, unknown> & { type: string }) => number,
+): RoundRecord[] {
+  return puzzles.map((puzzle) => ({
+    time_limit_ms: Math.max(0, Math.round(timeLimitMs(puzzle))),
+    revision: revisionStamps(puzzle),
+  }));
+}
+
+/**
+ * Stores the room's round records in duel_secrets.round_records (migration
+ * 20261016170000), which restart_duel_room copies into round_results_archive.
+ * A separate best-effort write, so a missing column never fails the start.
+ */
+export async function recordRoundRecords(
+  client: any,
+  duelId: string,
+  rounds: readonly RoundRecord[],
+): Promise<void> {
+  await bestEffort(`duel_secrets.round_records room=${duelId}`, () =>
+    client
+      .from("duel_secrets")
+      .update({ round_records: JSON.parse(JSON.stringify(rounds)) })
+      .eq("duel_id", duelId),
+  );
 }
 
 export interface PracticePlayRow {
