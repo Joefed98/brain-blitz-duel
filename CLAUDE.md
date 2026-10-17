@@ -83,11 +83,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   the scene canvas into `[data-arcade-play]` under the column (the header row stays black but for Gemstone's velvet). Seven
   games add a slow `ambient` layer (Pinball's and Rally's retro lamps, lit only by `arenaLight` from their sound observers;
   Tempo's notes, Meteor's stars, Jaywalk's walkers, Roofbound's lava, Fission's reactions), still under reduced motion or
-  reduced effects. Pinball, Meteor, Scrumper and Gemstone are centred on the play screen only (`playCentre`). No frame round
+  reduced effects. Pinball, Meteor, Scrumper, Gemstone and (item 28) Bonk are centred on the play screen only (`playCentre`). No frame round
   any world (the play area's accent ring is off on the play screen; real walls in Breaker, Rally, Fission and Gemstone's board
-  are soft shades; Meteor keeps its border). Rally's HUD shows "GOLD n · PADS n" on rallyRev 3+. arcade-fill-check (headless
-  Chromium, ~15-20 s a game, in thirds on `play11`–`play13`) fails on a black strip, a border line or seam at 414×896
-  (home-screen app) and 390×844, or a moving fill under reduced motion. Run it after changing a fill or a world's edge art.
+  are soft shades; Meteor keeps its border). Rally's HUD shows "GOLD n · PADS n" on rallyRev 3+. Pull!'s scene starts in its world's bottom grass
+  and Bonk's meadow has soft tufts, faded flowers and small stones on a faint band of soil (static). arcade-fill-check
+  (headless Chromium, ~10 s a game; the 22 active arcade games plus Pull! and Bonk, in thirds on `play11`–`play13`) fails
+  on a black strip, a border line or seam at 414×896 (home-screen app) and 390×844, or a moving fill under reduced motion. Run it after changing a fill or a world's edge art.
 - `src/lib/arcade/liveBands.ts` — each arcade band game's dealt stamp and curve; the "?" help's numbers (top, a good
   run) come from it, so a new stamp updates the help here (arcade-help-bands-check fails until it does).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game

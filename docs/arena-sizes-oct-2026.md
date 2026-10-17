@@ -49,7 +49,7 @@ revisions keep their own world in reveals and replays.
 | Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 38px | 38px | 0px | - |
 | Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
 | Tenfall | 360x520 | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | 1.083x | 108px | 0px | 157px | 0px | - |
-| Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 0px | 286px | 0px | - |
+| Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 143px | 143px | 0px | - |
 | Pull! | 360x680 | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | 1.083x | 78px | 0px | 13px | 0px | - |
 | Mixed Signals | 390x650 | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x724 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | 1.000x | 52px | 0px | 66px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
 
@@ -65,9 +65,9 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 
 | Game | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scene beyond the world |
 |---|---|---|---|---|---|---|---|
-| Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | more grass below the 4x4 field |
+| Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | the meadow below the 4x4 field starts in the field's green, then soft tufts, a few faded flowers and small stones on a faint band of soil (static); the field centred, the meadow above it too |
 | Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
-| Pull! | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | more field below |
+| Pull! | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | more field below, starting in the world's own bottom grass; sky, treeline and field beside the world (no seam) |
 | Hover | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | the black night sky with faint still stars |
 | Breaker | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the black screen runs on into a dark retro floor (a faint horizon grid) |
 | Rally | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the court's dark floor, five retro lamps lit by Rally's good moments |

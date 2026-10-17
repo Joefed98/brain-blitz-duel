@@ -266,7 +266,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <span className="text-destructive">{hud.wrong}</span>
       </p>
       {/* The square board at the largest fit, top-anchored (15 Oct 2026, display only; gridCellAt maps through the board). */}
-      <ArcadeArenaSlot width={1} height={1} scene={bonkArenaScene}>
+      <ArcadeArenaSlot width={1} height={1} scene={bonkArenaScene} playCentre>
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <div
           ref={board}

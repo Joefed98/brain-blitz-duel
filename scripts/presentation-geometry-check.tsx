@@ -24,11 +24,11 @@ const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   matchup: "the sparkly purple velvet over the whole screen, behind the header too (world centred)",
   tilt: "the board's oak runs on to the screen's edges, settling darker (no rim)",
-  whack: "more grass below the 4x4 field",
+  whack: "the meadow below the 4x4 field starts in the field's green, then soft tufts, a few faded flowers and small stones on a faint band of soil (static); the field centred, the meadow above it too",
   tendrop: "a sill closing the columns, then the frame's rails and a shaded backing to a foot rail",
   bullseye: "the counter's front, a kick board and the fairground floor",
   bintoss: "the counter's front, a kick board and the fairground floor (sky and counter beside the world)",
-  clayshoot: "more field below",
+  clayshoot: "more field below, starting in the world's own bottom grass; sky, treeline and field beside the world (no seam)",
   flip: "deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion)",
   inkbridge: "grass and hillside below the ground (sky, hills and ground beside the world)",
   cross: "the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion)",
@@ -218,7 +218,7 @@ const HEADER = HEADER_AT(0);
 /** Games whose world sits centred vertically in its box (the spare height split above and below). */
 const CENTRED = new Set(["tilt"]);
 /** Since the screen fill-ins (17 Oct 2026): also centred on the play screen (ARENA_FILL_CENTRED; history above keeps CENTRED). */
-const PLAY_CENTRED = new Set<string>(["tilt", "pinball", "snake", "snip", "matchup"]);
+const PLAY_CENTRED = new Set<string>(["tilt", "pinball", "snake", "snip", "matchup", "whack"]);
 /** Px from the bottom of the visible screen to the end of an arcade play column, inset or not. */
 const ARCADE_BOTTOM = 16;
 /** The game's own HUD rows between the header and the slot (each with the stage column's gap under it). */

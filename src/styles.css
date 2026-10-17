@@ -1581,7 +1581,7 @@ body.game-lock {
 [data-arcade-play] [data-arena-slot][data-scene]::after {
   background: transparent;
 }
-/* Centred on the play screen only (Pinball, Meteor, Scrumper, Gemstone; 17 Oct 2026): half the spare height,
+/* Centred on the play screen only (Pinball, Meteor, Scrumper, Gemstone, Bonk; 17 Oct 2026): half the spare height,
    rounded down to a whole pixel, above the world (the rest below it), so intros, demos and reveals keep their
    top-anchored world and the world's top stays on a whole CSS pixel (Meteor's canvas, #101). */
 [data-arcade-play] [data-arena-slot][data-arena-play-centred] > [data-game-arena] {
