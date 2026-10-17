@@ -267,31 +267,37 @@ export function RoomLobby({
         </div>
       )}
 
-      {/* Pinned above the chat bar so Start / Waiting stay on screen with ten players. */}
+      {/* Pinned flush on the chat bar, solid, so Start / Waiting stay on screen with ten players
+          and nothing shows through or between the two bars. */}
       <div
         data-lobby-footer
-        className="sticky z-30 -mx-1 flex flex-col gap-2 bg-background/95 px-1 pb-1 pt-2"
-        style={{ bottom: `calc(${CHAT_BAR_HEIGHT + 8}px + env(safe-area-inset-bottom, 0px))` }}
+        className="room-sticky-footer sticky z-30 -mx-1 flex flex-col gap-2 bg-background px-1 pb-2 pt-2"
+        style={{ bottom: `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
       >
         {isHost ? (
           <>
-            <button
-              type="button"
-              onClick={onStart}
-              disabled={!canStart || starting}
-              className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
-            >
-              {starting ? (
-                <>
-                  <span>Starting</span>
-                  <Dots className="bg-primary-foreground" />
-                </>
-              ) : canStart ? (
-                "Start game"
-              ) : (
-                `Waiting for ${playersNeeded} more ${playersNeeded === 1 ? "player" : "players"}`
-              )}
-            </button>
+            {canStart || starting ? (
+              <button
+                type="button"
+                onClick={onStart}
+                disabled={starting}
+                className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+              >
+                {starting ? (
+                  <>
+                    <span>Starting</span>
+                    <Dots className="bg-primary-foreground" />
+                  </>
+                ) : (
+                  "Start game"
+                )}
+              </button>
+            ) : (
+              // Not a disabled button: a status line, so the share link above is the call to action.
+              <p data-lobby-waiting className="flex min-h-11 items-center justify-center text-center text-sm text-foreground" role="status">
+                Waiting for {playersNeeded} more {playersNeeded === 1 ? "player" : "players"} to join
+              </p>
+            )}
             <button
               type="button"
               onClick={onDisband}

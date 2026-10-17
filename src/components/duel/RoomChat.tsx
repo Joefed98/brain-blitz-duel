@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2, Minimize2, Send, X } from "lucide-react";
+import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fx } from "@/lib/fx";
 
@@ -184,15 +184,24 @@ export function RoomChat({
         type="button"
         variant="outline"
         onClick={() => (open ? close() : chat.setSheetOpen(true))}
-        aria-label="Messages"
-        className="relative h-11 w-11 shrink-0 p-0 font-mono text-xs text-muted-foreground"
+        aria-label={
+          chat.unread > 0 && !open
+            ? `Messages, ${chat.unread} unread`
+            : `Messages${chat.messages.length ? `, ${chat.messages.length}` : ""}`
+        }
+        className="relative h-11 w-11 shrink-0 p-0 text-muted-foreground"
       >
-        {chat.messages.length}
-        {chat.unread > 0 && !open && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-bold text-primary-foreground">
+        <MessageCircle aria-hidden="true" />
+        {/* The count rides on the icon: unread in gold, else the room's message count. */}
+        {chat.unread > 0 && !open ? (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-mono text-[11px] font-bold leading-none text-primary-foreground">
             {chat.unread}
           </span>
-        )}
+        ) : chat.messages.length > 0 ? (
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-border bg-card px-1 font-mono text-[11px] font-bold leading-none text-foreground">
+            {chat.messages.length}
+          </span>
+        ) : null}
       </Button>
       <input
         data-room-chat-input
@@ -410,7 +419,7 @@ export function RoomChat({
       <div
         data-chat-bar
         aria-hidden={open || undefined}
-        className={`sticky z-[55] mt-2 shrink-0 bg-background ${open ? "invisible pointer-events-none" : ""}`}
+        className={`room-chat-bar sticky z-[55] mt-2 shrink-0 bg-background ${open ? "invisible pointer-events-none" : ""}`}
         style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
         onTouchStart={(event) => {
           barTouchY.current = event.touches[0]?.clientY ?? null;
