@@ -30,6 +30,7 @@ export type Database = {
           player_slot: number
           ready_round: number
           status: string
+          submitted_round: number
           user_id: string
         }
         Insert: {
@@ -47,6 +48,7 @@ export type Database = {
           player_slot: number
           ready_round?: number
           status?: string
+          submitted_round?: number
           user_id: string
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           player_slot?: number
           ready_round?: number
           status?: string
+          submitted_round?: number
           user_id?: string
         }
         Relationships: [
