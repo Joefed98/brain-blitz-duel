@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 interface NumberEntryProps {
@@ -42,6 +43,16 @@ export function NumberEntry({
     if (locked || value.trim().length === 0) return;
     onSubmit(value.trim());
   };
+
+  // Desktop keys (keypad mode; a typed field takes keys itself): digits, Backspace and Enter press the keypad's keys.
+  useGameKeys((kind, key) => {
+    if (!/^[0-9]$/.test(key) && key !== "Backspace" && key !== "Enter") return false;
+    if (kind !== "down" || locked) return true;
+    if (key === "Enter") submit();
+    else if (key === "Backspace") setValue((prev) => prev.slice(0, -1));
+    else setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
+    return true;
+  }, keypad);
 
   return (
     <div data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">

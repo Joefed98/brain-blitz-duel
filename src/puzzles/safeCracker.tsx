@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
@@ -7,6 +7,7 @@ import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeTries } from "@/lib
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playSound, playWrong } from "@/lib/sound";
 
 import { soundCue, usePrevious, useSolveFx } from "./logicFx";
@@ -152,6 +153,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
     }
   };
 
+  // Desktop keys: ← → (A/D) choose which drum ↑ ↓ (W/S) turn, as its ▲ ▼ do (outlined once a key is
+  // used; the first drum to start); Enter = Try.
+  const keyDial = useRef(0);
+  const [shownDial, setShownDial] = useState<number | null>(null);
+  useGameKeys((kind, key, event) => {
+    if (!isSafe) return false;
+    const dir = directionOf(key);
+    const used = dir !== null || key === "Enter";
+    if (!used || kind !== "down") return used;
+    if (dir === "left") keyDial.current = Math.max(0, keyDial.current - 1);
+    else if (dir === "right") keyDial.current = Math.min(dials.length - 1, keyDial.current + 1);
+    else if (dir) {
+      if (!(locked || triesLeft === 0)) step(keyDial.current, dir === "up" ? 1 : -1);
+    } else if (!event.repeat && !(locked || triesLeft === 0)) tryIt();
+    if (dir) setShownDial(keyDial.current);
+    return true;
+  });
+
   if (!isSafe) return null;
 
   return (
@@ -178,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
             <span aria-hidden="true" className="logic-rivet" data-corner="tr" />
             <span aria-hidden="true" className="logic-rivet" data-corner="bl" />
             <span aria-hidden="true" className="logic-rivet" data-corner="br" />
-            <div className="flex gap-2">
+            <div className="flex gap-2" data-key-dial={shownDial ?? undefined}>
               {dials.map((digit, dial) => (
                 <Dial
                   key={dial}

@@ -4,6 +4,7 @@ import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { useGameKeys } from "@/lib/desktop";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
@@ -201,6 +202,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   useEffect(() => {
     if (holding) soundCue("equation.correct");
   }, [holding]);
+
+  // Desktop keys: + − × ÷ (also - * x /) drop that operator in the next slot, Backspace clears the last
+  // filled slot, Enter = Next / Submit.
+  useGameKeys((kind, key, event) => {
+    if (!data || !current) return false;
+    const op: Operator | null = key === "+" ? "+" : key === "-" ? "-" : key === "*" || key === "x" || key === "×" ? "×" : key === "/" || key === "÷" ? "÷" : null;
+    const used = op !== null || key === "Backspace" || key === "Enter";
+    if (!used || kind !== "down") return used;
+    if (op) {
+      if (!event.repeat) tapOperator(op);
+    } else if (key === "Backspace") {
+      let index = slots.length - 1;
+      while (index >= 0 && slots[index] === null) index--;
+      if (index >= 0) clearSlot(index);
+    } else if (!event.repeat && !frozen) advance(slots);
+    return true;
+  });
 
   if (!data || !current) return null;
   const frozen = locked || done.current || holding;

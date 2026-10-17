@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { playSound } from "@/lib/sound";
+import { useGameKeys } from "@/lib/desktop";
 
 import {
   gridCellSize,
@@ -222,6 +223,16 @@ export function UnblockPuzzle({
     setMoves((current) => [...current, { id: -2, to: 0 }]);
     setHistory([]);
   };
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (key === "r") {
+      if (!locked && moves.length > 0) reset();
+    } else if (!locked && history.length > 0) undo();
+    return true;
+  });
 
   return (
     <div data-stage-column="3" data-polish="unblock" className="flex min-h-0 flex-1 flex-col gap-3">

@@ -2,6 +2,7 @@ import { SWEET_NAMES } from "@/components/puzzles/refreshIcons";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect, playWrong } from "@/lib/sound";
+import { useGameKeys } from "@/lib/desktop";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { pick, shuffled } from "@/lib/duel/random";
@@ -403,6 +404,13 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
     const timer = setTimeout(() => setWrong(null), 340);
     return () => clearTimeout(timer);
   }, [wrong]);
+
+  // Desktop keys: Enter or N = Next picture (while that button shows).
+  useGameKeys((kind, pressed, event) => {
+    if (!data || !twoPictures || lastScene || (pressed !== "Enter" && pressed !== "n")) return false;
+    if (kind === "down" && !event.repeat && !locked && !sceneFinished) skip();
+    return true;
+  });
 
   if (!data) return null;
   const current = scenes[scene]!;

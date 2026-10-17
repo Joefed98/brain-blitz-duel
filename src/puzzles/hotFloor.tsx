@@ -5,6 +5,9 @@ import {
   HOT_BG,
   HOT_GOLD,
   HOT_INPUT_TILE,
+  HOT_INPUT_UNDO,
+  HOT_INPUT_CLEAR,
+  HOT_INPUT_GO,
   HOT_RED,
   HOT_WORLD_H,
   HOT_WORLD_W,
@@ -71,6 +74,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind !== "down") return null;
         const hit = hotfloorHit(x, y);
         return hit ? { k: hit.k, a: hit.a, b: hit.b, c: 0 } : null;
+      }}
+      keys={(kind, key, send, _state, event) => {
+        // The three drawn buttons; tiles stay with the mouse.
+        const k = key === "Backspace" || key === "z" ? HOT_INPUT_UNDO : key === "c" || key === "Escape" ? HOT_INPUT_CLEAR : key === "Enter" || key === "g" ? HOT_INPUT_GO : null;
+        if (k === null) return false;
+        if (kind === "down" && !event.repeat) send({ k, a: 0, b: 0, c: 0 });
+        return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

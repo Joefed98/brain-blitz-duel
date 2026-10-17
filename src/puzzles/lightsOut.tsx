@@ -12,6 +12,7 @@ import {
   LIGHTS_TIME_MS,
   type LightsOutPuzzleData,
 } from "@/lib/duel/types";
+import { useGameKeys } from "@/lib/desktop";
 import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
@@ -181,6 +182,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     onSubmit(encodePresses(presses));
   }, [lights, presses, locked, onSubmit]);
 
+  const undo = () => setPresses((current) => [...current, -1]);
+  const reset = () => setPresses((current) => [...current, -2]);
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (locked || presses.length === 0) return true;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
+
   if (puzzle.type !== "lightsout") return null;
 
   const press = (cell: number) => {
@@ -205,12 +219,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       </div>
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-center gap-3">
         <Button type="button" variant="outline" aria-label="Undo" title="Undo"
-          onClick={() => setPresses((current) => [...current, -1])}
+          onClick={undo}
           disabled={locked || presses.length === 0} className="puzzle-secondary-control">
           <Undo2 aria-hidden="true" />
         </Button>
         <Button type="button" variant="outline" aria-label="Reset" title="Reset"
-          onClick={() => setPresses((current) => [...current, -2])}
+          onClick={reset}
           disabled={locked || presses.length === 0} className="puzzle-secondary-control">
           <RotateCcw aria-hidden="true" />
         </Button>

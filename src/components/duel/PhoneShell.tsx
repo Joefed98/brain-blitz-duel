@@ -362,6 +362,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       <div
         data-game-column={constrained ? "" : undefined}
+        data-shell-column={gameScreen ? "game" : "page"}
         className={`relative flex min-h-0 w-full flex-col justify-start ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
           constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}

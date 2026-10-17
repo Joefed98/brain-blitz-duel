@@ -61,6 +61,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={FLIP_INPUT_TAP}
       pointer={(kind) => (kind === "down" ? { a: 0, b: 0, c: 0 } : null)}
+      keys={(kind, key, send, _state, event) => {
+        if (key !== " " && key !== "ArrowUp" && key !== "w") return false;
+        if (kind === "down" && !event.repeat) send({ a: 0, b: 0, c: 0 });
+        return true;
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

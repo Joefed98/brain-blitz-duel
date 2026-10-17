@@ -1,0 +1,119 @@
+/*
+ * PC and laptop browsers (17 Oct 2026, display only; docs/desktop-support.md).
+ *
+ * Every rule sits under the desktop query (src/lib/desktop.ts DESKTOP_QUERY): a mouse or
+ * trackpad (hover and a fine primary pointer) in a window at least 1180×560. Phones and tablets
+ * report a coarse pointer, so none of this ever applies to them and their screens are exactly
+ * as before; the hover rules at the end need only the fine pointer, which a phone never has.
+ * desktop-geometry-check proves the layout at 1366×768, 1440×900, 1920×1080 and 1280×720 and
+ * while resizing.
+ *
+ * - Pages (home, practice, lobby, results, standings, podium): the phone column, centred, a
+ *   little wider (480px) for reading at desk distance.
+ * - Puzzle screens (intro, live round, reveal): a centred column at most 560px wide and 1000px
+ *   tall, centred vertically; boards size from the column as on a phone, so they grow with it.
+ * - Arcade play screens: a centred column at most 640px wide and 1120px tall; the world keeps
+ *   its phone shape at the largest uniform scale that fits (as on a phone), on whole CSS pixels,
+ *   its canvas drawn at the screen's pixel ratio; the game's fill (arenaFills.renderer.ts) still
+ *   paints the whole screen round it. The header is 56px with a larger timer and labels.
+ */
+@media (min-width: 1180px) and (min-height: 560px) and (hover: hover) and (pointer: fine) {
+  [data-shell-column="page"] {
+    max-width: 480px;
+  }
+
+  .game-screen.game-viewport {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .game-screen > [data-shell-column="game"] {
+    width: 100%;
+    max-width: 560px;
+    max-height: 1000px;
+    margin-inline: auto;
+  }
+  [data-arcade-play] > [data-shell-column="game"] {
+    max-width: 640px;
+    max-height: 1120px;
+  }
+
+  /* The world on whole CSS pixels (its canvas backing store is the box × the pixel ratio); an even width,
+     so centred in the even-width column its left edge is a whole pixel too. */
+  [data-arcade-play] .game-column [data-arena-slot] > [data-game-arena] {
+    width: round(down, min(100cqw, 100cqh * var(--arena-w) / var(--arena-h)), 2px);
+    height: round(down, min(100cqh, 100cqw * var(--arena-h) / var(--arena-w)), 1px);
+  }
+
+  /* A centred world (Tilt): the space above it a whole pixel too. */
+  [data-arcade-play] [data-arena-slot][data-arena-centred]::before {
+    flex: none;
+    height: round(down, calc((100cqh - round(down, min(100cqh, 100cqw * var(--arena-h) / var(--arena-w)), 1px)) / 2), 1px);
+  }
+
+  /* The header: 56px, the timer's ring 28px with 24px seconds, labels 14px. */
+  [data-arcade-header] {
+    height: 56px;
+    padding-inline: 8px;
+  }
+  [data-arcade-header] .text-xs {
+    font-size: 14px;
+    line-height: 18px;
+  }
+  [data-arcade-header] [role="timer"] {
+    height: 28px;
+    gap: 6px;
+  }
+  [data-arcade-header] [role="timer"] > svg {
+    width: 28px;
+    height: 28px;
+  }
+  [data-arcade-header] [role="timer"] > span {
+    font-size: 24px;
+  }
+}
+
+/* Mouse and trackpad: buttons show they can be clicked. Phones never hover, so never see this. */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  /* Never the whole play area (Flash's arena, Bang On's screen): the round's own colours are the signal there. */
+  :is(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):not([data-play-area], [data-game-arena], [aria-label="Reaction area"], [data-polish="stopwatch"]):hover {
+    filter: brightness(1.15);
+  }
+  /* The intro's key line (RoundIntro, desktop only). */
+  .desktop-keys {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 10px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .desktop-keys kbd {
+    display: inline-block;
+    min-width: 20px;
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    color: var(--foreground);
+  }
+}
+
+/* Safe Cracker: the drum the arrow keys turn (data-key-dial, set only once a key is used; never on a phone). */
+[data-key-dial="0"] > :nth-child(1),
+[data-key-dial="1"] > :nth-child(2),
+[data-key-dial="2"] > :nth-child(3),
+[data-key-dial="3"] > :nth-child(4),
+[data-key-dial="4"] > :nth-child(5),
+[data-key-dial="5"] > :nth-child(6) {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}

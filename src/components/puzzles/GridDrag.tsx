@@ -1,3 +1,4 @@
+import { directionOf, useGameKeys } from "@/lib/desktop";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { ArcadeControlButton, usePressSafeElement } from "./ArcadeControlButton";
@@ -629,6 +630,25 @@ export function ArrowPad({
     },
     [disabled, repeatMs, stop],
   );
+
+  // Desktop keys: the arrows (WASD) press these same buttons, held for as long as the key is.
+  const keyDir = useRef<"U" | "D" | "L" | "R" | null>(null);
+  useGameKeys((kind, key, event) => {
+    const named = directionOf(key);
+    if (!named) return false;
+    const dir = ({ up: "U", down: "D", left: "L", right: "R" } as const)[named];
+    if (!directions.includes(dir)) return false;
+    if (kind === "down") {
+      if (!event.repeat && !disabled) {
+        keyDir.current = dir;
+        start(dir);
+      }
+    } else if (keyDir.current === dir) {
+      keyDir.current = null;
+      stop();
+    }
+    return true;
+  });
 
   const button = (dir: "U" | "D" | "L" | "R", glyph: string, label: string) => (
     <ArcadeControlButton

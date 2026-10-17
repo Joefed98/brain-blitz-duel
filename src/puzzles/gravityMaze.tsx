@@ -11,6 +11,7 @@ import {
   encodeGravityTilts,
   replayGravity,
 } from "@/lib/duel/gravity";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
 import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
@@ -86,6 +87,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
 
   const solving = useSolveMoment(Boolean(replay?.solved), "gravity.solve");
 
+  const undo = () => setTilts((current) => [...current, "X"]);
+  const reset = () => setTilts((current) => [...current, "Y"]);
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD tilt through ArrowPad).
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (locked || !tilts.length) return true;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
+
   if (!data || !replay) return null;
 
   const press = (dir: GravityDir) => {
@@ -126,7 +140,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts((current) => [...current, "X"])}
+            onClick={undo}
             className="h-11 min-w-11 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Undo
@@ -135,7 +149,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
             type="button"
             variant="outline"
             disabled={locked || !tilts.length}
-            onClick={() => setTilts((current) => [...current, "Y"])}
+            onClick={reset}
             className="h-11 min-w-11 rounded-xl px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground"
           >
             Reset

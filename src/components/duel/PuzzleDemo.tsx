@@ -16,6 +16,7 @@ import {
   type PuzzleDemoLog,
 } from "@/lib/duel/puzzleDemo";
 import { puzzleDef } from "@/lib/duel/registry";
+import { GameKeysOff } from "@/lib/desktop";
 import { clearStageState } from "@/lib/duel/stageState";
 import { hushForDemo, noteRealInput } from "@/lib/sound";
 import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
@@ -308,6 +309,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
         >
           <GameColumnLayout.Provider value={(log.layout ?? 0) >= 1}>
           <ArrowModeOverride.Provider value={log.joystick ?? false}>
+          <GameKeysOff.Provider value>
             <Stage
               key={stateKey}
               stateKey={stateKey}
@@ -319,6 +321,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
               checkWord={(word) => verdict({ valid: false, points: 0, word }).then((v) => ({ ...v, points: v.points ?? 0, word: v.word ?? word }))}
               checkMoves={() => Promise.resolve(null)}
             />
+          </GameKeysOff.Provider>
           </ArrowModeOverride.Provider>
           </GameColumnLayout.Provider>
         </div>

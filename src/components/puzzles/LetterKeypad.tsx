@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { NO_SCROLL_STYLE } from "@/components/puzzles/noScroll";
+import { useGameKeys } from "@/lib/desktop";
 
 /**
  * Shared on-screen QWERTY keypad (Strikeout, Cryptogrid). Plain buttons only:
@@ -35,8 +36,26 @@ export interface LetterKeypadProps {
 }
 
 export function LetterKeypad({ onLetter, tone, disabled, locked = false, left, right, keyHeight = 44 }: LetterKeypadProps) {
+  const box = useRef<HTMLDivElement>(null);
+  // Desktop keys: typing a letter presses its key; Backspace (or Delete) presses the action left of the
+  // bottom row (Delete, Clear) and Enter the one right of it (Solve, Next), exactly as a tap on them.
+  useGameKeys((kind, key, event) => {
+    if (/^[a-z]$/.test(key)) {
+      const letter = key.toUpperCase();
+      if (kind === "down" && !locked && !(disabled?.(letter) ?? false)) onLetter(letter);
+      return true;
+    }
+    if (key !== "Backspace" && key !== "Delete" && key !== "Enter") return false;
+    if (kind === "down" && !event.repeat) {
+      const actions = [...(box.current?.querySelectorAll<HTMLButtonElement>("[data-key-action]") ?? [])];
+      const target = key === "Enter" ? actions[actions.length - 1] : actions[0];
+      if (target && !target.disabled) target.click();
+    }
+    return true;
+  });
   return (
     <div
+      ref={box}
       data-game-controls="keypad"
       className="flex w-full shrink-0 select-none flex-col gap-1.5 px-0.5"
       style={NO_SCROLL_STYLE}
@@ -92,6 +111,7 @@ export function KeypadAction({
       type="button"
       tabIndex={-1}
       aria-label={label}
+      data-key-action=""
       disabled={disabled}
       onClick={onPress}
       className={`flex shrink-0 items-center justify-center rounded-md px-2 font-mono text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 ${emphasis ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}

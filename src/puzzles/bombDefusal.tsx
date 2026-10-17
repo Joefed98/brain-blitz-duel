@@ -22,6 +22,7 @@ import {
 import { useStageState } from "@/lib/duel/stageState";
 import { BOMB_MAX_SEQUENCE, BOMB_TIME_MS, BOMB_V2_TIME_MS, BOMB_WIRES, type BombPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
+import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -313,6 +314,32 @@ function Stage({
     onSubmit(encodeBombActions(actions));
   }, [now, phaseStartedAt, actions, locked, isBomb, onSubmit]);
 
+  const defuse = () => {
+    if (locked || submitted.current) return;
+    submitted.current = true;
+    playLock();
+    // The panel freezes at the press; whether it is defused is the server's verdict.
+    setFrozenAt(Date.now());
+    soundCue("bomb.defuse");
+    onSubmit(encodeBombActions(actions));
+  };
+
+  // Desktop keys: 1–n cut that wire, A / B press that button, Enter = Defuse, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!isBomb) return false;
+    const wire = /^[1-9]$/.test(key) && Number(key) <= puzzle.wires.length ? Number(key) - 1 : null;
+    const button = puzzle.buttons.find((b) => b.label.toLowerCase() === key);
+    const used = wire !== null || button !== undefined || key === "Enter" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (wire !== null) {
+      if (!actions.filter(isCut).some((action) => Number.parseInt(action.slice(1), 10) === wire)) act(cutAction(wire));
+    } else if (button) act(pressAction(button.label));
+    else if (key === "Enter") {
+      if (!(locked || !actions.length)) defuse();
+    } else if (!(locked || !actions.length || submitted.current)) setActions([]);
+    return true;
+  });
+
   if (!isBomb) return null;
 
   const cutWires = actions.filter(isCut).map((action) => Number.parseInt(action.slice(1), 10));
@@ -361,15 +388,7 @@ function Stage({
         <Button
           type="button"
           disabled={locked || !actions.length}
-          onClick={() => {
-            if (locked || submitted.current) return;
-            submitted.current = true;
-            playLock();
-            // The panel freezes at the press; whether it is defused is the server's verdict.
-            setFrozenAt(Date.now());
-            soundCue("bomb.defuse");
-            onSubmit(encodeBombActions(actions));
-          }}
+          onClick={defuse}
           className="h-11 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Defuse

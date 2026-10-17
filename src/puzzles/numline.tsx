@@ -34,6 +34,7 @@ import { playTick } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { horizontalOf, useGameKeys } from "@/lib/desktop";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -436,6 +437,20 @@ function Stage({
     // finalShares is fixed once every number is placed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sweeping, reduced]);
+
+  // Desktop keys: ← → (A/D) set the marker (from the middle) and nudge it 1 % of the line, 0.1 % with Shift;
+  // Enter = Place.
+  useGameKeys((kind, key, event) => {
+    if (!data) return false;
+    const dir = horizontalOf(key);
+    const used = dir !== null || key === "Enter";
+    if (!used || kind !== "down" || busy) return used;
+    if (dir !== null) {
+      const step = event.shiftKey ? NUMLINE_SCALE / 1000 : NUMLINE_SCALE / 100;
+      setMarker(marker === null ? NUMLINE_SCALE / 2 : Math.max(0, Math.min(NUMLINE_SCALE, marker + dir * step)));
+    } else if (!event.repeat && marker !== null) place();
+    return true;
+  });
 
   if (!data) return null;
   const stage = data.stages[stageIndex]!;

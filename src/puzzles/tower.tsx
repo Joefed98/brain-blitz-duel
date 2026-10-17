@@ -11,6 +11,7 @@ import {
   type TowerMove,
   type TowerPegs,
 } from "@/lib/duel/tower";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { towerPegCount } from "@/lib/duel/tower";
 import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/lib/duel/types";
@@ -208,6 +209,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     setLifted(null);
   };
 
+  const undo = () => {
+    setLifted(null);
+    setDropped(null);
+    setMoves((current) => current.slice(0, -1));
+  };
+
+  const reset = () => {
+    setLifted(null);
+    setDropped(null);
+    setMoves([]);
+  };
+
+  // Desktop keys: 1, 2 and 3 tap posts 1–3 (left to right), Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!isTower) return false;
+    const peg = /^[1-9]$/.test(key) ? Number(key) - 1 : -1;
+    const posts = Math.max(3, replay.pegs.length);
+    const used = (peg >= 0 && peg < posts) || key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (peg >= 0) {
+      if (!locked) tapPeg(peg);
+    } else if (!locked && moves.length) {
+      if (key === "r") reset();
+      else undo();
+    }
+    return true;
+  });
+
   if (!isTower) return null;
 
   return (
@@ -235,11 +264,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => {
-            setLifted(null);
-            setDropped(null);
-            setMoves((current) => current.slice(0, -1));
-          }}
+          onClick={undo}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -247,11 +272,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => {
-            setLifted(null);
-            setDropped(null);
-            setMoves([]);
-          }}
+          onClick={reset}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset

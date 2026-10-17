@@ -1,3 +1,4 @@
+import { useGameKeys, directionOf } from "@/lib/desktop";
 import { crossAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -97,6 +98,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: the arrows (WASD) step the four swipe directions; nothing is kept on the kerb, as with a swipe.
+  useGameKeys((kind, key, event) => {
+    const open = () => !lockedRef.current && !submitted.current && !crossGame.isOver(state.current);
+    const dir = directionOf(key);
+    if (!dir) return false;
+    if (kind === "down" && !event.repeat && open() && !crossPaused(state.current)) pending.current.push(dir === "up" ? 0 : dir === "down" ? 1 : dir === "left" ? 2 : 3);
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

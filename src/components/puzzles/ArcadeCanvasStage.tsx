@@ -19,6 +19,7 @@ import type { ArenaAmbient, ArenaSceneView } from "@/lib/arcade/arenaScene.rende
 import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
+import { useGameKeys } from "@/lib/desktop";
 
 export interface PointerPayload {
   /** Event kind for the pointer/tick path (default 7, a drag); discrete games use inputKind. */
@@ -84,6 +85,12 @@ interface Props<S, C> {
   /** Controls below the canvas which can enqueue the same recorded inputs as pointer gestures. */
   footer?: ((send: (payload: PointerPayload) => void) => ReactNode) | undefined;
   pointer: (kind: "down" | "move" | "up", x: number, y: number) => PointerPayload | null;
+  /**
+   * Desktop keys (src/lib/desktop.ts useGameKeys): each key down/up with `send`, the very
+   * queue pointer gestures feed, and the current state; return true when the key was used.
+   * Never called while the stage is locked, submitted or over.
+   */
+  keys?: (kind: "down" | "up", key: string, send: (payload: PointerPayload) => void, state: S, event: KeyboardEvent) => boolean;
   onSubmit: (answer: string) => void;
   onDraftAnswer?: ((answer: string) => void) | undefined;
 }
@@ -289,6 +296,12 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
+
+  useGameKeys((kind, key, event) => {
+    const handler = propsRef.current.keys;
+    if (!handler || blocked()) return false;
+    return handler(kind, key, push, state.current, event);
+  }, enabled && Boolean(props.keys));
 
   const arena = (
     <div

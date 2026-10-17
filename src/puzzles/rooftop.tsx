@@ -1,3 +1,4 @@
+import { directionOf } from "@/lib/desktop";
 import { useRef } from "react";
 
 import {
@@ -93,6 +94,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               ? ROOF_UP
               : ROOF_DOWN;
         return { a: dir, b: 0, c: 0 };
+      }}
+      keys={(kind, key, send, _state, event) => {
+        // A swipe's four directions on the arrows or WASD.
+        const dir = directionOf(key);
+        if (!dir) return false;
+        if (kind === "down" && !event.repeat) send({ a: dir === "left" ? ROOF_LEFT : dir === "right" ? ROOF_RIGHT : dir === "up" ? ROOF_UP : ROOF_DOWN, b: 0, c: 0 });
+        return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

@@ -1,3 +1,4 @@
+import { heldHorizontal } from "@/lib/desktop";
 import { burstAmbient, burstFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
@@ -52,6 +53,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const fireFlip = useRef(0);
   /** Arrow press/release waiting to be sent: −1/1 = head for a wall, 0 = stop here. */
   const arrowEdge = useRef<number | null>(null);
+  const keyMove = useRef(heldHorizontal());
 
   const tickInput = (state: BurstState): PointerPayload | null => {
     const edge = arrowEdge.current;
@@ -94,6 +96,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       encodeRun={encodeBurstRun}
       tickInput={tickInput}
       pointer={(kind) => kind === "down" ? fire() : null}
+      keys={(kind, key, send, _state, event) => {
+        // Space fires (a tap); ←/→ (A/D) are the two arrow buttons, held.
+        if (key === " ") {
+          if (kind === "down" && !event.repeat) send(fire());
+          return true;
+        }
+        const before = keyMove.current.dir();
+        if (!keyMove.current.key(kind, key)) return false;
+        const after = keyMove.current.dir();
+        if (after !== before) arrowEdge.current = after;
+        return true;
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

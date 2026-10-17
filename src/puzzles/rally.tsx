@@ -1,3 +1,4 @@
+import { heldHorizontal, useGameKeys } from "@/lib/desktop";
 import { rallyAmbient, rallyFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -86,6 +87,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: ←/→ (A/D) slide the paddle's aim, the same absolute x a drag sets, 7 px a tick.
+  const keyMove = useRef(heldHorizontal());
+  useGameKeys((kind, key) => keyMove.current.key(kind, key));
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 
@@ -142,6 +146,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
+          const keyDir = keyMove.current.dir();
+          if (keyDir !== 0) wanted.current = Math.max(0, Math.min(RALLY_WORLD_W, state.current.aimX + keyDir * 7));
           const target = wanted.current;
           let applied: ArcadeInputEvent | null = null;
           if (target !== null && target !== sent.current) {

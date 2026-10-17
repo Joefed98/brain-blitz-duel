@@ -49,7 +49,9 @@ export const SHARDS: Record<string, string[]> = {
   play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3"],
   // room-extras-check (17 Oct 2026: the room's "finished" pings and the reveal's snake chart, ~3 min with its dev
   // server) on its own job: beside a bottom-clearance part and an arcade-fill third it would pass 10 minutes.
-  play14: ["room-extras-check.ts"],
+  // desktop-geometry-check (17 Oct 2026: PC and laptop browsers at four sizes and while resizing, ~2-3 min with its
+  // dev server) rides here.
+  play14: ["room-extras-check.ts", "desktop-geometry-check.tsx"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

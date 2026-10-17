@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -83,6 +84,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: Space, ↑ or W leaps (a tap).
+  useGameKeys((kind, key, event) => {
+    if (![" ", "ArrowUp", "w"].includes(key)) return false;
+    if (kind === "down" && !event.repeat && !lockedRef.current && !submitted.current && !ricoGame.isOver(state.current)) pending.current += 1;
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

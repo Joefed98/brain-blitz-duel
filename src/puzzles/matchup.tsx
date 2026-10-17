@@ -30,7 +30,13 @@ import {
   type MatchupState,
   MATCHUP_WORLD_H,
   MATCHUP_WORLD_W,
+  MATCHUP_BOARD_X,
+  MATCHUP_BOARD_Y,
+  MATCHUP_CELL_PX,
+  MATCHUP_ROWS,
 } from "@/lib/arcade/matchup";
+import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 import { decodeMatchupRun, encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import {
   drawMatchupArt, drawMatchupArtAnimated, drawMatchupArtSelection, drawMatchupSwap,
@@ -349,11 +355,43 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return true;
   };
 
+  // Desktop keys: the arrows (WASD) move a cursor over the gems; Space or Enter picks the gem under it (a tap),
+  // and an arrow with a gem picked swaps it that way (a tap on the neighbour). Esc drops the pick.
+  const cursor = useGridCursor(MATCHUP_ROWS, MATCHUP_SIZE, { row: Math.floor(MATCHUP_ROWS / 2), col: Math.floor(MATCHUP_SIZE / 2) });
+  useGameKeys((kind, key, event) => {
+    if (key === "Escape") {
+      if (kind === "down") selected.current = null;
+      return true;
+    }
+    if (key === " " || key === "Enter") {
+      if (kind === "down" && !event.repeat && !busy()) {
+        const at = cursor.show();
+        const pick = selected.current;
+        if (pick && pick.row === at.row && pick.col === at.col) selected.current = null;
+        else if (pick && trySwap(pick, at)) selected.current = null;
+        else selected.current = at;
+      }
+      return true;
+    }
+    const dir = directionOf(key);
+    if (!dir) return false;
+    if (kind !== "down") return true;
+    const pick = selected.current;
+    if (pick && cursor.cell && pick.row === cursor.cell.row && pick.col === cursor.cell.col) {
+      if (busy()) return true;
+      const to = { row: pick.row + (dir === "up" ? -1 : dir === "down" ? 1 : 0), col: pick.col + (dir === "left" ? -1 : dir === "right" ? 1 : 0) };
+      if (to.row >= 0 && to.row < MATCHUP_ROWS && to.col >= 0 && to.col < MATCHUP_SIZE && trySwap(pick, to)) selected.current = null;
+      return true;
+    }
+    cursor.move(dir);
+    return true;
+  });
+
   if (!data) return null;
 
   return (
     <ArcadeArenaSlot width={MATCHUP_WORLD_W} height={MATCHUP_WORLD_H} scene={matchupFill} playCentre sceneUnderHeader>
-      <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
+      <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}
           className="puzzle-board block h-full w-full rounded-xl"
@@ -387,6 +425,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           onPointerCancel={() => {
             selected.current = null;
           }}
+        />
+        <KeyCursor
+          rect={cursor.cell ? { x: MATCHUP_BOARD_X + cursor.cell.col * MATCHUP_CELL_PX, y: MATCHUP_BOARD_Y + cursor.cell.row * MATCHUP_CELL_PX, w: MATCHUP_CELL_PX, h: MATCHUP_CELL_PX } : null}
+          worldW={MATCHUP_WORLD_W}
+          worldH={MATCHUP_WORLD_H}
         />
       </div>
     </ArcadeArenaSlot>

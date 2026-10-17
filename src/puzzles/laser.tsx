@@ -17,6 +17,7 @@ import {
   verifyLaser,
   type BeamTrace,
 } from "@/lib/duel/laser";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "@/lib/duel/actionLog";
 import { laserAction, replayLaserLog } from "@/lib/duel/laserLog";
@@ -548,6 +549,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
     setPlaced((current) => current.filter((mirror) => mirror.cell !== last));
   };
 
+  const reset = () => {
+    record(laserAction.reset());
+    setPlaced([]);
+    setHistory([]);
+  };
+
+  // Desktop keys: Enter or Space = Fire, Z or Backspace = Undo, R = Reset, M = mirror, S = splitter.
+  useGameKeys((kind, key, event) => {
+    if (!isLaser) return false;
+    const piece: MirrorKind | null = key === "m" ? "/" : key === "s" && splitterTotal > 0 ? "S-" : null;
+    const used = piece !== null || key === "Enter" || key === " " || key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (piece !== null) {
+      const left = isSplitter(piece)
+        ? splitterTotal - placed.filter((p) => isSplitter(p.kind)).length
+        : total - placed.filter((p) => !isSplitter(p.kind)).length;
+      if (!(left <= 0 || busyRef.current)) setSelected(piece);
+    } else if (key === "Enter" || key === " ") {
+      if (!(locked || solved || firesLeft === 0 || Boolean(shot))) fire();
+    } else if (key === "r") {
+      if (!(locked || solved || !placed.length || Boolean(shot))) reset();
+    } else if (!(locked || solved || !history.length || Boolean(shot))) undo();
+    return true;
+  });
+
   if (!isLaser) return null;
 
   const mirrorsPlaced = placed.filter((piece) => !isSplitter(piece.kind)).length;
@@ -604,11 +630,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         <Button
           type="button"
           disabled={locked || solved || !placed.length || Boolean(shot)}
-          onClick={() => {
-            record(laserAction.reset());
-            setPlaced([]);
-            setHistory([]);
-          }}
+          onClick={reset}
           variant="outline"
           className="h-11 rounded-md border border-border px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >

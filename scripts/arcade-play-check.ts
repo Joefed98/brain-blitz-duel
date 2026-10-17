@@ -24,7 +24,7 @@
  *    (per-game px-per-tick limits; respawns, new throws/levels and other listed
  *    resets are exempt);
  *  - the arcade play screen (15 Oct 2026, polish-layout/bottom.css) is wrong at any of
- *    375 × 667, 390 × 700, 390 × 844, 430 × 932 or a 1280 × 800 laptop window (checked once
+ *    375 × 667, 390 × 700, 390 × 844, 430 × 932 or a 1280 × 800 touch-screen laptop window (checked once
  *    per game on its own practice run with the clock frozen, as bottom-clearance-check, so a
  *    game that dies in seconds without input, Hover, stays on its play screen, and no played
  *    run loses its first seconds to the proof): READY off screen or the page scrolls; the compact header not
@@ -348,6 +348,22 @@ const EDGE_RGB = "rgb(7, 7, 9)";
 const LAYOUT_VIEWPORTS: [number, number][] = [[375, 667], [390, 700], [390, 844], [430, 932], [1280, 800]];
 
 /**
+ * Sets a layout viewport. The 1280×800 window is proved as a touch-screen laptop (a coarse pointer,
+ * CDP touch emulation, which stays on for the rest of the proof page), so it keeps the phone layout
+ * proved here; a mouse-and-keyboard window that wide gets the desktop layout instead (17 Oct 2026,
+ * polish-layout/desktop.css), proved by desktop-geometry-check. Phone sizes are below its width either way.
+ */
+const touchPages = new WeakSet<import("playwright").Page>();
+async function layoutSize(page: import("playwright").Page, w: number, h: number): Promise<void> {
+  if (w >= 1180 && !touchPages.has(page)) {
+    touchPages.add(page);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+  }
+  await page.setViewportSize({ width: w, height: h });
+}
+
+/**
  * Let a resized layout settle: a few frames of the draw loop, which sizes the canvas to its box.
  * The layout page's clock is frozen (page.clock.pauseAt), which also holds requestAnimationFrame,
  * so the frames are run by hand: 40 ms of fake time, two or three frames and sim ticks a pass,
@@ -362,7 +378,7 @@ const nextFrames = async (page: import("playwright").Page) => {
 /** READY must be on screen without scrolling at every layout viewport. */
 async function readyFits(page: import("playwright").Page, problems: string[]): Promise<void> {
   for (const [w, h] of LAYOUT_VIEWPORTS) {
-    await page.setViewportSize({ width: w, height: h });
+    await layoutSize(page, w, h);
     await nextFrames(page);
     const box = await page.getByRole("button", { name: /^Ready/ }).boundingBox();
     if (!box || box.y < 0 || box.y + box.height > h + 0.5) problems.push(`layout ${w}x${h}: READY not fully on screen`);
@@ -460,7 +476,7 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
   /** Tilt's world sits centred vertically in its box (data-arena-centred, 15 Oct 2026); every other world is top-anchored. */
   const centred = CENTRED_WORLDS.has(game);
   for (const [w, h] of LAYOUT_VIEWPORTS) {
-    await page.setViewportSize({ width: w, height: h });
+    await layoutSize(page, w, h);
     await nextFrames(page);
     const m = await page.evaluate(playScreen);
     const at = `layout ${w}x${h}`;

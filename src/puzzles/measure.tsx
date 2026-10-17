@@ -14,6 +14,7 @@ import {
   MEASURE_BOARDS,
   type MeasureAction,
 } from "@/lib/duel/measure";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
@@ -484,6 +485,22 @@ function Stage({
       playCorrect();
       advance();
     },
+  });
+
+  // Desktop keys: 1–n tap jugs 1–n (left to right), F = Fill, E = Empty (boards with a tap), R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!data || !board || !replay) return false;
+    const jug = /^[1-9]$/.test(key) ? Number(key) - 1 : -1;
+    const used = (jug >= 0 && jug < board.caps.length) || (board.tap && (key === "f" || key === "e")) || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (jug >= 0) {
+      if (!busy) tapJug(jug);
+    } else if (key === "r") {
+      if (!(busy || atStart)) reset();
+    } else if (key === "f") {
+      if (!(busy || selected === null || (replay.amounts[selected] ?? 0) >= (board.caps[selected] ?? 0))) fillOrEmpty("fill");
+    } else if (!(busy || selected === null || (replay.amounts[selected] ?? 0) <= 0)) fillOrEmpty("empty");
+    return true;
   });
 
   if (!data || !board || !replay) return null;

@@ -24,6 +24,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { useGameKeys } from "@/lib/desktop";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
@@ -163,6 +164,20 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       })),
     );
     return playFinish(steps);
+  });
+
+  // Desktop keys: a letter selects (or deselects) the first tray tile with it, as tapping it does; Enter = Done.
+  useGameKeys((kind, key, event) => {
+    if (!data) return false;
+    const used = /^[a-z]$/.test(key) || key === "Enter";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (key === "Enter") {
+      if (!(frozen || checking)) void done();
+      return true;
+    }
+    const tile = inTray.find((t) => (tray[t] ?? "").toLowerCase() === key);
+    if (tile !== undefined && !frozen) setSelected((current) => current === tile ? null : tile);
+    return true;
   });
 
   if (!data) return null;

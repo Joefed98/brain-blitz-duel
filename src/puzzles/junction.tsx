@@ -1,8 +1,10 @@
+import { directionOf } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useMemo, useRef } from "react";
 import {
   juncApproachAt,
   juncApproachAtV2,
+  juncBuiltAt,
   juncBuildOrder,
   juncCheckpoint,
   JUNC_REV,
@@ -76,6 +78,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind !== "down") return null;
         const ap = rev2 ? juncApproachAtV2(x, y, builds, tick.current + 1) : juncApproachAt(x, y);
         return ap < 0 ? null : { a: ap, b: 0, c: 0 };
+      }}
+      keys={(kind, key, send, _state, event) => {
+        // Rev 1: the arrows (WASD) are the four approaches; rev 2: 1–8 are the eight lights, once built.
+        let ap = -1;
+        if (rev2) {
+          if (/^[1-8]$/.test(key)) ap = Number(key) - 1;
+          if (ap >= 0 && juncBuiltAt(builds, ap) > tick.current + 1) ap = -2;
+        } else {
+          const dir = directionOf(key);
+          ap = dir === "up" ? 0 : dir === "down" ? 1 : dir === "left" ? 2 : dir === "right" ? 3 : -1;
+        }
+        if (ap === -1) return false;
+        if (ap >= 0 && kind === "down" && !event.repeat) send({ a: ap, b: 0, c: 0 });
+        return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

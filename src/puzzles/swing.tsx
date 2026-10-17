@@ -1,3 +1,4 @@
+import { directionOf } from "@/lib/desktop";
 import { swingFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
@@ -53,6 +54,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SwingPuzzleData | null = puzzle.type === "swing" ? puzzle : null;
   const start = useRef<{ y: number } | null>(null);
+  const spaceHeld = useRef(false);
   return (
     <ArcadeCanvasStage
       diagKey="swing"
@@ -88,6 +90,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const dir = y < from.y ? SWING_REEL_UP : SWING_REEL_DOWN;
         from.y = y;
         return { k: SWING_INPUT_REEL, a: dir, b: 0, c: 0 };
+      }}
+      keys={(kind, key, send, _state, event) => {
+        // Space is the finger: held shoots and swings, let go releases; ↑/↓ while held reel in and out.
+        if (key === " ") {
+          if (event.repeat) return true;
+          if (kind === "down" && !spaceHeld.current) {
+            spaceHeld.current = true;
+            send({ a: 1, b: 0, c: 0 });
+          } else if (kind === "up" && spaceHeld.current) {
+            spaceHeld.current = false;
+            send({ a: 0, b: 0, c: 0 });
+          }
+          return true;
+        }
+        const dir = directionOf(key);
+        if (dir !== "up" && dir !== "down") return false;
+        if (kind === "down" && spaceHeld.current) send({ k: SWING_INPUT_REEL, a: dir === "up" ? SWING_REEL_UP : SWING_REEL_DOWN, b: 0, c: 0 });
+        return true;
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

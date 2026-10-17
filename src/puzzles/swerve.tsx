@@ -1,3 +1,4 @@
+import { useGameKeys, horizontalOf } from "@/lib/desktop";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -83,6 +84,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: ←/→ (A/D) tap the left or right half.
+  useGameKeys((kind, key, event) => {
+    const open = () => !lockedRef.current && !submitted.current && !swerveGame.isOver(state.current);
+    const side = horizontalOf(key);
+    if (side === null) return false;
+    if (kind === "down" && !event.repeat && open()) pending.current.push(side);
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

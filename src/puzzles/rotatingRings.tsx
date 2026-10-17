@@ -23,6 +23,7 @@ import {
 } from "@/lib/duel/types";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { playLock } from "@/lib/sound";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -89,6 +90,18 @@ function Stage({
     submitted.current = true;
     onSubmit(encodeRingTaps(taps));
   }, [now, phaseStartedAt, locked, data, taps, onSubmit]);
+
+  // Desktop keys: ↑ ↓ (W/S) select the next ring out / in, ← → (A/D) turn it anticlockwise / clockwise (↺ ↻).
+  useGameKeys((kind, key) => {
+    if (!data || !replay) return false;
+    const dir = directionOf(key);
+    if (dir === null) return false;
+    if (kind !== "down") return true;
+    if (dir === "up") setSelectedRing((ring) => Math.min(RINGS_COUNT - 1, ring + 1));
+    else if (dir === "down") setSelectedRing((ring) => Math.max(0, ring - 1));
+    else turn(selectedRing, dir === "right");
+    return true;
+  });
 
   if (!data || !replay) return null;
 
