@@ -1,30 +1,14 @@
 /**
- * The room answer reveal's arcade score chart (17 Oct 2026, display only): every player's stored
- * round score on three rows, 0–50, 51–100 and 101–150, so close scores sit far enough apart to
- * tell. Two looks, one constant:
+ * The room answer reveal's arcade chart (17 Oct 2026, display only): every player's marker on one
+ * continuous "snake" line that bends round in three rows, 0–50, 51–100 and 101–150 (the middle row
+ * runs right to left), labelled 0 and 50 on the first row's ends, 100 at the second bend and 150 at
+ * the end. It shows roughly who is ahead: markers carry each player's badge and name and no points
+ * figure (exact scores are for the results screen; your own is the reveal's big number).
  *
- *  - "snake" (the default): one continuous line that bends round, so the middle row runs right to
- *    left; labelled 0 and 50 on the first row's ends, 100 at the second bend, 150 at the end.
- *  - "rows": three rows that each read left to right, labelled 0–50, 50–100 and 100–150.
- *
- * Pure geometry (scripts/arcade-chart-check.ts proves every score's row and place in both looks,
- * and that markers never overlap); ArcadeScoreChart draws it. Scores are the server's stored ones.
+ * Pure geometry (scripts/arcade-chart-check.ts proves every score's row and place, and that
+ * markers never overlap); ArcadeScoreChart draws it. Places come from the server's stored scores.
  */
 import { MAX_ROUND_SCORE } from "./scoring";
-
-export type ArcadeChartStyle = "snake" | "rows";
-
-/** Which look the reveal draws. */
-export const ARCADE_CHART_STYLE: ArcadeChartStyle = "snake";
-
-/**
- * The look to draw: ARCADE_CHART_STYLE, unless the page address says `?chart=rows` or
- * `?chart=snake` (display only, so both looks can be compared on a phone in a real room).
- */
-export function arcadeChartStyle(search = typeof window === "undefined" ? "" : window.location.search): ArcadeChartStyle {
-  const asked = new URLSearchParams(search).get("chart");
-  return asked === "rows" || asked === "snake" ? asked : ARCADE_CHART_STYLE;
-}
 
 /** Each row's lowest and highest score. */
 export const CHART_ROWS = [
@@ -58,14 +42,14 @@ export interface ChartPoint {
 
 /**
  * Where a score sits. Each row runs from its start boundary (0, 50, 100) to its end (50, 100,
- * 150): 50 is the first row's end, 51 one point into the second; in "snake" the second row reads
- * right to left, so its x is mirrored.
+ * 150): 50 is the first row's end, 51 one point round the bend into the second, which reads right
+ * to left, so its x is mirrored.
  */
-export function chartPoint(score: number, style: ArcadeChartStyle): ChartPoint {
+export function chartPoint(score: number): ChartPoint {
   const s = chartScore(score);
   const row = chartRow(s);
   const along = (s - row * SPAN) / SPAN;
-  return { row, along, x: style === "snake" && row === 1 ? 1 - along : along };
+  return { row, along, x: row === 1 ? 1 - along : along };
 }
 
 export interface ChartLabel {
@@ -76,23 +60,20 @@ export interface ChartLabel {
   bend: boolean;
 }
 
-/** The scale's labels: 0, 50, 100 and 150 at the ends and bends ("snake") or each row's ends ("rows"). */
-export function chartLabels(style: ArcadeChartStyle): ChartLabel[] {
-  if (style === "snake")
-    return [
-      { text: "0", row: 0, side: "left", bend: false },
-      { text: "50", row: 0, side: "right", bend: true },
-      { text: "100", row: 1, side: "left", bend: true },
-      { text: "150", row: 2, side: "right", bend: false },
-    ];
-  return ([0, 1, 2] as const).flatMap((row) => [
-    { text: String(row * SPAN), row, side: "left" as const, bend: false },
-    { text: String((row + 1) * SPAN), row, side: "right" as const, bend: false },
-  ]);
+/** The scale's labels: 0 and 150 at the line's ends, 50 and 100 at its bends. */
+export function chartLabels(): ChartLabel[] {
+  return [
+    { text: "0", row: 0, side: "left", bend: false },
+    { text: "50", row: 0, side: "right", bend: true },
+    { text: "100", row: 1, side: "left", bend: true },
+    { text: "150", row: 2, side: "right", bend: false },
+  ];
 }
 
 /* ---------------------------------------------------------------- markers */
 
+/** Space each side of the line for the scale's labels and the snake's bends, CSS px. */
+export const CHART_MARGIN = 36;
 /** A marker's badge diameter and the vertical step between stacked markers, CSS px. */
 export const CHART_BADGE = 20;
 export const CHART_LANE = 28;
@@ -101,11 +82,10 @@ export const CHART_NAME_MAX = 56;
 /** Space kept clear between two markers in one lane, CSS px. */
 export const CHART_GAP = 4;
 
-/** A marker's drawn width: badge, name (capped) and the score, in an 11 px font. */
-export function markerWidth(name: string, score: number): number {
+/** A marker's drawn width: badge and name (capped), in an 11 px font; no points figure. */
+export function markerWidth(name: string): number {
   const nameW = Math.min(CHART_NAME_MAX, Math.ceil(Math.max(1, name.length) * 6.6));
-  const scoreW = String(chartScore(score)).length * 7;
-  return CHART_BADGE + 4 + nameW + 4 + scoreW + 6;
+  return CHART_BADGE + 4 + nameW + 6;
 }
 
 export interface MarkerIn {
@@ -122,23 +102,23 @@ export interface MarkerOut {
   /** The marker's drawn box, CSS px from the line's left end. */
   left: number;
   width: number;
-  /** Which side of the badge the name and score sit (towards the chart's middle). */
+  /** Which side of the badge the name sits (towards the chart's middle). */
   labelSide: "left" | "right";
   /** 0 sits just above the line; each lane above stacks one CHART_LANE higher. */
   lane: number;
 }
 
 /**
- * Places every marker: the badge's centre on the score's exact place, its name and score towards
+ * Places every marker: the badge's centre on the score's exact place, its name towards
  * the middle of the chart, and markers that would touch stacked into lanes above (lowest free lane
  * first, in order along the line; ties in key order), so no two ever overlap and every name stays
  * readable. `trackW` is the line's length in CSS px.
  */
-export function layoutMarkers(markers: readonly MarkerIn[], trackW: number, style: ArcadeChartStyle): MarkerOut[] {
+export function layoutMarkers(markers: readonly MarkerIn[], trackW: number): MarkerOut[] {
   const placed = markers.map((m) => {
-    const point = chartPoint(m.score, style);
+    const point = chartPoint(m.score);
     const px = point.x * trackW;
-    const width = markerWidth(m.name, m.score);
+    const width = markerWidth(m.name);
     const labelSide: "left" | "right" = px > trackW / 2 ? "left" : "right";
     const left = labelSide === "right" ? px - CHART_BADGE / 2 : px + CHART_BADGE / 2 - width;
     return { key: m.key, row: point.row, px, left, width, labelSide, lane: 0 };

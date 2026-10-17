@@ -1,6 +1,6 @@
 /**
  * room-extras-check (17 Oct 2026, display only): the room's live "finished" pings and the arcade
- * reveal's score chart, drawn with the real room screen (src/routes/duel.$code.tsx) through
+ * reveal's snake chart, drawn with the real room screen (src/routes/duel.$code.tsx) through
  * scripts/safe-area-harness.tsx (network edge stubbed, scripts/safe-area-server.ts).
  *
  *  1. Pings: an arcade round (Hover), a puzzle round (Box Six) and a board without a score strip
@@ -9,9 +9,10 @@
  *     appear, name them ("Ali and Jo finished"), sit below the notch, and never overlap the play
  *     area, the timer, "?", sound, Leave or any control, and the play area must not move when it
  *     appears or when it clears (about 3 s later). It never shows a score.
- *  2. The chart: Hover's room reveal at 414x896 (the home-screen app) with 2, 6 and 10 players,
- *     in both looks (`?chart=snake`, `?chart=rows`): two players three points apart and a tie
- *     among them. Every marker sits on its score's row, no two overlap, "You" is ringed, the
+ *  2. The chart: Hover's room reveal at 414x896 (the home-screen app) with 2, 6 and 10 players on
+ *     the snake: two players three points apart, ties, and 0, 50, 51, 100, 101 and 150. Every
+ *     marker's badge sits on its score's row and exact place, no marker shows a number (only the
+ *     reveal's own big score does), and Every marker sits on its score's row, no two overlap, "You" is ringed, the
  *     labels are drawn, and the whole chart is on screen, unclipped, above the home bar.
  *
  *   bun scripts/room-extras-check.ts [--verbose] [--shots=<dir>]   (screenshots for review)
@@ -25,7 +26,7 @@ import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./d
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { chartRow } from "../src/lib/duel/arcadeChart";
+import { CHART_MARGIN, chartPoint, chartRow } from "../src/lib/duel/arcadeChart";
 import type { PuzzleData } from "../src/lib/duel/types";
 
 const VERBOSE = process.argv.includes("--verbose");
@@ -220,13 +221,13 @@ try {
   const ROOMS: Record<number, number[]> = {
     2: [132, 135],
     6: [12, 47, 51, 88, 88, 131],
-    10: [3, 27, 50, 64, 64, 99, 101, 118, 121, 150],
+    10: [0, 27, 50, 64, 64, 100, 101, 118, 121, 150],
   };
-  for (const style of ["snake", "rows"]) {
+  {
     for (const [n, scores] of Object.entries(ROOMS)) {
-      const where = `chart ${style}, ${n} players, ${IPHONE11_APP.key}`;
+      const where = `chart, ${n} players, ${IPHONE11_APP.key}`;
       const fails: string[] = [];
-      const { page, close, errors } = await open(browser, IPHONE11_APP, room("hover", hover, Number(n), "reveal", scores), `&chart=${style}`);
+      const { page, close, errors } = await open(browser, IPHONE11_APP, room("hover", hover, Number(n), "reveal", scores));
       try {
         await page.waitForSelector("[data-chart-marker]", { timeout: 60_000 });
         await page.waitForTimeout(1500);
@@ -251,35 +252,47 @@ try {
             markers: Array.from(document.querySelectorAll<HTMLElement>("[data-chart-marker]")).map((el) => ({
               slot: Number(el.dataset["chartMarker"]),
               row: Number(el.dataset["chartRow"]),
-              score: Number(el.dataset["chartScore"]),
               you: el.dataset["chartYou"] !== undefined,
               ring: getComputedStyle(el.firstElementChild!).boxShadow,
+              badgeX: (() => {
+                const r = el.firstElementChild!.getBoundingClientRect();
+                return r.left + r.width / 2;
+              })(),
               text: el.textContent ?? "",
               ...box(el),
             })),
             labels: Array.from(document.querySelectorAll("[data-chart-label]")).map((el) => el.textContent),
+            // Everything the chart says outside its scale labels.
+            words: (() => {
+              const copy = chart.cloneNode(true) as HTMLElement;
+              copy.querySelectorAll("[data-chart-label]").forEach((el) => el.remove());
+              return copy.textContent ?? "";
+            })(),
             viewH: window.innerHeight,
           };
         });
-        if (g.style !== style) fails.push(`drew the ${g.style} look`);
+        if (g.style !== "snake") fails.push(`drew the ${g.style} look`);
+        if (/\d/.test(g.words)) fails.push(`the chart shows a number: "${g.words}"`);
+        const trackW = g.chart.w - 2 * CHART_MARGIN;
         if (g.markers.length !== scores.length) fails.push(`${g.markers.length} markers for ${scores.length} players`);
         for (const m of g.markers) {
           const score = scores[m.slot - 1]!;
-          if (m.score !== score || m.row !== chartRow(score)) fails.push(`slot ${m.slot} (${score}) on row ${m.row}`);
-          if (!m.text.includes(String(score))) fails.push(`slot ${m.slot}'s marker doesn't show ${score}`);
+          if (m.row !== chartRow(score)) fails.push(`slot ${m.slot} (${score}) on row ${m.row}`);
+          const wantX = g.chart.x + CHART_MARGIN + chartPoint(score).x * trackW;
+          if (Math.abs(m.badgeX - wantX) > 0.75) fails.push(`slot ${m.slot} (${score}) at x ${m.badgeX.toFixed(1)}, want ${wantX.toFixed(1)}`);
           if (m.you !== (m.slot === 1)) fails.push(`slot ${m.slot}: You marked wrongly`);
-          if (m.you && (!/0px 0px 0px 4px/.test(m.ring) || !/You\d/.test(m.text))) fails.push(`You has no ring or label (${m.ring}, "${m.text}")`);
+          if (m.you && (!/0px 0px 0px 4px/.test(m.ring) || !/You$/.test(m.text))) fails.push(`You has no ring or label (${m.ring}, "${m.text}")`);
           if (m.x < 0 || m.x + m.w > 414) fails.push(`slot ${m.slot}'s marker off screen`);
         }
         for (const a of g.markers)
           for (const b of g.markers)
             if (a.slot < b.slot && overlap({ ...a, what: "" }, { ...b, what: "" })) fails.push(`markers ${a.slot} and ${b.slot} overlap`);
-        const wantLabels = style === "snake" ? ["0", "50", "100", "150"] : ["0", "50", "50", "100", "100", "150"];
+        const wantLabels = ["0", "50", "100", "150"];
         if (JSON.stringify(g.labels) !== JSON.stringify(wantLabels)) fails.push(`labels ${g.labels}`);
         const bottom = g.chart.y + g.chart.h;
         if (bottom > IPHONE11_APP.screenH - IPHONE11_APP.bottom) fails.push(`chart ends at ${bottom}, under the home bar`);
         for (const c of g.clips) if (bottom > c.bottom + 0.5 || g.chart.y < c.top - 0.5) fails.push(`chart clipped by ${c.by} (${c.top}–${c.bottom})`);
-        if (SHOTS) await page.screenshot({ path: `${SHOTS}/chart-${style}-${n}p-414x896.png` });
+        if (SHOTS) await page.screenshot({ path: `${SHOTS}/chart-snake-${n}p-414x896.png` });
         if (errors.length) fails.push(`page errors: ${[...new Set(errors)].slice(0, 2).join(" | ")}`);
         if (VERBOSE) console.log(`  ${where}: chart ${Math.round(g.chart.y)}–${Math.round(bottom)} px`);
       } catch (error) {
@@ -300,4 +313,4 @@ if (failures.length) {
   for (const f of failures) console.log(`FAIL: ${f}`);
   process.exit(1);
 }
-console.log("PASS: pings sit clear of the play area, timer and controls without moving anything, and the chart places every marker on its row, unclipped, in both looks");
+console.log("PASS: pings sit clear of the play area, timer and controls without moving anything, and the snake chart places every marker on its row and place, with no numbers, unclipped");

@@ -131,14 +131,15 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   reads `duel_players.submitted_round`, written by `submitAnswerFn` after the result row is stored and cleared by
   `rematchFn` (`finishedPing.server.ts`); the column comes from `supabase/migrations/20261017140000_player_submitted_round.sql`,
   **written but not applied**: until it is, no pings show and nothing else changes. The room answer reveal for arcade
-  games draws every player's stored score on three rows, 0–50, 51–100, 101–150 (`arcadeChart.ts`, `ArcadeScoreChart`),
-  badges with name and score, stacked into lanes when they would touch, "You" ringed and labelled (never a colour);
-  `ARCADE_CHART_STYLE` picks "snake" (default: one line bending round, the middle row right to left) or "rows"
-  (`?chart=rows|snake` in the address overrides it on a phone, for comparing). For the chart, the reveal phase's arcade
-  progress entries (sent only to players whose own answer is stored) now carry each other player's stored score;
-  answers, lines and details stay closed until the results screen (reveal-window-check). Checks: practice-bests-check
-  (~2 s), finished-pings-check (~2 s), arcade-chart-check (~1 s), room-extras-check (headless Chromium, ~3 min, shard
-  `play11`: ping placement at 414×896 home-screen app and 390×844, chart with 2/6/10 players in both looks;
+  games places every player on one "snake" line that bends round in three rows, 0–50, 51–100 (right to left) and
+  101–150, labelled 0, 50, 100 and 150 at the ends and bends (`arcadeChart.ts`, `ArcadeScoreChart`; the only look):
+  badges with names, **no points figure for anyone** (your own score is the reveal's big number; exact scores are for
+  the results screen), stacked into lanes when they would touch, "You" ringed and labelled (never a colour). To place
+  the markers, the reveal phase's arcade progress entries (sent only to players whose own answer is stored) carry each
+  other player's stored score, never drawn; answers, lines and details stay closed until the results screen
+  (reveal-window-check). Checks: practice-bests-check (~2 s), finished-pings-check (~2 s), arcade-chart-check (~1 s),
+  room-extras-check (headless Chromium, ~3 min, shard `play11`: ping placement at 414×896 home-screen app and 390×844,
+  the snake with 2/6/10 players, every marker's place and no numbers;
   `--shots=<dir>` saves screenshots).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle

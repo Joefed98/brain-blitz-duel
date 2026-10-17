@@ -960,7 +960,7 @@ function DuelScreen() {
               const row = resultFor(results, p.player_slot, round);
               const reveal = (row?.extra as Record<string, unknown> | null | undefined)?.["reveal"];
               // Other players' rows stay unreadable until late answers stop; the
-              // reveal fetch carries where their runs ended and their stored score.
+              // reveal fetch carries where their runs ended and their stored score (to place markers).
               const progress = currentReveal?.progress?.find((g) => g.playerSlot === p.player_slot);
               const axis = progress?.axis;
               return {
@@ -968,7 +968,8 @@ function DuelScreen() {
                 name: p.display_name,
                 isMe: p.player_slot === mySlot,
                 look: looks.get(p.player_slot),
-                // The stored score: their result row once readable, else the reveal's progress entry.
+                // Places their marker on the chart (no figure is drawn): their result row once readable,
+                // else the reveal's progress entry.
                 score: row ? row.score : (progress?.score ?? null),
                 reveal: row
                   ? ((reveal as ArcadeRevealData | undefined) ?? null)

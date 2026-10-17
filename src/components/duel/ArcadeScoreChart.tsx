@@ -1,15 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import {
-  arcadeChartStyle,
-  CHART_BADGE,
-  CHART_LANE,
-  chartLabels,
-  chartScore,
-  layoutMarkers,
-  rowLanes,
-  type ArcadeChartStyle,
-} from "@/lib/duel/arcadeChart";
+import { CHART_BADGE, CHART_LANE, CHART_MARGIN, chartLabels, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
 
 import { PlayerBadge } from "./PlayerBadge";
@@ -18,13 +9,11 @@ export interface ChartPlayer {
   slot: number;
   name: string;
   isMe: boolean;
-  /** The server's stored round score; null until it lands. */
+  /** The server's stored round score, used only to place the marker (never drawn); null until it lands. */
   score: number | null;
   look: PlayerLook | undefined;
 }
 
-/** Space each side of the line for the scale's labels and the snake's bends, CSS px. */
-const MARGIN = 36;
 /** The snake's bend radius, CSS px. */
 const BEND = 10;
 /** From a row's lowest marker lane to its line, and from a line to the next row's top, CSS px. */
@@ -37,13 +26,13 @@ const BOTTOM = 10;
 const YOU_RING = "0 0 0 2px var(--background), 0 0 0 4px var(--foreground)";
 
 /**
- * The arcade reveal's score chart (arcadeChart.ts): each player's badge (their colour and icon),
- * name and stored score on three rows, 0–50, 51–100 and 101–150, as one snaking line or three
- * rows. Markers that would touch stack into lanes above the line, each with a stem to its dot.
- * Display only: it draws stored scores and never works one out.
+ * The arcade reveal's chart (arcadeChart.ts): each player's badge (their colour and icon) and name
+ * placed by their stored score on one snaking line, 0–50, 51–100 (right to left) and 101–150, so
+ * everyone sees roughly who is ahead. No points figure is drawn or carried in the page for anyone:
+ * exact scores are for the results screen. Markers that would touch stack into lanes above the
+ * line, each with a stem to its dot. Display only.
  */
-export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlayer[]; style?: ArcadeChartStyle }) {
-  const [style] = useState<ArcadeChartStyle>(() => asked ?? arcadeChartStyle());
+export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   useLayoutEffect(() => {
@@ -58,11 +47,10 @@ export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlay
 
   const scored = players.filter((p): p is ChartPlayer & { score: number } => p.score !== null);
   const pending = players.filter((p) => p.score === null);
-  const trackW = Math.max(1, width - 2 * MARGIN);
+  const trackW = Math.max(1, width - 2 * CHART_MARGIN);
   const markers = layoutMarkers(
     scored.map((p) => ({ key: p.slot, score: p.score, name: p.isMe ? "You" : p.name })),
     trackW,
-    style,
   );
   const lanes = rowLanes(markers);
   const lineY: number[] = [];
@@ -73,20 +61,14 @@ export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlay
     y = line + ROW_GAP;
   }
   const height = lineY[2]! + BOTTOM;
-  const L = MARGIN;
-  const R = MARGIN + trackW;
-  const path =
-    style === "snake"
-      ? `M ${L} ${lineY[0]} H ${R} a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${lineY[1]! - BEND} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L} a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${lineY[2]! - BEND} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`
-      : lineY.map((ly) => `M ${L} ${ly} H ${R}`).join(" ");
+  const L = CHART_MARGIN;
+  const R = CHART_MARGIN + trackW;
+  const path = `M ${L} ${lineY[0]} H ${R} a ${BEND} ${BEND} 0 0 1 ${BEND} ${BEND} V ${lineY[1]! - BEND} a ${BEND} ${BEND} 0 0 1 ${-BEND} ${BEND} H ${L} a ${BEND} ${BEND} 0 0 0 ${-BEND} ${BEND} V ${lineY[2]! - BEND} a ${BEND} ${BEND} 0 0 0 ${BEND} ${BEND} H ${R}`;
   const byKey = new Map(scored.map((p) => [p.slot, p]));
 
   return (
-    <div className="w-full shrink-0" data-arcade-chart={style}>
-      <div className="mb-0.5 flex items-baseline justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span>Scores</span>
-        <span>0–150</span>
-      </div>
+    <div className="w-full shrink-0" data-arcade-chart="snake">
+      <p className="mb-0.5 font-mono text-xs uppercase tracking-widest text-muted-foreground">Who's ahead</p>
       <div ref={box} className="relative w-full" style={{ height }}>
         {width > 0 ? (
           <>
@@ -106,7 +88,7 @@ export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlay
                 );
               })}
             </svg>
-            {chartLabels(style).map((label) => {
+            {chartLabels().map((label) => {
               const top = label.bend ? (lineY[label.row]! + lineY[label.row + 1]!) / 2 : lineY[label.row]!;
               const edge = label.bend ? BEND + 4 : 6;
               return (
@@ -129,11 +111,8 @@ export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlay
                 </span>
               );
               const text = (
-                <span className="flex min-w-0 items-baseline gap-1 text-[11px] leading-none">
-                  <span className={`truncate ${p.isMe ? "font-bold text-foreground" : "text-foreground/85"}`} style={{ maxWidth: 56 }}>
-                    {p.isMe ? "You" : p.name}
-                  </span>
-                  <span className={`font-mono tabular-nums ${p.isMe ? "font-bold text-foreground" : "text-muted-foreground"}`}>{chartScore(p.score)}</span>
+                <span className={`min-w-0 truncate text-[11px] leading-none ${p.isMe ? "font-bold text-foreground" : "text-foreground/85"}`} style={{ maxWidth: 56 }}>
+                  {p.isMe ? "You" : p.name}
                 </span>
               );
               return (
@@ -142,9 +121,7 @@ export function ArcadeScoreChart({ players, style: asked }: { players: ChartPlay
                   data-chart-marker={m.key}
                   data-chart-row={m.row}
                   data-chart-lane={m.lane}
-                  data-chart-score={p.score}
                   data-chart-you={p.isMe ? "" : undefined}
-                  title={`${p.isMe ? "You" : p.name}: ${p.score}`}
                   className={`absolute flex items-center gap-1 animate-fade-in ${m.labelSide === "left" ? "flex-row-reverse" : ""}`}
                   style={{ left: L + m.left, top, width: m.width, height: CHART_BADGE, zIndex: p.isMe ? 2 : 1 }}
                 >

@@ -13,7 +13,7 @@ import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
 
-/** One player in the room for the score chart. `reveal` and `score` are null until their result lands. */
+/** One player in the room for the reveal chart. `reveal` and `score` are null until their result lands. */
 export interface RevealPlayer {
   slot: number;
   name: string;

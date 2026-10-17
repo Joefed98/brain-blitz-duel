@@ -504,8 +504,8 @@ export interface RoundRevealData {
   partial?: boolean;
   /**
    * Reveal phase, arcade rounds: where each other player's run ended on the
-   * reveal track (the reveal's progress axis) and their stored score for the
-   * reveal's score chart; never their answer.
+   * reveal track (the reveal's progress axis) and their stored score, used only to
+   * place their marker on the reveal's chart (never drawn); never their answer.
    */
   progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string }; score?: number }[];
   /**
