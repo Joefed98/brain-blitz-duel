@@ -33,6 +33,7 @@ import {
   type BlockPartyPuzzleData,
   type BlockPlacement,
 } from "@/lib/duel/types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 /** One distinct fill per piece, shared by the tray and board. */
 const PIECE_COLOURS = [
@@ -48,6 +49,11 @@ const PIECE_COLOURS = [
 ];
 
 const pct = (value: number) => `${(value * 100) / N}%`;
+
+type Size = { width: number; height: number };
+/** A state update that keeps the current size (no re-render) when the new one is within half a pixel. */
+const sameSize = (next: Size) => (current: Size) =>
+  Math.abs(current.width - next.width) < 0.5 && Math.abs(current.height - next.height) < 0.5 ? current : next;
 
 export function pieceColour(piece: number): string {
   return PIECE_COLOURS[piece] ?? "var(--color-foreground)";
@@ -176,6 +182,7 @@ export function BlockPartyPuzzle({
   const boardRef = useRef<HTMLDivElement>(null);
   const [layoutSize, setLayoutSize] = useState({ width: 348, height: 480 });
   const [traySize, setTraySize] = useState({ width: 348, height: 234 });
+  const readSizes = useRef<(() => void) | null>(null);
   const [placed, setPlaced] = useState<BlockPlacement[]>([]);
   const [pose, setPose] = useState<Record<number, { rot: number; flip: boolean }>>({});
   const [ghost, setGhost] = useState<{ cells: number[]; legal: boolean } | null>(null);
@@ -311,7 +318,7 @@ export function BlockPartyPuzzle({
   );
   const draggedPiece = drag.drag?.item.piece;
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const layout = layoutRef.current;
     const tray = trayRef.current;
     if (!layout || !tray) return;
@@ -324,15 +331,28 @@ export function BlockPartyPuzzle({
       // rooms) the ratio is 1 up to offsetWidth's rounding and the rects are used as is.
       const ratio = layout.offsetWidth > 0 ? layoutRect.width / layout.offsetWidth : 1;
       const k = Math.abs(ratio - 1) > 0.02 ? ratio : 1;
-      setLayoutSize({ width: layoutRect.width / k, height: layoutRect.height / k });
-      setTraySize({ width: trayRect.width / k, height: trayRect.height / k });
+      setLayoutSize(sameSize({ width: layoutRect.width / k, height: layoutRect.height / k }));
+      setTraySize(sameSize({ width: trayRect.width / k, height: trayRect.height / k }));
     };
+    readSizes.current = read;
     read();
     const observer = new ResizeObserver(read);
     observer.observe(layout);
     observer.observe(tray);
-    return () => observer.disconnect();
+    return () => {
+      readSizes.current = null;
+      observer.disconnect();
+    };
   }, []);
+  // The board takes what the tray leaves and the tray (flex-1) what the board leaves, so one
+  // read settles over several renders. Re-read after each render, before paint, until the
+  // sizes stop changing (16 Oct 2026, display only): the first painted frame is the final
+  // layout instead of a short board that grows over the next frames. At most 8 passes a commit.
+  const settlePasses = useRef(0);
+  useBeforePaint(() => {
+    if (settlePasses.current++ === 0) queueMicrotask(() => (settlePasses.current = 0));
+    if (settlePasses.current <= 8) readSizes.current?.();
+  });
 
   // The centred board uses 85% of the stage width; the tray receives all
   // remaining height and uses the largest piece scale that keeps every piece visible.

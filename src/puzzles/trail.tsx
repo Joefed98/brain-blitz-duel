@@ -12,6 +12,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 const NO_TOUCH: CSSProperties = {
   touchAction: "none",
@@ -193,7 +194,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const node = box.current;
     if (!node) return;
     const read = () => setSpace({ w: node.clientWidth, h: node.clientHeight });
@@ -390,7 +391,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // Fit both boards to the space the shared reveal frame gives (side by side or stacked, whichever is larger).
   const root = useRef<HTMLDivElement | null>(null);
   const [space, setSpace] = useState({ w: 343, h: 440 });
-  useEffect(() => {
+  useBeforePaint(() => {
     const host = root.current?.parentElement;
     if (!host) return;
     const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });

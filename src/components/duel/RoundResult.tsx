@@ -26,6 +26,8 @@ function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: str
 
 interface RoundResultProps {
   roundTitle: string;
+  /** A short best-answer line ("Best: 17 moves"), when the game has one. */
+  best?: string | null;
   myName: string;
   opponentName: string;
   myRoundScore: number;
@@ -45,6 +47,7 @@ interface RoundResultProps {
 
 export function RoundResult({
   roundTitle,
+  best,
   myName,
   opponentName,
   myRoundScore,
@@ -78,13 +81,14 @@ export function RoundResult({
     <div className="flex flex-1 flex-col justify-between gap-6 pt-4 animate-phase-in">
       <div className="flex flex-col gap-6">
         <div className="relative px-12 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
             Round results
           </p>
           <p className="mt-1 break-words font-display text-sm font-bold text-foreground">
             {roundTitle}
           </p>
-          <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+          {best && <p className="font-mono text-[11px] text-foreground/80">{best}</p>}
+          <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
             {finalRound ? "Final round" : "This round"}
           </span>
         </div>
@@ -110,7 +114,7 @@ export function RoundResult({
               />
             </div>
             {iWon && (
-              <span className="mt-3 inline-block rounded-full bg-me px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-primary-foreground animate-tag-slam">
+              <span className="mt-3 inline-block rounded-full bg-me px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-primary-foreground animate-tag-slam">
                 Round won
               </span>
             )}
@@ -133,7 +137,7 @@ export function RoundResult({
               />
             </div>
             {theyWon && (
-              <span className="mt-3 inline-block rounded-full bg-opponent px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-background animate-tag-slam">
+              <span className="mt-3 inline-block rounded-full bg-opponent px-2 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-background animate-tag-slam">
                 Round won
               </span>
             )}

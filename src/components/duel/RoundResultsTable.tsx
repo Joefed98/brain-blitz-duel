@@ -17,6 +17,8 @@ import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 
 interface RoundResultsTableProps {
   roundTitle: string;
+  /** A short best-answer line ("Best: 17 moves"), when the game has one. */
+  best?: string | null;
   rows: Standing[];
   times: ReadonlyMap<number, number | null>;
   mySlot: number;
@@ -29,6 +31,7 @@ interface RoundResultsTableProps {
 
 export function RoundResultsTable({
   roundTitle,
+  best,
   rows,
   times,
   mySlot,
@@ -40,6 +43,8 @@ export function RoundResultsTable({
   const ordered = roundResultOrder(rows, times);
   const topScore = Math.max(0, ...ordered.map((row) => row.roundScore));
   const [expanded, setExpanded] = useState<number | null>(null);
+  // Summaries wrap to two lines while the rows still fit the screen; 9–10 players keep one line (tap for all).
+  const twoLines = ordered.length <= 8;
   const cued = useRef(false);
 
   useEffect(() => {
@@ -58,23 +63,22 @@ export function RoundResultsTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
       <header className="relative shrink-0 px-12 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
           Round results
         </p>
         <h1 className="mt-1 break-words font-display text-sm font-bold text-foreground">
           {roundTitle}
         </h1>
-        <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+        {best && <p className="font-mono text-[11px] text-foreground/80">{best}</p>}
+        <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
           {finalRound ? "Final round" : "This round"}
         </span>
       </header>
 
       {highlight}
 
-      <ol
-        className="grid min-h-0 flex-1 gap-1.5"
-        style={{ gridTemplateRows: `repeat(${ordered.length}, minmax(0, 1fr))` }}
-      >
+      {/* Rows take their content's height from the top; the list scrolls if a big room needs it. */}
+      <ol className="grid min-h-0 flex-[1_1_0px] content-start gap-1.5 overflow-y-auto">
         {ordered.map((row, index) => {
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
@@ -82,12 +86,12 @@ export function RoundResultsTable({
           const verdict = roundVerdict(row);
           const summary = summaryWithoutTime(row.summary);
           return (
-            <li key={row.slot} className="min-h-0">
+            <li key={row.slot}>
               <button
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
-                className={`grid h-full min-h-[38px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.25rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-md border px-2 text-left ${
+                className={`grid min-h-[38px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.25rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-md border px-2 py-1 text-left ${
                   isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
                 } ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
@@ -103,7 +107,7 @@ export function RoundResultsTable({
                       {row.name}
                     </span>
                     {won && (
-                      <span className="shrink-0 rounded border border-primary px-1 py-0.5 font-mono text-[9px] font-bold uppercase leading-none text-primary">
+                      <span className="shrink-0 rounded border border-primary px-1 py-0.5 font-mono text-[11px] font-bold uppercase leading-none text-primary">
                         Round won
                       </span>
                     )}
@@ -112,7 +116,7 @@ export function RoundResultsTable({
                     </span>
                   </span>
                   <span
-                    className={`block font-mono text-[11px] leading-tight text-foreground/80 ${open ? "whitespace-normal" : "truncate"}`}
+                    className={`font-mono text-[11px] leading-tight text-foreground/80 ${open ? "block whitespace-normal" : twoLines ? "line-clamp-2" : "block truncate"}`}
                   >
                     <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
                       {VERDICT_LABEL[verdict]}

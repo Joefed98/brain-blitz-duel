@@ -60,24 +60,22 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, aut
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
       <header className="relative shrink-0 px-12 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
           Overall standings
         </p>
         <h1 className="mt-1 font-display text-lg font-bold text-foreground">
           After round {round} of {totalRounds}
         </h1>
-        <span className="absolute right-0 top-0 font-mono text-[10px] uppercase text-muted-foreground">
+        <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
           Overall
         </span>
       </header>
-      <p className="shrink-0 text-center font-mono text-[10px] text-foreground/70">
+      <p className="shrink-0 text-center font-mono text-[11px] text-foreground/70">
         ▲▼ places moved · +points this round · total
       </p>
 
-      <ul
-        className="relative grid min-h-0 flex-1 gap-1.5"
-        style={{ gridTemplateRows: `repeat(${displayRows.length}, minmax(0, 1fr))` }}
-      >
+      {/* Rows take their content's height from the top; the list scrolls if a big room needs it. */}
+      <ul className="relative grid min-h-0 flex-[1_1_0px] content-start gap-1.5 overflow-y-auto">
         {displayRows.map((row) => {
           const isMe = row.slot === mySlot;
           return (

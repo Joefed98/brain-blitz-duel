@@ -27,6 +27,7 @@ import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/F
 import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 const CELL = 56;
 /** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
@@ -152,7 +153,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const lastShift = useRef<SlideShift | null>(null);
   useNoTouchScroll(root);
 
-  useEffect(() => {
+  useBeforePaint(() => {
     const node = root.current;
     if (!node) return;
     const measure = () => setCell(cellFor(node.clientWidth));
@@ -333,7 +334,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, valid
            : `${good.size} / 5 rows`}
       </p>
       <p className="text-center font-mono text-base text-muted-foreground">
-        Par {puzzle.par} - you used {replay.moves}
+        Par {puzzle.par} – you used {replay.moves}
       </p>
     </div>
   );

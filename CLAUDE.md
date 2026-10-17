@@ -217,6 +217,28 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   1024×768 and fails unless the arcade header stays 44 px (52 px to the arena) with the timer centred and the round label
   in its widest fitting form, on at most two unwrapped lines, 8 px clear of every header item (`--geometry=<file>` writes
   every box for a before → after run on main). Run it after changing a non-game screen's or the play header's layout.
+- **First paint** (16 Oct 2026, display only): first-paint-check (headless Chromium, ~2 min, shard `play3`) starts
+  18 practice puzzle rounds (two or more per category) and 4 room rounds (the server moving the phase on, no input) as an
+  iPhone 11 home-screen app at 414×896 with the CPU slowed 4×, the intro page scrolled to its end first, and fails if the
+  stage, any `[data-game-arena]` or the board is ever more than 0.5 px from its final box in any frame from the first one
+  (or the page is scrolled). GameLayout's entrance is a fade only (`animate-round-in`; phase-in's 10 px rise was drawn
+  part-way through on a slow first frame), the game screen's scroll reset runs before paint, and boards that size from
+  their container measure in `useBeforePaint` (a layout effect), never after the first frame. Pass game ids to run only
+  those (practice and room). Run it after changing a puzzle board's sizing or GameLayout.
+  Its standalone pass (17 Oct 2026, fix-up after #95; `--late-only` runs it alone) opens 7 practice and 2 room rounds as a
+  reopened home-screen app: laid out 414×896 with no insets, then, from the stage's first frame, the 414×848 viewport and
+  the 48/34 px insets (CDP, a frame or two late, as iOS settles them). PhoneShell's geometry hold (`useGeometryHold`,
+  `data-geometry-hold`, standalone puzzle play screens only) keeps the round hidden, its fade paused, until the insets
+  have arrived and the geometry reads the same for 3 frames (at most 400 ms); held frames are not judged, every visible
+  one is. The arcade shortfall (`useStandaloneShortfall`) is applied in a layout effect, before the first paint.
+- **Screen bottoms** (16 Oct 2026, display only): screen-bottom-check (headless Chromium, ~1 min, shard `play6`) draws 19
+  non-game screens (home, first-time intro, practice list and round intro, lobby with 2 and 10 players, link join, Prepare
+  to Duel, round title, room round intro, round result, standings and podium with 2 and 10 players, round result and standings after an arcade round, winner reveal) as an
+  iPhone 11 home-screen app and, at the top, middle and end of each page's scroll, fails unless html and body are
+  `--screen-edge` (#070709: what shows below a short page, below the 848 px layout viewport and on overscroll) and the
+  bottom 34 rows are #070709 in the background alone and wherever no content covers them. The page shells pin their
+  screen background to the viewport and its bottom strip is that black across the home-bar inset (polish-layout/bottom.css
+  "Every screen's bottom").
 - **Tap targets** (Pull!, Mixed Signals, Tempo): tap-mapping-check (~20 s) draws frames with the
   real renderer (@napi-rs/canvas), finds each target's drawn pixels, and sends taps through the phone's own
   mapping (`src/components/puzzles/tapMapping.ts`) into the sim on the next tick: a tap on the drawn centre

@@ -55,7 +55,7 @@ function IntroExample() {
         aria-hidden="true"
         style={{ background: SLICE_BG, borderRadius: 10 }}
       />
-      <p className="text-center text-xs text-muted-foreground">Three in one swipe starts a combo. The cream bottle pulls food together.</p>
+      <p className="text-center text-xs text-muted-foreground">Three in one swipe starts a combo. The mayo bottle pulls food together.</p>
     </div>
   );
 }

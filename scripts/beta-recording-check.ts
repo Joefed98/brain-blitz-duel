@@ -6,6 +6,9 @@
  *    room's round_results and its departed players into round_results_archive
  *    and duel_players_archive, tagged with the game index, before its deletes;
  *    the reset itself is unchanged, and a failed copy never fails Play again;
+ *    the archive stores each round's effective time limit and version stamps
+ *    (migration 20261016170000), by practice_plays' rule, from the
+ *    duel_secrets.round_records startRoomFn writes at the deal;
  *  - G2: a graded practice play writes one practice_plays row (outcome only)
  *    from practiceGradeFn, with the caller's device id, and never throws or
  *    waits past the recording timeout;
@@ -44,8 +47,11 @@ import {
   recordJoin,
   recordPracticePlay,
   recordRoomEvent,
+  recordRoundRecords,
   revisionStamps,
+  roundRecords,
 } from "../src/lib/duel/betaRecord.server";
+import { puzzleTimeLimitMs, typeTimeLimitMs } from "../src/lib/duel/registry";
 import { finishGame, leaveBetweenRoundScreen, setPhase } from "../src/lib/duel/roomPhase.server";
 import type { DuelPlayerRow } from "../src/lib/duel/types";
 import { memoryDb } from "./fixtures/memoryDb";
@@ -247,6 +253,12 @@ check(
     start,
   ),
   "wiring: the host's claimed start records game_started at the stored start stamp",
+);
+check(
+  /if \(claimed\) \{[\s\S]*from\("duel_secrets"\)\.upsert[\s\S]*if \(error\) throw[\s\S]*await recordRoundRecords\(\s*client,\s*room\.id,\s*roundRecords\(puzzles[\s\S]*puzzleTimeLimitMs\(/.test(
+    start,
+  ),
+  "wiring: the claimed start stores every dealt round's record (puzzleTimeLimitMs, as practice) after the secrets",
 );
 const leave = slice("export const leaveRoomFn", "export const disbandRoomFn");
 const disband = slice("export const disbandRoomFn", "export const checkHostPresenceFn");
@@ -520,6 +532,66 @@ check(
   "wiring: practice stays open without a session (the device id is read from the bearer token if there is one)",
 );
 
+/* ---------------- G1: each round's effective limit and stamps ---------------- */
+{
+  const own = { type: "breaker", brkRev: 6, speedPar: 1, seed: 3, timeLimitMs: 120_000 };
+  const plain = { type: "sudoku", sudokuRev: 1, speedPar: 1, answer: "secret" };
+  const limit = (p: Record<string, unknown> & { type: string }) => puzzleTimeLimitMs(p as never);
+  const rounds = roundRecords([own, plain], limit);
+  check(
+    typeTimeLimitMs("sudoku") > 0 && rounds[1]!.time_limit_ms === typeTimeLimitMs("sudoku"),
+    `rounds: a round without its own limit records its game's default (${rounds[1]!.time_limit_ms})`,
+  );
+  check(rounds[0]!.time_limit_ms === 120_000, "rounds: a round's own timeLimitMs wins");
+  for (const [i, puzzle] of [own, plain].entries()) {
+    const practice = practicePlayRow({
+      userId: null,
+      puzzle,
+      example: false,
+      claimedMsRemaining: 0,
+      timeLimitMs: puzzleTimeLimitMs(puzzle as never),
+      graded: { score: 0, isCorrect: false, storedMs: 0 },
+    });
+    check(
+      practice.time_limit_ms === rounds[i]!.time_limit_ms &&
+        JSON.stringify(practice.revision) === JSON.stringify(rounds[i]!.revision),
+      `rounds: ${puzzle.type}'s record matches the practice_plays row for the same puzzle (${JSON.stringify(rounds[i])})`,
+    );
+  }
+  check(
+    !JSON.stringify(rounds).includes("secret") && !JSON.stringify(rounds).includes("seed"),
+    "rounds: the records hold no answer or seed",
+  );
+
+  const db = memoryDb({ duel_secrets: [{ duel_id: "room", puzzles_private: [] }] });
+  await recordRoundRecords(db.client, "room", rounds);
+  check(
+    JSON.stringify(db.tables["duel_secrets"]![0]!["round_records"]) === JSON.stringify(rounds),
+    "rounds: stored on the room's duel_secrets row",
+  );
+  let threw = false;
+  const before = warnings.length;
+  try {
+    await recordRoundRecords(
+      {
+        from: () => ({
+          update: () => ({
+            eq: async () => ({ error: { message: 'column "round_records" does not exist' } }),
+          }),
+        }),
+      },
+      "room",
+      rounds,
+    );
+  } catch {
+    threw = true;
+  }
+  check(
+    !threw && warnings.slice(before).some((w) => /round_records/.test(w)),
+    "rounds: a missing column is logged, never thrown into the room's start",
+  );
+}
+
 /* ---------------- G1 SQL: archive before delete (text) ---------------- */
 const migrations = readdirSync("supabase/migrations")
   .filter((f) => f.endsWith(".sql"))
@@ -529,23 +601,22 @@ const ours = [
   "20261016130100_beta_room_events.sql",
   "20261016130200_beta_practice_plays.sql",
   "20261016130300_beta_play_again_archive.sql",
+  "20261016170000_beta_archive_round_records.sql",
 ];
 check(
   ours.every((f) => migrations.includes(f)) &&
     ours.every((f) => f > "20261016120000_rate_limits.sql"),
-  "migrations: the four beta migrations exist and sort after the rate-limit migration",
+  "migrations: the five beta migrations exist and sort after the rate-limit migration",
 );
 const restartDefs = migrations.filter((f) =>
   /FUNCTION public\.restart_duel_room/.test(readFileSync(`supabase/migrations/${f}`, "utf8")),
 );
 check(
-  restartDefs.at(-1) === "20261016130300_beta_play_again_archive.sql",
-  `migrations: the archive migration is restart_duel_room's latest definition (${restartDefs.at(-1)})`,
+  restartDefs.at(-1) === "20261016170000_beta_archive_round_records.sql" &&
+    restartDefs.at(-2) === "20261016130300_beta_play_again_archive.sql",
+  `migrations: the round-records fix-up is restart_duel_room's latest definition, after the archive (${restartDefs.slice(-2)})`,
 );
-const archiveSql = readFileSync(
-  "supabase/migrations/20261016130300_beta_play_again_archive.sql",
-  "utf8",
-);
+const archiveSql = readFileSync(`supabase/migrations/${restartDefs.at(-1)}`, "utf8");
 const body = archiveSql.slice(
   archiveSql.indexOf("CREATE OR REPLACE FUNCTION public.restart_duel_room"),
 );
@@ -578,6 +649,22 @@ for (const statement of [
     norm(previous).includes(statement) && norm(body).includes(statement),
     `SQL: unchanged from the previous definition: ${statement}`,
   );
+{
+  // The fix-up changes only what the archive insert stores; the rest of the function is the same.
+  const prevBody = previous.slice(
+    previous.indexOf("CREATE OR REPLACE FUNCTION public.restart_duel_room"),
+  );
+  const between = (sql: string, from: string, to: string) =>
+    norm(sql.slice(sql.indexOf(from), to ? sql.indexOf(to) : undefined));
+  for (const [from, to] of [
+    ["SELECT * INTO v_room", "v_game_index :="],
+    ["INSERT INTO public.duel_players_archive", ""],
+  ] as const)
+    check(
+      between(body, from, to) === between(prevBody, from, to) && between(body, from, to) !== "",
+      `SQL: restart_duel_room unchanged from the previous definition from "${from}"${to ? ` to "${to}"` : " to the end"}`,
+    );
+}
 for (const sql of ours.map((f) => readFileSync(`supabase/migrations/${f}`, "utf8"))) {
   for (const table of [...sql.matchAll(/CREATE TABLE IF NOT EXISTS public\.(\w+)/g)].map(
     (m) => m[1]!,
@@ -710,13 +797,15 @@ if (!bin) {
     const HOST = "a0000000-0000-0000-0000-000000000001";
     const STAY = "a0000000-0000-0000-0000-000000000002";
     const GONE = "a0000000-0000-0000-0000-000000000003";
-    const playGame = (order: string[]) =>
+    const playGame = (order: string[], roundRecords?: unknown[]) =>
       psql(`
       UPDATE public.duels SET status = 'finished', phase = 'winner_reveal', current_round = ${order.length}, round_count = ${order.length},
         round_order = '${JSON.stringify(order)}'::jsonb,
         puzzles_public = '${JSON.stringify(order.map((type, i) => (i === 0 ? { type, timeLimitMs: 120000 } : { type })))}'::jsonb
       WHERE id = '${ROOM}';
-      INSERT INTO public.duel_secrets (duel_id, puzzles_private) VALUES ('${ROOM}', '[]'::jsonb) ON CONFLICT (duel_id) DO NOTHING;
+      INSERT INTO public.duel_secrets (duel_id, puzzles_private, round_records)
+        VALUES ('${ROOM}', '[]'::jsonb, ${roundRecords ? `'${JSON.stringify(roundRecords)}'::jsonb` : "NULL"})
+        ON CONFLICT (duel_id) DO NOTHING;
       INSERT INTO public.round_results (duel_id, player_slot, round_number, score, is_correct, ms_remaining, extra)
       SELECT '${ROOM}', slot, round, 100 * slot + round, true, 1000 * round, '{"flagged": false}'::jsonb
       FROM generate_series(1, 3) slot, generate_series(1, ${order.length}) round;`);
@@ -725,7 +814,13 @@ if (!bin) {
       INSERT INTO public.duel_players (duel_id, player_slot, user_id, display_name, status) VALUES
         ('${ROOM}', 1, '${HOST}', 'Host', 'active'), ('${ROOM}', 2, '${STAY}', 'Stay', 'active'), ('${ROOM}', 3, '${GONE}', 'Gone', 'left');`);
     check(setup.ok, `SQL: test room set up (${setup.err})`);
-    const game1 = playGame(["wordsmith", "breaker"]);
+    const game1 = playGame(
+      ["wordsmith", "breaker"],
+      [
+        { time_limit_ms: 120000, revision: { speedPar: 1 } },
+        { time_limit_ms: 93000, revision: { brkRev: 6 } },
+      ],
+    );
     check(game1.ok, `SQL: game 1 played (${game1.err})`);
     const before = psql(`SELECT count(*) FROM public.round_results WHERE duel_id = '${ROOM}'`).out;
     const restarted = psql(`SELECT public.restart_duel_room('${ROOM}', '${HOST}')`);
@@ -746,6 +841,13 @@ if (!bin) {
       before === "6" &&
         archived === `6|2|0|0|breaker,wordsmith|120000|2|${(100 + 200 + 300) * 2 + 3 * 3}|t`,
       `SQL: game 1's 6 answers archived as game 0 with game ids, the puzzle's own limit, device ids, scores and extras (${archived})`,
+    );
+    const limits = psql(
+      `SELECT string_agg(DISTINCT round_number || ':' || time_limit_ms || ':' || revision::text, ',') FROM public.round_results_archive WHERE duel_id = '${ROOM}'`,
+    ).out;
+    check(
+      limits === '1:120000:{"speedPar": 1},2:93000:{"brkRev": 6}',
+      `SQL: each archived round carries the limit it used (the game default too) and its stamps (${limits})`,
     );
     check(
       psql(`SELECT count(*) FROM public.round_results WHERE duel_id = '${ROOM}'`).out === "0",
@@ -781,13 +883,20 @@ if (!bin) {
     psql(
       `UPDATE public.duel_players SET status = 'left' WHERE duel_id = '${ROOM}' AND player_slot = 2`,
     );
-    playGame(["tilt"]);
+    playGame(["tilt", "breaker"]); // dealt without round records (a room started before the fix-up)
     psql(`SELECT public.restart_duel_room('${ROOM}', '${HOST}')`);
     const second = psql(
       `SELECT game_index, count(*), string_agg(DISTINCT game_id, ',') FROM public.round_results_archive WHERE duel_id = '${ROOM}' GROUP BY game_index ORDER BY game_index`,
     ).out;
+    const legacy = psql(
+      `SELECT count(*), count(time_limit_ms), count(revision), max(time_limit_ms) FROM public.round_results_archive WHERE duel_id = '${ROOM}' AND game_index = 1`,
+    ).out;
     check(
-      second === "0|6|breaker,wordsmith\n1|3|tilt",
+      legacy === "6|3|0|120000",
+      `SQL: a room dealt without round records keeps the old rule (own timeLimitMs, else null; revision null) (${legacy})`,
+    );
+    check(
+      second === "0|6|breaker,wordsmith\n1|6|breaker,tilt",
       `SQL: the second Play again archives game 1 separately (${second.replace("\n", " / ")})`,
     );
     check(
@@ -802,7 +911,7 @@ if (!bin) {
       `SELECT public.restart_duel_room('${ROOM}', '${STAY}'); SELECT count(*) FROM public.round_results_archive;`,
     ).out;
     check(
-      refused === "f\n9",
+      refused === "f\n12",
       `SQL: a refused Play again archives nothing (${refused.replace("\n", " / ")})`,
     );
 
