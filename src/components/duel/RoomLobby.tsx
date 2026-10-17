@@ -96,7 +96,7 @@ function LookPicker({
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full ${
                   selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
-                } ${holder !== undefined ? "opacity-45" : ""}`}
+                } ${holder !== undefined ? "opacity-60" : ""}`}
                 style={{ background: colour.hex, color: "#0B0B0F" }}
                 aria-hidden="true"
               >
