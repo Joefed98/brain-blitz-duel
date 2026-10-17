@@ -15,7 +15,7 @@ interface NumberEntryProps {
   children: ReactNode;
 }
 
-/** One compact row: the digits then backspace. ENTER is its own bar beneath. */
+/** The digits then backspace: one row, or two rows of six in the compact keypad (44 px keys). ENTER sits beside the field there, else its own bar beneath. */
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "⌫"];
 
 /** Shared numeric answer field used by the typed puzzle types. */
@@ -65,14 +65,14 @@ export function NumberEntry({
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          className={`${compactKeypad ? "h-10 min-w-0 flex-1 py-1" : "tap-target w-full py-3"} rounded-xl border border-border bg-card px-4 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50`}
+          className={`${compactKeypad ? "h-11 min-w-0 flex-1 py-1" : "tap-target w-full py-3"} rounded-xl border border-border bg-card px-4 text-center font-mono text-2xl tabular-nums text-foreground placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50`}
         />
         {keypad && compactKeypad && (
           <button
             type="button"
             disabled={locked || value.length === 0}
             onPointerDown={(event) => { event.preventDefault(); submit(); }}
-            className="h-10 rounded-lg bg-primary px-4 font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40"
+            className="h-11 rounded-lg bg-primary px-4 font-display text-sm font-bold uppercase text-primary-foreground disabled:opacity-40"
           >
             Enter
           </button>
@@ -81,7 +81,7 @@ export function NumberEntry({
 
         {keypad ? (
           <div className="flex flex-col gap-1.5">
-            <div className={compactKeypad ? "grid grid-cols-11 gap-0.5" : "grid grid-cols-11 gap-1"}>
+            <div className={compactKeypad ? "grid grid-cols-6 gap-1" : "grid grid-cols-11 gap-1"}>
               {KEYS.map((key) => (
                 <button
                   key={key}
@@ -96,7 +96,7 @@ export function NumberEntry({
                     }
                     setValue((prev) => (prev.length >= maxLength ? prev : prev + key));
                   }}
-                  className={`${compactKeypad ? "h-9" : "h-10"} rounded-lg border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40`}
+                  className={`${compactKeypad ? "h-11" : "h-10"} rounded-lg border border-border bg-card font-display text-base font-bold text-foreground disabled:opacity-40`}
                 >
                   {key}
                 </button>

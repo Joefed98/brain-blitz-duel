@@ -38,7 +38,7 @@ function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Rounds 5-8 move; 9-10 are live!</p>
+      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Levels 5–8 move; 9–10 are live!</p>
     </div>
   );
 }

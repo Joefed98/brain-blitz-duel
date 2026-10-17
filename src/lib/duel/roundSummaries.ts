@@ -11,7 +11,6 @@ import {
   usesScanRev1,
   usesSpotRev1,
 } from "./attentionRev";
-import { TILT_V2_FINISH_BONUS, TILT_V2_MAZE_POINTS, TILT_V2_STAR_POINTS } from "@/lib/arcade/tilt";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
 import { crossLine } from "@/lib/duel/crossLine";
@@ -332,7 +331,7 @@ function wordsmithSummary(result: RoundResultRow): BuiltDetail {
   const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
   if (words.length === 0) return { summary: "No words", detail: [] };
   return {
-    summary: `floor(2.5 × ${points}) = ${result.score} · ${words.length} words`,
+    summary: `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
 }
@@ -432,7 +431,7 @@ const tileGridSummary: SummaryBuilder = (result) => {
   const placed = Number(result.extra?.["placed"] ?? result.correct_count ?? 0);
   const valid = Boolean(result.extra?.["valid"] ?? result.is_correct);
   return {
-    summary: valid ? `${placed} / ${TG_TILES} tiles · valid` : `${placed} / ${TG_TILES} · invalid at the timer`,
+    summary: valid ? `${placed} / ${TG_TILES} tiles · valid` : `${placed} / ${TG_TILES} · not a valid grid when time ran out`,
     detail: [],
   };
 };
@@ -789,7 +788,7 @@ const hoverSummary: SummaryBuilder = (result) => {
     summary: survived
       ? `${gates} / ${total} · survived`
       : `${gates} / ${total} barriers · crashed at ${ended.toFixed(1)}s`,
-    detail: ["150 × barriers passed ÷ total barriers", survived ? "Flew the whole run" : "Run ended early"],
+    detail: [survived ? "Flew the whole run" : "Run ended early"],
   };
 };
 
@@ -827,7 +826,7 @@ const binTossSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["throws"] ?? 10);
   return {
     summary: `${baskets} / ${total} in`,
-    detail: ["10 per basket · 10 / 10 = 130 + up to 20 for time left", baskets >= total ? "Every throw in" : `${total - baskets} missed`],
+    detail: [baskets >= total ? "Every throw in" : `${total - baskets} missed`],
   };
 };
 
@@ -849,7 +848,7 @@ const bullseyeSummary: SummaryBuilder = (result) => {
   const inner = Number(result.extra?.["inner"] ?? 0);
   return {
     summary: `${result.score} · ${inner} in the gold/red`,
-    detail: ["floor(1.7 × ring points − 20), clamped 0–150", `${Number(result.extra?.["total"] ?? 0)} ring points`],
+    detail: [`${Number(result.extra?.["total"] ?? 0)} ring points`],
   };
 };
 
@@ -913,7 +912,7 @@ const breakerSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["destroyed"] ?? 80 - left)} / 80 bricks · ${hits} hits · ${powerUps} power-up${powerUps === 1 ? "" : "s"}`,
-    detail: ["130 × bricks ÷ 80 · all 80 = 130 + up to 20 for time left", `${Number(result.extra?.["losses"] ?? 0)} relaunches`],
+    detail: [`${Number(result.extra?.["losses"] ?? 0)} relaunches`],
   };
 };
 
@@ -926,16 +925,25 @@ const pinballSummary: SummaryBuilder = (result) => {
   };
 };
 
-const rallySummary: SummaryBuilder = (result) => {
+const rallySummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const goldHits = Number(result.extra?.["goldHits"] ?? 0);
+  const targetHits = Number(result.extra?.["targetHits"] ?? 0);
   const survived = result.extra?.["survived"] === true;
   const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-  const gold = `${goldHits} gold hit${goldHits === 1 ? "" : "s"}`;
+  // What each scored by the round's own revision: unstamped 2.5 a gold hit; rallyRev 2 adds 3 a pad; rallyRev 3+ goes through the band curve (the help gives its values), so only the counts.
+  const rev = puzzle.type === "rally" ? (puzzle.rallyRev ?? 0) : 0;
+  const pads = `${targetHits} pink pad${targetHits === 1 ? "" : "s"}`;
+  const gold =
+    rev >= 3
+      ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"} · ${pads}`
+      : rev === 2
+        ? `${goldHits} gold hit${goldHits === 1 ? "" : "s"} (2.5 each, rounded down) · ${pads} (3 each)`
+        : `${goldHits} gold hit${goldHits === 1 ? "" : "s"} (2.5 each, rounded down)`;
   return {
     summary: survived
-      ? `${gold} (2.5 each, rounded down) · ${hits} blue returns · survived`
-      : `${gold} (2.5 each, rounded down) · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
+      ? `${gold} · ${hits} blue returns · survived`
+      : `${gold} · ${hits} blue returns · lost at ${ended.toFixed(1)}s`,
     detail: [survived ? "Kept the rally alive" : "Lost the ball"],
   };
 };
@@ -953,10 +961,10 @@ const steadySummary: SummaryBuilder = (result) => {
 const sliceSummary: SummaryBuilder = (result) => {
   const slices = Number(result.extra?.["slices"] ?? 0);
   const total = Number(result.extra?.["totalDiscs"] ?? 0);
-  const bombs = Number(result.extra?.["bombsHit"] ?? 0);
+  const chillies = Number(result.extra?.["bombsHit"] ?? 0);
   return {
     summary: `Sliced ${slices} / ${total} · best combo ×${Number(result.extra?.["bestMult"] ?? 1)}`,
-    detail: [`${bombs} bomb${bombs === 1 ? "" : "s"} hit`],
+    detail: [`${chillies} ${chillies === 1 ? "chilli" : "chillies"} cut`],
   };
 };
 
@@ -969,7 +977,7 @@ const bubbleSummary: SummaryBuilder = (result) => {
     summary: cleared
       ? `Cleared at ${ended.toFixed(1)}s`
       : `${Number(result.extra?.["bubblesLeft"] ?? 0)} bubbles left · popped ${popped} · dropped ${dropped}`,
-    detail: ["130 × share of bubbles cleared · full clear = 130 + up to 20 for time left", `${Number(result.extra?.["shots"] ?? 0)} shots`],
+    detail: [`${Number(result.extra?.["shots"] ?? 0)} shots`],
   };
 };
 
@@ -991,8 +999,8 @@ const whackSummary: SummaryBuilder = (result) => {
   const empty = Number(result.extra?.["empty"] ?? 0);
   const bombs = Number(result.extra?.["bombs"] ?? 0);
   return {
-    summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Bombs ${bombs} · Empty ${empty}`,
-    detail: ["135 × share hit · −3 per wrong ball · −5 per bomb · −3 per empty tap · +15 for every target"],
+    summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Hedgehogs ${bombs} · Empty ${empty}`,
+    detail: ["135 × share hit · −3 per wrong hat · −5 per hedgehog · −3 per empty tap · +15 for every target"],
   };
 };
 
@@ -1111,12 +1119,7 @@ const inkBridgeSummary: SummaryBuilder = (result, puzzle) => {
   }
   return {
     summary: levels >= total ? `All ${total} · ${result.score}` : `Level ${current}${phase} · ${result.score} points`,
-    detail: [
-      rev === 3
-        ? "11 per level - 1-4 standard, 5-8 moving, 9-10 live - all ten = 130 + up to 20 for time"
-        : "11 per level - all ten = 130 + up to 20 for time",
-      "Same levels for everyone",
-    ],
+    detail: ["Same levels for everyone"],
   };
 };
 
@@ -1128,10 +1131,10 @@ const orbitSummary: SummaryBuilder = (result) => {
   const left = Number(result.extra?.["secondsLeft"] ?? 0);
   const head = `${passed} / ${total} planets`;
   if (result.extra?.["finished"] === true)
-    return { summary: `${passed} / ${total} · finished with ${left.toFixed(1)}s left`, detail: ["3 per planet · reaching the sun = 130 + up to 20 for time left", "Same planets for everyone"] };
+    return { summary: `${passed} / ${total} · finished with ${left.toFixed(1)}s left`, detail: ["Same planets for everyone"] };
   return {
     summary: survived ? `${head} · survived` : `${head} · lost at ${ended.toFixed(1)}s`,
-    detail: ["3 per planet · reaching the sun = 130 + up to 20 for time left", "Same planets for everyone"],
+    detail: ["Same planets for everyone"],
   };
 };
 
@@ -1140,7 +1143,7 @@ const snipSummary: SummaryBuilder = (result) => {
   const stars = Number(result.extra?.["stars"] ?? 0);
   const levels = Number(result.extra?.["levels"] ?? 0);
   return {
-    summary: `${eaten} sweet${eaten === 1 ? "" : "s"} · ${stars}★ · ${result.score ?? 0}`,
+    summary: `${eaten} apple${eaten === 1 ? "" : "s"} · ${stars} lea${stars === 1 ? "f" : "ves"} · ${result.score ?? 0}`,
     detail: [`${levels} level${levels === 1 ? "" : "s"} played`],
   };
 };
@@ -1151,7 +1154,7 @@ const swingSummary: SummaryBuilder = (result) => {
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   return {
     summary: survived ? `${metres} m · survived · ${result.score ?? 0}` : `${metres} m · fell at ${ended.toFixed(1)}s · ${result.score ?? 0}`,
-    detail: ["130 × metres ÷ 500 · 500 m = 130 + up to 20 for time left", "Same cavern for everyone"],
+    detail: ["Same cavern for everyone"],
   };
 };
 
@@ -1168,8 +1171,8 @@ const tiltSummary: SummaryBuilder = (result) => {
           ? `${head} · survived`
           : `${head} · ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
     detail: result.extra?.["tiltRev"]
-      ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars · ${TILT_V2_MAZE_POINTS} per maze, ${TILT_V2_STAR_POINTS} per star, all four + up to ${TILT_V2_FINISH_BONUS} for time left`, "Same mazes for everyone"]
-      : ["30 per maze · all four = 130 + up to 20 for time left", "Same mazes for everyone"],
+      ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars`, "Same mazes for everyone"]
+      : ["Same mazes for everyone"],
   };
 };
 
@@ -1213,7 +1216,7 @@ const ballTrackSummary: SummaryBuilder = (result) => {
   const home = Number(result.extra?.["home"] ?? 0);
   const speed = Number(result.extra?.["speed"] ?? 0);
   const tail = speed ? ` · +${speed} speed` : "";
-  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: [`round(130 × balls home ÷ ${BT_BALLS}) · ${BT_BALLS} / ${BT_BALLS} = 130 + up to 20 for time left`, "Same track for everyone"] };
+  return { summary: `${home} / ${BT_BALLS} home${tail}`, detail: ["Same track for everyone"] };
 };
 
 const numberPyramidSummary: SummaryBuilder = (result, puzzle) => {
