@@ -50,7 +50,7 @@ export const PLAYER_ICON_IDS = [
   "rocket",
   "gem",
   "target",
-  "die",
+  "compass",
   "wave",
   "peak",
   "leaf",

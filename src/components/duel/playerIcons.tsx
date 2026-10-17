@@ -87,16 +87,13 @@ export const PLAYER_ICON_ART: Record<PlayerIconId, { label: string; art: ReactNo
       </>
     ),
   },
-  die: {
-    label: "Die",
+  compass: {
+    label: "Compass",
     art: (
       <>
-        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" />
-        <g fill="currentColor" stroke="none">
-          <circle cx="8.3" cy="8.3" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="15.7" cy="15.7" r="1.6" />
-        </g>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m16.6 7.4-2.9 6.3-6.3 2.9 2.9-6.3z" />
+        <path d="m16.6 7.4-6.3 2.9 3.4 3.4z" fill="currentColor" />
       </>
     ),
   },

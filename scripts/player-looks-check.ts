@@ -160,6 +160,10 @@ for (const id of PLAYER_ICON_IDS) {
   check(!!PLAYER_ICON_ART[id]?.art && !!PLAYER_ICON_ART[id]?.label, `icon ${id} has no art`);
 }
 check(Object.keys(PLAYER_ICON_ART).length === PLAYER_ICON_IDS.length, "icon art lists ids not in PLAYER_ICON_IDS");
+// Joe, 17 Oct 2026: no gambling symbols in the set (the Die became the Compass).
+for (const id of PLAYER_ICON_IDS)
+  check(!/^(die|dice|chip|chips|card|cards|coin|coins|slot|slots|roulette)$/.test(id), `icon ${id} is a gambling symbol`);
+check((PLAYER_ICON_IDS as readonly string[]).includes("compass"), "the Compass icon is missing");
 
 /* ------------------------------------------------------------------ in-memory duel_players */
 
