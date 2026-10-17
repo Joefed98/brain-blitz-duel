@@ -1,3 +1,4 @@
+import { skylineFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -223,7 +224,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)}>
+    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineFill}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

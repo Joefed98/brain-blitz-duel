@@ -1549,27 +1549,43 @@ body.game-lock {
 
 /*
  * Arena scenes (15 Oct 2026, display only; arenaScene.renderer.ts, ARENA_SCENE_GAMES):
- * a game's own scenery painted behind its world out to the slot's edges, on the arcade
- * play screen only (never an intro, demo or reveal). It takes no touches, so a tap or
- * drag there reaches no game handler and nothing is recorded. The world box above it
- * keeps its size, place and pointer mapping; the slot's black stays underneath.
+ * a game's own scenery painted behind its world, on the arcade play screen only (never an
+ * intro, demo or reveal). Since 17 Oct 2026 (the screen fill-ins, ARENA_FILL_GAMES) every
+ * active arcade game has one, and it runs out to the screen's edges: ArcadeArenaSlot puts
+ * the scene canvas (and a game's moving fill, data-arena-ambient) straight into the play
+ * screen, under its column, so it shows behind the header, the controls, the 16px bottom
+ * strip and the home bar. It takes no touches, so a tap or drag there reaches no game
+ * handler and nothing is recorded. The world box keeps its size, place and pointer mapping;
+ * the slot and its spare space are see-through over the scene.
  */
-[data-arena-slot][data-scene] {
-  position: relative;
-}
-[data-arena-slot][data-scene] > [data-game-arena] {
-  position: relative;
-}
-[data-arena-slot] > [data-arena-scene] {
-  display: none;
+[data-arcade-play] > :is([data-arena-scene], [data-arena-ambient]) {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  display: block;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
-[data-arcade-play] [data-arena-slot] > [data-arena-scene] {
-  display: block;
+[data-arcade-play] > [data-game-column] {
+  z-index: 1;
+}
+/* No frame round an arcade world (17 Oct 2026, item 25): the play area's accent ring (the red line
+   under every arcade world) is dropped on the play screen, so the world meets its fill seamlessly. */
+[data-arcade-play] [data-arena-slot] [data-play-area] {
+  box-shadow: none;
+}
+[data-arcade-play] [data-arena-slot][data-scene],
+[data-arcade-play] [data-arena-slot][data-scene]::before,
+[data-arcade-play] [data-arena-slot][data-scene]::after {
+  background: transparent;
+}
+/* Centred on the play screen only (Pinball, Meteor, Scrumper, Gemstone, Bonk; 17 Oct 2026): half the spare height,
+   rounded down to a whole pixel, above the world (the rest below it), so intros, demos and reveals keep their
+   top-anchored world and the world's top stays on a whole CSS pixel (Meteor's canvas, #101). */
+[data-arcade-play] [data-arena-slot][data-arena-play-centred] > [data-game-arena] {
+  margin-top: round(down, calc((100cqh - min(100cqh, 100cqw * var(--arena-h) / var(--arena-w))) / 2), 1px);
 }
 
 /* Chat message list: its own finger-scrollable area, never chaining to the page. */

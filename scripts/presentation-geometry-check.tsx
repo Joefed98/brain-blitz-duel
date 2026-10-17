@@ -17,18 +17,36 @@ import { ARENA_SCENE_GAMES } from "../src/lib/arcade/arenaScene.renderer";
 const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   matchup: "matchup", tilt: "tilt", whack: "whack", tendrop: "tenDrop", bullseye: "bullseye",
   bintoss: "binToss", clayshoot: "clayShoot", flip: "flip", inkbridge: "inkBridge", cross: "cross",
+  hover: "hover", breaker: "breaker", rally: "rally", beat: "beat", snake: "snake", burst: "burst",
+  wavefront: "wavefront", orbit: "orbit", skyline: "skyline", slice: "slice", bubble: "bubble",
+  swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball",
 };
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
-  matchup: "more starry velvet backdrop below the board",
-  tilt: "the board's rim on more of the lamp-lit wooden table",
-  whack: "more grass below the 4x4 field",
+  matchup: "the sparkly purple velvet over the whole screen, behind the header too (world centred)",
+  tilt: "the board's oak runs on to the screen's edges, settling darker (no rim)",
+  whack: "the meadow below the 4x4 field starts in the field's green, then soft tufts, a few faded flowers and small stones on a faint band of soil (static); the field centred, the meadow above it too",
   tendrop: "a sill closing the columns, then the frame's rails and a shaded backing to a foot rail",
   bullseye: "the counter's front, a kick board and the fairground floor",
   bintoss: "the counter's front, a kick board and the fairground floor (sky and counter beside the world)",
-  clayshoot: "more field below",
-  flip: "still deep rock below the floor's rock",
+  clayshoot: "more field below, starting in the world's own bottom grass; sky, treeline and field beside the world (no seam)",
+  flip: "deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion)",
   inkbridge: "grass and hillside below the ground (sky, hills and ground beside the world)",
-  cross: "the start pavement runs on between grass verges to a grass strip",
+  cross: "the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion)",
+  hover: "the black night sky with faint still stars",
+  breaker: "the black screen runs on into a dark retro floor (a faint horizon grid)",
+  rally: "the court's dark floor, five retro lamps lit by Rally's good moments",
+  beat: "the four lanes' tints fade into the dark, a few small notes drifting and slowly changing colour",
+  snake: "a faint starfield round the board, its stars stepping through the border's colours (world centred)",
+  burst: "the black arena runs on under the arrows, small faint reactions drifting together and bursting",
+  wavefront: "the night sky's stars below and beside the world",
+  orbit: "deep space with light stars under SET CHECKPOINT",
+  skyline: "a dark road under the tower's base block, softly lit by street lamps",
+  slice: "a faded marble worktop under the chopping board",
+  bubble: "the deep water settles onto soft sand",
+  swing: "more lava under the cavern's lava, then dark rock",
+  snip: "the orchard grass runs on below, a deeper green (world centred)",
+  balltrack: "the wooden board runs on across the sides and to the bottom",
+  pinball: "the dark table, five retro lamps lit by the table's good moments (world centred)",
 };
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.
@@ -136,13 +154,14 @@ assert.match(css2, /\[data-arena-slot\] \{[^}]*background: var\(--screen-edge\);
 assert.match(css2, /\[data-arena-slot\]::after \{[^}]*background: var\(--screen-edge\);/, "the space below the world is the screen edge's black");
 assert.doesNotMatch(css2, /--arena-fill/, "no per-game arena fill");
 assert.match(css2, /--screen-edge: #070709;/);
-// Arena scenes (15 Oct 2026): hidden off the play screen, shown on it, behind the world, never touched.
-assert.match(css2, /\[data-arena-slot\] > \[data-arena-scene\] \{[^}]*display: none;[^}]*position: absolute;[^}]*inset: 0;[^}]*pointer-events: none;/, "arena scene is an untouchable layer, hidden by default");
-assert.match(css2, /\[data-arcade-play\] \[data-arena-slot\] > \[data-arena-scene\] \{\s*display: block;\s*\}/, "arena scene shows on the arcade play screen only");
-assert.match(css2, /\[data-arena-slot\]\[data-scene\] > \[data-game-arena\] \{\s*position: relative;\s*\}/, "the world paints over its scene");
+// Arena scenes (15 Oct 2026; on the play screen itself since 17 Oct 2026): an untouchable layer under the column.
+assert.match(css2, /\[data-arcade-play\] > :is\(\[data-arena-scene\], \[data-arena-ambient\]\) \{[^}]*position: absolute;[^}]*z-index: 0;[^}]*pointer-events: none;/, "arena scene is an untouchable layer on the play screen");
+assert.match(css2, /\[data-arcade-play\] > \[data-game-column\] \{\s*z-index: 1;\s*\}/, "the world, header and controls paint over the scene");
+assert.match(css2, /\[data-arcade-play\] \[data-arena-slot\] \[data-play-area\] \{\s*box-shadow: none;\s*\}/, "no ring round an arcade world");
 {
   const slotSrc = readFileSync("src/components/puzzles/ArcadeArenaSlot.tsx", "utf8");
   assert.match(slotSrc, /data-arena-scene="" aria-hidden="true"/);
+  assert.match(slotSrc, /closest<HTMLElement>\("\[data-arcade-play\]"\)/, "the scene paints on the arcade play screen only");
   assert.doesNotMatch(slotSrc, /onPointer|onClick|onTouch/, "the arena slot and its scene have no input handlers");
   for (const game of ARENA_SCENE_GAMES) {
     const file = readFileSync(`src/puzzles/${SCENE_FILES[game]}.tsx`, "utf8");
@@ -198,6 +217,8 @@ const HEADER_AT = (inset: number) => Math.max(4, inset) + 44 + 4;
 const HEADER = HEADER_AT(0);
 /** Games whose world sits centred vertically in its box (the spare height split above and below). */
 const CENTRED = new Set(["tilt"]);
+/** Since the screen fill-ins (17 Oct 2026): also centred on the play screen (ARENA_FILL_CENTRED; history above keeps CENTRED). */
+const PLAY_CENTRED = new Set<string>(["tilt", "pinball", "snake", "snip", "matchup", "whack"]);
 /** Px from the bottom of the visible screen to the end of an arcade play column, inset or not. */
 const ARCADE_BOTTOM = 16;
 /** The game's own HUD rows between the header and the slot (each with the stage column's gap under it). */
@@ -276,7 +297,7 @@ for (const [width, height, inset] of ARENA_SIZES) {
       assert.ok(scale > oldScale, `${game} ${width}x${height}: larger than before (${oldScale.toFixed(3)} → ${scale.toFixed(3)})`);
       entry.before.push(`${oldW}x${oldH} → ${(spec.width * oldScale).toFixed(0)}x${(spec.height * oldScale).toFixed(0)}`);
     }
-    const spare = slotH - h, above = CENTRED.has(game) ? spare / 2 : 0;
+    const spare = slotH - h, above = PLAY_CENTRED.has(game) ? spare / 2 : 0;
     if (width === 390 && height === 844) entry.detail = `${scale.toFixed(3)}x | ${top}px | ${above.toFixed(0)}px | ${(spare - above).toFixed(0)}px | ${(slotW - w).toFixed(0)}px | ${BELOW[game] ? `${BELOW_CONTROLS[game]}: 16px` : "-"}`;
     arenaTable.set(game, entry);
     arenaChecks++;
@@ -298,25 +319,27 @@ writeFileSync("docs/arena-sizes-oct-2026.md", [
   "That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play",
   "screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,",
   "arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).",
-  "The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the",
-  "screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,",
-  "below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
+  "The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt, and since 17 Oct 2026 Pinball, Meteor,",
+  "Scrumper and Gemstone: centred) and centred across. Since the screen fill-ins (17 Oct 2026) every arcade game's space round",
+  "its world is its own scene out to the screen's edges (Arena scenes, below); the engine games without one keep the screen",
+  "edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the",
   "browser by arcade-play-check; not device measurements.", "",
   "Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,",
   "Meteor snakeRev 5, Scrumper snipRev 5; batch 1 (16 Oct 2026) Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6 (390x730),",
   "Fission burstRev 4 (390x650); batch 2 (16 Oct 2026) Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5 (390x730),",
   "Mixed Signals clashRev 5 (390x650) and Pull! clayRev 6 (360x680, so it draws 390x737 at 390px wide). Stored rounds on older",
   "revisions keep their own world in reveals and replays.", "",
-  `| Game | World | ${PHONE_SIZES.join(" | ")} | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |`,
+  `| Game | World | ${PHONE_SIZES.join(" | ")} | Scale at 390x844 | Box top | Spare above | Spare below | Spare across | Bottom control (gap to bottom) |`,
   `|---|---|${ARENA_SIZES.map(() => "---").join("|")}|---|---|---|---|---|---|`,
   ...[...arenaTable].map(([game, { world, sizes, detail }]) => `| ${gameDisplayName(game as never)} | ${world} | ${sizes.join(" | ")} | ${detail} |`), "",
-  "## Arena scenes (15 Oct 2026)", "",
-  "Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen",
-  "only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is",
-  "unchanged (same size, scale, place and pointer mapping). The scene is drawn once per screen size (never per frame) on a",
-  "pointer-events: none canvas, so a tap or drag in it reaches no game handler and records no input. Scene box → world",
-  "box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a",
-  "390x733 scene).", "",
+  "## Arena scenes (15 Oct 2026; screen fill-ins 17 Oct 2026)", "",
+  "These games paint their own scene behind the world on the play screen only (src/lib/arcade/arenaScene.renderer.ts,",
+  "ARENA_SCENE_GAMES; the fill-ins in arenaFills.renderer.ts). Since 17 Oct 2026 the scene canvas is the whole play screen:",
+  "it runs from the world's edges to the screen's bottom (behind the controls, the 16px strip and the home bar) and sides,",
+  "the header row staying black (Gemstone's velvet runs behind it too). The world box is unchanged (same size, scale and",
+  "pointer mapping). The scene is drawn once per screen size (never per frame) on a pointer-events: none canvas, so a tap or",
+  "drag in it reaches no game handler and records no input; seven games add a slow moving layer over it (lights, notes,",
+  "stars, walkers, lava, reactions) that holds still under reduced motion or reduced effects. Box → world per size.", "",
   `| Game | ${PHONE_SIZES.join(" | ")} | Scene beyond the world |`,
   `|---|${ARENA_SIZES.map(() => "---").join("|")}|---|`,
   ...ARENA_SCENE_GAMES.map((game) => `| ${gameDisplayName(game)} | ${arenaTable.get(game)?.sizes.join(" | ") ?? "-"} | ${ARENA_SCENE_NOTES[game]} |`), "",

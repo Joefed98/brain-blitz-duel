@@ -847,7 +847,8 @@ export function clayArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   }
   const below = sceneBelow(view);
   if (!below) return;
-  sceneFill(ctx, below, H, view.bottom, [[0, "#284421"], [Math.min(1, 140 / below.h), "#20391B"], [1, "#1A2F16"]]);
+  // 17 Oct 2026 (item 26, display only): starts in the world's own bottom grass, so the join shows no step.
+  sceneFill(ctx, below, H, view.bottom, [[0, "#2F4E25"], [Math.min(1, 60 / below.h), "#284421"], [Math.min(1, 140 / below.h), "#20391B"], [1, "#1A2F16"]]);
   sceneBlades(ctx, below, 0xc1a6, ["rgba(170,205,120,0.26)", "rgba(15,45,20,0.4)", "rgba(110,150,80,0.28)"], 55, 6);
   const flowers = Math.round((below.w * below.h) / 7000);
   for (let i = 0; i < flowers; i++) {

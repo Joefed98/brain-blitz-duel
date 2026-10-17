@@ -32,6 +32,7 @@ import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
 import type { SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
+import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
 
 /** Sounds a success-effect cue with a file stands in for on this frame (momentCues.ts). */
 let quiet: ReadonlySet<string> = new Set();
@@ -315,6 +316,11 @@ export function pinballSounds(): GameSounds<PinState> {
         if (state.drops > prev.drops) sfx("pinball.dropTarget", "arc_retro_coin", 0.8, 1, true);
         if (state.banks > prev.banks || state.laneSets > prev.laneSets) sfx("pinball.bankComplete", "arc_retro_pickup");
         else if (state.laneLights > prev.laneLights) sfx("pinball.laneLight", "arc_retro_note", 0.8);
+        // The light row under the table (arenaFills.renderer.ts, display only): one lamp a bumper or sling,
+        // two a drop target or lit lane, a chase along all five for a bank or the multiplier lanes.
+        if (state.banks > prev.banks || state.laneSets > prev.laneSets) arenaLight("pinball", 5);
+        else if (state.drops > prev.drops || state.laneLights > prev.laneLights) arenaLight("pinball", 2);
+        else if (state.bumps > prev.bumps || state.slings > prev.slings) arenaLight("pinball", 1);
         if (state.spins > prev.spins) sfx("pinball.spinner", "arc_retro_blip", 0.5, 1.6, true);
         // A flipper raised (each side once per press).
         if ((state.held & ~prev.held) !== 0) sfx("pinball.flipper", "arc_retro_blip", 0.7, 0.8, true);
@@ -338,6 +344,13 @@ export function rallySounds(): GameSounds<RallyState> {
         if (state.dead && !prev.dead) sfx("rally.dead", "arc_retro_explode");
         if (state.goldHits > prev.goldHits) sfx("rally.goldHit", "arc_retro_note");
         if (state.hits > prev.hits) sfx("rally.hit", "arc_retro_blip");
+        // The light row under the court (arenaFills.renderer.ts, display only): one lamp a return, two a
+        // gold hit, three a pad, a chase along all five every 10th return.
+        const total = (x: RallyState) => x.hits + x.goldHits;
+        if (state.hits > prev.hits && state.hits % 10 === 0) arenaLight("rally", 5);
+        else if ((state.targetHits ?? 0) > (prev.targetHits ?? 0)) arenaLight("rally", 3);
+        else if (state.goldHits > prev.goldHits) arenaLight("rally", 2);
+        else if (total(state) > total(prev)) arenaLight("rally", 1);
         if (state.golds.length > prev.golds.length) effectCue("rally.goldEnter");
         // Rev 2+: the BUMPER warning blinks 2 s before a bumper appears, then it is in play.
         const crossed = (at: number) => prev!.tick < at && state.tick >= at;

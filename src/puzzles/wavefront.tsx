@@ -1,3 +1,4 @@
+import { wavefrontFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   wavCheckpoint,
@@ -67,6 +68,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="wavefront"
+      scene={wavefrontFill}
       label={gameDisplayName("wavefront")}
       background={WAV_BG}
       fitWorld

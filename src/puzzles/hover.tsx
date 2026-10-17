@@ -1,3 +1,4 @@
+import { hoverFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -253,7 +254,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={HOVER_WORLD_W} height={hoverWorldHFor(data.hoverRev)}>
+    <ArcadeArenaSlot width={HOVER_WORLD_W} height={hoverWorldHFor(data.hoverRev)} scene={hoverFill}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas
           ref={canvas}

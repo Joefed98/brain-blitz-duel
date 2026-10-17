@@ -266,7 +266,6 @@ function drawSliceArtWorld(ctx:CanvasRenderingContext2D,state:SliceState,size:Ca
   ctx.fillStyle='#F6EEE2';ctx.font='bold 20px ui-monospace, monospace';ctx.textBaseline='middle';ctx.textAlign='left';successHud(ctx,'slice',state.tick,20,SLICE_HUD_H/2,()=>ctx.fillText(`Sliced ${state.slices}`,20,SLICE_HUD_H/2));ctx.textAlign='center';
   if(sliceFrenzyOn(state,state.tick))ctx.fillText('SAUCY',SLICE_WORLD_W/2,SLICE_HUD_H/2);else if(sliceSlowOn(state,state.tick))ctx.fillText('SIMMER',SLICE_WORLD_W/2,SLICE_HUD_H/2);
   else if(sliceMayoOn(state,state.tick))ctx.fillText('SQUEEZE',SLICE_WORLD_W/2,SLICE_HUD_H/2);
-  ctx.strokeStyle=K.edge;ctx.lineWidth=2;ctx.strokeRect(1,1,SLICE_WORLD_W-2,SLICE_WORLD_H-2);
   if(!still&&state.comboFlash>0){ctx.strokeStyle=K.gold;ctx.globalAlpha=state.comboFlash/SLICE_COMBO_FLASH_TICKS;ctx.lineWidth=6;ctx.strokeRect(3,3,SLICE_WORLD_W-6,SLICE_WORLD_H-6);}
   ctx.restore();
 }

@@ -210,7 +210,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(rh("burst", { burstRev: BURST_REV_TALL }) === 650 && rh("burst", { burstRev: BURST_REV_BAND }) === 560, "Fission reveal height by revision");
 
   // Stages size their arena slot from the stored revision (uniform scale only).
-  ok(/const BRK_WORLD_H = breakerWorldHFor\(data\?\.brkRev\)/.test(read("src/puzzles/breaker.tsx")) && /<ArcadeArenaSlot width=\{BRK_WORLD_W\} height=\{BRK_WORLD_H\}>/.test(read("src/puzzles/breaker.tsx")), "Breaker stage sizes from breakerWorldHFor");
+  ok(/const BRK_WORLD_H = breakerWorldHFor\(data\?\.brkRev\)/.test(read("src/puzzles/breaker.tsx")) && /<ArcadeArenaSlot width=\{BRK_WORLD_W\} height=\{BRK_WORLD_H\}[\s>]/.test(read("src/puzzles/breaker.tsx")), "Breaker stage sizes from breakerWorldHFor");
   ok(/height=\{rallyWorldHFor\(data\.rallyRev\)\}/.test(read("src/puzzles/rally.tsx")), "Rally stage sizes from rallyWorldHFor");
   ok(/wavefrontWorldHFor\(data\?\.wavRev\)/.test(read("src/puzzles/wavefront.tsx")) && /worldH=\{worldH\}/.test(read("src/puzzles/wavefront.tsx")), "Wavefront stage sizes from wavefrontWorldHFor");
   ok(/worldH=\{burstWorldHFor\(data\?\.burstRev\)\}/.test(read("src/puzzles/burst.tsx")), "Fission stage sizes from burstWorldHFor");

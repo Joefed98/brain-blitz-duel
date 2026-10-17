@@ -1,3 +1,4 @@
+import { pinballAmbient, pinballFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -215,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={PIN_WORLD_W} height={PIN_WORLD_H}>
+    <ArcadeArenaSlot width={PIN_WORLD_W} height={PIN_WORLD_H} scene={pinballFill} ambient={pinballAmbient} playCentre>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden" style={NO_SCROLL_STYLE}>
         <canvas
           ref={canvas}

@@ -10,12 +10,13 @@ import { TILT_FX } from "./arcadeFxGames.renderer";
 import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
-  toyBoard, toyChangeAge, toyGrain, toyMarble, toyTabletop,
+  toyBoard, toyChangeAge, toyGrain, toyMarble,
 } from "./toybox.renderer";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
+import { tiltFill } from "./arenaFills.renderer";
 
 const FP = 256;
 const CX = 220;
@@ -352,11 +353,14 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   // so they are one cached layer (cache.renderer deviceLayer; the same pixels). The maze text above
   // the groove is drawn after it, as before (they never overlap: the text ends 8 px above the groove).
   deviceLayer(ctx, `tilt-board:${ox},${oy},${scale}`, (c) => {
-    toyTabletop(c);
+    // 17 Oct 2026 (screen fill-ins, display only): no table or rim round the board inside the canvas; any
+    // sub-pixel margin is the board's edge oak, so the world meets the scene's oak with no dark line.
+    c.fillStyle = "#9A7347";
+    c.fillRect(0, 0, c.canvas.width, c.canvas.height);
     c.save();
     c.translate(ox, oy);
     c.scale(scale, scale);
-    toyBoard(c, 0, 0, TILT_WORLD_W, TILT_WORLD_H, 10);
+    toyBoard(c, 0, 0, TILT_WORLD_W, TILT_WORLD_H, 10, false);
     c.translate(CX, CY);
     drawDiscBed(c);
     c.restore();
@@ -551,47 +555,7 @@ export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, Arcad
  * draws it) sits on wooden table planks; the board, disc and maze are unchanged.
  */
 export function tiltArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  const W = TILT_WORLD_W, H = TILT_WORLD_H;
-  const vw = view.right - view.left, vh = view.bottom - view.top;
-  const lamp = ctx.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.2, W / 2, H * 0.6, Math.max(vw, vh) * 0.8);
-  lamp.addColorStop(0, TOY_TABLE_LIT);
-  lamp.addColorStop(1, TOY_TABLE);
-  ctx.fillStyle = lamp;
-  ctx.fillRect(view.left, view.top, vw, vh);
-  // Table planks: long seams with a little grain, darker than the board's oak.
-  ctx.save();
-  for (let y = H + 56 - 46 * Math.ceil((H + 56 - view.top) / 46), i = 0; y < view.bottom + 46; y += 46, i++) {
-    ctx.fillStyle = "rgba(10,5,2,0.45)";
-    ctx.fillRect(view.left, y, vw, 1.5);
-    ctx.fillStyle = "rgba(255,220,170,0.05)";
-    ctx.fillRect(view.left, y + 1.5, vw, 1);
-    ctx.strokeStyle = "rgba(255,220,170,0.05)";
-    ctx.lineWidth = 1;
-    for (let g = 0; g < 3; g++) {
-      const gy = y - 34 + g * 11 + (i % 2) * 4;
-      ctx.beginPath();
-      ctx.moveTo(view.left, gy);
-      ctx.bezierCurveTo(view.left + vw * 0.3, gy + (g % 2 ? 3 : -3), view.left + vw * 0.7, gy + (g % 2 ? -3 : 3), view.right, gy + 1);
-      ctx.stroke();
-    }
-  }
-  // The board's shadow on the table, then its rim and corner screws.
-  const shadow = ctx.createLinearGradient(0, H + 10, 0, H + 34);
-  shadow.addColorStop(0, "rgba(0,0,0,0.45)");
-  shadow.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = shadow;
-  ctx.fillRect(-6, H + 10, W + 12, 24);
-  ctx.fillStyle = TOY_WOOD_DARK;
-  ctx.fillRect(-10, -10, W + 20, H + 20);
-  ctx.fillStyle = "rgba(255,220,170,0.18)";
-  ctx.fillRect(-10, H + 10 - 1, W + 20, 1);
-  ctx.fillStyle = "#3E2716";
-  ctx.fillRect(-1.5, -1.5, W + 3, H + 3);
-  for (const [sx, sy] of [[-5, -5], [W + 5, -5], [-5, H + 5], [W + 5, H + 5]] as const) {
-    ctx.fillStyle = TOY_BRASS;
-    ctx.beginPath();
-    ctx.arc(sx, sy, 3.2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
+  // 17 Oct 2026 (screen fill-ins, display only): the board's oak runs on to the screen's edges with no
+  // rim, so the maze and its surroundings are one wooden scene (arenaFills.renderer.ts, tiltFill).
+  tiltFill(ctx, view, TILT_WORLD_W, TILT_WORLD_H);
 }

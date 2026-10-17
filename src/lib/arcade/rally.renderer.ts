@@ -25,6 +25,7 @@ import {
   type RallyState,
 } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
+import type { BandFields } from "./scoreBands";
 import {
   drawRetroTrail,
   pixelRect,
@@ -114,11 +115,9 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCa
   c.fillRect(left + 30, mid + box, right - left - 60, 2);
   c.fillRect(Math.round(RALLY_WORLD_W / 2) - 1, mid - box - 1, 2, box);
   c.fillRect(left + 30, mid - box - 2, right - left - 60, 2);
-  // Baseline under the paddle and a red danger strip at the bottom edge.
+  // Baseline under the paddle (the red danger strip at the bottom edge went with the fill-ins, 17 Oct 2026).
   c.fillStyle = `${COURT}CC`;
   c.fillRect(left, RALLY_PADDLE_Y + RALLY_PADDLE_H + 10, right - left, 2);
-  c.fillStyle = "rgba(255,59,92,0.28)";
-  for (let x = left; x < right; x += 12) c.fillRect(x, RALLY_WORLD_H - 6, 6, 6);
   // Corner brackets.
   c.fillStyle = COURT;
   for (const [x, y, dx, dy] of [[left + 4, top + 4, 1, 1], [right - 4, top + 4, -1, 1], [left + 4, RALLY_WORLD_H - 14, 1, -1], [right - 4, RALLY_WORLD_H - 14, -1, -1]] as const) {
@@ -130,11 +129,14 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCa
 }
 
 /** Side walls as neon tubes with running lights (presentation clock; still under reduced motion). */
-function drawWalls(ctx: CanvasRenderingContext2D, colour: string, bloom: number, RALLY_WORLD_H: number): void {
+function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number, RALLY_WORLD_H: number): void {
   const top = RALLY_HUD_H + RALLY_WALL;
-  pixelRect(ctx, RALLY_WALL - 2, top - 2, RALLY_WORLD_W - 2 * RALLY_WALL + 4, 2, colour, bloom * 0.5);
-  pixelRect(ctx, RALLY_WALL - 2, top - 2, 2, RALLY_WORLD_H, colour, bloom * 0.5);
-  pixelRect(ctx, RALLY_WORLD_W - RALLY_WALL, top - 2, 2, RALLY_WORLD_H, colour, bloom * 0.5);
+  // The walls are real (the ball bounces off them): soft edges, not neon tubes round the court
+  // (17 Oct 2026, display only); they still turn gold on a milestone.
+  const soft = `${colour}70`;
+  pixelRect(ctx, RALLY_WALL - 2, top - 2, RALLY_WORLD_W - 2 * RALLY_WALL + 4, 2, soft);
+  pixelRect(ctx, RALLY_WALL - 2, top - 2, 2, RALLY_WORLD_H, soft);
+  pixelRect(ctx, RALLY_WORLD_W - RALLY_WALL, top - 2, 2, RALLY_WORLD_H, soft);
   // The wall casing outside the play area: dark panels with rivets and lights.
   pixelRect(ctx, 0, top - 2, RALLY_WALL - 2, RALLY_WORLD_H, COURT_DIM);
   pixelRect(ctx, RALLY_WORLD_W - RALLY_WALL + 2, top - 2, RALLY_WALL - 2, RALLY_WORLD_H, COURT_DIM);
@@ -237,10 +239,16 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : heat);
 
   successHud(ctx,'rally',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);});
-  const points = state.rev === RALLY_REV
-    ? Math.floor(RALLY_GOLD_POINTS * state.goldHits) + RALLY_TARGET_POINTS * (state.targetHits ?? 0)
-    : Math.floor(RALLY_GOLD_POINTS * state.goldHits);
-  retroText(ctx, `GOLD ${state.goldHits} ${points}PTS`, RALLY_WORLD_W - 14, 20, 15, GOLD, "right");
+  // rallyRev 3+ (band-stamped, `band`) score on the band curve, so the HUD shows the counts only (17 Oct
+  // 2026, display only); unstamped and rallyRev 2 rounds keep their points readout in replays.
+  if ((state as RallyState & BandFields).band) {
+    retroText(ctx, `GOLD ${state.goldHits} · PADS ${state.targetHits ?? 0}`, RALLY_WORLD_W - 14, 21, 13, GOLD, "right");
+  } else {
+    const points = state.rev === RALLY_REV
+      ? Math.floor(RALLY_GOLD_POINTS * state.goldHits) + RALLY_TARGET_POINTS * (state.targetHits ?? 0)
+      : Math.floor(RALLY_GOLD_POINTS * state.goldHits);
+    retroText(ctx, `GOLD ${state.goldHits} ${points}PTS`, RALLY_WORLD_W - 14, 20, 15, GOLD, "right");
+  }
 
   if (state.dead && crashIndicator) {
     ctx.fillStyle = "rgba(255,59,92,0.2)";

@@ -3,7 +3,7 @@ import { whackGame, WHACK_COLS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, W
 import type { CanvasSize } from './engine';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { BONK_BODY, BONK_HAT, BONK_SPIKES } from './bonkShapes.renderer';
-import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
+import { SCENE_TUCK, sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 
 /**
  * Bonk art (Polish, 13 Oct 2026): a meadow with earth burrows, hard-hatted gophers and
@@ -348,17 +348,60 @@ export function bonkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
     sceneFill(ctx, r, 0, px.side, [[0, PALETTE.meadowTop], [1, PALETTE.meadowBottom]]);
     sceneBlades(ctx, r, 0xb0b6, ["rgba(78,118,56,0.5)", "rgba(30,51,24,0.5)"], 70, 5);
   }
+  // 17 Oct 2026 (item 28): the field is centred on the play screen; the meadow runs on above it, settling
+  // darker towards the rule box (view.boxTop is the arena box's top, in world units).
+  const boxTop = view.boxTop ?? 0;
+  if (boxTop < -0.01) {
+    const a = { x: px.left, y: boxTop * k, w: px.right - px.left, h: (-boxTop + SCENE_TUCK) * k };
+    sceneFill(ctx, a, a.y, a.y + a.h, [[0, "#1C3016"], [1, PALETTE.meadowTop]]);
+    sceneBlades(ctx, a, 0xb0b8, ["rgba(78,118,56,0.4)", "rgba(30,51,24,0.45)"], 70, 5);
+  }
   const below = sceneBelow(view);
   if (!below) return;
   const r = { x: below.x * k, y: below.y * k, w: below.w * k, h: below.h * k };
-  sceneFill(ctx, r, r.y, r.y + Math.max(r.h, 1), [[0, PALETTE.meadowBottom], [1, "#1E3318"]]);
-  sceneBlades(ctx, r, 0xb0b7, ["rgba(78,118,56,0.5)", "rgba(30,51,24,0.55)", "rgba(78,118,56,0.35)"], 70, 5);
+  // 17 Oct 2026 (item 27, display only, static): the meadow under the field starts in the field's own
+  // green (no step at the join), then settles darker into a soft band of soil with a few small stones;
+  // grass tufts and a few faded flowers on top. Darker and fainter than the field, never a target.
+  const soilAt = r.y + Math.max(r.h * 0.55, Math.min(r.h, 90));
+  sceneFill(ctx, r, r.y, r.y + Math.max(r.h, 1), [
+    [0, "#2C4723"],
+    [Math.min(0.5, 40 / Math.max(r.h, 1)), "#243D1C"],
+    [Math.min(0.95, (soilAt - r.y) / Math.max(r.h, 1)), "#1C3016"],
+    [1, "#1A2414"],
+  ]);
+  if (soilAt < r.y + r.h) {
+    const soil = { x: r.x, y: soilAt, w: r.w, h: r.y + r.h - soilAt };
+    sceneFill(ctx, soil, soil.y, soil.y + Math.max(soil.h, 1), [[0, "rgba(58,42,26,0)"], [Math.min(1, 24 / Math.max(soil.h, 1)), "rgba(58,42,26,0.28)"], [1, "rgba(40,30,20,0.42)"]]);
+    const stones = Math.max(3, Math.round(soil.w / 55));
+    for (let i = 0; i < stones; i++) {
+      const h = prng(0x570e + i);
+      const x = soil.x + 8 + h() * (soil.w - 16), y = soil.y + 10 + h() * Math.max(0, soil.h - 16);
+      const rx = 2.5 + h() * 3, ry = rx * (0.55 + h() * 0.2);
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = i % 2 ? "#6F6A60" : "#5E5A52";
+      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.beginPath(); ctx.ellipse(x - rx * 0.3, y - ry * 0.35, rx * 0.4, ry * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  sceneBlades(ctx, r, 0xb0b7, ["rgba(78,118,56,0.45)", "rgba(30,51,24,0.5)", "rgba(78,118,56,0.3)"], 70, 5);
+  // Soft tufts: a few taller clumps of blades.
+  ctx.lineCap = "round";
+  ctx.lineWidth = 1;
+  const tufts = Math.max(4, Math.round(r.w / 45));
+  for (let i = 0; i < tufts; i++) {
+    const h = prng(0x7f75 + i);
+    const x = r.x + 6 + h() * (r.w - 12), y = r.y + 14 + h() * Math.max(0, Math.min(r.h, soilAt - r.y) - 16);
+    ctx.strokeStyle = "rgba(110,156,76,0.42)";
+    for (let b = -2; b <= 2; b++) { ctx.beginPath(); ctx.moveTo(x + b, y); ctx.lineTo(x + b * 2.2, y - 6 - (2 - Math.abs(b)) * 1.5); ctx.stroke(); }
+  }
   const petals = ["#E9E4D2", "#E8C95A", "#D99BB4"];
-  const flowers = Math.round((r.w * r.h) / 9000);
+  const flowers = Math.round((r.w * r.h) / 7000);
   for (let i = 0; i < flowers; i++) {
     const h = prng(0xf10e + i);
-    const x = r.x + 6 + h() * (r.w - 12), y = r.y + 8 + h() * Math.max(0, r.h - 14);
-    ctx.globalAlpha = 0.5;
+    const x = r.x + 6 + h() * (r.w - 12), y = r.y + 10 + h() * Math.max(0, r.h - 16);
+    ctx.globalAlpha = 0.38;
     ctx.fillStyle = petals[i % petals.length]!;
     for (let p = 0; p < 5; p++) { const a = (p / 5) * Math.PI * 2; ctx.beginPath(); ctx.arc(x + Math.cos(a) * 1.6, y + Math.sin(a) * 1.6, 1.1, 0, Math.PI * 2); ctx.fill(); }
     ctx.fillStyle = "#F2C94C"; ctx.beginPath(); ctx.arc(x, y, 0.9, 0, Math.PI * 2); ctx.fill();

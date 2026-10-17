@@ -45,7 +45,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="tilt"
       label={gameDisplayName("tilt")}
-      background={TILT_BG}
+      // The board's oak, so the sub-pixel sliver at the centred world's edges is wood, not a dark line (17 Oct 2026).
+      background="#9A7347"
       fitWorld
       centreWorld
       scene={tiltArenaScene}

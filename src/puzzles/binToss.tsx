@@ -416,14 +416,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       <div
         ref={cancelZone}
         data-game-controls="cancel"
-        className={`flex h-[72px] shrink-0 items-center justify-center border-t text-center font-mono text-xs transition-colors ${
-          cancelHighlighted
-            ? "border-foreground/35 bg-muted text-foreground"
-            : "border-border/50 bg-muted/30 text-muted-foreground/55"
-        }`}
-      >
-        drag here to cancel
-      </div>
+        // 17 Oct 2026 (display only): the "drag here to cancel" box is gone; its 72px strip still cancels a
+        // throw dragged into it (the aim turns to its cancel look), over the fairground scene behind it.
+        aria-label="Drag here to cancel"
+        data-cancel-active={cancelHighlighted ? "" : undefined}
+        className="h-[72px] shrink-0"
+      />
     </div>
   );
 }

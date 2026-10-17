@@ -1,3 +1,4 @@
+import { inkBridgeExtras } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
@@ -83,7 +84,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         label={gameDisplayName("inkbridge")}
         background={INK_ART_BG}
         fitWorld
-        scene={(ctx, view, state) => inkArenaScene(ctx, view, inkSceneGround(state))}
+        scene={(ctx, view, state) => {
+          inkArenaScene(ctx, view, inkSceneGround(state));
+          inkBridgeExtras(ctx, view);
+        }}
         sceneKey={inkSceneGround}
         seed={data?.seed ?? 1}
         enabled={data !== null}
