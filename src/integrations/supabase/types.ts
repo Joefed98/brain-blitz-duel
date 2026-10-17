@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       duel_players: {
         Row: {
+          colour: number | null
           created_at: string
           display_name: string
           duel_id: string
+          icon: string | null
           id: string
           intro_ready_round: number
           joined_at: string
@@ -31,9 +33,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          colour?: number | null
           created_at?: string
           display_name: string
           duel_id: string
+          icon?: string | null
           id?: string
           intro_ready_round?: number
           joined_at?: string
@@ -46,9 +50,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          colour?: number | null
           created_at?: string
           display_name?: string
           duel_id?: string
+          icon?: string | null
           id?: string
           intro_ready_round?: number
           joined_at?: string
