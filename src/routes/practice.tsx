@@ -521,6 +521,7 @@ function PracticeScreen() {
       <PhoneShell constrained gameScreen gameType={type}>
         <AnswerReveal
           round={1}
+          practice
           puzzle={graded.puzzle}
           answersReady
           myAnswer={graded.answer || null}

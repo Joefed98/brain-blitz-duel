@@ -96,6 +96,9 @@ Already sounded: lane flash, judgement word and perfect ring (`beat.note` / `bea
 
 Already sounded: star eaten (`snake.eat`), rock shadow (`snake.rockWarn`), rock lands clear, the replays' "rock dodged" pop (`snake.rockLand`), shower alarm and the "meteor shower incoming" banner (`snake.showerAlarm`), death (`snake.dead`). The falling rock's sprite and the crosshair blink are the rest of the warning `snake.rockWarn` starts.
 
+No cue, by design: the board border's colour step and glow pulse every 4 s (16 Oct 2026, `drawBorder` in
+`snake.renderer.ts`). It is ambient decoration on a clock, not a game event, so it stays silent.
+
 ## Fission
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |

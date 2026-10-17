@@ -246,7 +246,8 @@ function applyShortfall() {
 }
 
 function useStandaloneShortfall(active: boolean) {
-  useEffect(() => {
+  // Before paint (17 Oct 2026, display only): the play screen's first frame already has its full height.
+  useIsoLayoutEffect(() => {
     if (!active) return;
     const root = document.documentElement;
     if (shortfall.users++ === 0) {
@@ -267,6 +268,60 @@ function useStandaloneShortfall(active: boolean) {
   }, [active]);
 }
 
+/**
+ * A reopened iOS home-screen app (17 Oct 2026, fix-up after #95, display only) settles its
+ * geometry after a round's first frame: laid out the whole screen with no safe-area insets,
+ * then short by the top inset (WebKit bug 254868) with the insets, so a puzzle board drawn on
+ * the first frame jumped up a few px. In a home-screen app (navigator.standalone) a puzzle's
+ * live round is held hidden (data-geometry-hold: the game column invisible, its entrance fade
+ * paused) from before its first paint until the geometry is known: the safe-area insets have
+ * arrived (a home-screen app always has one) and the layout viewport, 100dvh and the insets
+ * have read the same for three frames in a row, at most 400 ms. On a settled launch that is
+ * three frames under the fade's transparent start. Safari and every other browser never hold.
+ * first-paint-check's standalone pass proves it.
+ */
+const HOLD_STABLE_FRAMES = 3;
+const HOLD_MAX_MS = 400;
+
+function geometryReading(): { key: string; insets: boolean } {
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:100dvh;box-sizing:content-box;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);visibility:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const insets = [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map((v) => parseFloat(v) || 0);
+  const dvh = parseFloat(cs.height) || 0;
+  probe.remove();
+  return { key: `${window.innerWidth}x${window.innerHeight}:${dvh}:${insets.join(",")}`, insets: insets.some((v) => v > 0) };
+}
+
+function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) {
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    if (!active || !el || (navigator as Navigator & { standalone?: boolean }).standalone !== true) return;
+    el.dataset["geometryHold"] = "";
+    const started = performance.now();
+    let last = geometryReading().key;
+    let stable = 0;
+    let frame = requestAnimationFrame(function check() {
+      const reading = geometryReading();
+      if (reading.key === last) stable++;
+      else {
+        last = reading.key;
+        stable = 0;
+      }
+      if ((reading.insets && stable >= HOLD_STABLE_FRAMES) || performance.now() - started >= HOLD_MAX_MS) {
+        delete el.dataset["geometryHold"];
+        return;
+      }
+      frame = requestAnimationFrame(check);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      delete el.dataset["geometryHold"];
+    };
+  }, [active]);
+}
+
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
@@ -281,6 +336,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
+  useGeometryHold(surfaceRef, Boolean(play && constrained && gameScreen && !arcadeScreen));
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
   return (

@@ -17,9 +17,12 @@ export const SHARDS: Record<string, string[]> = {
   // frame times compare fairly with the CI baseline; the groups are unchanged). The workflow
   // installs the browser and swaps in the CI frame-time baseline for these.
   // arcade-device-bottom-check (15 Oct 2026: every arcade play screen on iPhone 11 / 14 home-screen
-  // app and Safari geometry, ~5 min whole) rides here in halves.
-  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/2"],
-  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/2"],
+  // app and Safari geometry) is in six parts (17 Oct 2026: in halves, a half with the Meteor passes ran
+  // past run-checks' 300 s on CI): its games' layout passes in thirds (@1/6, @2/6 here, @3/6 on play10;
+  // ~3-3.5 min each locally), and its three Meteor bottom-edge passes (full, reduced motion, reduced
+  // effects; ~1.5-2 min each with a dev server) one each on play7-play9 (@4/6-@6/6).
+  play1: ["arcade-play-check.ts@1/5", "arcade-device-bottom-check.ts@1/6"],
+  play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/6"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
   play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts", "first-paint-check.ts"],
@@ -35,10 +38,10 @@ export const SHARDS: Record<string, string[]> = {
   // eighth per job (~9-10 games; ~4.2 min a part locally on 4 cores with its dev server,
   // aiming at ~5 min on a 2-core runner plus setup). It was in thirds (~25 games) before.
   play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx"],
-  play7: ["bottom-clearance-check.ts@2/8"],
-  play8: ["bottom-clearance-check.ts@3/8"],
-  play9: ["bottom-clearance-check.ts@4/8"],
-  play10: ["bottom-clearance-check.ts@5/8"],
+  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6"],
+  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6"],
+  play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
+  play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
   play11: ["bottom-clearance-check.ts@6/8"],
   play12: ["bottom-clearance-check.ts@7/8"],
   play13: ["bottom-clearance-check.ts@8/8"],

@@ -40,6 +40,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `arcade/wordfallWords.data.ts`; both rebuilt by `scripts/wordfall-dict.ts`).
 - Tuning E taller worlds (High Rise skylineRev 4, Meteor snakeRev 5, Scrumper snipRev 5, Hover hoverRev 5): the world height rides in the state and stages, reveals and effects size from the stored revision (`<game>WorldHFor`, `revealWorldH`, `fxSpecAt`).
 - Tuning F (14 Oct 2026): Breaker brkRev 5 (2.5 s Fireball), Rally rallyRev 5 (second bumper from 45 s), Tempo beatRev 5 (a tenth fewer notes), Meteor snakeRev 6 (more rocks), Orbit orbitRev 7 (swept black holes: every hole ahead, the rocket's whole body; `orbitRev3StartFor(rev)` picks a bank course's start); Hover's faint arena border lights (`level` on the shared border lights; barriers unchanged) are display only.
+- **Meteor's border** (16 Oct 2026, display only; `drawBorder` in `src/lib/arcade/snake.renderer.ts`): the board's 1 px
+  frame is drawn over the scanlines in whole device pixels (`retroScreen`'s `overlay`), and every 4 s gives a 0.6 s inner
+  glow pulse and steps through #4BFF7A, #3DFFE0, #FF4FD8, #FFB43A (`meteorBorderLook`); colour and glow only, never size, the
+  glow inside the board only, square corners, no sound. Reduced motion and reduced effects hold #4BFF7A with no pulse. No
+  snakeRev change; the intro demo plays on (no touch target moved).
 - Taller worlds batch 1 (16 Oct 2026, the Tuning E pattern): Breaker brkRev 6 and Rally rallyRev 6 (390×730 courts), Wavefront wavRev 6 (390×730, bolts 10 px a tick), Fission burstRev 4 (390×650, every bounce and ceiling height scaled by `burstGeometry`); knots refitted; arcade-tuning-g1-check (~2 s) replays 88 pre-change runs on every older revision and 32 on the new stamps; the four intro demos stay stopped until re-recorded on the tall revision.
 - Taller worlds batch 2 (16 Oct 2026, the same pattern): Tempo beatRev 6, Slice sliceRev 6, Coral Pop bubbleRev 5 (390×730), Mixed Signals clashRev 5 (390×650, with a gentler unfinished credit) and Pull! clayRev 6 (360×680 sky); arcade-tuning-g2-check (~3 s) replays 116 pre-change runs on every older revision and 40 on the new stamps; the five intro demos stay stopped until re-recorded on the tall revision.
 - Taller worlds batch 3 (16 Oct 2026, the same pattern): Grappler swingRev 9 (390×730 cavern, the lava 110 px lower, stars re-proved, rooms deal the 298 bank courses re-proved on it, `swingBankV9.server.ts`), Orbit orbitRev 8 (rev 7 play in a 390×650 view, the extra height ahead) and Ball Tracker btRev 4 (12 rows, 700×1300, its own proved bank `ballTrackBankTall.server.ts`); arcade-tuning-g3-check (~15 s) replays 72 pre-change runs on every older revision and 24 on the new stamps; the three intro demos stay stopped until re-recorded on the tall revision.
@@ -59,13 +64,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   100 % of the short viewport they cut tall worlds and the lowest controls 48 px above the screen's bottom (fix-up, 15 Oct
   2026). Every clipping box ends at the screen's bottom; nothing clips above the 16 px strip. Tilt's world is
   centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower. arcade-device-bottom-check (headless Chromium,
-  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
+  in six parts since 17 Oct 2026, when a half with the Meteor passes ran past run-checks' 300 s on CI: its games' layout passes in thirds, `@1/6` and `@2/6` on `play1`/`play2` and `@3/6` on `play10`, and its three Meteor edge passes one each on `play7`–`play9` as `@4/6`–`@6/6`) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
   the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
   standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
   cuts the box, the world, a scene canvas or a control, and (16 Oct 2026, bottom-flash fix-up) fails unless the iPhone 11 home-screen
   pass holds still for 3 s after a dispatched resize: root, body and shell heights, `--standalone-short` and the scene canvas size
   unchanged, no root style rewrite, no scene redraw (PhoneShell measures the shortfall once per screen size, orientation and inset,
-  with the growth taken off, so it can't feed back), and (16 Oct 2026, Meteor bottom-flash fix) plays Meteor for 5 s at DPR 2 on that setup with a scripted rock landing and shower, failing unless the arena's bottom device rows show exactly what its canvas painted every frame (Meteor's canvas is whole CSS pixels inside its box, never rounded past it, and its retro screen fills it edge to edge); arcade-play-check and bottom-clearance-check measure every arcade play screen as an
+  with the growth taken off, so it can't feed back), and (16 Oct 2026, Meteor bottom-flash fix) plays Meteor for 5 s at DPR 2 on that setup with a scripted rock landing and shower, failing unless the arena's bottom device rows show exactly what its canvas painted every frame (Meteor's canvas is whole CSS pixels inside its box, never rounded past it, and its retro screen fills it edge to edge), and (16 Oct 2026, Meteor border fix) judges the canvas's bottom 48 device rows with the clock running: no row may change across the board's width between frames outside the border's own pulse or the success layer's edge effects (the flash that remained was the board's bottom border under the drifting scanlines, darkened 28 % one phase in three; the border is now drawn over them, `retroScreen`'s overlay), the border must step colour and glow, and with prefers-reduced-motion or reduced effects it must hold #4BFF7A with no pulse; arcade-play-check and bottom-clearance-check measure every arcade play screen as an
   iPhone 11 home-screen app once more the same way. Run them after any arcade play-screen layout change.
 - **Arena scenes** (15 Oct 2026, display only; `src/lib/arcade/arenaScene.renderer.ts`): ten games (Gemstone, Tilt, Bonk,
   Tenfall, Flightpath, Swish, Pull!, Roofbound, Rainbow Bridge, Jaywalk; `ARENA_SCENE_GAMES`) paint their own scenery
@@ -222,6 +227,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   part-way through on a slow first frame), the game screen's scroll reset runs before paint, and boards that size from
   their container measure in `useBeforePaint` (a layout effect), never after the first frame. Pass game ids to run only
   those (practice and room). Run it after changing a puzzle board's sizing or GameLayout.
+  Its standalone pass (17 Oct 2026, fix-up after #95; `--late-only` runs it alone) opens 7 practice and 2 room rounds as a
+  reopened home-screen app: laid out 414×896 with no insets, then, from the stage's first frame, the 414×848 viewport and
+  the 48/34 px insets (CDP, a frame or two late, as iOS settles them). PhoneShell's geometry hold (`useGeometryHold`,
+  `data-geometry-hold`, standalone puzzle play screens only) keeps the round hidden, its fade paused, until the insets
+  have arrived and the geometry reads the same for 3 frames (at most 400 ms); held frames are not judged, every visible
+  one is. The arcade shortfall (`useStandaloneShortfall`) is applied in a layout effect, before the first paint.
 - **Screen bottoms** (16 Oct 2026, display only): screen-bottom-check (headless Chromium, ~1 min, shard `play6`) draws 19
   non-game screens (home, first-time intro, practice list and round intro, lobby with 2 and 10 players, link join, Prepare
   to Duel, round title, room round intro, round result, standings and podium with 2 and 10 players, round result and standings after an arcade round, winner reveal) as an

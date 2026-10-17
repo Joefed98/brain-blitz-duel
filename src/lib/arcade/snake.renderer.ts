@@ -11,6 +11,7 @@ import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { retroClock, retroScreen, retroText, RETRO_BLACK, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
 import { FX_PARTICLE_LIMIT } from "../fx/limits";
 
 // Meteor-only art roles; the grid and pellet retain their Retro palette.
@@ -143,9 +144,7 @@ function drawGrid(ctx: CanvasRenderingContext2D, rows: number): void {
       c.fillStyle = "rgba(75,255,122,0.07)";
       for (let col = 0; col <= SNAKE_COLS; col++) c.fillRect(col * SNAKE_CELL, 0, 1, boardH);
       for (let row = 0; row <= rows; row++) c.fillRect(0, row * SNAKE_CELL, SNAKE_BOARD_W, 1);
-      c.strokeStyle = "rgba(75,255,122,0.35)";
-      c.lineWidth = 1;
-      c.strokeRect(0.5, 0.5, SNAKE_BOARD_W - 1, boardH - 1);
+      // The board's outer border is drawn live over the scanlines (drawBorder), not in this raster.
       grid = canvas;
       grids.set(rows, grid);
     }
@@ -315,18 +314,93 @@ function sparks(ctx: CanvasRenderingContext2D, state: SnakeState, now: number, d
 }
 
 /**
- * Meteor's bottom-edge flash (16 Oct 2026, display only): on the play screen the canvas is the
- * world's own box (its aspect to within a device pixel), and "fit" letterboxed the world inside it
- * by a fraction of a pixel. That left an edge row part bezel, part screen, which the drifting
- * scanlines darkened by a different amount every 90 ms: a faint flash along the arena's bottom.
- * When the canvas is within a pixel of the world's aspect, the screen now fills it edge to edge
- * with square corners (the play screen's corners are square; elsewhere the canvas's CSS rounds
- * them), so every edge pixel is wholly screen. Any other size keeps the letterboxed fit.
+ * The board's border (16 Oct 2026, display only): a crisp 1 px neon frame round the board that,
+ * every METEOR_BORDER_PERIOD_MS, gives a short glow pulse (METEOR_BORDER_PULSE_MS) and steps to the
+ * next colour of a small retro palette, the step hidden at the pulse's peak. Only colour and glow
+ * animate: the frame's place and width never change, and the glow is painted inside the board only,
+ * so nothing outside the frame (the bottom margin, the gap under the canvas) ever changes. Reduced
+ * motion and reduced effects hold the first colour (Meteor's green, as before) with no pulse.
+ */
+export const METEOR_BORDER_COLOURS = ["#4BFF7A", "#3DFFE0", "#FF4FD8", "#FFB43A"] as const;
+export const METEOR_BORDER_PERIOD_MS = 4000;
+export const METEOR_BORDER_PULSE_MS = 600;
+/** The frame's alpha at rest and at the pulse's peak; the inner glow bands' alpha at the peak. */
+export const METEOR_BORDER_REST_ALPHA = 0.5;
+const BORDER_PEAK_ALPHA = 1;
+const BORDER_GLOW = [0.34, 0.2, 0.1] as const;
+
+/** The border's look at presentation time `t` (ms): its colour and glow (0…1). Pure, for checks. */
+export function meteorBorderLook(t: number, hold: boolean): { colour: string; glow: number } {
+  const n = METEOR_BORDER_COLOURS.length;
+  if (hold || t <= 0) return { colour: METEOR_BORDER_COLOURS[0], glow: 0 };
+  const cycle = Math.floor(t / METEOR_BORDER_PERIOD_MS);
+  const phase = t - cycle * METEOR_BORDER_PERIOD_MS;
+  const pulsing = phase < METEOR_BORDER_PULSE_MS;
+  const index = cycle - (pulsing && phase < METEOR_BORDER_PULSE_MS / 2 ? 1 : 0);
+  return {
+    colour: METEOR_BORDER_COLOURS[((index % n) + n) % n]!,
+    glow: pulsing ? Math.sin((Math.PI * phase) / METEOR_BORDER_PULSE_MS) : 0,
+  };
+}
+
+/**
+ * The border's outer edges in device pixels for a world-to-device transform (scale a, d; offset e, f):
+ * left, right, top and bottom snapped to whole device pixels, and its width w (one world pixel, rounded).
+ */
+export function meteorBorderRect(a: number, d: number, e: number, f: number, rows: number): { x0: number; x1: number; y0: number; y1: number; w: number } {
+  return {
+    x0: Math.round(a * SNAKE_BOARD_X + e),
+    x1: Math.round(a * (SNAKE_BOARD_X + SNAKE_BOARD_W) + e),
+    y0: Math.round(d * SNAKE_BOARD_Y + f),
+    y1: Math.round(d * (SNAKE_BOARD_Y + rows * SNAKE_CELL) + f),
+    w: Math.max(1, Math.round(Math.min(a, d))),
+  };
+}
+
+/**
+ * Draws the border in device pixels over the scanlines (retroScreen's overlay): each edge snapped to
+ * whole device pixels and as wide as one world pixel rounds to, so no row is part-covered and
+ * anti-aliased. Four fills at rest, twelve more during a pulse; no blur.
+ */
+function drawBorder(ctx: CanvasRenderingContext2D, rows: number): void {
+  const look = meteorBorderLook(retroClock(), arcadeReducedEffects());
+  const m = ctx.getTransform();
+  const { x0, x1, y0, y1, w } = meteorBorderRect(m.a || 1, m.d ?? (m.a || 1), m.e ?? 0, m.f ?? 0, rows);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = look.colour;
+  const frame = (inset: number, alpha: number) => {
+    const l = x0 + inset, t = y0 + inset, r = x1 - inset, b = y1 - inset;
+    if (r - l <= 2 * w || b - t <= 2 * w) return;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(l, t, r - l, w);
+    ctx.fillRect(l, b - w, r - l, w);
+    ctx.fillRect(l, t + w, w, b - t - 2 * w);
+    ctx.fillRect(r - w, t + w, w, b - t - 2 * w);
+  };
+  frame(0, METEOR_BORDER_REST_ALPHA + (BORDER_PEAK_ALPHA - METEOR_BORDER_REST_ALPHA) * look.glow);
+  if (look.glow > 0) BORDER_GLOW.forEach((alpha, i) => frame((i + 1) * w, alpha * look.glow));
+  ctx.restore();
+}
+
+/**
+ * Meteor's bottom-edge flash (16 Oct 2026, display only), in two parts:
+ *  - #80: on the play screen the canvas is the world's own box (its aspect to within a device pixel),
+ *    and "fit" letterboxed the world inside it by a fraction of a pixel, leaving an edge row part
+ *    bezel, part screen. When the canvas is within a pixel of the world's aspect, the screen fills it
+ *    edge to edge with square corners (the play screen's corners are square; elsewhere the canvas's
+ *    CSS rounds them). Any other size keeps the letterboxed fit.
+ *  - The flash that remained: the board's bright bottom border (then a 35 % green stroke in the
+ *    cached grid, about 9 px above the arena's bottom) lay under the scanlines, which drift a pixel
+ *    every 90 ms with a 3 px period, so one phase in three darkened the whole line by 28 %: a
+ *    full-width line blinking about four times a second. The border is now drawn over the scanlines
+ *    (drawBorder), so nothing on the bottom edge changes but the game's own content.
  */
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
-  const worldH = snakeWorldHFor(snakeRowsOf(state));
+  const rows = snakeRowsOf(state);
+  const worldH = snakeWorldHFor(rows);
   const s = Math.min(size.width / SNAKE_WORLD_W, size.height / worldH);
   const ownBox = size.width - SNAKE_WORLD_W * s < 1 && size.height - worldH * s < 1;
-  retroScreen(ctx, size, SNAKE_WORLD_W, worldH, ownBox ? "stretch" : "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)), 0, ownBox ? 0 : 6);
+  retroScreen(ctx, size, SNAKE_WORLD_W, worldH, ownBox ? "stretch" : "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)), 0, ownBox ? 0 : 6, c => drawBorder(c, rows));
 }
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };
