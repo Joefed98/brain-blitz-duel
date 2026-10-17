@@ -449,6 +449,13 @@ export interface DuelPlayerRow {
   /** inactive = missed two rounds in a row; left = tapped Leave. */
   status: PlayerStatus;
   joined_at: string;
+  /**
+   * Index into PLAYER_COLOURS (playerLook.ts); null for rows seated before colours were stored.
+   * Absent until the colour/icon migration is applied: phones then resolve slot colours.
+   */
+  colour?: number | null;
+  /** A PLAYER_ICON_IDS id, or null for the player's initial; absent before the migration. */
+  icon?: string | null;
 }
 
 export interface RoundResultRow {

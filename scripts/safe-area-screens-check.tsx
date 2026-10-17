@@ -179,7 +179,7 @@ const ALL_SCREENS: Screen[] = [
     mode: "practice",
     overlay: true,
     go: async (page) => {
-      await page.getByRole("button", { name: "Effects volume" }).first().click();
+      await page.locator("[data-sound-channel=effects]").first().click();
       await page.getByRole("dialog").first().waitFor({ timeout: 10_000 });
     },
   },

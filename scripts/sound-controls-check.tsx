@@ -9,8 +9,11 @@ import type { PuzzleType } from "../src/lib/duel/types";
 
 // Static markup and arithmetic only: no browser or gameplay simulation.
 const controls = renderToStaticMarkup(<MuteToggle />);
-assert.equal((controls.match(/aria-label="Turn off/g) ?? []).length, 2);
-assert.equal((controls.match(/aria-label="(?:Effects|Music) volume"/g) ?? []).length, 2);
+// One 52px target per channel (Batch 4 fix-up, 17 Oct 2026), its hit area 44px tall
+// through an invisible ::before; the mute switch lives in the channel's popover.
+assert.equal((controls.match(/data-sound-channel="(?:effects|music)"/g) ?? []).length, 2);
+assert.equal((controls.match(/aria-label="(?:Effects|Music): 100%"/g) ?? []).length, 2);
+assert.equal((controls.match(/h-9 w-\[52px\][^"]*before:-inset-y-1/g) ?? []).length, 2);
 assert.match(controls, /h-9 w-\[104px\]/);
 assert.doesNotMatch(controls, /Music in puzzle rounds/);
 for (const width of [375, 390]) {
@@ -43,6 +46,11 @@ assert.doesNotMatch(prepare, /isMusicMuted|isMuted/);
 assert.match(prepare, /roundBuffers.length >= 2/);
 const ui = readFileSync("src/components/duel/MuteToggle.tsx", "utf8");
 assert.match(ui, /data-sound-dismiss/);
+assert.match(
+  ui,
+  /aria-label=\{`\$\{muted \? "Turn on" : "Turn off"\} \$\{label.toLowerCase\(\)\}`\}/,
+);
+assert.match(ui, /h-11 w-full/, "the popover's mute switch is 44px tall");
 assert.match(ui, /event.preventDefault\(\)/);
 assert.match(ui, /event.stopPropagation\(\)/);
 const timer = readFileSync("src/components/duel/TimerBar.tsx", "utf8");
@@ -60,5 +68,5 @@ for (const route of ["src/routes/duel.$code.tsx", "src/routes/practice.tsx"]) {
   assert.match(readFileSync(route, "utf8"), /useRoundMusic\(/, route);
 }
 console.log(
-  "PASS shared 36px controls, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.",
+  "PASS shared 52px sound targets with 44px hit areas, 375/390px header budgets, music mappings, Beat silence, ramps, slider independence, unconditional loading and outside-tap shield.",
 );

@@ -67,6 +67,7 @@ import {
   disbandRoom,
   readyUp,
   removePlayer,
+  setPlayerLook,
   setRoomModes,
   startRoom,
   submitAnswer,
@@ -118,6 +119,9 @@ import {
 } from "@/lib/duel/types";
 import type { SubmitMeta } from "@/puzzles/types";
 import { nearMiss } from "@/lib/duel/nearMiss";
+import { lookColumnsPresent, resolvePlayerLooks } from "@/lib/duel/playerLook";
+import { podiumAwards } from "@/lib/duel/podiumAwards";
+import { awardRoundsFor } from "@/lib/duel/awardRounds";
 import { roomInvite } from "@/lib/duel/roomLink";
 import { noteSignatureSubmit } from "@/lib/fx/signature";
 import { useSignatureHold, useSignatureVerdict } from "@/lib/fx/useSignature";
@@ -360,6 +364,8 @@ function DuelScreen() {
   );
   // Tie-break clocks for rooms stamped tieRev; null keeps older rooms' ranking.
   const tieRounds = roomTieRounds(duel?.puzzles_public);
+  // Everyone's colour and icon, the same on every phone (every row, left players included).
+  const looks = useMemo(() => resolvePlayerLooks(players), [players]);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
     return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
@@ -803,6 +809,10 @@ function DuelScreen() {
             onLeave={() => setConfirmLeave(true)}
             onRemove={(slot) => void removePlayer(duel.id, slot)}
             onMuteForEveryone={(slot, muted) => void setPlayerMuted(duel.id, slot, muted)}
+            looks={looks}
+            allPlayers={players}
+            canChooseLook={lookColumnsPresent(players)}
+            onLookChange={(look) => setPlayerLook(duel.id, look)}
           />
           {confirmDisband && (
             <ConfirmDialog
@@ -823,7 +833,7 @@ function DuelScreen() {
             />
           )}
         </div>
-        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -843,6 +853,8 @@ function DuelScreen() {
           <PhoneShell>
             <Podium
               rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds)}
+              looks={looks}
+              awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds)}
               mySlot={mySlot}
               results={results}
               roundOrder={duel.round_order}
@@ -852,7 +864,7 @@ function DuelScreen() {
               onLeave={() => void handleLeave()}
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
             />
-            <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+            <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
         </div>
       );
@@ -873,6 +885,12 @@ function DuelScreen() {
             }
             myName={me.display_name}
             opponentName={rivalName}
+            myLook={looks.get(mySlot)}
+            opponentLook={looks.get(opponentSlot)}
+            awards={podiumAwards(roomPlayers, results, awardRoundsFor(duel), tieRounds)}
+            looks={looks}
+            names={new Map(players.map((p) => [p.player_slot, p.display_name]))}
+            mySlot={mySlot}
             myTotal={totalScore(results, mySlot)}
             opponentTotal={totalScore(results, opponentSlot)}
             breakdown={roundBreakdown(results, mySlot, opponentSlot, duel.round_count ?? TOTAL_ROUNDS)}
@@ -883,7 +901,7 @@ function DuelScreen() {
             onHome={() => void handleLeave()}
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
           />
-          <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+          <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
       </div>
     );
@@ -915,7 +933,7 @@ function DuelScreen() {
             void readyUp(duel.id, round);
           }}
         />
-        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -975,6 +993,7 @@ function DuelScreen() {
             best={bestLine}
             rows={table}
             times={roundTimes}
+            looks={looks}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
             finalRound={round >= duel.round_count}
@@ -989,7 +1008,7 @@ function DuelScreen() {
               />
             }
           />
-          <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+          <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>
       );
     }
@@ -1002,6 +1021,8 @@ function DuelScreen() {
           best={bestLine}
           myName={me.display_name}
           opponentName={opponent?.display_name ?? "Opponent"}
+          myLook={looks.get(mySlot)}
+          opponentLook={looks.get(opponentSlot)}
           myRoundScore={myResult?.score ?? 0}
           myVerdict={roundVerdict({ roundCorrect: myResult ? myResult.is_correct : null, roundScore: myResult?.score ?? 0 })}
           mySummary={myStanding?.summary ?? "No answer"}
@@ -1026,7 +1047,7 @@ function DuelScreen() {
             />
           }
         />
-        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }
@@ -1042,6 +1063,7 @@ function DuelScreen() {
             round={round}
             totalRounds={duel.round_count ?? TOTAL_ROUNDS}
             rows={table}
+            looks={looks}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
             continueState={continueState}
@@ -1051,12 +1073,13 @@ function DuelScreen() {
             round={round}
             totalRounds={duel.round_count ?? TOTAL_ROUNDS}
             rows={table}
+            looks={looks}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
             continueState={continueState}
           />
         )}
-        <RoomChat chat={chat} myUserId={me.user_id} available={chatAvailable} screenLabel={chatLabel} />
+        <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
       </PhoneShell>
     );
   }

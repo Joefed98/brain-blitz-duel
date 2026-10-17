@@ -112,6 +112,24 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it. Every arcade-stage visual effect has a cue
   (`docs/sound-cues/arcade-effects.md`: success effects through `momentFrame` in `src/lib/fx/momentCues.ts`, renderer
   effects in `gameSounds.ts`); audio files are one per recording in `public/sounds/`, several slots may share one.
+- **Player colours, icons and podium awards** (17 Oct 2026, presentation and room data only, no version stamps):
+  `src/lib/duel/playerLook.ts` (ten colours `PLAYER_COLOURS`, each ≥ 4.5:1 on the background and under the badge's
+  near-black glyph, every pair ≥ 10 ΔE2000 apart with normal vision and simulated protan/deutan/tritan vision; sixteen
+  icon ids; `resolvePlayerLooks`, the same on every phone and the server), `playerLook.server.ts` (the server picks a free
+  colour on join, the device's remembered one when free, retrying on the unique `(duel_id, colour)` index; `setPlayerLookFn`
+  changes colour/icon in the lobby only; `rematchFn` stores slot colours so Play again keeps them), `PlayerBadge` (initial
+  or icon on the colour, beside the name in the lobby, round results, standings, both final screens and chat; never colour
+  alone; the winner reveal shows no player). Icons are original line drawings (`src/components/duel/playerIcons.tsx`, no
+  library) behind `PLAYER_ICONS_ENABLED` in `src/lib/brand.ts` (off: initials, no picker). Columns `duel_players.colour`
+  / `.icon` come from `supabase/migrations/20261017120000_player_colour_icon.sql`, **written but not applied**: until it is,
+  rows have no colour, phones show slot colours with initials and the lobby hides the picker, so publishing first is safe;
+  RLS is unchanged (clients only read). Awards (`src/lib/duel/podiumAwards.ts`, `PodiumAwards`): Fastest Finger,
+  Perfectionist, Comeback Kid (≥ 2 places), So Close, each only when earned, non-winners first, fixed tie-break (figure,
+  fewer awards, final place, slot), from results every player can read; cue `room.award`, skipped with the animation under
+  reduced motion or reduced effects. player-looks-check (~5 s) proves the palette, unique colours through joins (racing
+  too), lobby changes, leaves and Play again with the real server code, the pre-migration fallback, no new client writes,
+  the migration on a local PostgreSQL where installed (unique index, constraints, the real `restart_duel_room`, RLS), and
+  awards identical for any row order and only when earned.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

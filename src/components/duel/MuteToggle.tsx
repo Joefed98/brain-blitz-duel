@@ -17,7 +17,7 @@ import {
 } from "@/lib/sound";
 import type { SoundChannel } from "@/lib/soundSettings";
 
-/** Two stable 52px channel groups replace the old three 36px mute buttons. */
+/** Two stable 52px channel targets (each opens its mute switch and volume slider). */
 /**
  * Memoised (low-end performance, 16 Oct 2026): it takes no props, so the game screens' 10 Hz clock
  * re-renders no longer reach its two popovers; its own state still updates it.
@@ -77,43 +77,44 @@ export const MuteToggle = memo(function MuteToggle() {
             open={open === channel}
             onOpenChange={(value) => setOpen(value ? channel : null)}
           >
-            <div className="flex h-9 w-[52px] shrink-0 items-center">
+            {/*
+              One 52px target per channel (Batch 4 fix-up, 17 Oct 2026): the 36px mute button
+              and the 16px chevron beside it were too small to tap, and 104px holds two 44px
+              targets, not four. The same icon, strike and chevron are drawn where they were;
+              the tap opens the channel's popover, which holds the mute switch and the slider.
+              An invisible ::before takes the hit area from 36 to 44px tall.
+            */}
+            <PopoverTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
                 type="button"
-                className={`press relative h-9 w-9 shrink-0 ${muted ? "text-muted-foreground" : "text-foreground"}`}
-                title={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
-                aria-label={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
-                aria-pressed={!muted}
-                onClick={() => (effects ? setMuted(!muted) : setMusicMuted(!muted))}
+                data-sound-channel={channel}
+                className="press relative h-9 w-[52px] shrink-0 gap-0 p-0 before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
+                aria-label={`${label}: ${muted ? "off" : `${Math.round(volume * 100)}%`}`}
+                title={`${label} sound`}
               >
-                <Icon aria-hidden="true" />
-                {muted && (
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="absolute h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M3 3 21 21" />
-                  </svg>
-                )}
-              </Button>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  className="press h-9 w-4 shrink-0 px-0"
-                  aria-label={`${label} volume`}
-                  title={`${label} volume`}
+                <span
+                  className={`relative flex h-9 w-9 shrink-0 items-center justify-center ${muted ? "text-muted-foreground" : "text-foreground"}`}
                 >
+                  <Icon aria-hidden="true" />
+                  {muted && (
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="absolute h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 3 21 21" />
+                    </svg>
+                  )}
+                </span>
+                <span className="flex h-9 w-4 shrink-0 items-center justify-center">
                   <ChevronDown aria-hidden="true" className="h-3 w-3" />
-                </Button>
-              </PopoverTrigger>
-            </div>
+                </span>
+              </Button>
+            </PopoverTrigger>
             <PopoverContent
               align="end"
               side="bottom"
@@ -127,6 +128,17 @@ export const MuteToggle = memo(function MuteToggle() {
                 <span className="min-w-0 font-display">{label}</span>
                 <output className="font-mono tabular-nums">{Math.round(volume * 100)}%</output>
               </div>
+              <Button
+                variant="outline"
+                type="button"
+                className={`press mb-2 h-11 w-full justify-start gap-2 ${muted ? "text-muted-foreground" : "text-foreground"}`}
+                aria-label={`${muted ? "Turn on" : "Turn off"} ${label.toLowerCase()}`}
+                aria-pressed={!muted}
+                onClick={() => (effects ? setMuted(!muted) : setMusicMuted(!muted))}
+              >
+                <Icon aria-hidden="true" />
+                {muted ? `Turn on ${label.toLowerCase()}` : `Turn off ${label.toLowerCase()}`}
+              </Button>
               <Slider
                 aria-label={`${label} volume percentage`}
                 min={0}

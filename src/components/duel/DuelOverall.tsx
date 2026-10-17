@@ -1,14 +1,18 @@
+import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange } from "@/lib/duel/resultPresentation";
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { PlayerBadge } from "./PlayerBadge";
 
 interface DuelOverallProps {
   round: number;
   /** The room's own round count; older rooms default to six. */
   totalRounds?: number;
   rows: Standing[];
+  /** Everyone's colour and icon. */
+  looks?: PlayerLooks;
   mySlot: number;
   autoSeconds: number;
   continueState: ContinueState;
@@ -18,6 +22,7 @@ export function DuelOverall({
   round,
   totalRounds = TOTAL_ROUNDS,
   rows,
+  looks,
   mySlot,
   autoSeconds,
   continueState,
@@ -45,8 +50,9 @@ export function DuelOverall({
                 key={row.slot}
                 className={`min-w-0 flex-1 rounded-md border p-4 text-center ${isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"} ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
-                <p className="truncate font-display text-sm font-semibold text-foreground">
-                  {row.name}
+                <p className="flex min-w-0 items-center justify-center gap-1.5 font-display text-sm font-semibold text-foreground">
+                  <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={20} />
+                  <span className="truncate">{row.name}</span>
                 </p>
                 <p className="mt-3 font-mono text-4xl font-bold tabular-nums text-foreground">
                   <AnimatedScore value={row.total} />

@@ -186,6 +186,7 @@ const ENTRIES = {
   "room.finalRound": { channel: "effects", frequency: 0, ms: 2880, url: "/sounds/room.finalRound.mp3" },
   "room.winner": { channel: "effects", frequency: 0, ms: 6000, url: null },
   "room.winner.lock": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/room.winner.lock.mp3" },
+  "room.award": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/shared.momentcard.mp3", volume: 0.8 },
   "music_home": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_menu.mp3" },
   "music_practice": { channel: "music", frequency: 0, ms: 0, url: "/sounds/music_menu.mp3" },
   "music_prepare": { channel: "music", frequency: 0, ms: 0, url: null },

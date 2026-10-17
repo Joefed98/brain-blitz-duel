@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleName } from "@/lib/duel/registry";
 import type { Standing } from "@/lib/duel/scoring";
+import type { PlayerLooks } from "@/lib/duel/playerLook";
+import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import type { RoundResultRow, StoredPuzzleType } from "@/lib/duel/types";
 import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
@@ -14,6 +16,8 @@ import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { AnimatedScore } from "./AnimatedScore";
 import { ConfettiBurst } from "./ArcadeCelebration";
 import { Dots } from "./Dots";
+import { PlayerBadge } from "./PlayerBadge";
+import { PodiumAwards } from "./PodiumAwards";
 
 /** Gold, silver-grey and bronze-amber blocks (podium tokens in styles.css). */
 const PLINTH = [
@@ -25,7 +29,7 @@ const PLINTH = [
 /** Every total on the podium counts up from 0 over this long. */
 const COUNT_UP_MS = 1200;
 
-function Plinth({ standing, place }: { standing: Standing | undefined; place: number }) {
+function Plinth({ standing, place, looks }: { standing: Standing | undefined; place: number; looks: PlayerLooks }) {
   if (!standing) return <div className="flex-1" />;
   const style = PLINTH[place - 1];
   if (!style) return null;
@@ -38,6 +42,7 @@ function Plinth({ standing, place }: { standing: Standing | undefined; place: nu
           <ConfettiBurst world="gem" />
         </div>
       )}
+      <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={26} />
       <span className="max-w-full truncate font-display text-xs text-foreground">
         {standing.name}
       </span>
@@ -59,6 +64,10 @@ function Plinth({ standing, place }: { standing: Standing | undefined; place: nu
 
 interface PodiumProps {
   rows: Standing[];
+  /** Everyone's colour and icon. */
+  looks?: PlayerLooks;
+  /** The final screen's awards (podiumAwards.ts). */
+  awards?: PodiumAward[];
   mySlot: number;
   results: RoundResultRow[];
   roundOrder: StoredPuzzleType[];
@@ -73,6 +82,8 @@ interface PodiumProps {
 /** The final screen for a room of three or more players. */
 export function Podium({
   rows,
+  looks = new Map(),
+  awards = [],
   mySlot,
   results,
   roundOrder,
@@ -108,10 +119,12 @@ export function Podium({
       )}
 
       <div className="flex items-end gap-2">
-        <Plinth standing={rows.find((r) => r.position === 2)} place={2} />
-        <Plinth standing={rows.find((r) => r.position === 1)} place={1} />
-        <Plinth standing={rows.find((r) => r.position === 3)} place={3} />
+        <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} />
+        <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} />
+        <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} />
       </div>
+
+      <PodiumAwards awards={awards} looks={looks} names={new Map(rows.map((r) => [r.slot, r.name]))} mySlot={mySlot} />
 
       {playOfTheGame}
 
@@ -131,6 +144,7 @@ export function Podium({
               <span className="w-6 font-mono text-sm tabular-nums text-muted-foreground">
                 {row.position}
               </span>
+              <PlayerBadge look={looks.get(row.slot)} name={row.name} size={22} />
               <span className="flex-1 truncate font-display text-sm">{row.name}</span>
               <AnimatedScore
                 value={row.total}

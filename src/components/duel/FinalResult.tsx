@@ -3,12 +3,16 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { puzzleName } from "@/lib/duel/registry";
 import type { StoredPuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
+import type { PlayerLook, PlayerLooks } from "@/lib/duel/playerLook";
+import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
+import { PlayerBadge } from "./PlayerBadge";
+import { PodiumAwards } from "./PodiumAwards";
 
 interface FinalResultProps {
   outcome: Outcome;
@@ -16,6 +20,13 @@ interface FinalResultProps {
   note?: string | null;
   myName: string;
   opponentName: string;
+  myLook?: PlayerLook | undefined;
+  opponentLook?: PlayerLook | undefined;
+  /** The final screen's awards (podiumAwards.ts) and what they draw. */
+  awards?: PodiumAward[];
+  looks?: PlayerLooks;
+  names?: ReadonlyMap<number, string>;
+  mySlot?: number;
   myTotal: number;
   opponentTotal: number;
   breakdown: { round: number; mine: number; theirs: number }[];
@@ -33,6 +44,12 @@ export function FinalResult({
   note = null,
   myName,
   opponentName,
+  myLook,
+  opponentLook,
+  awards = [],
+  looks = new Map(),
+  names = new Map(),
+  mySlot = 0,
   myTotal,
   opponentTotal,
   breakdown,
@@ -79,6 +96,7 @@ export function FinalResult({
 
         <div className="flex items-end justify-center gap-4">
           <div className="text-center">
+            <PlayerBadge look={myLook} name={myName} size={28} className="mx-auto mb-1" />
             <p className="max-w-[110px] truncate text-xs uppercase tracking-widest text-me">
               {myName}
             </p>
@@ -88,6 +106,7 @@ export function FinalResult({
           </div>
           <span className="pb-2 font-mono text-2xl text-muted-foreground">–</span>
           <div className="text-center">
+            <PlayerBadge look={opponentLook} name={opponentName} size={28} className="mx-auto mb-1" />
             <p className="max-w-[110px] truncate text-xs uppercase tracking-widest text-opponent">
               {opponentName}
             </p>
@@ -96,6 +115,8 @@ export function FinalResult({
             </p>
           </div>
         </div>
+
+        <PodiumAwards awards={awards} looks={looks} names={names} mySlot={mySlot} />
 
         {playOfTheGame}
 
