@@ -15,7 +15,7 @@ import {
 } from "@/lib/arcade/engine";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
-import type { ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
+import type { ArenaAmbient, ArenaSceneView } from "@/lib/arcade/arenaScene.renderer";
 import { arcadeWorldPoint } from "@/components/puzzles/tapMapping";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -51,6 +51,8 @@ interface Props<S, C> {
   sceneKey?: (state: S) => string | number;
   /** With fitWorld: centre the world vertically in its box instead of top-anchoring it (Tilt; display only). */
   centreWorld?: boolean;
+  /** With fitWorld and a scene: the game's slow moving fill beyond the world (arenaFills.renderer.ts; display only). */
+  ambient?: ArenaAmbient;
   /** Opt in when the renderer must preserve circular geometry in screen pixels. */
   renderAtCanvasSize?: boolean;
   game: ArcadeGame<S, ArcadeInputEvent | null>;
@@ -333,6 +335,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         width={props.worldW}
         height={props.worldH}
         centre={props.centreWorld}
+        ambient={props.ambient}
         scene={props.scene ? (ctx, view) => propsRef.current.scene?.(ctx, view, state.current) : undefined}
         sceneKey={sceneKey ?? props.sceneKey?.(state.current)}
       >

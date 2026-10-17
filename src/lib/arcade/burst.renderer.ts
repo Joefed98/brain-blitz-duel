@@ -196,10 +196,13 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
   const touching = state.balls.some((b) => b.y / FP - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
   pixelRect(ctx, 0, 0, BURST_WORLD_W, ceil, "rgba(180,156,255,0.05)");
-  glowRect(ctx, 0, ceil - 2, BURST_WORLD_W, 2, touching ? RETRO_WHITE : WALL, touching ? "ceiling-flash" : "ceiling");
-  pixelRect(ctx, 0, ceil, 2, BURST_FLOOR_Y - ceil, `${WALL}88`);
-  pixelRect(ctx, BURST_WORLD_W - 2, ceil, 2, BURST_FLOOR_Y - ceil, `${WALL}88`);
-  glowRect(ctx, 0, BURST_FLOOR_Y - 2, BURST_WORLD_W, 3, SHIELD, "floor");
+  // The ceiling, walls and floor are real (atoms bounce off them): soft edges at rest, not a neon frame
+  // (17 Oct 2026, display only); the ceiling still flashes while a ball touches it.
+  if (touching) glowRect(ctx, 0, ceil - 2, BURST_WORLD_W, 2, RETRO_WHITE, "ceiling-flash");
+  else pixelRect(ctx, 0, ceil - 2, BURST_WORLD_W, 2, `${WALL}55`);
+  pixelRect(ctx, 0, ceil, 2, BURST_FLOOR_Y - ceil, `${WALL}30`);
+  pixelRect(ctx, BURST_WORLD_W - 2, ceil, 2, BURST_FLOOR_Y - ceil, `${WALL}30`);
+  pixelRect(ctx, 0, BURST_FLOOR_Y - 2, BURST_WORLD_W, 2, `${SHIELD}30`);
 
   // Shots: thin green beams on the original shot lines.
   for (const shot of state.shots) {

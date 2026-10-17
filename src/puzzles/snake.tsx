@@ -1,3 +1,4 @@
+import { snakeAmbient, snakeFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -258,11 +259,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={snakeWorldHForRev(data.snakeRev)}>
+    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
-        style={NO_SCROLL_STYLE}
+        // The canvas is whole CSS pixels inside this box (#101); the sub-pixel strip under it stays the screen
+        // edge's black over the fill-ins' starfield (17 Oct 2026), as arcade-device-bottom-check expects.
+        style={{ ...NO_SCROLL_STYLE, background: "var(--screen-edge)" }}
       >
         <canvas
           ref={canvas}

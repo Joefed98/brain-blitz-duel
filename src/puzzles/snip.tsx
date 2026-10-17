@@ -1,3 +1,4 @@
+import { snipFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -215,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           {hud.eaten} picked · {hud.stars} leaves
         </span>
       </div>
-      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)}>
+      <ArcadeArenaSlot width={SNIP_CONFIG.viewW} height={snipWorldHFor(data.snipRev)} scene={snipFill} playCentre>
         <div
           ref={board}
           data-play-area

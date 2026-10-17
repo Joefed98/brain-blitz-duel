@@ -260,9 +260,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(rh("clayshoot", { clayRev: CLAY_REV_TALL }) === 680 && rh("clayshoot", { clayRev: CLAY_REV5 }) === 400 && rh("clayshoot", {}) === 400, "Pull! reveal height by revision");
 
   // Stages size their arena slot from the stored revision (uniform scale only).
-  ok(/const BEAT_WORLD_H = beatWorldHFor\(data\?\.beatRev\)/.test(read("src/puzzles/beat.tsx")) && /<ArcadeArenaSlot width=\{BEAT_WORLD_W\} height=\{BEAT_WORLD_H\}>/.test(read("src/puzzles/beat.tsx")), "Tempo stage sizes from beatWorldHFor");
-  ok(/const SLICE_WORLD_H = sliceWorldHFor\(data\?\.sliceRev\)/.test(read("src/puzzles/slice.tsx")) && /<ArcadeArenaSlot width=\{SLICE_WORLD_W\} height=\{SLICE_WORLD_H\}>/.test(read("src/puzzles/slice.tsx")), "Slice stage sizes from sliceWorldHFor");
-  ok(/const BUB_WORLD_H = bubbleWorldHFor\(data\?\.bubbleRev\)/.test(read("src/puzzles/bubble.tsx")) && /<ArcadeArenaSlot width=\{BUB_WORLD_W\} height=\{BUB_WORLD_H\}>/.test(read("src/puzzles/bubble.tsx")), "Coral Pop stage sizes from bubbleWorldHFor");
+  ok(/const BEAT_WORLD_H = beatWorldHFor\(data\?\.beatRev\)/.test(read("src/puzzles/beat.tsx")) && /<ArcadeArenaSlot width=\{BEAT_WORLD_W\} height=\{BEAT_WORLD_H\}[\s>]/.test(read("src/puzzles/beat.tsx")), "Tempo stage sizes from beatWorldHFor");
+  ok(/const SLICE_WORLD_H = sliceWorldHFor\(data\?\.sliceRev\)/.test(read("src/puzzles/slice.tsx")) && /<ArcadeArenaSlot width=\{SLICE_WORLD_W\} height=\{SLICE_WORLD_H\}[\s>]/.test(read("src/puzzles/slice.tsx")), "Slice stage sizes from sliceWorldHFor");
+  ok(/const BUB_WORLD_H = bubbleWorldHFor\(data\?\.bubbleRev\)/.test(read("src/puzzles/bubble.tsx")) && /<ArcadeArenaSlot width=\{BUB_WORLD_W\} height=\{BUB_WORLD_H\}[\s>]/.test(read("src/puzzles/bubble.tsx")), "Coral Pop stage sizes from bubbleWorldHFor");
   ok(/worldH=\{clashWorldHFor\(clashVariantOf\(puzzle\)\)\}/.test(read("src/puzzles/stroop.tsx")), "Mixed Signals stage sizes from clashWorldHFor");
   ok(/<ArcadeArenaSlot width=\{CLAY_W\} height=\{clayWorldHFor\(data\?\.clayRev\)\}/.test(read("src/puzzles/clayShoot.tsx")) && /clayTapWorld\(box, event\.clientX, event\.clientY, clayWorldHFor\(data\?\.clayRev\)\)/.test(read("src/puzzles/clayShoot.tsx")), "Pull! stage sizes and maps taps from clayWorldHFor");
 }

@@ -83,8 +83,11 @@ export function retroScreen(
   drawWorld: (ctx: CanvasRenderingContext2D) => void,
   /** 0…1: tints the bezel red (e.g. a life lost). Margins only. */
   bezelFlash = 0,
-  /** The screen's corner radius (canvas px); 0 for a screen that meets the canvas's own edges. */
-  corner = 6,
+  /**
+   * The screen's corner radius (canvas px). 0 by default since the screen fill-ins (17 Oct 2026, display
+   * only): a rounded screen showed the bezel in its corners, a frame where the world meets its fill.
+   */
+  corner = 0,
   /**
    * Drawn last, over the scanlines, in world coordinates clipped to the screen: art the drifting
    * scanlines must never shade (Meteor's board border, whose blink was the bottom-edge flash).

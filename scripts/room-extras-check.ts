@@ -3,7 +3,7 @@
  * reveal's snake chart, drawn with the real room screen (src/routes/duel.$code.tsx) through
  * scripts/safe-area-harness.tsx (network edge stubbed, scripts/safe-area-server.ts).
  *
- *  1. Pings: an arcade round (Hover), a puzzle round (Box Six) and a board without a score strip
+ *  1. Pings: arcade rounds (Hover, and Pinball, centred since #107), a puzzle round (Box Six) and a board without a score strip
  *     (Double Take), in 2- and 4-player rooms, as an iPhone 11 home-screen app (414x896, 48/34 px
  *     insets) and at 390x844 (47/34 px insets). Other players finish mid-round; the strip must
  *     appear, name them ("Ali and Jo finished"), sit below the notch, and never overlap the play
@@ -166,6 +166,8 @@ try {
   /* 1. Pings. */
   const CASES = [
     { name: "arcade Hover", type: "hover" },
+    // #107 centres Pinball's world (Meteor, Scrumper, Gemstone and Bonk too): the strip stays in the header.
+    { name: "arcade Pinball (centred)", type: "pinball" },
     { name: "puzzle Box Six", type: "sudoku" },
     { name: "Double Take (no score strip)", type: "spotdiff" },
   ];

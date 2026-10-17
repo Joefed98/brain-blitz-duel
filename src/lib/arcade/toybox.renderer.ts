@@ -70,15 +70,18 @@ export function toyGrain(ctx: CanvasRenderingContext2D, x: number, y: number, w:
  * The wooden board in world coordinates: dark rim + screws outside the
  * rectangle (margins only), oak with grain and a subtle vignette inside.
  */
-export function toyBoard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rim = 10): void {
+export function toyBoard(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rim = 10, frame = true): void {
   ctx.save();
-  ctx.fillStyle = TOY_WOOD_DARK;
-  ctx.fillRect(x - rim, y - rim, w + rim * 2, h + rim * 2);
-  ctx.fillStyle = TOY_WOOD_DEEP;
-  ctx.fillRect(x - 1.5, y - 1.5, w + 3, h + 3);
-  const sr = rim * 0.32;
-  for (const [sx, sy] of [[x - rim / 2, y - rim / 2], [x + w + rim / 2, y - rim / 2], [x - rim / 2, y + h + rim / 2], [x + w + rim / 2, y + h + rim / 2]] as const) {
-    screw(ctx, sx, sy, sr);
+  // `frame: false` (Tilt's play screen since 17 Oct 2026): no rim, outline or screws, the board's oak meeting its scene.
+  if (frame) {
+    ctx.fillStyle = TOY_WOOD_DARK;
+    ctx.fillRect(x - rim, y - rim, w + rim * 2, h + rim * 2);
+    ctx.fillStyle = TOY_WOOD_DEEP;
+    ctx.fillRect(x - 1.5, y - 1.5, w + 3, h + 3);
+    const sr = rim * 0.32;
+    for (const [sx, sy] of [[x - rim / 2, y - rim / 2], [x + w + rim / 2, y - rim / 2], [x - rim / 2, y + h + rim / 2], [x + w + rim / 2, y + h + rim / 2]] as const) {
+      screw(ctx, sx, sy, sr);
+    }
   }
   ctx.fillStyle = TOY_OAK;
   ctx.fillRect(x, y, w, h);

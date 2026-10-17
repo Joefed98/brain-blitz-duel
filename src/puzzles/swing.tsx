@@ -1,3 +1,4 @@
+import { swingFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
 
@@ -55,6 +56,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   return (
     <ArcadeCanvasStage
       diagKey="swing"
+      scene={swingFill}
       label={gameDisplayName("swing")}
       background="transparent"
       fitWorld

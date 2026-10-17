@@ -77,6 +77,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
   integer canvas size, never per frame, `pointer-events: none`, so a tap or drag in it records no input); the world, its place
   and its tap mapping are unchanged, and the gap is black elsewhere.
+- **Screen fill-ins** (17 Oct 2026, display only; `src/lib/arcade/arenaFills.renderer.ts`): every active arcade game paints
+  a light, soft backdrop round its world (darker than the play area, starting from the world edge's own colour) out to the
+  screen's bottom (behind the controls, the 16 px strip and the home bar) and, where listed, its sides: ArcadeArenaSlot portals
+  the scene canvas into `[data-arcade-play]` under the column (the header row stays black but for Gemstone's velvet). Seven
+  games add a slow `ambient` layer (Pinball's and Rally's retro lamps, lit only by `arenaLight` from their sound observers;
+  Tempo's notes, Meteor's stars, Jaywalk's walkers, Roofbound's lava, Fission's reactions), still under reduced motion or
+  reduced effects. Pinball, Meteor, Scrumper, Gemstone and (item 28) Bonk are centred on the play screen only (`playCentre`). No frame round
+  any world (the play area's accent ring is off on the play screen; real walls in Breaker, Rally, Fission and Gemstone's board
+  are soft shades; Meteor keeps its border). Rally's HUD shows "GOLD n · PADS n" on rallyRev 3+. Pull!'s scene starts in its world's bottom grass
+  and Bonk's meadow has soft tufts, faded flowers and small stones on a faint band of soil (static). arcade-fill-check
+  (headless Chromium, ~10 s a game; the 22 active arcade games plus Pull! and Bonk, in thirds on `play11`–`play13`) fails
+  on a black strip, a border line or seam at 414×896 (home-screen app) and 390×844, or a moving fill under reduced motion. Run it after changing a fill or a world's edge art.
 - `src/lib/arcade/liveBands.ts` — each arcade band game's dealt stamp and curve; the "?" help's numbers (top, a good
   run) come from it, so a new stamp updates the help here (arcade-help-bands-check fails until it does).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
@@ -138,7 +150,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   the markers, the reveal phase's arcade progress entries (sent only to players whose own answer is stored) carry each
   other player's stored score, never drawn; answers, lines and details stay closed until the results screen
   (reveal-window-check). Checks: practice-bests-check (~2 s), finished-pings-check (~2 s), arcade-chart-check (~1 s),
-  room-extras-check (headless Chromium, ~3 min, shard `play11`: ping placement at 414×896 home-screen app and 390×844,
+  room-extras-check (headless Chromium, ~3 min, its own shard `play14`: ping placement at 414×896 home-screen app and 390×844,
   the snake with 2/6/10 players, every marker's place and no numbers;
   `--shots=<dir>` saves screenshots).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
@@ -148,9 +160,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into twenty parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
-  `play1`–`play5` for arcade-play-check and `play6`–`play13` for bottom-clearance-check, one eighth each
-  since its 15 Oct seam pass), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
+  request open/push/reopen, split into twenty-one parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
+  `play1`–`play5` for arcade-play-check, `play6`–`play13` for bottom-clearance-check, one eighth each
+  since its 15 Oct seam pass, and `play14` for room-extras-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
   with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
   `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow

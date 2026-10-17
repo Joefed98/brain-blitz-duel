@@ -1,3 +1,4 @@
+import { burstAmbient, burstFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useRef } from "react";
 
@@ -76,6 +77,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
     <ArcadeCanvasStage
       diagKey="burst"
+      scene={burstFill}
+      ambient={burstAmbient}
       label={gameDisplayName("burst")}
       background="#000000"
       fitWorld
