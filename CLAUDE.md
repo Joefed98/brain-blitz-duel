@@ -130,6 +130,29 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   too), lobby changes, leaves and Play again with the real server code, the pre-migration fallback, no new client writes,
   the migration on a local PostgreSQL where installed (unique index, constraints, the real `restart_duel_room`, RLS), and
   awards identical for any row order and only when earned.
+- **Practice bests, live "finished" pings and the arcade reveal chart** (17 Oct 2026, presentation and room data only, no
+  version stamps): practice keeps each game's best on the device (`practiceBest.ts`; practice_plays stays server-only)
+  under the game's version-stamp signature (`practiceStamps.ts`: every top-level `…Rev` / `…Version` / `speedPar` of the
+  dealt puzzle), so a game dealt under new stamps starts a fresh best; the list's cards show "Best 132" from
+  `PRACTICE_STAMPS` (`practiceStamps.data.ts`, built by `bun scripts/practice-stamps.ts`; **re-run it after any change to a
+  stamp a generator deals**, practice-bests-check fails until then); the reveal's "New best!" (`NewBestMoment`, cue
+  `shared.momentcard`) shows only when an earlier best was beaten, never on a first run, and is skipped with reduced
+  motion or effects. In a room's live round, other players finishing show as a slim strip, "Ali and Jo finished ✓" with
+  their badges (`finishedPings.ts`, `FinishedPings.tsx`), laid over the score strip (the arcade header's score and round
+  label on arcade play screens), never the play area, timer or controls; silent; no score, answer or result, ever. It
+  reads `duel_players.submitted_round`, written by `submitAnswerFn` after the result row is stored and cleared by
+  `rematchFn` (`finishedPing.server.ts`); the column comes from `supabase/migrations/20261017140000_player_submitted_round.sql`,
+  **written but not applied**: until it is, no pings show and nothing else changes. The room answer reveal for arcade
+  games places every player on one "snake" line that bends round in three rows, 0–50, 51–100 (right to left) and
+  101–150, labelled 0, 50, 100 and 150 at the ends and bends (`arcadeChart.ts`, `ArcadeScoreChart`; the only look):
+  badges with names, **no points figure for anyone** (your own score is the reveal's big number; exact scores are for
+  the results screen), stacked into lanes when they would touch, "You" ringed and labelled (never a colour). To place
+  the markers, the reveal phase's arcade progress entries (sent only to players whose own answer is stored) carry each
+  other player's stored score, never drawn; answers, lines and details stay closed until the results screen
+  (reveal-window-check). Checks: practice-bests-check (~2 s), finished-pings-check (~2 s), arcade-chart-check (~1 s),
+  room-extras-check (headless Chromium, ~3 min, its own shard `play14`: ping placement at 414×896 home-screen app and 390×844,
+  the snake with 2/6/10 players, every marker's place and no numbers;
+  `--shots=<dir>` saves screenshots).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -137,9 +160,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into twenty parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
-  `play1`–`play5` for arcade-play-check and `play6`–`play13` for bottom-clearance-check, one eighth each
-  since its 15 Oct seam pass), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
+  request open/push/reopen, split into twenty-one parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
+  `play1`–`play5` for arcade-play-check, `play6`–`play13` for bottom-clearance-check, one eighth each
+  since its 15 Oct seam pass, and `play14` for room-extras-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
   with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
   `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow

@@ -28,6 +28,7 @@ import {
   roundRecords,
 } from "./betaRecord.server";
 import { loadRoundReveal } from "./reveal.server";
+import { clearSubmitted, markSubmitted } from "./finishedPing.server";
 import {
   changePlayerLook,
   hasLookColumns,
@@ -874,6 +875,8 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
       score,
     });
     if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+    // The live "finished" ping: only the round number, after the result is stored (finishedPing.server.ts).
+    await markSubmitted(client, player.id, data.roundNumber);
 
     // Answering again brings a player who had gone quiet back into the room.
     if (player.status !== "active") {
@@ -1040,6 +1043,7 @@ export const rematchFn = createServerFn({ method: "POST" })
       p_host_id: context.userId,
     });
     if (error || !restarted) return { ok: false as const, message: "Could not play again yet." };
+    await clearSubmitted(client, room.id);
     if (forfeit && !(await recordForfeitInHistory(client, room.id, forfeit)))
       console.warn(`[rematch] room=${room.room_code}: forfeit winner not recorded in history`);
     if (tieWinner && !(await recordTieWinnerInHistory(client, room.id, tieWinner)))

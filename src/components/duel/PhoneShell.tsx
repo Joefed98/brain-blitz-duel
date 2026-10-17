@@ -51,7 +51,7 @@ export const NO_SELECT_STYLE = {
 const CONTROL = "button, a, input, textarea, select, [role='button']";
 
 /** Identical round geometry: mode-specific text cannot resize the game region. */
-export function GameLayout({ label, title, help, progress, roundLabel, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+export function GameLayout({ label, title, help, progress, roundLabel, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   label: ReactNode;
   title: ReactNode;
   help: ReactNode;
@@ -61,6 +61,11 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
    * after the score, in place of the round pips. Other screens ignore it.
    */
   roundLabel?: ReactNode;
+  /**
+   * A room's live "finished" ping (FinishedPingStrip), laid over the arcade header's score and
+   * round label while it shows; never over the timer, "?", sound or the arena. Other screens ignore it.
+   */
+  ping?: ReactNode;
   timer?: ReactNode;
   beforeGame?: ReactNode;
   children: ReactNode;
@@ -90,9 +95,10 @@ export function GameLayout({ label, title, help, progress, roundLabel, timer, be
       <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-round-in">
         <div data-round-heading data-game-topbar data-arcade-header className="grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-1" style={NO_SELECT_STYLE}>
           {roomLabel ? (
-            <div data-header-left className="flex min-w-0 items-center gap-2 pr-1">
+            <div data-header-left className="relative flex min-w-0 items-center gap-2 pr-1">
               <div className="min-w-0 flex-1">{arcade.gameHeader}</div>
               {roundLabel}
+              {ping}
             </div>
           ) : <div className="min-w-0">
             {arcade.gameHeader ?? (

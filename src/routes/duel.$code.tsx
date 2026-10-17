@@ -34,6 +34,7 @@ import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
 import { RoomChat } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
+import { FinishedPingStrip, useFinishedPings } from "@/components/duel/FinishedPings";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
@@ -366,6 +367,8 @@ function DuelScreen() {
   const tieRounds = roomTieRounds(duel?.puzzles_public);
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
+  // Who else has finished this round (never how they did); the live round only, never practice or replays.
+  const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
     return line ? { ...row, summary: `${row.summary} · ${line}` } : row;
@@ -957,12 +960,17 @@ function DuelScreen() {
               const row = resultFor(results, p.player_slot, round);
               const reveal = (row?.extra as Record<string, unknown> | null | undefined)?.["reveal"];
               // Other players' rows stay unreadable until late answers stop; the
-              // reveal fetch carries where their runs ended for the track.
-              const axis = currentReveal?.progress?.find((g) => g.playerSlot === p.player_slot)?.axis;
+              // reveal fetch carries where their runs ended and their stored score (to place markers).
+              const progress = currentReveal?.progress?.find((g) => g.playerSlot === p.player_slot);
+              const axis = progress?.axis;
               return {
                 slot: p.player_slot,
                 name: p.display_name,
                 isMe: p.player_slot === mySlot,
+                look: looks.get(p.player_slot),
+                // Places their marker on the chart (no figure is drawn): their result row once readable,
+                // else the reveal's progress entry.
+                score: row ? row.score : (progress?.score ?? null),
                 reveal: row
                   ? ((reveal as ArcadeRevealData | undefined) ?? null)
                   : axis
@@ -1088,7 +1096,12 @@ function DuelScreen() {
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
   // Arcade play screens carry the score in their one compact header row, on two 20px lines.
   const stackedScore = isArcadeScreenType(puzzle?.type);
-  const roomGameHeader =
+  // Live "finished" pings (finishedPings.ts): over the arcade header's score and round label, or
+  // over the score strip (the wordmark's place on boards without one); never the board or timer.
+  const pingStrip = finishedPings.length ? (
+    <FinishedPingStrip pings={finishedPings} looks={looks} lines={stackedScore ? 2 : 1} />
+  ) : null;
+  const scoreHeader =
     puzzle?.type === "spotdiff" || puzzle?.type === "blockparty" ? undefined : isMulti ? (
       <SoloScoreStrip
         name={me.display_name}
@@ -1108,6 +1121,14 @@ function DuelScreen() {
         stacked={stackedScore}
       />
     );
+  // One wrapper whether or not a ping shows, so the score strip never remounts (and never re-counts).
+  const roomGameHeader =
+    stackedScore || (!scoreHeader && !pingStrip) ? scoreHeader : (
+      <div className={`relative min-w-0 ${scoreHeader ? "" : "h-9"}`}>
+        {scoreHeader}
+        {pingStrip}
+      </div>
+    );
   return (
     <PhoneShell constrained gameScreen play gameType={puzzle?.type} gameHeader={roomGameHeader}>
       <GameLayout
@@ -1116,6 +1137,7 @@ function DuelScreen() {
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
         roundLabel={puzzle ? <RoundLabel round={round} total={duel.round_count ?? TOTAL_ROUNDS} name={puzzleName(puzzle.type)} /> : undefined}
+        ping={stackedScore ? pingStrip : undefined}
         timer={
           showTimer ? (
             <TimerBar

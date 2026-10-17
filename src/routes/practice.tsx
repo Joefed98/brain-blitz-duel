@@ -56,6 +56,7 @@ import { useScreenMusic } from "@/lib/useScreenMusic";
 import type { SubmitMeta } from "@/puzzles/types";
 import type { MovesView } from "@/lib/duel/moves";
 import { readPracticeBest, recordPracticeBest } from "@/lib/duel/practiceBest";
+import { currentPracticeStamp, stampSignature } from "@/lib/duel/practiceStamps";
 import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
@@ -108,6 +109,31 @@ function useTicker(active: boolean): number {
     return () => window.clearInterval(id);
   }, [active, tickMs]);
   return now;
+}
+
+/**
+ * A practice card's best under the game's current stamps ("Best 132"); nothing before a first run.
+ * Kept out of the card's accessible name (aria-hidden; the button points at it with
+ * aria-describedby), so the button is always named exactly the game, before and after a best.
+ */
+function CardBest({ type }: { type: PuzzleType }) {
+  const best = readPracticeBest(type, currentPracticeStamp(type));
+  if (best === null) return null;
+  return (
+    <span
+      id={cardBestId(type)}
+      aria-hidden="true"
+      data-card-best={best}
+      className="shrink-0 font-mono text-xs font-normal tabular-nums text-muted-foreground"
+    >
+      Best {best}
+    </span>
+  );
+}
+
+/** The id the card's button describes itself by (its best, when there is one). */
+function cardBestId(type: PuzzleType): string {
+  return `practice-best-${type}`;
 }
 
 /** The signature verdict for a graded practice run. */
@@ -195,7 +221,7 @@ function PracticeScreen() {
         return count + 1;
       });
       setType(next);
-      setDeviceBest(readPracticeBest(next));
+      setDeviceBest(readPracticeBest(next, currentPracticeStamp(next)));
       setNewBest(false);
       setGraded(null);
       setRevealAt(null);
@@ -207,6 +233,8 @@ function PracticeScreen() {
       exampleRun.current = exampleMode;
       const made = await practiceGenerateFn({ data: { type: next, example: exampleMode } });
       setPuzzle(made.puzzle as PuzzleData);
+      // The best under the stamps this puzzle was actually dealt with.
+      setDeviceBest(readPracticeBest(next, stampSignature(made.puzzle as PuzzleData)));
       setSealed(made.sealed);
       setStartedAt(Date.now());
       setStage("intro");
@@ -286,7 +314,7 @@ function PracticeScreen() {
       }
       setGraded({ ...(rest as Graded), extra });
       if (!wasExample) {
-        const record = recordPracticeBest(puzzle.type, result.score);
+        const record = recordPracticeBest(puzzle.type, stampSignature(puzzle), result.score);
         setDeviceBest(record.best);
         setNewBest(record.improved);
       }
@@ -431,9 +459,11 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
-                    className="press tap-target w-full rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
+                    aria-describedby={cardBestId(key)}
+                    className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
                   >
-                    {PUZZLE_REGISTRY[key].name}
+                    <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>
+                    <CardBest type={key} />
                   </button>
                 ))}
               </div>
@@ -449,9 +479,11 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
-                    className="press tap-target w-full rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
+                    aria-describedby={cardBestId(key)}
+                    className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
                   >
-                    {PUZZLE_REGISTRY[key].name}
+                    <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>
+                    <CardBest type={key} />
                   </button>
                 ))}
               </div>
@@ -469,9 +501,11 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
-                    className="press tap-target w-full rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-muted-foreground"
+                    aria-describedby={cardBestId(key)}
+                    className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-muted-foreground"
                   >
-                    {PUZZLE_REGISTRY[key].name}
+                    <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>
+                    <CardBest type={key} />
                   </button>
                 ))}
               </div>

@@ -47,6 +47,8 @@ interface Harness {
   /** Display names drawn in place of a game's own (the room play header's longest-name case). */
   names?: Record<string, string>;
   call: (module: string, name: string, args: unknown[]) => unknown;
+  /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
+  update?: (change: (room: Room) => void) => void;
 }
 
 const w = window as unknown as { __harness: Harness };
@@ -201,6 +203,11 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   practiceGradeFn,
   supabase: inert(),
   DuelError: class DuelError extends Error {},
+};
+
+H.update = (change) => {
+  change(H.room!);
+  bump();
 };
 
 /** Every stubbed export resolves here; anything not listed is an async no-op. */

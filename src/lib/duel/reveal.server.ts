@@ -6,7 +6,9 @@
  * The submit server function still takes a lagging phone's answer during the
  * reveal phase (answerWindow.ts), so during that phase the reveal carries only
  * the caller's own detail, plus, for arcade rounds, where each other player's
- * run ended on the reveal track (a progress number, never their answer). The
+ * run ended on the reveal track and their stored score, used only to place their
+ * marker on the reveal's chart and never drawn (a
+ * progress number and a score, never their answer). The
  * phone fetches again on the results screen, where everything is open. The
  * round_results read policy (duel_round_ended) follows the same cutoff.
  *
@@ -130,6 +132,9 @@ export async function loadRoundReveal(
         max: typeof axis.max === "number" ? axis.max : null,
         label: typeof axis.label === "string" ? axis.label : "",
       },
+      // The stored score alone, only to place the marker on the reveal's chart (ArcadeScoreChart
+      // draws no figure for anyone); never the answer.
+      score: row.score,
     });
   }
   return { ok: true, data: { puzzle, correctAnswer, players, partial: true, progress } };

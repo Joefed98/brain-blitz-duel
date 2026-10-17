@@ -15,8 +15,10 @@
  *     and no later migration adds another read path to round_results.
  *  3. The reveal server code (reveal.server.ts) driven with an in-memory
  *     database: before the cutoff it returns only the caller's own detail
- *     (no other player's answer, summary or score), plus, for arcade rounds,
- *     where the others' runs ended on the track; from the results screen on it
+ *     (no other player's answer or summary), plus, for arcade rounds, where
+ *     the others' runs ended on the track and their stored score, only to place
+ *     their markers on the reveal's chart, which draws no figure for anyone (17 Oct
+ *     2026; nothing else); from the results screen on it
  *     returns every player's detail.
  *  4. A player with no answer in: before the cutoff the reveal carries no
  *     correct answer and no private solution (duel_secrets is never read);
@@ -171,18 +173,23 @@ for (const phase of ["reveal", "result", "standings", "winner_reveal"] as DuelPh
   if (!open) {
     check(acceptsAnswers(room, 2), `${phase}: the closed case is the late-answer window`);
     check(JSON.stringify(slots) === "[1]", `${phase}: only my own detail (got slots ${slots.join(",")})`);
+    // Arcade rounds (17 Oct 2026): each other player's progress entry carries their stored score, only to
+    // place their marker on the reveal's chart (never drawn: arcade-chart-check, room-extras-check), and
+    // nothing else of theirs leaves the server (no answer, line or detail).
+    const outsideProgress = JSON.stringify({ ...res.data, progress: undefined });
     check(
-      !/secret-bo|secret-cy|secret-line-2|secret-line-3|"score":87|"score":93/.test(json),
+      !/secret-bo|secret-cy|secret-line-2|secret-line-3|"score":87|"score":93/.test(outsideProgress) &&
+        !/secret-bo|secret-cy|secret-line-2|secret-line-3/.test(json),
       `${phase}: another player's answer or score leaked: ${json.slice(0, 200)}`,
     );
     check(res.data.partial === true, `${phase}: marked partial so the phone fetches again`);
     check(
       JSON.stringify(res.data.progress) ===
         JSON.stringify([
-          { playerSlot: 2, axis: { value: 12, max: 20, label: "gates" } },
-          { playerSlot: 3, axis: { value: 15, max: 20, label: "gates" } },
+          { playerSlot: 2, axis: { value: 12, max: 20, label: "gates" }, score: 87 },
+          { playerSlot: 3, axis: { value: 15, max: 20, label: "gates" }, score: 93 },
         ]),
-      `${phase}: the arcade track carries the others' progress only (${JSON.stringify(res.data.progress)})`,
+      `${phase}: the arcade chart's markers get the others' progress and stored score only (${JSON.stringify(res.data.progress)})`,
     );
   } else {
     check(JSON.stringify(slots) === "[1,2,3]", `${phase}: every player's detail once closed (got ${slots.join(",")})`);

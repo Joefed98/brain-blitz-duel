@@ -193,7 +193,8 @@ assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-
 assert.match(shell, /\{!bare && !arcadePlay && \(/, "the shell's own top bar gives way on arcade play screens");
 // Rooms (16 Oct 2026, display only): the round and game (RoundLabel) between the score and the timer, 8px from each
 // (gap-2, pr-1 plus the grid's 4px), in place of the round pips; the 44px row and its centred column are unchanged.
-assert.match(shell, /<div data-header-left className="flex min-w-0 items-center gap-2 pr-1">\s*<div className="min-w-0 flex-1">\{arcade\.gameHeader\}<\/div>\s*\{roundLabel\}/, "room label after the score, beside the timer");
+// The live "finished" ping (17 Oct 2026) is laid over this cell (relative, the ping absolute), never in its flow.
+assert.match(shell, /<div data-header-left className="relative flex min-w-0 items-center gap-2 pr-1">\s*<div className="min-w-0 flex-1">\{arcade\.gameHeader\}<\/div>\s*\{roundLabel\}\s*\{ping\}/, "room label after the score, beside the timer");
 assert.match(shell, /\{timer\}\{roomLabel \? null : progress\}/, "the label replaces the round pips");
 {
   const label = readFileSync("src/components/duel/RoundLabel.tsx", "utf8");

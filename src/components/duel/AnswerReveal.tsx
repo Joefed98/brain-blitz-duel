@@ -16,6 +16,7 @@ import { bombRevealExploded } from "@/puzzles/bombDefusal";
 import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
+import { NewBestMoment } from "@/components/duel/NewBestMoment";
 
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
@@ -40,7 +41,10 @@ interface AnswerRevealProps {
   answersReady: boolean;
   /** Everyone in the room for the arcade progress track (practice: omitted, own marker only). */
   players?: RevealPlayer[];
-  /** Practice only: this run beat the device's practice best (arcade results celebration). */
+  /**
+   * Practice only: this run beat an earlier device best under the same stamps (practiceBest.ts);
+   * the reveal shows the "New best!" moment (NewBestMoment).
+   */
   personalBest?: boolean;
   startedAt: number;
   now: number;
@@ -244,7 +248,9 @@ function LiveAnswerReveal({
   useEffect(() => () => window.clearTimeout(scoreCue.current), []);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+    <div className="relative flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+      {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
+      {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
       <div className="flex items-center justify-between gap-2">
         <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
@@ -260,12 +266,12 @@ function LiveAnswerReveal({
           myScore={myScore}
           nearMissLine={nearMiss(puzzle.type, myExtra)}
           costRows={storedCostRows(puzzle.type, myExtra)}
-          personalBest={personalBest}
+          personalBest={practice ? false : undefined}
           round={round}
           myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}
           players={
             players ?? [
-              { slot: 0, name: "You", isMe: true, reveal: (myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null },
+              { slot: 0, name: "You", isMe: true, score: myScore, reveal: (myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null },
             ]
           }
         />
