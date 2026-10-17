@@ -75,10 +75,10 @@ These show on every game's screens, so they are listed once here and not repeate
 | All | **Practice reveal says "Round 1 of 6"** in its header, though practice is a single game ([iss-practice-reveal-round](screen-audit-oct-2026/iss-practice-reveal-round.jpg)). | Must · **Done** (Batch 2 fix-up, 16 Oct 2026) | Pass a `practice` flag; show "Practice" in place of the round. | `src/routes/practice.tsx`, `src/components/duel/AnswerReveal.tsx` |
 | All 22 arcade + 5 engine games | **The game shows through the arcade reveal**: its HUD text ("pts", "Throw 1 / 10", "SORT BY INK", "Sta…") sits half-faded behind "0 POINTS" ([iss-arcade-reveal-bleed](screen-audit-oct-2026/iss-arcade-reveal-bleed.jpg)). | Must · **Done** (Batch 2 fix-up, 16 Oct 2026) | Make the reveal's backdrop opaque over the top 30 % (or crop the frozen world below the score) so no world text sits behind it. | `src/components/duel/ArcadeReveal.tsx` |
 | All | The room reveal's top-right number ("0s", "6s") has no label. | Nice | "Next in 6 s", or drop it. | `src/components/duel/AnswerReveal.tsx` |
-| All | **Help "?" button is 28 × 28** on every play screen. | Must | 44 × 44 hit area (keep the 28 px circle drawn inside). | `src/components/duel/PuzzleInstructions.tsx` (`PuzzleHelpButton`) |
-| All | **Sound controls:** mute buttons 36 × 36; the volume chevrons **16 × 36** on every screen. | Must | 44 px hit areas; one chevron per control is enough if room is short. | `src/components/duel/MuteToggle.tsx` |
+| All | **Help "?" button is 28 × 28** on every play screen. | Must · **Done** (Batch 4 fix-up, 17 Oct 2026) | 44 × 44 hit area (keep the 28 px circle drawn inside). Done: an invisible `::before` gives a 44 × 44 hit area (8 px above and below, 16 px to the left, none towards the sound controls), raised over the puzzle timer row; the circle, the button's box and the header are unchanged. | `src/components/duel/PuzzleInstructions.tsx` (`PuzzleHelpButton`) |
+| All | **Sound controls:** mute buttons 36 × 36; the volume chevrons **16 × 36** on every screen. | Must · **Done** (Batch 4 fix-up, 17 Oct 2026) | 44 px hit areas; one chevron per control is enough if room is short. Done: the 104 px group holds two 44 px targets, not four, so each channel (icon and chevron, drawn exactly as before) is one 52 × 36 button with an invisible `::before` making its hit area 52 × 44; a tap opens that channel's popover, which now holds a 44 px "Turn off / Turn on" switch above the volume slider. Muting is two taps instead of one (assumption; see Batch 4). | `src/components/duel/MuteToggle.tsx` |
 | All | Intro "← Back" (practice) is 65 × 32. | Nice | `min-h-11`. | `src/components/duel/RoundIntro.tsx` |
-| All | **Text under 11 px on every intro:** the GOAL / HOW / SCORE labels and "· word" category are 10 px; "auto-start in 28s" is 11.2 px at 3.87:1. | Must | 11 px minimum; lift the countdown to `text-foreground/70`. | `src/components/duel/RoundIntro.tsx`, `src/components/duel/PuzzleInstructions.tsx` |
+| All | **Text under 11 px on every intro:** the GOAL / HOW / SCORE labels and "· word" category are 10 px; "auto-start in 28s" is 11.2 px at 3.87:1. | Must · **Done** (Batch 4 fix-up, 17 Oct 2026) | 11 px minimum; lift the countdown to `text-foreground/70`. Done: labels and `.category-tag` 11 px (the tag on results and standings too), the countdown `text-foreground/70` (9.07:1 on #070709). | `src/components/duel/RoundIntro.tsx`, `src/components/duel/PuzzleInstructions.tsx` |
 | All arcade | The arcade header's game name ("Gemstone", "Tilt") is 10 px, and longer names ellipsise at 414 px: "Mixed Sign…", "Rainbow B…" ([iss-mixed-signals-header](screen-audit-oct-2026/iss-mixed-signals-header.jpg)). | Nice | 11 px; prefer the "Round 2 of 6 / name" two-line form before the compact form at 414 px. | `src/components/duel/RoundLabel.tsx` |
 | All puzzles | **Play and reveal screens use 4 px side margins**, where every other screen uses 20 px: logo, "ROUND 2 OF 6", score pill and reveal lists sit 4 px from the edge (Nucleus and Forage "YOU MISSED" columns, Forage "POINTS 0 … WORDS: 0", Lightbender "FIRES LEFT: 3"). | Nice | 12–16 px for text rows (boards may stay wide). | `src/components/duel/PhoneShell.tsx`, `src/polish-layout/bottom.css` |
 | All (home-screen app) | Only arcade play screens are extended by the 48 px shortfall, so every other screen (intros, reveals, results, lobby, home) ends 48 px above the physical bottom: READY and Continue sit about 80 px above the bottom there, against 16 px on arcade play. | Nice | Apply `--standalone-short` to every `.game-viewport` / PhoneShell screen, or accept it (device test first). | `src/components/duel/PhoneShell.tsx`, `src/polish-layout/bottom.css` |
@@ -135,7 +135,7 @@ Examples: puzzle in a room [ex-play-puzzle-room](screen-audit-oct-2026/ex-play-p
 | Rally | HUD reads "GOLD 0 0PTS" (no space or separator). | Nice | "Gold 0 · 0 pts". | `src/lib/arcade/rally.renderer.ts` |
 | Orbit | "Planets 0 / 40" is drawn over the first planet. | Nice | Draw the HUD on a band, or offset the course. | `src/lib/arcade/orbit.renderer.ts` |
 | Gemstone, Flightpath, Rally | HUDs say "pts"; everywhere else says "points". | Nice | "points", or "pts" everywhere. | `src/lib/arcade/matchup.renderer.ts`, `bullseye.renderer.ts`, `rally.renderer.ts` |
-| All arcade | **Decision for Joe:** the lowest control row ends 16 px above the bottom, inside iOS's 34 px home-indicator zone, where an upward swipe goes home. This is deliberate (biggest world), but Jaywalk, Mixed Signals, Fission, Rainbow Bridge and Orbit put buttons there. | Nice | Keep (device test), or end controls at 34 + 8 px only for games with swipe-up input. | `src/polish-layout/bottom.css` |
+| All arcade | **Decision for Joe:** the lowest control row ends 16 px above the bottom, inside iOS's 34 px home-indicator zone, where an upward swipe goes home. This is deliberate (biggest world), but Jaywalk, Mixed Signals, Fission, Rainbow Bridge and Orbit put buttons there. | Nice · **Decided** (17 Oct 2026: keep) | Keep (device test), or end controls at 34 + 8 px only for games with swipe-up input. Joe: they stay 16 px from the bottom. | `src/polish-layout/bottom.css` |
 
 ## Answer reveal (practice and room)
 
@@ -234,7 +234,7 @@ Examples: [ex-settings](screen-audit-oct-2026/ex-settings.jpg), [ex-help-sheet](
 | Game | Issue | Severity | Suggested fix | File to change |
 |---|---|---|---|---|
 | Sound settings | The popover's slider thumb is 16 × 16 px. | Nice | 28 px thumb with a 44 px hit area. | `src/components/duel/MuteToggle.tsx` |
-| Help sheet | Labels GOAL / HOW / SCORE 10 px (as the intro). | Must | With the intro fix. | `src/components/duel/PuzzleInstructions.tsx` |
+| Help sheet | Labels GOAL / HOW / SCORE 10 px (as the intro). | Must · **Done** (Batch 4 fix-up, 17 Oct 2026) | With the intro fix. Done: 11 px (the same component). | `src/components/duel/PuzzleInstructions.tsx` |
 | Help sheet | "Show puzzle instructions" is used for arcade games too. | Nice | "Show game instructions". | `src/components/duel/PuzzleInstructions.tsx` |
 
 ## Error and empty states
@@ -375,6 +375,16 @@ Files: `src/components/duel/MuteToggle.tsx`, `src/components/duel/PuzzleInstruct
 - Disabled buttons at 0.6 opacity; "Final round" on the final intro; "Show game instructions".
 - Checks: safe-area-screens-check, bottom-clearance-check (all 8 parts), arcade-play-check, arcade-device-bottom-check
   (the header and margins are on every play screen).
+- **Must items done (Batch 4 fix-up, 17 Oct 2026).** The Must rows of this batch are the "?" and sound hit areas,
+  the 11 px intro and help labels and category, and the countdown's contrast; the rest of the list above ("← Back",
+  the slider thumb, the arcade header name, side margins, disabled opacity, "Final round" on the intro, "Show game
+  instructions") is marked Nice in its rows and was not started. Display only: no sim, score, timing, stored round or
+  stamp changes. Joe's decision on the open question below: arcade controls stay where they are, 16 px from the
+  bottom inside the home-bar zone, and the 52 px header is unchanged. Every larger hit area is an invisible `::before`,
+  so no box, header or control moved (the arcade play header's pixels are identical before and after at 414 × 896).
+  Assumption for Joe: the sound group is 104 px wide, which holds two 44 px targets, not four, so each channel became
+  one target that opens its popover, and the mute switch moved into that popover (two taps to mute instead of one).
+  If one-tap mute matters more than the chevron, the alternative is a wider sound group (a visible change).
 
 ### Batch 5 — Wording (Must, then Nice)
 
@@ -453,4 +463,5 @@ Files: `src/components/duel/IntroDemo.tsx`, `src/lib/duel/introDemo.functions.ts
   renderers untouched here, but run it if a HUD moves), demo-taps for any re-recorded demo.
 
 Not batched (needs Joe): whether arcade controls may sit inside the home-indicator zone (`bottom.css` is in
-Batch 4, so decide before Batch 4 runs).
+Batch 4, so decide before Batch 4 runs). **Decided (17 Oct 2026):** they stay where they are, 16 px from the
+bottom inside the home-bar zone.
