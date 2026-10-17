@@ -20,14 +20,14 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
 | game event | 160 | 0 | 120 | 280 |
-| room moment | 1 | 0 | 28 | 29 |
+| room moment | 1 | 0 | 29 | 30 |
 | music | 13 | 0 | 81 | 94 |
 | UI tap | 17 | 0 | 13 | 30 |
 | fail sting | 7 | 0 | 28 | 35 |
 | success sting | 4 | 0 | 67 | 71 |
 | ambience | 0 | 1 | 4 | 5 |
 | replay | 0 | 0 | 129 | 129 |
-| **all** | 202 | 1 | 470 | 673 |
+| **all** | 202 | 1 | 471 | 674 |
 
 ## Silent and placeholder cues
 
@@ -738,6 +738,7 @@ Grouped by game or screen.
 | `room.round.6` | Round 6 title starts (only in 7-round rooms; in 6-round rooms round 6 is the final): a ring of fine ticks turns into place. [room.md] |  | 1 (that round) | recorded sound | `room.round.6` | 2850 | room moment | `room.round.6` |
 | `room.finalRound` | The last round's title starts (replaces room.round.N for that round): gold edge glow, two shock rings, gold rails shooting in, the title punches in. [room.md] |  | 1 per room | recorded sound | `room.finalRound` | 2900 | room moment | `room.finalRound` |
 | `room.winner.lock` | Winner reveal, 5.8 s (the drum roll's cut, WINNER_ROLL_END_MS): the two sweeping spotlights lock onto the line, the edges are dimmed and a gold spot holds through the silence before the podium. [room.md] |  | 1 per room | recorded sound | `room.winner.lock` | 500 | room moment | `room.winner.lock` |
+| `room.award` | The final screen's first award card rises in, 1.3 s after it opens (PodiumAwards.tsx; only when someone earned an award). Plays the moment card's recording (shared.momentcard.mp3). Not on the shared clock: each phone plays it when its own final screen opens. Skipped, with the animation, under reduced motion or reduced effects. [room.md] |  | 5–40 (per move) | recorded sound | `room.award` | 500 | room moment | `room.award` |
 
 ### Music: screens
 
@@ -1712,6 +1713,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `room.round.6` | effects | `room.round.6` | 1600 |
 | `room.finalRound` | effects | `room.finalRound` | 2880 |
 | `room.winner.lock` | effects | `room.winner.lock` | 486 |
+| `room.award` | effects | `room.award` | 486 |
 | `music_home` | music | `music.home` | loop |
 | `music_practice` | music | `music.practice` | loop |
 | `shared.highlight.start` | effects | `shared.highlight.start` | 606 |

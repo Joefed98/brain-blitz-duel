@@ -28,6 +28,13 @@ import {
   roundRecords,
 } from "./betaRecord.server";
 import { loadRoundReveal } from "./reveal.server";
+import {
+  changePlayerLook,
+  hasLookColumns,
+  insertPlayerWithLook,
+  persistAutoColours,
+  type LookPreference,
+} from "./playerLook.server";
 import { acceptsAnswers } from "./answerWindow";
 import { DUEL_START_MS, ROUND_TITLE_MS, WINNER_REVEAL_MS } from "./startPresentation";
 import {
@@ -143,15 +150,20 @@ async function insertPlayer(
   slot: number,
   userId: string,
   displayName: string,
+  look: LookPreference = {},
 ): Promise<void> {
-  const { error } = await client.from("duel_players").insert({
-    duel_id: roomId,
-    player_slot: slot,
-    user_id: userId,
-    display_name: cleanName(displayName),
-    status: "active",
-  });
-  if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+  // With the colour/icon columns, a free colour (the remembered one when it can) and the icon.
+  await insertPlayerWithLook(
+    client,
+    {
+      duel_id: roomId,
+      player_slot: slot,
+      user_id: userId,
+      display_name: cleanName(displayName),
+      status: "active",
+    },
+    look,
+  );
 }
 
 function firstFreeSlot(players: DuelPlayerRow[], maxPlayers: number): number | null {
@@ -181,6 +193,7 @@ async function createRoomRow(
   userId: string,
   displayName: string,
   categories: readonly PuzzleCategory[] = STANDARD_CATEGORIES,
+  look: LookPreference = {},
 ): Promise<DuelRow> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await client
@@ -206,7 +219,7 @@ async function createRoomRow(
     }
 
     const room = data as DuelRow;
-    await insertPlayer(client, room.id, 1, userId, displayName);
+    await insertPlayer(client, room.id, 1, userId, displayName, look);
     await recordJoin(client, { duel_id: room.id, user_id: userId, player_slot: 1, game_index: 0, via: "host" });
     return room;
   }
@@ -310,7 +323,7 @@ async function recentBankKeys(client: any, hostUserId: string | null): Promise<S
 
 export const createRoomFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { displayName: string }) => input)
+  .inputValidator((input: { displayName: string; look?: LookPreference }) => input)
   .handler(async ({ data, context }) => {
     const client = await db();
     const { CREATE_ROOM_LIMIT, withinRateLimit } = await import("./rateLimit.server");
@@ -329,6 +342,7 @@ export const createRoomFn = createServerFn({ method: "POST" })
       context.userId,
       data.displayName,
       normaliseCategories(previous?.selected_categories),
+      data.look ?? {},
     );
     return { roomId: room.id, roomCode: room.room_code };
   });
@@ -371,6 +385,8 @@ export const joinRoomFn = createServerFn({ method: "POST" })
       displayName: string;
       /** How the phone reached this join (beta recording only); older copies send nothing. */
       via?: "code" | "link";
+      /** The colour and icon this phone last chose; older copies send nothing. */
+      look?: LookPreference;
     }) => input,
   )
   .handler(async ({ data, context }) => {
@@ -416,7 +432,7 @@ export const joinRoomFn = createServerFn({ method: "POST" })
     if (slot === null) {
       return { ok: false as const, message: `That room is full (${room.max_players} players).` };
     }
-    await insertPlayer(client, room.id, slot, context.userId, data.displayName);
+    await insertPlayer(client, room.id, slot, context.userId, data.displayName, data.look ?? {});
     await recordJoin(client, {
       duel_id: room.id,
       user_id: context.userId,
@@ -544,6 +560,23 @@ export const setRoomModesFn = createServerFn({ method: "POST" })
     console.log(`[room-selection] room=${room.room_code} categories=${categories.join(",")}`);
 
     return { ok: true as const };
+  });
+
+/**
+ * In the lobby: the caller changes their own colour (any one no one else holds) and/or icon (one of
+ * PLAYER_ICON_IDS, or null for their initial). Display data only, written here like every other
+ * player field; clients still have no write access to the table.
+ */
+export const setPlayerLookFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { roomId: string; colour?: number; icon?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const client = await db();
+    const me = await requireParticipant(client, data.roomId, context.userId);
+    const room = await getRoom(client, data.roomId);
+    if (room.status !== "waiting" || room.disbanded_at)
+      return { ok: false as const, message: "Colours can only change in the lobby." };
+    return changePlayerLook(client, me, data);
   });
 
 /** Host only, in the lobby: takes a player out of the room. */
@@ -999,6 +1032,9 @@ export const rematchFn = createServerFn({ method: "POST" })
     const tieWinner = forfeit
       ? null
       : tieWinnerRecord(room, roomPlayers, (resultRows ?? []) as RoundResultRow[]);
+    // Play again keeps everyone's colour: store the ones still shown from the slot first (resolved
+    // with the players who left, as every phone shows them; those rows go with the reset).
+    if (await hasLookColumns(client)) await persistAutoColours(client, roomPlayers);
     const { data: restarted, error } = await client.rpc("restart_duel_room", {
       p_room_id: room.id,
       p_host_id: context.userId,

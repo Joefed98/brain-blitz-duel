@@ -1,4 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { PLAYER_ICONS_ENABLED } from "@/lib/brand";
+import {
+  PLAYER_COLOURS,
+  PLAYER_ICON_IDS,
+  playerInitial,
+  takenColours,
+  type PlayerLook,
+  type PlayerLooks,
+} from "@/lib/duel/playerLook";
 
 import { MAX_PLAYERS, MIN_PLAYERS, type DuelPlayerRow } from "@/lib/duel/types";
 import type { PuzzleCategory } from "@/lib/duel/types";
@@ -8,6 +18,8 @@ import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
 
 import { Dots, WaitingLine } from "./Dots";
+import { PlayerBadge } from "./PlayerBadge";
+import { PLAYER_ICON_ART } from "./playerIcons";
 
 function Crown() {
   return (
@@ -39,6 +51,98 @@ interface RoomLobbyProps {
   /** Guests only: leave the lobby (the caller confirms first). */
   onLeave: () => void;
   tournamentHistory: { winner: string; date: string; forfeit?: boolean }[];
+  /** Everyone's colour and icon (resolvePlayerLooks over every row, left players included). */
+  looks: PlayerLooks;
+  /** Every player row in the room, left players included (who holds which colour). */
+  allPlayers: DuelPlayerRow[];
+  /** False until the colour/icon migration is applied: rows show slot colours, no picker. */
+  canChooseLook: boolean;
+  /** Stores my new colour and/or icon; rejects with a message when it can't. */
+  onLookChange: (look: Partial<PlayerLook>) => Promise<void>;
+}
+
+/** My colour and icon choices, under my own row (tap my row to open it). */
+function LookPicker({
+  look,
+  name,
+  taken,
+  takenBy,
+  onChange,
+}: {
+  look: PlayerLook;
+  name: string;
+  taken: ReadonlyMap<number, number>;
+  takenBy: (slot: number) => string;
+  onChange: (look: Partial<PlayerLook>) => void;
+}) {
+  return (
+    <div data-look-picker className="flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
+      <p className="font-display text-xs font-semibold text-foreground">Your colour</p>
+      <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label="Your colour">
+        {PLAYER_COLOURS.map((colour, index) => {
+          const holder = taken.get(index);
+          const selected = look.colour === index;
+          return (
+            <button
+              key={colour.hex}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={holder !== undefined}
+              aria-label={holder !== undefined ? `${colour.name}, taken by ${takenBy(holder)}` : colour.name}
+              onClick={() => onChange({ colour: index })}
+              className="press flex h-11 items-center justify-center rounded-lg disabled:cursor-not-allowed"
+            >
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                  selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
+                } ${holder !== undefined ? "opacity-45" : ""}`}
+                style={{ background: colour.hex, color: "#0B0B0F" }}
+                aria-hidden="true"
+              >
+                {/* A taken colour carries its holder's initial (and stays dimmed, not tappable). */}
+                {holder !== undefined && (
+                  <span className="font-display text-sm font-bold leading-none">{playerInitial(takenBy(holder))}</span>
+                )}
+                {selected && (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#0B0B0F" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m5 12.5 4.5 4.5L19 7.5" />
+                  </svg>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {PLAYER_ICONS_ENABLED && (
+        <>
+          <p className="mt-1 font-display text-xs font-semibold text-foreground">Your icon</p>
+          <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
+            {[null, ...PLAYER_ICON_IDS].map((icon) => {
+              const selected = look.icon === icon;
+              return (
+                <button
+                  key={icon ?? "initial"}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={icon ? PLAYER_ICON_ART[icon].label : "Your initial"}
+                  onClick={() => onChange({ icon })}
+                  className="press flex h-11 items-center justify-center rounded-lg"
+                >
+                  <span
+                    className={`rounded-full ${selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""}`}
+                  >
+                    <PlayerBadge look={{ colour: look.colour, icon }} name={name} size={32} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 /** Host presets, each with the one-line description shown under them. */
@@ -75,12 +179,47 @@ export function RoomLobby({
   onDisband,
   onLeave,
   tournamentHistory,
+  looks,
+  allPlayers,
+  canChooseLook,
+  onLookChange,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
   const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
   const [removing, setRemoving] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
+  /** My choice while it is on its way to the server (shown at once). */
+  const [pending, setPending] = useState<Partial<PlayerLook> | null>(null);
+  const [lookError, setLookError] = useState<string | null>(null);
+  const me = players.find((player) => player.user_id === meUserId);
+  const storedLook = me ? looks.get(me.player_slot) : undefined;
+  const myLook = storedLook ? { ...storedLook, ...pending } : undefined;
+  const lookFor = (slot: number) => (me && slot === me.player_slot ? myLook : looks.get(slot));
+  const nameOf = (slot: number) => allPlayers.find((p) => p.player_slot === slot)?.display_name ?? "another player";
+  const changeLook = (look: Partial<PlayerLook>) => {
+    setLookError(null);
+    setPending((current) => ({ ...current, ...look }));
+    onLookChange(look).catch((error: unknown) => {
+      setPending(null);
+      setLookError(error instanceof Error ? error.message : "Couldn't change that. Try again.");
+    });
+  };
+  // The choice stays shown until the room's own row carries it (or a few seconds pass).
+  useEffect(() => {
+    if (!pending) return;
+    if (
+      storedLook &&
+      (pending.colour === undefined || pending.colour === storedLook.colour) &&
+      (pending.icon === undefined || pending.icon === storedLook.icon)
+    ) {
+      setPending(null);
+      return;
+    }
+    const timer = window.setTimeout(() => setPending(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [pending, storedLook?.colour, storedLook?.icon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -99,6 +238,11 @@ export function RoomLobby({
       <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
         {players.length} of {MAX_PLAYERS} players
       </p>
+      {canChooseLook && me && (
+        <p className="-mt-2 text-center text-[11px] text-muted-foreground">
+          Tap your name to pick your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}
+        </p>
+      )}
       {isHost && players.length > 1 && (
         <p className="text-center text-[11px] text-muted-foreground">
           🔊 Chat: mute that player's chat for everyone · ×: remove them
@@ -108,17 +252,39 @@ export function RoomLobby({
       <ul className="flex flex-col gap-2">
         {players.map((player) => {
           const isMe = player.user_id === meUserId;
-          return (
-            <li
-              key={player.id}
-              className={`flex animate-pop-in items-center gap-3 rounded-xl border px-4 py-3 text-left ${
-                isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
-              }`}
-            >
+          const nameLine = (
+            <>
+              <PlayerBadge look={lookFor(player.player_slot)} name={player.display_name} size={24} />
               {player.user_id === hostUserId && <Crown />}
               <span className="flex-1 truncate font-display text-sm text-foreground">
                 {player.display_name}
               </span>
+            </>
+          );
+          return (
+            <li key={player.id} className="flex flex-col gap-2">
+            <div
+              className={`flex animate-pop-in items-center gap-3 rounded-xl border px-4 py-3 text-left ${
+                isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
+              }`}
+            >
+              {isMe && canChooseLook ? (
+                <button
+                  type="button"
+                  data-look-toggle
+                  aria-expanded={picking}
+                  aria-label={`${player.display_name}: change your colour${PLAYER_ICONS_ENABLED ? " and icon" : ""}`}
+                  onClick={() => setPicking((open) => !open)}
+                  className="press -my-3 -ml-4 flex min-h-11 min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left"
+                >
+                  {nameLine}
+                  <span aria-hidden="true" className="font-mono text-xs text-muted-foreground">
+                    {picking ? "▴" : "▾"}
+                  </span>
+                </button>
+              ) : (
+                nameLine
+              )}
               {player.user_id === hostUserId && (
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Host</span>
               )}
@@ -168,6 +334,21 @@ export function RoomLobby({
                   {removing === player.player_slot ? "Remove?" : "×"}
                 </button>
               )}
+            </div>
+            {isMe && picking && canChooseLook && myLook && (
+              <LookPicker
+                look={myLook}
+                name={player.display_name}
+                taken={takenColours(allPlayers, player.player_slot)}
+                takenBy={nameOf}
+                onChange={changeLook}
+              />
+            )}
+            {isMe && lookError && (
+              <p role="alert" className="text-center text-xs text-warn">
+                {lookError}
+              </p>
+            )}
             </li>
           );
         })}

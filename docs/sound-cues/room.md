@@ -17,7 +17,8 @@ The visual effects behind them are display only (`src/lib/fx/roomMoments.ts`, `s
 | `room.finalRound` | The last round's title starts (replaces `room.round.N` for that round): gold edge glow, two shock rings, gold rails shooting in, the title punches in. | 2.9 s |
 | `room.winner` | "And the winner is…" starts: a slow ray wheel turns behind the line. | 6.3 s (whole screen) |
 | `room.winner.lock` | Winner reveal, 5.8 s (the drum roll's cut, `WINNER_ROLL_END_MS`): the two sweeping spotlights lock onto the line, the edges are dimmed and a gold spot holds through the silence before the podium. | 0.5 s |
+| `room.award` | The final screen's first award card rises in, 1.3 s after it opens (`PodiumAwards.tsx`; only when someone earned an award). Plays the moment card's recording (`shared.momentcard.mp3`). Not on the shared clock: each phone plays it when its own final screen opens. Skipped, with the animation, under reduced motion or reduced effects. | 0.5 s |
 
 Under prefers-reduced-motion the cues still fire; the effects become a calm fade in place.
 
-Where they fire: `src/lib/fx/useRoomMoments.ts` (`useRoomMomentCues`, called by `src/components/duel/RoomMomentFx.tsx`), mounted by `DuelStart.tsx`, `RoundTitle.tsx` and `WinnerReveal.tsx`.
+Where they fire (all but `room.award`): `src/lib/fx/useRoomMoments.ts` (`useRoomMomentCues`, called by `src/components/duel/RoomMomentFx.tsx`), mounted by `DuelStart.tsx`, `RoundTitle.tsx` and `WinnerReveal.tsx`.

@@ -13,3 +13,9 @@ export const APP_TITLE = `${APP_NAME} — Live skill games with friends`;
  * the High Rise flag all draw this one file, so a new logo needs only a new file here.
  */
 export const APP_LOGO_URL = "/icon-512.png";
+/**
+ * Player icons (src/components/duel/playerIcons.tsx): the one switch for the whole feature. Off,
+ * everyone shows their initial in their colour and the lobby hides the icon picker; stored icons
+ * are kept, just not drawn. Colours are not affected.
+ */
+export const PLAYER_ICONS_ENABLED = true;
