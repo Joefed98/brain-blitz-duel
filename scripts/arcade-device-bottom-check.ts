@@ -76,6 +76,10 @@
  * pixel every 90 ms with a 3 px period, so one phase in three darkened the whole bottom line by 28 %.
  * It prints every game's box, world and bottom gap per configuration (--json=<path> saves them).
  *
+ * Parts (--part=k/n): with n ≥ 4, parts 1…n−3 split the games' layout passes round-robin and parts n−2, n−1 and n
+ * are the Meteor edge passes (full, reduced motion, reduced effects), one each; CI runs @1/6…@6/6 (.github/ci/shards.ts).
+ * With n ≤ 3 the games are split round-robin and the Meteor passes follow Meteor's layout pass in its part.
+ *
  *   bun scripts/arcade-device-bottom-check.ts [games…] [--part=k/n] [--url=<origin>] [--json=<path>] [--verbose]
  */
 import { spawn, type ChildProcess } from "node:child_process";
@@ -357,6 +361,7 @@ function meteorBorderFrame({ k, top, x0, x1 }: { k: number; top: number; x0: num
 }
 
 type MeteorMode = "full" | "reduced-motion" | "reduced-effects";
+const METEOR_MODES: readonly MeteorMode[] = ["full", "reduced-motion", "reduced-effects"];
 
 /**
  * Meteor on the iPhone 11 home-screen app at DPR 2: 5 s of scripted play, the arena's bottom 3 device rows every
@@ -653,6 +658,8 @@ async function main() {
         const d = puzzleDef(t);
         return Boolean(d.arcadeRun || d.category === "arcade");
       });
+  // The Meteor edge passes (full, reduced motion, reduced effects) run after the games when Meteor is among them.
+  let meteorModes: MeteorMode[] = games.includes("snake") ? [...METEOR_MODES] : [];
   const part = opt("part");
   if (part) {
     const [k, n] = part.split("/").map(Number) as [number, number];
@@ -660,8 +667,22 @@ async function main() {
       console.log(`FAIL: bad --part=${part}`);
       process.exit(1);
     }
-    games = games.filter((_, i) => i % n === k - 1);
-    console.log(`part ${k}/${n}: ${games.join(", ")}`);
+    if (n > METEOR_MODES.length && meteorModes.length) {
+      // Parts 1…n−3 share the games' layout passes round-robin; each of the last three parts is one Meteor edge
+      // pass on its own (17 Oct 2026: the three together pushed a half past run-checks' 300 s on CI).
+      const gameParts = n - METEOR_MODES.length;
+      if (k <= gameParts) {
+        games = games.filter((_, i) => i % gameParts === k - 1);
+        meteorModes = [];
+      } else {
+        games = [];
+        meteorModes = [METEOR_MODES[k - gameParts - 1]!];
+      }
+    } else {
+      games = games.filter((_, i) => i % n === k - 1);
+      if (!games.includes("snake")) meteorModes = [];
+    }
+    console.log(`part ${k}/${n}: ${[...games, ...meteorModes.map((m) => `snake bottom edge (${m})`)].join(", ")}`);
   }
   const { origin, proc } = await startServer();
   const { chromium } = await import("playwright");
@@ -670,8 +691,9 @@ async function main() {
   const rows: Row[] = [];
   let measured = 0;
   try {
-    if (games.length)
-      await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(games[0]!), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
+    const first = games[0] ?? (meteorModes.length ? "snake" : undefined);
+    if (first)
+      await warmUp(browser, `${origin}/practice`, (page) => page.getByRole("button", { name: gameDisplayName(first), exact: true }).first().waitFor({ timeout: 180_000 }), { verbose: VERBOSE });
     for (const game of games) {
       const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
       await context.addInitScript(SEED_INIT);
@@ -750,11 +772,7 @@ async function main() {
       const mine = failures.length - before;
       console.log(`${mine ? "FAIL" : "PASS"} ${game} (${gameDisplayName(game)}): ${mine ? `${mine} problem(s)` : `column and lowest control (or box) ${BOTTOM_PX}px above the bottom of the screen, nothing clipped, in all ${CONFIGS.length} configurations; stable for ${STABLE_MS / 1000} s as an iPhone 11 home-screen app`}`);
     }
-    if (games.includes("snake")) {
-      await meteorEdgePass(browser, origin, failures);
-      await meteorEdgePass(browser, origin, failures, "reduced-motion");
-      await meteorEdgePass(browser, origin, failures, "reduced-effects");
-    }
+    for (const mode of meteorModes) await meteorEdgePass(browser, origin, failures, mode);
   } finally {
     await browser.close();
     if (proc?.pid) process.kill(-proc.pid);
@@ -766,7 +784,8 @@ async function main() {
     console.log(`FAIL: ${failures.length} problem(s) (${measured}/${games.length} games measured)`);
     process.exit(1);
   }
-  console.log(`PASS: ${measured} arcade play screens end ${BOTTOM_PX}px above the bottom of the screen with nothing clipped: ${CONFIGS.map((c) => c.key).join(", ")}`);
+  if (games.length) console.log(`PASS: ${measured} arcade play screens end ${BOTTOM_PX}px above the bottom of the screen with nothing clipped: ${CONFIGS.map((c) => c.key).join(", ")}`);
+  if (meteorModes.length) console.log(`PASS: Meteor's bottom edge held on the iPhone 11 home-screen app (${meteorModes.join(", ")})`);
 }
 
 if (import.meta.main) await main();

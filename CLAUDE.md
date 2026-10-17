@@ -64,7 +64,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   100 % of the short viewport they cut tall worlds and the lowest controls 48 px above the screen's bottom (fix-up, 15 Oct
   2026). Every clipping box ends at the screen's bottom; nothing clips above the 16 px strip. Tilt's world is
   centred in its box; Orbit's SET CHECKPOINT is 44 px tall and narrower. arcade-device-bottom-check (headless Chromium,
-  ~5 min, `play1`/`play2` in halves) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
+  in six parts since 17 Oct 2026, when a half with the Meteor passes ran past run-checks' 300 s on CI: its games' layout passes in thirds, `@1/6` and `@2/6` on `play1`/`play2` and `@3/6` on `play10`, and its three Meteor edge passes one each on `play7`–`play9` as `@4/6`–`@6/6`) reproduces the iPhone 11 and 14 home-screen app and Safari geometry (`scripts/device-emulation.ts`:
   the short layout viewport, the full screen, the insets, `navigator.standalone`, which the app keys on, and `display-mode:
   standalone` answered in-page since Chromium cannot emulate it) and fails if any clipping ancestor, html and body included,
   cuts the box, the world, a scene canvas or a control, and (16 Oct 2026, bottom-flash fix-up) fails unless the iPhone 11 home-screen
