@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       duel_players: {
         Row: {
+          colour: number | null
           created_at: string
           display_name: string
           duel_id: string
+          icon: string | null
           id: string
           intro_ready_round: number
           joined_at: string
@@ -28,12 +30,15 @@ export type Database = {
           player_slot: number
           ready_round: number
           status: string
+          submitted_round: number
           user_id: string
         }
         Insert: {
+          colour?: number | null
           created_at?: string
           display_name: string
           duel_id: string
+          icon?: string | null
           id?: string
           intro_ready_round?: number
           joined_at?: string
@@ -43,12 +48,15 @@ export type Database = {
           player_slot: number
           ready_round?: number
           status?: string
+          submitted_round?: number
           user_id: string
         }
         Update: {
+          colour?: number | null
           created_at?: string
           display_name?: string
           duel_id?: string
+          icon?: string | null
           id?: string
           intro_ready_round?: number
           joined_at?: string
@@ -58,6 +66,7 @@ export type Database = {
           player_slot?: number
           ready_round?: number
           status?: string
+          submitted_round?: number
           user_id?: string
         }
         Relationships: [
@@ -129,16 +138,19 @@ export type Database = {
           created_at: string
           duel_id: string
           puzzles_private: Json
+          round_records: Json | null
         }
         Insert: {
           created_at?: string
           duel_id: string
           puzzles_private: Json
+          round_records?: Json | null
         }
         Update: {
           created_at?: string
           duel_id?: string
           puzzles_private?: Json
+          round_records?: Json | null
         }
         Relationships: [
           {
@@ -530,6 +542,7 @@ export type Database = {
           ms_remaining: number
           player_slot: number
           reaction_avg_ms: number | null
+          revision: Json | null
           round_number: number
           score: number
           submitted_at: string
@@ -551,6 +564,7 @@ export type Database = {
           ms_remaining: number
           player_slot: number
           reaction_avg_ms?: number | null
+          revision?: Json | null
           round_number: number
           score: number
           submitted_at: string
@@ -572,6 +586,7 @@ export type Database = {
           ms_remaining?: number
           player_slot?: number
           reaction_avg_ms?: number | null
+          revision?: Json | null
           round_number?: number
           score?: number
           submitted_at?: string
