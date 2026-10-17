@@ -360,12 +360,31 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const scoreRef = useRef<HTMLParagraphElement>(null);
   usePerfectBurst(scoreRef, myScore);
   const shown = myReveal ? revealShown(myReveal, myScore) : null;
+  // The score block's bottom edge, so the scrim behind it covers exactly that much of the frozen world.
+  const head = useRef<HTMLDivElement>(null);
+  const [headBottom, setHeadBottom] = useState(0);
+  useLayoutEffect(() => {
+    const node = head.current;
+    if (!node) return;
+    const measure = () => setHeadBottom(node.offsetTop + node.offsetHeight);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(node);
+    return () => watch.disconnect();
+  }, []);
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
       <Backdrop puzzle={puzzle} answer={myAnswer ?? ""} outcome={myReveal?.outcome ?? null} />
+      {/* Opaque behind the score and its lines, fading out 24 px below, so no world HUD text shows through them. */}
+      <div
+        data-reveal-scrim=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0"
+        style={{ height: headBottom + 32, background: "linear-gradient(to bottom, var(--background) calc(100% - 24px), transparent)" }}
+      />
       {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-4">
-        <div className="flex w-full flex-col items-center gap-1">
+        <div ref={head} className="flex w-full flex-col items-center gap-1">
           {myScore === null ? (
             <div data-reveal-score="pending" className="py-3">
               <WaitingLine label="Scoring…" />

@@ -162,11 +162,11 @@ export function Podium({
         ))}
       </ul>
 
-      {/* Pinned above the chat bar so Play again and Leave never need a scroll. */}
+      {/* Pinned flush on the chat bar, solid, so Play again and Leave never need a scroll and no row shows through. */}
       <div
         data-podium-actions
-        className="sticky z-30 mt-auto flex flex-col gap-2 bg-background/95 pb-1 pt-2"
-        style={{ bottom: `calc(${CHAT_BAR_HEIGHT + 8}px + env(safe-area-inset-bottom, 0px))` }}
+        className="room-sticky-footer sticky z-30 mt-auto flex flex-col gap-2 bg-background pb-2 pt-2"
+        style={{ bottom: `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
       >
         {isHost ? (
           <button
