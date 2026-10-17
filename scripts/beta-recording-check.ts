@@ -786,9 +786,11 @@ if (!bin) {
       const missing = cols(source).filter(
         (c) =>
           !cols(archive).includes(c) &&
-          // Display-only player fields stay out of the archive: the last reaction time, and the
-          // player colour and icon (20261017120000_player_colour_icon.sql).
-          !(source === "duel_players" && ["last_reaction_at", "colour", "icon"].includes(c)),
+          // Display-only player fields stay out of the archive: the last reaction time, the
+          // player colour and icon (20261017120000_player_colour_icon.sql), and the live
+          // "finished" ping's round (20261017140000_player_submitted_round.sql; the archived
+          // round_results already say who answered).
+          !(source === "duel_players" && ["last_reaction_at", "colour", "icon", "submitted_round"].includes(c)),
       );
       check(
         missing.length === 0,

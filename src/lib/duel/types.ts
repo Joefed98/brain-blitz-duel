@@ -456,6 +456,12 @@ export interface DuelPlayerRow {
   colour?: number | null;
   /** A PLAYER_ICON_IDS id, or null for the player's initial; absent before the migration. */
   icon?: string | null;
+  /**
+   * The last round this player's answer was stored for (0: none this game), for the live
+   * "finished" pings (finishedPings.ts); never a score or result. Absent until the
+   * 20261017140000 migration is applied: phones then show no pings.
+   */
+  submitted_round?: number;
 }
 
 export interface RoundResultRow {
@@ -498,9 +504,10 @@ export interface RoundRevealData {
   partial?: boolean;
   /**
    * Reveal phase, arcade rounds: where each other player's run ended on the
-   * reveal track (the reveal's progress axis only, never their answer).
+   * reveal track (the reveal's progress axis) and their stored score for the
+   * reveal's score chart; never their answer.
    */
-  progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string } }[];
+  progress?: { playerSlot: number; axis: { value: number; max: number | null; label: string }; score?: number }[];
   /**
    * Reveal phase, caller has no answer in yet: no answer detail at all (only
    * the public puzzle), so it can't be sent as a late answer. Fetch again once

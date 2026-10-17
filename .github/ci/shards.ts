@@ -42,7 +42,7 @@ export const SHARDS: Record<string, string[]> = {
   play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6"],
   play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
   play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
-  play11: ["bottom-clearance-check.ts@6/8"],
+  play11: ["bottom-clearance-check.ts@6/8", "room-extras-check.ts"],
   play12: ["bottom-clearance-check.ts@7/8"],
   play13: ["bottom-clearance-check.ts@8/8"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and

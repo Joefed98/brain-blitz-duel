@@ -118,6 +118,28 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   too), lobby changes, leaves and Play again with the real server code, the pre-migration fallback, no new client writes,
   the migration on a local PostgreSQL where installed (unique index, constraints, the real `restart_duel_room`, RLS), and
   awards identical for any row order and only when earned.
+- **Practice bests, live "finished" pings and the arcade reveal chart** (17 Oct 2026, presentation and room data only, no
+  version stamps): practice keeps each game's best on the device (`practiceBest.ts`; practice_plays stays server-only)
+  under the game's version-stamp signature (`practiceStamps.ts`: every top-level `…Rev` / `…Version` / `speedPar` of the
+  dealt puzzle), so a game dealt under new stamps starts a fresh best; the list's cards show "Best 132" from
+  `PRACTICE_STAMPS` (`practiceStamps.data.ts`, built by `bun scripts/practice-stamps.ts`; **re-run it after any change to a
+  stamp a generator deals**, practice-bests-check fails until then); the reveal's "New best!" (`NewBestMoment`, cue
+  `shared.momentcard`) shows only when an earlier best was beaten, never on a first run, and is skipped with reduced
+  motion or effects. In a room's live round, other players finishing show as a slim strip, "Ali and Jo finished ✓" with
+  their badges (`finishedPings.ts`, `FinishedPings.tsx`), laid over the score strip (the arcade header's score and round
+  label on arcade play screens), never the play area, timer or controls; silent; no score, answer or result, ever. It
+  reads `duel_players.submitted_round`, written by `submitAnswerFn` after the result row is stored and cleared by
+  `rematchFn` (`finishedPing.server.ts`); the column comes from `supabase/migrations/20261017140000_player_submitted_round.sql`,
+  **written but not applied**: until it is, no pings show and nothing else changes. The room answer reveal for arcade
+  games draws every player's stored score on three rows, 0–50, 51–100, 101–150 (`arcadeChart.ts`, `ArcadeScoreChart`),
+  badges with name and score, stacked into lanes when they would touch, "You" ringed and labelled (never a colour);
+  `ARCADE_CHART_STYLE` picks "snake" (default: one line bending round, the middle row right to left) or "rows"
+  (`?chart=rows|snake` in the address overrides it on a phone, for comparing). For the chart, the reveal phase's arcade
+  progress entries (sent only to players whose own answer is stored) now carry each other player's stored score;
+  answers, lines and details stay closed until the results screen (reveal-window-check). Checks: practice-bests-check
+  (~2 s), finished-pings-check (~2 s), arcade-chart-check (~1 s), room-extras-check (headless Chromium, ~3 min, shard
+  `play11`: ping placement at 414×896 home-screen app and 390×844, chart with 2/6/10 players in both looks;
+  `--shots=<dir>` saves screenshots).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
