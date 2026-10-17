@@ -43,10 +43,11 @@
  *
  * Arcade seams (15 Oct 2026): every arcade play screen is drawn with the 47 px notch and 34 px
  * home bar emulated at 375×667 and 390×844 and fails if any pixel outside its content (the
- * world, the header and HUD text, controls and painted boxes, each with its shadow and 4 px of
- * anti-aliasing) is not the screen edge's black #070709 (within 2 per channel): the sides and
- * the space below the world, around the controls, the 16 px bottom strip, the safe-area strips
- * and the page behind (html and body) are one colour.
+ * world, the game's scene and fill-ins (a canvas; arcade-fill-check judges those), the header
+ * and HUD text, controls and painted boxes, each with its shadow and 4 px of anti-aliasing) is
+ * not the screen edge's black #070709 (within 2 per channel): the sides and the space below
+ * the world, around the controls, the 16 px bottom strip, the safe-area strips and the page
+ * behind (html and body) are one colour.
  *
  *   bun scripts/bottom-clearance-check.ts [games…] [--part=k/n] [--url=<origin>] [--verbose]
  */
@@ -335,8 +336,8 @@ function appMeasure(screenH: number): AppMeasure {
   const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
   if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
   if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
-  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
-  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  // Arena scenes (15 Oct 2026; since 17 Oct 2026 on the play screen itself, to the screen's bottom).
+  const scene = document.querySelector("[data-arcade-play] > [data-arena-scene]");
   if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
   const lowestIs = lowest > -Infinity ? "lowest control" : "arena box";
   const lowestBottom = lowest > -Infinity ? lowest : slot?.getBoundingClientRect().bottom ?? null;

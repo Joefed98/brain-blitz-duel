@@ -10,9 +10,10 @@ ends exactly 16px above it. A home-bar inset does not change any of it (a notch 
 That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play
 screen, and the page's html and body, add the shortfall to their height (15 Oct 2026 and its fix-up; arcade-device-bottom-check,
 arcade-play-check and bottom-clearance-check reproduce it in Chromium and prove nothing clips).
-The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt: centred) and centred across; every gap is the
-screen edge's black (#070709), except where one of ten games extends its own scene to the box's edges (Arena scenes,
-below). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
+The world is drawn at the largest uniform scale that fits the box, top-anchored (Tilt, and since 17 Oct 2026 Pinball, Meteor,
+Scrumper and Gemstone: centred) and centred across. Since the screen fill-ins (17 Oct 2026) every arcade game's space round
+its world is its own scene out to the screen's edges (Arena scenes, below); the engine games without one keep the screen
+edge's black (#070709). Sizes are CSS px, width x height, box → world. Analytic geometry, cross-checked in the
 browser by arcade-play-check; not device measurements.
 
 Worlds are the revisions rooms deal today. Taller worlds: Tuning E (13 Oct 2026) Hover hoverRev 5, High Rise skylineRev 4,
@@ -21,13 +22,13 @@ Fission burstRev 4 (390x650); batch 2 (16 Oct 2026) Tempo beatRev 6, Slice slice
 Mixed Signals clashRev 5 (390x650) and Pull! clayRev 6 (360x680, so it draws 390x737 at 390px wide). Stored rounds on older
 revisions keep their own world in reveals and replays.
 
-| Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Black above | Black below | Black across | Bottom control (gap to bottom) |
+| Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Spare above | Spare below | Spare across | Bottom control (gap to bottom) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Hover | 390x735 | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | 1.000x | 52px | 0px | 41px | 0px | - |
 | Breaker | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Rally | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Tempo | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
-| Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 0px | 52px | 0px | - |
+| Meteor | 390x724 | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | 1.000x | 52px | 26px | 26px | 0px | - |
 | Fission | 390x650 | 375x515 → 309x515 | 390x548 → 329x548 | 390x692 → 390x650 | 414x700 → 414x690 | 430x780 → 430x717 | 1280x648 → 389x648 | 1.000x | 52px | 0px | 42px | 0px | Fission's two 76px arrows: 16px |
 | Wavefront | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Orbit | 390x650 | 375x547 → 328x547 | 390x580 → 348x580 | 390x724 → 390x650 | 414x732 → 414x690 | 430x812 → 430x717 | 1280x680 → 408x680 | 1.000x | 52px | 0px | 74px | 0px | Orbit's SET CHECKPOINT (44px row): 16px |
@@ -41,38 +42,54 @@ revisions keep their own world in reveals and replays.
 | Coral Pop | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
 | Roofbound | 390x620 | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | 1.000x | 52px | 0px | 156px | 0px | - |
 | Grappler | 390x730 | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | 1.000x | 52px | 0px | 46px | 0px | - |
-| Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 0px | 59px | 0px | - |
+| Scrumper | 360x640 | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | 1.083x | 76px | 29px | 29px | 0px | - |
 | Tilt | 440x470 | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | 0.886x | 52px | 180px | 180px | 0px | - |
 | Ball Tracker | 700x1300 | 375x563 → 303x563 | 390x596 → 321x596 | 390x740 → 390x724 | 414x748 → 403x748 | 430x828 → 430x799 | 1280x696 → 375x696 | 0.557x | 52px | 0px | 16px | 0px | Ball Tracker's status row (28px): 16px |
-| Gemstone | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 0px | 216px | 0px | - |
-| Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
+| Gemstone | 390x560 | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | 1.000x | 52px | 108px | 108px | 0px | - |
+| Pinball | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 38px | 38px | 0px | - |
 | Letterfall | 390x700 | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | 1.000x | 52px | 0px | 76px | 0px | - |
 | Tenfall | 360x520 | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | 1.083x | 108px | 0px | 157px | 0px | - |
 | Bonk | square | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | 390.000x | 151.6px | 0px | 286px | 0px | - |
 | Pull! | 360x680 | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | 1.083x | 78px | 0px | 13px | 0px | - |
 | Mixed Signals | 390x650 | 375x539 → 323x539 | 390x572 → 343x572 | 390x716 → 390x650 | 414x724 → 414x690 | 430x804 → 430x717 | 1280x672 → 403x672 | 1.000x | 52px | 0px | 66px | 0px | Mixed Signals' arrows (44px) and joystick (52px), bottom-aligned: 16px |
 
-## Arena scenes (15 Oct 2026)
+## Arena scenes (15 Oct 2026; screen fill-ins 17 Oct 2026)
 
-Ten games paint their own scene behind the world, from the world's edges out to the box's edges, on the play screen
-only (src/lib/arcade/arenaScene.renderer.ts, ARENA_SCENE_GAMES): the scene box is the whole box, the world box is
-unchanged (same size, scale, place and pointer mapping). The scene is drawn once per screen size (never per frame) on a
-pointer-events: none canvas, so a tap or drag in it reaches no game handler and records no input. Scene box → world
-box per size (a 47px notch moves both down 43px and shortens the box by 43px: 390x844 with a notch and home bar is a
-390x733 scene).
+These games paint their own scene behind the world on the play screen only (src/lib/arcade/arenaScene.renderer.ts,
+ARENA_SCENE_GAMES; the fill-ins in arenaFills.renderer.ts). Since 17 Oct 2026 the scene canvas is the whole play screen:
+it runs from the world's edges to the screen's bottom (behind the controls, the 16px strip and the home bar) and sides,
+the header row staying black (Gemstone's velvet runs behind it too). The world box is unchanged (same size, scale and
+pointer mapping). The scene is drawn once per screen size (never per frame) on a pointer-events: none canvas, so a tap or
+drag in it reaches no game handler and records no input; seven games add a slow moving layer over it (lights, notes,
+stars, walkers, lava, reactions) that holds still under reduced motion or reduced effects. Box → world per size.
 
 | Game | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scene beyond the world |
 |---|---|---|---|---|---|---|---|
-| Gemstone | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | more starry velvet backdrop below the board |
-| Tilt | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | the board's rim on more of the lamp-lit wooden table |
 | Bonk | 375x499 → 375x375 | 390x532 → 390x390 | 390x676 → 390x390 | 414x684 → 414x414 | 430x764 → 430x430 | 1280x632 → 632x632 | more grass below the 4x4 field |
 | Tenfall | 375x543 → 375x542 | 390x576 → 390x563 | 390x720 → 390x563 | 414x728 → 414x598 | 430x808 → 430x621 | 1280x676 → 468x676 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
-| Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
-| Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
 | Pull! | 375x573 → 303x573 | 390x606 → 321x606 | 390x750 → 390x737 | 414x758 → 401x758 | 430x838 → 430x812 | 1280x706 → 374x706 | more field below |
-| Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | still deep rock below the floor's rock |
+| Hover | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | the black night sky with faint still stars |
+| Breaker | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the black screen runs on into a dark retro floor (a faint horizon grid) |
+| Rally | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the court's dark floor, five retro lamps lit by Rally's good moments |
+| Tempo | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the four lanes' tints fade into the dark, a few small notes drifting and slowly changing colour |
+| Meteor | 375x599 → 323x599 | 390x632 → 340x632 | 390x776 → 390x724 | 414x784 → 414x769 | 430x864 → 430x798 | 1280x732 → 394x732 | a faint starfield round the board, its stars stepping through the border's colours (world centred) |
+| Fission | 375x515 → 309x515 | 390x548 → 329x548 | 390x692 → 390x650 | 414x700 → 414x690 | 430x780 → 430x717 | 1280x648 → 389x648 | the black arena runs on under the arrows, small faint reactions drifting together and bursting |
+| Wavefront | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the night sky's stars below and beside the world |
+| Orbit | 375x547 → 328x547 | 390x580 → 348x580 | 390x724 → 390x650 | 414x732 → 414x690 | 430x812 → 430x717 | 1280x680 → 408x680 | deep space with light stars under SET CHECKPOINT |
+| High Rise | 375x599 → 318x599 | 390x632 → 335x632 | 390x776 → 390x735 | 414x784 → 414x780 | 430x864 → 430x810 | 1280x732 → 388x732 | a dark road under the tower's base block, softly lit by street lamps |
+| Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip, two or three people strolling along it (none under reduced motion) |
 | Rainbow Bridge | 375x543 → 342x543 | 390x576 → 362x576 | 390x720 → 390x620 | 414x728 → 414x658 | 430x808 → 430x684 | 1280x676 → 425x676 | grass and hillside below the ground (sky, hills and ground beside the world) |
-| Jaywalk | 375x599 → 375x558 | 390x632 → 390x580 | 390x776 → 390x580 | 414x784 → 414x616 | 430x864 → 430x639 | 1280x732 → 492x732 | the start pavement runs on between grass verges to a grass strip |
+| Slice | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | a faded marble worktop under the chopping board |
+| Swish | 375x527 → 367x527 | 390x560 → 390x560 | 390x704 → 390x560 | 414x712 → 414x594 | 430x792 → 430x617 | 1280x660 → 460x660 | the counter's front, a kick board and the fairground floor (sky and counter beside the world) |
+| Flightpath | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the counter's front, a kick board and the fairground floor |
+| Coral Pop | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | the deep water settles onto soft sand |
+| Roofbound | 375x599 → 375x596 | 390x632 → 390x620 | 390x776 → 390x620 | 414x784 → 414x658 | 430x864 → 430x684 | 1280x732 → 460x732 | deep rock below the floor's rock, faint lava streaks drifting and bubbling (still under reduced motion) |
+| Grappler | 375x599 → 320x599 | 390x632 → 338x632 | 390x776 → 390x730 | 414x784 → 414x775 | 430x864 → 430x805 | 1280x732 → 391x732 | more lava under the cavern's lava, then dark rock |
+| Scrumper | 375x575 → 323x575 | 390x608 → 342x608 | 390x752 → 390x693 | 414x760 → 414x736 | 430x840 → 430x764 | 1280x708 → 398x708 | the orchard grass runs on below, a deeper green (world centred) |
+| Tilt | 375x599 → 375x401 | 390x632 → 390x417 | 390x776 → 390x417 | 414x784 → 414x442 | 430x864 → 430x459 | 1280x732 → 685x732 | the board's oak runs on to the screen's edges, settling darker (no rim) |
+| Ball Tracker | 375x563 → 303x563 | 390x596 → 321x596 | 390x740 → 390x724 | 414x748 → 403x748 | 430x828 → 430x799 | 1280x696 → 375x696 | the wooden board runs on across the sides and to the bottom |
+| Gemstone | 375x599 → 375x538 | 390x632 → 390x560 | 390x776 → 390x560 | 414x784 → 414x594 | 430x864 → 430x617 | 1280x732 → 510x732 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
+| Pinball | 375x599 → 334x599 | 390x632 → 352x632 | 390x776 → 390x700 | 414x784 → 414x743 | 430x864 → 430x772 | 1280x732 → 408x732 | the dark table, five retro lamps lit by the table's good moments (world centred) |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 

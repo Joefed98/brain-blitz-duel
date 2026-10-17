@@ -213,8 +213,8 @@ function geometry(): Geometry {
   const world = slot?.querySelector(":scope > [data-game-arena]") ?? null;
   if (slot) clips.push({ what: "arena box", bottom: slot.getBoundingClientRect().bottom, clip: clipBottom(slot) });
   if (world) clips.push({ what: "world", bottom: world.getBoundingClientRect().bottom, clip: clipBottom(world) });
-  // Arena scenes (15 Oct 2026): the game's scenery canvas fills the box, so its bottom is the box's.
-  const scene = slot?.querySelector(":scope > [data-arena-scene]") ?? null;
+  // Arena scenes (15 Oct 2026; since 17 Oct 2026 on the play screen itself, to the screen's bottom).
+  const scene = shell?.querySelector(":scope > [data-arena-scene]") ?? null;
   if (scene) clips.push({ what: "scene canvas", bottom: scene.getBoundingClientRect().bottom, clip: clipBottom(scene) });
   return {
     shell: box(shell),
@@ -412,6 +412,12 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
     });
     const appBox = await boxOf();
     await emulateDevice(page, METEOR_WINDOW);
+    // The phone's window never grows: its play screen is 896 px (848 + the 48 px shortfall). The grown window
+    // is already 896 px, so the shortfall PhoneShell keeps for this screen size (it measures once per size,
+    // never feeding back) is taken off here, as the phone's geometry has it: the play screen stays 896 px and
+    // a centred world (Meteor since 17 Oct 2026, the screen fill-ins) stays where it was laid out.
+    await page.evaluate(() => document.documentElement.style.setProperty("--standalone-short", "0px"));
+    await page.waitForTimeout(200);
     const windowBox = await boxOf();
     if (windowBox !== appBox) {
       failures.push(`${where}: the arena box moved when the window grew to the whole screen (${appBox} as laid out, ${windowBox} with the whole window)`);

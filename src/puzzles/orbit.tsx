@@ -1,3 +1,4 @@
+import { orbitFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
@@ -74,6 +75,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     )}
     <ArcadeCanvasStage
       diagKey="orbit"
+      scene={orbitFill}
       label={gameDisplayName("orbit")}
       background="transparent"
       fitWorld

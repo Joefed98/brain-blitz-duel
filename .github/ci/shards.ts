@@ -42,9 +42,11 @@ export const SHARDS: Record<string, string[]> = {
   play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6"],
   play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
   play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
-  play11: ["bottom-clearance-check.ts@6/8"],
-  play12: ["bottom-clearance-check.ts@7/8"],
-  play13: ["bottom-clearance-check.ts@8/8"],
+  // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
+  // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
+  play11: ["bottom-clearance-check.ts@6/8", "arcade-fill-check.ts@1/3"],
+  play12: ["bottom-clearance-check.ts@7/8", "arcade-fill-check.ts@2/3"],
+  play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

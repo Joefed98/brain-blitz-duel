@@ -14,7 +14,7 @@
  * Since 15 Oct 2026 (arcade play screen) the engine games on the arcade stage draw in the
  * same slot (Tenfall, Pull!, Bonk, Mixed Signals), so their taps are proved here too.
  *
- * Arena scenes (15 Oct 2026): for the ten ARENA_SCENE_GAMES it also taps, long-presses and
+ * Arena scenes (15 Oct 2026): for the ARENA_SCENE_GAMES (every active arcade game since 17 Oct 2026) it also taps, long-presses and
  * drags in the scene below the world (390x844, a 47 px notch and 34 px home bar emulated)
  * and proves nothing is recorded: the scene takes no touches.
  *
@@ -171,7 +171,7 @@ async function sceneRun(browser: import("playwright").Browser, origin: string, g
     const clear = () => page.evaluate(() => { (globalThis as { __inputLog?: unknown[] }).__inputLog = []; });
     const slot = (await page.locator("[data-game-region] [data-arena-slot]").first().boundingBox())!;
     const arena = (await page.locator("[data-game-region] [data-arena-slot] > [data-game-arena]").first().boundingBox())!;
-    const scene = await page.locator("[data-game-region] [data-arena-slot] > [data-arena-scene]").first().boundingBox();
+    const scene = await page.locator("[data-arcade-play] > [data-arena-scene]").first().boundingBox();
     const top = arena.y + arena.height + 3, bottom = slot.y + slot.height - 3;
     // Control: the same time with no touches (a game recording on its own would show here).
     await clear();

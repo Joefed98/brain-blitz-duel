@@ -1,3 +1,4 @@
+import { rallyAmbient, rallyFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -238,7 +239,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={RALLY_WORLD_W} height={rallyWorldHFor(data.rallyRev)}>
+    <ArcadeArenaSlot width={RALLY_WORLD_W} height={rallyWorldHFor(data.rallyRev)} scene={rallyFill} ambient={rallyAmbient}>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"

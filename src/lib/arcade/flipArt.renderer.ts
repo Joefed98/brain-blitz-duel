@@ -785,6 +785,6 @@ export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   }
   const below = sceneBelow(view);
   if (!below) return;
-  sceneFill(ctx, below, H, view.bottom, [[0, "#121216"], [Math.min(1, 160 / below.h), "#0E0E11"], [1, "#0B0B0D"]]);
+  sceneFill(ctx, below, H, view.bottom, [[0, "#121216"], [Math.min(1, 160 / below.h), "#100F13"], [1, "#0F0E12"]]);
   paintRock(below, 907);
 }

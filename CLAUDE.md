@@ -77,6 +77,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
   integer canvas size, never per frame, `pointer-events: none`, so a tap or drag in it records no input); the world, its place
   and its tap mapping are unchanged, and the gap is black elsewhere.
+- **Screen fill-ins** (17 Oct 2026, display only; `src/lib/arcade/arenaFills.renderer.ts`): every active arcade game paints
+  a light, soft backdrop round its world (darker than the play area, starting from the world edge's own colour) out to the
+  screen's bottom (behind the controls, the 16 px strip and the home bar) and, where listed, its sides: ArcadeArenaSlot portals
+  the scene canvas into `[data-arcade-play]` under the column (the header row stays black but for Gemstone's velvet). Seven
+  games add a slow `ambient` layer (Pinball's and Rally's retro lamps, lit only by `arenaLight` from their sound observers;
+  Tempo's notes, Meteor's stars, Jaywalk's walkers, Roofbound's lava, Fission's reactions), still under reduced motion or
+  reduced effects. Pinball, Meteor, Scrumper and Gemstone are centred on the play screen only (`playCentre`). No frame round
+  any world (the play area's accent ring is off on the play screen; real walls in Breaker, Rally, Fission and Gemstone's board
+  are soft shades; Meteor keeps its border). Rally's HUD shows "GOLD n · PADS n" on rallyRev 3+. arcade-fill-check (headless
+  Chromium, ~15-20 s a game, in thirds on `play11`–`play13`) fails on a black strip, a border line or seam at 414×896
+  (home-screen app) and 390×844, or a moving fill under reduced motion. Run it after changing a fill or a world's edge art.
 - `src/lib/arcade/liveBands.ts` — each arcade band game's dealt stamp and curve; the "?" help's numbers (top, a good
   run) come from it, so a new stamp updates the help here (arcade-help-bands-check fails until it does).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game

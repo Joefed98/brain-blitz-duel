@@ -373,11 +373,12 @@ function drawFrame(ctx: CanvasRenderingContext2D): void {
   ctx.lineWidth = 1;
   ctx.stroke();
   // A thin gold inlay just inside the rim, and a diamond stud at each corner.
-  ctx.strokeStyle = "rgba(245,184,46,0.55)";
+  // The board's edge is real (gems stay on it): a soft inlay, not a bright frame (17 Oct 2026, display only).
+  ctx.strokeStyle = "rgba(245,184,46,0.2)";
   ctx.beginPath();
   ctx.roundRect(x + 2.5, y + 2.5, w - 5, h - 5, 8);
   ctx.stroke();
-  ctx.fillStyle = MATCHUP_GOLD;
+  ctx.fillStyle = "rgba(245,184,46,0.35)";
   for (const [sx, sy] of [[x + 2.5, y + 2.5], [x + w - 2.5, y + 2.5], [x + 2.5, y + h - 2.5], [x + w - 2.5, y + h - 2.5]] as const) {
     ctx.beginPath();
     ctx.moveTo(sx, sy - 2.5);

@@ -1,3 +1,4 @@
+import { ballTrackFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -231,7 +232,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
-      <ArcadeArenaSlot width={BT_W} height={BT_H}>
+      <ArcadeArenaSlot width={BT_W} height={BT_H} scene={ballTrackFill}>
         <div
           ref={board}
           data-play-area

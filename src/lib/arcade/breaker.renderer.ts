@@ -163,7 +163,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   // Previous HP remains available until hit effects have observed it.
   memo.set(key, m);
 
-  const wallColour = "#2A4A7A";
+  // The walls are real (the ball bounces off them): a soft edge, not a bright frame (17 Oct 2026, display only).
+  const wallColour = "rgba(42,74,122,0.42)";
   pixelRect(ctx, BRK_WALL - 2, BRK_HUD_H + BRK_WALL - 2, BRK_WORLD_W - 2 * BRK_WALL + 4, 2, wallColour);
   pixelRect(ctx, BRK_WALL - 2, BRK_HUD_H + BRK_WALL - 2, 2, BRK_WORLD_H, wallColour);
   pixelRect(ctx, BRK_WORLD_W - BRK_WALL, BRK_HUD_H + BRK_WALL - 2, 2, BRK_WORLD_H, wallColour);

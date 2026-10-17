@@ -8,8 +8,11 @@
  * (ArcadeArenaSlot, `data-arena-scene`), shown only on the arcade play screen and never
  * hit by a touch (pointer-events: none). Painters draw in world units under the world's
  * own transform: the world rectangle is (0, 0)–(worldW, worldH) and the view is the
- * whole arena box, so the extension is everything outside the world rectangle. Scenes
- * hold no play objects, targets or moving art: only backdrop (sky, grass, rock, wood).
+ * whole play screen (17 Oct 2026: to its bottom and side edges, behind the header, the
+ * controls and the home bar), so the extension is everything outside the world rectangle.
+ * Scenes hold no play objects or targets: only backdrop (sky, grass, rock, wood). The
+ * screen fill-ins (arenaFills.renderer.ts) give every active arcade game one, and a few a
+ * slow moving layer (ArenaAmbient).
  * Never imported by a sim, grader or server code.
  */
 import { artHash } from "./art.renderer";
@@ -24,35 +27,74 @@ export interface ArenaSceneView {
   bottom: number;
   /** CSS px per world unit. */
   scale: number;
+  /** The arena box's top (world units; 0 for a top-anchored world, below 0 above a centred one). */
+  boxTop?: number;
 }
 
 export type ArenaScenePainter = (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void;
 
-/** Games whose arena box shows their own scene instead of the screen edge's black. */
+/**
+ * A moving fill (17 Oct 2026, display only): drawn over the scene, outside the world, at most every
+ * 50 ms of presentation time `t` (ms). `still` (reduced motion or reduced effects) asks for its
+ * resting frame, drawn once: lights dim, colours fixed, nothing drifting, no walkers.
+ */
+export interface ArenaAmbient {
+  /** Where it moves: the band below the world (full width) or the whole screen. */
+  region: "below" | "all";
+  draw: (ctx: CanvasRenderingContext2D, view: ArenaSceneView, t: number, still: boolean) => void;
+}
+
+/**
+ * Games whose play screen shows their own scene instead of the screen edge's black: the three engine
+ * games with one (Bonk, Tenfall, Pull!) and, since the screen fill-ins (17 Oct 2026,
+ * arenaFills.renderer.ts), every active arcade game.
+ */
 export const ARENA_SCENE_GAMES = [
-  "matchup",
-  "tilt",
   "whack",
   "tendrop",
-  "bullseye",
-  "bintoss",
   "clayshoot",
-  "flip",
-  "inkbridge",
+  "hover",
+  "breaker",
+  "rally",
+  "beat",
+  "snake",
+  "burst",
+  "wavefront",
+  "orbit",
+  "skyline",
   "cross",
+  "inkbridge",
+  "slice",
+  "bintoss",
+  "bullseye",
+  "bubble",
+  "flip",
+  "swing",
+  "snip",
+  "tilt",
+  "balltrack",
+  "matchup",
+  "pinball",
 ] as const;
 
-/** The view's band below the world (full view width), or null when there is none. */
+/**
+ * How far a scene runs in under the world's edges (world units, 17 Oct 2026). The world paints over it;
+ * without it the device row a world's fractional edge falls in was half world, half nothing (the page's
+ * black), a dark line where the world meets its scene.
+ */
+export const SCENE_TUCK = 2;
+
+/** The view's band below the world (full view width, tucked SCENE_TUCK under it), or null when there is none. */
 export function sceneBelow(view: ArenaSceneView): { x: number; y: number; w: number; h: number } | null {
   const h = view.bottom - view.worldH;
-  return h > 0.01 ? { x: view.left, y: view.worldH, w: view.right - view.left, h } : null;
+  return h > 0.01 ? { x: view.left, y: view.worldH - SCENE_TUCK, w: view.right - view.left, h: h + SCENE_TUCK } : null;
 }
 
 /** The view's strips beside the world (world height only), each or none. */
 export function sceneSides(view: ArenaSceneView): Array<{ x: number; y: number; w: number; h: number }> {
   const out: Array<{ x: number; y: number; w: number; h: number }> = [];
-  if (view.left < -0.01) out.push({ x: view.left, y: Math.max(view.top, 0), w: -view.left, h: view.worldH - Math.max(view.top, 0) });
-  if (view.right > view.worldW + 0.01) out.push({ x: view.worldW, y: Math.max(view.top, 0), w: view.right - view.worldW, h: view.worldH - Math.max(view.top, 0) });
+  if (view.left < -0.01) out.push({ x: view.left, y: Math.max(view.top, 0), w: -view.left + SCENE_TUCK, h: view.worldH - Math.max(view.top, 0) });
+  if (view.right > view.worldW + 0.01) out.push({ x: view.worldW - SCENE_TUCK, y: Math.max(view.top, 0), w: view.right - view.worldW + SCENE_TUCK, h: view.worldH - Math.max(view.top, 0) });
   return out;
 }
 
