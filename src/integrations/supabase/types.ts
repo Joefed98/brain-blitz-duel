@@ -129,16 +129,19 @@ export type Database = {
           created_at: string
           duel_id: string
           puzzles_private: Json
+          round_records: Json | null
         }
         Insert: {
           created_at?: string
           duel_id: string
           puzzles_private: Json
+          round_records?: Json | null
         }
         Update: {
           created_at?: string
           duel_id?: string
           puzzles_private?: Json
+          round_records?: Json | null
         }
         Relationships: [
           {
@@ -530,6 +533,7 @@ export type Database = {
           ms_remaining: number
           player_slot: number
           reaction_avg_ms: number | null
+          revision: Json | null
           round_number: number
           score: number
           submitted_at: string
@@ -551,6 +555,7 @@ export type Database = {
           ms_remaining: number
           player_slot: number
           reaction_avg_ms?: number | null
+          revision?: Json | null
           round_number: number
           score: number
           submitted_at: string
@@ -572,6 +577,7 @@ export type Database = {
           ms_remaining?: number
           player_slot?: number
           reaction_avg_ms?: number | null
+          revision?: Json | null
           round_number?: number
           score?: number
           submitted_at?: string
