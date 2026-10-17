@@ -8,12 +8,14 @@ import {
   roundVerdict,
   summaryWithoutTime,
 } from "@/lib/duel/resultPresentation";
+import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { PlayerBadge } from "./PlayerBadge";
 
 interface RoundResultsTableProps {
   roundTitle: string;
@@ -21,6 +23,8 @@ interface RoundResultsTableProps {
   best?: string | null;
   rows: Standing[];
   times: ReadonlyMap<number, number | null>;
+  /** Everyone's colour and icon. */
+  looks?: PlayerLooks;
   mySlot: number;
   autoSeconds: number;
   finalRound: boolean;
@@ -34,6 +38,7 @@ export function RoundResultsTable({
   best,
   rows,
   times,
+  looks,
   mySlot,
   autoSeconds,
   finalRound,
@@ -103,6 +108,7 @@ export function RoundResultsTable({
                 )}
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-1.5">
+                    <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={18} />
                     <span className="truncate font-display text-xs font-semibold text-foreground">
                       {row.name}
                     </span>

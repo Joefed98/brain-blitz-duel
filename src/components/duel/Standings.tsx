@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
@@ -7,6 +8,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { PlayerBadge } from "./PlayerBadge";
 
 function Arrow({ standing }: { standing: Standing }) {
   const change = positionChange(standing);
@@ -25,13 +27,15 @@ interface StandingsProps {
   /** The room's own round count; older rooms default to six. */
   totalRounds?: number;
   rows: Standing[];
+  /** Everyone's colour and icon. */
+  looks?: PlayerLooks;
   mySlot: number;
   autoSeconds: number;
   continueState: ContinueState;
 }
 
 /** The ranked table between rounds in a room of three or more. */
-export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, autoSeconds, continueState }: StandingsProps) {
+export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySlot, autoSeconds, continueState }: StandingsProps) {
   const nodes = useRef(new Map<number, HTMLLIElement>());
   const offsets = useRef(new Map<number, number>());
   const [displayRows, setDisplayRows] = useState(() => previousStandingOrder(rows));
@@ -94,7 +98,8 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, mySlot, aut
                   {row.position}
                 </span>
                 <Arrow standing={row} />
-                <span className="min-w-0">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={20} />
                   <span className="block truncate font-display text-sm text-foreground">
                     {row.name}
                   </span>

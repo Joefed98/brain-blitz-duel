@@ -17,6 +17,7 @@ import {
   rematchFn,
   removePlayerFn,
   revealAnswerFn,
+  setPlayerLookFn,
   setRoomModesFn,
   disbandRoomFn,
   checkHostPresenceFn,
@@ -27,6 +28,7 @@ import {
 import type { MovesView } from "./moves";
 import type { LinkRoomState } from "./roomLink";
 import { ensureSession } from "./session";
+import { rememberLook, rememberedLook, type PlayerLook } from "./playerLook";
 import type { DuelPlayerRow, DuelRow, RoundResultRow, RoundRevealData } from "./types";
 import type { PuzzleCategory } from "./types";
 
@@ -74,7 +76,8 @@ export async function fetchResults(duelId: string): Promise<RoundResultRow[]> {
 
 export async function createRoom(displayName: string): Promise<{ roomCode: string }> {
   await ensureSession();
-  const result = await createRoomFn({ data: { displayName } });
+  // The colour and icon this device last chose, used when free (playerLook.ts).
+  const result = await createRoomFn({ data: { displayName, look: rememberedLook() } });
   return { roomCode: result.roomCode };
 }
 
@@ -85,7 +88,9 @@ export async function joinRoomByCode(
   via?: "code" | "link",
 ): Promise<{ roomCode: string }> {
   await ensureSession();
-  const result = await joinRoomFn({ data: { roomCode, displayName, ...(via ? { via } : {}) } });
+  const result = await joinRoomFn({
+    data: { roomCode, displayName, look: rememberedLook(), ...(via ? { via } : {}) },
+  });
   if (!result.ok) throw new DuelError(result.message);
   return { roomCode: result.roomCode };
 }
@@ -101,6 +106,13 @@ export async function setRoomModes(
 ): Promise<void> {
   const result = await setRoomModesFn({ data: { roomId, categories } });
   if (!result.ok) throw new DuelError(result.message);
+}
+
+/** In the lobby: change my colour and/or icon; the device remembers the choice for the next room. */
+export async function setPlayerLook(roomId: string, look: Partial<PlayerLook>): Promise<void> {
+  const result = await setPlayerLookFn({ data: { roomId, ...look } });
+  if (!result.ok) throw new DuelError(result.message);
+  rememberLook(look);
 }
 
 export async function disbandRoom(roomId: string): Promise<void> {

@@ -11,10 +11,17 @@ import {
   type RoomMessageRow,
 } from "@/lib/duel/chatConstants";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
+import type { PlayerLook, PlayerLooks } from "@/lib/duel/playerLook";
+import type { DuelPlayerRow } from "@/lib/duel/types";
+
+import { PlayerBadge } from "./PlayerBadge";
 
 interface RoomChatProps {
   chat: RoomChatState;
   myUserId: string;
+  /** The room's players and their colours: each message's sender gets their badge. */
+  players?: DuelPlayerRow[];
+  looks?: PlayerLooks;
   available?: boolean;
   screenLabel?: string;
 }
@@ -51,10 +58,12 @@ export function ReactionLayer({ chat }: { chat: RoomChatState }) {
 function MessageRow({
   message,
   mine,
+  look,
   onLongPress,
 }: {
   message: RoomMessageRow;
   mine: boolean;
+  look?: PlayerLook | undefined;
   onLongPress: () => void;
 }) {
   const timer = useRef<number | null>(null);
@@ -85,6 +94,7 @@ function MessageRow({
       }}
       className="px-1 py-1 text-left text-sm leading-snug"
     >
+      <PlayerBadge look={look} name={message.sender_name} size={16} className="mr-1.5 align-[-3px]" />
       <span className={mine ? "font-semibold text-primary" : "font-semibold text-foreground"}>
         {message.sender_name}:
       </span>{" "}
@@ -97,9 +107,15 @@ function MessageRow({
 export function RoomChat({
   chat,
   myUserId,
+  players = [],
+  looks,
   available = true,
   screenLabel = "Lobby",
 }: RoomChatProps) {
+  const lookOf = (userId: string) => {
+    const slot = players.find((p) => p.user_id === userId)?.player_slot;
+    return slot === undefined ? undefined : looks?.get(slot);
+  };
   const [text, setText] = useState("");
   const [menuFor, setMenuFor] = useState<RoomMessageRow | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -341,6 +357,7 @@ export function RoomChat({
                 key={message.id}
                 message={message}
                 mine={message.sender_user_id === myUserId}
+                look={lookOf(message.sender_user_id)}
                 onLongPress={() => setMenuFor(message)}
               />
             ))}

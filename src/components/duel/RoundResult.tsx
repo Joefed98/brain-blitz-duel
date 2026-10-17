@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
+import type { PlayerLook } from "@/lib/duel/playerLook";
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import {
@@ -11,6 +12,7 @@ import {
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { PlayerBadge } from "./PlayerBadge";
 
 function SummaryLine({ verdict, summary }: { verdict: RoundVerdict; summary: string }) {
   const rest = summaryWithoutTime(summary);
@@ -30,6 +32,8 @@ interface RoundResultProps {
   best?: string | null;
   myName: string;
   opponentName: string;
+  myLook?: PlayerLook | undefined;
+  opponentLook?: PlayerLook | undefined;
   myRoundScore: number;
   myVerdict: RoundVerdict;
   mySummary: string;
@@ -50,6 +54,8 @@ export function RoundResult({
   best,
   myName,
   opponentName,
+  myLook,
+  opponentLook,
   myRoundScore,
   myVerdict,
   mySummary,
@@ -101,7 +107,10 @@ export function RoundResult({
               iWon ? "border-me/60 bg-me/10" : "border-border bg-card"
             } ${theyWon ? "opacity-60" : ""}`}
           >
-            <p className="truncate font-display text-sm text-me">{myName}</p>
+            <p className="flex min-w-0 items-center gap-1.5 font-display text-sm text-me">
+              <PlayerBadge look={myLook} name={myName} size={20} />
+              <span className="truncate">{myName}</span>
+            </p>
             <p className="font-mono text-[11px] tabular-nums text-foreground/80">{myTime}</p>
             <SummaryLine verdict={myVerdict} summary={mySummary} />
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-me">
@@ -124,7 +133,10 @@ export function RoundResult({
               theyWon ? "border-opponent/60 bg-opponent/10" : "border-border bg-card"
             } ${iWon ? "opacity-60" : ""}`}
           >
-            <p className="truncate font-display text-sm text-opponent">{opponentName}</p>
+            <p className="flex min-w-0 items-center justify-end gap-1.5 font-display text-sm text-opponent">
+              <span className="truncate">{opponentName}</span>
+              <PlayerBadge look={opponentLook} name={opponentName} size={20} />
+            </p>
             <p className="font-mono text-[11px] tabular-nums text-foreground/80">{opponentTime}</p>
             <SummaryLine verdict={opponentVerdict} summary={opponentSummary} />
             <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-opponent">

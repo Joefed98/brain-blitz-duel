@@ -280,7 +280,7 @@ const create = server.slice(
   server.indexOf("/** How many answers are in for a round. */"),
 );
 check(
-  /await insertPlayer\(client, room\.id, 1, userId, displayName\);\s*await recordJoin\(client, \{[^}]*via: "host" \}\);/.test(
+  /await insertPlayer\(client, room\.id, 1, userId, displayName(?:, look)?\);\s*await recordJoin\(client, \{[^}]*via: "host" \}\);/.test(
     create,
   ),
   "wiring: the room's creator is recorded as joining by 'host'",
@@ -293,7 +293,7 @@ check(
   "wiring: joinRoomFn keeps its room-lookup rate limit first, then reads the join method",
 );
 check(
-  /await insertPlayer\(client, room\.id, slot, context\.userId, data\.displayName\);\s*await recordJoin\(client, \{[\s\S]*via,\s*\}\);/.test(
+  /await insertPlayer\(client, room\.id, slot, context\.userId, data\.displayName(?:, data\.look \?\? \{\})?\);\s*await recordJoin\(client, \{[\s\S]*via,\s*\}\);/.test(
     joinFn,
   ),
   "wiring: a new player's join records its method",
@@ -324,7 +324,7 @@ check(
   "wiring: the room link's join card joins with via 'link'",
 );
 check(
-  /joinRoomFn\(\{ data: \{ roomCode, displayName, \.\.\.\(via \? \{ via \} : \{\}\) \} \}\)/.test(
+  /joinRoomFn\(\{\s*data: \{ roomCode, displayName, (?:look: rememberedLook\(\), )?\.\.\.\(via \? \{ via \} : \{\}\) \},?\s*\}\)/.test(
     readFileSync("src/lib/duel/api.ts", "utf8"),
   ),
   "wiring: api.ts passes the method through",
@@ -785,7 +785,10 @@ if (!bin) {
     ] as const) {
       const missing = cols(source).filter(
         (c) =>
-          !cols(archive).includes(c) && !(source === "duel_players" && c === "last_reaction_at"),
+          !cols(archive).includes(c) &&
+          // Display-only player fields stay out of the archive: the last reaction time, and the
+          // player colour and icon (20261017120000_player_colour_icon.sql).
+          !(source === "duel_players" && ["last_reaction_at", "colour", "icon"].includes(c)),
       );
       check(
         missing.length === 0,
