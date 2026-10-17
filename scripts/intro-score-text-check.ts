@@ -23,13 +23,15 @@ for (const type of Object.keys(PUZZLE_INSTRUCTIONS)) {
   if (!PUZZLE_INSTRUCTIONS[type as keyof typeof PUZZLE_INSTRUCTIONS]?.score) failures.push(`${type}: no "?" help score text`);
 }
 // Oct 2026 score bands: every active arcade intro says how to reach the top (no partial cap is stated),
-// and the "?" help gives the band knots.
+// and the "?" help says it plainly (more, higher score; what a good run takes; arcade-help-bands-check has the numbers).
 for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
   checks++;
   const text = INTRO_SCORE[type];
   if (!/150|10 more/.test(text)) failures.push(`${type}: intro does not say how to reach the top: "${text}"`);
   if (/otherwise up to \d+/.test(text)) failures.push(`${type}: intro still states a partial cap: "${text}"`);
-  if (!PUZZLE_INSTRUCTIONS[type].score.includes("Points follow")) failures.push(`${type}: "?" help has no band knots`);
+  const help = PUZZLE_INSTRUCTIONS[type].score;
+  if (!help.includes("higher score") || !help.includes("A good run (100 points)")) failures.push(`${type}: "?" help has no plain band line`);
+  if (/→|Points follow/.test(help)) failures.push(`${type}: "?" help still lists band knots`);
 }
 if (failures.length) {
   console.log(failures.join("\n"));

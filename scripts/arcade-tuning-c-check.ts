@@ -223,7 +223,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
     }
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("63") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("103") && PUZZLE_INSTRUCTIONS.beat.score.includes("114"), "the \"?\" help states the new knots (Tempo's are Tuning F's since beatRev 5, which keeps Tuning C's levels)");
+  // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 204") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 58") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 795"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

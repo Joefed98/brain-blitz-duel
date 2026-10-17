@@ -34,7 +34,7 @@ import { TUNING_F_GAMES, type TuningFRecord } from "./arcade-tuning-f-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillLevel, type SkillProfile } from "./arcade-skill-bands/human";
 import { puzzleUsesBands } from "../src/lib/arcade/bandParts";
-import { bandKnotText, bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
+import { bandPoints, bandTop } from "../src/lib/arcade/scoreBands";
 import {
   breakerGameFor,
   BRK_FIRE_TICKS_V4,
@@ -59,7 +59,6 @@ import {
   RALLY_REV_TUNED,
   RALLY_REV_TUNEF,
   RALLY_V5_BAND_CURVE,
-  RALLY_V6_BAND_CURVE,
   type RallyState,
 } from "../src/lib/arcade/rally";
 import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
@@ -510,9 +509,9 @@ section("Intro and \"?\" help");
 {
   const help = (type: keyof typeof PUZZLE_INSTRUCTIONS) => JSON.stringify(PUZZLE_INSTRUCTIONS[type]);
   if (want("breaker")) ok(help("breaker").includes("2.5 seconds") && !help("breaker").includes("3.5 seconds"), "Breaker: the Fireball lasts 2.5 seconds");
-  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(bandKnotText(RALLY_V6_BAND_CURVE)) && /5 a paddle hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the knots new rooms score on (rallyRev 6) and one value each for a gold hit (5) and a pink pad (6)");
-  if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("662") && PUZZLE_INSTRUCTIONS.beat.score.includes("114"), "Tempo: the beatRev 5 knots");
-  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("33"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 6 knots");
+  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes("150 at 220. A good run (100 points) counts 111") && /5 a paddle hit/.test(help("rally")) && /counts 6/.test(help("rally")) && !/\+3|scores 3/.test(help("rally")), "Rally: the second bumper from 45 s, the top and a good run new rooms score on (rallyRev 6) and one value each for a gold hit (5) and a pink pad (6)");
+  if (want("beat")) ok(PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 795"), "Tempo: a good run on the curve rooms deal (beatRev 6 keeps beatRev 5's)");
+  if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the snakeRev 6 top");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");
 }
 

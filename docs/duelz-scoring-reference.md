@@ -275,7 +275,7 @@ At the buzzer the phone submits its draft answer with 0 ms left, and it is grade
   - **Open games** (no finish): the curve tops out at 150 at a near-perfect figure (`bandOpen`).
   - Total = clamp(points + bonus − penalty, 0, 150) (`bandTotal`); **a run with no input scores 0** (`acted`).
   - Which rules apply is decided by the state, not the puzzle: the revision's `<game>GameFor(rev)` init calls `bandInit` (`band: 1, acted: 0`) and `bandScoreOf` scores by `state.band`, else by the original formula; the reveal does the same. `BAND_STAMPS` / `puzzleUsesBands` (stamp ≥ the band revision) are used by the checks.
-  - Each band revision plays the previous live revision unchanged; later revisions (Tunings A, B, C, E, F) change play or curves under new stamps. Every "?" help string is generated from the current curve (`bandHelp`), so the help shows the live knots.
+  - Each band revision plays the previous live revision unchanged; later revisions (Tunings A, B, C, E, F) change play or curves under new stamps. Every "?" help string is generated from the curve of the revision new rooms deal (`liveBandHelp`, `src/lib/arcade/liveBands.ts`): one plain line, the top and what a good run (100 points) takes, no knot list (screen audit follow-up, 16 Oct 2026; arcade-help-bands-check).
 - **Target bands** (the same simulated skill level should land in a similar band in every game, measured by `scripts/arcade-skill-bands.ts` through the server's own replay): average 60–80 (aim 70), good 90–110 (aim 100), great 115–135 (aim 125), near-perfect 140–150, a perfect run 150.
 
 ### 10.2 Current scoring per game

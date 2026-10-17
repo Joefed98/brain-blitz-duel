@@ -77,6 +77,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   behind the world out to the arena box's edges on the play screen (ArcadeArenaSlot `scene`, one canvas painted per
   integer canvas size, never per frame, `pointer-events: none`, so a tap or drag in it records no input); the world, its place
   and its tap mapping are unchanged, and the gap is black elsewhere.
+- `src/lib/arcade/liveBands.ts` — each arcade band game's dealt stamp and curve; the "?" help's numbers (top, a good
+  run) come from it, so a new stamp updates the help here (arcade-help-bands-check fails until it does).
 - `src/lib/arcade/` — the deterministic engine (`engine.ts`) and one sim per arcade game
   (`<game>.ts`), with art in `*.renderer.ts` (never imported by the sim or server).
   Seeds and revision stamps come from `src/lib/duel/arcade.server.ts`.

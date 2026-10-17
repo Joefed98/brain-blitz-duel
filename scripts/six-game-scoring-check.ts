@@ -67,7 +67,7 @@ for (const home of [0, 15, 29, 30]) {
   eq(reveal?.lines[0]?.startsWith(`${home} / 30 home`), true, "Ball Track breakdown");
 }
 eq(buildArcadeReveal("matchup", { raw: 2500 }, 150)?.axis.max, 2500, "Matchup reveal par");
-// Oct 2026 score bands: intros describe the band rules in plain words (the exact knots live in the "?" help).
+// Oct 2026 score bands: intros describe the band rules in plain words (the "?" help gives the top and a good run).
 for (const [type, text] of [["balltrack", "all 30 home"], ["junction", "± for ambulances"], ["rally", "pink target"], ["skyline", "perfects in a row"]] as const) eq(INTRO_SCORE[type].includes(text), true, `${type} intro`);
 for (const [type, text] of [["matchup", "2,800"], ["bullseye", "plus +1, +2 or +3 for each balloon"], ["junction", "one stopped takes 4 off"], ["skyline", "perfect drop counts 5"], ["rally", "gold-ball hit counts 5"], ["balltrack", "56.5 s"]] as const) eq(PUZZLE_INSTRUCTIONS[type].score.includes(text), true, `${type} help`);
 // The 11 Oct 130 / 150 split is gone from every intro: no partial cap is stated any more.
