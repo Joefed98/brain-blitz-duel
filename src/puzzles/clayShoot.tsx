@@ -35,7 +35,7 @@ import {
   clayWorldHFor,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
-import { CLAY_WAITING, clayChargesEmptyShots, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV, CLAY_REV5, CLAY_REV_TALL } from "@/lib/arcade/clayShoot";
+import { CLAY_WAITING, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV } from "@/lib/arcade/clayShoot";
 import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
@@ -397,10 +397,6 @@ export const clayShootPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "clayshoot", seed: 1, clayRev: CLAY_REV }) satisfies ClayShootPuzzleData,
   check: () => false,
   revealHeading: "Your run",
-  introLine: (puzzle) =>
-    puzzle.type === "clayshoot" && clayChargesEmptyShots(puzzle.clayRev)
-      ? `${puzzle.clayRev === CLAY_REV5 || puzzle.clayRev === CLAY_REV_TALL ? "14–16 birds cross: don't" : "Don't"} shoot them — each one costs 10. Aim: after ${CLAY_FREE_EMPTY_SHOTS} shots that hit nothing, every ${CLAY_EMPTY_SHOTS_PER_POINT} more cost 1.`
-      : "Don't shoot the birds — each one costs 10.",
   IntroExample,
   Stage,
   Reveal,

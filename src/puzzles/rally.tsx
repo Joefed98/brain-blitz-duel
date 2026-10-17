@@ -25,6 +25,7 @@ import {
   RALLY_BG,
   RALLY_CHECKPOINT_INTERVAL,
   RALLY_GOLD,
+  RALLY_REV_BAND,
   RALLY_RUN_TICKS,
   rallyWorldHFor,
   RALLY_WORLD_W,
@@ -279,8 +280,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         />
       </div>
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.goldHits} gold hit{result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down)
-        {puzzle.rallyRev ? ` + ${result.targetHits} target${result.targetHits === 1 ? "" : "s"} × 3` : ""} ·{" "}
+        {/* The values the scorer uses: band revisions (rallyRev 3+) count 5 a gold hit and 6 a pad on the band curve. */}
+        {(puzzle.rallyRev ?? 0) >= RALLY_REV_BAND
+          ? `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 5 + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 6`
+          : `${result.goldHits} gold hit${result.goldHits === 1 ? "" : "s"} × 2.5 (rounded down)${puzzle.rallyRev ? ` + ${result.targetHits} pad${result.targetHits === 1 ? "" : "s"} × 3` : ""}`} ·{" "}
         {result.survived ? "survived" : `lost at ${result.endedSeconds.toFixed(1)}s`}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">

@@ -160,8 +160,8 @@ function Panel({
               aria-label={`Button ${button.label}`}
               className={`logic-bomb-cap flex items-center justify-center rounded-full border-2 font-mono text-xs font-bold ${justPressed ? "logic-bomb-cap-press" : ""}`}
               style={{
-                width: compact ? 24 : 40,
-                height: compact ? 24 : 40,
+                width: compact ? 24 : 44,
+                height: compact ? 24 : 44,
                 backgroundColor: WIRE_HEX[button.colour],
                 borderColor: isDown ? "#F5B82E" : button.colour === "BLACK" ? "#6A6A74" : "transparent",
                 color: button.colour === "BLACK" ? "#F2F2F2" : "#111",
@@ -370,7 +370,7 @@ function Stage({
             soundCue("bomb.defuse");
             onSubmit(encodeBombActions(actions));
           }}
-          className="h-9 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
+          className="h-11 w-3/4 rounded-lg px-4 font-display text-[10.5px] font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Defuse
         </Button>

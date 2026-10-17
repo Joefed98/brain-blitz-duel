@@ -122,7 +122,8 @@ const table = (highlight?: React.ReactNode) =>
 const plain = table();
 const withPanel = table(marker);
 ok(
-  withPanel.includes("data-continue-footer") && withPanel.includes("Continue (8s)"),
+  withPanel.includes("data-continue-footer") &&
+    withPanel.replace(/<[^>]+>/g, "").includes("Continue (8s)"),
   "RoundResultsTable: Continue missing with a highlight",
 );
 ok(strip(withPanel) === plain, "RoundResultsTable: a highlight changed the rest of the screen");

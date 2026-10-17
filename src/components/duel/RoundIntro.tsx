@@ -13,7 +13,7 @@ import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
-import { hasIntroDemo, IntroDemo } from "./IntroDemo";
+import { hasIntroDemo, IntroDemo, useArcadeIntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroFit } from "./IntroFit";
 
@@ -71,6 +71,10 @@ export function RoundIntro({
   const Example = puzzleDef(type).IntroExample;
   const savedPuzzleDemo = usePuzzleDemo(type);
   const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
+  // Engine games show their demo only once a recorded one is there to play; a stopped or missing demo
+  // leaves no demo area (no still frame, no DEMO tag) until it is re-recorded.
+  const savedArcadeDemo = useArcadeIntroDemo(type);
+  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
   // Arcade phases carry 3 s of invisible slack; show the run length only.
   // Any puzzle that carries its own stored clock shows it (Bomb v2 90 s, Counterweight balanceRev 2 120 s,
@@ -191,16 +195,22 @@ export function RoundIntro({
         </div>
       ) : (
         <>
-          <div ref={contentRef} className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-hidden py-1">
-            {hasIntroDemo(type) ? (
+          {/* Without its demo an engine game's intro is text only: centred, so the screen still reads as complete. */}
+          <div
+            ref={contentRef}
+            className={`round-intro-content flex min-h-0 flex-1 flex-col items-center gap-2 overflow-hidden py-1 ${hasIntroDemo(type) && !arcadeDemo ? "justify-center" : "justify-start"}`}
+          >
+            {arcadeDemo ? (
               <PuzzleInstructions
                 type={type}
                 beforeScore={
                   <IntroFit>
-                    <IntroDemo type={type} puzzle={puzzle} />
+                    <IntroDemo type={type} demo={arcadeDemo} />
                   </IntroFit>
                 }
               />
+            ) : hasIntroDemo(type) ? (
+              <PuzzleInstructions type={type} />
             ) : puzzleDemo ? (
               <PuzzleInstructions
                 type={type}

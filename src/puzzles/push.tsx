@@ -82,7 +82,7 @@ function IntroExample() {
         <span className="text-lg text-primary">▶</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer pushes earns a bonus. You have 120 seconds.
+        Fewer pushes earn a bonus. You have 120 seconds.
       </p>
     </div>
   );

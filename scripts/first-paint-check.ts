@@ -20,13 +20,23 @@
  * stage's largest descendant), and fails if any of them is ever more than 0.5 px from where
  * it ends up, or if the page is scrolled while the round is up.
  *
- *   bun scripts/first-paint-check.ts [games…] [--verbose]
+ * Standalone, late geometry (17 Oct 2026, fix-up after #95): an iOS home-screen app reopened
+ * after being closed settles its geometry after the round's first frame: it lays the page out
+ * full height with no safe-area insets, then short by the top inset (the 48 px shortfall of
+ * WebKit bug 254868) with the 48 / 34 px insets. A second pass opens a sample of the same
+ * rounds as a home-screen app (navigator.standalone) laid out 414 × 896 with no insets and,
+ * from the stage's first animation frame, applies the 414 × 848 layout viewport and the insets
+ * (CDP, as iOS does, a frame or two late). A round must not be seen to move: frames where the
+ * game column is held hidden (PhoneShell's geometry hold, data-geometry-hold) are not judged,
+ * every visible one is, and the late geometry must have landed.
+ *
+ *   bun scripts/first-paint-check.ts [games…] [--verbose] [--late-only]
  */
 import { existsSync } from "node:fs";
 import type { Page } from "playwright";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
+import { DEVICE_INIT, IPHONE11_APP, emulateDevice, type DeviceConfig } from "./device-emulation";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
@@ -36,6 +46,8 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
+/** Only the standalone late-geometry pass. */
+const LATE_ONLY = args.includes("--late-only");
 const CHROMIUM = [
   process.env.PLAYWRIGHT_CHROMIUM,
   "/opt/pw-browsers/chromium",
@@ -72,13 +84,40 @@ const ROOM_GAMES: PuzzleType[] = ["wordsmith", "target", "flow", "sudoku"];
 const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
 const practiceGames = named.length ? named : PRACTICE_GAMES;
 const roomGames = named.length ? named : ROOM_GAMES;
+/** The standalone late-geometry pass: a game or more per category, practice and room. */
+const LATE_PRACTICE_GAMES: PuzzleType[] = [
+  "wordsmith",
+  "target",
+  "stopwatch",
+  "symscan",
+  "flow",
+  "sudoku",
+  "bomb",
+];
+const LATE_ROOM_GAMES: PuzzleType[] = ["wordsmith", "flow"];
+const latePracticeGames = named.length ? named : LATE_PRACTICE_GAMES;
+const lateRoomGames = named.length ? named : LATE_ROOM_GAMES;
+/** A reopened home-screen app's first geometry: laid out the whole screen, no insets yet. */
+const LATE_START: DeviceConfig = {
+  ...IPHONE11_APP,
+  key: "iphone11-app-late",
+  label: "iPhone 11 home-screen app reopened (414x896, insets and shortfall late)",
+  h: IPHONE11_APP.screenH,
+  top: 0,
+  bottom: 0,
+};
 /** Allowed drift from the final box, in CSS px. */
 const TOLERANCE_PX = 0.5;
 const RECORD_MS = 1200;
 const CPU_SLOWDOWN = 4;
 
 const puzzles: Record<string, PuzzleData> = {};
-for (const type of new Set([...practiceGames, ...roomGames]))
+for (const type of new Set([
+  ...practiceGames,
+  ...roomGames,
+  ...latePracticeGames,
+  ...lateRoomGames,
+]))
   puzzles[type] = splitPuzzle(withSeededRandom(41, () => generatePuzzle(type))).pub as PuzzleData;
 
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -124,8 +163,13 @@ function roomState(type: PuzzleType) {
   };
 }
 
-/** In-page: from the first frame the stage exists, every frame's boxes. */
-const RECORDER = `(() => {
+/**
+ * In-page: from the first frame the stage exists, every frame's boxes, whether the game column
+ * is held hidden, and (late pass) the late geometry asked for on that first frame.
+ */
+const RECORDER = (late: boolean) => `(() => {
+  const late = ${late};
+  let asked = false;
   const frames = [];
   window.__paintFrames = frames;
   const ids = new WeakMap();
@@ -135,6 +179,10 @@ const RECORDER = `(() => {
   const tick = () => {
     const stage = document.querySelector("[data-game-stage]");
     if (stage) {
+      if (late && !asked) {
+        asked = true;
+        window.__applyLate();
+      }
       const boxes = {};
       const put = (el, kind) => {
         const r = el.getBoundingClientRect();
@@ -147,7 +195,8 @@ const RECORDER = `(() => {
         const r = el.getBoundingClientRect();
         if (r.width * r.height >= 4000) put(el, "board");
       }
-      frames.push({ t: performance.now() - started, scrollY: window.scrollY, boxes });
+      const hidden = !stage.checkVisibility({ visibilityProperty: true });
+      frames.push({ t: performance.now() - started, scrollY: window.scrollY, hidden, innerH: window.innerHeight, boxes });
     }
     if (performance.now() - started < 30000) requestAnimationFrame(tick);
   };
@@ -157,13 +206,21 @@ const RECORDER = `(() => {
 interface Frame {
   t: number;
   scrollY: number;
+  /** The game column held hidden (not drawn): not judged. */
+  hidden: boolean;
+  innerH: number;
   boxes: Record<string, { kind: string; x: number; y: number; w: number; h: number; area: number }>;
 }
 
 /** Judge a recording: the stage, the arenas and the board never away from their final boxes. */
-function judge(frames: Frame[]): string[] {
+function judge(recorded: Frame[], late = false): string[] {
   const problems: string[] = [];
-  if (frames.length < 3) return [`only ${frames.length} frame(s) recorded`];
+  if (late && recorded[recorded.length - 1]?.innerH !== IPHONE11_APP.h)
+    problems.push(
+      `the late geometry never landed (innerHeight ${recorded[recorded.length - 1]?.innerH})`,
+    );
+  const frames = recorded.filter((f) => !f.hidden);
+  if (frames.length < 3) return [...problems, `only ${frames.length} visible frame(s) recorded`];
   const last = frames[frames.length - 1]!;
   // The board: the largest descendant box that is not the stage itself and is narrower than it
   // or shorter (the column wrappers span the stage; the board is the largest thing in it).
@@ -253,11 +310,30 @@ async function open(
   mode: "practice" | "room",
   room: unknown,
   where: string,
+  late = false,
 ): Promise<{ page: Page; close: () => Promise<void> }> {
+  const device = late ? LATE_START : IPHONE11_APP;
   const context = await browser.newContext({
-    viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h },
+    viewport: { width: device.w, height: device.h },
   });
   await context.addInitScript(DEVICE_INIT);
+  if (late) {
+    // The geometry iOS settles late: the short layout viewport and the insets, sent (not
+    // awaited by the page) from the stage's first frame.
+    await context.exposeBinding("__applyLate", async ({ page }) => {
+      const cdp = await page.context().newCDPSession(page);
+      await Promise.all([
+        cdp.send(
+          "Emulation.setSafeAreaInsetsOverride" as never,
+          {
+            insets: { top: IPHONE11_APP.top, bottom: IPHONE11_APP.bottom, left: 0, right: 0 },
+          } as never,
+        ),
+        page.setViewportSize({ width: IPHONE11_APP.w, height: IPHONE11_APP.h }),
+      ]);
+      await cdp.detach().catch(() => {});
+    });
+  }
   await context.addInitScript(
     (r) => {
       (window as unknown as { __harness: unknown }).__harness = {
@@ -287,7 +363,7 @@ async function open(
     await page.goto(`${server.origin}/safe-area.html?mode=${mode}`, { timeout: 90_000 });
   }
   await page.waitForSelector("#root *", { timeout: 120_000 });
-  await emulateDevice(page, IPHONE11_APP);
+  await emulateDevice(page, device);
   return {
     page,
     close: async () => {
@@ -310,76 +386,85 @@ async function scrollIntro(page: Page) {
 }
 
 function report(where: string, problems: string[], frames: Frame[]) {
+  const held = frames.filter((f) => f.hidden).length;
   for (const p of problems) failures.push(`${where}: ${p}`);
   console.log(
     `${problems.length ? "FAIL" : "PASS"} ${where}: ${
       problems.length
         ? problems[0]
-        : `stage, arenas and board in their final place from the first of ${frames.length} frames (${RECORD_MS} ms)`
+        : `stage, arenas and board in their final place from the first of ${frames.filter((f) => !f.hidden).length} visible frames (${RECORD_MS} ms${held ? `, the first ${held} held hidden` : ""})`
     }`,
   );
 }
 
+async function practiceRound(game: PuzzleType, late: boolean) {
+  const where = `${late ? "standalone late " : ""}practice ${game} (${gameDisplayName(game)})`;
+  const { page, close } = await open("practice", null, where, late);
+  try {
+    const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
+    await button.waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(600);
+    await button.click();
+    const ready = page.getByRole("button", { name: /^Ready/ }).first();
+    await ready.waitFor({ timeout: 60_000 });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(600);
+    await scrollIntro(page);
+    await slow(page);
+    await page.evaluate(RECORDER(late));
+    await ready.click();
+    const frames = await record(page);
+    report(where, judge(frames, late), frames);
+  } catch (error) {
+    failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
+    console.log(`FAIL ${where}: did not run`);
+  } finally {
+    await close();
+  }
+}
+
+async function roomRound(game: PuzzleType, late: boolean) {
+  const where = `${late ? "standalone late " : ""}room ${game} (${gameDisplayName(game)})`;
+  const { page, close } = await open("room", roomState(game), where, late);
+  try {
+    await page
+      .getByRole("button", { name: /^Ready/ })
+      .first()
+      .waitFor({ timeout: 60_000 });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(600);
+    await scrollIntro(page);
+    await slow(page);
+    await page.evaluate(RECORDER(late));
+    // The server moves the phase on at its deadline: no input on this phone.
+    await page.evaluate(() => {
+      const H = (window as unknown as { __harness: { room: { duel: Record<string, unknown> } } })
+        .__harness;
+      const now = new Date(Date.now()).toISOString();
+      H.room.duel = {
+        ...H.room.duel,
+        phase: "puzzle",
+        phase_started_at: now,
+        round_started_at: now,
+      };
+    });
+    const frames = await record(page);
+    report(where, judge(frames, late), frames);
+  } catch (error) {
+    failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
+    console.log(`FAIL ${where}: did not run`);
+  } finally {
+    await close();
+  }
+}
+
 try {
-  for (const game of practiceGames) {
-    const where = `practice ${game} (${gameDisplayName(game)})`;
-    const { page, close } = await open("practice", null, where);
-    try {
-      const button = page.getByRole("button", { name: gameDisplayName(game), exact: true }).first();
-      await button.waitFor({ timeout: 60_000 });
-      await page.waitForTimeout(600);
-      await button.click();
-      const ready = page.getByRole("button", { name: /^Ready/ }).first();
-      await ready.waitFor({ timeout: 60_000 });
-      await page.evaluate(() => document.fonts.ready);
-      await page.waitForTimeout(600);
-      await scrollIntro(page);
-      await slow(page);
-      await page.evaluate(RECORDER);
-      await ready.click();
-      const frames = await record(page);
-      report(where, judge(frames), frames);
-    } catch (error) {
-      failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
-      console.log(`FAIL ${where}: did not run`);
-    } finally {
-      await close();
-    }
+  if (!LATE_ONLY) {
+    for (const game of practiceGames) await practiceRound(game, false);
+    for (const game of roomGames) await roomRound(game, false);
   }
-  for (const game of roomGames) {
-    const where = `room ${game} (${gameDisplayName(game)})`;
-    const { page, close } = await open("room", roomState(game), where);
-    try {
-      await page
-        .getByRole("button", { name: /^Ready/ })
-        .first()
-        .waitFor({ timeout: 60_000 });
-      await page.evaluate(() => document.fonts.ready);
-      await page.waitForTimeout(600);
-      await scrollIntro(page);
-      await slow(page);
-      await page.evaluate(RECORDER);
-      // The server moves the phase on at its deadline: no input on this phone.
-      await page.evaluate(() => {
-        const H = (window as unknown as { __harness: { room: { duel: Record<string, unknown> } } })
-          .__harness;
-        const now = new Date(Date.now()).toISOString();
-        H.room.duel = {
-          ...H.room.duel,
-          phase: "puzzle",
-          phase_started_at: now,
-          round_started_at: now,
-        };
-      });
-      const frames = await record(page);
-      report(where, judge(frames), frames);
-    } catch (error) {
-      failures.push(`${where}: ${String((error as Error).message ?? error).split("\n")[0]}`);
-      console.log(`FAIL ${where}: did not run`);
-    } finally {
-      await close();
-    }
-  }
+  for (const game of latePracticeGames) await practiceRound(game, true);
+  for (const game of lateRoomGames) await roomRound(game, true);
 } finally {
   await browser.close();
   await server.close();
@@ -391,5 +476,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${practiceGames.length} practice and ${roomGames.length} room puzzle rounds hold their stage, arenas and board in place from the first painted frame (414x896 home-screen app, CPU ${CPU_SLOWDOWN}x slower)`,
+  `PASS: ${LATE_ONLY ? 0 : practiceGames.length} practice and ${LATE_ONLY ? 0 : roomGames.length} room puzzle rounds hold their stage, arenas and board in place from the first painted frame (414x896 home-screen app, CPU ${CPU_SLOWDOWN}x slower), and ${latePracticeGames.length} practice and ${lateRoomGames.length} room rounds from their first visible frame with the shortfall and insets settling late (reopened home-screen app)`,
 );
