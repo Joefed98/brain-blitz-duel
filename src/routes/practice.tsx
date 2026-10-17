@@ -111,15 +111,29 @@ function useTicker(active: boolean): number {
   return now;
 }
 
-/** A practice card's best under the game's current stamps ("Best 132"); nothing before a first run. */
+/**
+ * A practice card's best under the game's current stamps ("Best 132"); nothing before a first run.
+ * Kept out of the card's accessible name (aria-hidden; the button points at it with
+ * aria-describedby), so the button is always named exactly the game, before and after a best.
+ */
 function CardBest({ type }: { type: PuzzleType }) {
   const best = readPracticeBest(type, currentPracticeStamp(type));
   if (best === null) return null;
   return (
-    <span data-card-best={best} className="shrink-0 font-mono text-xs font-normal tabular-nums text-muted-foreground">
+    <span
+      id={cardBestId(type)}
+      aria-hidden="true"
+      data-card-best={best}
+      className="shrink-0 font-mono text-xs font-normal tabular-nums text-muted-foreground"
+    >
       Best {best}
     </span>
   );
+}
+
+/** The id the card's button describes itself by (its best, when there is one). */
+function cardBestId(type: PuzzleType): string {
+  return `practice-best-${type}`;
 }
 
 /** The signature verdict for a graded practice run. */
@@ -445,6 +459,7 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
+                    aria-describedby={cardBestId(key)}
                     className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
                   >
                     <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>
@@ -464,6 +479,7 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
+                    aria-describedby={cardBestId(key)}
                     className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-foreground"
                   >
                     <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>
@@ -485,6 +501,7 @@ function PracticeScreen() {
                     key={key}
                     type="button"
                     onClick={() => void load(key)}
+                    aria-describedby={cardBestId(key)}
                     className="press tap-target flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 text-left font-display text-sm font-semibold text-muted-foreground"
                   >
                     <span className="min-w-0 truncate">{PUZZLE_REGISTRY[key].name}</span>

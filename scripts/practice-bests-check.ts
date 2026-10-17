@@ -13,7 +13,8 @@
  *     not a new best, and the old version's best is untouched. Bests kept before stamps (the old
  *     unversioned key) are never read.
  *  5. Blocked or failing storage: practice still works for the session; bad scores are ignored.
- *  6. The wiring: practice records and reads under the dealt puzzle's own stamps, the list's cards
+ *  6. The wiring (the card's best is aria-hidden and only describes the button, whose accessible
+ *     name stays exactly the game's, as the browser checks find it): practice records and reads under the dealt puzzle's own stamps, the list's cards
  *     read the current stamps, intro-example runs are never recorded, the reveal's moment shows only
  *     in practice on a new best, uses an existing cue, and is skipped with reduced motion or effects;
  *     room code never imports the practice record.
@@ -167,6 +168,11 @@ const localStorage = {
   check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 3, "every practice card shows its best (active, preview, retired)");
   check(/if \(best === null\) return null;/.test(practice), "a card with no best shows nothing");
   check(/>\s*Best \{best\}\s*</.test(practice), 'the card reads "Best 132"');
+  // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so
+  // arcade-play-check and arcade-lowend-check, which reopen the list and find each game's button by its exact
+  // name, lost multi-segment games after their first run. The best is now only the button's description.
+  check(/id=\{cardBestId\(type\)\}\s*aria-hidden="true"/.test(practice), "the card's best is left out of the button's name");
+  check((practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 3, "every card's button is described by its best");
 
   const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
   check(/\{practice && personalBest && myScore !== null \? <NewBestMoment \/> : null\}/.test(reveal), "the moment shows only in practice, on a new best, once the score is in");
