@@ -26,7 +26,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       aria-label={`${puzzleDef(type).name} instructions`}
     >
       <div className="intro-goal shrink-0">
-        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Goal</p>
+        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Goal</p>
         <p
           className={`font-display font-bold leading-tight text-foreground ${overlay ? "text-2xl" : "text-lg"}`}
         >
@@ -34,7 +34,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         </p>
       </div>
       <div className="intro-how shrink-0">
-        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">How</p>
+        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">How</p>
         <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
           {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
             <p key={`${line.action}-${line.detail}`}>
@@ -45,7 +45,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       </div>
       {beforeScore}
       <div className="intro-score shrink-0">
-        <p className="font-mono text-[10px] font-bold uppercase text-category-accent">Score</p>
+        <p className="font-mono text-[11px] font-bold uppercase text-category-accent">Score</p>
         <p className="text-sm leading-snug text-muted-foreground">{overlay ? instructions.score : INTRO_SCORE[type]}</p>
       </div>
     </section>
@@ -134,6 +134,13 @@ interface PuzzleHelpButtonProps {
   onClick: () => void;
 }
 
+/**
+ * The 28px circle is all that is drawn; an invisible ::before makes the hit area 44 x 44
+ * (Batch 4 fix-up, 17 Oct 2026): 8px above and below the circle and 16px to its left (the
+ * insets count from inside its 1px border), over the title or the empty side of the arcade
+ * header, never the control after it. z-10 keeps the puzzle timer row under it from taking
+ * its lower 8px. The button's box and the header's layout are unchanged.
+ */
 export function PuzzleHelpButton({ onClick }: PuzzleHelpButtonProps) {
   return (
     <Button
@@ -143,7 +150,7 @@ export function PuzzleHelpButton({ onClick }: PuzzleHelpButtonProps) {
       aria-label="Show puzzle instructions"
       title="Show puzzle instructions"
       onClick={onClick}
-      className="h-7 w-7 shrink-0 rounded-full border-border bg-card p-0 font-display text-base font-bold text-foreground shadow-none"
+      className="relative z-10 h-7 w-7 shrink-0 rounded-full border-border bg-card p-0 font-display text-base font-bold text-foreground shadow-none before:absolute before:-inset-y-[9px] before:-left-[17px] before:-right-px before:content-['']"
     >
       ?
     </Button>

@@ -1346,7 +1346,7 @@ body.game-lock {
 .animate-pop-in { animation: fx-pop 180ms ease-out; }
 .animate-shake { animation: fx-shake 250ms ease-out; }
 .category-header { border-bottom: 1px solid color-mix(in srgb, var(--category-accent) 35%, transparent); }
-.category-tag { color: var(--category-accent); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; }
+.category-tag { color: var(--category-accent); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; }
 .round-instructions > div > p:first-child { color: var(--category-accent); }
 @media (prefers-reduced-motion: reduce) {
   .screen-drift { animation: none; }

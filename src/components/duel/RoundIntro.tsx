@@ -171,7 +171,7 @@ export function RoundIntro({
             <span className="category-tag">· {theme.accent}</span>
           </span>
           {!counting && onReady ? (
-            <span className="font-mono text-[0.7rem] text-muted-foreground/70">
+            <span className="font-mono text-[0.7rem] text-foreground/70">
               auto-start in {autoSeconds}s
             </span>
           ) : null}
