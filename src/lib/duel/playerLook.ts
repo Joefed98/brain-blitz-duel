@@ -146,6 +146,17 @@ export function takenColours(players: readonly LookRow[], mySlot: number): Map<n
   return taken;
 }
 
+/**
+ * Icons another player already holds (for the lobby picker and setPlayerLookFn): like colours, no
+ * two players in a room pick the same icon. Their initial (no icon) is never taken.
+ */
+export function takenIcons(players: readonly LookRow[], mySlot: number): Map<PlayerIconId, number> {
+  const taken = new Map<PlayerIconId, number>();
+  for (const [slot, look] of resolvePlayerLooks(players))
+    if (slot !== mySlot && look.icon && !taken.has(look.icon)) taken.set(look.icon, slot);
+  return taken;
+}
+
 /** The letter shown in a badge without an icon. */
 export function playerInitial(name: string): string {
   const letter = [...(name ?? "").trim()][0];

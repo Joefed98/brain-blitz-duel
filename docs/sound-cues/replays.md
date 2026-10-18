@@ -25,10 +25,10 @@ sizing a sound; "instant" means a one-shot at that moment.
 | `shared.replay.speed` | Slow / 1x / 2x tapped in the full-run player | instant |
 | `shared.replay.seek` | The seek bar moved the playback | instant |
 | `shared.replay.close` | The full-run player closed | instant |
-| `shared.momentcard` | A moment card (Flash, Bang On, Nucleus, Forage) appears | the pop-in, about 0.4 s; the card stays up until the screen moves on (6 s on the podium) |
-| `shared.timelapse.start` | A puzzle time-lapse starts | about 7.5 s, within the results screen's time left (5–10 s on the podium) |
-| `shared.timelapse.move` | Each move of a time-lapse lands on the board | instant, every 25–600 ms (about 7.5 s ÷ moves) |
-| `shared.timelapse.end` | The time-lapse reached the winner's last move | instant (the final board holds 1.5 s) |
+| `shared.momentcard` | Not fired by replays since 18 Oct 2026 (puzzle replays are silent); the slot stays for NewBestMoment and `room.award`. Was: a moment card (Flash, Bang On, Nucleus, Forage) appears | the pop-in, about 0.4 s; the card stays up until the screen moves on (6 s on the podium) |
+| `shared.timelapse.start` | Not fired since 18 Oct 2026 (puzzle replays are silent). Was: A puzzle time-lapse starts | about 7.5 s, within the results screen's time left (5–10 s on the podium) |
+| `shared.timelapse.move` | Not fired since 18 Oct 2026 (puzzle replays are silent). Was: Each move of a time-lapse lands on the board | instant, every 25–600 ms (about 7.5 s ÷ moves) |
+| `shared.timelapse.end` | Not fired since 18 Oct 2026 (puzzle replays are silent). Was: The time-lapse reached the winner's last move | instant (the final board holds 1.5 s) |
 | `shared.playofthegame` | The podium picked the play of the game and starts it | 10–15 s (arcade), 5–10 s (time-lapse), 6 s (card) |
 | `shared.playofthegame.skip` | Skip tapped on the play of the game | instant |
 | `shared.playofthegame.end` | The play of the game finished on its own | instant |
