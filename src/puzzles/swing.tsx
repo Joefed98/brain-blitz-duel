@@ -13,7 +13,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL,
+  SWING_REV_TALL, SWING_REV_TARGET,
   swingWorldHFor,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
@@ -128,7 +128,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL) && (
+      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET) && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
@@ -145,7 +145,7 @@ export const swingPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: SWING_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV_TALL }) satisfies SwingPuzzleData,
+  generate: () => ({ type: "swing", seed: 1, swingRev: SWING_REV_TARGET }) satisfies SwingPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

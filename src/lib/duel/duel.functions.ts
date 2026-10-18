@@ -227,14 +227,13 @@ async function createRoomRow(
   throw new Error("Could not create a room right now. Please try again.");
 }
 
-/** How many answers are in for a round. */
-async function submissionCount(client: any, roomId: string, round: number): Promise<number> {
-  const { count } = await client
-    .from("round_results")
-    .select("id", { count: "exact", head: true })
-    .eq("duel_id", roomId)
-    .eq("round_number", round);
-  return count ?? 0;
+/**
+ * How many active players have answered a round. A player who answered and then left still has a
+ * row, so counting every row could end the round while an active player was still playing.
+ */
+async function activeAnsweredCount(client: any, roomId: string, round: number, players: DuelPlayerRow[]): Promise<number> {
+  const slots = await answeredSlots(client, roomId, round);
+  return activePlayers(players).filter((p) => slots.has(p.player_slot)).length;
 }
 
 /** Slots that answered a round. */
@@ -741,7 +740,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     }
 
     if (room.phase === "puzzle") {
-      const answered = await submissionCount(client, room.id, round);
+      const answered = await activeAnsweredCount(client, room.id, round, players);
       const allIn = waitingOn.length > 0 && answered >= waitingOn.length;
       const timeUp = elapsed > puzzleDurationMs(puzzle) + 800;
       if (allIn || timeUp) {
@@ -842,24 +841,21 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const puzzle: PuzzleData = mergePuzzle(pub, priv);
 
-    // The player's own measurement stands unless it is impossible for the clock.
-    const { puzzleTimeLimitMs, puzzlePrepMs } = await import("./registry");
-    const { trustedMsRemaining } = await import("./grade");
-    const limitMs = puzzleTimeLimitMs(puzzle);
-    const startedAt = Date.parse(room.phase_started_at ?? room.round_started_at ?? "");
-    const serverMs = Number.isFinite(startedAt)
-      ? limitMs - (Date.now() - startedAt - puzzlePrepMs(puzzle))
-      : limitMs;
-    const { ms: trustedMs, clamped } = trustedMsRemaining(data.msRemaining, serverMs, limitMs);
+    // The same grade practice gives, timed by the server's receipt (roomGrade.server.ts).
+    const { gradeRoomAnswer } = await import("./roomGrade.server");
+    const { graded, clamped, serverMs } = gradeRoomAnswer(
+      puzzle,
+      { phase: room.phase, phaseStartedAt: room.phase_started_at ?? room.round_started_at, nowMs: Date.now() },
+      data.answer,
+      data.msRemaining,
+      data.extra,
+    );
     if (clamped) {
       console.warn(
         `submit_answer: time claim ${data.msRemaining}ms beyond server ${Math.round(serverMs)}ms (room ${room.id}, round ${data.roundNumber})`,
       );
     }
-
-    const { gradeAnswer } = await import("./generate.server");
-    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } =
-      gradeAnswer(puzzle, data.answer, trustedMs, data.extra, Number.isFinite(startedAt) ? serverMs : undefined);
+    const { answer, isCorrect, score, reactionAvgMs, correctCount, errors, extra, storedMs } = graded;
 
     const { error } = await client.from("round_results").insert({
       duel_id: room.id,
@@ -891,7 +887,7 @@ export const submitAnswerFn = createServerFn({ method: "POST" })
      */
     const players = await getPlayers(client, room.id);
     const waitingOn = activePlayers(players).length || 1;
-    const answered = await submissionCount(client, room.id, data.roundNumber);
+    const answered = await activeAnsweredCount(client, room.id, data.roundNumber, players);
     if (answered >= waitingOn) {
       const at = await setPhase(client, room.id, data.roundNumber, "puzzle", "reveal");
       if (at)

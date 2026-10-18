@@ -495,10 +495,10 @@ function harness(opts: { client?: string; server?: string; href?: string; storag
   const fnSrc = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
   const handler = fnSrc.slice(fnSrc.indexOf("export const submitAnswerFn"), fnSrc.indexOf("export const readyUpFn"));
   assert.ok(
-    handler.indexOf("staleSubmissionNote(") > 0 && handler.indexOf("staleSubmissionNote(") < handler.indexOf("gradeAnswer("),
+    handler.indexOf("staleSubmissionNote(") > 0 && handler.indexOf("staleSubmissionNote(") < handler.indexOf("gradeRoomAnswer("),
     "the server logs before grading",
   );
-  assert.doesNotMatch(handler.slice(handler.indexOf("gradeAnswer(")), /clientVersion/, "grading ignores the version");
+  assert.doesNotMatch(handler.slice(handler.indexOf("gradeRoomAnswer(")), /clientVersion/, "grading ignores the version");
   const practiceSrc = readFileSync("src/lib/duel/practice.functions.ts", "utf8");
   assert.match(practiceSrc, /staleSubmissionNote\("practice_grade"/, "practice answers are logged too");
   ok("answers carry the version; the server logs stale ones");

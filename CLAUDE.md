@@ -112,6 +112,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it. Every arcade-stage visual effect has a cue
   (`docs/sound-cues/arcade-effects.md`: success effects through `momentFrame` in `src/lib/fx/momentCues.ts`, renderer
   effects in `gameSounds.ts`); audio files are one per recording in `public/sounds/`, several slots may share one.
+- **Scoring targets** (18 Oct 2026, `docs/scoring-targets.md`): about 100 average, 120 good, 135 great, 140–150 near-perfect.
+  Every arcade band game's new revision keeps its play and lifts its curve through `BAND_TARGET_MAP` (`band: 2` states,
+  `bandCurveOf`), Wavefront on its own gentler curve, Swish with a 21 px spinner; Nucleus, Forage and Bonk score on new
+  curves; the help's good run is 120 points. scoring-targets-check (~5 s) proves it; older checks compare the dealt stamp
+  through `playRevOf` (`scripts/scoring-targets-revs.ts`); `bun scripts/arcade-skill-bands.ts --rev=now` measures today's revisions.
 - **Player colours, icons and podium awards** (17 Oct 2026, presentation and room data only, no version stamps):
   `src/lib/duel/playerLook.ts` (ten colours `PLAYER_COLOURS`, each ≥ 4.5:1 on the background and under the badge's
   near-black glyph, every pair ≥ 10 ΔE2000 apart with normal vision and simulated protan/deutan/tritan vision; sixteen
@@ -153,6 +158,29 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   room-extras-check (headless Chromium, ~3 min, its own shard `play14`: ping placement at 414×896 home-screen app and 390×844,
   the snake with 2/6/10 players, every marker's place and no numbers;
   `--shots=<dir>` saves screenshots).
+- **Room and layout fixes** (18 Oct 2026; no version stamps, no game's scoring changed):
+  - *Room scoring = practice scoring.* `submitAnswerFn` grades through `gradeRoomAnswer` (`src/lib/duel/roomGrade.server.ts`),
+    the same `gradeAnswer` practice calls plus the server's receipt time. An answer received in the reveal phase arrived after
+    the clock (0 ms left): it used to be measured from the reveal's own `phase_started_at`, which dropped every tap or action
+    after ~1.5 s, so a time-out landing just after the buzzer scored 0 (Flash, Bang On, Ascend, Lightbender). The room page
+    sends one answer per round (a stage's own submit and the time-out's draft never both go: an empty draft could beat Forage,
+    Nucleus, Gridlock, Tessellate, Exact or Double Take's real answer), sends the round's draft if the room reached the reveal
+    first, tags drafts with their round (a reload mid-round keeps the restored one), and "everyone answered" counts active
+    players only (phone and both server functions). room-practice-grade-check (~15 s) grades 42,690 stored, tap-log, arcade and
+    sample answers for all 74 active games as practice and as a room (puzzle phase 80 ms / 1.2 s late, reveal +0.1 s / +3 s).
+  - *Arcade play screen height.* In an iOS home-screen app the play screen is `min(100dvh + inset, screen)` and html
+    `min(100% + inset, screen)` (`--standalone-short` is now the top inset, `--standalone-screen` the screen's height, neither
+    read from layout): a shortfall measured once per screen size used to stay on a layout viewport WebKit had since grown to the
+    whole screen (after a room's keyboard, after a few runs), pushing the lowest controls 48 px down (Rainbow Bridge and Mixed
+    Signals in rooms, Fission's arrows after repeat plays). arcade-room-practice-check (headless Chromium, ~2 min, `play15`)
+    draws every arcade play screen in a room and in practice at 848, 896 and 848 again and fails unless room = practice box for
+    box and everything ends 16 px above the bottom; fission-repeat-check (~2 min, `play15`) plays Fission four times in a row.
+  - *Silent puzzle replays.* The results screen's (and podium's) time-lapse and moment cards play no sound effects: their own
+    cues are gone and, while a time-lapse is up, cues named for a game (its Reveal board's) are not played (`quietForReplay`
+    in `src/lib/sound.ts`; shared, room and UI cues, voices and direct sounds still play). replay-sound-check (~2 s).
+  - *Lobby looks.* Your own row has a "Change ▾" chip; icons, like colours, are one per room (taken ones greyed out, refused by
+    `changePlayerLook`, dropped on join, a racing join's duplicate cleared for the higher slot). No migration (no unique index:
+    two taps in the same instant could share an icon, harmless).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
@@ -169,9 +197,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 ## Checks
 
 - **GitHub Actions runs the full suite** (`.github/workflows/checks.yml`) on every pull
-  request open/push/reopen, split into twenty-one parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
+  request open/push/reopen, split into twenty-two parallel jobs (`.github/ci/shards.ts`: `a`–`g`,
   `play1`–`play5` for arcade-play-check, `play6`–`play13` for bottom-clearance-check, one eighth each
-  since its 15 Oct seam pass, and `play14` for room-extras-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
+  since its 15 Oct seam pass, `play14` for room-extras-check and `play15` for arcade-room-practice-check and fission-repeat-check), each about 6 minutes or less (balanced 15 Oct 2026 from run 38608375501's per-check times). Each job's summary lists every check by name
   with pass / fail / timeout. PRs that change only `docs/**`, `screenshots/**`, `*.md` or
   `.lovable/**` skip it. Free plan, 2,000 minutes a month, so:
   - **Quick and full depth.** PR runs (and local runs) use quick depth for the two slow
@@ -359,7 +387,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,

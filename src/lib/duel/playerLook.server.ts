@@ -11,6 +11,7 @@ import {
   pickJoinColour,
   resolvePlayerLooks,
   takenColours,
+  takenIcons,
 } from "./playerLook";
 import type { DuelPlayerRow } from "./types";
 
@@ -73,6 +74,16 @@ export async function persistAutoColours(client: any, players: DuelPlayerRow[]):
 }
 
 /**
+ * Two phones joining at once can both read an icon as free: the one in the lower slot keeps it and
+ * the other shows their initial, so a room never shows the same icon twice.
+ */
+async function dropSharedIcon(client: any, roomId: string, slot: number, icon: string): Promise<void> {
+  const players = await roomPlayers(client, roomId);
+  if (players.some((p) => p.player_slot < slot && p.icon === icon))
+    await client.from("duel_players").update({ icon: null }).eq("duel_id", roomId).eq("player_slot", slot);
+}
+
+/**
  * Seats a player (`row` without colour or icon). With the columns, they get their remembered
  * colour when it is free, else the first free one from their slot's own: two phones joining at
  * once can pick the same colour, so the unique index refuses the second, which picks again from a
@@ -84,12 +95,18 @@ export async function insertPlayerWithLook(
   look: LookPreference = {},
 ): Promise<void> {
   if (await hasLookColumns(client)) {
-    const icon = isPlayerIcon(look.icon) ? look.icon : null;
+    let icon = isPlayerIcon(look.icon) ? look.icon : null;
     for (let attempt = 0; attempt < 4; attempt++) {
       if (attempt === 0) await persistAutoColours(client, await roomPlayers(client, row.duel_id));
-      const colour = pickJoinColour(await roomPlayers(client, row.duel_id), row.player_slot, look.colour);
+      const players = await roomPlayers(client, row.duel_id);
+      const colour = pickJoinColour(players, row.player_slot, look.colour);
+      // A remembered icon someone here already has is dropped (the player shows their initial).
+      if (icon && takenIcons(players, row.player_slot).has(icon)) icon = null;
       const { error } = await client.from("duel_players").insert({ ...row, colour, icon });
-      if (!error) return;
+      if (!error) {
+        if (icon) await dropSharedIcon(client, row.duel_id, row.player_slot, icon);
+        return;
+      }
       if (colourClash(error)) continue;
       if (error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
       return;
@@ -105,7 +122,8 @@ export async function insertPlayerWithLook(
 
 /**
  * The lobby change (setPlayerLookFn, after its room checks): my colour (any one no one else holds)
- * and/or icon (one of PLAYER_ICON_IDS, or null for my initial).
+ * and/or icon (one of PLAYER_ICON_IDS no one else holds, or null for my initial). Icons have no
+ * unique index: two taps in the same instant could share one, which is harmless (colours differ).
  */
 export async function changePlayerLook(
   client: any,
@@ -120,6 +138,8 @@ export async function changePlayerLook(
   }
   if (input.icon !== undefined) {
     if (input.icon !== null && !isPlayerIcon(input.icon)) return { ok: false, message: "That isn't one of the icons." };
+    if (input.icon !== null && takenIcons(await roomPlayers(client, me.duel_id), me.player_slot).has(input.icon))
+      return { ok: false, message: "Someone else has that icon." };
     update.icon = input.icon;
   }
   if (update.colour === undefined && update.icon === undefined) return { ok: true };

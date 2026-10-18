@@ -26,7 +26,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -895,6 +895,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_TARGET) return breakerTargetGame;
   if (rev === BRK_REV_TALL) return breakerTallGame;
   if (rev === BRK_REV_TUNEF) return breakerTunefGame;
   if (rev === BRK_REV_TUNED) return breakerTunedGame;
@@ -911,7 +912,7 @@ export const BRK_BAND_CURVE = bandCurve([0, 60, 67, 76, 79, 80], [0, 70, 100, 12
 export function breakerBandParts(state: BrkState): BandParts {
   const units = brkDestroyed(state);
   const finished = brkDestroyed(state) >= BRK_BRICKS;
-  return { units, points: bandPoints(state.worldH ? BRK_V6_BAND_CURVE : BRK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BRK_V6_BAND_CURVE : BRK_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, BRK_RUN_TICKS - clampInt(state.endedTick, 0, BRK_RUN_TICKS), BRK_RUN_TICKS) : 0, penalty: 0, finished, text: `${brkDestroyed(state)} / ${BRK_BRICKS} bricks`, bonusText: "Wall cleared" };
 }
 
 function scoreBand(state: BrkState): number {
@@ -980,5 +981,17 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  return rev === BRK_REV_TALL ? BRK_TALL_H : BRK_WORLD_H;
+  return rev === BRK_REV_TALL || rev === BRK_REV_TARGET ? BRK_TALL_H : BRK_WORLD_H;
 }
+
+/* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
+
+/**
+ * brkRev 7 (scoring targets, docs/scoring-targets.md): brkRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const BRK_REV_TARGET = 7;
+export const breakerTargetGame = bandTargetGame(breakerTallGame);
+/** The curve new rounds score on: BRK_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BRK_V7_BAND_CURVE = bandRetarget(BRK_V6_BAND_CURVE);

@@ -132,6 +132,7 @@ import { generateBeat, generateBubble, generateClayShoot, generateColourClash, g
 import { buildStroop } from "../src/puzzles/stroop";
 import { LEVELS } from "./puzzle-fairness/kit";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { playRevOf } from "./scoring-targets-revs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -199,9 +200,9 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g2-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(generateBeat().beatRev === BEAT_REV_TALL, "rooms deal beatRev 6");
-  ok(generateSlice().sliceRev === SLICE_REV_TALL, "rooms deal sliceRev 6");
-  ok(generateBubble().bubbleRev === BUB_REV_TALL, "rooms deal bubbleRev 5");
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
+  ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
+  ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
   ok(generateColourClash().clashRev === CLASH_REV_TALL && buildStroop().clashRev === CLASH_REV_TALL && clashVariantOf(generateColourClash()) === 5, "rooms (and practice) deal clashRev 5");
   ok(generateClayShoot().clayRev === CLAY_REV_TALL && CLAY_REV === CLAY_REV_TALL, "rooms deal clayRev 6");
 

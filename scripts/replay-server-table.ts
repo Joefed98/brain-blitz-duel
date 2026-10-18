@@ -65,7 +65,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   snip: (p, a) => replaySnipRun(p.seed, a, p.snipRev),
   tilt: (p, a) => replayTiltRun(p.seed, a, p.tiltRev),
   balltrack: (p, a) => replayBallTrackRun(p.course, p.seed, a, p.btRev),
-  whack: (p, a) => replayWhackRun(p.seed, a),
+  whack: (p, a) => replayWhackRun(p.seed, a, p.whackRev),
   clayshoot: (p, a) => replayClayRun(p.seed, a, p.clayRev),
   tendrop: (p, a) => replayTenDropRun(p.seed, a, p.tenRev),
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),

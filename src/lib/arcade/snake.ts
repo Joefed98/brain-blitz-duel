@@ -29,7 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -645,6 +645,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_TARGET) return snakeTargetGame;
   if (rev === SNAKE_REV_ROCKS) return snakeRocksGame;
   if (rev === SNAKE_REV_TALL) return snakeTallGame;
   if (rev === SNAKE_REV_BAND) return snakeBandGame;
@@ -661,7 +662,7 @@ export const SNAKE_BAND_CURVE = bandCurve([0, 14, 24, 30, 35, 38], [0, 70, 100, 
 
 export function snakeBandParts(state: SnakeState): BandParts {
   const units = Math.max(0, state.eaten);
-  return { units, points: bandPoints(state.tunef ? SNAKE_V6_BAND_CURVE : state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
+  return { units, points: bandPoints(bandCurveOf(state, state.tunef ? SNAKE_V6_BAND_CURVE : state.rows ? SNAKE_V5_BAND_CURVE : SNAKE_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${units} stars` };
 }
 
 function scoreBand(state: SnakeState): number {
@@ -690,7 +691,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS ? SNAKE_TALL_H : SNAKE_WORLD_H;
+  return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
 /* ================= Tuning F (snakeRev 6, Oct 2026) ================= */
@@ -711,3 +712,15 @@ export const SNAKE_ROCK_MAX_V6 = 11;
 /** Stars eaten with the extra rocks: the same skill eats a star or two fewer; 150 at 33 (re-measured with scripts/arcade-skill-bands.ts --rev=f). */
 export const SNAKE_V6_BAND_CURVE = bandCurve([0, 15, 21, 26, 29, 33], [0, 70, 100, 125, 142, 150]);
 export const snakeRocksGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeTallGame, init: (seed) => ({ ...snakeTallGame.init(seed), tunef: 1 }) };
+
+/* ================= Scoring targets (snakeRev 7, 18 Oct 2026) ================= */
+
+/**
+ * snakeRev 7 (scoring targets, docs/scoring-targets.md): snakeRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const SNAKE_REV_TARGET = 7;
+export const snakeTargetGame = bandTargetGame(snakeRocksGame);
+/** The curve new rounds score on: SNAKE_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const SNAKE_V7_BAND_CURVE = bandRetarget(SNAKE_V6_BAND_CURVE);

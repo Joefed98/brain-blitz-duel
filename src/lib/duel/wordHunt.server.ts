@@ -222,7 +222,7 @@ export function gradeWordHunt(
   }
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
-  const score = scoreWordHunt(points);
+  const score = scoreWordHunt(points, puzzle.wordHuntRev);
   const ms = Math.min(WORDHUNT_TIME_MS, Math.max(0, Math.round(msRemaining)));
 
   return {

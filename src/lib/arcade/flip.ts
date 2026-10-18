@@ -14,7 +14,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
@@ -792,6 +792,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_TARGET) return flipTargetGame;
   if (rev === FLIP_REV_TUNEC) return flipTunecGame;
   if (rev === FLIP_REV_BAND) return flipBandGame;
   return rev === FLIP_REV ? flipRev2Game : flipGame;
@@ -811,7 +812,7 @@ export const FLIP_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 15, 70
 export function flipBandParts(state: FlipState): BandParts {
   const units = Math.floor((state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS)) / 30) + 3 * flipStarsTaken(state);
   const finished = state.ended === 1;
-  return { units, points: bandPoints(state.tunec ? FLIP_V4_BAND_CURVE : FLIP_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
+  return { units, points: bandPoints(bandCurveOf(state, state.tunec ? FLIP_V4_BAND_CURVE : FLIP_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: FlipState): number {
@@ -834,3 +835,15 @@ export const flipBandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ..
 export const FLIP_REV_TUNEC = 4;
 export const FLIP_V4_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 17, 77, 110, 132, 140]);
 export const flipTunecGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipBandGame, init: (seed) => ({ ...flipBandGame.init(seed), tunec: 1 }) };
+
+/* ================= Scoring targets (flipRev 5, 18 Oct 2026) ================= */
+
+/**
+ * flipRev 5 (scoring targets, docs/scoring-targets.md): flipRev 4 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const FLIP_REV_TARGET = 5;
+export const flipTargetGame = bandTargetGame(flipTunecGame);
+/** The curve new rounds score on: FLIP_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const FLIP_V5_BAND_CURVE = bandRetarget(FLIP_V4_BAND_CURVE);

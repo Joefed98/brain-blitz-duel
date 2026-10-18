@@ -106,6 +106,7 @@ import {
   type BurstState,
 } from "../src/lib/arcade/burst";
 import { generateBreaker, generateBurst, generateRally, generateWavefront } from "../src/lib/duel/arcade.server";
+import { playRevOf } from "./scoring-targets-revs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -158,10 +159,10 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g1-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(generateBreaker().brkRev === BRK_REV_TALL, "rooms deal brkRev 6");
-  ok(generateRally().rallyRev === RALLY_REV_TALL, "rooms deal rallyRev 6");
-  ok(generateWavefront().wavRev === WAV_REV_TALL, "rooms deal wavRev 6");
-  ok(generateBurst().burstRev === BURST_REV_TALL, "rooms deal burstRev 4");
+  ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL, "rooms deal brkRev 6");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
+  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL, "rooms deal wavRev 6");
+  ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
 
   ok(breakerWorldHFor(BRK_REV_TALL) === 730 && breakerWorldHFor(BRK_REV_TUNEF) === BRK_WORLD_H && breakerWorldHFor(undefined) === 620, "Breaker world heights by revision");
   ok(rallyWorldHFor(RALLY_REV_TALL) === 730 && rallyWorldHFor(RALLY_REV_TUNEF) === RALLY_WORLD_H && rallyWorldHFor(undefined) === 620, "Rally world heights by revision");

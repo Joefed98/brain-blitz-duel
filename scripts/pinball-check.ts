@@ -57,6 +57,7 @@ import {
   PIN_LEFT_WALL,
   PIN_PTS_BUMPER,
   PIN_REV,
+  PIN_REV_TARGET,
   PIN_RUN_TICKS,
   PIN_SEGS,
   PIN_SLING,
@@ -411,7 +412,7 @@ let replayMs = 0;
   ok(PREVIEW_PUZZLE_TYPES.includes("pinball") === !PINBALL_IN_ROOMS, "practice lists Pinball under New while it is practice only");
   ok(RETIRED_ARCADE_GAMES.includes("pinball") === !PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.includes("pinball") === PINBALL_IN_ROOMS && ACTIVE_ARCADE_GAMES.length === 21 + (PINBALL_IN_ROOMS ? 1 : 0), "the active arcade list follows the switch");
   const puzzle = generatePuzzle("pinball") as any;
-  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV && Number.isInteger(puzzle.seed), "the generator stamps pinRev 1");
+  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET && Number.isInteger(puzzle.seed), "the generator stamps pinRev 2 (pinRev 1 play on the scoring targets, scoring-targets-check)");
 }
 
 /* ------------------------------------------------------------------ 6 */

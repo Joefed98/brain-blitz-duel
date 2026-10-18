@@ -48,6 +48,7 @@ import { replayBubbleRun } from "../src/lib/duel/bubble";
 import { generateBubble } from "../src/lib/duel/arcade.server";
 import { fnv } from "./arcade-tuning-a-legacy";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { playRevOf } from "./scoring-targets-revs";
 
 const FIXTURE = "scripts/fixtures/bubble-rev4-runs.json";
 
@@ -293,7 +294,7 @@ section("Wiring");
 {
   // Taller worlds batch 2 (16 Oct 2026) moved rooms on to bubbleRev 5 (bubbleRev 4 play in a deeper tank); arcade-tuning-g2-check covers it.
   const puzzle = { ...generateBubble(), bubbleRev: BUB_REV_TORPEDO };
-  ok(generateBubble().bubbleRev === BUB_REV_TORPEDO + 1, `new rooms stamp bubbleRev ${generateBubble().bubbleRev}`);
+  ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TORPEDO + 1, `new rooms stamp bubbleRev ${playRevOf("bubble", generateBubble().bubbleRev)}`);
   ok(puzzleUsesBands(puzzle as never), "bubbleRev 4 scores on the bands");
   const s = v4.init(5);
   const t = v3.init(5);

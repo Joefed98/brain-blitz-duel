@@ -18,7 +18,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   whackCheckpoint,
-  whackGame,
+  whackGameFor,
   whackRule,
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_COLS,
@@ -70,6 +70,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: WhackPuzzleData | null = puzzle.type === "whack" ? puzzle : null;
   const seed = data?.seed ?? 1;
+  // whackRev 1 (scoring targets): the same play, its score lifted.
+  const whackGame = whackGameFor(data?.whackRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -302,7 +304,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "whack") return null;
-  const result = replayWhackRun(puzzle.seed, myAnswer ?? "");
+  const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev);
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">
