@@ -254,8 +254,10 @@ function DuelScreen() {
   const [starting, setStarting] = useState(false);
   const [confirmDisband, setConfirmDisband] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  /** The round (`${room id}-${round}`) this phone has sent an answer for: one send per round, as in practice. */
   const timeoutSubmitted = useRef<string>("");
-  const draftAnswer = useRef("");
+  /** The live round's draft, tagged with its round (stateKey) so a new round can never send an old one. */
+  const draftAnswer = useRef<{ key: string; answer: string }>({ key: "", answer: "" });
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{
@@ -302,7 +304,9 @@ function DuelScreen() {
     revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
   useEffect(() => {
-    draftAnswer.current = "";
+    // A draft from another round is dropped; one the stage restored for this round (a reload
+    // mid-round, pushed before this effect runs) is kept.
+    if (draftAnswer.current.key !== stateKey) draftAnswer.current = { key: "", answer: "" };
     setRevealed(null);
     // The previous round's inputs are no longer needed once a new round opens.
     if (round > 1) clearStageState(`${tournamentKey}-${round - 1}`);
@@ -359,7 +363,10 @@ function DuelScreen() {
   const waitingOn = waitedOn(roomPlayers, now);
   const waitCount = waitingOn.length || 1;
   const introReadyCount = waitingOn.filter((p) => p.intro_ready_round >= round).length;
-  const answeredThisRound = results.filter((r) => r.round_number === round).length;
+  // Only active players' answers count towards "everyone's in" (a player who answered and left keeps a row).
+  const answeredThisRound = results.filter(
+    (r) => r.round_number === round && roomPlayers.some((p) => p.player_slot === r.player_slot && p.status === "active"),
+  ).length;
   const roundDetails = new Map(
     (currentReveal ? currentReveal.players : []).map((detail) => [detail.playerSlot, detail]),
   );
@@ -414,10 +421,14 @@ function DuelScreen() {
   const holdUntil = useSignatureHold(duel && myResult ? `${duel.id}-${round}` : null, signatureVerdict);
   const boardHeld = holdUntil !== null && Date.now() < holdUntil;
 
-  // Timer ran out without a submission — record a zero for this round.
+  // Timer ran out without a submission: send the round's draft (the partial answer practice grades
+  // too). Also when the room has already moved to the reveal before this phone sent anything (the
+  // server still takes late answers then), so a slow phone never ends a round with no answer at all.
   useEffect(() => {
-    if (!duel || !me || !puzzle || duel.status !== "in_progress" || phase !== "puzzle") return;
-    if (deadline === null || now < deadline || myResult) return;
+    if (!duel || !me || !puzzle || duel.status !== "in_progress" || myResult) return;
+    if (phase === "puzzle") {
+      if (deadline === null || now < deadline) return;
+    } else if (phase !== "reveal") return;
     const key = `${duel.id}-${round}`;
     if (timeoutSubmitted.current === key) return;
     timeoutSubmitted.current = key;
@@ -425,7 +436,7 @@ function DuelScreen() {
     void submitAnswer({
       duelId: duel.id,
       roundNumber: round,
-      answer: draftAnswer.current,
+      answer: draftAnswer.current.key === stateKey ? draftAnswer.current.answer : "",
       msRemaining: 0,
     });
   }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.id, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -606,8 +617,8 @@ function DuelScreen() {
    * — the latest room state is read through a ref instead — so nothing inside
    * the puzzle re-runs because the room changed.
    */
-  const latest = useRef({ duel, me, puzzle, myResult, round, clockDeadline });
-  latest.current = { duel, me, puzzle, myResult, round, clockDeadline };
+  const latest = useRef({ duel, me, puzzle, myResult, round, clockDeadline, stateKey });
+  latest.current = { duel, me, puzzle, myResult, round, clockDeadline, stateKey };
 
   const handleSubmit = useCallback((answer: string, meta?: SubmitMeta) => {
     // The elapsed time is measured here, at the moment of the player's action.
@@ -620,6 +631,11 @@ function DuelScreen() {
       round: roundNumber,
     } = latest.current;
     if (!room || !player || !current || mine) return;
+    // One send per round: a stage's own submit (some send just before the buzzer) and the
+    // time-out's draft can never both go, so the stage's answer is the one graded, as in practice.
+    const sent = `${room.id}-${roundNumber}`;
+    if (timeoutSubmitted.current === sent) return;
+    timeoutSubmitted.current = sent;
     noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
@@ -635,11 +651,15 @@ function DuelScreen() {
         correctCount: meta?.correctCount,
         errors: meta?.errors,
       },
+    }).catch(() => {
+      // Not stored: the time-out (or the reveal) sends this answer instead, once.
+      draftAnswer.current = { key: latest.current.stateKey, answer };
+      if (timeoutSubmitted.current === sent) timeoutSubmitted.current = "";
     });
   }, []);
 
   const handleDraftAnswer = useCallback((answer: string) => {
-    draftAnswer.current = answer;
+    draftAnswer.current = { key: latest.current.stateKey, answer };
   }, []);
 
   const handleCheckWord = useCallback(

@@ -276,7 +276,7 @@ function noAnswerDb(room: Record<string, unknown>, mineIn: boolean) {
   const server = readFileSync("src/lib/duel/duel.functions.ts", "utf8");
   const submit = server.slice(server.indexOf("export const submitAnswerFn"), server.indexOf("export const readyUpFn"));
   const gate = submit.indexOf("if (!acceptsAnswers(room, data.roundNumber))");
-  check(gate > 0 && gate < submit.indexOf("gradeAnswer("), "submit_answer is gated by acceptsAnswers before grading");
+  check(gate > 0 && gate < submit.indexOf("gradeRoomAnswer("), "submit_answer is gated by acceptsAnswers before grading");
   const reveal = server.slice(server.indexOf("export const revealAnswerFn"), server.indexOf("export const rematchFn"));
   check(/return loadRoundReveal\(client, room, data\.roundNumber, me\.player_slot\)/.test(reveal), "revealAnswerFn goes through loadRoundReveal with the caller's slot");
   check(!/round_results/.test(reveal), "revealAnswerFn reads no results itself");

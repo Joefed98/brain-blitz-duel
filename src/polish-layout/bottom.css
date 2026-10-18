@@ -88,9 +88,11 @@ html:has([data-arcade-play]) body,
 }
 /* An iOS home-screen app is laid out in a viewport short by the top inset (WebKit bug
    254868): the play screen reaches the bottom of the screen all the same. PhoneShell
-   measures the shortfall into --standalone-short (0 in Safari and everywhere else). */
+   writes the growth (the top inset) into --standalone-short (0 in Safari and everywhere else)
+   and the screen's height into --standalone-screen: the play screen is never taller than the
+   screen, however WebKit lays the app out (18 Oct 2026). */
 [data-arcade-play].game-viewport {
-  height: calc(100dvh + var(--standalone-short, 0px));
+  height: min(calc(100dvh + var(--standalone-short, 0px)), var(--standalone-screen, 100000px));
 }
 /* The page's own boxes agree (fix-up, 15 Oct 2026): html and body are 100% of that short
    layout viewport and, locked (html.game-lock / body.game-lock: overflow hidden), clip at
@@ -99,7 +101,7 @@ html:has([data-arcade-play]) body,
    by the same shortfall (body is 100% of it), so every box ends at the screen's bottom and
    nothing clips above the 16px strip. arcade-device-bottom-check proves no box clips. */
 html:has([data-arcade-play]) {
-  height: calc(100% + var(--standalone-short, 0px));
+  height: min(calc(100% + var(--standalone-short, 0px)), var(--standalone-screen, 100000px));
 }
 [data-arcade-play] > [data-game-column] {
   padding-top: max(4px, env(safe-area-inset-top, 0px));

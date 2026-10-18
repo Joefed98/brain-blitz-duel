@@ -179,10 +179,10 @@ assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] \[data-game-co
 assert.doesNotMatch(bottomCss, /padding-bottom: 8px;/, "the 8px arcade bottom is gone");
 // iOS home-screen apps (15 Oct 2026): laid out in a viewport short by the top inset (WebKit bug 254868), the play
 // screen adds the measured shortfall to its 100dvh height, so the column still ends 16px above the screen's bottom.
-assert.match(bottomCss, /\[data-arcade-play\]\.game-viewport \{\s*height: calc\(100dvh \+ var\(--standalone-short, 0px\)\);\s*\}/, "the play screen reaches the bottom of the screen in an iOS home-screen app");
+assert.match(bottomCss, /\[data-arcade-play\]\.game-viewport \{\s*height: min\(calc\(100dvh \+ var\(--standalone-short, 0px\)\), var\(--standalone-screen, 100000px\)\);\s*\}/, "the play screen reaches the bottom of the screen in an iOS home-screen app, never past it");
 // Fix-up: html and body (100% of the short viewport, overflow hidden under game-lock) grow by the same shortfall,
 // or they clip tall worlds and the lowest controls 48px above the screen's bottom.
-assert.match(bottomCss, /html:has\(\[data-arcade-play\]\) \{\s*height: calc\(100% \+ var\(--standalone-short, 0px\)\);\s*\}/, "the page's root grows by the shortfall too, so html and body clip nothing above the screen's bottom");
+assert.match(bottomCss, /html:has\(\[data-arcade-play\]\) \{\s*height: min\(calc\(100% \+ var\(--standalone-short, 0px\)\), var\(--standalone-screen, 100000px\)\);\s*\}/, "the page's root grows by the shortfall too (never past the screen), so html and body clip nothing above the screen's bottom");
 assert.match(css2, /html,\s*body \{\s*height: 100%;\s*\}/, "body is 100% of html, so it grows with it");
 assert.match(css2, /html\.game-lock,\s*body\.game-lock \{\s*overflow: hidden;\s*\}/, "the locked page clips at its own boxes");
 assert.match(css2, /\[data-arena-slot\]\[data-arena-centred\]::before \{[^}]*flex: 1 1 0;[^}]*background: var\(--screen-edge\);/, "a centred slot splits its spare height evenly");
@@ -207,11 +207,12 @@ assert.match(shell, /\{timer\}\{roomLabel \? null : progress\}/, "the label repl
 }
 assert.match(shell, /useStandaloneShortfall\(arcadePlay && constrained\);/, "the play screen measures an iOS home-screen app's shortfall");
 assert.match(shell, /\(navigator as Navigator & \{ standalone\?: boolean \}\)\.standalone !== true\) return null;/, "only in an iOS home-screen app");
-assert.match(shell, /return Math\.round\(Math\.min\(inset, Math\.max\(0, screenH - dvh\)\)\);/, "the shortfall is the screen less 100dvh, at most the top inset");
+assert.match(shell, /shortfall\.px = geometry && shortfall\.screen > 0 \? Math\.round\(geometry\.inset\) : 0;/, "the growth is the top inset, capped by the screen's height (18 Oct 2026)");
+assert.match(shell, /setRootVar\("--standalone-screen", want \? `\$\{shortfall\.screen\}px` : ""\);/, "the screen's height caps the grown play screen");
 // No feedback (16 Oct 2026): measured once per geometry with the root's growth taken off first, written only on a change.
 assert.match(shell, /if \(key !== shortfall\.key\) \{/, "the shortfall is measured once per screen size, orientation and inset");
-assert.match(shell, /function measureShortfall[\s\S]*?root\.style\.removeProperty\("--standalone-short"\);[\s\S]*?height:100dvh/, "measured with the root at its own height");
-assert.match(shell, /if \(root\.style\.getPropertyValue\("--standalone-short"\) === want\) return;/, "an unchanged shortfall writes nothing");
+assert.doesNotMatch(shell.split("function applyShortfall")[1]?.split("function useStandaloneShortfall")[0] ?? "", /getBoundingClientRect|100dvh|innerHeight/, "the growth and cap never read the layout, so they cannot feed back");
+assert.match(shell, /if \(root\.style\.getPropertyValue\(name\) === value\) return;/, "an unchanged value writes nothing");
 assert.match(readFileSync("src/components/puzzles/ArcadeArenaSlot.tsx", "utf8"), /if \(at === painted\) return;/, "the arena scene repaints only when its integer canvas size or the world's place changes");
 /** Px from the top of the screen to the arena slot: 4px (or the notch's inset) + 44px header + 4px. */
 const HEADER_AT = (inset: number) => Math.max(4, inset) + 44 + 4;
