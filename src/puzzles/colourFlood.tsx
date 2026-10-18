@@ -14,6 +14,7 @@ import {
   type FloodPuzzleData,
 } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
+import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -144,6 +145,15 @@ function Stage({
     submitted.current = true;
     onSubmit(encodeFloodMoves(moves));
   }, [now, phaseStartedAt, locked, data, moves, onSubmit]);
+
+  // Desktop keys: 1–5 tap the colour pot in that place, left to right.
+  useGameKeys((kind, key, event) => {
+    if (!data || !replay) return false;
+    const colour = /^[1-9]$/.test(key) && Number(key) <= FLOOD_COLOURS ? Number(key) - 1 : null;
+    if (colour === null) return false;
+    if (kind === "down" && !event.repeat) tap(colour);
+    return true;
+  });
 
   if (!data || !replay) return null;
 

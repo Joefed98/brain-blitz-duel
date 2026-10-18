@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
@@ -280,6 +281,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       steps.push({ el, keyframes: goldPulse(1.08), delay: 420 + Math.round((Math.floor(cell / cols) + (cell % cols)) * step), duration: 340 });
     });
     return playFinish(steps);
+  });
+
+  // Desktop keys: typing a letter taps the first unused wheel letter with it, Backspace steps back one
+  // letter (as tracing back does), Esc clears, Enter lets go (checks the word), Space shuffles.
+  useGameKeys((kind, key, event) => {
+    if (!data) return false;
+    const used = /^[a-z]$/.test(key) || key === "Backspace" || key === "Escape" || key === "Enter" || key === " ";
+    if (!used || kind !== "down" || done) return used;
+    if (key === "Enter") {
+      if (!event.repeat && path.length > 0) release();
+    } else if (key === "Escape") clear();
+    else if (key === " ") {
+      if (!event.repeat) setOrder((previous) => shuffleLetterOrder(previous));
+    } else if (key === "Backspace") {
+      const back = path.at(-2);
+      if (back !== undefined) tapLetter(back);
+      else clear();
+    } else {
+      const letter = key.toUpperCase();
+      const i = [...wheel].findIndex((l, at) => l.toUpperCase() === letter && !path.includes(at));
+      if (i >= 0) tapLetter(i);
+    }
+    return true;
   });
 
   if (!data) return null;

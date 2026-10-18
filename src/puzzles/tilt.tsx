@@ -1,3 +1,4 @@
+import { heldHorizontal } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { tiltArenaScene, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
 import { tiltSounds } from "@/lib/fx/gameSounds";
@@ -38,9 +39,15 @@ function IntroExample() {
   );
 }
 
+/** Desktop keys: px a tick of the virtual finger (a steady finger drag). */
+const TILT_KEY_PX = 4;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: TiltPuzzleData | null = puzzle.type === "tilt" ? puzzle : null;
   const touch = useRef(0);
+  // Desktop keys: ←/→ (A/D) drag a virtual finger 4 px a tick; a new hold starts a new touch, as a finger does.
+  const held = useRef(heldHorizontal());
+  const pad = useRef<{ x: number } | null>(null);
   return (
     <ArcadeCanvasStage
       diagKey="tilt"
@@ -66,6 +73,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind === "down") touch.current = (touch.current + 1) % 256;
         return { a: x, b: 0, c: touch.current };
       }}
+      tickInput={() => {
+        const dir = held.current.dir();
+        if (dir === 0) {
+          pad.current = null;
+          return null;
+        }
+        if (!pad.current || pad.current.x + dir * TILT_KEY_PX < 0 || pad.current.x + dir * TILT_KEY_PX > TILT_WORLD_W) {
+          // Lift and put the finger down again in the middle (the sim's own re-anchor, no turn).
+          touch.current = (touch.current + 1) % 256;
+          pad.current = { x: TILT_WORLD_W / 2 };
+        } else pad.current.x += dir * TILT_KEY_PX;
+        return { a: pad.current.x, b: 0, c: touch.current };
+      }}
+      keys={(kind, key) => held.current.key(kind, key)}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

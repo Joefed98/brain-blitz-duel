@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -128,6 +129,37 @@ export function WordsmithPuzzle({
     selectedRef.current = toggleWordsmithTile(selectedRef.current, index);
     setSelectedTiles(selectedRef.current);
   };
+
+  // Desktop keys: typing a letter taps the first unused tile with it, Backspace taps the last tile again
+  // (taking it off), Esc clears, Enter enters the word.
+  useGameKeys((kind, key, event) => {
+    if (/^[a-z]$/.test(key)) {
+      if (kind === "down" && !locked && !busy) {
+        const letter = key.toUpperCase();
+        const index = letters.findIndex((l, i) => (l ?? "").toUpperCase() === letter && !selectedRef.current.includes(i));
+        if (index >= 0) tapTile(index);
+      }
+      return true;
+    }
+    if (key === "Backspace") {
+      const last = selectedRef.current[selectedRef.current.length - 1];
+      if (kind === "down" && last !== undefined) tapTile(last);
+      return true;
+    }
+    if (key === "Escape") {
+      if (kind === "down" && !locked && !busy) {
+        selectedRef.current = [];
+        setSelectedTiles([]);
+        setMessage(null);
+      }
+      return true;
+    }
+    if (key === "Enter") {
+      if (kind === "down" && !event.repeat && selectedRef.current.length > 0) void trySubmit();
+      return true;
+    }
+    return false;
+  });
 
   return (
     <div data-stage-column="2" data-word-polish="wordsmith" className="flex min-h-0 flex-1 flex-col gap-2">

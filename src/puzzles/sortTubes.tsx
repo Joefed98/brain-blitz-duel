@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   canPour,
@@ -222,6 +223,33 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     setLifted(null);
   };
 
+  const undo = () => {
+    setLifted(null);
+    setPoured(null);
+    // Undo never gives a pour back on a limited board: it is logged, not removed.
+    setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
+  };
+
+  const reset = () => {
+    setLifted(null);
+    setPoured(null);
+    setMoves((current) => (logged ? [...current, "reset"] : []));
+  };
+
+  // Desktop keys: 1–9 tap flasks 1–9 (0 the tenth) in on-screen order, Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!isTubes) return false;
+    const tube = /^[0-9]$/.test(key) ? (key === "0" ? 9 : Number(key) - 1) : -1;
+    const used = (tube >= 0 && tube < replay.tubes.length) || key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (tube >= 0) tapTube(tube);
+    else if (!locked && replay.depth !== 0) {
+      if (key === "r") reset();
+      else undo();
+    }
+    return true;
+  });
+
   if (!isTubes) return null;
 
   return (
@@ -241,12 +269,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         <button
           type="button"
           disabled={locked || replay.depth === 0}
-          onClick={() => {
-            setLifted(null);
-            setPoured(null);
-            // Undo never gives a pour back on a limited board: it is logged, not removed.
-            setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
-          }}
+          onClick={undo}
           className="h-[52px] min-w-[84px] rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -254,11 +277,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
         <button
           type="button"
           disabled={locked || replay.depth === 0}
-          onClick={() => {
-            setLifted(null);
-            setPoured(null);
-            setMoves((current) => (logged ? [...current, "reset"] : []));
-          }}
+          onClick={reset}
           className="h-[52px] min-w-[84px] rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset

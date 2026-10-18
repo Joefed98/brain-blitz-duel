@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
 import { buzz } from "@/lib/motion";
+import { useGameKeys } from "@/lib/desktop";
 import {
   applyOperation,
   decodeSteps,
@@ -320,6 +321,28 @@ function TargetStage({
   const away = closest === null ? null : Math.abs(closest - target);
   const isLockedNow = locked || lockedHere;
   const hitId = flight ? (combine?.id ?? null) : null;
+
+  // Desktop keys: 1–6 tap the tile in that place, + − × ÷ (also - * x /) pick the operator,
+  // Backspace or Z = Undo, R = Reset, Enter = Lock.
+  useGameKeys((kind, key, event) => {
+    const op: Operator | null = key === "+" ? "+" : key === "-" ? "-" : key === "*" || key === "x" || key === "×" ? "×" : key === "/" || key === "÷" ? "÷" : null;
+    const slot = /^[1-6]$/.test(key) ? Number(key) - 1 : null;
+    const used = op !== null || slot !== null || key === "Backspace" || key === "z" || key === "r" || key === "Enter";
+    if (!used || kind !== "down") return used;
+    if (key === "Backspace" || key === "z") {
+      if (!isLockedNow && history.length > 0) undo();
+      return true;
+    }
+    if (event.repeat || isLockedNow) return true;
+    if (op) setOperator(op);
+    else if (slot !== null) {
+      const tile = pool[slot];
+      if (tile?.active) tapTile(tile);
+    } else if (key === "r") {
+      if (history.length > 0) reset();
+    } else send(steps);
+    return true;
+  });
 
   return (
     <div ref={rootRef} data-polish="target" data-stage-column="2" data-locked={isLockedNow ? "true" : undefined} className={`relative flex min-h-0 flex-1 flex-col gap-2 ${column ? "" : "justify-between"}`}>

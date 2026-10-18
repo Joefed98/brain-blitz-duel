@@ -1,3 +1,4 @@
+import { aimVector, directionOf, useGameKeys } from "@/lib/desktop";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { flightpathColour, flightpathInk } from "@/lib/arcade/flightpathPalette.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -132,6 +133,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: the arrows (WASD) aim a virtual drag (its landing ring drawn as a drag's is), Space or Enter
+  // shoots it through the same launch as a finger lifted.
+  const keyAim = useRef(aimVector());
+  useGameKeys((kind, key, event) => {
+    const open = !lockedRef.current && !submitted.current && !bullseyeGame.isOver(state.current) && !anchor.current;
+    if (key === " " || key === "Enter") {
+      if (kind === "down" && !event.repeat && open) {
+        const v = keyAim.current.show();
+        aim.current = null;
+        const launch = bullseyeDrag(v.dx, v.dy);
+        if (launch) pending.current.push({ t: 0, k: 2, a: launch.vx, b: launch.vy, c: 0, d: 0 });
+      }
+      return true;
+    }
+    if (directionOf(key) === null) return false;
+    if (kind === "down" && open) {
+      keyAim.current.nudge(key, event.shiftKey);
+      const v = keyAim.current.show();
+      const preview = bullseyeDrag(v.dx, v.dy);
+      aim.current = preview ? { vx: preview.vx, vy: preview.vy } : null;
+    }
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

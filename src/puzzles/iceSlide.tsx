@@ -10,6 +10,7 @@ import {
   slideOutcome,
   slideSearch,
 } from "@/lib/duel/slide";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   SLIDE_COLS,
@@ -143,6 +144,19 @@ function Stage({
 
   const swipe = useSwipe(slide, { disabled: locked || replay.solved || animating });
 
+  const undo = () => setMoves((current) => [...current, "X"]);
+  const reset = () => setMoves((current) => [...current, "Y"]);
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD slide through ArrowPad).
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (locked || animating || !moves.length) return true;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
+
   if (!data) return null;
 
   return (
@@ -208,7 +222,7 @@ function Stage({
         <button
           type="button"
           disabled={locked || animating || !moves.length}
-          onClick={() => setMoves((current) => [...current, "X"])}
+          onClick={undo}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -216,7 +230,7 @@ function Stage({
         <button
           type="button"
           disabled={locked || animating || !moves.length}
-          onClick={() => setMoves((current) => [...current, "Y"])}
+          onClick={reset}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset

@@ -1,3 +1,5 @@
+import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 import { ballTrackFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -228,6 +230,29 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return { x: (clientX - box.left - v.ox) / v.scale, y: (clientY - box.top - v.oy) / v.scale };
   };
 
+  // Desktop keys: the arrows (WASD) move a cursor over the tiles; Space or Enter taps the tile under it.
+  const cursor = useGridCursor(BT_ROWS, BT_COLS, { row: 0, col: Math.floor(BT_COLS / 2) });
+  const tapCell = (row: number, col: number) => {
+    const cell = row * BT_COLS + col;
+    // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
+    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL) && row === BT_ROWS - 1 && col > 0;
+    if (!game.rotatable.has(cell) && !switchPoint) return;
+    push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
+  };
+  useGameKeys((kind, key, event) => {
+    if (key === " " || key === "Enter") {
+      if (kind === "down" && !event.repeat && !blocked()) {
+        const at = cursor.show();
+        tapCell(at.row, at.col);
+      }
+      return true;
+    }
+    const dir = directionOf(key);
+    if (!dir) return false;
+    if (kind === "down") cursor.move(dir);
+    return true;
+  });
+
   if (!data && puzzle.type !== "balltrack") return null;
 
   return (
@@ -247,14 +272,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (!p) return;
             const col = Math.floor(p.x / BT_TILE), row = Math.floor((p.y - BT_HOPPER_H) / BT_TILE);
             if (col < 0 || col >= BT_COLS || row < 0 || row >= BT_ROWS) return;
-            const cell = row * BT_COLS + col;
-            // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-            const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL) && row === BT_ROWS - 1 && col > 0;
-            if (!game.rotatable.has(cell) && !switchPoint) return;
-            push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
+            tapCell(row, col);
           }}
         >
           <canvas ref={canvas} className="pointer-events-none absolute inset-0 h-full w-full" />
+          <KeyCursor rect={cursor.cell ? { x: cursor.cell.col * BT_TILE, y: BT_HOPPER_H + cursor.cell.row * BT_TILE, w: BT_TILE, h: BT_TILE } : null} worldW={BT_W} worldH={BT_H} />
         </div>
       </ArcadeArenaSlot>
       <div data-game-controls="status" className="flex h-7 w-full shrink-0 items-center justify-between px-1 font-mono text-xs text-muted-foreground">

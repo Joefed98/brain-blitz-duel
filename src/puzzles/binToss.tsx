@@ -1,3 +1,4 @@
+import { aimVector, directionOf, useGameKeys } from "@/lib/desktop";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
@@ -126,6 +127,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: the arrows (WASD) aim a virtual drag (its path drawn as a drag's is), Space or Enter throws it
+  // through the same launch as a finger lifted, Esc hides the aim.
+  const keyAim = useRef(aimVector());
+  const showKeyAim = (v: { dx: number; dy: number }) => {
+    const preview = binTossDrag(v.dx, v.dy);
+    aim.current = preview ? { vx: preview.vx, vy: preview.vy, wind: state.current.winds[state.current.throwIndex] ?? 0 } : null;
+  };
+  useGameKeys((kind, key, event) => {
+    const open = !lockedRef.current && !submitted.current && !binTossGame.isOver(state.current) && state.current.phase === BINTOSS_AIM && !anchor.current;
+    if (key === "Escape") {
+      if (kind === "down" && !anchor.current) aim.current = null;
+      return true;
+    }
+    if (key === " " || key === "Enter") {
+      if (kind === "down" && !event.repeat && open) throwWith(keyAim.current.show());
+      return true;
+    }
+    if (directionOf(key) === null) return false;
+    if (kind === "down" && open) {
+      keyAim.current.nudge(key, event.shiftKey);
+      showKeyAim(keyAim.current.show());
+    }
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 
@@ -337,6 +362,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     setCancelHighlighted((current) => (current === cancelled ? current : cancelled));
   };
 
+  /** A finger lifted (or Space on desktop) with this drag vector: the throw. */
+  function throwWith(drag: { dx: number; dy: number }) {
+    aim.current = null;
+    const launch = binTossDrag(drag.dx, drag.dy);
+    if (!launch) return;
+    lastGhost.current = null;
+    activeLaunch.current = {
+      vx: launch.vx,
+      vy: launch.vy,
+      wind: state.current.winds[state.current.throwIndex] ?? 0,
+      index: state.current.throwIndex,
+      rev: state.current.rev,
+    };
+    pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
+  }
+
   if (!data) return null;
 
   return (
@@ -390,17 +431,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (!start || locked || submitted.current || cancelled) return;
           if (state.current.phase !== BINTOSS_AIM) return;
           const point = worldPoint(event);
-          const launch = binTossDrag(point.x - start.x, point.y - start.y);
-          if (!launch) return;
-          lastGhost.current = null;
-          activeLaunch.current = {
-            vx: launch.vx,
-            vy: launch.vy,
-            wind: state.current.winds[state.current.throwIndex] ?? 0,
-            index: state.current.throwIndex,
-            rev: state.current.rev,
-          };
-          pending.current.push({ t: 0, k: 1, a: launch.vx, b: launch.vy, c: 0, d: 0 });
+          throwWith({ dx: point.x - start.x, dy: point.y - start.y });
         }}
         onPointerCancel={(event) => {
           anchor.current = null;

@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { heldHorizontal } from "@/lib/desktop";
 import { wavefrontFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
@@ -65,6 +67,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: WavefrontPuzzleData | null = puzzle.type === "wavefront" ? puzzle : null;
   // wavRev 6: the taller world; drags start in the bottom quarter of the stored revision's world.
   const worldH = wavefrontWorldHFor(data?.wavRev);
+  const held = useRef(heldHorizontal());
   return (
     <ArcadeCanvasStage
       diagKey="wavefront"
@@ -86,6 +89,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (kind === "down" && y < wavDragZoneTop(worldH)) return null;
         return { a: x, b: 0, c: 0 };
       }}
+      // Desktop keys: ←/→ (A/D) slide the aim, the same absolute x a drag sets, 6 px a tick.
+      tickInput={(state) => {
+        const dir = held.current.dir();
+        if (dir === 0) return null;
+        const x = Math.max(0, Math.min(WAV_WORLD_W, state.aimX + dir * 6));
+        return { a: x, b: 0, c: 0 };
+      }}
+      keys={(kind, key) => held.current.key(kind, key)}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

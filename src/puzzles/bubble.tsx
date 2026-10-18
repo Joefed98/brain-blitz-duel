@@ -1,3 +1,4 @@
+import { aimVector, directionOf, useGameKeys } from "@/lib/desktop";
 import { bubbleFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -116,6 +117,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: the arrows (WASD) aim a virtual drag (its trail drawn as a drag's is), Space or Enter shoots it
+  // through the same launch as a finger lifted.
+  const keyAim = useRef(aimVector());
+  const keyShot = () => {
+    const v = keyAim.current.show();
+    const preview = dragLaunch(v.dx, v.dy, BUB_SPEED);
+    return preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy } : null;
+  };
+  useGameKeys((kind, key, event) => {
+    const open = !lockedRef.current && !submitted.current && !bubbleGame.isOver(state.current) && !anchor.current;
+    if (key === " " || key === "Enter") {
+      if (kind === "down" && !event.repeat && open) {
+        const shot = keyShot();
+        aim.current = null;
+        if (shot) pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
+      }
+      return true;
+    }
+    if (directionOf(key) === null) return false;
+    if (kind === "down" && open) {
+      keyAim.current.nudge(key, event.shiftKey);
+      aim.current = keyShot();
+    }
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

@@ -1,3 +1,4 @@
+import { heldHorizontal, useGameKeys } from "@/lib/desktop";
 import { breakerFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -105,6 +106,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: ←/→ (A/D) slide the paddle's aim (the same absolute x a drag sets, 7 px a tick);
+  // Space fires a held power-up, as a still tap does.
+  const keyMove = useRef(heldHorizontal());
+  useGameKeys((kind, key, event) => {
+    if (key === " ") {
+      if (kind === "down" && !event.repeat && !lockedRef.current && !submitted.current && !game.isOver(state.current) && state.current.held > 0) presses.current.push(0);
+      return true;
+    }
+    return keyMove.current.key(kind, key);
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 
@@ -165,6 +176,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           // One event a tick: a waiting button press first, otherwise a drag,
           // and only when the position has changed.
           let applied: ArcadeInputEvent | null = null;
+          const keyDir = keyMove.current.dir();
+          if (keyDir !== 0) wanted.current = Math.max(0, Math.min(BRK_WORLD_W, state.current.aimX + keyDir * 7));
           const press = presses.current.shift();
           if (press !== undefined) {
             applied = {

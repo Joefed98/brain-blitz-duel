@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gridCellAt, hapticTick } from "@/components/puzzles/GridDrag";
 import { Button } from "@/components/ui/button";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import type { WordSlidePuzzleData } from "@/lib/duel/types";
 import {
@@ -239,6 +240,16 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         steps.push({ el: board.current?.querySelector(`[data-cell="${row * WS_SIZE + col}"]`), keyframes: goldPulse(1.05), delay: row * 170 + 80 + col * 20, duration: 380 });
     }
     return playFinish(steps);
+  });
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!data || !replay) return false;
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (frozen || !canUndo) return true;
+    push(key === "r" ? "X" : "U");
+    return true;
   });
 
   if (!data || !replay) return null;

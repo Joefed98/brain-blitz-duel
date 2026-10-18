@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { hoverFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -96,6 +97,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: Space, ↑ or W flaps (a tap).
+  useGameKeys((kind, key, event) => {
+    if (![" ", "ArrowUp", "w"].includes(key)) return false;
+    if (kind === "down" && !event.repeat && !lockedRef.current && !submitted.current && !hoverGame.isOver(state.current)) pending.current += 1;
+    return true;
+  });
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 

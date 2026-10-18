@@ -1,3 +1,4 @@
+import { useGameKeys } from "@/lib/desktop";
 import { playWrong } from "@/lib/sound";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AcceptedWordChip } from "./AcceptedWordChip";
@@ -224,6 +225,35 @@ export function WordHuntPuzzle({
       setMessage(verdict.reason ?? "Not a word");
     }
   }, [checkWord, wordOf]);
+
+  // Desktop keys: typing a letter taps a cell with it next to the path's end (the first such cell; anywhere to
+  // start), Backspace taps the end again (taking it off), Enter submits the word.
+  useGameKeys((kind, key, event) => {
+    if (/^[a-z]$/.test(key)) {
+      if (kind === "down" && !locked && !tracing.current) {
+        const current = livePath.current;
+        const last = current[current.length - 1];
+        const letter = key.toUpperCase();
+        for (let cell = 0; cell < N * N; cell++) {
+          if (String(grid[cell] ?? "").toUpperCase() !== letter || current.includes(cell)) continue;
+          if (last !== undefined && (Math.abs(Math.floor(cell / N) - Math.floor(last / N)) > 1 || Math.abs((cell % N) - (last % N)) > 1)) continue;
+          tapCell(cell);
+          break;
+        }
+      }
+      return true;
+    }
+    if (key === "Backspace") {
+      const last = livePath.current[livePath.current.length - 1];
+      if (kind === "down" && !locked && !tracing.current && last !== undefined) tapCell(last);
+      return true;
+    }
+    if (key === "Enter") {
+      if (kind === "down" && !event.repeat && !locked && !tracing.current && livePath.current.length > 0) void finish();
+      return true;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (!flash) return;

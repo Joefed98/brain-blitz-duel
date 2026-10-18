@@ -14,6 +14,7 @@ import {
   pushSolutionFrames,
   replayPush,
 } from "@/lib/duel/push";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   PUSH_CELLS,
@@ -126,6 +127,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
 
   const swipe = useSwipe(step, { disabled: locked || replay.solved });
 
+  const undo = () => setMoves((current) => current.slice(0, -1));
+  const reset = () => setMoves([]);
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD step through ArrowPad).
+  useGameKeys((kind, key, event) => {
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (locked || !moves.length) return true;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
+
   if (puzzle.type !== "push") return null;
 
   return (
@@ -153,7 +167,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => setMoves((current) => current.slice(0, -1))}
+          onClick={undo}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -161,7 +175,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={() => setMoves([])}
+          onClick={reset}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset

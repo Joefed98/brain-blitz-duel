@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { STAGE_COUNT, joinStages, parseSelection, scanStageResult, splitStages } from "@/lib/duel/stagedRounds";
 import {
@@ -171,6 +172,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   }, [draft, onDraftAnswer]);
 
   const current = data?.stages[Math.min(stage, STAGE_COUNT - 1)];
+
+  // Desktop keys: Enter = Submit (this grid, then the next).
+  useGameKeys((kind, key, event) => {
+    if (!data || !current || key !== "Enter") return false;
+    if (kind === "down" && !event.repeat && !frozen) advance(selections);
+    return true;
+  });
+
   if (!data || !current) return null;
   const frozen = locked || done.current;
   const selected = selections[stage] ?? [];

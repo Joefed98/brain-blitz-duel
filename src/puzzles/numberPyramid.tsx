@@ -14,6 +14,7 @@ import {
   NP_SET_SIZE,
   type NpPlacements,
 } from "@/lib/duel/numberPyramid";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { NUMPYRAMID_TIME_MS, type NumberPyramidPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -226,6 +227,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (stage >= NP_SET_SIZE - 1) { submitted.current = true; onSubmit(npEncodeRound(NP_SET_SIZE, boards)); return; }
     setStage(stage + 1);
   };
+
+  // Desktop keys: Enter = Skip (on to the next pyramid).
+  useGameKeys((kind, pressed, event) => {
+    if (!data || !board || pressed !== "Enter") return false;
+    if (kind === "down" && !event.repeat && !busy) advance(placements);
+    return true;
+  });
 
   if (!data || !board) return null;
   const placedTray = new Set(Object.values(placements));

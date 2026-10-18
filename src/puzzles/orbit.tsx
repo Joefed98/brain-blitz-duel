@@ -115,6 +115,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         </div>
       )}
       pointer={(kind) => (kind === "down" ? { a: 0, b: 0, c: 0 } : null)}
+      keys={(kind, key, send, state, event) => {
+        // Space releases the rocket (a tap); C sets a checkpoint, only while the button shows.
+        if (key === " ") {
+          if (kind === "down" && !event.repeat) send({ a: 0, b: 0, c: 0 });
+          return true;
+        }
+        if (key === "c") {
+          if (kind === "down" && !event.repeat && orbitCanSetCheckpoint(state)) send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 });
+          return true;
+        }
+        return false;
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

@@ -126,6 +126,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           return next;
         }}
         pointer={(kind, x, y) => input.current.pointer(kind, x, y, liveDroppingRef.current)}
+        keys={(kind, key, _send, _state, event) => {
+          // The four buttons; drawing stays with the mouse (a pen is a pointer, not keys).
+          const k = key === "z" || key === "Backspace" ? INK_INPUT_UNDO : key === "r" ? INK_INPUT_RESET : key === "Enter" || key === " " ? INK_INPUT_RELEASE : key === "d" ? INK_INPUT_DROP_AGAIN : null;
+          if (k === null) return false;
+          if (kind === "down" && !event.repeat && !(k === INK_INPUT_UNDO && liveDroppingRef.current)) input.current.press(k);
+          return true;
+        }}
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
         overlay={

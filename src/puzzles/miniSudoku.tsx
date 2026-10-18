@@ -11,6 +11,7 @@ import {
   type SudokuPuzzleData,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -166,6 +167,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     submitted.current = true;
     onSubmit(encodeSudoku(grid));
   }, [grid, givens, locked, onSubmit]);
+
+  // Desktop keys: arrows (WASD) move the selected cell, 1–6 enter that digit, Backspace or Delete = Clear,
+  // P = Pencil.
+  useGameKeys((kind, key, event) => {
+    if (puzzle.type !== "sudoku") return false;
+    const dir = directionOf(key);
+    const digit = /^[1-6]$/.test(key) ? Number(key) : null;
+    const used = dir !== null || digit !== null || key === "Backspace" || key === "Delete" || key === "p";
+    if (!used || kind !== "down" || locked) return used;
+    if (dir) {
+      const rows = SUDOKU_CELLS / SUDOKU_COLS;
+      const from = selected ?? 0;
+      let row = Math.floor(from / SUDOKU_COLS);
+      let col = from % SUDOKU_COLS;
+      if (selected !== null) {
+        if (dir === "up") row = Math.max(0, row - 1);
+        else if (dir === "down") row = Math.min(rows - 1, row + 1);
+        else if (dir === "left") col = Math.max(0, col - 1);
+        else col = Math.min(SUDOKU_COLS - 1, col + 1);
+      }
+      setSelected(row * SUDOKU_COLS + col);
+    } else if (digit !== null) {
+      if (!event.repeat) tapDigit(digit);
+    } else if (key === "p") {
+      if (!event.repeat) setPencilMode((current) => !current);
+    } else clearCell();
+    return true;
+  });
 
   if (puzzle.type !== "sudoku") return null;
 

@@ -1,3 +1,4 @@
+import { heldHorizontal } from "@/lib/desktop";
 import {
   basCheckpoint,
   bastionGame,
@@ -66,6 +67,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   arrowsRef.current = arrows;
   const holding = useRef<-1 | 0 | 1>(0);
   const deg = useRef<number | null>(null);
+  const keyHold = useRef(heldHorizontal());
 
   useEffect(() => {
     setArrows(window.localStorage.getItem(ARROWS_KEY) === "1");
@@ -80,9 +82,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   const tickInput = (state: BasState) => {
-    if (!arrowsRef.current || holding.current === 0) return null;
+    // Desktop keys: ←/→ (A/D) are the two rotate buttons, in either mode.
+    const keyDir = keyHold.current.dir();
+    const dir = arrowsRef.current && holding.current !== 0 ? holding.current : keyDir;
+    if (dir === 0) {
+      if (!arrowsRef.current) deg.current = null;
+      return null;
+    }
     const current = deg.current ?? (state.angleFp * BAS_STEP_DEG_X256) / 65536;
-    const next = Math.min(180, Math.max(0, current + holding.current * ARROW_DEG_PER_TICK));
+    const next = Math.min(180, Math.max(0, current + dir * ARROW_DEG_PER_TICK));
     deg.current = next;
     return aimPoint(next);
   };
@@ -108,6 +116,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       interval={BAS_CHECKPOINT_INTERVAL}
       encodeRun={encodeBastionRun}
       tickInput={tickInput}
+      keys={(kind, key) => keyHold.current.key(kind, key)}
       pointer={(kind, x, y) => (arrowsRef.current ? null : { a: x, b: y, c: kind === "up" ? 0 : 1 })}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

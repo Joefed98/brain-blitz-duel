@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { trCanStep, trComplete, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -234,6 +235,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     lastSteps.current = steps;
   }, [steps]);
   const glow = useSolveFx(complete, "trail.solve", 1150);
+
+  // Desktop keys: Z or Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!data) return false;
+    const used = key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))) return true;
+    if (key === "r") reset();
+    else undo();
+    return true;
+  });
 
   if (!data) return null;
   const busy = locked || complete;

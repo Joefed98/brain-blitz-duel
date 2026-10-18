@@ -244,6 +244,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         );
       }}
       pointer={(kind, x, y) => (kind === "down" ? { k: WF_INPUT_TAP, a: x, b: y, c: 0 } : null)}
+      keys={(kind, key, send, _state, event) => {
+        // Enter (or Space) is the Enter button: rev 2's drawn box tapped at its centre, rev 1's button.
+        if (key !== "Enter" && key !== " ") return false;
+        if (kind === "down" && !event.repeat && dict.ready) {
+          send(rev === 2 ? { k: WF_INPUT_TAP, a: WF_ENTER_V2.x + WF_ENTER_V2.w / 2, b: WF_ENTER_V2.y + WF_ENTER_V2.h / 2, c: 0 } : { k: WF_INPUT_ENTER, a: 0, b: 0, c: 0 });
+        }
+        return true;
+      }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
     />

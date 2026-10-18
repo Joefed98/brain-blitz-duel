@@ -153,6 +153,15 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   room-extras-check (headless Chromium, ~3 min, its own shard `play14`: ping placement at 414×896 home-screen app and 390×844,
   the snake with 2/6/10 players, every marker's place and no numbers;
   `--shots=<dir>` saves screenshots).
+- **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
+  game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
+  and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
+  column; arcade play screens a centred ≤ 640×1120 column, the world on whole CSS pixels, 56 px header, 28 px timer, the fill
+  over the whole screen), `useGameKeys` (keys on mouse/trackpad devices only, feeding the same handlers and queues as taps;
+  `ArcadeCanvasStage`'s `keys` prop, ArrowPad, LetterKeypad and NumberEntry cover many games at once), `KeyCursor` (display-only
+  board cursor), `DESKTOP_KEYS` (`src/lib/desktopKeys.ts`, the intro's key line on desktop). Flash, Bang On, Bonk, Tenfall and
+  Tempo have no keys (decisions for Joe in the doc). desktop-geometry-check (headless Chromium, shard `play14`) proves 1366×768,
+  1440×900, 1920×1080, 1280×720 and resizing; arcade-play-check's 1280×800 layout window is a touch-screen laptop.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

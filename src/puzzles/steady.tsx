@@ -1,3 +1,4 @@
+import { heldHorizontal, useGameKeys } from "@/lib/desktop";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
@@ -84,6 +85,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitRef = useRef(onSubmit);
   const draftRef = useRef(onDraftAnswer);
   lockedRef.current = locked;
+  // Desktop keys: holding ←/→ (A/D) is a held finger sliding 4 px a tick; letting go lifts it.
+  const keyMove = useRef(heldHorizontal());
+  const keyHeld = useRef(false);
+  useGameKeys((kind, key) => keyMove.current.key(kind, key));
   submitRef.current = onSubmit;
   draftRef.current = onDraftAnswer;
 
@@ -138,6 +143,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (ticks > MAX_CATCH_UP_TICKS) ticks = MAX_CATCH_UP_TICKS;
         accumulator -= ticks * TICK_MS;
         for (let i = 0; i < ticks; i++) {
+          const keyDir = keyMove.current.dir();
+          if (keyDir !== 0) {
+            keyHeld.current = true;
+            wanted.current = { x: Math.max(0, Math.min(STD_WORLD_W, (wanted.current?.x ?? state.current.aimX) + keyDir * 4)), down: true };
+          } else if (keyHeld.current) {
+            keyHeld.current = false;
+            if (wanted.current) wanted.current = { ...wanted.current, down: false };
+          }
           // One drag event a tick, and only when the position has changed.
           const target = wanted.current;
           let applied: ArcadeInputEvent | null = null;

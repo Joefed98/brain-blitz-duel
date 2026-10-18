@@ -16,6 +16,8 @@ import { PuzzleInstructions } from "./PuzzleInstructions";
 import { hasIntroDemo, IntroDemo, useArcadeIntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroFit } from "./IntroFit";
+import { useDesktop } from "@/lib/desktop";
+import { DESKTOP_KEYS } from "@/lib/desktopKeys";
 
 /**
  * The demo or example is never squeezed below this height (px) while a smaller
@@ -233,6 +235,7 @@ export function RoundIntro({
                 {introLine}
               </p>
             ) : null}
+            <DesktopKeys type={type} />
             <p className="round-intro-time shrink-0 text-xs text-muted-foreground">
               You have {seconds} seconds
             </p>
@@ -270,5 +273,24 @@ export function RoundIntro({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * The game's keys, on desktop only (useDesktop: a mouse or trackpad in a wide window; never a phone,
+ * whose intro is unchanged): one short line of key caps under the rules (docs/desktop-support.md).
+ */
+function DesktopKeys({ type }: { type: PuzzleType }) {
+  const desktop = useDesktop();
+  const keys = DESKTOP_KEYS[type];
+  if (!desktop || !keys) return null;
+  return (
+    <p data-desktop-keys="" className="desktop-keys shrink-0" aria-label="Keyboard controls">
+      {keys.map(([key, action]) => (
+        <span key={key}>
+          <kbd>{key}</kbd> {action}
+        </span>
+      ))}
+    </p>
   );
 }

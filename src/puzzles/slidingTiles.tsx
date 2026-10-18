@@ -14,6 +14,7 @@ import {
   TILES_RESET,
   TILES_UNDO,
 } from "@/lib/duel/tiles";
+import { directionOf, useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   TILES_TIME_MS,
@@ -115,6 +116,27 @@ function Stage({
     submitted.current = true;
     onSubmit(encodeTileMoves(moves));
   }, [now, phaseStartedAt, locked, data, moves, onSubmit]);
+
+  // Desktop keys: an arrow (or WASD) slides the tile beside the gap that moves that way, Z or
+  // Backspace = Undo, R = Reset.
+  useGameKeys((kind, key, event) => {
+    if (!data || !replay || !layout) return false;
+    const dir = directionOf(key);
+    const used = dir !== null || key === "z" || key === "Backspace" || key === "r";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (key === "r") log(TILES_RESET);
+    else if (key === "z" || key === "Backspace") log(TILES_UNDO);
+    else {
+      const gap = layout.cells[replay.frame.indexOf(0)];
+      if (!gap) return true;
+      // The tile that moves left into the gap sits to its right, and so on.
+      const r = gap.r + (dir === "up" ? 1 : dir === "down" ? -1 : 0);
+      const c = gap.c + (dir === "left" ? 1 : dir === "right" ? -1 : 0);
+      const tile = replay.frame[layout.cells.findIndex((cell) => cell.r === r && cell.c === c)];
+      if (tile) slide(tile);
+    }
+    return true;
+  });
 
   if (!data || !replay || !layout) return null;
 

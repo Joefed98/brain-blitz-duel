@@ -31,6 +31,7 @@ import {
   CHECKOUT_STANDARD,
   type CheckoutDart,
 } from "@/lib/duel/checkout";
+import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
   CHECKOUT_TIME_MS,
@@ -612,6 +613,17 @@ function Stage({
     return () => ro.disconnect();
   }, []);
 
+  // Desktop keys: Z or Backspace = Undo, Enter = Throw.
+  useGameKeys((kind, key, event) => {
+    if (!data) return false;
+    const used = key === "z" || key === "Backspace" || key === "Enter";
+    if (!used || kind !== "down" || event.repeat) return used;
+    if (busy || done || !darts.length) return true;
+    if (key === "Enter") throwDarts();
+    else undo();
+    return true;
+  });
+
   if (!data) return null;
   const current = data.stages[stage]!;
   const isSolved = (index: number) => Boolean(solved[index]);
@@ -637,6 +649,10 @@ function Stage({
     soundCue("checkout.thud");
     soundCue("checkout.tick");
     setDarts([...darts, dart]);
+  };
+  const undo = () => {
+    soundCue("checkout.tick");
+    setDarts(darts.slice(0, -1));
   };
   const reject = () => {
     setShake(true);
@@ -779,10 +795,7 @@ function Stage({
           type="button"
           className={`${control} border-border text-muted-foreground`}
           disabled={busy || done || !darts.length}
-          onClick={() => {
-            soundCue("checkout.tick");
-            setDarts(darts.slice(0, -1));
-          }}
+          onClick={undo}
         >
           Undo
         </button>
