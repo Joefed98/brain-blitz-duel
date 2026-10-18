@@ -548,7 +548,7 @@ function paintSlingPlastics(c: Ctx): void {
 }
 
 /** A bumper's resting body: skirt ring (outer edge exactly at the collision radius), cap, rim light, star. */
-function paintBumper(c: Ctx, bx: number, by: number): void {
+export function paintBumper(c: Ctx, bx: number, by: number): void {
   const R = PIN_BUMPER_R;
   // Contact shadow (off the solid, low and dark).
   c.fillStyle = "rgba(0,0,0,0.42)";
@@ -849,7 +849,7 @@ function drawFlippers(ctx: Ctx, state: PinState): void {
 }
 
 /** A chrome ball: a soft contact shadow below right, a shaded body exactly at the ball's radius, a specular glint. */
-function drawBall(ctx: Ctx, bx: number, by: number): void {
+export function drawBall(ctx: Ctx, bx: number, by: number): void {
   const r = PIN_BALL_R;
   ctx.fillStyle = "rgba(0,0,0,0.38)";
   ctx.beginPath();

@@ -16,6 +16,7 @@ import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructio
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
 import { markOnboardingSeen } from "@/lib/onboarding";
+import { useDeviceRoomRecord } from "@/lib/duel/deviceHistory";
 import { DuelStart } from "@/components/duel/DuelStart";
 import { RoundTitle } from "@/components/duel/RoundTitle";
 import {
@@ -250,6 +251,8 @@ function DuelScreen() {
   useDemoKey();
   // Arriving through a room link: no first-time intro now or later (lib/onboarding).
   useEffect(() => markOnboardingSeen(), []);
+  // This device's own history (Profile, Tournaments, Play's "Rejoin"): device storage only, nothing drawn here.
+  useDeviceRoomRecord({ duel, players, results, me });
 
   const [rematchBusy, setRematchBusy] = useState(false);
   const [starting, setStarting] = useState(false);

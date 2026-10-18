@@ -196,6 +196,23 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   board cursor), `DESKTOP_KEYS` (`src/lib/desktopKeys.ts`, the intro's key line on desktop). Flash, Bang On, Bonk, Tenfall and
   Tempo have no keys (decisions for Joe in the doc). desktop-geometry-check (headless Chromium, shard `play14`) proves 1366×768,
   1440×900, 1920×1080, 1280×720 and resizing; arcade-play-check's 1280×800 layout window is a touch-screen laptop.
+- **App shell** (18 Oct 2026, presentation and device storage only, no version stamps): a bottom tab bar
+  (`src/components/app/AppTabBar.tsx`: Play `/`, Practice `/practice`, Tournaments `/tournaments`, Profile `/profile`;
+  gold = current; fixed above the home bar, `polish-layout/app-shell.css`) drawn by PhoneShell's `tabs` on those four
+  screens only (Practice's list, never a round); rooms, rounds, results, podium and games are unchanged. Back: a tab opened
+  from Play is pushed (`fromPlayTab`), tab to tab replaces, Play goes back. Play: Quick play (Create a room; join with a
+  code), "Rejoin your last room" (`deviceHistory.ts` last room, shown only while the room is open and this device is in it),
+  the next public game, Warm up (`practiceRecent.ts`, else Gridlock, Hover, Blackout; `?game=` opens the round). Practice:
+  search, category chips, one row per game (icon, name, category, best; the button's name is exactly the game's).
+  Tournaments (beta): the schedule Joe edits in `src/config/publicGames.ts` (UK times, `src/lib/publicSchedule.ts`), Next
+  up (Add to calendar, an .ics, until lobby time, then Join now to the public room), Coming up, Your results. Profile:
+  the look (the lobby's `LookPicker`, saved with `rememberLook` for new rooms), rooms played / wins / podiums and recent
+  rooms from this device's own record (`useDeviceRoomRecord` in the room route: each finished game it shows, place and
+  points as the final screen shows them; server history can't answer this because Play again deletes results),
+  practice bests, settings (the gear: sound, direction controls, How it works). Game icons (`GameIcon`): every active game's
+  own art on a tile in its colour, arcade ones painted by the game's renderer (`gameIcons/arcadeIcons.renderer.ts`),
+  puzzles by their art components or their board element redrawn (`gameIcons/puzzleIcons.tsx`); no text.
+  app-shell-check (~2 min, `play15`) proves the tabs, Back, icons, rooms without the tab bar and the card's switch at lobby time.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -329,8 +346,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `data-geometry-hold`, standalone puzzle play screens only) keeps the round hidden, its fade paused, until the insets
   have arrived and the geometry reads the same for 3 frames (at most 400 ms); held frames are not judged, every visible
   one is. The arcade shortfall (`useStandaloneShortfall`) is applied in a layout effect, before the first paint.
-- **Screen bottoms** (16 Oct 2026, display only): screen-bottom-check (headless Chromium, ~1 min, shard `play6`) draws 19
-  non-game screens (home, first-time intro, practice list and round intro, lobby with 2 and 10 players, link join, Prepare
+- **Screen bottoms** (16 Oct 2026, display only): screen-bottom-check (headless Chromium, ~1 min, shard `play6`) draws 21
+  non-game screens (home, first-time intro, practice list, tournaments, profile and practice round intro, lobby with 2 and 10 players, link join, Prepare
   to Duel, round title, room round intro, round result, standings and podium with 2 and 10 players, round result and standings after an arcade round, winner reveal) as an
   iPhone 11 home-screen app and, at the top, middle and end of each page's scroll, fails unless html and body are
   `--screen-edge` (#070709: what shows below a short page, below the 848 px layout viewport and on overscroll) and the

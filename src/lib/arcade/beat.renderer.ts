@@ -156,7 +156,7 @@ function drawSwipe(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
  * Polish G: drawn from a cached sprite per colour (lit top row, shaded bottom
  * row, a 2 px glow at most) instead of a shadowBlur per note.
  */
-function drawBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, colour: string, bloom: number): void {
+export function drawBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, colour: string, bloom: number): void {
   const sprite = noteSprite(colour, w);
   if (sprite) {
     ctx.drawImage(sprite as CanvasImageSource, Math.round(x) - 2, Math.round(y) - 2, Math.round(w) + 4, BEAT_NOTE_H + 4);

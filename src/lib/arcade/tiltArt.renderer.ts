@@ -115,7 +115,7 @@ function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: number; 
  */
 const DISC_SCALE = 2;
 let discSprite: ArtCanvas | null | undefined;
-function paintDisc(c: CanvasRenderingContext2D): void {
+export function paintDisc(c: CanvasRenderingContext2D): void {
   const r = TILT_DISC_R;
   c.fillStyle = TOY_OAK_LIGHT;
   c.beginPath();

@@ -10,6 +10,7 @@
 @import "./polish-speed/index.css";
 @import "./polish-pattern/index.css";
 @import "./polish-layout/bottom.css";
+@import "./polish-layout/app-shell.css";
 @import "./polish-layout/desktop.css";
 
 /*

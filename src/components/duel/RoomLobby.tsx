@@ -64,7 +64,7 @@ interface RoomLobbyProps {
 }
 
 /** My colour and icon choices, under my own row (tap my row to open it). */
-function LookPicker({
+export function LookPicker({
   look,
   name,
   taken,

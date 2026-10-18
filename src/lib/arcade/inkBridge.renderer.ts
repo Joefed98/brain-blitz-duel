@@ -78,14 +78,14 @@ function leprechaun(c:CanvasRenderingContext2D):void {
  c.fillStyle='#225C4B';c.fillRect(6,2,10,6);c.fillRect(3,7,16,2);c.fillStyle='#C5AC6D';c.fillRect(6,5,10,1);
  c.fillStyle='#24333C';c.fillRect(8,10,1,1);c.fillRect(13,10,1,1);
 }
-function coin(c: CanvasRenderingContext2D): void {
+export function coin(c: CanvasRenderingContext2D): void {
   c.fillStyle = GOLD_EDGE; c.beginPath(); c.arc(7,7,BALL_R,0,Math.PI*2); c.fill();
   c.fillStyle = GOLD; c.beginPath(); c.arc(7,7,6,0,Math.PI*2); c.fill();
   c.strokeStyle = GOLD_EDGE; c.lineWidth = 0.7; c.beginPath(); c.arc(7,7,4.4,0,Math.PI*2); c.stroke();
   c.fillStyle = SHINE; c.beginPath(); c.ellipse(4.7,4,1.1,2.5,0.7,0,Math.PI*2); c.fill();
   c.strokeStyle = GOLD_EDGE; c.lineWidth = 1; c.beginPath(); c.moveTo(7,4); c.lineTo(7,10); c.stroke();
 }
-function pot(c: CanvasRenderingContext2D): void {
+export function pot(c: CanvasRenderingContext2D): void {
   // Exact body rectangle and opening width; only the authoritative rim caps protrude.
   c.fillStyle = POT; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
   c.fillStyle = POT_EDGE; c.fillRect(2,8,2,16); c.fillRect(60,8,2,16);

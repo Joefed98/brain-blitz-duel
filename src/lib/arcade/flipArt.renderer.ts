@@ -410,7 +410,7 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
   ctx.restore();
 }
 
-function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
+export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
   const dead = state.ended === 2;
   const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
   const upright = state.side === 0 ? 0 : Math.PI;

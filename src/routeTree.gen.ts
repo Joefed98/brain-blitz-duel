@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PracticeRouteImport } from './routes/practice'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
+import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,9 +26,19 @@ const PracticeRoute = PracticeRouteImport.update({
   path: '/practice',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReplayLabRoute = ReplayLabRouteImport.update({
   id: '/replay-lab',
   path: '/replay-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TournamentsRoute = TournamentsRouteImport.update({
+  id: '/tournaments',
+  path: '/tournaments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DuelCodeRoute = DuelCodeRouteImport.update({
@@ -38,34 +50,61 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/practice' | '/replay-lab' | '/duel/$code'
+  fullPaths:
+    | '/'
+    | '/practice'
+    | '/profile'
+    | '/replay-lab'
+    | '/tournaments'
+    | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practice' | '/replay-lab' | '/duel/$code'
-  id: '__root__' | '/' | '/practice' | '/replay-lab' | '/duel/$code'
+  to:
+    | '/'
+    | '/practice'
+    | '/profile'
+    | '/replay-lab'
+    | '/tournaments'
+    | '/duel/$code'
+  id:
+    | '__root__'
+    | '/'
+    | '/practice'
+    | '/profile'
+    | '/replay-lab'
+    | '/tournaments'
+    | '/duel/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PracticeRoute: typeof PracticeRoute
+  ProfileRoute: typeof ProfileRoute
   ReplayLabRoute: typeof ReplayLabRoute
+  TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
 
@@ -85,11 +124,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PracticeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/replay-lab': {
       id: '/replay-lab'
       path: '/replay-lab'
       fullPath: '/replay-lab'
       preLoaderRoute: typeof ReplayLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tournaments': {
+      id: '/tournaments'
+      path: '/tournaments'
+      fullPath: '/tournaments'
+      preLoaderRoute: typeof TournamentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/duel/$code': {
@@ -105,7 +158,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PracticeRoute: PracticeRoute,
+  ProfileRoute: ProfileRoute,
   ReplayLabRoute: ReplayLabRoute,
+  TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,
 }
 export const routeTree = rootRouteImport

@@ -413,7 +413,7 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
 /** Per-canvas render memory of the boss's last hit tick (flash only). */
 const bossHitMemo = new WeakMap<object, { tick: number; hits: number }>();
 
-function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, moving: boolean, recoil: number, t: number): void {
+export function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, moving: boolean, recoil: number, t: number): void {
   // Art pilot (Space): the ship sprite fills the ship's hit box; code art when absent.
   if (drawArtSprite(ctx, "space", "player", cx - w / 2, cy - h / 2 + recoil, w, h)) return;
   const top = cy - h / 2;

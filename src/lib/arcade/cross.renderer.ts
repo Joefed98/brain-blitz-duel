@@ -377,7 +377,7 @@ function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLa
 }
 
 /** Gold stick figure inside the player disc (radius 16), facing the last move. */
-function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, stride: number, angle: number): void {
+export function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, stride: number, angle: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle);

@@ -10,7 +10,7 @@ import { countryStamp, drawCountryside, COUNTRY_SKY, COUNTRY_GRASS, COUNTRY_GRAS
 export interface SnipSwipe { a: number; b: number; c: number; d: number; at: number }
 function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number):void { c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill(); }
 /** Full 24px circular silhouette; stalk and leaf are inside the collision disc. */
-function apple(c:CanvasRenderingContext2D):void {
+export function apple(c:CanvasRenderingContext2D):void {
   c.fillStyle=COUNTRY_APPLE_EDGE;circle(c,12,12,12);
   c.fillStyle=COUNTRY_APPLE;circle(c,12,12,11);
   c.fillStyle=COUNTRY_WOOD_DARK;c.fillRect(11,1,2,6);
@@ -18,7 +18,7 @@ function apple(c:CanvasRenderingContext2D):void {
   c.fillStyle=COUNTRY_SHINE;c.beginPath();c.ellipse(6.5,10,1.2,3.1,0.35,0,Math.PI*2);c.fill();
 }
 /** Wicker basket fills the exact circular mouth; opening spans all 64px. */
-function basket(c:CanvasRenderingContext2D):void {
+export function basket(c:CanvasRenderingContext2D):void {
   c.save();c.beginPath();c.arc(32,32,32,0,Math.PI*2);c.clip();
   c.fillStyle=COUNTRY_WOOD_DARK;c.fillRect(0,0,64,64);
   c.fillStyle=COUNTRY_WOOD;c.fillRect(1,1,62,62);

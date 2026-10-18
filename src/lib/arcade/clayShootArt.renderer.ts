@@ -394,7 +394,7 @@ function star(c: CanvasRenderingContext2D, x: number, y: number, s: number): voi
   c.fill();
 }
 
-function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean, i: number, tick: number, k: number, still: boolean): void {
+export function drawClay(c: CanvasRenderingContext2D, x: number, y: number, gold: boolean, i: number, tick: number, k: number, still: boolean): void {
   const body = clayBodySprite(gold, k);
   if (body) c.drawImage(body.canvas as CanvasImageSource, x - R, y - RY, R * 2, RY * 2);
   else {

@@ -68,7 +68,7 @@ const STAR_POINTS = "12,2 14.9,8.9 22.4,9.5 16.7,14.4 18.5,21.7 12,17.8 5.5,21.7
  * Shared bevel for the tray items (Polish, 13 Oct 2026; display only). The gradient is
  * centred so it reads the same at any item rotation: a lit middle and a shaded rim.
  */
-function TallyDefs() {
+export function TallyDefs() {
   return (
     <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
       <defs>
@@ -84,7 +84,7 @@ function TallyDefs() {
 }
 
 /** Same geometry as the shared glyph, with a thin dark outline, a bevel and a soft shadow. */
-function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour: GlyphColour; size: number }) {
+export function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour: GlyphColour; size: number }) {
   const fill = TALLY_FILL[colour] ?? GLYPH_COLOURS[colour];
   const common = { fill, stroke: "var(--tally-outline)", strokeWidth: 0.9, strokeLinejoin: "round" as const };
   const bevel = { fill: "url(#tally-bevel)" };

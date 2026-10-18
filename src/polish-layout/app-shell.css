@@ -1,0 +1,106 @@
+/*
+ * The app shell (18 Oct 2026, display only): the four tab screens (Play, Practice's list,
+ * Tournaments, Profile; PhoneShell `tabs`, data-tab-screen) and their bottom tab bar.
+ *
+ * - The tab bar is fixed to the bottom of the screen: a 56px row of tabs above the home bar,
+ *   its home-bar strip the page behind's black (--screen-edge), as every screen's bottom is
+ *   (bottom.css "Every screen's bottom"); a hairline on top. Centred in the page column's width.
+ * - The page leaves the tab bar's height (and the home bar) under its last item, so nothing sits
+ *   under the tab bar or the home bar at its scroll end, and scrolling an item into view keeps it
+ *   above the bar (scroll-padding).
+ * - Rooms, rounds, results, the podium and every game never have it (no data-tab-screen there).
+ * app-shell-check, safe-area-screens-check, screen-bottom-check and desktop-geometry-check prove it.
+ */
+.app-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: var(--screen-edge);
+  border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.app-tabbar-row {
+  display: flex;
+  height: 56px;
+  max-width: 430px;
+  margin-inline: auto;
+}
+.app-tabbar-row > a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-tab-screen] > [data-shell-column="page"] {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 24px);
+}
+html:has([data-tab-screen]) {
+  scroll-padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* Desktop (polish-layout/desktop.css): the tab bar's row matches the 480px page column. */
+@media (min-width: 1180px) and (min-height: 560px) and (hover: hover) and (pointer: fine) {
+  .app-tabbar-row {
+    max-width: 480px;
+  }
+  .app-tabbar-row > a:hover {
+    color: var(--foreground);
+  }
+  .app-tabbar-row > a[aria-current="page"]:hover {
+    color: var(--primary);
+  }
+}
+
+/* Game icons (GameIcon): a rounded tile in the game's colour with its own art, crisp at any size. */
+.game-icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 28%;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08), inset 0 -2px 0 rgb(0 0 0 / 0.18);
+}
+.game-icon > canvas,
+.game-icon > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.game-icon > .game-icon-art {
+  position: absolute;
+  inset: 0;
+}
+/* An art component placed in the tile: its own <svg> fills the box, whatever classes it carries in play. */
+.game-icon-box {
+  position: absolute;
+  display: block;
+}
+.game-icon-box > svg,
+.game-icon-box > span > svg {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none;
+}
+.game-icon-box > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+/* No text in icons: numbers an art component prints in play (a kettlebell's weight) are hidden. */
+.game-icon text {
+  display: none;
+}
+/* Exact's faint bullseye, brightened to be read at icon size. */
+.game-icon-bright {
+  filter: brightness(3) saturate(1.4);
+}
+/* Eagle Eye's eagle in its target gold. */
+.game-icon-gold {
+  color: var(--primary);
+}

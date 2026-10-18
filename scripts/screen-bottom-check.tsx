@@ -5,7 +5,8 @@
  * Headless Chromium in the iPhone 11 home-screen app's geometry (scripts/device-emulation.ts:
  * 414 × 896, 48 / 34 px insets, laid out 414 × 848 as WebKit does, navigator.standalone) draws
  * the real screens through scripts/safe-area-harness.tsx (the home, practice and room routes,
- * network stubbed): home, the first-time intro, the practice list and a practice round intro,
+ * network stubbed): home, the first-time intro, the practice list, tournaments and profile (the
+ * app shell's tab screens, with the tab bar over the home-bar strip), a practice round intro,
  * and a room's lobby (2 and 10 players), link join, Prepare to Duel, round title, round intro,
  * round result, standings and podium (2 and 10 players) and winner reveal. For each screen, at
  * the top of the page and, when the page scrolls, half-way down and at the end of its scroll:
@@ -145,7 +146,7 @@ const room =
 
 interface Screen {
   name: string;
-  mode: "home" | "practice" | "room";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room";
   room?: () => ReturnType<typeof roomNow>;
   go?: (page: Page) => Promise<void>;
   waitMs?: number;
@@ -162,6 +163,8 @@ const ALL_SCREENS: Screen[] = [
   { name: "home (room join)", mode: "home" },
   { name: "first-time intro", mode: "home", fresh: true },
   { name: "practice list", mode: "practice" },
+  { name: "tournaments", mode: "tournaments" },
+  { name: "profile", mode: "profile" },
   { name: "practice round intro", mode: "practice", go: openGame },
   { name: "room lobby, 2 players", mode: "room", room: room("waiting", "starting") },
   {

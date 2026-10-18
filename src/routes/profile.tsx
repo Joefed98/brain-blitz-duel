@@ -1,0 +1,255 @@
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { Settings } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import { PhoneShell } from "@/components/duel/PhoneShell";
+import { PlayerBadge } from "@/components/duel/PlayerBadge";
+import { LookPicker } from "@/components/duel/RoomLobby";
+import { Onboarding } from "@/components/duel/Onboarding";
+import { goToTab } from "@/components/app/AppTabBar";
+import { GameIcon } from "@/components/app/GameIcon";
+import { SettingsSheet } from "@/components/app/SettingsSheet";
+import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
+import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
+import { readPracticeBest } from "@/lib/duel/practiceBest";
+import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
+import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY } from "@/lib/duel/registry";
+import { getStoredName, setStoredName } from "@/lib/duel/session";
+import { ordinal } from "@/lib/duel/ordinal";
+import type { PuzzleType } from "@/lib/duel/types";
+import { ukDay } from "@/lib/publicSchedule";
+import { APP_NAME } from "@/lib/brand";
+
+export const Route = createFileRoute("/profile")({
+  ssr: false,
+  head: () => ({
+    meta: [
+      { title: `${APP_NAME} profile` },
+      {
+        name: "description",
+        content: `Your ${APP_NAME} look, rooms and practice bests on this device.`,
+      },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: ProfileScreen,
+});
+
+/** No taken colours or icons outside a room: the look is this device's preference for new rooms. */
+const NONE_TAKEN = new Map<never, number>();
+
+function ProfileScreen() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
+  const [picking, setPicking] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [intro, setIntro] = useState(false);
+  const [history, setHistory] = useState<RoomRecord[]>([]);
+  const [bests, setBests] = useState<{ type: PuzzleType; best: number }[]>([]);
+
+  useEffect(() => {
+    setName(getStoredName());
+    const remembered = rememberedLook();
+    setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
+    setHistory(readRoomHistory());
+    setBests(
+      ACTIVE_PUZZLE_TYPES.map((type) => ({
+        type,
+        best: readPracticeBest(type, currentPracticeStamp(type)),
+      }))
+        .filter((row): row is { type: PuzzleType; best: number } => row.best !== null)
+        .sort(
+          (a, b) =>
+            b.best - a.best ||
+            PUZZLE_REGISTRY[a.type].name.localeCompare(PUZZLE_REGISTRY[b.type].name),
+        ),
+    );
+  }, []);
+  const stats = useMemo(() => roomStats(history), [history]);
+  const shownName = name.trim() || "Player";
+
+  if (intro) return <Onboarding onDone={() => setIntro(false)} />;
+
+  return (
+    <PhoneShell tabs="profile">
+      <div className="flex flex-1 flex-col gap-5">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="font-display text-2xl font-bold">Profile</h1>
+          <button
+            type="button"
+            aria-label="Settings"
+            data-open-settings
+            onClick={() => setSettings(true)}
+            className="press tap-target -mr-2 flex w-11 items-center justify-center text-muted-foreground"
+          >
+            <Settings aria-hidden="true" className="h-6 w-6" />
+          </button>
+        </div>
+
+        <section
+          aria-label="Your look"
+          className="flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+        >
+          <div className="flex items-center gap-3">
+            <PlayerBadge look={look} name={shownName} size={56} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-display text-xl font-bold text-foreground">
+                {shownName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Your colour and icon in new rooms
+              </span>
+            </div>
+            <button
+              type="button"
+              aria-expanded={picking}
+              onClick={() => setPicking((v) => !v)}
+              className="press tap-target shrink-0 rounded-full border border-primary/70 bg-primary/10 px-3 font-display text-xs font-semibold uppercase tracking-wide text-primary"
+            >
+              {picking ? "Done" : "Change look"}
+            </button>
+          </div>
+          {picking ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="profile-name"
+                  className="text-xs uppercase tracking-widest text-muted-foreground"
+                >
+                  Display name
+                </label>
+                <input
+                  id="profile-name"
+                  value={name}
+                  maxLength={14}
+                  placeholder="Your name"
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setStoredName(e.target.value.trim());
+                  }}
+                  className="tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                />
+              </div>
+              <LookPicker
+                look={look}
+                name={shownName}
+                taken={NONE_TAKEN}
+                takenIconSlots={NONE_TAKEN}
+                takenBy={() => ""}
+                onChange={(change) => {
+                  setLook((current) => ({ ...current, ...change }));
+                  rememberLook(change);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used when you create or join a room, if no one there has it yet.
+              </p>
+            </div>
+          ) : null}
+        </section>
+
+        <section aria-label="Rooms" className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Rooms played", value: stats.played },
+            { label: "Wins", value: stats.wins },
+            { label: "Podiums", value: stats.podiums },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              data-profile-stat={stat.label}
+              className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card/80 px-2 py-3"
+            >
+              <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+                {stat.value}
+              </span>
+              <span className="text-center text-[11px] uppercase tracking-wider text-muted-foreground">
+                {stat.label}
+              </span>
+            </div>
+          ))}
+        </section>
+
+        <section aria-label="Practice bests" className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="font-display text-lg font-bold">Practice bests</h2>
+            <button
+              type="button"
+              onClick={() => goToTab(router, "profile", "practice")}
+              className="press tap-target -mr-2 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+            >
+              See all
+            </button>
+          </div>
+          {bests.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+              No practice runs yet
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {bests.slice(0, 3).map(({ type, best }) => (
+                <li
+                  key={type}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-3 py-2"
+                >
+                  <GameIcon type={type} size={40} />
+                  <span className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
+                    {PUZZLE_REGISTRY[type].name}
+                  </span>
+                  <span className="shrink-0 font-mono text-base font-bold tabular-nums text-primary">
+                    {best}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-label="Recent rooms" className="flex flex-col gap-2">
+          <h2 className="font-display text-lg font-bold">Recent rooms</h2>
+          {history.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+              No rooms finished yet
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {history.slice(0, 5).map((r) => (
+                <li
+                  key={r.key}
+                  data-recent-room={r.code}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
+                >
+                  <span className="font-mono text-sm font-bold tracking-widest text-foreground">
+                    {r.code}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    {ukDay(r.at, Date.now())} · {r.players} players ·{" "}
+                    <span className="font-mono tabular-nums">{r.points}</span> pts
+                  </span>
+                  <span
+                    className={`shrink-0 font-mono text-sm font-bold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                  >
+                    {r.place === null ? "Left" : ordinal(r.place)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Saved on this phone. Sign-in arrives after the beta and will keep all of this.
+        </p>
+      </div>
+      {settings ? (
+        <SettingsSheet
+          onClose={() => setSettings(false)}
+          onHowItWorks={() => {
+            setSettings(false);
+            setIntro(true);
+          }}
+        />
+      ) : null}
+    </PhoneShell>
+  );
+}

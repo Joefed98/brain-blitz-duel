@@ -131,7 +131,7 @@ function ground(width: number, height: number, scale: number): ArtCanvas | null 
   return canvas;
 }
 
-function paintHat(c: Ctx, colour: string): void {
+export function paintHat(c: Ctx, colour: string): void {
   c.save();
   const hat = new Path2D(BONK_HAT);
   c.fillStyle = colour; c.fill(hat);
@@ -149,7 +149,7 @@ function paintHat(c: Ctx, colour: string): void {
   c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.ellipse(36, 13, 3.2, 1.8, -0.5, 0, Math.PI * 2); c.fill();
 }
 
-function paintGopher(c: Ctx): void {
+export function paintGopher(c: Ctx): void {
   const body = new Path2D(BONK_BODY);
   c.fillStyle = PALETTE.fur; c.fill(body);
   c.save(); c.clip(body);

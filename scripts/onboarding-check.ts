@@ -186,7 +186,7 @@ async function open(page: Page, mode: "home" | "room", where: string) {
 }
 
 const introUp = (page: Page) => page.locator("[data-onboarding]").count().then((n) => n > 0);
-const homeUp = (page: Page) => page.getByRole("button", { name: "Create room" }).count().then((n) => n > 0);
+const homeUp = (page: Page) => page.getByRole("button", { name: "Create a room" }).count().then((n) => n > 0);
 const currentPanel = (page: Page) =>
   page.evaluate(() => {
     const dots = Array.from(document.querySelectorAll("[data-onboarding-dot]"));

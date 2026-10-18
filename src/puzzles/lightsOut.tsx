@@ -19,7 +19,7 @@ import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One glass bulb in its socket: dark glass and a grey filament off, a warm glow on. */
-function Bulb({ on, ids }: { on: boolean; ids: string }) {
+export function Bulb({ on, ids }: { on: boolean; ids: string }) {
   return (
     <svg viewBox="7 2.5 26 36" className="logic-bulb-art" aria-hidden="true">
       <circle className="logic-bulb-halo" cx="20" cy="17" r="18" fill={`url(#${ids}-halo)`} style={{ opacity: on ? 1 : 0 }} />
@@ -36,7 +36,7 @@ function Bulb({ on, ids }: { on: boolean; ids: string }) {
 }
 
 /** Shared gradients for one grid of bulbs (one set per grid, not per bulb). */
-function BulbDefs({ ids }: { ids: string }) {
+export function BulbDefs({ ids }: { ids: string }) {
   return (
     <svg width="0" height="0" className="absolute" aria-hidden="true">
       <defs>

@@ -51,7 +51,7 @@ const ICE = "#9FE8FF";
 const SNOWFLAKE = ["X..X..X.", ".X.X.X..", "..XXX...", "XXXXXXX.", "..XXX...", ".X.X.X..", "X..X..X."];
 
 /** Full collision-disc atoms. Bloom is cached and clipped inside the disc. */
-function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string, tier: number, bloom = true): void {
+export function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string, tier: number, bloom = true): void {
   c.save(); c.beginPath(); c.arc(r, r, r, 0, Math.PI * 2); c.clip();
   c.fillStyle = `${colour}22`; c.fill();
   c.strokeStyle = colour; c.lineWidth = 1.2;
