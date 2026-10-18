@@ -17,7 +17,7 @@ import { soundCue, useSolveFx } from "./logicFx";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Clean flat trees; pine or round is picked from the cell position (cosmetic only). */
-function TreeIcon({ cell }: { cell: number }) {
+export function TreeIcon({ cell }: { cell: number }) {
   const pine = ((cell * 7 + (cell >> 3)) % 3) !== 0;
   return (
     <svg viewBox="0 0 20 20" className="h-[70%] w-[70%]" aria-hidden="true">
@@ -39,7 +39,7 @@ function TreeIcon({ cell }: { cell: number }) {
 }
 
 /** Striped canvas tent in gold (or the reveal colour), with a lantern at the door. */
-function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
+export function TentIcon({ colour = "var(--primary)" }: { colour?: string | undefined }) {
   return (
     <svg viewBox="0 0 20 20" className="logic-tent h-[74%] w-[74%]" aria-hidden="true">
       <ellipse cx="10" cy="17.6" rx="8" ry="1.2" fill="var(--guest-ink)" opacity="0.45" />

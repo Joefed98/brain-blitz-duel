@@ -266,7 +266,7 @@ function drawPipe(
 }
 
 /** Saucer drawn in 2 px blocks, every block inside the sim's disc. */
-function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator: boolean): void {
+export function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator: boolean): void {
   const cx = px(HOVER_DISC_X);
   const cy = px(state.y);
   const r = px(HOVER_DISC_R);

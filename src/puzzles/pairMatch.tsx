@@ -22,7 +22,7 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-function CardFace({ card, size }: { card: PairCard; size: number }) {
+export function CardFace({ card, size }: { card: PairCard; size: number }) {
   const fill = GLYPH_COLOURS[card.colour];
   const stroke = "var(--card-foreground, #0a0a0f)";
   return (

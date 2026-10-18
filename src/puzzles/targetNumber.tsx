@@ -115,7 +115,7 @@ const EXACT_CSS = `
 `;
 
 /** Faint bullseye behind the target number (static, built once). */
-const EXACT_RINGS = (
+export const EXACT_RINGS = (
   <svg className="exact-rings" viewBox="0 0 100 100" aria-hidden="true">
     <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(245,184,46,.10)" strokeWidth="1" />
     <circle cx="50" cy="50" r="36" fill="none" stroke="rgba(245,184,46,.12)" strokeWidth="1" strokeDasharray="2 3" />

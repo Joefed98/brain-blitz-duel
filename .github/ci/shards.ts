@@ -55,7 +55,9 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-room-practice-check (18 Oct 2026: every arcade play screen in a room and in practice as an iPhone 11
   // home-screen app, at three layout viewports, ~2 min with its dev server) and fission-repeat-check (Fission
   // four times in a row in practice, ~2 min) on their own job: play14 is already near its limit.
-  play15: ["arcade-room-practice-check.ts", "fission-repeat-check.ts"],
+  // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
+  // in the harness, ~2 min with its dev server) rides here too.
+  play15: ["arcade-room-practice-check.ts", "fission-repeat-check.ts", "app-shell-check.ts"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

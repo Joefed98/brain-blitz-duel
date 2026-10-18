@@ -38,7 +38,7 @@ const point = (cell: number) => ({ x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CEL
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
-function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
+export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 0, tail = 0): ArtCanvas | null {
   const id = `${kind}:${level}:${kind === "head" ? dir : 0}:${tail}`;
   const old = stamps.get(id);
   if (old) return old;

@@ -52,7 +52,7 @@ function circle(c:CanvasRenderingContext2D,x:number,y:number,r:number,fill:strin
   c.fillStyle=fill;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
 }
 /** Food outer circle is the exact collision envelope; inner details convey the ingredient. */
-function paintFood(kind:Food,cut=false) {
+export function paintFood(kind:Food,cut=false) {
   return (c:CanvasRenderingContext2D,size:number)=>{
     const r=size/2;c.translate(r,r);
     circle(c,0,0,r,K.ink);circle(c,0,0,r*.94,colours[kind]);

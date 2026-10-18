@@ -110,7 +110,7 @@ function dartSpot(dart: CheckoutDart, quad: boolean, nth: number): { x: number; 
 /* ------------------------------------------------------------------ art -- */
 
 /** Shared gradients and textures; identical in every board, so duplicate ids are harmless. */
-const BOARD_DEFS = (
+export const BOARD_DEFS = (
   <defs>
     <radialGradient id="co-wood" cx="50%" cy="50%" r="50%">
       <stop offset="0.78" stopColor={FAIR_WOOD_DARK} />
@@ -150,7 +150,7 @@ const BOARD_DEFS = (
 );
 
 /** The painted board (rim, rings, wires, numbers, bulbs): rebuilt only when the board changes. */
-function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; quad: boolean; bare: boolean }) {
+export function BoardArt({ wedges, quad, bare }: { wedges: readonly number[]; quad: boolean; bare: boolean }) {
   const fontSize = wedges.some((v) => Math.abs(v) >= 10) ? 13 : 14;
   const wires = quad
     ? [R_DOUBLE_OUT, R_DOUBLE_IN, R_TREBLE_OUT, R_TREBLE_IN, R_QUAD_OUT, R_QUAD_IN, R_BULL]

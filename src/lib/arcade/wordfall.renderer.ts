@@ -46,10 +46,10 @@ import {
 } from "./wordfall";
 
 const DISPLAY = "'Fredoka', 'Nunito', ui-rounded, system-ui, sans-serif";
-const TILE_FACE = "#F4E4C3";
+export const TILE_FACE = "#F4E4C3";
 const TILE_FACE_LOW = "#E3CC9C";
-const TILE_EDGE = "#B48A55";
-const PICK_FACE = "#F7CF63";
+export const TILE_EDGE = "#B48A55";
+export const PICK_FACE = "#F7CF63";
 const PICK_EDGE = TOY_BRASS_DARK;
 const BAD_FACE = "#EBA394";
 const BAD_EDGE = "#A8402F";
@@ -133,7 +133,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.roundRect(x, y, w, h, r);
 }
 
-function drawTile(ctx: CanvasRenderingContext2D, x: number, y: number, letter: number, face: string, edge: string): void {
+export function drawTile(ctx: CanvasRenderingContext2D, x: number, y: number, letter: number, face: string, edge: string): void {
   const s = WF_CELL - INSET * 2;
   const g = ctx.createLinearGradient(0, y, 0, y + s);
   g.addColorStop(0, face);

@@ -60,7 +60,7 @@ const LOOKS = {
   minus: ["#6E93B8", "#4C7097", "#2D4A68", "#FFFFFF"],
   refused: ["#F2B3A6", "#DB8576", "#A8402F", "#4A120A"],
 } as const;
-type Look = keyof typeof LOOKS;
+export type Look = keyof typeof LOOKS;
 
 export const TD_POP_MS = 200;
 export const TD_RING_MS = 360;
@@ -153,7 +153,7 @@ function boardCanvas(wPx: number, hPx: number, ratio: number): ArtCanvas | null 
 }
 
 /** A tile face: (w + 4) × (h + 4) px, the tile rectangle at (2, 2), a 2 px drop shadow under it. */
-function tileSprite(label: string, look: Look, w: number, h: number, ratio: number, fontReady: boolean): ArtCanvas | null {
+export function tileSprite(label: string, look: Look, w: number, h: number, ratio: number, fontReady: boolean): ArtCanvas | null {
   const sizeKey = `${w.toFixed(1)}x${h.toFixed(1)}@${ratio}${fontReady ? "f" : ""}`;
   if (sizeKey !== spriteSize) {
     sprites.clear();

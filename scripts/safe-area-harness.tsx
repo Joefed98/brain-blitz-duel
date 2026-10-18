@@ -1,7 +1,7 @@
 /**
  * Browser page for safe-area-screens-check (a copy of beat-hold-harness.tsx plus the
  * home screen): mounts the real home (src/routes/index.tsx), practice
- * (src/routes/practice.tsx) or room screen (src/routes/duel.$code.tsx) with the app's
+ * (src/routes/practice.tsx), tournaments, profile or room screen (src/routes/duel.$code.tsx) with the app's
  * real CSS and components. Only the network edge is replaced (the check's Vite plugin
  * swaps these modules for stubs that call `window.__harness`): server functions, the
  * room API, Supabase, the room/chat hooks and the router. The check sets the room
@@ -18,6 +18,8 @@ import { puzzleDef } from "@/lib/duel/registry";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
+import { Route as TournamentsRoute } from "@/routes/tournaments";
+import { Route as ProfileRoute } from "@/routes/profile";
 
 interface Verdict {
   isCorrect: boolean;
@@ -219,8 +221,17 @@ for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;
 
 const mode = new URLSearchParams(location.search).get("mode");
-const Screen = (mode === "room" ? DuelRoute : mode === "home" ? HomeRoute : PracticeRoute).options
-  .component as () => JSX.Element;
+const Screen = (
+  mode === "room"
+    ? DuelRoute
+    : mode === "home"
+      ? HomeRoute
+      : mode === "tournaments"
+        ? TournamentsRoute
+        : mode === "profile"
+          ? ProfileRoute
+          : PracticeRoute
+).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>
     <Screen />

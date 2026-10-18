@@ -9,7 +9,8 @@
  * its scroll; or if a control at the top of the page is covered by another element
  * (the room's sticky chat bar over READY, for one).
  *
- * Screens: home (room join), the first-time intro (a fresh device), practice list, the sound settings popover, a practice
+ * Screens: home (room join), the first-time intro (a fresh device), practice list, tournaments, profile (the app shell's
+ * tab screens, 18 Oct 2026), the sound settings popover, a practice
  * round intro, an in-game help sheet, and a room's lobby, link join, Prepare to Duel
  * (starting), round title, round intro, round result, standings, winner reveal and
  * podium. The room screens come from the real room route (src/routes/duel.$code.tsx)
@@ -148,7 +149,7 @@ function roomNow(
 
 interface Screen {
   name: string;
-  mode: "home" | "practice" | "room";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room";
   room?: () => ReturnType<typeof roomNow>;
   /** Steps after load (practice), then a settle wait. */
   go?: (page: Page) => Promise<void>;
@@ -174,6 +175,8 @@ const ALL_SCREENS: Screen[] = [
   { name: "home (room join)", mode: "home" },
   { name: "first-time intro", mode: "home", fresh: true, fits: true },
   { name: "practice list", mode: "practice" },
+  { name: "tournaments", mode: "tournaments" },
+  { name: "profile", mode: "profile" },
   {
     name: "sound settings",
     mode: "practice",

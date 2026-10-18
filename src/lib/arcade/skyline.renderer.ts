@@ -92,7 +92,7 @@ function drawBackdrop(ctx: CanvasRenderingContext2D, zoom: number, scroll: numbe
   ctx.restore();
 }
 
-function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity): void {
+export function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity): void {
   ctx.fillStyle = STEEL;
   ctx.fillRect(x, top, w, h);
   ctx.fillStyle = GLASS[index % GLASS.length]!;

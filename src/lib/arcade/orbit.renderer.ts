@@ -31,7 +31,7 @@ import { reducedMotion as prefersReducedMotion } from "./art.renderer";
 
 /** Rocket body + fins + soft glow, cached per dead state. */
 const rocketCaches = new Map<string, HTMLCanvasElement>();
-function getRocketSprite(dead: boolean): HTMLCanvasElement | null {
+export function getRocketSprite(dead: boolean): HTMLCanvasElement | null {
   if (typeof document === "undefined") return null;
   const key = dead ? "dead" : "alive";
   const hit = rocketCaches.get(key); if (hit) return hit;
@@ -109,7 +109,7 @@ function tint(hex: string, amt: number): string {
   return `rgb(${ch((n >> 16) & 255)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
 }
 
-function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: ReturnType<typeof planetLook>): void {
+export function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: ReturnType<typeof planetLook>): void {
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);

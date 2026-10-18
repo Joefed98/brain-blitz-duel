@@ -91,7 +91,7 @@ const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: numbe
 
 /** Cache for brick sprites: keyed by color + power + HP taken. */
 const brickCache = new Map<string, ArtCanvas>();
-function getBrickSprite(colour: string, power: number, taken: number, bloom: number): ArtCanvas | undefined {
+export function getBrickSprite(colour: string, power: number, taken: number, bloom: number): ArtCanvas | undefined {
   const key = `${colour}-${power}-${taken}-${bloom > 0}`;
   const cached = brickCache.get(key);
   if (cached) return cached;

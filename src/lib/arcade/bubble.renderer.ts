@@ -340,7 +340,7 @@ function paintSpecial(value: number, directional: boolean) {
   };
 }
 
-function paintBubble(value: number) {
+export function paintBubble(value: number) {
   if (bubIsSpecial(value)) return paintSpecial(value, false);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;

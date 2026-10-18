@@ -48,7 +48,7 @@ const CYCLE_HIGHLIGHT_MS = 650;
  * Shared gradients for the charms and links (Polish, 13 Oct 2026; display only). Rendered
  * once per screen; every charm and link references them by id.
  */
-function ChainDefs() {
+export function ChainDefs() {
   return (
     <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
       <defs>
@@ -79,7 +79,7 @@ function ChainDefs() {
  * Enamel charm in a silver bezel: same shape, colour and footprint as before, with
  * depth shading (needs <ChainDefs /> on the screen; without it only the shading drops).
  */
-function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
+export function NodeGlyph({ shape, size, colour }: { shape: ChainShape; size: number; colour?: string }) {
   const inner = Math.round(size * 0.74);
   const bezel = { fill: "none", stroke: "url(#chainz-bezel)", strokeWidth: 1.3, strokeLinejoin: "round" as const };
   return (

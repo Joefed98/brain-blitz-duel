@@ -324,6 +324,8 @@ try {
   const pages: { name: string; mode: string; room?: () => unknown }[] = [
     { name: "home", mode: "home" },
     { name: "practice list", mode: "practice" },
+    { name: "tournaments", mode: "tournaments" },
+    { name: "profile", mode: "profile" },
     { name: "room lobby, 10 players", mode: "room", room: () => roomNow("waiting", "starting") },
     { name: "round result, 10 players", mode: "room", room: () => roomNow("in_progress", "result") },
     { name: "standings, 10 players", mode: "room", room: () => roomNow("in_progress", "standings") },

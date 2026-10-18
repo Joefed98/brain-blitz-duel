@@ -231,7 +231,7 @@ function drawBoard(ctx: CanvasRenderingContext2D, scalePct: number, dx: number, 
   ctx.restore();
 }
 
-function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number, scalePct: number, values: readonly number[]): void {
+export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number, scalePct: number, values: readonly number[]): void {
   const outer = (BULLSEYE_OUTER_R * scalePct) / 100;
   ctx.save();
   // A warm stall lamp lighting the wall behind the board (background only).

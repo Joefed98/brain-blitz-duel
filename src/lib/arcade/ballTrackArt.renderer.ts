@@ -321,7 +321,7 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
  * Ball Tracker's glass marble: the toybox marble at the sim radius, with a
  * shaded edge and a soft bounce light low on the far side (inside the radius).
  */
-function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, seed: number): void {
+export function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, seed: number): void {
   toyMarble(ctx, x, y, r, colour, 0, seed);
   ctx.save();
   const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.15, x, y, r);

@@ -116,7 +116,7 @@ function paintBackdrop(c: Ctx, lanes: number, low: number): void {
 }
 
 /** One gate: solid colour bar, a glow halo and a short wash up the lane, all pre-blurred once. */
-function paintGate(c: Ctx, colour: string, w: number): void {
+export function paintGate(c: Ctx, colour: string, w: number): void {
   const x = GLOW, y = WASH;
   const wash = c.createLinearGradient(0, 0, 0, y);
   wash.addColorStop(0, "rgba(0,0,0,0)"); wash.addColorStop(1, colour);
