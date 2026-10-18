@@ -24,6 +24,7 @@ import {
   WHACK_COLS,
   WHACK_GAP_PX,
   WHACK_INPUT_TAP,
+  WHACK_BOMB,
   WHACK_RED,
   type WhackState,
   WHACK_STATUS_RETIRED,
@@ -146,6 +147,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let wrong = state.current.wrong;
     let bombs = state.current.bombs;
     let popped = state.current.next;
+    let empty = state.current.empty;
     let sunk = 0;
     let flashUntil = 0;
     let shown = { hits: -1, wrong: -1, next: -1, red: false, flash: false };
@@ -189,10 +191,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         bombs = state.current.bombs;
         soundCue("whack.bomb");
       }
-      // A gopher rises; one left unbonked sinks away.
+      // A gopher rises (a hedgehog has its own careful-now cue); one left unbonked sinks away.
       if (state.current.next > popped) {
+        const risen = state.current.schedule.kind.slice(popped, state.current.next);
         popped = state.current.next;
-        if (!whackGame.isOver(state.current)) soundCue("whack.popUp");
+        const live = !whackGame.isOver(state.current);
+        if (live && risen.includes(WHACK_BOMB)) soundCue("whack.hedgehogUp");
+        else if (live) soundCue("whack.popUp");
+      }
+      // A tap on an empty hole costs 3 points.
+      if (state.current.empty > empty) {
+        empty = state.current.empty;
+        soundCue("whack.emptyTap");
       }
       const retired = state.current.status.filter((status) => status === WHACK_STATUS_RETIRED).length;
       if (retired > sunk) soundCue("whack.sink");

@@ -47,7 +47,13 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `winnerIs` | winner reveal | Voice "And the winner is…" | 1 per room | 1883 ms |
 | `winner_drumroll` | winner reveal | The drum roll, cut at `WINNER_ROLL_END_MS` | 1 per room | 4000 ms |
 | `winner_crash` | room (winner reveal end) | The cymbal crash as the winner shows | 1 per room | 2480 ms |
-| `gg` | podium, final result | Voice "GG" | 1 per room | 1312 ms |
+| `gg` | podium, final result | Voice "GG" (for the players who did not win; a winner hears `voice.youWin`, a shared first place `voice.tie`) | 1 per room | 1312 ms |
+| `voice.timesUp` | every timed screen (TimerBar) | Voice "Time's up" as the clock reaches 0, with `time_up` | 0–1 | 4206 ms |
+| `voice.perfect` | reveal (perfectBurst) | Voice "Perfect" with `shared.perfect`, on a stored 150 | 0–1 | 4127 ms |
+| `voice.tie` | round result, results table, podium, final result | Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw | 0–1 | 4441 ms |
+| `voice.youWin` | podium, final result | Voice "You win" for the winner, in place of `gg` | 0–1 per room | 4362 ms |
+| `voice.rematch` | room (duel.$code) | Voice "Rematch" when Play again reopens a finished room, for every player in it | 0–1 per room | 4284 ms |
+| `arc_blaster` | Wavefront | The shared shot sound `wavefront.fire` falls back to if its own file fails to load | 0 (stand-in) | 140 ms |
 | `arc_hover_tap` | Hover | Each tap that lifts the craft | 50–200 | 110 ms |
 | `arc_gem_match` | Gemstone | A match lands (pitched by cascade depth) | 20–60 | 616 ms |
 | `arc_gem_zap` | Gemstone | A cross gem goes off | 0–5 | 190 ms |

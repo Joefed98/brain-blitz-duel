@@ -369,7 +369,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         const pick = selected.current;
         if (pick && pick.row === at.row && pick.col === at.col) selected.current = null;
         else if (pick && trySwap(pick, at)) selected.current = null;
-        else selected.current = at;
+        else {
+          selected.current = at;
+          liveCue("matchup.select");
+        }
       }
       return true;
     }
@@ -407,6 +410,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               selected.current = null;
               return;
             }
+            if (!pick || pick.row !== cell.row || pick.col !== cell.col) liveCue("matchup.select");
             selected.current = cell;
             event.currentTarget.setPointerCapture(event.pointerId);
           }}

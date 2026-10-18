@@ -200,7 +200,7 @@ export function WordHuntPuzzle({
     if (word.length < WORDHUNT_MIN_LENGTH) {
       playWrong();
       setFlash("bad");
-      puzzleReject(gridRef.current);
+      puzzleReject(gridRef.current, false);
       setMessage(`${WORDHUNT_MIN_LENGTH} letters or more`);
       return;
     }

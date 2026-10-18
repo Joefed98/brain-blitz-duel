@@ -73,12 +73,13 @@ export function RoundResult({
   const theyWon = opponentRoundScore > myRoundScore;
   const cued = useRef(false);
 
-  // Winner: round-won cue then "round taken"; two-player loser: "round lost". Ties: neither.
+  // Winner: round-won cue then "round taken"; two-player loser: "round lost"; a tie: "tie".
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
     if (iWon) { playRoundWon(); playVoice("roundTaken", cueDurationMs("round_won")); }
     else if (theyWon) playVoice("roundLost");
+    else playVoice("voice.tie");
   }, [iWon, theyWon]);
 
   const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;

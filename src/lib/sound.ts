@@ -374,24 +374,24 @@ export function demoHushed(): boolean {
   return demoHush > 0 && Date.now() - lastRealInput > 600;
 }
 
-/** Plays a one-shot effect. Retriggering a cue restarts it rather than stacking. */
-export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): void {
-  if (demoHushed()) return;
-  if (isMuted() || !ready() || !ctx || !effectsGain) return;
+/**
+ * Plays a one-shot effect. Retriggering a cue restarts it rather than stacking.
+ * Returns how long the file plays for (ms), or 0 when nothing recorded played.
+ */
+export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): number {
+  if (demoHushed()) return 0;
+  if (isMuted() || !ready() || !ctx || !effectsGain) return 0;
   const entry = SOUND_MANIFEST[cue];
-  if (entry.channel === "music") return;
+  if (entry.channel === "music") return 0;
   // A cue without its own file plays its registered fallback instead.
-  if (!entry.url && entry.fallback) {
-    playSound(entry.fallback as SoundId, volume, rate, overlap);
-    return;
-  }
+  if (!entry.url && entry.fallback) return playSound(entry.fallback as SoundId, volume, rate, overlap);
   const buffer = buffers.get(cue);
   // Voice lines without a loaded file are skipped silently: never a placeholder beep.
-  if (!buffer && entry.channel === "voice") return;
+  if (!buffer && entry.channel === "voice") return 0;
   duckMusic(buffer ? buffer.duration * 1000 : entry.ms);
   if (!buffer) {
     if (entry.frequency > 0) playTone(entry.frequency * rate, entry.ms, "sine", 0.18 * volume);
-    return;
+    return 0;
   }
   const previous = overlap ? undefined : playingEffects.get(cue);
   if (previous) {
@@ -418,9 +418,43 @@ export function playSound(cue: SoundId, volume = 1, rate = 1, overlap = false): 
     };
     if (!overlap) playingEffects.set(cue, source);
     source.start();
+    return (buffer.duration * 1000) / (rate > 0 ? rate : 1);
   } catch (error) {
     warnOnce("effect playback failed", error);
+    return 0;
   }
+}
+
+/* Play caps (docs/sound-cues/arcade-gaps-oct-2026.md section 3): a slot may set `gapMs` (a play
+   inside the gap after the last one is dropped) and `voices` (how many of its plays may sound at
+   once). They are kept per slot, so they hold whether the slot plays its own file or the shared
+   sound it stands in for. */
+const capLast = new Map<string, number>();
+const capEnds = new Map<string, number[]>();
+const capClock = () => (typeof performance === "undefined" ? Date.now() : performance.now());
+function capOpen(slot: string): boolean {
+  const entry = SOUND_MANIFEST[slot as SoundId] as (typeof SOUND_MANIFEST)[SoundId] | undefined;
+  if (!entry?.gapMs && !entry?.voices) return true;
+  const now = capClock();
+  if (entry.gapMs && now - (capLast.get(slot) ?? -Infinity) < entry.gapMs) return false;
+  if (entry.voices) {
+    const sounding = (capEnds.get(slot) ?? []).filter((end) => end > now);
+    capEnds.set(slot, sounding);
+    if (sounding.length >= entry.voices) return false;
+  }
+  return true;
+}
+function capNote(slot: string, playedMs: number): void {
+  const entry = SOUND_MANIFEST[slot as SoundId] as (typeof SOUND_MANIFEST)[SoundId] | undefined;
+  if ((!entry?.gapMs && !entry?.voices) || playedMs <= 0) return;
+  const now = capClock();
+  capLast.set(slot, now);
+  if (entry.voices) capEnds.set(slot, [...(capEnds.get(slot) ?? []), now + playedMs]);
+}
+/** Checks only: forget every slot's last play, as if the page had just loaded. */
+export function resetPlayCaps(): void {
+  capLast.clear();
+  capEnds.clear();
 }
 
 const loops = new Map<SoundId, { source: AudioBufferSourceNode; gain: GainNode }>();
@@ -500,7 +534,7 @@ export function stopWarning10(): void {
  * Keeps a looping effect running on the effects channel. Call every frame while
  * it should play; it starts once the file is decoded and stops when muted.
  */
-export function ensureLoop(id: SoundId, volume = 0.3): void {
+export function ensureLoop(id: SoundId, volume = 0.3, fadeInMs = 400): void {
   if (isMuted() || demoHushed()) {
     stopLoop(id, 120);
     return;
@@ -521,7 +555,7 @@ export function ensureLoop(id: SoundId, volume = 0.3): void {
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(
       Math.max(0, Math.min(1, volume)) * entryVolume(id),
-      ctx.currentTime + 0.4,
+      ctx.currentTime + fadeInMs / 1000,
     );
     source.connect(gain).connect(effectsGain);
     source.start(0, points?.start ?? 0);
@@ -597,7 +631,11 @@ export function playCueSlot(cue: string, volume = 1, rate = 1): boolean {
       ? `*${cue.slice(dot)}`
       : null;
   if (!id || SOUND_MANIFEST[id as SoundId].channel === "music") return false;
-  playSound(id as SoundId, volume, rate, true);
+  // A capped slot inside its gap (or with every voice sounding) stays quiet: handled, nothing played.
+  if (!capOpen(id)) return true;
+  // A slot sharing another recording may set its own `rate` (the march file played lower for a row drop).
+  const slotRate = SOUND_MANIFEST[id as SoundId].rate ?? 1;
+  capNote(id, playSound(id as SoundId, volume, rate * slotRate, true));
   return true;
 }
 
@@ -610,8 +648,18 @@ export function playSlotOr(
   overlap = false,
   keepRate = false,
 ): void {
-  if (slotReady(cue)) playSound(cue, volume, keepRate ? rate : 1, overlap);
-  else playSound(fallback, volume, rate, overlap);
+  if (!capOpen(cue)) return;
+  if (slotReady(cue)) capNote(cue, playSound(cue, volume, keepRate ? rate : 1, overlap));
+  else capNote(cue, playSound(fallback, volume, rate, overlap));
+}
+
+/** Quiet ambient and sustain loops on a named cue's own file (gameSounds `loopCue`); silent without one. */
+export const CUE_LOOP_FADE_MS = 500;
+export function ensureCueLoop(cue: string, volume = 0.3): void {
+  if (slotReady(cue)) ensureLoop(cue as SoundId, volume, CUE_LOOP_FADE_MS);
+}
+export function stopCueLoop(cue: string, fadeMs = CUE_LOOP_FADE_MS): void {
+  if ((SOUND_MANIFEST as Record<string, unknown>)[cue]) stopLoop(cue as SoundId, fadeMs);
 }
 
 /** The looping counterpart of playSlotOr: the slot's own loop once its file is loaded. */
@@ -648,8 +696,9 @@ export function installSoundCueBridge(): void {
   if (cueBridge || typeof window === "undefined") return;
   cueBridge = true;
   window.addEventListener(SOUND_CUE_EVENT, (event) => {
-    const cue = (event as CustomEvent<SoundCueDetail>).detail?.cue;
-    if (typeof cue === "string" && !replayQuieted(cue)) playCueSlot(cue);
+    const detail = (event as CustomEvent<SoundCueDetail>).detail;
+    const cue = detail?.cue;
+    if (typeof cue === "string" && !replayQuieted(cue)) playCueSlot(cue, 1, detail?.rate ?? 1);
   });
 }
 
@@ -672,7 +721,13 @@ export type VoiceId =
   | "round4"
   | "round5"
   | "round6"
-  | "round7";
+  | "round7"
+  // Sound batch 2's voice lines (18 Oct 2026).
+  | "voice.timesUp"
+  | "voice.perfect"
+  | "voice.tie"
+  | "voice.youWin"
+  | "voice.rematch";
 const VOICE_IDS: VoiceId[] = [
   "prepareToDuel",
   "winnerIs",
@@ -687,6 +742,11 @@ const VOICE_IDS: VoiceId[] = [
   "round5",
   "round6",
   "round7",
+  "voice.timesUp",
+  "voice.perfect",
+  "voice.tie",
+  "voice.youWin",
+  "voice.rematch",
 ];
 let voiceTimer: number | undefined;
 /** One voice line at a time: a new line (or a pending delayed one) replaces the current line. */

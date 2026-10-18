@@ -30,7 +30,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `swing.dragon` | Grappler | The dragon appears behind the player | `arc_siren` (0.6) | 0–1 | 600 ms |
 | `swing.rockShake` | Grappler | A stalactite starts to shake | `arc_clank` (0.5) | 2–8 | 150 ms |
 | `swing.rockLand` | Grappler | A stalactite hits the floor | `arc_wood_knock` (0.5) | 2–8 | 90 ms |
-| `wavefront.fire` | Wavefront | A shot is fired | `arc_blaster` (0.6, overlapping) | 100+ | 140 ms |
+| `wavefront.fire` | Wavefront | A shot is fired (one per volley; at most one per 120 ms, two at once) | `arc_blaster` (0.6, overlapping); own soft file `wavefront.fire.mp3` at 0.5 | about 250 in 90 s | 140 ms |
 | `wavefront.pierce` | Wavefront | A piercing power-up is taken | `arc_retro_pickup` | 0–3 | 100 ms |
 | `wavefront.bigExplode` | Wavefront | A ship or the armoured ship is destroyed | `arc_big_explode` (0.8) | 5–20 | 810 ms |
 | `wavefront.shapePop` | Wavefront | Any other shape is destroyed | `arc_shape_pop` (0.7) | 20–60 | 150 ms |
@@ -40,7 +40,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `wavefront.dive` | Wavefront | A ship peels off to dive | `arc_retro_blip` (0.5, overlapping) | 5–20 | 50 ms |
 | `cross.lifeLost` | Jaywalk | The walker is hit | `arc_lose_life` | 0–3 | 220 ms |
 | `cross.crossed` | Jaywalk | A crossing is completed | `stage_complete` | 5–15 | 160 ms |
-| `cross.hop` | Jaywalk | The walker hops a lane or moves sideways | `arc_honk` (0.6) | 50–150 | 380 ms |
+| `cross.hop` | Jaywalk | The walker hops a lane or moves sideways (at most one per 90 ms) | `arc_honk` (0.6); own footstep file `cross.hop.mp3` | 50–150 | 380 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
@@ -54,18 +54,18 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `snake.rockWarn` | Meteor | A rock's shadow appears | `arc_retro_note` (0.5, slowed ×0.7) | 5–20 | 90 ms |
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
 | `beat.start` | Tempo | The run starts | `arc_retro_coin` | 1 | 120 ms |
-| `beat.miss` | Tempo | A note is missed | `arc_retro_hit` | 5–20 | 120 ms |
+| `beat.miss` | Tempo | A note is missed (left out when it breaks a combo of 10+ and `beat.comboLost` has a file) | `arc_retro_hit` | 5–20 | 120 ms |
 | `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) | 80–150 | 90 ms |
 | `breaker.start` | Breaker | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `breaker.ballLost` | Breaker | A ball is lost | `arc_retro_explode` | 0–3 | 260 ms |
 | `breaker.powerUp` | Breaker | A power-up is caught | `arc_retro_pickup` | 2–6 | 100 ms |
 | `breaker.fireballLit` | Breaker | Fireball is lit (brkRev 2+) | `arc_retro_coin` (0.8) | 0–3 | 120 ms |
-| `breaker.brickHit` | Breaker | A brick is hit | `arc_retro_hit` (0.8, overlapping) | 50–150 | 120 ms |
+| `breaker.brickHit` | Breaker | A brick is hit (at most one per 50 ms, three at once) | `arc_retro_hit` (0.8, overlapping) | 50–150 | 120 ms |
 | `breaker.laser` | Breaker | The laser fires | `arc_laser_beam` (0.8) | 0–6 | 370 ms |
 | `breaker.multiball` | Breaker | Extra balls appear (one per ball) | `arc_multiball` (0.7) | 0–6 | 64 ms |
 | `breaker.paddle` | Breaker | A ball bounces off the paddle | `arc_retro_blip` (0.8, overlapping) | 30–80 | 50 ms |
 | `pinball.start` | Pinball | The run starts | `arc_retro_coin` | 1 | 120 ms |
-| `pinball.ballLost` | Pinball | A ball drains | `arc_retro_explode` | 1–3 | 260 ms |
+| `pinball.ballLost` | Pinball | A ball drains (left out on the last drain before time once `pinball.gameOver` has a file) | `arc_retro_explode` | 1–3 | 260 ms |
 | `pinball.launch` | Pinball | A ball is launched into play | `arc_bounce` (0.8) | 1–4 | 80 ms |
 | `pinball.bumperHit` | Pinball | A pop bumper is hit | `arc_retro_hit` (0.8, overlapping) | 20–80 | 120 ms |
 | `pinball.sling` | Pinball | A slingshot kicks | `arc_retro_blip` (0.6, ×1.3) | 10–40 | 50 ms |
@@ -81,10 +81,10 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `burst.start` | Fission | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `burst.gameOver` | Fission | The run ends on the last life | `arc_retro_explode` | 0–1 | 260 ms |
 | `burst.lifeLost` | Fission | A life is lost | `arc_lose_life` | 0–3 | 220 ms |
-| `burst.hit` | Fission | An atom is split or destroyed | `arc_retro_hit` (0.8, overlapping) | 30–100 | 120 ms |
+| `burst.hit` | Fission | An atom is split or destroyed (at most one per 50 ms, three at once) | `arc_retro_hit` (0.8, overlapping) | 30–100 | 120 ms |
 | `burst.powerUp` | Fission | A shield or burst power-up is caught | `arc_retro_pickup` | 1–5 | 100 ms |
 | `burst.freezeCaught` | Fission | A FREEZE icon is caught (burstRev 2+) | `arc_retro_coin` (0.8) | 0–3 | 120 ms |
-| `burst.shot` | Fission | A shot is fired | `arc_retro_blip` (0.6, overlapping) | 50–200 | 50 ms |
+| `burst.shot` | Fission | A shot is fired (at most one per 70 ms, two at once) | `arc_retro_blip` (0.6, overlapping) | 50–200 | 50 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |

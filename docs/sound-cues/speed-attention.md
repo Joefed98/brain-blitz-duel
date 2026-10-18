@@ -17,6 +17,8 @@ Completion effects last at most 1.2 s. Most of the motion is done by about 0.9 s
 | `stopwatch.goldFaces` | Bang On | End of run ("All ten done"), local `scoreStopWatch` ≥ 120: the watch faces flash gold in turn | 1.1 s |
 | `numhunt.discsPop` | Ascend | Finish (last disc tapped): discs pop upwards in order | 1.1 s |
 | `chain.finishShine` | Don't Break the Chain | Chain completed: gold chain glows, shine runs along every link | 1.1 s |
+| `chain.faster` | Don't Break the Chain | The FASTER banner (a speed-up link; not when the REVERSE flash takes the same link) | 350 ms |
+| `chain.reverse` | Don't Break the Chain | chainCycleRev 1: the ← REVERSE flash as the reversed board starts | 500 ms |
 | `countup.countersTick` | Tally | Final answer submitted: tray counters start ticking up | 1.1 s (effect) |
 | `countup.countersLock` | Tally | The last counter locks (about 790 ms into the effect) | instant |
 | `countup.trayIn` | Tally | Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) | 280 ms |

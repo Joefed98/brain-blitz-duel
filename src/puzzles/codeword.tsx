@@ -170,7 +170,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       return;
     }
     if (view.complete) {
-      puzzleReject(gridRef.current);
+      puzzleReject(gridRef.current, false);
       fx.onWrong();
       buzz([12, 60, 12]);
       flash("Not cracked yet: a letter is wrong");

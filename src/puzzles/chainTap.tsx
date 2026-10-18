@@ -35,6 +35,7 @@ import {
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playCueSlot, playTick, playTone } from "@/lib/sound";
+import { soundCue } from "@/lib/fx/soundCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -337,13 +338,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     setPulse(nodeId);
     setTimeout(() => setPulse((current) => (current === nodeId ? null : current)), 180);
     const made = links + 1;
+    const reverseNow = chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT;
     if (rules.fasterAt.includes(made)) {
       setFaster(true);
       setTimeout(() => setFaster(false), 900);
+      // The FASTER banner (hidden under the REVERSE flash when both land on one link).
+      if (!reverseNow) soundCue("chain.faster");
     }
-    if (chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT) {
+    if (reverseNow) {
       setReverseFlash(true);
       setTimeout(() => setReverseFlash(false), 1_100);
+      soundCue("chain.reverse");
     }
     if (made >= rules.length) {
       // Finish effect fires synchronously, then the chain is submitted exactly as before.

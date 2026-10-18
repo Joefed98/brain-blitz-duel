@@ -1,8 +1,13 @@
 import { prefersReducedMotion } from "@/lib/motion";
+import { demoHushed } from "@/lib/sound";
+import { soundCue } from "./soundCues";
 
 const last = new WeakMap<Element, number>();
-/** Paint the existing rejection; never validate, penalise, submit or play audio. */
-export function puzzleReject(element?: Element | null): void {
+/**
+ * Paint the existing rejection and announce `shared.reject` (silent in intro demos); never validate,
+ * penalise or submit. Pass `sound = false` where the move already plays `wrong`.
+ */
+export function puzzleReject(element?: Element | null, sound = true): void {
   if (typeof document === "undefined") return;
   const target =
     element ??
@@ -13,6 +18,7 @@ export function puzzleReject(element?: Element | null): void {
   const now = Date.now();
   if (now - (last.get(target) ?? 0) < 340) return;
   last.set(target, now);
+  if (sound && !demoHushed()) soundCue("shared.reject");
   target.setAttribute("data-puzzle-rejected", "true");
   if (!prefersReducedMotion() && typeof target.animate === "function") {
     target.animate(

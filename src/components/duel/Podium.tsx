@@ -96,15 +96,17 @@ export function Podium({
   const [open, setOpen] = useState<number | null>(null);
   const mine = rows.find((r) => r.slot === mySlot);
   const won = mine?.position === 1;
+  const sharedFirst = won && rows.filter((r) => r.position === 1).length > 1;
   const cued = useRef(false);
 
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
     fx.onPodium();
-    playVoice("gg");
+    // The winner hears "you win" (a shared first place "tie"); everyone else "GG".
+    playVoice(sharedFirst ? "voice.tie" : won ? "voice.youWin" : "gg");
     if (won) buzz([25, 50, 25]);
-  }, [won]);
+  }, [won, sharedFirst]);
 
   return (
     <div className="relative flex flex-1 flex-col gap-4 pt-2 animate-phase-in">

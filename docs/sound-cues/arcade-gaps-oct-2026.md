@@ -1,5 +1,11 @@
 # Arcade sound gaps, Oct 2026
 
+> **Status, 18 Oct 2026:** batch 2 and batch 3's must-haves are wired (the files are in `public/sounds/`, every slot
+> below that they name points at its file, with the section 3 caps; [batch3-mapping.csv](batch3-mapping.csv) is the
+> block in section 4). Batch 3's 17 nice-to-have recordings and their 39 reuse-only slots (R15–R53) are not made or
+> hooked yet. The rest of this page is the audit as written on 16 Oct; "no cue" rows covered by the must-haves now
+> have one ([arcade-effects.md](arcade-effects.md)).
+
 Audit of 16 Oct 2026, docs only: no code, slot or file changes. It aims for **every noticeable visual moment in the
 22 arcade games having a sound**. It also covers the five engine games on the arcade stage (Letterfall, Tenfall, Bonk,
 Pull!, Mixed Signals) and, more briefly, the puzzle games. Updated 16 Oct 2026 with sound batch 2's mapping
@@ -837,6 +843,9 @@ shakes the board and **never plays audio**.
 The five puzzle slots are in section 4's tables and mapping block (one new recording is shared with arcade slots).
 
 ## Next steps (not in this PR)
+
+Done on 18 Oct 2026 (sound batches 2 and 3): items 2 and 3 below, for the must-haves; still to do: the nice-to-haves
+(item 1's second half and their hooks).
 
 1. Make batch 3's must-have recordings first: the 19 in section 4, which with their reuses cover 45 cues. Then make the
    nice-to-haves.

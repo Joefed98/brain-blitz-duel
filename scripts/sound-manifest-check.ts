@@ -530,6 +530,52 @@ await settle();
 check(take().length === 0, "a 404 music slot leaves the round silent");
 sound.leaveRoundMusic("check");
 
+// Play caps (arcade-gaps-oct-2026.md section 3): a second play inside a slot's gap is dropped, the
+// voices limit holds, and both apply to the shared sound a slot without a file plays.
+type Capped = Entry & { gapMs?: number; voices?: number; rate?: number };
+const capped = manifest as unknown as Record<string, Capped>;
+for (const [cue, gap, voices] of [
+  ["wavefront.fire", 120, 2],
+  ["breaker.brickHit", 50, 3],
+  ["burst.shot", 70, 2],
+  ["burst.hit", 50, 3],
+  ["cross.hop", 90, 0],
+  ["whack.popUp", 120, 0],
+] as const) {
+  check(capped[cue]?.gapMs === gap && (capped[cue]?.voices ?? 0) === voices, `${cue}: cap is not ${gap} ms / ${voices} voices`);
+}
+check(capped["wavefront.fire"]!.volume! * 0.6 > 0.49 && capped["wavefront.fire"]!.volume! * 0.6 < 0.51, "wavefront.fire plays at 0.5");
+sound.resetPlayCaps();
+take();
+sound.playSlotOr("wavefront.fire" as never, "arc_blaster" as never, 0.6, 1, true);
+sound.playSlotOr("wavefront.fire" as never, "arc_blaster" as never, 0.6, 1, true);
+check(take().length === 1, "wavefront.fire: a second shot inside 120 ms is dropped");
+take();
+dispatch("whack.popUp");
+dispatch("whack.popUp");
+check(take().length === 1, "whack.popUp: a second pop-up inside 120 ms is dropped (named cue)");
+await new Promise((resolve) => setTimeout(resolve, 130));
+dispatch("whack.popUp");
+check(take().length === 1, "whack.popUp: plays again once its gap has passed");
+// A slot's own rate: the row drop plays the march recording lower.
+take();
+dispatch("wavefront.rowDrop");
+check(take()[0]?.rate === capped["wavefront.rowDrop"]!.rate, "wavefront.rowDrop plays at its slot's rate");
+// A cue's own per-play rate (Fission's floor bounce pitched by atom size).
+take();
+target.dispatchEvent(new CustomEvent(SOUND_CUE_EVENT, { detail: { cue: "burst.atomBounce", rate: 1.25 } }));
+check(take()[0]?.rate === 1.25, "burst.atomBounce keeps its per-play pitch");
+// Batch 3's loops: on their own file, looping, and stopped by stopCueLoop.
+for (const cue of ["wavefront.danger", "swing.lava", "cross.traffic", "inkbridge.coinRoll"]) {
+  check(!!capped[cue]?.loop, `${cue}: manifest slot must be a loop`);
+  take();
+  sound.ensureCueLoop(cue, 0.3);
+  const got = take();
+  check(got.length === 1 && got[0]!.loop && got[0]!.url === testUrl(cue), `${cue}: did not loop on its own file`);
+  sound.stopCueLoop(cue, 0);
+}
+sound.resetPlayCaps();
+
 // Unset slots keep today's behaviour exactly.
 for (const id of slotIds) manifest[id]!.url = null;
 take();

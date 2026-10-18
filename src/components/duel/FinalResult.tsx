@@ -70,7 +70,7 @@ export function FinalResult({
     cued.current = true;
     // No music on the final screen — just the one cue.
     fx.onPodium();
-    playVoice("gg");
+    playVoice(outcome === "win" ? "voice.youWin" : outcome === "draw" ? "voice.tie" : "gg");
     if (outcome === "win") {
 
       buzz([25, 50, 25]);

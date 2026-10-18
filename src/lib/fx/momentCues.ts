@@ -182,12 +182,12 @@ const liveAt = new Map<string, number>();
  * dispatches its named cue (silent until the slot has a file), never during an intro demo, at most
  * one per `gapMs`.
  */
-export function liveCue(cue: string, gapMs = 0): void {
+export function liveCue(cue: string, gapMs = 0, rate?: number): void {
   if (demoHushed()) return;
   if (gapMs > 0) {
     const now = typeof performance === "undefined" ? 0 : performance.now();
     if (now - (liveAt.get(cue) ?? -Infinity) < gapMs) return;
     liveAt.set(cue, now);
   }
-  soundCue(cue);
+  soundCue(cue, rate);
 }

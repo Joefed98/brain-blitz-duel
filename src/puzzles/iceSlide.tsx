@@ -105,7 +105,7 @@ function Stage({
     }
     fallsSeen.current = replay.falls;
     setFlash(true);
-    puzzleReject();
+    puzzleReject(undefined, false);
     buzz(25);
     playWrong();
     const timer = setTimeout(() => setFlash(false), 320);

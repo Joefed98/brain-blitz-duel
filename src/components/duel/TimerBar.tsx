@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useReducedMotion } from "@/lib/motion";
 import { fx } from "@/lib/fx";
-import { stopWarning10, playWarningTick } from "@/lib/sound";
+import { stopWarning10, playVoice, playWarningTick } from "@/lib/sound";
 
 interface TimerBarProps {
   msRemaining: number;
@@ -52,7 +52,10 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
     if (lastTick.current === seconds) return;
     lastTick.current = seconds;
     if (seconds === 5) fx.onTimerWarning5();
-    if (seconds === 0) fx.onTimeUp();
+    if (seconds === 0) {
+      fx.onTimeUp();
+      playVoice("voice.timesUp");
+    }
   }, [active, seconds, remaining]);
   useEffect(() => () => stopWarning10(), []);
   return (

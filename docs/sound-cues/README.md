@@ -61,9 +61,18 @@ changes.
 **Loading.** Every effect and voice file (every manifest entry with a `url` that is not music) is preloaded
 when the first tap unlocks audio: fetched and decoded once per URL, so slots sharing a recording cost one
 download. Music beds load on demand when their screen or round starts and are released after. Git-route
-files in `public/sounds/` (October 2026): 72 files, 2.74 MB, of which effects 1.39 MB are preloaded and the
-two music loops (`music_menu.mp3` 0.62 MB, `music_pinball.mp3` 0.74 MB) load on demand. Before the
-de-duplication the preload fetched 225 separate effect files (3.93 MB) and the menu loop was two files.
+files in `public/sounds/` (18 Oct 2026, after sound batches 2 and 3): 138 files, 4.61 MB, of which effects and
+voice 3.25 MB are preloaded (the five batch 2 voice lines 0.60 MB) and the two music loops (`music_menu.mp3`
+0.62 MB, `music_pinball.mp3` 0.74 MB) load on demand. Batch 1 alone was 72 files (2.74 MB, effects 1.39 MB);
+before its de-duplication the preload fetched 225 separate effect files (3.93 MB) and the menu loop was two files.
+
+**Play caps and loops** (sound batches 2 and 3): a slot may also set `gapMs` (a play this soon after its last is
+dropped), `voices` (how many of its plays may sound at once) and `rate` (a shared recording played lower or higher).
+The caps hold whether the slot plays its own file or the shared sound it stands in for. A named loop (`loop: true`)
+plays through `loopCue()` in `gameSounds.ts` (`ensureCueLoop` / `stopCueLoop`): quiet (0.25–0.35), faded in over
+500 ms and out when it ends, one per game. The mapping sheets are [batch2-mapping.csv](batch2-mapping.csv) and
+[batch3-mapping.csv](batch3-mapping.csv) (`file,cues`; `EXISTING:<id>` points a slot at an app-wide entry or a file
+already in `public/sounds/`).
 
 What each kind of slot does once it has a file:
 
