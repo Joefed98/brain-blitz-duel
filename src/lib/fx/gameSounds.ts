@@ -5,28 +5,28 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { cueHasFile, ensureSlotLoop, playSlotOr, stopSlotLoop } from "@/lib/sound";
+import { cueHasFile, ensureCueLoop, ensureSlotLoop, playSlotOr, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import type { SoundId } from "@/lib/fx/manifest";
-import type { OrbitState } from "@/lib/arcade/orbit";
+import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
-import { SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
-import type { WavState } from "@/lib/arcade/wavefront";
-import type { CrossState } from "@/lib/arcade/cross";
-import { FLIP_CRUMBLE_TICKS, flipCrackTick, type FlipState } from "@/lib/arcade/flip";
-import { type HoverState } from "@/lib/arcade/hover";
-import type { SnakeState } from "@/lib/arcade/snake";
-import { brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
+import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingJetAt, type SwingState } from "@/lib/arcade/swing";
+import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, type WavState } from "@/lib/arcade/wavefront";
+import { CROSS_CYCLE_FROM, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, type CrossState } from "@/lib/arcade/cross";
+import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
+import { HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
+import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
+import { BRK_SLIDE_STARTS, brkDestroyed, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
 import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, type RallyState } from "@/lib/arcade/rally";
-import type { PinState } from "@/lib/arcade/pinball";
-import type { BurstState } from "@/lib/arcade/burst";
-import { BEAT_COMBO_TIERS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
-import { BINTOSS_THROWS, type BinTossState } from "@/lib/arcade/binToss";
+import { PIN_BALLS, PIN_RUN_TICKS, type PinState } from "@/lib/arcade/pinball";
+import { BURST_RADIUS, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
+import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
+import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
-import type { BtCourse, BtState } from "@/lib/arcade/ballTrack";
+import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
-import { skylineGustAt, type SkylineState } from "@/lib/arcade/skyline";
-import { INK_LIVE_PRE_CAP, type InkState } from "@/lib/arcade/inkBridge";
+import { skylineFlagAt, skylineGustAt, type SkylineState } from "@/lib/arcade/skyline";
+import { INK_LIVE_PRE_CAP, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
@@ -48,8 +48,24 @@ function sfx(cue: SoundId, fallback: SoundId, volume = 1, rate = 1, overlap = fa
 }
 
 /** A renderer effect's named cue (liveCue), unless a success cue with a file replaces it this frame. */
-function effectCue(cue: string, gapMs = 0): void {
-  if (!quiet.has(cue)) liveCue(cue, gapMs);
+function effectCue(cue: string, gapMs = 0, rate?: number): void {
+  if (!quiet.has(cue)) liveCue(cue, gapMs, rate);
+}
+
+/**
+ * Quiet ambient and sustain loops (sound batch 3): one per game, at 0.25–0.35 under the music, faded in
+ * over 500 ms while `on` and out when it turns off or the run ends. Silent until the slot has a file.
+ */
+const LOOP_VOLUME = 0.3;
+function loopCue(cue: string, on: boolean, volume = LOOP_VOLUME): void {
+  if (on) ensureCueLoop(cue, volume);
+  else stopCueLoop(cue);
+}
+
+/** A ball (velocities in 1/256 px a tick) that turned back this frame: sideways reversed, or rising turned to falling. */
+function turnedBack(before: { vx: number; vy: number } | undefined, after: { vx: number; vy: number }): boolean {
+  if (!before) return false;
+  return (before.vx !== 0 && after.vx !== 0 && before.vx > 0 !== after.vx > 0) || (before.vy < 0 && after.vy > 0);
 }
 
 export interface GameSounds<S> {
@@ -61,6 +77,7 @@ const AMBIENCE_VOLUME = 0.22;
 
 export function orbitSounds(): GameSounds<OrbitState> {
   let prev: OrbitState | null = null;
+  const announced = new Set<number>();
   return {
     frame(state, running) {
       beginFrame("orbit", state);
@@ -75,11 +92,25 @@ export function orbitSounds(): GameSounds<OrbitState> {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
           else effectCue("orbit.planetCaught");
         }
-      }
+        // The first figure-eight planet and the first asteroid belt: a heads-up as the one before is reached.
+        for (const at of [state.planets.findIndex((p) => p.kind === ORBIT_EIGHT), state.planets.findIndex((p) => p.hazard >= 0)]) {
+          if (at > 0 && !announced.has(at) && prev.cur < at - 1 && state.cur === at - 1) {
+            announced.add(at);
+            effectCue("orbit.newHazard");
+          }
+        }
+      } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
     },
     stop: () => stopSlotLoop("orbit.ambience", "arc_space_ambience"),
   };
+}
+
+/** swingRev 4+: the dragon is off the left edge and its arrow has turned red (under 4 m behind), as the renderer draws it. */
+function swingDragonNear(s: SwingState): boolean {
+  const chase = s.chaseX ?? 0;
+  if (s.rev !== SWING_REV || s.ended !== 0 || chase === 0 || chase + SWING_CHASE_REACH - s.camX >= 0) return false;
+  return Math.max(0, Math.trunc((s.x - chase - SWING_CHASE_REACH) / (40 * 256))) < 4;
 }
 
 export function swingSounds(): GameSounds<SwingState> {
@@ -87,7 +118,7 @@ export function swingSounds(): GameSounds<SwingState> {
   return {
     frame(state, running) {
       beginFrame("swing", state);
-      void running;
+      loopCue("swing.lava", running && state.ended === 0);
       if (prev && state.tick > prev.tick) {
         if (state.ended === 2 && prev.ended !== 2) sfx("swing.crash", "arc_crash");
         else if (prev.rope < 0 && state.rope >= 0) sfx("swing.grapple", "arc_grapple");
@@ -97,25 +128,43 @@ export function swingSounds(): GameSounds<SwingState> {
         if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) sfx("swing.rockShake", "arc_clank", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) sfx("swing.rockLand", "arc_wood_knock", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 2 && prev!.rocks?.[i]?.phase === 1)) effectCue("swing.rockFall");
+        // The crumble builds (grit, the shadow growing) halfway through a stalactite's warning.
+        const half = (state.tuned ? SWING_ROCK_WARN_V6 : SWING_ROCK_WARN) / 2;
+        if ((state.rocks ?? []).some((r, i) => r.phase === 1 && r.t >= half && prev!.rocks?.[i]?.phase === 1 && prev!.rocks[i]!.t < half)) effectCue("swing.rockCrumble", 300);
+        if (swingDragonNear(state) && !swingDragonNear(prev)) effectCue("swing.dragonNear", 4000);
         // Lava jets (tick-driven, as the renderer draws them): the warning bubbles, then the eruption.
         if (state.ended === 0) {
           // Only jets on screen (the renderer's camera window).
           const jets = (state.jets ?? []).filter((j) => j.x >= state.camX && j.x <= state.camX + SWING_WORLD_W * 256);
-          if (jets.some((j) => swingJetAt(j, state.tick).bubbling && !swingJetAt(j, prev!.tick).bubbling)) effectCue("swing.jetBubble", 300);
-          if (jets.some((j) => swingJetAt(j, state.tick).h > 0 && swingJetAt(j, prev!.tick).h === 0)) effectCue("swing.jetErupt", 300);
+          if (jets.some((j) => swingJetAt(j, state.tick).bubbling && !swingJetAt(j, prev!.tick).bubbling)) effectCue("swing.jetBubble", 600);
+          if (jets.some((j) => swingJetAt(j, state.tick).h > 0 && swingJetAt(j, prev!.tick).h === 0)) effectCue("swing.jetErupt", 600);
         }
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("swing.lava"),
   };
+}
+
+/** wavefront.ts PITCH_Y: the formation's row pitch (px). */
+const WAV_ROW_PITCH = 36;
+/** The formation's lowest ship within two drops of the ship line (it ends the run on reaching it). */
+function wavDanger(s: WavState): boolean {
+  if (s.ended !== 0 || (s.enter ?? 0) > 0) return false;
+  const form = wavForm(s);
+  let lowest = -1;
+  s.shapes.forEach((code, i) => {
+    if (code !== 0) lowest = Math.max(lowest, form ? form[i]![1] : Math.trunc(i / WAV_COLS) * WAV_ROW_PITCH);
+  });
+  return lowest >= 0 && s.fy + lowest + WAV_CELL >= wavShipY(s) - WAV_SHIP_H / 2 - 2 * wavDropPx(s);
 }
 
 export function wavefrontSounds(): GameSounds<WavState> {
   let prev: WavState | null = null;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("wavefront", state);
+      loopCue("wavefront.danger", running && wavDanger(state));
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) sfx("wavefront.fire", "arc_blaster", 0.6, 1, true);
         if (state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
@@ -133,26 +182,42 @@ export function wavefrontSounds(): GameSounds<WavState> {
         // An armour plate knocked off without a kill (no burst is drawn).
         if (state.armourHits > prev.armourHits && !state.bursts.some((b) => b.t > prev!.tick && b.c === 4)) effectCue("wavefront.armourHit");
         if (state.reds.length > prev.reds.length) effectCue("wavefront.enemyFire", 150);
+        // The formation marches a step, or drops a row at a wall (the same thump, lower).
+        if (state.wave === prev.wave && (state.enter ?? 0) === 0 && (prev.enter ?? 0) === 0) {
+          if (state.dir !== prev.dir && state.fy > prev.fy) effectCue("wavefront.rowDrop", 100);
+          else if (state.fx !== prev.fx) effectCue("wavefront.march", 100);
+        }
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("wavefront.danger"),
   };
 }
 
+/** crossRev 2+: the crossings (0-based) that bring a new layout: the first cycle lane, roadworks, the chicane. */
+const CROSS_NEW_LAYOUTS = [CROSS_CYCLE_FROM, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM];
+
 export function crossSounds(): GameSounds<CrossState> {
   let prev: CrossState | null = null;
+  const announced = new Set<number>();
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("cross", state);
+      loopCue("cross.traffic", running && !state.dead);
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) sfx("cross.lifeLost", "arc_lose_life");
         else if (state.crossings > prev.crossings) sfx("cross.crossed", "stage_complete");
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
-      }
+        // A new layout's crossing begins (its kerb pause ends).
+        const go = prev.tick < state.pauseUntil && state.tick >= state.pauseUntil;
+        if (go && (state.rev ?? 0) >= CROSS_REV2 && CROSS_NEW_LAYOUTS.includes(state.crossings) && !announced.has(state.crossings)) {
+          announced.add(state.crossings);
+          effectCue("cross.newHazard");
+        }
+      } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("cross.traffic"),
   };
 }
 
@@ -166,6 +231,8 @@ export function flipSounds(): GameSounds<FlipState> {
         if (state.ended === 2 && prev.ended !== 2) sfx("flip.crash", "arc_crash");
         else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
         if (state.ended === 0) {
+          // The tunnel speeds up a step (every 3 s).
+          if (flipSpeed(state.tick) > flipSpeed(prev.tick)) effectCue("flip.speedUp");
           // A crumble tile first touched starts to crack; FLIP_CRUMBLE_TICKS later it collapses into lava.
           if ((state.cracks?.length ?? 0) > (prev.cracks?.length ?? 0)) effectCue("flip.crackStart");
           const cracks = state.cracks ?? [];
@@ -210,6 +277,12 @@ export function hoverSounds(): GameSounds<HoverState> {
           if (state.gates > prev.gates) sfx("hover.gate", "arc_retro_note");
           // hoverRev 2: a gold star collected.
           if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("hover.star", "arc_retro_coin", 0.8);
+          // hoverRev 2: the first two-gap and the first moving barrier scroll into view.
+          if (state.rev) {
+            const onScreen = (p: HoverPillar | undefined, distance: number) => !!p && p.x0 - distance <= HOVER_WORLD_W * 256;
+            const firsts = [state.pillars.find((p) => p.gap2Top !== undefined), state.pillars.find((p) => p.movePhase !== undefined)];
+            if (firsts.some((p) => onScreen(p, state.distance) && !onScreen(p, prev!.distance))) effectCue("hover.newHazard");
+          }
         }
       }
       prev = state;
@@ -217,6 +290,9 @@ export function hoverSounds(): GameSounds<HoverState> {
     stop: () => {},
   };
 }
+
+/** snake.rockFalling's length: the rock sprite falls in for this long before it lands. */
+const SNAKE_ROCK_FALL_TICKS = 48;
 
 export function snakeSounds(): GameSounds<SnakeState> {
   let prev: SnakeState | null = null;
@@ -233,6 +309,11 @@ export function snakeSounds(): GameSounds<SnakeState> {
         else if ((state.rockWarn ?? -1) >= 0 && (prev.rockWarn ?? -1) < 0) sfx("snake.rockWarn", "arc_retro_note", 0.5, 0.7);
         // snakeRev 3 meteor shower: a low alarm as the three shadows appear.
         if ((state.showerDone ?? 0) > (prev.showerDone ?? 0)) sfx("snake.showerAlarm", "arc_retro_note", 0.7, 0.5, true);
+        // The rock (or the shower) falls in over its last 0.8 s before impact.
+        const landings = [(state.rockWarn ?? -1) >= 0 ? state.rockLandTick : undefined, (state.showerWarn?.length ?? 0) > 0 ? state.showerLandTick : undefined];
+        if (!state.dead && landings.some((at) => at !== undefined && at - prev!.tick > SNAKE_ROCK_FALL_TICKS && at - state.tick <= SNAKE_ROCK_FALL_TICKS && at > state.tick)) effectCue("snake.rockFalling", 300);
+        // A speed step on the 5th, 15th, 25th star (the 10th and 20th have the STREAK banner).
+        if (!state.dead && snakeStepTicks(state.eaten) < snakeStepTicks(prev.eaten) && state.eaten % 10 !== 0) effectCue("snake.speedUp");
       }
       prev = state;
     },
@@ -251,7 +332,14 @@ export function beatSounds(): GameSounds<BeatState> {
       beginFrame("beat", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.misses > prev.misses) sfx("beat.miss", "arc_retro_hit");
+        // A combo of 10 or more broken: its glow bands vanish (its own file stands in for the miss).
+        const broke = prev.combo >= 10 && state.combo < prev.combo;
+        if (broke) effectCue("beat.comboLost");
+        if (state.misses > prev.misses && !(broke && cueHasFile("beat.comboLost"))) sfx("beat.miss", "arc_retro_hit");
+        // beatRev 2+: the first swipe notes come into the lanes.
+        const firstSwipe = state.chart.swipes?.findIndex((d) => d !== 0) ?? -1;
+        const swipeAt = firstSwipe >= 0 ? state.chart.ticks[firstSwipe]! - BEAT_FALL_TICKS : -1;
+        if (swipeAt >= 0 && prev.tick < swipeAt && state.tick >= swipeAt) effectCue("beat.swipeArrive");
         const hits = state.perfect + state.good + state.ok - (prev.perfect + prev.good + prev.ok);
         const heldNew = state.lastJudge === BEAT_JUDGE_PENDING && state.judgeAge === 0;
         // An own file keeps the lane pitch.
@@ -285,6 +373,8 @@ export function breakerSounds(): GameSounds<BrkState> {
         if (state.capsules.length > prev.capsules.length) effectCue("breaker.capsuleDrop");
         if (!state.fire && prev.fire) effectCue("breaker.fireballOut");
         if (state.pause === 0 && prev.pause > 0 && state.losses === prev.losses) effectCue("breaker.relaunch");
+        // brkRev 2+: rows 3 and 7 start sliding (30 s, 60 s).
+        if (state.slide && BRK_SLIDE_STARTS.some((at) => prev!.tick < at && state.tick >= at)) effectCue("breaker.rowsSlide");
         // Laser fired: the beam timer jumps to full; one instance per fired ball.
         if (state.beam > prev.beam) sfx("breaker.laser", "arc_laser_beam", 0.8);
         for (let b = 0; b < state.balls.length - prev.balls.length; b++) sfx("breaker.multiball", "arc_multiball", 0.7);
@@ -294,6 +384,8 @@ export function breakerSounds(): GameSounds<BrkState> {
           return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (brkPaddleY(state) - 40) * 256;
         });
         if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 1, true);
+        // A ball off a side wall or the ceiling: turned back with no brick hit and no paddle return.
+        else if (state.hits === prev.hits && state.balls.length === prev.balls.length && state.balls.some((ball, i) => turnedBack(prev!.balls[i], ball))) effectCue("breaker.wallBounce");
       }
       prev = state;
     },
@@ -309,7 +401,11 @@ export function pinballSounds(): GameSounds<PinState> {
       beginFrame("pinball", state);
       start(running);
       if (prev && state.tick > prev.tick) {
-        if (state.lost > prev.lost) sfx("pinball.ballLost", "arc_retro_explode");
+        // The last ball launched (BALL 3/3); every ball drained before time (its own file stands in for the drain).
+        if (state.launched >= PIN_BALLS && prev.launched < PIN_BALLS) effectCue("pinball.lastBall");
+        const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < PIN_RUN_TICKS;
+        if (over) effectCue("pinball.gameOver");
+        if (state.lost > prev.lost && !(over && cueHasFile("pinball.gameOver"))) sfx("pinball.ballLost", "arc_retro_explode");
         if (state.live && !prev.live) sfx("pinball.launch", "arc_bounce", 0.8);
         if (state.bumps > prev.bumps) sfx("pinball.bumperHit", "arc_retro_hit", 0.8, 1, true);
         if (state.slings > prev.slings) sfx("pinball.sling", "arc_retro_blip", 0.6, 1.3, true);
@@ -352,6 +448,9 @@ export function rallySounds(): GameSounds<RallyState> {
         else if (state.goldHits > prev.goldHits) arenaLight("rally", 2);
         else if (total(state) > total(prev)) arenaLight("rally", 1);
         if (state.golds.length > prev.golds.length) effectCue("rally.goldEnter");
+        // A ball off a side or the far wall (not the paddle, a bumper or a pad).
+        const plain = state.hits === prev.hits && state.goldHits === prev.goldHits && (state.bounces ?? 0) === (prev.bounces ?? 0) && (state.targetHits ?? 0) === (prev.targetHits ?? 0);
+        if (plain && !state.dead && (turnedBack(prev, state) || (state.golds.length === prev.golds.length && state.golds.some((g, i) => turnedBack(prev!.golds[i], g))))) effectCue("rally.wallBounce");
         // Rev 2+: the BUMPER warning blinks 2 s before a bumper appears, then it is in play.
         const crossed = (at: number) => prev!.tick < at && state.tick >= at;
         if ((state.bumper && crossed(RALLY_BUMPER_FROM - 120)) || (state.bumper2 && crossed(RALLY_BUMPER2_FROM - 120))) effectCue("rally.bumperWarn");
@@ -361,6 +460,13 @@ export function rallySounds(): GameSounds<RallyState> {
     },
     stop: () => {},
   };
+}
+
+/** Floor-bounce pitch per atom size (0 is the biggest). */
+const BURST_BOUNCE_RATES = [0.7, 0.85, 1.05, 1.25];
+function burstTouching(s: BurstState): boolean {
+  const ceil = burstCeiling(s.wave, burstFloorY(s));
+  return s.balls.some((b) => b.y / 256 - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
 }
 
 export function burstSounds(): GameSounds<BurstState> {
@@ -382,6 +488,18 @@ export function burstSounds(): GameSounds<BurstState> {
         if (!state.shield && prev.shield && state.lives === prev.lives) effectCue("burst.shieldBreak");
         if (!state.freeze && prev.freeze) effectCue("burst.thaw");
         if (state.wave > prev.wave) effectCue("burst.newWave");
+        // The ceiling flashes white as an atom touches it (as the renderer works it out).
+        if (burstTouching(state) && !burstTouching(prev)) effectCue("burst.ceilingTouch");
+        // An atom bounces off the floor, pitched by its size (the biggest that bounced).
+        if (state.hits === prev.hits && state.balls.length === prev.balls.length) {
+          let size = -1;
+          state.balls.forEach((b, i) => {
+            const a = prev!.balls[i];
+            if (a && a.size === b.size && a.vy > 0 && b.vy < 0 && (size < 0 || b.size < size)) size = b.size;
+          });
+          if (size >= 0) effectCue("burst.atomBounce", 0, BURST_BOUNCE_RATES[size] ?? 1);
+        }
+        if (state.lives === 1 && prev.lives > 1 && state.ended === 0) effectCue("burst.lastLife");
       }
       prev = state;
     },
@@ -402,6 +520,13 @@ function fairPerfect(cue: SoundId) {
   };
 }
 
+/** The ball now in hand brings something new: the narrower bucket (throw 4), the first spinner or the first trolley. */
+function binTossNewHazard(s: BinTossState): boolean {
+  const i = s.throwIndex;
+  const first = (has: (k: number) => boolean) => has(i) && !Array.from({ length: i }, (_, k) => k).some(has);
+  return i === BINTOSS_NARROW_FROM || first((k) => !!s.spinners?.[k]) || first((k) => (s.slides[k]?.amp ?? 0) > 0);
+}
+
 export function binTossSounds(): GameSounds<BinTossState> {
   let prev: BinTossState | null = null;
   const perfect = fairPerfect("bintoss.perfect");
@@ -416,6 +541,8 @@ export function binTossSounds(): GameSounds<BinTossState> {
         if (state.wobbleTick !== prev.wobbleTick && state.wobbleTick > 0) sfx("bintoss.wobble", "arc_bounce", 0.7, 1, true);
         if (state.hooped && !prev.hooped) effectCue("bintoss.hoopGlow");
         if (state.knockTick !== prev.knockTick && (state.knockTick ?? 0) > 0) effectCue("bintoss.spinnerKnock", 100);
+        if (prev.phase === BINTOSS_AIM && state.phase === BINTOSS_FLY) effectCue("bintoss.throw");
+        if (prev.phase === BINTOSS_WAIT && state.phase === BINTOSS_AIM && binTossNewHazard(state)) effectCue("bintoss.newHazard");
         perfect(state.baskets === BINTOSS_THROWS);
       }
       prev = state;
@@ -511,6 +638,9 @@ export function ballTrackSounds(course?: BtCourse): GameSounds<BtState> {
         if (state.lost > prev.lost) effectCue("balltrack.lost");
         // The cups slide to new places (relay, then shuffle) and flash.
         if (course && [course.relay.tick, course.shuffle.tick].some((t) => prev!.tick < t && state.tick >= t)) effectCue("balltrack.shuffle");
+        // Each step of the hopper's 5-4-3-2-1 before the relay and the shuffle.
+        const count = course ? btEventCountdown(course, state.tick) : null;
+        if (course && count !== null && count !== btEventCountdown(course, prev.tick)) effectCue("balltrack.countdown");
       }
       prev = state;
     },
@@ -564,6 +694,8 @@ export function skylineSounds(): GameSounds<SkylineState> {
         }
         if (state.missed && !prev.missed) sfx("skyline.miss", "arc_crash");
         else if (skylineGustAt(state, state.tick) !== 0 && skylineGustAt(prev, prev.tick) === 0) effectCue("skyline.gust");
+        // The flag streams a second before a gust blows.
+        else if (skylineFlagAt(state, state.tick) !== 0 && skylineFlagAt(prev, prev.tick) === 0) effectCue("skyline.gustWarn");
       }
       prev = state;
     },
@@ -573,12 +705,16 @@ export function skylineSounds(): GameSounds<SkylineState> {
 
 /** Rainbow world; shared run-end feedback supplies the complete cue. */
 
+/** Speed along a line (1/256 px a tick) above which the coin is heard rolling. */
+const INK_ROLL_SPEED = 40;
+
 export function inkBridgeSounds(): GameSounds<InkState> {
   let prev: InkState | null = null;
   let armed = -1;
   return {
-    frame(state) {
+    frame(state, running) {
       beginFrame("inkbridge", state);
+      loopCue("inkbridge.coinRoll", running && !!state.dropping && state.ball.on >= 0 && Math.abs(state.ball.sp) > INK_ROLL_SPEED, 0.25);
       if (prev && state.tick > prev.tick) {
         // Keep one draw sound after the first segment of each stroke.
         if (state.strokeStarts.length > prev.strokeStarts.length) armed = state.strokeStarts[state.strokeStarts.length - 1] ?? -1;
@@ -594,13 +730,16 @@ export function inkBridgeSounds(): GameSounds<InkState> {
           } else if (state.flashKind === 2) effectCue("inkbridge.fail");
         }
         if (state.dropping && !prev.dropping) effectCue("inkbridge.release");
+        // The coin lands on a rainbow; the live levels (9–10) begin.
+        if (state.dropping && prev.dropping && prev.ball.on < 0 && state.ball.on >= 0) effectCue("inkbridge.coinLand", 150);
+        if (inkIsLive(state.level, state.rev) && !inkIsLive(prev.level, prev.rev)) effectCue("inkbridge.liveLevel");
         // The ink meter and pen tip pulse red at the pre-release cap (as the renderer draws it).
         const cap = (INK_LIVE_PRE_CAP - 2) * 256;
         if (!state.dropping && state.preInkUsed >= cap && prev.preInkUsed < cap) effectCue("inkbridge.inkOut");
       }
       prev = state;
     },
-    stop: () => {},
+    stop: () => stopCueLoop("inkbridge.coinRoll"),
   };
 }
 
@@ -630,6 +769,9 @@ export function bubbleSounds(): GameSounds<BubState> {
         if ((state.lines ?? 0) > (prev.lines ?? 0)) sfx("bubble.line", "arc_laser_beam", 0.55, 1.2, true);
         if ((state.jokers ?? 0) > (prev.jokers ?? 0)) sfx("bubble.jokerLand", "arc_rainbow", 0.6, 1, true);
         if (state.descents > prev.descents) effectCue("bubble.descend");
+        // 8 or more cleared by one shot sends a rush of bubbles up; the reef reaching the gun ends the run.
+        if (state.popped + state.dropped - (prev.popped + prev.dropped) >= 8) effectCue("bubble.rush");
+        if (state.dead && !prev.dead) effectCue("bubble.reefLost");
         // A shot that sticks without popping, dropping or setting off a special.
         const special = (s: BubState) => (s.bombs ?? 0) + (s.lines ?? 0) + (s.jokers ?? 0);
         if (state.shots > prev.shots && state.popped === prev.popped && state.dropped === prev.dropped && special(state) === special(prev)) effectCue("bubble.stick");
@@ -687,6 +829,12 @@ export function sliceSounds(): GameSounds<SliceState> {
         const combo = state.comboLive ? 1 + state.streak : 0;
         const prevCombo = prev.comboLive ? 1 + prev.streak : 0;
         if (combo > prevCombo && combo > 1) sfx("slice.comboUp", "arc_slice_combo", 0.8);
+        // The combo meter runs out (a chilli ending it has its own sound).
+        if (prev.comboLive && !state.comboLive && state.bombsHit === prev.bombsHit) effectCue("slice.comboEnd");
+        // Food thrown up, or a chilli launched with its fizzing fuse.
+        const thrown = state.objects.filter((o) => o.launchTick > prev!.tick && o.launchTick <= state.tick);
+        if (thrown.some((o) => o.bomb)) effectCue("slice.fuse", 150);
+        if (thrown.some((o) => !o.bomb)) effectCue("slice.toss");
       }
       prev = state;
     },

@@ -9,13 +9,16 @@ export const SOUND_CUE_EVENT = "duelz-sound";
 
 export interface SoundCueDetail {
   cue: string;
+  /** Optional playback rate for this one play (an atom's floor bounce pitched by its size). */
+  rate?: number;
 }
 
 /** Dispatches one named cue. Safe on the server (no window) and in checks. */
-export function soundCue(cue: string): void {
+export function soundCue(cue: string, rate?: number): void {
   if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") return;
   if (typeof CustomEvent === "undefined") return;
-  window.dispatchEvent(new CustomEvent<SoundCueDetail>(SOUND_CUE_EVENT, { detail: { cue } }));
+  const detail: SoundCueDetail = rate === undefined ? { cue } : { cue, rate };
+  window.dispatchEvent(new CustomEvent<SoundCueDetail>(SOUND_CUE_EVENT, { detail }));
 }
 
 let logging = false;

@@ -24,7 +24,7 @@ export function usePuzzleRejections(
       const fx = (e as CustomEvent<FxEvent>).detail;
       const cue = (e as CustomEvent<string>).detail;
       if (fx?.hook === "onWrong" || cue === "wrong")
-        puzzleReject(involved?.isConnected ? involved : root.querySelector("[data-game-stage]"));
+        puzzleReject(involved?.isConnected ? involved : root.querySelector("[data-game-stage]"), false);
     };
     const seen = new WeakMap<Element, string>();
     const tracked = new Set<Element>();
@@ -53,7 +53,7 @@ export function usePuzzleRejections(
         if (seen.get(node) === signature) continue;
         seen.set(node, signature);
         tracked.add(node);
-        puzzleReject(node);
+        puzzleReject(node, false);
       }
       for (const node of root.querySelectorAll<HTMLElement>(
         "[data-game-stage] [data-puzzle-cell]",

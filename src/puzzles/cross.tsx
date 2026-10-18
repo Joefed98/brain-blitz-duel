@@ -182,7 +182,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       reportArcadeTick(state.current.tick, crossGame.isOver(state.current));
       feedback(state.current, crossGame.isOver(state.current));
-      sounds.frame(state.current, !crossGame.isOver(state.current));
+      sounds.frame(state.current, !crossGame.isOver(state.current) && !lockedRef.current);
 
       const size = sizeCanvas();
       const context = canvas.current?.getContext("2d");
@@ -209,7 +209,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      sounds.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

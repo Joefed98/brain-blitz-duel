@@ -222,6 +222,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let seenGold = 0;
     let seenBirds = 0;
     let seenLaunched = 0;
+    let seenEscaped = 0;
+    let seenBirdsIn = 0;
     let seenShot = -100;
     let shownKey = "";
 
@@ -253,6 +255,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const launched = s.status.filter((status) => status !== CLAY_WAITING).length;
       if (launched > seenLaunched && !game.isOver(s)) soundCue("clayshoot.launch");
       seenLaunched = launched;
+      // A clay escapes (its HUD pip turns red); a bird flies in (don't shoot).
+      const escaped = s.status.filter((status) => status === CLAY_MISSED).length;
+      if (escaped > seenEscaped && !game.isOver(s)) soundCue("clayshoot.escape");
+      seenEscaped = escaped;
+      if ((s.birdNext ?? 0) > seenBirdsIn && !game.isOver(s)) soundCue("clayshoot.birdIn");
+      seenBirdsIn = s.birdNext ?? 0;
       // A shot that hits nothing leaves a smoke puff.
       if (s.shotTick > seenShot && !s.shotHit) soundCue("clayshoot.missPuff");
       seenShot = s.shotTick;

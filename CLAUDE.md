@@ -112,6 +112,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `docs/sound-cues/cue-sheet.md`/`.csv` (`bun scripts/sound-cue-sheet.ts`) lists them, `sound-manifest-check` proves it. Every arcade-stage visual effect has a cue
   (`docs/sound-cues/arcade-effects.md`: success effects through `momentFrame` in `src/lib/fx/momentCues.ts`, renderer
   effects in `gameSounds.ts`); audio files are one per recording in `public/sounds/`, several slots may share one.
+- **Sound batches 2 and 3** (18 Oct 2026, presentation only): `docs/sound-cues/batch2-mapping.csv` and
+  `batch3-mapping.csv` (must-haves wired; the 17 nice-to-have recordings are not made) point manifest slots at
+  `public/sounds/`; slots may set play caps (`gapMs`, `voices`) and a `rate`, kept in `playSlotOr` / `playCueSlot`;
+  named loops go through `loopCue()` (0.25–0.35, 500 ms fades, one per game); `puzzleReject()` announces
+  `shared.reject` unless the move already plays `wrong`; five voice lines (`voice.*`, `playVoice`). sound-manifest-check
+  proves every file is used and the caps hold.
 - **Scoring targets** (18 Oct 2026, `docs/scoring-targets.md`): about 100 average, 120 good, 135 great, 140–150 near-perfect.
   Every arcade band game's new revision keeps its play and lifts its curve through `BAND_TARGET_MAP` (`band: 2` states,
   `bandCurveOf`), Wavefront on its own gentler curve, Swish with a 21 px spinner; Nucleus, Forage and Bonk score on new

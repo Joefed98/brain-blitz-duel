@@ -24,6 +24,7 @@ import {
 } from "@/lib/duel/types";
 
 import { fireAscendFinish } from "@/components/puzzles/numberHuntFx";
+import { playSound } from "@/lib/sound";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -327,7 +328,11 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     setLogLength(taps.current.length);
     const after = replayAscend(puzzle, taps.current);
     const outcome = after.outcomes[after.outcomes.length - 1];
-    if (outcome === "wrong") setFlash(index);
+    if (outcome === "wrong") {
+      setFlash(index);
+      // The existing wrong sound, played directly: playWrong's duelz-cue would also shake the board.
+      playSound("wrong");
+    }
     if (after.finishedAt !== null && submitted.current !== key) {
       submitted.current = key;
       fireAscendFinish(arenaRef.current, spots);

@@ -31,7 +31,7 @@ import { BAND_SPECS } from "@/lib/arcade/bandParts";
 import { bandTotal } from "@/lib/arcade/scoreBands";
 import type { PuzzleType } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
-import { demoHushed } from "@/lib/sound";
+import { demoHushed, playVoice } from "@/lib/sound";
 import { soundCue } from "./soundCues";
 
 export type SignatureTier = "solve" | "fast";
@@ -341,6 +341,7 @@ export function playSignature(tier: SignatureTier): void {
 export function perfectBurst(target: HTMLElement): void {
   if (typeof document === "undefined" || !document.body) return;
   soundCue(PERFECT_CUE);
+  playVoice("voice.perfect");
   const box = target.getBoundingClientRect();
   const reduced = prefersReducedMotion();
   const layer = document.createElement("div");

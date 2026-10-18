@@ -164,7 +164,7 @@ const CORE_GROUPS: Record<string, PuzzleType> = {
   pz_gravity_pull: "gravity",
 };
 const VOICE =
-  /^(prepareToDuel|round\d|finalRound|roundTaken|roundLost|winnerIs|winner_drumroll|winner_crash|gg|podium_fanfare|round_won|player_joined)$/;
+  /^(prepareToDuel|round\d|finalRound|roundTaken|roundLost|winnerIs|winner_drumroll|winner_crash|gg|podium_fanfare|round_won|player_joined|voice\.[A-Za-z]+)$/;
 
 function durationMs(text: string): number | null {
   const match = text.replace(/,/g, "").match(/(\d+(?:\.\d+)?)\s*(ms|s\b|ticks?)/);

@@ -47,6 +47,7 @@ import {
   playLock,
   playPlayerJoined,
   playSound,
+  playVoice,
   screenMusic,
   startMusic,
   releaseRoomMusic,
@@ -272,6 +273,15 @@ function DuelScreen() {
     setStarting(false);
     setRematchBusy(false);
   }, [duel?.id, duel?.status]);
+
+  // Play again reopened this room (finished → waiting): every player in it hears "rematch".
+  const seenStatus = useRef<{ id: string; status: string } | null>(null);
+  useEffect(() => {
+    if (!duel) return;
+    const before = seenStatus.current;
+    seenStatus.current = { id: duel.id, status: duel.status };
+    if (before?.id === duel.id && before.status === "finished" && duel.status === "waiting") playVoice("voice.rematch");
+  }, [duel?.id, duel?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const round = duel?.current_round ?? 0;
   const phase = duel?.phase ?? "intro";

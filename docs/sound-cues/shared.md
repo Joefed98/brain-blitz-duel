@@ -9,5 +9,6 @@ Cues for moments every game shares. Convention: [README.md](README.md). No audio
 | `shared.perfect` | The reveal shows a stored score of 150: a short gold burst on the score (puzzle and arcade reveals). | 0.5 s |
 | `shared.help.open` | An in-game "?" help sheet opens. | instant |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). | instant |
+| `shared.reject` | A puzzle refuses a move with the shared shake (`puzzleReject()`: Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays `wrong`; never in an intro demo. | 200 ms |
 
 Where they fire: `src/lib/fx/signature.ts` (beat and perfect burst), `src/lib/fx/useSignature.ts` (the rooms and practice verdict point), `src/lib/fx/arcade.ts` (the arcade run-end point), `src/components/duel/PuzzleInstructions.tsx` (help sheet).
