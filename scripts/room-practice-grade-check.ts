@@ -29,6 +29,7 @@ import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { ACTIVE_PUZZLE_TYPES, puzzlePrepMs, puzzleTimeLimitMs } from "../src/lib/duel/registry";
+import { trustedMsRemaining } from "../src/lib/duel/grade";
 import { gradeRoomAnswer, type RoomReceipt } from "../src/lib/duel/roomGrade.server";
 import { TAP_REV, encodeNumberTaps, encodeTapTimes, type NumberTap } from "../src/lib/duel/tapLog";
 import { STOPWATCH_GAP_MS, STOPWATCH_LEAD_IN_MS, type PuzzleData, type StopWatchPuzzleData } from "../src/lib/duel/types";
@@ -39,6 +40,8 @@ const failures: string[] = [];
 let compared = 0;
 const types = new Set<string>();
 let oldWouldDiffer = 0;
+let onTimeCompared = 0;
+let storedSame = 0;
 
 type Extra = Parameters<typeof gradeAnswer>[3];
 const view = (g: ReturnType<typeof gradeAnswer>) =>
@@ -118,6 +121,14 @@ function compareLoud(label: string, puzzle: PuzzleData, answer: string, claimed:
   for (const [where, receipt] of receipts) {
     compared++;
     const room = view(gradeRoomAnswer(puzzle, receipt, answer, ms, extra).graded);
+    if (receipt.phase === "puzzle") {
+      // On time: exactly what submitAnswerFn stored before 18 Oct 2026 (the same receipt, the same clamp).
+      const received = oldReceived(puzzle, receipt);
+      const limit = puzzleTimeLimitMs(puzzle);
+      const before = view(gradeAnswer(puzzle, answer, trustedMsRemaining(ms, received, limit).ms, extra, received));
+      onTimeCompared++;
+      if (before !== room) failures.push(`${label} (${where}): an on-time answer now grades differently from before the fix`);
+    }
     if (room !== practice) {
       failures.push(`${label} (${where}): room ${room.slice(0, 160)} ≠ practice ${practice.slice(0, 160)}`);
       continue;
@@ -136,6 +147,10 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/puzzle-score
 };
 for (const c of legacy.cases)
   for (const [i, entry] of c.entries.entries()) {
+    // The grader itself is untouched: every stored entry still grades to its recorded score.
+    const stored = quiet(() => gradeAnswer(c.puzzle, entry.answer, entry.ms).score);
+    if (stored === (entry as unknown as { score: number }).score) storedSame++;
+    else failures.push(`${c.type} ${c.label} #${i}: grades ${stored}, recorded ${(entry as unknown as { score: number }).score}`);
     compare(`${c.type} ${c.label} #${i}`, c.puzzle, entry.answer, entry.ms);
     if (entry.ms !== 0) compare(`${c.type} ${c.label} #${i} (timed out)`, c.puzzle, entry.answer, 0);
   }
@@ -220,11 +235,35 @@ src(/r\.round_number === round && roomPlayers\.some\(\(p\) => p\.player_slot ===
 src((server.match(/await activeAnsweredCount\(client,/g) ?? []).length === 2, "both server functions count active players' answers only");
 src(!/submissionCount/.test(server), "no server count of every answer row is left");
 src(/const \{ gradeRoomAnswer \} = await import\("\.\/roomGrade\.server"\);/.test(server) && !/gradeAnswer\(puzzle, data\.answer/.test(server), "submitAnswerFn grades through gradeRoomAnswer");
+// Stored rounds are never regraded: the only graders are a new room answer (submitAnswerFn, which
+// inserts once and keeps an existing row) and practice; nothing in the app updates or deletes a
+// round_results row, so every stored score stays exactly as it was.
+{
+  const { readdirSync, statSync } = await import("node:fs");
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((name) => {
+      const path = `${dir}/${name}`;
+      return statSync(path).isDirectory() ? walk(path) : /\.(ts|tsx)$/.test(name) ? [path] : [];
+    });
+  const graders: string[] = [];
+  const writes: string[] = [];
+  for (const file of walk("src")) {
+    const text = readFileSync(file, "utf8");
+    if (/\bgradeAnswer\(|\bgradeRoomAnswer\(/.test(text) && !/src\/lib\/duel\/(generate|roomGrade)\.server\.ts$/.test(file)) graders.push(file);
+    if (/from\("round_results"\)\s*\.(update|delete|upsert)\(/.test(text)) writes.push(file);
+  }
+  src(graders.sort().join(",") === "src/lib/duel/duel.functions.ts,src/lib/duel/practice.functions.ts", `grading runs only for new answers (found in ${graders.join(", ")})`);
+  src(writes.length === 0, `round_results rows are rewritten in ${writes.join(", ")}`);
+  const submit = server.slice(server.indexOf("export const submitAnswerFn"), server.indexOf("export const readyUpFn"));
+  src(/if \(existing\.data\) return \{ ok: true as const, alreadySubmitted: true \};/.test(submit) && submit.indexOf("existing.data") < submit.indexOf("gradeRoomAnswer("), "a stored answer is never graded again");
+  src(/if \(error && error\.code !== UNIQUE_VIOLATION\)/.test(submit), "a second insert never replaces the stored row");
+}
 const practiceFn = readFileSync("src/lib/duel/practice.functions.ts", "utf8");
 src(/gradeAnswer\(puzzle, [^)]*\)/.test(practiceFn), "practice grades with gradeAnswer");
 
 console.log(`${compared} room/practice comparisons over ${types.size} games (${ACTIVE_PUZZLE_TYPES.length} active, all covered)`);
 console.log(`before the fix, ${oldWouldDiffer} reveal-phase receipts would have scored differently from practice`);
+console.log(`${onTimeCompared} on-time (puzzle-phase) answers grade exactly as before the fix; ${storedSame} stored entries still grade to their recorded score`);
 if (oldWouldDiffer === 0) failures.push("the fixtures no longer exercise the reveal-phase receipt (expected some old-path differences)");
 if (failures.length) {
   console.log(`FAIL: ${failures.length} problems`);

@@ -26,7 +26,7 @@ import { chromium } from "playwright";
 
 import { freezeClock } from "./browser-load";
 import { startSafeAreaServer } from "./safe-area-server";
-import { harnessPage, judge, layoutViewport, measure, puzzleFor, sameBoxes, startPractice, startRoom, type Geometry } from "./arcade-viewport-lib";
+import { chromiumPath, harnessPage, judge, layoutViewport, measure, puzzleFor, sameBoxes, startPractice, startRoom, type Geometry } from "./arcade-viewport-lib";
 import { ACTIVE_PUZZLE_TYPES, puzzleDef } from "../src/lib/duel/registry";
 
 const args = process.argv.slice(2);
@@ -50,7 +50,7 @@ const STATES = [
 
 const failures: string[] = [];
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-arcade-room-practice", buildId: "arcade-room-practice" });
-const browser = await chromium.launch({ executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({ executablePath: chromiumPath() });
 let measured = 0;
 
 async function run(type: string, mode: "practice" | "room"): Promise<Geometry[] | null> {

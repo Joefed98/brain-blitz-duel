@@ -18,12 +18,12 @@
 import { chromium } from "playwright";
 
 import { startSafeAreaServer } from "./safe-area-server";
-import { harnessPage, judge, layoutViewport, measure, puzzleFor, sameBoxes, startPractice, type Geometry } from "./arcade-viewport-lib";
+import { chromiumPath, harnessPage, judge, layoutViewport, measure, puzzleFor, sameBoxes, startPractice, type Geometry } from "./arcade-viewport-lib";
 
 const RUNS = 4;
 const failures: string[] = [];
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-fission-repeat", buildId: "fission-repeat" });
-const browser = await chromium.launch({ executablePath: process.env["CHROMIUM_PATH"] ?? "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({ executablePath: chromiumPath() });
 const page = await harnessPage(browser, server.origin, "practice", "burst", puzzleFor("burst"));
 const errors: string[] = [];
 page.on("pageerror", (error) => errors.push(error.message.split("\n")[0]!));

@@ -3,6 +3,7 @@
  * play screen in practice or in a room through the real routes (safe-area-harness.tsx, the
  * network edge stubbed) as an iPhone 11 home-screen app, and measures where everything on it is.
  */
+import { existsSync } from "node:fs";
 import type { Browser, Page } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP, emulateDevice } from "./device-emulation";
@@ -11,6 +12,22 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData } from "../src/lib/duel/types";
+
+/**
+ * The browser, found as play14's checks find it (room-extras-check, desktop-geometry-check): CI's
+ * PLAYWRIGHT_CHROMIUM (the workflow's Install Chromium step), else the pre-installed one. Exits with
+ * an environment FAIL when there is none.
+ */
+export function chromiumPath(): string {
+  const found = [process.env["PLAYWRIGHT_CHROMIUM"], "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find(
+    (path): path is string => Boolean(path && existsSync(path)),
+  );
+  if (!found) {
+    console.log("FAIL: environment: no Chromium (set PLAYWRIGHT_CHROMIUM)");
+    process.exit(1);
+  }
+  return found;
+}
 
 export const SCREEN_H = IPHONE11_APP.screenH;
 /** The column and the lowest control end this far above the screen's bottom. */
