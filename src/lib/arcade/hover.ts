@@ -31,7 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -546,6 +546,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_TARGET) return hoverTargetGame;
   if (rev === HOVER_REV_TALL) return hoverTallGame;
   if (rev === HOVER_REV_TUNEC) return hoverTunecGame;
   if (rev === HOVER_REV_BAND) return hoverBandGame;
@@ -561,7 +562,7 @@ export const HOVER_BAND_CURVE = bandCurve([0, 24, 45, 65, 100, 123, 146], [0, 70
 export function hoverBandParts(state: HoverState): BandParts {
   const units = 3 * Math.max(0, state.gates) + 2 * (state.stars ?? 0);
   const finished = hoverSurvived(state);
-  return { units, points: bandPoints(state.worldH ? HOVER_V5_BAND_CURVE : state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? HOVER_V5_BAND_CURVE : state.tunec ? HOVER_V4_BAND_CURVE : HOVER_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.gates} / ${state.totalGates} barriers · ${state.stars ?? 0} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: HoverState): number {
@@ -640,5 +641,17 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  return rev === HOVER_REV_TALL ? HOVER_TALL_H : HOVER_WORLD_H;
+  return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET ? HOVER_TALL_H : HOVER_WORLD_H;
 }
+
+/* ================= Scoring targets (hoverRev 6, 18 Oct 2026) ================= */
+
+/**
+ * hoverRev 6 (scoring targets, docs/scoring-targets.md): hoverRev 5 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const HOVER_REV_TARGET = 6;
+export const hoverTargetGame = bandTargetGame(hoverTallGame);
+/** The curve new rounds score on: HOVER_V5_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const HOVER_V6_BAND_CURVE = bandRetarget(HOVER_V5_BAND_CURVE);

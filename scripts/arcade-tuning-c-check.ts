@@ -89,6 +89,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
+import { playRevOf } from "./scoring-targets-revs";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -160,20 +161,20 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Tuning F (Oct 2026) moved Gemstone on to its 2,800 par (matchupRev 6), Slice on to its longer
     // slice (sliceRev 5) and Grappler on to its evenly spread stars (swingRev 8), the same play
     // otherwise; arcade-tuning-f-check and swing-rev8-check cover them.
-    ["matchup", generateMatchup().matchupRev, MATCHUP_REV_PAR],
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
-    ["swing", generateSwing().swingRev, SWING_REV_TUNEC + 2],
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
-    ["hover", generateHover().hoverRev, HOVER_REV_TALL],
-    ["inkbridge", generateInkBridge().inkRev, INK_REV_TUNEC],
-    ["flip", generateFlip().flipRev, FLIP_REV_TUNEC],
+    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
+    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
+    ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
-    ["beat", generateBeat().beatRev, BEAT_REV_TUNEF + 1],
+    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    ["wavefront", generateWavefront().wavRev, WAV_REV_TUNEC + 1],
-    ["tilt", generateTilt().tiltRev, TILT_REV_TUNEC],
-    ["slice", generateSlice().sliceRev, SLICE_REV_LONG + 1],
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
+    ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG + 1],
   ];
   const field: Record<string, string> = { matchup: "matchupRev", swing: "swingRev", hover: "hoverRev", inkbridge: "inkRev", flip: "flipRev", beat: "beatRev", wavefront: "wavRev", tilt: "tiltRev", slice: "sliceRev" };
   for (const [type, got, rev] of stamps) {
@@ -224,7 +225,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 204") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 58") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 795"), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (120 points) counts 204") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (120 points) counts 58") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (120 points) reaches 803"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

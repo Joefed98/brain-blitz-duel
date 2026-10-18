@@ -48,6 +48,8 @@ export const ORBIT_REV_TUNED = 6;
 export const ORBIT_REV_SWEPT = 7;
 /** Rev 8 (taller worlds, batch 3): rev-7 play framed in a taller 390 × 650 view (orbitRev3.ts, orbitCamera.ts). */
 export const ORBIT_REV_TALL = 8;
+/** orbitRev 9 (scoring targets, 18 Oct 2026, docs/scoring-targets.md): orbitRev 8 play, each band knot's points lifted through BAND_TARGET_MAP. */
+export const ORBIT_REV_TARGET = 9;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */

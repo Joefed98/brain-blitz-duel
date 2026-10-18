@@ -19,7 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -891,6 +891,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_TARGET) return crossTargetGame;
   if (rev === CROSS_REV_SMALL) return crossSmallGame;
   if (rev === CROSS_REV_BAND) return crossBandGame;
   return rev === CROSS_REV ? crossRev3Game : rev === CROSS_REV2 ? crossRev2Game : crossGame;
@@ -918,7 +919,7 @@ export const CROSS_BAND_CURVE = bandCurve([0, 41, 50, 59, 66, 77], [0, 70, 100, 
 export function crossBandParts(state: CrossState): BandParts {
   const lanes = crossTotalLanes(state);
   const units = lanes + 2 * state.crossings;
-  return { units, points: bandPoints(CROSS_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${lanes} lanes · ${state.crossings} crossings` };
+  return { units, points: bandPoints(bandCurveOf(state, CROSS_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${lanes} lanes · ${state.crossings} crossings` };
 }
 
 function scoreBand(state: CrossState): number {
@@ -951,3 +952,15 @@ export function crossPlayerR(state: Pick<CrossState, "tunef">): number {
 }
 
 export const crossSmallGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = { ...crossBandGame, init: (seed) => ({ ...crossBandGame.init(seed), tunef: 1 }) };
+
+/* ================= Scoring targets (crossRev 6, 18 Oct 2026) ================= */
+
+/**
+ * crossRev 6 (scoring targets, docs/scoring-targets.md): crossRev 5 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const CROSS_REV_TARGET = 6;
+export const crossTargetGame = bandTargetGame(crossSmallGame);
+/** The curve new rounds score on: CROSS_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const CROSS_V6_BAND_CURVE = bandRetarget(CROSS_BAND_CURVE);

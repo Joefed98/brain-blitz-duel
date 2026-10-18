@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1038,6 +1038,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_TARGET) return sliceTargetGame;
   if (rev === SLICE_REV_TALL) return sliceTallGame;
   if (rev === SLICE_REV_LONG) return sliceLongGame;
   if (rev === SLICE_REV_TUNEC) return sliceTunecGame;
@@ -1058,7 +1059,7 @@ export function sliceBandParts(state: SliceState): BandParts {
   const chillies = Math.max(0, state.bombsHit);
   return {
     units,
-    points: bandPoints(state.worldH ? SLICE_V6_BAND_CURVE : state.tunec ? SLICE_V4_BAND_CURVE : SLICE_BAND_CURVE, units),
+    points: bandPoints(bandCurveOf(state, state.worldH ? SLICE_V6_BAND_CURVE : state.tunec ? SLICE_V4_BAND_CURVE : SLICE_BAND_CURVE), units),
     bonus: 0,
     penalty: SLICE_BOMB_PENALTY * chillies,
     finished: false,
@@ -1162,5 +1163,17 @@ export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's sliceRev plays in. */
 export function sliceWorldHFor(rev?: number | null): number {
-  return rev === SLICE_REV_TALL ? SLICE_TALL_H : SLICE_WORLD_H;
+  return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET ? SLICE_TALL_H : SLICE_WORLD_H;
 }
+
+/* ================= Scoring targets (sliceRev 7, 18 Oct 2026) ================= */
+
+/**
+ * sliceRev 7 (scoring targets, docs/scoring-targets.md): sliceRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const SLICE_REV_TARGET = 7;
+export const sliceTargetGame = bandTargetGame(sliceTallGame);
+/** The curve new rounds score on: SLICE_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const SLICE_V7_BAND_CURVE = bandRetarget(SLICE_V6_BAND_CURVE);

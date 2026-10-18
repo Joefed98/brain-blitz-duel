@@ -24,7 +24,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -1103,6 +1103,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_TARGET) return snipTargetGame;
   if (rev === SNIP_REV_PROVEN) return snipProvenGame;
   if (rev === SNIP_REV_BANK6) return snipBank6Game;
   if (rev === SNIP_REV_TALL) return snipTallGame;
@@ -1119,7 +1120,7 @@ export const SNIP_BAND_CURVE = bandCurve([0, 62, 80, 90, 120], [0, 70, 100, 134,
 export function snipBandParts(state: SnipState): BandParts {
   const units = 10 * clampInt(state.eaten, 0, SNIP_CONFIG.levels) + 2 * Math.max(0, state.stars);
   const finished = state.eaten >= SNIP_CONFIG.levels && state.finishTick > 0;
-  return { units, points: bandPoints(state.worldH ? SNIP_V5_BAND_CURVE : SNIP_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? SNIP_V5_BAND_CURVE : SNIP_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
 }
 
 function scoreBand(state: SnipState): number {
@@ -1174,7 +1175,7 @@ export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ..
 
 /** The world height (px) a stored round's snipRev plays in. */
 export function snipWorldHFor(rev?: number | null): number {
-  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN ? SNIP_TALL_H : SNIP_H;
+  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN || rev === SNIP_REV_TARGET ? SNIP_TALL_H : SNIP_H;
 }
 
 /* ================= Bank growth (snipRev 6, Oct 2026) ================= */
@@ -1262,3 +1263,15 @@ function initProven(seed: number): SnipState {
 }
 
 export const snipProvenGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipTallGame, init: initProven };
+
+/* ================= Scoring targets (snipRev 8, 18 Oct 2026) ================= */
+
+/**
+ * snipRev 8 (scoring targets, docs/scoring-targets.md): snipRev 7 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const SNIP_REV_TARGET = 8;
+export const snipTargetGame = bandTargetGame(snipProvenGame);
+/** The curve new rounds score on: SNIP_V5_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const SNIP_V8_BAND_CURVE = bandRetarget(SNIP_V5_BAND_CURVE);

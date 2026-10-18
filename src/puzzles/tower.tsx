@@ -55,8 +55,8 @@ function Pegs({
 }) {
   const liftedDisc =
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
-  const ringH = discHeight ?? (compact ? "7px" : "12px");
-  const gap = compact ? 2 : 3;
+  const ringH = discHeight ?? (compact ? "5px" : "10px");
+  const gap = compact ? 2 : 4;
 
   return (
     <div
@@ -255,7 +255,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
             shake={shake}
             onPeg={tapPeg}
             dropped={dropped}
-            discHeight={`clamp(12px, calc((100cqh - 92px) / ${discs + 1} - 3px), 30px)`}
+            discHeight={`clamp(9px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.55), 16px)`}
           />
         </div>
       </div>
@@ -299,7 +299,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             discs={puzzle.discs}
             targetPeg={puzzle.targetPeg}
             compact
-            discHeight={`clamp(7px, calc((100cqh - 40px) / ${puzzle.discs + 1} - 2px), 14px)`}
+            discHeight={`clamp(5px, calc(((100cqh - 40px) / ${puzzle.discs + 1} - 2px) * 0.6), 9px)`}
           />
         </div>
       </div>

@@ -80,6 +80,7 @@ import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWa
 import { skylineGameFor, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { playRevOf } from "./scoring-targets-revs";
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const ONLY = (process.env.TUNING_A_ONLY ?? "").split(",").filter(Boolean);
@@ -114,7 +115,7 @@ section("Old rounds replay and score exactly as before");
 if (want("skyline")) {
   section("High Rise: logo flag, wind unchanged");
   // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
-  ok(generateSkyline().skylineRev === SKYLINE_REV_TALL && skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "new High Rise rounds keep the band play and curve (Tuning E's taller view only)");
+  ok(playRevOf("skyline", generateSkyline().skylineRev) === SKYLINE_REV_TALL && skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "new High Rise rounds keep the band play and curve (Tuning E's taller view only)");
   ok(APP_LOGO_URL.startsWith("/") && existsSync(`public${APP_LOGO_URL}`), `the app logo file ${APP_LOGO_URL} exists`);
   const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8")) as { icons: { src: string }[] };
   ok(manifest.icons.every((i) => i.src === APP_LOGO_URL), "the PWA icon is the same logo file the flag draws");
@@ -128,7 +129,7 @@ if (want("skyline")) {
 if (want("wavefront")) {
   section("Wavefront wavRev 4: shaped formations");
   // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to wavRev 6 (arcade-tuning-g1-check).
-  ok(generateWavefront().wavRev === WAV_REV_SHAPES + 2, "new Wavefront rounds are stamped wavRev 6 (the taller world, after Tuning C's wavRev 5 and wavRev 4)");
+  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_SHAPES + 2, "new Wavefront rounds are stamped wavRev 6 (the taller world, after Tuning C's wavRev 5 and wavRev 4)");
   ok(puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_SHAPES }) && puzzleUsesBands({ type: "wavefront", wavRev: WAV_REV_BAND }), "wavRev 3 and 4 both score on the band curve");
   for (let wave = 2; wave <= WAV_V2_WAVES; wave++) {
     const form = WAV_FORMS[wave]!;
@@ -220,7 +221,7 @@ if (want("orbit")) {
     const p = generateOrbit();
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
-    ok(p.orbitRev === ORBIT_REV_SWEPT + 1 && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 8 (rev 7 in the taller view) with their planets");
+    ok(playRevOf("orbit", p.orbitRev) === ORBIT_REV_SWEPT + 1 && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 8 (rev 7 in the taller view) with their planets");
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const courses = ORBIT_HOLE_BANK.slice(0, FULL ? 40 : 6);
@@ -331,7 +332,7 @@ if (want("swing")) {
   section("Grappler swingRev 6: touch stars, crumbling stalactites");
   // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
-  ok(generateSwing().swingRev === SWING_REV_TUNED + 3, "new Grappler rounds are stamped swingRev 9 (taller worlds, after swingRev 6, 7 and 8)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 3, "new Grappler rounds are stamped swingRev 9 (taller worlds, after swingRev 6, 7 and 8)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");
@@ -405,7 +406,7 @@ if (want("tilt")) {
   section("Tilt: every cup reachable, the orange marble always drawn");
   const p = generateTilt();
   // Tuning C moved new Tilt rounds on to tiltRev 4 (arcade-tuning-c-check); every cup stays reachable.
-  ok(p.tiltRev === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
+  ok(playRevOf("tilt", p.tiltRev) === TILT_REV_BAND + 1 && tiltSeedCupsReachable(p.seed), "new Tilt rounds are stamped tiltRev 4 (Tuning C) and deal a seed with every cup reachable");
   const n = FULL ? 40_000 : 4_000;
   let bad = 0;
   let amber = 0;

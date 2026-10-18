@@ -38,7 +38,7 @@ import {
   type InputRange,
 } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
-import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -917,6 +917,7 @@ export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { .
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
 export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  if (rev === BUB_REV_TARGET) return bubbleTargetGame;
   if (rev === BUB_REV_TALL) return bubbleTallGame;
   if (rev === BUB_REV_TORPEDO) return bubbleTorpedoGame;
   if (rev === BUB_REV_BAND) return bubbleBandGame;
@@ -942,7 +943,7 @@ export function bubbleBandParts(state: BubState): BandParts {
   const finished = Boolean(state.cleared);
   // The curve's knots are in bubbles of the fixed field (67); scale in case it ever differs.
   // bubbleRev 5 (the deeper tank) scores on its own refitted knots.
-  const curve = state.worldH ? BUB_V5_BAND_CURVE : BUB_BAND_CURVE;
+  const curve = bandCurveOf(state, state.worldH ? BUB_V5_BAND_CURVE : BUB_BAND_CURVE);
   const scaled = Math.floor((units * bandTop(curve)) / start);
   return {
     units,
@@ -1030,5 +1031,17 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_TALL ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_TALL || rev === BUB_REV_TARGET ? BUB_TALL_H : BUB_WORLD_H;
 }
+
+/* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
+
+/**
+ * bubbleRev 6 (scoring targets, docs/scoring-targets.md): bubbleRev 5 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const BUB_REV_TARGET = 6;
+export const bubbleTargetGame = bandTargetGame(bubbleTallGame);
+/** The curve new rounds score on: BUB_V5_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BUB_V6_BAND_CURVE = bandRetarget(BUB_V5_BAND_CURVE);

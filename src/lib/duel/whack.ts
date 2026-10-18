@@ -6,7 +6,7 @@
 
 import {
   whackCheckpoint,
-  whackGame,
+  whackGameFor,
   WHACK_CHECKPOINT_INTERVAL,
   WHACK_INPUT_RANGES,
   WHACK_RUN_TICKS,
@@ -98,7 +98,8 @@ export interface WhackResult {
 }
 
 /** The single place a Whack-a-Target score is worked out. */
-export function replayWhackRun(seed: number, raw: string): WhackResult {
+export function replayWhackRun(seed: number, raw: string, rev?: number | null): WhackResult {
+  const whackGame = whackGameFor(rev);
   const run = decodeWhackRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, WHACK_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < WHACK_RUN_TICKS;

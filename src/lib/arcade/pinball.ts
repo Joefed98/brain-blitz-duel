@@ -32,7 +32,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin, isqrt, TRIG_ONE } from "./trig";
 
 /**
@@ -862,7 +862,7 @@ export function pinballBandParts(state: PinState): BandParts {
   const units = Math.max(0, state.points);
   return {
     units,
-    points: bandPoints(PIN_BAND_CURVE, units),
+    points: bandPoints(bandCurveOf(state, PIN_BAND_CURVE), units),
     bonus: 0,
     penalty: 0,
     finished: false,
@@ -955,9 +955,16 @@ export const pinballGame: ArcadeGame<PinState, ArcadeInputEvent | null> = {
   inputRanges: PIN_INPUT_RANGES,
 };
 
-/** The game for a stored pinRev. Only revision 1 exists; later rule changes add their own stamp here. */
-export function pinballGameFor(_rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
-  return pinballGame;
+/**
+ * pinRev 2 (scoring targets, 18 Oct 2026, docs/scoring-targets.md): pinRev 1 play
+ * unchanged, each band knot's points lifted through BAND_TARGET_MAP.
+ */
+export const PIN_REV_TARGET = 2;
+export const pinballTargetGame = bandTargetGame(pinballGame);
+
+/** The game for a stored pinRev: 2 the scoring targets, anything else revision 1. */
+export function pinballGameFor(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  return rev === PIN_REV_TARGET ? pinballTargetGame : pinballGame;
 }
 
 /**
@@ -975,3 +982,5 @@ export const pinSweep = {
   flipRR: FLIP_RR,
   bumperRR: BUMPER_RR,
 };
+/** The curve new rounds score on: PIN_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const PIN_V2_BAND_CURVE = bandRetarget(PIN_BAND_CURVE);

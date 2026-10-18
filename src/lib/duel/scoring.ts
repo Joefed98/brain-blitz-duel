@@ -1,4 +1,5 @@
 import { speedBonusCurve } from "./speedPar";
+import { bandCurve, bandOpen } from "../arcade/scoreBands";
 import { finishParts, partialParts, scorePartsText, scoreRev1, tryEfficiency, wasteFactor, PUZZLE_SPEED_POINTS, type ScoreParts } from "./puzzleScoreRev";
 import { chainScore } from "./chain";
 import type { ChainPuzzleData } from "./types";
@@ -450,9 +451,24 @@ export function playerBreakdown(
 }
 
 /** Wordsmith: each word point is worth 2.5 round points, rounded down. */
-export function scoreWordsmith(points: number): number {
+export function scoreWordsmith(points: number, rev?: number | null): number {
+  if (rev === WORDSMITH_REV_TARGET) return bandOpen(WORDSMITH_V1_CURVE, points);
   return clamp(Math.floor(2.5 * Math.max(0, points)), 0, MAX_ROUND_SCORE);
 }
+
+/**
+ * Scoring targets (18 Oct 2026, docs/scoring-targets.md): Nucleus rounds stamped
+ * wordsmithRev 1 score their word points on this curve (straight lines between
+ * the knots, 150 at 60, where 2.5 × points tops out). Fitted to the puzzle-fairness kits' word points
+ * (scripts/word-open-bands.ts: average 10, good 23, great 34, near-perfect 55)
+ * so they land about 95 / 122 / 135 / 145; the first few points stay cheap so
+ * random letters (about 2 points) score under 10. Unstamped rounds keep 2.5 × points.
+ */
+export const WORDSMITH_REV_TARGET = 1;
+export const WORDSMITH_V1_CURVE = bandCurve([0, 3, 6, 10, 16, 23, 34, 55, 60], [0, 12, 50, 95, 110, 122, 135, 145, 150]);
+/** Forage's curve (wordHuntRev 1): kits' word points average 9, good 15, great 24, near-perfect 36; 150 at 48. */
+export const WORDHUNT_REV_TARGET = 1;
+export const WORDHUNT_V1_CURVE = bandCurve([0, 4, 6, 9, 15, 24, 36, 48], [0, 10, 45, 95, 120, 135, 145, 150]);
 
 /** Word-category completion bonus: round(max × ms_remaining ÷ registry limit). */
 export function wordSpeedBonus(msRemaining: number, timeLimitMs: number, max = 20): number {
@@ -481,7 +497,8 @@ export function scoreWordSlide(
 }
 
 /** Word Hunt: raw word points stay on the play counter; each is worth two round points. */
-export function scoreWordHunt(points: number): number {
+export function scoreWordHunt(points: number, rev?: number | null): number {
+  if (rev === WORDHUNT_REV_TARGET) return bandOpen(WORDHUNT_V1_CURVE, Math.round(points));
   return clamp(2 * Math.round(points), 0, MAX_ROUND_SCORE);
 }
 

@@ -88,6 +88,7 @@ import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -113,7 +114,7 @@ section("legacy identity");
 if (want("bintoss")) {
   section("Swish binRev 3 (bonus hoops, spinners, wind on today's bucket)");
   const game = binTossGameFor(BINTOSS_REV3);
-  ok(generateBinToss().binRev === BINTOSS_REV_BAND, "new rounds are stamped binRev 4 (rev 3 play on the score bands)");
+  ok(generateBinToss().binRev === BINTOSS_REV_BAND + 1, "new rounds are stamped binRev 5 (rev 4 with the shorter spinner on the scoring targets, scoring-targets-check)");
   ok(binTossGameFor(undefined) === binTossGame && binTossGame.init(5).hoops === undefined, "unstamped rounds keep the original game");
   ok(binTossGameFor(BINTOSS_REV2).init(5).hoops === undefined, "rev-2 rounds have no hoops or spinners");
   ok(JSON.stringify(game.init(77)) === JSON.stringify(game.init(77)), "hoops and spinners are seeded");
@@ -175,7 +176,7 @@ if (want("bullseye")) {
   section("Flightpath bullRev 2 (inner bull, drifting balloons)");
   const game = bullseyeGameFor(BULLSEYE_REV);
   const generated = generateBullseye();
-  ok(generated.bullRev === BULLSEYE_REV_TUNED && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("bullseye", generated.bullRev) === BULLSEYE_REV_TUNED && BULLSEYE_REV_BAND === 3, "new rounds are stamped bullRev 4 (Tuning B value balloons; bullRev 3 = rev 2 play on the score bands)");
   ok(bullseyeGameFor(undefined) === bullseyeGame && bullseyeInit(5).balloons === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = bullseyeInitRev2(seed, bullseyeWinds(seed));
@@ -232,7 +233,7 @@ if (want("bullseye")) {
 if (want("rally")) {
   section("Rally rallyRev 2 (far-wall targets, bumper from 30 s)");
   const game = rallyGameFor(RALLY_REV);
-  ok(generateRally().rallyRev === RALLY_REV_TUNEF + 1 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 6 (the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
+  ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TUNEF + 1 && RALLY_REV_TUNED === 4 && RALLY_REV_BAND === 3, "new rounds are stamped rallyRev 6 (the taller court, arcade-tuning-g1-check; rallyRev 5 = Tuning F second bumper, arcade-tuning-f-check; rallyRev 4 = Tuning B pads in their own halves; rallyRev 3 = rev 2 play on the score bands)");
   ok(rallyGameFor(undefined) === rallyGame && rallyGame.init(5).spots === undefined, "unstamped rounds keep the original game");
   for (const seed of SEEDS(200, 7919)) {
     const a = game.init(seed);
@@ -275,7 +276,7 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(generateBeat().beatRev === BEAT_REV_TUNEF + 1 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 6 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
+  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 1 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 6 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {
@@ -309,7 +310,7 @@ if (want("beat")) {
 if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
-  ok(generateInkBridge().inkRev === INK_REV_TUNEC, "new rounds are stamped inkRev 6 (rev 4 play on the score bands; Tuning C curve)");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_TUNEC, "new rounds are stamped inkRev 6 (rev 4 play on the score bands; Tuning C curve)");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {
@@ -350,7 +351,7 @@ if (want("orbit")) {
       const p = generateOrbit();
       // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
       // (rev-7 play, swept holes, in the taller view; arcade-tuning-g3-check), with its holes when it has them.
-      ok(p.orbitRev === ORBIT_REV_SWEPT + 1 && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 8 and ship their planets");
+      ok(playRevOf("orbit", p.orbitRev) === ORBIT_REV_SWEPT + 1 && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 8 and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");

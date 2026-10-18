@@ -6,6 +6,7 @@
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
 import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
+import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
@@ -122,8 +123,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
-  if (type === "wordsmith") return generateWordsmith();
-  if (type === "wordhunt") return generateWordHunt();
+  // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
+  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: WORDSMITH_REV_TARGET };
+  if (type === "wordhunt") return { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
   if (type === "unblock") return generateUnblock(context.unblockRow);
   if (type === "blockparty") return generateBlockParty();
   if (type === "tilegrid") return generateTileGrid();

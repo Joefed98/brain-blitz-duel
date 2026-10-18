@@ -72,6 +72,7 @@ import { BUB_REV_TORPEDO } from "../src/lib/arcade/bubble";
 import { SWING_REV_SPREAD } from "../src/lib/arcade/swing";
 import { SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
+import { playRevOf } from "./scoring-targets-revs";
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
@@ -136,14 +137,14 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    ["cross", "crossRev", generateCross().crossRev, CROSS_REV_SMALL],
+    ["cross", "crossRev", playRevOf("cross", generateCross().crossRev), CROSS_REV_SMALL],
     // Taller worlds batch 2 (16 Oct 2026) moved Slice and Coral Pop on to their taller worlds (sliceRev 6, bubbleRev 5); arcade-tuning-g2-check covers them.
-    ["slice", "sliceRev", generateSlice().sliceRev, SLICE_REV_LONG],
-    ["matchup", "matchupRev", generateMatchup().matchupRev, MATCHUP_REV_PAR],
+    ["slice", "sliceRev", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG],
+    ["matchup", "matchupRev", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR],
     // Their rules are proved by bubble-rev4-check, swing-rev8-check and snip-rev7-check.
-    ["bubble", "bubbleRev", generateBubble().bubbleRev, BUB_REV_TORPEDO],
-    ["swing", "swingRev", generateSwing().swingRev, SWING_REV_SPREAD],
-    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_PROVEN],
+    ["bubble", "bubbleRev", playRevOf("bubble", generateBubble().bubbleRev), BUB_REV_TORPEDO],
+    ["swing", "swingRev", playRevOf("swing", generateSwing().swingRev), SWING_REV_SPREAD],
+    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
   ];
   // Taller worlds batch 3 (16 Oct 2026) moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
   const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };

@@ -55,6 +55,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { decodeSwingRun, encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
+import { playRevOf } from "./scoring-targets-revs";
 
 const FP = 256;
 const FIXTURE = "scripts/fixtures/swing-rev8-runs.json";
@@ -115,7 +116,7 @@ const legacy = (JSON.parse(readFileSync("scripts/fixtures/arcade-tuning-f2-legac
 section("New rounds are swingRev 8 on rev 7's curve");
 {
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (rev 8 in a taller cavern); arcade-tuning-g3-check covers it.
-  ok(generateSwing().swingRev === SWING_REV_SPREAD + 1 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 9 (rev 8 in the taller cavern)");
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_SPREAD + 1 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 9 (rev 8 in the taller cavern)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_SPREAD }), "swingRev 8 scores on the bands");
   ok(v8 === swingSpreadGame && swingGameFor(SWING_REV_TUNEC) !== v8, "swingGameFor(8) is the spread game; rev 7 keeps its own");
   const seed = SWING_V4_BANK[0]!.seed;

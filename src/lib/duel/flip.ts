@@ -8,6 +8,7 @@ import {
   FLIP_REV,
   FLIP_REV_BAND,
   FLIP_REV_TUNEC,
+  FLIP_REV_TARGET,
   FLIP_CHECKPOINT_KEYS,
   type FlipCheckpoint,
   type FlipState,
@@ -28,6 +29,8 @@ const runV2 = runFor(FLIP_REV);
 const runBand = runFor(FLIP_REV_BAND);
 /** flipRev 4 (Tuning C): bend from 10 s, scored on FLIP_V4_BAND_CURVE. */
 const runTunec = runFor(FLIP_REV_TUNEC);
+/** flipRev 5 (scoring targets): flipRev 4 play on the lifted curve. */
+const runTarget = runFor(FLIP_REV_TARGET);
 
 export interface FlipResult extends FlatReplay<FlipState, FlipCheckpoint> {
   survived: boolean;
@@ -42,7 +45,7 @@ export const decodeFlipRun = run.decode;
 
 /** The single place a Flip score is worked out. */
 export function replayFlipRun(seed: number, raw: string, rev?: number | null): FlipResult {
-  const result = (rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === FLIP_REV_TARGET ? runTarget : rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return { ...result, survived: s.ended !== 2, survivedSeconds: s.tick / 60, stars: flipStarsTaken(s), starsTotal: s.stars?.length ?? 0 };
 }

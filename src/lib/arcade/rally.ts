@@ -23,7 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -585,6 +585,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_TARGET) return rallyTargetGame;
   if (rev === RALLY_REV_TALL) return rallyTallGame;
   if (rev === RALLY_REV_TUNEF) return rallyTunefGame;
   if (rev === RALLY_REV_TUNED) return rallyTunedGame;
@@ -605,7 +606,7 @@ export function rallyBandUnits(goldHits: number, targetHits: number): number {
 
 export function rallyBandParts(state: RallyState): BandParts {
   const units = rallyBandUnits(state.goldHits, state.targetHits ?? 0);
-  const curve = state.worldH ? RALLY_V6_BAND_CURVE : state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE;
+  const curve = bandCurveOf(state, state.worldH ? RALLY_V6_BAND_CURVE : state.bumper2 ? RALLY_V5_BAND_CURVE : state.tune === RALLY_TUNE ? RALLY_V4_BAND_CURVE : RALLY_BAND_CURVE);
   return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} targets` };
 }
 
@@ -720,5 +721,17 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  return rev === RALLY_REV_TALL ? RALLY_TALL_H : RALLY_WORLD_H;
+  return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET ? RALLY_TALL_H : RALLY_WORLD_H;
 }
+
+/* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
+
+/**
+ * rallyRev 7 (scoring targets, docs/scoring-targets.md): rallyRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const RALLY_REV_TARGET = 7;
+export const rallyTargetGame = bandTargetGame(rallyTallGame);
+/** The curve new rounds score on: RALLY_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const RALLY_V7_BAND_CURVE = bandRetarget(RALLY_V6_BAND_CURVE);

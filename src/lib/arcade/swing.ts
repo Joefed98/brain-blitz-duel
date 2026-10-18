@@ -17,7 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { ANG_PER_RAD, iatan2, icos, isin, isqrt, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -961,6 +961,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_TARGET) return swingTargetGame;
   if (rev === SWING_REV_TALL) return swingTallGame;
   if (rev === SWING_REV_SPREAD) return swingSpreadGame;
   if (rev === SWING_REV_TUNEC) return swingTunecGame;
@@ -981,7 +982,7 @@ export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 
 export function swingBandParts(state: SwingState): BandParts {
   const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
-  return { units, points: bandPoints(state.worldH ? SWING_V9_BAND_CURVE : state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? SWING_V9_BAND_CURVE : state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
 }
 
 function scoreBand(state: SwingState): number {
@@ -1280,7 +1281,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  return rev === SWING_REV_TALL ? SWING_TALL_H : SWING_WORLD_H;
+  return rev === SWING_REV_TALL || rev === SWING_REV_TARGET ? SWING_TALL_H : SWING_WORLD_H;
 }
 
 /**
@@ -1317,3 +1318,15 @@ function initV9(seed: number): SwingState {
 
 /** swingRev 9: rev-8 play and stars in the taller cavern, on SWING_V9_BAND_CURVE. */
 export const swingTallGame: typeof swingGame = { ...swingTunecGame, init: (seed) => bandInit(initV9(seed)) };
+
+/* ================= Scoring targets (swingRev 10, 18 Oct 2026) ================= */
+
+/**
+ * swingRev 10 (scoring targets, docs/scoring-targets.md): swingRev 9 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const SWING_REV_TARGET = 10;
+export const swingTargetGame = bandTargetGame(swingTallGame);
+/** The curve new rounds score on: SWING_V9_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const SWING_V10_BAND_CURVE = bandRetarget(SWING_V9_BAND_CURVE);

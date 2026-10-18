@@ -60,7 +60,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "Longer words score more: 8 letters = 11 word points; 9-11 letters = 15. Round score = 2.5 × word points, rounded down, up to 150.",
+    score: "Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: 10 points ≈ 95, 23 ≈ 122, 34 ≈ 135, 150 at 60. The counter shows word points.",
   },
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
@@ -205,7 +205,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "Round score = 2 × word points, up to 150. The counter shows word points.",
+    score: "Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: 9 points ≈ 95, 15 ≈ 120, 24 ≈ 135, 150 at 48. The counter shows word points.",
   },
   unblock: {
     goal: "Slide the gold block out through the exit.",
@@ -736,7 +736,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
       { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
     ],
-    score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target. Maximum 150.",
+    score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total is then lifted (62 → 100, 102 → 120, 118 → 135, 133 → 145). Maximum 150.",
   },
   wavefront: {
     goal: "Five waves and a boss in 90 s.",

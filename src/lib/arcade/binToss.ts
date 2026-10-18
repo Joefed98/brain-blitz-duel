@@ -23,7 +23,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -208,6 +208,8 @@ export const BINTOSS_SPIN_HALF = 6_144;
 export const BINTOSS_SPIN_THICK = 768;
 /** One full turn every 128 ticks (about 2.1 s): 512 angle units a tick. */
 export const BINTOSS_SPIN_RATE = 512;
+/** binRev 5: the bar's half-length 21 px (was 24 px), an eighth shorter; same pivot, thickness and turn. */
+export const BINTOSS_SPIN_HALF_SHORT = 5_376;
 
 export interface BinTossHoop {
   /** Hoop centre, 1/256 px. */
@@ -242,15 +244,16 @@ export function binTossSpinAngle(spinner: BinTossSpinner, tick: number): number 
 
 /** The bar's two end points, 1/256 px. */
 export function binTossSpinEnds(
-  state: Pick<BinTossState, "slides" | "rev">,
+  state: Pick<BinTossState, "slides" | "rev" | "spinHalf">,
   index: number,
   spinner: BinTossSpinner,
   tick: number,
 ): { x0: number; y0: number; x1: number; y1: number } {
   const pivot = binTossSpinPivot(state, index, tick);
   const angle = binTossSpinAngle(spinner, tick);
-  const dx = Math.trunc((BINTOSS_SPIN_HALF * icos(angle)) / 16_384);
-  const dy = Math.trunc((BINTOSS_SPIN_HALF * isin(angle)) / 16_384);
+  const half = state.spinHalf ?? BINTOSS_SPIN_HALF;
+  const dx = Math.trunc((half * icos(angle)) / 16_384);
+  const dy = Math.trunc((half * isin(angle)) / 16_384);
   return { x0: pivot.x - dx, y0: pivot.y - dy, x1: pivot.x + dx, y1: pivot.y + dy };
 }
 
@@ -445,6 +448,8 @@ export interface BinTossState extends BandFields {
   spinBaskets?: number;
   /** Rev 3 only: last hoop or spinner contact tick (render only, like wobbleTick). */
   knockTick?: number;
+  /** binRev 5 only: the spinner bar's half-length, 1/256 px (BINTOSS_SPIN_HALF_SHORT). Absent = BINTOSS_SPIN_HALF. */
+  spinHalf?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -770,6 +775,8 @@ export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   const values = Object.values(snapshot);
   // Rev 3 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === BINTOSS_REV3) values.push(state.hooped ?? 0, state.swishes ?? 0, state.spinBaskets ?? 0);
+  // binRev 5 only, last, so every older sum is unchanged.
+  if (state.spinHalf !== undefined) values.push(state.spinHalf);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1188,6 +1195,7 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_TARGET) return binTossTargetGame;
   if (rev === BINTOSS_REV_BAND) return binTossBandGame;
   if (rev === BINTOSS_REV3) return binTossRev3Game;
   return rev === BINTOSS_REV2 ? binTossRev2Game : binTossGame;
@@ -1202,7 +1210,7 @@ export const BINTOSS_BAND_CURVE = bandCurve([0, 45, 70, 80, 90, 109], [0, 70, 10
 export function binTossBandParts(state: BinTossState): BandParts {
   const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
   const finished = state.baskets >= BINTOSS_THROWS;
-  return { units, points: bandPoints(BINTOSS_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`, bonusText: "All ten in" };
+  return { units, points: bandPoints(bandCurveOf(state, BINTOSS_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`, bonusText: "All ten in" };
 }
 
 function scoreBand(state: BinTossState): number {
@@ -1210,3 +1218,20 @@ function scoreBand(state: BinTossState): number {
 }
 
 export const binTossBandGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossRev3Game, init: (seed) => bandInit(binTossRev3Game.init(seed)) };
+
+/* ============ Shorter spinner and scoring targets (binRev 5, 18 Oct 2026) ============ */
+
+/**
+ * binRev 5: binRev 4 play with the spinner bar an eighth shorter (21 px each side
+ * of its pivot, was 24; BINTOSS_SPIN_HALF_SHORT, carried in the state as
+ * `spinHalf` and folded into the checkpoint checksum last), same pivot, thickness,
+ * speed and seeded phase; scored on the scoring targets (each band knot's points
+ * lifted through BAND_TARGET_MAP, docs/scoring-targets.md).
+ */
+export const BINTOSS_REV_TARGET = 5;
+export const binTossTargetGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = bandTargetGame({
+  ...binTossBandGame,
+  init: (seed: number) => ({ ...binTossBandGame.init(seed), spinHalf: BINTOSS_SPIN_HALF_SHORT }),
+});
+/** The curve new rounds score on: BINTOSS_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BINTOSS_V5_BAND_CURVE = bandRetarget(BINTOSS_BAND_CURVE);

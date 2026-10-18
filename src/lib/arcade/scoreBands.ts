@@ -77,8 +77,8 @@ export function bandUnitsFor(curve: BandCurve, points: number): number {
   return top;
 }
 
-/** What the "?" help calls a good run: the band's "good" aim (docs/arcade-score-bands-oct-2026.md). */
-export const BAND_GOOD_POINTS = 100;
+/** What the "?" help calls a good run: the "good" aim of the scoring targets (110–130; docs/scoring-targets.md). */
+export const BAND_GOOD_POINTS = 120;
 
 export interface BandHelpWords {
   /** The plain line's start, e.g. "More bricks" → "More bricks, higher score – up to 140." */
@@ -180,4 +180,46 @@ export function bandLines(parts: BandParts, score: number, acted = true): string
   if (parts.penalty > 0) lines.push(`${parts.penaltyText ?? "Penalty"} −${parts.penalty}`);
   if (score !== parts.points) lines.push(`Total → ${score}`);
   return lines;
+}
+
+/* ===================== Scoring targets (18 Oct 2026) ===================== */
+
+/**
+ * Joe's scoring targets (docs/scoring-targets.md): about 100 for an average run,
+ * 120 a good one, 135 a great one, 140–150 near-perfect. The Oct 2026 bands aimed
+ * at 70 / 100 / 125 / 140, so each game's new revision keeps its own unit knots
+ * and lifts each knot's points through this map (straight lines between; 140
+ * and 150 stay put, so finishes and the curve's top are unchanged).
+ */
+export const BAND_TARGET_MAP: BandCurve = bandCurve([0, 70, 100, 125, 140, 150], [0, 100, 120, 135, 140, 150]);
+/** The `band` value a target-stamped state carries (1 = the Oct 2026 bands). */
+export const BAND_TARGET_MARK = 2;
+
+const retargeted = new WeakMap<BandCurve, BandCurve>();
+
+/** A curve's knots with their points lifted through BAND_TARGET_MAP (rounded; same units). */
+export function bandRetarget(curve: BandCurve): BandCurve {
+  let out = retargeted.get(curve);
+  if (!out) {
+    const { units, points } = BAND_TARGET_MAP;
+    const lift = (p: number) => {
+      if (p >= 150) return p;
+      let i = 1;
+      while (units[i]! < p) i++;
+      return Math.round(points[i - 1]! + ((points[i]! - points[i - 1]!) * (p - units[i - 1]!)) / (units[i]! - units[i - 1]!));
+    };
+    out = bandCurve(curve.units, curve.points.map(lift));
+    retargeted.set(curve, out);
+  }
+  return out;
+}
+
+/** The curve a state scores on: its game's curve, lifted on target-stamped states (band 2). */
+export function bandCurveOf(state: BandFields, curve: BandCurve): BandCurve {
+  return state.band === BAND_TARGET_MARK ? bandRetarget(curve) : curve;
+}
+
+/** A band game whose new rounds score on the targets: the same play, `band` 2 from the first tick. */
+export function bandTargetGame<G extends { init: (seed: number) => object }>(game: G): G {
+  return { ...game, init: (seed: number) => ({ ...game.init(seed), band: BAND_TARGET_MARK }) };
 }

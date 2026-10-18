@@ -19,7 +19,7 @@ import {
 } from "./engine";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1007,6 +1007,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_TARGET) return tiltTargetGame;
   if (rev === TILT_REV_TUNEC) return tiltTunecGame;
   if (rev === TILT_REV_BAND) return tiltBandGame;
   return rev === TILT_REV ? tiltRev2Game : tiltGame;
@@ -1069,7 +1070,7 @@ export function tiltBandParts(state: TiltState): BandParts {
   const finished = mazes >= TILT_MAX_MAZES;
   return {
     units,
-    points: bandPoints(state.tunec ? TILT_V4_BAND_CURVE : TILT_BAND_CURVE, units),
+    points: bandPoints(bandCurveOf(state, state.tunec ? TILT_V4_BAND_CURVE : TILT_BAND_CURVE), units),
     // tiltRev 4: the speed window runs from TILT_V4_FINISH_MIN (no perfect run can finish sooner) to the
     // buzzer, so a fast perfect run takes the full 10; earlier revisions use the whole run.
     bonus: finished
@@ -1306,3 +1307,15 @@ function initV4(seed: number): TiltState {
 }
 
 export const tiltTunecGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltRev2Game, init: initV4 };
+
+/* ================= Scoring targets (tiltRev 5, 18 Oct 2026) ================= */
+
+/**
+ * tiltRev 5 (scoring targets, docs/scoring-targets.md): tiltRev 4 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const TILT_REV_TARGET = 5;
+export const tiltTargetGame = bandTargetGame(tiltTunecGame);
+/** The curve new rounds score on: TILT_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const TILT_V5_BAND_CURVE = bandRetarget(TILT_V4_BAND_CURVE);

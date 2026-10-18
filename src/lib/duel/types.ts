@@ -131,6 +131,8 @@ export interface WordsmithPuzzleData {
   par?: number;
   /** The nine-letter word (hidden until the reveal). */
   source?: string;
+  /** Scoring targets (18 Oct 2026): 1 = word points on WORDSMITH_V1_CURVE; absent = 2.5 × points. */
+  wordsmithRev?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -730,6 +732,8 @@ export interface WordHuntPuzzleData {
   words?: WordHuntWord[];
   totalPoints?: number;
   par?: number;
+  /** Scoring targets (18 Oct 2026): 1 = word points on WORDHUNT_V1_CURVE; absent = 2 × points. */
+  wordHuntRev?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1855,6 +1859,8 @@ export interface WhackPuzzleData {
   type: "whack";
   /** Draws the whole pop schedule — identical for everyone. */
   seed: number;
+  /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; absent = the original score. */
+  whackRev?: number;
 }
 
 export interface TentsPuzzleData {

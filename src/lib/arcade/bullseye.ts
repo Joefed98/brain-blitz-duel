@@ -20,7 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -795,6 +795,7 @@ export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null
 
 /** Takes puzzle.bullRev; anything else is the original game. */
 export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  if (rev === BULLSEYE_REV_TARGET) return bullseyeTargetGame;
   if (rev === BULLSEYE_REV_TUNED) return bullseyeTunedGame;
   if (rev === BULLSEYE_REV_BAND) return bullseyeBandGame;
   return rev === BULLSEYE_REV ? bullseyeRev2Game : bullseyeGame;
@@ -802,6 +803,7 @@ export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, 
 
 /** Start state for a stored round: its own winds and its own revision. */
 export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  if (rev === BULLSEYE_REV_TARGET) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_TARGET_MARK };
   if (rev === BULLSEYE_REV_TUNED) return bandInit(bullseyeInitRev4(seed, storedWinds));
   if (rev === BULLSEYE_REV_BAND) return bandInit(bullseyeInitRev2(seed, storedWinds));
   return rev === BULLSEYE_REV ? bullseyeInitRev2(seed, storedWinds) : bullseyeInit(seed, storedWinds);
@@ -966,7 +968,7 @@ export const BULLSEYE_BAND_CURVE = bandCurve([0, 72, 82, 94, 102, 110], [0, 70, 
 
 export function bullseyeBandParts(state: BullseyeState): BandParts {
   const units = Math.max(0, state.total);
-  const curve = state.tune === BULLSEYE_TUNE ? BULLSEYE_V4_BAND_CURVE : BULLSEYE_BAND_CURVE;
+  const curve = bandCurveOf(state, state.tune === BULLSEYE_TUNE ? BULLSEYE_V4_BAND_CURVE : BULLSEYE_BAND_CURVE);
   return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${units} points from ${state.arrowIndex} darts` };
 }
 
@@ -981,3 +983,15 @@ export const BULLSEYE_V4_BAND_CURVE = bandCurve([0, 75, 82, 92, 101, 112], [0, 7
 
 /** bullRev 4 (Tuning B): value balloons across the board, scored on the bands. */
 export const bullseyeTunedGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeRev2Game, init: (seed) => bandInit(bullseyeInitRev4(seed)) };
+
+/* ================= Scoring targets (bullRev 5, 18 Oct 2026) ================= */
+
+/**
+ * bullRev 5 (scoring targets, docs/scoring-targets.md): bullRev 4 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const BULLSEYE_REV_TARGET = 5;
+export const bullseyeTargetGame = bandTargetGame(bullseyeTunedGame);
+/** The curve new rounds score on: BULLSEYE_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BULLSEYE_V5_BAND_CURVE = bandRetarget(BULLSEYE_V4_BAND_CURVE);

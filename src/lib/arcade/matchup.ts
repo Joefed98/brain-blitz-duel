@@ -37,7 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1373,6 +1373,7 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_TARGET) return matchupTargetGame;
   if (rev === MATCHUP_REV_PAR) return matchupParGame;
   if (rev === MATCHUP_REV_WAIT) return matchupWaitGame;
   if (rev === MATCHUP_REV_BAND) return matchupBandGame;
@@ -1389,7 +1390,7 @@ export const MATCHUP_BAND_CURVE = bandCurve([0, 560, 760, 980, 1150, 1300], [0, 
 
 export function matchupBandParts(state: MatchupState): BandParts {
   const units = Math.max(0, state.raw);
-  return { units, points: bandPoints(matchupBandCurve(state), units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
+  return { units, points: bandPoints(bandCurveOf(state, matchupBandCurve(state)), units), bonus: 0, penalty: 0, finished: false, text: `${units.toLocaleString("en-GB")} match points` };
 }
 
 function scoreBand(state: MatchupState): number {
@@ -1532,3 +1533,15 @@ export const MATCHUP_REV_PAR = 6;
 export const MATCHUP_V6_BAND_CURVE = bandCurve([0, 620, 1008, 1456, 2240, 2800], [0, 70, 100, 125, 145, 150]);
 
 export const matchupParGame: ArcadeGame<MatchupState, ArcadeInputEvent | null> = { ...matchupWaitGame, init: (seed) => ({ ...initWait(seed), tunef: 1 }) };
+
+/* ================= Scoring targets (matchupRev 7, 18 Oct 2026) ================= */
+
+/**
+ * matchupRev 7 (scoring targets, docs/scoring-targets.md): matchupRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const MATCHUP_REV_TARGET = 7;
+export const matchupTargetGame = bandTargetGame(matchupParGame);
+/** The curve new rounds score on: MATCHUP_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const MATCHUP_V7_BAND_CURVE = bandRetarget(MATCHUP_V6_BAND_CURVE);

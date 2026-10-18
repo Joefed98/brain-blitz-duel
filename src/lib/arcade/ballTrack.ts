@@ -6,7 +6,7 @@
 
 import { clampInt, finishScore, inputRange, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ================================ Config ================================ */
 
@@ -546,11 +546,13 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
     rotatable,
     init: () => {
       // btRev 3 (score bands) and btRev 4 (taller worlds) play the rev-2 rules.
-      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL
+      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET
         ? { ...btInit(course), rev: BT_REV, sw: 0, turned: layout.kind.map(() => -1000), rideHomes: 0, switchHomes: 0 }
         : btInit(course);
       // btRev 4 adds the board's height (folded into the checkpoint checksum last).
       if (rev === BT_REV_TALL) return bandInit({ ...state, worldH: layout.h });
+      // btRev 5 (scoring targets): btRev 4 play on the lifted curve.
+      if (rev === BT_REV_TARGET) return { ...bandInit({ ...state, worldH: layout.h }), band: BAND_TARGET_MARK };
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
@@ -577,7 +579,7 @@ export function btBandParts(state: BtState): BandParts {
   const left = BT_RUN_TICKS - Math.max(landMin, Math.min(BT_RUN_TICKS, state.lastLand));
   return {
     units,
-    points: bandPoints(state.worldH ? BT_V4_BAND_CURVE : BT_BAND_CURVE, units),
+    points: bandPoints(bandCurveOf(state, state.worldH ? BT_V4_BAND_CURVE : BT_BAND_CURVE), units),
     bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, left, window) : 0,
     penalty: 0,
     finished,
@@ -619,5 +621,15 @@ export const BT_V4_BAND_CURVE = bandCurve([0, 10, 20, 26, 28, 29, 30], [0, 32, 7
 
 /** The world height (px) a stored round's btRev plays in. */
 export function ballTrackWorldHFor(rev?: number | null): number {
-  return rev === BT_REV_TALL ? BT_TALL_H : BT_H;
+  return rev === BT_REV_TALL || rev === BT_REV_TARGET ? BT_TALL_H : BT_H;
 }
+
+/* ================= Scoring targets (btRev 5, 18 Oct 2026) ================= */
+
+/**
+ * btRev 5 (scoring targets, docs/scoring-targets.md): btRev 4 play on the same
+ * 12-row bank, each band knot's points lifted through BAND_TARGET_MAP.
+ */
+export const BT_REV_TARGET = 5;
+/** The curve new rounds score on: BT_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BT_V5_BAND_CURVE = bandRetarget(BT_V4_BAND_CURVE);

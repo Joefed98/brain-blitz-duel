@@ -161,7 +161,7 @@ export function WordHuntPuzzle({
   }, [onSubmit]);
 
   // A run worth 120+ on this phone's count: a ripple runs out across the letter grid (display only).
-  useWordFinish(runEnded && scoreWordHunt(points) >= WORD_FINISH_SCORE, () => {
+  useWordFinish(runEnded && scoreWordHunt(points, puzzle.wordHuntRev) >= WORD_FINISH_SCORE, () => {
     wordCue("wordhunt.finish");
     const mid = (N - 1) / 2;
     const steps: FinishStep[] = [...(gridRef.current?.children ?? [])].map((el, cell) => ({

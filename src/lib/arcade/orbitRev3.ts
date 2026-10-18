@@ -19,7 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { speedBonusCurve } from "../duel/speedPar";
 import { ANG_QUARTER } from "./trig";
 import {
@@ -48,6 +48,7 @@ import {
   ORBIT_REV_TUNED,
   ORBIT_REV_SWEPT,
   ORBIT_REV_TALL,
+  ORBIT_REV_TARGET,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -1002,7 +1003,7 @@ export function orbitBandParts(state: OrbitRev3State): BandParts {
   const units = finished ? ORBIT_TOTAL : clampInt(state.best, 0, ORBIT_TOTAL);
   return {
     units,
-    points: bandPoints(ORBIT_BAND_CURVE, units),
+    points: bandPoints(bandCurveOf(state, ORBIT_BAND_CURVE), units),
     bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, ORBIT_REV3_RUN_TICKS - clampInt(state.endedTick, 0, ORBIT_REV3_RUN_TICKS), ORBIT_REV3_RUN_TICKS) : 0,
     penalty: 0,
     finished,
@@ -1152,14 +1153,19 @@ export const ORBIT_TALL_H = 650;
 export function initTallFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
   return { ...initSweptFrom(planets, worldW, holes), worldH: ORBIT_TALL_H };
 }
+/** orbitRev 9 (scoring targets): orbitRev 8 play, scored on the lifted curve (band 2). */
+export function initTargetFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return { ...initTallFrom(planets, worldW, holes), band: BAND_TARGET_MARK };
+}
 
 /** The view height (px) a stored round's orbitRev is framed in (620 for every earlier revision). */
 export function orbitWorldHFor(rev?: number | null): number {
-  return rev === ORBIT_REV_TALL ? ORBIT_TALL_H : 620;
+  return rev === ORBIT_REV_TALL || rev === ORBIT_REV_TARGET ? ORBIT_TALL_H : 620;
 }
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_TARGET) return initTargetFrom;
   if (rev === ORBIT_REV_TALL) return initTallFrom;
   if (rev === ORBIT_REV_SWEPT) return initSweptFrom;
   if (rev === ORBIT_REV_TUNED) return initTunedFrom;
@@ -1167,3 +1173,5 @@ export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Pl
   if (rev === ORBIT_REV4) return initRev4From;
   return null;
 }
+/** The curve new rounds score on: ORBIT_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const ORBIT_V9_BAND_CURVE = bandRetarget(ORBIT_BAND_CURVE);
