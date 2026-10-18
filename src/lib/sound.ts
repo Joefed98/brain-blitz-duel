@@ -626,6 +626,19 @@ export function stopSlotLoop(cue: SoundId, fallback: SoundId, fadeMs = 300): voi
   stopLoop(fallback, fadeMs);
 }
 
+/* Puzzle replays (the results screen's time-lapse and the podium's) are silent (18 Oct 2026): the
+   game's own Reveal board announces its moves as cues named for the game, so while a time-lapse is
+   on screen those are not played. Shared, room and UI cues, voice lines and every direct sound
+   still play; replay-sound-check proves it. */
+let replayQuiet = 0;
+export function quietForReplay(on: boolean): void {
+  replayQuiet = Math.max(0, replayQuiet + (on ? 1 : -1));
+}
+/** Whether a named cue is silenced because a puzzle replay is on screen. */
+export function replayQuieted(cue: string): boolean {
+  return replayQuiet > 0 && !/^(shared|room|ui)\./.test(cue);
+}
+
 let cueBridge = false;
 /**
  * Listens for every named cue and plays the file in its manifest slot, if any.
@@ -636,7 +649,7 @@ export function installSoundCueBridge(): void {
   cueBridge = true;
   window.addEventListener(SOUND_CUE_EVENT, (event) => {
     const cue = (event as CustomEvent<SoundCueDetail>).detail?.cue;
-    if (typeof cue === "string") playCueSlot(cue);
+    if (typeof cue === "string" && !replayQuieted(cue)) playCueSlot(cue);
   });
 }
 

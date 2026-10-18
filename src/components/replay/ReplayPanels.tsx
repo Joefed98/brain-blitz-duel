@@ -5,6 +5,7 @@ import { puzzleDef, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import type { PuzzleData } from "@/lib/duel/types";
 import type { MomentCard } from "@/lib/replay/cards";
 import { soundCue, SHARED_CUES } from "@/lib/replay/cues";
+import { quietForReplay } from "@/lib/sound";
 import type { HighlightClip } from "@/lib/replay/pick";
 import type { PlaybackDrawer } from "@/lib/replay/playback.renderer";
 import type { ReplayTimeline } from "@/lib/replay/timeline";
@@ -255,9 +256,11 @@ export function FullRunViewer({
   );
 }
 
-/** A moment card (Flash, Bang On, Nucleus, Forage): the stored figure, shown with a pop. */
+/**
+ * A moment card (Flash, Bang On, Nucleus, Forage): the stored figure, shown with a pop. Silent,
+ * like the time-lapse: puzzle replays play no sound effects (18 Oct 2026).
+ */
 export function MomentCardView({ card }: { card: MomentCard }) {
-  useEffect(() => soundCue(SHARED_CUES.momentCard), [card]);
   return (
     <div
       className="mx-auto flex w-full flex-col items-center justify-center gap-0.5 rounded-md border border-primary/50 bg-background px-3 py-3 animate-pop-in"
@@ -308,7 +311,8 @@ function FitHeight({ height, children }: { height: number; children: ReactNode }
 /**
  * The winner's moves played at high speed on the game's own reveal board
  * (read-only: the Reveal component is handed growing prefixes of the stored
- * move list), with a move counter against the minimum.
+ * move list), with a move counter against the minimum. Silent (18 Oct 2026):
+ * a puzzle replay plays no sound effects; replay-sound-check proves it.
  */
 export function PuzzleTimelapse({
   puzzle,
@@ -325,20 +329,22 @@ export function PuzzleTimelapse({
 }) {
   const [frame, setFrame] = useState(0);
   const Reveal = puzzleDef(puzzle.type).Reveal;
+  // Layout effects run before the board's own (passive) effects, so its very first cue is quiet too.
+  useLayoutEffect(() => {
+    quietForReplay(true);
+    return () => quietForReplay(false);
+  }, []);
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   useEffect(() => {
-    soundCue(SHARED_CUES.timelapseStart);
     let k = 0;
     const timer = window.setInterval(() => {
       k += 1;
       if (k >= plan.frames.length) {
         window.clearInterval(timer);
-        soundCue(SHARED_CUES.timelapseEnd);
         onEnd();
         return;
       }
       setFrame(k);
-      soundCue(SHARED_CUES.timelapseMove);
     }, plan.frameMs);
     return () => window.clearInterval(timer);
   }, [plan]); // eslint-disable-line react-hooks/exhaustive-deps

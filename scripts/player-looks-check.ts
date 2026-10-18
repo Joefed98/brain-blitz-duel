@@ -295,20 +295,29 @@ forgetLookColumns();
       `${room}: an invalid icon was stored`,
     );
     distinctColours(players, `${room} after joins`);
+    {
+      const icons = players.map((p) => p.icon).filter(Boolean);
+      check(new Set(icons).size === icons.length, `${room}: two players joined with the same icon`);
+    }
     // Lobby changes: random requests, taken ones refused, free ones applied.
     for (let k = 0; k < 6; k++) {
       const me = players[int(players.length)]!;
       const current = asPlayers(db.rows, room);
       const want = int(11) - (rand() < 0.1 ? 3 : 0);
       const holder = current.find((p) => p.colour === want && p.player_slot !== me.player_slot);
+      const icon = rand() < 0.5 ? PLAYER_ICON_IDS[int(16)]! : undefined;
+      const iconHolder = icon && current.find((p) => p.icon === icon && p.player_slot !== me.player_slot);
       const result = await changePlayerLook(db.client, current.find((p) => p.player_slot === me.player_slot)!, {
         colour: want,
-        ...(rand() < 0.5 ? { icon: PLAYER_ICON_IDS[int(16)]! } : {}),
+        ...(icon ? { icon } : {}),
       });
       if (!isPlayerColour(want)) check(!result.ok, `${room}: colour ${want} accepted`);
       else if (holder) check(!result.ok, `${room}: slot ${me.player_slot} took ${holder.player_slot}'s colour ${want}`);
+      else if (iconHolder) check(!result.ok, `${room}: slot ${me.player_slot} took ${iconHolder.player_slot}'s icon ${icon}`);
       else check(result.ok, `${room}: free colour ${want} refused (${result.ok ? "" : result.message})`);
       distinctColours(asPlayers(db.rows, room), `${room} after a lobby change`);
+      const icons = asPlayers(db.rows, room).map((p) => p.icon).filter(Boolean);
+      check(new Set(icons).size === icons.length, `${room}: two players share an icon after a lobby change`);
     }
     check(!(await changePlayerLook(db.client, players[0]!, { icon: "skull" })).ok, `${room}: unknown icon accepted`);
     // Someone leaves (keeps their row and colour until Play again).

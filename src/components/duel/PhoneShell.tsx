@@ -201,15 +201,22 @@ function useRootSelectionLock(active: boolean) {
  * full height the shortfall measures 0 and nothing changes. arcade-device-bottom-check
  * proves it.
  *
- * No feedback (16 Oct 2026, fix-up of the home-screen bottom flash): the shortfall is
- * measured once per geometry (screen size, orientation and top inset, none of which the
- * grown root can change), always with the root's growth taken off first, and written only
- * when it differs. A resize the growth itself sets off (iOS may fire one when the root
- * outgrows its short viewport) finds the same geometry and does nothing, so the value can
- * never feed back into itself and the root never flips between its two heights. Play
- * screens share one root, so the value stays while any of them is up.
+ * No feedback (16 Oct 2026, fix-up of the home-screen bottom flash): the values are worked out once
+ * per geometry (screen size, orientation and top inset, none of which the grown root can change)
+ * and written only when they differ, so a resize the growth itself sets off (iOS may fire one when
+ * the root outgrows its short viewport) changes nothing and the root never flips between heights.
+ * Play screens share one root, so the values stay while any of them is up.
+ *
+ * Capped at the screen (18 Oct 2026, display only): the growth is the top inset and the grown
+ * height never passes the screen's own height (--standalone-screen), so whichever way WebKit lays
+ * the app out, short or (as it can after a few rounds, or once fixed) the whole screen, and even
+ * when that changes while a play screen is up, the play screen is exactly the screen's height:
+ * min(100dvh + inset, screen). Before, a 48px shortfall measured on a short viewport stayed on a
+ * viewport that had grown to the whole screen and pushed the lowest controls (Fission's arrows)
+ * 48px down, 32px off the bottom. Neither value depends on layout, so nothing can feed back.
+ * arcade-repeat-play-check proves it over four practice runs and a mid-run viewport change.
  */
-const shortfall = { users: 0, key: "", px: 0 };
+const shortfall = { users: 0, key: "", px: 0, screen: 0 };
 
 function standaloneGeometry(): { key: string; inset: number } | null {
   if ((navigator as Navigator & { standalone?: boolean }).standalone !== true) return null;
@@ -223,32 +230,31 @@ function standaloneGeometry(): { key: string; inset: number } | null {
   return { key: `${screen.width}x${screen.height}:${portrait ? "p" : "l"}:${inset}`, inset };
 }
 
-/** The screen's height less 100dvh, at most the top inset; measured with the root at its own height. */
-function measureShortfall(inset: number, key: string): number {
-  const root = document.documentElement;
-  root.style.removeProperty("--standalone-short");
-  const probe = document.createElement("div");
-  probe.style.cssText = "position:fixed;left:0;top:0;width:1px;height:100dvh;visibility:hidden;pointer-events:none";
-  document.body.appendChild(probe);
-  const dvh = probe.getBoundingClientRect().height;
-  probe.remove();
+/** The screen's height for this orientation (iOS never swaps screen.width and screen.height). */
+function screenHeight(key: string): number {
   const portrait = key.includes(":p:");
-  const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-  return Math.round(Math.min(inset, Math.max(0, screenH - dvh)));
+  return portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
 }
 
-function applyShortfall() {
+const setRootVar = (name: string, value: string) => {
   const root = document.documentElement;
+  if (root.style.getPropertyValue(name) === value) return;
+  if (value) root.style.setProperty(name, value);
+  else root.style.removeProperty(name);
+};
+
+function applyShortfall() {
   const geometry = standaloneGeometry();
   const key = geometry?.key ?? "";
   if (key !== shortfall.key) {
     shortfall.key = key;
-    shortfall.px = geometry ? measureShortfall(geometry.inset, key) : 0;
+    shortfall.screen = geometry ? screenHeight(key) : 0;
+    // The growth: the top inset (WebKit bug 254868 lays the app out short by exactly that), capped below by the screen.
+    shortfall.px = geometry && shortfall.screen > 0 ? Math.round(geometry.inset) : 0;
   }
   const want = shortfall.px > 0 ? `${shortfall.px}px` : "";
-  if (root.style.getPropertyValue("--standalone-short") === want) return;
-  if (want) root.style.setProperty("--standalone-short", want);
-  else root.style.removeProperty("--standalone-short");
+  setRootVar("--standalone-short", want);
+  setRootVar("--standalone-screen", want ? `${shortfall.screen}px` : "");
 }
 
 function useStandaloneShortfall(active: boolean) {
@@ -270,6 +276,7 @@ function useStandaloneShortfall(active: boolean) {
       window.removeEventListener("orientationchange", applyShortfall);
       window.visualViewport?.removeEventListener("resize", applyShortfall);
       root.style.removeProperty("--standalone-short");
+      root.style.removeProperty("--standalone-screen");
     };
   }, [active]);
 }
