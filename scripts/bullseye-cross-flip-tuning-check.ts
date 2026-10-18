@@ -80,5 +80,5 @@ assert.ok(!INTRO_SCORE.cross.includes("earns extra"));
 // 13 Oct 2026: the intro lists every ring value (10 / 9 / 8 / 3 / 2 / 1) and the inner bull 12.
 assert.ok(INTRO_SCORE.bullseye.includes("10 / 9 / 8 / 3 / 2 / 1") && INTRO_SCORE.bullseye.includes("inner bull 12"));
 // Score bands (Oct 2026): the help gives a good run on the live curve; stored rounds keep floor(1.7 × total − 20).
-assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("rings 10 / 9 / 8 / 3 / 2 / 1 from the centre out (the inner bull 12), plus +1, +2 or +3 for each balloon") && PUZZLE_INSTRUCTIONS.bullseye.score.includes("A good run (100 points) totals 82"));
+assert.ok(PUZZLE_INSTRUCTIONS.bullseye.score.includes("rings 10 / 9 / 8 / 3 / 2 / 1 from the centre out (the inner bull 12), plus +1, +2 or +3 for each balloon") && PUZZLE_INSTRUCTIONS.bullseye.score.includes("A good run (120 points) totals 82"));
 console.log("Bullseye values/shuffles/scores, Cross score/cap/reveal and Flip curve vertices passed; no browser tests.");

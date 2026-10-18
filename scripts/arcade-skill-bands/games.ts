@@ -7,7 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ArcadeGame } from "../../src/lib/arcade/engine";
 import type { PuzzleType } from "../../src/lib/duel/types";
-import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL } from "../../src/lib/arcade/ballTrack";
+import { btCheckpoint, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL, BT_REV_TARGET } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
 import { BALL_TRACK_BANK_TALL } from "../../src/lib/duel/ballTrackBankTall.server";
@@ -118,7 +118,7 @@ export function roomSeed(n: number): number {
 const plain = (n: number) => roomSeed(n);
 const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length]!.course;
 /** btRev 4 deals from the 12-row bank (the same seed picks a course there). */
-const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_TALL ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
+const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_TALL || rev === BT_REV_TARGET ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
 const orbitEntry = (seed: number) => ORBIT_HOLE_BANK.find((e) => e.seed === seed)!;
 const orbitPlanets = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
 

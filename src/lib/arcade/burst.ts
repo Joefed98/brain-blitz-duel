@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -716,6 +716,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_TARGET) return burstTargetGame;
   if (rev === BURST_REV_TALL) return burstTallGame;
   if (rev === BURST_REV_BAND) return burstBandGame;
   return rev === BURST_REV ? burstGameV2 : burstGame;
@@ -730,7 +731,7 @@ export const BURST_BAND_CURVE = bandCurve([0, 55, 76, 88, 100], [0, 70, 100, 125
 export function burstBandParts(state: BurstState): BandParts {
   const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
   const finished = state.ended === 1;
-  return { units, points: bandPoints(state.worldH ? BURST_V4_BAND_CURVE : BURST_BAND_CURVE, units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BURST_V4_BAND_CURVE : BURST_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
 }
 
 function scoreBand(state: BurstState): number {
@@ -765,5 +766,17 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_TALL ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_TALL || rev === BURST_REV_TARGET ? BURST_TALL_H : BURST_FLOOR_Y;
 }
+
+/* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
+
+/**
+ * burstRev 5 (scoring targets, docs/scoring-targets.md): burstRev 4 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const BURST_REV_TARGET = 5;
+export const burstTargetGame = bandTargetGame(burstTallGame);
+/** The curve new rounds score on: BURST_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const BURST_V5_BAND_CURVE = bandRetarget(BURST_V4_BAND_CURVE);

@@ -268,7 +268,7 @@
   box-shadow: 2px 0 3px rgba(0, 0, 0, 0.35);
 }
 .logic-hanoi[style] .logic-hanoi-post {
-  width: clamp(6px, calc(var(--hanoi-ring) * 0.55), 12px);
+  width: clamp(5px, calc(var(--hanoi-ring) * 0.6), 9px);
 }
 .logic-hanoi-base {
   border-radius: 4px;
@@ -283,16 +283,14 @@
     linear-gradient(180deg, #FFE08A, #F5B82E 45%, #B9800F);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 10px rgba(245, 184, 46, 0.35), 0 3px 4px rgba(0, 0, 0, 0.5);
 }
-/* Rings: a lit top band, a shaded lower edge and the dark hole the post runs through. */
+/* Rings (18 Oct 2026): slim pills, a soft lit top and a crisp darker rim; display only, the posts are the tap targets. */
 .logic-hanoi .logic-hanoi-ring {
   border-radius: 999px;
-  background-image:
-    radial-gradient(ellipse 7% 70% at 50% 55%, rgba(0, 0, 0, 0.45), transparent 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.12) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.32) 100%);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 2px 3px rgba(0, 0, 0, 0.45);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.06) 45%, rgba(0, 0, 0, 0.14) 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 .logic-hanoi .logic-hanoi-ring.hanoi-lifted {
-  box-shadow: 0 0 12px 2px color-mix(in oklab, var(--primary) 65%, transparent), inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+  box-shadow: 0 0 10px 2px color-mix(in oklab, var(--primary) 60%, transparent), inset 0 0 0 1px rgba(0, 0, 0, 0.16);
 }
 .logic-hanoi-hover {
   animation: logic-hanoi-hover 1.1s ease-in-out infinite alternate;

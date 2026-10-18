@@ -173,7 +173,7 @@ export function gradeWordsmith(
   return {
     answer: accepted.map((entry) => entry.word).join(","),
     isCorrect: points >= par,
-    score: scoreWordsmith(points),
+    score: scoreWordsmith(points, puzzle.wordsmithRev),
     reactionAvgMs: null,
     correctCount: accepted.length,
     errors: null,

@@ -14,7 +14,7 @@ import {
   TICKS_PER_SECOND,
   type CanvasSize,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import type { ArcadeGame } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -441,6 +441,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_TARGET) return skylineTargetGame;
   if (rev === SKYLINE_REV_TALL) return skylineTallGame;
   if (rev === SKYLINE_REV_BAND) return skylineBandGame;
   return rev === SKYLINE_REV ? skylineRev2Game : skylineGame;
@@ -455,7 +456,7 @@ export const SKYLINE_BAND_CURVE = bandCurve([0, 100, 165, 280, 480, 600], [0, 70
 
 export function skylineBandParts(state: SkylineState): BandParts {
   const units = 5 * state.placed + 5 * state.perfects + 2 * (state.streakPoints ?? 0);
-  return { units, points: bandPoints(SKYLINE_BAND_CURVE, units), bonus: 0, penalty: 0, finished: false, text: `${state.placed} blocks · ${state.perfects} perfect · +${state.streakPoints ?? 0} streak` };
+  return { units, points: bandPoints(bandCurveOf(state, SKYLINE_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${state.placed} blocks · ${state.perfects} perfect · +${state.streakPoints ?? 0} streak` };
 }
 
 function scoreBand(state: SkylineState): number {
@@ -479,5 +480,17 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  return rev === SKYLINE_REV_TALL ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
+  return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
+
+/* ================= Scoring targets (skylineRev 5, 18 Oct 2026) ================= */
+
+/**
+ * skylineRev 5 (scoring targets, docs/scoring-targets.md): skylineRev 4 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const SKYLINE_REV_TARGET = 5;
+export const skylineTargetGame = bandTargetGame(skylineTallGame);
+/** The curve new rounds score on: SKYLINE_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const SKYLINE_V5_BAND_CURVE = bandRetarget(SKYLINE_BAND_CURVE);

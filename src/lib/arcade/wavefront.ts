@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
 
@@ -1230,6 +1230,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_TARGET) return wavefrontTargetGame;
   if (rev === WAV_REV_TALL) return wavefrontTallGame;
   if (rev === WAV_REV_TUNEC) return wavefrontTunecGame;
   if (rev === WAV_REV_SHAPES) return wavefrontShapesGame;
@@ -1253,7 +1254,7 @@ export function wavefrontBandParts(state: WavState): BandParts {
   // older revisions a flat 10.
   const fight = state.tick - (state.bossAt ?? 0);
   const bonus = !finished ? 0 : state.tunec ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(WAV_KILL_WINDOW_V5 - fight, 0, WAV_KILL_WINDOW_V5), WAV_KILL_WINDOW_V5) : BAND_FINISH_BONUS;
-  return { units, points: bandPoints(state.worldH ? WAV_V6_BAND_CURVE : state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
+  return { units, points: bandPoints(state.band === BAND_TARGET_MARK ? WAV_V7_BAND_CURVE : state.worldH ? WAV_V6_BAND_CURVE : state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
 }
 
 function scoreBand(state: WavState): number {
@@ -1402,5 +1403,20 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  return rev === WAV_REV_TALL ? WAV_TALL_H : WAV_WORLD_H;
+  return rev === WAV_REV_TALL || rev === WAV_REV_TARGET ? WAV_TALL_H : WAV_WORLD_H;
 }
+
+/* ================= Scoring targets (wavRev 7, 18 Oct 2026) ================= */
+
+/**
+ * wavRev 7 (scoring targets, docs/scoring-targets.md): wavRev 6 play, scored on a
+ * gentler curve (Joe found Wavefront too harsh). wavRev 6's knots sat in a cliff
+ * (249 → 70, 259 → 100, 263 → 125), so a few missed ships cost 30–50 points and a
+ * run that stops in wave 4 scored under 50. The new knots rise steadily from the
+ * first wave: two waves (about 100 units) 60, four (about 200) 92, the boss 105,
+ * every wave and boss hit (269) 140, never below wavRev 6 for the same units; the
+ * kill's speed bonus is unchanged.
+ */
+export const WAV_REV_TARGET = 7;
+export const WAV_V7_BAND_CURVE = bandCurve([0, 50, 100, 150, 200, 240, 255, 262, 268, WAV_PAR_V5 - WAV_POINTS_BOSS], [0, 35, 60, 78, 92, 105, 118, 128, 139, 140]);
+export const wavefrontTargetGame = bandTargetGame(wavefrontTallGame);

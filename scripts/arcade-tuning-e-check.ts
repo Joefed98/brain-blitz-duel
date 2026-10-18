@@ -90,6 +90,7 @@ import { generateHover } from "../src/lib/duel/hover.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playSnipLevel } from "./snip-solver";
 import { playSnipRun, SNIP_PROOFS } from "./snip-run-bot";
+import { playRevOf } from "./scoring-targets-revs";
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
@@ -150,13 +151,13 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning E stamps; one world per stored revision");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    ["skyline", "skylineRev", generateSkyline().skylineRev, SKYLINE_REV_TALL],
+    ["skyline", "skylineRev", playRevOf("skyline", generateSkyline().skylineRev), SKYLINE_REV_TALL],
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
-    ["snake", "snakeRev", generateSnake().snakeRev, SNAKE_REV_ROCKS],
+    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-    ["snip", "snipRev", generateSnip().snipRev, SNIP_REV_PROVEN],
-    ["hover", "hoverRev", generateHover().hoverRev, HOVER_REV_TALL],
+    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
+    ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
   ];
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);
@@ -463,8 +464,8 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
-if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 55 – about 18 barriers"), "Hover's help states a good run on hoverRev 5's curve");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
+if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (120 points) counts 55 – about 18 barriers"), "Hover's help states a good run on hoverRev 5's curve");
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (120 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

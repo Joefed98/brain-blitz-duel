@@ -6,7 +6,9 @@ import {
   tiltRev2Game,
   tiltBandGame,
   tiltTunecGame,
+  tiltTargetGame,
   TILT_REV_TUNEC,
+  TILT_REV_TARGET,
   TILT_REV_BAND,
   TILT_REV,
   TILT_CHECKPOINT_INTERVAL,
@@ -42,6 +44,14 @@ const runTunec = makeArcadeRun<TiltState, TiltCheckpoint>({
   keys: TILT_CHECKPOINT_KEYS,
   interval: TILT_CHECKPOINT_INTERVAL,
 });
+/** tiltRev 5 (scoring targets): tiltRev 4 play on the lifted curve. */
+const runTarget = makeArcadeRun<TiltState, TiltCheckpoint>({
+  tag: "tilt",
+  game: tiltTargetGame,
+  checkpoint: tiltCheckpoint,
+  keys: TILT_CHECKPOINT_KEYS,
+  interval: TILT_CHECKPOINT_INTERVAL,
+});
 const runBand = makeArcadeRun<TiltState, TiltCheckpoint>({
   tag: "tilt",
   game: tiltBandGame,
@@ -57,6 +67,6 @@ export const decodeTiltRun = run.decode;
 
 /** The single place a Tilt score is worked out. */
 export function replayTiltRun(seed: number, raw: string, rev?: number | null): TiltResult {
-  const result = (rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
+  const result = (rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
   return { ...result, ...tiltExtra(result.state) };
 }

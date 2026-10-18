@@ -18,6 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandPoints } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -150,6 +151,8 @@ function buildSchedule(seed: number): { rng: number; schedule: WhackSchedule } {
 /* ================================ State ================================ */
 
 export interface WhackState {
+  /** whackRev 1 only (scoring targets): 1 = the score is lifted through WHACK_TARGET_LIFT. Absent on older rounds. */
+  tgt?: number;
   tick: number;
   rng: number;
   schedule: WhackSchedule;
@@ -243,7 +246,20 @@ export function whackScore(hits: number, wrong: number, total: number, empty = 0
 }
 
 function score(state: WhackState): number {
-  return whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  const raw = whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  return state.tgt ? whackLift(raw) : raw;
+}
+
+/**
+ * whackRev 1 (scoring targets, 18 Oct 2026, docs/scoring-targets.md): the same
+ * play and the same hit share and costs, then the result lifted so the simulated
+ * players' 62 / 102 / 118 / 133 (average / good / great / near-perfect) land
+ * about 100 / 120 / 135 / 145; 0 stays 0 and 150 stays 150.
+ */
+export const WHACK_REV_TARGET = 1;
+export const WHACK_TARGET_LIFT = bandCurve([0, 62, 102, 118, 133, 150], [0, 100, 120, 135, 145, 150]);
+export function whackLift(raw: number): number {
+  return clampInt(bandPoints(WHACK_TARGET_LIFT, raw), 0, 150);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -405,3 +421,11 @@ export const whackGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: WHACK_INPUT_RANGES,
 };
+
+/** whackRev 1: the same game, its score lifted (WHACK_TARGET_LIFT). */
+export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...init(seed), tgt: 1 }) };
+
+/** The game for a stored whackRev (absent = the original score). */
+export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  return rev === WHACK_REV_TARGET ? whackTargetGame : whackGame;
+}

@@ -130,6 +130,7 @@ import { SWING_V9_BANK } from "../src/lib/duel/swingBankV9.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { BALL_TRACK_BANK_TALL } from "../src/lib/duel/ballTrackBankTall.server";
+import { playRevOf } from "./scoring-targets-revs";
 
 const FP = 256;
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
@@ -194,11 +195,11 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   for (let k = 0; k < 12; k++) {
     const swing = generateSwing();
-    ok(swing.swingRev === SWING_REV_TALL && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 9 on a course re-proved for the taller cavern");
+    ok(playRevOf("swing", swing.swingRev) === SWING_REV_TALL && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 9 on a course re-proved for the taller cavern");
     const orbit = generateOrbit();
-    ok(orbit.orbitRev === ORBIT_REV_TALL && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 8 with the course's planets");
+    ok(playRevOf("orbit", orbit.orbitRev) === ORBIT_REV_TALL && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 8 with the course's planets");
     const bt = generateBallTrack();
-    ok(bt.btRev === BT_REV_TALL && bt.course.rows === BT_TALL_ROWS && JSON.stringify(bt.course) === JSON.stringify(BALL_TRACK_BANK_TALL[bt.seed - 1]!.course), "rooms deal btRev 4 on a 12-row bank course");
+    ok(playRevOf("balltrack", bt.btRev) === BT_REV_TALL && bt.course.rows === BT_TALL_ROWS && JSON.stringify(bt.course) === JSON.stringify(BALL_TRACK_BANK_TALL[bt.seed - 1]!.course), "rooms deal btRev 4 on a 12-row bank course");
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);

@@ -46,6 +46,7 @@ import {
   ORBIT_REV_TUNED,
   ORBIT_REV_SWEPT,
   ORBIT_REV_TALL,
+  ORBIT_REV_TARGET,
 } from "@/lib/arcade/orbit";
 import {
   buildCourse3,
@@ -57,6 +58,7 @@ import {
   initTunedFrom,
   initSweptFrom,
   initTallFrom,
+  initTargetFrom,
   orbitRev3Game,
   ORBIT_REV3_WORLD_W,
 } from "@/lib/arcade/orbitRev3";
@@ -64,7 +66,7 @@ import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGameFor } from "@/lib/arcade/snip";
 import { tiltGameFor } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
-import { whackGame } from "@/lib/arcade/whack";
+import { whackGameFor } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
 import { tenDropGame, tenDropInit } from "@/lib/arcade/tenDrop";
 import { wordfallGameFor } from "@/lib/arcade/wordfall";
@@ -120,7 +122,8 @@ function orbitSource(p: PuzzleData): GameSource {
     orbitRev === ORBIT_REV_BAND ||
     orbitRev === ORBIT_REV_TUNED ||
     orbitRev === ORBIT_REV_SWEPT ||
-    orbitRev === ORBIT_REV_TALL
+    orbitRev === ORBIT_REV_TALL ||
+    orbitRev === ORBIT_REV_TARGET
   ) {
     const raw = p as unknown as {
       planets?: Parameters<typeof decodeRev3Planets>[0];
@@ -133,7 +136,9 @@ function orbitSource(p: PuzzleData): GameSource {
           ? decodeRev3Planets(raw.planets)
           : buildCourse3(seed, ORBIT_REV3_WORLD_W).planets;
       const holes = decodeOrbitHoles(raw.holes ?? []);
-      return orbitRev === ORBIT_REV_TALL
+      return orbitRev === ORBIT_REV_TARGET
+        ? initTargetFrom(planets, ORBIT_REV3_WORLD_W, holes)
+        : orbitRev === ORBIT_REV_TALL
         ? initTallFrom(planets, ORBIT_REV3_WORLD_W, holes)
         : orbitRev === ORBIT_REV_SWEPT
         ? initSweptFrom(planets, ORBIT_REV3_WORLD_W, holes)
@@ -188,7 +193,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
       rev(p, "btRev"),
     ) as AnyGame,
   }),
-  whack: () => ({ game: whackGame as AnyGame }),
+  whack: (p) => ({ game: whackGameFor(rev(p, "whackRev")) as AnyGame }),
   clayshoot: (p) => ({ game: clayGameFor(rev(p, "clayRev")) as AnyGame }),
   // tenRev 1 (puzzle score shape) rides in the start state, as replayTenDropRun's tenDropInit puts it.
   tendrop: (p) => ({

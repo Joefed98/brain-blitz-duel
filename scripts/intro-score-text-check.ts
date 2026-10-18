@@ -30,7 +30,7 @@ for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
   if (!/150|10 more/.test(text)) failures.push(`${type}: intro does not say how to reach the top: "${text}"`);
   if (/otherwise up to \d+/.test(text)) failures.push(`${type}: intro still states a partial cap: "${text}"`);
   const help = PUZZLE_INSTRUCTIONS[type].score;
-  if (!help.includes("higher score") || !help.includes("A good run (100 points)")) failures.push(`${type}: "?" help has no plain band line`);
+  if (!help.includes("higher score") || !help.includes("A good run (120 points)")) failures.push(`${type}: "?" help has no plain band line`);
   if (/→|Points follow/.test(help)) failures.push(`${type}: "?" help still lists band knots`);
 }
 if (failures.length) {

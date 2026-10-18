@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -91,7 +91,7 @@ export const INK_REV_BAND = 5;
 export const INK_REV_TUNEC = 6;
 /** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
 function rev3Rules(rev?: number | null): boolean {
-  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC;
+  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET;
 }
 /** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
 export const INK_STAR_R = 9;
@@ -1824,6 +1824,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_TARGET) return inkBridgeTargetGame;
   if (rev === INK_REV_TUNEC) return inkBridgeTunecGame;
   if (rev === INK_REV_BAND) return inkBridgeBandGame;
   if (rev === INK_REV4) return inkBridgeInkRev4Game;
@@ -1838,7 +1839,7 @@ export const INK_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 35
 export function inkBridgeBandParts(state: InkState): BandParts {
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS) + INK_STAR_POINTS * clampInt(state.stars ?? 0, 0, INK_STAR_LEVELS);
   const finished = state.levels >= INK_LEVELS;
-  return { units, points: bandPoints(state.tunec ? INK_V6_BAND_CURVE : INK_BAND_CURVE, units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
+  return { units, points: bandPoints(bandCurveOf(state, state.tunec ? INK_V6_BAND_CURVE : INK_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
 }
 
 function scoreBand(state: InkState): number {
@@ -1858,3 +1859,15 @@ export const inkBridgeBandGame: ArcadeGame<InkState, ArcadeInputEvent | null> = 
  */
 export const INK_V6_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 33, 51, 79, 103, 120, 129, 140]);
 export const inkBridgeTunecGame: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeBandGame, init: (seed) => ({ ...inkBridgeBandGame.init(seed), tunec: 1 }) };
+
+/* ================= Scoring targets (inkRev 7, 18 Oct 2026) ================= */
+
+/**
+ * inkRev 7 (scoring targets, docs/scoring-targets.md): inkRev 6 play unchanged, each band
+ * knot's points lifted through BAND_TARGET_MAP (about 100 / 120 / 135 / 140–150 for
+ * the average / good / great / near-perfect players that scored 70 / 100 / 125 / 140).
+ */
+export const INK_REV_TARGET = 7;
+export const inkBridgeTargetGame = bandTargetGame(inkBridgeTunecGame);
+/** The curve new rounds score on: INK_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
+export const INK_V7_BAND_CURVE = bandRetarget(INK_V6_BAND_CURVE);

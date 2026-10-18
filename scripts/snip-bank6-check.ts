@@ -54,6 +54,7 @@ import { encodeSnipRun, replaySnipRun } from "../src/lib/duel/snip";
 import { generateSnip } from "../src/lib/duel/arcade.server";
 import { playSnipLevel } from "./snip-solver";
 import { playSnipRun, SNIP_PROOFS } from "./snip-run-bot";
+import { playRevOf } from "./scoring-targets-revs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -89,7 +90,7 @@ section("Stored snipRev 5 rounds replay and score exactly as before");
 section("New rounds: snipRev 6, the tall world, the same rules");
 {
   // Rooms moved on to snipRev 7 (snipRev 6's game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-  ok(generateSnip().snipRev === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN}, snipRev 6's successor (got ${generateSnip().snipRev})`);
+  ok(playRevOf("snip", generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN}, snipRev 6's successor (got ${playRevOf("snip", generateSnip().snipRev)})`);
   ok(puzzleUsesBands({ type: "snip", snipRev: SNIP_REV_BANK6 } as never), "snipRev 6 scores on the bands");
   ok(snipWorldHFor(SNIP_REV_BANK6) === SNIP_TALL_H, "snipRev 6 plays in the 360 × 640 world");
   const r = ARCADE_REVEAL_RENDERERS.snip!;
