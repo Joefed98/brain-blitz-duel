@@ -6,6 +6,8 @@ import {
   PLAYER_ICON_IDS,
   playerInitial,
   takenColours,
+  takenIcons,
+  type PlayerIconId,
   type PlayerLook,
   type PlayerLooks,
 } from "@/lib/duel/playerLook";
@@ -66,12 +68,15 @@ function LookPicker({
   look,
   name,
   taken,
+  takenIconSlots,
   takenBy,
   onChange,
 }: {
   look: PlayerLook;
   name: string;
   taken: ReadonlyMap<number, number>;
+  /** Icons another player holds (greyed out, not tappable, like their colours). */
+  takenIconSlots: ReadonlyMap<PlayerIconId, number>;
   takenBy: (slot: number) => string;
   onChange: (look: Partial<PlayerLook>) => void;
 }) {
@@ -96,7 +101,7 @@ function LookPicker({
               <span
                 className={`flex h-8 w-8 items-center justify-center rounded-full ${
                   selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""
-                } ${holder !== undefined ? "opacity-60" : ""}`}
+                } ${holder !== undefined ? "opacity-40" : ""}`}
                 style={{ background: colour.hex, color: "#0B0B0F" }}
                 aria-hidden="true"
               >
@@ -120,18 +125,24 @@ function LookPicker({
           <div className="grid grid-cols-6 gap-1" role="radiogroup" aria-label="Your icon">
             {[null, ...PLAYER_ICON_IDS].map((icon) => {
               const selected = look.icon === icon;
+              const holder = icon ? takenIconSlots.get(icon) : undefined;
+              const label = icon ? PLAYER_ICON_ART[icon].label : "Your initial";
               return (
                 <button
                   key={icon ?? "initial"}
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  aria-label={icon ? PLAYER_ICON_ART[icon].label : "Your initial"}
+                  disabled={holder !== undefined}
+                  aria-label={holder !== undefined ? `${label}, taken by ${takenBy(holder)}` : label}
+                  data-look-icon={icon ?? "initial"}
                   onClick={() => onChange({ icon })}
-                  className="press flex h-11 items-center justify-center rounded-lg"
+                  className="press flex h-11 items-center justify-center rounded-lg disabled:cursor-not-allowed"
                 >
                   <span
-                    className={`rounded-full ${selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""}`}
+                    className={`rounded-full ${selected ? "ring-2 ring-foreground ring-offset-2 ring-offset-card" : ""} ${
+                      holder !== undefined ? "opacity-40 grayscale" : ""
+                    }`}
                   >
                     <PlayerBadge look={{ colour: look.colour, icon }} name={name} size={32} />
                   </span>
@@ -239,8 +250,8 @@ export function RoomLobby({
         {players.length} of {MAX_PLAYERS} players
       </p>
       {canChooseLook && me && (
-        <p className="-mt-2 text-center text-[11px] text-muted-foreground">
-          Tap your name to pick your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}
+        <p className="-mt-2 text-center text-xs font-semibold text-primary" data-look-hint>
+          Tap your name to choose your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}
         </p>
       )}
       {isHost && players.length > 1 && (
@@ -278,8 +289,11 @@ export function RoomLobby({
                   className="press -my-3 -ml-4 flex min-h-11 min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left"
                 >
                   {nameLine}
-                  <span aria-hidden="true" className="font-mono text-xs text-muted-foreground">
-                    {picking ? "▴" : "▾"}
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 rounded-full border border-primary/60 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary"
+                  >
+                    {picking ? "Done ▴" : "Change ▾"}
                   </span>
                 </button>
               ) : (
@@ -340,6 +354,7 @@ export function RoomLobby({
                 look={myLook}
                 name={player.display_name}
                 taken={takenColours(allPlayers, player.player_slot)}
+                takenIconSlots={takenIcons(allPlayers, player.player_slot)}
                 takenBy={nameOf}
                 onChange={changeLook}
               />

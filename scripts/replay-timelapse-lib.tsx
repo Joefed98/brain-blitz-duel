@@ -14,7 +14,7 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { planTimelapse, TIMELAPSE } from "../src/lib/replay/timelapse";
 
 /** A move list each puzzle could store: its own minimum solution where it keeps one. */
-function answerFor(type: string, p: any): string {
+export function answerFor(type: string, p: any): string {
   switch (type) {
     case "unblock":
     case "tower":
