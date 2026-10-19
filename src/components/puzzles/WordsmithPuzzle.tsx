@@ -9,6 +9,7 @@ import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 import { scoreWordsmith } from "@/lib/duel/scoring";
+import { useStageState } from "@/lib/duel/stageState";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -27,6 +28,8 @@ interface WordsmithPuzzleProps {
   /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
   onDraftAnswer?: ((answer: string) => void) | undefined;
   checkWord?: CheckWord;
+  /** The room round's stage-state key (stageState.ts): the found words survive a re-render and, in a room, a reload. */
+  stateKey?: string;
 }
 
 interface Found {
@@ -42,12 +45,13 @@ export function WordsmithPuzzle({
   onSubmit,
   onDraftAnswer,
   checkWord,
+  stateKey = "wordsmith",
 }: WordsmithPuzzleProps) {
   const column = useGameColumnLayout();
   const letters = puzzle.letters;
   const [order, setOrder] = useState(() => letters.map((_, i) => i));
   const [selectedTiles, setSelectedTiles] = useState<number[]>([]);
-  const [found, setFound] = useState<Found[]>([]);
+  const [found, setFound] = useStageState<Found[]>(stateKey, "wordsmithFound", () => []);
   const [message, setMessage] = useState<string | null>(null);
   const [acceptedWord, setAcceptedWord] = useState<string | null>(null);
   const [shake, setShake] = useState(0);

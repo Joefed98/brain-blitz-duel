@@ -10,7 +10,8 @@
  *     rounds ignore "!" entries); Flash's decoy cut (none up to half the decoys, a miss at all of them, older
  *     stamps never read decoys); Bang On's curve; Tenfall's raw shape with no cliff (10/10 at the buzzer 120, nine
  *     110, every tick earlier never less, at most the speed part's own step between ticks); Pull!'s quick part
- *     (150 only for a perfect quick run, more credit or more clays never less); Mixed Signals' map (rises, 150
+ *     (150 only for a perfect quick run, more credit or more clays never less); Mixed Signals' map (rises, unfinished
+ *     at most 110 and a finish 120+, also on every stored run, 150
  *     only at 150). Older stamps score as before (their own functions, unchanged).
  *  3. Stored runs on the new stamps (scripts/fixtures/scoring-batch2-runs.json.gz, recorded with --record from
  *     the puzzle-fairness kits on the scoring report's seeds): each grades to its stored score and verdict, and
@@ -172,7 +173,10 @@ ok(clayQuickScore(0, QMAX) === 0, "Pull!: a total of 0 earns no quick part");
 // Mixed Signals.
 for (let x = 1; x <= 150; x++) ok(bandMapTotal(CLASH_GREAT_MAP, x) >= bandMapTotal(CLASH_GREAT_MAP, x - 1), `Mixed Signals: the map rises (${x})`);
 ok(bandMapTotal(CLASH_GREAT_MAP, 149) < 150 && bandMapTotal(CLASH_GREAT_MAP, 150) === 150 && bandMapTotal(CLASH_GREAT_MAP, 0) === 0, "Mixed Signals: 0 → 0, 150 only at 150");
-ok(bandMapTotal(CLASH_GREAT_MAP, 120) > bandMapTotal(CLASH_GREAT_MAP, 110), "Mixed Signals: a finish beats every unfinished run");
+// An unfinished run is at most 110 (clashRev 5's unfinished credit tops out at 110), a finish at least 120.
+for (let x = 0; x <= 110; x++) ok(bandMapTotal(CLASH_GREAT_MAP, x) <= 110, `Mixed Signals: unfinished capped at 110 (${x})`);
+for (let x = 120; x <= 150; x++) ok(bandMapTotal(CLASH_GREAT_MAP, x) >= 120, `Mixed Signals: a finish scores 120+ (${x})`);
+ok(bandMapTotal(CLASH_GREAT_MAP, 110) === 110 && bandMapTotal(CLASH_GREAT_MAP, 120) === 120, "Mixed Signals: raw 110 → 110, a finish as time runs out → 120");
 
 /* ============================== 3. Stored runs ============================== */
 const FIXTURE = "scripts/fixtures/scoring-batch2-runs.json.gz";
@@ -234,6 +238,11 @@ for (const run of fixture.runs) {
   ((scores[run.type] ??= {})[run.label] ??= []).push(run.score);
 }
 for (const type of GAMES) ok(Object.values(scores[type] ?? {}).flat().length >= 15 * 8, `${type}: stored runs on the new stamp`);
+// Mixed Signals: every stored unfinished run under every stored finish (grade.ts: a finish is all sorted, at most 2 wrong).
+const clash = fixture.runs.filter((r) => r.type === "stroop");
+const topUnfinished = Math.max(0, ...clash.filter((r) => !r.isCorrect).map((r) => r.score));
+const lowFinish = Math.min(150, ...clash.filter((r) => r.isCorrect).map((r) => r.score));
+ok(topUnfinished <= 110 && lowFinish >= 120 && clash.some((r) => r.isCorrect), `Mixed Signals: highest unfinished ${topUnfinished} (≤ 110), lowest finish ${lowFinish} (≥ 120)`);
 
 /* ============================== 4. Pass marks ============================== */
 const q = (xs: number[], at: number) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(at * xs.length))] ?? 0;
@@ -257,4 +266,5 @@ if (failures.length) {
   process.exit(1);
 }
 for (const line of lines) console.log(`— ${line}`);
+console.log(`— stroop: highest unfinished ${topUnfinished}, lowest finish ${lowFinish}`);
 console.log(`PASS scoring-batch2-check: ${checks} checks — new stamps, Letterfall practice only, Nucleus, Forage, Flash, Bang On, Tenfall, Pull! and Mixed Signals rules, ${fixture.runs.length} stored runs (room = practice), the report's pass marks`);

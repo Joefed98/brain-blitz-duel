@@ -16,6 +16,7 @@ import {
 } from "@/lib/duel/types";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { useStageState } from "@/lib/duel/stageState";
 import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "@/lib/duel/scoring";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
@@ -130,6 +131,8 @@ interface WordHuntPuzzleProps {
   /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
   onDraftAnswer?: ((answer: string) => void) | undefined;
   checkWord?: CheckWord;
+  /** The room round's stage-state key (stageState.ts): the found words and misses survive a re-render and, in a room, a reload. */
+  stateKey?: string;
 }
 
 export function WordHuntPuzzle({
@@ -140,12 +143,13 @@ export function WordHuntPuzzle({
   onSubmit,
   onDraftAnswer,
   checkWord,
+  stateKey = "wordhunt",
 }: WordHuntPuzzleProps) {
   const grid = puzzle.grid;
   const [path, setPath] = useState<number[]>([]);
-  const [found, setFound] = useState<Found[]>([]);
+  const [found, setFound] = useStageState<Found[]>(stateKey, "wordHuntFound", () => []);
   // wordHuntRev 2: traces of 4+ letters the check rejected; the server judges which are misses.
-  const [misses, setMisses] = useState<number[][]>([]);
+  const [misses, setMisses] = useStageState<number[][]>(stateKey, "wordHuntMisses", () => []);
   const sendsMisses = (puzzle.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [message, setMessage] = useState<string | null>(null);

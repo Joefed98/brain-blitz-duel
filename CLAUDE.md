@@ -235,11 +235,14 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   traces as `!cells` after the words; misses beyond 10 + 2 per word cost 3 % each; the traced word shows in the
   `AcceptedWordChip` row), Flash and Bang On `tapRev 4` (one curve each; Flash's decoy cut in `replayFlash` past half
   the decoys tapped), Tenfall `tenRev 3` (tenRev 1's raw score, overshoots beyond 4 cost 5), Pull! `clayRev 8`
-  (quick-hit part, `clayQuickScore`), Mixed Signals `clashRev 7` (`CLASH_GREAT_MAP`); Letterfall is practice only.
-  The new open-game stamps score on their own curve: their rev-2 knots row is the identity (`REV2_IDENTITY_KNOTS`
-  in `puzzleScoreRev2.ts`). `WORDSMITH_REV_TARGET` / `WORDHUNT_REV_TARGET` are the dealt stamps (2); the rev-1 curves
-  are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help texts in `instructions.ts` / `introScore.ts` and Mixed
-  Signals' finish verdict in `grade.ts` still describe the older stamps (batch 1's files; the PR lists the text).
+  (quick-hit part, `clayQuickScore`), Mixed Signals `clashRev 7` (`CLASH_GREAT_MAP`: unfinished at most 110, a finish
+  120+); Letterfall is practice only. The new open-game stamps score on their own curve: their rev-2 knots row is the
+  identity (`REV2_IDENTITY_KNOTS` in `puzzleScoreRev2.ts`). `WORDSMITH_REV_TARGET` / `WORDHUNT_REV_TARGET` are the dealt
+  stamps (2); the rev-1 curves are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help (`instructions.ts`) and intro
+  (`introScore.ts`) texts state the new stamps; Nucleus' and Forage's found words (and Forage's misses) are stage state
+  (`useStageState`), so a room reload keeps them. Known exceptions: Tenfall's average 97 (raw shape, to revisit with
+  beta data); Forage's misses are reported by the phone (`docs/security-audit-oct-2026.md`). scoring-batch2-check (~10 s,
+  `scripts/fixtures/scoring-batch2-runs.json.gz`, `--record` to re-record).
 - **Puzzle helper, `puzzleScoreRev 3`** (20 Oct 2026, batch 1 of `docs/scoring-report-oct-2026.md`; results, misses
   and decisions in `docs/scoring-rev3-oct-2026.md`): every finish puzzle scores unfinished = min(110, 110 × progress ÷
   oneShort) and a correct finish = 120 + 30 × min(1, time-left share ÷ fastShare) × efficiency (`puzzleScoreRev3.ts`,

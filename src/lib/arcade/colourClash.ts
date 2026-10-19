@@ -404,17 +404,18 @@ export const CLASH_REV_BANDS = 6;
 export const CLASH_BANDS_MAP = bandCurve([0, 70, 100, 134, 144, 150], [0, 70, 100, 120, 140, 150]);
 export const colourClashBandsGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: (seed) => ({ ...initRev5(seed), sb: 1 }) };
 
-/* ================= Great re-fit (clashRev 7, 20 Oct 2026) ================= */
+/* ================= Re-fit (clashRev 7, 20 Oct 2026) ================= */
 
 /**
  * clashRev 7 (scoring report batch 2, docs/scoring-targets.md): clashRev 5 play (the state keeps rev 5), its score
- * mapped through CLASH_GREAT_MAP instead: clashRev 6 put the simulated great player at 105, because about half its
- * runs time out a word or two short at 107–110 and the map gave those little more than good's 103. The re-fitted
- * 100–130 segment puts 103 (good) at 100 and 110 (every word but the last) at 120, a finish as time runs out (120)
- * at 123 and near-perfect's 144 at 140; 0 stays 0, a finish still beats every unfinished run and only a finish with
- * the full speed part and no wrong gate (150) is 150.
+ * mapped through CLASH_GREAT_MAP instead of clashRev 6's. As in every other game, an unfinished run scores at most
+ * 110 (clashRev 5's best unfinished credit, every word but the last, maps to exactly 110) and a finish at least 120
+ * (a finish as time runs out), so every finish clearly beats every unfinished run. Below that the curve stays smooth:
+ * the simulated average player's 70 stays 70, good's 103 is 100; near-perfect's 144 is 140. 0 stays 0 and only a
+ * finish with the full speed part and no wrong gate (150) is 150. The simulated great player times out a word or two
+ * short on about half its runs (107–110), so its median sits at 110, the foot of "great".
  */
 export const CLASH_REV_GREAT = 7;
 export const CLASH_SB_GREAT = 2;
-export const CLASH_GREAT_MAP = bandCurve([0, 70, 103, 110, 120, 144, 150], [0, 70, 100, 120, 123, 140, 150]);
+export const CLASH_GREAT_MAP = bandCurve([0, 70, 103, 110, 120, 144, 150], [0, 70, 100, 110, 120, 140, 150]);
 export const colourClashGreatGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: (seed) => ({ ...initRev5(seed), sb: CLASH_SB_GREAT }) };
