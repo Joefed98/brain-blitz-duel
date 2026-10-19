@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { Lock, LockOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -342,7 +343,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, valid
       <p className={`text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
         {myCorrect
           ? `Solved · 5 / 5 rows${elapsed ? ` · ${elapsed}s` : ""}`
-           : `${good.size} / 5 rows`}
+          : (solutionProgress(puzzle, myAnswer ?? "", validRows ? { validRows } : null)?.text ?? `${good.size} / 5 rows`)}
       </p>
       <p className="text-center font-mono text-base text-muted-foreground">
         Par {puzzle.par} – you used {replay.moves}

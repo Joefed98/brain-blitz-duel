@@ -675,7 +675,9 @@ export function wordfallGameFor(rev?: number): typeof wordfallGame {
  * near-perfect players make about 21 / 31 / 34 / 35 points, so par alone no longer makes 150.
  */
 export const WORDFALL_REV_BANDS = 3;
-export const WORDFALL_BANDS_MAP = bandCurve([0, 21, 31, 35, 40, 46], [0, 70, 100, 120, 140, 150]);
+/** wordfallRev 3: the word points that score 150 (the band map's top knot). */
+export const WORDFALL_BANDS_FULL_POINTS = 46;
+export const WORDFALL_BANDS_MAP = bandCurve([0, 21, 31, 35, 40, WORDFALL_BANDS_FULL_POINTS], [0, 70, 100, 120, 140, 150]);
 export const wordfallGameV3: ArcadeGame<WordfallState, ArcadeInputEvent | null> = { ...wordfallGameV2, init: (seed) => ({ ...wordfallGameV2.init(seed), sb: 1 }) };
 /** The rules a stored revision plays (rev 3 plays rev 2). */
 export function wordfallPlayRev(rev?: number): number | undefined {

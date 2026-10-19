@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useGridPointer } from "@/components/puzzles/GridDrag";
@@ -218,7 +219,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono text-primary">
-        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : `${covered} / ${SHIKAKU_CELLS} covered`}
+        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${SHIKAKU_CELLS} covered`)}
       </p>
     </div>
   );

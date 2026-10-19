@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { solutionProgress } from "./progressFigures";
 import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
   SPOT_REV1_PER_SCENE,
@@ -20,6 +21,7 @@ import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { WF_PAR } from "@/lib/arcade/wordfall";
+import { CLAY_REV_BANDS } from "@/lib/arcade/clayShoot";
 import { equationStageCorrect, parseCount, parseSelection, scanStageResult, splitStages } from "./stagedRounds";
 import {
   EQUATION_TIME_MS,
@@ -120,6 +122,15 @@ import { BAL_TIME_MS, balanceScaleCount } from "./balance";
 
 type BuiltDetail = Omit<PlayerRoundDetail, "playerSlot">;
 type SummaryBuilder = (result: RoundResultRow, puzzle: PuzzleData) => BuiltDetail;
+
+/**
+ * An unfinished round's progress toward the solution, as its credit counts it (progressFigures.ts),
+ * for the seven games whose raw figure counted more than the score did; null keeps the old figure.
+ */
+function progressOf(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail | null {
+  const figure = solutionProgress(puzzle, result.answer ?? "", result.extra);
+  return figure ? { summary: figure.text, detail: figure.cost ? [figure.cost] : [] } : null;
+}
 type AnswerBuilder = (puzzle: PuzzleData) => string | null;
 
 /** Types added after the ladder below; their limits are looked up directly. */
@@ -450,6 +461,8 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "blockparty") return { summary: "—", detail: [] };
   const covered = Number(result.extra?.["covered"] ?? 0);
   if (!result.is_correct) {
+    const progress = progressOf(result, puzzle);
+    if (progress) return progress;
     return {
       summary: `${covered} / ${BLOCK_FREE_CELLS}`,
       detail: [`${covered} of ${BLOCK_FREE_CELLS} squares covered`],
@@ -488,6 +501,10 @@ const tileGridSummary: SummaryBuilder = (result) => {
 
 const wordSlideSummary: SummaryBuilder = (result, puzzle) => {
   const rows = Number(result.extra?.["rows"] ?? result.correct_count ?? 0);
+  if (!result.is_correct) {
+    const progress = progressOf(result, puzzle);
+    if (progress) return progress;
+  }
   return {
     summary: result.is_correct
       ? `Solved · 5 / 5 rows · ${seconds(elapsedMs(result, puzzle))}`
@@ -559,6 +576,8 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
       detail: ["Every pair joined and every square filled"],
     };
   }
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
   return {
     summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
     detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
@@ -821,6 +840,8 @@ const tilesSummary: SummaryBuilder = (result, puzzle) => {
   const moves = Number(result.extra?.["moves"] ?? 0);
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const inPlace = Number(result.extra?.["inPlace"] ?? 0);
+  const progress = result.is_correct ? null : progressOf(result, puzzle);
+  if (progress) return { summary: progress.summary, detail: [...progress.detail, `${moves} moves made`] };
   return {
     summary: result.is_correct
       ? `Solved · ${moves} moves${min ? ` (min ${min})` : ""} · ${seconds(elapsedMs(result, puzzle))}`
@@ -1085,7 +1106,7 @@ const wordfallSummary: SummaryBuilder = (result) => {
   };
 };
 
-const clayShootSummary: SummaryBuilder = (result) => {
+const clayShootSummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 25);
   const orange = Number(result.extra?.["orangeHits"] ?? 0);
@@ -1096,9 +1117,11 @@ const clayShootSummary: SummaryBuilder = (result) => {
   // clayRev 4+: the stored empty-shot cost, so a full house below 150 is explained.
   const empty = Number(result.extra?.["emptyShots"] ?? 0);
   const emptyCost = Number(result.extra?.["emptyShotCost"] ?? 0);
+  // clayRev 7 (score bands): the total goes through a curve, so bird and empty-shot costs are not score points.
+  const unit = puzzle.type === "clayshoot" && (puzzle.clayRev ?? 0) >= CLAY_REV_BANDS ? " from the total" : "";
   return {
     summary: `${hits} / ${total} clays`,
-    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10})` : ""}${emptyCost > 0 ? ` · ${empty} empty shot${empty === 1 ? "" : "s"} (−${emptyCost})` : ""}`],
+    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10}${unit})` : ""}${emptyCost > 0 ? ` · ${empty} empty shot${empty === 1 ? "" : "s"} (−${emptyCost}${unit})` : ""}`],
   };
 };
 
@@ -1258,11 +1281,15 @@ const burstSummary: SummaryBuilder = (result) => {
 
 const shikakuSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
   return { summary: `${Number(result.extra?.["covered"] ?? 0)} / ${puzzle.type === "shikaku" ? puzzle.size * puzzle.size : 81} covered`, detail: [] };
 };
 
 const lightUpSummary: SummaryBuilder = (result, puzzle) => {
   if (result.is_correct) return { summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`, detail: [] };
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
   const lit = Number(result.extra?.["lit"] ?? 0);
   const whites = Number(result.extra?.["whites"] ?? 0);
   const clashing = Number(result.extra?.["clashing"] ?? 0);
@@ -1353,11 +1380,13 @@ const codewordSummary: SummaryBuilder = (result) => {
   return { summary: `${correct} / ${hidden} letters`, detail: [] };
 };
 
-const swapwordSummary: SummaryBuilder = (result) => {
+const swapwordSummary: SummaryBuilder = (result, puzzle) => {
   const swaps = Number(result.extra?.["swaps"] ?? 0);
   if (result.extra?.["solved"] === true) {
     return { summary: `Solved · ${swaps} swaps (min ${Number(result.extra?.["minSwaps"] ?? 0)})`, detail: [] };
   }
+  const progress = progressOf(result, puzzle);
+  if (progress) return progress;
   return { summary: `${Number(result.extra?.["placed"] ?? 0)} tiles placed`, detail: [] };
 };
 

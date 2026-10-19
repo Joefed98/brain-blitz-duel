@@ -78,6 +78,9 @@ import {
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
 import { clearStageState } from "@/lib/duel/stageState";
+import { createRoomSender } from "@/lib/duel/roomSend";
+import { createDraftKeeper } from "@/lib/duel/roomDraft";
+import { roomPuzzleCloseMs, roomTimeoutMs } from "@/lib/duel/roomClose";
 import { elapsedMs, formatElapsed, roundVerdict, scoreOnlyVerdict } from "@/lib/duel/resultPresentation";
 import {
   absentRivals,
@@ -105,7 +108,6 @@ import { showRoundChatDot } from "@/lib/duel/chatNotice";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
-  puzzleDurationMs,
   puzzleName,
   puzzlePrepMs,
   puzzleRevealMs,
@@ -261,10 +263,13 @@ function DuelScreen() {
   const [starting, setStarting] = useState(false);
   const [confirmDisband, setConfirmDisband] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  /** The round (`${room id}-${round}`) this phone has sent an answer for: one send per round, as in practice. */
-  const timeoutSubmitted = useRef<string>("");
-  /** The live round's draft, tagged with its round (stateKey) so a new round can never send an old one. */
-  const draftAnswer = useRef<{ key: string; answer: string }>({ key: "", answer: "" });
+  /**
+   * The round's one answer (keyed `${room id}-${round}`), as in practice: the stage's own submit or the
+   * time-out's draft, never both; a send that fails on the way is retried while the round takes answers.
+   */
+  const sender = useRef(createRoomSender((payload) => submitAnswer(payload))).current;
+  /** The live round's draft, by its round (stateKey), kept on the device so a reload mid-round keeps it. */
+  const drafts = useRef(createDraftKeeper()).current;
   const lastAdvance = useRef(0);
   const dueSince = useRef(0);
   const [revealed, setRevealed] = useState<{
@@ -320,13 +325,12 @@ function DuelScreen() {
     revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
   useEffect(() => {
-    // A draft from another round is dropped; one the stage restored for this round (a reload
-    // mid-round, pushed before this effect runs) is kept.
-    if (draftAnswer.current.key !== stateKey) draftAnswer.current = { key: "", answer: "" };
+    // Other rounds' stored drafts are dropped; this round's (one kept through a reload) stays.
+    drafts.prune(stateKey);
     setRevealed(null);
     // The previous round's inputs are no longer needed once a new round opens.
     if (round > 1) clearStageState(`${tournamentKey}-${round - 1}`);
-  }, [tournamentKey, round]);
+  }, [tournamentKey, round]); // eslint-disable-line react-hooks/exhaustive-deps
   const phaseStart = toMs(duel?.phase_started_at ?? null) ?? toMs(duel?.round_started_at ?? null);
 
   // Chat and reactions never reserve or cover space during viewport-locked play/reveal.
@@ -348,8 +352,10 @@ function DuelScreen() {
   // The clock starts once any puzzle preparation (sequence playback) is done.
   const puzzleStart = phase === "puzzle" ? phaseStart : null;
   const clockStart = puzzleStart === null ? null : puzzleStart + puzzlePrepMs(puzzle);
-  // End of the puzzle phase. Most types run for 30s; Reaction Time has its own length.
-  const deadline = puzzleStart === null ? null : puzzleStart + puzzleDurationMs(puzzle);
+  // End of the puzzle phase. Most types run for 30s; Reaction Time has its own length. Arcade rounds
+  // wait a little longer for a run still being played (roomClose.ts); the room moves on 800 ms later.
+  const deadline = puzzleStart === null ? null : puzzleStart + roomTimeoutMs(puzzle);
+  const closesAt = puzzleStart === null ? null : puzzleStart + roomPuzzleCloseMs(puzzle);
   const showTimer = puzzleShowsTimer(puzzle);
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   const clockDeadline = clockStart === null ? null : clockStart + timeLimitMs;
@@ -442,21 +448,17 @@ function DuelScreen() {
   // Timer ran out without a submission: send the round's draft (the partial answer practice grades
   // too). Also when the room has already moved to the reveal before this phone sent anything (the
   // server still takes late answers then), so a slow phone never ends a round with no answer at all.
+  // A send that failed on the way (the stage's or this one) goes again here, after its backoff.
   useEffect(() => {
     if (!duel || !me || !puzzle || duel.status !== "in_progress" || myResult) return;
+    const key = `${duel.id}-${round}`;
+    sender.tick(key, now, phase === "puzzle" || phase === "reveal");
     if (phase === "puzzle") {
       if (deadline === null || now < deadline) return;
     } else if (phase !== "reveal") return;
-    const key = `${duel.id}-${round}`;
-    if (timeoutSubmitted.current === key) return;
-    timeoutSubmitted.current = key;
+    if (sender.claimed(key)) return;
     noteSignatureSubmit(puzzle.type);
-    void submitAnswer({
-      duelId: duel.id,
-      roundNumber: round,
-      answer: draftAnswer.current.key === stateKey ? draftAnswer.current.answer : "",
-      msRemaining: 0,
-    });
+    sender.send(key, { duelId: duel.id, roundNumber: round, answer: drafts.current(stateKey), msRemaining: 0 }, now);
   }, [duel?.id, duel?.status, phase, round, now, deadline, myResult, me?.id, puzzle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
@@ -476,7 +478,7 @@ function DuelScreen() {
     else if (phase === "intro")
       due = elapsed >= INTRO_MS || (elapsed < INTRO_WAIT_MS && allIntroReady(roomPlayers, round, now));
     else if (phase === "puzzle")
-      due = answeredThisRound >= activeCount || (deadline !== null && now > deadline + 800);
+      due = answeredThisRound >= activeCount || (closesAt !== null && now > closesAt);
     else if (phase === "reveal") due = elapsed >= puzzleRevealMs(puzzle);
     else if (phase === "result")
       due = elapsed >= NEXT_ROUND_AUTO_MS || allContinued(roomPlayers, round, phase, now);
@@ -511,7 +513,7 @@ function DuelScreen() {
     roomPlayers,
     answeredThisRound,
     activeCount,
-    deadline,
+    closesAt,
   ]);
 
   // The correct answer only exists on the client once the round has ended.
@@ -652,33 +654,35 @@ function DuelScreen() {
     // One send per round: a stage's own submit (some send just before the buzzer) and the
     // time-out's draft can never both go, so the stage's answer is the one graded, as in practice.
     const sent = `${room.id}-${roundNumber}`;
-    if (timeoutSubmitted.current === sent) return;
-    timeoutSubmitted.current = sent;
+    if (sender.claimed(sent)) return;
     noteSignatureSubmit(current.type);
     unlockAudio();
     playLock();
     buzz(15);
-    void submitAnswer({
-      duelId: room.id,
-      roundNumber,
-      answer,
-      msRemaining:
-        latest.current.clockDeadline === null ? 0 : Math.max(0, latest.current.clockDeadline - at),
-      extra: {
-        reactionAvgMs: meta?.reactionAvgMs,
-        correctCount: meta?.correctCount,
-        errors: meta?.errors,
+    // Kept as the round's draft too, so a reload before it lands still has it.
+    drafts.push(latest.current.stateKey, answer, true);
+    // Not stored on the way: sent again, the same answer and time claim, after a short wait (roomSend.ts).
+    sender.send(
+      sent,
+      {
+        duelId: room.id,
+        roundNumber,
+        answer,
+        msRemaining:
+          latest.current.clockDeadline === null ? 0 : Math.max(0, latest.current.clockDeadline - at),
+        extra: {
+          reactionAvgMs: meta?.reactionAvgMs,
+          correctCount: meta?.correctCount,
+          errors: meta?.errors,
+        },
       },
-    }).catch(() => {
-      // Not stored: the time-out (or the reveal) sends this answer instead, once.
-      draftAnswer.current = { key: latest.current.stateKey, answer };
-      if (timeoutSubmitted.current === sent) timeoutSubmitted.current = "";
-    });
-  }, []);
+      at,
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDraftAnswer = useCallback((answer: string) => {
-    draftAnswer.current = { key: latest.current.stateKey, answer };
-  }, []);
+    drafts.push(latest.current.stateKey, answer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCheckWord = useCallback(
     (word: string, found: string[], path?: number[]) =>

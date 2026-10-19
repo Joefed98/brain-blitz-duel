@@ -5,7 +5,8 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
-import { puzzleDurationMs, puzzleRevealMs, typesInCategory } from "./registry";
+import { puzzleRevealMs, typesInCategory } from "./registry";
+import { roomPuzzleCloseMs } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
 import { linkRoomState } from "./roomLink";
 import { mergePuzzle, splitPuzzle } from "./secrets";
@@ -743,7 +744,8 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
     if (room.phase === "puzzle") {
       const answered = await activeAnsweredCount(client, room.id, round, players);
       const allIn = waitingOn.length > 0 && answered >= waitingOn.length;
-      const timeUp = elapsed > puzzleDurationMs(puzzle) + 800;
+      // Arcade rounds wait a little longer for a run still being played (roomClose.ts).
+      const timeUp = elapsed > roomPuzzleCloseMs(puzzle);
       if (allIn || timeUp) {
         const at = await setPhase(client, room.id, round, "puzzle", "reveal");
         if (at)

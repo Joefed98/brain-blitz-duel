@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
@@ -346,7 +347,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect
           ? `✓ Solved${elapsed === null ? "" : ` · ${elapsed.toFixed(1)}s`}`
-          : `✗ ${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}
+          : `✗ ${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${verdict.pairsJoined} / ${puzzle.pairs.length} pairs`}`}
       </p>
     </div>
   );
