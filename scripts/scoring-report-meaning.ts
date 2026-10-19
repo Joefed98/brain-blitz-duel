@@ -1,0 +1,55 @@
+/**
+ * What "progress" means in each game's grader (scripts/scoring-report.ts writes it into
+ * docs/scoring-report-oct-2026.md). Report text only; nothing here grades.
+ */
+export const PROGRESS_MEANING: Record<string, string> = {
+  tilegrid:
+    "tiles placed inside valid words, out of 15 (rev-1 credit); a valid grid of any size can be submitted with Done",
+  wordslide:
+    "rows made into words different from the start, cut by wasted moves (wasteFactor reaches 0 at 4 × par; Undo and Reset count)",
+  wordsearch: "themed words found: 110 × found ÷ (total − 1)",
+  letterwheel:
+    "distinct slot words: 12 each for the first 6, then 5 each, capped at 110, −3 per miss over 5",
+  strikeout: "30 a solved word + 2 a found letter, capped at 110 (reached at 4 words)",
+  codeword: "right letters placed, 110 × right ÷ (hidden − 1), −5 per wrong letter on the grid",
+  swapword: "tiles placed minus tiles moved out of place, × 110 ÷ (tiles to place − 2)",
+  target: "distance to the target from the closest number made (off by 1 = 110)",
+  equation: "equations solved in order, worth 20 / 30 / 35 / 45 (3 tries each)",
+  balance: "scales balanced, worth 15 / 25 / 30 / 55 in any order (the stage deals them in order)",
+  numpyramid: "pyramid cells filled correctly across the four boards",
+  trail: "tiles at their exact solution step minus every other tile placed, × 110 ÷ 25",
+  measure: "jug puzzles solved in order, worth 30 / 35 / 45; pours inside a puzzle count nothing",
+  checkout: "boards checked out, worth 22 / 24 / 26 / 28 / 32",
+  numline:
+    "no finish state: accuracy of each number placed on the line (rev-1 score is the result)",
+  numhunt: "numbers tapped in order (tap log), wrong taps cost",
+  chain: "links tapped before the chain broke (tap log)",
+  symscan: "symbols found on the three boards, worth 40 / 40 / 30, wrong taps cost",
+  spotdiff: "differences found, 10 each, wrong taps cost",
+  countup: "trays counted right, worth 40 / 30 / 25 / 15; one off scores 15 %",
+  maze: "share of the route to the exit walked (solver distance)",
+  pairmatch: "pairs matched, flips beyond the minimum cost",
+  unblock: "solver distance from the start to the exit (moves), cut by waste",
+  blockparty: "pieces placed in their solution place",
+  iceslide: "solver distance to the goal, cut by waste",
+  gravity: "solver distance (gravityRev 2 solverProgress), cut by waste",
+  tiles: "tiles in place / solver distance, cut by waste",
+  rings: "rings aligned, cut by waste",
+  laser: "targets lit by the placed mirrors (action log), fires limited",
+  pipes: "pipes connected to the source",
+  lightsout: "lights off towards the solution (solver distance), cut by waste",
+  sudoku: "cells filled correctly, −5 per wrong cell",
+  flow: "pairs joined, share of cells filled",
+  push: "boxes on goals / solver distance, cut by waste",
+  tower: "discs moved to the target peg (solver distance), cut by waste",
+  tubes: "solver distance (tubesRev 2 solverProgress), cut by waste",
+  safe: "dials right on the best try; tries cost (rev 2 draft carries the dials left standing)",
+  bomb: "wires cut and buttons pressed correctly in order",
+  nonogram: "cells filled correctly, −5 per wrong cell",
+  flood: "share of the board flooded to one colour, moves limited",
+  tents: "tents placed correctly, −10 per wrong tent",
+  shikaku: "rectangles drawn that match the solution",
+  lightup: "lamps placed correctly, −5 per wrong lamp",
+  wordsmith: "no finish state: word points (WORDSMITH_V1_CURVE, then the rev-2 knots)",
+  wordhunt: "no finish state: word points (curve, then the rev-2 knots)",
+};
