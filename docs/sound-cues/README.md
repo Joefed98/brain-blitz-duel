@@ -73,6 +73,8 @@ plays through `loopCue()` in `gameSounds.ts` (`ensureCueLoop` / `stopCueLoop`): 
 500 ms and out when it ends, one per game. The mapping sheets are [batch2-mapping.csv](batch2-mapping.csv) and
 [batch3-mapping.csv](batch3-mapping.csv) (`file,cues`; `EXISTING:<id>` points a slot at an app-wide entry or a file
 already in `public/sounds/`).
+Sound batch 4 (Joe's listening notes, 19 Oct 2026; not made or wired yet) is
+[batch4-sound-polish.md](batch4-sound-polish.md) with [batch4-mapping.csv](batch4-mapping.csv).
 
 What each kind of slot does once it has a file:
 
