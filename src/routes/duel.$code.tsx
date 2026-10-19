@@ -33,7 +33,7 @@ import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundHighlight } from "@/components/replay/RoundHighlight";
 import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
 import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
-import { RoomChat } from "@/components/duel/RoomChat";
+import { RoomChat, RoundChatDot } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { FinishedPingStrip, useFinishedPings } from "@/components/duel/FinishedPings";
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
@@ -77,7 +77,7 @@ import {
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
 import { clearStageState } from "@/lib/duel/stageState";
-import { elapsedMs, formatElapsed, roundVerdict } from "@/lib/duel/resultPresentation";
+import { elapsedMs, formatElapsed, roundVerdict, scoreOnlyVerdict } from "@/lib/duel/resultPresentation";
 import {
   absentRivals,
   allContinued,
@@ -99,6 +99,8 @@ import {
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import { useDuel } from "@/lib/duel/useDuel";
 import { normaliseCategories } from "@/lib/duel/categories";
+import { roundClockMs } from "@/lib/duel/buzzer";
+import { showRoundChatDot } from "@/lib/duel/chatNotice";
 import { setPlayerMuted, useRoomChat } from "@/lib/duel/useRoomChat";
 import {
   puzzleDef,
@@ -404,10 +406,12 @@ function DuelScreen() {
     : null;
   /** Only the host drives the standings screen on; timers do the rest. */
   const leads = isHost;
+  // The round's own clock (an arcade run's length): the time column shows it in full at the buzzer.
+  const roundClock = roundClockMs(puzzle);
   const roundTimes = new Map(
     roomPlayers.map((player) => [
       player.player_slot,
-      elapsedMs(resultFor(results, player.player_slot, round), timeLimitMs),
+      elapsedMs(resultFor(results, player.player_slot, round), timeLimitMs, roundClock, puzzle?.type),
     ]),
   );
 
@@ -1034,6 +1038,8 @@ function DuelScreen() {
             best={bestLine}
             rows={table}
             times={roundTimes}
+            clockMs={roundClock}
+            scoreOnly={scoreOnlyVerdict(puzzle?.type)}
             looks={looks}
             mySlot={mySlot}
             autoSeconds={autoSeconds}
@@ -1065,16 +1071,16 @@ function DuelScreen() {
           myLook={looks.get(mySlot)}
           opponentLook={looks.get(opponentSlot)}
           myRoundScore={myResult?.score ?? 0}
-          myVerdict={roundVerdict({ roundCorrect: myResult ? myResult.is_correct : null, roundScore: myResult?.score ?? 0 })}
+          myVerdict={roundVerdict({ roundCorrect: myResult ? myResult.is_correct : null, roundScore: myResult?.score ?? 0 }, scoreOnlyVerdict(puzzle?.type))}
           mySummary={myStanding?.summary ?? "No answer"}
-          myTime={formatElapsed(roundTimes.get(mySlot) ?? null)}
+          myTime={formatElapsed(roundTimes.get(mySlot) ?? null, roundClock)}
           opponentRoundScore={opponentResult?.score ?? 0}
           opponentVerdict={roundVerdict({
             roundCorrect: opponentResult ? opponentResult.is_correct : null,
             roundScore: opponentResult?.score ?? 0,
-          })}
+          }, scoreOnlyVerdict(puzzle?.type))}
           opponentSummary={opponentStanding?.summary ?? "No answer"}
-          opponentTime={formatElapsed(roundTimes.get(opponentSlot) ?? null)}
+          opponentTime={formatElapsed(roundTimes.get(opponentSlot) ?? null, roundClock)}
           autoSeconds={autoSeconds}
           finalRound={round >= duel.round_count}
           continueState={continueState}
@@ -1154,12 +1160,15 @@ function DuelScreen() {
         stacked={stackedScore}
       />
     );
-  // One wrapper whether or not a ping shows, so the score strip never remounts (and never re-counts).
+  // During the round, unread chat shows only as a small dot on the score header (chatNotice.ts).
+  const chatDot = showRoundChatDot(chat.unread, chatAvailable) ? <RoundChatDot unread={chat.unread} /> : null;
+  // One wrapper whether or not a ping or the chat dot shows, so the score strip never remounts (and never re-counts).
   const roomGameHeader =
-    stackedScore || (!scoreHeader && !pingStrip) ? scoreHeader : (
+    !scoreHeader && !pingStrip && !chatDot ? scoreHeader : (
       <div className={`relative min-w-0 ${scoreHeader ? "" : "h-9"}`}>
         {scoreHeader}
-        {pingStrip}
+        {stackedScore ? null : pingStrip}
+        {chatDot}
       </div>
     );
   return (

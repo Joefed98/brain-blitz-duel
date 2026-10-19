@@ -187,6 +187,24 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   - *Lobby looks.* Your own row has a "Change ▾" chip; icons, like colours, are one per room (taken ones greyed out, refused by
     `changePlayerLook`, dropped on join, a racing join's duplicate cleared for the higher slot). No migration (no unique index:
     two taps in the same instant could share an icon, harmless).
+- **Room screen fixes** (19 Oct 2026; display and room data only, no version stamps, no scoring or grading changed):
+  - *Chat* (`src/lib/duel/chatNotice.ts`): placeholder "Chat…"; the chat button shows only other players' unread
+    messages, in gold; between rounds a live message from another player shows a toast (their badge, name, first words;
+    tap opens the messages) with `playBlip` and a light haptic; during a round (intro countdown to reveal) nothing but a
+    small silent dot on the play header (`RoundChatDot`). chat-notice-check (~1 s, happy-dom).
+  - *Finished pings* only for a finish before the buzzer (`src/lib/duel/buzzer.ts`: received in the puzzle phase with
+    ≥ 1 s left on the round's own clock, an arcade run's length or the time limit); never a time-out draft, an answer at
+    the buzzer, a late one or a run played to the end.
+  - *Round leaderboard*: the time column is on the round's own clock and shows it whole ("90s") for anyone who reached the
+    buzzer; Bang On shows no time (its stored figure is a distance, "avg N ms off"); arcade runs, Flash and Bang On are
+    judged by score alone ("Scored" / "✗", `scoreOnlyVerdict`); summaries fixed to match the stored result (Ascend tap
+    logs, Operator's tries suffix and limit, Nucleus/Forage curves, Counterweight's scales, Target rev 1's made distance,
+    Hats rev 1, Lights Out, Pull!'s empty shots). round-time-check (~3 s) proves it for every active game.
+  - *Awards* (`podiumAwards.ts`): Fastest Finger a full solve of 120+ using at most half the clock; Perfectionist the most
+    150s; Comeback Kid a climb of 2+ places onto the podium, rooms of 3+ only; So Close a genuinely small gap
+    (`isGenuinelyClose` in nearMiss.ts); better figure first, then non-winners. player-looks-check.
+  - *No blue boxes* (styles.css): no tap highlight, focus outline/ring or text selection on touch (inputs excepted);
+    keyboard focus rings only with hover and a fine pointer. touch-highlight-check (headless Chromium, ~1 min, `play6`).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000

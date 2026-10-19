@@ -15,7 +15,9 @@
  *     "Sam, Ali and 3 others finished", the badges of the first three.
  *  4. Before the migration: rows without the field never ping, and markSubmitted / clearSubmitted
  *     never throw when the update fails (submitting and Play again carry on).
- *  5. Wiring: submitAnswerFn marks only after the result row is stored (and its error checked);
+ *  5. Wiring: submitAnswerFn marks only after the result row is stored (and its error checked), and
+ *     only for a finish before the buzzer (18 Oct 2026: never a time-out, an answer sent at the buzzer
+ *     or a late one; buzzer.ts, proved per game by round-time-check);
  *     rematchFn clears after the restart; the room shows pings only in the live puzzle phase;
  *     practice and replays never show them; no sound; the migration adds the one column with a
  *     range check and no grant or policy, and no client code writes duel_players.
@@ -197,6 +199,8 @@ for (let room = 0; room < 300; room++) {
   const markAt = submit.indexOf("await markSubmitted(client, player.id, data.roundNumber)");
   check(insertAt > 0 && errorAt > insertAt && markAt > errorAt, "submitAnswerFn marks only after the result row is stored and its error checked");
   check((fns.match(/markSubmitted\(/g) ?? []).length === 1, "only submitAnswerFn marks a player as finished");
+  // 18 Oct 2026: only a finish before the buzzer pings (buzzer.ts; round-time-check proves the rule per game).
+  check(/if \(finishedBeforeBuzzer\(puzzle, room\.phase, msLeft\)\) await markSubmitted\(client, player\.id, data\.roundNumber\)/.test(submit), "a time-out, buzzer or late answer can ping (the buzzer gate is missing)");
   const rematch = fns.slice(fns.indexOf("export const rematchFn"));
   check(rematch.indexOf("await clearSubmitted(client, room.id)") > rematch.indexOf('client.rpc("restart_duel_room"'), "Play again clears the marks after the restart");
 

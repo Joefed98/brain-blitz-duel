@@ -1,22 +1,27 @@
 /**
- * Podium awards (17 Oct 2026; presentation only). After the last round the final screen shows up
- * to four fun awards, each only when someone earned it:
- *  - Fastest Finger: the quickest correct (or round-topping) puzzle finish, as a share of that
- *    round's clock so a 30 s and a 100 s puzzle compare fairly. Arcade runs and Flash's reaction
- *    rounds don't count: they have no finish time to compare.
+ * Podium awards (17 Oct 2026; rules tightened 18 Oct 2026; presentation only). After the last round
+ * the final screen shows up to four awards, each only for a real achievement:
+ *  - Fastest Finger: the quickest puzzle solve, as a share of that round's clock so a 30 s and a
+ *    100 s puzzle compare fairly. It must be a full solve (is_correct), score at least
+ *    FASTEST_MIN_SCORE ("good", docs/scoring-targets.md) and use at most FASTEST_MAX_SHARE of the
+ *    clock (the speed-bonus par: half the time left). Arcade runs, Flash and Bang On don't count:
+ *    they have no finish time to compare.
  *  - Perfectionist: the most perfect 150s (at least one).
  *  - Comeback Kid: the biggest climb, from the lowest place held after any earlier round to the
- *    final place, of at least 2 places.
- *  - So Close: the most near misses (nearMiss.ts, the line the results screen shows).
+ *    final place, of at least COMEBACK_MIN_PLACES places, finishing on the podium (top 3). Only in
+ *    rooms of 3 or more: with 2 players there is no such climb (2nd to 1st is just winning).
+ *  - So Close: the most genuinely close near misses (nearMiss.ts isGenuinelyClose: one thing left,
+ *    or at most a fifth of a known count, or a tenth of a distance, time or points), in rounds that
+ *    did not score 150. "4 mazes from the end" is a results line, never a So Close.
  *
- * Who gets each: players who didn't win come first (the winner already has the podium; a winner
- * gets an award only when no one else earned it), then the better figure, then whoever has fewer
- * awards so far, then the better final place, then the lower slot (the earlier join). Everything
+ * Who gets each: the better figure first (so 3 perfects beat 1), then players who didn't win (the
+ * winner already has the podium), then whoever has fewer awards so far, then the better final
+ * place, then the lower slot (the earlier join). Everything
  * here comes from the stored results every player can read once the rounds have ended, and
  * nothing depends on who is looking or on the order rows arrive in, so every phone shows the same
  * awards. Nothing is stored and nothing reads or writes a round, score or timing.
  */
-import { nearMiss } from "./nearMiss";
+import { isGenuinelyClose, nearMissInfo } from "./nearMiss";
 import { ordinal } from "./ordinal";
 import { MAX_ROUND_SCORE, standings, type TieRounds } from "./scoring";
 import type { DuelPlayerRow, PuzzleType, RoundResultRow, StoredPuzzleType } from "./types";
@@ -52,8 +57,14 @@ export const AWARD_TITLES: Record<AwardId, string> = {
 /** The order awards are handed out in (and shown). */
 const AWARD_ORDER: readonly AwardId[] = ["perfect", "fastest", "comeback", "close"];
 
-/** The fewest places a Comeback Kid must climb. */
+/** The fewest places a Comeback Kid must climb… */
 export const COMEBACK_MIN_PLACES = 2;
+/** …to a final place no lower than this. */
+export const COMEBACK_MAX_FINAL_PLACE = 3;
+/** Fastest Finger: the lowest score a qualifying solve may have ("good")… */
+export const FASTEST_MIN_SCORE = 120;
+/** …and the largest share of the round's clock it may use (half the time left). */
+export const FASTEST_MAX_SHARE = 0.5;
 
 interface Candidate {
   slot: number;
@@ -70,11 +81,14 @@ function fastest(players: DuelPlayerRow[], results: RoundResultRow[], rounds: re
     const rows = results.filter(
       (r) => r.round_number === number && players.some((p) => p.player_slot === r.player_slot),
     );
-    const top = Math.max(0, ...rows.map((r) => r.score));
     for (const row of rows) {
       if (row.reaction_avg_ms !== null) continue;
-      if (!row.is_correct && !(row.score > 0 && row.score === top)) continue;
+      // A real solve with a good score, not merely the quickest answer.
+      if (!row.is_correct || row.score < FASTEST_MIN_SCORE) continue;
+      // 0 ms left is how older rounds stored "no finishing time": never a fast finish.
+      if (!(row.ms_remaining > 0)) continue;
       const elapsed = Math.max(0, Math.min(round.timeLimitMs, round.timeLimitMs - row.ms_remaining));
+      if (elapsed > round.timeLimitMs * FASTEST_MAX_SHARE) continue;
       const share = Math.round((elapsed / round.timeLimitMs) * 1e6);
       const candidate = {
         slot: row.player_slot,
@@ -115,7 +129,7 @@ function comeback(
   finalPlace: ReadonlyMap<number, number>,
   tie: TieRounds,
 ): Candidate[] {
-  if (rounds.length < 2) return [];
+  if (rounds.length < 2 || players.length < 3) return [];
   // The lowest place each player held after any round before the last (the latest such round).
   const lowest = new Map<number, { place: number; round: number }>();
   for (let round = 1; round < rounds.length; round++)
@@ -128,7 +142,7 @@ function comeback(
     const to = finalPlace.get(p.player_slot);
     if (!from || to === undefined) return [];
     const climb = from.place - to;
-    if (climb < COMEBACK_MIN_PLACES) return [];
+    if (climb < COMEBACK_MIN_PLACES || to > COMEBACK_MAX_FINAL_PLACE) return [];
     return [
       {
         slot: p.player_slot,
@@ -143,8 +157,9 @@ function close(players: DuelPlayerRow[], results: RoundResultRow[], rounds: read
   return players.flatMap((p) => {
     const misses = rounds.flatMap((round, index) => {
       const row = results.find((r) => r.player_slot === p.player_slot && r.round_number === index + 1);
-      const line = row ? nearMiss(round.type as PuzzleType, row.extra as Record<string, unknown> | null) : null;
-      return line ? [{ round: index + 1, name: round.name, line }] : [];
+      if (!row || row.score >= MAX_ROUND_SCORE) return [];
+      const info = nearMissInfo(round.type as PuzzleType, row.extra as Record<string, unknown> | null);
+      return info && isGenuinelyClose(info) ? [{ round: index + 1, name: round.name, line: info.line }] : [];
     });
     if (!misses.length) return [];
     const last = misses[misses.length - 1]!;
@@ -195,8 +210,8 @@ export function podiumAwards(
   for (const id of AWARD_ORDER) {
     const ranked = [...candidates[id]].sort(
       (a, b) =>
-        Number(finalPlace.get(a.slot) === 1) - Number(finalPlace.get(b.slot) === 1) ||
         compare(a.key, b.key) ||
+        Number(finalPlace.get(a.slot) === 1) - Number(finalPlace.get(b.slot) === 1) ||
         (given.get(a.slot) ?? 0) - (given.get(b.slot) ?? 0) ||
         (finalPlace.get(a.slot) ?? 99) - (finalPlace.get(b.slot) ?? 99) ||
         a.slot - b.slot,

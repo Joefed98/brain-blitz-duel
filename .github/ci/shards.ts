@@ -37,7 +37,9 @@ export const SHARDS: Record<string, string[]> = {
   // reveal drawn with a notch and home bar for colour seams, which roughly doubled it): one
   // eighth per job (~9-10 games; ~4.2 min a part locally on 4 cores with its dev server,
   // aiming at ~5 min on a 2-core runner plus setup). It was in thirds (~25 games) before.
-  play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx"],
+  // touch-highlight-check (18 Oct 2026: no tap highlight, touch focus ring or selection on game and room screens,
+  // ~1 min with its dev server) rides beside screen-bottom-check, through the same harness.
+  play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx"],
   play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6"],
   play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6"],
   play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
