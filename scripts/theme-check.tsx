@@ -18,7 +18,9 @@
  *       screen with all text hidden (gradients, glows and tints included);
  *     - touch targets: every button, link, input and summary is at least 44 × 44 px (an invisible
  *       hit area round it counts);
- *     - no blue tap highlight (as #114): -webkit-tap-highlight-color is transparent on every control.
+ *     - no blue tap highlight (as #114): -webkit-tap-highlight-color is transparent on every control;
+ *     - the round leaderboard (10 players): every closed row shows its time · verdict · summary line
+ *       under the name, on one line with an ellipsis.
  *
  *   bun scripts/theme-check.tsx [screen name filter…] [--verbose] [--shots=<dir>]
  */
@@ -293,6 +295,11 @@ function themeProbe(families: { head: string; body: string; mono: string }) {
   return {
     skins: skins.length,
     cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet").length,
+    // The round leaderboard's closed rows: each shows its verdict line under the name.
+    rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
+      shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
+      oneLine: getComputedStyle(line).whiteSpace === "nowrap" && getComputedStyle(line).textOverflow === "ellipsis",
+    })),
     used: [...used],
     loaded: [...document.fonts]
       .filter((f) => f.status === "loaded")
@@ -350,6 +357,11 @@ try {
           ...probe.controls.map((c) => `touch target under 44px: ${c}`),
         );
         if (probe.skins === 0) problems.push("no skinned screen ([data-skin])");
+        if (screen.name.includes("round leaderboard") && screen.name.includes("10 players")) {
+          if (probe.rowLines.length < 10) problems.push(`only ${probe.rowLines.length} leaderboard rows show a time and verdict line`);
+          if (probe.rowLines.some((l) => !l.shown)) problems.push("a closed leaderboard row hides its verdict line");
+          if (probe.rowLines.some((l) => !l.oneLine)) problems.push("a closed leaderboard row's verdict line is not one line with an ellipsis");
+        }
         if (probe.cards === 0 && !screen.plain)
           problems.push("no skin card or sheet (.th-card / .th-sheet) on the screen");
         for (const family of Object.values(THEME_FAMILIES)) {

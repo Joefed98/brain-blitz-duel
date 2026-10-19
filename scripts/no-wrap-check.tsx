@@ -10,8 +10,9 @@
  * tab, anything in the display or mono fonts) must:
  *  - sit on one line (its text's line boxes all on one line), and
  *  - not overflow: not clipped by its own box (scrollWidth past clientWidth), unless it is a
- *    player name (.th-name, or a line listing names, [data-names]), which truncates with an
- *    ellipsis, and never past the screen's edge.
+ *    player name (.th-name, or a line listing names, [data-names]) or a leaderboard row's
+ *    time · verdict · summary line ([data-ellipsis]), which truncate with an ellipsis, and never
+ *    past the screen's edge.
  * Body paragraphs (descriptions, notes) may wrap; text in a game's own art (data-skin-off) and the
  * tapped-open detail of a leaderboard row (whitespace-normal) are not judged.
  *
@@ -91,7 +92,7 @@ function wrapProbe() {
       // Player names (and a line listing them, [data-names]) truncate with an ellipsis.
       if (
         clipped &&
-        !clipped.closest(".th-name, [data-names]") &&
+        !clipped.closest(".th-name, [data-names], [data-ellipsis]") &&
         !clipped.querySelector?.(".th-name")
       )
         problems.push(

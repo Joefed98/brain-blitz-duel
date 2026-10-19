@@ -235,12 +235,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   screens, lobby, round leaderboard, answer reveal, standings, results and podium, settings, dialogs and sheets carry
   `data-skin` (PhoneShell `skin`, tabs automatic); inside it the shared `--th-*` tokens replace the page tokens (background
   #07070A, text #F5F5F7 / #BDBDCC, gold #F2C75C, metallic gold and teal buttons `th-btn-gold` / `th-btn-teal`, cards
-  `th-card` with `data-tint` gold / teal / me, category pills `th-pill` and chips `th-chip` from `data-cat`, medal discs
+  `th-card` with `data-tint` gold / teal / me, category pills `th-pill`, chip dots `th-chip-dot` and icon tiles from `data-cat` in each category's own game colour (`--category-*`), medal discs
   `Medal`, scores `th-score`, names `th-name`). `data-skin-off` restores the original tokens for a game's own art inside a
   skinned screen (reveal boards, replays). Fonts are self-hosted in `public/fonts` (OFL), preloaded from the root route:
   Saira 600–800 (headings, buttons), Manrope 500–800 (body, names), JetBrains Mono 600–700 as "Duelz Mono" (scores, times,
   codes; the games' own JetBrains Mono is untouched). Game screens, round intros and room moments are not skinned. Game
-  icon tiles are their category's glossy gradient; the art is unchanged. theme-check (fonts, tokens, contrast ≥ 4.5:1,
+  icon tiles are their category's glossy gradient; the art is unchanged. Round leaderboard rows keep time · verdict · summary
+  on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
   375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,

@@ -93,6 +93,7 @@ export function RoundResultsTable({
           const open = expanded === row.slot;
           const verdict = roundVerdict(row, scoreOnly);
           const summary = summaryWithoutTime(row.summary);
+          const time = formatElapsed(times.get(row.slot) ?? null, clockMs);
           return (
             <li key={row.slot}>
               <button
@@ -120,21 +121,22 @@ export function RoundResultsTable({
                           </span>
                         )}
                       </span>
-                      {/* Below the name only the time used (the buzzer shows the round's full clock). */}
-                      <span className="whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums text-muted-foreground">
-                        {formatElapsed(times.get(row.slot) ?? null, clockMs)}
+                      {/* Under the name, on one line in secondary text: the time used (the buzzer shows the
+                          round's full clock), the verdict and the summary, cut with an ellipsis when long.
+                          Tapped open, the line wraps and adds the detail. */}
+                      <span
+                        data-ellipsis
+                        data-row-line
+                        className={`font-mono text-[11px] leading-tight text-muted-foreground ${open ? "block whitespace-normal" : "block truncate"}`}
+                      >
+                        {time ? <span className="tabular-nums">{time} · </span> : null}
+                        <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
+                          {VERDICT_LABEL[verdict]}
+                        </span>
+                        {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
                       </span>
                     </span>
                   </span>
-                  {/* Tapped open: how the round went, in full. */}
-                  {open && (
-                    <span className="mt-1 block whitespace-normal font-mono text-[11px] leading-tight text-foreground/80">
-                      <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
-                        {VERDICT_LABEL[verdict]}
-                      </span>
-                      {summary ? ` · ${[summary, ...row.detail].join(" · ")}` : ""}
-                    </span>
-                  )}
                 </span>
                 <span className="flex items-center gap-1">
                   <AnimatedScore

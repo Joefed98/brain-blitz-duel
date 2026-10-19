@@ -83,28 +83,28 @@
   --th-card-shadow: 0 14px 30px -16px rgb(0 0 0 / 0.85), 0 2px 6px rgb(0 0 0 / 0.4);
   --th-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.055), transparent 42%), linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.035) 46%, transparent 58%);
 
-  /* Category colours (top, middle, bottom of the gradient), from the registry's categories. */
-  --th-cat-arcade-hi: #8FB6FF;  --th-cat-arcade: #4C7DFF;  --th-cat-arcade-lo: #2349C4;
-  --th-cat-logic-hi: #D3AEFF;   --th-cat-logic: #9A5CFF;   --th-cat-logic-lo: #6328C9;
-  --th-cat-word-hi: #74F0B8;    --th-cat-word: #22C77E;    --th-cat-word-lo: #0D8A50;
-  --th-cat-number-hi: #FFBB88;  --th-cat-number: #FF7A2F;  --th-cat-number-lo: #C9440E;
-  --th-cat-pattern-hi: #FFA8E0; --th-cat-pattern: #F04BB8; --th-cat-pattern-lo: #A8197A;
-  --th-cat-speed-hi: #FFA3A3;   --th-cat-speed: #FF4D5E;   --th-cat-speed-lo: #B81E35;
-  --th-cat-attention-hi: #8FEAFF; --th-cat-attention: #2CC3EE; --th-cat-attention-lo: #0E7FAE;
-
   --th-medal-gold: linear-gradient(135deg, #FFF0B8, #F2C75C 45%, #B98320);
   --th-medal-silver: linear-gradient(135deg, #FFFFFF, #CBD1DA 45%, #8A93A1);
   --th-medal-bronze: linear-gradient(135deg, #FFD3A6, #D08A3E 45%, #8C5320);
 }
 
-[data-cat="arcade"] { --cat-hi: var(--th-cat-arcade-hi); --cat: var(--th-cat-arcade); --cat-lo: var(--th-cat-arcade-lo); }
-[data-cat="logic"] { --cat-hi: var(--th-cat-logic-hi); --cat: var(--th-cat-logic); --cat-lo: var(--th-cat-logic-lo); }
-[data-cat="word"] { --cat-hi: var(--th-cat-word-hi); --cat: var(--th-cat-word); --cat-lo: var(--th-cat-word-lo); }
-[data-cat="number"] { --cat-hi: var(--th-cat-number-hi); --cat: var(--th-cat-number); --cat-lo: var(--th-cat-number-lo); }
-[data-cat="pattern"] { --cat-hi: var(--th-cat-pattern-hi); --cat: var(--th-cat-pattern); --cat-lo: var(--th-cat-pattern-lo); }
-[data-cat="speed"] { --cat-hi: var(--th-cat-speed-hi); --cat: var(--th-cat-speed); --cat-lo: var(--th-cat-speed-lo); }
-[data-cat="attention"] { --cat-hi: var(--th-cat-attention-hi); --cat: var(--th-cat-attention); --cat-lo: var(--th-cat-attention-lo); }
-[data-cat="all"] { --cat-hi: #FBE39A; --cat: #E9BB45; --cat-lo: #A87420; }
+/*
+ * Category colours: each category's own colour from the games (--category-* in styles.css, the
+ * colour its rounds, intros and round titles already use), with a lighter tint for text and a
+ * deeper shade for gradients worked out from it.
+ */
+[data-cat="word"] { --cat: var(--category-word); }
+[data-cat="number"] { --cat: var(--category-number); }
+[data-cat="speed"] { --cat: var(--category-speed); }
+[data-cat="attention"] { --cat: var(--category-attention); }
+[data-cat="pattern"] { --cat: var(--category-pattern); }
+[data-cat="logic"] { --cat: var(--category-logic); }
+[data-cat="arcade"] { --cat: var(--category-arcade); }
+[data-cat] {
+  --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
+  --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);
+}
+[data-cat="all"] { --cat: #E9BB45; --cat-hi: #FBE39A; --cat-lo: #A87420; }
 
 /* ------------------------------------------------------------------ the skin scope */
 /* In the components layer, so a component's own utilities (sizes, tracking, case) still win. */
