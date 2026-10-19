@@ -33,7 +33,9 @@
 import { speedBonusCurve } from "./speedPar";
 import { PUZZLE_EFFICIENCY_POINTS, PUZZLE_FINISH_BASE, type ScoreParts } from "./puzzleScoreRev";
 import { PUZZLE_REV2_KNOTS } from "./puzzleBands.data";
-import type { PuzzleType } from "./types";
+import { GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { TILES_REV_CLOCK } from "./tiles";
+import type { PuzzleData, PuzzleType } from "./types";
 
 export const PUZZLE_SCORE_REV_BANDS = 2;
 
@@ -116,9 +118,33 @@ export function rev2Points(knots: Rev2Knots, result: number): number {
   return Math.round(last[1]);
 }
 
-/** The knots a game scores on (the shared default when a game has no fitted row). */
+/**
+ * A game whose scoring changed under its own stamp scores on its own knots row, `<type>:<stamp>` (Topsy-Turvy
+ * gravityRev 2 and Polypotions tubesRev 2: solverProgress.server.ts; Jumbled tilesRev 2: the 90 s clock);
+ * older rounds keep the game's row.
+ */
+export function rev2KnotsKey(puzzle: PuzzleData): string {
+  if (puzzle.type === "gravity" && (puzzle.gravityRev ?? 0) >= GRAVITY_PROGRESS_REV) return `gravity:${GRAVITY_PROGRESS_REV}`;
+  if (puzzle.type === "tubes" && (puzzle.tubesRev ?? 0) >= TUBES_PROGRESS_REV) return `tubes:${TUBES_PROGRESS_REV}`;
+  if (puzzle.type === "tiles" && (puzzle.tilesRev ?? 0) >= TILES_REV_CLOCK) return `tiles:${TILES_REV_CLOCK}`;
+  return puzzle.type;
+}
+
+/** The knots row rooms deal today for each game (the help text states these). */
+export const REV2_DEALT_KEY: Partial<Record<PuzzleType, string>> = {
+  gravity: `gravity:${GRAVITY_PROGRESS_REV}`,
+  tubes: `tubes:${TUBES_PROGRESS_REV}`,
+  tiles: `tiles:${TILES_REV_CLOCK}`,
+};
+
+/** The knots a game is dealt on today (the shared default when a game has no fitted row). */
 export function rev2KnotsFor(type: PuzzleType): Rev2Knots {
-  return PUZZLE_REV2_KNOTS[type] ?? REV2_DEFAULT_KNOTS;
+  return PUZZLE_REV2_KNOTS[REV2_DEALT_KEY[type] ?? type] ?? PUZZLE_REV2_KNOTS[type] ?? REV2_DEFAULT_KNOTS;
+}
+
+/** The knots a stored puzzle scores on (its own stamp's row). */
+export function rev2KnotsForPuzzle(puzzle: PuzzleData): Rev2Knots {
+  return PUZZLE_REV2_KNOTS[rev2KnotsKey(puzzle)] ?? PUZZLE_REV2_KNOTS[puzzle.type] ?? REV2_DEFAULT_KNOTS;
 }
 
 /** Default shape: half done 45, a finish at the buzzer 90, a third of the clock left 120, 150 from 80 % left. */
@@ -135,9 +161,9 @@ export interface Rev2Grade {
  * where base is what a finish at the buzzer scores and the rest is split between
  * the efficiency and time shares in proportion.
  */
-export function rev2Grade(type: PuzzleType, rev1Score: number, parts: ScoreParts | null, msRemaining: number, limitMs: number): Rev2Grade {
-  const knots = rev2KnotsFor(type);
-  const r = rev2ResultOf(type, rev1Score, parts, msRemaining, limitMs);
+export function rev2Grade(puzzle: PuzzleData, rev1Score: number, parts: ScoreParts | null, msRemaining: number, limitMs: number): Rev2Grade {
+  const knots = rev2KnotsForPuzzle(puzzle);
+  const r = rev2ResultOf(puzzle.type, rev1Score, parts, msRemaining, limitMs);
   const score = Math.max(0, Math.min(150, rev2Points(knots, r.result)));
   if (!r.finished) return { score, parts: { kind: "partial", base: score } };
   const base = Math.min(score, rev2Points(knots, 100));

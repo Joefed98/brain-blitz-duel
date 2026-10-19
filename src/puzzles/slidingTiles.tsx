@@ -113,7 +113,8 @@ function Stage({
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (now < phaseStartedAt + TILES_TIME_MS - 400) return;
+    // tilesRev 2 carries its own 90 s clock; older rounds keep 60 s.
+    if (now < phaseStartedAt + (data.timeLimitMs ?? TILES_TIME_MS) - 400) return;
     submitted.current = true;
     onSubmit(encodeTileMoves(moves));
   }, [now, phaseStartedAt, locked, data, moves, onSubmit]);

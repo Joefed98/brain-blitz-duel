@@ -56,9 +56,9 @@ import {
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
   FLOOD_LIMIT_REV2,
-  GRAVITY_LIMIT_REV,
+  GRAVITY_PROGRESS_REV,
   MEASURE_LIMIT_REV,
-  TUBES_LIMIT_REV,
+  TUBES_PROGRESS_REV,
   joinCountSuffix,
 } from "../src/lib/duel/moveLimits";
 import { EQUATION_TRIES } from "../src/lib/duel/moveLimits.server";
@@ -118,8 +118,10 @@ type Loose = Record<string, unknown>;
 const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: string }>> = {
   // Colour Flood's new rounds are floodRev 2 (the Pattern / Logic batch, 14 Oct 2026; still par + 2; pattern-logic-oct14-check).
   flood: { rev: "floodRev", value: FLOOD_LIMIT_REV2, limit: "moveLimit" },
-  tubes: { rev: "tubesRev", value: TUBES_LIMIT_REV, limit: "pourLimit" },
-  gravity: { rev: "gravityRev", value: GRAVITY_LIMIT_REV, limit: "tiltLimit" },
+  // Polypotions and Topsy-Turvy's new rounds are tubesRev 2 / gravityRev 2 (19 Oct 2026): the same limits plus the
+  // solver-distance progress measure (solver-progress-check).
+  tubes: { rev: "tubesRev", value: TUBES_PROGRESS_REV, limit: "pourLimit" },
+  gravity: { rev: "gravityRev", value: GRAVITY_PROGRESS_REV, limit: "tiltLimit" },
   // Counterweight's four-scale puzzles (14 Oct 2026) are balanceRev 2, which keeps the rev-1 limits and adds the fourth.
   balance: { rev: "balanceRev", value: BAL_REV2, limit: "placeLimits" },
   equation: { rev: "equationRev", value: EQUATION_LIMIT_REV, limit: "tryLimit" },

@@ -49,6 +49,7 @@ import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { OCT14_FIXTURE } from "./pattern-logic-oct14-record";
 import { OCT14_LEGACY_FIXTURE } from "./pattern-logic-oct14-legacy-record";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
@@ -100,18 +101,20 @@ const histogram = new Map<number, number>();
 for (let seed = 1; seed <= 40; seed++) {
   const t = withSeededRandom(seed, () => generatePuzzle("tiles")) as TilesPuzzleData;
   const layout = tilesLayout(t);
-  if (t.tilesRev !== TILES_REV_EXTRA || !t.extra || t.frame.length !== 10 || layout.count !== 9) fail(`tiles seed ${seed}: not the extra-cell board`);
+  // New rounds are tilesRev 2 since 20 Oct 2026: the same extra-cell board on a 90 s clock (jumbled-clock-check).
+  if ((t.tilesRev ?? 0) < TILES_REV_EXTRA || !t.extra || t.frame.length !== 10 || layout.count !== 9) fail(`tiles seed ${seed}: not the extra-cell board`);
   if (new Set(t.frame).size !== 10 || Math.max(...t.frame) !== 9) fail(`tiles seed ${seed}: tiles are not 1–9 and a gap`);
   const proved = tilesMinMoves(t.frame, layout);
   if (proved?.min !== t.minMoves || t.minMoves! < TILES_EXTRA_MIN_MOVES || t.minMoves! > TILES_EXTRA_MAX_MOVES) fail(`tiles seed ${seed}: minimum ${t.minMoves}, proved ${proved?.min}`);
   histogram.set(t.minMoves!, (histogram.get(t.minMoves!) ?? 0) + 1);
-  const solved = gradeAnswer(t, t.solution!.join(","), 30_000);
+  // Half of the round's own clock (60 s on tilesRev 1, 90 s on tilesRev 2 since 20 Oct 2026).
+  const solved = gradeAnswer(t, t.solution!.join(","), puzzleTimeLimitMs(t) / 2);
   if (!solved.isCorrect || solved.score !== 150) fail(`tiles seed ${seed}: the minimum route at half time scored ${solved.score}`);
 }
 const sides = new Set<string>();
 for (let seed = 1; seed <= 40; seed++) sides.add((withSeededRandom(seed, () => generatePuzzle("tiles")) as TilesPuzzleData).extra!.side);
 if (sides.size !== 4) fail(`the extra cell used ${sides.size} sides on 40 seeds`);
-console.log(`Jumbled tilesRev 1: 40 boards, minimum ${[...histogram].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}×${v}`).join(" ")}, extra cell on all four sides`);
+console.log(`Jumbled (extra-cell board, tilesRev 2 since 20 Oct): 40 boards, minimum ${[...histogram].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}×${v}`).join(" ")}, extra cell on all four sides`);
 
 for (let seed = 1; seed <= 40; seed++) {
   const f = withSeededRandom(seed, () => generatePuzzle("flood")) as FloodPuzzleData;

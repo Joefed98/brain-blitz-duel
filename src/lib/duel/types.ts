@@ -1274,7 +1274,7 @@ export interface TubesPuzzleData {
   minMoves?: number;
   /** Server-side only: one shortest pour list, as `0>3,1>2`. */
   solution?: string;
-  /** Pour limit revision (moveLimits.ts, 13 Oct 2026): 1 = Undo and Reset are sent as `u` / `r` and every pour counts toward `pourLimit`. Absent = no limit. */
+  /** Pour limit revision (moveLimits.ts, 13 Oct 2026): 1 = Undo and Reset are sent as `u` / `r` and every pour counts toward `pourLimit`; 2 (19 Oct 2026) = the same, an unfinished board scored on the solver distance closed (solverProgress.server.ts). Absent = no limit. */
   tubesRev?: number;
   /** Pours allowed (tubesRev 1); public, rounded so it never shows the minimum. */
   pourLimit?: number;
@@ -1406,7 +1406,7 @@ export interface GravityPuzzleData {
   minMoves?: number;
   /** Server-side only: one shortest tilt list, as `URDL`. */
   solution?: string;
-  /** Tilt limit revision (moveLimits.ts, 13 Oct 2026): 1 = at most `tiltLimit` tilts count. Absent = no limit. */
+  /** Tilt limit revision (moveLimits.ts, 13 Oct 2026): 1 = at most `tiltLimit` tilts count; 2 (19 Oct 2026) = the same, an unfinished board scored on the solver distance closed (solverProgress.server.ts). Absent = no limit. */
   gravityRev?: number;
   /** Tilts allowed (gravityRev 1); public, rounded so it never shows the minimum. */
   tiltLimit?: number;
@@ -1618,7 +1618,9 @@ export interface TilesPuzzleData {
    */
   frame: number[];
   /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
-  tilesRev?: 1;
+  tilesRev?: 1 | 2;
+  /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
+  timeLimitMs?: number;
   /** tilesRev 1: where the extra cell sits. */
   extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */

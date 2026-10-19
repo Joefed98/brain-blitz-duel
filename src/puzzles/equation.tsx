@@ -1,7 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useGameKeys } from "@/lib/desktop";
@@ -77,6 +78,12 @@ const OPERATOR_CSS = `
 [data-polish="equation"] .op-equation { position: relative; width: 100%; color: #f4f4f7; border-radius: 14px;
   background: linear-gradient(180deg, #23232c, #1a1a22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.07), inset 0 -4px 0 rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.35);
   transition: box-shadow 200ms ease-out; }
+[data-polish="equation"] .op-equation { font-size: var(--fit-fs, 32px); line-height: 1; }
+[data-polish="equation"] .op-line { display: flex; width: max-content; flex-wrap: nowrap; align-items: center; gap: .125em; white-space: nowrap; }
+[data-polish="equation"] .op-term { display: flex; align-items: center; gap: .125em; }
+[data-polish="equation"] .op-equation .op-slot { width: 1.35em; height: 1.75em; min-width: 0; padding: 0; font-size: inherit; }
+[data-polish="equation"] .op-equation .op-chip { font-size: .875em; }
+[data-polish="equation"] .op-equation .op-goal { margin-left: .15em; }
 [data-polish="equation"] .op-equation[data-enter="true"] { animation: op-enter 240ms cubic-bezier(.2,.9,.3,1) both; }
 [data-polish="equation"] .op-equation[data-correct="true"] { box-shadow: inset 0 0 0 2px #3DDC84, inset 0 -4px 0 rgba(0,0,0,.3), 0 0 18px rgba(61,220,132,.30); }
 [data-polish="equation"] .op-goal { color: #F5B82E; text-shadow: 0 0 14px rgba(245,184,46,.25); }
@@ -115,6 +122,44 @@ const OPERATOR_CSS = `
   [data-polish="equation"] .op-finale-row { animation: none; color: #7bf0b0; box-shadow: inset 0 0 0 1px rgba(61,220,132,.55); }
 }
 `;
+
+/**
+ * One line, always (19 Oct 2026): the equation (and each reveal line) is drawn at its design size and, when that
+ * is wider than its box (five two-digit numbers and a three-digit target on a 375 px phone), its font size, and
+ * everything sized in em with it, is cut just enough to fit. Measured before paint and again on a resize, so the
+ * board never shows a wrapped or jumping frame. Display only.
+ */
+/** The equation's design size and the least it may shrink to (a wide equation on the narrowest phone). */
+const OP_EQUATION_PX = 32;
+const OP_EQUATION_MIN_PX = 16;
+
+function useFitOneLine(box: RefObject<HTMLElement | null>, line: RefObject<HTMLElement | null>, basePx: number, minPx: number, key: unknown) {
+  useBeforePaint(() => {
+    const el = box.current;
+    const inner = line.current;
+    if (!el || !inner) return;
+    const fit = () => {
+      el.style.setProperty("--fit-fs", `${basePx}px`);
+      const style = getComputedStyle(el);
+      const avail = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const need = inner.scrollWidth;
+      if (!(avail > 0) || !(need > avail)) return;
+      // Half-pixel steps, a pixel's slack for rounding in the glyph widths.
+      const px = Math.max(minPx, Math.floor(((basePx * (avail - 1)) / need) * 2) / 2);
+      el.style.setProperty("--fit-fs", `${px}px`);
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [key, basePx, minPx]);
+}
 
 function OperatorSlot({ value, onClick, fresh }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean }) {
   return (
@@ -220,6 +265,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     return true;
   });
 
+  // The equation stays on one line (useFitOneLine): refitted per equation.
+  const equationBox = useRef<HTMLDivElement>(null);
+  const equationLine = useRef<HTMLSpanElement>(null);
+  useFitOneLine(equationBox, equationLine, OP_EQUATION_PX, OP_EQUATION_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
   if (!data || !current) return null;
   const frozen = locked || done.current || holding;
   // Out of tries: the equation is over; only Next (or Submit) is left.
@@ -280,12 +329,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
         </p>
         <div
           key={stage}
+          ref={equationBox}
           data-enter={entered ? "true" : undefined}
           data-correct={holding || finale ? "true" : undefined}
-          className="polish-equation op-equation flex w-full flex-wrap items-center justify-center gap-x-1 gap-y-3 px-2 py-4 font-mono text-[32px] font-bold tabular-nums"
+          className="polish-equation op-equation flex w-full items-center justify-center px-2 py-4 font-mono font-bold tabular-nums"
         >
+          <span ref={equationLine} className="op-line">
           {current.numbers.map((n, index) => (
-            <span key={index} className="flex items-center gap-1">
+            <span key={index} className="op-term">
               <span>{n}</span>
               {index < current.numbers.length - 1 && (
                 <OperatorSlot
@@ -298,6 +349,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
             </span>
           ))}
           <span className="op-goal">= {current.target}</span>
+          </span>
         </div>
         {tryLimit !== null && (
           <p className="op-caption" data-move-limit={tryLimit}>
@@ -364,6 +416,18 @@ function Line({ numbers, ops }: { numbers: number[]; ops: string[] }) {
   );
 }
 
+/** A reveal line kept on one line (useFitOneLine), its font cut only as far as it must be. */
+function FitLine({ className, basePx, fitKey, children }: { className: string; basePx: number; fitKey: string; children: ReactNode }) {
+  const box = useRef<HTMLParagraphElement>(null);
+  const line = useRef<HTMLSpanElement>(null);
+  useFitOneLine(box, line, basePx, 11, fitKey);
+  return (
+    <p ref={box} className={className} style={{ "--fit-base": `${basePx}px` } as CSSProperties}>
+      <span ref={line} className="op-fit-line">{children}</span>
+    </p>
+  );
+}
+
 const OPERATOR_REVEAL_CSS = `
 .op-reveal { display: flex; min-height: 0; width: 100%; flex: 1 1 auto; flex-direction: column; justify-content: center; gap: 8px; }
 .op-reveal-row { position: relative; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 2px; padding: 8px 10px 9px; border-radius: 14px;
@@ -373,6 +437,8 @@ const OPERATOR_REVEAL_CSS = `
 .op-reveal-label { font-size: 14px; color: #b4b4be; }
 .op-reveal-label .ok { color: #5fe69c; font-weight: 700; }
 .op-reveal-label .bad { color: #ff7a70; font-weight: 700; }
+.op-reveal-line, .op-reveal-mine { align-self: stretch; white-space: nowrap; font-size: var(--fit-fs, var(--fit-base)) !important; }
+.op-fit-line { display: inline-block; white-space: nowrap; }
 .op-reveal-line { text-align: center; font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: #F5B82E; }
 .op-reveal-mine { text-align: center; font-family: var(--font-mono); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: #ff7a70; }
 `;
@@ -393,13 +459,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             <p className="op-reveal-label">
               Equation {i + 1} · <span className={ok ? "ok" : "bad"}>{ok ? "✓" : mine.length < stage.numbers.length - 1 ? (mine.length ? "Incomplete ✗" : "Skipped ✗") : "✗"}</span>
             </p>
-            <p className="op-reveal-line">
+            <FitLine className="op-reveal-line" basePx={18} fitKey={`${stage.numbers.join(",")}:${(puzzle.operators?.[i] ?? []).join("")}`}>
               <Line numbers={stage.numbers} ops={puzzle.operators?.[i] ?? []} /> = {stage.target}
-            </p>
+            </FitLine>
             {!ok && mine.length === stage.numbers.length - 1 && (
-              <p className="op-reveal-mine">
+              <FitLine className="op-reveal-mine" basePx={16} fitKey={`${stage.numbers.join(",")}:${mine.join("")}`}>
                 <Line numbers={stage.numbers} ops={mine} /> ✗
-              </p>
+              </FitLine>
             )}
           </div>
         );

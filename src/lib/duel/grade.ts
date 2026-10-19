@@ -150,7 +150,8 @@ import {
   wordSlideMadeRows,
 } from "./progressFigures";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
-import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo } from "./moveLimits";
+import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -838,18 +839,23 @@ function gradeUnderRev(
       // Every pour is replayed on the stored board, so illegal pours never count.
       // tubesRev 1: the log carries Undo and Reset, every pour counts and nothing past the pour limit does.
       const pourLimit = tubesPourLimit(puzzle);
+      // The boards the player stood on, start first (tubesRev 2: a dead board keeps the best before it).
+      const tubeBoards = [puzzle.tubes];
       const replay = tubesSendsUndo(puzzle)
-        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit)
+        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit, (b) => tubeBoards.push(b))
         : replayTubes(puzzle.tubes, decodeTubeMoves(answer));
       isCorrect = replay.solved;
       correctCount = replay.moves;
       const colours = new Set(puzzle.tubes.flat()).size;
-      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs, colours, sortedTubeCount(puzzle.tubes));
+      // tubesRev 2: an unfinished board's progress is the solver distance closed, net of waste.
+      const tubesShare = !replay.solved && (puzzle.tubesRev ?? 0) >= TUBES_PROGRESS_REV ? tubesSolverProgress(puzzle, tubeBoards, replay.moves) : undefined;
+      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs, colours, sortedTubeCount(puzzle.tubes), tubesShare);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         sorted: replay.sorted,
+        ...(tubesShare !== undefined ? { progress: Math.round(tubesShare * 100) } : {}),
         ...(pourLimit !== null ? { pourLimit, outOfPours: "outOfPours" in replay && replay.outOfPours } : {}),
       };
       break;
@@ -904,16 +910,21 @@ function gradeUnderRev(
       // Every tilt is replayed on the stored board, all four balls at once.
       // gravityRev 1: nothing past the stored tilt limit counts.
       const tiltLimit = gravityTiltLimit(puzzle);
-      const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer), tiltLimit);
+      // The boards the player stood on, start first (gravityRev 2: a dead board keeps the best before it).
+      const gravityBoards = [puzzle.starts];
+      const replay = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(answer), tiltLimit, (b) => gravityBoards.push(b));
       isCorrect = replay.solved;
       correctCount = replay.tilts;
       const lockedAtStart = scoreRev1() ? replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, []).locked : 0;
-      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs, lockedAtStart, puzzle.starts.length);
+      // gravityRev 2: an unfinished board's progress is the solver distance closed, net of waste.
+      const gravityShare = !replay.solved && (puzzle.gravityRev ?? 0) >= GRAVITY_PROGRESS_REV ? gravitySolverProgress(puzzle, gravityBoards, replay.tilts) : undefined;
+      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs, lockedAtStart, puzzle.starts.length, gravityShare);
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,
         minMoves: puzzle.minMoves ?? 0,
         locked: replay.locked,
+        ...(gravityShare !== undefined ? { progress: Math.round(gravityShare * 100) } : {}),
         ...(tiltLimit !== null ? { tiltLimit, outOfTilts: replay.outOfTilts } : {}),
       };
       break;

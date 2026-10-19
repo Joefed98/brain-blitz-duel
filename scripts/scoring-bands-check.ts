@@ -28,7 +28,7 @@ import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
 import { TARGET_REVS } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { rev2KnotsFor, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
+import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
 import { puzzleScoreRevOf } from "../src/lib/duel/puzzleScoreRev";
 import { decodeSafePending, decodeSafeTries, encodeSafeDraft } from "../src/lib/duel/safe";
@@ -60,6 +60,21 @@ function roomPuzzleCached(type: PuzzleType, seed: number): PuzzleData {
   const key = `${type}:${seed}`;
   if (!cache.has(key)) cache.set(key, roomPuzzle(type, seed));
   return cache.get(key)!;
+}
+
+/**
+ * The fixture's answers were recorded before Topsy-Turvy gravityRev 2 and Polypotions tubesRev 2 (19 Oct 2026,
+ * solverProgress.server.ts) and Jumbled tilesRev 2 (20 Oct 2026, 90 s), so they grade on the stamps they were
+ * played on; solver-progress-check and jumbled-clock-check hold the runs recorded on the new stamps.
+ */
+const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number | undefined>>> = {
+  gravity: { gravityRev: 1 },
+  tubes: { tubesRev: 1 },
+  tiles: { tilesRev: 1, timeLimitMs: undefined },
+};
+function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
+  const p = roomPuzzleCached(type, seed);
+  return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;
 }
 
 /* ============================== 1. Arcade curves and stamps ============================== */
@@ -141,24 +156,27 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   const games = [...REV2_FINISH_GAMES, ...REV2_OPEN_GAMES];
   for (const type of games) {
     ok(PUZZLE_REV2_KNOTS[type] !== undefined, `${type}: has fitted knots`);
-    const k = rev2KnotsFor(type);
-    ok(k[0]![0] === 0 && k[0]![1] === 0, `${type}: knots start at (0, 0)`);
-    ok(k.at(-1)![1] === 150 && k.slice(0, -1).every(([, y]) => y < 150), `${type}: 150 only at the last knot (a perfect run)`);
-    for (let i = 1; i < k.length; i++) ok(k[i]![0] > k[i - 1]![0] && k[i]![1] > k[i - 1]![1], `${type}: knots rise (${i})`);
-    if (REV2_FINISH_GAMES.has(type)) {
-      ok(rev2Points(k, 49.5) > 0, `${type}: half progress scores (${rev2Points(k, 49.5)})`);
-      ok(rev2Points(k, 100) >= rev2Points(k, 99), `${type}: a finish at the buzzer beats every unfinished run`);
+    const dealt = REV2_DEALT_KEY[type];
+    if (dealt) ok(PUZZLE_REV2_KNOTS[dealt] !== undefined && rev2KnotsFor(type) === PUZZLE_REV2_KNOTS[dealt], `${type}: rooms are dealt its ${dealt} knots`);
+    for (const k of [rev2KnotsFor(type), PUZZLE_REV2_KNOTS[type]!]) {
+      ok(k[0]![0] === 0 && k[0]![1] === 0, `${type}: knots start at (0, 0)`);
+      ok(k.at(-1)![1] === 150 && k.slice(0, -1).every(([, y]) => y < 150), `${type}: 150 only at the last knot (a perfect run)`);
+      for (let i = 1; i < k.length; i++) ok(k[i]![0] > k[i - 1]![0] && k[i]![1] > k[i - 1]![1], `${type}: knots rise (${i})`);
+      if (REV2_FINISH_GAMES.has(type)) {
+        ok(rev2Points(k, 49.5) > 0, `${type}: half progress scores (${rev2Points(k, 49.5)})`);
+        ok(rev2Points(k, 100) >= rev2Points(k, 99), `${type}: a finish at the buzzer beats every unfinished run`);
+      }
     }
     ok(puzzleScoreRevOf(generatePuzzle(type, { bankSeed: 4242 })) === PUZZLE_SCORE_REV_BANDS, `${type}: rooms deal puzzleScoreRev ${PUZZLE_SCORE_REV_BANDS}`);
   }
   for (const a of fixture.answers.filter((x) => x.kind === "puzzle")) {
-    const puzzle = roomPuzzleCached(a.type as PuzzleType, a.seed);
+    const puzzle = recordedPuzzle(a.type as PuzzleType, a.seed);
     const tag = `${a.type} ${a.label} ${a.seed}`;
     const g = gradeAnswer(puzzle, a.answer, a.ms);
     ok(g.score === a.score, `${tag}: grades to its stored ${a.score} (got ${g.score})`);
     const result = Number((g.extra as any)?.result);
     // The stored result is rounded to a tenth, so the knots there may differ from the score by a point.
-    ok(Number.isFinite(result) && Math.abs(g.score - rev2Points(rev2KnotsFor(a.type as PuzzleType), result)) <= 1, `${tag}: the score is the knots at its result (${result})`);
+    ok(Number.isFinite(result) && Math.abs(g.score - rev2Points(rev2KnotsForPuzzle(puzzle), result)) <= 1, `${tag}: the score is the knots at its result (${result})`);
     const old = gradeAnswer({ ...(puzzle as object), puzzleScoreRev: 1 } as unknown as PuzzleData, a.answer, a.ms);
     // Safe Cracker's rev-2 grader keeps the best try's dials (and the dials left standing), so its rev-1 figure differs.
     if (a.type !== "safe") ok((g.extra as any)?.rev1Score === old.score && old.isCorrect === g.isCorrect, `${tag}: the rev-1 grade is kept (${old.score})`);

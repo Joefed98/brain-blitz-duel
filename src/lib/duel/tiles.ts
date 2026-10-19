@@ -18,6 +18,13 @@ export const TILES_RESET = -2;
 
 /** The extra-cell board's stamp (tilesRev 1). */
 export const TILES_REV_EXTRA = 1;
+/**
+ * tilesRev 2 (20 Oct 2026, Joe's ruling; docs/scoring-targets.md): the same extra-cell board on a 90 s clock
+ * (stored on the puzzle as `timeLimitMs`), since the average simulated players ran out of time at 60 s (none of
+ * 30 finished; their median finish was 99 s). Rounds without it keep 60 s.
+ */
+export const TILES_REV_CLOCK = 2;
+export const TILES_REV2_TIME_MS = 90_000;
 /** Tiles on the extra-cell board. */
 export const TILES_EXTRA_COUNT = 9;
 

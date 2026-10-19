@@ -15,9 +15,9 @@ import {
   EQUATION_LIMIT_REV,
   FLOOD_LIMIT_REV2,
   FLOOD_REV2_SPARE_MOVES,
-  GRAVITY_LIMIT_REV,
+  GRAVITY_PROGRESS_REV,
   MEASURE_LIMIT_REV,
-  TUBES_LIMIT_REV,
+  TUBES_PROGRESS_REV,
 } from "./moveLimits";
 import { BAL_REV2, BAL_REV2_SCALES } from "./balance";
 import type { PuzzleData } from "./types";
@@ -50,14 +50,16 @@ export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
       if (!(puzzle.minMoves && puzzle.minMoves > 0)) return puzzle;
       return {
         ...puzzle,
-        tubesRev: TUBES_LIMIT_REV,
+        // tubesRev 2 (19 Oct 2026): the tubesRev 1 limit, plus the solver-distance progress measure.
+        tubesRev: TUBES_PROGRESS_REV,
         pourLimit: upTo5(puzzle.minMoves + TUBES_SPARE_POURS),
       };
     case "gravity":
       if (!(puzzle.minMoves && puzzle.minMoves > 0)) return puzzle;
       return {
         ...puzzle,
-        gravityRev: GRAVITY_LIMIT_REV,
+        // gravityRev 2 (19 Oct 2026): the gravityRev 1 limit, plus the solver-distance progress measure.
+        gravityRev: GRAVITY_PROGRESS_REV,
         tiltLimit: upTo5(puzzle.minMoves + GRAVITY_SPARE_TILTS),
       };
     case "balance":
