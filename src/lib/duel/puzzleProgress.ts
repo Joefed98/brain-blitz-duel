@@ -551,15 +551,17 @@ function ringsWordLengths(pattern: number): Int16Array {
 
 /** A layout's key: each block's position (column for a sideways block, row for an upright one), base 8. */
 const unblockKey = (vs: UnblockVehicle[]) => vs.reduce((k, v) => k * 8 + (v.axis === "h" ? v.col : v.row), 0);
-const UNBLOCK_TABLES = new Map<string, Map<number, number>>();
+const UNBLOCK_TABLES = new Map<string, (layout: number) => number | undefined>();
 /** States a layout's table may hold (a Gridlock board reaches a few thousand). */
 const UNBLOCK_STATE_CAP = 200_000;
 
 /**
  * Every layout reachable from the start, with its fewest moves to solved (breadth-first from the start, then
  * backwards from every solved layout), cached per starting layout: a move slides one block any distance.
+ * Layouts are base-8 numbers (one digit a block) and the edges flat typed arrays, so a board of 140,000 layouts
+ * builds in well under a second once per server isolate (gridlock-table timings in scoring-rev3-check).
  */
-function unblockDistances(start: UnblockVehicle[]): Map<number, number> {
+function unblockDistances(start: UnblockVehicle[]): (layout: number) => number | undefined {
   const id = start.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",");
   const found = UNBLOCK_TABLES.get(id);
   if (found) return found;
@@ -569,50 +571,95 @@ function unblockDistances(start: UnblockVehicle[]): Map<number, number> {
   const lens = start.map((v) => v.len);
   const line = start.map((v) => (v.axis === "h" ? v.row : v.col));
   const gold = start.findIndex((v) => v.id === 0);
+  const place = new Array<number>(V);
+  for (let i = 0, p = 1; i < V; i++) place[V - 1 - i] = p, p *= 8;
   const cell = (i: number, p: number, k: number) => (horiz[i] ? line[i]! * N + p + k : (p + k) * N + line[i]!);
-  const solved = (pos: Uint8Array) => gold >= 0 && horiz[gold]! && line[gold] === UNBLOCK_EXIT_ROW && pos[gold]! + lens[gold]! === N;
-  const keyOf = (pos: Uint8Array) => { let k = 0; for (let i = 0; i < V; i++) k = k * 8 + pos[i]!; return k; };
-  const first = Uint8Array.from(start, (v) => (v.axis === "h" ? v.col : v.row));
-  const states: Uint8Array[] = [first];
-  const index = new Map<number, number>([[keyOf(first), 0]]);
-  const reverse: number[][] = [[]];
+  const goldDone = gold >= 0 && horiz[gold]! && line[gold] === UNBLOCK_EXIT_ROW ? N - lens[gold]! : -1;
+  let firstKey = 0;
+  for (let i = 0; i < V; i++) firstKey = firstKey * 8 + (horiz[i] ? start[i]!.col : start[i]!.row);
+  let keys = new Float64Array(4096);
+  let count = 0;
+  // Open addressing on the layout numbers (a Map of 140,000 number keys was most of the build).
+  let slots = new Int32Array(1 << 15).fill(-1);
+  let mask = slots.length - 1;
+  const hash = (k: number) => {
+    let h = Math.imul((k % 4294967296) ^ Math.imul(Math.floor(k / 4294967296), 0x85ebca6b), 0x9e3779b1);
+    h ^= h >>> 15;
+    h = Math.imul(h, 0x2c1b3c6d);
+    return (h ^ (h >>> 13)) & mask;
+  };
+  const find = (k: number): number => {
+    for (let h = hash(k); ; h = (h + 1) & mask) {
+      const j = slots[h]!;
+      if (j === -1 || keys[j] === k) return h;
+    }
+  };
+  const add = (k: number) => {
+    let h = find(k);
+    if (slots[h] !== -1) return slots[h]!;
+    const j = count++;
+    if (j >= keys.length) { const grown = new Float64Array(keys.length * 2); grown.set(keys); keys = grown; }
+    keys[j] = k;
+    slots[h] = j;
+    if (count * 2 > slots.length) {
+      slots = new Int32Array(slots.length * 2).fill(-1);
+      mask = slots.length - 1;
+      for (let i = 0; i < count; i++) slots[find(keys[i]!)] = i;
+      h = -1;
+    }
+    return j;
+  };
+  const indexOf = (k: number) => slots[find(k)]!;
+  add(firstKey);
+  let from = new Int32Array(1 << 16), to = new Int32Array(1 << 16);
+  let edges = 0;
+  const pos = new Uint8Array(V);
   const occ = new Uint8Array(N * N);
-  for (let s = 0; s < states.length && states.length < UNBLOCK_STATE_CAP; s++) {
-    const pos = states[s]!;
+  for (let s = 0; s < count && count < UNBLOCK_STATE_CAP; s++) {
+    let k = keys[s]!;
+    for (let i = V - 1; i >= 0; i--) { pos[i] = k % 8; k = Math.floor(k / 8); }
     occ.fill(0);
-    for (let i = 0; i < V; i++) for (let k = 0; k < lens[i]!; k++) occ[cell(i, pos[i]!, k)] = 1;
+    for (let i = 0; i < V; i++) for (let c = 0; c < lens[i]!; c++) occ[cell(i, pos[i]!, c)] = 1;
     for (let i = 0; i < V; i++) {
       const p = pos[i]!;
       let lo = p;
       while (lo - 1 >= 0 && !occ[cell(i, lo - 1, 0)]) lo--;
       let hi = p;
       while (hi + lens[i]! <= N - 1 && !occ[cell(i, hi + lens[i]!, 0)]) hi++;
-      for (let to = lo; to <= hi; to++) {
-        if (to === p) continue;
-        const next = pos.slice();
-        next[i] = to;
-        const k = keyOf(next);
-        let j = index.get(k);
-        if (j === undefined) {
-          j = states.length;
-          index.set(k, j);
-          states.push(next);
-          reverse.push([]);
+      const base = keys[s]! - p * place[i]!;
+      for (let t = lo; t <= hi; t++) {
+        if (t === p) continue;
+        const j = add(base + t * place[i]!);
+        if (edges >= from.length) {
+          const f = new Int32Array(from.length * 2); f.set(from); from = f;
+          const g = new Int32Array(to.length * 2); g.set(to); to = g;
         }
-        reverse[j]!.push(s);
+        from[edges] = s;
+        to[edges] = j;
+        edges++;
       }
     }
   }
-  const dist = new Int32Array(states.length).fill(-1);
+  // Edges into each layout (CSR), then breadth-first backwards from every solved layout.
+  const start2 = new Int32Array(count + 1);
+  for (let e = 0; e < edges; e++) start2[to[e]! + 1]!++;
+  for (let i = 0; i < count; i++) start2[i + 1]! += start2[i]!;
+  const fill = start2.slice(0, count);
+  const into = new Int32Array(edges);
+  for (let e = 0; e < edges; e++) into[fill[to[e]!]!++] = from[e]!;
+  const dist = new Int16Array(count).fill(-1);
   let frontier: number[] = [];
-  states.forEach((pos, i) => { if (solved(pos)) { dist[i] = 0; frontier.push(i); } });
+  const goldPlace = gold >= 0 ? place[gold]! : 1;
+  for (let j = 0; j < count; j++) if (goldDone >= 0 && Math.floor(keys[j]! / goldPlace) % 8 === goldDone) { dist[j] = 0; frontier.push(j); }
   for (let d = 1; frontier.length; d++) {
     const next: number[] = [];
-    for (const j of frontier) for (const i of reverse[j]!) if (dist[i] === -1) { dist[i] = d; next.push(i); }
+    for (const j of frontier) for (let e = start2[j]!; e < start2[j + 1]!; e++) { const i = into[e]!; if (dist[i] === -1) { dist[i] = d; next.push(i); } }
     frontier = next;
   }
-  const out = new Map<number, number>();
-  for (const [k, i] of index) if (dist[i]! >= 0) out.set(k, dist[i]!);
+  const out = (k: number) => {
+    const j = indexOf(k);
+    return j >= 0 && dist[j]! >= 0 ? dist[j]! : undefined;
+  };
   if (UNBLOCK_TABLES.size > 64) UNBLOCK_TABLES.clear();
   UNBLOCK_TABLES.set(id, out);
   return out;
@@ -638,7 +685,7 @@ function unblockProgress(start: UnblockVehicle[], played: { id: number; to: numb
   const dist = unblockDistances(start);
   let closer = 0;
   for (const b of boards) {
-    const d = dist.get(unblockKey(b));
+    const d = dist(unblockKey(b));
     if (d !== undefined) closer = Math.max(closer, minMoves - d);
   }
   return solverShare(minMoves, closer, moves, MOVE_WASTE_WEIGHT.unblock);
@@ -785,6 +832,18 @@ function lightsProgress(actions: number[], solution: number[], minPresses: numbe
     closer = Math.max(closer, minPresses - left(current));
   }
   return solverShare(minPresses, closer, presses, MOVE_WASTE_WEIGHT.lightsout);
+}
+
+/**
+ * Forgets every cached table (checks only: grading is deterministic either way, so a cold and a warm grade agree).
+ * The tables live in the server's memory, keyed by board, so every grade of a board on the same server instance
+ * after the first reuses them, whichever player sent it.
+ */
+export function clearProgressCaches(): void {
+  RING_TABLES.clear();
+  UNBLOCK_TABLES.clear();
+  PUSH_TABLES.clear();
+  TOWER_TABLES.clear();
 }
 
 /** Hanoi: every spread's fewest moves to the target peg, by one backward search per peg count and target (cached). */

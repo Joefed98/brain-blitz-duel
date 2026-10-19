@@ -796,7 +796,12 @@ async function main() {
     }
   } finally {
     await browser.close();
-    if (proc?.pid) process.kill(-proc.pid);
+    // The dev server may already have exited (a busy runner): never let its cleanup hide the failures below.
+    try {
+      if (proc?.pid) process.kill(-proc.pid);
+    } catch {
+      // already gone
+    }
   }
   for (const n of notes) console.log(`  NOTE ${n}`);
   for (const f of failures) console.log(`  ${f}`);

@@ -33,13 +33,16 @@ import {
   rev3Finish,
   rev3Unfinished,
 } from "../src/lib/duel/puzzleScoreRev3";
-import { targetProgress, SLIDER_ROW_POINTS } from "../src/lib/duel/puzzleProgress";
+import { clearProgressCaches, targetProgress, SLIDER_ROW_POINTS } from "../src/lib/duel/puzzleProgress";
 import { DEALT_LIMIT_S, fastFinishSeconds, rev3Help, rev3Intro } from "../src/lib/duel/puzzleBandsText";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { REV3_FIXTURE, type Rev3Game } from "./scoring-rev3-record";
 import { KNOWN_SPAM } from "./puzzle-fairness";
+import { KITS } from "./puzzle-fairness/kits";
+import { hashText, makeRng } from "./puzzle-fairness/kit";
+import { roomPuzzle } from "./puzzle-fairness/run";
 
 let checks = 0;
 const failures: string[] = [];
@@ -207,6 +210,49 @@ for (const game of fixture.games.filter((g) => g.seed === fixture.games.find((x)
   ok(placed === 14 && !r3.isCorrect && r3.score <= 110, `Interlock: a 14-tile grid is a finish on rev 3 (${r3.score})`);
   // On rev 2 the same grid kept its old verdict (any valid grid was a finish).
   ok(r2.isCorrect === ((r2.extra as { valid?: boolean } | null)?.valid === true), "Interlock: rev 2's verdict changed");
+}
+
+/* -------------------------------------------- 6a. Heave and Gridlock: deterministic, cached, never lower on the way */
+{
+  // Heave's push count (a bound, not the exact solver) and Gridlock's whole-board table: on 40 room boards each,
+  // every action of a clean solve (the stored solution, walked as the phone sends it) never scores less than the one
+  // before, and every answer grades to the same score and progress with the tables cold (cleared) and warm, in
+  // either order.
+  const near = { level: "near", pace: 0.4, err: 0, reactionMs: 160, reactionSd: 20 } as const;
+  let steps = 0;
+  const cold: number[] = [];
+  for (const type of ["push", "unblock"] as PuzzleType[]) {
+    for (let n = 0; n < 40; n++) {
+      const seed = 12_001 + n * 11;
+      const puzzle = roomPuzzle(type, seed);
+      const play = KITS[type]!.play(puzzle, makeRng(hashText(`${type}:rev3-mono:${seed}`)), near as never, puzzleTimeLimitMs(puzzle) * 4);
+      const answers = play.steps.map((s) => s.answer);
+      clearProgressCaches();
+      const t0 = performance.now();
+      const first = answers.map((a) => gradeAnswer(puzzle, a, 0));
+      if (type === "unblock") cold.push(performance.now() - t0);
+      const shareOf = (g: { extra: unknown }) => (g.extra as { progressShare?: number } | null)?.progressShare ?? null;
+      // Warm, newest first.
+      const warm = answers.map((a, i) => [i, gradeAnswer(puzzle, a, 0)] as const).reverse();
+      // Cold again, oldest last.
+      clearProgressCaches();
+      const again = [...answers].reverse().map((a) => gradeAnswer(puzzle, a, 0)).reverse();
+      let prev = -1;
+      for (let i = 0; i < answers.length; i++) {
+        steps++;
+        const g = first[i]!;
+        const w = warm.find(([j]) => j === i)![1];
+        const same = g.score === w.score && g.score === again[i]!.score && shareOf(g) === shareOf(w) && shareOf(g) === shareOf(again[i]!);
+        ok(same,
+          `${type} ${seed} step ${i + 1}: graded ${g.score}/${shareOf(g)} cold, ${w.score}/${shareOf(w)} warm, ${again[i]!.score}/${shareOf(again[i]!)} cold again`);
+        if (g.isCorrect) break;
+        ok(g.score >= prev, `${type} ${seed}: step ${i + 1} toward the solution scored ${g.score} after ${prev}`);
+        prev = g.score;
+      }
+    }
+  }
+  cold.sort((a, b) => a - b);
+  console.log(`Heave and Gridlock: ${steps} solution steps graded cold and warm, identical and never lower; Gridlock's first grade of a board (its table built once, then shared by every grade of that board on the server) median ${cold[cold.length >> 1]!.toFixed(0)} ms, slowest ${cold[cold.length - 1]!.toFixed(0)} ms`);
 }
 
 /* ------------------------------------------------------------------ 6. help and intro numbers */

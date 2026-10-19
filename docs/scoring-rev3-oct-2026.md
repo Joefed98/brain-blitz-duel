@@ -51,6 +51,18 @@ finished   = 120 + round(30 × min(1, time-left share ÷ fastShare) × efficienc
 
 Every search is bounded and cached per board; scoring-rev3-check's slowest stored grade is under 70 ms.
 
+**Where the tables live (follow-up).** The server builds for Cloudflare Workers (nitro). The tables are kept in the
+server's memory, keyed by the board, not by player: every grade of a board on the same server instance after the
+first reuses them, whichever player sent it. Cloudflare may serve a room's requests from more than one instance, and
+an instance can be recycled, so a table is built at most once per instance that grades that board, never once per
+player or per answer. Gridlock's build (the only one that costs much) now uses flat typed arrays: a first grade of a
+board takes median 132 ms and at most 377 ms over 40 room boards (median 135 ms, max 333 ms over 60 more), down from
+up to 640 ms; every later grade of that board under 1 ms. Turntable, Hanoi and Interlock first grades are 60–70 ms.
+
+**Heave (follow-up).** The push bound is a pure function of the warehouse and the crates (no randomness, no clock;
+the cache only saves work). scoring-rev3-check grades every step of the stored solution on 40 room boards cold and
+warm, in both orders, and proves the scores identical and never lower from one step to the next (Gridlock likewise).
+
 ## Results (`bun scripts/scoring-report.ts`, 15 room seeds, rev 3)
 
 Run as `scripts/scoring-report.ts --category=<c> --no-arcade --seeds=15 --out=<dir>` per category, then
@@ -229,8 +241,10 @@ the knots' lift is gone, as for every helper game. The average kit player does n
 8. **Stored 14-tile Interlock rounds** keep `is_correct = true`, so the leaderboard verdict still shows ✓ for them
    (only the wording changed); a display-side check could hide it.
 9. **Strikeout's intro demo** is stopped until re-recorded on a 12-strike puzzle.
-10. **Cryptogrid's** sixth given makes it easier (8–12 numbers to find instead of 9–13); its fastShare (0.75) was
-    measured on five givens.
+10. **Cryptogrid's** sixth given makes it easier (8–12 numbers to find instead of 9–13). Its fast share was
+    re-measured on six-letter boards (follow-up, 30 room seeds): the near-perfect kit's 75th percentile leaves 0.77 of
+    the clock (median 0.75), against 0.75 on five letters. Both clamp to the 0.75 ceiling, so 150 still needs a clean
+    finish in about 30 s and the help text is unchanged. A lower ceiling for this game would be Joe's call.
 
 ## Checks
 

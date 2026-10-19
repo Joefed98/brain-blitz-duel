@@ -41,7 +41,8 @@ export interface Rev3Game {
  * progress measures by scripts/scoring-report.ts (the median one-short progress over 15 room seeds).
  */
 const RAW: Record<string, [fast: number, oneShort: number]> = {
-  codeword: [0.75, 1],
+  // Cryptogrid: re-measured on codewordRev 3's six starting letters (30 room seeds, 20 Oct 2026): 0.77, five gave 0.75.
+  codeword: [0.77, 1],
   tilegrid: [0.72, 14 / 15],
   wordsearch: [0.78, 1],
   letterwheel: [0.51, 0.97],
