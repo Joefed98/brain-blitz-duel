@@ -19,6 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { bandCurve, bandMapTotal } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -453,8 +454,17 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 }
 
 function score(state: TenDropState): number {
-  return tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets);
+  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets);
+  return (state.scoreRev ?? 0) >= TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
+
+/**
+ * tenRev 2 (score bands, 19 Oct 2026, docs/scoring-targets.md): tenRev 1 play and scoring, then the total mapped
+ * so the simulated average / good / great / near-perfect players' 97 / 128 / 135 / 137 land about 70 / 100 / 120 /
+ * 140; 0 stays 0 and only a clear with the full speed part (150) is 150.
+ */
+export const TEN_DROP_BANDS_REV = 2;
+export const TEN_DROP_BANDS_MAP = bandCurve([0, 97, 128, 135, 137, 150], [0, 70, 100, 120, 140, 150]);
 
 /* ============================= Checkpoints ============================= */
 

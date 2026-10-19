@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
   SPOT_REV1_PER_SCENE,
   SPOT_REV1_SCENES,
@@ -674,7 +675,9 @@ const bombSummary: SummaryBuilder = (result, puzzle) => {
     detail: [
       `${prefix} action${prefix === 1 ? "" : "s"} carried out correctly`,
       (puzzle.bombVersion ?? 1) >= 2
-        ? puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV
+        ? puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_BANDS
+          ? "Correct steps before a strike count as progress (score bands)"
+          : puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV
           ? `22 per correct step, five of six = 110`
           : `75 × ${prefix} ÷ ${puzzle.stepCount}, rounded`
         : `25 per correct step, up to 75`,
@@ -720,7 +723,9 @@ const chainSummary: SummaryBuilder = (result, puzzle) => {
           : "Time ran out";
   return {
     summary: `${links} / ${rules.length} links · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: [ending, puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV && rules.bonus
+    detail: [ending, puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_BANDS && rules.bonus
+      ? "Links count as progress; all of them is a finish, quicker for more (score bands)"
+      : puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV && rules.bonus
       ? `110 × links ÷ ${rules.length - 1}, rounded down · all ${rules.length} links = 120 + up to 30 for speed (full with half the time left)`
       : `${rules.points} per link${rules.bonus ? ", rounded down" : ""} · ${rules.length} links = ${rules.length * rules.points}${rules.bonus ? ` + up to ${rules.bonus} for speed (full with half the time left)` : ""}`],
   };

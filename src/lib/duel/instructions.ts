@@ -1,3 +1,17 @@
+import { bandsHelp, openBandsLine } from "./puzzleBandsText";
+import { scoreReaction, scoreStopWatch, scoreWordHunt, scoreWordsmith, WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import { withPuzzleScoreRev } from "./puzzleScoreRev";
+import { TAP_REV_SPEED_TUNING } from "./tapLog";
+import { bandMapTotal } from "@/lib/arcade/scoreBands";
+import { TEN_DROP_BANDS_MAP } from "@/lib/arcade/tenDrop";
+import { CLASH_BANDS_MAP } from "@/lib/arcade/colourClash";
+import { WHACK_BANDS_MAP } from "@/lib/arcade/whack";
+import { CLAY_BANDS_MAP } from "@/lib/arcade/clayShoot";
+import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
+
+/** Search ranges for the open games' help numbers (word points rising; milliseconds falling). */
+const RANGE_0_80 = Array.from({ length: 81 }, (_, i) => i);
+const MS_DOWN = Array.from({ length: 160 }, (_, i) => 800 - 5 * i);
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import {
   SKYLINE_STREAK_FROM,
@@ -60,7 +74,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: 10 points ≈ 95, 23 ≈ 122, 34 ≈ 135, 150 at 60. The counter shows word points.",
+    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${openBandsLine("wordsmith", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordsmith(x, WORDSMITH_REV_TARGET)), (x) => `${x} points`)}. The counter shows word points.`,
   },
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
@@ -72,7 +86,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Red runs", detail: "need fixing.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "All fifteen tiles in a valid grid = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × tiles inside a real word ÷ 15 (about 7 each), at most 110.",
+    score: bandsHelp("tilegrid"),
   },
   balance: {
     goal: "Balance each of the four scales.",
@@ -85,7 +99,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
       { action: "Hangs are limited:", detail: "6 / 8 / 10 / 12 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
     ],
-    score: "Each balanced scale scores, in any order: 15, 25, 30 and 55 (any three at most 110). All four = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. A scale that runs out of hangs scores nothing.",
+    score: bandsHelp("balance"),
   },
   wordslide: {
     goal: "Slide rows and columns until every row is a word.",
@@ -96,7 +110,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "All five rows words = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise 27.5 per word row you made (rows as they started don't count), less for wasted moves (nothing at 4× par), at most 110.",
+    score: bandsHelp("wordslide"),
   },
   target: {
     goal: "Use the six numbers to make the target.",
@@ -105,7 +119,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Use each number", detail: "once at most." },
       { action: "Every step", detail: "must be a whole number." },
     ],
-    score: "Exact = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise measured from the closest number you made: off by 1 = 110, falling faster the further off, 0 from about 100 away; no step made = 0.",
+    score: bandsHelp("target"),
   },
   equation: {
     goal: "Fill the gaps so each equation is true.",
@@ -117,7 +131,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
       { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
     ],
-    score: "Stages: 20 / 30 / 35 / 45, in any order (the best three = 110). All four: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. An equation still wrong after 3 tries scores nothing.",
+    score: bandsHelp("equation"),
   },
   reaction: {
     goal: "Tap the instant the screen turns gold.",
@@ -128,7 +142,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Traps:", detail: "teal, red or blue; near-gold amber; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
       { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
     ],
-    score: "150 at 150 ms average or faster, 128 at 200 ms, 100 at 300 ms, 0 at 800 ms (straight lines between); misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.",
+    score: `Faster average reactions score more: ${openBandsLine("reaction", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreReaction(ms, 0, TAP_REV_SPEED_TUNING)), (ms) => `${ms} ms`)}; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.`,
   },
   numhunt: {
     goal: "Tap all 24 numbers from smallest to largest.",
@@ -138,7 +152,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Untapped numbers", detail: "move every 15 seconds." },
       { action: "The timer above the board", detail: "counts up to 15 s, then the numbers move and it starts again from 0.", helpOnly: true },
     ],
-    score: "Unfinished: 110 × numbers reached ÷ 23 (about 5 each), −5 per wrong tap, at most 110. All 24 = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left; each wrong tap takes 5 off the 30, never below 120.",
+    score: bandsHelp("numhunt"),
   },
   stroop: {
     goal: "Steer each falling word into the right gate.",
@@ -149,7 +163,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
       { action: "Sort the last word", detail: `to finish – the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
     ],
-    score: `All ${CLASH_QUEUE} sorted with at most 2 wrong gates: 120 + up to 30 for speed (the full 30 if you finish with at least half the time left), −5 per wrong gate from the 30. Otherwise words right less words wrong: 20 scores 70, 40 scores 100, 46 or more 110 (in between, in proportion; 0 or less scores 0).`,
+    score: `All 52 sorted with at most 2 wrong gates is a finish: ${bandMapTotal(CLASH_BANDS_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong gate); 150 only for a quick finish with no wrong gate. Otherwise words right less words wrong: 20 scores ${bandMapTotal(CLASH_BANDS_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_BANDS_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_BANDS_MAP, 110)}.`,
   },
   symscan: {
     goal: "Find every eagle that matches the target.",
@@ -159,7 +173,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Three grids,", detail: "each bigger, in 30 seconds." },
       { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
     ],
-    score: "Grids worth 40 / 40 / 30 (110 in all): share of eagles found, −3 per wrong tap. All three perfect: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: bandsHelp("symscan"),
   },
   spotdiff: {
     goal: "Find six differences in each of two pictures.",
@@ -169,7 +183,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Sweet shop first,", detail: "then the rock pool; 60 seconds for both." },
       { action: "Next picture", detail: "moves on early; you can't go back.", helpOnly: true },
     ],
-    score: "All twelve with at most 5 wrong taps in each picture = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 10 per difference found, −4 per wrong tap, at most 110.",
+    score: bandsHelp("spotdiff"),
   },
   stopwatch: {
     goal: "Stop the marker in the gold zone, ten times.",
@@ -182,7 +196,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
       { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
     ],
-    score: "150 at 5 ms average error or closer, 137 at 20 ms, then evenly down to 101 at 200 ms, then evenly to 0 at 325 ms; misses count 500 ms.",
+    score: `Closer average stops score more: ${openBandsLine("stopwatch", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreStopWatch(ms, TAP_REV_SPEED_TUNING)), (ms) => `${ms} ms off`)}; misses count 500 ms.`,
   },
   countup: {
     goal: "Count the shapes each question asks for.",
@@ -193,7 +207,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
       { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
     ],
-    score: "Trays worth 40 / 30 / 25 / 15 (110 in all): exact = full, off by 1 = 15%, further off = 0. All four exact: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: bandsHelp("countup"),
   },
   wordhunt: {
     goal: "Find as many words as you can.",
@@ -205,7 +219,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: "Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: 9 points ≈ 95, 15 ≈ 120, 24 ≈ 135, 150 at 48. The counter shows word points.",
+    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: ${openBandsLine("wordhunt", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordHunt(x, WORDHUNT_REV_TARGET)), (x) => `${x} points`)}. The counter shows word points.`,
   },
   unblock: {
     goal: "Slide the gold block out through the exit.",
@@ -213,7 +227,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag a block", detail: "along its own direction." },
       { action: "Clear a path", detail: "for the gold block." },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: up to 110 for clearing the gold block's lane, less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("unblock"),
   },
   blockparty: {
     goal: "Fit all nine pieces into the free squares.",
@@ -223,7 +237,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Fit every piece", detail: "around the fixed pegs." },
       { action: "Drag a piece's anchor", detail: "onto a free board square.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × (pieces in their solution spot − pieces elsewhere) ÷ 8, at most 110.",
+    score: bandsHelp("blockparty"),
   },
   lightsout: {
     goal: "Turn every light off.",
@@ -232,7 +246,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Plan each press:", detail: "nearby lights change too." },
       { action: "Neighbours", detail: "are the four lights above, below, left and right.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 1-4 lights left = 110 / 95 / 80 / 65; else 5 per solution light pressed, −5 per other light left pressed, up to 45.",
+    score: bandsHelp("lightsout"),
   },
   pipes: {
     goal: "Connect every pipe to the source.",
@@ -241,7 +255,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Join every opening", detail: "to another pipe." },
       { action: "No leaks", detail: "at the edges." },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × (the share of tiles you joined beyond the start)², at most 110.",
+    score: bandsHelp("pipes"),
   },
   sudoku: {
     goal: "Fill the 6 × 6 sudoku grid.",
@@ -251,7 +265,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Pencil marks", detail: "are for notes." },
       { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × correct cells ÷ empty cells, −5 per wrong digit, at most 110.",
+    score: bandsHelp("sudoku"),
   },
   flow: {
     goal: "Join every colour pair and fill every square.",
@@ -261,7 +275,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Fill every square", detail: "with a path." },
       { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × (pairs joined on their solution route − other joined pairs) ÷ pairs, at most 110.",
+    score: bandsHelp("flow"),
   },
   iceslide: {
     goal: "Slide the ball to the gold exit.",
@@ -271,7 +285,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Portals", detail: "carry you across." },
       { action: "Cracked ice", detail: "breaks after you cross it once.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: up to 110 for the distance closed, less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("iceslide"),
   },
   push: {
     goal: "Push every crate onto a marked square.",
@@ -281,7 +295,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Crates can't be pulled,", detail: "so plan ahead." },
       { action: "The worker", detail: "moves one square at a time and pushes one crate at a time.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for pushes (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × crates you brought home ÷ (crates − 1), less for wasted pushes (nothing at 4× the minimum).",
+    score: bandsHelp("push"),
   },
   laser: {
     goal: "Light all six gems with one beam.",
@@ -292,7 +306,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The splitter", detail: "forks the beam across its input axis.", helpOnly: true },
       { action: "Gem arrows:", detail: "marked gems only light from that direction.", helpOnly: true },
     ],
-    score: "Every gem lit, no bomb: 120 + 15 / 8 / 0 for shot 1 / 2 / 3 + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise 22 per gem lit, at most 110; never fired = 0.",
+    score: bandsHelp("laser"),
   },
   tower: {
     goal: "Move the whole tower onto the gold post.",
@@ -302,7 +316,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Never put a ring", detail: "on a smaller one." },
       { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × rings you stacked from the bottom of the gold post ÷ (rings − 1) (rings home at the start don't count), less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("tower"),
   },
   maze: {
     goal: "Draw a path from the start to the exit.",
@@ -312,7 +326,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Reach the exit", detail: "to finish." },
       { action: "The path", detail: "moves one neighbouring cell at a time.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × the share of the route you reached beyond the start (the first 5% earns nothing), less for wandering (nothing at 4× the route's length).",
+    score: bandsHelp("maze"),
   },
   tubes: {
     goal: "Sort the potions so each flask is one colour.",
@@ -324,7 +338,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A full one-colour flask", detail: "gets a cork.", helpOnly: true },
       { action: "Pours are limited", detail: "(the counter). Undo and Reset don't give a pour back; out of pours, the board ends.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (every pour counts, Undo included: full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished, or out of pours (about 6 over the minimum, rounded up to a 5): 110 × flasks you corked ÷ (colours − 1), less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("tubes"),
   },
   safe: {
     goal: "Find the four-digit code that fits every clue.",
@@ -333,7 +347,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tap TRY", detail: "to test it: three tries." },
       { action: "Only one code", detail: "fits every clue." },
     ],
-    score: "Opened: 120 + 15 / 8 / 0 for try 1 / 2 / 3 + up to 15 for speed (the full 15 if you finish with at least half the time left). Otherwise 25 per dial right on the last try after the first.",
+    score: bandsHelp("safe"),
   },
   bomb: {
     goal: "Defuse the bomb in six steps.",
@@ -345,7 +359,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Only one order fits", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
       { action: "Wires", detail: "are numbered 1-7 from the left.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 22 per correct step before the strike (five of six = 110).",
+    score: bandsHelp("bomb"),
   },
   gravity: {
     goal: "Tilt to park each ball on its own target.",
@@ -356,7 +370,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A locked ball", detail: "can help or block the others.", helpOnly: true },
       { action: "Tilts are limited", detail: "(the counter). Undo and Reset don't give a tilt back; out of tilts, the board ends.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished, or out of tilts (about 6 over the minimum, rounded up to a 5): 110 × balls you parked ÷ 3 (about 37 each), less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("gravity"),
   },
   chain: {
     goal: "Tap 40 charms, following the cycle.",
@@ -370,7 +384,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Reverse:", detail: "a banner warns from link 17; links 21-25 run last to first (the arrows point back).", helpOnly: true },
       { action: "Watch for look-alikes:", detail: "right shape, wrong colour.", helpOnly: true },
     ],
-    score: "Unfinished: 4 per link up to 5 links (20), then rising more slowly: 79 for 19 links, 110 for 39, at most 110. All 40: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Round lasts 45 s.",
+    score: bandsHelp("chain"),
   },
   nonogram: {
     goal: "Fill cells so every line matches its numbers.",
@@ -379,7 +393,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The numbers", detail: "are the filled runs, in order." },
       { action: "A line dims", detail: "once it matches." },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × correct cells ÷ the picture's filled cells, −5 per wrong cell, at most 110.",
+    score: bandsHelp("nonogram"),
   },
   pairmatch: {
     goal: "Find all fifteen pairs.",
@@ -388,7 +402,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A match stays up;", detail: "a miss flips back." },
       { action: "Remember", detail: "where each card was." },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × pairs ÷ 14 (about 8 each), −1 per mismatched try after the first 25, at most 110.",
+    score: bandsHelp("pairmatch"),
   },
   flood: {
     goal: "Flood the whole board with one colour.",
@@ -398,7 +412,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "You start", detail: "from the top-left corner." },
       { action: "Moves are limited:", detail: "par + 2 (the counter). Out of moves, the board ends and scores 0.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at par, 0 at twice par) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × cells you flooded beyond the start ÷ cells left, in full up to par moves, half at par + 1 and nothing at the limit (par + 2), so running out of moves scores 0.",
+    score: bandsHelp("flood"),
   },
   tiles: {
     goal: "Slide the tiles into order, 1 to 9.",
@@ -409,7 +423,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Undo or Reset", detail: "takes slides back." },
       { action: "Every slide counts", detail: "as a move, undone ones too.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × (tiles you put in place − tiles you moved out) ÷ (tiles to place − 1), less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("tiles"),
   },
   rings: {
     goal: "Turn the rings until every spoke is one colour.",
@@ -420,7 +434,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Linked rings", detail: "turn the same way or the opposite way.", helpOnly: true },
       { action: "The selected ring", detail: "glows and the needle touches its edge.", helpOnly: true },
     ],
-    score: "Solved = 120 + up to 15 for moves (full at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × spokes you lined up ÷ (spokes to line up − 1), less for wasted moves (nothing at 4× the minimum).",
+    score: bandsHelp("rings"),
   },
   hover: {
     goal: "Fly through the barrier gaps.",
@@ -701,7 +715,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles drop faster", detail: "every 18 seconds; Qu counts as two letters.", helpOnly: true },
       { action: "If a new tile can't fit", detail: "into a full column, the run ends.", helpOnly: true },
     ],
-    score: "Longer words score more; hit par for 150. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11 (a Qu tile counts as two letters); score = 150 × points ÷ par (30), capped at 150.",
+    score: `Longer words score more. Overflow a column and the run ends. Word points: 3 letters 1, 4 = 2, 5 = 4, 6 = 7, 7+ = 11 (a Qu tile counts as two letters). More points, higher score: 21 points ≈ ${bandMapTotal(WORDFALL_BANDS_MAP, 21)}, 31 ≈ ${bandMapTotal(WORDFALL_BANDS_MAP, 31)}, 35 ≈ ${bandMapTotal(WORDFALL_BANDS_MAP, 35)}, 40 ≈ ${bandMapTotal(WORDFALL_BANDS_MAP, 40)}, 150 at 46.`,
   },
   tendrop: {
     goal: "Make the running total hit each target.",
@@ -712,7 +726,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
       { action: "A ÷ that doesn't divide exactly", detail: "is refused.", helpOnly: true },
     ],
-    score: "Unfinished: 110 × targets ÷ 9 (about 12 each), −2 per reset after the first 5, at most 110. All ten: 120 + up to 30 for clearing them early (the full 30 if the last clears with at least half the time left).",
+    score: `Unfinished: targets hit, about ${bandMapTotal(TEN_DROP_BANDS_MAP, 12)} for the first and ${bandMapTotal(TEN_DROP_BANDS_MAP, 110)} for nine (−2 per reset after the first 5, before the bands). All ten: ${bandMapTotal(TEN_DROP_BANDS_MAP, 120)} if the last clears as time runs out, rising the earlier it clears; 150 only with at least half the time left.`,
   },
   clayshoot: {
     goal: "Shoot all 25 clays without hitting a bird.",
@@ -725,7 +739,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
       { action: "Aim, don't spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
     ],
-    score: "5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30. Hit all 25 with zero birds hit for +10. Maximum 150; minimum 0.",
+    score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total then sets the score: 88 scores ${bandMapTotal(CLAY_BANDS_MAP, 88)}, 125 scores ${bandMapTotal(CLAY_BANDS_MAP, 125)}, one clay short of perfect about ${bandMapTotal(CLAY_BANDS_MAP, 145)}; a perfect run scores 150.`,
   },
   whack: {
     goal: "Bonk gophers whose hats match the banner.",
@@ -736,7 +750,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Gophers pop up briefly", detail: "– the window shrinks as the run goes on.", helpOnly: true },
       { action: "Hedgehogs cost 5;", detail: "a wrong-colour hat or an empty burrow costs 3.", helpOnly: true },
     ],
-    score: "Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total is then lifted (62 → 100, 102 → 120, 118 → 135, 133 → 145). Maximum 150.",
+    score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total then sets the score: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}. Only a perfect 150 is 150.`,
   },
   wavefront: {
     goal: "Five waves and a boss in 90 s.",
@@ -905,7 +919,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each number", detail: "is its rectangle's size." },
       { action: "Cover", detail: "every square." },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × (cells in rectangles of the solution − cells in other rectangles) ÷ 100, at most 110.",
+    score: bandsHelp("shikaku"),
   },
   dig: {
     goal: "Dig a path so the water reaches the drain.",
@@ -926,7 +940,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Ten dark numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
       { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes.", helpOnly: true },
     ],
-    score: "Complete path = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × (your tiles in their right cell − your tiles in a wrong cell) ÷ (tiles to place − 1), at most 110.",
+    score: bandsHelp("trail"),
   },
   measure: {
     goal: "Measure out exactly the target amount.",
@@ -939,7 +953,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
       { action: "Moves are limited", detail: "to about 3× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
     ],
-    score: "Puzzles solved in order: 30 / 35 / 45 (three = 110). All four: 120 + up to 15 for moves (each puzzle full at the fewest possible, none at twice that) + up to 15 for speed (the full 15 if you finish with at least half the time left). A puzzle that runs out of moves (about 3× the fewest, rounded up to a 5) ends the run there.",
+    score: bandsHelp("measure"),
   },
   checkout: {
     goal: "Score exactly the target with your darts.",
@@ -951,7 +965,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
       { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
     ],
-    score: "Boards score 22, 24, 26, 28 and 32 (any four at most 110). All five: 120 + 3 per board solved in the fewest darts possible (the four-dart board always counts) + up to 15 for speed (the full 15 if you finish with at least half the time left).",
+    score: bandsHelp("checkout"),
   },
   numline: {
     goal: "Place each number on the line.",
@@ -963,7 +977,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
       { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
     ],
-    score: "Up to 8 per number (120 for all 15): full 8 within 1% of the line, falling evenly to 0 at 10% away; 25% or more away costs 1. With numbers unplaced, at most 110. Place all 15 for up to 30 more for speed (the full 30 with at least half the time left), multiplied by the share of numbers placed within 1%.",
+    score: "Up to 8 per number: full 8 within 1% of the line, falling evenly to 0 at 10% away; 25% or more away costs 1. Place all 15 for more, the quicker and the more of them within 1% the better. That total maps to the score bands: about 70 for an average round, 100 good, 120 great; 150 only for a perfect one.",
   },
   numpyramid: {
     goal: "Each cell is the sum of the two below it.",
@@ -974,7 +988,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
       { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
     ],
-    score: "27.5 per finished pyramid, plus 27.5 × the share of right bricks on the first unfinished one, at most 110. All four: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: bandsHelp("numpyramid"),
   },
   balltrack: {
     goal: "Steer every marble into the cup of its colour.",
@@ -997,7 +1011,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A found word", detail: "is struck through." },
       { action: "Each chip shows", detail: "a hidden word's letter count until you find it; the word then fills it.", helpOnly: true },
     ],
-    score: "22 per word, −2 per wrong pick after the first 5, at most 110. Find all six for 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: bandsHelp("wordsearch"),
   },
   letterwheel: {
     goal: "Fill the crossword from the letter wheel.",
@@ -1010,7 +1024,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
       { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
     ],
-    score: "Unfinished: 12 per word for the first 6, then 5 per word, at most 110, minus 3 per miss after the first 5. Find them all for 120 + up to 15 for accuracy (15, minus 3 per miss after the first 5) + up to 15 for speed: the full 15 if you finish with at least half the time left.",
+    score: bandsHelp("letterwheel"),
   },
   strikeout: {
     goal: "Reveal five long words, one at a time, before ten strikes.",
@@ -1024,7 +1038,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
       { action: "Ten strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
     ],
-    score: "Unfinished: 30 per solved word plus 2 per letter you found in the current word, up to 110. All five: 120 + 1.5 per strike left (15 with none of the ten used) + up to 15 for speed (the full 15 if you finish with at least half the time left).",
+    score: bandsHelp("strikeout"),
   },
   codeword: {
     goal: "Crack the code: each number is one letter.",
@@ -1036,7 +1050,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
       { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
     ],
-    score: "Unfinished: 110 × numbers decoded right ÷ (numbers to find − 1), −5 per wrong letter left on a number, at most 110. Cracked: 120 + up to 30 for speed: the full 30 if you finish with at least half the time left.",
+    score: bandsHelp("codeword"),
   },
   swapword: {
     goal: "Swap tiles until all six words read correctly.",
@@ -1048,7 +1062,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
       { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
     ],
-    score: "Solved: 120 + up to 15 for few swaps (15 at the minimum, 0 at twice it) + up to 15 for speed (the full 15 if you finish with at least half the time left). Unfinished: 110 × (tiles you placed − tiles you moved out of place) ÷ (tiles to place − 2), at most 110.",
+    score: bandsHelp("swapword"),
   },
   lightup: {
     goal: "Place bulbs so every white square is lit.",
@@ -1058,7 +1072,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "A wall's number", detail: "is how many bulbs touch it." },
       { action: "A number on a wall", detail: "says exactly how many bulbs touch that wall's four sides.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 110 × bulbs on the solution ÷ (its bulbs − 1), −5 per other bulb, at most 110.",
+    score: bandsHelp("lightup"),
   },
   tents: {
     goal: "Pitch one tent beside every tree.",
@@ -1068,6 +1082,6 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Signposts", detail: "give each row's and column's tents." },
       { action: "Tap a third time", detail: "to clear the cell.", helpOnly: true },
     ],
-    score: "Complete = 120 + up to 30 for speed: the full 30 if you finish with at least half the time left. Otherwise 10 per correct tent, −10 per wrong tent, at most 110.",
+    score: bandsHelp("tents"),
   },
 };

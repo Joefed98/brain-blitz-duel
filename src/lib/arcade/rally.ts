@@ -23,7 +23,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -585,6 +585,7 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  if (rev === RALLY_REV_STRICT) return rallyStrictGame;
   if (rev === RALLY_REV_TARGET) return rallyTargetGame;
   if (rev === RALLY_REV_TALL) return rallyTallGame;
   if (rev === RALLY_REV_TUNEF) return rallyTunefGame;
@@ -721,7 +722,7 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET ? RALLY_TALL_H : RALLY_WORLD_H;
+  return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -735,3 +736,16 @@ export const RALLY_REV_TARGET = 7;
 export const rallyTargetGame = bandTargetGame(rallyTallGame);
 /** The curve new rounds score on: RALLY_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const RALLY_V7_BAND_CURVE = bandRetarget(RALLY_V6_BAND_CURVE);
+
+
+/* ================= Score bands (rallyRev 8, 19 Oct 2026) ================= */
+
+/**
+ * rallyRev 8 (score bands, docs/scoring-targets.md): rallyRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const RALLY_REV_STRICT = 8;
+export const rallyStrictGame = bandStrictGame(rallyTargetGame);
+/** The curve new rounds score on: RALLY_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const RALLY_V8_BAND_CURVE = bandStrict(RALLY_V6_BAND_CURVE);

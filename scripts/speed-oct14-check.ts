@@ -49,6 +49,10 @@ import {
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { bands, CARELESS_LINE, median, NAMES, SPEED_BAND_TYPES } from "./speed-bands-oct14";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 const failures: string[] = [];
 const fail = (msg: string) => failures.push(msg);
@@ -76,7 +80,8 @@ for (const file of ["speed-oct14-legacy", "speed-oct14-rounds"]) {
 
 function stampOf(p: PuzzleData): number | null {
   const r = p as { tapRev?: number; chainCycleRev?: number; clayRev?: number };
-  return p.type === "chain" ? (r.chainCycleRev ?? 0) : p.type === "clayshoot" ? (r.clayRev ?? 0) : (r.tapRev ?? 0);
+  // Pull! clayRev 7 (score bands, 19 Oct 2026) plays clayRev 6 (scoring-bands-check covers the score).
+  return p.type === "chain" ? (r.chainCycleRev ?? 0) : p.type === "clayshoot" ? (r.clayRev === 7 ? 6 : (r.clayRev ?? 0)) : (r.tapRev ?? 0);
 }
 
 /* ------------------------------ 2. room stamps ------------------------------ */

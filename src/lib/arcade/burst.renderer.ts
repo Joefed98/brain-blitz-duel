@@ -11,7 +11,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT,
   BURST_LIVES,
   BURST_RADIUS,
   BURST_SHORT_LEN,
@@ -312,8 +312,10 @@ const burstArtGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...bur
 const burstArtGameBand: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BAND), draw };
 const burstArtGameTall: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_TALL), draw };
 const burstArtGameTarget: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_TARGET), draw };
+const burstArtGameStrict: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_STRICT), draw };
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_STRICT) return burstArtGameStrict;
   if (rev === BURST_REV_TARGET) return burstArtGameTarget;
   if (rev === BURST_REV_TALL) return burstArtGameTall;
   if (rev === BURST_REV_BAND) return burstArtGameBand;

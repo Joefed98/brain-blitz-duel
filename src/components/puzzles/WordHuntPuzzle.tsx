@@ -122,6 +122,8 @@ interface WordHuntPuzzleProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string) => void;
+  /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
+  onDraftAnswer?: ((answer: string) => void) | undefined;
   checkWord?: CheckWord;
 }
 
@@ -131,6 +133,7 @@ export function WordHuntPuzzle({
   now,
   locked,
   onSubmit,
+  onDraftAnswer,
   checkWord,
 }: WordHuntPuzzleProps) {
   const grid = puzzle.grid;
@@ -159,6 +162,12 @@ export function WordHuntPuzzle({
     setRunEnded(true);
     onSubmit(foundRef.current.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
   }, [onSubmit]);
+
+  // Every change goes to the room as a draft, so a reveal that arrives before this stage locks in
+  // (a backgrounded phone, a stalled clock) still sends the answer as it stands, never "".
+  useEffect(() => {
+    onDraftAnswer?.(found.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
+  }, [found, onDraftAnswer]);
 
   // A run worth 120+ on this phone's count: a ripple runs out across the letter grid (display only).
   useWordFinish(runEnded && scoreWordHunt(points, puzzle.wordHuntRev) >= WORD_FINISH_SCORE, () => {

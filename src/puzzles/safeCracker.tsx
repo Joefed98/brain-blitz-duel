@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick, useSwipe } from "@/components/puzzles/GridDrag";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
-import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeTries } from "@/lib/duel/safe";
+import { clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries } from "@/lib/duel/safe";
+import { puzzleScoreRevOf } from "@/lib/duel/puzzleScoreRev";
 import { useStageState } from "@/lib/duel/stageState";
 import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -118,9 +119,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   const opened = isSafe && lastTry !== undefined && puzzle.clues.every((clue) => clueHolds(clue, lastTry));
   const solving = useSolveFx("safe", opened);
 
+  // puzzleScoreRev 2: the draft also carries the dials as they stand, so a time-out keeps their right dials as progress.
+  const pendingDraft = puzzleScoreRevOf(puzzle) >= 2 && tries.length < SAFE_TRIES;
   useEffect(() => {
-    onDraftAnswer?.(encodeSafeTries(tries));
-  }, [tries, onDraftAnswer]);
+    onDraftAnswer?.(pendingDraft ? encodeSafeDraft(tries, dials) : encodeSafeTries(tries));
+  }, [tries, dials, pendingDraft, onDraftAnswer]);
 
   const step = (dial: number, delta: number) => {
     if (locked || submitted.current || triesLeft === 0) return;

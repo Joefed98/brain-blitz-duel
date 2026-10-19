@@ -26,7 +26,7 @@ import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, verifyMazePath } from "./maze";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
-import { dialsCorrect, decodeSafeTries, safeOpenedOn } from "./safe";
+import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
@@ -62,12 +62,12 @@ import { decodeInkBridgeRun, replayInkBridgeRun } from "./inkBridge";
 import { decodeBurstRun, replayBurstRun } from "./burst";
 import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
-import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET } from "@/lib/arcade/swing";
+import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
-import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
+import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
@@ -312,7 +312,9 @@ function gradeUnderRev(
   const actionLog = usesActionLog(puzzle);
   // Arcade runs carry a full input log (one event a tick at most), so they get a
   // far larger allowance; cutting a log short silently changes the replay.
-  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) ? 400_000 : tapLog ? TAP_LOG_ANSWER_CAP : actionLog ? ACTION_LOG_ANSWER_CAP : 4_000;
+  // Mixed Signals is an engine run too (fixed 19 Oct 2026): at 4,000 characters a busy run lost its last inputs, and a cut
+  // inside its end tick replayed only a few ticks (close to 0). Stored answers were already cut there, so none regrades.
+  const answerCap = ARCADE_DIAG_KEYS.has(puzzle.type) || puzzle.type === "stroop" ? 400_000 : tapLog ? TAP_LOG_ANSWER_CAP : actionLog ? ACTION_LOG_ANSWER_CAP : 4_000;
   const answer = typeof rawAnswer === "string" ? rawAnswer.slice(0, answerCap) : "";
   let arcadeDiag: ArcadeDiag | null = null;
   /** The server replay result, for the stored arcade reveal summary. */
@@ -424,7 +426,7 @@ function gradeUnderRev(
       revealRun = replay;
       correctCount = replay.correct;
       // clashRev 4 and 5: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
-      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL
+      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS
         ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
         : replay.correct >= replay.total;
       score = replay.score;
@@ -853,7 +855,10 @@ function gradeUnderRev(
       const tries = decodeSafeTries(answer);
       const openedOn = safeOpenedOn(tries, combination);
       const last = tries[tries.length - 1] ?? [];
-      const right = combination.length ? dialsCorrect(last, combination) : 0;
+      // puzzleScoreRev 2 (score bands): an unopened safe keeps its best try's dials, not only the last try's.
+      const right = !combination.length ? 0
+        : puzzleScoreRevOf(puzzle) >= 2 ? Math.max(0, ...[...tries, ...(openedOn > 0 || tries.length >= 3 ? [] : [decodeSafePending(answer) ?? []])].map((t) => dialsCorrect(t, combination)))
+        : dialsCorrect(last, combination);
       isCorrect = openedOn > 0;
       correctCount = openedOn > 0 ? combination.length : right;
       score = scoreSafe(openedOn, ms, right, timeLimitMs);
@@ -1816,7 +1821,7 @@ function gradeUnderRev(
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         // swingRev 4: stars taken (of starTotal) and what ended the run (1 dragon, 2 stalactite, 3 lava jet).
-        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
+        ...(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT ? { swingRev: puzzle.swingRev, stars: run.stars ?? 0, starTotal: run.starTotal ?? 0, cause: run.cause ?? 0 } : {}),
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
         clientLag: run.clientLag,

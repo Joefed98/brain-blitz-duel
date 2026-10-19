@@ -17,6 +17,25 @@
  * needs rev 1 reads the stored breakdown (`extra.parts`) or wraps its call.
  */
 export const PUZZLE_SCORE_REV = 1;
+/**
+ * The revision new puzzles are dealt (19 Oct 2026): 2, the score bands
+ * (puzzleScoreRev2.ts), graded on the rev-1 shape and then mapped. A display
+ * that asks "rev-1 shape or later" still compares with PUZZLE_SCORE_REV.
+ */
+export const PUZZLE_SCORE_REV_DEALT = 2;
+
+let dealtOverride: number | null = null;
+/** The puzzleScoreRev new puzzles are stamped with (PUZZLE_SCORE_REV_DEALT unless a check pinned another). */
+export function dealtPuzzleScoreRev(): number {
+  return dealtOverride ?? PUZZLE_SCORE_REV_DEALT;
+}
+/**
+ * Checks written for the rev-1 shape (their numbers are rev 1's) pin new puzzles to it, so they keep proving what
+ * they were written for; scoring-bands-check proves rev 2. Never called by app code.
+ */
+export function pinDealtPuzzleScoreRev(rev: number | null): void {
+  dealtOverride = rev;
+}
 export const PUZZLE_FINISH_BASE = 120;
 export const PUZZLE_UNFINISHED_CAP = 110;
 /** The 30 above the finish base: all speed, or split 15 / 15 with an efficiency measure. */

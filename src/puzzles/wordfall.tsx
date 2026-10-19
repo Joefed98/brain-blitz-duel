@@ -17,6 +17,7 @@ import {
   WF_W,
   WORDFALL_REV,
   type WordfallState,
+  wordfallPlayRev,
 } from "@/lib/arcade/wordfall";
 import { loadWordfallDict, wordfallDictReady } from "@/lib/arcade/wordfallDict";
 import { wordfallArtGameFor, wordfallEarnsShimmer, wordfallShimmerDev, wordfallStartShimmer } from "@/lib/arcade/wordfall.renderer";
@@ -162,6 +163,8 @@ function observer(setDev: (line: string | null) => void) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: WordfallPuzzleData | null = puzzle.type === "wordfall" ? puzzle : null;
   const rev = data?.wordfallRev;
+  // The rules this round plays (wordfallRev 3 plays rev 2, scored on the bands).
+  const playRev = wordfallPlayRev(rev);
   const dict = useWordfallDict();
   const [dev, setDev] = useState<string | null>(null);
   const [sounds] = useState(() => observer(setDev));
@@ -197,7 +200,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       inputKind={WF_INPUT_TAP}
       overlay={
         <>
-          {rev === 2 ? (
+          {playRev === 2 ? (
             // wordfallRev 2: a real button over the drawn Enter box for keyboards and screen readers. It takes no
             // touches (pointer-events none: a finger still taps the canvas exactly as before) and, when activated,
             // sends the same tap a finger on the box's centre sends, so the input log and replays are unchanged.
@@ -227,7 +230,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       footer={(send) => {
         sendRef.current = send;
-        return rev === 2 ? (
+        return playRev === 2 ? (
         // wordfallRev 2: Enter is the box drawn in the world under the well (the sim's tap box).
         dev ? <p className="shrink-0 whitespace-pre-wrap break-all pt-1 text-center font-mono text-[10px] text-muted-foreground">{dev}</p> : null
       ) : (
@@ -248,7 +251,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         // Enter (or Space) is the Enter button: rev 2's drawn box tapped at its centre, rev 1's button.
         if (key !== "Enter" && key !== " ") return false;
         if (kind === "down" && !event.repeat && dict.ready) {
-          send(rev === 2 ? { k: WF_INPUT_TAP, a: WF_ENTER_V2.x + WF_ENTER_V2.w / 2, b: WF_ENTER_V2.y + WF_ENTER_V2.h / 2, c: 0 } : { k: WF_INPUT_ENTER, a: 0, b: 0, c: 0 });
+          send(playRev === 2 ? { k: WF_INPUT_TAP, a: WF_ENTER_V2.x + WF_ENTER_V2.w / 2, b: WF_ENTER_V2.y + WF_ENTER_V2.h / 2, c: 0 } : { k: WF_INPUT_ENTER, a: 0, b: 0, c: 0 });
         }
         return true;
       }}

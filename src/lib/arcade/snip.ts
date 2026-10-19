@@ -24,7 +24,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -1103,6 +1103,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_STRICT) return snipStrictGame;
   if (rev === SNIP_REV_TARGET) return snipTargetGame;
   if (rev === SNIP_REV_PROVEN) return snipProvenGame;
   if (rev === SNIP_REV_BANK6) return snipBank6Game;
@@ -1175,7 +1176,7 @@ export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ..
 
 /** The world height (px) a stored round's snipRev plays in. */
 export function snipWorldHFor(rev?: number | null): number {
-  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN || rev === SNIP_REV_TARGET ? SNIP_TALL_H : SNIP_H;
+  return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN || rev === SNIP_REV_TARGET || rev === SNIP_REV_STRICT ? SNIP_TALL_H : SNIP_H;
 }
 
 /* ================= Bank growth (snipRev 6, Oct 2026) ================= */
@@ -1275,3 +1276,16 @@ export const SNIP_REV_TARGET = 8;
 export const snipTargetGame = bandTargetGame(snipProvenGame);
 /** The curve new rounds score on: SNIP_V5_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const SNIP_V8_BAND_CURVE = bandRetarget(SNIP_V5_BAND_CURVE);
+
+
+/* ================= Score bands (snipRev 9, 19 Oct 2026) ================= */
+
+/**
+ * snipRev 9 (score bands, docs/scoring-targets.md): snipRev 8 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const SNIP_REV_STRICT = 9;
+export const snipStrictGame = bandStrictGame(snipTargetGame);
+/** The curve new rounds score on: SNIP_V5_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const SNIP_V9_BAND_CURVE = bandStrict(SNIP_V5_BAND_CURVE);

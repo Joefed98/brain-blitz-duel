@@ -52,7 +52,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (puzzle.type !== "unblock") return null;
   return (
     <UnblockPuzzle
@@ -61,6 +61,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       now={now}
       locked={locked}
       onSubmit={onSubmit}
+      onDraftAnswer={onDraftAnswer}
     />
   );
 }

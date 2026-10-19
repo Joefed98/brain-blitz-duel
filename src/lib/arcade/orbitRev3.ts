@@ -19,7 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrict, bandRetarget, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { speedBonusCurve } from "../duel/speedPar";
 import { ANG_QUARTER } from "./trig";
 import {
@@ -49,6 +49,7 @@ import {
   ORBIT_REV_SWEPT,
   ORBIT_REV_TALL,
   ORBIT_REV_TARGET,
+  ORBIT_REV_STRICT,
   inside,
   lapPhases,
   orbitBeltOffset,
@@ -1158,13 +1159,19 @@ export function initTargetFrom(planets: Planet[], worldW: number, holes: OrbitHo
   return { ...initTallFrom(planets, worldW, holes), band: BAND_TARGET_MARK };
 }
 
+/** orbitRev 10 (score bands): orbitRev 9 play, scored on its strict curve (band 3). */
+export function initStrictFrom(planets: Planet[], worldW: number, holes: OrbitHole[]): OrbitRev3State {
+  return { ...initTallFrom(planets, worldW, holes), band: BAND_STRICT_MARK };
+}
+
 /** The view height (px) a stored round's orbitRev is framed in (620 for every earlier revision). */
 export function orbitWorldHFor(rev?: number | null): number {
-  return rev === ORBIT_REV_TALL || rev === ORBIT_REV_TARGET ? ORBIT_TALL_H : 620;
+  return rev === ORBIT_REV_TALL || rev === ORBIT_REV_TARGET || rev === ORBIT_REV_STRICT ? ORBIT_TALL_H : 620;
 }
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  if (rev === ORBIT_REV_STRICT) return initStrictFrom;
   if (rev === ORBIT_REV_TARGET) return initTargetFrom;
   if (rev === ORBIT_REV_TALL) return initTallFrom;
   if (rev === ORBIT_REV_SWEPT) return initSweptFrom;
@@ -1175,3 +1182,5 @@ export function orbitRev3StartFor(rev: number | null | undefined): ((planets: Pl
 }
 /** The curve new rounds score on: ORBIT_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const ORBIT_V9_BAND_CURVE = bandRetarget(ORBIT_BAND_CURVE);
+/** orbitRev 10 (score bands, 19 Oct 2026): the curve new rounds score on, ORBIT_BAND_CURVE's strict curve (band 3). */
+export const ORBIT_V10_BAND_CURVE = bandStrict(ORBIT_BAND_CURVE);

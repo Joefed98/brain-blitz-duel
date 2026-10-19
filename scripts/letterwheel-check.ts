@@ -57,6 +57,10 @@ import { letterWheelPuzzle } from "../src/puzzles/letterWheel";
 import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
 import { KITS } from "./puzzle-fairness/kits";
 import { LEVELS } from "./puzzle-fairness/kit";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 const failures: string[] = [];
 let checks = 0;

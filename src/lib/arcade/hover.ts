@@ -31,7 +31,7 @@ import {
   type ArcadeGame,
   type CanvasSize,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -546,6 +546,7 @@ export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initR
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
 export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_STRICT) return hoverStrictGame;
   if (rev === HOVER_REV_TARGET) return hoverTargetGame;
   if (rev === HOVER_REV_TALL) return hoverTallGame;
   if (rev === HOVER_REV_TUNEC) return hoverTunecGame;
@@ -641,7 +642,7 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET ? HOVER_TALL_H : HOVER_WORLD_H;
+  return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT ? HOVER_TALL_H : HOVER_WORLD_H;
 }
 
 /* ================= Scoring targets (hoverRev 6, 18 Oct 2026) ================= */
@@ -655,3 +656,16 @@ export const HOVER_REV_TARGET = 6;
 export const hoverTargetGame = bandTargetGame(hoverTallGame);
 /** The curve new rounds score on: HOVER_V5_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const HOVER_V6_BAND_CURVE = bandRetarget(HOVER_V5_BAND_CURVE);
+
+
+/* ================= Score bands (hoverRev 7, 19 Oct 2026) ================= */
+
+/**
+ * hoverRev 7 (score bands, docs/scoring-targets.md): hoverRev 6 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const HOVER_REV_STRICT = 7;
+export const hoverStrictGame = bandStrictGame(hoverTargetGame);
+/** The curve new rounds score on: HOVER_V5_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const HOVER_V7_BAND_CURVE = bandStrict(HOVER_V5_BAND_CURVE);

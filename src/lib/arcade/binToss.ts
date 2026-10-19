@@ -23,7 +23,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -1195,6 +1195,7 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_STRICT) return binTossStrictGame;
   if (rev === BINTOSS_REV_TARGET) return binTossTargetGame;
   if (rev === BINTOSS_REV_BAND) return binTossBandGame;
   if (rev === BINTOSS_REV3) return binTossRev3Game;
@@ -1235,3 +1236,16 @@ export const binTossTargetGame: ArcadeGame<BinTossState, ArcadeInputEvent | null
 });
 /** The curve new rounds score on: BINTOSS_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const BINTOSS_V5_BAND_CURVE = bandRetarget(BINTOSS_BAND_CURVE);
+
+
+/* ================= Score bands (binRev 6, 19 Oct 2026) ================= */
+
+/**
+ * binRev 6 (score bands, docs/scoring-targets.md): binRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const BINTOSS_REV_STRICT = 6;
+export const binTossStrictGame = bandStrictGame(binTossTargetGame);
+/** The curve new rounds score on: BINTOSS_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const BINTOSS_V6_BAND_CURVE = bandStrict(BINTOSS_BAND_CURVE);

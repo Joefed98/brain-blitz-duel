@@ -46,7 +46,7 @@ import {
   ORBIT_REV_TUNED,
   ORBIT_REV_SWEPT,
   ORBIT_REV_TALL,
-  ORBIT_REV_TARGET,
+  ORBIT_REV_TARGET, ORBIT_REV_STRICT,
 } from "@/lib/arcade/orbit";
 import {
   buildCourse3,
@@ -58,7 +58,7 @@ import {
   initTunedFrom,
   initSweptFrom,
   initTallFrom,
-  initTargetFrom,
+  initTargetFrom, initStrictFrom,
   orbitRev3Game,
   ORBIT_REV3_WORLD_W,
 } from "@/lib/arcade/orbitRev3";
@@ -123,7 +123,9 @@ function orbitSource(p: PuzzleData): GameSource {
     orbitRev === ORBIT_REV_TUNED ||
     orbitRev === ORBIT_REV_SWEPT ||
     orbitRev === ORBIT_REV_TALL ||
-    orbitRev === ORBIT_REV_TARGET
+    orbitRev === ORBIT_REV_TARGET ||
+    orbitRev === ORBIT_REV_STRICT ||
+    orbitRev === ORBIT_REV_STRICT
   ) {
     const raw = p as unknown as {
       planets?: Parameters<typeof decodeRev3Planets>[0];
@@ -136,7 +138,9 @@ function orbitSource(p: PuzzleData): GameSource {
           ? decodeRev3Planets(raw.planets)
           : buildCourse3(seed, ORBIT_REV3_WORLD_W).planets;
       const holes = decodeOrbitHoles(raw.holes ?? []);
-      return orbitRev === ORBIT_REV_TARGET
+      return orbitRev === ORBIT_REV_STRICT
+        ? initStrictFrom(planets, ORBIT_REV3_WORLD_W, holes)
+        : orbitRev === ORBIT_REV_TARGET
         ? initTargetFrom(planets, ORBIT_REV3_WORLD_W, holes)
         : orbitRev === ORBIT_REV_TALL
         ? initTallFrom(planets, ORBIT_REV3_WORLD_W, holes)

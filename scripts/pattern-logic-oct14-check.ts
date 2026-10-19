@@ -48,6 +48,10 @@ import {
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { OCT14_FIXTURE } from "./pattern-logic-oct14-record";
 import { OCT14_LEGACY_FIXTURE } from "./pattern-logic-oct14-legacy-record";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 let failures = 0;
 const fail = (msg: string) => {

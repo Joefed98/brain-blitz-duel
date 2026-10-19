@@ -35,6 +35,7 @@ import {
   type InputRange,
 } from "./engine";
 import { isWordfallWord } from "./wordfallDict";
+import { bandCurve, bandMapTotal } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -127,7 +128,7 @@ export const WF_INPUT_RANGES_V2: readonly InputRange[] = [
 
 /** World height for a stored revision (rev 2 adds the Enter box under the well). */
 export function wfWorldHFor(rev?: number): number {
-  return rev === 2 ? WF_H_V2 : WF_H;
+  return rev === 2 || rev === WORDFALL_REV_BANDS ? WF_H_V2 : WF_H;
 }
 
 /** World height for a state. */
@@ -290,6 +291,8 @@ export interface WordfallTile {
 }
 
 export interface WordfallState {
+  /** wordfallRev 3 only (score bands): 1 = the score maps points through WORDFALL_BANDS_MAP. Absent on older rounds. */
+  sb?: number;
   rev: number;
   tick: number;
   rng: number;
@@ -555,7 +558,7 @@ export function wordfallScore(points: number, par = WF_PAR): number {
 }
 
 function score(state: WordfallState): number {
-  return wordfallScore(state.points);
+  return state.sb ? bandMapTotal(WORDFALL_BANDS_MAP, state.points) : wordfallScore(state.points);
 }
 
 /** The word currently chained, for display. */
@@ -660,5 +663,21 @@ export const wordfallGameV2: ArcadeGame<WordfallState, ArcadeInputEvent | null> 
 
 /** The sim for a stored revision: 2 is today's rules; 1 (and unstamped, which never existed) the original. */
 export function wordfallGameFor(rev?: number): typeof wordfallGame {
+  if (rev === WORDFALL_REV_BANDS) return wordfallGameV3;
   return rev === 2 ? wordfallGameV2 : wordfallGame;
+}
+
+/* ================= Score bands (wordfallRev 3, 19 Oct 2026) ================= */
+
+/**
+ * wordfallRev 3 (score bands, docs/scoring-targets.md): wordfallRev 2 play (the state keeps rev 2), scored on
+ * points through WORDFALL_BANDS_MAP instead of 150 at par (30 points): the simulated average / good / great /
+ * near-perfect players make about 21 / 31 / 34 / 35 points, so par alone no longer makes 150.
+ */
+export const WORDFALL_REV_BANDS = 3;
+export const WORDFALL_BANDS_MAP = bandCurve([0, 21, 31, 35, 40, 46], [0, 70, 100, 120, 140, 150]);
+export const wordfallGameV3: ArcadeGame<WordfallState, ArcadeInputEvent | null> = { ...wordfallGameV2, init: (seed) => ({ ...wordfallGameV2.init(seed), sb: 1 }) };
+/** The rules a stored revision plays (rev 3 plays rev 2). */
+export function wordfallPlayRev(rev?: number): number | undefined {
+  return rev === WORDFALL_REV_BANDS ? 2 : rev;
 }

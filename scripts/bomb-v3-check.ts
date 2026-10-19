@@ -25,6 +25,10 @@ import { BOMB_V2_BANK } from "../src/lib/duel/bombBank.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { BOMB_V2_TIME_MS, BOMB_V3_MAX_RULES, BOMB_V3_MIN_RULES, type BombPuzzleData } from "../src/lib/duel/types";
 import { BOMB_V3_SEED } from "./bomb-bank";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 let failures = 0;
 const fail = (msg: string) => {

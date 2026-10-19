@@ -8,7 +8,7 @@ import {
   INK_REV,
   INK_REV_BAND,
   INK_REV_TUNEC,
-  INK_REV_TARGET,
+  INK_REV_TARGET, INK_REV_STRICT,
   inkBridgeGameFor,
   INK_REV3,
   INK_REV4,
@@ -77,6 +77,13 @@ const targetRun = makeArcadeRun<InkState, InkCheckpoint>({
   keys: INK_CHECKPOINT_KEYS,
   interval: INK_CHECKPOINT_INTERVAL,
 });
+const strictRun = makeArcadeRun<InkState, InkCheckpoint>({
+  tag: "inkbridge",
+  game: inkBridgeGameFor(INK_REV_STRICT),
+  checkpoint: inkCheckpoint,
+  keys: INK_CHECKPOINT_KEYS,
+  interval: INK_CHECKPOINT_INTERVAL,
+});
 
 export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
   levels: number;
@@ -93,7 +100,7 @@ export const decodeInkBridgeRun = run.decode;
 
 /** The single place an Ink Bridge score is worked out. */
 export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
-  const picked = rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
+  const picked = rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
   const result = picked.replay(seed, raw);
   const s = result.state;
   return {

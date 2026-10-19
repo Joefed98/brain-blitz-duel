@@ -14,7 +14,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { drawFlipHazard, flipSurfaceLine } from "./flip.renderer";
 
@@ -792,6 +792,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_STRICT) return flipStrictGame;
   if (rev === FLIP_REV_TARGET) return flipTargetGame;
   if (rev === FLIP_REV_TUNEC) return flipTunecGame;
   if (rev === FLIP_REV_BAND) return flipBandGame;
@@ -847,3 +848,16 @@ export const FLIP_REV_TARGET = 5;
 export const flipTargetGame = bandTargetGame(flipTunecGame);
 /** The curve new rounds score on: FLIP_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const FLIP_V5_BAND_CURVE = bandRetarget(FLIP_V4_BAND_CURVE);
+
+
+/* ================= Score bands (flipRev 6, 19 Oct 2026) ================= */
+
+/**
+ * flipRev 6 (score bands, docs/scoring-targets.md): flipRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const FLIP_REV_STRICT = 6;
+export const flipStrictGame = bandStrictGame(flipTargetGame);
+/** The curve new rounds score on: FLIP_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const FLIP_V6_BAND_CURVE = bandStrict(FLIP_V4_BAND_CURVE);
