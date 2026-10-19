@@ -46,14 +46,18 @@ export function SettingsSheet({
     }
   };
   return createPortal(
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div
+      data-skin="profile"
+      className="th-scrim fixed inset-0 z-40 flex items-end justify-center bg-black/60"
+      onClick={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
         data-settings-sheet
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-[430px] flex-col gap-4 rounded-t-3xl border border-b-0 border-border bg-card px-5 pt-4"
+        className="th-sheet flex w-full max-w-[430px] flex-col gap-4 rounded-t-3xl border border-b-0 border-border bg-card px-5 pt-4"
         style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))" }}
       >
         <div className="flex items-center justify-between">
@@ -67,14 +71,14 @@ export function SettingsSheet({
             <X aria-hidden="true" className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/60 px-4 py-2">
+        <div className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-background/60 px-4 py-2">
           <span className="flex flex-col">
             <span className="font-display text-sm font-semibold text-foreground">Sound</span>
             <span className="text-xs text-muted-foreground">Effects and music</span>
           </span>
           <MuteToggle />
         </div>
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-background/60 px-4 py-3">
+        <div className="th-card flex flex-col gap-2 rounded-xl border border-border bg-background/60 px-4 py-3">
           <span className="flex flex-col">
             <span className="font-display text-sm font-semibold text-foreground">
               Direction controls
@@ -89,7 +93,7 @@ export function SettingsSheet({
                 role="radio"
                 aria-checked={arrows === value}
                 onClick={() => choose(value)}
-                className={`press tap-target rounded-lg border font-display text-sm font-semibold ${
+                className={`th-chip press tap-target rounded-lg border font-display text-sm font-bold uppercase tracking-wide ${
                   arrows === value
                     ? "border-primary bg-primary/15 text-primary"
                     : "border-border text-muted-foreground"
@@ -103,7 +107,7 @@ export function SettingsSheet({
         <button
           type="button"
           onClick={onHowItWorks}
-          className="press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+          className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
         >
           How it works
         </button>

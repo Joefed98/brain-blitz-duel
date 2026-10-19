@@ -149,7 +149,8 @@ try {
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
       check(tabs.join(",") === "Play,Practice,Tournaments,Profile", `four tabs with labels (${tabs.join(",")})`);
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
-      check(gold === "rgb(245, 184, 46)", `the current tab is gold (${gold})`);
+      // The page skin's gold text (#F2C75C, polish-layout/theme.css, 19 Oct 2026).
+      check(gold === "rgb(242, 199, 92)", `the current tab is gold (${gold})`);
       const bar = await page.locator("[data-app-tabbar]").evaluate((el) => {
         const r = el.getBoundingClientRect();
         const row = el.querySelector(".app-tabbar-row")!.getBoundingClientRect();

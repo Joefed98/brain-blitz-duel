@@ -10,6 +10,7 @@ import { GameLayoutDevOverlay } from "./GameLayoutDevOverlay";
 import { GameColumnLayout } from "@/components/puzzles/gameColumn";
 import { usePuzzleRejections } from "@/components/puzzles/usePuzzleRejections";
 import { AppTabBar, type AppTab } from "@/components/app/AppTabBar";
+import type { ThemeSkin } from "@/lib/theme";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -35,6 +36,11 @@ interface PhoneShellProps {
    * bottom tab bar is drawn and the page leaves room for it. Never set on a room or game screen.
    */
   tabs?: AppTab;
+  /**
+   * The page skin (polish-layout/theme.css): the tab screens take their own (from `tabs`); the
+   * room's lobby, results, standings and podium pass "room". Never set on a round's intro or game.
+   */
+  skin?: ThemeSkin;
 }
 
 /** Arcade games and the engine games on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals). */
@@ -342,7 +348,7 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 }
 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
-export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs }: PhoneShellProps) {
+export function PhoneShell({ children, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, play = false, tabs, skin }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
   const definition = gameType ? puzzleDef(gameType) : undefined;
   const theme = definition?.theme;
@@ -371,6 +377,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-puzzle-screen={puzzleScreen ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       data-tab-screen={tabs && !gameScreen ? tabs : undefined}
+      data-skin={gameScreen ? undefined : (skin ?? tabs)}
       style={gameScreen ? NO_SELECT_STYLE : undefined}
     >
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>

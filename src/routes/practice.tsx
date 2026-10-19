@@ -62,6 +62,7 @@ import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { GameIcon } from "@/components/app/GameIcon";
+import { CategoryPill } from "@/components/app/CategoryPill";
 import { notePracticePlayed } from "@/lib/duel/practiceRecent";
 import type { PuzzleCategory } from "@/lib/duel/types";
 
@@ -159,7 +160,7 @@ function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string):
 }
 
 const GAME_ROW =
-  "press flex min-h-[60px] w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left font-display text-sm font-semibold text-foreground";
+  "th-card press flex min-h-[60px] w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left font-display text-sm font-semibold text-foreground";
 
 /**
  * A practice row's icon, name and category line ("Arcade · Not played yet" before a first run).
@@ -176,10 +177,14 @@ function GameRowLabel({ type }: { type: PuzzleType }) {
         <span className="min-w-0 truncate">{definition.name}</span>
         <span
           aria-hidden="true"
-          className="truncate font-sans text-xs font-normal text-muted-foreground"
+          className="flex min-w-0 items-center gap-1.5 font-sans text-xs font-medium text-muted-foreground"
         >
-          {categoryLabel(definition.category)}
-          {played ? "" : " · Not played yet"}
+          <CategoryPill
+            category={definition.category}
+            label={categoryLabel(definition.category)}
+            className="shrink-0"
+          />
+          {played ? null : <span className="truncate">Not played yet</span>}
         </span>
       </span>
     </span>
@@ -501,7 +506,7 @@ function PracticeScreen() {
           </div>
 
           {demoKey ? (
-            <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+            <label className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
               <span className="flex flex-col">
                 <span className="font-display text-sm font-semibold text-foreground">
                   Intro examples
@@ -534,7 +539,7 @@ function PracticeScreen() {
                 aria-label="Search games"
                 autoComplete="off"
                 spellCheck={false}
-                className="tap-target w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className="th-input tap-target w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>
             <div role="group" aria-label="Category" className="-mx-1 flex flex-wrap gap-1.5 px-1">
@@ -546,13 +551,13 @@ function PracticeScreen() {
                     type="button"
                     aria-pressed={on}
                     data-practice-filter={chip}
+                    data-cat={chip}
                     onClick={() => setFilter(chip)}
-                    className={`press h-9 rounded-full border px-3.5 font-display text-xs font-semibold uppercase tracking-wide ${
-                      on
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground"
+                    className={`th-chip th-hit press inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-display text-xs font-bold uppercase tracking-wide ${
+                      on ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
+                    <span aria-hidden="true" className="th-chip-dot" />
                     {chip === "all" ? "All" : categoryLabel(chip)}
                   </button>
                 );
@@ -575,7 +580,7 @@ function PracticeScreen() {
               </button>
             ))}
             {activeRows.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
                 No games match.
               </p>
             ) : null}
@@ -583,9 +588,7 @@ function PracticeScreen() {
 
           {previewRows.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                New · practice only
-              </p>
+              <p className="th-kicker text-muted-foreground">New · practice only</p>
               <div className="flex flex-col gap-2">
                 {previewRows.map((key) => (
                   <button
@@ -606,7 +609,7 @@ function PracticeScreen() {
 
           {retiredRows.length > 0 && (
             <details className="flex flex-col gap-2" open={query.trim() !== "" || undefined}>
-              <summary className="press cursor-pointer font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              <summary className="th-kicker th-hit press cursor-pointer text-muted-foreground">
                 Retired ({retiredRows.length})
               </summary>
               <div className="mt-2 flex flex-col gap-2">
@@ -697,12 +700,12 @@ function PracticeScreen() {
   if (stage === "result" && graded) {
     const secondsUsed = Math.max(0, Math.round((timeLimitMs - graded.msRemaining) / 100) / 10);
     return (
-      <PhoneShell gameType={type}>
+      <PhoneShell skin="practice" gameType={type}>
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center animate-phase-in">
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-            {puzzleName(type)}
+          <p className="th-kicker text-muted-foreground">{puzzleName(type)}</p>
+          <p className="th-score th-score-top font-mono text-6xl font-bold text-primary animate-pop-in">
+            {graded.score}
           </p>
-          <p className="font-mono text-6xl font-bold text-primary animate-pop-in">{graded.score}</p>
           <div className="flex h-12 shrink-0 flex-col items-center gap-1" aria-live="polite">
             <p className="font-mono text-sm text-muted-foreground">
               Best: {deviceBest ?? "—"} · this device
@@ -724,14 +727,14 @@ function PracticeScreen() {
             <button
               type="button"
               onClick={() => void load(type)}
-              className="press tap-target w-full rounded-xl bg-primary px-6 font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+              className="th-btn-gold press tap-target w-full rounded-xl bg-primary px-6 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
             >
               Play again
             </button>
             <button
               type="button"
               onClick={() => setStage("list")}
-              className="press tap-target w-full rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+              className="th-btn-ghost press tap-target w-full rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
             >
               Back
             </button>

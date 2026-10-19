@@ -39,7 +39,7 @@ export function ReplayFrame({
   return (
     <section
       data-replay-panel={testId}
-      className="relative flex w-full shrink-0 flex-col items-center gap-1 rounded-lg border border-border bg-card/60 p-1.5 animate-phase-in"
+      className="th-card relative flex w-full shrink-0 flex-col items-center gap-1 rounded-lg border border-border bg-card/60 p-1.5 animate-phase-in"
     >
       <header className="flex w-full items-center gap-2 px-1">
         <span className="min-w-0 flex-1 truncate text-left font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
@@ -57,7 +57,12 @@ export function ReplayFrame({
           </button>
         )}
       </header>
-      {children ? <div className="relative w-full">{children}</div> : null}
+      {/* The replay itself is the game's own art: the page skin's tokens stop here (theme.css). */}
+      {children ? (
+        <div data-skin-off className="relative w-full">
+          {children}
+        </div>
+      ) : null}
       {caption ? (
         <p
           className="w-full truncate px-1 text-center font-display text-xs font-bold uppercase tracking-wide text-foreground"

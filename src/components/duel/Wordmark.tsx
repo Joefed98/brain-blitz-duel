@@ -1,6 +1,6 @@
 import { APP_NAME } from "@/lib/brand";
 
-/** The app mark: tight Space Grotesk with a gold bolt beside it. */
+/** The app mark: tight Space Grotesk with a gold bolt beside it (on skinned screens Saira 800, the last letter glowing gold). */
 export function BoltGlyph({ className = "h-4 w-4", viewBox = "0 0 24 24" }: { className?: string; viewBox?: string }) {
   return (
     <svg viewBox={viewBox} className={className} aria-hidden="true">
@@ -14,11 +14,12 @@ export function Wordmark({ size = "sm" }: { size?: "sm" | "lg" }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span
-        className={`font-display font-bold tracking-[-0.04em] text-foreground ${
+        className={`th-wordmark font-display font-bold tracking-[-0.04em] text-foreground ${
           large ? "text-5xl" : "text-base"
         }`}
       >
-        {APP_NAME}
+        {APP_NAME.slice(0, -1)}
+        <span className="th-wordmark-last">{APP_NAME.slice(-1)}</span>
       </span>
       <BoltGlyph className={`${large ? "h-7 w-7" : "h-3.5 w-3.5"} text-primary`} />
     </span>

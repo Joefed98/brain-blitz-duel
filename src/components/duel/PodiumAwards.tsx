@@ -42,7 +42,7 @@ export function PodiumAwards({
   if (!awards.length) return null;
   return (
     <section data-podium-awards aria-label="Awards" className="flex flex-col gap-1.5">
-      <p className="text-center text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Awards</p>
+      <p className="th-kicker text-center text-primary">Awards</p>
       <ul className="grid grid-cols-2 gap-1.5">
         {awards.map((award, index) => {
           const name = names.get(award.slot) ?? "Player";
@@ -50,7 +50,8 @@ export function PodiumAwards({
             <li
               key={award.id}
               data-award={award.id}
-              className={`flex min-w-0 items-start gap-2 rounded-xl border px-2.5 py-2 ${
+              data-tint={award.slot === mySlot ? "me" : undefined}
+              className={`th-card flex min-w-0 items-start gap-2 rounded-xl border px-2.5 py-2 ${
                 award.slot === mySlot ? "border-primary/70 bg-primary/10" : "border-border bg-card"
               } ${awards.length % 2 === 1 && index === awards.length - 1 ? "col-span-2" : ""} ${
                 calm.current ? "" : "podium-award-in"
@@ -59,10 +60,10 @@ export function PodiumAwards({
             >
               <PlayerBadge look={looks.get(award.slot)} name={name} size={28} className="mt-0.5" />
               <span className="min-w-0 flex-1 text-left">
-                <span className="block font-display text-[11px] font-bold uppercase tracking-wide text-primary">
+                <span className="block truncate font-display text-[11px] font-bold uppercase tracking-wide text-primary">
                   {award.title}
                 </span>
-                <span className="block truncate font-display text-sm text-foreground">{name}</span>
+                <span className="th-name block truncate text-sm text-foreground">{name}</span>
                 <span className="line-clamp-2 text-[11px] leading-tight text-foreground/75">{award.line}</span>
               </span>
             </li>

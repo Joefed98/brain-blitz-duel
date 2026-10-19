@@ -134,7 +134,7 @@ export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
         ) : null}
       </div>
       {pending.length ? (
-        <p data-chart-pending="" className="mt-0.5 truncate text-center font-mono text-[11px] text-muted-foreground">
+        <p data-chart-pending="" data-names className="mt-0.5 truncate text-center font-mono text-[11px] text-muted-foreground">
           Still scoring: {pending.map((p) => (p.isMe ? "You" : p.name)).join(", ")}
         </p>
       ) : null}

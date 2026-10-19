@@ -16,6 +16,7 @@ import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { AnimatedScore } from "./AnimatedScore";
 import { ConfettiBurst } from "./ArcadeCelebration";
 import { Dots } from "./Dots";
+import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 import { PodiumAwards } from "./PodiumAwards";
 
@@ -34,7 +35,7 @@ function Plinth({ standing, place, looks }: { standing: Standing | undefined; pl
   const style = PLINTH[place - 1];
   if (!style) return null;
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-end gap-1" data-podium-place={place}>
+    <div className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1" data-podium-place={place}>
       {place === 1 && (
         // The winner moment: one confetti burst over the gold block (outside
         // the block's pop-in scale, so the canvas measures its full size).
@@ -43,7 +44,7 @@ function Plinth({ standing, place, looks }: { standing: Standing | undefined; pl
         </div>
       )}
       <PlayerBadge look={looks.get(standing.slot)} name={standing.name} size={26} />
-      <span className="max-w-full truncate font-display text-xs text-foreground">
+      <span className="th-name max-w-full truncate text-xs text-foreground">
         {standing.name}
       </span>
       <AnimatedScore
@@ -51,7 +52,7 @@ function Plinth({ standing, place, looks }: { standing: Standing | undefined; pl
         from={0}
         durationMs={COUNT_UP_MS}
         quiet
-        className="font-mono text-lg font-bold tabular-nums text-foreground"
+        className={`th-score font-mono text-xl font-bold tabular-nums ${place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
       />
       <div
         className={`flex w-full animate-pop-in items-start justify-center rounded-t-xl border pt-2 font-mono text-sm font-bold ${style.height} ${style.tone}`}
@@ -115,7 +116,7 @@ export function Podium({
           1st
         </h1>
       ) : (
-        <h1 className="text-center font-display text-2xl font-bold text-foreground animate-word-scale-in">
+        <h1 className="whitespace-nowrap text-center font-display text-[22px] font-bold text-foreground animate-word-scale-in">
           You finished {ordinal(mine?.position ?? rows.length)} of {rows.length}
         </h1>
       )}
@@ -130,30 +131,28 @@ export function Podium({
 
       {playOfTheGame}
 
-      <p className="-mb-2 text-center text-[11px] text-foreground/70">Tap a player for their round scores</p>
+      <p className="-mb-2 whitespace-nowrap text-center text-[11px] text-muted-foreground">Tap a player for their round scores</p>
       <ul className="flex flex-col gap-1">
         {rows.map((row) => (
-          <li key={row.slot} className="overflow-hidden rounded-xl border border-border bg-card">
+          <li key={row.slot} data-tint={row.slot === mySlot ? "me" : undefined} className="th-card overflow-hidden rounded-xl border border-border bg-card">
             <button
               type="button"
               aria-expanded={open === row.slot}
               aria-label={`${row.name}: ${row.total} points. Show round scores`}
               onClick={() => setOpen((current) => (current === row.slot ? null : row.slot))}
-              className={`flex w-full items-center gap-3 px-3 py-2 text-left ${
+              className={`flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left ${
                 row.slot === mySlot ? "bg-primary/10" : ""
               } ${row.status === "inactive" ? "opacity-40" : ""}`}
             >
-              <span className="w-6 font-mono text-sm tabular-nums text-muted-foreground">
-                {row.position}
-              </span>
-              <PlayerBadge look={looks.get(row.slot)} name={row.name} size={22} />
-              <span className="flex-1 truncate font-display text-sm">{row.name}</span>
+              <Medal place={row.position} />
+              <PlayerBadge look={looks.get(row.slot)} name={row.name} size={24} />
+              <span className="th-name min-w-0 flex-1 truncate text-sm">{row.name}</span>
               <AnimatedScore
                 value={row.total}
                 from={0}
                 durationMs={COUNT_UP_MS}
                 quiet
-                className="font-mono text-base font-bold tabular-nums"
+                className={`th-score font-mono text-xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : ""}`}
               />
               <span aria-hidden="true" className="w-3 text-center font-mono text-xs text-muted-foreground">
                 {open === row.slot ? "▴" : "▾"}
@@ -166,7 +165,7 @@ export function Podium({
                     key={entry.round}
                     className="flex items-center justify-between py-1 text-[11px]"
                   >
-                    <span className="uppercase tracking-widest text-muted-foreground">
+                    <span className="th-kicker truncate text-[11px] tracking-[0.08em] text-muted-foreground">
                       {puzzleName(roundOrder[entry.round - 1] ?? "wordsmith")}
                     </span>
                     <span className="font-mono tabular-nums">{entry.score}</span>
@@ -189,7 +188,7 @@ export function Podium({
             type="button"
             onClick={onPlayAgain}
             disabled={busy}
-            className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+            className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
           >
             {busy ? (
               <>
@@ -208,7 +207,7 @@ export function Podium({
         <button
           type="button"
           onClick={onLeave}
-          className="press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
+          className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
         >
           Leave
         </button>

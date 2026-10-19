@@ -1,0 +1,581 @@
+/*
+ * The app's page skin (19 Oct 2026, presentation only): the premium look Joe approved in
+ * mockups, for the four tab screens, the lobby, the round leaderboard, the answer reveal,
+ * standings, results and podium, settings, and dialogs and sheets. Fonts, colours, surfaces
+ * and polish only: every layout, label and flow is unchanged, and no game's own visuals change.
+ *
+ * - Opt-in: a screen in scope carries data-skin (PhoneShell `skin`, the tab screens, the room's
+ *   between-round screens, the answer reveal's chrome, every dialog and sheet). Inside it the
+ *   shared tokens below replace the page tokens (--background, --foreground, --primary, the
+ *   fonts…), so everything already built on those tokens takes the new look.
+ * - data-skin-off puts the original tokens back for a game's own art inside a skinned screen
+ *   (a reveal board, a replay or time-lapse), so the game draws exactly as before.
+ * - The fonts are self-hosted (public/fonts, OFL), preloaded from the root route, font-display:
+ *   swap with fallback stacks. Saira 600–800: headings and buttons; Manrope 500–800: body text and
+ *   player names; JetBrains Mono 600–700 (as "Duelz Mono", so the games' own JetBrains Mono from
+ *   Google Fonts is untouched): scores, times and codes.
+ * - Light on the GPU: the backgrounds are static gradients on the fixed screen background, no
+ *   backdrop blur anywhere, no animation added.
+ * theme-check proves the fonts load, the tokens are used on the listed screens and contrast passes;
+ * no-wrap-check proves no single-line text wraps or overflows.
+ */
+
+@font-face {
+  font-family: "Saira";
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url("/fonts/saira-600-800-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("/fonts/manrope-500-800-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("/fonts/manrope-500-800-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Duelz Mono";
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-600-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ------------------------------------------------------------------ the shared tokens */
+:root {
+  --th-font-head: "Saira", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --th-font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --th-font-mono: "Duelz Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --th-bg: #07070A;
+  --th-text: #F5F5F7;
+  --th-text-2: #BDBDCC;
+  --th-gold-text: #F2C75C;
+  --th-teal-text: #2ED3B7;
+  --th-green-text: #5BE3A0;
+  --th-orange-text: #FFA066;
+  --th-ink: #120C02;
+  --th-teal-ink: #04201B;
+
+  --th-gold: linear-gradient(135deg, #FBE39A 0%, #E9BB45 38%, #C8922E 70%, #A87420 100%);
+  --th-gold-rim: rgb(255 234 170 / 0.6);
+  --th-gold-glow: 0 0 18px -4px rgb(233 187 69 / 0.5);
+  --th-teal: linear-gradient(135deg, #7FF5DF 0%, #2ED3B7 50%, #179A83 100%);
+  --th-teal-rim: rgb(190 255 240 / 0.55);
+  --th-teal-glow: 0 0 18px -4px rgb(46 211 183 / 0.45);
+  --th-glass: linear-gradient(180deg, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0.1));
+
+  --th-card: linear-gradient(180deg, #20202D 0%, #111119 58%, #0D0D13 100%);
+  --th-card-edge: rgb(255 255 255 / 0.09);
+  --th-card-top: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --th-card-shadow: 0 14px 30px -16px rgb(0 0 0 / 0.85), 0 2px 6px rgb(0 0 0 / 0.4);
+  --th-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.055), transparent 42%), linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.035) 46%, transparent 58%);
+
+  --th-medal-gold: linear-gradient(135deg, #FFF0B8, #F2C75C 45%, #B98320);
+  --th-medal-silver: linear-gradient(135deg, #FFFFFF, #CBD1DA 45%, #8A93A1);
+  --th-medal-bronze: linear-gradient(135deg, #FFD3A6, #D08A3E 45%, #8C5320);
+}
+
+/*
+ * Category colours: each category's own colour from the games (--category-* in styles.css, the
+ * colour its rounds, intros and round titles already use), with a lighter tint for text and a
+ * deeper shade for gradients worked out from it.
+ */
+[data-cat="word"] { --cat: var(--category-word); }
+[data-cat="number"] { --cat: var(--category-number); }
+[data-cat="speed"] { --cat: var(--category-speed); }
+[data-cat="attention"] { --cat: var(--category-attention); }
+[data-cat="pattern"] { --cat: var(--category-pattern); }
+[data-cat="logic"] { --cat: var(--category-logic); }
+[data-cat="arcade"] { --cat: var(--category-arcade); }
+[data-cat] {
+  --cat-hi: color-mix(in oklab, var(--cat) 62%, #fff);
+  --cat-lo: color-mix(in oklab, var(--cat) 62%, #000);
+}
+[data-cat="all"] { --cat: #E9BB45; --cat-hi: #FBE39A; --cat-lo: #A87420; }
+
+/* ------------------------------------------------------------------ the skin scope */
+/* In the components layer, so a component's own utilities (sizes, tracking, case) still win. */
+@layer components {
+  [data-skin] {
+    --background: var(--th-bg);
+    --foreground: var(--th-text);
+    --card-foreground: var(--th-text);
+    --muted-foreground: var(--th-text-2);
+    --primary: var(--th-gold-text);
+    --primary-foreground: var(--th-ink);
+    --me: var(--th-gold-text);
+    --opponent: var(--th-teal-text);
+    --card: #15151E;
+    --border: rgb(255 255 255 / 0.11);
+    --font-display: var(--th-font-head);
+    --font-body: var(--th-font-body);
+    --font-mono: var(--th-font-mono);
+    font-family: var(--font-body);
+    color: var(--foreground);
+    font-weight: 500;
+  }
+  [data-skin] :is(h1, h2, h3) {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  [data-skin] .font-display {
+    letter-spacing: 0.03em;
+  }
+  [data-skin] .font-mono {
+    font-weight: 600;
+  }
+  [data-skin] :is(button, [role="button"], a).uppercase {
+    letter-spacing: 0.05em;
+  }
+
+  /* A game's own art inside a skinned screen: the original page tokens and fonts. */
+  [data-skin] [data-skin-off] {
+    --background: #0B0B0F;
+    --foreground: oklch(0.97 0.005 285);
+    --card-foreground: oklch(0.97 0.005 285);
+    --muted-foreground: oklch(0.68 0.015 285);
+    --primary: #F5B82E;
+    --primary-foreground: oklch(0.16 0.02 82);
+    --me: #F5B82E;
+    --opponent: #2ED3B7;
+    --card: oklch(0.205 0.012 285);
+    --border: oklch(0.29 0.015 285);
+    --font-display: "Space Grotesk", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    font-family: var(--font-body);
+    font-weight: 400;
+  }
+  [data-skin] [data-skin-off] :is(h1, h2, h3) {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    line-height: inherit;
+  }
+  [data-skin] [data-skin-off] :is(.font-display, button.uppercase) {
+    letter-spacing: normal;
+  }
+  [data-skin] [data-skin-off] .font-mono {
+    font-weight: inherit;
+  }
+}
+
+/* ------------------------------------------------------------------ backgrounds */
+/*
+ * Black with layered radial colour glows (different per screen) and two faint diagonal light
+ * streaks. The glows sit round the page column's centre, so a desktop window keeps them on the
+ * column. The bottom strip (::after, styles.css) stays the screen edge's black.
+ */
+[data-skin] > .screen-background {
+  --glow-a: rgb(242 199 92 / 0.16);
+  --glow-b: rgb(46 211 183 / 0.11);
+  --glow-c: rgb(154 92 255 / 0.12);
+  background:
+    linear-gradient(to top, var(--screen-edge) calc(env(safe-area-inset-bottom, 0px) + 16px), transparent calc(env(safe-area-inset-bottom, 0px) + 140px)),
+    radial-gradient(420px 340px at calc(50% - 150px) -40px, var(--glow-a), transparent 70%),
+    radial-gradient(380px 360px at calc(50% + 190px) 34%, var(--glow-b), transparent 70%),
+    radial-gradient(460px 380px at calc(50% - 170px) 82%, var(--glow-c), transparent 72%),
+    var(--th-bg);
+}
+[data-skin] > .screen-background::before {
+  opacity: 1;
+  /* The streaks fade out above the bottom strip, which stays the screen edge's black. */
+  -webkit-mask-image: linear-gradient(to top, transparent calc(env(safe-area-inset-bottom, 0px) + 16px), #000 calc(env(safe-area-inset-bottom, 0px) + 140px));
+  mask-image: linear-gradient(to top, transparent calc(env(safe-area-inset-bottom, 0px) + 16px), #000 calc(env(safe-area-inset-bottom, 0px) + 140px));
+  background-size: 100% 100%;
+  background-image:
+    linear-gradient(118deg, transparent 0 34%, rgb(255 255 255 / 0.028) 36%, rgb(255 255 255 / 0.012) 39%, transparent 41%),
+    linear-gradient(118deg, transparent 0 60%, rgb(255 255 255 / 0.022) 61.5%, transparent 64%);
+}
+[data-skin] > .screen-background > .screen-drift {
+  display: none;
+}
+[data-skin="practice"] > .screen-background {
+  --glow-a: rgb(76 125 255 / 0.17);
+  --glow-b: rgb(154 92 255 / 0.13);
+  --glow-c: rgb(46 211 183 / 0.1);
+}
+[data-skin="tournaments"] > .screen-background {
+  --glow-a: rgb(242 199 92 / 0.17);
+  --glow-b: rgb(154 92 255 / 0.13);
+  --glow-c: rgb(76 125 255 / 0.12);
+}
+[data-skin="profile"] > .screen-background {
+  --glow-a: rgb(46 211 183 / 0.15);
+  --glow-b: rgb(242 199 92 / 0.12);
+  --glow-c: rgb(76 125 255 / 0.12);
+}
+/* Room screens: the same family, quieter, so the content stays the focus. */
+[data-skin="room"] > .screen-background {
+  --glow-a: rgb(242 199 92 / 0.08);
+  --glow-b: rgb(46 211 183 / 0.06);
+  --glow-c: rgb(154 92 255 / 0.06);
+}
+
+/* ------------------------------------------------------------------ surfaces */
+/* A card: dark gradient, 1px light edge, inset top highlight, deep soft shadow and a glossy sheen. */
+.th-card {
+  position: relative;
+  isolation: isolate;
+  background-color: #111119;
+  background-image: var(--th-card);
+  border-color: var(--th-card-edge);
+  box-shadow: var(--th-card-top), var(--th-card-shadow);
+}
+.th-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--th-sheen);
+  pointer-events: none;
+}
+.th-card[data-tint="gold"] {
+  background-image: linear-gradient(160deg, rgb(242 199 92 / 0.16), rgb(242 199 92 / 0.03) 55%, transparent), var(--th-card);
+  border-color: rgb(242 199 92 / 0.36);
+  box-shadow: var(--th-card-top), var(--th-card-shadow), 0 0 26px -12px rgb(242 199 92 / 0.45);
+}
+.th-card[data-tint="teal"] {
+  background-image: linear-gradient(160deg, rgb(46 211 183 / 0.15), rgb(46 211 183 / 0.03) 55%, transparent), var(--th-card);
+  border-color: rgb(46 211 183 / 0.36);
+  box-shadow: var(--th-card-top), var(--th-card-shadow), 0 0 26px -12px rgb(46 211 183 / 0.4);
+}
+/* The player's own row (lobby, leaderboards): a gold edge on the card. */
+.th-card[data-tint="me"] {
+  background-image: linear-gradient(90deg, rgb(242 199 92 / 0.12), rgb(242 199 92 / 0.02) 70%), var(--th-card);
+  border-color: rgb(242 199 92 / 0.55);
+}
+/* A dashed empty state stays a quiet outline. */
+.th-empty {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.015);
+}
+/* Tournaments' Next up: a large faint trophy behind the card's content. */
+.th-trophy {
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  z-index: -1;
+  width: 132px;
+  height: 132px;
+  color: var(--th-gold-text);
+  opacity: 0.07;
+  pointer-events: none;
+}
+.th-card-clip {
+  overflow: hidden;
+}
+
+/* Buttons: metallic gold (or teal) with a glass highlight on the top half, a fine rim and a soft glow. */
+.th-btn-gold,
+.th-btn-teal {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 0;
+  background-color: #E9BB45;
+  background-image: var(--th-gold);
+  color: var(--th-ink);
+  box-shadow: inset 0 0 0 1px var(--th-gold-rim), var(--th-gold-glow), 0 6px 14px -8px rgb(0 0 0 / 0.8);
+  text-shadow: 0 1px 0 rgb(255 240 200 / 0.35);
+}
+.th-btn-teal {
+  background-color: #2ED3B7;
+  background-image: var(--th-teal);
+  color: var(--th-teal-ink);
+  box-shadow: inset 0 0 0 1px var(--th-teal-rim), var(--th-teal-glow), 0 6px 14px -8px rgb(0 0 0 / 0.8);
+  text-shadow: 0 1px 0 rgb(220 255 248 / 0.35);
+}
+.th-btn-gold::before,
+.th-btn-teal::before {
+  content: "";
+  position: absolute;
+  inset: 1px 1px 50% 1px;
+  z-index: -1;
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: var(--th-glass);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.th-btn-gold:disabled,
+.th-btn-teal:disabled {
+  filter: saturate(0.6) brightness(0.8);
+}
+/* A quiet button: dark glass with a light rim (gold-edged when it is gold text). */
+.th-btn-ghost {
+  background-color: rgb(255 255 255 / 0.03);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0) 60%);
+  border-color: rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+.th-btn-outline-gold {
+  background-color: rgb(242 199 92 / 0.08);
+  background-image: linear-gradient(180deg, rgb(242 199 92 / 0.14), rgb(242 199 92 / 0.02) 60%);
+  border-color: rgb(242 199 92 / 0.6);
+  color: var(--th-gold-text);
+  box-shadow: inset 0 1px 0 rgb(255 240 200 / 0.12), 0 0 16px -8px rgb(242 199 92 / 0.5);
+}
+.th-btn-outline-teal {
+  background-color: rgb(46 211 183 / 0.08);
+  background-image: linear-gradient(180deg, rgb(46 211 183 / 0.14), rgb(46 211 183 / 0.02) 60%);
+  border-color: rgb(46 211 183 / 0.6);
+  color: var(--th-teal-text);
+  box-shadow: inset 0 1px 0 rgb(220 255 248 / 0.12), 0 0 16px -8px rgb(46 211 183 / 0.45);
+}
+/* Inputs: inset dark glass. */
+.th-input {
+  background-color: #0B0B10;
+  border-color: rgb(255 255 255 / 0.13);
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.5);
+}
+.th-input:focus {
+  border-color: var(--th-gold-text);
+}
+
+/* Small uppercase labels: section kickers and category pills. */
+.th-kicker {
+  font-family: var(--th-font-head);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.th-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--cat) 45%, transparent);
+  background: color-mix(in oklab, var(--cat) 18%, #0D0D13);
+  color: var(--cat-hi);
+  font-family: var(--th-font-head);
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.th-pill[data-tone="gold"] {
+  --cat: #E9BB45;
+  --cat-hi: var(--th-gold-text);
+}
+.th-pill[data-tone="teal"] {
+  --cat: #2ED3B7;
+  --cat-hi: #6FF0D8;
+}
+
+/* Filter chips: a glowing category dot; the chosen chip is gold. */
+.th-chip {
+  background-color: rgb(255 255 255 / 0.03);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 70%);
+  border-color: rgb(255 255 255 / 0.13);
+}
+.th-chip[aria-pressed="true"],
+.th-chip[aria-checked="true"] {
+  border-color: rgb(242 199 92 / 0.75);
+  background-color: rgb(242 199 92 / 0.12);
+  background-image: linear-gradient(180deg, rgb(242 199 92 / 0.2), rgb(242 199 92 / 0.04));
+  color: var(--th-gold-text);
+  box-shadow: 0 0 14px -6px rgb(242 199 92 / 0.6);
+}
+.th-chip-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--cat);
+  box-shadow: 0 0 6px 1px color-mix(in oklab, var(--cat) 70%, transparent);
+}
+
+/* Leaderboards: medal discs for the top three, big mono scores. */
+.th-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  font-family: var(--th-font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--th-text-2);
+}
+.th-medal[data-medal="1"],
+.th-medal[data-medal="2"],
+.th-medal[data-medal="3"] {
+  color: #17110A;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.25), 0 2px 6px rgb(0 0 0 / 0.55);
+}
+.th-medal[data-medal="1"] { background: var(--th-medal-gold); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.25), 0 0 10px -2px rgb(242 199 92 / 0.6); }
+.th-medal[data-medal="2"] { background: var(--th-medal-silver); }
+.th-medal[data-medal="3"] { background: var(--th-medal-bronze); }
+.th-score {
+  font-family: var(--th-font-mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.th-score-top {
+  color: var(--th-gold-text);
+  text-shadow: 0 0 14px rgb(242 199 92 / 0.35);
+}
+.th-name {
+  min-width: 0;
+  font-family: var(--th-font-body);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The answer reveal: the correct answer in a green-tinted box, the player's answer in an orange one. */
+.th-answer-correct,
+.th-answer-yours {
+  border-radius: 8px;
+  padding: 1px 8px;
+  margin: -1px 0;
+  font-family: var(--th-font-head);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.th-answer-correct {
+  color: var(--th-green-text);
+  background: rgb(34 199 126 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(34 199 126 / 0.45);
+}
+.th-answer-yours {
+  color: var(--th-orange-text);
+  background: rgb(255 122 47 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 122 47 / 0.45);
+}
+.th-answer-board {
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgb(34 199 126 / 0.22);
+  background: linear-gradient(180deg, rgb(34 199 126 / 0.05), transparent 40%);
+}
+
+/* The wordmark: Saira 800, a gold glow on the last letter. */
+[data-skin] .th-wordmark {
+  font-family: var(--th-font-head);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+[data-skin] .th-wordmark-last {
+  color: var(--th-gold-text);
+  text-shadow: 0 0 10px rgb(242 199 92 / 0.65), 0 0 22px rgb(242 199 92 / 0.35);
+}
+
+/* ------------------------------------------------------------------ the tab bar */
+[data-skin] .app-tabbar {
+  border-top: 0;
+  /* The 56px row a dark gradient; the home-bar strip below it the screen edge's black. */
+  background: linear-gradient(180deg, #17171F 0, #0C0C11 56px, var(--screen-edge) 56px);
+  box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.9);
+}
+[data-skin] .app-tabbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(242 199 92 / 0.25) 20%, rgb(251 227 154 / 0.7) 50%, rgb(242 199 92 / 0.25) 80%, transparent);
+  pointer-events: none;
+}
+[data-skin] .app-tabbar-row > a {
+  color: var(--th-text-2);
+}
+[data-skin] .app-tabbar-row > a > span {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
+}
+[data-skin] .app-tabbar-row > a[aria-current="page"] {
+  color: var(--th-gold-text);
+}
+[data-skin] .app-tabbar-row > a[aria-current="page"] > svg {
+  filter: drop-shadow(0 0 6px rgb(242 199 92 / 0.6));
+}
+[data-skin] .app-tabbar-row > a[aria-current="page"] > span {
+  text-shadow: 0 0 10px rgb(242 199 92 / 0.55);
+}
+
+/* ------------------------------------------------------------------ game icon tiles */
+/* The game's own art is unchanged; the tile behind it is a glossy gradient in its category colour. */
+.game-icon[data-cat] {
+  background-color: color-mix(in oklab, var(--cat-lo) 60%, #000);
+  background-image:
+    linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.04) 46%, transparent 52%),
+    linear-gradient(155deg, color-mix(in oklab, var(--cat) 72%, #000) 0%, color-mix(in oklab, var(--cat-lo) 58%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 0 1px rgb(255 255 255 / 0.1), inset 0 -2px 0 rgb(0 0 0 / 0.22), 0 4px 10px -3px rgb(0 0 0 / 0.65);
+}
+
+/* ------------------------------------------------------------------ dialogs and sheets */
+.th-sheet {
+  background-color: #111119;
+  background-image: linear-gradient(180deg, #1D1D29 0%, #121219 40%, #0D0D13 100%);
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.09), 0 -18px 40px -18px rgb(0 0 0 / 0.9);
+}
+.th-scrim {
+  background: rgb(4 4 6 / 0.78);
+}
+
+/* The reveal board's own "Solution" / "Yours" labels (AnswerReveal useRevealLabels): the same
+   tinted boxes, in the board's own font and size, with no change to its layout. */
+.answer-reveal-content [data-reveal-label] {
+  border-radius: 6px;
+  padding: 1px 8px;
+  margin: -1px 0;
+}
+.answer-reveal-content [data-reveal-label="correct"] {
+  color: var(--th-green-text);
+  background: rgb(34 199 126 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(34 199 126 / 0.45);
+}
+.answer-reveal-content [data-reveal-label="yours"] {
+  color: var(--th-orange-text);
+  background: rgb(255 122 47 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 122 47 / 0.45);
+}
+
+/* A control drawn smaller than 44px (a chip, a text link): an invisible hit area round it makes
+   the target at least 44 × 44 px without moving anything. */
+.th-hit {
+  position: relative;
+}
+.th-hit::after {
+  content: "";
+  position: absolute;
+  top: min(0px, calc(50% - 22px));
+  bottom: min(0px, calc(50% - 22px));
+  left: min(0px, calc(50% - 22px));
+  right: min(0px, calc(50% - 22px));
+}

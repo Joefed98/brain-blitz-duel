@@ -97,20 +97,20 @@ export function FinalResult({
         <div className="flex items-end justify-center gap-4">
           <div className="text-center">
             <PlayerBadge look={myLook} name={myName} size={28} className="mx-auto mb-1" />
-            <p className="max-w-[110px] truncate text-xs uppercase tracking-widest text-me">
+            <p className="th-name max-w-[110px] truncate text-sm text-me">
               {myName}
             </p>
-            <p className="font-mono text-4xl font-bold tabular-nums text-me">
+            <p className={`th-score font-mono text-4xl font-bold tabular-nums text-me ${myTotal > opponentTotal ? "th-score-top" : ""}`}>
               <AnimatedScore value={myTotal} />
             </p>
           </div>
           <span className="pb-2 font-mono text-2xl text-muted-foreground">–</span>
           <div className="text-center">
             <PlayerBadge look={opponentLook} name={opponentName} size={28} className="mx-auto mb-1" />
-            <p className="max-w-[110px] truncate text-xs uppercase tracking-widest text-opponent">
+            <p className="th-name max-w-[110px] truncate text-sm text-opponent">
               {opponentName}
             </p>
-            <p className="font-mono text-4xl font-bold tabular-nums text-opponent">
+            <p className="th-score font-mono text-4xl font-bold tabular-nums text-opponent">
               <AnimatedScore value={opponentTotal} />
             </p>
           </div>
@@ -120,17 +120,17 @@ export function FinalResult({
 
         {playOfTheGame}
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="th-card overflow-hidden rounded-2xl border border-border bg-card">
           {breakdown.map((row, i) => (
             <div
               key={row.round}
               className="flex items-center justify-between border-b border-border px-4 py-3 last:border-b-0 animate-row-stagger"
               style={{ animationDelay: `${240 + i * 110}ms` }}
             >
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              <span className="th-kicker min-w-0 truncate text-xs tracking-[0.08em] text-muted-foreground">
                 {puzzleName(roundOrder[row.round - 1] ?? "wordsmith")}
               </span>
-              <span className="font-mono text-sm font-bold tabular-nums">
+              <span className="th-score shrink-0 whitespace-nowrap font-mono text-base font-bold tabular-nums">
                 <span className={row.mine > row.theirs ? "text-me" : "text-muted-foreground"}>
                   {row.mine}
                 </span>
@@ -150,7 +150,7 @@ export function FinalResult({
             type="button"
             onClick={onPlayAgain}
             disabled={busy}
-            className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+            className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
           >
             {busy ? (
               <>
@@ -169,7 +169,7 @@ export function FinalResult({
         <button
           type="button"
           onClick={onHome}
-          className="press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
+          className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-base font-semibold uppercase tracking-wide text-muted-foreground"
         >
           Home
         </button>
