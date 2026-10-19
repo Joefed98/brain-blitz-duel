@@ -164,6 +164,8 @@ export function replayTubeLog(
   start: TubeState,
   tokens: readonly TubeToken[],
   limit: number | null = null,
+  /** Server grading (solverProgress.server.ts): sees every board the player stood on, in order, after the start. */
+  onBoard?: (tubes: TubeState) => void,
 ): { tubes: TubeState; moves: number; solved: boolean; sorted: number; outOfPours: boolean; depth: number } {
   const history: TubeState[] = [cloneTubes(start)];
   let poured = 0;
@@ -173,15 +175,18 @@ export function replayTubeLog(
     if (limit !== null && poured >= limit) break;
     if (token === "undo") {
       if (history.length > 1) history.pop();
+      onBoard?.(history[history.length - 1]!);
       continue;
     }
     if (token === "reset") {
       history.length = 1;
+      onBoard?.(history[0]!);
       continue;
     }
     if (!canPour(state, token.from, token.to)) continue;
     history.push(pour(state, token.from, token.to));
     poured += 1;
+    onBoard?.(history[history.length - 1]!);
   }
   const tubes = history[history.length - 1]!;
   const solved = poured > 0 && tubesSolved(tubes);

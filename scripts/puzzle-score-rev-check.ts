@@ -176,7 +176,8 @@ for (let s = 0; s < 6; s++) {
 // 3. Quick fairness on the new shape.
 const seeds = Number(process.argv[2] ?? 24);
 for (const type of FINISH_GAMES) {
-  const a = auditGame(type, seeds);
+  // Only the new shape is judged here, so the audit's legacy "before" column is not graded.
+  const a = auditGame(type, seeds, { before: false });
   const r = a.after;
   if (r.nothing.some((s) => s !== 0)) fail(`${type}: doing nothing scores ${Math.max(...r.nothing)}`);
   if (Number.isFinite(r.minFinished) && (r.minFinished < (type === "numline" ? 0 : 120) || r.minFinished <= r.maxUnfinished))

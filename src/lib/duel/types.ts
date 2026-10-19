@@ -1618,7 +1618,9 @@ export interface TilesPuzzleData {
    */
   frame: number[];
   /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
-  tilesRev?: 1;
+  tilesRev?: 1 | 2;
+  /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
+  timeLimitMs?: number;
   /** tilesRev 1: where the extra cell sits. */
   extra?: TilesExtra;
   /** Server-side only: the exact minimum number of slides. */

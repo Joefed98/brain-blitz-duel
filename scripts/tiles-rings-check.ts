@@ -58,7 +58,8 @@ for (const kind of ["classic", "extra"] as const) {
     const cells = kind === "classic" ? 9 : 10;
     const count = cells - 1;
     const tag = `tiles ${kind} ${round}`;
-    check(`${tag}: stamp`, kind === "classic" ? puzzle.tilesRev === undefined : puzzle.tilesRev === TILES_REV_EXTRA && !!puzzle.extra);
+    // New rounds are tilesRev 2 since 20 Oct 2026: the same extra-cell board on a 90 s clock (jumbled-clock-check).
+    check(`${tag}: stamp`, kind === "classic" ? puzzle.tilesRev === undefined : (puzzle.tilesRev ?? 0) >= TILES_REV_EXTRA && !!puzzle.extra);
     check(`${tag}: ${cells} cells with a gap`, frame.length === cells && frame.includes(0) && layout.cells.length === cells);
     check(`${tag}: every tile once`, new Set(frame).size === cells && frame.every((v) => v >= 0 && v <= count));
     if (kind === "extra") {

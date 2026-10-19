@@ -70,7 +70,7 @@ export const PRACTICE_STAMPS = {
   "tendrop": "puzzleScoreRev=2 speedPar=1 tenRev=2",
   "tents": "puzzleScoreRev=2 speedPar=1",
   "tilegrid": "puzzleScoreRev=2 speedPar=1",
-  "tiles": "puzzleScoreRev=2 speedPar=1 tilesRev=1",
+  "tiles": "puzzleScoreRev=2 speedPar=1 tilesRev=2",
   "tilt": "puzzleScoreRev=2 speedPar=1 tiltRev=6",
   "tower": "puzzleScoreRev=2 speedPar=1",
   "trail": "puzzleScoreRev=2 speedPar=1",

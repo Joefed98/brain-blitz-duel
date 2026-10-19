@@ -34,6 +34,7 @@ import { speedBonusCurve } from "./speedPar";
 import { PUZZLE_EFFICIENCY_POINTS, PUZZLE_FINISH_BASE, type ScoreParts } from "./puzzleScoreRev";
 import { PUZZLE_REV2_KNOTS } from "./puzzleBands.data";
 import { GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { TILES_REV_CLOCK } from "./tiles";
 import type { PuzzleData, PuzzleType } from "./types";
 
 export const PUZZLE_SCORE_REV_BANDS = 2;
@@ -118,12 +119,14 @@ export function rev2Points(knots: Rev2Knots, result: number): number {
 }
 
 /**
- * A game whose progress measure changed under its own stamp scores on its own knots row, `<type>:<stamp>`
- * (Topsy-Turvy gravityRev 2, Polypotions tubesRev 2: solverProgress.server.ts); older rounds keep the game's row.
+ * A game whose scoring changed under its own stamp scores on its own knots row, `<type>:<stamp>` (Topsy-Turvy
+ * gravityRev 2 and Polypotions tubesRev 2: solverProgress.server.ts; Jumbled tilesRev 2: the 90 s clock);
+ * older rounds keep the game's row.
  */
 export function rev2KnotsKey(puzzle: PuzzleData): string {
   if (puzzle.type === "gravity" && (puzzle.gravityRev ?? 0) >= GRAVITY_PROGRESS_REV) return `gravity:${GRAVITY_PROGRESS_REV}`;
   if (puzzle.type === "tubes" && (puzzle.tubesRev ?? 0) >= TUBES_PROGRESS_REV) return `tubes:${TUBES_PROGRESS_REV}`;
+  if (puzzle.type === "tiles" && (puzzle.tilesRev ?? 0) >= TILES_REV_CLOCK) return `tiles:${TILES_REV_CLOCK}`;
   return puzzle.type;
 }
 
@@ -131,6 +134,7 @@ export function rev2KnotsKey(puzzle: PuzzleData): string {
 export const REV2_DEALT_KEY: Partial<Record<PuzzleType, string>> = {
   gravity: `gravity:${GRAVITY_PROGRESS_REV}`,
   tubes: `tubes:${TUBES_PROGRESS_REV}`,
+  tiles: `tiles:${TILES_REV_CLOCK}`,
 };
 
 /** The knots a game is dealt on today (the shared default when a game has no fitted row). */

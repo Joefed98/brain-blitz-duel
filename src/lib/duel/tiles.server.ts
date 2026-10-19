@@ -15,7 +15,8 @@ import {
   CLASSIC_TILES_LAYOUT,
   extraLayout,
   solvedFrame,
-  TILES_REV_EXTRA,
+  TILES_REV_CLOCK,
+  TILES_REV2_TIME_MS,
   tilesMovable,
   tilesSlide,
   tilesSolved,
@@ -122,7 +123,7 @@ export function generateClassicTiles(): TilesPuzzleData {
 const SIDES: TilesExtra["side"][] = ["top", "bottom", "left", "right"];
 
 /**
- * tilesRev 1: the extra cell goes on a random side and position, the solved
+ * tilesRev 1 (now dealt as tilesRev 2, the same board on a 90 s clock): the extra cell goes on a random side and position, the solved
  * board is scrambled by a long random walk (so it is always solvable), and the
  * board is kept when its exact minimum lands in the band.
  */
@@ -136,7 +137,8 @@ export function generateTiles(): TilesPuzzleData {
     if (!solved) continue;
     const puzzle: TilesPuzzleData = {
       type: "tiles",
-      tilesRev: TILES_REV_EXTRA,
+      tilesRev: TILES_REV_CLOCK,
+      timeLimitMs: TILES_REV2_TIME_MS,
       extra,
       frame,
       minMoves: solved.min,
@@ -151,7 +153,8 @@ export function generateTiles(): TilesPuzzleData {
   const solved = tilesMinMoves(frame, layout);
   return {
     type: "tiles",
-    tilesRev: TILES_REV_EXTRA,
+    tilesRev: TILES_REV_CLOCK,
+    timeLimitMs: TILES_REV2_TIME_MS,
     extra,
     frame,
     ...(solved ? { minMoves: solved.min, solution: solved.solution } : {}),

@@ -113,6 +113,8 @@ export function replayGravity(
   targets: number[],
   tilts: GravityDir[],
   limit: number | null = null,
+  /** Server grading (solverProgress.server.ts): sees every board the player stood on, in order, after the start. */
+  onBoard?: (balls: GravityBalls) => void,
 ): GravityReplay {
   const wallSet = walls instanceof Set ? walls : new Set(walls);
   let balls = [...starts];
@@ -123,11 +125,13 @@ export function replayGravity(
     if (dir === "X") {
       if (history.length > 1) history.pop();
       balls = [...history[history.length - 1]!];
+      onBoard?.(balls);
       continue;
     }
     if (dir === "Y") {
       history.length = 1;
       balls = [...starts];
+      onBoard?.(balls);
       continue;
     }
     if (gravitySolved(balls, targets)) break;
@@ -136,6 +140,7 @@ export function replayGravity(
     count++;
     balls = outcome.balls;
     history.push([...balls]);
+    onBoard?.(balls);
   }
   return {
     balls,

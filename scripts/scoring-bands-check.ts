@@ -64,10 +64,14 @@ function roomPuzzleCached(type: PuzzleType, seed: number): PuzzleData {
 
 /**
  * The fixture's answers were recorded before Topsy-Turvy gravityRev 2 and Polypotions tubesRev 2 (19 Oct 2026,
- * solverProgress.server.ts), so they grade on the stamps they were played on; solver-progress-check holds the runs
- * recorded on the new stamps.
+ * solverProgress.server.ts) and Jumbled tilesRev 2 (20 Oct 2026, 90 s), so they grade on the stamps they were
+ * played on; solver-progress-check and jumbled-clock-check hold the runs recorded on the new stamps.
  */
-const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number>>> = { gravity: { gravityRev: 1 }, tubes: { tubesRev: 1 } };
+const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number | undefined>>> = {
+  gravity: { gravityRev: 1 },
+  tubes: { tubesRev: 1 },
+  tiles: { tilesRev: 1, timeLimitMs: undefined },
+};
 function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
   const p = roomPuzzleCached(type, seed);
   return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;

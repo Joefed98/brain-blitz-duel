@@ -10,7 +10,7 @@
  * arcade-self-replay-check support it, CI shards use it).
  *
  *   bun scripts/run-checks.ts            # run every routine check
- *   bun scripts/run-checks.ts --include-optional # include deep Orbit (300s) and the full puzzle-bank rebuild (3600s)
+ *   bun scripts/run-checks.ts --include-optional # include deep Orbit (300s), the full puzzle-bank rebuild (3600s) and the 200-seed puzzle bands
  *   bun scripts/run-checks.ts --json=/tmp/check-results.json # save full results
  *   bun scripts/run-checks.ts foo bar    # run only checks whose filename includes "foo" or "bar"
  *   bun scripts/run-checks.ts replay-check.ts # an exact filename runs only that check
@@ -35,7 +35,7 @@ const TIMEOUT_OVERRIDES: Record<string, number> = {
   "arcade-lowend-check.ts": 900_000,
   "puzzle-bank-rebuild-check.ts": 3_600_000,
 };
-const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"]);
+const OPTIONAL_CHECKS = new Set(["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts", "puzzle-bands-depth-check.ts"]);
 
 const args = process.argv.slice(2);
 const includeOptional = args.includes("--include-optional");

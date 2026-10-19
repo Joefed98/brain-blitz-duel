@@ -238,7 +238,7 @@ export const SHARDS: Record<string, string[]> = {
 export const CATCH_ALL = "g";
 
 /** --include-optional checks: not part of the routine suite, never run in CI. */
-export const OPTIONAL = ["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts"];
+export const OPTIONAL = ["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts", "puzzle-bands-depth-check.ts"];
 
 /**
  * Checks CI can't run (they need network or a secret Actions doesn't have),

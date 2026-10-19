@@ -198,12 +198,13 @@ function textCheck(type: PuzzleType): string[] {
   ];
 }
 
-export function auditGame(type: PuzzleType, seedCount = SEEDS): GameAudit {
+/** `before: false` skips grading the legacy shape (the "before" column), for callers that judge only the new one. */
+export function auditGame(type: PuzzleType, seedCount = SEEDS, opts: { before?: boolean } = {}): GameAudit {
   const seeds = Array.from({ length: seedCount }, (_, i) => 5001 + i);
   const stamped = seeds.map((seed) => roomPuzzle(type, seed));
   const open = OPEN_GAMES.includes(type);
-  const before = auditShape(type, stamped.map(legacy), seeds);
   const after = auditShape(type, stamped, seeds);
+  const before = opts.before === false ? after : auditShape(type, stamped.map(legacy), seeds);
   const fails: string[] = [];
   const flags: string[] = [];
   const note = (msg: string, hard: boolean) => (hard ? fails : flags).push(msg);

@@ -43,7 +43,7 @@ export const PROGRESS_MEASURE: Partial<Record<PuzzleType, string>> = {
   flow: "pairs joined on their route (other joined pairs cost)",
   push: "crates you brought home (wasted pushes cost)",
   tower: "rings you stacked on the gold post (wasted moves cost)",
-  tubes: "how much closer your flasks are to all sorted (pours that don't help cost double)",
+  tubes: "how much closer your flasks are to all sorted (pours that don't help cost triple)",
   safe: "dials right on your best try, or as they stand when time runs out (one lucky dial is free)",
   bomb: "correct steps before a strike",
   nonogram: "right cells (a wrong cell costs)",
