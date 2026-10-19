@@ -137,7 +137,7 @@ the same puzzles on `puzzleScoreRev 1` (what rooms dealt on 18 Oct).
 | Gridlock | 36.5 → 69 | 139.5 → 99 | 148.5 → 119.5 | 150 → 140 | 0 / 27 / 30 / 30 | 0 / 0 |
 | Tessellate | 69 → 70 | 124.5 → 100.5 | 141 → 118.5 | 150 → 140 | 0 / 25 / 30 / 30 | 0 / 14 |
 | Skid | 62 → 71 | 134 → 97.5 | 146 → 122.5 | 150 → 141.5 | 0 / 18 / 30 / 30 | 0 / 0 |
-| Topsy-Turvy | 37 → 7 → **50.5** (`gravityRev 2`; 200 seeds: AVG_G) | 138 → 102 → 100 | 148.5 → 120 | 150 → 140 | 0 / 25 / 30 / 30 | 5 / 37 → 0 / 25 |
+| Topsy-Turvy | 37 → 7 → **50.5** (`gravityRev 2`; 200 seeds: 68) | 138 → 102 → 100 | 148.5 → 120 | 150 → 140 | 0 / 25 / 30 / 30 | 5 / 37 → 0 / 25 |
 | Jumbled | 23 → 57.5 | 136 → 99 | 147.5 → 119 | 150 → 136.5 | 0 / 26 / 30 / 30 | 0 / 7 |
 | Turntable | 14 → 61.5 | 146 → 101 | 150 → 122 | 150 → 143 | 8 / 30 / 30 / 30 | 0 / 85 |
 | Lightbender | 22 → 70 | 134 → 102 | 140.5 → 107.5 | 150 → 137 | 0 / 25 / 30 / 30 | 0 / 70 |
@@ -147,7 +147,7 @@ the same puzzles on `puzzleScoreRev 1` (what rooms dealt on 18 Oct).
 | Chroma Lines | 78.5 → 74 | 131 → 99 | 145 → 119 | 150 → 140 | 0 / 28 / 30 / 30 | 8 / 89 |
 | Heave | 73 → 70 | 141 → 99 | 150 → 120 | 150 → 137 | 2 / 30 / 30 / 30 | 0 / 70 |
 | Hanoi | 41 → 70 | 140.5 → 104.5 | 148 → 117 | 150 → 139.5 | 1 / 29 / 30 / 30 | 0 / 99 |
-| Polypotions | 31 → 4 → **69** (`tubesRev 2`; 200 seeds: AVG_T) | 142 → 107.5 | 148 → 119 | 150 → 139.5 | 0 / 29 / 30 / 30 | 5 / 82 → 0 / 96 |
+| Polypotions | 31 → 4 → **69** (`tubesRev 2`; 200 seeds: 71) | 142 → 107.5 | 148 → 119 | 150 → 139.5 | 0 / 29 / 30 / 30 | 5 / 82 → 0 / 96 |
 | Safe Cracker | 37.5 → 70 | 147 → 100 | 150 → 119.5 | 150 → 141 | 12 / 30 / 30 / 30 | 0 / 35 |
 | Bomb Defusal | 88 → 54 | 148 → 98 | 150 → 127 | 150 → 142 | 14 / 23 / 26 / 29 | 0 / 27 |
 | Mosaic | 91.5 → 68.5 | 147 → 102 | 150 → 119.5 | 150 → 140.5 | 7 / 30 / 30 / 30 | 0 / 51 |
@@ -318,10 +318,10 @@ keep `gravityRev 1` / `tubesRev 1` and grade exactly as before):
 - Fitted with `bun scripts/puzzle-bands-fit.ts --write` (Topsy-Turvy on 80 fit seeds, `--seeds=80`: its average kits'
   progress swings with the board's minimum, 8–14 tilts, so 40 seeds left the median a few points off).
 
-| Game | Average (fit seeds) | Average (test seeds 7001–7030) | Average (200 test seeds) | Good / great / near | Random median / p90 | Half / buzzer / third |
+| Game | Average (fit seeds) | Average (test seeds 7001–7030) | Average (200 test seeds 7001–7200) | Good / great / near | Random median / p90 | Half / buzzer / third |
 |---|---|---|---|---|---|---|
-| Topsy-Turvy | 70 | 50.5 | AVG_G | 100 / 120 / 140 | 0 / 0 | 72 / 86 / 116 |
-| Polypotions | 70 | 69 | AVG_T | 107.5 / 119 / 139.5 | 0 / 0 | 74 / 87 / 115 |
+| Topsy-Turvy | 70 | 50.5 | 68 | 100 / 120 / 140 | 0 / 0 | 72 / 86 / 116 |
+| Polypotions | 70 | 69 | 71 | 107.5 / 119 / 139.5 | 0 / 0 | 74 / 87 / 115 |
 
 Topsy-Turvy's 30 test seeds are a low draw (median progress 0.33 against 0.43–0.44 on the 80 fit seeds and on 200
 seeds 3001–3200); the 200-seed column is the fairer figure. Random tilts and pours keep a median of 0 (the odd random
