@@ -25,8 +25,10 @@
  *     icon, a player's own room still reads them, and clients still can't write them.
  *  7. Awards are the same for every player (any row order gives the same awards; nothing takes a
  *     viewer), only appear when earned (fixtures for each award either side of its threshold, and
- *     every award in 300 random rooms re-proved from the results), prefer players who didn't win,
- *     and break ties the fixed way.
+ *     every award in 300 random rooms re-proved from the results), need a real achievement (18 Oct
+ *     2026: Fastest Finger a full solve of 120+ in half the clock, So Close a genuinely small gap,
+ *     Comeback Kid a climb of 2+ onto the podium, none of it in two-player rooms), go to the better
+ *     figure first, then players who didn't win, and break ties the fixed way.
  *
  *   bun scripts/player-looks-check.ts
  */
@@ -50,8 +52,8 @@ import {
   persistAutoColours,
 } from "../src/lib/duel/playerLook.server";
 import { PLAYER_ICON_ART } from "../src/components/duel/playerIcons";
-import { COMEBACK_MIN_PLACES, podiumAwards, type AwardRound, type PodiumAward } from "../src/lib/duel/podiumAwards";
-import { nearMiss } from "../src/lib/duel/nearMiss";
+import { COMEBACK_MAX_FINAL_PLACE, COMEBACK_MIN_PLACES, FASTEST_MAX_SHARE, FASTEST_MIN_SCORE, podiumAwards, type AwardRound, type PodiumAward } from "../src/lib/duel/podiumAwards";
+import { isGenuinelyClose, nearMissInfo } from "../src/lib/duel/nearMiss";
 import { MAX_ROUND_SCORE, standings } from "../src/lib/duel/scoring";
 import type { DuelPlayerRow, RoundResultRow } from "../src/lib/duel/types";
 
@@ -538,7 +540,7 @@ const PUZZLE: AwardRound = { type: "sudoku", name: "Box Six", timeLimitMs: 60_00
 const HOVER: AwardRound = { type: "hover", name: "Hover", timeLimitMs: 75_000, timed: false };
 const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === id);
 
-// Perfectionist: needs a 150; prefers someone who didn't win; the winner only when no one else.
+// Perfectionist: needs a 150; the most 150s wins it; on equal counts, someone who didn't win.
 {
   const players = [1, 2, 3].map((s) => player(s));
   const none = podiumAwards(players, [result(1, 1, 149), result(2, 1, 120), result(3, 1, 90)], [PUZZLE]);
@@ -550,7 +552,13 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
     result(2, 1, 150), result(2, 2, 40), result(2, 3, 40),
     result(3, 1, 150), result(3, 2, 30), result(3, 3, 30),
   ], [PUZZLE, PUZZLE, PUZZLE]);
-  check(find(both, "perfect")?.slot === 2, `Perfectionist: a tie between non-winners goes to the better final place (got ${find(both, "perfect")?.slot})`);
+  check(find(both, "perfect")?.slot === 1, `Perfectionist: 3 perfects must beat 1 (got ${find(both, "perfect")?.slot})`);
+  const level = podiumAwards(players, [
+    result(1, 1, 150), result(1, 2, 100),
+    result(2, 1, 150), result(2, 2, 40),
+    result(3, 1, 150), result(3, 2, 30),
+  ], [PUZZLE, PUZZLE]);
+  check(find(level, "perfect")?.slot === 2, `Perfectionist: equal counts go to a non-winner, then the better final place (got ${find(level, "perfect")?.slot})`);
 }
 // Comeback Kid: a climb of 2 or more, not 1.
 {
@@ -568,6 +576,16 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   ], rounds);
   check(find(two, "comeback")?.slot === 4 && /From 4th after round 1 to 2nd/.test(find(two, "comeback")!.line), `Comeback Kid: 4th → 2nd not awarded (${JSON.stringify(find(two, "comeback"))})`);
   check(COMEBACK_MIN_PLACES === 2, "Comeback Kid threshold is not 2 places");
+  // A climb of 2 that ends off the podium (6th → 4th) is not a comeback.
+  const six = [1, 2, 3, 4, 5, 6].map((s) => player(s));
+  const offPodium = podiumAwards(six, [
+    ...[1, 2, 3, 4, 5, 6].map((s) => result(s, 1, 160 - 20 * s)),
+    ...[1, 2, 3, 4, 5, 6].map((s) => result(s, 2, s === 6 ? 45 : 0)),
+  ], rounds);
+  check(!find(offPodium, "comeback"), `Comeback Kid for a climb off the podium (${JSON.stringify(find(offPodium, "comeback"))})`);
+  // Two players: never (2nd → 1st is just winning).
+  const pair = podiumAwards([player(1), player(2)], [result(1, 1, 100), result(2, 1, 0), result(1, 2, 0), result(2, 2, 150)], rounds);
+  check(!find(pair, "comeback"), "Comeback Kid in a two-player room");
 }
 // So Close: needs a near miss.
 {
@@ -576,8 +594,23 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   check(!find(clean, "close"), "So Close with no near miss");
   const miss = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
   check(find(miss, "close")?.slot === 2 && /1 barrier from the end/.test(find(miss, "close")!.line), "So Close: a near miss not awarded");
+  // A big gap is a results line, never So Close: 5 of 20 barriers left, 4 of 4 mazes, 200 m of 500.
+  const far = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: s === 2 ? { gates: 15, totalGates: 20 } : null })), [HOVER]);
+  check(!find(far, "close"), "So Close for 5 of 20 barriers left");
+  const fifth = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 50 * s, { extra: s === 2 ? { gates: 16, totalGates: 20 } : null })), [HOVER]);
+  check(find(fifth, "close")?.slot === 2, "So Close: a fifth of the count left (4 of 20) not awarded");
+  const TILT: AwardRound = { type: "tilt", name: "Tilt", timeLimitMs: 75_000, timed: false };
+  const noMazes = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 40 * s, { extra: s === 2 ? { mazes: 0 } : null })), [TILT]);
+  check(!find(noMazes, "close"), "So Close for no maze finished");
+  const SWING: AwardRound = { type: "swing", name: "Grappler", timeLimitMs: 75_000, timed: false };
+  const metres = (m: number) => podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 40 * s, { extra: s === 2 ? { metres: m } : null })), [SWING]);
+  check(!find(metres(300), "close"), "So Close for 200 m short of 500");
+  check(find(metres(460), "close")?.slot === 2, "So Close: 40 m short of 500 not awarded");
+  // A 150 is never a near miss.
+  const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 150 : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
+  check(!find(full, "close"), "So Close on a 150");
 }
-// Fastest Finger: correct or round-topping puzzle finishes only; arcade runs and reactions never.
+// Fastest Finger: a full solve scoring 120+ in at most half the clock; arcade runs and reactions never.
 {
   const players = [1, 2, 3].map((s) => player(s));
   const arcade = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 150, { ms_remaining: 70_000 })), [HOVER]);
@@ -591,8 +624,17 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
     result(2, 1, 120, { ms_remaining: 30_000 }),
     result(3, 1, 130, { ms_remaining: 40_000 }),
   ], [PUZZLE]);
-  check(find(timed, "fastest")?.slot === 3, `Fastest Finger: prefers the quickest player who didn't win (got ${find(timed, "fastest")?.slot})`);
-  check(find(timed, "fastest")?.line === "Box Six in 20.0s", `Fastest Finger line: ${find(timed, "fastest")?.line}`);
+  check(find(timed, "fastest")?.slot === 1, `Fastest Finger: the quickest solve wins it, winner or not (got ${find(timed, "fastest")?.slot})`);
+  check(find(timed, "fastest")?.line === "Box Six in 10.0s", `Fastest Finger line: ${find(timed, "fastest")?.line}`);
+  // Speed alone is not enough: a quick unsolved answer, a solve below 120, a solve using over half the clock.
+  const quickWrong = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 110 : 60, { is_correct: false, ms_remaining: 55_000 })), [PUZZLE]);
+  check(!find(quickWrong, "fastest"), "Fastest Finger for a quick round-topping answer that was not a solve");
+  const lowScore = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 115 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
+  check(!find(lowScore, "fastest"), "Fastest Finger for a solve scoring under 120");
+  const slow = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 125 : 60, { is_correct: s === 2, ms_remaining: 25_000 })), [PUZZLE]);
+  check(!find(slow, "fastest"), "Fastest Finger for a solve using over half the clock");
+  const unknown = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 140 : 60, { is_correct: s === 2, ms_remaining: 0 })), [PUZZLE]);
+  check(!find(unknown, "fastest"), "Fastest Finger with no stored finishing time");
 }
 // Too few players or rounds: nothing.
 check(podiumAwards([player(1)], [result(1, 1, 150)], [PUZZLE]).length === 0, "awards in a one-player room");
@@ -641,33 +683,31 @@ for (let r = 0; r < 300; r++) {
     if (award.id === "perfect") {
       const n = mine.filter((x) => x.score >= MAX_ROUND_SCORE).length;
       check(n >= 1, `room ${r}: Perfectionist with no 150`);
-      const others = players.filter((p) => place.get(p.player_slot) !== 1 && results.some((x) => x.player_slot === p.player_slot && x.score >= MAX_ROUND_SCORE));
-      if (others.length) check(place.get(award.slot) !== 1, `room ${r}: Perfectionist went to the winner though others earned it`);
-      const best = Math.max(...others.map((p) => results.filter((x) => x.player_slot === p.player_slot && x.score >= MAX_ROUND_SCORE).length));
-      if (others.length) check(n === best, `room ${r}: Perfectionist not the most 150s among non-winners`);
+      const best = Math.max(...players.map((p) => results.filter((x) => x.player_slot === p.player_slot && x.score >= MAX_ROUND_SCORE).length));
+      check(n === best, `room ${r}: Perfectionist not the most 150s in the room`);
     }
     if (award.id === "close") {
       const n = rounds.filter((round, i) => {
         const row = mine.find((x) => x.round_number === i + 1);
-        return row && nearMiss(round.type as never, row.extra as Record<string, unknown> | null);
+        return row && row.score < MAX_ROUND_SCORE && isGenuinelyClose(nearMissInfo(round.type as never, row.extra as Record<string, unknown> | null));
       }).length;
-      check(n >= 1, `room ${r}: So Close with no near miss`);
+      check(n >= 1, `room ${r}: So Close with no genuinely close near miss`);
     }
     if (award.id === "comeback") {
       let worst = 0;
       for (let round = 1; round < rounds.length; round++)
         worst = Math.max(worst, standings(players, results, round).find((s) => s.slot === award.slot)!.position);
       check(worst - place.get(award.slot)! >= COMEBACK_MIN_PLACES, `room ${r}: Comeback Kid climbed only ${worst - place.get(award.slot)!}`);
+      check(place.get(award.slot)! <= COMEBACK_MAX_FINAL_PLACE && players.length >= 3, `room ${r}: Comeback Kid off the podium or in a two-player room`);
     }
     if (award.id === "fastest") {
       const ok = rounds.some((round, i) => {
         if (!round.timed) return false;
-        const rowsThisRound = results.filter((x) => x.round_number === i + 1);
-        const top = Math.max(0, ...rowsThisRound.map((x) => x.score));
         const row = mine.find((x) => x.round_number === i + 1);
-        return row && row.reaction_avg_ms === null && (row.is_correct || (row.score > 0 && row.score === top));
+        return row && row.reaction_avg_ms === null && row.is_correct && row.score >= FASTEST_MIN_SCORE &&
+          row.ms_remaining > 0 && round.timeLimitMs - row.ms_remaining <= round.timeLimitMs * FASTEST_MAX_SHARE;
       });
-      check(ok, `room ${r}: Fastest Finger without a correct or round-topping timed finish`);
+      check(ok, `room ${r}: Fastest Finger without a fast, good, full solve`);
     }
   }
 }

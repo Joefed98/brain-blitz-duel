@@ -45,5 +45,6 @@ export function gradeRoomAnswer(
   const received = roomReceiptMsRemaining(puzzle, receipt);
   // The player's own measurement stands unless it is impossible for the clock.
   const { ms, clamped } = trustedMsRemaining(msRemaining, received ?? limitMs, limitMs);
-  return { graded: gradeAnswer(puzzle, answer, ms, extra, received), clamped, serverMs: received ?? limitMs };
+  // msLeft: the time left the grade used (display and pings only: buzzer.ts).
+  return { graded: gradeAnswer(puzzle, answer, ms, extra, received), clamped, serverMs: received ?? limitMs, msLeft: ms };
 }

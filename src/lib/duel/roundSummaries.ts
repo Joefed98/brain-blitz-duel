@@ -14,6 +14,9 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
+import { equationTryLimit, splitCountSuffix } from "./moveLimits";
+import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { WF_PAR } from "@/lib/arcade/wordfall";
@@ -252,11 +255,19 @@ function symbolScanSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
 
 function equationSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   if (puzzle.type !== "equation") return { summary: "No answer", detail: [] };
-  const parts = splitStages(result.answer, puzzle.stages.length);
-  const correct = puzzle.stages.map((st, i) => equationStageCorrect(st.numbers, st.target, parts[i] ?? ""));
+  // equationRev 1: the answer ends "#t1,…" (tries per equation); an equation tried more often than
+  // the limit does not count, exactly as the grader decides (grade.ts "equation").
+  const tryLimit = equationTryLimit(puzzle);
+  const { body, counts: tries } = tryLimit !== null ? splitCountSuffix(result.answer) : { body: result.answer, counts: [] };
+  const parts = splitStages(body, puzzle.stages.length);
+  const correct = puzzle.stages.map((st, i) =>
+    equationStageCorrect(st.numbers, st.target, parts[i] ?? "") && (tryLimit === null || (tries[i] ?? 0) <= tryLimit));
   return {
     summary: `${correct.filter(Boolean).length} / ${puzzle.stages.length} equations · ${seconds(elapsedMs(result, puzzle))}`,
-    detail: correct.map((ok, i) => `Equation ${i + 1}: ${parts[i] ? joinOperators(parts[i]!.split(",")) : "skipped"} ${ok ? "✓" : "✗"}`),
+    detail: correct.map((ok, i) => {
+      const overTries = tryLimit !== null && (tries[i] ?? 0) > tryLimit;
+      return `Equation ${i + 1}: ${parts[i] ? joinOperators(parts[i]!.split(",")) : "skipped"} ${ok ? "✓" : "✗"}${overTries ? ` (over ${tryLimit} tries)` : ""}`;
+    }),
   };
 }
 
@@ -325,14 +336,18 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
   return { summary, detail };
 }
 
-function wordsmithSummary(result: RoundResultRow): BuiltDetail {
+function wordsmithSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
   const words = Array.isArray(result.extra?.["words"])
     ? result.extra["words"].filter((word): word is string => typeof word === "string")
     : [];
   const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
   if (words.length === 0) return { summary: "No words", detail: [] };
   return {
-    summary: `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
+    // wordsmithRev 1 scores word points on a curve (scoring.ts); only older rounds use 2.5 ×.
+    summary:
+      (puzzle as { wordsmithRev?: number }).wordsmithRev === WORDSMITH_REV_TARGET
+        ? `${points} word points → ${result.score} · ${words.length} words`
+        : `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
 }
@@ -341,7 +356,22 @@ function averageSummary(result: RoundResultRow): BuiltDetail {
   return { summary: `avg ${result.reaction_avg_ms ?? 0} ms`, detail: [] };
 }
 
+/** Bang On stores its average distance from the target in reaction_avg_ms: a miss, not a time. */
+function stopwatchSummary(result: RoundResultRow): BuiltDetail {
+  return { summary: `avg ${result.reaction_avg_ms ?? 0} ms off`, detail: [] };
+}
+
 function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail {
+  // tapRev rounds store a tap log; the grader's count and finish time are in extra (grade.ts "numhunt").
+  if (typeof result.extra?.["reached"] === "number") {
+    const reached = result.extra["reached"] as number;
+    const at = result.extra["finishedAtMs"];
+    if (result.is_correct || reached >= NUMHUNT_COUNT) {
+      const time = typeof at === "number" ? at : elapsedMs(result, puzzle);
+      return { summary: `Finished · ${result.errors ?? 0} errors · ${seconds(time)}`, detail: [] };
+    }
+    return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
+  }
   const [rawReached, , rawElapsed] = (result.answer ?? "").split(",");
   const reached = Math.max(0, Number.parseInt(rawReached ?? "0", 10) || 0);
   const errors = result.errors ?? 0;
@@ -361,6 +391,15 @@ function targetSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDetail 
     ? result.extra["steps"].filter((step): step is string => typeof step === "string")
     : [];
   if (value === null) return { summary: "No answer", detail: steps };
+  if (puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV) {
+    // Rev 1 scores the closest number the player made, never a starting tile (target.ts madeDistance).
+    const made = madeDistance(puzzle.tiles, puzzle.target, replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(result.answer ?? "")));
+    if (!Number.isFinite(made)) return { summary: "No number made", detail: steps };
+    return {
+      summary: made === 0 ? `${puzzle.target} exact · ${Math.round(elapsedMs(result, puzzle) / 1000)}s` : `Closest made: ${made} away`,
+      detail: steps,
+    };
+  }
   const away = Math.abs(value - puzzle.target);
   return {
     summary:
@@ -383,7 +422,11 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
     .filter((word) => word.length > 0);
   const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
   return {
-    summary: `${points} points × 2 = ${result.score} · ${words.length} words`,
+    // wordHuntRev 1 scores word points on a curve (scoring.ts); only older rounds use × 2.
+    summary:
+      (puzzle as { wordHuntRev?: number }).wordHuntRev === WORDHUNT_REV_TARGET
+        ? `${points} word points → ${result.score} · ${words.length} words`
+        : `${points} points × 2 = ${result.score} · ${words.length} words`,
     detail: [
       seconds(elapsedMs(result, puzzle)),
       ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
@@ -419,7 +462,13 @@ const blockPartySummary: SummaryBuilder = (result, puzzle) => {
 };
 
 const balanceSummary: SummaryBuilder = (result, puzzle) => {
-  const solved = Number(result.extra?.["solved"] ?? result.correct_count ?? 0);
+  // With per-scale verdicts stored (extra.scales) the grader credits every balanced scale in any
+  // order (correct_count); extra.solved is only the leading run.
+  const solved = Number(
+    Array.isArray(result.extra?.["scales"]) && result.correct_count !== null
+      ? result.correct_count
+      : result.extra?.["solved"] ?? result.correct_count ?? 0,
+  );
   // balanceRev 2 deals four scales; stored rounds three.
   const total = puzzle.type === "balance" ? balanceScaleCount(puzzle) : 3;
   return {
@@ -464,7 +513,7 @@ const lightsOutSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Not solved · ${startOn - left} / ${startOn} off`,
+    summary: `Not solved · ${Math.max(0, startOn - left)} / ${startOn} off`,
     detail: [`${presses} press${presses === 1 ? "" : "es"} used`],
   };
 };
@@ -997,7 +1046,7 @@ const beatSummary: SummaryBuilder = (result) => {
   };
 };
 
-const whackSummary: SummaryBuilder = (result) => {
+const whackSummary: SummaryBuilder = (result, puzzle) => {
   const hits = Number(result.extra?.["hits"] ?? 0);
   const wrong = Number(result.extra?.["wrong"] ?? 0);
   const total = Number(result.extra?.["totalTargets"] ?? 0);
@@ -1005,7 +1054,10 @@ const whackSummary: SummaryBuilder = (result) => {
   const bombs = Number(result.extra?.["bombs"] ?? 0);
   return {
     summary: `Hits ${hits} / ${total} · Wrong ${wrong} · Hedgehogs ${bombs} · Empty ${empty}`,
-    detail: ["135 × share hit · −3 per wrong hat · −5 per hedgehog · −3 per empty tap · +15 for every target"],
+    // whackRev 1 lifts that score on the scoring-target curve, so the old formula is shown only for older rounds.
+    detail: (puzzle as { whackRev?: number }).whackRev
+      ? []
+      : ["135 × share hit · −3 per wrong hat · −5 per hedgehog · −3 per empty tap · +15 for every target"],
   };
 };
 
@@ -1041,9 +1093,12 @@ const clayShootSummary: SummaryBuilder = (result) => {
   const birds = Number(result.extra?.["birdHits"] ?? 0);
   const birdTotal = Number(result.extra?.["birdTotal"] ?? 0);
   const shots = Number(result.extra?.["shots"] ?? 0);
+  // clayRev 4+: the stored empty-shot cost, so a full house below 150 is explained.
+  const empty = Number(result.extra?.["emptyShots"] ?? 0);
+  const emptyCost = Number(result.extra?.["emptyShotCost"] ?? 0);
   return {
     summary: `${hits} / ${total} clays`,
-    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10})` : ""}`],
+    detail: [`${orange} orange · ${gold} gold · ${shots} shot${shots === 1 ? "" : "s"}${birdTotal > 0 ? ` · ${birds} bird${birds === 1 ? "" : "s"} hit (−${birds * 10})` : ""}${emptyCost > 0 ? ` · ${empty} empty shot${empty === 1 ? "" : "s"} (−${emptyCost})` : ""}`],
   };
 };
 
@@ -1350,7 +1405,7 @@ export const ROUND_SUMMARIES: Record<PuzzleType, SummaryBuilder> = {
   symscan: symbolScanSummary,
   numhunt: numberHuntSummary,
   spotdiff: spotDifferenceSummary,
-  stopwatch: averageSummary,
+  stopwatch: stopwatchSummary,
   countup: countUpSummary,
   wordhunt: wordHuntSummary,
   unblock: unblockSummary,

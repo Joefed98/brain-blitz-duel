@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { playBlip } from "@/lib/sound";
-
 import {
   allowReactionFn,
   reportMessageFn,
@@ -18,6 +16,7 @@ import {
   type RoomEmoji,
   type RoomMessageRow,
 } from "./chatConstants";
+import { unreadCount } from "./chatNotice";
 
 const MUTED_KEY = "duelz_muted_players";
 
@@ -42,7 +41,14 @@ function saveMuted(roomId: string, ids: string[]): void {
 export interface RoomChatState {
   messages: RoomMessageRow[];
   reactions: FloatingReaction[];
+  /** Messages from other players not yet seen in the open sheet (your own never count). */
   unread: number;
+  /**
+   * The latest message from another (unmuted) player that arrived live while the sheet was closed,
+   * for RoomChat's toast; history loads never set it. RoomChat decides whether to show it (never
+   * during a round).
+   */
+  incoming: RoomMessageRow | null;
   sheetOpen: boolean;
   setSheetOpen: (open: boolean) => void;
   sending: boolean;
@@ -71,7 +77,10 @@ export function useRoomChat(
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [seenCount, setSeenCount] = useState(0);
+  // Ids of messages seen in the open sheet; unread counts the others' messages not in it.
+  const seenIds = useRef<Set<string>>(new Set());
+  const [seenVersion, setSeenVersion] = useState(0);
+  const [incoming, setIncoming] = useState<RoomMessageRow | null>(null);
   const [mutedUserIds, setMutedUserIds] = useState<string[]>(() =>
     roomId ? loadMuted(roomId) : [],
   );
@@ -115,7 +124,8 @@ export function useRoomChat(
           if (!row || row.duel_id !== roomId || knownIds.current.has(row.id)) return;
           knownIds.current.add(row.id);
           setMessages((prev) => [...prev, row]);
-          if (row.sender_user_id !== myUserId && !sheetOpenRef.current) playBlip();
+          // The toast, sound and haptic are RoomChat's (never during a round); here only the row.
+          if (row.sender_user_id !== myUserId && !sheetOpenRef.current) setIncoming(row);
         },
       )
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
@@ -152,8 +162,16 @@ export function useRoomChat(
   }, [active, load]);
 
   useEffect(() => {
-    if (sheetOpen) setSeenCount(messages.length);
-  }, [messages.length, sheetOpen]);
+    if (!sheetOpen) return;
+    let added = false;
+    for (const m of messages) {
+      if (!seenIds.current.has(m.id)) {
+        seenIds.current.add(m.id);
+        added = true;
+      }
+    }
+    if (added) setSeenVersion((v) => v + 1);
+  }, [messages, sheetOpen]);
 
   const visibleMessages = useMemo(
     () => messages.filter((m) => !mutedUserIds.includes(m.sender_user_id)),
@@ -163,6 +181,13 @@ export function useRoomChat(
   const visibleReactions = useMemo(
     () => reactions.filter((r) => !mutedUserIds.includes(r.userId)),
     [mutedUserIds, reactions],
+  );
+
+  const unread = useMemo(
+    () => unreadCount(visibleMessages, myUserId, seenIds.current),
+    // seenVersion: the seen set grew.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visibleMessages, myUserId, seenVersion],
   );
 
   const send = useCallback(
@@ -235,7 +260,8 @@ export function useRoomChat(
   return {
     messages: visibleMessages,
     reactions: visibleReactions,
-    unread: Math.max(0, visibleMessages.length - seenCount),
+    unread,
+    incoming: incoming && !mutedUserIds.includes(incoming.sender_user_id) ? incoming : null,
     sheetOpen,
     setSheetOpen,
     sending,
