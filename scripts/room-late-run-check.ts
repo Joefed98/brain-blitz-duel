@@ -78,7 +78,7 @@ check(puzzleGames >= 40, `only ${puzzleGames} puzzles`);
 
 {
   const server = readFileSync(new URL("../src/lib/duel/duel.functions.ts", import.meta.url), "utf8");
-  check(/const timeUp = elapsed > roomPuzzleCloseMs\(puzzle\);/.test(server), "the server does not close the puzzle phase at roomPuzzleCloseMs");
+  check(/const reason = puzzleCloseReason\(puzzle, elapsed, answered, waitingOn\.length\);/.test(server), "the server does not close the puzzle phase through puzzleCloseReason (roomPuzzleCloseMs)");
   check(!/puzzleDurationMs\(puzzle\) \+ 800/.test(server), "the server still closes at the old time");
   const route = readFileSync(new URL("../src/routes/duel.$code.tsx", import.meta.url), "utf8");
   check(/puzzleStart \+ roomTimeoutMs\(puzzle\)/.test(route), "the room page's time-out does not read roomTimeoutMs");

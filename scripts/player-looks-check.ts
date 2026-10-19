@@ -26,7 +26,7 @@
  *  7. Awards are the same for every player (any row order gives the same awards; nothing takes a
  *     viewer), only appear when earned (fixtures for each award either side of its threshold, and
  *     every award in 300 random rooms re-proved from the results), need a real achievement (18 Oct
- *     2026: Fastest Finger a full solve of 120+ in half the clock, So Close a genuinely small gap,
+ *     2026: Fastest Finger a full solve of 110+ (120+ until 19 Oct) in half the clock, So Close a genuinely small gap,
  *     Comeback Kid a climb of 2+ onto the podium, none of it in two-player rooms), go to the better
  *     figure first, then players who didn't win, and break ties the fixed way.
  *
@@ -610,7 +610,7 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 150 : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
   check(!find(full, "close"), "So Close on a 150");
 }
-// Fastest Finger: a full solve scoring 120+ in at most half the clock; arcade runs and reactions never.
+// Fastest Finger: a full solve scoring 110+ (FASTEST_MIN_SCORE) in at most half the clock; arcade runs and reactions never.
 {
   const players = [1, 2, 3].map((s) => player(s));
   const arcade = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 150, { ms_remaining: 70_000 })), [HOVER]);
@@ -626,11 +626,14 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   ], [PUZZLE]);
   check(find(timed, "fastest")?.slot === 1, `Fastest Finger: the quickest solve wins it, winner or not (got ${find(timed, "fastest")?.slot})`);
   check(find(timed, "fastest")?.line === "Box Six in 10.0s", `Fastest Finger line: ${find(timed, "fastest")?.line}`);
-  // Speed alone is not enough: a quick unsolved answer, a solve below 120, a solve using over half the clock.
+  // Speed alone is not enough: a quick unsolved answer, a solve below 110, a solve using over half the clock.
   const quickWrong = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 110 : 60, { is_correct: false, ms_remaining: 55_000 })), [PUZZLE]);
   check(!find(quickWrong, "fastest"), "Fastest Finger for a quick round-topping answer that was not a solve");
-  const lowScore = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 115 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
-  check(!find(lowScore, "fastest"), "Fastest Finger for a solve scoring under 120");
+  check(FASTEST_MIN_SCORE === 110, `Fastest Finger's threshold is ${FASTEST_MIN_SCORE}, not 110`);
+  const lowScore = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 109 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
+  check(!find(lowScore, "fastest"), "Fastest Finger for a solve scoring under 110");
+  const atThreshold = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 110 : 60, { is_correct: s === 2, ms_remaining: 55_000 })), [PUZZLE]);
+  check(find(atThreshold, "fastest")?.slot === 2, "No Fastest Finger for a quick full solve scoring exactly 110");
   const slow = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 125 : 60, { is_correct: s === 2, ms_remaining: 25_000 })), [PUZZLE]);
   check(!find(slow, "fastest"), "Fastest Finger for a solve using over half the clock");
   const unknown = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 140 : 60, { is_correct: s === 2, ms_remaining: 0 })), [PUZZLE]);

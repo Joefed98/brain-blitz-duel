@@ -15,8 +15,16 @@
  *     older revisions keep their lines. Letterfall wordfallRev 3: "short of 150" counts to the
  *     points that score 150, not to par.
  *
+ *  3. Grading unchanged: the seven graders now take their counts from progressFigures.ts; every
+ *     one of scripts/fixtures/progress-figures-grades.json.gz's 3,420 grades (recorded on unmodified
+ *     main before #117 by scripts/progress-figures-record.ts: each game on every score revision,
+ *     finished and not, early and at the buzzer) grades to the identical result, extra and all.
+ *
  *   bun scripts/room-figures-check.ts
  */
+import { readFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
+
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { storedCostRows } from "../src/components/duel/ArcadeReveal";
 import { WORDFALL_BANDS_FULL_POINTS, WORDFALL_BANDS_MAP } from "../src/lib/arcade/wordfall";
@@ -187,6 +195,25 @@ for (const type of GAMES) {
   check(/16 word points short of 150/.test(near(30, 3) ?? ""), `wordfallRev 3 at par: "${near(30, 3)}"`);
   check(near(WORDFALL_BANDS_FULL_POINTS, 3) === null, "wordfallRev 3 at 150 still short");
   check(/2 word points short of 150/.test(near(28, 2) ?? ""), `wordfallRev 2 changed: "${near(28, 2)}"`);
+}
+
+/* ------------------------------------------------------------ 3. grading unchanged (recorded on main) */
+{
+  const fixture = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/progress-figures-grades.json.gz")).toString("utf8")) as {
+    recordedOn: string;
+    entries: { puzzle: PuzzleData; answer: string; ms: number; graded: unknown }[];
+  };
+  const revs = new Set<string>();
+  let same = 0;
+  for (const entry of fixture.entries) {
+    const now = JSON.parse(JSON.stringify(gradeAnswer(entry.puzzle, entry.answer, entry.ms)));
+    revs.add(`${entry.puzzle.type}:${puzzleScoreRevOf(entry.puzzle)}`);
+    const ok = JSON.stringify(now) === JSON.stringify(entry.graded);
+    if (ok) same++;
+    check(ok, `${entry.puzzle.type} rev ${puzzleScoreRevOf(entry.puzzle)} "${entry.answer.slice(0, 30)}" @${entry.ms}: grade differs from main's`);
+  }
+  check(fixture.entries.length >= 3000 && revs.size === GAMES.length * 3, `grade fixture covers ${fixture.entries.length} entries, ${revs.size} game revisions`);
+  console.log(`grading unchanged: ${same}/${fixture.entries.length} grades identical to ${fixture.recordedOn}`);
 }
 
 if (failures.length) {

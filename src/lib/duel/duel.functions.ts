@@ -6,7 +6,7 @@ import { staleSubmissionNote } from "@/lib/appVersion";
 import { type SubmitExtra } from "./grade";
 import { normaliseCategories, STANDARD_CATEGORIES } from "./categories";
 import { puzzleRevealMs, typesInCategory } from "./registry";
-import { roomPuzzleCloseMs } from "./roomClose";
+import { puzzleCloseReason } from "./roomClose";
 import { generateRoomCode } from "./puzzles";
 import { linkRoomState } from "./roomLink";
 import { mergePuzzle, splitPuzzle } from "./secrets";
@@ -743,10 +743,9 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
 
     if (room.phase === "puzzle") {
       const answered = await activeAnsweredCount(client, room.id, round, players);
-      const allIn = waitingOn.length > 0 && answered >= waitingOn.length;
-      // Arcade rounds wait a little longer for a run still being played (roomClose.ts).
-      const timeUp = elapsed > roomPuzzleCloseMs(puzzle);
-      if (allIn || timeUp) {
+      // Everyone in, or the clock (arcade rounds wait a little longer for a late run): roomClose.ts.
+      const reason = puzzleCloseReason(puzzle, elapsed, answered, waitingOn.length);
+      if (reason) {
         const at = await setPhase(client, room.id, round, "puzzle", "reveal");
         if (at)
           await recordRoomEvent(client, {
@@ -754,7 +753,7 @@ export const advancePhaseFn = createServerFn({ method: "POST" })
             game_index: gameIndexOf(room),
             round_number: round,
             event: "round_ended",
-            reason: allIn ? "all_answered" : "timer",
+            reason,
             at,
           });
       }

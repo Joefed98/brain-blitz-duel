@@ -13,8 +13,8 @@
  * ARCADE_PHASE_SLACK_MS + ARCADE_LATE_RUN_MS (8 s) late now ends on its own; a later one still
  * sends its draft. Rounds where every player has answered move on at once, as before.
  *
- * room-late-run-check proves the timings; the server (duel.functions.ts advance) and the room page
- * both read roomPuzzleCloseMs.
+ * room-late-run-check proves the timings; the server (duel.functions.ts advance, through
+ * puzzleCloseReason) and the room page both read roomPuzzleCloseMs.
  */
 import { puzzleDurationMs, usesArcadeClock } from "./registry";
 import type { PuzzleData } from "./types";
@@ -36,4 +36,20 @@ export function roomTimeoutMs(puzzle: PuzzleData | undefined): number {
 /** Ms after the puzzle phase starts past which the room moves to the reveal without every answer. */
 export function roomPuzzleCloseMs(puzzle: PuzzleData | undefined): number {
   return roomTimeoutMs(puzzle) + ROOM_CLOSE_GRACE_MS;
+}
+
+/**
+ * Whether the server closes the puzzle phase now, and why: "all_answered" when every player it
+ * waits on has answered (that wins when both hold, as before), "timer" once the phase has run past
+ * roomPuzzleCloseMs, else null. beta-recording-check proves both reasons, arcade grace included.
+ */
+export function puzzleCloseReason(
+  puzzle: PuzzleData | undefined,
+  elapsedMs: number,
+  answered: number,
+  waitingOn: number,
+): "all_answered" | "timer" | null {
+  if (waitingOn > 0 && answered >= waitingOn) return "all_answered";
+  if (elapsedMs > roomPuzzleCloseMs(puzzle)) return "timer";
+  return null;
 }

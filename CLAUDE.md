@@ -213,7 +213,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     judged by score alone ("Scored" / "✗", `scoreOnlyVerdict`); summaries fixed to match the stored result (Ascend tap
     logs, Operator's tries suffix and limit, Nucleus/Forage curves, Counterweight's scales, Target rev 1's made distance,
     Hats rev 1, Lights Out, Pull!'s empty shots). round-time-check (~3 s) proves it for every active game.
-  - *Awards* (`podiumAwards.ts`): Fastest Finger a full solve of 120+ using at most half the clock; Perfectionist the most
+  - *Awards* (`podiumAwards.ts`): Fastest Finger a full solve of 110+ using at most half the clock (120+ until 19 Oct, decision on #117); Perfectionist the most
     150s; Comeback Kid a climb of 2+ places onto the podium, rooms of 3+ only; So Close a genuinely small gap
     (`isGenuinelyClose` in nearMiss.ts); better figure first, then non-winners. player-looks-check.
   - *No blue boxes* (styles.css): no tap highlight, focus outline/ring or text selection on touch (inputs excepted);
@@ -225,7 +225,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   is re-measured every round and on returning to the app (`clock.ts`, `useDuel`, clock-round-check). The leaderboard and
   reveals show the progress a puzzle's credit counts for Chroma Lines, Shikaku, Lamplighter, Tessellate, Jumbled, Swapword
   and Slider (`progressFigures.ts`, whose counts the graders call), and the curve games' costs as the total's
-  (room-figures-check). All four new checks take under 10 s.
+  (room-figures-check, which also regrades `scripts/fixtures/progress-figures-grades.json.gz`, 3,420 grades of those seven
+  games on every score revision recorded on main before the move by `scripts/progress-figures-record.ts`, and fails on any
+  difference). The server's close reason ("all_answered" / "timer") comes from `puzzleCloseReason` (beta-recording-check).
+  All five new checks take under 10 s.
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
