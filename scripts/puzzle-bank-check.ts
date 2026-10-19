@@ -31,7 +31,7 @@
  * The full byte-for-byte rebuild of all six banks takes ~20 minutes, so it is
  * the optional `puzzle-bank-rebuild-check.ts` (run-checks --include-optional).
  */
-import { PUZZLE_SCORE_REV } from "../src/lib/duel/puzzleScoreRev";
+import { PUZZLE_SCORE_REV_DEALT } from "../src/lib/duel/puzzleScoreRev";
 import { spawn } from "node:child_process";
 import { cpus } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -39,7 +39,7 @@ import { fileURLToPath } from "node:url";
 import { encodeFlowPaths } from "../src/lib/duel/flow";
 import { encodePlacements } from "../src/lib/duel/blockParty";
 import { encodeBulbs } from "../src/lib/duel/lightUp";
-import { buildRoomPuzzles, gradeAnswer } from "../src/lib/duel/generate.server";
+import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { stampMoveLimits } from "../src/lib/duel/moveLimits.server";
 import {
   BANKED_TYPES,
@@ -235,6 +235,10 @@ if (PART === PARTS) {
   let banked = 0;
   let sameShape = true;
   let reproducible = true;
+  // The stamps a live (unbanked) room round carries today: banked rounds must carry exactly the same
+  // (puzzleScoreRev 2 since the score bands, 19 Oct 2026, so banked boards score on the bands too).
+  const live = buildRoomPuzzles({ seed: 1, categories: ["word"] }).puzzles[0] as PuzzleData & { speedPar?: number; puzzleScoreRev?: number };
+  check(live.puzzleScoreRev === PUZZLE_SCORE_REV_DEALT && live.speedPar === SPEED_PAR_VERSION, `room start: live rounds are stamped puzzleScoreRev ${PUZZLE_SCORE_REV_DEALT} and speedPar ${SPEED_PAR_VERSION}`);
   for (let seed = 1; seed <= 60; seed++) {
     const built = buildRoomPuzzles({ seed, categories: [...categories] });
     for (const puzzle of built.puzzles) {
@@ -244,7 +248,7 @@ if (PART === PARTS) {
       const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
       // Room rounds carry the per-puzzle stamps generatePuzzle sets (speedPar, and since 13 Oct 2026 puzzleScoreRev
       // and the per-game limit stamps of moveLimits.server.ts: Polypotions' tubesRev / pourLimit, Topsy-Turvy's gravityRev / tiltLimit).
-      if (speedPar !== SPEED_PAR_VERSION || puzzleScoreRev !== PUZZLE_SCORE_REV || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(expected!))) sameShape = false;
+      if (speedPar !== live.speedPar || puzzleScoreRev !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(expected!))) sameShape = false;
       const again = stampMoveLimits(drawBankedPuzzle(puzzle.type as BankedType, seed));
       if (JSON.stringify(again) !== JSON.stringify(rest)) reproducible = false;
     }
@@ -252,6 +256,14 @@ if (PART === PARTS) {
   check(banked > 20, `room start: ${banked} banked rounds drawn over 60 logic+pattern rooms`);
   check(sameShape, "room start: banked rounds are the bank entry for the room seed, stamped speedPar, puzzleScoreRev and their limits like live rounds");
   check(reproducible, "room start: the room seed alone reproduces every banked round");
+  // Practice draws from the bank (generatePuzzle with a fresh bank seed, practice.functions.ts) carry the same stamps.
+  let practiceSame = true;
+  for (const t of BANKED_TYPES) for (const seed of [11, 4242, 987654]) {
+    const p = generatePuzzle(t, { bankSeed: seed }) as PuzzleData & { speedPar?: number; puzzleScoreRev?: number };
+    const { speedPar: sp, puzzleScoreRev: ps, ...rest } = p;
+    if (sp !== live.speedPar || ps !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(drawBankedPuzzle(t, seed)))) practiceSame = false;
+  }
+  check(practiceSame, "practice: banked draws carry the same stamps as live rounds (speedPar, puzzleScoreRev, limits)");
   const logicPattern = [...typesInCategory("logic"), ...typesInCategory("pattern")];
   check(BANKED_TYPES.every((t) => logicPattern.includes(t)), "room start: all six banked types are active room types");
 }

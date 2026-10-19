@@ -29,7 +29,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -645,6 +645,7 @@ export const snakeRev3Game: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The game for a stored round: its snakeRev picks the rules (absent = original). */
 export function snakeGameFor(rev?: number | null): ArcadeGame<SnakeState, ArcadeInputEvent | null> {
+  if (rev === SNAKE_REV_STRICT) return snakeStrictGame;
   if (rev === SNAKE_REV_TARGET) return snakeTargetGame;
   if (rev === SNAKE_REV_ROCKS) return snakeRocksGame;
   if (rev === SNAKE_REV_TALL) return snakeTallGame;
@@ -691,7 +692,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET ? SNAKE_TALL_H : SNAKE_WORLD_H;
+  return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
 /* ================= Tuning F (snakeRev 6, Oct 2026) ================= */
@@ -724,3 +725,16 @@ export const SNAKE_REV_TARGET = 7;
 export const snakeTargetGame = bandTargetGame(snakeRocksGame);
 /** The curve new rounds score on: SNAKE_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const SNAKE_V7_BAND_CURVE = bandRetarget(SNAKE_V6_BAND_CURVE);
+
+
+/* ================= Score bands (snakeRev 8, 19 Oct 2026) ================= */
+
+/**
+ * snakeRev 8 (score bands, docs/scoring-targets.md): snakeRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const SNAKE_REV_STRICT = 8;
+export const snakeStrictGame = bandStrictGame(snakeTargetGame);
+/** The curve new rounds score on: SNAKE_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const SNAKE_V8_BAND_CURVE = bandStrict(SNAKE_V6_BAND_CURVE);

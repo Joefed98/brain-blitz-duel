@@ -36,7 +36,7 @@ import {
   BRK_WALL,
   BRK_WALL_X,
   BRK_WALL_Y,
-  BRK_REV_TALL, BRK_REV_TARGET,
+  BRK_REV_TALL, BRK_REV_TARGET, BRK_REV_STRICT,
   BRK_WORLD_W,
   type BrkState,
 } from "./breaker";
@@ -299,8 +299,10 @@ const breakerArtGameTuned: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...
 const breakerArtGameTunef: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TUNEF), draw };
 const breakerArtGameTall: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TALL), draw };
 const breakerArtGameTarget: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_TARGET), draw };
+const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STRICT), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_STRICT) return breakerArtGameStrict;
   if (rev === BRK_REV_TARGET) return breakerArtGameTarget;
   if (rev === BRK_REV_TALL) return breakerArtGameTall;
   if (rev === BRK_REV_TUNEF) return breakerArtGameTunef;

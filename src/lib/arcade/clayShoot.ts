@@ -20,6 +20,7 @@ import {
   type InputRange,
 } from "./engine";
 import { icos, isin } from "./trig";
+import { bandCurve, bandMapTotal } from "./scoreBands";
 
 /* ============================== Config ============================== */
 
@@ -137,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -408,6 +409,8 @@ function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxB
 /* ================================ State ================================ */
 
 export interface ClayState {
+  /** clayRev 7 only (score bands): 1 = the score mapped through CLAY_BANDS_MAP. Absent on older rounds. */
+  sb?: number;
   tick: number;
   rng: number;
   schedule: ClaySchedule;
@@ -680,6 +683,7 @@ export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, re
 
 function score(state: ClayState): number {
   const birdHits = state.birdHits ?? 0;
+  if (state.sb) return bandMapTotal(CLAY_BANDS_MAP, clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)));
   return clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits));
 }
 
@@ -861,6 +865,7 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_BANDS) return clayBandsGame;
   if (rev === CLAY_REV_TALL) return clayTallGame;
   if (rev === CLAY_REV5) return clayRev5Game;
   if (rev === CLAY_REV4) return clayRev4Game;
@@ -916,5 +921,17 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS ? CLAY_TALL_H : CLAY_H;
 }
+
+/* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
+
+/**
+ * clayRev 7 (score bands, docs/scoring-targets.md): clayRev 6 play (the state keeps rev 6), its score mapped so the
+ * simulated average / good players' 88 / 125 land about 70 / 100 and a run one clay short of perfect about 135;
+ * a perfect run (every clay, no bird) stays 150. Great and near-perfect players hit every clay (the bots' medians are
+ * 150), so they stay perfect: Pull! has no finer measure of a perfect run.
+ */
+export const CLAY_REV_BANDS = 7;
+export const CLAY_BANDS_MAP = bandCurve([0, 88, 125, 149, 150], [0, 70, 100, 135, 150]);
+export const clayBandsGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayTallGame, init: (seed) => ({ ...clayTallGame.init(seed), sb: 1 }) };

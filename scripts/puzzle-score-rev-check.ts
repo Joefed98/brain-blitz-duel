@@ -31,7 +31,10 @@ import { decodeTenDropRun, encodeTenDropRun, replayTenDropRun } from "../src/lib
 import type { PuzzleData } from "../src/lib/duel/types";
 import { KITS } from "./puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
-import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinRev1Shape, roomPuzzle } from "./puzzle-fairness/run";
+
+// This check proves the rev-1 shape (rooms deal rev 2 since 19 Oct 2026: scoring-bands-check); room puzzles carry rev-1 stamps.
+pinRev1Shape(true);
 import { clashCheckpoint, clashGatesAt, clashLaneCount, clashRev4Finished, clashRuleAt, colourClashGameFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_SET_LANE, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "../src/lib/duel/colourClash";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
@@ -68,7 +71,7 @@ console.log(`legacy identity: ${answers} answers over ${fixture.cases.length} st
 
 // 2. Every new puzzle is stamped.
 for (const type of ACTIVE_PUZZLE_TYPES) {
-  if (puzzleScoreRevOf(generatePuzzle(type, { bankSeed: 4242 })) !== PUZZLE_SCORE_REV) fail(`${type}: new puzzle not stamped puzzleScoreRev ${PUZZLE_SCORE_REV}`);
+  if (puzzleScoreRevOf(generatePuzzle(type, { bankSeed: 4242 })) < PUZZLE_SCORE_REV) fail(`${type}: new puzzle not stamped puzzleScoreRev ${PUZZLE_SCORE_REV} or later`);
 }
 
 // 2b. The engine games' new revisions score the same on the phone and the server: the phone plays

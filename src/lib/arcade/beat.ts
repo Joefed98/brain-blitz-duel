@@ -17,7 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -682,6 +682,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_STRICT) return beatStrictGame;
   if (rev === BEAT_REV_TARGET) return beatTargetGame;
   if (rev === BEAT_REV_TALL) return beatTallGame;
   if (rev === BEAT_REV_TUNEF) return beatTunefGame;
@@ -839,7 +840,7 @@ export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's beatRev plays in. */
 export function beatWorldHFor(rev?: number | null): number {
-  return rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET ? BEAT_TALL_H : BEAT_WORLD_H;
+  return rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
 }
 
 /* ================= Scoring targets (beatRev 7, 18 Oct 2026) ================= */
@@ -853,3 +854,16 @@ export const BEAT_REV_TARGET = 7;
 export const beatTargetGame = bandTargetGame(beatTallGame);
 /** The curve new rounds score on: BEAT_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const BEAT_V7_BAND_CURVE = bandRetarget(BEAT_V6_BAND_CURVE);
+
+
+/* ================= Score bands (beatRev 8, 19 Oct 2026) ================= */
+
+/**
+ * beatRev 8 (score bands, docs/scoring-targets.md): beatRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const BEAT_REV_STRICT = 8;
+export const beatStrictGame = bandStrictGame(beatTargetGame);
+/** The curve new rounds score on: BEAT_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const BEAT_V8_BAND_CURVE = bandStrict(BEAT_V6_BAND_CURVE);

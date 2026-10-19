@@ -57,7 +57,9 @@ import {
   type PinSegDef,
   type PinState,
   pinballTargetGame,
+  pinballStrictGame,
   PIN_REV_TARGET,
+  PIN_REV_STRICT,
 } from "./pinball";
 import {
   drawRetroTrail,
@@ -956,8 +958,9 @@ export const pinballArtGame: ArcadeGame<PinState, ArcadeInputEvent | null> = {
 
 /** The art game for a stored pinRev (one revision so far). */
 const pinballTargetArtGame: ArcadeGame<PinState, ArcadeInputEvent | null> = { ...pinballArtGame, init: pinballTargetGame.init };
+const pinballStrictArtGame: ArcadeGame<PinState, ArcadeInputEvent | null> = { ...pinballArtGame, init: pinballStrictGame.init };
 export function pinballArtGameFor(
   rev?: number | null,
 ): ArcadeGame<PinState, ArcadeInputEvent | null> {
-  return rev === PIN_REV_TARGET ? pinballTargetArtGame : pinballArtGame;
+  return rev === PIN_REV_STRICT ? pinballStrictArtGame : rev === PIN_REV_TARGET ? pinballTargetArtGame : pinballArtGame;
 }

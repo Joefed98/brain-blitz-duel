@@ -27,7 +27,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT,
   SWING_STAR_R,
   swingStarTotal,
   SWING_GOLD,
@@ -799,7 +799,9 @@ const tunecArtGameV7 = { ...swingGameFor(SWING_REV_TUNEC), draw: drawSwingArt };
 const spreadArtGameV8 = { ...swingGameFor(SWING_REV_SPREAD), draw: drawSwingArt };
 const tallArtGameV9 = { ...swingGameFor(SWING_REV_TALL), draw: drawSwingArt };
 const tallArtGameV9Target = { ...swingGameFor(SWING_REV_TARGET), draw: drawSwingArt };
+const tallArtGameV9Strict = { ...swingGameFor(SWING_REV_STRICT), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_STRICT) return tallArtGameV9Strict;
   if (rev === SWING_REV_TARGET) return tallArtGameV9Target;
   if (rev === SWING_REV_TALL) return tallArtGameV9;
   if (rev === SWING_REV_SPREAD) return spreadArtGameV8;

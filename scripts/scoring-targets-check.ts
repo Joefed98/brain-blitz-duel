@@ -103,8 +103,8 @@ section("The lift: 70 / 100 / 125 → 100 / 120 / 135; 0, 140 and 150 kept");
   ok(lift(0) === 0 && lift(70) === 100 && lift(100) === 120 && lift(125) === 135 && lift(140) === 140 && lift(150) === 150, "the map's anchors");
   for (let p = 1; p <= 150; p++) ok(lift(p) >= lift(p - 1) && lift(p) >= p, `the map never falls and never lowers (${p})`);
   for (const [type, before] of Object.entries(BEFORE) as [Exclude<LiveBandGame, "junction">, BandCurve][]) {
-    const after = LIVE_BANDS[type].curve;
-    if (type !== "wavefront") ok(after === bandRetarget(before), `${type}: the live curve is its previous curve lifted`);
+    // The target revision's curve (rooms deal the score-bands revision after it since 19 Oct 2026: scoring-bands-check).
+    const after = type === "wavefront" ? WAV_V7_BAND_CURVE : bandRetarget(before);
     ok(JSON.stringify(after.units) === JSON.stringify(type === "wavefront" ? WAV_V7_BAND_CURVE.units : before.units), `${type}: the same unit knots`);
     ok(after.units[0] === 0 && after.points[0] === 0, `${type}: starts at (0, 0)`);
     ok(after.points.at(-1) === before.points.at(-1) && bandTop(after) === bandTop(before), `${type}: the same top (${after.points.at(-1)} at ${bandTop(after)})`);
@@ -125,12 +125,12 @@ section("The lift: 70 / 100 / 125 → 100 / 120 / 135; 0, 140 and 150 kept");
 }
 
 /* ============================== 2. Stamps ============================== */
-section("Rooms deal the new revisions; older revisions untouched");
+section("Rooms deal the revisions after the target ones (score bands); older revisions untouched");
 for (const [type, live] of Object.entries(LIVE_BANDS) as [LiveBandGame, (typeof LIVE_BANDS)[LiveBandGame]][]) {
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
   ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
   if (type === "junction") continue;
-  ok(TARGET_REVS[type]?.[0] === live.rev && TARGET_REVS[type]?.[1] === live.rev - 1, `${type}: the target revision follows the one rooms dealt before`);
+  ok(TARGET_REVS[type]?.[0] === live.rev - 1 && TARGET_REVS[type]?.[1] === live.rev - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
   ok(BAND_SPECS[type] !== undefined, `${type}: a band game`);
 }
 {
@@ -218,7 +218,9 @@ section("Nucleus wordsmithRev 1 and Forage wordHuntRev 1");
   ok(scoreWordsmith(10, 1) === 95 && scoreWordsmith(23, 1) === 122 && scoreWordsmith(34, 1) === 135 && scoreWordsmith(55, 1) === 145 && scoreWordsmith(60, 1) === 150, "Nucleus anchors: 10 → 95, 23 → 122, 34 → 135, 55 → 145, 60 → 150");
   ok(scoreWordHunt(9, 1) === 95 && scoreWordHunt(15, 1) === 120 && scoreWordHunt(24, 1) === 135 && scoreWordHunt(36, 1) === 145 && scoreWordHunt(48, 1) === 150, "Forage anchors: 9 → 95, 15 → 120, 24 → 135, 36 → 145, 48 → 150");
   ok(scoreWordsmith(2, 1) < 10 && scoreWordHunt(4, 1) <= 10, "a couple of lucky random words stay under 10");
-  // The grader follows the stored stamp.
+  // The grader follows the stored stamp (on the rev-1 puzzle shape; rev 2 maps this score: scoring-bands-check).
+  smith.puzzleScoreRev = 1;
+  hunt.puzzleScoreRev = 1;
   const words = (smith.words as { word: string; points: number }[]).slice(0, 6);
   const answer = words.map((w) => w.word).join(",");
   const points = words.reduce((s, w) => s + w.points, 0);
@@ -236,7 +238,7 @@ section("Nucleus wordsmithRev 1 and Forage wordHuntRev 1");
 /* ============================== 5b. Bonk ============================== */
 section("Bonk whackRev 1: the same play, the score lifted");
 {
-  ok((generatePuzzle("whack") as any).whackRev === WHACK_REV_TARGET, "new rounds are stamped whackRev 1");
+  ok((generatePuzzle("whack") as any).whackRev >= WHACK_REV_TARGET, "new rounds are stamped whackRev 1 or later (2: score bands)");
   ok(whackLift(0) === 0 && whackLift(62) === 100 && whackLift(102) === 120 && whackLift(118) === 135 && whackLift(133) === 145 && whackLift(150) === 150, "the lift's anchors (0 stays 0)");
   for (let p = 1; p <= 150; p++) ok(whackLift(p) >= whackLift(p - 1) && whackLift(p) >= p, `the lift never falls or lowers (${p})`);
   let x = 12345;

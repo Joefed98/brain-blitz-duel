@@ -32,7 +32,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrict, bandStrictGame, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin, isqrt, TRIG_ONE } from "./trig";
 
 /**
@@ -964,7 +964,7 @@ export const pinballTargetGame = bandTargetGame(pinballGame);
 
 /** The game for a stored pinRev: 2 the scoring targets, anything else revision 1. */
 export function pinballGameFor(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
-  return rev === PIN_REV_TARGET ? pinballTargetGame : pinballGame;
+  return rev === PIN_REV_STRICT ? pinballStrictGame : rev === PIN_REV_TARGET ? pinballTargetGame : pinballGame;
 }
 
 /**
@@ -984,3 +984,15 @@ export const pinSweep = {
 };
 /** The curve new rounds score on: PIN_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const PIN_V2_BAND_CURVE = bandRetarget(PIN_BAND_CURVE);
+
+/* ================= Score bands (pinRev 3, 19 Oct 2026) ================= */
+
+/**
+ * pinRev 3 (score bands, docs/scoring-targets.md): pinRev 2 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const PIN_REV_STRICT = 3;
+export const pinballStrictGame = bandStrictGame(pinballTargetGame);
+/** The curve new rounds score on: PIN_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const PIN_V3_BAND_CURVE = bandStrict(PIN_BAND_CURVE);

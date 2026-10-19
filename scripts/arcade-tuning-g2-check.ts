@@ -37,7 +37,10 @@ import type { TuningG2Record } from "./arcade-tuning-g2-legacy";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 import { Human, type SkillLevel, type SkillProfile } from "./arcade-skill-bands/human";
 import { KITS } from "./puzzle-fairness/kits";
-import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
+import { pinRev1Shape, roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
+
+// Its kit medians are clashRev 5's: room puzzles carry the stamps rooms dealt before the score bands.
+pinRev1Shape(true);
 import { bandPoints, bandTop, BAND_FINISH_BONUS, BAND_PARTIAL_TOP, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { ARCADE_FX_SPECS, BEAT_FX, BUBBLE_FX, SLICE_FX, beatFxFor, bubbleFxFor, sliceFxFor } from "../src/lib/arcade/arcadeFxGames.renderer";
 import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "../src/lib/arcade/revealRenderers";
@@ -203,8 +206,9 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
   ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
   ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
-  ok(generateColourClash().clashRev === CLASH_REV_TALL && buildStroop().clashRev === CLASH_REV_TALL && clashVariantOf(generateColourClash()) === 5, "rooms (and practice) deal clashRev 5");
-  ok(generateClayShoot().clayRev === CLAY_REV_TALL && CLAY_REV === CLAY_REV_TALL, "rooms deal clayRev 6");
+  // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check).
+  ok(generateColourClash().clashRev === CLASH_REV_TALL + 1 && buildStroop().clashRev === CLASH_REV_TALL && clashVariantOf({ clashRev: CLASH_REV_TALL }) === 5, "rooms deal clashRev 6 (clashRev 5 play on the score bands); practice's intro clashRev 5");
+  ok(generateClayShoot().clayRev === CLAY_REV_TALL + 1 && CLAY_REV === CLAY_REV_TALL, "rooms deal clayRev 7 (clayRev 6 play on the score bands)");
 
   ok(beatWorldHFor(BEAT_REV_TALL) === 730 && beatWorldHFor(BEAT_REV_TUNEF) === 620 && beatWorldHFor(undefined) === 620, "Tempo world heights by revision");
   ok(sliceWorldHFor(SLICE_REV_TALL) === 730 && sliceWorldHFor(SLICE_REV_LONG) === 620 && sliceWorldHFor(undefined) === 620, "Slice world heights by revision");

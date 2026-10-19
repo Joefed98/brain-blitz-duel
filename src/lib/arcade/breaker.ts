@@ -26,7 +26,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -895,6 +895,7 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_STRICT) return breakerStrictGame;
   if (rev === BRK_REV_TARGET) return breakerTargetGame;
   if (rev === BRK_REV_TALL) return breakerTallGame;
   if (rev === BRK_REV_TUNEF) return breakerTunefGame;
@@ -981,7 +982,7 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  return rev === BRK_REV_TALL || rev === BRK_REV_TARGET ? BRK_TALL_H : BRK_WORLD_H;
+  return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -995,3 +996,16 @@ export const BRK_REV_TARGET = 7;
 export const breakerTargetGame = bandTargetGame(breakerTallGame);
 /** The curve new rounds score on: BRK_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const BRK_V7_BAND_CURVE = bandRetarget(BRK_V6_BAND_CURVE);
+
+
+/* ================= Score bands (brkRev 8, 19 Oct 2026) ================= */
+
+/**
+ * brkRev 8 (score bands, docs/scoring-targets.md): brkRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const BRK_REV_STRICT = 8;
+export const breakerStrictGame = bandStrictGame(breakerTargetGame);
+/** The curve new rounds score on: BRK_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const BRK_V8_BAND_CURVE = bandStrict(BRK_V6_BAND_CURVE);

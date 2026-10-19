@@ -10,8 +10,8 @@ import {
   type OrbitState,
 } from "@/lib/arcade/orbit";
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
-import { orbitRev3Game, orbitRev3Extra, initRev3From, initRev4From, initBandFrom, initTunedFrom, initSweptFrom, initTallFrom, initTargetFrom, decodeOrbitHoles, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { orbitRev3Game, orbitRev3Extra, initRev3From, initRev4From, initBandFrom, initTunedFrom, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, decodeOrbitHoles, decodeRev3Planets, buildCourse3, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import type { OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import type { ArcadeGame, ArcadeInputEvent } from "@/lib/arcade/engine";
 
@@ -30,7 +30,7 @@ export const decodeOrbitRun = run.decode;
 
 /** The single place a Orbit score is worked out; rev3 replays against the stamped puzzle's own proved planets, never re-proving the course. */
 export function replayOrbitRun(seed: number, raw: string, orbitRev?: number, planets?: OrbitRev3CompactPlanet[], holes?: OrbitHoleRow[]): OrbitResult {
-  if (orbitRev === ORBIT_REV3 || orbitRev === ORBIT_REV4 || orbitRev === ORBIT_REV_BAND || orbitRev === ORBIT_REV_TUNED || orbitRev === ORBIT_REV_SWEPT || orbitRev === ORBIT_REV_TALL || orbitRev === ORBIT_REV_TARGET) {
+  if (orbitRev === ORBIT_REV3 || orbitRev === ORBIT_REV4 || orbitRev === ORBIT_REV_BAND || orbitRev === ORBIT_REV_TUNED || orbitRev === ORBIT_REV_SWEPT || orbitRev === ORBIT_REV_TALL || orbitRev === ORBIT_REV_TARGET || orbitRev === ORBIT_REV_STRICT) {
     const decoded = planets && planets.length > 0 ? decodeRev3Planets(planets) : buildCourse3(seed, ORBIT_REV3_WORLD_W).planets;
     // Rev 4 replays against the stamped puzzle's own proved black holes.
     // Rev 5 (score bands) is rev 4 with the stamp.
@@ -38,7 +38,9 @@ export function replayOrbitRun(seed: number, raw: string, orbitRev?: number, pla
     // Rev 7 (Tuning F) makes black holes swept: every hole ahead, the rocket's whole body, ordered against belts.
     // Rev 8 (taller worlds) is rev 7 play framed in a taller view; its height rides in the state.
     const start = () =>
-      orbitRev === ORBIT_REV_TARGET
+      orbitRev === ORBIT_REV_STRICT
+        ? initStrictFrom(decoded, ORBIT_REV3_WORLD_W, decodeOrbitHoles(holes ?? []))
+        : orbitRev === ORBIT_REV_TARGET
         ? initTargetFrom(decoded, ORBIT_REV3_WORLD_W, decodeOrbitHoles(holes ?? []))
         : orbitRev === ORBIT_REV_TALL
         ? initTallFrom(decoded, ORBIT_REV3_WORLD_W, decodeOrbitHoles(holes ?? []))

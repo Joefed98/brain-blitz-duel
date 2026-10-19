@@ -19,7 +19,7 @@ import {
 } from "./engine";
 import { icos, isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1007,6 +1007,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_STRICT) return tiltStrictGame;
   if (rev === TILT_REV_TARGET) return tiltTargetGame;
   if (rev === TILT_REV_TUNEC) return tiltTunecGame;
   if (rev === TILT_REV_BAND) return tiltBandGame;
@@ -1319,3 +1320,16 @@ export const TILT_REV_TARGET = 5;
 export const tiltTargetGame = bandTargetGame(tiltTunecGame);
 /** The curve new rounds score on: TILT_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const TILT_V5_BAND_CURVE = bandRetarget(TILT_V4_BAND_CURVE);
+
+
+/* ================= Score bands (tiltRev 6, 19 Oct 2026) ================= */
+
+/**
+ * tiltRev 6 (score bands, docs/scoring-targets.md): tiltRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const TILT_REV_STRICT = 6;
+export const tiltStrictGame = bandStrictGame(tiltTargetGame);
+/** The curve new rounds score on: TILT_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const TILT_V6_BAND_CURVE = bandStrict(TILT_V4_BAND_CURVE);

@@ -123,6 +123,19 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `bandCurveOf`), Wavefront on its own gentler curve, Swish with a 21 px spinner; Nucleus, Forage and Bonk score on new
   curves; the help's good run is 120 points. scoring-targets-check (~5 s) proves it; older checks compare the dealt stamp
   through `playRevOf` (`scripts/scoring-targets-revs.ts`); `bun scripts/arcade-skill-bands.ts --rev=now` measures today's revisions.
+- **Score bands** (19 Oct 2026, `docs/scoring-targets.md`, replacing the targets above, which proved lenient): perfect 150
+  only, near perfect 130–149, great 110–129, good 90–109, decent 80–89, average 60–79, smoothly down to 0. Puzzles deal
+  `puzzleScoreRev 2` (`puzzleScoreRev2.ts`: the rev-1 grade turned into a result, 0–99 unfinished progress, 100–200 a
+  finish by time left and efficiency, then each game's knots in `puzzleBands.data.ts`, fitted by
+  `bun scripts/puzzle-bands-fit.ts --write`; help text from `puzzleBandsText.ts`); arcade band games deal a new
+  revision on `band: 3` (`bandCurveOf` → `bandStrict`, each game's strict curve in `strictBands.data.ts`, fitted by
+  `scripts/arcade-bands-fit.ts` from `arcade-skill-bands.ts --json` runs); engine games map their totals in the sim
+  (`tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3). The help's good run is 100 points.
+  scoring-bands-check (~12 s) proves it on `scripts/fixtures/scoring-bands-runs.json.gz` (`bun scripts/scoring-bands-record.ts`).
+  Checks written for the rev-1 shape pin new puzzles to it (`pinDealtPuzzleScoreRev(1)`, or `pinRev1Shape` for the
+  fairness kits). The six stages that only locked in themselves (Gridlock, Tessellate, Exact, Double Take, Forage,
+  Nucleus) now send drafts, so a reveal that arrives first never submits ""; Safe Cracker's rev-2 draft carries the
+  dials left standing (`tries;dddd`, never a try).
 - **Player colours, icons and podium awards** (17 Oct 2026, presentation and room data only, no version stamps):
   `src/lib/duel/playerLook.ts` (ten colours `PLAYER_COLOURS`, each ≥ 4.5:1 on the background and under the badge's
   near-black glyph, every pair ≥ 10 ΔE2000 apart with normal vision and simulated protan/deutan/tritan vision; sixteen
@@ -441,7 +454,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,
@@ -453,7 +466,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    random is generated per device. Answers/solutions stay server-only.
 6. **Speed bonus = 50 % par rule.** Full bonus when finishing with at least half the
    time left, then an even fall to 0 at the buzzer (`speedPar.ts`, puzzles stamped
-   `speedPar: 1`; unstamped rounds keep the old linear curve).
+   `speedPar: 1`; unstamped rounds keep the old linear curve). Exception for Joe to confirm (19 Oct 2026):
+   `puzzleScoreRev 2` puzzles measure a finish on the whole clock, since the bands give 150 only to a perfect run.
 7. **Server is the arbiter.** Clients never send scores or correctness; the server
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.

@@ -49,6 +49,10 @@ import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 let checks = 0;
 const failures: string[] = [];

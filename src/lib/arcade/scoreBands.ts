@@ -14,6 +14,7 @@
  */
 import { clampInt } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
+import { STRICT_BANDS } from "./strictBands.data";
 
 /** Knots: units ascending from 0, points ascending from 0. */
 export interface BandCurve {
@@ -77,8 +78,8 @@ export function bandUnitsFor(curve: BandCurve, points: number): number {
   return top;
 }
 
-/** What the "?" help calls a good run: the "good" aim of the scoring targets (110–130; docs/scoring-targets.md). */
-export const BAND_GOOD_POINTS = 120;
+/** What the "?" help calls a good run: the middle of the "good" band (90–109; docs/scoring-targets.md, 19 Oct 2026). */
+export const BAND_GOOD_POINTS = 100;
 
 export interface BandHelpWords {
   /** The plain line's start, e.g. "More bricks" → "More bricks, higher score – up to 140." */
@@ -214,9 +215,58 @@ export function bandRetarget(curve: BandCurve): BandCurve {
   return out;
 }
 
-/** The curve a state scores on: its game's curve, lifted on target-stamped states (band 2). */
+/** The curve a state scores on: its game's curve, lifted on target-stamped states (band 2), strict on band 3. */
 export function bandCurveOf(state: BandFields, curve: BandCurve): BandCurve {
+  if (state.band === BAND_STRICT_MARK) return bandStrict(curve);
   return state.band === BAND_TARGET_MARK ? bandRetarget(curve) : curve;
+}
+
+/* ====================== Score bands (19 Oct 2026) ====================== */
+
+/**
+ * Joe's score bands (docs/scoring-targets.md): perfect 150 only, near perfect 130–149, great 110–129, good
+ * 90–109, decent 80–89, average 60–79, smoothly down to 0. Each game's band-3 revision keeps its play and its
+ * achievement units and scores on its own strict curve (strictBands.data.ts, fitted by
+ * scripts/arcade-bands-fit.ts so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140), found by the base curve the sim passes to bandCurveOf.
+ */
+export const BAND_STRICT_MARK = 3;
+
+/** A curve's identity for the strict table: its knots as text. */
+export function bandFingerprint(curve: BandCurve): string {
+  return `${curve.units.join(",")}|${curve.points.join(",")}`;
+}
+
+const strictByBase = new Map<string, BandCurve>();
+for (const entry of Object.values(STRICT_BANDS)) strictByBase.set(entry.base, bandCurve(entry.units, entry.points));
+const strictCache = new WeakMap<BandCurve, BandCurve>();
+
+/**
+ * The strict curve for a base curve. A base with no strict curve is a programming error (a band-3 game must
+ * have its row); it scores on the band-2 lift rather than throwing mid-run, and scoring-bands-check fails on it.
+ */
+export function bandStrict(curve: BandCurve): BandCurve {
+  let out = strictCache.get(curve);
+  if (!out) {
+    out = strictByBase.get(bandFingerprint(curve)) ?? bandRetarget(curve);
+    strictCache.set(curve, out);
+  }
+  return out;
+}
+
+/** True when a base curve has its strict row. */
+export function bandHasStrict(curve: BandCurve): boolean {
+  return strictByBase.has(bandFingerprint(curve));
+}
+
+/** A band game whose new rounds score on its strict curve: the same play, `band` 3 from the first tick. */
+export function bandStrictGame<G extends { init: (seed: number) => object }>(game: G): G {
+  return { ...game, init: (seed: number) => ({ ...game.init(seed), band: BAND_STRICT_MARK }) };
+}
+
+/** Engine games (no band curve): the total itself mapped through a knot curve (0 → 0, flat past the top). */
+export function bandMapTotal(map: BandCurve, total: number): number {
+  return clampInt(bandPoints(map, total), 0, 150);
 }
 
 /** A band game whose new rounds score on the targets: the same play, `band` 2 from the first tick. */

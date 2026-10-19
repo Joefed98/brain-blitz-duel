@@ -26,7 +26,7 @@ import { TUBES_MAX_ATTEMPTS, generateTubes, verifyTubesPuzzle } from "./tubes.se
 import { TUBES_BANK, TUBES_INTRO_EXAMPLE } from "./tubesBank.server";
 import { withSeededRandom } from "./random";
 import { SPEED_PAR_VERSION } from "./speedPar";
-import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
+import { dealtPuzzleScoreRev } from "./puzzleScoreRev";
 import { stampMoveLimits } from "./moveLimits.server";
 import type {
   BlockPartyPuzzleData,
@@ -234,5 +234,5 @@ export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
   const example = spec(type).example;
   if (!example) return null;
   const copy = stampMoveLimits(JSON.parse(JSON.stringify(example)) as PuzzleData);
-  return { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
+  return { ...(copy as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
 }

@@ -37,7 +37,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandTop, bandScoreOf, bandStep, bandTotal, type BandCurve, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1373,6 +1373,7 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  if (rev === MATCHUP_REV_STRICT) return matchupStrictGame;
   if (rev === MATCHUP_REV_TARGET) return matchupTargetGame;
   if (rev === MATCHUP_REV_PAR) return matchupParGame;
   if (rev === MATCHUP_REV_WAIT) return matchupWaitGame;
@@ -1545,3 +1546,16 @@ export const MATCHUP_REV_TARGET = 7;
 export const matchupTargetGame = bandTargetGame(matchupParGame);
 /** The curve new rounds score on: MATCHUP_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const MATCHUP_V7_BAND_CURVE = bandRetarget(MATCHUP_V6_BAND_CURVE);
+
+
+/* ================= Score bands (matchupRev 8, 19 Oct 2026) ================= */
+
+/**
+ * matchupRev 8 (score bands, docs/scoring-targets.md): matchupRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const MATCHUP_REV_STRICT = 8;
+export const matchupStrictGame = bandStrictGame(matchupTargetGame);
+/** The curve new rounds score on: MATCHUP_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const MATCHUP_V8_BAND_CURVE = bandStrict(MATCHUP_V6_BAND_CURVE);

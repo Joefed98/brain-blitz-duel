@@ -121,6 +121,8 @@ interface UnblockPuzzleProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string) => void;
+  /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
+  onDraftAnswer?: ((answer: string) => void) | undefined;
 }
 
 export function UnblockPuzzle({
@@ -129,6 +131,7 @@ export function UnblockPuzzle({
   now,
   locked,
   onSubmit,
+  onDraftAnswer,
 }: UnblockPuzzleProps) {
   const reduced = usePrefersReducedMotion();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -154,6 +157,12 @@ export function UnblockPuzzle({
     },
     [onSubmit],
   );
+
+  // Every change goes to the room as a draft, so a reveal that arrives before this stage locks in
+  // (a backgrounded phone, a stalled clock) still sends the answer as it stands, never "".
+  useEffect(() => {
+    onDraftAnswer?.(encodeMoves(moves));
+  }, [moves, onDraftAnswer]);
 
   useEffect(() => {
     if (locked) return;

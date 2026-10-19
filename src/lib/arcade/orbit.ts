@@ -50,6 +50,8 @@ export const ORBIT_REV_SWEPT = 7;
 export const ORBIT_REV_TALL = 8;
 /** orbitRev 9 (scoring targets, 18 Oct 2026, docs/scoring-targets.md): orbitRev 8 play, each band knot's points lifted through BAND_TARGET_MAP. */
 export const ORBIT_REV_TARGET = 9;
+/** orbitRev 10 (score bands, 19 Oct 2026, docs/scoring-targets.md): orbitRev 9 play, scored on its strict curve (band 3). */
+export const ORBIT_REV_STRICT = 10;
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
 /** The current planet sits this far down the screen. */

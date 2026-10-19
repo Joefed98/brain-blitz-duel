@@ -322,8 +322,10 @@ export function drawWordfall(ctx: CanvasRenderingContext2D, state: WordfallState
 
 export const wordfallArtGame = { ...wordfallGameFor(1), draw: drawWordfall };
 export const wordfallArtGameV2 = { ...wordfallGameFor(2), draw: drawWordfall };
+export const wordfallArtGameV3 = { ...wordfallGameFor(3), draw: drawWordfall };
 
 /** The art game for a stored revision (its init and input ranges follow the revision). */
 export function wordfallArtGameFor(rev?: number): typeof wordfallArtGame {
+  if (rev === 3) return wordfallArtGameV3;
   return rev === 2 ? wordfallArtGameV2 : wordfallArtGame;
 }

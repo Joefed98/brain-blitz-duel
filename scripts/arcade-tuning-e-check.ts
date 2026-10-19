@@ -464,8 +464,8 @@ if (want("snip")) {
   ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => l.helpOnly && /from above/.test(l.detail)), "Scrumper's help says a crook catches only from above");
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
-if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (120 points) counts 55 – about 18 barriers"), "Hover's help states a good run on hoverRev 5's curve");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (120 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
+if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 42 – about 14 barriers"), "Hover's help states a good run on hoverRev 5's curve");
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));
