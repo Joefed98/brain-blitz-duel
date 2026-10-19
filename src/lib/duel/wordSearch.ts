@@ -11,8 +11,44 @@ import type { WordSearchPlacement } from "./types";
 
 export const WS_SIZE = 10;
 export const WS_WORDS = 6;
-/** Lookout rev stamped on new puzzles (`wordSearchRev`): 1 = 76-theme bank and public word lengths (14 Oct 2026). */
-export const WS_REV = 1;
+/**
+ * Lookout rev stamped on new puzzles (`wordSearchRev`): 1 = 76-theme bank and public word lengths (14 Oct 2026);
+ * 2 = no hidden word is or contains its theme's name (wsThemeClash; 19 Oct 2026): the bank's grids that hide such a
+ * word are dealt as seeded rebuilds from the theme's other words (wordSearchBankRev2.server.ts).
+ */
+export const WS_REV = 2;
+
+/** Joining words in theme names that never count as the theme ("Toys and games", "On the farm"). */
+const WS_THEME_STOP = new Set(["AND", "THE"]);
+
+/**
+ * The forms of a theme's name a rev-2 hidden word may not contain: every word of the name of 3+ letters
+ * (upper case, joining words AND / THE left out) and its singular: -IES → -Y, -SHES / -CHES / -XES / -SSES /
+ * -ZES lose ES, any other -S (not -SS or -US) loses S; forms under 3 letters are dropped.
+ * "Nuts, seeds and grains" → NUTS NUT SEEDS SEED GRAINS GRAIN.
+ */
+export function wsThemeForms(category: string): { names: string[]; forms: string[] } {
+  const names = category.toUpperCase().split(/[^A-Z]+/).filter((t) => t.length >= 3 && !WS_THEME_STOP.has(t));
+  const forms = new Set<string>();
+  for (const t of names) {
+    forms.add(t);
+    if (t.endsWith("IES")) forms.add(`${t.slice(0, -3)}Y`);
+    else if (/(SH|CH|X|SS|Z)ES$/.test(t)) forms.add(t.slice(0, -2));
+    else if (t.endsWith("S") && !t.endsWith("SS") && !t.endsWith("US")) forms.add(t.slice(0, -1));
+  }
+  return { names, forms: [...forms].filter((f) => f.length >= 3) };
+}
+
+/**
+ * Rev 2: true when a word gives its theme away: it contains a form of the theme's name (BULLDOG for "Dogs",
+ * PUDDING for "Sweets and puddings", SEAL for "Sea creatures") or is part of a word of the name (DRINK for
+ * "Drinks", FAIR for "Circus and funfair", COOK for "Ways of cooking"). Case-insensitive.
+ */
+export function wsThemeClash(category: string, word: string): boolean {
+  const w = word.toUpperCase();
+  const { names, forms } = wsThemeForms(category);
+  return forms.some((f) => w.includes(f)) || names.some((t) => t.includes(w));
+}
 
 /**
  * Letter count of each word still to find, in chip order, or null when the puzzle carries none

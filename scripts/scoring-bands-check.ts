@@ -44,7 +44,13 @@ import { KNOWN_SPAM } from "./puzzle-fairness";
 import { FIXTURE, type AnswerRun, type ArcadeRun } from "./scoring-bands-record";
 import { roomPuzzle, runSpam } from "./puzzle-fairness/run";
 import { KITS } from "./puzzle-fairness/kits";
-import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/types";
+import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
+import { FLOOD_REV2_SPARE_MOVES } from "../src/lib/duel/moveLimits";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// This check proves puzzleScoreRev 2 (the score bands): new deals are pinned to it. Rooms deal 3 (scoring-rev3-check).
+pinDealtPuzzleScoreRev(2);
 
 let checks = 0;
 const failures: string[] = [];
@@ -65,14 +71,29 @@ function roomPuzzleCached(type: PuzzleType, seed: number): PuzzleData {
 /**
  * The fixture's answers were recorded before Topsy-Turvy gravityRev 2 and Polypotions tubesRev 2 (19 Oct 2026,
  * solverProgress.server.ts) and Jumbled tilesRev 2 (20 Oct 2026, 90 s), so they grade on the stamps they were
- * played on; solver-progress-check and jumbled-clock-check hold the runs recorded on the new stamps.
+ * played on; solver-progress-check and jumbled-clock-check hold the runs recorded on the new stamps. Strikeout's
+ * were played on strikeoutRev 3 (ten strikes; rooms deal rev 4's twelve since 19 Oct 2026, the same boards):
+ * strikeout-check holds rev 4.
  */
 const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number | undefined>>> = {
   gravity: { gravityRev: 1 },
   tubes: { tubesRev: 1 },
   tiles: { tilesRev: 1, timeLimitMs: undefined },
+  strikeout: { strikeoutRev: 3 },
 };
+/**
+ * Colour Flood floodRev 3 (20 Oct 2026) deals from a new pool by the same draw: the recorded runs played the
+ * floodRev 2 pool's board at the same index, with par + 2 taps.
+ */
+function floodRev2(p: PuzzleData): PuzzleData {
+  const f = p as FloodPuzzleData;
+  const i = FLOOD_BANK_V3.findIndex((b) => b.grid.join(",") === f.grid.join(","));
+  const old = FLOOD_BANK[i];
+  if (!old) return p;
+  return { ...f, grid: [...old.grid], solution: [...(old.solution ?? [])], par: old.par, floodRev: 2, moveLimit: old.par + FLOOD_REV2_SPARE_MOVES } as unknown as PuzzleData;
+}
 function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
+  if (type === "flood") return floodRev2(roomPuzzleCached(type, seed));
   const p = roomPuzzleCached(type, seed);
   return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;
 }
@@ -167,7 +188,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
         ok(rev2Points(k, 100) >= rev2Points(k, 99), `${type}: a finish at the buzzer beats every unfinished run`);
       }
     }
-    ok(puzzleScoreRevOf(generatePuzzle(type, { bankSeed: 4242 })) === PUZZLE_SCORE_REV_BANDS, `${type}: rooms deal puzzleScoreRev ${PUZZLE_SCORE_REV_BANDS}`);
+    // Rooms deal puzzleScoreRev 3 since 20 Oct 2026 (scoring-rev3-check); rev 2 is proved on its stored runs below.
+    ok(puzzleScoreRevOf(generatePuzzle(type, { bankSeed: 4242 })) >= PUZZLE_SCORE_REV_BANDS, `${type}: rooms deal puzzleScoreRev ${PUZZLE_SCORE_REV_BANDS} or later`);
   }
   for (const a of fixture.answers.filter((x) => x.kind === "puzzle")) {
     const puzzle = recordedPuzzle(a.type as PuzzleType, a.seed);
@@ -224,7 +246,9 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   }
   for (const type of REV2_FINISH_GAMES) {
     const f = bandsFigures(type);
-    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type) && PUZZLE_INSTRUCTIONS[type].score.includes(`About ${f.half} for half done`), `${type}: the "?" help states its own knots`);
+    // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
+    void f;
+    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

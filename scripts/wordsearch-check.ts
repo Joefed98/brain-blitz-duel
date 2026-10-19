@@ -14,6 +14,13 @@
  *    (scripts/fixtures/wordsearch-legacy.json.gz: the room stamp and fully unstamped) grade exactly as before.
  * 5. Chips: rev 1 shows one chip per word with its letter count and never the word; stored rounds keep
  *    blank chips; found words take the first open chip of their length; the reveal shows each count.
+ * 6. wordSearchRev 2 (19 Oct 2026, no hidden word is or contains its theme's name, wsThemeClash): the rule on
+ *    named cases; the seeded replacements (wordSearchBankRev2.server.ts) rebuild byte-for-byte; every one of
+ *    the 1,520 grids rev 2 deals hides no clashing word and shows none anywhere, keeps the bank rules (targets
+ *    once, no stray theme word, mixed lengths, finish / backwards / live), 20 grids per theme; grids without
+ *    a clash are dealt unchanged; each theme's remaining words are reported.
+ * 7. Rev-1 identity: 60 rev-1 puzzles dealt on main before rev 2 (scripts/fixtures/wordsearch-rev1-legacy.json.gz)
+ *    are bank grids dealt under rev 1 exactly as stored and every recorded answer grades identically.
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -24,18 +31,33 @@ import { WORD_SEARCH_CATEGORIES } from "../src/lib/duel/wordSearchWords";
 import { WORD_SEARCH_BANK } from "../src/lib/duel/wordSearchBank.server";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { checkWordSearchPath, wsChipSlots, wsEncode, WS_REV } from "../src/lib/duel/wordSearch";
+import {
+  checkWordSearchPath,
+  wsChipSlots,
+  wsEncode,
+  WS_REV,
+  wsThemeClash,
+  wsThemeForms,
+} from "../src/lib/duel/wordSearch";
+import { wordSearchEntry, wordSearchFromIndex } from "../src/lib/duel/wordSearch.server";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 import type { PuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
 import { wordSearchPuzzle } from "../src/puzzles/wordSearch";
 import {
   bankSource,
   buildBank,
+  buildRev2Replacements,
   countInGrid,
+  rev2Source,
+  rev2Words,
   MIN_CATEGORIES,
   MIN_WORDS,
   PER_CATEGORY,
   validateCategories,
 } from "./word-search-bank";
+
+// Rev-1 fixtures and the anchors here are the rev-1 score shape (rooms deal puzzleScoreRev 2, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 const failures: string[] = [];
 const fail = (msg: string) => failures.push(msg);
@@ -136,6 +158,8 @@ for (let i = 0; i < 40; i++) {
     );
     continue;
   }
+  const clash = (p.placements ?? []).find((x) => wsThemeClash(p.category, x.word));
+  if (clash) fail(`stamp: generated ${p.category} hides ${clash.word}`);
   const { pub, priv } = splitPuzzle(p);
   const pubW = pub as WordSearchPuzzleData;
   if (
@@ -271,9 +295,117 @@ console.log(
   `chips: rev 1 open chips ${JSON.stringify(openChips)}, stored round ${blank} blank chips, reveal counts shown`,
 );
 
+// 6. Rev 2: no hidden word is or contains its theme's name.
+{
+  const named: [string, string, boolean][] = [
+    ["Fruit", "FRUIT", true],
+    ["Fruit", "fruitcake", true],
+    ["Birds", "BIRD", true],
+    ["Dogs", "BULLDOG", true],
+    ["Dogs", "POODLE", false],
+    ["Sea creatures", "SEAHORSE", true],
+    ["Sea creatures", "SEAL", true],
+    ["Circus and funfair", "FAIR", true],
+    ["Circus and funfair", "CIRCUS", true],
+    ["Herbs and spices", "ALLSPICE", true],
+    ["Ways of cooking", "COOK", true],
+    ["Nuts, seeds and grains", "PEANUT", true],
+    ["Hobbies and crafts", "HOBBY", true],
+    ["Meals and dishes", "DISH", true],
+    ["Toys and games", "SANDBOX", false],
+    ["At the seaside", "SUNBATHE", false],
+    ["Mammals", "BEAVER", false],
+  ];
+  for (const [theme, word, want] of named)
+    if (wsThemeClash(theme, word) !== want) fail(`rev 2 rule: ${theme} / ${word} should ${want ? "" : "not "}clash`);
+  if (JSON.stringify(wsThemeForms("Nuts, seeds and grains").forms) !== JSON.stringify(["NUTS", "NUT", "SEEDS", "SEED", "GRAINS", "GRAIN"]))
+    fail(`rev 2 rule: forms ${JSON.stringify(wsThemeForms("Nuts, seeds and grains").forms)}`);
+
+  const t1 = performance.now();
+  const { replacements } = buildRev2Replacements(bank);
+  const committed2 = readFileSync(new URL("../src/lib/duel/wordSearchBankRev2.server.ts", import.meta.url), "utf8");
+  if (rev2Source(replacements) !== committed2)
+    fail("rev 2: wordSearchBankRev2.server.ts is not the seeded build (run bun scripts/word-search-bank.ts)");
+  const perCat2 = new Map<string, number>();
+  let ok2 = 0, unchanged = 0, replaced = 0;
+  for (let i = 0; i < WORD_SEARCH_BANK.length; i++) {
+    const b = WORD_SEARCH_BANK[i]!;
+    const e = wordSearchEntry(i, 2);
+    const p = wordSearchFromIndex(i, 2);
+    perCat2.set(e.category, (perCat2.get(e.category) ?? 0) + 1);
+    const list = WORD_SEARCH_CATEGORIES[e.category] ?? [];
+    const g = e.grid.split("");
+    const targets = e.placements.map((x) => x.word);
+    const bankClash = b.placements.some((x) => wsThemeClash(b.category, x.word));
+    if (e.category !== b.category) fail(`rev 2 grid ${i}: theme ${e.category} ≠ bank ${b.category}`);
+    if (!bankClash && e !== b) fail(`rev 2 grid ${i}: a grid without a clash was replaced`);
+    if (bankClash && e === b) fail(`rev 2 grid ${i}: a clashing grid was not replaced`);
+    if (bankClash) replaced++;
+    else unchanged++;
+    const shortN = targets.filter((w) => w.length <= 5).length;
+    const longN = targets.filter((w) => w.length >= 7).length;
+    const fine =
+      e.placements.length === 6 &&
+      new Set(targets).size === 6 &&
+      shortN >= 2 &&
+      longN >= 2 &&
+      e.placements.every(
+        (x) => list.includes(x.word) && !wsThemeClash(e.category, x.word) && countInGrid(g, x.word) === 1 && x.cells.map((c) => g[c]).join("") === x.word,
+      ) &&
+      list.every((w) => targets.includes(w) || countInGrid(g, w) === 0) &&
+      p.wordSearchRev === 2 &&
+      JSON.stringify(p.wordLengths) === JSON.stringify(targets.map((w) => w.length));
+    const stamped = { ...p, speedPar: 1, puzzleScoreRev: 1 } as PuzzleData;
+    const finish = gradeAnswer(stamped, wsEncode(e.placements.map((x) => x.cells)), 90_000);
+    const back = gradeAnswer(stamped, wsEncode(e.placements.map((x) => [...x.cells].reverse())), 0);
+    const liveOk = e.placements.every((x) => checkWordSearchPath(e.placements, 10, x.cells, []).valid);
+    if (fine && finish.isCorrect && finish.score >= 120 && back.isCorrect && liveOk) ok2++;
+    else fail(`rev 2 grid ${i} (${e.category}): breaks a rule (${targets.join(",")})`);
+  }
+  for (const [c] of cats) if (perCat2.get(c) !== PER_CATEGORY) fail(`rev 2: ${c} has ${perCat2.get(c) ?? 0} grids`);
+  const lost = cats
+    .map(([c, w]) => ({ c, lost: w.filter((x) => wsThemeClash(c, x)), left: rev2Words(c) }))
+    .filter((x) => x.lost.length);
+  for (const x of lost) {
+    const sh = x.left.filter((w) => w.length <= 5).length;
+    const lg = x.left.filter((w) => w.length >= 7).length;
+    if (x.left.length < 30 || sh < 4 || lg < 4) fail(`rev 2: ${x.c} runs short (${x.left.length} words, ${sh} short, ${lg} long)`);
+  }
+  const fewest = lost.reduce((m, x) => (x.left.length < m.left.length ? x : m), lost[0]!);
+  console.log(
+    `rev 2: ${ok2}/${WORD_SEARCH_BANK.length} dealt grids clean (${unchanged} bank grids unchanged, ${replaced} seeded replacements, rebuild ${rev2Source(replacements) === committed2 ? "identical" : "DIFFERENT"} in ${((performance.now() - t1) / 1000).toFixed(1)} s); ${lost.length} themes lose ${lost.reduce((n, x) => n + x.lost.length, 0)} words, fewest left ${fewest.left.length} (${fewest.c})`,
+  );
+}
+
+// 7. Rev-1 identity: puzzles dealt on main before rev 2.
+{
+  type Entry = { scoreRev: number; answer: string; ms: number; score: number; isCorrect: boolean; correctCount: number | null; errors: number | null; extra: string };
+  const fx = JSON.parse(
+    gunzipSync(readFileSync(new URL("./fixtures/wordsearch-rev1-legacy.json.gz", import.meta.url))).toString("utf8"),
+  ) as { cases: { puzzle: WordSearchPuzzleData & { puzzleScoreRev?: number }; entries: Entry[] }[] };
+  let graded = 0;
+  for (const [k, c] of fx.cases.entries()) {
+    const i = WORD_SEARCH_BANK.findIndex((e) => e.grid === c.puzzle.grid);
+    const { puzzleScoreRev, speedPar, ...stored } = c.puzzle as WordSearchPuzzleData & { puzzleScoreRev?: number; speedPar?: number };
+    if (c.puzzle.wordSearchRev !== 1) fail(`rev-1 legacy ${k}: stored puzzle is not rev 1`);
+    if (i < 0 || JSON.stringify(wordSearchFromIndex(i, 1)) !== JSON.stringify(stored))
+      fail(`rev-1 legacy ${k}: bank grid ${i} under rev 1 is not the stored puzzle`);
+    const { puzzleScoreRev: _d, ...unstamped } = c.puzzle;
+    void puzzleScoreRev;
+    void speedPar;
+    for (const e of c.entries) {
+      const g = gradeAnswer((e.scoreRev ? c.puzzle : unstamped) as PuzzleData, e.answer, e.ms);
+      graded++;
+      if (g.score !== e.score || g.isCorrect !== e.isCorrect || g.correctCount !== e.correctCount || g.errors !== e.errors || JSON.stringify(g.extra) !== e.extra)
+        fail(`rev-1 legacy ${k} (${c.puzzle.category}) ms ${e.ms} rev ${e.scoreRev}: ${g.score} vs main ${e.score}`);
+    }
+  }
+  console.log(`rev-1 identity: ${fx.cases.length} stored rev-1 puzzles rebuild from the bank, ${graded} answers grade identically`);
+}
+
 if (failures.length) {
   console.log(failures.slice(0, 40).join("\n"));
   console.log(`\nFAIL: ${failures.length} problems`);
   process.exit(1);
 }
-console.log("\nPASS: word lists, seeded bank, rev 1 stamp, legacy identity, chips");
+console.log("\nPASS: word lists, seeded bank, rev 2 stamp, legacy identity, chips, rev 2 theme rule, rev-1 identity");

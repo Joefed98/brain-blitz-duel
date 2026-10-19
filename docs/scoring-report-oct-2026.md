@@ -1,5 +1,8 @@
 # Scoring report, October 2026 (for the 27 Oct beta)
 
+> Batch 1 of the fix plan is in (20 Oct 2026, `puzzleScoreRev 3`): see `docs/scoring-rev3-oct-2026.md` for the new
+> numbers. This report describes the 19 Oct state.
+
 Report only: no score, band, stamp or game changed. The data comes from `scripts/scoring-report.ts` (optional, never
 run in CI), which played every active game on room seeds through the real server grader on today's stamps.
 Every run is listed in `docs/scoring-report-oct-2026.csv` (23,990 runs). The tables between `generated` markers are

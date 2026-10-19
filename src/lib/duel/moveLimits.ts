@@ -43,6 +43,17 @@ export const FLOOD_LIMIT_REV = 1;
  */
 export const FLOOD_LIMIT_REV2 = 2;
 export const FLOOD_REV2_SPARE_MOVES = 2;
+/**
+ * Colour Flood floodRev 3 (19 Oct 2026, docs/scoring-report-oct-2026.md (e) bug 2): the same
+ * par + FLOOD_REV2_SPARE_MOVES limit and rules, dealt only from the floodRev 3 bank
+ * (flood.server.ts FLOOD_BANK_V3), whose boards no blind colour cycle (any order of 2–5 colours,
+ * any start) can flood within the limit. A tighter limit could not do it: on 25 of the 400
+ * floodRev 2 boards some cycle order is itself a par route. Stored rounds keep their boards, so
+ * grading reads the stored limit exactly as before (scripts/flood-cycle-check.ts).
+ */
+export const FLOOD_LIMIT_REV3 = 3;
+/** The floodRev new Colour Flood rounds are dealt with. */
+export const FLOOD_LIMIT_DEALT = FLOOD_LIMIT_REV3;
 export const TUBES_LIMIT_REV = 1;
 export const GRAVITY_LIMIT_REV = 1;
 /**

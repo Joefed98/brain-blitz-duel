@@ -13,6 +13,8 @@ export function proveFloodBank(bank: FloodPuzzleData[]): number {
 }
 
 if (import.meta.main) {
-  const bank = JSON.parse(readFileSync(new URL("../src/lib/duel/floodBank.server.json", import.meta.url), "utf8")) as FloodPuzzleData[];
+  // `--rev3` proves the floodRev 3 bank (floodBankV3.server.json) instead.
+  const file = process.argv.includes("--rev3") ? "floodBankV3.server.json" : "floodBank.server.json";
+  const bank = JSON.parse(readFileSync(new URL(`../src/lib/duel/${file}`, import.meta.url), "utf8")) as FloodPuzzleData[];
   if (proveFloodBank(bank)) process.exit(1);
 }

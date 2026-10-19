@@ -44,6 +44,10 @@ import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
 import { KITS } from "./puzzle-fairness/kits";
 import { LEVELS, SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// This check proves puzzleScoreRev 2 (the score bands): new deals are pinned to it. Rooms deal 3 (scoring-rev3-check).
+pinDealtPuzzleScoreRev(2);
 import { FIXTURE as BANDS_FIXTURE, type AnswerRun } from "./scoring-bands-record";
 import type { GravityPuzzleData, PuzzleData, TubesPuzzleData } from "../src/lib/duel/types";
 

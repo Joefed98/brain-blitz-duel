@@ -9,14 +9,21 @@
  *      a 3+ letter word, no two-letter runs, connected, common answer words only,
  *      no repeats, 14–18 letters, 4 givens, and exactly one solution against the
  *      full dictionary, re-proven with rev 2's fifth given (a different hidden number
- *      filling 2+ squares); two sampled entries rebuild byte-for-byte from their seeds;
+ *      filling 2+ squares) and rev 3's sixth; two sampled entries rebuild byte-for-byte from their seeds;
  *   5. replay rules (moving a letter, clearing, givens fixed);
  *   6. score anchors: perfect 150, minimum finish 130, best unfinished < 130, nothing 0
  *      (stored rounds); new rounds (puzzleScoreRev 1) 150 / 120 / 110 / 0;
- *   7. codewordRev 2 (five givens): new boards are the rev-1 board of the same seed plus
+ *   7. codewordRev 2 (five givens): rev-2 boards are the rev-1 board of the same seed plus
  *      one given; 40 rev-1 boards recorded on main before the change
  *      (scripts/fixtures/codeword-rev1-legacy.json.gz) rebuild from the bank exactly as
  *      stored and every recorded answer grades identically (score, credit, extra).
+ *   8. codewordRev 3 (six givens, 19 Oct 2026): new boards are the rev-2 board of the same
+ *      seed plus the sixth given; on every bank board (this part) the sixth given is
+ *      re-derived independently from the grid's words (most hidden numbers left as the only
+ *      unknown of a word, then most such words, then most squares, then lowest number);
+ *      40 rev-2 boards recorded on main before the change
+ *      (scripts/fixtures/codeword-rev2-legacy.json.gz) rebuild exactly as stored and every
+ *      recorded answer grades identically.
  *
  *   bun scripts/codeword-check.ts            (all 1,000 boards)
  *   bun scripts/codeword-check.ts --part=k/n (bank part k of n; the rest runs in every part)
@@ -41,6 +48,7 @@ import {
   codewordEntryRuleBreak,
   codewordFifthGiven,
   codewordFromEntry,
+  codewordSixthGiven,
   countCodewordSolutions,
 } from "../src/lib/duel/codeword.server";
 import { dictionaryWords } from "../src/lib/duel/dictionary.server";
@@ -80,8 +88,8 @@ check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)
   }
   check("a word room deals Cryptogrid", dealt === 5);
   const p = gen(31337);
-  check("stamped speedPar 1 and codewordRev 2", (p as { speedPar?: number }).speedPar === 1 && p.codewordRev === 2);
-  check(`new boards start with five givens (${p.givens.length})`, p.givens.length === 5);
+  check("stamped speedPar 1 and codewordRev 3", (p as { speedPar?: number }).speedPar === 1 && p.codewordRev === 3);
+  check(`new boards start with six givens (${p.givens.length})`, p.givens.length === 6);
   check(`bank holds 1,000 boards (${CODEWORD_BANK.length})`, CODEWORD_BANK.length === 1000);
 }
 
@@ -194,8 +202,8 @@ const bankSeconds = (performance.now() - started) / 1000;
     maxUnfinished = Math.max(maxUnfinished, almost, twoWrong, scoreCodeword({ correct: hidden.length - 1, hidden: hidden.length, complete: true, solved: false }, LIMIT, LIMIT));
     maxScore = Math.max(maxScore, perfect);
   }
-  // Every unfinished tally by the formula (hidden 9–14 = 14–18 letters less 5 or 4 givens).
-  for (let hidden = 9; hidden <= 14; hidden++)
+  // Every unfinished tally by the formula (hidden 8–14 = 14–18 letters less 6, 5 or 4 givens).
+  for (let hidden = 8; hidden <= 14; hidden++)
     for (let correct = 0; correct < hidden; correct++)
       maxUnfinished = Math.max(maxUnfinished, scoreCodeword({ correct, hidden, complete: false, solved: false }, LIMIT, LIMIT));
   check(`finishing beats any unfinished (${minFinish} > ${maxUnfinished})`, minFinish > maxUnfinished);
@@ -216,11 +224,11 @@ const bankSeconds = (performance.now() - started) / 1000;
     const stamps = { speedPar: (c.puzzle as { speedPar?: number }).speedPar, puzzleScoreRev: (c.puzzle as { puzzleScoreRev?: number }).puzzleScoreRev };
     check(`legacy seed ${c.seed}: stored board is rev 1 with four givens`, c.puzzle.codewordRev === 1 && c.puzzle.givens.length === 4);
     check(`legacy seed ${c.seed}: rev 1 rebuilds as stored`, JSON.stringify({ ...codewordFromEntry(entry, 1), ...stamps }) === JSON.stringify(c.puzzle));
-    const now = gen(c.seed);
-    check(`legacy seed ${c.seed}: new board = rev 2 of the same entry`, JSON.stringify(now) === JSON.stringify({ ...codewordFromEntry(entry, 2), ...stamps }));
+    const now = { ...codewordFromEntry(entry, 2), ...stamps };
+    check(`legacy seed ${c.seed}: new board = rev 3 of the same entry`, JSON.stringify(gen(c.seed)) === JSON.stringify({ ...codewordFromEntry(entry, 3), ...stamps }));
     const fifth = codewordFifthGiven(entry);
     check(
-      `legacy seed ${c.seed}: new givens = stored givens + number ${fifth}`,
+      `legacy seed ${c.seed}: rev-2 givens = stored givens + number ${fifth}`,
       JSON.stringify(now.givens.filter((g) => g.n !== fifth)) === JSON.stringify(c.puzzle.givens) && !c.puzzle.givens.some((g) => g.n === fifth),
     );
     check(`legacy seed ${c.seed}: same grid and code`, JSON.stringify(now.cells) === JSON.stringify(c.puzzle.cells) && now.solution === c.puzzle.solution);
@@ -236,6 +244,79 @@ const bankSeconds = (performance.now() - started) / 1000;
     }
   }
   console.log(`legacy rev 1: ${fixture.cases.length} stored boards rebuild exactly, ${graded} answers grade identically`);
+}
+
+// 8. codewordRev 3: the sixth given, re-derived independently on every bank board of this part.
+{
+  let gain = 0, boards = 0;
+  for (let i = part - 1; i < CODEWORD_BANK.length; i += parts) {
+    const entry = CODEWORD_BANK[i]!;
+    const p2 = codewordFromEntry(entry, 2);
+    const grid = entry.split("|")[0]!;
+    // Words as lists of numbers, read from the grid's letters (rows then columns, 3+ squares).
+    const words: number[][] = [];
+    for (const across of [true, false])
+      for (let line = 0; line < CW_SIZE; line++) {
+        let run: number[] = [];
+        for (let k = 0; k <= CW_SIZE; k++) {
+          const at = across ? line * CW_SIZE + k : k * CW_SIZE + line;
+          if (k < CW_SIZE && grid[at] !== "#") run.push(p2.cells[at]!);
+          else {
+            if (run.length >= 3) words.push(run);
+            run = [];
+          }
+        }
+      }
+    const score = (known: Set<number>) => {
+      const lone = words.map((w) => [...new Set(w.filter((n) => !known.has(n)))]).filter((u) => u.length === 1).map((u) => u[0]!);
+      return [new Set(lone).size, lone.length];
+    };
+    const five = new Set(p2.givens.map((g) => g.n));
+    let want = 0, wantKey = [-1, -1, -1];
+    for (let n = 1; n <= p2.numbers; n++) {
+      if (five.has(n)) continue;
+      const key = [...score(new Set([...five, n])), p2.cells.filter((x) => x === n).length];
+      const cmp = key[0]! - wantKey[0]! || key[1]! - wantKey[1]! || key[2]! - wantKey[2]!;
+      if (cmp > 0) { want = n; wantKey = key; }
+    }
+    const sixth = codewordSixthGiven(entry);
+    check(`bank ${i}: sixth given ${sixth}, independent rule picks ${want}`, sixth === want && !five.has(sixth));
+    const p3 = codewordFromEntry(entry, 3);
+    check(`bank ${i}: rev 3 = rev 2 + number ${sixth}`, JSON.stringify(p3.givens.filter((g) => g.n !== sixth)) === JSON.stringify(p2.givens) && p3.givens.length === 6 && p3.codewordRev === 3);
+    gain += wantKey[0]! - score(five)[0]!;
+    boards++;
+  }
+  console.log(`rev 3 sixth given: ${boards} boards re-derived; next guessable numbers +${(gain / Math.max(1, boards)).toFixed(2)} a board on average`);
+
+  type Entry = { scoreRev: number; answer: string; ms: number; score: number; isCorrect: boolean; correctCount: number | null; errors: number | null; extra: string };
+  const fixture = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/codeword-rev2-legacy.json.gz")).toString("utf8")) as {
+    cases: { seed: number; puzzle: CodewordPuzzleData; entries: Entry[] }[];
+  };
+  let graded = 0;
+  for (const c of fixture.cases) {
+    const entry = CODEWORD_BANK[codewordBankIndex(wordGameSeed("codeword", c.seed))]!;
+    const stamps = { speedPar: (c.puzzle as { speedPar?: number }).speedPar, puzzleScoreRev: (c.puzzle as { puzzleScoreRev?: number }).puzzleScoreRev };
+    check(`rev-2 legacy seed ${c.seed}: stored board is rev 2 with five givens`, c.puzzle.codewordRev === 2 && c.puzzle.givens.length === 5);
+    check(`rev-2 legacy seed ${c.seed}: rev 2 rebuilds as stored`, JSON.stringify({ ...codewordFromEntry(entry, 2), ...stamps }) === JSON.stringify(c.puzzle));
+    const now = gen(c.seed);
+    const sixth = codewordSixthGiven(entry);
+    check(`rev-2 legacy seed ${c.seed}: new board = rev 3 of the same entry`, JSON.stringify(now) === JSON.stringify({ ...codewordFromEntry(entry, 3), ...stamps }));
+    check(
+      `rev-2 legacy seed ${c.seed}: new givens = stored givens + number ${sixth}`,
+      JSON.stringify(now.givens.filter((g) => g.n !== sixth)) === JSON.stringify(c.puzzle.givens) && !c.puzzle.givens.some((g) => g.n === sixth),
+    );
+    const unstamped = (() => {
+      const { puzzleScoreRev: _drop, ...rest } = c.puzzle as CodewordPuzzleData & { puzzleScoreRev?: number };
+      return rest as PuzzleData;
+    })();
+    for (const e of c.entries) {
+      const g = gradeAnswer(e.scoreRev ? c.puzzle : unstamped, e.answer, e.ms);
+      const same = g.score === e.score && g.isCorrect === e.isCorrect && g.correctCount === e.correctCount && g.errors === e.errors && JSON.stringify(g.extra) === e.extra;
+      check(`rev-2 legacy seed ${c.seed} "${e.answer.slice(0, 30)}" ms ${e.ms} rev ${e.scoreRev}: ${g.score} vs main ${e.score}`, same);
+      graded++;
+    }
+  }
+  console.log(`legacy rev 2: ${fixture.cases.length} stored boards rebuild exactly, ${graded} answers grade identically`);
 }
 
 if (failures.length) {

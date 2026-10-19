@@ -1,3 +1,28 @@
+# Puzzle helper, `puzzleScoreRev 3` (20 Oct 2026)
+
+Batch 1 of the scoring report (`docs/scoring-report-oct-2026.md`, #119) replaces the per-game knots below for every
+puzzle with a finish state. Full results, the games that miss a mark and why, and the decisions for Joe:
+`docs/scoring-rev3-oct-2026.md`.
+
+- **Unfinished** = min(110, round(110 × progress ÷ oneShort)): about 55 half done, 110 one step short.
+- **A correct finish** = 120 + round(30 × min(1, time-left share ÷ fastShare) × efficiency): 120 at the buzzer, 150
+  with the game's fast share of the clock left (0.40–0.75; the help says "150 if you finish in about N s with no
+  mistakes") and no mistakes. Mistakes only cut the 30 speed points.
+- **Progress** per game: `src/lib/duel/puzzleProgress.ts` (Slider's row scale 30/70/90/110, Trail's path, scales,
+  equations and jugs with credit inside the current step, Strikeout's fifth word, Interlock's words being built,
+  Exact's distance with off by 1 = 110, solver distance on Turntable, Gridlock, Jumbled, Blackout and Hanoi, a
+  push bound on Heave, the best layout on Lightbender, small curves on Matchmaker and Safe Cracker); the rest keep
+  rev 1's unfinished credit, which the report found fair. Polypotions keeps #118's solver measure: its average kit
+  player scores 27 straight through the helper, against 71 on #118's lifted knots.
+- **Open games** (Nucleus, Forage, Flash, Bang On, Ballpark) keep the rev-2 curves below under the new stamp.
+- Older rounds keep their stamps and grade exactly as before; scoring-rev3-check (~6 s) proves the helper on
+  3,563 stored runs (`scripts/fixtures/scoring-rev3-runs.json.gz`, `bun scripts/scoring-rev3-record.ts`).
+- The same batch: Strikeout `strikeoutRev 4` (12 strikes), Cryptogrid `codewordRev 3` (a sixth starting letter),
+  Swapword `swapwordRev 3` (minimum + 8 swaps), Lookout `wordSearchRev 2` (no theme-name words), Colour Flood
+  `floodRev 3` (a pool cycling can't finish), Interlock's Done needs all 15 tiles, and a reload keeps the stage's board.
+
+The score bands below still define the arcade, engine and open games, and grade every rev-2 round.
+
 # Score bands (19 Oct 2026)
 
 Joe's bands for every round of all 74 active games, in rooms and in practice (a round scores 0–150), replacing

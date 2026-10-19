@@ -9,7 +9,7 @@ import {
   SO_LEN,
   SO_MAX_STRIKES,
   SO_ROWS,
-  SO3_RULES,
+  SO4_RULES,
   STRIKEOUT_REV2,
   decodeStrikeout,
   decodeStrikeout2,
@@ -36,11 +36,13 @@ import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** One strike marker per strike allowed (five, or ten from rev 3, drawn smaller); used ones are filled red. */
+/** One strike marker per strike allowed (five, ten from rev 3 or twelve from rev 4, drawn smaller); used ones are filled red. */
 function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
   const many = max > SO_MAX_STRIKES;
+  // Rev 4's twelve markers sit a little closer (12 × 20 px + 11 × 4 px = 284 px) so the row fits a 320 px phone.
+  const gap = max > 10 ? "gap-1" : many ? "gap-1.5" : "gap-2";
   return (
-    <div ref={markerRef} className={`flex items-center justify-center ${many ? "gap-1.5" : "gap-2"}`} aria-label={`${used} of ${max} strikes`}>
+    <div ref={markerRef} className={`flex items-center justify-center ${gap}`} aria-label={`${used} of ${max} strikes`}>
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
@@ -369,15 +371,15 @@ function WordDots({ solved, current }: { solved: number; current: number }) {
   );
 }
 
-/** Fixed example (rev 3, SPLINTER): a first word with two starting letters, two letters found, one strike, two vowel guesses left. */
+/** Fixed example (rev 3 / 4, SPLINTER; twelve strike markers as rooms deal rev 4): a first word with two starting letters, two letters found, one strike, two vowel guesses left. */
 function IntroExample() {
   const keys: [string, string][] = [["E", "bg-primary text-primary-foreground"], ["R", "bg-primary text-primary-foreground"], ["Z", "bg-destructive/80 text-destructive-foreground"], ["T", "bg-secondary text-foreground"]];
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex shrink-0 flex-col items-center gap-1.5">
         <div className="flex flex-col items-center gap-1">
-          <Strikes used={1} max={SO3_RULES.maxStrikes} />
-          <VowelsLeft left={SO3_RULES.maxVowels - 1} max={SO3_RULES.maxVowels} />
+          <Strikes used={1} max={SO4_RULES.maxStrikes} />
+          <VowelsLeft left={SO4_RULES.maxVowels - 1} max={SO4_RULES.maxVowels} />
         </div>
         <Row
           letters={["", "", "", "", "", "", "", ""].map((_, i) => ({ 0: "S", 4: "N", 6: "E", 7: "R" } as Record<number, string>)[i] ?? "")}

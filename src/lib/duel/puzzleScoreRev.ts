@@ -18,11 +18,13 @@
  */
 export const PUZZLE_SCORE_REV = 1;
 /**
- * The revision new puzzles are dealt (19 Oct 2026): 2, the score bands
- * (puzzleScoreRev2.ts), graded on the rev-1 shape and then mapped. A display
- * that asks "rev-1 shape or later" still compares with PUZZLE_SCORE_REV.
+ * The revision new puzzles are dealt (20 Oct 2026): 3, the shared helper
+ * (puzzleScoreRev3.ts) for finish puzzles, graded on the rev-1 shape and then
+ * turned into 110 × progress or 120 + speed; open games keep rev 2's curves
+ * (puzzleScoreRev2.ts). A display that asks "rev-1 shape or later" still
+ * compares with PUZZLE_SCORE_REV.
  */
-export const PUZZLE_SCORE_REV_DEALT = 2;
+export const PUZZLE_SCORE_REV_DEALT = 3;
 
 let dealtOverride: number | null = null;
 /** The puzzleScoreRev new puzzles are stamped with (PUZZLE_SCORE_REV_DEALT unless a check pinned another). */
