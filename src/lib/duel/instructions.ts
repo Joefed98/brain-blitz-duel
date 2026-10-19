@@ -1027,7 +1027,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     score: bandsHelp("letterwheel"),
   },
   strikeout: {
-    goal: "Reveal five long words, one at a time, before ten strikes.",
+    goal: "Reveal five long words, one at a time, before twelve strikes.",
     how: [
       { action: "Tap a letter", detail: "to fill every matching tile in the word." },
       { action: "Three vowel guesses", detail: "per word (the dots)." },
@@ -1036,7 +1036,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
       { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
       { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
-      { action: "Ten strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
+      { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
     ],
     score: bandsHelp("strikeout"),
   },
@@ -1045,7 +1045,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
     how: [
       { action: "Tap a square,", detail: "then a letter." },
       { action: "Every square", detail: "with that number fills." },
-      { action: "Five numbers", detail: "start decoded." },
+      { action: "Six numbers", detail: "start decoded." },
       { action: "Each letter has one number.", detail: "Using a letter again moves it from its old number; Clear empties the selected number.", helpOnly: true },
       { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
       { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
@@ -1058,7 +1058,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Drag a tile onto another", detail: "to swap." },
       { action: "Gold", detail: "is in place; teal belongs elsewhere." },
       { action: "Swaps are limited.", detail: "Running out ends the round." },
-      { action: "The budget", detail: "is 5 more than the fewest swaps that solve the board, and at least 16.", helpOnly: true },
+      { action: "The budget", detail: "is 8 more than the fewest swaps that solve the board.", helpOnly: true },
       { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
       { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
     ],

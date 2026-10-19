@@ -34,6 +34,9 @@
  *   bun scripts/scoring-report.ts --no-arcade --out=<dir> # runs-<part>.json in <dir>
  *   bun scripts/scoring-report.ts --combine=<dir> --write # merge every runs-*.json, write the CSV and
  *                                                         # the generated sections of the report
+ *   bun scripts/scoring-report.ts --combine=<dir> --rev3-doc=docs/scoring-rev3-oct-2026.md
+ *                                                         # puzzleScoreRev 3 (20 Oct 2026): the graded grid and
+ *                                                         # Joe's pass marks for every helper game
  *
  * Optional (OPTIONAL in .github/ci/shards.ts): no pass/fail, never run in CI. Script-only: floats are fine.
  */
@@ -48,6 +51,7 @@ import { gradeRoomAnswer } from "../src/lib/duel/roomGrade.server";
 import { createDraftKeeper, type DraftStorage } from "../src/lib/duel/roomDraft";
 import { createRoomSender, type RoomSendPayload } from "../src/lib/duel/roomSend";
 import { REV2_OPEN_GAMES, rev2ResultOf } from "../src/lib/duel/puzzleScoreRev2";
+import { REV3_GAMES } from "../src/lib/duel/puzzleScoreRev3";
 import { storedScoreParts } from "../src/lib/duel/puzzleScoreRev";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
@@ -68,6 +72,8 @@ const COMBINE = opt("combine");
 const WRITE = args.includes("--write");
 const NO_ARCADE = args.includes("--no-arcade");
 const ARCADE_JSON = opt("arcade-json");
+/** With --combine: also fill the rev-3 results doc's generated sections (grid and pass marks). */
+const REV3_DOC = opt("rev3-doc");
 const ONLY_GAMES = opt("game")?.split(",").filter(Boolean) ?? [];
 const ONLY_CATS = opt("category")?.split(",").filter(Boolean) ?? [];
 const PART =
@@ -93,6 +99,8 @@ export interface Run {
   /** puzzleScoreRev 2's result (0–99 unfinished, 100–200 finished; open games the rev-1 score). */
   result: number | null;
   rev1: number | null;
+  /** puzzleScoreRev 3's progress share (0–1) on an unfinished run. */
+  progress?: number | null;
   /** Share of the clean solve's actions this answer holds (progress levels). */
   share: number | null;
   /** Kit actions in the play (mistakes: actions beyond the clean solve). */
@@ -258,9 +266,9 @@ function gradeBoth(puzzle: PuzzleData, answer: string, msLeft: number) {
     msLeft,
   );
   const extra = (g.extra ?? {}) as Record<string, unknown>;
-  // A finish's time and efficiency shares, from the rev-1 grade the rev-2 result is built on.
-  let timeShare: number | null = null;
-  let effShare: number | null = null;
+  // A finish's time and efficiency shares: rev 3 stores them; on rev 2 they come from the rev-1 grade the result is built on.
+  let timeShare: number | null = typeof extra.time === "number" ? extra.time : null;
+  let effShare: number | null = typeof extra.efficiency === "number" ? extra.efficiency : null;
   if (g.isCorrect && typeof extra.result === "number" && !REV2_OPEN_GAMES.has(puzzle.type)) {
     const g1 = gradeAnswer(
       { ...(puzzle as object), puzzleScoreRev: 1 } as PuzzleData,
@@ -284,6 +292,7 @@ function gradeBoth(puzzle: PuzzleData, answer: string, msLeft: number) {
     finished: g.isCorrect,
     msLeft: g.isCorrect ? msLeft : 0,
     result: typeof extra.result === "number" ? extra.result : null,
+    progress: typeof extra.progressShare === "number" ? extra.progressShare : null,
     rev1: typeof extra.rev1Score === "number" ? extra.rev1Score : null,
     roomScore: room.graded.score,
   };
@@ -356,6 +365,7 @@ function playPuzzle(type: PuzzleType, kit: PuzzleKit, seed: number): Run[] {
       finished: g.finished,
       msLeft: g.msLeft,
       result: g.result,
+      progress: g.progress,
       rev1: g.rev1,
       timeShare: g.timeShare,
       effShare: g.effShare,
@@ -925,8 +935,38 @@ export function summarise(runs: Run[]): GameSummary[] {
         : "unreachable"
       : "—";
     // Proposal: the shared helper scaled on this game's own one-short progress and near-perfect quality.
+    // On puzzleScoreRev 3 (the helper is live) the grid is the graded scores themselves.
     let proposal: GameSummary["proposal"] = null;
-    if (kind === "puzzle") {
+    const live = kind === "puzzle" && rs.some((r) => typeof r.progress === "number");
+    if (live) {
+      const oneShortProg = median(
+        rs.filter((r) => r.level === "one-short" && typeof r.progress === "number").map((r) => r.progress!),
+      );
+      const g = REV3_GAMES[game];
+      proposal = {
+        oneShort: Math.round(oneShortProg * 100) / 100,
+        tFast: g ? g.fastShare : NaN,
+        dataOneShort: g ? Math.round(g.oneShort * 100) / 100 : NaN,
+        broken: 0,
+      };
+      const pk = (k: string) => median(rs.filter((r) => `${r.group}:${r.level}` === k).map((r) => r.score));
+      for (const k of [
+        "progress:p25",
+        "progress:p50",
+        "progress:p75",
+        "progress:one-short",
+        "time:t0",
+        "time:t50",
+        "time:t90",
+        "skill:average",
+        "skill:good",
+        "skill:great",
+        "skill:near",
+      ])
+        proposal[k] = pk(k);
+      proposal.random = Math.max(...spamKeys.map((k) => median(L(k))), 0);
+      proposal.randomP90 = Math.max(...spamKeys.map((k) => q(L(k), 0.9)), 0);
+    } else if (kind === "puzzle") {
       const oneShortProg = median(
         rs.filter((r) => r.level === "one-short" && r.result !== null).map((r) => r.result! / 99),
       );
@@ -1192,6 +1232,13 @@ async function main() {
       }
       console.log("wrote docs/scoring-report-oct-2026.csv (and the generated sections of the .md)");
     }
+    if (REV3_DOC) {
+      let doc = existsSync(REV3_DOC) ? readFileSync(REV3_DOC, "utf8") : "<!-- generated:rev3-grid -->\n<!-- /generated:rev3-grid -->\n\n<!-- generated:rev3-marks -->\n<!-- /generated:rev3-marks -->\n";
+      doc = fill(doc, "rev3-grid", proposalMarkdown(sums));
+      doc = fill(doc, "rev3-marks", rev3MarksMarkdown(sums));
+      writeFileSync(REV3_DOC, doc);
+      console.log(`wrote the rev-3 sections of ${REV3_DOC}`);
+    }
     return;
   }
   const types = selected();
@@ -1272,6 +1319,41 @@ export function proposalMarkdown(sums: GameSummary[]): string {
     const v = (k: string) => fmt(p[k]!);
     rows.push(
       `| ${s.name} | ${p.oneShort}${p.broken ? " ⚠ needs a progress measure" : ""} | ${p.tFast} | ${v("progress:p25")} | ${v("progress:p50")} | ${v("progress:p75")} | ${v("progress:one-short")} | ${v("time:t0")} | ${v("time:t50")} | ${v("time:t90")} | ${v("random")} | ${v("skill:average")} | ${v("skill:good")} | ${v("skill:great")} | ${v("skill:near")} |`,
+    );
+  }
+  return rows.join("\n");
+}
+
+/**
+ * puzzleScoreRev 3's pass marks (Joe, 20 Oct 2026) for every helper game: one short 105–110, a finish at the
+ * buzzer 120, a perfect fast run (90 % of the clock left, no mistakes) 150, half done 40–70, random at most 10
+ * (the worst spam strategy's median), never lower for more progress, time or fewer mistakes, rooms = practice.
+ */
+export function rev3MarksMarkdown(sums: GameSummary[]): string {
+  const rows = [
+    "| Game | one short | buzzer finish | perfect fast | half done | random (median / p90) | monotonic | rooms = practice | misses |",
+    "|" + " --- |".repeat(9),
+  ];
+  for (const s of [...sums].sort(sortGames)) {
+    const p = s.proposal;
+    if (!p || !("dataOneShort" in p)) continue;
+    const misses: string[] = [];
+    const mark = (label: string, v: number, ok: (x: number) => boolean) => {
+      if (!Number.isFinite(v)) return "—";
+      if (!ok(v)) misses.push(label);
+      return ok(v) ? `${v}` : `**${v}** ✗`;
+    };
+    const one = mark("one short", p["progress:one-short"]!, (x) => x >= 105 && x <= 110);
+    const buzzer = mark("buzzer finish", p["time:t0"]!, (x) => x === 120);
+    const fast = mark("perfect fast", p["time:t90"]!, (x) => x === 150);
+    const half = mark("half done", p["progress:p50"]!, (x) => x >= 40 && x <= 70);
+    const rnd = mark("random", p.random!, (x) => x <= 10);
+    const mono = s.checks.find((c) => c.part === "monotonic");
+    const room = s.checks.find((c) => c.part === "room = practice");
+    if (mono && mono.pass === false) misses.push("monotonic");
+    if (room && room.pass === false) misses.push("rooms = practice");
+    rows.push(
+      `| ${s.name} | ${one} | ${buzzer} | ${fast} | ${half} | ${rnd} / ${fmt(p.randomP90!)} | ${mono ? (mono.pass ? "✓" : `✗ ${mono.detail}`) : "—"} | ${room ? (room.pass ? "✓" : `✗ ${room.detail}`) : "—"} | ${misses.length ? misses.join(", ") : "none"} |`,
     );
   }
   return rows.join("\n");

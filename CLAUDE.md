@@ -240,6 +240,24 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   in `puzzleScoreRev2.ts`). `WORDSMITH_REV_TARGET` / `WORDHUNT_REV_TARGET` are the dealt stamps (2); the rev-1 curves
   are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help texts in `instructions.ts` / `introScore.ts` and Mixed
   Signals' finish verdict in `grade.ts` still describe the older stamps (batch 1's files; the PR lists the text).
+- **Puzzle helper, `puzzleScoreRev 3`** (20 Oct 2026, batch 1 of `docs/scoring-report-oct-2026.md`; results, misses
+  and decisions in `docs/scoring-rev3-oct-2026.md`): every finish puzzle scores unfinished = min(110, 110 × progress ÷
+  oneShort) and a correct finish = 120 + 30 × min(1, time-left share ÷ fastShare) × efficiency (`puzzleScoreRev3.ts`,
+  per-game `fastShare` 0.40–0.75 and `oneShort`; mistakes only cut the 30); progress from `puzzleProgress.ts`
+  (server-only: Slider's rows 30/70/90/110, Trail's path, Counterweight/Operator/Brimful credit inside the current
+  step, Strikeout's fifth word, Interlock's words being built, Exact's distance, solver distance on Turntable,
+  Gridlock, Jumbled, Blackout and Hanoi with best-reached tables cached per board, a push bound on Heave; the rest rev
+  1's credit), stored as `extra.progressShare` (finishes: `time`, `efficiency`). Open games keep rev 2's curves. Help
+  and intro numbers come from `puzzleBandsText.ts` (`DEALT_LIMIT_S`, "150 if you finish in about N s with no
+  mistakes"). Checks proving rev 2 pin new deals to it (`pinDealtPuzzleScoreRev(2)`). scoring-rev3-check (~6 s) on
+  `scripts/fixtures/scoring-rev3-runs.json.gz` (`bun scripts/scoring-rev3-record.ts`). `scripts/scoring-report.ts
+  --combine=<dir> --rev3-doc=docs/scoring-rev3-oct-2026.md` rewrites the results tables. Same batch: Interlock's Done
+  needs all 15 tiles (rev 3 grades a short grid as progress) and word tiles get Slider's gold border; Colour Flood
+  `floodRev 3` deals a pool no colour cycling can finish (flood-cycle-check); Strikeout `strikeoutRev 4` (12 strikes),
+  Cryptogrid `codewordRev 3` (a sixth starting letter), Swapword `swapwordRev 3` (minimum + 8), Lookout
+  `wordSearchRev 2` (no theme-name words, `wordSearchBankRev2.server.ts`); a room round's stage state is saved with
+  the draft (`stageState.ts` `persistStageState`, puzzles only), so a reload continues the board
+  (stage-state-reload-check).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
@@ -476,7 +494,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2). Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,
@@ -486,7 +504,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 5. **Rooms are identical for every player.** All content (puzzles, order, arcade seeds,
    schedules) is derived once from the room seed on the server and stored; nothing
    random is generated per device. Answers/solutions stay server-only.
-6. **Finish rule.** `puzzleScoreRev 2` puzzles (the score bands, 19 Oct 2026) measure a finish on the
+6. **Finish rule.** `puzzleScoreRev 3` puzzles (20 Oct 2026) score a correct finish 120 + up to 30 for speed, 150 with the game's
+   fast share of the clock left and no mistakes (`puzzleScoreRev3.ts`). `puzzleScoreRev 2` puzzles (the score bands, 19 Oct 2026) measure a finish on the
    whole clock, with no par plateau: the share of the clock left (half that and half the efficiency share
    on games that measure efficiency), and 150 is only for a perfect run (better than every near-perfect
    kit run; `puzzleScoreRev2.ts`). Older rounds keep the 50 % par rule: full speed bonus when finishing with

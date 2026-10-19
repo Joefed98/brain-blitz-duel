@@ -14,6 +14,7 @@ import {
   STRIKEOUT_REV,
   STRIKEOUT_REV2,
   STRIKEOUT_REV3,
+  STRIKEOUT_REV4,
   decodeStrikeout,
   decodeStrikeout2,
   replayStrikeout,
@@ -170,11 +171,14 @@ export function strikeout2RuleBreak(words: readonly string[], givens: readonly s
  * word, so its key is already used; starting letters are never vowels, so the
  * two vowel guesses stay the player's.
  *
- * Rev 3 (the default since 15 Oct 2026): the same draw, with one more starting
+ * Rev 3 (15 Oct 2026): the same draw, with one more starting
  * consonant on words 1–3 (taken from the same seeded shuffle of the word's
  * consonants; so3ExtraGivens). `rev` 2 deals exactly as before.
+ *
+ * Rev 4 (the default since 19 Oct 2026): rev 3's draw exactly (same words and
+ * starting letters for a seed), stamped 4 for twelve strikes (so2Rules).
  */
-export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV3): StrikeoutPuzzleData {
+export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): StrikeoutPuzzleData {
   const rng = seededRng(seed);
   const rev3 = rev >= STRIKEOUT_REV3;
   for (let attempt = 0; attempt < 20_000; attempt++) {
@@ -204,7 +208,8 @@ export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV3): S
       if (!placed) { ok = false; break; }
     }
     if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2) === null) {
-      return { type: "strikeout", strikeoutRev: rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
+      const stamp = rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
+      return { type: "strikeout", strikeoutRev: stamp, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
     }
   }
   throw new Error("Strikeout: no word set found");

@@ -29,7 +29,7 @@ import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { countSudokuSolutions } from "../src/lib/duel/logic.server";
 import { encodeFloodMoves, floodApply, floodSolved } from "../src/lib/duel/flood";
-import { FLOOD_LIMIT_REV2, FLOOD_REV2_SPARE_MOVES, floodMoveLimit } from "../src/lib/duel/moveLimits";
+import { FLOOD_LIMIT_DEALT, FLOOD_REV2_SPARE_MOVES, floodMoveLimit } from "../src/lib/duel/moveLimits";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { floodLimitWaste } from "../src/lib/duel/scoring";
 import { decodeTileMoves, replayTiles, tilesLayout, TILES_REV_EXTRA } from "../src/lib/duel/tiles";
@@ -119,7 +119,8 @@ console.log(`Jumbled (extra-cell board, tilesRev 2 since 20 Oct): 40 boards, min
 for (let seed = 1; seed <= 40; seed++) {
   const f = withSeededRandom(seed, () => generatePuzzle("flood")) as FloodPuzzleData;
   const lim = f.par + FLOOD_REV2_SPARE_MOVES;
-  if (f.floodRev !== FLOOD_LIMIT_REV2 || f.moveLimit !== lim || floodMoveLimit(f) !== lim) fail(`flood seed ${seed}: limit ${f.moveLimit} rev ${f.floodRev} for par ${f.par}`);
+  // New rounds are floodRev 3 since 19 Oct 2026: the same par + 2 limit on a cycle-proof board (flood-cycle-check).
+  if (f.floodRev !== FLOOD_LIMIT_DEALT || f.moveLimit !== lim || floodMoveLimit(f) !== lim) fail(`flood seed ${seed}: limit ${f.moveLimit} rev ${f.floodRev} for par ${f.par}`);
   if (f.par < 10 || f.par > 14) fail(`flood seed ${seed}: par ${f.par}`);
   const route = gradeAnswer(f, encodeFloodMoves(f.solution!), 30_000);
   if (!route.isCorrect || route.score !== 150) fail(`flood seed ${seed}: the par route scored ${route.score}`);
@@ -143,7 +144,7 @@ for (let seed = 1; seed <= 40; seed++) {
   }
 }
 if (floodLimitWaste(10, 10, 12) !== 1 || floodLimitWaste(12, 10, 12) !== 0 || Math.abs(floodLimitWaste(11, 10, 12) - 0.5) > 1e-9) fail("flood waste factor not full at par, half at par + 1 and 0 at the limit");
-console.log("Colour Flood floodRev 2: 40 boards, par 10–14, limit par + 2; par route 150, a full limit of taps without a flood 0, credit full at par falling to 0 at the limit");
+console.log("Colour Flood (floodRev 3 since 19 Oct): 40 boards, par 10–14, limit par + 2; par route 150, a full limit of taps without a flood 0, credit full at par falling to 0 at the limit");
 
 const givens = new Map<number, number>();
 for (let seed = 1; seed <= 60; seed++) {

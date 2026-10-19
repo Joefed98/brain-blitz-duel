@@ -141,6 +141,12 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       return { text: `${inSpot}/${puzzle.solution.length} pieces in place`, cost: off > 0 ? `${plural(off, "piece")} elsewhere` : null };
     }
     case "tiles": {
+      // puzzleScoreRev 3: progress is solver distance (puzzleProgress.ts), stored on the round as a share.
+      const share = extra?.["progressShare"];
+      if (puzzleScoreRevOf(puzzle) >= 3 && typeof share === "number" && (puzzle.minMoves ?? 0) > 0) {
+        const min = puzzle.minMoves!;
+        return { text: `${Math.round(share * min)}/${min} moves closer`, cost: null };
+      }
       const layout = tilesLayout(puzzle);
       const end = replayTiles(puzzle.frame, decodeTileMoves(answer, layout.count), layout).frame;
       const { startIn, displaced, placed } = tilesCounts(puzzle.frame, end, layout.goal);

@@ -5,10 +5,11 @@
  * A board is a 7 × 7 crossword with 180° symmetric black squares, every run of
  * white cells either a single cell or a word of 3+ letters from the common-word
  * list, 14–18 different letters and 4 numbers given (5 from codewordRev 2: one
- * more picked from the entry by codewordFifthGiven). The constraint solver below
+ * more picked from the entry by codewordFifthGiven; 6 from codewordRev 3, the sixth
+ * by codewordSixthGiven). The constraint solver below
  * proves that the grid plus its givens has exactly one solution when every run
- * may be ANY word of the full dictionary (a fifth given only removes solutions;
- * codeword-check re-proves both). Generation is too slow to run live,
+ * may be ANY word of the full dictionary (a fifth or sixth given only removes
+ * solutions; codeword-check re-proves all three). Generation is too slow to run live,
  * so rooms and practice draw from a committed bank of 1,000 boards
  * (scripts/codeword-bank.ts), picked by the room seed.
  */
@@ -314,12 +315,60 @@ export function codewordFifthGiven(entry: string): number {
   return pool[fmix32(saltOf(entry) ^ saltOf("codeword-fifth-given")) % pool.length]!;
 }
 
-/** The board for a bank entry under a rules revision (rev 1: the entry's four givens; rev 2: plus the fifth). */
+/**
+ * How easy the next guesses are with these numbers known: `guessable` = how many
+ * different hidden numbers are the only unknown left in some word (3+ letters),
+ * `words` = how many words have exactly one unknown number left.
+ */
+export function codewordNextGuesses(cells: readonly number[], known: ReadonlySet<number>): { guessable: number; words: number } {
+  const next = new Set<number>();
+  let words = 0;
+  for (const run of codewordRuns(cells, N)) {
+    if (run.cells.length < 3) continue;
+    const unknown = new Set(run.cells.map((c) => cells[c]!).filter((n) => !known.has(n)));
+    if (unknown.size !== 1) continue;
+    words++;
+    next.add([...unknown][0]!);
+  }
+  return { guessable: next.size, words };
+}
+
+/**
+ * Rev 3's sixth given for a bank entry (from the board alone, no seed): of the
+ * numbers still hidden after rev 2's five givens, the one that, added to them,
+ * makes the most different hidden numbers the only unknown left in some word
+ * (codewordNextGuesses' `guessable`); ties go to the most such words, then to
+ * the number filling the most squares, then to the lowest number.
+ */
+export function codewordSixthGiven(entry: string): number {
+  const [grid = "", order = "", given = ""] = entry.split("|");
+  const cells = [...grid].map((ch) => (ch === "#" ? 0 : order.indexOf(ch) + 1));
+  const five = new Set([...given.split(".").map(Number), codewordFifthGiven(entry)]);
+  const uses = new Map<number, number>();
+  for (const n of cells) if (n > 0) uses.set(n, (uses.get(n) ?? 0) + 1);
+  let best = -1;
+  let bestKey: number[] = [];
+  for (let n = 1; n <= order.length; n++) {
+    if (five.has(n)) continue;
+    const g = codewordNextGuesses(cells, new Set([...five, n]));
+    const key = [g.guessable, g.words, uses.get(n) ?? 0];
+    // Lexicographic: the first differing figure decides; equal keys keep the lower number.
+    const at = key.findIndex((v, i) => v !== bestKey[i]);
+    if (best < 0 || (at >= 0 && key[at]! > bestKey[at]!)) {
+      best = n;
+      bestKey = key;
+    }
+  }
+  return best;
+}
+
+/** The board for a bank entry under a rules revision (rev 1: the entry's four givens; rev 2: plus the fifth; rev 3: plus the sixth). */
 export function codewordFromEntry(entry: string, rev: number = CODEWORD_REV): CodewordPuzzleData {
   const [grid = "", order = "", given = ""] = entry.split("|");
   const cells = [...grid].map((ch) => (ch === "#" ? 0 : order.indexOf(ch) + 1));
   const numbers = given.split(".").map(Number);
   if (rev >= 2) numbers.push(codewordFifthGiven(entry));
+  if (rev >= 3) numbers.push(codewordSixthGiven(entry));
   numbers.sort((a, b) => a - b);
   return {
     type: "codeword",
@@ -353,6 +402,12 @@ export function codewordEntryRuleBreak(entry: string): string | null {
   if (p2.givens.length !== want || new Set(p2.givens.map((g) => g.n)).size !== want) return "rev 2: not five different givens";
   if (!p.givens.every((g) => p2.givens.some((x) => x.n === g.n && x.letter === g.letter))) return "rev 2: lost a rev-1 given";
   if (countCodewordSolutions(p2.cells, p2.numbers, p2.givens, 2) !== 1) return "rev 2: not exactly one solution";
+  // Rev 3: the sixth given is another hidden number and the board stays unique.
+  const p3 = codewordFromEntry(entry, 3);
+  const want3 = codewordGivensFor(3);
+  if (p3.givens.length !== want3 || new Set(p3.givens.map((g) => g.n)).size !== want3) return "rev 3: not six different givens";
+  if (!p2.givens.every((g) => p3.givens.some((x) => x.n === g.n && x.letter === g.letter))) return "rev 3: lost a rev-2 given";
+  if (countCodewordSolutions(p3.cells, p3.numbers, p3.givens, 2) !== 1) return "rev 3: not exactly one solution";
   return null;
 }
 

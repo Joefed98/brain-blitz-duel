@@ -7,12 +7,14 @@
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
 import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzleScoreRev";
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
+import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
+import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { generateBlockParty } from "./blockParty.server";
-import { gradeSubmission, type Graded, type SubmitExtra } from "./grade";
+import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
 import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
@@ -255,8 +257,30 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
+  const rev = puzzleScoreRevOf(puzzle);
+  // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
+  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
   // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
-  return puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
+  return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
+}
+
+/**
+ * A rev-1 grade turned into the rev-3 score: a finish is 120 + speed (cut by the game's mistakes), an unfinished
+ * round 110 × progress ÷ the game's one-short progress (puzzleProgress.ts). The breakdown adds up to the score.
+ */
+function withRev3(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
+  const limit = puzzleTimeLimitMs(puzzle);
+  const parts1 = storedScoreParts(graded.extra);
+  const finished = graded.isCorrect && (parts1 === null || parts1.kind === "finish");
+  const r = finished
+    ? rev3Finish(puzzle.type, graded.storedMs, limit, rev3EfficiencyOverride(puzzle, graded.extra) ?? rev3Efficiency(parts1, graded.storedMs, limit))
+    : rev3Unfinished(
+        puzzle.type,
+        rev3Progress({ puzzle, answer, extra: graded.extra, latestMs: latestTapMs(limit, receivedMsRemaining) }) ??
+          Math.max(0, parts1 ? parts1.base : graded.score) / 110,
+      );
+  const shares = finished ? { time: r.time, efficiency: r.efficiency } : { progressShare: r.progress };
+  return { ...graded, isCorrect: finished, score: r.score, extra: { ...(graded.extra ?? {}), parts: r.parts, rev1Score: graded.score, ...shares } };
 }
 
 /** A rev-1 grade turned into the rev-2 score; the breakdown stored for the reveal adds up to it. */

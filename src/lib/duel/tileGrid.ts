@@ -114,3 +114,27 @@ export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number,
   if (valid && n === TG_TILES) return Math.min(150, 130 + Math.max(0, Math.min(20, speed)));
   return Math.min(150, 8 * Math.max(0, Math.min(TG_TILES, wordTiles)));
 }
+
+/**
+ * The reveal and leaderboard line for a stored Interlock result (display only, 19 Oct 2026).
+ * A finish is all fifteen tiles in a valid grid; anything shorter says how many tiles were placed
+ * and how many sit in a real word (the stored `wordTiles`), never "valid" in gold. Older rounds
+ * without `wordTiles` say whether the grid was valid.
+ */
+export function tileGridResultLine(result: { placed: number; valid: boolean; wordTiles?: number | null }): {
+  text: string;
+  finish: boolean;
+} {
+  const placed = Math.max(0, Math.min(TG_TILES, Math.round(result.placed) || 0));
+  const words =
+    typeof result.wordTiles === "number" && Number.isFinite(result.wordTiles)
+      ? Math.max(0, Math.min(placed, Math.round(result.wordTiles)))
+      : null;
+  if (placed === 0) return { text: "No tiles placed", finish: false };
+  if (placed === TG_TILES && result.valid) return { text: `All ${TG_TILES} tiles · every word valid`, finish: true };
+  const head = placed === TG_TILES ? `All ${TG_TILES} placed` : `${placed} of ${TG_TILES} tiles placed`;
+  if (words === null || words === placed) {
+    return { text: `${head} · ${result.valid ? "every word valid" : "grid not valid"}`, finish: false };
+  }
+  return { text: `${head} · ${words === 0 ? "none" : words} in valid words`, finish: false };
+}

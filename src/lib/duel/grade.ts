@@ -346,7 +346,8 @@ function gradeUnderRev(
     case "tilegrid": {
       // The placed grid is re-checked against the tray and the dictionary here.
       const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
-      isCorrect = verdict.valid;
+      // puzzleScoreRev 3: a finish needs every tile of the tray in the grid (a short valid grid is progress).
+      isCorrect = verdict.valid && (puzzleScoreRevOf(puzzle) < 3 || verdict.placed === puzzle.tray.length);
       correctCount = verdict.placed;
       score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };

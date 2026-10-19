@@ -1773,6 +1773,8 @@ body.game-lock {
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="active"], [data-puzzle-surface] .word-letter-tile[data-puzzle-state="selected"], .word-letter-tile[data-valid-row="true"] { background-image: linear-gradient(to bottom, color-mix(in oklab, var(--category-accent) 22%, var(--letter-tile-top)), var(--letter-tile-bottom)); box-shadow: inset 0 0 0 1px var(--category-accent), var(--letter-tile-shadow) !important; }
 [data-puzzle-surface] .word-letter-tile[data-puzzle-state="error"] { box-shadow: inset 0 0 0 2px var(--destructive), var(--letter-tile-shadow) !important; }
 .interlock-cell { border: 1px solid var(--letter-tile-edge); }
+/* Interlock: a tile in a real word wears Slider's gold border (border-primary on a locked row). Display only. */
+.interlock-cell[data-word-cell="true"] { border: 2px solid var(--primary); }
 .lookout-word-chip, .lookout-word-placeholder { display: inline-flex; align-items: center; justify-content: center; min-width: 72px; height: 28px; max-width: 100%; padding-inline: 8px; border: 1px solid var(--puzzle-edge); border-radius: 5px; font-family: var(--font-mono); font-size: 14px; color: var(--foreground); background: var(--puzzle-surface); }
 .lookout-word-chip { border-color: var(--category-accent); background: var(--primary); color: var(--primary-foreground); }
 .found-word-moment { animation-duration: 600ms; }

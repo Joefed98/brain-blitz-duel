@@ -13,7 +13,7 @@ import {
   BALANCE_LIMIT_REV,
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV2,
+  FLOOD_LIMIT_DEALT,
   FLOOD_REV2_SPARE_MOVES,
   GRAVITY_PROGRESS_REV,
   MEASURE_LIMIT_REV,
@@ -22,7 +22,7 @@ import {
 import { BAL_REV2, BAL_REV2_SCALES } from "./balance";
 import type { PuzzleData } from "./types";
 
-/** Colour Flood floodRev 1 (stored rounds): par (public) plus this many spare taps. New rounds (floodRev 2) get par + FLOOD_REV2_SPARE_MOVES. */
+/** Colour Flood floodRev 1 (stored rounds): par (public) plus this many spare taps. floodRev 2 and 3 get par + FLOOD_REV2_SPARE_MOVES. */
 export const FLOOD_SPARE_MOVES = 2;
 /** Polypotions: the minimum plus this many spare pours, rounded up to a multiple of 5. */
 export const TUBES_SPARE_POURS = 6;
@@ -40,10 +40,11 @@ const upTo5 = (n: number) => Math.max(5, Math.ceil(n / 5) * 5);
 export function stampMoveLimits(puzzle: PuzzleData): PuzzleData {
   switch (puzzle.type) {
     case "flood":
-      // floodRev 2 (14 Oct 2026): par + 2 taps, stored on the puzzle.
+      // floodRev 2 (14 Oct 2026): par + 2 taps, stored on the puzzle. floodRev 3 (19 Oct 2026): the same
+      // limit on a board from the cycle-proof bank (generateFlood, FLOOD_BANK_V3).
       return {
         ...puzzle,
-        floodRev: FLOOD_LIMIT_REV2,
+        floodRev: FLOOD_LIMIT_DEALT,
         moveLimit: Math.max(1, puzzle.par) + FLOOD_REV2_SPARE_MOVES,
       };
     case "tubes":

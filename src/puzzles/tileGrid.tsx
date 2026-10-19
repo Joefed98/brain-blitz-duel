@@ -14,6 +14,7 @@ import {
   TG_TILES,
   TG_TIME_MS,
   tileGridConnected,
+  tileGridResultLine,
   tileGridRuns,
   tileGridWordCells,
 } from "@/lib/duel/tileGrid";
@@ -172,7 +173,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     const used = /^[a-z]$/.test(key) || key === "Enter";
     if (!used || kind !== "down" || event.repeat) return used;
     if (key === "Enter") {
-      if (!(frozen || checking)) void done();
+      if (!(frozen || checking) && allPlaced) void done();
       return true;
     }
     const tile = inTray.find((t) => (tray[t] ?? "").toLowerCase() === key);
@@ -183,6 +184,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   if (!data) return null;
   const frozen = locked || submitted.current;
   const inTray = tray.map((_, i) => i).filter((i) => !placed.includes(i));
+  /** Done needs every tray tile on the board; a shorter grid stays a draft, sent at the time-out. */
+  const allPlaced = placedCount(cells) === TG_TILES;
 
 
   const place = (tile: number, hit: number) => {
@@ -216,7 +219,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     else setSelected((current) => current === tile ? null : tile);
   };
   const done = async () => {
-    if (frozen || checking) return;
+    if (frozen || checking || placedCount(cells) !== TG_TILES) return;
     setChecking(true);
     const results = await Promise.all(runs.map(async (run) => (run.word.length >= 3 ? verify(run.word) : false)));
     setChecking(false);
@@ -226,7 +229,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     });
     const connected = tileGridConnected(cells);
     if (!connected) cells.forEach((c, i) => c && bad.add(i));
-    if (bad.size === 0 && runs.length > 0 && placedCount(cells) >= 3) {
+    if (bad.size === 0 && runs.length > 0 && placedCount(cells) === TG_TILES) {
       submitted.current = true;
       playLock();
       setFinished(true);
@@ -255,6 +258,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             <span
               key={i}
               data-tg-cell={i}
+              data-word-cell={letter && goodCells.has(i) ? "true" : undefined}
               onClick={() => {
                 if (frozen) return;
                 if (tile !== null) tapPlaced(tile);
@@ -267,10 +271,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
                     : "bg-primary text-primary-foreground"
                   : selected !== null ? "bg-primary/15" : "bg-background/40"
               } ${selected === tile && tile !== null ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
-              style={{
-                height: cellSize,
-                boxShadow: letter && goodCells.has(i) ? "inset 0 -3px 0 var(--opponent)" : undefined,
-              }}
+              style={{ height: cellSize }}
             >
               {letter}
             </span>
@@ -294,8 +295,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         ))}
       </div>
       <div data-game-controls="actions" className="flex w-full shrink-0 items-center gap-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          placed <span className="text-primary">{goodCells.size}</span> / {TG_TILES}
+        <span data-tg-hint="" className="min-w-0 truncate whitespace-nowrap font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {allPlaced ? (
+            <>words <span className="text-primary">{goodCells.size}</span> / {TG_TILES}</>
+          ) : (
+            <>Place all {TG_TILES}</>
+          )}
         </span>
         <Button
           type="button"
@@ -308,7 +313,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         </Button>
         <Button
           type="button"
-          disabled={frozen || checking}
+          disabled={frozen || checking || !allPlaced}
+          title={allPlaced ? undefined : `Place all ${TG_TILES} tiles`}
           onClick={() => void done()}
           className="h-11 w-28 font-display font-bold uppercase tracking-widest"
         >
@@ -319,10 +325,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tilegrid") return null;
   const mine = decodeTileGrid(myAnswer ?? "");
   const count = placedCount(mine);
+  // The stored extra says what counted; a finish is all fifteen in a valid grid (display only).
+  const storedPlaced = myExtra?.["placed"];
+  const storedValid = myExtra?.["valid"];
+  const storedWords = myExtra?.["wordTiles"];
+  const line = tileGridResultLine({
+    placed: typeof storedPlaced === "number" ? storedPlaced : count,
+    valid: typeof storedValid === "boolean" ? storedValid : myCorrect,
+    wordTiles: typeof storedWords === "number" ? storedWords : null,
+  });
   return (
     <div data-word-reveal="tilegrid" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex flex-wrap justify-center gap-3">
@@ -337,8 +352,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           </div>
         )}
       </div>
-      <p className={`text-balance text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}>
-        {myCorrect ? `${count} / ${TG_TILES} tiles · valid` : `${count} / ${TG_TILES} · not a valid grid when time ran out`}
+      <p className={`text-balance text-center font-mono text-base font-bold ${line.finish ? "text-primary" : "text-foreground"}`}>
+        {line.text}
       </p>
     </div>
   );

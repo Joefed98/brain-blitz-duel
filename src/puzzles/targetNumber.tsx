@@ -25,6 +25,8 @@ import {
   type TargetStep,
 } from "@/lib/duel/types";
 
+import { useStageState } from "@/lib/duel/stageState";
+import { fastFinishSeconds } from "@/lib/duel/puzzleBandsText";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -149,7 +151,7 @@ function IntroExample() {
         75 × 6 = 450 · 450 + 10 = 460 · 460 + 2 = 462
       </p>
       <p className="text-center text-xs text-muted-foreground">
-        Exact hit scores 120 + speed; off by 1 scores 110, and it falls from there.
+        A hit scores 120 to 150 (150 in about {fastFinishSeconds("target")} s); off by 1 scores 110, less the further off.
       </p>
     </div>
   );
@@ -187,16 +189,19 @@ function TargetStage({
   locked,
   onSubmit,
   onDraftAnswer,
+  stateKey,
 }: PuzzleStageProps & { tiles: number[]; target: number }) {
   const column = useGameColumnLayout();
-  const [pool, setPool] = useState<Tile[]>(() =>
+  // The board belongs to the round (stageState.ts), so a re-mount, or in a room a reload, keeps it.
+  const roundKey = stateKey ?? "target";
+  const [pool, setPool] = useStageState<Tile[]>(roundKey, "targetPool", () =>
     startTiles.map((value, id) => ({ id, value, active: true })),
   );
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [operator, setOperator] = useState<Operator | null>(null);
+  const [history, setHistory] = useStageState<HistoryEntry[]>(roundKey, "targetHistory", () => []);
+  const [selectedId, setSelectedId] = useStageState<number | null>(roundKey, "targetSelected", () => null);
+  const [operator, setOperator] = useStageState<Operator | null>(roundKey, "targetOperator", () => null);
   const [shake, setShake] = useState(0);
-  const [lockedHere, setLockedHere] = useState(false);
+  const [lockedHere, setLockedHere] = useStageState<boolean>(roundKey, "targetLocked", () => false);
   // Presentation only: the last combine (for its pop) and the exact hit's flight into the target.
   const [combine, setCombine] = useState<{ id: number; consumed: number; n: number } | null>(null);
   const [flight, setFlight] = useState<SolveFlight | null>(null);

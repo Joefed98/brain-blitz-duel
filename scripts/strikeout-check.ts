@@ -1,10 +1,12 @@
 /**
- * Strikeout check (strikeoutRev 3, 15 Oct 2026: rev 2's five 7–8 letter words
+ * Strikeout check (strikeoutRev 4, 19 Oct 2026: rev 3 with twelve strikes and
+ * 1.25 per strike left; strikeoutRev 3, 15 Oct 2026: rev 2's five 7–8 letter words
  * one at a time with ten shared strikes, three vowel guesses per word, one more
  * starting letter on words 1–3 and 1.5 per strike left; strikeoutRev 2, 14 Oct
  * 2026; rev 1 and rev 2 stored rounds unchanged):
  *   1. the same seed deals the same puzzle (room and practice paths), and a room
- *      seed gives every player the same board; new puzzles are stamped rev 3;
+ *      seed gives every player the same board; new puzzles are stamped rev 4, and
+ *      the rev-3 deal (generateStrikeout(seed, 3)) is the same board bar the stamp;
  *   2. nothing sent to the phone (public puzzle, live-check replies) carries a
  *      hidden word or an unearned letter: the public half has only the starting
  *      patterns, replies show the current word as far as it is earned and later
@@ -39,7 +41,18 @@
  *   7. rev-2 legacy identity: 3,510 stored-round cases recorded on unmodified
  *      main before strikeoutRev 3 (scripts/fixtures/strikeout-rev2-legacy.json.gz,
  *      recorded by scripts/strikeout-rev2-legacy-record.ts) grade, store,
- *      live-check and reveal exactly as main did.
+ *      live-check and reveal exactly as main did;
+ *   8. rev 4 (twelve strikes): eleven strikes play on and the twelfth ends the
+ *      round in the replay, the live check and the server grader (a list with
+ *      eleven misses finishes on rev 4 and not on the same rev-3 board), the
+ *      reveal draws twelve markers; anchors: perfect 150, twelve left at the
+ *      buzzer 135, 1.25 per strike left (rounded), minimum finish 121, every
+ *      finish 121–150 beats every unfinished run (≤ 110); random mashing on 30
+ *      room seeds (rev 4) never finishes;
+ *   9. rev-3 legacy identity: stored-round cases recorded on unmodified main
+ *      before strikeoutRev 4 (scripts/fixtures/strikeout-rev3-legacy.json.gz,
+ *      recorded by scripts/strikeout-rev3-legacy-record.ts; nine to thirteen
+ *      strikes among them) grade, store, live-check and reveal exactly as main did.
  *
  *   bun scripts/strikeout-check.ts
  */
@@ -58,7 +71,11 @@ import {
   SO3_MAX_STRIKES,
   SO3_MAX_VOWELS,
   SO3_RULES,
+  SO4_MAX_STRIKES,
+  SO4_RULES,
   SO_MAX_STRIKES,
+  so2Rules,
+  strikeoutRevOf,
   decodeStrikeout2,
   encodeStrikeout2,
   replayStrikeout2,
@@ -105,7 +122,7 @@ check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)
     const b = buildRoomPuzzles({ categories: ["word"], seed });
     check(`room seed ${seed}: same order`, JSON.stringify(a.roundOrder) === JSON.stringify(b.roundOrder));
     check(`room seed ${seed}: same Strikeout board`, JSON.stringify(a.puzzles[at]) === JSON.stringify(b.puzzles[at]));
-    check(`room seed ${seed}: rev 3`, (a.puzzles[at] as StrikeoutPuzzleData).strikeoutRev === 3);
+    check(`room seed ${seed}: rev 4`, (a.puzzles[at] as StrikeoutPuzzleData).strikeoutRev === 4);
   }
   check("a word room deals Strikeout", dealt === 5);
 }
@@ -113,7 +130,12 @@ check("different seeds differ", JSON.stringify(gen(5)) !== JSON.stringify(gen(6)
   const p = gen(31337);
   check("stamped speedPar 1", (p as { speedPar?: number }).speedPar === 1);
   check("stamped puzzleScoreRev 1", (p as { puzzleScoreRev?: number }).puzzleScoreRev === 1);
-  check("stamped strikeoutRev 3", p.strikeoutRev === 3);
+  check("stamped strikeoutRev 4", p.strikeoutRev === 4);
+  for (const seed of [1, 77, 4242, 31337, 0x7fff_ffff]) {
+    const p4 = generateStrikeout(wordGameSeed("strikeout", seed));
+    const p3 = generateStrikeout(wordGameSeed("strikeout", seed), 3);
+    check(`seed ${seed}: rev-4 deal is the rev-3 board bar the stamp`, p4.strikeoutRev === 4 && p3.strikeoutRev === 3 && JSON.stringify({ ...p4, strikeoutRev: 3 }) === JSON.stringify(p3));
+  }
   check("time limit 100 s", LIMIT === 100_000 && !("timeLimitMs" in p));
 }
 
@@ -277,10 +299,10 @@ check(`generation under 1 s (worst ${worstMs.toFixed(0)} ms)`, worstMs < 1000);
   check("rev-2 reveal keeps five strike markers", renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: { ...full, strikeoutRev: 2 }, myAnswer: "0A,0O", myMsRemaining: 0, timeLimitMs: LIMIT } as never)).includes(' of 5 strikes"'));
 }
 
-// 5. Score anchors (rev 3 on a room puzzle; rev 2 on the same seed's rev-2 deal).
+// 5. Score anchors (rev 3 on a room puzzle restamped rev 3, the rev-3 deal; rev 2 on the same seed's rev-2 deal).
 const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 1 }) as StrikeoutPuzzleData;
 {
-  const p = gen(2024);
+  const p = { ...gen(2024), strikeoutRev: 3 } as StrikeoutPuzzleData;
   const words = p.words!;
   const givens = p.givens!;
   const grade = (actions: So2Action[], ms: number) => gradeAnswer(p, encodeStrikeout2(actions), ms).score;
@@ -313,7 +335,8 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     }
   check(`rev 3: unfinished tops at 110 (max ${maxU})`, maxU === 110);
   check(`rev 3: every finish 122-150 (${minF}-${maxF})`, minF === 122 && maxF === 150);
-  // Random keypad mashing on room seeds (rev 3): reported; every mashing run must still sit below every finish.
+  // Random keypad mashing on room seeds (rooms deal rev 4 since 19 Oct 2026; each board under its own rules):
+  // reported; every mashing run must still sit below every finish.
   const rng = (() => { let a = 12345; return () => ((a = (Math.imul(a, 1103515245) + 12345) >>> 0) / 0x1_0000_0000); })();
   const randomScores: number[] = [];
   const alphaScores: number[] = [];
@@ -327,7 +350,7 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     for (const [mode, out] of [["random", randomScores], ["alphabet", alphaScores]] as const) {
       const acts: So2Action[] = [];
       for (let t = 0; t < 100; t++) {
-        const st = replayStrikeout2(rp.words!, rp.givens!, acts, isWord, SO3_RULES);
+        const st = replayStrikeout2(rp.words!, rp.givens!, acts, isWord, so2Rules(strikeoutRevOf(rp)));
         if (st.done || st.over) break;
         const shown = new Set([...rp.givens![st.word]!].filter((ch) => ch !== "_"));
         const open = [...ALPHA].filter((l) => !st.guessed.includes(l) && !shown.has(l) && !(VOWELS.includes(l) && st.vowelsUsed >= SO3_MAX_VOWELS));
@@ -339,9 +362,9 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
     }
   }
   const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[xs.length >> 1]!;
-  check(`rev 3: mashing never finishes (${mashFinished} of 60) and stays at or below 110`, mashFinished === 0 && Math.max(...randomScores, ...alphaScores) <= 110);
+  check(`rooms (rev 4): mashing never finishes (${mashFinished} of 60) and stays at or below 110`, mashFinished === 0 && Math.max(...randomScores, ...alphaScores) <= 110);
   console.log(
-    `anchors (rev 3): perfect ${grade(solveAll, LIMIT)}, ten left at the buzzer ${grade(solveAll, 0)}, min finish ${grade([...strikesOn(0, 9), ...solveAll], 0)}, four words 110, nothing 0; random mashing median ${median(randomScores)} (max ${Math.max(...randomScores)}), alphabet ${median(alphaScores)} (max ${Math.max(...alphaScores)})`,
+    `anchors (rev 3): perfect ${grade(solveAll, LIMIT)}, ten left at the buzzer ${grade(solveAll, 0)}, min finish ${grade([...strikesOn(0, 9), ...solveAll], 0)}, four words 110, nothing 0; room (rev 4) random mashing median ${median(randomScores)} (max ${Math.max(...randomScores)}), alphabet ${median(alphaScores)} (max ${Math.max(...alphaScores)})`,
   );
 }
 
@@ -494,10 +517,108 @@ const stamp = (p: StrikeoutPuzzleData) => ({ ...p, speedPar: 1, puzzleScoreRev: 
   console.log(`rev-2 legacy identity: ${same} / ${fixture.cases.length} cases (${reveals} reveals) as ${fixture.recordedFrom}`);
 }
 
+// 8. Rev 4: twelve strikes shared; the server grader and live check enforce them.
+{
+  const words = ["BLANKET", "PLATFORM", "JOURNEY", "SHIPPING", "WIZARDS"];
+  const givens = ["_L___E_", "P_______", "J____N_", "__I_____", "W______"];
+  const rev4 = { type: "strikeout", strikeoutRev: 4, rows: 5, length: 8, givens, words } as StrikeoutPuzzleData;
+  const rp = (actions: So2Action[]) => replayStrikeout2(words, givens, actions, isWord, SO4_RULES);
+  check("rev 4 rules: twelve strikes, rev 3's vowels", SO4_MAX_STRIKES === 12 && so2Rules(4) === SO4_RULES && SO4_RULES.maxVowels === SO3_MAX_VOWELS && so2Rules(3) === SO3_RULES);
+  const eleven = [..."QZXVWCDFGHM"].map((l) => g(0, l));
+  let st = rp(eleven);
+  check(`rev 4: eleven strikes play on (${st.strikes})`, !st.over && st.strikes === 11);
+  check("rev 3: the same eleven end the round at ten", replayStrikeout2(words, givens, eleven, isWord, SO3_RULES).over);
+  st = rp([...eleven, s(0, "BLANKET"), g(1, "Z")]);
+  check("rev 4: the twelfth strike (on word 2) ends it", st.over && st.strikes === SO4_MAX_STRIKES && st.word === 1 && st.solvedWords === 1);
+  st = rp([...eleven, g(0, "J"), s(0, "BLANKET")]);
+  check("rev 4: after the twelfth strike nothing counts", st.over && st.outcomes[12] === "ignored" && st.solvedWords === 0);
+  st = rp([g(0, "A"), g(0, "O"), g(0, "U"), g(0, "I")]);
+  check("rev 4: fourth vowel refused as rev 3", st.outcomes[3] === "vowels" && st.vowelsUsed === 3);
+  const v = checkStrikeoutMoves(rev4, encodeStrikeout2(eleven));
+  check("rev 4 live check: eleven strikes, not over", v.strikes === 11 && !v.over && v.vowelsLeft === 3);
+  check("rev 4 live check: twelve strikes, over", checkStrikeoutMoves(rev4, encodeStrikeout2([...eleven, g(0, "J")])).over);
+  const full = { ...rev4, speedPar: 1, puzzleScoreRev: 1 } as StrikeoutPuzzleData;
+  const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: full, myAnswer: "0A,0O", myMsRemaining: 0, timeLimitMs: LIMIT } as never));
+  check("rev-4 reveal draws twelve strike markers", html.includes('data-strikeout-rev="4"') && html.includes('aria-label="1 of 12 strikes"'));
+  check("rev-3 reveal keeps ten strike markers", renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: { ...full, strikeoutRev: 3 }, myAnswer: "0A,0O", myMsRemaining: 0, timeLimitMs: LIMIT } as never)).includes('aria-label="1 of 10 strikes"'));
+
+  // Anchors on a dealt rev-4 room puzzle, through the server grader.
+  const p = gen(2024);
+  check("anchor puzzle is rev 4", p.strikeoutRev === 4);
+  const p3 = { ...p, strikeoutRev: 3 } as StrikeoutPuzzleData;
+  const pw = p.words!;
+  const pg = p.givens!;
+  const grade = (actions: So2Action[], ms: number, puzzle: StrikeoutPuzzleData = p) => gradeAnswer(puzzle, encodeStrikeout2(actions), ms);
+  const solveAll = pw.map((w, i) => s(i, w));
+  const strikesOn = (word: number, n: number) => [...ALPHA].filter((l) => !pw[word]!.includes(l) && !pg[word]!.includes(l) && !VOWELS.includes(l)).slice(0, n).map((l) => g(word, l));
+  check("rev 4: nothing scores 0", grade([], LIMIT).score === 0);
+  check("rev 4: perfect run 150", grade(solveAll, LIMIT).score === 150);
+  check("rev 4: twelve strikes left at the buzzer 135", grade(solveAll, 0).score === 135);
+  for (let k = 0; k < SO4_MAX_STRIKES; k++) {
+    const want = 120 + Math.round(1.25 * (SO4_MAX_STRIKES - k));
+    const got = grade([...strikesOn(0, k), ...solveAll], 0).score;
+    check(`rev 4: ${k} strikes at the buzzer ${want} (${got})`, got === want);
+  }
+  const elevenThenSolve = [...strikesOn(0, 11), ...solveAll];
+  check("rev 4 grader: eleven strikes then the words finish (121 at the buzzer)", grade(elevenThenSolve, 0).isCorrect && grade(elevenThenSolve, 0).score === 121);
+  check("rev 3 grader: the same list on the rev-3 board does not finish", !grade(elevenThenSolve, 0, p3).isCorrect);
+  const twelveThenSolve = [...strikesOn(0, 12), ...solveAll];
+  check("rev 4 grader: twelve strikes end it (no finish, starting letters only: 0)", !grade(twelveThenSolve, LIMIT).isCorrect && grade(twelveThenSolve, LIMIT).score === 0);
+  check("rev 4: four words solved, then twelve strikes: 110", grade([...solveAll.slice(0, 4), ...strikesOn(4, 12)], LIMIT).score === 110);
+  let maxU = 0, minF = 999, maxF = 0;
+  for (let solved = 0; solved <= 4; solved++)
+    for (let t = 0; t <= 8; t++) maxU = Math.max(maxU, scoreStrikeout2({ solvedWords: solved, foundTiles: t, strikes: 12, done: false }, LIMIT, LIMIT, SO4_RULES));
+  for (let k = 0; k < SO4_MAX_STRIKES; k++)
+    for (const ms of [0, 1, LIMIT / 4, LIMIT / 2, LIMIT]) {
+      const sc = scoreStrikeout2({ solvedWords: 5, foundTiles: 0, strikes: k, done: true }, ms, LIMIT, SO4_RULES);
+      minF = Math.min(minF, sc);
+      maxF = Math.max(maxF, sc);
+    }
+  check(`rev 4: unfinished tops at 110 (max ${maxU})`, maxU === 110);
+  check(`rev 4: every finish 121-150 (${minF}-${maxF})`, minF === 121 && maxF === 150);
+  console.log(`anchors (rev 4): perfect ${grade(solveAll, LIMIT).score}, twelve left at the buzzer ${grade(solveAll, 0).score}, min finish ${grade(elevenThenSolve, 0).score}, four words 110, nothing 0`);
+}
+
+// 9. Rev-3 legacy identity: stored rev-3 rounds grade, store, live-check and reveal exactly as main did.
+{
+  interface LegacyCase {
+    puzzle: StrikeoutPuzzleData;
+    answer: string;
+    ms: number;
+    graded: unknown;
+    view: unknown;
+    reveal: string | null;
+  }
+  const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/strikeout-rev3-legacy.json.gz", import.meta.url))).toString("utf8")) as {
+    recordedFrom: string;
+    cases: LegacyCase[];
+  };
+  let same = 0, reveals = 0;
+  const diffs: string[] = [];
+  for (const c of fixture.cases) {
+    const graded = gradeAnswer(c.puzzle as PuzzleData, c.answer, c.ms);
+    const view = checkStrikeoutMoves(c.puzzle, c.answer);
+    let ok = JSON.stringify(graded) === JSON.stringify(c.graded) && JSON.stringify(view) === JSON.stringify(c.view);
+    if (c.reveal !== null) {
+      reveals++;
+      const html = renderToStaticMarkup(createElement(strikeoutPuzzle.Reveal, { puzzle: c.puzzle, myAnswer: (c.graded as { answer: string }).answer, myMsRemaining: (c.graded as { storedMs: number }).storedMs, timeLimitMs: LIMIT } as never));
+      ok &&= html === c.reveal;
+    }
+    if (ok) same++;
+    else if (diffs.length < 5) diffs.push(`"${c.answer}" @ ${c.ms}: ${JSON.stringify(graded)} vs ${JSON.stringify(c.graded)}`);
+  }
+  check(`rev-3 legacy identity: ${same} / ${fixture.cases.length} cases (${reveals} reveals) as ${fixture.recordedFrom}${diffs.length ? `\n  ${diffs.join("\n  ")}` : ""}`, same === fixture.cases.length && fixture.cases.length >= 3000);
+  check("rev-3 fixture is rev 3", fixture.cases.every((c) => c.puzzle.strikeoutRev === 3));
+  const finishes = fixture.cases.filter((c) => (c.graded as { isCorrect: boolean }).isCorrect).length;
+  const overs = fixture.cases.filter((c) => (c.view as { over: boolean }).over && (c.view as { strikes: number }).strikes === 10).length;
+  check(`rev-3 fixture covers finishes (${finishes}) and ten-strike ends (${overs})`, finishes > 0 && overs > 0);
+  console.log(`rev-3 legacy identity: ${same} / ${fixture.cases.length} cases (${reveals} reveals) as ${fixture.recordedFrom}`);
+}
+
 if (failures.length) {
   console.log(failures.slice(0, 40).join("\n"));
   console.log(`FAIL: ${failures.length} of ${checks} Strikeout checks`);
   process.exit(1);
 }
 assert.ok(checks > 0);
-console.log(`PASS: ${checks} Strikeout checks (determinism, secrecy, rev-3 generator rules over 400 seeds, worst ${worstMs.toFixed(0)} ms, rev-2 deal identity, rev-2 and rev-3 replay rules, score anchors, random play, rev-1 and rev-2 legacy identity)`);
+console.log(`PASS: ${checks} Strikeout checks (determinism, secrecy, rev-3 generator rules over 400 seeds, worst ${worstMs.toFixed(0)} ms, rev-2 deal identity, rev-2, rev-3 and rev-4 replay rules, score anchors, random play, rev-1, rev-2 and rev-3 legacy identity)`);

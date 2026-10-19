@@ -77,7 +77,7 @@ import {
   submitAnswer,
 } from "@/lib/duel/api";
 import { serverNow, toMs } from "@/lib/duel/clock";
-import { clearStageState } from "@/lib/duel/stageState";
+import { clearStageState, persistStageState } from "@/lib/duel/stageState";
 import { createRoomSender } from "@/lib/duel/roomSend";
 import { createDraftKeeper } from "@/lib/duel/roomDraft";
 import { roomPuzzleCloseMs, roomTimeoutMs } from "@/lib/duel/roomClose";
@@ -321,6 +321,9 @@ function DuelScreen() {
   });
   if (heldPuzzle.current.key !== stateKey) heldPuzzle.current = { key: stateKey, value: incoming };
   const puzzle = heldPuzzle.current.value;
+  // The live puzzle round's stage inputs are kept on the device too (stageState.ts), so a reload continues
+  // the same board. Never an arcade run (its sim replays its input log); practice never marks a round.
+  persistStageState(puzzle && !isArcadeScreenType(puzzle.type) ? stateKey : "");
   const currentReveal =
     revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 

@@ -18,6 +18,11 @@
  * finish. The replay, view and scorer take the rules for the stored rev
  * (so2Rules); rev-2 rounds keep five strikes, two vowels and 3 per strike.
  *
+ * Rev 4 (`strikeoutRev: 4`, 19 Oct 2026): rev 3 with twelve strikes, and 1.25
+ * points per strike left on a finish (twelve left = 15, the same top as rev 3's
+ * ten × 1.5). Words, starting letters, vowels and actions are rev 3's; rev-3
+ * rounds keep ten strikes and 1.5 per strike.
+ *
  * Both: the server replays the list against the stored words; a solve that is
  * not a dictionary word is rejected with no effect, so the grader stores the
  * canonical list (rejected solves and anything after the round ended removed)
@@ -248,6 +253,12 @@ export const SO3_STRIKE_POINTS = 1.5;
 /** Words 1–3 (indexes below this) start with one more letter showing than rev 2's so2GivenCount. */
 export const SO3_EXTRA_GIVEN_WORDS = 3;
 
+// Rev 4 (19 Oct 2026): rev 3 with twelve strikes.
+export const STRIKEOUT_REV4 = 4;
+export const SO4_MAX_STRIKES = 12;
+/** 1.25 per strike left: twelve left = 15, so a finish still tops out at 120 + 15 + PAR(15) = 150. */
+export const SO4_STRIKE_POINTS = 1.25;
+
 /** The per-rev rules the rev-2 style replay, view and scorer read. */
 export interface So2Rules {
   /** Strikes (shared over the round) that end it. */
@@ -260,10 +271,11 @@ export interface So2Rules {
 
 export const SO2_RULES: So2Rules = { maxStrikes: SO_MAX_STRIKES, maxVowels: SO2_MAX_VOWELS, strikePoints: SO2_STRIKE_POINTS };
 export const SO3_RULES: So2Rules = { maxStrikes: SO3_MAX_STRIKES, maxVowels: SO3_MAX_VOWELS, strikePoints: SO3_STRIKE_POINTS };
+export const SO4_RULES: So2Rules = { maxStrikes: SO4_MAX_STRIKES, maxVowels: SO3_MAX_VOWELS, strikePoints: SO4_STRIKE_POINTS };
 
-/** The rules for a stored rev (2 or 3; rev 1 has its own replay). */
+/** The rules for a stored rev (2, 3 or 4; rev 1 has its own replay). */
 export function so2Rules(rev: number): So2Rules {
-  return rev >= STRIKEOUT_REV3 ? SO3_RULES : SO2_RULES;
+  return rev >= STRIKEOUT_REV4 ? SO4_RULES : rev >= STRIKEOUT_REV3 ? SO3_RULES : SO2_RULES;
 }
 
 /** Rev 3: extra starting letters on word w (one on words 1–3, none after). */
@@ -336,7 +348,7 @@ export function so2GivenLetters(givens: readonly string[], w: number): Set<strin
  * refused free, a wrong word is a strike, the right one completes the word. A
  * completed word (by guesses or Solve) moves play to the next word with a fresh
  * keypad. Strikes are shared: the rules' maxStrikes (five under rev 2, ten
- * under rev 3) end the round.
+ * under rev 3, twelve under rev 4) end the round.
  */
 export function replayStrikeout2(
   words: readonly string[],
@@ -448,6 +460,7 @@ export function so2Tally(state: So2State): So2Tally {
  * Rev 2: all five solved = 120 + 3 per strike left + PAR(15) (123–150).
  * Rev 3: all five solved = 120 + 1.5 per strike left (rounded as finishParts
  * rounds each part) + PAR(15) (122–150).
+ * Rev 4: all five solved = 120 + 1.25 per strike left (rounded) + PAR(15) (121–150).
  * Unfinished (both): 30 per word solved + 2 per tile found in the current word,
  * cap 110. Starting letters earn nothing.
  */
