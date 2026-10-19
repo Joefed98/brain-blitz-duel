@@ -51,9 +51,10 @@ import {
   revisionStamps,
   roundRecords,
 } from "../src/lib/duel/betaRecord.server";
-import { puzzleTimeLimitMs, typeTimeLimitMs } from "../src/lib/duel/registry";
+import { puzzleDurationMs, puzzleTimeLimitMs, typeTimeLimitMs, usesArcadeClock } from "../src/lib/duel/registry";
+import { ARCADE_LATE_RUN_MS, puzzleCloseReason, roomPuzzleCloseMs } from "../src/lib/duel/roomClose";
 import { finishGame, leaveBetweenRoundScreen, setPhase } from "../src/lib/duel/roomPhase.server";
-import type { DuelPlayerRow } from "../src/lib/duel/types";
+import type { DuelPlayerRow, PuzzleData } from "../src/lib/duel/types";
 import { memoryDb } from "./fixtures/memoryDb";
 
 let passes = 0;
@@ -231,11 +232,41 @@ check(
   "wiring: the clock's start (intro → puzzle) records round_started once, at the phase's own stamp",
 );
 check(
-  /const allIn = waitingOn\.length > 0 && answered >= waitingOn\.length;\s*const timeUp = elapsed > puzzleDurationMs\(puzzle\) \+ 800;\s*if \(allIn \|\| timeUp\) \{\s*const at = await setPhase\(client, room\.id, round, "puzzle", "reveal"\);\s*if \(at\)\s*await recordRoomEvent\([\s\S]*event: "round_ended",\s*reason: allIn \? "all_answered" : "timer",/.test(
+  /const reason = puzzleCloseReason\(puzzle, elapsed, answered, waitingOn\.length\);\s*if \(reason\) \{\s*const at = await setPhase\(client, room\.id, round, "puzzle", "reveal"\);\s*if \(at\)\s*await recordRoomEvent\([\s\S]*event: "round_ended",\s*reason,/.test(
     puzzleBranch,
   ),
   "wiring: advancePhaseFn closes the round as before and records 'all_answered' or 'timer' from the branch that closed it",
 );
+// The close decision itself (roomClose.ts puzzleCloseReason, 19 Oct 2026): the same reasons as the
+// old inline `allIn ? "all_answered" : "timer"`, with arcade-clock rounds' timer 5 s later.
+{
+  const puzzleRound = { type: "wordsmith" } as PuzzleData;
+  const arcadeRound = { type: "breaker", seed: 1 } as unknown as PuzzleData;
+  for (const [label, round] of [["puzzle", puzzleRound], ["arcade", arcadeRound]] as const) {
+    const close = puzzleDurationMs(round) + 800 + (usesArcadeClock(round.type) ? ARCADE_LATE_RUN_MS : 0);
+    check(roomPuzzleCloseMs(round) === close, `close reason (${label}): the phase closes at ${roomPuzzleCloseMs(round)} ms, not ${close}`);
+    const cases: [number, number, number, ReturnType<typeof puzzleCloseReason>][] = [
+      [1_000, 3, 3, "all_answered"], // everyone in early
+      [close + 1, 3, 3, "all_answered"], // both hold: all answered wins, as before
+      [close + 1, 2, 3, "timer"], // the clock
+      [close, 2, 3, null], // not past the close yet
+      [close - 4_000, 2, 3, null], // inside the arcade grace (or long before a puzzle's close)
+      [close + 1, 0, 0, "timer"], // nobody to wait on: only the clock closes it
+      [1_000, 0, 0, null],
+    ];
+    for (const [elapsed, answered, waitingOn, want] of cases)
+      check(
+        puzzleCloseReason(round, elapsed, answered, waitingOn) === want,
+        `close reason (${label}): ${elapsed} ms, ${answered}/${waitingOn} answered gave ${puzzleCloseReason(round, elapsed, answered, waitingOn)}, not ${want}`,
+      );
+  }
+  // Inside the 5 s arcade grace a puzzle would already have closed on the timer; the arcade round has not.
+  const late = puzzleDurationMs(arcadeRound) + 800 + 2_000;
+  check(
+    puzzleCloseReason(arcadeRound, late, 2, 3) === null && puzzleCloseReason(arcadeRound, late, 3, 3) === "all_answered",
+    "close reason: the arcade grace delays only the timer, never an all-answered close",
+  );
+}
 const submit = slice("export const submitAnswerFn", "export const readyUpFn");
 check(
   /if \(answered >= waitingOn\) \{\s*const at = await setPhase\(client, room\.id, data\.roundNumber, "puzzle", "reveal"\);\s*if \(at\)\s*await recordRoomEvent\([\s\S]*reason: "all_answered",/.test(

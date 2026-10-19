@@ -5,7 +5,7 @@ import { ArcadeCelebration, type CelebrationKind } from "@/components/duel/Arcad
 import { WaitingLine } from "@/components/duel/Dots";
 import { arcadeWorldOf } from "@/lib/arcade/arcadeFxGames.renderer";
 import { recordArcadeRoomBest, runKey } from "@/lib/fx/arcadeBest";
-import { CLAY_FREE_EMPTY_SHOTS } from "@/lib/arcade/clayShoot";
+import { CLAY_FREE_EMPTY_SHOTS, CLAY_REV_BANDS } from "@/lib/arcade/clayShoot";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { ARCADE_REVEAL_RENDERERS, revealWorldH } from "@/lib/arcade/revealRenderers";
 import type { PuzzleData } from "@/lib/duel/types";
@@ -47,14 +47,19 @@ interface ArcadeRevealProps {
  * stored and never recomputed: Pull! clayRev 4's empty shots and their cost (#53).
  * Rounds without the stored fields get no rows.
  */
-export function storedCostRows(type: string, extra: Record<string, unknown> | null | undefined): ArcadeRevealData["tiles"] {
+export function storedCostRows(
+  type: string,
+  extra: Record<string, unknown> | null | undefined,
+  clayRev?: number,
+): ArcadeRevealData["tiles"] {
   if (type !== "clayshoot" || !extra) return [];
   const empty = extra["emptyShots"];
   const cost = extra["emptyShotCost"];
   if (typeof empty !== "number" || typeof cost !== "number") return [];
   return [
     { label: `Hit nothing (${CLAY_FREE_EMPTY_SHOTS} free)`, value: String(empty) },
-    { label: "Empty-shot cost", value: cost > 0 ? `−${cost}` : "0" },
+    // clayRev 7: the cost comes off the total before its curve, not off the score.
+    { label: (clayRev ?? 0) >= CLAY_REV_BANDS ? "Empty-shot cost (total)" : "Empty-shot cost", value: cost > 0 ? `−${cost}` : "0" },
   ];
 }
 

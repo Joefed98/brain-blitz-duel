@@ -139,11 +139,21 @@ export function useDuel(roomCode: string): DuelState {
     };
   }, [userId, duel?.status, duel?.current_round, duel?.phase]);
 
-  // Re-measure the shared clock the moment the room starts playing.
+  // Re-measure the shared clock the moment the room starts playing, and again at every round, so a
+  // device clock that moved since (lib/duel/clock.ts) never carries into a round's taps.
   useEffect(() => {
     if (duel?.status !== "in_progress") return;
     void calibrateServerClock();
-  }, [duel?.id, duel?.status]);
+  }, [duel?.id, duel?.status, duel?.current_round]);
+
+  // And whenever the app comes back to the foreground (a phone asleep, the app switched away).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void calibrateServerClock();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const me = userId ? (players.find((p) => p.user_id === userId) ?? null) : null;
   const roomPlayers = players.filter((p) => p.status !== "left");

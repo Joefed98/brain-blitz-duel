@@ -424,6 +424,8 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   whack: (r, s) => {
+    // whackRev 1 (lifted) and 2 (banded): these are the run's total before it becomes the score, not score points.
+    const mapped = rawTotalMapped(r);
     const penalties = [
       n(r, "wrong") > 0 ? `−${3 * n(r, "wrong")} wrong` : "",
       n(r, "bombs") > 0 ? `−${5 * n(r, "bombs")} hedgehogs` : "",
@@ -432,7 +434,10 @@ const BUILDERS: Record<string, Builder> = {
     ].filter(Boolean);
     return {
       axis: { value: n(r, "hits"), max: n(r, "totalTargets"), label: "Hits" },
-      lines: [`${n(r, "hits")} / ${n(r, "totalTargets")} hits → ${s}`, ...(penalties.length ? [penalties.join(" · ")] : [])],
+      lines: [
+        `${n(r, "hits")} / ${n(r, "totalTargets")} hits → ${s}`,
+        ...(penalties.length ? [mapped ? `Total ${penalties.join(" · ")}` : penalties.join(" · ")] : []),
+      ],
       tiles: [
         { label: "Wrong colour", value: String(n(r, "wrong")) },
         { label: "Hedgehogs", value: String(n(r, "bombs")) },
@@ -445,7 +450,9 @@ const BUILDERS: Record<string, Builder> = {
     axis: { value: n(r, "hits"), max: n(r, "total") || 25, label: "Clays" },
     lines: [
       `${n(r, "hits")} / ${n(r, "total")} clays → ${s}`,
-      ...(n(r, "birdTotal") > 0 ? [`${n(r, "birdHits")} bird${n(r, "birdHits") === 1 ? "" : "s"} hit · −${n(r, "birdHits") * 10}`] : []),
+      ...(n(r, "birdTotal") > 0
+        ? [`${n(r, "birdHits")} bird${n(r, "birdHits") === 1 ? "" : "s"} hit · −${n(r, "birdHits") * 10}${rawTotalMapped(r) ? " from the total" : ""}`]
+        : []),
     ],
     tiles: [
       { label: "Gold", value: String(n(r, "goldHits")) },
@@ -539,6 +546,12 @@ const BUILDERS: Record<string, Builder> = {
 export const ARCADE_REVEAL_TYPES = Object.keys(BUILDERS);
 
 /** Builds the stored reveal summary from the server's replay result and its score. */
+/** clayRev 7 and whackRev 1–2: the run's total goes through a curve, so its costs are not score points. */
+function rawTotalMapped(r: Run): boolean {
+  const state = r["state"] as { sb?: number; tgt?: number } | undefined;
+  return Boolean(state && typeof state === "object" && (state.sb || state.tgt));
+}
+
 export function buildArcadeReveal(type: string, run: unknown, score: number): ArcadeRevealData | null {
   const builder = BUILDERS[type];
   if (!builder || !run || typeof run !== "object") return null;

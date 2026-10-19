@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
@@ -272,7 +273,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono text-primary">
-        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : `${status.lit.size} / ${status.whites} lit`}
+        {myCorrect ? `Solved · ${(elapsed / 1000).toFixed(1)}s` : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${status.lit.size} / ${status.whites} lit`)}
       </p>
     </div>
   );
