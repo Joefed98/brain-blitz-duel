@@ -15,15 +15,18 @@ import { standardComplete } from "./scoring";
  * Rev 2 (14 Oct 2026): a fifth given, picked from the same bank entry
  * (codewordFromEntry); grading, the live check and the reveal read the stored
  * givens, so rev-1 rounds replay exactly as before.
+ * Rev 3 (19 Oct 2026): a sixth given, the hidden number that leaves the most
+ * words one number from done (codewordSixthGiven); rev-1 and rev-2 boards keep
+ * their own stored givens.
  */
-export const CODEWORD_REV = 2;
+export const CODEWORD_REV = 3;
 export const CW_SIZE = 7;
 /** Givens in every bank entry (and on rev-1 boards). */
 export const CW_GIVENS = 4;
 
 /** Numbers that start decoded on a board of this revision. */
 export function codewordGivensFor(rev: number): number {
-  return rev >= 2 ? CW_GIVENS + 1 : CW_GIVENS;
+  return rev >= 3 ? CW_GIVENS + 2 : rev >= 2 ? CW_GIVENS + 1 : CW_GIVENS;
 }
 export const CW_MIN_LETTERS = 14;
 export const CW_MAX_LETTERS = 18;

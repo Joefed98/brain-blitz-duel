@@ -3,6 +3,7 @@
  * Nucleus, Forage, Interlock, Slider, Lookout, Roundabout, Strikeout, Cryptogrid, Swapword.
  * Each kit builds the answer string the phone's Stage would hold; gradeAnswer does all scoring.
  */
+import { puzzleScoreRevOf } from "../../src/lib/duel/puzzleScoreRev";
 import { answerWords, commonWords, isWord, wordsFrom } from "../../src/lib/duel/dictionary.server";
 import { lwEncodeLog, lwUsesLog } from "../../src/lib/duel/letterWheel";
 import { checkWordsmithWord, gradeWordsmith } from "../../src/lib/duel/wordsmith.server";
@@ -241,11 +242,13 @@ const interlock: PuzzleKit = {
     let at = 0;
     const push = () => steps.push({ answer: encodeTileGrid(cells), atMs: at });
     const left = natural.map((n) => n.cell);
+    const bendFree = puzzleScoreRevOf(d) >= 3;
     for (let k = 0; k < natural.length; k++) {
       if (natural[k]!.think) at += thinkMs(rng, THINK, skill);
       at += thinkMs(rng, TILE, skill);
       let pick = 0;
-      if (left.length > 1 && validWith(left[0]!)) pick = Math.max(0, left.findIndex((c) => !validWith(c)));
+      // puzzleScoreRev 3: Done needs all fifteen tiles, so a valid short grid is no finish; the natural order stands.
+      if (!bendFree && left.length > 1 && validWith(left[0]!)) pick = Math.max(0, left.findIndex((c) => !validWith(c)));
       const cell = left.splice(pick, 1)[0]!;
       if (rng.chance(skill.err)) {
         // A mis-drop: the tile lands on a wrong empty cell next to the grid, is noticed and dragged across.

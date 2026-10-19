@@ -116,7 +116,7 @@ import {
   PINBALL_TIME_MS,
 } from "./types";
 
-import { TG_TILES, TG_TIME_MS } from "./tileGrid";
+import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
 import { BAL_TIME_MS, balanceScaleCount } from "./balance";
 
@@ -493,8 +493,10 @@ const balanceSummary: SummaryBuilder = (result, puzzle) => {
 const tileGridSummary: SummaryBuilder = (result) => {
   const placed = Number(result.extra?.["placed"] ?? result.correct_count ?? 0);
   const valid = Boolean(result.extra?.["valid"] ?? result.is_correct);
+  const wordTiles = result.extra?.["wordTiles"];
+  // A finish is all fifteen in a valid grid; a shorter grid says what counted (display only).
   return {
-    summary: valid ? `${placed} / ${TG_TILES} tiles · valid` : `${placed} / ${TG_TILES} · not a valid grid when time ran out`,
+    summary: tileGridResultLine({ placed, valid, wordTiles: typeof wordTiles === "number" ? wordTiles : null }).text,
     detail: [],
   };
 };

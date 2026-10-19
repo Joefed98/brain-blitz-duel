@@ -164,7 +164,7 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
   return null;
 }
 
-/** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 2: budget max(16, minimum + 5)). */
+/** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 3: budget minimum + 8; rev 2's boards). */
 export function generateSwapword(seed: number): SwapwordPuzzleData {
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {

@@ -55,7 +55,7 @@ import { joinStages } from "../src/lib/duel/stagedRounds";
 import {
   COUNTUP_COUNT_REV,
   EQUATION_LIMIT_REV,
-  FLOOD_LIMIT_REV2,
+  FLOOD_LIMIT_DEALT,
   GRAVITY_PROGRESS_REV,
   MEASURE_LIMIT_REV,
   TUBES_PROGRESS_REV,
@@ -116,8 +116,8 @@ type Loose = Record<string, unknown>;
 
 /* ---------------------------------- 2. Stamps ---------------------------------- */
 const STAMPS: Partial<Record<PuzzleType, { rev: string; value: number; limit?: string }>> = {
-  // Colour Flood's new rounds are floodRev 2 (the Pattern / Logic batch, 14 Oct 2026; still par + 2; pattern-logic-oct14-check).
-  flood: { rev: "floodRev", value: FLOOD_LIMIT_REV2, limit: "moveLimit" },
+  // Colour Flood's new rounds are floodRev 3 (19 Oct 2026; still par + 2, on a cycle-proof board; flood-cycle-check).
+  flood: { rev: "floodRev", value: FLOOD_LIMIT_DEALT, limit: "moveLimit" },
   // Polypotions and Topsy-Turvy's new rounds are tubesRev 2 / gravityRev 2 (19 Oct 2026): the same limits plus the
   // solver-distance progress measure (solver-progress-check).
   tubes: { rev: "tubesRev", value: TUBES_PROGRESS_REV, limit: "pourLimit" },

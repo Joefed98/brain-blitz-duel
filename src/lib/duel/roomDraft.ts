@@ -7,11 +7,14 @@
  * to localStorage under its round's state key (`${room id}-${game}-${round}`), and a reloaded page
  * reads it back, so the answer sent if the round ends first is the one the player had made.
  *
- * After a reload the stage starts again from the round's opening board and sends that board as its
- * first draft. The restored draft stands over that untouched board; the first draft that differs
- * from it (the player has played again) replaces it, as any newer draft does: a reload never keeps
- * the better of two attempts. localStorage, not sessionStorage: iOS relaunches an evicted home-screen
- * app as a new session. Entries for other rounds and anything older than DRAFT_TTL_MS are removed.
+ * The stage's own inputs come back with it (stageState.ts `persistStageState`, 19 Oct 2026): after a
+ * reload the stage continues the same board, so its first draft is the restored draft and the next
+ * action extends it. The keeper treats the stage's first draft after a reload as its opening board
+ * (normally the restored draft itself; the round's untouched opening board for a stage, or a value,
+ * that could not be kept). The restored draft stands over that board; the first draft that differs
+ * from it (the player has played on) replaces it, as any newer draft does: a reload never keeps the
+ * better of two attempts. localStorage, not sessionStorage: iOS relaunches an evicted home-screen app
+ * as a new session. Entries for other rounds and anything older than DRAFT_TTL_MS are removed.
  *
  * room-draft-check drives it with a stand-in storage.
  */
