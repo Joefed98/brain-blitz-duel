@@ -16,13 +16,18 @@ import {
 } from "@/lib/duel/types";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { scoreWordHunt } from "@/lib/duel/scoring";
+import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "@/lib/duel/scoring";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
   word: string;
   points: number;
   path: number[];
+}
+
+/** The answer: every word "WORD:cells", newest first, then (wordHuntRev 2) every rejected trace "!cells". */
+function encodeHunt(found: readonly Found[], misses: readonly number[][]): string {
+  return [...found.map((entry) => `${entry.word}:${entry.path.join("-")}`), ...misses.map((cells) => `${WORDHUNT_MISS_MARK}${cells.join("-")}`)].join(",");
 }
 
 const centre = (cell: number) => ({
@@ -139,6 +144,9 @@ export function WordHuntPuzzle({
   const grid = puzzle.grid;
   const [path, setPath] = useState<number[]>([]);
   const [found, setFound] = useState<Found[]>([]);
+  // wordHuntRev 2: traces of 4+ letters the check rejected; the server judges which are misses.
+  const [misses, setMisses] = useState<number[][]>([]);
+  const sendsMisses = (puzzle.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
   const [flash, setFlash] = useState<"good" | "bad" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [acceptedWord, setAcceptedWord] = useState<string | null>(null);
@@ -150,9 +158,11 @@ export function WordHuntPuzzle({
   const pointerStart = useRef<{ cell: number; x: number; y: number } | null>(null);
   const livePath = useRef<number[]>([]);
   const foundRef = useRef<Found[]>([]);
+  const missesRef = useRef<number[][]>([]);
   const submitted = useRef(false);
   const [runEnded, setRunEnded] = useState(false);
   foundRef.current = found;
+  missesRef.current = misses;
 
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
 
@@ -160,14 +170,14 @@ export function WordHuntPuzzle({
     if (submitted.current) return;
     submitted.current = true;
     setRunEnded(true);
-    onSubmit(foundRef.current.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
+    onSubmit(encodeHunt(foundRef.current, missesRef.current));
   }, [onSubmit]);
 
   // Every change goes to the room as a draft, so a reveal that arrives before this stage locks in
   // (a backgrounded phone, a stalled clock) still sends the answer as it stands, never "".
   useEffect(() => {
-    onDraftAnswer?.(found.map((entry) => `${entry.word}:${entry.path.join("-")}`).join(","));
-  }, [found, onDraftAnswer]);
+    onDraftAnswer?.(encodeHunt(found, misses));
+  }, [found, misses, onDraftAnswer]);
 
   // A run worth 120+ on this phone's count: a ripple runs out across the letter grid (display only).
   useWordFinish(runEnded && scoreWordHunt(points, puzzle.wordHuntRev) >= WORD_FINISH_SCORE, () => {
@@ -232,8 +242,9 @@ export function WordHuntPuzzle({
       setFlash("bad");
       puzzleReject(gridRef.current);
       setMessage(verdict.reason ?? "Not a word");
+      if (sendsMisses) setMisses((current) => (current.length >= WORDHUNT_MAX_MISSES ? current : [...current, cells]));
     }
-  }, [checkWord, wordOf]);
+  }, [checkWord, wordOf, sendsMisses]);
 
   // Desktop keys: typing a letter taps a cell with it next to the path's end (the first such cell; anywhere to
   // start), Backspace taps the end again (taking it off), Enter submits the word.
@@ -373,7 +384,7 @@ export function WordHuntPuzzle({
           flash === "good" ? "bg-ok/25" : "bg-transparent"
         }`}
       >
-        <AcceptedWordChip word={acceptedWord} />
+        <AcceptedWordChip word={acceptedWord} tracing={path.length > 0 ? wordOf(path) : null} />
         <div className="word-confirmation-board-space">
         <div className="word-confirmation-board">
           <WordHuntBoard

@@ -8,10 +8,10 @@ override anything general here.
 ## What this is
 
 Duelz: a multiplayer skill-game app. Up to 10 players (`MAX_PLAYERS`) join a room with a
-short code and play the same timed rounds; 74 active games across Word, Number, Speed, Attention,
-Pattern, Logic and Arcade (Word 10, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
-Arcade 22 with Pinball dealt in rooms; 9 retired to practice: Swerve, Steady, Dual, Ricochet,
-Bastion, Rooftop Run, Junction, Dig, Hot Floor). Every category the lobby offers keeps at
+short code and play the same timed rounds; 73 active games across Word, Number, Speed, Attention,
+Pattern, Logic and Arcade (Word 9, Number 9, Speed 6, Attention 6, Pattern 10, Logic 11,
+Arcade 22 with Pinball dealt in rooms; 10 retired to practice: Swerve, Steady, Dual, Ricochet,
+Bastion, Rooftop Run, Junction, Dig, Hot Floor and, since 20 Oct 2026, Letterfall). Every category the lobby offers keeps at
 least 6 active games (`category-pool-check`). On 14 Oct 2026, 19 retired games and the Memory
 category were deleted; old rooms' rounds of them show only the name and stored score
 (`src/lib/duel/removedGames.ts`, proved by `removed-games-check`). Built in Lovable, synced to this repo.
@@ -229,6 +229,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   games on every score revision recorded on main before the move by `scripts/progress-figures-record.ts`, and fails on any
   difference). The server's close reason ("all_answered" / "timer") comes from `puzzleCloseReason` (beta-recording-check).
   All five new checks take under 10 s.
+- **Scoring report batch 2** (20 Oct 2026, `docs/scoring-targets.md` "Scoring report batch 2"; open, speed and
+  engine games, no arcade curve or bot changed): Nucleus `wordsmithRev 2` (one curve on word points,
+  `WORDSMITH_V2_CURVE`, 140 at most without a word using every tile), Forage `wordHuntRev 2` (the phone sends rejected
+  traces as `!cells` after the words; misses beyond 10 + 2 per word cost 3 % each; the traced word shows in the
+  `AcceptedWordChip` row), Flash and Bang On `tapRev 4` (one curve each; Flash's decoy cut in `replayFlash` past half
+  the decoys tapped), Tenfall `tenRev 3` (tenRev 1's raw score, overshoots beyond 4 cost 5), Pull! `clayRev 8`
+  (quick-hit part, `clayQuickScore`), Mixed Signals `clashRev 7` (`CLASH_GREAT_MAP`); Letterfall is practice only.
+  The new open-game stamps score on their own curve: their rev-2 knots row is the identity (`REV2_IDENTITY_KNOTS`
+  in `puzzleScoreRev2.ts`). `WORDSMITH_REV_TARGET` / `WORDHUNT_REV_TARGET` are the dealt stamps (2); the rev-1 curves
+  are `WORDSMITH_REV_CURVE` / `WORDHUNT_REV_CURVE`. Help texts in `instructions.ts` / `introScore.ts` and Mixed
+  Signals' finish verdict in `grade.ts` still describe the older stamps (batch 1's files; the PR lists the text).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000

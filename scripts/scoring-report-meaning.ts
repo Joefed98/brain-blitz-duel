@@ -50,6 +50,6 @@ export const PROGRESS_MEANING: Record<string, string> = {
   tents: "tents placed correctly, −10 per wrong tent",
   shikaku: "rectangles drawn that match the solution",
   lightup: "lamps placed correctly, −5 per wrong lamp",
-  wordsmith: "no finish state: word points (WORDSMITH_V1_CURVE, then the rev-2 knots)",
-  wordhunt: "no finish state: word points (curve, then the rev-2 knots)",
+  wordsmith: "no finish state: word points on one curve (wordsmithRev 2, WORDSMITH_V2_CURVE; 140 at most without the all-letters word)",
+  wordhunt: "no finish state: word points (curve, then the rev-2 knots), cut by misses beyond the free ones (wordHuntRev 2)",
 };

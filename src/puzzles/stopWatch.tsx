@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { STOPWATCH_REV4_KNEE_MS, STOPWATCH_REV4_ZERO_MS } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
@@ -7,7 +8,7 @@ import { markerState, targetCentre } from "@/lib/duel/stopWatch";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV_SPEED_TUNING,
+  TAP_REV_ONE_CURVE,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -93,7 +94,7 @@ export function buildStopWatch(): StopWatchPuzzleData {
       if (blind.length) spec.blind = blind;
       return spec;
     }),
-    tapRev: TAP_REV_SPEED_TUNING,
+    tapRev: TAP_REV_ONE_CURVE,
   };
 }
 
@@ -534,6 +535,8 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         .filter((v) => Number.isFinite(v));
   const errors = Array.from({ length: puzzle.watches?.length ?? 5 }, (_, i) => parsed[i] ?? STOPWATCH_MISS_MS);
   const avg = stored ? stored.averageMs : Math.round(errors.reduce((a, b) => a + b, 0) / errors.length);
+  // tapRev 4 scores on its own curve (scoring.ts STOPWATCH_REV4_CURVE); the stored knee is tapRev 2's.
+  const curve = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? { kneeMs: STOPWATCH_REV4_KNEE_MS, zeroMs: STOPWATCH_REV4_ZERO_MS } : stored;
 
   return (
     <>
@@ -547,9 +550,9 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       <div className="bangon-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Average error</p>
         <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg} ms</p>
-        {stored && avg > stored.kneeMs ? (
+        {curve && avg > curve.kneeMs ? (
           <p className="text-center text-xs text-muted-foreground">
-            Over {stored.kneeMs} ms the score falls faster: 0 at {stored.zeroMs} ms.
+            Over {curve.kneeMs} ms the score falls faster: 0 at {curve.zeroMs} ms.
           </p>
         ) : null}
       </div>

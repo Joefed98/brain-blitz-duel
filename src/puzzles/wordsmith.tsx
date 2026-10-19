@@ -29,7 +29,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score: 140 at most, 150 only with the word that uses every tile. You have 100 seconds.</p>
     </div>
   );
 }

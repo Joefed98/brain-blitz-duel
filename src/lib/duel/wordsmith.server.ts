@@ -169,11 +169,13 @@ export function gradeWordsmith(
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
   const ms = Math.min(WORDSMITH_TIME_MS, Math.max(0, Math.round(msRemaining)));
+  // wordsmithRev 2: 150 only with a word that uses every tile.
+  const allLetters = accepted.some((entry) => entry.word.length >= puzzle.letters.length);
 
   return {
     answer: accepted.map((entry) => entry.word).join(","),
     isCorrect: points >= par,
-    score: scoreWordsmith(points, puzzle.wordsmithRev),
+    score: scoreWordsmith(points, puzzle.wordsmithRev, allLetters),
     reactionAvgMs: null,
     correctCount: accepted.length,
     errors: null,

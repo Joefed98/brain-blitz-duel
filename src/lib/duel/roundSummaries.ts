@@ -16,7 +16,7 @@ import {
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
-import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
 import { crossLine } from "@/lib/duel/crossLine";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
@@ -354,9 +354,9 @@ function wordsmithSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
   const points = typeof result.extra?.["points"] === "number" ? result.extra["points"] : 0;
   if (words.length === 0) return { summary: "No words", detail: [] };
   return {
-    // wordsmithRev 1 scores word points on a curve (scoring.ts); only older rounds use 2.5 ×.
+    // wordsmithRev 1 and later score word points on a curve (scoring.ts); only older rounds use 2.5 ×.
     summary:
-      (puzzle as { wordsmithRev?: number }).wordsmithRev === WORDSMITH_REV_TARGET
+      ((puzzle as { wordsmithRev?: number }).wordsmithRev ?? 0) >= WORDSMITH_REV_CURVE
         ? `${points} word points → ${result.score} · ${words.length} words`
         : `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
@@ -432,11 +432,13 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
     .map((word) => word.trim().toUpperCase())
     .filter((word) => word.length > 0);
   const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
+  // wordHuntRev 2: the share misses took off (stored by the grader), shown only when they cost something.
+  const missCut = typeof result.extra?.["missCutPct"] === "number" ? result.extra["missCutPct"] : 0;
   return {
-    // wordHuntRev 1 scores word points on a curve (scoring.ts); only older rounds use × 2.
+    // wordHuntRev 1 and later score word points on a curve (scoring.ts); only older rounds use × 2.
     summary:
-      (puzzle as { wordHuntRev?: number }).wordHuntRev === WORDHUNT_REV_TARGET
-        ? `${points} word points → ${result.score} · ${words.length} words`
+      ((puzzle as { wordHuntRev?: number }).wordHuntRev ?? 0) >= WORDHUNT_REV_CURVE
+        ? `${points} word points → ${result.score} · ${words.length} words${missCut > 0 ? ` · misses −${missCut}%` : ""}`
         : `${points} points × 2 = ${result.score} · ${words.length} words`,
     detail: [
       seconds(elapsedMs(result, puzzle)),

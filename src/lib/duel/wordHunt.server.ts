@@ -5,7 +5,7 @@
 
 import { commonWords, isCommonPrefix, isWord } from "./dictionary.server";
 import type { Graded } from "./grade";
-import { scoreWordHunt } from "./scoring";
+import { scoreWordHunt, wordHuntMissKeptPct, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "./scoring";
 import { pick, randInt, shuffled } from "./random";
 import {
   WORDHUNT_CELLS,
@@ -196,6 +196,15 @@ export function checkWordHuntPath(
   return { valid: true, points: wordHuntPoints(word), word };
 }
 
+/** Answer length the server reads (words first, then misses). */
+export const WORDHUNT_ANSWER_CAP = 4_000;
+
+/** wordHuntRev 2: a real path of 4+ letters that spells no word. Short, broken or word paths never count. */
+export function isWordHuntMiss(grid: string[], path: number[]): boolean {
+  const word = wordFromPath(grid, path);
+  return word !== null && word.length >= WORDHUNT_MIN_LENGTH && !isWord(word);
+}
+
 /**
  * Re-walks every path the phone sent and scores the round. Nothing the client
  * reports about its own points is trusted.
@@ -209,20 +218,31 @@ export function gradeWordHunt(
   const accepted: { word: string; points: number }[] = [];
   const seen: string[] = [];
 
-  for (const entry of rawAnswer.slice(0, 4_000).split(",")) {
-    const [, rawPath] = entry.split(":");
-    const path = (rawPath ?? "")
+  const missPaths: number[][] = [];
+  const cells = (raw: string | undefined) =>
+    (raw ?? "")
       .split("-")
       .map((value) => Number.parseInt(value, 10))
       .filter(Number.isFinite);
-    const verdict = checkWordHuntPath(puzzle.grid, path, seen);
+  for (const entry of rawAnswer.slice(0, WORDHUNT_ANSWER_CAP).split(",")) {
+    // wordHuntRev 2: "!cells" is a trace the phone rejected; it is judged after every word (below).
+    if (entry.startsWith(WORDHUNT_MISS_MARK)) {
+      if (missPaths.length < WORDHUNT_MAX_MISSES) missPaths.push(cells(entry.slice(WORDHUNT_MISS_MARK.length)));
+      continue;
+    }
+    const [, rawPath] = entry.split(":");
+    const verdict = checkWordHuntPath(puzzle.grid, cells(rawPath), seen);
     if (!verdict.valid) continue;
     seen.push(verdict.word);
     accepted.push({ word: verdict.word, points: verdict.points });
   }
 
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
-  const score = scoreWordHunt(points, puzzle.wordHuntRev);
+  // wordHuntRev 2: a miss is a real path of 4+ letters that spells no word (a word, even one found already, never is).
+  const usesMisses = (puzzle.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
+  const misses = usesMisses ? missPaths.filter((path) => isWordHuntMiss(puzzle.grid, path)).length : 0;
+  const score = scoreWordHunt(points, puzzle.wordHuntRev, misses, accepted.length);
+  const missCutPct = usesMisses ? 100 - wordHuntMissKeptPct(misses, accepted.length) : 0;
   const ms = Math.min(WORDHUNT_TIME_MS, Math.max(0, Math.round(msRemaining)));
 
   return {
@@ -232,7 +252,7 @@ export function gradeWordHunt(
     reactionAvgMs: null,
     correctCount: accepted.length,
     errors: null,
-    extra: { points, par, words: accepted.map((entry) => entry.word) },
+    extra: { points, par, words: accepted.map((entry) => entry.word), ...(usesMisses ? { misses, missCutPct } : {}) },
     storedMs: ms,
   };
 }

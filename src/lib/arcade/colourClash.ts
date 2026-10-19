@@ -51,6 +51,7 @@ export const CLASH_REV3_RUN_TICKS = 75 * TICKS_PER_SECOND;
 export const CLASH_REV3_FALL_TICKS = [107, 95, 83, 71, 59] as const;
 /** Variant key: 5 = the taller board (clashRev 5), 4 = rev-3 play with the puzzle score shape, 3 = 75 s rev 3, 2 = 52-word/60 s, 1 = 18-word, 0 = legacy stream. */
 export function clashVariantOf(p: { queue?: number | null; clashRev?: number | null } | null | undefined): number {
+  if (p?.clashRev === CLASH_REV_GREAT) return 7;
   if (p?.clashRev === CLASH_REV_BANDS) return 6;
   if (p?.clashRev === CLASH_REV_TALL) return 5;
   if (p?.clashRev === CLASH_REV) return 4;
@@ -72,7 +73,7 @@ export interface ClashItem { spawn: number; word: number; ink: number; fallTicks
 export interface ClashGateChange { tick: number; gates: number[] }
 export interface ClashRuleChange { tick: number; rule: 0 | 1 }
 export interface ClashState {
-  /** clashRev 6 only (score bands): 1 = the clashRev 5 score mapped through CLASH_BANDS_MAP. Absent on older rounds. */
+  /** clashRev 6 (score bands): 1 = the clashRev 5 score mapped through CLASH_BANDS_MAP; clashRev 7: 2 = through CLASH_GREAT_MAP. Absent on older rounds. */
   sb?: number;
   tick: number;
   rng: number;
@@ -251,7 +252,7 @@ export function clashRev4ScoreOf(correct: number, wrong: number, queue: number, 
   return clampInt(Math.round((110 * correct) / Math.max(1, queue)) - 2 * wrong, 0, 110);
 }
 function score(state: ClashState): number {
-  if (state.sb) return bandMapTotal(CLASH_BANDS_MAP, clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)));
+  if (state.sb) return bandMapTotal(state.sb === CLASH_SB_GREAT ? CLASH_GREAT_MAP : CLASH_BANDS_MAP, clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)));
   if (state.rev === CLASH_REV_TALL) return clashRev5ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
   if (state.rev === CLASH_REV) return clashRev4ScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state));
   return state.queue > 0 ? clashQueueScoreOf(state.correct, state.wrong, state.queue, state.finishTick, clashRunTicksOf(state)) : clashScoreOf(state.correct, state.wrong, state.items.length);
@@ -314,6 +315,7 @@ export const colourClashRev3Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 export const colourClashRev4Game: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashGame, runTicks: CLASH_REV3_RUN_TICKS, init: initRev4 };
 /** Takes a clashVariantOf key. */
 export function colourClashGameFor(variant: number): ArcadeGame<ClashState, ArcadeInputEvent | null> {
+  if (variant === 7) return colourClashGreatGame;
   if (variant === 6) return colourClashBandsGame;
   if (variant === 5) return colourClashRev5Game;
   return variant === 4 ? colourClashRev4Game : variant === 3 ? colourClashRev3Game : variant === 2 ? colourClashQueueGame : variant === 1 ? colourClashQueueV1Game : colourClashGame;
@@ -388,7 +390,7 @@ export const colourClashRev5Game: ArcadeGame<ClashState, ArcadeInputEvent | null
 
 /** The board height (px) a stored round plays in, by its clashVariantOf key. */
 export function clashWorldHFor(variant: number): number {
-  return variant === 5 || variant === 6 ? CLASH_TALL_H : CLASH_WORLD_H;
+  return variant === 5 || variant === 6 || variant === 7 ? CLASH_TALL_H : CLASH_WORLD_H;
 }
 
 /* ================= Score bands (clashRev 6, 19 Oct 2026) ================= */
@@ -401,3 +403,18 @@ export function clashWorldHFor(variant: number): number {
 export const CLASH_REV_BANDS = 6;
 export const CLASH_BANDS_MAP = bandCurve([0, 70, 100, 134, 144, 150], [0, 70, 100, 120, 140, 150]);
 export const colourClashBandsGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: (seed) => ({ ...initRev5(seed), sb: 1 }) };
+
+/* ================= Great re-fit (clashRev 7, 20 Oct 2026) ================= */
+
+/**
+ * clashRev 7 (scoring report batch 2, docs/scoring-targets.md): clashRev 5 play (the state keeps rev 5), its score
+ * mapped through CLASH_GREAT_MAP instead: clashRev 6 put the simulated great player at 105, because about half its
+ * runs time out a word or two short at 107–110 and the map gave those little more than good's 103. The re-fitted
+ * 100–130 segment puts 103 (good) at 100 and 110 (every word but the last) at 120, a finish as time runs out (120)
+ * at 123 and near-perfect's 144 at 140; 0 stays 0, a finish still beats every unfinished run and only a finish with
+ * the full speed part and no wrong gate (150) is 150.
+ */
+export const CLASH_REV_GREAT = 7;
+export const CLASH_SB_GREAT = 2;
+export const CLASH_GREAT_MAP = bandCurve([0, 70, 103, 110, 120, 144, 150], [0, 70, 100, 120, 123, 140, 150]);
+export const colourClashGreatGame: ArcadeGame<ClashState, ArcadeInputEvent | null> = { ...colourClashRev5Game, init: (seed) => ({ ...initRev5(seed), sb: CLASH_SB_GREAT }) };
