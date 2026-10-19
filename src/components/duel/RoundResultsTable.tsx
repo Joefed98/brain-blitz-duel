@@ -23,6 +23,10 @@ interface RoundResultsTableProps {
   best?: string | null;
   rows: Standing[];
   times: ReadonlyMap<number, number | null>;
+  /** The round's own clock, ms: a player who reached the buzzer shows it in full ("90s"). */
+  clockMs?: number;
+  /** Arcade runs, Flash and Bang On: the verdict is the score alone (scoreOnlyVerdict). */
+  scoreOnly?: boolean;
   /** Everyone's colour and icon. */
   looks?: PlayerLooks;
   mySlot: number;
@@ -38,6 +42,8 @@ export function RoundResultsTable({
   best,
   rows,
   times,
+  clockMs,
+  scoreOnly = false,
   looks,
   mySlot,
   autoSeconds,
@@ -88,7 +94,7 @@ export function RoundResultsTable({
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
           const open = expanded === row.slot;
-          const verdict = roundVerdict(row);
+          const verdict = roundVerdict(row, scoreOnly);
           const summary = summaryWithoutTime(row.summary);
           return (
             <li key={row.slot}>
@@ -118,7 +124,7 @@ export function RoundResultsTable({
                       </span>
                     )}
                     <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-foreground/80">
-                      {formatElapsed(times.get(row.slot) ?? null)}
+                      {formatElapsed(times.get(row.slot) ?? null, clockMs)}
                     </span>
                   </span>
                   <span

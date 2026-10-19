@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fx } from "@/lib/fx";
+import { buzz } from "@/lib/motion";
+import { playBlip } from "@/lib/sound";
 
 import {
   CHAT_BAR_HEIGHT,
@@ -10,8 +12,9 @@ import {
   ROOM_EMOJI,
   type RoomMessageRow,
 } from "@/lib/duel/chatConstants";
+import { CHAT_TOAST_BUZZ_MS, CHAT_TOAST_MS, chatToastText, shouldToast } from "@/lib/duel/chatNotice";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
-import type { PlayerLook, PlayerLooks } from "@/lib/duel/playerLook";
+import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { DuelPlayerRow } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
@@ -24,6 +27,28 @@ interface RoomChatProps {
   looks?: PlayerLooks;
   available?: boolean;
   screenLabel?: string;
+}
+
+/** The sender's colour for the toast's rim (the border colour when they have none). */
+function playerColourHex(look: PlayerLook | undefined): string {
+  return look ? PLAYER_COLOURS[look.colour]?.hex ?? "var(--border)" : "var(--border)";
+}
+
+/**
+ * During a round: a small gold dot over the corner of the room's score header while chat messages
+ * are unread (chatNotice.ts). No toast, sound or haptic, nothing to tap; display only.
+ */
+export function RoundChatDot({ unread }: { unread: number }) {
+  if (unread <= 0) return null;
+  return (
+    <span
+      data-round-chat-dot={unread}
+      role="status"
+      className="pointer-events-none absolute -top-0.5 right-0 z-10 block h-2 w-2 rounded-full bg-primary ring-2 ring-background"
+    >
+      <span className="sr-only">{unread === 1 ? "1 unread message" : `${unread} unread messages`}</span>
+    </span>
+  );
 }
 
 /** Floating reaction bubbles, bottom-right, fading upward over 1.5s. */
@@ -132,6 +157,26 @@ export function RoomChat({
   const savedListTop = useRef(0);
   const open = available && chat.sheetOpen;
   const setSheetOpen = chat.setSheetOpen;
+  // The new-message toast (chatNotice.ts): only messages that land while this screen is up and the
+  // chat is available; one that arrived during a round never toasts afterwards.
+  const [toast, setToast] = useState<RoomMessageRow | null>(null);
+  const toastSeen = useRef<string | null>(chat.incoming?.id ?? null);
+  const toastTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const message = chat.incoming;
+    if (!message || message.id === toastSeen.current) return;
+    toastSeen.current = message.id;
+    if (!shouldToast(message, { myUserId, chatAvailable: available, sheetOpen: open })) return;
+    setToast(message);
+    playBlip();
+    buzz(CHAT_TOAST_BUZZ_MS);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), CHAT_TOAST_MS);
+  }, [chat.incoming, available, open, myUserId]);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+  useEffect(() => {
+    if (open || !available) setToast(null);
+  }, [open, available]);
 
   useEffect(() => {
     setMounted(true);
@@ -201,21 +246,18 @@ export function RoomChat({
         variant="outline"
         onClick={() => (open ? close() : chat.setSheetOpen(true))}
         aria-label={
-          chat.unread > 0 && !open
-            ? `Messages, ${chat.unread} unread`
-            : `Messages${chat.messages.length ? `, ${chat.messages.length}` : ""}`
+          chat.unread > 0 && !open ? `Messages, ${chat.unread} unread` : "Messages"
         }
         className="relative h-11 w-11 shrink-0 p-0 text-muted-foreground"
       >
         <MessageCircle aria-hidden="true" />
-        {/* The count rides on the icon: unread in gold, else the room's message count. */}
+        {/* Only unread messages from other players ride on the icon, in gold (chatNotice.ts). */}
         {chat.unread > 0 && !open ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-mono text-[11px] font-bold leading-none text-primary-foreground">
-            {chat.unread}
-          </span>
-        ) : chat.messages.length > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-border bg-card px-1 font-mono text-[11px] font-bold leading-none text-foreground">
-            {chat.messages.length}
+          <span
+            data-chat-unread={chat.unread}
+            className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-mono text-[11px] font-bold leading-none text-primary-foreground ring-2 ring-background"
+          >
+            {chat.unread > 99 ? "99+" : chat.unread}
           </span>
         ) : null}
       </Button>
@@ -227,7 +269,7 @@ export function RoomChat({
           if (event.key === "Enter" && !event.nativeEvent.isComposing) submit();
         }}
         maxLength={MESSAGE_MAX_LENGTH}
-        placeholder="Say something"
+        placeholder="Chat…"
         aria-label="Message"
         onFocus={() => {
           focusScroll.current = { x: window.scrollX, y: window.scrollY };
@@ -430,6 +472,30 @@ export function RoomChat({
       </div>
     </div>
   ) : null;
+  const toastCard = toast && !open ? (
+    <button
+      type="button"
+      key={toast.id}
+      data-chat-toast={toast.id}
+      aria-label={`New message from ${toast.sender_name}: ${toast.text}. Open messages`}
+      onClick={() => {
+        setToast(null);
+        setSheetOpen(true);
+      }}
+      className="fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg animate-fade-in"
+      style={{
+        top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+        borderColor: playerColourHex(lookOf(toast.sender_user_id)),
+      }}
+    >
+      <PlayerBadge look={lookOf(toast.sender_user_id)} name={toast.sender_name} size={24} />
+      <span className="min-w-0 flex-1 truncate text-sm leading-tight">
+        <span className="font-display font-semibold text-foreground">{toast.sender_name}</span>{" "}
+        <span className="text-muted-foreground">{chatToastText(toast.text)}</span>
+      </span>
+      <MessageCircle aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
+    </button>
+  ) : null;
   return (
     <>
       <ReactionLayer chat={chat} />
@@ -456,6 +522,7 @@ export function RoomChat({
       {mounted &&
         createPortal(
           <>
+            {toastCard}
             {sheet}
             {menu}
           </>,
