@@ -81,7 +81,7 @@ export function LookPicker({
   onChange: (look: Partial<PlayerLook>) => void;
 }) {
   return (
-    <div data-look-picker className="flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
+    <div data-look-picker className="th-card flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left">
       <p className="font-display text-xs font-semibold text-foreground">Your colour</p>
       <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label="Your colour">
         {PLAYER_COLOURS.map((colour, index) => {
@@ -236,7 +236,7 @@ export function RoomLobby({
     <div className="flex w-full flex-col gap-4">
       {isHost && (
         <div className="flex flex-col items-center gap-1 text-center" data-host-label>
-          <span className="rounded-full border border-primary/70 bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-widest text-primary">
+          <span className="th-btn-outline-gold whitespace-nowrap rounded-full border border-primary/70 bg-primary/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-widest text-primary">
             You're the host
           </span>
           <p className="text-sm text-muted-foreground">
@@ -246,7 +246,7 @@ export function RoomLobby({
           </p>
         </div>
       )}
-      <p className="text-center font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+      <p className="th-kicker text-center text-muted-foreground">
         {players.length} of {MAX_PLAYERS} players
       </p>
       {canChooseLook && me && (
@@ -267,7 +267,7 @@ export function RoomLobby({
             <>
               <PlayerBadge look={lookFor(player.player_slot)} name={player.display_name} size={24} />
               {player.user_id === hostUserId && <Crown />}
-              <span className="flex-1 truncate font-display text-sm text-foreground">
+              <span className="th-name flex-1 truncate text-sm text-foreground">
                 {player.display_name}
               </span>
             </>
@@ -275,7 +275,8 @@ export function RoomLobby({
           return (
             <li key={player.id} className="flex flex-col gap-2">
             <div
-              className={`flex animate-pop-in items-center gap-3 rounded-xl border px-4 py-3 text-left ${
+              data-tint={isMe ? "me" : undefined}
+              className={`th-card flex animate-pop-in items-center gap-3 rounded-xl border px-4 py-3 text-left ${
                 isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
               }`}
             >
@@ -291,7 +292,7 @@ export function RoomLobby({
                   {nameLine}
                   <span
                     aria-hidden="true"
-                    className="shrink-0 rounded-full border border-primary/60 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary"
+                    className="shrink-0 whitespace-nowrap rounded-full border border-primary/60 px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wide text-primary"
                   >
                     {picking ? "Done ▴" : "Change ▾"}
                   </span>
@@ -300,10 +301,10 @@ export function RoomLobby({
                 nameLine
               )}
               {player.user_id === hostUserId && (
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Host</span>
+                <span className="th-kicker text-[10px] tracking-[0.1em] text-muted-foreground">Host</span>
               )}
               {isMe && (
-                <span className="text-[10px] uppercase tracking-widest text-primary">You</span>
+                <span className="th-kicker text-[10px] tracking-[0.1em] text-primary">You</span>
               )}
               {isHost && !isMe && (
                 <button
@@ -370,7 +371,7 @@ export function RoomLobby({
       </ul>
 
       <div className="w-full space-y-3 text-left">
-        <p className="font-display text-sm font-semibold text-foreground">Categories</p>
+        <p className="th-kicker text-foreground">Categories</p>
         {isHost && (
           <div className="flex flex-wrap gap-2">
             {PRESETS.map(({ label, values }) => (
@@ -382,7 +383,7 @@ export function RoomLobby({
                   categories.length === values.length &&
                   categories.every((category) => values.includes(category))
                 }
-                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs text-foreground aria-pressed:border-primary aria-pressed:text-primary"
+                className="th-chip press min-h-11 whitespace-nowrap rounded-md border border-border bg-card px-3 py-2 font-display text-xs font-bold uppercase text-foreground aria-pressed:border-primary aria-pressed:text-primary"
               >
                 {label}
               </button>
@@ -423,8 +424,10 @@ export function RoomLobby({
                         ),
                   )
                 }
-                className="press rounded-md border border-border bg-card px-3 py-2 font-display text-xs capitalize text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70"
+                data-cat={category}
+                className="th-chip press inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-card px-3 py-2 font-display text-xs font-bold uppercase text-muted-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary disabled:opacity-70"
               >
+                <span aria-hidden="true" className="th-chip-dot" />
                 {category}
               </button>
             ))}
@@ -450,7 +453,7 @@ export function RoomLobby({
 
       {tournamentHistory.length > 0 && (
         <div className="space-y-1 border-t border-border pt-3">
-          <p className="font-display text-xs text-muted-foreground">Previous games</p>
+          <p className="th-kicker text-muted-foreground">Previous games</p>
           {tournamentHistory
             .slice(-3)
             .reverse()
@@ -477,7 +480,7 @@ export function RoomLobby({
                 type="button"
                 onClick={onStart}
                 disabled={starting}
-                className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+                className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
               >
                 {starting ? (
                   <>
@@ -497,7 +500,7 @@ export function RoomLobby({
             <button
               type="button"
               onClick={onDisband}
-              className="press text-sm text-muted-foreground underline decoration-border underline-offset-4"
+              className="press min-h-11 text-sm text-muted-foreground underline decoration-border underline-offset-4"
             >
               Disband room
             </button>
@@ -511,7 +514,7 @@ export function RoomLobby({
             <button
               type="button"
               onClick={onLeave}
-              className="press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+              className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-wide text-muted-foreground"
             >
               Leave room
             </button>

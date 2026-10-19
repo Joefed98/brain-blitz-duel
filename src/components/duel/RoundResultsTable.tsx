@@ -15,6 +15,7 @@ import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 
 interface RoundResultsTableProps {
@@ -54,8 +55,6 @@ export function RoundResultsTable({
   const ordered = roundResultOrder(rows, times);
   const topScore = Math.max(0, ...ordered.map((row) => row.roundScore));
   const [expanded, setExpanded] = useState<number | null>(null);
-  // Summaries wrap to two lines while the rows still fit the screen; 9–10 players keep one line (tap for all).
-  const twoLines = ordered.length <= 8;
   const cued = useRef(false);
 
   useEffect(() => {
@@ -74,14 +73,12 @@ export function RoundResultsTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
       <header className="relative shrink-0 px-12 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
-          Round results
-        </p>
+        <p className="th-kicker text-primary">Round results</p>
         <h1 className="mt-1 break-words font-display text-sm font-bold text-foreground">
           {roundTitle}
         </h1>
         {best && <p className="font-mono text-[11px] text-foreground/80">{best}</p>}
-        <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
+        <span className="th-kicker absolute right-0 top-0 whitespace-nowrap text-[10px] tracking-[0.06em] text-muted-foreground">
           {finalRound ? "Final round" : "This round"}
         </span>
       </header>
@@ -102,44 +99,47 @@ export function RoundResultsTable({
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
-                className={`grid min-h-[38px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.25rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-md border px-2 py-1 text-left ${
+                data-tint={isMe ? "me" : undefined}
+                className={`th-card grid min-h-[44px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.375rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-lg border px-2 py-1 text-left ${
                   isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
                 } ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
                 {/* Last round: no positions, so the overall winner stays hidden until the reveal. */}
-                {!finalRound && (
-                  <span className="font-mono text-xs font-bold text-muted-foreground">
-                    {index + 1}
-                  </span>
-                )}
+                {!finalRound && <Medal place={index + 1} />}
                 <span className="min-w-0 self-center">
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={18} />
-                    <span className="truncate font-display text-xs font-semibold text-foreground">
-                      {row.name}
-                    </span>
-                    {won && (
-                      <span className="shrink-0 rounded border border-primary px-1 py-0.5 font-mono text-[11px] font-bold uppercase leading-none text-primary">
-                        Round won
+                  <span className="flex min-w-0 items-center gap-2">
+                    <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={24} />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="th-name truncate text-sm leading-tight text-foreground">
+                          {row.name}
+                        </span>
+                        {won && (
+                          <span data-tone="gold" className="th-pill shrink-0">
+                            Round won
+                          </span>
+                        )}
                       </span>
-                    )}
-                    <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-foreground/80">
-                      {formatElapsed(times.get(row.slot) ?? null, clockMs)}
+                      {/* Below the name only the time used (the buzzer shows the round's full clock). */}
+                      <span className="whitespace-nowrap font-mono text-[11px] leading-tight tabular-nums text-muted-foreground">
+                        {formatElapsed(times.get(row.slot) ?? null, clockMs)}
+                      </span>
                     </span>
                   </span>
-                  <span
-                    className={`font-mono text-[11px] leading-tight text-foreground/80 ${open ? "block whitespace-normal" : twoLines ? "line-clamp-2" : "block truncate"}`}
-                  >
-                    <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
-                      {VERDICT_LABEL[verdict]}
+                  {/* Tapped open: how the round went, in full. */}
+                  {open && (
+                    <span className="mt-1 block whitespace-normal font-mono text-[11px] leading-tight text-foreground/80">
+                      <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
+                        {VERDICT_LABEL[verdict]}
+                      </span>
+                      {summary ? ` · ${[summary, ...row.detail].join(" · ")}` : ""}
                     </span>
-                    {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
-                  </span>
+                  )}
                 </span>
                 <span className="flex items-center gap-1">
                   <AnimatedScore
                     value={row.roundScore}
-                    className={`w-12 text-right font-mono text-xl font-bold tabular-nums ${won ? "text-primary" : "text-foreground"}`}
+                    className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${won ? "th-score-top text-primary" : "text-foreground"}`}
                   />
                   <span aria-hidden="true" className="w-3 text-center font-mono text-[11px] text-muted-foreground">
                     {open ? "▴" : "▾"}

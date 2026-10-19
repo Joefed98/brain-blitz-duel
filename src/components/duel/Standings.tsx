@@ -8,6 +8,7 @@ import { prefersReducedMotion } from "@/lib/motion";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
+import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
 
 function Arrow({ standing }: { standing: Standing }) {
@@ -64,17 +65,15 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
       <header className="relative shrink-0 px-12 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
-          Overall standings
-        </p>
+        <p className="th-kicker text-primary">Overall standings</p>
         <h1 className="mt-1 font-display text-lg font-bold text-foreground">
           After round {round} of {totalRounds}
         </h1>
-        <span className="absolute right-0 top-0 font-mono text-[11px] uppercase text-muted-foreground">
+        <span className="th-kicker absolute right-0 top-0 whitespace-nowrap text-[10px] tracking-[0.06em] text-muted-foreground">
           Overall
         </span>
       </header>
-      <p className="shrink-0 text-center font-mono text-[11px] text-foreground/70">
+      <p className="shrink-0 whitespace-nowrap text-center font-mono text-[11px] text-muted-foreground">
         ▲▼ places moved · +points this round · total
       </p>
 
@@ -89,27 +88,26 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 if (node) nodes.current.set(row.slot, node);
                 else nodes.current.delete(row.slot);
               }}
-              className={`flex min-h-[38px] items-center rounded-md border px-2 ${
+              data-tint={isMe ? "me" : undefined}
+              className={`th-card flex min-h-[44px] items-center rounded-lg border px-2 ${
                 isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
               } ${row.status === "inactive" ? "opacity-40" : ""}`}
             >
-              <div className="grid w-full grid-cols-[1.25rem_1.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-1.5 text-left">
-                <span className="font-mono text-sm font-bold tabular-nums text-muted-foreground">
-                  {row.position}
-                </span>
+              <div className="grid w-full grid-cols-[1.375rem_1.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-1.5 text-left">
+                <Medal place={row.position} />
                 <Arrow standing={row} />
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={20} />
-                  <span className="block truncate font-display text-sm text-foreground">
+                  <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={24} />
+                  <span className="th-name block truncate text-sm text-foreground">
                     {row.name}
                   </span>
                 </span>
-                <span className="font-mono text-[11px] tabular-nums text-foreground/80">
+                <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
                   +{row.roundScore}
                 </span>
                 <AnimatedScore
                   value={row.total}
-                  className="w-12 text-right font-mono text-xl font-bold tabular-nums text-foreground"
+                  className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : "text-foreground"}`}
                 />
               </div>
             </li>

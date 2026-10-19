@@ -8,6 +8,7 @@ import type { ContinueState } from "@/components/duel/ContinueFooter";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { DropoutBanner, LeaveGameButton } from "@/components/duel/DropoutBanner";
 import { JoinFromLink } from "@/components/duel/JoinFromLink";
+import { CategoryPill } from "@/components/app/CategoryPill";
 import { FinalResult } from "@/components/duel/FinalResult";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
@@ -163,7 +164,7 @@ export const Route = createFileRoute("/duel/$code")({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <PhoneShell>
+    <PhoneShell skin="room">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
         {children}
       </div>
@@ -218,14 +219,14 @@ function LobbyActions({ roomCode }: { roomCode: string }) {
       <button
         type="button"
         onClick={() => void copy()}
-        className="press tap-target flex-1 rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        className="th-btn-ghost press tap-target flex-1 whitespace-nowrap rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
       >
         {copied ? "Link copied" : "Copy link"}
       </button>
       <button
         type="button"
         onClick={() => void share()}
-        className="press tap-target flex-1 rounded-xl border border-primary/70 bg-primary/10 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+        className="th-btn-outline-gold press tap-target flex-1 whitespace-nowrap rounded-xl border border-primary/70 bg-primary/10 font-display text-xs font-semibold uppercase tracking-widest text-primary"
       >
         Share
       </button>
@@ -824,11 +825,11 @@ function DuelScreen() {
 
   if (duel.status === "waiting") {
     return (
-      <PhoneShell>
+      <PhoneShell skin="room">
         <div className="flex flex-1 flex-col items-center gap-5 pt-2 text-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Room code</p>
-            <p className="mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary animate-pop-in">
+            <p className="th-kicker text-muted-foreground">Room code</p>
+            <p className="th-score th-score-top mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary animate-pop-in">
               {duel.room_code}
             </p>
           </div>
@@ -890,7 +891,7 @@ function DuelScreen() {
     if (isMulti) {
       return (
         <div ref={podiumShell}>
-          <PhoneShell>
+          <PhoneShell skin="room">
             <Podium
               rows={standings(roomPlayers, results, duel.round_count ?? TOTAL_ROUNDS, undefined, tieRounds)}
               looks={looks}
@@ -911,7 +912,7 @@ function DuelScreen() {
     }
     return (
       <div ref={podiumShell}>
-        <PhoneShell>
+        <PhoneShell skin="room">
           <FinalResult
             outcome={
               forfeit ? (iWonForfeit ? "win" : "loss") : duelOutcome(results, mySlot, opponentSlot, tieRounds)
@@ -1030,9 +1031,9 @@ function DuelScreen() {
     );
     if (isMulti) {
       return (
-        <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+        <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
           {dropout}
-          <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
+          {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
           <RoundResultsTable
             roundTitle={roundTitle}
             best={bestLine}
@@ -1060,9 +1061,9 @@ function DuelScreen() {
       );
     }
     return (
-      <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+      <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
-        <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
+        {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoundResult
           roundTitle={roundTitle}
           best={bestLine}
@@ -1102,9 +1103,9 @@ function DuelScreen() {
   if (phase === "standings") {
     const autoSeconds = Math.max(0, Math.ceil((STANDINGS_MS - (now - (phaseStart ?? now))) / 1000));
     return (
-      <PhoneShell gameType={puzzle?.type} topAction={leaveAction}>
+      <PhoneShell skin="room" gameType={puzzle?.type} topAction={leaveAction}>
         {dropout}
-        <span className="category-tag">{puzzle ? puzzleDef(puzzle.type).category : ""}</span>
+        {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         {isMulti ? (
           <Standings
             round={round}

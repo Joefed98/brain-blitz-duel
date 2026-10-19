@@ -1,4 +1,4 @@
-import { CalendarPlus, Users } from "lucide-react";
+import { CalendarPlus, Trophy, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -20,26 +20,30 @@ export function PublicGameCard({
   heading,
   onJoin,
   footer,
+  tint = "teal",
 }: {
   game: PublicGame;
   now: number;
   heading: string;
   onJoin: (roomCode: string) => void;
   footer?: ReactNode;
+  /** The card's tint (polish-layout/theme.css): teal on Play, gold with a faint trophy for Tournaments' Next up. */
+  tint?: "teal" | "gold";
 }) {
+  const gold = tint === "gold";
   const state = nextUpState(game, now);
   return (
     <section
       data-public-game={state}
       aria-label={heading}
-      className="flex flex-col gap-3 rounded-2xl border border-category-logic/35 bg-card/80 p-4"
+      data-tint={tint}
+      className="th-card th-card-clip flex flex-col gap-3 rounded-2xl border border-category-logic/35 bg-card/80 p-4"
     >
+      {gold ? <Trophy aria-hidden="true" strokeWidth={1.5} className="th-trophy" /> : null}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-category-logic">
-            {heading}
-          </p>
-          <p className="mt-1 font-display text-xl font-bold leading-tight text-foreground">
+          <p className={`th-kicker ${gold ? "text-primary" : "text-category-logic"}`}>{heading}</p>
+          <p className="mt-1 whitespace-nowrap font-display text-xl font-bold uppercase leading-tight text-foreground">
             {ukDay(game.startsAt, now)} · {ukTime(game.startsAt)}
           </p>
           {game.title ? (
@@ -50,7 +54,7 @@ export function PublicGameCard({
             {state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
           </p>
         </div>
-        <span className="shrink-0 rounded-full border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+        <span data-tone={gold ? "gold" : "teal"} className="th-pill shrink-0">
           UK time
         </span>
       </div>
@@ -59,7 +63,7 @@ export function PublicGameCard({
           type="button"
           data-public-join
           onClick={() => onJoin(game.roomCode)}
-          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-category-logic font-display text-base font-bold uppercase tracking-wide text-[#0B0B0F]"
+          className={`${gold ? "th-btn-gold" : "th-btn-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-category-logic font-display text-base font-extrabold uppercase tracking-wide text-[#0B0B0F]`}
         >
           <Users aria-hidden="true" className="h-5 w-5" /> Join now
         </button>
@@ -68,7 +72,7 @@ export function PublicGameCard({
           type="button"
           data-public-calendar
           onClick={() => downloadCalendar(game)}
-          className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl border border-category-logic/60 bg-category-logic/10 font-display text-sm font-bold uppercase tracking-wide text-category-logic"
+          className={`${gold ? "th-btn-outline-gold" : "th-btn-outline-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl border border-category-logic/60 bg-category-logic/10 font-display text-sm font-bold uppercase tracking-wide text-category-logic`}
         >
           <CalendarPlus aria-hidden="true" className="h-5 w-5" /> Add to calendar
         </button>

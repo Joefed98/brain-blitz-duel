@@ -89,12 +89,13 @@ function ProfileScreen() {
 
         <section
           aria-label="Your look"
-          className="flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+          data-tint="teal"
+          className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
         >
           <div className="flex items-center gap-3">
             <PlayerBadge look={look} name={shownName} size={56} />
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate font-display text-xl font-bold text-foreground">
+              <span className="th-name truncate text-xl font-extrabold text-foreground">
                 {shownName}
               </span>
               <span className="text-xs text-muted-foreground">
@@ -105,7 +106,7 @@ function ProfileScreen() {
               type="button"
               aria-expanded={picking}
               onClick={() => setPicking((v) => !v)}
-              className="press tap-target shrink-0 rounded-full border border-primary/70 bg-primary/10 px-3 font-display text-xs font-semibold uppercase tracking-wide text-primary"
+              className="th-btn-outline-gold press tap-target shrink-0 whitespace-nowrap rounded-full border border-primary/70 bg-primary/10 px-3 font-display text-xs font-bold uppercase tracking-wide text-primary"
             >
               {picking ? "Done" : "Change look"}
             </button>
@@ -113,10 +114,7 @@ function ProfileScreen() {
           {picking ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="profile-name"
-                  className="text-xs uppercase tracking-widest text-muted-foreground"
-                >
+                <label htmlFor="profile-name" className="th-kicker text-muted-foreground">
                   Display name
                 </label>
                 <input
@@ -128,7 +126,7 @@ function ProfileScreen() {
                     setName(e.target.value);
                     setStoredName(e.target.value.trim());
                   }}
-                  className="tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                  className="th-input tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                 />
               </div>
               <LookPicker
@@ -158,12 +156,12 @@ function ProfileScreen() {
             <div
               key={stat.label}
               data-profile-stat={stat.label}
-              className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card/80 px-2 py-3"
+              className="th-card flex flex-col items-center gap-1 rounded-2xl border border-border bg-card/80 px-2 py-3"
             >
-              <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
+              <span className="th-score font-mono text-2xl font-bold tabular-nums text-foreground">
                 {stat.value}
               </span>
-              <span className="text-center text-[11px] uppercase tracking-wider text-muted-foreground">
+              <span className="th-kicker whitespace-nowrap text-center tracking-[0.06em] text-muted-foreground">
                 {stat.label}
               </span>
             </div>
@@ -182,7 +180,7 @@ function ProfileScreen() {
             </button>
           </div>
           {bests.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+            <p className="th-empty rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
               No practice runs yet
             </p>
           ) : (
@@ -190,13 +188,13 @@ function ProfileScreen() {
               {bests.slice(0, 3).map(({ type, best }) => (
                 <li
                   key={type}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-3 py-2"
+                  className="th-card flex items-center gap-3 rounded-xl border border-border bg-card/80 px-3 py-2"
                 >
                   <GameIcon type={type} size={40} />
                   <span className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
                     {PUZZLE_REGISTRY[type].name}
                   </span>
-                  <span className="shrink-0 font-mono text-base font-bold tabular-nums text-primary">
+                  <span className="th-score th-score-top shrink-0 font-mono text-lg font-bold tabular-nums text-primary">
                     {best}
                   </span>
                 </li>
@@ -208,7 +206,7 @@ function ProfileScreen() {
         <section aria-label="Recent rooms" className="flex flex-col gap-2">
           <h2 className="font-display text-lg font-bold">Recent rooms</h2>
           {history.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+            <p className="th-empty rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
               No rooms finished yet
             </p>
           ) : (
@@ -217,7 +215,7 @@ function ProfileScreen() {
                 <li
                   key={r.key}
                   data-recent-room={r.code}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
+                  className="th-card flex items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
                 >
                   <span className="font-mono text-sm font-bold tracking-widest text-foreground">
                     {r.code}
@@ -227,7 +225,7 @@ function ProfileScreen() {
                     <span className="font-mono tabular-nums">{r.points}</span> pts
                   </span>
                   <span
-                    className={`shrink-0 font-mono text-sm font-bold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                    className={`th-score shrink-0 font-mono text-base font-bold tabular-nums ${r.place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
                   >
                     {r.place === null ? "Left" : ordinal(r.place)}
                   </span>

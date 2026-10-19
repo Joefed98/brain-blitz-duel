@@ -49,7 +49,7 @@ function TournamentsScreen() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl font-bold">Tournaments</h1>
-            <span className="rounded-full border border-category-logic/60 px-2 py-0.5 font-mono text-[11px] uppercase tracking-widest text-category-logic">
+            <span data-tone="teal" className="th-pill">
               Beta
             </span>
           </div>
@@ -64,12 +64,13 @@ function TournamentsScreen() {
             game={next}
             now={now}
             heading="Next up"
+            tint="gold"
             onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
           />
         ) : (
           <div
             data-public-none
-            className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-6 text-center"
+            className="th-empty flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-6 text-center"
           >
             <CalendarClock aria-hidden="true" className="h-7 w-7 text-muted-foreground" />
             <p className="font-display text-sm font-semibold text-foreground">
@@ -89,7 +90,7 @@ function TournamentsScreen() {
                 <li
                   key={`${game.roomCode}-${game.startsAt}`}
                   data-public-later
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
+                  className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
                 >
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate font-display text-sm font-semibold text-foreground">
@@ -100,7 +101,7 @@ function TournamentsScreen() {
                       {game.rounds} rounds · lobby {ukTime(game.lobbyAt)}
                     </span>
                   </span>
-                  <span className="shrink-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <span data-tone="teal" className="th-pill shrink-0">
                     UK
                   </span>
                 </li>
@@ -114,7 +115,7 @@ function TournamentsScreen() {
           {results.length === 0 ? (
             <div
               data-public-results-empty
-              className="flex items-center gap-3 rounded-xl border border-dashed border-border px-4 py-4"
+              className="th-empty flex items-center gap-3 rounded-xl border border-dashed border-border px-4 py-4"
             >
               <Trophy aria-hidden="true" className="h-6 w-6 shrink-0 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">No public games played yet</p>
@@ -124,7 +125,7 @@ function TournamentsScreen() {
               {results.map((r) => (
                 <li
                   key={r.key}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
+                  className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
                 >
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate font-display text-sm font-semibold text-foreground">
@@ -136,7 +137,7 @@ function TournamentsScreen() {
                     </span>
                   </span>
                   <span
-                    className={`shrink-0 font-mono text-base font-bold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                    className={`th-score shrink-0 font-mono text-lg font-bold tabular-nums ${r.place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
                   >
                     {r.place === null ? "Left" : ordinal(r.place)}
                   </span>

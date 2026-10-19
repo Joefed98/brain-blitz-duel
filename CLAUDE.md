@@ -231,6 +231,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   own art on a tile in its colour, arcade ones painted by the game's renderer (`gameIcons/arcadeIcons.renderer.ts`),
   puzzles by their art components or their board element redrawn (`gameIcons/puzzleIcons.tsx`); no text.
   app-shell-check (~2 min, `play15`) proves the tabs, Back, icons, rooms without the tab bar and the card's switch at lobby time.
+- **Page skin** (19 Oct 2026, presentation only; `src/polish-layout/theme.css`, `src/lib/theme.ts`): the four tab
+  screens, lobby, round leaderboard, answer reveal, standings, results and podium, settings, dialogs and sheets carry
+  `data-skin` (PhoneShell `skin`, tabs automatic); inside it the shared `--th-*` tokens replace the page tokens (background
+  #07070A, text #F5F5F7 / #BDBDCC, gold #F2C75C, metallic gold and teal buttons `th-btn-gold` / `th-btn-teal`, cards
+  `th-card` with `data-tint` gold / teal / me, category pills `th-pill` and chips `th-chip` from `data-cat`, medal discs
+  `Medal`, scores `th-score`, names `th-name`). `data-skin-off` restores the original tokens for a game's own art inside a
+  skinned screen (reveal boards, replays). Fonts are self-hosted in `public/fonts` (OFL), preloaded from the root route:
+  Saira 600–800 (headings, buttons), Manrope 500–800 (body, names), JetBrains Mono 600–700 as "Duelz Mono" (scores, times,
+  codes; the games' own JetBrains Mono is untouched). Game screens, round intros and room moments are not skinned. Game
+  icon tiles are their category's glossy gradient; the art is unchanged. theme-check (fonts, tokens, contrast ≥ 4.5:1,
+  targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
+  375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

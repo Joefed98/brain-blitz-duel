@@ -63,7 +63,7 @@ export function JoinFromLink({
     <button
       type="button"
       onClick={() => void navigate({ to: "/" })}
-      className="press tap-target w-full max-w-xs rounded-xl bg-primary px-6 font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+      className="th-btn-gold press tap-target w-full max-w-xs rounded-xl bg-primary px-6 font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
     >
       Home
     </button>
@@ -114,7 +114,7 @@ export function JoinFromLink({
         <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
           You're invited to room
         </p>
-        <p className="mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary">
+        <p className="th-score th-score-top mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary">
           {roomCode}
         </p>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
@@ -135,14 +135,14 @@ export function JoinFromLink({
           maxLength={14}
           placeholder="Your name"
           onChange={(event) => setName(event.target.value)}
-          className="tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+          className="th-input tap-target w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
         />
       </div>
       {error && <p className="text-sm text-warn">{error}</p>}
       <button
         type="submit"
         disabled={busy || full}
-        className="press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+        className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
       >
         {busy ? (
           <>

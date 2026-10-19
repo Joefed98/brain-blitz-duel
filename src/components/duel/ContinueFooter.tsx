@@ -30,7 +30,7 @@ export function ContinueFooter({
   return (
     <footer className="shrink-0 pt-1" data-continue-footer>
       {continued ? (
-        <p className="flex h-10 items-center justify-center gap-2 text-center font-mono text-xs uppercase text-foreground/80">
+        <p className="flex h-10 items-center justify-center gap-2 whitespace-nowrap text-center font-mono text-xs uppercase text-foreground/80">
           <span>
             {continuedCount} of {waitingCount} ready · {next} in{" "}
             <span className="normal-case">{autoSeconds}s</span>
@@ -39,7 +39,7 @@ export function ContinueFooter({
         </p>
       ) : (
         <Button
-          className="press tap-target w-full font-display font-bold uppercase"
+          className="th-btn-gold press tap-target w-full font-display font-extrabold uppercase tracking-wide"
           onClick={onContinue}
         >
           {/* One flex item, so the button's gap doesn't widen the space; "(5s)" not uppercased to "5S". */}

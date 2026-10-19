@@ -103,7 +103,7 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
         role="dialog"
         aria-modal="true"
         aria-label={`${puzzleDef(type).name} help`}
-        className="flex max-h-full min-h-0 w-full cursor-default flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+        className="th-sheet flex max-h-full min-h-0 w-full cursor-default flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div data-help-header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2">

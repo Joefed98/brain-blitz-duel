@@ -85,6 +85,30 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
   );
 }
 
+/**
+ * The reveal board's own "Solution" and "Yours" labels (each game's Reveal draws them): tagged so
+ * the skin shows the correct answer's label in a green-tinted box and the player's in an orange
+ * one (polish-layout/theme.css). Display only; the board and its text are unchanged.
+ */
+function useRevealLabels(ref: { current: HTMLElement | null }) {
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const tag = () => {
+      for (const el of root.querySelectorAll("span, p")) {
+        if (el.children.length) continue;
+        const text = el.textContent?.trim();
+        const label = text === "Solution" ? "correct" : text === "Yours" ? "yours" : null;
+        if (label && el.getAttribute("data-reveal-label") !== label) el.setAttribute("data-reveal-label", label);
+      }
+    };
+    tag();
+    const watch = new MutationObserver(tag);
+    watch.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => watch.disconnect();
+  }, [ref]);
+}
+
 /** The only score on the reveal: the server's stored number, never a local calculation. */
 export function StoredScore({ score }: { score: number | null }) {
   const scoreRef = useRef<HTMLParagraphElement>(null);
@@ -97,7 +121,7 @@ export function StoredScore({ score }: { score: number | null }) {
     );
   }
   return (
-    <p ref={scoreRef} data-reveal-score={score} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
+    <p ref={scoreRef} data-reveal-score={score} className="th-score th-score-top shrink-0 font-mono text-2xl font-bold tabular-nums text-primary animate-pop-in">
       {score} points
     </p>
   );
@@ -226,6 +250,7 @@ function LiveAnswerReveal({
   const scoreCue = useRef<number | undefined>(undefined);
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
+  useRevealLabels(solvedBoard);
 
   useEffect(() => {
     if (myScore === null || cued.current === round) return;
@@ -248,7 +273,7 @@ function LiveAnswerReveal({
   useEffect(() => () => window.clearTimeout(scoreCue.current), []);
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
+    <div data-skin="room" className="relative flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && personalBest && myScore !== null ? <NewBestMoment /> : null}
       <div className="flex items-center justify-between gap-2">
@@ -279,7 +304,7 @@ function LiveAnswerReveal({
       <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2">
         {!puzzleOwnsRevealLayout ? <Verdict correct={myCorrect} score={myScore} /> : null}
         {!puzzleOwnsRevealLayout ? (
-          <p className="text-base uppercase tracking-[0.25em] text-muted-foreground">
+          <p data-reveal-heading className="th-answer-correct whitespace-nowrap text-base">
             {def.revealHeading ?? "The answer was"}
           </p>
         ) : null}
@@ -288,7 +313,7 @@ function LiveAnswerReveal({
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center font-mono text-sm text-primary">{nearMiss(puzzle.type, myExtra)}</p>
         ) : null}
-        <div ref={solvedBoard} className="answer-reveal-content flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
+        <div ref={solvedBoard} data-skin-off className="answer-reveal-content th-answer-board flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           {answersReady ? (
             <Reveal
               puzzle={puzzle}

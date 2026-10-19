@@ -329,7 +329,8 @@ export function RoomChat({
         aria-label="Room messages"
         data-room-chat-sheet
         data-expanded={expanded}
-        className="fixed inset-x-0 z-50 mx-auto flex min-h-0 w-full max-w-[430px] flex-col overflow-hidden rounded-t-lg border border-border bg-card"
+        data-skin="room"
+        className="th-sheet fixed inset-x-0 z-50 mx-auto flex min-h-0 w-full max-w-[430px] flex-col overflow-hidden rounded-t-2xl border border-border bg-card"
         style={{
           height: viewport
             ? viewport.height * (expanded ? 0.85 : 0.6)
@@ -477,12 +478,13 @@ export function RoomChat({
       type="button"
       key={toast.id}
       data-chat-toast={toast.id}
+      data-skin="room"
       aria-label={`New message from ${toast.sender_name}: ${toast.text}. Open messages`}
       onClick={() => {
         setToast(null);
         setSheetOpen(true);
       }}
-      className="fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg animate-fade-in"
+      className="th-sheet fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg animate-fade-in"
       style={{
         top: "calc(env(safe-area-inset-top, 0px) + 8px)",
         borderColor: playerColourHex(lookOf(toast.sender_user_id)),

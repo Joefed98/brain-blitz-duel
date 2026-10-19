@@ -16,6 +16,7 @@ import { ensureSession } from "../lib/duel/session";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
+import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
 
 function NotFoundComponent() {
@@ -103,6 +104,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      // The page skin's self-hosted fonts (polish-layout/theme.css), fetched with the stylesheet.
+      ...THEME_FONTS.map((href) => ({
+        rel: "preload",
+        href,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous" as const,
+      })),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

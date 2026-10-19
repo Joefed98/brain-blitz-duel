@@ -177,7 +177,7 @@ function Home() {
 
       <div className="mt-5 flex flex-col gap-5">
         <div>
-          <h1 className="font-display text-3xl font-bold leading-tight tracking-[-0.02em]">
+          <h1 className="whitespace-nowrap font-display text-[25px] font-bold leading-tight tracking-[0.02em]">
             Play live with friends
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -188,17 +188,13 @@ function Home() {
         {/* Quick play: create a room, or join one with its code. */}
         <section
           aria-label="Quick play"
-          className="flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
+          data-tint="gold"
+          className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
         >
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            Quick play
-          </p>
+          <p className="th-kicker text-primary">Quick play</p>
           {editingName ? (
             <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="name"
-                className="text-xs uppercase tracking-widest text-muted-foreground"
-              >
+              <label htmlFor="name" className="th-kicker text-muted-foreground">
                 Display name
               </label>
               <input
@@ -212,13 +208,13 @@ function Home() {
                   setError(null);
                   setName(e.target.value);
                 }}
-                className="tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className="th-input tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="min-w-0 truncate">
-                Playing as <span className="font-semibold text-foreground">{name}</span>
+                Playing as <span className="th-name text-foreground">{name}</span>
               </span>
               <button
                 type="button"
@@ -236,7 +232,7 @@ function Home() {
             type="button"
             onClick={() => void start("create")}
             disabled={busy !== null}
-            className="press tap-target relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
+            className="th-btn-gold press tap-target relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground"
           >
             {busy === "create" ? (
               <>
@@ -252,10 +248,7 @@ function Home() {
             />
           </button>
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="code"
-              className="text-xs uppercase tracking-widest text-muted-foreground"
-            >
+            <label htmlFor="code" className="th-kicker text-muted-foreground">
               Or join with a code
             </label>
             <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
@@ -276,13 +269,13 @@ function Home() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void start("join");
                 }}
-                className="tap-target min-w-0 flex-1 rounded-xl border border-border bg-background px-4 text-center font-mono text-2xl font-bold uppercase tracking-[0.4em] text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+                className="th-input tap-target min-w-0 flex-1 rounded-xl border border-border bg-background px-4 text-center font-mono text-2xl font-bold uppercase tracking-[0.4em] text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => void start("join")}
                 disabled={busy !== null}
-                className="press tap-target w-24 shrink-0 rounded-xl border border-primary/70 bg-primary/10 font-display text-base font-bold uppercase tracking-wide text-primary"
+                className="th-btn-outline-gold press tap-target w-24 shrink-0 rounded-xl border border-primary/70 bg-primary/10 font-display text-base font-bold uppercase tracking-wide text-primary"
               >
                 {busy === "join" ? <Dots className="bg-primary" /> : "Join"}
               </button>
@@ -300,11 +293,12 @@ function Home() {
             type="button"
             data-rejoin-room={lastRoom.code}
             onClick={() => void navigate({ to: "/duel/$code", params: { code: lastRoom.code } })}
-            className="press flex min-h-14 w-full items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-left"
+            data-tint="gold"
+            className="th-card press flex min-h-14 w-full items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-left"
           >
             <DoorOpen aria-hidden="true" className="h-6 w-6 shrink-0 text-primary" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="font-display text-sm font-bold text-foreground">
+              <span className="font-display text-sm font-bold uppercase text-foreground">
                 Rejoin your last room
               </span>
               <span className="truncate text-xs text-muted-foreground">
@@ -359,7 +353,7 @@ function Home() {
                     unlockAudio();
                     goToTab(router, "play", "practice", { game: type });
                   }}
-                  className="press flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-border bg-card/80 px-2 py-3"
+                  className="th-card press flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-border bg-card/80 px-2 py-3"
                 >
                   <GameIcon type={type} size={52} />
                   <span className="w-full truncate text-center font-display text-sm font-semibold text-foreground">
@@ -378,7 +372,7 @@ function Home() {
         </section>
 
         <div className="flex flex-col items-center gap-1 pb-1">
-          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          <p className="whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
             {GAME_COUNTS.puzzle} puzzle games · {GAME_COUNTS.arcade} arcade games
           </p>
           <button
