@@ -1,4 +1,5 @@
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef } from "react";
@@ -208,7 +209,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
       >
         {replay.solved
           ? solvedMovesText(replay.moves, min, myMsRemaining, timeLimitMs, "B", scoreParts)
-          : `${replay.inPlace} / ${layout.count} in place`}
+          : (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${replay.inPlace} / ${layout.count} in place`)}
       </p>
     </div>
   );

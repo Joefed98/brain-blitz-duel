@@ -1,4 +1,5 @@
 import type { PuzzleType } from "./types";
+import { WORDFALL_BANDS_FULL_POINTS, WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 
 /**
  * A near miss's line and its gap: `left` of `total` to go (`total` null where the stored facts
@@ -79,7 +80,8 @@ export function nearMissInfo(
       return remaining("home", 30, "marble");
     case "wordfall": {
       const points = number("points"),
-        par = number("par");
+        // wordfallRev 3 (score bands): par scores about 100; 150 takes WORDFALL_BANDS_FULL_POINTS.
+        par = (number("wordfallRev") ?? 1) >= WORDFALL_REV_BANDS ? WORDFALL_BANDS_FULL_POINTS : number("par");
       if (points === null || par === null || par <= 0 || points < 0 || points >= par) return null;
       const left = par - points;
       return info(`${left} word point${left === 1 ? "" : "s"} short of 150`, left, par, true);

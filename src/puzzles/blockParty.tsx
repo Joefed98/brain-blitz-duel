@@ -1,4 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
 import { decodePlacements } from "@/lib/duel/blockParty";
 import { BLOCK_FREE_CELLS, BLOCK_TIME_MS, type BlockPartyPuzzleData } from "@/lib/duel/types";
@@ -72,7 +73,7 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
         {myCorrect ? (
           <span className="text-primary">Solved</span>
         ) : (
-          `${covered} / ${BLOCK_FREE_CELLS} covered`
+          (solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${covered} / ${BLOCK_FREE_CELLS} covered`)
         )}
       </p>
     </div>

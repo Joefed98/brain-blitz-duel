@@ -226,11 +226,13 @@ const src = (cond: boolean, label: string) => {
   if (!cond) failures.push(label);
 };
 const submitBody = route.split("const handleSubmit = useCallback(")[1]?.split("const handleDraftAnswer")[0] ?? "";
-src(/if \(timeoutSubmitted\.current === sent\) return;\s*timeoutSubmitted\.current = sent;/.test(submitBody), "handleSubmit sends at most once per round");
-src(/\} else if \(phase !== "reveal"\) return;/.test(route), "the draft is sent when the room reached the reveal first");
-src(/answer: draftAnswer\.current\.key === stateKey \? draftAnswer\.current\.answer : ""/.test(route), "only this round's draft is sent");
-src(/draftAnswer\.current = \{ key: latest\.current\.stateKey, answer \};/.test(route), "drafts carry their round");
-src(/if \(draftAnswer\.current\.key !== stateKey\) draftAnswer\.current = \{ key: "", answer: "" \};/.test(route), "a restored draft for this round survives the round's reset");
+// One answer per round through the room sender (roomSend.ts, room-send-check), drafts through the
+// device keeper (roomDraft.ts, room-draft-check).
+src(/if \(sender\.claimed\(sent\)\) return;/.test(submitBody) && /sender\.send\(\s*sent,/.test(submitBody), "handleSubmit sends at most once per round");
+src(/\} else if \(phase !== "reveal"\) return;\s*if \(sender\.claimed\(key\)\) return;/.test(route), "the draft is sent when the room reached the reveal first");
+src(/answer: drafts\.current\(stateKey\)/.test(route), "only this round's draft is sent");
+src(/drafts\.push\(latest\.current\.stateKey, answer\);/.test(route), "drafts carry their round");
+src(/drafts\.prune\(stateKey\);/.test(route) && !/clearStageState\(stateKey\)/.test(route), "a restored draft for this round survives the round's reset");
 src(/r\.round_number === round && roomPlayers\.some\(\(p\) => p\.player_slot === r\.player_slot && p\.status === "active"\)/.test(route), "the phone counts active players' answers only");
 src((server.match(/await activeAnsweredCount\(client,/g) ?? []).length === 2, "both server functions count active players' answers only");
 src(!/submissionCount/.test(server), "no server count of every answer row is left");

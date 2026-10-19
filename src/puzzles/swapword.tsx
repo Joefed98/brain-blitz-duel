@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { solutionProgress } from "@/lib/duel/progressFigures";
 import { ArrowLeftRight } from "lucide-react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -338,7 +339,7 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
       <p className="font-mono text-base text-primary">
         {run.solved
           ? `Solved · ${run.swaps} swaps (min ${puzzle.minSwaps}) · ${(elapsed / 1000).toFixed(1)}s`
-          : `${inPlace} / ${SW_TILES} in place · ${run.swaps} swaps`}
+          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${inPlace} / ${SW_TILES} in place`} · ${run.swaps} swaps`}
       </p>
       {!run.solved ? <p className="text-sm text-muted-foreground">Red-edged tiles were not in place on your board.</p> : null}
     </div>

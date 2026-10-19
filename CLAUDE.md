@@ -213,11 +213,22 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     judged by score alone ("Scored" / "✗", `scoreOnlyVerdict`); summaries fixed to match the stored result (Ascend tap
     logs, Operator's tries suffix and limit, Nucleus/Forage curves, Counterweight's scales, Target rev 1's made distance,
     Hats rev 1, Lights Out, Pull!'s empty shots). round-time-check (~3 s) proves it for every active game.
-  - *Awards* (`podiumAwards.ts`): Fastest Finger a full solve of 120+ using at most half the clock; Perfectionist the most
+  - *Awards* (`podiumAwards.ts`): Fastest Finger a full solve of 110+ using at most half the clock (120+ until 19 Oct, decision on #117); Perfectionist the most
     150s; Comeback Kid a climb of 2+ places onto the podium, rooms of 3+ only; So Close a genuinely small gap
     (`isGenuinelyClose` in nearMiss.ts); better figure first, then non-winners. player-looks-check.
   - *No blue boxes* (styles.css): no tap highlight, focus outline/ring or text selection on touch (inputs excepted);
     keyboard focus rings only with hover and a fine pointer. touch-highlight-check (headless Chromium, ~1 min, `play6`).
+- **Room follow-ups to the score bands** (19 Oct 2026; room flow and display only, no scoring or band changes): a failed
+  room send is retried while the round takes answers (`roomSend.ts`, room-send-check); the round's draft is kept in
+  localStorage so a reload keeps it (`roomDraft.ts`, room-draft-check); arcade-clock rounds wait 5 s longer for a late
+  stage's run before the time-out and phase close, phone and server (`roomClose.ts`, room-late-run-check); the shared clock
+  is re-measured every round and on returning to the app (`clock.ts`, `useDuel`, clock-round-check). The leaderboard and
+  reveals show the progress a puzzle's credit counts for Chroma Lines, Shikaku, Lamplighter, Tessellate, Jumbled, Swapword
+  and Slider (`progressFigures.ts`, whose counts the graders call), and the curve games' costs as the total's
+  (room-figures-check, which also regrades `scripts/fixtures/progress-figures-grades.json.gz`, 3,420 grades of those seven
+  games on every score revision recorded on main before the move by `scripts/progress-figures-record.ts`, and fails on any
+  difference). The server's close reason ("all_answered" / "timer") comes from `puzzleCloseReason` (beta-recording-check).
+  All five new checks take under 10 s.
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
@@ -464,10 +475,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 5. **Rooms are identical for every player.** All content (puzzles, order, arcade seeds,
    schedules) is derived once from the room seed on the server and stored; nothing
    random is generated per device. Answers/solutions stay server-only.
-6. **Speed bonus = 50 % par rule.** Full bonus when finishing with at least half the
-   time left, then an even fall to 0 at the buzzer (`speedPar.ts`, puzzles stamped
-   `speedPar: 1`; unstamped rounds keep the old linear curve). Exception for Joe to confirm (19 Oct 2026):
-   `puzzleScoreRev 2` puzzles measure a finish on the whole clock, since the bands give 150 only to a perfect run.
+6. **Finish rule.** `puzzleScoreRev 2` puzzles (the score bands, 19 Oct 2026) measure a finish on the
+   whole clock, with no par plateau: the share of the clock left (half that and half the efficiency share
+   on games that measure efficiency), and 150 is only for a perfect run (better than every near-perfect
+   kit run; `puzzleScoreRev2.ts`). Older rounds keep the 50 % par rule: full speed bonus when finishing with
+   at least half the time left, then an even fall to 0 at the buzzer (`speedPar.ts`, puzzles stamped
+   `speedPar: 1`; unstamped rounds keep the old linear curve).
 7. **Server is the arbiter.** Clients never send scores or correctness; the server
    grades from moves/inputs. Only AnswerReveal's stored score is ever shown.
 8. Keep display names in `gameNames.ts`; `PuzzleType` ids never change.

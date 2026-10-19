@@ -3,7 +3,7 @@
  * the final screen shows up to four awards, each only for a real achievement:
  *  - Fastest Finger: the quickest puzzle solve, as a share of that round's clock so a 30 s and a
  *    100 s puzzle compare fairly. It must be a full solve (is_correct), score at least
- *    FASTEST_MIN_SCORE ("good", docs/scoring-targets.md) and use at most FASTEST_MAX_SHARE of the
+ *    FASTEST_MIN_SCORE (110, "great" in the 19 Oct score bands, docs/scoring-targets.md; 120 before) and use at most FASTEST_MAX_SHARE of the
  *    clock (the speed-bonus par: half the time left). Arcade runs, Flash and Bang On don't count:
  *    they have no finish time to compare.
  *  - Perfectionist: the most perfect 150s (at least one).
@@ -61,8 +61,8 @@ const AWARD_ORDER: readonly AwardId[] = ["perfect", "fastest", "comeback", "clos
 export const COMEBACK_MIN_PLACES = 2;
 /** …to a final place no lower than this. */
 export const COMEBACK_MAX_FINAL_PLACE = 3;
-/** Fastest Finger: the lowest score a qualifying solve may have ("good")… */
-export const FASTEST_MIN_SCORE = 120;
+/** Fastest Finger: the lowest score a qualifying solve may have (110, the score bands' "great"; 120 until 19 Oct 2026)… */
+export const FASTEST_MIN_SCORE = 110;
 /** …and the largest share of the round's clock it may use (half the time left). */
 export const FASTEST_MAX_SHARE = 0.5;
 

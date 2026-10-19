@@ -139,7 +139,16 @@ import {
   strikeoutRevOf,
 } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
-import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
+import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
+import {
+  blockPartyCounts,
+  flowRouteCounts,
+  lightUpBulbCounts,
+  shikakuAreas,
+  swapwordCounts,
+  tilesCounts,
+  wordSlideMadeRows,
+} from "./progressFigures";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
@@ -371,12 +380,10 @@ function gradeUnderRev(
       isCorrect = rows === WS_MARKED_ROWS.length;
       correctCount = rows;
       // Rev 1: an unfinished grid earns only the word rows the player made (a row still as it started is not counted).
-      const madeRows = scoreRev1() && !isCorrect
-        ? WS_MARKED_ROWS.filter((r) => markedRowWord(replay.grid, r) !== markedRowWord(puzzle.grid, r) && checkWordSlideRow(markedRowWord(replay.grid, r)).valid).length
-        : rows;
+      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
+      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows) : rows;
       score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
-      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows,
-        validRows: WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid) };
+      extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows, validRows };
       break;
     }
     case "reaction": {
@@ -600,9 +607,8 @@ function gradeUnderRev(
       const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer));
       isCorrect = verdict.solved;
       // Rev 1: an unfinished board earns only pieces placed where the stored solution has a piece of that shape.
-      const solutionCells = new Set((puzzle.solution ?? []).map((p) => [...p.cells].sort((a, b) => a - b).join(",")));
       const credited = scoreRev1() && puzzle.solution?.length
-        ? verdict.legal.filter((p) => solutionCells.has([...p.cells].sort((a, b) => a - b).join(","))).length
+        ? blockPartyCounts(puzzle.solution, verdict.legal).inSpot
         : verdict.legal.length;
       // Rev 1: legal pieces off the solution count against, so dropping pieces at random earns about 0.
       score = scoreBlockParty(verdict.solved, ms, scoreRev1() ? 2 * credited - verdict.legal.length : credited, timeLimitMs);
@@ -670,9 +676,8 @@ function gradeUnderRev(
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
       // Rev 1: an unfinished board earns only pairs joined along their (unique) solution route.
-      const routeKey = (path: number[]) => [...path].sort((a, b) => a - b).join(",");
       // Pairs joined off their route count against, so random lines earn about 0.
-      const onRoute = verdict.joined.filter((ok, i) => ok && puzzle.solution?.[i] && routeKey(paths[i] ?? []) === routeKey(puzzle.solution[i]!)).length;
+      const { onRoute } = flowRouteCounts(puzzle.solution, paths, verdict.joined);
       const credited = scoreRev1() && puzzle.solution?.length ? 2 * onRoute - verdict.pairsJoined : verdict.pairsJoined;
       score = scoreFlow(verdict.solved, credited, ms, puzzle.pairs.length, timeLimitMs);
       extraDetail = {
@@ -998,11 +1003,8 @@ function gradeUnderRev(
       correctCount = replay.inPlace;
       if (scoreRev1()) {
         // Rev 1: only tiles the player put in place, not ones that started there.
-        const goal = layout.goal;
-        const startIn = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i]).length;
         // Tiles that started in place and were moved out count against, so random slides earn about 0.
-        const displaced = puzzle.frame.filter((v, i) => v !== 0 && v === goal[i] && replay.frame[i] !== v).length;
-        const placed = replay.frame.filter((v, i) => v !== 0 && v === goal[i] && puzzle.frame[i] !== v).length - displaced;
+        const { startIn, placed } = tilesCounts(puzzle.frame, replay.frame, layout.goal);
         score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, placed, ms, timeLimitMs, startIn, layout.count);
       } else score = scoreTiles(replay.solved, replay.moves, puzzle.minMoves ?? 0, replay.inPlace, ms, timeLimitMs);
       extraDetail = {
@@ -1903,12 +1905,7 @@ function gradeUnderRev(
       correctCount = covered;
       if (scoreRev1() && !solved && puzzle.solution?.length) {
         // Rev 1: area of rectangles on the (unique) solution, less the area of other accepted rectangles.
-        const key = (r: { r0: number; c0: number; r1: number; c1: number }) => `${r.r0},${r.c0},${r.r1},${r.c1}`;
-        const sol = new Set(puzzle.solution.map(key));
-        const accepted = acceptedRects(rects, puzzle.clues, puzzle.size);
-        const area = (r: { r0: number; c0: number; r1: number; c1: number }) => (r.r1 - r.r0 + 1) * (r.c1 - r.c0 + 1);
-        const right = accepted.filter((r) => sol.has(key(r))).reduce((sum, r) => sum + area(r), 0);
-        const wrongArea = accepted.filter((r) => !sol.has(key(r))).reduce((sum, r) => sum + area(r), 0);
+        const { right, wrong: wrongArea } = shikakuAreas(puzzle.solution, acceptedRects(rects, puzzle.clues, puzzle.size));
         score = scoreShikaku(false, ms, timeLimitMs, right - wrongArea);
       } else score = scoreShikaku(solved, ms, timeLimitMs, covered);
       extraDetail = { solved, covered, rects: rects.length };
@@ -2143,12 +2140,10 @@ function gradeUnderRev(
       // Every swap is replayed on the stored scramble, within the swap budget.
       const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution);
       const solution = puzzle.solution ?? "";
-      const placed = swapwordPlaced(puzzle.start, run.board, solution);
+      const { placed, toPlace, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;
       isCorrect = run.solved;
       correctCount = placed;
-      const toPlace = [...puzzle.start].filter((ch, t) => ch !== solution[t]).length;
-      const displaced = [...puzzle.start].filter((ch, t) => ch === solution[t] && run.board[t] !== solution[t]).length;
       score = scoreSwapword(run.solved, run.swaps, puzzle.minSwaps, scoreRev1() ? placed - displaced : placed, ms, timeLimitMs, toPlace);
       extraDetail = { solved: run.solved, swaps: run.swaps, minSwaps: puzzle.minSwaps, placed, tilesLeft: left, swapwordRev: puzzle.swapwordRev };
       break;
@@ -2163,9 +2158,8 @@ function gradeUnderRev(
       errors = status.clashing.size;
       if (scoreRev1() && !solved && puzzle.solution?.length) {
         // Rev 1: credit for bulbs on the (unique) solution, less 5 per other bulb, so lighting everything at random earns nothing.
-        const sol = new Set(puzzle.solution);
-        const right = bulbs.filter((b) => sol.has(b)).length;
-        score = scoreLightUp(false, ms, timeLimitMs, right, Math.max(1, sol.size - 1), bulbs.length - right);
+        const { right, other } = lightUpBulbCounts(puzzle.solution, bulbs);
+        score = scoreLightUp(false, ms, timeLimitMs, right, Math.max(1, new Set(puzzle.solution).size - 1), other);
       } else score = scoreLightUp(solved, ms, timeLimitMs, status.lit.size, status.whites, status.clashing.size);
       extraDetail = { solved, lit: status.lit.size, whites: status.whites, clashing: status.clashing.size, bulbs: bulbs.length };
       break;

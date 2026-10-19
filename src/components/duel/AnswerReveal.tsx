@@ -290,7 +290,7 @@ function LiveAnswerReveal({
           myAnswer={myAnswer}
           myScore={myScore}
           nearMissLine={nearMiss(puzzle.type, myExtra)}
-          costRows={storedCostRows(puzzle.type, myExtra)}
+          costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)}
           personalBest={practice ? false : undefined}
           round={round}
           myReveal={(myExtra?.["reveal"] as ArcadeRevealData | undefined) ?? null}

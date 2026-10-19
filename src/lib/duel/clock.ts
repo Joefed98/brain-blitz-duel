@@ -7,12 +7,31 @@
 
 import { serverTimeFn } from "./time.functions";
 
+/**
+ * Re-measured at every round (19 Oct 2026, #115's audit item 7): a device clock that moved after the
+ * last measurement (an automatic time update, a phone asleep in a pocket) left `serverNow` reading
+ * ahead, and a phone more than 1.5 s ahead had the last taps of Flash, Bang On, Ascend and
+ * Lightbender dropped by the room's receipt check (grade.ts latestTapMs). The room page re-measures
+ * at each new round and whenever the app comes back to the foreground; clock-round-check proves it.
+ */
+let deviceNow: () => number = () => Date.now();
+let fetchServerTime: () => Promise<{ now: number }> = () => serverTimeFn();
+
+/** Checks only: stand-ins for the device clock and the server's time. */
+export function setClockSourcesForCheck(sources: {
+  deviceNow?: () => number;
+  serverTime?: () => Promise<{ now: number }>;
+}): void {
+  if (sources.deviceNow) deviceNow = sources.deviceNow;
+  if (sources.serverTime) fetchServerTime = sources.serverTime;
+}
+
 let offsetMs = 0;
 let calibrating: Promise<void> | null = null;
 let calibrated = false;
 
 export function serverNow(): number {
-  return Date.now() + offsetMs;
+  return deviceNow() + offsetMs;
 }
 
 export function clockOffsetMs(): number {
@@ -21,9 +40,9 @@ export function clockOffsetMs(): number {
 
 async function sample(): Promise<{ offset: number; rtt: number } | null> {
   try {
-    const before = Date.now();
-    const { now } = await serverTimeFn();
-    const after = Date.now();
+    const before = deviceNow();
+    const { now } = await fetchServerTime();
+    const after = deviceNow();
     if (!Number.isFinite(now)) return null;
     const rtt = after - before;
     return { offset: now - (after - rtt / 2), rtt };
@@ -32,7 +51,7 @@ async function sample(): Promise<{ offset: number; rtt: number } | null> {
   }
 }
 
-/** Measures the offset afresh. Called on load and again at room start. */
+/** Measures the offset afresh. Called on load, at room start, at every round and on returning to the app. */
 export async function calibrateServerClock(): Promise<void> {
   if (typeof window === "undefined") return;
   if (calibrating) return calibrating;

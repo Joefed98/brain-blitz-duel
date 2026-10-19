@@ -29,7 +29,7 @@ each. Every number below is a median over room seeds, graded or replayed by the 
   replay and the reveal agree).
 - **Zero scores in rooms:** six games never sent a draft, so a reveal that reached the phone before the stage's own
   lock-in submitted "" (0); Mixed Signals answers were cut at 4,000 characters; Safe Cracker scored 0 for dials set
-  but not tried. Fixed (below); three room-screen issues are listed for Joe (not touched: another session holds them).
+  but not tried. Fixed (below), and the four room-screen risks were fixed in the follow-up.
 - Older rounds keep their stamps and grade and replay exactly as before; no stored data changes.
 
 ## How a puzzle's result becomes points (`src/lib/duel/puzzleScoreRev2.ts`)
@@ -252,19 +252,30 @@ Fixed:
 3. **Safe Cracker: dials set but not tried scored 0**, and an unopened safe counted only the last try (rev 2 counts the
    best try and the dials left standing).
 
-Not fixed (room screens, held by another session; patches proposed):
+Fixed on the room screens (19 Oct 2026, follow-up; room flow and display only, no scoring or band changes):
 
-4. **A failed time-out or reveal submit is never retried** (`src/routes/duel.$code.tsx`, the time-out effect sets
-   `timeoutSubmitted` and calls `submitAnswer` with no `.catch`): a dropped request at the buzzer leaves the round with
-   no result. Proposal: clear the key on failure (as `handleSubmit` does) and retry with a short backoff while the
-   phase is still puzzle or reveal.
-5. **A reload or iOS evicting the home-screen app mid-round loses the draft** (`stageState.ts` is in memory only):
-   proposal: keep each round's draft in `sessionStorage` by its state key and send it if the round ends first.
-6. **Arcade runs cut short when the stage mounts late** (more than `ARCADE_PHASE_SLACK_MS` after the phase change, or
-   Letterfall waiting for its dictionary): the time-out sends the last draft, a lower score (never 0 unless no draft
-   was made). Proposal: start the sim from the shared clock start, or end on the stage's own finish (bounded).
-7. Plausible, not reproduced: a phone clock reading over 1.5 s ahead drops the last taps of Ascend, Lightbender, Flash
-   and Bang On in rooms (the receipt check); retrying the clock calibration each round would close it.
+4. **A failed send is retried** (`src/lib/duel/roomSend.ts`): the stage's own submit and the time-out's draft both go
+   through one sender per round; a send that throws goes again, the same answer and time claim, after 0.4 / 0.8 / 1.6 /
+   3.2 / 5 s (then every 5 s) while the round is in the puzzle or reveal phase. A server reply is never retried
+   (`room-send-check`).
+5. **The draft survives a reload** (`src/lib/duel/roomDraft.ts`): every draft is kept in localStorage by its round's
+   state key and read back by a reloaded page, so the time-out sends it if the round ends before the stage is back. The
+   stage's untouched opening board never replaces it; the first draft that differs (the player played again) does
+   (`room-draft-check`).
+6. **Late arcade stages finish their run** (`src/lib/duel/roomClose.ts`): arcade-clock rounds (the 22 active arcade games
+   and the five engine games) wait `ARCADE_LATE_RUN_MS` (5 s) longer before the time-out and the phase close (phone and
+   server), so a stage mounted up to 8 s late ends on its own. Rounds where everyone has answered move on at once
+   (`room-late-run-check`).
+7. **The clock is re-measured every round** and whenever the app returns to the foreground (`useDuel`, `clock.ts`), so a
+   device clock that moved since the last measurement never drops Flash, Bang On, Ascend or Lightbender taps
+   (`clock-round-check`).
+
+Figures fixed with them (display only): the seven puzzles whose leaderboard and reveal showed raw progress now show the
+progress their credit counts (`src/lib/duel/progressFigures.ts`, the graders' own counts: Chroma Lines "3/7 pairs on
+route", Shikaku "18/81 cells right", Lamplighter "4/9 bulbs right", Tessellate "4/9 pieces in place", Jumbled and
+Swapword "3/7 tiles placed", Slider "2/5 rows made"; what counts against it goes in the row's detail); Pull! clayRev 7
+and Hats/Bonk whackRev 1–2 label their bird, empty-shot and penalty figures as the total's, not score points; Letterfall
+wordfallRev 3's "short of 150" counts to the 46 points that score 150, not to par (`room-figures-check`).
 
 ## For Joe to rule on
 
