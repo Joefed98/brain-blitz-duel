@@ -24,6 +24,8 @@ interface WordsmithPuzzleProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string) => void;
+  /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
+  onDraftAnswer?: ((answer: string) => void) | undefined;
   checkWord?: CheckWord;
 }
 
@@ -38,6 +40,7 @@ export function WordsmithPuzzle({
   now,
   locked,
   onSubmit,
+  onDraftAnswer,
   checkWord,
 }: WordsmithPuzzleProps) {
   const column = useGameColumnLayout();
@@ -67,6 +70,12 @@ export function WordsmithPuzzle({
     setRunEnded(true);
     onSubmit(foundRef.current.map((entry) => entry.word).join(","));
   }, [onSubmit]);
+
+  // Every change goes to the room as a draft, so a reveal that arrives before this stage locks in
+  // (a backgrounded phone, a stalled clock) still sends the answer as it stands, never "".
+  useEffect(() => {
+    onDraftAnswer?.(found.map((entry) => entry.word).join(","));
+  }, [found, onDraftAnswer]);
 
   // A run worth 120+ on this phone's count: the atom spins up, outer tiles orbiting the centre (display only).
   useWordFinish(runEnded && scoreWordsmith(points, puzzle.wordsmithRev) >= WORD_FINISH_SCORE, () => {

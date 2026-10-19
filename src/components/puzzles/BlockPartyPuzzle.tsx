@@ -167,6 +167,8 @@ interface BlockPartyPuzzleProps {
   now: number;
   locked: boolean;
   onSubmit: (answer: string) => void;
+  /** The answer as it stands, for the room's time-out (a reveal that arrives before this stage locks in). */
+  onDraftAnswer?: ((answer: string) => void) | undefined;
 }
 
 export function BlockPartyPuzzle({
@@ -175,6 +177,7 @@ export function BlockPartyPuzzle({
   now,
   locked,
   onSubmit,
+  onDraftAnswer,
 }: BlockPartyPuzzleProps) {
   const reduced = usePrefersReducedMotion();
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -213,6 +216,12 @@ export function BlockPartyPuzzle({
     },
     [onSubmit],
   );
+
+  // Every change goes to the room as a draft, so a reveal that arrives before this stage locks in
+  // (a backgrounded phone, a stalled clock) still sends the answer as it stands, never "".
+  useEffect(() => {
+    onDraftAnswer?.(encodePlacements(placed));
+  }, [placed, onDraftAnswer]);
 
   useEffect(() => {
     if (locked) return;

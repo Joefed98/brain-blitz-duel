@@ -129,8 +129,24 @@ export function encodeSafeTries(tries: number[][]): string {
   return tries.map((dials) => dials.join("")).join(",");
 }
 
+/**
+ * puzzleScoreRev 2 drafts (score bands, 19 Oct 2026): the tries, then ";" and the dials as they stand when the
+ * clock ran out (never a try: they cannot open the safe, but their right dials count as progress).
+ */
+export function encodeSafeDraft(tries: number[][], dials: number[]): string {
+  return `${encodeSafeTries(tries)};${dials.join("")}`;
+}
+
+/** The dials left standing in a rev-2 draft (null when the answer has none). */
+export function decodeSafePending(raw: string): number[] | null {
+  const at = (raw ?? "").indexOf(";");
+  if (at < 0) return null;
+  const part = raw.slice(at + 1).trim();
+  return part.length === SAFE_DIALS && /^\d+$/.test(part) ? part.split("").map((d) => Number.parseInt(d, 10)) : null;
+}
+
 export function decodeSafeTries(raw: string): number[][] {
-  return (raw ?? "")
+  return (raw ?? "").split(";")[0]!
     .split(",")
     .map((part) => part.trim())
     .filter((part) => part.length === SAFE_DIALS && /^\d+$/.test(part))

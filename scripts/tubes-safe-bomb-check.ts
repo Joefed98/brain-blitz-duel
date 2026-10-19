@@ -45,6 +45,10 @@ import {
   TUBE_CAPACITY,
   TUBES_MIN_MIN_MOVES,
 } from "../src/lib/duel/types";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);

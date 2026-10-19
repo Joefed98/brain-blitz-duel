@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -1038,6 +1038,7 @@ const sliceRev2Game: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.sliceRev; anything else is the original kitchen. */
 export function sliceGameFor(rev?: number | null): ArcadeGame<SliceState, ArcadeInputEvent | null> {
+  if (rev === SLICE_REV_STRICT) return sliceStrictGame;
   if (rev === SLICE_REV_TARGET) return sliceTargetGame;
   if (rev === SLICE_REV_TALL) return sliceTallGame;
   if (rev === SLICE_REV_LONG) return sliceLongGame;
@@ -1163,7 +1164,7 @@ export const sliceTallGame: ArcadeGame<SliceState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's sliceRev plays in. */
 export function sliceWorldHFor(rev?: number | null): number {
-  return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET ? SLICE_TALL_H : SLICE_WORLD_H;
+  return rev === SLICE_REV_TALL || rev === SLICE_REV_TARGET || rev === SLICE_REV_STRICT ? SLICE_TALL_H : SLICE_WORLD_H;
 }
 
 /* ================= Scoring targets (sliceRev 7, 18 Oct 2026) ================= */
@@ -1177,3 +1178,16 @@ export const SLICE_REV_TARGET = 7;
 export const sliceTargetGame = bandTargetGame(sliceTallGame);
 /** The curve new rounds score on: SLICE_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const SLICE_V7_BAND_CURVE = bandRetarget(SLICE_V6_BAND_CURVE);
+
+
+/* ================= Score bands (sliceRev 8, 19 Oct 2026) ================= */
+
+/**
+ * sliceRev 8 (score bands, docs/scoring-targets.md): sliceRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const SLICE_REV_STRICT = 8;
+export const sliceStrictGame = bandStrictGame(sliceTargetGame);
+/** The curve new rounds score on: SLICE_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const SLICE_V8_BAND_CURVE = bandStrict(SLICE_V6_BAND_CURVE);

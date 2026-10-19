@@ -20,7 +20,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, BAND_TARGET_MARK, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -795,6 +795,7 @@ export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null
 
 /** Takes puzzle.bullRev; anything else is the original game. */
 export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  if (rev === BULLSEYE_REV_STRICT) return bullseyeStrictGame;
   if (rev === BULLSEYE_REV_TARGET) return bullseyeTargetGame;
   if (rev === BULLSEYE_REV_TUNED) return bullseyeTunedGame;
   if (rev === BULLSEYE_REV_BAND) return bullseyeBandGame;
@@ -803,6 +804,7 @@ export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, 
 
 /** Start state for a stored round: its own winds and its own revision. */
 export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  if (rev === BULLSEYE_REV_STRICT) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_STRICT_MARK };
   if (rev === BULLSEYE_REV_TARGET) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_TARGET_MARK };
   if (rev === BULLSEYE_REV_TUNED) return bandInit(bullseyeInitRev4(seed, storedWinds));
   if (rev === BULLSEYE_REV_BAND) return bandInit(bullseyeInitRev2(seed, storedWinds));
@@ -995,3 +997,16 @@ export const BULLSEYE_REV_TARGET = 5;
 export const bullseyeTargetGame = bandTargetGame(bullseyeTunedGame);
 /** The curve new rounds score on: BULLSEYE_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const BULLSEYE_V5_BAND_CURVE = bandRetarget(BULLSEYE_V4_BAND_CURVE);
+
+
+/* ================= Score bands (bullRev 6, 19 Oct 2026) ================= */
+
+/**
+ * bullRev 6 (score bands, docs/scoring-targets.md): bullRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const BULLSEYE_REV_STRICT = 6;
+export const bullseyeStrictGame = bandStrictGame(bullseyeTargetGame);
+/** The curve new rounds score on: BULLSEYE_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const BULLSEYE_V6_BAND_CURVE = bandStrict(BULLSEYE_V4_BAND_CURVE);

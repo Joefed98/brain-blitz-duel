@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandCurve, bandInit, bandTargetGame, BAND_TARGET_MARK, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 import { speedBonusCurve } from "../duel/speedPar";
 
@@ -1230,6 +1230,7 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
 export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_STRICT) return wavefrontStrictGame;
   if (rev === WAV_REV_TARGET) return wavefrontTargetGame;
   if (rev === WAV_REV_TALL) return wavefrontTallGame;
   if (rev === WAV_REV_TUNEC) return wavefrontTunecGame;
@@ -1254,7 +1255,7 @@ export function wavefrontBandParts(state: WavState): BandParts {
   // older revisions a flat 10.
   const fight = state.tick - (state.bossAt ?? 0);
   const bonus = !finished ? 0 : state.tunec ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(WAV_KILL_WINDOW_V5 - fight, 0, WAV_KILL_WINDOW_V5), WAV_KILL_WINDOW_V5) : BAND_FINISH_BONUS;
-  return { units, points: bandPoints(state.band === BAND_TARGET_MARK ? WAV_V7_BAND_CURVE : state.worldH ? WAV_V6_BAND_CURVE : state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
+  return { units, points: bandPoints(state.band === BAND_STRICT_MARK ? bandStrict(WAV_V7_BAND_CURVE) : state.band === BAND_TARGET_MARK ? WAV_V7_BAND_CURVE : state.worldH ? WAV_V6_BAND_CURVE : state.tunec ? WAV_V5_BAND_CURVE : WAV_BAND_CURVE, units), bonus, penalty: 0, finished, text: `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.saucers} saucers · ${state.bossHits ?? 0} boss hits`, bonusText: "Boss destroyed" };
 }
 
 function scoreBand(state: WavState): number {
@@ -1403,7 +1404,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  return rev === WAV_REV_TALL || rev === WAV_REV_TARGET ? WAV_TALL_H : WAV_WORLD_H;
+  return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
 /* ================= Scoring targets (wavRev 7, 18 Oct 2026) ================= */
@@ -1420,3 +1421,16 @@ export function wavefrontWorldHFor(rev?: number | null): number {
 export const WAV_REV_TARGET = 7;
 export const WAV_V7_BAND_CURVE = bandCurve([0, 50, 100, 150, 200, 240, 255, 262, 268, WAV_PAR_V5 - WAV_POINTS_BOSS], [0, 35, 60, 78, 92, 105, 118, 128, 139, 140]);
 export const wavefrontTargetGame = bandTargetGame(wavefrontTallGame);
+
+
+/* ================= Score bands (wavRev 8, 19 Oct 2026) ================= */
+
+/**
+ * wavRev 8 (score bands, docs/scoring-targets.md): wavRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const WAV_REV_STRICT = 8;
+export const wavefrontStrictGame = bandStrictGame(wavefrontTargetGame);
+/** The curve new rounds score on: WAV_V7_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const WAV_V8_BAND_CURVE = bandStrict(WAV_V7_BAND_CURVE);

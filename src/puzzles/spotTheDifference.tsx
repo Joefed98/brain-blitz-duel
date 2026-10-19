@@ -340,7 +340,7 @@ function IntroExample() {
 /*  Play                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data = puzzle.type === "spotdiff" ? puzzle : null;
   const scenes = useMemo(() => (data ? spotScenes(data) : []), [data]);
   const twoPictures = scenes.length > 1;
@@ -375,6 +375,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
   const lastScene = scene >= scenes.length - 1;
   // Stored rounds send "c1,c2,…"; spotRev 1 sends one list per picture, "picture1|picture2".
   const answer = twoPictures ? taps.map((t) => t.join(",")).join("|") : (taps[0] ?? []).join(",");
+  // The taps so far go to the room as a draft, so a reveal that arrives before the lock-in still sends them.
+  useEffect(() => {
+    onDraftAnswer?.(answer);
+  }, [answer, onDraftAnswer]);
 
   // All six found in the last picture lock the round in (in picture 1 they bring on
   // picture 2); otherwise the taps so far go up just before the clock runs out. The

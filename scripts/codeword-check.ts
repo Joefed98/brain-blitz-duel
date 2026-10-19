@@ -49,6 +49,10 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { CODEWORD_TIME_MS, type CodewordPuzzleData, type PuzzleData } from "../src/lib/duel/types";
 import { wordGameSeed } from "../src/lib/duel/wordSeed.server";
 import { buildEntry } from "./codeword-bank";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 const failures: string[] = [];
 let checks = 0;

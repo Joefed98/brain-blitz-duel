@@ -34,7 +34,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkWord }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord }: PuzzleStageProps) {
   if (puzzle.type !== "wordsmith") return null;
   return (
     <WordsmithPuzzle
@@ -43,6 +43,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, checkWord }: Puz
       now={now}
       locked={locked}
       onSubmit={onSubmit}
+      onDraftAnswer={onDraftAnswer}
       {...(checkWord ? { checkWord } : {})}
     />
   );

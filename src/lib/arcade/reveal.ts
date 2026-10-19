@@ -496,7 +496,7 @@ const BUILDERS: Record<string, Builder> = {
         axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
         lines: [
           `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
-          done ? `${n(r, "wrong")} wrong · finish 120` : "net" in (r as object) ? `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net` : `${n(r, "wrong")} wrong × −2`,
+          done ? `${n(r, "wrong")} wrong · finish ${n(r, "finishBase")}` : "net" in (r as object) ? `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net` : `${n(r, "wrong")} wrong × −2`,
           done ? `time bonus +${n(r, "timeBonus")}` : sorted ? "time bonus — more than 2 wrong" : "time bonus — not all sorted",
         ],
         tiles: [

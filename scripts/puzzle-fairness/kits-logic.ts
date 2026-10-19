@@ -34,7 +34,8 @@ import {
 } from "../../src/lib/duel/tower";
 import { canPour, decodeTubeMoves, encodeTubeLog, encodeTubeMoves, pour, tubesSolved, type TubeMove, type TubeState, type TubeToken } from "../../src/lib/duel/tubes";
 import { floodMoveLimit, tubesPourLimit, tubesSendsUndo } from "../../src/lib/duel/moveLimits";
-import { clueHolds, encodeSafeTries } from "../../src/lib/duel/safe";
+import { clueHolds, encodeSafeDraft, encodeSafeTries } from "../../src/lib/duel/safe";
+import { puzzleScoreRevOf } from "../../src/lib/duel/puzzleScoreRev";
 import { canonicalBombOrder, decodeBombActions, decodeBombConstraints, encodeBombActions, bombPredecessors } from "../../src/lib/duel/bomb";
 import { encodeNonoCells, type NonoMarks } from "../../src/lib/duel/nonogram";
 import { encodeFloodMoves, floodApply, floodSolved } from "../../src/lib/duel/flood";
@@ -598,22 +599,30 @@ const safeKit: PuzzleKit = {
       }
       return nearMiss.length ? rng.pick(nearMiss) : null;
     };
-    t += pz.clues.reduce((sum) => sum + thinkMs(rng, SAFE_CLUE, skill), 0);
+    // puzzleScoreRev 2 drafts carry the dials as they stand (encodeSafeDraft); older rounds only the tries.
+    const pending = puzzleScoreRevOf(p) >= 2;
+    // The card is read dial by dial: each dial is set once its share of the clues is worked out (a first read
+    // of every clue before the first try, half that on a re-read).
+    const readMs = () => pz.clues.reduce((sum) => sum + thinkMs(rng, SAFE_CLUE, skill), 0);
+    let read = readMs();
     for (let attempt = 0; attempt < SAFE_TRIES; attempt++) {
       const wrong = attempt < SAFE_TRIES - 1 || rng.chance(0.5) ? rng.chance(Math.min(0.5, 2 * skill.err)) : false;
       const goal = (wrong ? near() : null) ?? combo;
       for (let i = 0; i < SAFE_DIALS; i++) {
+        t += read / SAFE_DIALS;
         const delta = (goal[i]! - dials[i]! + 10) % 10;
         const clicks = Math.min(delta, 10 - delta);
         for (let k = 0; k < clicks; k++) t += thinkMs(rng, SAFE_CLICK, skill, 0.2);
+        dials[i] = goal[i]!;
+        if (pending) steps.push({ answer: encodeSafeDraft(tries, dials), atMs: t });
       }
       dials = [...goal];
       t += thinkMs(rng, 1, skill);
       tries.push([...dials]);
       steps.push({ answer: encodeSafeTries(tries), atMs: t });
       if (goal.every((d, i) => d === combo[i])) break;
-      // Shaken: re-read the card.
-      t += pz.clues.reduce((sum) => sum + thinkMs(rng, SAFE_CLUE * 0.5, skill), 0);
+      // Shaken: re-read the card (half the first read).
+      read = readMs() / 2;
     }
     return { steps };
   },

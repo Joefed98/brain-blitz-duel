@@ -14,7 +14,7 @@ import {
   TICKS_PER_SECOND,
   type CanvasSize,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import type { ArcadeGame } from "./engine";
 
 /* ============================== Constants ============================== */
@@ -441,6 +441,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_STRICT) return skylineStrictGame;
   if (rev === SKYLINE_REV_TARGET) return skylineTargetGame;
   if (rev === SKYLINE_REV_TALL) return skylineTallGame;
   if (rev === SKYLINE_REV_BAND) return skylineBandGame;
@@ -480,7 +481,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
+  return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
 /* ================= Scoring targets (skylineRev 5, 18 Oct 2026) ================= */
@@ -494,3 +495,16 @@ export const SKYLINE_REV_TARGET = 5;
 export const skylineTargetGame = bandTargetGame(skylineTallGame);
 /** The curve new rounds score on: SKYLINE_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const SKYLINE_V5_BAND_CURVE = bandRetarget(SKYLINE_BAND_CURVE);
+
+
+/* ================= Score bands (skylineRev 6, 19 Oct 2026) ================= */
+
+/**
+ * skylineRev 6 (score bands, docs/scoring-targets.md): skylineRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const SKYLINE_REV_STRICT = 6;
+export const skylineStrictGame = bandStrictGame(skylineTargetGame);
+/** The curve new rounds score on: SKYLINE_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const SKYLINE_V6_BAND_CURVE = bandStrict(SKYLINE_BAND_CURVE);

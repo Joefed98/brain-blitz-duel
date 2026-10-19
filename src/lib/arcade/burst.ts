@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -716,6 +716,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_STRICT) return burstStrictGame;
   if (rev === BURST_REV_TARGET) return burstTargetGame;
   if (rev === BURST_REV_TALL) return burstTallGame;
   if (rev === BURST_REV_BAND) return burstBandGame;
@@ -766,7 +767,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_TALL || rev === BURST_REV_TARGET ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -780,3 +781,16 @@ export const BURST_REV_TARGET = 5;
 export const burstTargetGame = bandTargetGame(burstTallGame);
 /** The curve new rounds score on: BURST_V4_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const BURST_V5_BAND_CURVE = bandRetarget(BURST_V4_BAND_CURVE);
+
+
+/* ================= Score bands (burstRev 6, 19 Oct 2026) ================= */
+
+/**
+ * burstRev 6 (score bands, docs/scoring-targets.md): burstRev 5 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const BURST_REV_STRICT = 6;
+export const burstStrictGame = bandStrictGame(burstTargetGame);
+/** The curve new rounds score on: BURST_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const BURST_V6_BAND_CURVE = bandStrict(BURST_V4_BAND_CURVE);

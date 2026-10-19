@@ -22,7 +22,7 @@ import {
   BT_REV,
   BT_REV_BAND,
   BT_REV_TALL,
-  BT_REV_TARGET,
+  BT_REV_TARGET, BT_REV_STRICT,
   BT_PALETTE,
   BT_TILE,
   BT_W,
@@ -236,7 +236,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const tapCell = (row: number, col: number) => {
     const cell = row * BT_COLS + col;
     // Rev 2: bottom-row tray drops are switch points (the sim ignores taps where no tray is live).
-    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET) && row === BT_ROWS - 1 && col > 0;
+    const switchPoint = (rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT) && row === BT_ROWS - 1 && col > 0;
     if (!game.rotatable.has(cell) && !switchPoint) return;
     push({ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0 });
   };

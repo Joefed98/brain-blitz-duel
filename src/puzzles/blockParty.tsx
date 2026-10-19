@@ -27,7 +27,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (puzzle.type !== "blockparty") return null;
   return (
     <BlockPartyPuzzle
@@ -36,6 +36,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStagePro
       now={now}
       locked={locked}
       onSubmit={onSubmit}
+      onDraftAnswer={onDraftAnswer}
     />
   );
 }

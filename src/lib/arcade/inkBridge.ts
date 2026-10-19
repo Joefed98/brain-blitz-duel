@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -91,7 +91,7 @@ export const INK_REV_BAND = 5;
 export const INK_REV_TUNEC = 6;
 /** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
 function rev3Rules(rev?: number | null): boolean {
-  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET;
+  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET || rev === INK_REV_STRICT;
 }
 /** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
 export const INK_STAR_R = 9;
@@ -1824,6 +1824,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_STRICT) return inkBridgeStrictGame;
   if (rev === INK_REV_TARGET) return inkBridgeTargetGame;
   if (rev === INK_REV_TUNEC) return inkBridgeTunecGame;
   if (rev === INK_REV_BAND) return inkBridgeBandGame;
@@ -1871,3 +1872,16 @@ export const INK_REV_TARGET = 7;
 export const inkBridgeTargetGame = bandTargetGame(inkBridgeTunecGame);
 /** The curve new rounds score on: INK_V6_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const INK_V7_BAND_CURVE = bandRetarget(INK_V6_BAND_CURVE);
+
+
+/* ================= Score bands (inkRev 8, 19 Oct 2026) ================= */
+
+/**
+ * inkRev 8 (score bands, docs/scoring-targets.md): inkRev 7 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const INK_REV_STRICT = 8;
+export const inkBridgeStrictGame = bandStrictGame(inkBridgeTargetGame);
+/** The curve new rounds score on: INK_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const INK_V8_BAND_CURVE = bandStrict(INK_V6_BAND_CURVE);

@@ -5,7 +5,9 @@
  */
 
 import { SPEED_PAR_VERSION, puzzleUsesSpeedPar, withSpeedCurve } from "./speedPar";
-import { PUZZLE_SCORE_REV } from "./puzzleScoreRev";
+import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
+import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
@@ -116,7 +118,7 @@ export interface GenerateContext {
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: PUZZLE_SCORE_REV } as unknown as PuzzleData;
+  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -248,9 +250,21 @@ export function gradeAnswer(
   extra?: SubmitExtra,
   receivedMsRemaining?: number,
 ): Graded {
-  return withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
+  const graded = withSpeedCurve(puzzleUsesSpeedPar(puzzle), () => {
     if (puzzle.type === "wordsmith") return gradeWordsmith(puzzle, answer, msRemaining);
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
+  // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
+  return puzzleScoreRevOf(puzzle) >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
+}
+
+/** A rev-1 grade turned into the rev-2 score; the breakdown stored for the reveal adds up to it. */
+function withRev2(puzzle: PuzzleData, graded: Graded): Graded {
+  const limit = puzzleTimeLimitMs(puzzle);
+  const parts1 = storedScoreParts(graded.extra);
+  const ms = graded.isCorrect ? graded.storedMs : 0;
+  const { score, parts } = rev2Grade(puzzle.type, graded.score, parts1, ms, limit);
+  const result = Math.round(rev2ResultOf(puzzle.type, graded.score, parts1, ms, limit).result * 10) / 10;
+  return { ...graded, score, extra: { ...(graded.extra ?? {}), parts, rev1Score: graded.score, result } };
 }

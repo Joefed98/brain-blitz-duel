@@ -61,6 +61,11 @@ import type {
   PuzzleData,
   PuzzleType,
 } from "@/lib/duel/types";
+import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { bandsIntro } from "../src/lib/duel/puzzleBandsText";
+
+// Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
+pinDealtPuzzleScoreRev(1);
 
 const SEEDS = Number(process.argv[2] ?? 120);
 const TYPES = ["measure", "checkout", "numline"] as const;
@@ -86,10 +91,11 @@ const PRIVATE: Record<(typeof TYPES)[number], string[]> = {
 const REV_KEY = { measure: "measureRev", checkout: "checkoutRev", numline: "numlineRev" } as const;
 const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
 // The Oct 2026 puzzle score shape (puzzleScoreRev 1) lines; stored rounds keep their old scoring (anchors below).
+// The intro lines since the score bands (19 Oct 2026, puzzleBandsText.ts); the rev-1 numbers stay in this check's grading.
 const SCORE_LINES = {
-  measure: "30, 35, 45 for puzzles 1-3, moves limited; all four for 120, more for few moves and speed",
-  checkout: "22-32 per board; all five for 120, more for fewest darts and speed",
-  numline: "Up to 8 per number (120 for all 15), more if quick and close; far-off ones lose 1",
+  measure: bandsIntro("measure"),
+  checkout: bandsIntro("checkout"),
+  numline: "Up to 8 per number, more if quick and close; far-off ones lose 1. 150 is perfect.",
 };
 /**
  * The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). Ballpark's copy

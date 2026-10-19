@@ -19,7 +19,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -891,6 +891,7 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
 export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_STRICT) return crossStrictGame;
   if (rev === CROSS_REV_TARGET) return crossTargetGame;
   if (rev === CROSS_REV_SMALL) return crossSmallGame;
   if (rev === CROSS_REV_BAND) return crossBandGame;
@@ -964,3 +965,16 @@ export const CROSS_REV_TARGET = 6;
 export const crossTargetGame = bandTargetGame(crossSmallGame);
 /** The curve new rounds score on: CROSS_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const CROSS_V6_BAND_CURVE = bandRetarget(CROSS_BAND_CURVE);
+
+
+/* ================= Score bands (crossRev 7, 19 Oct 2026) ================= */
+
+/**
+ * crossRev 7 (score bands, docs/scoring-targets.md): crossRev 6 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const CROSS_REV_STRICT = 7;
+export const crossStrictGame = bandStrictGame(crossTargetGame);
+/** The curve new rounds score on: CROSS_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const CROSS_V7_BAND_CURVE = bandStrict(CROSS_BAND_CURVE);

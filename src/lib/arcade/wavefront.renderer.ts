@@ -44,7 +44,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET,
+  WAV_REV_TARGET, WAV_REV_STRICT,
   WAV_WORLD_W,
   type WavArmour,
   type WavState,
@@ -699,8 +699,10 @@ const wavefrontArtGameShapes = { ...wavefrontGameFor(WAV_REV_SHAPES), draw: draw
 const wavefrontArtGameTunec = { ...wavefrontGameFor(WAV_REV_TUNEC), draw: drawWavefrontArt };
 const wavefrontArtGameTall = { ...wavefrontGameFor(WAV_REV_TALL), draw: drawWavefrontArt };
 const wavefrontArtGameTarget = { ...wavefrontGameFor(WAV_REV_TARGET), draw: drawWavefrontArt };
+const wavefrontArtGameStrict = { ...wavefrontGameFor(WAV_REV_STRICT), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_STRICT) return wavefrontArtGameStrict;
   if (rev === WAV_REV_TARGET) return wavefrontArtGameTarget;
   if (rev === WAV_REV_TALL) return wavefrontArtGameTall;
   if (rev === WAV_REV_TUNEC) return wavefrontArtGameTunec;

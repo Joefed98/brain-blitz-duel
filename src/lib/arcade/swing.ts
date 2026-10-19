@@ -17,7 +17,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { ANG_PER_RAD, iatan2, icos, isin, isqrt, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -961,6 +961,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_STRICT) return swingStrictGame;
   if (rev === SWING_REV_TARGET) return swingTargetGame;
   if (rev === SWING_REV_TALL) return swingTallGame;
   if (rev === SWING_REV_SPREAD) return swingSpreadGame;
@@ -1281,7 +1282,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  return rev === SWING_REV_TALL || rev === SWING_REV_TARGET ? SWING_TALL_H : SWING_WORLD_H;
+  return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
 /**
@@ -1330,3 +1331,16 @@ export const SWING_REV_TARGET = 10;
 export const swingTargetGame = bandTargetGame(swingTallGame);
 /** The curve new rounds score on: SWING_V9_BAND_CURVE lifted through BAND_TARGET_MAP (what bandCurveOf gives a target-stamped state). */
 export const SWING_V10_BAND_CURVE = bandRetarget(SWING_V9_BAND_CURVE);
+
+
+/* ================= Score bands (swingRev 11, 19 Oct 2026) ================= */
+
+/**
+ * swingRev 11 (score bands, docs/scoring-targets.md): swingRev 10 play unchanged, scored on its strict curve (band 3,
+ * src/lib/arcade/strictBands.data.ts) so the simulated average / good / great / near-perfect players land about
+ * 70 / 100 / 120 / 140.
+ */
+export const SWING_REV_STRICT = 11;
+export const swingStrictGame = bandStrictGame(swingTargetGame);
+/** The curve new rounds score on: SWING_V9_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
+export const SWING_V11_BAND_CURVE = bandStrict(SWING_V9_BAND_CURVE);

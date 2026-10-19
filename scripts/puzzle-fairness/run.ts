@@ -10,9 +10,23 @@ import { puzzleTimeLimitMs } from "../../src/lib/duel/registry";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { LEVELS, SKILLS, hashText, makeRng, type Level, type PuzzleKit } from "./kit";
 
+/**
+ * Set by checks that prove the rev-1 puzzle shape (puzzle-score-rev-check): room puzzles then carry the stamps
+ * rooms dealt before the score bands (puzzleScoreRev 1; Tenfall tenRev 1, Mixed Signals clashRev 5, Bonk whackRev 1,
+ * Pull! clayRev 6, Letterfall wordfallRev 2), so those checks keep proving what they were written for.
+ */
+let pinRev1 = false;
+export function pinRev1Shape(on: boolean): void {
+  pinRev1 = on;
+}
+const REV1_ENGINE_STAMPS: Partial<Record<PuzzleType, Record<string, number>>> = {
+  tendrop: { tenRev: 1 }, stroop: { clashRev: 5 }, whack: { whackRev: 1 }, clayshoot: { clayRev: 6 }, wordfall: { wordfallRev: 2 },
+};
+
 /** The room puzzle for (type, seed), as a room started with that seed would store it. */
 export function roomPuzzle(type: PuzzleType, seed: number): PuzzleData {
-  return withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
+  const puzzle = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
+  return pinRev1 ? ({ ...(puzzle as object), puzzleScoreRev: 1, ...(REV1_ENGINE_STAMPS[type] ?? {}) } as unknown as PuzzleData) : puzzle;
 }
 
 export interface GradedRun {

@@ -18,7 +18,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandCurve, bandPoints } from "./scoreBands";
+import { bandCurve, bandMapTotal, bandPoints } from "./scoreBands";
 
 /* ============================== Constants ============================== */
 
@@ -153,6 +153,8 @@ function buildSchedule(seed: number): { rng: number; schedule: WhackSchedule } {
 export interface WhackState {
   /** whackRev 1 only (scoring targets): 1 = the score is lifted through WHACK_TARGET_LIFT. Absent on older rounds. */
   tgt?: number;
+  /** whackRev 2 only (score bands): 1 = the raw score mapped through WHACK_BANDS_MAP. Absent on older rounds. */
+  sb?: number;
   tick: number;
   rng: number;
   schedule: WhackSchedule;
@@ -247,6 +249,7 @@ export function whackScore(hits: number, wrong: number, total: number, empty = 0
 
 function score(state: WhackState): number {
   const raw = whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  if (state.sb) return bandMapTotal(WHACK_BANDS_MAP, raw);
   return state.tgt ? whackLift(raw) : raw;
 }
 
@@ -427,5 +430,17 @@ export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = 
 
 /** The game for a stored whackRev (absent = the original score). */
 export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  if (rev === WHACK_REV_BANDS) return whackBandsGame;
   return rev === WHACK_REV_TARGET ? whackTargetGame : whackGame;
 }
+
+/* ================= Score bands (whackRev 2, 19 Oct 2026) ================= */
+
+/**
+ * whackRev 2 (score bands, docs/scoring-targets.md): the same play, hit share and costs as before, the raw score
+ * (before whackRev 1's lift) mapped so the simulated players' 62 / 102 / 118 / 133 (average / good / great /
+ * near-perfect) land about 70 / 100 / 120 / 140; 0 stays 0 and only a perfect 150 is 150.
+ */
+export const WHACK_REV_BANDS = 2;
+export const WHACK_BANDS_MAP = bandCurve([0, 62, 102, 118, 133, 150], [0, 70, 100, 120, 140, 150]);
+export const whackBandsGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...init(seed), sb: 1 }) };

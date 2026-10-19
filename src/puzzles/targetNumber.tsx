@@ -186,6 +186,7 @@ function TargetStage({
   now,
   locked,
   onSubmit,
+  onDraftAnswer,
 }: PuzzleStageProps & { tiles: number[]; target: number }) {
   const column = useGameColumnLayout();
   const [pool, setPool] = useState<Tile[]>(() =>
@@ -206,6 +207,11 @@ function TargetStage({
   const solving = useSolveFx(flight !== null, "target.solve", 1150);
 
   const steps = history.map((h) => h.step);
+  // The steps so far go to the room as a draft, so a reveal that arrives before the auto lock-in still sends them.
+  const draft = encodeSteps(steps);
+  useEffect(() => {
+    onDraftAnswer?.(draft);
+  }, [draft, onDraftAnswer]);
 
   const send = (list: TargetStep[]) => {
     if (submitted.current) return;
