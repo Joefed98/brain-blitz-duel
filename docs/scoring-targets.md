@@ -79,7 +79,7 @@ The "?" help states these numbers (`src/lib/duel/puzzleBandsText.ts`), and so do
 | Gridlock | the gold block's lane cleared (wasted moves cost) | moves | 74 / 86 / 114 |
 | Tessellate | pieces in their solution spot (pieces elsewhere cost) | — | 56 / 95 / 118 |
 | Skid | the distance to the exit you closed (wasted moves cost) | moves | 66 / 84 / 122 |
-| Topsy-Turvy | balls you parked (wasted tilts cost) | tilts | 12 / 57 / 116 |
+| Topsy-Turvy | how much closer your balls are to all parked (tilts that don't help cost), `gravityRev 2` | tilts | 72 / 86 / 116 |
 | Jumbled | tiles you put in place (wasted moves cost) | moves | 76 / 88 / 117 |
 | Turntable | spokes you lined up (wasted moves cost) | moves | 74 / 85 / 103 |
 | Lightbender | gems lit by your last shot | shots | 78 / 91 / 118 |
@@ -89,7 +89,7 @@ The "?" help states these numbers (`src/lib/duel/puzzleBandsText.ts`), and so do
 | Chroma Lines | pairs joined on their route (other joined pairs cost) | — | 55 / 89 / 111 |
 | Heave | crates you brought home (wasted pushes cost) | pushes | 40 / 81 / 106 |
 | Hanoi | rings you stacked on the gold post (wasted moves cost) | moves | 73 / 86 / 114 |
-| Polypotions | flasks you corked (wasted pours cost) | pours | 7 / 40 / 115 |
+| Polypotions | how much closer your flasks are to all sorted (pours that don't help cost double), `tubesRev 2` | pours | 74 / 87 / 115 |
 | Safe Cracker | dials right on your best try, or as they stand when time runs out (one lucky dial is free) | tries | 71 / 83 / 99 |
 | Bomb Defusal | correct steps before a strike | — | 34 / 68 / 90 |
 | Mosaic | right cells (a wrong cell costs) | — | 41 / 78 / 95 |
@@ -137,7 +137,7 @@ the same puzzles on `puzzleScoreRev 1` (what rooms dealt on 18 Oct).
 | Gridlock | 36.5 → 69 | 139.5 → 99 | 148.5 → 119.5 | 150 → 140 | 0 / 27 / 30 / 30 | 0 / 0 |
 | Tessellate | 69 → 70 | 124.5 → 100.5 | 141 → 118.5 | 150 → 140 | 0 / 25 / 30 / 30 | 0 / 14 |
 | Skid | 62 → 71 | 134 → 97.5 | 146 → 122.5 | 150 → 141.5 | 0 / 18 / 30 / 30 | 0 / 0 |
-| Topsy-Turvy | 37 → 7 | 138 → 102 | 148.5 → 120 | 150 → 140 | 0 / 25 / 30 / 30 | 5 / 37 |
+| Topsy-Turvy | 37 → 7 → **50.5** (`gravityRev 2`; 200 seeds: AVG_G) | 138 → 102 → 100 | 148.5 → 120 | 150 → 140 | 0 / 25 / 30 / 30 | 5 / 37 → 0 / 25 |
 | Jumbled | 23 → 57.5 | 136 → 99 | 147.5 → 119 | 150 → 136.5 | 0 / 26 / 30 / 30 | 0 / 7 |
 | Turntable | 14 → 61.5 | 146 → 101 | 150 → 122 | 150 → 143 | 8 / 30 / 30 / 30 | 0 / 85 |
 | Lightbender | 22 → 70 | 134 → 102 | 140.5 → 107.5 | 150 → 137 | 0 / 25 / 30 / 30 | 0 / 70 |
@@ -147,7 +147,7 @@ the same puzzles on `puzzleScoreRev 1` (what rooms dealt on 18 Oct).
 | Chroma Lines | 78.5 → 74 | 131 → 99 | 145 → 119 | 150 → 140 | 0 / 28 / 30 / 30 | 8 / 89 |
 | Heave | 73 → 70 | 141 → 99 | 150 → 120 | 150 → 137 | 2 / 30 / 30 / 30 | 0 / 70 |
 | Hanoi | 41 → 70 | 140.5 → 104.5 | 148 → 117 | 150 → 139.5 | 1 / 29 / 30 / 30 | 0 / 99 |
-| Polypotions | 31 → 4 | 142 → 107.5 | 148 → 119 | 150 → 139.5 | 0 / 29 / 30 / 30 | 5 / 82 |
+| Polypotions | 31 → 4 → **69** (`tubesRev 2`; 200 seeds: AVG_T) | 142 → 107.5 | 148 → 119 | 150 → 139.5 | 0 / 29 / 30 / 30 | 5 / 82 → 0 / 96 |
 | Safe Cracker | 37.5 → 70 | 147 → 100 | 150 → 119.5 | 150 → 141 | 12 / 30 / 30 / 30 | 0 / 35 |
 | Bomb Defusal | 88 → 54 | 148 → 98 | 150 → 127 | 150 → 142 | 14 / 23 / 26 / 29 | 0 / 27 |
 | Mosaic | 91.5 → 68.5 | 147 → 102 | 150 → 119.5 | 150 → 140.5 | 7 / 30 / 30 / 30 | 0 / 51 |
@@ -225,8 +225,8 @@ now score 102–113 (were 122–130 on #110's lift), his par run 150. Every othe
 - **Random and careless play stays low.** `scoring-bands-check` runs every spam strategy on 12 room seeds per puzzle and
   fails if a strategy the fairness audit does not count as real play has a median above 5 (or a point above what rev 1
   gave the same answers); doing nothing scores 0 everywhere. The knots' spam guard pins random input's 90th percentile
-  at 10 points, so for Topsy-Turvy and Polypotions (where random tilts and pours park balls and cork flasks as often as
-  an average player does) unfinished credit is now low: see "For Joe" 3. `careless-play-check` passes unchanged
+  at 10 points. Topsy-Turvy and Polypotions now measure progress by solver distance (below), so random tilts and
+  pours score a median of 0 and their average players reach the average band. `careless-play-check` passes unchanged
   (Flash, Bang On and Pull!'s careless lines still cost more).
 - **Partial credit:** every rev-2 puzzle's half-progress score is above 0 (checked), every finish beats every
   unfinished run (checked), and progress is the game's own measure of what the player made (rows, words, cells,
@@ -276,11 +276,9 @@ Not fixed (room screens, held by another session; patches proposed):
    sit at 150 again in most games.
 2. **Kits and bots as the reference.** Every curve is fitted to the simulated players, as in October; your own runs
    remain the real check. Rainbow Bridge and Gemstone follow your play, not the bots.
-3. **Topsy-Turvy and Polypotions** (average 37 → 7 and 31 → 4): their progress (balls parked, flasks corked) is reached
-   about as often by random tilts and pours at the limit as by an average player, so the random-play guard holds their
-   unfinished credit low. A better measure needs a game change (e.g. credit only for flasks corked within the minimum
-   moves, or a solver distance), proposed rather than made.
-4. **Still low or noisy averages:** Brimful 44, Bomb Defusal 54 (half the average kits finish, so the median swings),
+3. **Topsy-Turvy and Polypotions**: fixed by the follow-up below (`gravityRev 2`, `tubesRev 2`, solver distance).
+4. **Still low or noisy averages** (time proposals for Brimful, Bomb Defusal and Jumbled in the follow-up below):
+   Brimful 44, Bomb Defusal 54 (half the average kits finish, so the median swings),
    Jumbled 58, Turntable 62, Lamplighter 65, Pipeline 66 — the average kits make little progress in time and partial
    credit is kept proportional (at most 5 points per step) rather than inflated. Integer Pyramid: good kits never finish
    (they score 100 on progress); the 150 s or three-pyramid proposal from #110 stands.
@@ -299,6 +297,61 @@ Not fixed (room screens, held by another session; patches proposed):
   answers and random play, Safe Cracker's draft, the help numbers.
 - Tools: `bun scripts/puzzle-bands-fit.ts` (fit, `--write`, `--report-only`), `bun scripts/arcade-bands-fit.ts <runs.json>`
   (from `arcade-skill-bands.ts --json`), `bun scripts/scoring-bands-record.ts` (the fixture).
+
+## Follow-up (19 Oct 2026): Topsy-Turvy and Polypotions progress, Operator on one line
+
+### Solver-distance progress (`src/lib/duel/solverProgress.server.ts`)
+
+Balls parked and flasks corked were reached about as often by random tilts and pours at the limit as by an average
+player, so the random-play guard held both games' unfinished credit near 0 (averages 7 and 4). New rounds carry
+**Topsy-Turvy `gravityRev 2`** and **Polypotions `tubesRev 2`** (the same boards, limits and finish scoring; older rounds
+keep `gravityRev 1` / `tubesRev 1` and grade exactly as before):
+
+- **closer** = the board's stored minimum less the fewest moves the board the player holds still needs (the boards' own
+  breadth-first solvers, the ones that proved the minimum); a board that can no longer be solved holds nothing.
+- **waste** = moves made beyond `closer` (Undo and Reset never give one back). Each wasted tilt cancels one good one,
+  each wasted pour two: random pours do much more real sorting than random tilts (a pour only goes onto a matching
+  colour or into an empty flask, so a random pour list at the limit ends a few pours from solved).
+- progress = (closer − weight × waste) ÷ minimum, the unfinished credit 110 × progress (the rev-1 shape), then the
+  game's own knots row, `gravity:2` / `tubes:2` in `puzzleBands.data.ts` (`rev2KnotsForPuzzle`; older stamps keep
+  their rows). Following the solution k moves is worth exactly k ÷ minimum.
+- Fitted with `bun scripts/puzzle-bands-fit.ts --write` (Topsy-Turvy on 80 fit seeds, `--seeds=80`: its average kits'
+  progress swings with the board's minimum, 8–14 tilts, so 40 seeds left the median a few points off).
+
+| Game | Average (fit seeds) | Average (test seeds 7001–7030) | Average (200 test seeds) | Good / great / near | Random median / p90 | Half / buzzer / third |
+|---|---|---|---|---|---|---|
+| Topsy-Turvy | 70 | 50.5 | AVG_G | 100 / 120 / 140 | 0 / 0 | 72 / 86 / 116 |
+| Polypotions | 70 | 69 | AVG_T | 107.5 / 119 / 139.5 | 0 / 0 | 74 / 87 / 115 |
+
+Topsy-Turvy's 30 test seeds are a low draw (median progress 0.33 against 0.43–0.44 on the 80 fit seeds and on 200
+seeds 3001–3200); the 200-seed column is the fairer figure. Random tilts and pours keep a median of 0 (the odd random
+solve still scores: Polypotions' max 96 is one). The reveal stores the progress (`extra.progress`, %); the round
+leaderboard's summary still shows balls parked / tubes sorted (results screens untouched: another session).
+
+Checks: `solver-progress-check` (new, ~1 min): stamps and unchanged limits, the measure, older stamps grading as before,
+56 runs recorded on the new stamps (`scripts/fixtures/solver-progress-runs.json.gz`), average 60–79 on the fit seeds,
+random median 0. `scoring-bands-check` grades its fixture's Topsy-Turvy and Polypotions rows (recorded before) on
+their old stamps; `move-limits-check` expects the new stamps. Practice bests start fresh (`practiceStamps.data.ts`).
+
+### Operator: one line
+
+The equation is drawn at 32 px and, when that is wider than its box, its font (and the slots, sized in em) shrinks just
+enough to fit, measured before paint and on resize (`useFitOneLine`, display only). The slots are 1.35 em wide (were
+square). Measured in headless Chromium: equations 1–2 stay at 28.5–32 px; five-number equations 22–26.5 px; the worst
+case (five 20s, target 400) 23.5 px at 414×896, 21 px at 375×667, 20 px at 360×800 (slots then about 28 px wide). The
+reveal's lines use the same fit (18 / 16 px down to 11 px).
+
+### Brimful, Bomb Defusal, Jumbled: time (proposals, not made)
+
+The average kits on 30 test seeds (`scripts/puzzle-fairness` kits, unlimited clock, when each run would finish):
+
+| Game | Clock | Average kits finishing in time | Would finish by | What stops them |
+|---|---|---|---|---|
+| Brimful | 120 s | 0 / 30 (about 1 of 4 boards; 27 % of their moves made) | 2 / 30 even at 240 s | mostly the clock, and 22 / 30 later hit a board's move limit (all 30 finish with no limit) |
+| Bomb Defusal | 90 s | 14 / 30 | 16 at 108 s, 18 at 113 s, 19 at 135 s | 11 / 30 strike out (mistakes, not time); 5 are slow |
+| Jumbled | 60 s | 0 / 30 (60 % of their moves made) | 2 at 72 s, 10 at 90 s, 26 at 120 s | the clock |
+
+Good kits finish 17 / 30 (Brimful), 23 / 30 (Bomb) and 26 / 30 (Jumbled) on the current clocks.
 
 ## Earlier: scoring targets (18 Oct 2026, #110)
 

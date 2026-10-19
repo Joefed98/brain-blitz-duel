@@ -45,6 +45,14 @@ export const FLOOD_LIMIT_REV2 = 2;
 export const FLOOD_REV2_SPARE_MOVES = 2;
 export const TUBES_LIMIT_REV = 1;
 export const GRAVITY_LIMIT_REV = 1;
+/**
+ * Polypotions tubesRev 2 and Topsy-Turvy gravityRev 2 (19 Oct 2026, docs/scoring-targets.md): the same boards and
+ * limits; an unfinished board's progress is the solver distance the player closed, net of waste
+ * (solverProgress.server.ts), instead of flasks corked / balls parked, which random pours and tilts reached as often
+ * as an average player.
+ */
+export const TUBES_PROGRESS_REV = 2;
+export const GRAVITY_PROGRESS_REV = 2;
 export const BALANCE_LIMIT_REV = 1;
 export const EQUATION_LIMIT_REV = 1;
 /** Brimful's rules marker moves from 1 to 2 with the per-board move limit. */

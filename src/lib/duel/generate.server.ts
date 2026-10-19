@@ -264,7 +264,7 @@ function withRev2(puzzle: PuzzleData, graded: Graded): Graded {
   const limit = puzzleTimeLimitMs(puzzle);
   const parts1 = storedScoreParts(graded.extra);
   const ms = graded.isCorrect ? graded.storedMs : 0;
-  const { score, parts } = rev2Grade(puzzle.type, graded.score, parts1, ms, limit);
+  const { score, parts } = rev2Grade(puzzle, graded.score, parts1, ms, limit);
   const result = Math.round(rev2ResultOf(puzzle.type, graded.score, parts1, ms, limit).result * 10) / 10;
   return { ...graded, score, extra: { ...(graded.extra ?? {}), parts, rev1Score: graded.score, result } };
 }

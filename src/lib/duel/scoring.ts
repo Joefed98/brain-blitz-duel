@@ -783,8 +783,11 @@ export function scoreTubes(
   timeLimitMs: number = TUBES_TIME_MS,
   colours = 0,
   sortedAtStart = 0,
+  solverShare?: number,
 ): number {
   if (solved) return scoreSolvedMoves(moves, minMoves, msRemaining, timeLimitMs);
+  // tubesRev 2: the solver distance closed, net of waste (solverProgress.server.ts); a solved board is 110.
+  if (scoreRev1() && solverShare !== undefined) return partialParts(110 * solverShare);
   // Rev 1: flasks the player corked beyond the start; all colours but one corked is 110.
   if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(sortedTubes) - sortedAtStart)) / Math.max(1, colours - 1 - sortedAtStart)) * wasteFactor(moves, minMoves));
   return clamp(TUBES_TUBE_POINTS * Math.max(0, Math.round(sortedTubes)), 0, UNFINISHED_CAP);
@@ -843,8 +846,11 @@ export function scoreGravity(
   timeLimitMs: number = GRAV_TIME_MS,
   lockedAtStart = 0,
   balls = 4,
+  solverShare?: number,
 ): number {
   if (solved) return scoreSolvedMoves(tilts, minMoves, msRemaining, timeLimitMs);
+  // gravityRev 2: the solver distance closed, net of waste (solverProgress.server.ts); a solved board is 110.
+  if (scoreRev1() && solverShare !== undefined) return partialParts(110 * solverShare);
   // Rev 1: balls the player parked beyond the start; all but one parked is 110.
   if (scoreRev1()) return partialParts(((110 * Math.max(0, Math.round(locked) - lockedAtStart)) / Math.max(1, balls - 1 - lockedAtStart)) * wasteFactor(tilts, minMoves));
   return clamp(GRAV_LOCK_POINTS * Math.max(0, Math.round(locked)), 0, MAX_ROUND_SCORE);

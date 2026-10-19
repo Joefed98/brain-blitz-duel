@@ -109,14 +109,8 @@ export const KNOWN_SPAM: Partial<Record<PuzzleType, Record<string, string>>> = {
   maze: { "blind-dfs-6cps": `${STRATEGY} (wall-following every dead end at 6 cells a second)` },
   flow: { "direct-lines": `${STRATEGY} (each dot drawn straight to its twin; many shortest routes are the solution)` },
   nonogram: { "busy-lines": `${STRATEGY} (fills rows and columns whose clues are long)` },
-  gravity: {
-    "random-1.5/s": "tilt limit (gravityRev 1): random tilting runs out long before it solves (about one board in 30); the board then keeps the existing unfinished credit for balls parked",
-    "random-3/s": "tilt limit (gravityRev 1): random tilting runs out and keeps the unfinished credit for parked balls at the limit (median about 30)",
-  },
-  tubes: {
-    "random-pours-1.5/s": "pour limit (tubesRev 1): random pours no longer solve (was two boards in three); at the limit they keep the existing unfinished credit for corked flasks (median about 40)",
-    "random-pours-3/s": "pour limit (tubesRev 1): random pours keep the unfinished credit for corked flasks at the limit (median about 40)",
-  },
+  // Topsy-Turvy and Polypotions: no entry since gravityRev 2 / tubesRev 2 (19 Oct 2026, solverProgress.server.ts):
+  // random tilts and pours at the limit now score about 0, so the spam guards apply to them like any other game.
 };
 /** Ballpark has no clean finish: "all placed" is its finish, scaled by accuracy, so rule c's 120 floor does not apply. */
 const NO_CLEAN_FINISH = new Set<PuzzleType>(["numline"]);

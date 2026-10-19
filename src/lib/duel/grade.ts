@@ -141,7 +141,8 @@ import {
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword, swapwordPlaced } from "./swapword";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
-import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo } from "./moveLimits";
+import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -839,12 +840,15 @@ function gradeUnderRev(
       isCorrect = replay.solved;
       correctCount = replay.moves;
       const colours = new Set(puzzle.tubes.flat()).size;
-      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs, colours, sortedTubeCount(puzzle.tubes));
+      // tubesRev 2: an unfinished board's progress is the solver distance closed, net of waste.
+      const tubesShare = !replay.solved && (puzzle.tubesRev ?? 0) >= TUBES_PROGRESS_REV ? tubesSolverProgress(puzzle, replay.tubes, replay.moves) : undefined;
+      score = scoreTubes(replay.solved, replay.moves, puzzle.minMoves ?? 0, ms, replay.sorted, timeLimitMs, colours, sortedTubeCount(puzzle.tubes), tubesShare);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         sorted: replay.sorted,
+        ...(tubesShare !== undefined ? { progress: Math.round(tubesShare * 100) } : {}),
         ...(pourLimit !== null ? { pourLimit, outOfPours: "outOfPours" in replay && replay.outOfPours } : {}),
       };
       break;
@@ -903,12 +907,15 @@ function gradeUnderRev(
       isCorrect = replay.solved;
       correctCount = replay.tilts;
       const lockedAtStart = scoreRev1() ? replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, []).locked : 0;
-      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs, lockedAtStart, puzzle.starts.length);
+      // gravityRev 2: an unfinished board's progress is the solver distance closed, net of waste.
+      const gravityShare = !replay.solved && (puzzle.gravityRev ?? 0) >= GRAVITY_PROGRESS_REV ? gravitySolverProgress(puzzle, replay.balls, replay.tilts) : undefined;
+      score = scoreGravity(replay.solved, replay.tilts, puzzle.minMoves ?? 0, ms, replay.locked, timeLimitMs, lockedAtStart, puzzle.starts.length, gravityShare);
       extraDetail = {
         solved: replay.solved,
         tilts: replay.tilts,
         minMoves: puzzle.minMoves ?? 0,
         locked: replay.locked,
+        ...(gravityShare !== undefined ? { progress: Math.round(gravityShare * 100) } : {}),
         ...(tiltLimit !== null ? { tiltLimit, outOfTilts: replay.outOfTilts } : {}),
       };
       break;
