@@ -25,7 +25,12 @@ export const SHARDS: Record<string, string[]> = {
   play2: ["arcade-play-check.ts@2/5", "arcade-device-bottom-check.ts@2/6"],
   // beat-hold-browser-check (real practice and room screens in Chromium, ~50 s) and
   // onboarding-check (16 Oct 2026: the first-time intro on home, ~60 s with its dev server) ride here.
-  play3: ["arcade-play-check.ts@3/5", "beat-hold-browser-check.tsx", "onboarding-check.ts", "first-paint-check.ts"],
+  play3: [
+    "arcade-play-check.ts@3/5",
+    "beat-hold-browser-check.tsx",
+    "onboarding-check.ts",
+    "first-paint-check.ts",
+  ],
   // safe-area-screens-check (non-game screens, notch and home bar emulated, and the room play header's 36 cases, ~3–4 min) rides here.
   play4: ["arcade-play-check.ts@4/5", "safe-area-screens-check.tsx"],
   // play5 also plays stored rounds through the replay player (replay-play-check, ~2 min with its dev server)
@@ -238,7 +243,13 @@ export const SHARDS: Record<string, string[]> = {
 export const CATCH_ALL = "g";
 
 /** --include-optional checks: not part of the routine suite, never run in CI. */
-export const OPTIONAL = ["orbit-outside-belt-deep-check.ts", "puzzle-bank-rebuild-check.ts", "puzzle-bands-depth-check.ts"];
+export const OPTIONAL = [
+  "orbit-outside-belt-deep-check.ts",
+  "puzzle-bank-rebuild-check.ts",
+  "puzzle-bands-depth-check.ts",
+  // A report, not a check (docs/scoring-report-oct-2026.md): never run in CI.
+  "scoring-report.ts",
+];
 
 /**
  * Checks CI can't run (they need network or a secret Actions doesn't have),
