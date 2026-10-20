@@ -30,13 +30,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `swing.dragon` | Grappler | The dragon appears behind the player | `arc_siren` (0.6) | 0–1 | 600 ms |
 | `swing.rockShake` | Grappler | A stalactite starts to shake | `arc_clank` (0.5) | 2–8 | 150 ms |
 | `swing.rockLand` | Grappler | A stalactite hits the floor | `arc_wood_knock` (0.5) | 2–8 | 90 ms |
-| `wavefront.fire` | Wavefront | A shot is fired (one per volley; at most one per 120 ms, two at once) | `arc_blaster` (0.6, overlapping); own soft file `wavefront.fire.mp3` at 0.5 | about 250 in 90 s | 140 ms |
+| `wavefront.fire` | Wavefront | A shot is fired (one per volley; at most one per 120 ms, two at once) | `arc_blaster` (0.6, overlapping); own soft file `wavefront.greenBolt.mp3` at 0.36 (sound batch 4, slot volume 0.6; batch 3's `wavefront.fire.mp3` deleted) | about 250 in 90 s | 90 ms |
 | `wavefront.pierce` | Wavefront | A piercing power-up is taken | `arc_retro_pickup` | 0–3 | 100 ms |
 | `wavefront.bigExplode` | Wavefront | A ship or the armoured ship is destroyed | `arc_big_explode` (0.8) | 5–20 | 810 ms |
 | `wavefront.shapePop` | Wavefront | Any other shape is destroyed | `arc_shape_pop` (0.7) | 20–60 | 150 ms |
 | `wavefront.lifeLost` | Wavefront | A life is lost | `arc_lose_life` | 0–3 | 220 ms |
 | `wavefront.bossHit` | Wavefront | The boss is hit and survives (wavRev 2) | `arc_retro_hit` (0.7, overlapping) | 0–30 | 120 ms |
-| `wavefront.formation` | Wavefront | The next formation (or the boss) arrives | `stage_complete` (0.8) | 3–5 | 160 ms |
+| `wavefront.formation` | Wavefront | The next formation (or the boss) arrives | `stage_complete` (0.8) · own file `wavefront.waveIn.mp3` (sound batch 4, volume 0.8) | 3–5 | 830 ms |
 | `wavefront.dive` | Wavefront | A ship peels off to dive | `arc_retro_blip` (0.5, overlapping) | 5–20 | 50 ms |
 | `cross.lifeLost` | Jaywalk | The walker is hit | `arc_lose_life` | 0–3 | 220 ms |
 | `cross.crossed` | Jaywalk | A crossing is completed | `stage_complete` | 5–15 | 160 ms |
@@ -54,8 +54,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `snake.rockWarn` | Meteor | A rock's shadow appears | `arc_retro_note` (0.5, slowed ×0.7) | 5–20 | 90 ms |
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
 | `beat.start` | Tempo | The run starts | `arc_retro_coin` | 1 | 120 ms |
-| `beat.miss` | Tempo | A note is missed (left out when it breaks a combo of 10+ and `beat.comboLost` has a file) | `arc_retro_hit` | 5–20 | 120 ms |
-| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) | 80–150 | 90 ms |
+| `beat.miss` | Tempo | A note is missed (left out when it breaks a combo of 10+ and `beat.comboLost` has a file) | `arc_retro_hit` · own file `beat.miss.mp3` (sound batch 4, volume 0.6) | 5–20 | 150 ms |
+| `beat.note` | Tempo | A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) | `arc_retro_note` (0.8, lane pitch) · own file `beat.noteHit.mp3` (sound batch 4, volume 0.8) | 80–150 | 120 ms |
 | `breaker.start` | Breaker | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `breaker.ballLost` | Breaker | A ball is lost | `arc_retro_explode` | 0–3 | 260 ms |
 | `breaker.powerUp` | Breaker | A power-up is caught | `arc_retro_pickup` | 2–6 | 100 ms |
@@ -97,7 +97,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `tilt.caught` | Tilt | The marble is caught | `arc_crash` | 0–3 | 200 ms |
 | `tilt.mazeDone` | Tilt | A maze is finished | `arc_marble_clink` | 2–6 | 120 ms |
 | `tilt.cup` | Tilt | The marble drops into a cup | `arc_marble_clink` (0.7) | 2–10 | 120 ms |
-| `tilt.starTaken` | Tilt | A star is collected | `arc_leaf_collect` (0.8) | 3–15 | 840 ms |
+| `tilt.starTaken` | Tilt | A star is collected | `arc_leaf_collect` (0.8) · own file `tilt.goldStar.mp3` (sound batch 4, volume 0.7) | 3–15 | 450 ms |
 | `tilt.gate` | Tilt | A gate opens | `arc_latch` | 1–6 | 100 ms |
 | `tilt.knock` | Tilt | The marble knocks a wall (at most one per 80 ms) | `arc_wood_knock` (0.7, overlapping) | 20–80 | 90 ms |
 | `balltrack.roll` | Ball Tracker | Loop while a ball is on the track | `arc_marble_roll` (loop, 0.14) | loop | loop |
@@ -111,7 +111,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `junction.crash` | Junction | Two cars crash | `arc_crash` | 0–1 | 200 ms |
 | `junction.complete` | Junction | The run is completed | `stage_complete` | 0–1 | 160 ms |
 | `skyline.drop` | High Rise | A block lands | `arc_clank` (0.8, overlapping) | 20–50 | 150 ms |
-| `skyline.perfect` | High Rise | A perfect drop | `correct` | 5–20 | 120 ms |
+| `skyline.perfect` | High Rise | A perfect drop | `correct` · own file `skyline.perfectFit.mp3` (sound batch 4, volume 0.8) | 5–20 | 209 ms |
 | `skyline.streakDrop` | High Rise | A streak bonus drop (skylineRev 2+) | `arc_retro_coin` (0.7) | 2–10 | 120 ms |
 | `skyline.miss` | High Rise | A block misses the tower | `arc_crash` | 0–1 | 200 ms |
 | `inkbridge.draw` | Rainbow Bridge | The first segment of each drawn stroke | `arc_rainbow` (0.6) | 10–30 | 910 ms |
@@ -120,25 +120,31 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `bubble.waves` | Coral Pop | Loop while the run is live | `arc_sea_waves` (loop, 0.18) | loop | loop |
 | `bubble.load` | Coral Pop | The next bubble loads | `arc_sea_bubble` (0.7) | 30–80 | 120 ms |
 | `bubble.pop` | Coral Pop | Bubbles pop (at most one per 40 ms) | `arc_sea_pop` (0.7, overlapping) | 30–100 | 80 ms |
-| `bubble.bomb` | Coral Pop | A bomb bubble goes off (bubbleRev 2+) | `arc_big_explode` (0.6, overlapping) | 0–5 | 810 ms |
-| `bubble.line` | Coral Pop | A line bubble fires (bubbleRev 2+) | `arc_laser_beam` (0.55, ×1.2, overlapping) | 0–5 | 370 ms |
-| `bubble.jokerLand` | Coral Pop | A joker bubble lands (bubbleRev 2+) | `arc_rainbow` (0.6, overlapping) | 0–5 | 910 ms |
+| `bubble.bomb` | Coral Pop | A bomb bubble goes off (bubbleRev 2+) | `arc_big_explode` (0.6, overlapping) · own file `bubble.seaMine.mp3` (sound batch 4, volume 0.7) | 0–5 | 662 ms |
+| `bubble.line` | Coral Pop | A line bubble fires (bubbleRev 2+) | `arc_laser_beam` (0.55, ×1.2, overlapping) · own file `bubble.torpedo.mp3` (sound batch 4, volume 0.7) | 0–5 | 600 ms |
+| `bubble.jokerLand` | Coral Pop | A joker bubble lands (bubbleRev 2+) | `arc_rainbow` (0.6, overlapping) · own file `bubble.joker.mp3` (sound batch 4, volume 0.7) | 0–5 | 680 ms |
 | `snip.cut` | Scrumper | A rope is cut | `arc_rope_cut` (0.8, overlapping) | 15–40 | 230 ms |
 | `snip.springBounce` | Scrumper | The apple bounces off a springy branch (snipRev 3+) | `arc_bounce` (0.7) | 0–10 | 80 ms |
 | `snip.hook` | Scrumper | A picker's crook snags the apple (snipRev 5+) | `arc_bounce` (0.6, ×0.7, overlapping) | 0–5 | 110 ms |
-| `snip.star` | Scrumper | A leaf star is collected | `arc_leaf_collect` | 10–30 | 840 ms |
+| `snip.star` | Scrumper | A leaf star is collected | `arc_leaf_collect` · own file `snip.goldLeaf.mp3` (sound batch 4, volume 0.7) | 10–30 | 386 ms |
 | `snip.basket` | Scrumper | The apple lands in the basket (level done) | `arc_orchard_basket` | 5–10 | 399 ms |
 | `snip.miss` | Scrumper | The apple is lost (level done) | `arc_orchard_miss` | 0–5 | 399 ms |
 | `slice.cut` | Slice | A slice (at most one per 60 ms) | `arc_knife_slice` (0.8, overlapping) | 50–150 | 300 ms |
 | `slice.bomb` | Slice | A chilli is sliced | `arc_crash` | 0–3 | 200 ms |
 | `slice.bombBell` | Slice | A chilli is sliced (the bell over the crash) | `arc_chilli_bell` | 0–3 | 1832 ms |
-| `slice.frenzyStart` | Slice | Ketchup frenzy starts | `arc_ketchup` | 0–3 | 230 ms |
-| `slice.slow` | Slice | Mustard slow-motion starts | `arc_mustard` | 0–3 | 410 ms |
+| `slice.frenzyStart` | Slice | Ketchup frenzy starts | `arc_ketchup` · own file `slice.ketchup.mp3` (sound batch 4, volume 0.8) | 0–3 | 350 ms |
+| `slice.slow` | Slice | Mustard slow-motion starts | `arc_mustard` · own file `slice.mustard.mp3` (sound batch 4, volume 0.8) | 0–3 | 479 ms |
 | `slice.comboUp` | Slice | A combo grows past 1 | `arc_slice_combo` (0.8) | 5–20 | 721 ms |
 | `stroop.lane` | Mixed Signals | The word changes lane | `pz_clash_lane` (0.8, overlapping) | 30–80 | 100 ms |
 | `stroop.right` | Mixed Signals | A word lands in the right gate | `pz_clash_right` | 15–40 | 301 ms |
 | `stroop.wrong` | Mixed Signals | A word lands in a wrong gate | `pz_clash_wrong` | 0–10 | 250 ms |
 
-Gemstone (`matchup`) plays `arc_gem_match` (pitched by cascade depth), `arc_gem_zap`, `arc_gem_bomb`
-and `arc_gem_star` straight from its stage (`src/puzzles/matchup.tsx`); those files are
-listed under their own ids in [core.md](core.md).
+Gemstone (`matchup`) plays `arc_gem_match` (pitched by cascade depth), `arc_gem_zap`, `arc_gem_bomb`,
+`arc_gem_star` and `matchup.jackpotBlast` straight from its stage (`src/puzzles/matchup.tsx`); those files are
+listed under their own ids in [core.md](core.md). Sound batch 4 replaced the match, cross and star recordings
+(`gem.shatter.mp3`, `gem.crossBeam.mp3`, `gem.starBurst.mp3`) and gave the jackpot its own slot; the bomb is unchanged.
+
+Tempo's backing (`music_beat`, sound batch 4) is a recorded 120 BPM track locked to the chart's ticks
+(`syncBeatTrack` in `src/lib/sound.ts`): it starts at tick 120 on its first downbeat, is jumped back
+into place past 40 ms of drift and stops when the run ends or the player locks in. The synthesised beat
+(`beat.backing`) plays until the file has decoded, or if it fails.

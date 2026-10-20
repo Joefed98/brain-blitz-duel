@@ -30,7 +30,7 @@ import { INK_LIVE_PRE_CAP, inkIsLive, type InkState } from "@/lib/arcade/inkBrid
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
-import type { SliceState } from "@/lib/arcade/slice";
+import { SLICE_SPECIAL_NONE, type SliceState } from "@/lib/arcade/slice";
 import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
 
@@ -221,6 +221,9 @@ export function crossSounds(): GameSounds<CrossState> {
   };
 }
 
+/** flip.ts speeds the tunnel up every 3 s (SPEED_STEP_TICKS). */
+const FLIP_STEP_TICKS = 180;
+
 export function flipSounds(): GameSounds<FlipState> {
   let prev: FlipState | null = null;
   return {
@@ -231,8 +234,8 @@ export function flipSounds(): GameSounds<FlipState> {
         if (state.ended === 2 && prev.ended !== 2) sfx("flip.crash", "arc_crash");
         else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
         if (state.ended === 0) {
-          // The tunnel speeds up a step (every 3 s).
-          if (flipSpeed(state.tick) > flipSpeed(prev.tick)) effectCue("flip.speedUp");
+          // The tunnel speeds up a step (every 3 s); only every third step is sounded (9, 18, 27, 36, 45 s).
+          if (flipSpeed(state.tick) > flipSpeed(prev.tick) && Math.trunc(state.tick / FLIP_STEP_TICKS) % 3 === 0) effectCue("flip.speedUp");
           // A crumble tile first touched starts to crack; FLIP_CRUMBLE_TICKS later it collapses into lava.
           if ((state.cracks?.length ?? 0) > (prev.cracks?.length ?? 0)) effectCue("flip.crackStart");
           const cracks = state.cracks ?? [];
@@ -834,7 +837,10 @@ export function sliceSounds(): GameSounds<SliceState> {
         // Food thrown up, or a chilli launched with its fizzing fuse.
         const thrown = state.objects.filter((o) => o.launchTick > prev!.tick && o.launchTick <= state.tick);
         if (thrown.some((o) => o.bomb)) effectCue("slice.fuse", 150);
-        if (thrown.some((o) => !o.bomb)) effectCue("slice.toss");
+        // A special bottle thrown up: its own toss sound stands in for the plain whoosh once it has a file.
+        const special = thrown.some((o) => o.special !== SLICE_SPECIAL_NONE);
+        if (special) effectCue("slice.specialIn");
+        if (thrown.some((o) => !o.bomb) && !(special && cueHasFile("slice.specialIn"))) effectCue("slice.toss");
       }
       prev = state;
     },

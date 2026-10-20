@@ -40,9 +40,9 @@ These names never reuse a replay cue (`<gameId>.<moment-id>`, kebab-case): live 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `hover.newZone` | Every 7th barrier passed (a new zone) | The arena border flashes in the next zone colour with a STREAK banner | `banner.streak.mp3` | 3–8 | 400 ms |
-| `hover.twoGap` | Through a two-gap barrier (hoverRev 2+) | A +1 pop over the barrier, cyan glow | `pop.bonus.mp3` | 2–8 | 250 ms |
-| `hover.slippedThrough` | Past a moving barrier (hoverRev 2+) | A near-miss pop over the sliding barrier | `pop.bonus.mp3` | 2–8 | 300 ms |
+| `hover.newZone` | Every 7th barrier passed (a new zone) | The arena border flashes in the next zone colour with a STREAK banner | `banner.streak.mp3` · own file `hover.zone.mp3` (sound batch 4, volume 0.8) | 3–8 | 480 ms |
+| `hover.twoGap` | Through a two-gap barrier (hoverRev 2+) | A +1 pop over the barrier, cyan glow | `pop.bonus.mp3` · own file `hover.splitGap.mp3` (sound batch 4, volume 0.7) | 2–8 | 300 ms |
+| `hover.slippedThrough` | Past a moving barrier (hoverRev 2+) | A near-miss pop over the sliding barrier | `pop.bonus.mp3` · own file `hover.slipPast.mp3` (sound batch 4, volume 0.7) | 2–8 | 350 ms |
 | `hover.allBarriers` | Every barrier on the course passed | FULL CLEAR banner, confetti pixels, border lights chase | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `hover.newHazard` | The first two-gap barrier and the first moving barrier scroll into view (hoverRev 2+) | The new kind of barrier enters from the right | `alert.newHazard.mp3` | 0–2 | 600 ms |
 
@@ -53,14 +53,14 @@ Already sounded: barrier passed (`hover.gate`), gold star (`hover.star`), crash 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
 | `breaker.brickBreak` | A brick is destroyed (at most one per 40 ms) | The brick bursts into coloured pixels | `retro.brickBreak.mp3` | 40–120 | 120 ms |
-| `breaker.bricksStreak` | Every 10th brick destroyed | STREAK banner with cool lights over the wall | `banner.streak.mp3` | 5–12 | 400 ms |
-| `breaker.movingTarget` | A brick out of a sliding row (brkRev 2+; at most one per 120 ms) | A +1 pop on the sliding row | `pop.bonus.mp3` | 0–10 | 250 ms |
-| `breaker.rowClear` | A whole row cleared | ROW CLEAR! banner, cabinet bulbs chase along the border | `banner.clear.mp3` | 1–6 | 600 ms |
+| `breaker.bricksStreak` | Every 10th brick destroyed | STREAK banner with cool lights over the wall | `banner.streak.mp3` · own file `breaker.tenBricks.mp3` (sound batch 4, volume 0.8) | 5–12 | 450 ms |
+| `breaker.movingTarget` | A brick out of a sliding row (brkRev 2+; at most one per 120 ms) | A +1 pop on the sliding row | `pop.bonus.mp3` · own file `breaker.slider.mp3` (sound batch 4, volume 0.7) | 0–10 | 250 ms |
+| `breaker.rowClear` | A whole row cleared | ROW CLEAR! banner, cabinet bulbs chase along the border | `banner.clear.mp3` · own file `breaker.rowClear.mp3` (sound batch 4, volume 0.8) | 1–6 | 680 ms |
 | `breaker.wallCleared` | The whole wall cleared | WALL CLEARED! banner, strong bulb chase, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `breaker.capsuleDrop` | A power-up capsule drops from a brick | A coloured capsule starts falling from the broken brick | `retro.itemDrop.mp3` | 2–8 | 200 ms |
 | `breaker.fireballOut` | Fireball runs out | The ball turns back from orange to white and the timer bar goes | `retro.powerDown.mp3` | 0–3 | 300 ms |
 | `breaker.relaunch` | The ball relaunches after a pause | RELAUNCHING disappears and the ball leaves the paddle | `arc_retro_blip` (shared recording) | 1–3 | 200 ms |
-| `breaker.wallBounce` | A ball turns back off a side wall or the ceiling (no brick hit, no paddle return; at most one per 120 ms, volume 0.4) | The ball changes direction at the frame | `retro.wallBounce.mp3` | 60–150 | 60 ms |
+| `breaker.wallBounce` | A ball turns back off a side wall or the ceiling (no brick hit, no paddle return; at most one per 120 ms, volume 0.4) | The ball changes direction at the frame | `retro.wallBounce.mp3` · own file `arcade.wallThock.mp3` (sound batch 4, volume 0.4) | 60–150 | 60 ms |
 | `breaker.rowsSlide` | Rows 3 and 7 start sliding (brkRev 2+, at 30 s and 60 s) | The row begins to glide side to side | `alert.newHazard.mp3` | 0–2 | 600 ms |
 
 Already sounded: power-up caught (`breaker.powerUp`), Fireball lit (`breaker.fireballLit`), brick cracks (`breaker.brickHit`), laser (`breaker.laser`), multiball (`breaker.multiball`), paddle (`breaker.paddle`), ball lost (`breaker.ballLost`).
@@ -81,12 +81,12 @@ Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pin
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
 | `rally.longRally` | Every 10th return | STREAK banner, white and blue bulbs | `banner.streak.mp3` | 3–8 | 400 ms |
-| `rally.targetHit` | The gold ball strikes a far-wall pad (rallyRev 2+) | Pink light and a burst on the pad, then the pad moves | `pop.perfect.mp3` | 1–6 | 400 ms |
+| `rally.targetHit` | The gold ball strikes a far-wall pad (rallyRev 2+) | Pink light and a burst on the pad, then the pad moves | `pop.perfect.mp3` · own file `rally.padPlusThree.mp3` (sound batch 4, volume 0.8) | 1–6 | 486 ms |
 | `rally.bumperBounce` | A ball comes off a bumper (rallyRev 2+; at most one per 150 ms) | The bumper flashes white with a +1 pop | `arc_bounce` (shared recording) | 2–15 | 150 ms |
-| `rally.goldEnter` | A gold ball enters the court | The gold ball flies in with a trail | `retro.appear.mp3` | 3–10 | 300 ms |
+| `rally.goldEnter` | A gold ball enters the court | The gold ball flies in with a trail | `retro.appear.mp3` · own file `rally.goldServe.mp3` (sound batch 4, volume 0.7) | 3–10 | 350 ms |
 | `rally.bumperWarn` | 2 s before a bumper appears (rallyRev 2+, again for rev 5's second) | BUMPER blinks where the post will stand | `ui.warn.mp3` | 1–2 | 500 ms |
 | `rally.bumperIn` | A bumper appears (30 s; rev 5's second at 45 s) | The round post appears in the court | `retro.appear.mp3` | 1–2 | 300 ms |
-| `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) | The ball changes direction at the wall | `retro.wallBounce.mp3` | 60–150 | 60 ms |
+| `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) | The ball changes direction at the wall | `retro.wallBounce.mp3` · own file `arcade.wallThock.mp3` (sound batch 4, volume 0.4) | 60–150 | 60 ms |
 
 Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldHit`), rally over (`rally.dead`).
 
@@ -96,7 +96,7 @@ Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldH
 |---|---|---|---|---|---|
 | `beat.comboTen` | Every 10th note in the combo | COMBO ×n banner over the lanes | `banner.streak.mp3` | 3–15 | 400 ms |
 | `beat.comboTier` | The combo reaches 25 (the pink glow tier; 10 and 50 have beat.comboTen) | The combo glow bands step up in size and turn pink | `banner.combo.mp3` | 0–1 | 400 ms |
-| `beat.swipeHit` | A swipe note hit | A +1 pop on the swipe note's lane | `pop.bonus.mp3` | 3–15 | 200 ms |
+| `beat.swipeHit` | A swipe note hit | A +1 pop on the swipe note's lane | `pop.bonus.mp3` · own file `beat.swipe.mp3` (sound batch 4, volume 0.7) | 3–15 | 200 ms |
 | `beat.fullCombo` | Every note hit (full combo) | FULL CLEAR banner and confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `beat.comboLost` | A combo of 10 or more broken (its file stands in for `beat.miss` on that note) | The combo glow bands vanish | `combo.lost.mp3` | 0–6 | 500 ms |
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) | Swipe arrows appear at the top of the lanes | `alert.newHazard.mp3` | 0–1 | 600 ms |
@@ -111,7 +111,7 @@ Already sounded: lane flash, judgement word and perfect ring (`beat.note` / `bea
 | `snake.showerDodged` | A meteor shower lands clear of the head (snakeRev 3+) | PERFECT pop over the shower's craters | `pop.perfect.mp3` | 0–3 | 500 ms |
 | `snake.allEaten` | Every star on the course eaten | FULL CLEAR banner, confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `snake.rockFalling` | A rock (or a meteor shower) enters its last 0.8 s before impact (at most one per 300 ms) | The rock sprite drops in, growing, and the crosshair blinks faster | `snake.rockFalling.mp3` | 5–20 | 800 ms |
-| `snake.speedUp` | A speed step on the 5th, 15th and 25th star (the 10th and 20th have the STREAK banner) | The snake steps faster | `speed.up.mp3` | 0–3 | 350 ms |
+| `snake.speedUp` | A speed step on the 5th, 15th and 25th star (the 10th and 20th have the STREAK banner) | The snake steps faster | `speed.up.mp3` · own file `snake.cometRush.mp3` (sound batch 4, volume 0.7) | 0–3 | 400 ms |
 
 Already sounded: star eaten (`snake.eat`), rock shadow (`snake.rockWarn`), rock lands clear, the replays' "rock dodged" pop (`snake.rockLand`), shower alarm and the "meteor shower incoming" banner (`snake.showerAlarm`), death (`snake.dead`). The falling rock's sprite and the crosshair blink are the rest of the warning `snake.rockWarn` starts.
 
@@ -122,13 +122,13 @@ No cue, by design: the board border's colour step and glow pulse every 4 s (16 O
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `burst.waveCleared` | A wave of atoms cleared | WAVE n CLEARED banner, a light sweep along the edges | `banner.clear.mp3` | 2–5 | 600 ms |
-| `burst.lastLifeWave` | A wave cleared on the last life | LAST-LIFE CLEAR! banner over the wave sweep | `banner.clear.mp3` | 0–2 | 700 ms |
+| `burst.waveCleared` | A wave of atoms cleared | WAVE n CLEARED banner, a light sweep along the edges | `banner.clear.mp3` · own file `burst.waveCleared.mp3` (sound batch 4, volume 0.8) | 2–5 | 686 ms |
+| `burst.lastLifeWave` | A wave cleared on the last life | LAST-LIFE CLEAR! banner over the wave sweep | `banner.clear.mp3` · own file `burst.waveCleared.mp3` (sound batch 4, volume 0.8) | 0–2 | 686 ms |
 | `burst.flawlessFinish` | The run ends with every life and 4+ waves | FULL CLEAR banner, confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `burst.iconDrop` | A power-up icon drops from a split atom | An icon starts falling from the split | `retro.itemDrop.mp3` | 2–8 | 200 ms |
 | `burst.shieldBreak` | The shield takes a hit (no life lost) | The shield ring breaks and the ship blinks | `retro.shieldBreak.mp3` | 0–3 | 300 ms |
 | `burst.thaw` | FREEZE wears off (burstRev 2+) | The ice glaze fades off every atom | `retro.powerDown.mp3` | 0–3 | 400 ms |
-| `burst.newWave` | A new wave of atoms spawns | New atoms drop in from the top | `retro.appear.mp3` | 3–6 | 300 ms |
+| `burst.newWave` | A new wave of atoms spawns | New atoms drop in from the top | `retro.appear.mp3` · own file `burst.atomsDrop.mp3` (sound batch 4, volume 0.7) | 3–6 | 450 ms |
 | `burst.ceilingTouch` | An atom touches the ceiling (at most one per 120 ms, volume 0.4) | The ceiling flashes white | `retro.wallBounce.mp3` | 5–30 | 60 ms |
 | `burst.atomBounce` | An atom bounces off the floor, pitched by its size, the biggest that bounced (at most one per 100 ms, volume 0.35) | The atom rebounds off the floor | `retro.atomBounce.mp3` | hundreds | 120 ms |
 | `burst.lastLife` | Down to the last life | The two spare ship icons dim | `ui.warn.mp3` | 0–1 | 500 ms |
@@ -141,7 +141,7 @@ Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.power
 |---|---|---|---|---|---|
 | `wavefront.saucerDown` | The saucer is shot down | PERFECT pop and a big burst where the saucer was | `pop.perfect.mp3` | 0–3 | 600 ms |
 | `wavefront.waveCleared` | A wave cleared | CLEAR! banner, white warp streaks, a light sweep | `banner.clear.mp3` | 3–5 | 700 ms |
-| `wavefront.diverDown` | A diver shot mid-dive (at most one per 150 ms) | A +1 pop at the diver | `pop.bonus.mp3` | 2–15 | 250 ms |
+| `wavefront.diverDown` | A diver shot mid-dive (at most one per 150 ms) | A +1 pop at the diver | `pop.bonus.mp3` · own file `wavefront.diverDown.mp3` (sound batch 4, volume 0.7) | 2–15 | 350 ms |
 | `wavefront.bossStreak` | Every 6th hit on the boss (wavRev 2) | STREAK banner over the boss | `banner.streak.mp3` | 0–5 | 400 ms |
 | `wavefront.bossDown` | The boss destroyed (all waves on older rounds) | FULL CLEAR banner, confetti, shake | `banner.fullClear.mp3` | 0–1 | 1500 ms |
 | `wavefront.saucerEnter` | The saucer flies in | The saucer enters from the side with its rotating light ring | `retro.saucerEnter.mp3` | 1–3 | 600 ms |
@@ -162,7 +162,7 @@ Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), s
 | `orbit.shootingStar` | Every 10th planet caught | A shooting star crosses the sky | `orbit.shootingStar.mp3` | 0–4 | 800 ms |
 | `orbit.planetsStreak` | Best run reaches a multiple of 10 | STREAK banner with star particles | `banner.streak.mp3` | 0–4 | 400 ms |
 | `orbit.allPlanets` | All 40 planets | FULL CLEAR banner, stars burst, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
-| `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) | 0–5 | 1100 ms |
+| `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) · own file `orbit.blackHole.mp3` (sound batch 4, volume 0.8) | 0–5 | 1080 ms |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached | The new orbit shape or belt comes into view ahead | `alert.newHazard.mp3` | 0–2 | 600 ms |
 
 Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop.
@@ -171,7 +171,7 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `swing.distanceStreak` | Every 100 m | STREAK banner with embers | `banner.streak.mp3` | 1–5 | 400 ms |
+| `swing.distanceStreak` | Every 100 m | STREAK banner with embers | `banner.streak.mp3` · own file `swing.hundredMetres.mp3` (sound batch 4, volume 0.8) | 1–5 | 562 ms |
 | `swing.overLava` | Past a lava jet | A +1 pop behind the jet | `pop.bonus.mp3` | 2–8 | 250 ms |
 | `swing.finishLine` | 500 m reached (dragon outrun) | FULL CLEAR banner, embers, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `swing.rockFall` | A shaking stalactite drops | The stalactite falls with a pale streak above it | `cave.rockCrumble.mp3` | 2–8 | 250 ms |
@@ -187,8 +187,8 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `cross.pastBikes` | Past the cyclists' lane | A +1 pop at the walker | `pop.bonus.mp3` | 2–8 | 250 ms |
-| `cross.pastRoadworks` | Through the roadworks | A +1 pop at the walker | `pop.bonus.mp3` | 2–8 | 250 ms |
+| `cross.pastBikes` | Past the cyclists' lane | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.bikeBell.mp3` (sound batch 4, volume 0.7) | 2–8 | 400 ms |
+| `cross.pastRoadworks` | Through the roadworks | A +1 pop at the walker | `pop.bonus.mp3` · own file `cross.cones.mp3` (sound batch 4, volume 0.7) | 2–8 | 274 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
 | `cross.traffic` | While the run is live | Traffic streaming both ways | `cross.traffic.mp3` | loop | loop |
 
@@ -198,14 +198,14 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `flip.surviveStreak` | Every 10 s survived | STREAK banner with confetti | `banner.streak.mp3` | 1–6 | 400 ms |
+| `flip.surviveStreak` | Every 10 s survived | STREAK banner with confetti | `banner.streak.mp3` · own file `flip.tenSeconds.mp3` (sound batch 4, volume 0.8) | 1–6 | 480 ms |
 | `flip.survivedFinish` | Survived to the end | SURVIVED! banner, confetti, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `flip.starTaken` | A star taken (flipRev 2+) | +STAR pop; the star stops being drawn | `arc_pickup` (shared recording) | 3–10 | 200 ms |
 | `flip.allStars` | All 10 stars taken | PERFECT banner | `pop.perfect.mp3` | 0–1 | 600 ms |
 | `flip.justInTime` | Off a crumbling tile just in time | JUST IN TIME! pop | `pop.perfect.mp3` | 0–5 | 300 ms |
 | `flip.crackStart` | A crumble tile is first touched | Orange cracks grow and the tile shivers | `cave.stoneCrack.mp3` | 2–10 | 250 ms |
 | `flip.collapse` | A cracked tile collapses | A lava pool opens and stone chunks fall | `cave.rockCrumble.mp3` | 2–10 | 400 ms |
-| `flip.speedUp` | The tunnel speeds up a step (every 3 s) | The scroll speeds up | `speed.up.mp3` | 15–20 | 350 ms |
+| `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 
@@ -230,11 +230,12 @@ Already sounded: drawing (`inkbridge.draw`), pot of gold and level clear (`inkbr
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
 | `slice.slicedStreak` | Every 25 slices | 25 SLICED banner with drops | `banner.streak.mp3` | 2–5 | 400 ms |
-| `slice.mayoSqueeze` | Mayonnaise squeezed | SQUEEZE! pop with the mayo glow and swirl | `arc_mustard` (shared recording) | 1–5 | 410 ms |
+| `slice.mayoSqueeze` | Mayonnaise squeezed | SQUEEZE! pop with the mayo glow and swirl | `arc_mustard` (shared recording) · own file `slice.mayo.mp3` (sound batch 4, volume 0.8) | 1–5 | 450 ms |
 | `slice.manyInOne` | Four or more cut in one slice | COMBO ×n pop at the cut | `banner.combo.mp3` | 0–5 | 600 ms |
 | `slice.comboEnd` | The combo meter runs out (a chilli ending it has its own sound) | The combo meter empties and the gold border goes | `combo.lost.mp3` | 2–10 | 500 ms |
 | `slice.fuse` | A chilli launches (at most one per 150 ms) | The chilli flies up with a fizzing fuse | `slice.fuse.mp3` | 5–15 | 600 ms |
-| `slice.toss` | Food is thrown up (at most one per 250 ms, volume 0.4) | Discs fly up from below | `arrow.whoosh.mp3` | about 100 | 250 ms |
+| `slice.toss` | Food is thrown up (at most one per 250 ms, volume 0.4; left out on a frame `slice.specialIn` plays its file) | Discs fly up from below | `arrow.whoosh.mp3` | about 100 | 250 ms |
+| `slice.specialIn` | A special bottle (ketchup, mustard or mayonnaise) is thrown up (sound batch 4) | The bottle flies up spinning | `slice.bottleToss.mp3` (volume 0.6) | 3–6 | 300 ms |
 
 Already sounded: slices and juice (`slice.cut`), combo and the gold border (`slice.comboUp`), ketchup frenzy (`slice.frenzyStart`), mustard simmer (`slice.slow`), chilli flash (`slice.bomb`, `slice.bombBell`). The blade trail follows the finger and has no cue.
 
@@ -300,7 +301,7 @@ Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `balltrack.homeStreak` | Every 5th marble home | n HOME banner | `banner.streak.mp3` | 1–6 | 400 ms |
+| `balltrack.homeStreak` | Every 5th marble home | n HOME banner | `banner.streak.mp3` · own file `balltrack.homeStreak.mp3` (sound batch 4, volume 0.8) | 1–6 | 479 ms |
 | `balltrack.allHome` | All 30 marbles home | ALL 30 HOME! banner, confetti | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `balltrack.turnedHome` | A marble home off a turned tube | TURNED HOME! pop | `pop.perfect.mp3` | 0–10 | 300 ms |
 | `balltrack.switchedHome` | A marble home past a switch | SWITCHED HOME! pop | `pop.perfect.mp3` | 0–10 | 300 ms |
@@ -315,9 +316,9 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | `banner.streak.mp3` | 1–4 | 400 ms |
+| `skyline.floorsStreak` | Every 10th floor | n FLOORS banner | `banner.streak.mp3` · own file `skyline.floors.mp3` (sound batch 4, volume 0.8) | 1–4 | 483 ms |
 | `skyline.windFlag` | The wind flag goes up (skylineRev 2+) | A flag is raised on the top block | `sky.gust.mp3` | 0–1 | 400 ms |
-| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `pop.perfect.mp3` | 0–5 | 500 ms |
+| `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `pop.perfect.mp3` · own file `skyline.perfectFit.mp3` (sound batch 4, volume 0.8) | 0–5 | 209 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
 
@@ -327,15 +328,15 @@ Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (
 
 | Cue | Trigger | Looks like | Plays today | Per round | Length |
 |---|---|---|---|---|---|
-| `matchup.lineOfFive` | Five or more in a line | n IN A LINE! text | `banner.combo.mp3` | 0–5 | 600 ms |
-| `matchup.jackpotMade` | A jackpot gem is made | JACKPOT GEM! text in white | `pop.jackpotGem.mp3` | 0–3 | 700 ms |
-| `matchup.parSmashed` | The score passes par | FULL CLEAR banner | `banner.fullClear.mp3` | 0–1 | 1200 ms |
-| `matchup.swap` | Two gems swap | The pair slides past each other | `move.slide.mp3` | 20–60 | 120 ms |
-| `matchup.invalid` | A swap that makes no match | The pair slides out and back | `ui.nope.mp3` | 0–10 | 200 ms |
-| `matchup.hint` | The hint appears after a spell without a match | A possible swap is highlighted | `ui.hint.mp3` | 0–5 | 250 ms |
-| `matchup.select` | A gem is picked | The gem is highlighted | `ui.select.mp3` | 20–60 | 80 ms |
+| `matchup.lineOfFive` | Five or more in a line | n IN A LINE! text | `banner.combo.mp3` · own file `gem.forge.mp3` (sound batch 4, volume 0.8) | 0–5 | 680 ms |
+| `matchup.jackpotMade` | A jackpot gem is made | JACKPOT GEM! text in white | `pop.jackpotGem.mp3` (deleted in sound batch 4) · own file `gem.forge.mp3` (sound batch 4, volume 0.8, rate 0.9) | 0–3 | 680 ms |
+| `matchup.parSmashed` | The score passes par | FULL CLEAR banner | `banner.fullClear.mp3` · own file `gem.parSmashed.mp3` (sound batch 4, volume 0.9) | 0–1 | 1360 ms |
+| `matchup.swap` | Two gems swap | The pair slides past each other | `move.slide.mp3` · own file `gem.swap.mp3` (sound batch 4, volume 0.7) | 20–60 | 200 ms |
+| `matchup.invalid` | A swap that makes no match | The pair slides out and back | `ui.nope.mp3` · own file `gem.refuse.mp3` (sound batch 4, volume 0.6) | 0–10 | 280 ms |
+| `matchup.hint` | The hint appears after a spell without a match | A possible swap is highlighted | `ui.hint.mp3` (deleted in sound batch 4) · own file `gem.glint.mp3` (sound batch 4, volume 0.5) | 0–5 | 300 ms |
+| `matchup.select` | A gem is picked | The gem is highlighted | `ui.select.mp3` · own file `gem.pick.mp3` (sound batch 4, volume 0.6) | 20–60 | 80 ms |
 
-Already sounded: gem shatters (`arc_gem_match`, pitched by depth, plus the generic combo on each cascade), specials (`arc_gem_bomb`, `arc_gem_star`, `arc_gem_zap`), jackpot set off (`arc_rainbow`). Gems falling into place follow the shatter chimes, step by step, and have no cue of their own.
+Already sounded: gem shatters (`arc_gem_match`, pitched by depth, `gem.shatter.mp3` since sound batch 4), specials (`arc_gem_bomb`, `arc_gem_star`, `arc_gem_zap`), jackpot set off (`matchup.jackpotBlast`, `gem.jackpot.mp3`; `arc_rainbow` until sound batch 4). Since sound batch 4 the generic combo is left out (`arcadeFeedback({ combo: false })`): the chime climbs with the cascade on its own. Gems falling into place follow the shatter chimes, step by step, and have no cue of their own.
 
 ## Letterfall
 

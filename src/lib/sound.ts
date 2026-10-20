@@ -134,6 +134,7 @@ function applySettings(): void {
   effectsGain.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
   voiceGain?.gain.setValueAtTime(isMuted() ? 0 : effectsVolume(), t);
   applyRoundLevel(0);
+  applyBeatTrackLevel();
 }
 
 function announce(): void {
@@ -872,6 +873,108 @@ export function playBeatStep(step: number): void {
   } catch (error) {
     warnOnce("beat loop failed", error);
   }
+}
+
+/* ---------------------------------------------------------- Tempo's track */
+
+/*
+ * Tempo's recorded bed (`music_beat`, sound batch 4) is locked to the chart's own clock, not the
+ * round's: the chart's first beat is tick 120 and it runs at exactly 120 BPM, so the track starts on
+ * the audio clock when the sim reaches that tick, at file offset `downbeat + (tick - 120) / 60` s,
+ * and is jumped back into place whenever it drifts more than 40 ms from that (a stalled frame, the
+ * tab hidden and shown). It stops when the run ends or the player locks in. The 2.000 s lead-in is
+ * the player's (the file starts on its first downbeat, and the loader trims leading silence anyway).
+ * Presentation only: the chart, judging, input log and score never read it. Until the file has
+ * decoded, or if it fails, Tempo plays the synthesised beat (playBeatStep) exactly as before.
+ */
+const BEAT_TRACK: SoundId = "music_beat";
+/** The file's first downbeat after its first audible sample (s), measured at the wire-in. */
+const BEAT_TRACK_DOWNBEAT_S = 0;
+const BEAT_TRACK_DRIFT_S = 0.04;
+let beatTrack: { source: AudioBufferSourceNode; gain: GainNode; at: number; offset: number } | null = null;
+let beatLevel = 0;
+
+/** True once Tempo's own track is decoded and can play: the synthesised beat then stays quiet. */
+export function beatTrackReady(): boolean {
+  return !!SOUND_MANIFEST[BEAT_TRACK]?.url && musicBuffers.has(BEAT_TRACK) && ready() && !demoHushed();
+}
+
+function beatTrackGain(): number {
+  return isMusicMuted() ? 0 : beatLevel * musicVolume() * entryVolume(BEAT_TRACK);
+}
+
+function applyBeatTrackLevel(): void {
+  if (!ctx || !beatTrack) return;
+  try {
+    beatTrack.gain.gain.setValueAtTime(beatTrackGain(), ctx.currentTime);
+  } catch {
+    /* closed */
+  }
+}
+
+/**
+ * Called every frame by Tempo's stage: `beatSeconds` is the sim's time since the chart's first beat
+ * ((tick - 120) / 60), or null before it, once the run is over or locked in (the track stops).
+ * `remainingMs` sets the level on the arcade round ramp.
+ */
+export function syncBeatTrack(beatSeconds: number | null, remainingMs: number): void {
+  if (!SOUND_MANIFEST[BEAT_TRACK]?.url) return;
+  // Intro demos stay silent and never fetch the track.
+  if (demoHushed()) {
+    stopBeatTrack();
+    return;
+  }
+  if (ctx && !musicBuffers.has(BEAT_TRACK) && !musicLoads.has(BEAT_TRACK)) void loadMusicBuffer(BEAT_TRACK);
+  if (beatSeconds === null || !beatTrackReady() || !ctx || !masterGain) {
+    stopBeatTrack();
+    return;
+  }
+  const buffer = musicBuffers.get(BEAT_TRACK)!;
+  const level = roundMusicRamp(true, remainingMs);
+  if (Math.abs(level - beatLevel) >= 0.002) {
+    beatLevel = level;
+    applyBeatTrackLevel();
+  }
+  const want = (loopPoints.get(BEAT_TRACK)?.start ?? 0) + BEAT_TRACK_DOWNBEAT_S + beatSeconds;
+  if (beatTrack) {
+    const at = beatTrack.offset + (ctx.currentTime - beatTrack.at);
+    if (Math.abs(at - want) <= BEAT_TRACK_DRIFT_S) return;
+    stopBeatTrack();
+  }
+  if (want >= buffer.duration) return;
+  beatLevel = level;
+  // A screen bed still up from the intro gives way, as it does for a round track.
+  if (currentTrack) {
+    fadeOut(currentTrack, 150);
+    currentTrack = null;
+  }
+  desiredTrack = null;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(beatTrackGain(), ctx.currentTime);
+    source.connect(gain).connect(masterGain);
+    source.start(ctx.currentTime, want);
+    beatTrack = { source, gain, at: ctx.currentTime, offset: want };
+  } catch (error) {
+    warnOnce("beat track failed", error);
+  }
+}
+
+/** Stops Tempo's track; `release` also drops its decoded file (the stage went away). */
+export function stopBeatTrack(release = false): void {
+  const track = beatTrack;
+  beatTrack = null;
+  if (track) {
+    try {
+      track.source.stop();
+      track.source.disconnect();
+    } catch {
+      /* already stopped */
+    }
+  }
+  if (release) releaseMusicBuffer(BEAT_TRACK);
 }
 
 /* ------------------------------------------------------------------- music */

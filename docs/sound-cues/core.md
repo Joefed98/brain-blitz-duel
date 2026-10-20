@@ -31,7 +31,7 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `reveal_score` | AnswerReveal | The stored score lands, 0.35 s after the verdict (`fx.onRevealScore`) | 1 | 140 ms |
 | `reaction` | room chat | An emoji reaction (`fx.onReaction`) | 0–10 | 100 ms |
 | `player_joined` | lobby | Another player joins the room | per player | 110 ms |
-| `round_won` | round result | You won the round (`playRoundWon`) | 0–1 | 220 ms |
+| `round_won` | round result, results table | You won the round (`playRoundWon`): the top scorer hears it in place of `shared.roundResults` (`room.roundWon.mp3`, sound batch 4, volume 0.9) | 0–1 | 680 ms |
 | `podium_fanfare` | podium, final result | The podium appears (`fx.onPodium`) | 1 per room | 350 ms |
 | `prepareToDuel` | Prepare to Duel (DuelStart) | The voice line "Prepare to duel" | 1 per room | 2837 ms |
 | `round1` | round title | Voice "Round one" (`round2`–`round7` likewise) | 1 per round | 1298 ms |
@@ -48,17 +48,21 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `winner_drumroll` | winner reveal | The drum roll, cut at `WINNER_ROLL_END_MS` | 1 per room | 4000 ms |
 | `winner_crash` | room (winner reveal end) | The cymbal crash as the winner shows | 1 per room | 2480 ms |
 | `gg` | podium, final result | Voice "GG" (for the players who did not win; a winner hears `voice.youWin`, a shared first place `voice.tie`) | 1 per room | 1312 ms |
-| `voice.timesUp` | every timed screen (TimerBar) | Voice "Time's up" as the clock reaches 0, with `time_up` | 0–1 | 4206 ms |
-| `voice.perfect` | reveal (perfectBurst) | Voice "Perfect" with `shared.perfect`, on a stored 150 | 0–1 | 4127 ms |
-| `voice.tie` | round result, results table, podium, final result | Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw | 0–1 | 4441 ms |
-| `voice.youWin` | podium, final result | Voice "You win" for the winner, in place of `gg` | 0–1 per room | 4362 ms |
-| `voice.rematch` | room (duel.$code) | Voice "Rematch" when Play again reopens a finished room, for every player in it | 0–1 per room | 4284 ms |
+| `voice.timesUp` | every timed screen (TimerBar) | Voice "Time's up" as the clock reaches 0, with `time_up` | 0–1 | 2752 ms |
+| `voice.perfect` | reveal (perfectBurst) | Voice "Perfect" with `shared.perfect`, on a stored 150 | 0–1 | 2395 ms |
+| `voice.tie` | round result, results table, podium, final result | Voice "Tie": a tied round for the players sharing the top score, a shared first place, a draw | 0–1 | 2886 ms |
+| `voice.youWin` | podium, final result | Voice "You win" for the winner, in place of `gg` | 0–1 per room | 2823 ms |
+| `voice.rematch` | room (duel.$code) | Voice "Rematch" when Play again reopens a finished room, for every player in it | 0–1 per room | 2594 ms |
 | `arc_blaster` | Wavefront | The shared shot sound `wavefront.fire` falls back to if its own file fails to load | 0 (stand-in) | 140 ms |
+| `arc_leaf_collect` | Scrumper, Tilt | The shared sound `snip.star` and `tilt.starTaken` fall back to if their own files fail to load | 0 (stand-in) | 840 ms |
+| `arc_ketchup` | Slice | The shared sound `slice.frenzyStart` falls back to if its own file fails to load | 0 (stand-in) | 230 ms |
+| `arc_mustard` | Slice | The shared sound `slice.slow` falls back to if its own file fails to load | 0 (stand-in) | 410 ms |
 | `arc_hover_tap` | Hover | Each tap that lifts the craft | 50–200 | 110 ms |
-| `arc_gem_match` | Gemstone | A match lands (pitched by cascade depth) | 20–60 | 616 ms |
-| `arc_gem_zap` | Gemstone | A cross gem goes off | 0–5 | 190 ms |
+| `arc_gem_match` | Gemstone | A match lands (pitched by cascade depth; `gem.shatter.mp3`, sound batch 4, volume 0.8) | 20–60 | 400 ms |
+| `arc_gem_zap` | Gemstone | A cross gem goes off (`gem.crossBeam.mp3`, sound batch 4, volume 0.8) | 0–5 | 450 ms |
 | `arc_gem_bomb` | Gemstone | A bomb gem goes off | 0–5 | 722 ms |
-| `arc_gem_star` | Gemstone | A star gem goes off | 0–5 | 812 ms |
+| `arc_gem_star` | Gemstone | A star gem goes off (`gem.starBurst.mp3`, sound batch 4, volume 0.8) | 0–5 | 800 ms |
+| `matchup.jackpotBlast` | Gemstone | A jackpot gem goes off (`matchupStepSound`; `arc_rainbow` until sound batch 4; `gem.jackpot.mp3`, volume 0.9) | 0–3 | 1200 ms |
 | `pz_laser_gem` | Lightbender | The beam reaches a gem (pitched up gem by gem) | 3–8 | 1012 ms |
 | `pz_laser_split` | Lightbender | The beam reaches a splitter | 0–4 | 1042 ms |
 | `pz_padlock` | Slider | A row locks as a word | 5 | 450 ms |
@@ -69,4 +73,4 @@ replacement would need to be locked to the chart's ticks, which is more than a f
 | `pz_gravity_pull` | Topsy-Turvy | The board tilts | 5–30 | 1100 ms |
 | `chain.linkTone` | Don't Break the Chain | A link is tapped: a synthesised tone a semitone higher per link | 10–40 | 110 ms |
 | `chain.breakTone` | Don't Break the Chain | The chain breaks: a falling synthesised sawtooth | 0–1 | 380 ms |
-| `beat.backing` | Tempo | The synthesised 120 BPM backing beat, one step per eighth note (no slot) | loop | loop |
+| `beat.backing` | Tempo | The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until `music_beat` has decoded, or if it fails | loop | loop |

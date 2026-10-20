@@ -32,7 +32,12 @@ export function arcadeFeedback(
     const onCombo = (value: number) => (quiet?.has("combo") ? visualFx("onCombo", value) : fx.onCombo(value));
     if (comboCue && combo > previousCombo && combo > 1) onCombo(combo);
     const cascades = number("cascades");
-    if (cascades > previousCascades) onCombo(cascades - previousCascades + 1);
+    // `combo: false` leaves the generic combo sound out here too (Gemstone's chime climbs with the cascade); the pop still shows.
+    if (cascades > previousCascades) {
+      const value = cascades - previousCascades + 1;
+      if (comboCue) onCombo(value);
+      else visualFx("onCombo", value);
+    }
     if (over && !finished) {
       finished = true;
       // Complete means the run ended, not a claim of perfect server correctness.

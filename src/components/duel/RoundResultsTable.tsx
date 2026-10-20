@@ -11,6 +11,7 @@ import {
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
+import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
 import { AnimatedScore } from "./AnimatedScore";
@@ -67,7 +68,10 @@ export function RoundResultsTable({
       const tied = ordered.filter((row) => row.roundScore === topScore).length > 1;
       playVoice(tied ? "voice.tie" : "roundTaken", cueDurationMs("round_won"));
       buzz(12);
+      return;
     }
+    // Everyone else hears the screen's own sting (the top scorer hears round_won instead, never both).
+    soundCue("shared.roundResults");
   }, [mySlot, ordered, topScore]);
 
   return (
