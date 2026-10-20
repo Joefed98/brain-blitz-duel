@@ -240,6 +240,7 @@ interface Started {
   url: string | null;
   rate: number;
   loop: boolean;
+  offset?: number;
 }
 const started: Started[] = [];
 let tones = 0;
@@ -260,7 +261,11 @@ const node = () => ({
   },
   disconnect() {},
 });
+const fakeContexts: FakeContext[] = [];
 class FakeContext {
+  constructor() {
+    fakeContexts.push(this);
+  }
   state = "running";
   currentTime = 0;
   sampleRate = 48000;
@@ -307,9 +312,9 @@ class FakeContext {
       },
       rate: 1,
       onended: null,
-      start() {
+      start(_when?: number, offset?: number) {
         if (source.buffer?.url)
-          started.push({ url: source.buffer.url, rate: source.rate, loop: source.loop });
+          started.push({ url: source.buffer.url, rate: source.rate, loop: source.loop, offset });
       },
       stop() {},
     };
@@ -371,7 +376,7 @@ const testUrl = (id: string) => `/sounds/${id}.mp3`;
 for (const id of slotIds) manifest[id]!.url = testUrl(id);
 const MISS_CUE = "room.finalRound";
 const MISS_ARCADE = "pinball.launch";
-const MISS_MUSIC = "music_beat";
+const MISS_MUSIC = "music_word_codeword";
 for (const id of [MISS_CUE, MISS_ARCADE, MISS_MUSIC]) MISSING.add(testUrl(id));
 
 const sound = await import("../src/lib/sound");
@@ -483,7 +488,8 @@ check(
 let musicGames = 0;
 for (const [type, def] of Object.entries(PUZZLE_REGISTRY)) {
   const slot = def.category === "arcade" ? `music_${type}` : `music_${def.category}_${type}`;
-  if (!manifest[slot]) continue;
+  // Tempo's track is tick-locked to its chart (syncBeatTrack, checked below), never the round bed.
+  if (!manifest[slot] || type === "beat") continue;
   check(
     roundMusicFor(type as never, def.category) === slot,
     `${type}: roundMusicFor ignores ${slot}`,
@@ -521,7 +527,7 @@ sound.stopMusic(0);
 take();
 sound.syncRoundMusic({
   key: "check-miss",
-  track: roundMusicFor("beat", "arcade"),
+  track: roundMusicFor("codeword", "word"),
   on: true,
   remainingMs: 60_000,
   reason: "",
@@ -529,6 +535,37 @@ sound.syncRoundMusic({
 await settle();
 check(take().length === 0, "a 404 music slot leaves the round silent");
 sound.leaveRoundMusic("check");
+
+// Tempo's track (sound batch 4): tick-locked to the chart, the synth until it has decoded.
+check(!sound.beatTrackReady(), "Tempo's track is not ready before it loads (the synth plays)");
+sound.syncBeatTrack(null, 60_000);
+await settle();
+check(sound.beatTrackReady(), "Tempo's track loads on the stage's first frame");
+check(take().length === 0, "Tempo's track stays quiet before the first beat");
+const clock = fakeContexts.at(-1)!;
+clock.currentTime = 10;
+sound.syncBeatTrack(0, 58_000);
+let beatStarts = take();
+check(
+  beatStarts.length === 1 && beatStarts[0]!.url === testUrl("music_beat") && beatStarts[0]!.offset === 0 && !beatStarts[0]!.loop,
+  "Tempo's track starts on the first beat at its downbeat, once, not looped",
+);
+clock.currentTime = 10.02;
+sound.syncBeatTrack(1 / 60, 58_000);
+check(take().length === 0, "Tempo's track within 40 ms of the chart is left alone");
+clock.currentTime = 10.02;
+sound.syncBeatTrack(4 / 60, 58_000);
+beatStarts = take();
+check(
+  beatStarts.length === 1 && Math.abs(beatStarts[0]!.offset! - 4 / 60) < 1e-9,
+  "Tempo's track drifting past 40 ms jumps back to the chart's position",
+);
+sound.syncBeatTrack(null, 0);
+sound.syncBeatTrack(null, 0);
+check(take().length === 0, "Tempo's track stops at the end of the run");
+sound.stopBeatTrack(true);
+check(!sound.beatTrackReady(), "Tempo's track is released when its stage goes away");
+clock.currentTime = 0;
 
 // Play caps (arcade-gaps-oct-2026.md section 3): a second play inside a slot's gap is dropped, the
 // voices limit holds, and both apply to the shared sound a slot without a file plays.
@@ -544,7 +581,8 @@ for (const [cue, gap, voices] of [
 ] as const) {
   check(capped[cue]?.gapMs === gap && (capped[cue]?.voices ?? 0) === voices, `${cue}: cap is not ${gap} ms / ${voices} voices`);
 }
-check(capped["wavefront.fire"]!.volume! * 0.6 > 0.49 && capped["wavefront.fire"]!.volume! * 0.6 < 0.51, "wavefront.fire plays at 0.5");
+// Sound batch 4: the soft green bolt at slot volume 0.6 (0.36 with the call's 0.6).
+check(capped["wavefront.fire"]!.volume! * 0.6 > 0.35 && capped["wavefront.fire"]!.volume! * 0.6 < 0.37, "wavefront.fire plays at 0.36");
 sound.resetPlayCaps();
 take();
 sound.playSlotOr("wavefront.fire" as never, "arc_blaster" as never, 0.6, 1, true);
@@ -597,7 +635,7 @@ check(
   roundMusicFor("pinball", "arcade") === "music_rally",
   "Pinball keeps Rally's bed without its own file",
 );
-check(roundMusicFor("beat", "arcade") === null, "Tempo keeps no bed without its own file");
+check(roundMusicFor("beat", "arcade") === null, "Tempo never gets a round bed (its track is tick-locked)");
 check(
   roundMusicFor("tiles", "pattern") === "music_pattern_1",
   "Jumbled keeps its shared bed without its own file",

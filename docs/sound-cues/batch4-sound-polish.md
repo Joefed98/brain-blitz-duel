@@ -4,8 +4,10 @@ Joe listened to every arcade game and the shared screens. This page turns his no
 ElevenLabs** (48 effects and Tempo's music bed), plus one optional music bed, and a mapping sheet for the session that wires them in,
 [batch4-mapping.csv](batch4-mapping.csv) (the batch 3 format: `file,cues`).
 
-**Docs only.** No source, manifest or audio file changes in this batch. Every slot below keeps playing what it plays
-today until the wire-in session sets its `url` (README, "Adding a recorded file").
+**Wired 20 Oct 2026.** All 49 recordings are in `public/sounds/` (trimmed, cut to about the listed length with a
+short fade, levelled to the library's loudness) and on the slots below, with the four new hooks. Tempo's track measured
+119.998 BPM, steady, starting on its first downbeat, so it plays tick-locked (section 9) with the synth as the fallback.
+Recommendations 1–8 were all taken. (Written 19 Oct 2026 as docs only.)
 
 ## How to read this page
 

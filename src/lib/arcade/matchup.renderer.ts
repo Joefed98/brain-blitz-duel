@@ -60,7 +60,7 @@ export function matchupStepSound(step: MatchupAnimStep): SoundId {
     if (kind === MATCHUP_BOMB || kind === MATCHUP_CROSS || kind === MATCHUP_STAR) kinds.add(kind);
     if (matchupIsJackpot(kind)) kinds.add(MATCHUP_JACKPOT);
   }
-  if (kinds.has(MATCHUP_JACKPOT)) return "arc_rainbow";
+  if (kinds.has(MATCHUP_JACKPOT)) return "matchup.jackpotBlast";
   if (kinds.has(MATCHUP_BOMB)) return "arc_gem_bomb";
   if (kinds.has(MATCHUP_STAR)) return "arc_gem_star";
   if (kinds.has(MATCHUP_CROSS)) return "arc_gem_zap";

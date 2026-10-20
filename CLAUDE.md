@@ -118,6 +118,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   named loops go through `loopCue()` (0.25–0.35, 500 ms fades, one per game); `puzzleReject()` announces
   `shared.reject` unless the move already plays `wrong`; five voice lines (`voice.*`, `playVoice`). sound-manifest-check
   proves every file is used and the caps hold.
+- **Sound batch 4** (20 Oct 2026, presentation only; `docs/sound-cues/batch4-sound-polish.md`, `batch4-mapping.csv`):
+  49 recordings wired (trimmed, levelled to the library's median loudness); `shared.roundResults` on the Round results
+  screen for everyone but the top scorer (who hears `round_won`, never both), `slice.specialIn`, `matchup.jackpotBlast`
+  (in place of `arc_rainbow`; the bomb is unchanged), no generic combo on Gemstone cascades, Roofbound's speed-up sounded
+  on every third step only. Tempo's `music_beat` is tick-locked (`syncBeatTrack` in `src/lib/sound.ts`: starts at tick 120
+  on its downbeat, re-synced past 40 ms, never in `roundMusicFor`), the synth beat its fallback until it decodes.
 - **Scoring targets** (18 Oct 2026, `docs/scoring-targets.md`): about 100 average, 120 good, 135 great, 140–150 near-perfect.
   Every arcade band game's new revision keeps its play and lifts its curve through `BAND_TARGET_MAP` (`band: 2` states,
   `bandCurveOf`), Wavefront on its own gentler curve, Swish with a 21 px spinner; Nucleus, Forage and Bonk score on new

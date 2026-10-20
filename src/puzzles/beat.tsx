@@ -34,7 +34,7 @@ import {
 } from "@/lib/arcade/beat";
 import { decodeBeatRun, encodeBeatRun, replayBeatRun } from "@/lib/duel/beat";
 import type { BeatPuzzleData } from "@/lib/duel/types";
-import { playBeatStep } from "@/lib/sound";
+import { beatTrackReady, playBeatStep, stopBeatTrack, syncBeatTrack } from "@/lib/sound";
 import { beatArtGame } from "@/lib/arcade/beat.renderer";
 import { beatSounds } from "@/lib/fx/gameSounds";
 import { arcadeFeedback } from "@/lib/fx/arcade";
@@ -170,8 +170,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           if (state.current.tick % BEAT_CHECKPOINT_INTERVAL === 0) {
             checkpoints.current.push(beatCheckpoint(state.current));
           }
-          // Sound is feedback only: a synthesised bass + hat loop, never required to play.
+          // Sound is feedback only: the recorded track (syncBeatTrack, below) or, until it has
+          // decoded or if it fails, a synthesised bass + hat loop; never required to play.
           if (
+            !beatTrackReady() &&
             state.current.tick >= BEAT_FIRST_BEAT &&
             (state.current.tick - BEAT_FIRST_BEAT) % BEAT_EIGHTH_TICKS === 0
           ) {
@@ -181,6 +183,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+
+      // Tempo's track follows the sim's own clock from the first beat; it stops at the end or a lock-in.
+      const live = !beatGame.isOver(state.current) && !lockedRef.current;
+      syncBeatTrack(
+        live && state.current.tick >= BEAT_FIRST_BEAT ? (state.current.tick - BEAT_FIRST_BEAT) / TICKS_PER_SECOND : null,
+        ((BEAT_RUN_TICKS - state.current.tick) / TICKS_PER_SECOND) * 1000,
+      );
 
       reportArcadeTick(state.current.tick, beatGame.isOver(state.current));
       feedback(state.current, beatGame.isOver(state.current));
@@ -206,6 +215,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return () => {
       cancelAnimationFrame(frame);
       sounds.stop();
+      stopBeatTrack(true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);

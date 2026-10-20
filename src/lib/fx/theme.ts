@@ -142,6 +142,8 @@ export function roundMusicFor(
   type: PuzzleType | undefined,
   category: PuzzleCategory,
 ): SoundId | null {
+  // Tempo's own track is tick-locked to its chart (syncBeatTrack), never the round's bed.
+  if (type === "beat") return null;
   return category === "arcade"
     ? type
       ? (ownMusic(`music_${type}`) ?? WORLD_MUSIC[type] ?? null)

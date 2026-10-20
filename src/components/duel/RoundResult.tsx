@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 
 import type { PlayerLook } from "@/lib/duel/playerLook";
 import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
+import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import {
   VERDICT_LABEL,
@@ -73,13 +74,14 @@ export function RoundResult({
   const theyWon = opponentRoundScore > myRoundScore;
   const cued = useRef(false);
 
-  // Winner: round-won cue then "round taken"; two-player loser: "round lost"; a tie: "tie".
+  // Winner: round-won cue then "round taken"; everyone else: the screen's own sting
+  // (shared.roundResults), then "round lost" (two-player loser) or "tie". Never both stings.
   useEffect(() => {
     if (cued.current) return;
     cued.current = true;
-    if (iWon) { playRoundWon(); playVoice("roundTaken", cueDurationMs("round_won")); }
-    else if (theyWon) playVoice("roundLost");
-    else playVoice("voice.tie");
+    if (iWon) { playRoundWon(); playVoice("roundTaken", cueDurationMs("round_won")); return; }
+    soundCue("shared.roundResults");
+    playVoice(theyWon ? "roundLost" : "voice.tie", cueDurationMs("shared.roundResults"));
   }, [iWon, theyWon]);
 
   const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;

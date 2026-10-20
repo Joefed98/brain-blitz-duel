@@ -166,7 +166,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let last = performance.now();
     let accumulator = 0;
     let draftAt = 0;
-    const feedback = arcadeFeedback({ game: "matchup" });
+    // The match chime climbs with the cascade on its own: no generic combo sound (sound batch 4).
+    const feedback = arcadeFeedback({ game: "matchup", combo: false });
     let secondAt = last;
     let ticksThisSecond = 0;
     let hintShown = false;

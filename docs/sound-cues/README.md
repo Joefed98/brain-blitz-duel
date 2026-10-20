@@ -73,8 +73,12 @@ plays through `loopCue()` in `gameSounds.ts` (`ensureCueLoop` / `stopCueLoop`): 
 500 ms and out when it ends, one per game. The mapping sheets are [batch2-mapping.csv](batch2-mapping.csv) and
 [batch3-mapping.csv](batch3-mapping.csv) (`file,cues`; `EXISTING:<id>` points a slot at an app-wide entry or a file
 already in `public/sounds/`).
-Sound batch 4 (Joe's listening notes, 19 Oct 2026; not made or wired yet) is
-[batch4-sound-polish.md](batch4-sound-polish.md) with [batch4-mapping.csv](batch4-mapping.csv).
+Sound batch 4 (Joe's listening notes, 19 Oct 2026; wired 20 Oct 2026) is
+[batch4-sound-polish.md](batch4-sound-polish.md) with [batch4-mapping.csv](batch4-mapping.csv): 48 effects and
+Tempo's track, each trimmed (leading and trailing silence off, cut to about its listed length with a short fade)
+and levelled to the library's median loudness (about -15 LUFS momentary peak, the two constant repeaters
+`arcade.wallThock.mp3` and `wavefront.greenBolt.mp3` about -24, never above -1 dBFS); new hooks
+`shared.roundResults`, `slice.specialIn` and `matchup.jackpotBlast`; Roofbound's speed-up sounds on every third step.
 
 What each kind of slot does once it has a file:
 
@@ -108,8 +112,13 @@ A file that fails to load (missing, 404, undecodable) logs one `[sound]` warning
 the same way; a game's own music bed that fails leaves that round without music. Slots have
 `frequency: 0`, so a missing file never beeps. Intro demos stay silent (`demoHushed()`).
 
-Not a file swap: Tempo's backing beat is synthesised step by step against the chart (`playBeatStep`), so a
-recording would need to be locked to the chart's ticks; the `tension_loop` bed is registered but not
+Not a file swap: Tempo's track (`music_beat`) is locked to the chart's ticks, not started by the round
+(`roundMusicFor` leaves `beat` out): `syncBeatTrack` in `src/lib/sound.ts` starts it when the sim reaches
+tick 120 at file offset `downbeat + (tick - 120) / 60` s (the file starts on its first downbeat, and the
+2.000 s lead-in is the player's, since the loader trims leading silence), jumps it back into place past
+40 ms of drift and stops it when the run ends or the player locks in. Until it has decoded, or if it
+fails, the synthesised beat (`playBeatStep`) plays as before. A replacement file must be exactly 120 BPM
+(within 0.1 %), steady, and start on its first downbeat. The `tension_loop` bed is registered but not
 placed on any screen.
 
 ## Files

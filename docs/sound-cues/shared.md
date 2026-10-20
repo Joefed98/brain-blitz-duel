@@ -7,6 +7,7 @@ Cues for moments every game shares. Convention: [README.md](README.md). No audio
 | `shared.signature.solve` | The signature beat starts: 1.0 s after a puzzle's solve moment (verdict solved); after a non-arcade game with no finish state ends its run on 120 or more; 1.0 s after an arcade finish game reaches its finish; 1.0 s after an open arcade game ends a run of 120 or more on the phone's sim. | 0.6 s |
 | `shared.signature.fast` | As `shared.signature.solve`, for a solve or finish with at least half the time left (the full speed part); the beat is a little bigger. Replaces the solve cue (one or the other, never both). | 0.6 s |
 | `shared.perfect` | The reveal shows a stored score of 150: a short gold burst on the score (puzzle and arcade reveals). | 0.5 s |
+| `shared.roundResults` | The room's Round results screen appears (`RoundResult`, `RoundResultsTable`, once on mount): every player but the round's top scorer, who hears `round_won` instead (never both). In a two-player room the loser's "round lost" or the tie's "tie" voice line follows it. Sound batch 4 (`room.roundResults.mp3`). | 0.9 s |
 | `shared.help.open` | An in-game "?" help sheet opens. | instant |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). | instant |
 | `shared.reject` | A puzzle refuses a move with the shared shake (`puzzleReject()`: Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays `wrong`; never in an intro demo. | 200 ms |
