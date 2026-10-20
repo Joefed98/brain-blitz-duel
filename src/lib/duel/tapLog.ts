@@ -19,6 +19,7 @@
 import { watchLifeMs, watchStop } from "./stopWatch";
 import {
   NUMHUNT_MOVE_MS,
+  REACTION_DECOY_MS,
   REACTION_FLASH_MS,
   REACTION_MISS_MS,
   STOPWATCH_GAP_MS,
@@ -45,6 +46,14 @@ export const TAP_REV_CARELESS = 2;
  * stays on TAP_REV.
  */
 export const TAP_REV_SPEED_TUNING = 3;
+/**
+ * Flash and Bang On (scoring report batch 2, 20 Oct 2026, docs/scoring-targets.md): the same tap logs and
+ * replays, scored on one curve each (scoring.ts FLASH_REV4_CURVE, STOPWATCH_REV4_CURVE; their rev-2 knots row
+ * is the identity, puzzleScoreRev2.ts). Flash stops crediting a gold reaction when the player also tapped the
+ * decoy shown just before it (replayFlash's `voided`), so tapping on every colour earns nothing. Ascend stays on
+ * TAP_REV.
+ */
+export const TAP_REV_ONE_CURVE = 4;
 /** Every tap-log answer starts with this, so a summary answer is never misread as taps. */
 export const TAP_LOG_PREFIX = "log1:";
 /** The most taps the server reads; the phone stops logging here. */
@@ -59,7 +68,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {
@@ -200,7 +209,10 @@ export function decodeNumberTaps(
 export type FlashOutcome = "hit" | "false" | "ignored";
 
 export interface FlashReplay {
-  /** Reaction per gold flash in ms (a miss records REACTION_MISS_MS); null while still to come. */
+  /**
+   * Reaction per gold flash in ms (a miss records REACTION_MISS_MS); null while still to come. tapRev 4: after
+   * the decoy cut (FLASH_DECOY_FREE_SHARE), the reaction each flash is credited with.
+   */
   times: (number | null)[];
   /** Flashes that closed without a tap. */
   missed: boolean[];
@@ -209,6 +221,24 @@ export interface FlashReplay {
   outcomes: FlashOutcome[];
   /** Every flash has been tapped or missed by `upTo`. */
   done: boolean;
+  /** tapRev 4: decoys shown by `upTo`, and how many of them were tapped (a tap that was not a hit, while it showed). */
+  decoysShown: number;
+  decoysTapped: number;
+  /** tapRev 4: the share (0–1) of the way from each reaction to a miss it is credited with (0 = as tapped). */
+  decoyCut: number;
+}
+
+/**
+ * Flash tapRev 4: tapping up to this share of the decoys costs only their false starts; beyond it every reaction
+ * is credited slower, evenly towards a miss, all the way at every decoy tapped (tapping on every colour earns nothing).
+ */
+export const FLASH_DECOY_FREE_SHARE_PCT = 50;
+
+/** tapRev 4: the decoy cut (0–1) for `tapped` of `shown` decoys. */
+export function flashDecoyCut(tapped: number, shown: number): number {
+  if (!(shown > 0)) return 0;
+  const sharePct = (100 * Math.max(0, Math.min(tapped, shown))) / shown;
+  return Math.max(0, Math.min(1, (sharePct - FLASH_DECOY_FREE_SHARE_PCT) / (100 - FLASH_DECOY_FREE_SHARE_PCT)));
 }
 
 /**
@@ -219,7 +249,7 @@ export interface FlashReplay {
  * last flash is settled are ignored.
  */
 export function replayFlash(
-  puzzle: Pick<ReactionPuzzleData, "flashes">,
+  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev">>,
   times: readonly number[],
   upTo = Number.POSITIVE_INFINITY,
 ): FlashReplay {
@@ -261,7 +291,16 @@ export function replayFlash(
     outcomes.push("false");
   }
   if (Number.isFinite(upTo)) settleMisses(upTo);
-  return { times: result, missed, falseStarts, outcomes, done: result.every((v) => v !== null) };
+  // tapRev 4: the decoys tapped (a tap that was not a hit, while the decoy showed) and the credit cut they bring.
+  const decoys = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? (puzzle.decoys ?? []) : [];
+  const nonHits = times.filter((t, i) => t <= upTo && outcomes[i] !== "hit");
+  const shown = decoys.filter((d) => d.at <= upTo);
+  const decoysTapped = shown.filter((d) => nonHits.some((t) => t >= d.at && t < d.at + REACTION_DECOY_MS)).length;
+  const decoyCut = flashDecoyCut(decoysTapped, shown.length);
+  const credited = decoyCut > 0
+    ? result.map((v) => (v === null ? null : Math.min(REACTION_MISS_MS, v + Math.round((REACTION_MISS_MS - v) * decoyCut))))
+    : result;
+  return { times: credited, missed, falseStarts, outcomes, done: result.every((v) => v !== null), decoysShown: shown.length, decoysTapped, decoyCut };
 }
 
 /* -------------------------------------------------------------------------- */

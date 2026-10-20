@@ -32,7 +32,8 @@ import { CHAIN_CYCLE_REV } from "../src/lib/duel/types";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { FLASH_REV3_CURVE, reactionFalseStartCost, scoreReaction, scoreStopWatch, STOPWATCH_REV3_CURVE } from "../src/lib/duel/scoring";
 import { markerState, targetCentre, watchLifeMs, watchStop } from "../src/lib/duel/stopWatch";
-import { replayFlash, TAP_REV, TAP_REV_CARELESS, TAP_REV_SPEED_TUNING } from "../src/lib/duel/tapLog";
+import { replayFlash, TAP_REV, TAP_REV_CARELESS, TAP_REV_ONE_CURVE, TAP_REV_SPEED_TUNING } from "../src/lib/duel/tapLog";
+import { CLAY_REV_QUICK } from "../src/lib/arcade/clayShoot";
 import {
   REACTION_DECOY_MS,
   REACTION_FLASH_MS,
@@ -47,7 +48,7 @@ import {
   type StopWatchPuzzleData,
 } from "../src/lib/duel/types";
 import { stableExtra, type LegacyCase } from "./puzzle-score-legacy-record";
-import { roomPuzzle } from "./puzzle-fairness/run";
+import { roomPuzzle as dealtRoomPuzzle } from "./puzzle-fairness/run";
 import { bands, CARELESS_LINE, median, NAMES, SPEED_BAND_TYPES } from "./speed-bands-oct14";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
 
@@ -76,6 +77,17 @@ for (const file of ["speed-oct14-legacy", "speed-oct14-rounds"]) {
   console.error = error;
   const stamps = new Set(fixture.cases.map((c) => `${c.type}:${JSON.stringify(stampOf(c.puzzle))}`));
   lines.push(`${file}: ${entries} stored answers on ${fixture.cases.length} puzzles (${[...stamps].sort().join(", ")}; recorded ${fixture.recordedOn}) grade exactly as stored`);
+}
+
+/**
+ * Scoring report batch 2 (20 Oct 2026) moved rooms on to Flash and Bang On tapRev 4 and Pull! clayRev 8, the same
+ * puzzles and play on new scoring (scoring-batch2-check); this check keeps proving the Speed tuning stamps.
+ */
+function roomPuzzle(type: PuzzleData["type"], seed: number): PuzzleData {
+  const p = dealtRoomPuzzle(type, seed) as unknown as Record<string, unknown>;
+  if ((type === "reaction" || type === "stopwatch") && p["tapRev"] === TAP_REV_ONE_CURVE) return { ...p, tapRev: TAP_REV_SPEED_TUNING } as unknown as PuzzleData;
+  if (type === "clayshoot" && p["clayRev"] === CLAY_REV_QUICK) return { ...p, clayRev: 7 } as unknown as PuzzleData;
+  return p as unknown as PuzzleData;
 }
 
 function stampOf(p: PuzzleData): number | null {

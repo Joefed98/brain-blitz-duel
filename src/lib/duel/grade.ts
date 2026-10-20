@@ -67,7 +67,7 @@ import { decodeSnipRun, replaySnipRun } from "./snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
-import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS } from "@/lib/arcade/colourClash";
+import { clashRev4Finished, clashVariantOf, CLASH_REV, CLASH_REV_TALL, CLASH_REV_BANDS, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
 import { decodeTents, scoreTents, tentsLayoutValid } from "./tents";
 import { acceptedRects, decodeShikaku, scoreShikaku, shikakuCovered } from "./shikaku";
 import { decodeBulbs, lightUpStatus, scoreLightUp } from "./lightUp";
@@ -434,8 +434,8 @@ function gradeUnderRev(
       const replay = replayColourClashRun(puzzle.seed, answer, clashVariantOf(puzzle));
       revealRun = replay;
       correctCount = replay.correct;
-      // clashRev 4 and 5: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
-      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS
+      // clashRev 4–7: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
+      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS || puzzle.clashRev === CLASH_REV_GREAT
         ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
         : replay.correct >= replay.total;
       score = replay.score;

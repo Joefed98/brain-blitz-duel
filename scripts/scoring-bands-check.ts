@@ -28,16 +28,16 @@ import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
 import { TARGET_REVS } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
-import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
+import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, REV2_IDENTITY_KNOTS, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
 import { puzzleScoreRevOf } from "../src/lib/duel/puzzleScoreRev";
 import { decodeSafePending, decodeSafeTries, encodeSafeDraft } from "../src/lib/duel/safe";
 import { bandsFigures, bandsHelp } from "../src/lib/duel/puzzleBandsText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV } from "../src/lib/arcade/tenDrop";
-import { CLASH_BANDS_MAP, CLASH_REV_BANDS } from "../src/lib/arcade/colourClash";
+import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
+import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_REV_BANDS } from "../src/lib/arcade/whack";
-import { CLAY_BANDS_MAP, CLAY_REV_BANDS } from "../src/lib/arcade/clayShoot";
+import { CLAY_BANDS_MAP, CLAY_REV_BANDS, CLAY_REV_QUICK } from "../src/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP, WORDFALL_REV_BANDS } from "../src/lib/arcade/wordfall";
 import { ensureWordfallDict } from "../src/lib/duel/wordfallDict.server";
 import { KNOWN_SPAM } from "./puzzle-fairness";
@@ -76,6 +76,11 @@ function roomPuzzleCached(type: PuzzleType, seed: number): PuzzleData {
  * strikeout-check holds rev 4.
  */
 const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number | undefined>>> = {
+  // Scoring report batch 2 (20 Oct 2026): rooms deal wordsmithRev 2, wordHuntRev 2 and tapRev 4 (scoring-batch2-check).
+  wordsmith: { wordsmithRev: 1 },
+  wordhunt: { wordHuntRev: 1 },
+  reaction: { tapRev: 3 },
+  stopwatch: { tapRev: 3 },
   gravity: { gravityRev: 1 },
   tubes: { tubesRev: 1 },
   tiles: { tilesRev: 1, timeLimitMs: undefined },
@@ -152,15 +157,18 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     ["clayshoot", "clayRev", CLAY_REV_BANDS, CLAY_BANDS_MAP, 6],
     ["wordfall", "wordfallRev", WORDFALL_REV_BANDS, WORDFALL_BANDS_MAP, 2],
   ];
+  // Scoring report batch 2 (20 Oct 2026) moved rooms on to these stamps (scoring-batch2-check); the recorded runs keep this one.
+  const later: Partial<Record<PuzzleType, number>> = { tendrop: TEN_DROP_RAW_REV, stroop: CLASH_REV_GREAT, clayshoot: CLAY_REV_QUICK };
   for (const [type, field, rev, map, prev] of maps) {
-    ok((generatePuzzle(type) as unknown as Record<string, unknown>)[field] === rev, `${type}: rooms deal ${field} ${rev}`);
+    const dealt = (generatePuzzle(type) as unknown as Record<string, unknown>)[field];
+    ok(dealt === rev || dealt === later[type], `${type}: rooms deal ${field} ${rev}${later[type] ? ` or ${later[type]}` : ""}`);
     ok(bandMapTotal(map, 0) === 0 && bandMapTotal(map, bandTop(map)) === 150, `${type}: the map runs 0 → 150`);
     for (let x = 1; x <= bandTop(map); x++) ok(bandMapTotal(map, x) >= bandMapTotal(map, x - 1), `${type}: the map never falls (${x})`);
     if (type !== "wordfall") ok(bandMapTotal(map, 149) < 150, `${type}: only a perfect 150 is 150`);
     const runs = fixture.answers.filter((a) => a.type === type);
     ok(runs.length >= 10, `${type}: recorded answers (${runs.length})`);
     for (const a of runs) {
-      const puzzle = roomPuzzleCached(type, a.seed);
+      const puzzle = { ...(roomPuzzleCached(type, a.seed) as object), [field]: rev } as unknown as PuzzleData;
       const g = gradeAnswer(puzzle, a.answer, a.ms);
       ok(g.score === a.score, `${type} ${a.label} ${a.seed}: grades to its stored ${a.score} (got ${g.score})`);
       const old = gradeAnswer({ ...(puzzle as object), [field]: prev } as unknown as PuzzleData, a.answer, a.ms);
@@ -178,7 +186,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   for (const type of games) {
     ok(PUZZLE_REV2_KNOTS[type] !== undefined, `${type}: has fitted knots`);
     const dealt = REV2_DEALT_KEY[type];
-    if (dealt) ok(PUZZLE_REV2_KNOTS[dealt] !== undefined && rev2KnotsFor(type) === PUZZLE_REV2_KNOTS[dealt], `${type}: rooms are dealt its ${dealt} knots`);
+    // Batch 2's own-curve stamps (Nucleus wordsmithRev 2, Flash and Bang On tapRev 4) pass their score through unchanged.
+    if (dealt) ok(PUZZLE_REV2_KNOTS[dealt] !== undefined ? rev2KnotsFor(type) === PUZZLE_REV2_KNOTS[dealt] : rev2KnotsFor(type) === REV2_IDENTITY_KNOTS, `${type}: rooms are dealt its ${dealt} knots`);
     for (const k of [rev2KnotsFor(type), PUZZLE_REV2_KNOTS[type]!]) {
       ok(k[0]![0] === 0 && k[0]![1] === 0, `${type}: knots start at (0, 0)`);
       ok(k.at(-1)![1] === 150 && k.slice(0, -1).every(([, y]) => y < 150), `${type}: 150 only at the last knot (a perfect run)`);

@@ -16,6 +16,7 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { LEVELS } from "./puzzle-fairness/kit";
 import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
+import { TAP_REV_SPEED_TUNING } from "../src/lib/duel/tapLog";
 import { buildReactionRev2, buildStopWatchRev2 } from "./speed-oct14-legacy-generators";
 
 export const SPEED_BAND_TYPES = ["reaction", "stopwatch", "chain", "clayshoot"] as const;
@@ -40,10 +41,12 @@ export function beforePuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: numb
 
 /**
  * The puzzle a room dealt for this seed right after the 14 Oct change. Pull! has since moved on to
- * clayRev 6 (taller worlds batch 2, arcade-tuning-g2-check); this script keeps measuring clayRev 5.
+ * clayRev 6 (taller worlds batch 2, arcade-tuning-g2-check); this script keeps measuring clayRev 5. Flash and Bang On
+ * have since moved on to tapRev 4 (20 Oct 2026, scoring-batch2-check); this script keeps measuring tapRev 3.
  */
 export function afterPuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: number): PuzzleData {
   const p = roomPuzzle(type, seed);
+  if (type === "reaction" || type === "stopwatch") return { ...(p as object), tapRev: TAP_REV_SPEED_TUNING } as unknown as PuzzleData;
   return type === "clayshoot" ? ({ ...(p as Extract<PuzzleData, { type: "clayshoot" }>), clayRev: CLAY_REV5 }) : p;
 }
 

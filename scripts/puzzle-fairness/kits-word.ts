@@ -7,7 +7,8 @@ import { puzzleScoreRevOf } from "../../src/lib/duel/puzzleScoreRev";
 import { answerWords, commonWords, isWord, wordsFrom } from "../../src/lib/duel/dictionary.server";
 import { lwEncodeLog, lwUsesLog } from "../../src/lib/duel/letterWheel";
 import { checkWordsmithWord, gradeWordsmith } from "../../src/lib/duel/wordsmith.server";
-import { checkWordHuntPath, gradeWordHunt } from "../../src/lib/duel/wordHunt.server";
+import { checkWordHuntPath, gradeWordHunt, isWordHuntMiss } from "../../src/lib/duel/wordHunt.server";
+import { WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "../../src/lib/duel/scoring";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
 import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
@@ -130,6 +131,25 @@ function huntNeighbours(cell: number): number[] {
   return out;
 }
 
+const huntSendsMisses = (d: WordHuntPuzzleData) => (d.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
+const huntAnswer = (found: { word: string; path: number[] }[], misses: number[][]) =>
+  [...found.map((f) => `${f.word}:${f.path.join("-")}`), ...misses.map((m) => `${WORDHUNT_MISS_MARK}${m.join("-")}`)].join(",");
+
+/** A 4–5 letter path on the grid that spells no word (a player's rejected try). */
+function huntNonWordPath(d: WordHuntPuzzleData, rng: Rng): number[] {
+  for (let tries = 0; tries < 200; tries++) {
+    const n = rng.int(4, 5);
+    const path = [rng.below(d.grid.length)];
+    while (path.length < n) {
+      const next = huntNeighbours(path[path.length - 1]!).filter((x) => !path.includes(x));
+      if (!next.length) break;
+      path.push(rng.pick(next));
+    }
+    if (path.length >= 4 && isWordHuntMiss(d.grid, path)) return path;
+  }
+  return [0, 1, 2, 3];
+}
+
 const forage: PuzzleKit = {
   type: "wordhunt",
   nothing: () => "",
@@ -138,6 +158,7 @@ const forage: PuzzleKit = {
     const cells = d.grid.length;
     const run = (label: string, perTryMs: number, len: () => number): SpamPlay => {
       const found: { word: string; path: number[] }[] = [];
+      const misses: number[][] = [];
       for (let at = perTryMs; at <= limitMs; at += perTryMs) {
         const n = len();
         const path = [rng.below(cells)];
@@ -148,8 +169,10 @@ const forage: PuzzleKit = {
         }
         const v = checkWordHuntPath(d.grid, path, found.map((f) => f.word));
         if (v.valid) found.unshift({ word: v.word, path });
+        // wordHuntRev 2: the phone also sends every rejected trace of 4+ letters.
+        else if (huntSendsMisses(d) && path.length >= 4 && misses.length < WORDHUNT_MAX_MISSES) misses.push(path);
       }
-      return { label, answer: found.map((f) => `${f.word}:${f.path.join("-")}`).join(",") };
+      return { label, answer: huntAnswer(found, misses) };
     };
     return [run("random-paths-4", 900, () => 4), run("random-paths-4to6", 1100, () => rng.int(4, 6))];
   },
@@ -161,15 +184,19 @@ const forage: PuzzleKit = {
     pool.sort((a, b) => a.key - b.key);
     const steps: Step[] = [];
     const found: string[] = [];
+    const misses: number[][] = [];
+    const answer = () => [...found, ...misses.map((m) => `${WORDHUNT_MISS_MARK}${m.join("-")}`)].join(",");
     let at = 0;
     for (const [i, w] of pool.entries()) {
       while (rng.chance(skill.err)) {
+        // A rejected trace (a non-word): time, and on wordHuntRev 2 a miss the phone sends.
         at += thinkMs(rng, BASE * 0.6, skill);
-        steps.push({ answer: found.join(","), atMs: at });
+        if (huntSendsMisses(d)) misses.push(huntNonWordPath(d, rng));
+        steps.push({ answer: answer(), atMs: at });
       }
       at += thinkMs(rng, BASE * (0.6 + w.word.length * 0.12) * (1 + i / Math.max(1, pool.length)), skill);
       found.unshift(`${w.word}:${w.path.join("-")}`);
-      steps.push({ answer: found.join(","), atMs: at });
+      steps.push({ answer: answer(), atMs: at });
     }
     return { steps: fullClock(steps, (a) => gradeWordHunt(d, a, 0).isCorrect, limitMs) };
   },

@@ -1,12 +1,23 @@
 import { bandsHelp, openBandsLine } from "./puzzleBandsText";
-import { scoreReaction, scoreStopWatch, scoreWordHunt, scoreWordsmith, WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import {
+  scoreReaction,
+  scoreStopWatch,
+  scoreWordHunt,
+  scoreWordsmith,
+  WORDHUNT_FREE_MISSES,
+  WORDHUNT_FREE_MISSES_PER_WORD,
+  WORDHUNT_MISS_COST_PCT,
+  WORDHUNT_REV_TARGET,
+  WORDSMITH_REV_TARGET,
+  WORDSMITH_V2_CAP,
+} from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
-import { TAP_REV_SPEED_TUNING } from "./tapLog";
+import { FLASH_DECOY_FREE_SHARE_PCT, TAP_REV_ONE_CURVE } from "./tapLog";
 import { bandMapTotal } from "@/lib/arcade/scoreBands";
-import { TEN_DROP_BANDS_MAP } from "@/lib/arcade/tenDrop";
-import { CLASH_BANDS_MAP } from "@/lib/arcade/colourClash";
+import { TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
+import { CLASH_GREAT_MAP } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP } from "@/lib/arcade/whack";
-import { CLAY_BANDS_MAP } from "@/lib/arcade/clayShoot";
+import { CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS } from "@/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
 
 /** Search ranges for the open games' help numbers (word points rising; milliseconds falling). */
@@ -74,7 +85,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${openBandsLine("wordsmith", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordsmith(x, WORDSMITH_REV_TARGET)), (x) => `${x} points`)}. The counter shows word points.`,
+    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${openBandsLine("wordsmith", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordsmith(x, WORDSMITH_REV_TARGET)), (x) => `${x} points`)}; ${WORDSMITH_V2_CAP} at most unless you find the word that uses every tile, 150 only with it. The counter shows word points.`,
   },
   tilegrid: {
     goal: "Build a mini crossword from your tiles.",
@@ -142,7 +153,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Traps:", detail: "teal, red or blue; near-gold amber; a gold border only; the word GOLD on a dark screen; half the screen gold.", helpOnly: true },
       { action: "False starts:", detail: "a tap on a trap or the dark screen, or within 0.1 s of the gold (too fast to be real).", helpOnly: true },
     ],
-    score: `Faster average reactions score more: ${openBandsLine("reaction", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreReaction(ms, 0, TAP_REV_SPEED_TUNING)), (ms) => `${ms} ms`)}; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that.`,
+    score: `Faster average reactions score more: ${openBandsLine("reaction", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreReaction(ms, 0, TAP_REV_ONE_CURVE)), (ms) => `${ms} ms`)}; misses count 1,200 ms; false starts −8 each for the first two, −11 each after that. Tap more than ${FLASH_DECOY_FREE_SHARE_PCT} % of the decoys and every reaction counts slower; tap them all and none counts.`,
   },
   numhunt: {
     goal: "Tap all 24 numbers from smallest to largest.",
@@ -163,7 +174,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The rule", detail: "is either the ink colour or what the word says.", helpOnly: true },
       { action: "Sort the last word", detail: `to finish – the run ends when all ${CLASH_QUEUE} are sorted, or at 75 seconds.`, helpOnly: true },
     ],
-    score: `All 52 sorted with at most 2 wrong gates is a finish: ${bandMapTotal(CLASH_BANDS_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong gate); 150 only for a quick finish with no wrong gate. Otherwise words right less words wrong: 20 scores ${bandMapTotal(CLASH_BANDS_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_BANDS_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_BANDS_MAP, 110)}.`,
+    score: `All 52 sorted with at most 2 wrong gates is a finish: ${bandMapTotal(CLASH_GREAT_MAP, 120)} as time runs out, rising with the time left (5 off the speed part per wrong gate); 150 only for a quick finish with no wrong gate. Otherwise words right less words wrong, ${bandMapTotal(CLASH_GREAT_MAP, 110)} at most: 20 scores ${bandMapTotal(CLASH_GREAT_MAP, 70)}, 40 scores ${bandMapTotal(CLASH_GREAT_MAP, 100)}, 46 or more ${bandMapTotal(CLASH_GREAT_MAP, 110)}.`,
   },
   symscan: {
     goal: "Find every eagle that matches the target.",
@@ -196,7 +207,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "The counter drops at the right edge", detail: "from 2 on Watch 1 to 11 on Watch 10.", helpOnly: true },
       { action: "Watches 8-10 wrap", detail: "from the right edge back to the left.", helpOnly: true },
     ],
-    score: `Closer average stops score more: ${openBandsLine("stopwatch", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreStopWatch(ms, TAP_REV_SPEED_TUNING)), (ms) => `${ms} ms off`)}; misses count 500 ms.`,
+    score: `Closer average stops score more: ${openBandsLine("stopwatch", MS_DOWN, (ms) => withPuzzleScoreRev(1, () => scoreStopWatch(ms, TAP_REV_ONE_CURVE)), (ms) => `${ms} ms off`)}; misses count 500 ms.`,
   },
   countup: {
     goal: "Count the shapes each question asks for.",
@@ -219,7 +230,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
       { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
     ],
-    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: ${openBandsLine("wordhunt", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordHunt(x, WORDHUNT_REV_TARGET)), (x) => `${x} points`)}. The counter shows word points.`,
+    score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: ${openBandsLine("wordhunt", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordHunt(x, WORDHUNT_REV_TARGET)), (x) => `${x} points`)}. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points.`,
   },
   unblock: {
     goal: "Slide the gold block out through the exit.",
@@ -726,7 +737,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
       { action: "A ÷ that doesn't divide exactly", detail: "is refused.", helpOnly: true },
     ],
-    score: `Unfinished: targets hit, about ${bandMapTotal(TEN_DROP_BANDS_MAP, 12)} for the first and ${bandMapTotal(TEN_DROP_BANDS_MAP, 110)} for nine (−2 per reset after the first 5, before the bands). All ten: ${bandMapTotal(TEN_DROP_BANDS_MAP, 120)} if the last clears as time runs out, rising the earlier it clears; 150 only with at least half the time left.`,
+    score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_RAW_REV)} if the last clears as time runs out, rising the earlier it clears; 150 only with at least half the time left.`,
   },
   clayshoot: {
     goal: "Shoot all 25 clays without hitting a bird.",
@@ -739,7 +750,7 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = {
       { action: "Each bird hit", detail: "costs 10.", helpOnly: true },
       { action: "Aim, don't spray:", detail: "30 shots that hit nothing are free, then every 20 more cost 1.", helpOnly: true },
     ],
-    score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total then sets the score: 88 scores ${bandMapTotal(CLAY_BANDS_MAP, 88)}, 125 scores ${bandMapTotal(CLAY_BANDS_MAP, 125)}, one clay short of perfect about ${bandMapTotal(CLAY_BANDS_MAP, 145)}; a perfect run scores 150.`,
+    score: `5 per orange, 10 per gold, −10 per bird, −1 per 20 shots that hit nothing after the first 30; all 25 with zero birds hit adds 10. That total gives up to ${bandMapTotal(CLAY_QUICK_HIT_MAP, 150)}: 88 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 88)}, 125 gives ${bandMapTotal(CLAY_QUICK_HIT_MAP, 125)}. Quick hits add up to ${CLAY_QUICK_POINTS} more: a clay hit within a quarter of a second of its launch earns its full share, none after about 0.37 s. 150 only for a perfect, quick run.`,
   },
   whack: {
     goal: "Bonk gophers whose hats match the banner.",

@@ -159,4 +159,10 @@ None of these touch a game, sim, grade, score, timing, input log, replay or vers
    then compare the output with section 1. Also confirm **Storage** has no buckets, and that **Realtime → Settings**
    shows what you expect.
 5. **`INTRO_DEMO_KEY`:** make sure it's long and random (finding 8).
-6. **Decisions for after the beta, before money play:** findings 3 and 4.
+6. **Decisions for after the beta, before ranked or money play:**
+   - findings 3 and 4;
+   - **Forage misses are chosen by the phone** (20 Oct 2026, `wordHuntRev 2`, scoring report batch 2). The phone sends
+     its rejected traces (`!cells`) and the server cuts the score for misses beyond the free ones. The server re-walks
+     every path, so a phone can't invent misses, but a modified phone can leave them out and keep a random-tracing
+     score. Like the tap logs' timing ("Trusted client inputs" in CLAUDE.md), this needs server-side counting (every
+     `checkWordFn` call in the round) before it can be relied on for ranked play.

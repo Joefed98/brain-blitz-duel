@@ -138,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -409,8 +409,13 @@ function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxB
 /* ================================ State ================================ */
 
 export interface ClayState {
-  /** clayRev 7 only (score bands): 1 = the score mapped through CLAY_BANDS_MAP. Absent on older rounds. */
+  /**
+   * clayRev 7 (score bands): 1 = the score mapped through CLAY_BANDS_MAP. clayRev 8: CLAY_SB_QUICK = the hit
+   * score on CLAY_QUICK_HIT_MAP plus the quick-shot part (`qk`). Absent on older rounds.
+   */
   sb?: number;
+  /** clayRev 8 only: the hits' quick credit, CLAY_QUICK_STEPS for a clay hit within CLAY_QUICK_FULL_TICKS of its launch. */
+  qk?: number;
   tick: number;
   rng: number;
   schedule: ClaySchedule;
@@ -612,6 +617,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       else next.orangeHits += 1;
       next.shotHit = 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_HIT, best);
+      if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + clayQuickCredit(tick - state.schedule.launch[best]!);
     } else {
       next.shotHit = 0;
       next.log = pushLog(next.log, tick, CLAY_LOG_MISS_SHOT, 0);
@@ -683,6 +689,7 @@ export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, re
 
 function score(state: ClayState): number {
   const birdHits = state.birdHits ?? 0;
+  if (state.sb === CLAY_SB_QUICK) return clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), state.qk ?? 0);
   if (state.sb) return bandMapTotal(CLAY_BANDS_MAP, clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)));
   return clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits));
 }
@@ -865,6 +872,7 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_QUICK) return clayQuickGame;
   if (rev === CLAY_REV_BANDS) return clayBandsGame;
   if (rev === CLAY_REV_TALL) return clayTallGame;
   if (rev === CLAY_REV5) return clayRev5Game;
@@ -921,7 +929,7 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK ? CLAY_TALL_H : CLAY_H;
 }
 
 /* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
@@ -935,3 +943,41 @@ export function clayWorldHFor(rev?: number | null): number {
 export const CLAY_REV_BANDS = 7;
 export const CLAY_BANDS_MAP = bandCurve([0, 88, 125, 149, 150], [0, 70, 100, 135, 150]);
 export const clayBandsGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayTallGame, init: (seed) => ({ ...clayTallGame.init(seed), sb: 1 }) };
+
+/* ================= Quick shots (clayRev 8, 20 Oct 2026) ================= */
+
+/**
+ * clayRev 8 (scoring report batch 2, docs/scoring-targets.md): clayRev 6 play (the state keeps rev 6). Great and
+ * near-perfect players hit every clay, so clayRev 7 gave both 150; what separates them is how soon after its launch
+ * each clay is hit (the simulated near-perfect player about 17 ticks, great 20, good 26, average 36). The score is
+ * the clayRev 6 total on CLAY_QUICK_HIT_MAP (0–110), plus up to CLAY_QUICK_POINTS for quick hits: each clay hit
+ * within CLAY_QUICK_FULL_TICKS (250 ms) of its launch earns its full share, falling evenly to none at
+ * CLAY_QUICK_NONE_TICKS (367 ms), and the part is scaled by the total ÷ 150, so birds and empty shots cut it too and
+ * mashing on movers (a total of 0) earns none. Only a perfect run with every clay hit quickly scores 150; every
+ * extra clay hit adds to both parts.
+ */
+export const CLAY_REV_QUICK = 8;
+export const CLAY_SB_QUICK = 2;
+export const CLAY_QUICK_FULL_TICKS = 15;
+export const CLAY_QUICK_NONE_TICKS = 22;
+export const CLAY_QUICK_STEPS = CLAY_QUICK_NONE_TICKS - CLAY_QUICK_FULL_TICKS;
+export const CLAY_QUICK_POINTS = 40;
+export const CLAY_QUICK_HIT_MAP = bandCurve([0, 80, 130, 150], [0, 70, 95, 150 - CLAY_QUICK_POINTS]);
+
+/** clayRev 8: one hit's quick credit (0–CLAY_QUICK_STEPS) from the ticks between its clay's launch and the hit. */
+export function clayQuickCredit(ticksSinceLaunch: number): number {
+  return clampInt(CLAY_QUICK_NONE_TICKS - ticksSinceLaunch, 0, CLAY_QUICK_STEPS);
+}
+
+/** clayRev 8: the quick-shot part of a run with clayRev 6 total `total` and quick credit `qk`. */
+export function clayQuickPart(total: number, qk: number): number {
+  const den = CLAY_QUICK_STEPS * CLAY_CONFIG.clays * 150;
+  return Math.floor((CLAY_QUICK_POINTS * clampInt(qk, 0, CLAY_QUICK_STEPS * CLAY_CONFIG.clays) * clampInt(total, 0, 150)) / den);
+}
+
+/** clayRev 8: the score for a clayRev 6 total and quick credit. */
+export function clayQuickScore(total: number, qk: number): number {
+  return clampInt(bandMapTotal(CLAY_QUICK_HIT_MAP, total) + clayQuickPart(total, qk), 0, 150);
+}
+
+export const clayQuickGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayTallGame, init: (seed) => ({ ...clayTallGame.init(seed), sb: CLAY_SB_QUICK, qk: 0 }) };
