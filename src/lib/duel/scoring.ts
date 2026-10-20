@@ -155,9 +155,19 @@ export function knotScore(knots: readonly (readonly [number, number])[], x: numb
  */
 export const FLASH_REV3_CURVE = [[150, 150], [200, 128], [300, 100], [800, 0]] as const;
 
+/**
+ * Flash tapRev 4 (scoring report batch 2, 20 Oct 2026): one curve, the final score (the rev-2 knots row is the
+ * identity), fitted so the simulated average / good / great / near-perfect players land about 70 / 100 / 120 / 140
+ * after their false starts (as tapRev 2: 8, 8, then 11 each); reactions are the credited ones (replayFlash's decoy
+ * cut), so tapping on every colour scores 0.
+ */
+export const FLASH_REV4_CURVE = [[150, 150], [165, 140], [200, 120], [300, 110], [450, 80], [600, 20], [800, 0]] as const;
+
 /** Reaction Time: 150 at ≤200 ms average, −0.16 per ms above, minus the false-start cost, 0…150. */
 export function scoreReaction(averageMs: number, falseStarts = 0, tapRev = 0): number {
-  const base = tapRev >= 3
+  const base = tapRev >= 4
+    ? knotScore(FLASH_REV4_CURVE, averageMs)
+    : tapRev >= 3
     ? knotScore(FLASH_REV3_CURVE, averageMs)
     : averageMs <= 200 ? 150 : clamp(Math.round(150 - 0.16 * (averageMs - 200)), 0, 150);
   return clamp(base - reactionFalseStartCost(falseStarts, tapRev), 0, 150);
@@ -199,8 +209,19 @@ export const STOPWATCH_REV2_ZERO_MS = 325;
  */
 export const STOPWATCH_REV3_CURVE = [[5, 150], [20, 137], [STOPWATCH_REV2_KNEE_MS, 101], [STOPWATCH_REV2_ZERO_MS, 0]] as const;
 
+/**
+ * Bang On tapRev 4 (scoring report batch 2, 20 Oct 2026): one curve, the final score (the rev-2 knots row is the
+ * identity): the simulated near-perfect / great / good / average players' average errors (40 / 55 / 106 / 176 ms)
+ * land about 140 / 120 / 100 / 70, then a steep fall to 0 at STOPWATCH_REV4_ZERO_MS, which random tapping
+ * (about 250 ms off) rarely beats.
+ */
+export const STOPWATCH_REV4_KNEE_MS = 176;
+export const STOPWATCH_REV4_ZERO_MS = 220;
+export const STOPWATCH_REV4_CURVE = [[5, 150], [40, 140], [55, 120], [106, 100], [STOPWATCH_REV4_KNEE_MS, 70], [STOPWATCH_REV4_ZERO_MS, 0]] as const;
+
 /** Bang On: 150 at ≤ 20 ms average, −0.27 per ms above (47 at 400 ms, 20 at an all-miss 500 ms). */
 export function scoreStopWatch(averageDistanceMs: number, tapRev = 0): number {
+  if (tapRev >= 4) return clamp(knotScore(STOPWATCH_REV4_CURVE, averageDistanceMs), 0, 150);
   if (tapRev >= 3) return clamp(knotScore(STOPWATCH_REV3_CURVE, averageDistanceMs), 0, 150);
   if (averageDistanceMs <= 20) return 150;
   if (tapRev >= 2 && averageDistanceMs > STOPWATCH_REV2_KNEE_MS) {
@@ -450,9 +471,13 @@ export function playerBreakdown(
   });
 }
 
-/** Wordsmith: each word point is worth 2.5 round points, rounded down. */
-export function scoreWordsmith(points: number, rev?: number | null): number {
-  if (rev === WORDSMITH_REV_TARGET) return bandOpen(WORDSMITH_V1_CURVE, points);
+/**
+ * Wordsmith: each word point is worth 2.5 round points, rounded down. wordsmithRev 1: WORDSMITH_V1_CURVE.
+ * wordsmithRev 2: WORDSMITH_V2_CURVE, at most 140 unless `allLetters` (a word using every tile was found).
+ */
+export function scoreWordsmith(points: number, rev?: number | null, allLetters = false): number {
+  if ((rev ?? 0) >= WORDSMITH_REV_ONE_CURVE) return Math.min(allLetters ? MAX_ROUND_SCORE : WORDSMITH_V2_CAP, bandOpen(WORDSMITH_V2_CURVE, points));
+  if (rev === WORDSMITH_REV_CURVE) return bandOpen(WORDSMITH_V1_CURVE, points);
   return clamp(Math.floor(2.5 * Math.max(0, points)), 0, MAX_ROUND_SCORE);
 }
 
@@ -464,10 +489,46 @@ export function scoreWordsmith(points: number, rev?: number | null): number {
  * so they land about 95 / 122 / 135 / 145; the first few points stay cheap so
  * random letters (about 2 points) score under 10. Unstamped rounds keep 2.5 × points.
  */
-export const WORDSMITH_REV_TARGET = 1;
+export const WORDSMITH_REV_CURVE = 1;
 export const WORDSMITH_V1_CURVE = bandCurve([0, 3, 6, 10, 16, 23, 34, 55, 60], [0, 12, 50, 95, 110, 122, 135, 145, 150]);
+/**
+ * Nucleus wordsmithRev 2 (scoring report batch 2, 20 Oct 2026, docs/scoring-targets.md): one curve on word
+ * points, the final score (its rev-2 knots row is the identity, puzzleScoreRev2.ts). About 4 words (6–7 word
+ * points) ≈ 35, the simulated average player's 11 ≈ 70, 13 words (about 18) ≈ 90, 19 words (about 32) ≈ 130;
+ * random 4-letter tries (about 3 points) stay under 10. At most 140 without a word using every tile; 150 (at
+ * 60 points) only with it.
+ */
+export const WORDSMITH_REV_ONE_CURVE = 2;
+export const WORDSMITH_V2_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45, 60], [0, 6, 14, 30, 70, 90, 130, 140, 150]);
+export const WORDSMITH_V2_CAP = 140;
+/** The wordsmithRev new rounds are dealt (generatePuzzle stamps it). */
+export const WORDSMITH_REV_TARGET = WORDSMITH_REV_ONE_CURVE;
 /** Forage's curve (wordHuntRev 1): kits' word points average 9, good 15, great 24, near-perfect 36; 150 at 48. */
-export const WORDHUNT_REV_TARGET = 1;
+export const WORDHUNT_REV_CURVE = 1;
+/**
+ * Forage wordHuntRev 2 (scoring report batch 2, 20 Oct 2026): the wordHuntRev 1 curve, cut by misses. The phone
+ * also sends every rejected trace of 4+ letters (`!cells`); the server re-walks each and counts a miss for a real
+ * path that spells no word. WORDHUNT_FREE_MISSES plus WORDHUNT_FREE_MISSES_PER_WORD per word found are free; each
+ * one beyond takes WORDHUNT_MISS_COST_PCT % off, so random tracing (dozens of misses for a few lucky words) scores
+ * about 0 while a player trying the odd non-word keeps everything.
+ */
+export const WORDHUNT_REV_MISSES = 2;
+export const WORDHUNT_FREE_MISSES = 10;
+export const WORDHUNT_FREE_MISSES_PER_WORD = 2;
+export const WORDHUNT_MISS_COST_PCT = 3;
+/** A rejected trace in a wordHuntRev 2 answer: "!" and its cells, after every word ("WORD:cells"). */
+export const WORDHUNT_MISS_MARK = "!";
+/** The most misses the phone sends and the server reads (enough to take any score to 0). */
+export const WORDHUNT_MAX_MISSES = 120;
+/** The wordHuntRev new rounds are dealt (generatePuzzle stamps it). */
+export const WORDHUNT_REV_TARGET = WORDHUNT_REV_MISSES;
+
+/** wordHuntRev 2: the share (percent) of the score kept after `misses` with `words` found. */
+export function wordHuntMissKeptPct(misses: number, words: number): number {
+  const free = WORDHUNT_FREE_MISSES + WORDHUNT_FREE_MISSES_PER_WORD * Math.max(0, Math.trunc(words));
+  const extra = Math.max(0, Math.trunc(misses) - free);
+  return Math.max(0, 100 - WORDHUNT_MISS_COST_PCT * extra);
+}
 export const WORDHUNT_V1_CURVE = bandCurve([0, 4, 6, 9, 15, 24, 36, 48], [0, 10, 45, 95, 120, 135, 145, 150]);
 
 /** Word-category completion bonus: round(max × ms_remaining ÷ registry limit). */
@@ -496,9 +557,13 @@ export function scoreWordSlide(
   return clamp(22 * Math.max(0, rows), 0, MAX_ROUND_SCORE);
 }
 
-/** Word Hunt: raw word points stay on the play counter; each is worth two round points. */
-export function scoreWordHunt(points: number, rev?: number | null): number {
-  if (rev === WORDHUNT_REV_TARGET) return bandOpen(WORDHUNT_V1_CURVE, Math.round(points));
+/**
+ * Word Hunt: raw word points stay on the play counter; each is worth two round points. wordHuntRev 1:
+ * WORDHUNT_V1_CURVE. wordHuntRev 2: the same curve, then the misses' cut (wordHuntMissKeptPct), rounded down.
+ */
+export function scoreWordHunt(points: number, rev?: number | null, misses = 0, words = 0): number {
+  if ((rev ?? 0) >= WORDHUNT_REV_MISSES) return Math.floor((bandOpen(WORDHUNT_V1_CURVE, Math.round(points)) * wordHuntMissKeptPct(misses, words)) / 100);
+  if (rev === WORDHUNT_REV_CURVE) return bandOpen(WORDHUNT_V1_CURVE, Math.round(points));
   return clamp(2 * Math.round(points), 0, MAX_ROUND_SCORE);
 }
 

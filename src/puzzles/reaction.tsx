@@ -8,7 +8,7 @@ import {
   FLASH_FASTEST_MS,
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV_SPEED_TUNING,
+  TAP_REV_ONE_CURVE,
   tapRevOf,
   decodeTapTimes,
   encodeTapTimes,
@@ -91,7 +91,7 @@ export function buildReaction(): ReactionPuzzleData {
   }
   const kinds = dealDecoyKinds(decoys.length);
   decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
-  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_SPEED_TUNING };
+  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_ONE_CURVE };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -446,7 +446,8 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       onTap={handleTap}
       inactive={locked || replay.done}
       runKey={key}
-      fxScore={replay.done ? localFlashScore(replay.times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
+      // The live replay shows each reaction as tapped; the end-of-run score uses the credited ones (tapRev 4's decoy cut).
+      fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
     />
   );
 }
@@ -484,6 +485,10 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
     ({ times, falseStarts } = parseAnswer(myAnswer));
     cost = falseStarts * FLASH_FALSE_START_COST;
   }
+  // tapRev 4: tapping more than half the decoys slows every credited reaction (tapLog.ts flashDecoyCut).
+  const decoyReplay = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE && myAnswer?.startsWith(TAP_LOG_PREFIX)
+    ? replayFlash(puzzle, decodeTapTimes(myAnswer, REACTION_ROUND_MS).times, REACTION_ROUND_MS)
+    : null;
   const storedAvg = usesTapLog(puzzle) ? myReactionAvgMs : null;
   const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
@@ -503,6 +508,11 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
           False starts: {falseStarts}
           {falseStarts > 0 ? ` (−${cost} points)` : ""}
         </p>
+        {decoyReplay && decoyReplay.decoyCut > 0 ? (
+          <p className="text-center font-mono text-xs text-muted-foreground">
+            Decoys tapped: {decoyReplay.decoysTapped} of {decoyReplay.decoysShown}, so reactions count slower
+          </p>
+        ) : null}
       </div>
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-4">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>

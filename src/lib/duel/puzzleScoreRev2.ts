@@ -35,6 +35,8 @@ import { PUZZLE_EFFICIENCY_POINTS, PUZZLE_FINISH_BASE, type ScoreParts } from ".
 import { PUZZLE_REV2_KNOTS } from "./puzzleBands.data";
 import { GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { TILES_REV_CLOCK } from "./tiles";
+import { WORDSMITH_REV_ONE_CURVE } from "./scoring";
+import { TAP_REV_ONE_CURVE, tapRevOf } from "./tapLog";
 import type { PuzzleData, PuzzleType } from "./types";
 
 export const PUZZLE_SCORE_REV_BANDS = 2;
@@ -124,6 +126,8 @@ export function rev2Points(knots: Rev2Knots, result: number): number {
  * older rounds keep the game's row.
  */
 export function rev2KnotsKey(puzzle: PuzzleData): string {
+  if (puzzle.type === "wordsmith" && (puzzle.wordsmithRev ?? 0) >= WORDSMITH_REV_ONE_CURVE) return `wordsmith:${WORDSMITH_REV_ONE_CURVE}`;
+  if ((puzzle.type === "reaction" || puzzle.type === "stopwatch") && tapRevOf(puzzle) >= TAP_REV_ONE_CURVE) return `${puzzle.type}:${TAP_REV_ONE_CURVE}`;
   if (puzzle.type === "gravity" && (puzzle.gravityRev ?? 0) >= GRAVITY_PROGRESS_REV) return `gravity:${GRAVITY_PROGRESS_REV}`;
   if (puzzle.type === "tubes" && (puzzle.tubesRev ?? 0) >= TUBES_PROGRESS_REV) return `tubes:${TUBES_PROGRESS_REV}`;
   if (puzzle.type === "tiles" && (puzzle.tilesRev ?? 0) >= TILES_REV_CLOCK) return `tiles:${TILES_REV_CLOCK}`;
@@ -132,19 +136,38 @@ export function rev2KnotsKey(puzzle: PuzzleData): string {
 
 /** The knots row rooms deal today for each game (the help text states these). */
 export const REV2_DEALT_KEY: Partial<Record<PuzzleType, string>> = {
+  wordsmith: `wordsmith:${WORDSMITH_REV_ONE_CURVE}`,
+  reaction: `reaction:${TAP_REV_ONE_CURVE}`,
+  stopwatch: `stopwatch:${TAP_REV_ONE_CURVE}`,
   gravity: `gravity:${GRAVITY_PROGRESS_REV}`,
   tubes: `tubes:${TUBES_PROGRESS_REV}`,
   tiles: `tiles:${TILES_REV_CLOCK}`,
 };
 
+/**
+ * Open games whose own stamp scores the final points on one curve (scoring report batch 2, 20 Oct 2026: Nucleus
+ * wordsmithRev 2, Flash and Bang On tapRev 4): their rev-1 score passes through unchanged.
+ */
+export const REV2_IDENTITY_KNOTS: Rev2Knots = [[0, 0], [150, 150]];
+const OWN_CURVE_KEYS: ReadonlySet<string> = new Set([
+  `wordsmith:${WORDSMITH_REV_ONE_CURVE}`,
+  `reaction:${TAP_REV_ONE_CURVE}`,
+  `stopwatch:${TAP_REV_ONE_CURVE}`,
+]);
+
+function knotsForKey(key: string, type: PuzzleType): Rev2Knots {
+  if (OWN_CURVE_KEYS.has(key)) return REV2_IDENTITY_KNOTS;
+  return PUZZLE_REV2_KNOTS[key] ?? PUZZLE_REV2_KNOTS[type] ?? REV2_DEFAULT_KNOTS;
+}
+
 /** The knots a game is dealt on today (the shared default when a game has no fitted row). */
 export function rev2KnotsFor(type: PuzzleType): Rev2Knots {
-  return PUZZLE_REV2_KNOTS[REV2_DEALT_KEY[type] ?? type] ?? PUZZLE_REV2_KNOTS[type] ?? REV2_DEFAULT_KNOTS;
+  return knotsForKey(REV2_DEALT_KEY[type] ?? type, type);
 }
 
 /** The knots a stored puzzle scores on (its own stamp's row). */
 export function rev2KnotsForPuzzle(puzzle: PuzzleData): Rev2Knots {
-  return PUZZLE_REV2_KNOTS[rev2KnotsKey(puzzle)] ?? PUZZLE_REV2_KNOTS[puzzle.type] ?? REV2_DEFAULT_KNOTS;
+  return knotsForKey(rev2KnotsKey(puzzle), puzzle.type);
 }
 
 /** Default shape: half done 45, a finish at the buzzer 90, a third of the clock left 120, 150 from 80 % left. */

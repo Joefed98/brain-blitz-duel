@@ -434,6 +434,77 @@ clocks before the Jumbled ruling:
   stamps; `move-limits-check`, `tiles-rings-check` and `pattern-logic-oct14-check` accept the new stamps. Practice bests
   start fresh (`practiceStamps.data.ts`).
 
+## Scoring report batch 2 (20 Oct 2026): open, speed and engine games
+
+From `docs/scoring-report-oct-2026.md` (#119), batch 2. No arcade curve or bot changed. Every change is on a new
+stamp; older rounds grade, replay and score exactly as before. Numbers are medians over the report's 15 room seeds
+(`bun scripts/scoring-report.ts --game=<id> --no-arcade`), the server's own grader or replay.
+
+| Game | Stamp | What changed |
+|---|---|---|
+| Nucleus | `wordsmithRev 2` | One curve on word points, the final score (its rev-2 knots row is the identity): 3 → 6, 4 → 14, 6 → 30, 11 → 70, 18 → 90, 32 → 130, 45 → 140, 60 → 150. At most 140 without a word using every tile; 150 only with it (`WORDSMITH_V2_CURVE`, `scoreWordsmith(points, rev, allLetters)`). Intro text updated. |
+| Forage | `wordHuntRev 2` | The phone also sends every rejected trace of 4+ letters (`!cells` after the words, at most 120). The server counts a miss for a real path that spells no word; 10 + 2 per word found are free, each beyond takes 3 % off (`wordHuntMissKeptPct`). The wordHuntRev 1 curve is unchanged. The word being traced shows in the row above the grid (`AcceptedWordChip`'s `tracing`), never over it. |
+| Flash | `tapRev 4` | One curve (`FLASH_REV4_CURVE`: 150 ms 150, 165 → 140, 200 → 120, 300 → 110, 450 → 80, 600 → 20, 800 → 0), false starts as before (8, 8, then 11). Tapping more than half the decoys moves every credited reaction evenly towards a miss, all the way at every decoy tapped (`flashDecoyCut` in `replayFlash`), so tapping on every colour earns nothing. |
+| Bang On | `tapRev 4` | One curve (`STOPWATCH_REV4_CURVE`: 5 ms 150, 40 → 140, 55 → 120, 106 → 100, 176 → 70, 0 at 220). |
+| Tenfall | `tenRev 3` | tenRev 1's raw score with no map: all ten = 120 + speed, unfinished floor(110 × n ÷ 9); overshoots beyond 4 cost 5 each (was 2 beyond 5), so random tapping stays under 10. |
+| Pull! | `clayRev 8` | The clayRev 6 total on `CLAY_QUICK_HIT_MAP` (0–110) plus up to 40 for quick hits (a clay hit within 15 ticks of its launch earns its full share, none from 22), scaled by total ÷ 150, so birds, empty shots and mashing cut it too. |
+| Mixed Signals | `clashRev 7` | clashRev 5 play, total through `CLASH_GREAT_MAP` (0/70/103/110/120/144/150 → 0/70/100/110/120/140/150): as in every other game an unfinished run is at most 110 (clashRev 5's best unfinished credit maps to exactly 110) and a finish 120+, smooth below. The help text says so. |
+| Letterfall | (none) | Out of room rotation (`RETIRED_TYPES`), practice only on its current stamps (`wordfallRev 3`). Word keeps 9 active games; 73 active in all. |
+
+### Before → after (scoring report, 15 room seeds)
+
+| Game | Random (worst median / p90) | Careless | Below | Average | Good | Great | Near |
+|---|---|---|---|---|---|---|---|
+| Nucleus | 6 / 27 → 4 / 22 | 18 → 14 | 45 → 38 | 72 → 70 | 98 → 101 | 120 → 132 | 146 → 140 |
+| Forage | 22 / 63 → 0 / 0 | 8 → 22 | 36 → 49 | 78 → 78 | 96 → 96 | 119 → 119 | 139 → 139 |
+| Flash | 5 / 68 → 0 / 0 | 2 → 0 | 3 → 13 | 55 → 68 | 104 → 108 | 124 → 123 | 143 → 143 |
+| Bang On | 27 / 53 → 0 / 11 | 15 → 0 | 65 → 48 | 68 → 70 | 102 → 100 | 127 → 120 | 137 → 140 |
+| Tenfall | 2 / 24 → 0 / 18 | 34 → 48 | 52 → 73 | 70 → 97 | 100 → 128 | 117 → 134 | 141 → 139 |
+| Pull! | 0 / 2 → 0 / 2 | 19 → 21 | 35 → 39 | 63 → 70 | 107 → 99 | 150 → 126 | 150 → 139 |
+| Mixed Signals | 0 / 7 → 0 / 7 | 0 → 0 | 0 → 0 | 70 → 70 | 101 → 100 | 105 → 110 | 138 → 139 |
+
+Mixed Signals: on the 105 stored runs the highest unfinished run scores 110 and the lowest finish 125 (a finish
+can't score under 120). The simulated great player times out a word or two short on about half its seeds (raw
+107–110), so with the 110 cap its median is 110, the foot of "great" (Joe's decision, 20 Oct 2026: the cap over 120).
+
+Room = practice on every run of these games. Forage's kit now sends a miss for each rejected try (as the phone
+does), which moves its careless and below figures. Tenfall's average lands at 97 because the rule asked for its raw
+shape (8 of 10 targets = 97); see the decisions in the PR.
+
+### This batch's bands (medians, 15 room seeds)
+
+| Game | Careless | Below | Average | Good | Great | Near | Random (median / p90) |
+|---|---|---|---|---|---|---|---|
+| Nucleus | 14 | 38 | 70 | 101 | 132 | 140 | 4 / 22 |
+| Forage | 22 | 49 | 78 | 96 | 119 | 139 | 0 / 0 |
+| Flash | 0 | 13 | 68 | 108 | 123 | 143 | 0 / 0 |
+| Bang On | 0 | 48 | 70 | 100 | 120 | 140 | 0 / 11 |
+| Tenfall | 48 | 73 | **97** | 128 | 134 | 139 | 0 / 18 |
+| Pull! | 21 | 39 | 70 | 99 | 126 | 139 | 0 / 2 |
+| Mixed Signals | 0 | 0 | 70 | 100 | 110 | 139 | 0 / 7 |
+
+### Known exceptions and limits
+
+- **Tenfall's average is 97, not 60–79.** Joe asked for tenRev 1's raw shape (a clear of all ten = 120 + speed,
+  unfinished 110 × n ÷ 9), and the simulated average player clears 8 of 10 targets, which that shape scores 97. Kept
+  as a known exception, to revisit with beta data (harder targets would be a gameplay stamp).
+- **Forage's misses are reported by the phone** (a known trust limit). The server re-walks every `!cells` path, so a
+  phone can't invent a miss, but a modified phone can leave its misses out and keep a random-tracing score. An honest
+  phone always sends them. Listed in `docs/security-audit-oct-2026.md` as needing server-side counting before ranked
+  play.
+
+Checks: scoring-batch2-check (~10 s) proves the stamps, every rule above, 915 stored runs on the new stamps
+(`scripts/fixtures/scoring-batch2-runs.json.gz`, graded as practice and as a room) and these pass marks. The older
+checks that measured the previous stamps (scoring-bands-check, scoring-targets-check, speed-oct14-check,
+arcade-tuning-g2-check) pin them, and the replay fixtures (`scripts/fixtures/replay-runs.json`) gained Tenfall,
+Mixed Signals and Pull! runs on the new stamps.
+
+Stored rounds on the old stamps still grade exactly as before: scoring-bands-check regrades its 662 recorded answers
+(Nucleus `wordsmithRev 1`, Forage `wordHuntRev 1`, Flash and Bang On `tapRev 3` included) and its engine runs on
+Tenfall `tenRev 2`, Mixed Signals `clashRev 6` and Pull! `clayRev 7` to their stored scores; speed-oct14-check and
+tap-log-check regrade the stored Flash and Bang On rounds on tapRev 1–3; replay-check replays every stored engine
+run on its own revision; scoring-batch2-check proves the older stamps never read decoys or misses.
+
 ## Earlier: scoring targets (18 Oct 2026, #110)
 
 Joe's targets for every puzzle and arcade game (a round scores 0–150):

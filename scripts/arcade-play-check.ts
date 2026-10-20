@@ -304,7 +304,7 @@ async function main() {
     // Compile the app once, unmeasured, so the first game's load does not race the cold dev server.
     if (games.length)
       await warmUp(browser, `${origin}/practice`, (page) =>
-        page.getByRole("button", { name: gameDisplayName(games[0] as never), exact: true }).first().waitFor({ timeout: 180_000 }));
+        practiceGameButton(page, games[0]!, 180_000).then(() => undefined));
     for (const [index, game] of games.entries()) {
       const r = await playOne(browser, origin, game, baseline[game]);
       results.push(r);
@@ -602,6 +602,20 @@ async function throttle(page: import("playwright").Page): Promise<void> {
  * relative to the page's own clock, never a time already past), so the run cannot end while it is
  * measured and no played run loses time to it.
  */
+/**
+ * A game's button on the practice list. Retired games (Letterfall since 20 Oct 2026, practice only) sit in the
+ * list's collapsed "Retired" section, so it is opened first; active games are found exactly as before.
+ */
+async function practiceGameButton(page: import("playwright").Page, game: string, timeout: number) {
+  const row = page.locator(`[data-practice-game="${game}"]`).first();
+  await row.waitFor({ state: "attached", timeout });
+  const retired = page.locator(`details:has([data-practice-game="${game}"])`).first();
+  if ((await retired.count()) && !(await retired.evaluate((d) => (d as HTMLDetailsElement).open))) await retired.locator("summary").click();
+  const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
+  await button.waitFor({ timeout });
+  return button;
+}
+
 async function layoutProof(browser: import("playwright").Browser, origin: string, game: string, problems: string[]): Promise<void> {
   const page = await browser.newPage({ viewport: { width: 390, height: 700 } });
   page.on("pageerror", (e) => problems.push(`page error (layout): ${String(e.message ?? e).slice(0, 200)}`));
@@ -610,8 +624,7 @@ async function layoutProof(browser: import("playwright").Browser, origin: string
   await throttle(page);
   try {
     await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-    const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
-    await button.waitFor({ timeout: 60_000 });
+    const button = await practiceGameButton(page, game, 60_000);
     await page.waitForTimeout(1500); // hydration
     await button.click();
     const ready = page.getByRole("button", { name: /^Ready/ });
@@ -673,8 +686,7 @@ async function playOne(browser: import("playwright").Browser, origin: string, ga
     await layoutProof(browser, origin, game, problems);
     for (let segment = 0; segment < MAX_SEGMENTS && liveTotal < PLAY_MS; segment++) {
       await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-      const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
-      await button.waitFor({ timeout: 60_000 });
+      const button = await practiceGameButton(page, game, 60_000);
       await page.waitForTimeout(1500); // hydration
       await button.click();
       const ready = page.getByRole("button", { name: /^Ready/ });

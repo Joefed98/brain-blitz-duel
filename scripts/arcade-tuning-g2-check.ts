@@ -206,9 +206,11 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
   ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
   ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
-  // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check).
-  ok(generateColourClash().clashRev === CLASH_REV_TALL + 1 && buildStroop().clashRev === CLASH_REV_TALL && clashVariantOf({ clashRev: CLASH_REV_TALL }) === 5, "rooms deal clashRev 6 (clashRev 5 play on the score bands); practice's intro clashRev 5");
-  ok(generateClayShoot().clayRev === CLAY_REV_TALL + 1 && CLAY_REV === CLAY_REV_TALL, "rooms deal clayRev 7 (clayRev 6 play on the score bands)");
+  // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
+  // 20 Oct 2026 scoring report batch 2's (clashRev 7, clayRev 8: the same play again, scoring-batch2-check).
+  ok(generateColourClash().clashRev === CLASH_REV_TALL + 2 && buildStroop().clashRev === CLASH_REV_TALL && clashVariantOf({ clashRev: CLASH_REV_TALL }) === 5, "rooms deal clashRev 7 (clashRev 5 play, re-mapped); practice's intro clashRev 5");
+  ok(generateClayShoot().clayRev === CLAY_REV_TALL + 2 && CLAY_REV === CLAY_REV_TALL, "rooms deal clayRev 8 (clayRev 6 play, quick-shot scoring)");
+  ok(clayWorldHFor(CLAY_REV_TALL + 2) === CLAY_TALL_H && clashWorldHFor(clashVariantOf({ clashRev: CLASH_REV_TALL + 2 })) === CLASH_TALL_H, "the new stamps play in the taller worlds");
 
   ok(beatWorldHFor(BEAT_REV_TALL) === 730 && beatWorldHFor(BEAT_REV_TUNEF) === 620 && beatWorldHFor(undefined) === 620, "Tempo world heights by revision");
   ok(sliceWorldHFor(SLICE_REV_TALL) === 730 && sliceWorldHFor(SLICE_REV_LONG) === 620 && sliceWorldHFor(undefined) === 620, "Slice world heights by revision");

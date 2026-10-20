@@ -23,7 +23,7 @@ const arcadeOpen = (counts: string, penalty?: string) =>
 
 export const INTRO_SCORE: Record<PuzzleType, string> = {
   // Word
-  wordsmith: "Longer words score much more. 150 for a big haul of words.",
+  wordsmith: "Longer words score much more. 150 only with the word that uses every tile.",
   wordhunt: "Longer words score more. 150 for a big haul of words.",
   tilegrid: bandsIntro("tilegrid"),
   wordslide: bandsIntro("wordslide"),
@@ -49,11 +49,11 @@ export const INTRO_SCORE: Record<PuzzleType, string> = {
 
   // Attention
   reaction: "Tap fast: 150 ms or quicker on average scores 150. Early taps cost 8, then 11 after two.",
-  stopwatch: "Stop on the line: about 20 ms off or closer on average scores 150. Far off drops fast.",
+  stopwatch: "Stop on the line: about 5 ms off or closer on average scores 150. Far off drops fast.",
   numhunt: bandsIntro("numhunt"),
   chain: bandsIntro("chain"),
   whack: "Points for each target you hit; all of them scores 150. Wrong taps lose points.",
-  clayshoot: "5 per orange clay, 10 per gold. A bird costs 10; past 30 empty shots, each 20 cost 1.",
+  clayshoot: "5 per orange, 10 per gold; quick hits score more. A bird costs 10; spraying shots costs.",
   symscan: bandsIntro("symscan"),
   countup: bandsIntro("countup"),
   spotdiff: bandsIntro("spotdiff"),

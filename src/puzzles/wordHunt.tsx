@@ -37,7 +37,7 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord, stateKey }: PuzzleStageProps) {
   if (puzzle.type !== "wordhunt") return null;
   return (
     <WordHuntPuzzle
@@ -48,6 +48,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       onSubmit={onSubmit}
       onDraftAnswer={onDraftAnswer}
       {...(checkWord ? { checkWord } : {})}
+      {...(stateKey ? { stateKey } : {})}
     />
   );
 }

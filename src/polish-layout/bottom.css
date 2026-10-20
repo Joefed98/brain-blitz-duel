@@ -171,10 +171,17 @@ html:has([data-puzzle-screen]) body {
 [data-puzzle-screen] {
   background-color: var(--screen-edge);
 }
-/* On the vignette layer (::after), so the category glow (.screen-drift) fades too. */
+/*
+ * On the vignette layer (::after), so the category glow (.screen-drift) fades too. The top strip is solid
+ * --screen-edge across the whole notch inset, fading over the 0.5rem below it (20 Oct 2026; without a notch it is
+ * the same 0.5rem fade as before). A fade spanning the inset let each screen's own glow show through the notch
+ * strip, so the strip changed colour when one puzzle screen handed over to another: an unskinned reveal (its
+ * category glow, #0b0a0f at y = 20 on a 47 px notch) to the skinned practice result (#08090e). That was
+ * bottom-clearance-check's intermittent Pipeline reveal seam at 390x844.
+ */
 [data-puzzle-screen] > .screen-background::after {
   background:
-    linear-gradient(to bottom, var(--screen-edge), transparent) top / 100% max(0.5rem, env(safe-area-inset-top, 0px)) no-repeat,
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 0.5rem) no-repeat,
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
     radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent));
 }

@@ -29,12 +29,12 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more; find the nine-letter word for 15. Round score = floor(2.5 × word points), up to 150. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score: 140 at most, 150 only with the word that uses every tile. You have 100 seconds.</p>
     </div>
   );
 }
 
-function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord }: PuzzleStageProps) {
+function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, checkWord, stateKey }: PuzzleStageProps) {
   if (puzzle.type !== "wordsmith") return null;
   return (
     <WordsmithPuzzle
@@ -45,6 +45,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       onSubmit={onSubmit}
       onDraftAnswer={onDraftAnswer}
       {...(checkWord ? { checkWord } : {})}
+      {...(stateKey ? { stateKey } : {})}
     />
   );
 }

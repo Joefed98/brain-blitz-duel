@@ -441,8 +441,11 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
       const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
       return clampInt(120 + speedBonusCurve(30, left, TD_RUN_TICKS), 0, 150);
     }
-    // Overshoots beyond the first TD_REV1_FREE_RESETS cost 2 each, so mashing tiles earns about nothing.
-    const cost = 2 * Math.max(0, resets - TD_REV1_FREE_RESETS);
+    // Overshoots beyond the first TD_REV1_FREE_RESETS cost 2 each, so mashing tiles earns about nothing
+    // (tenRev 3: beyond TD_REV3_FREE_RESETS, TD_REV3_RESET_COST each).
+    const cost = scoreRev >= TEN_DROP_RAW_REV
+      ? TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS)
+      : 2 * Math.max(0, resets - TD_REV1_FREE_RESETS);
     return clampInt(Math.floor((110 * n) / (TD_TARGETS - 1)) - cost, 0, 110);
   }
   let total = n * TD_CONFIG.pointsPerTarget;
@@ -455,7 +458,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 
 function score(state: TenDropState): number {
   const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets);
-  return (state.scoreRev ?? 0) >= TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
+  return state.scoreRev === TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
 
 /**
@@ -465,6 +468,17 @@ function score(state: TenDropState): number {
  */
 export const TEN_DROP_BANDS_REV = 2;
 export const TEN_DROP_BANDS_MAP = bandCurve([0, 97, 128, 135, 137, 150], [0, 70, 100, 120, 140, 150]);
+
+/**
+ * tenRev 3 (scoring report batch 2, 20 Oct 2026, docs/scoring-targets.md): tenRev 1 play and its raw score, with
+ * no map (tenRev 2's map squashed a clear of all ten to about 93 and jumped 20 points between raw 135 and 137):
+ * all ten = 120 + speedBonusCurve(30, …), unfinished floor(110 × targets ÷ 9), so nine is 110. Overshoots beyond
+ * the first TD_REV3_FREE_RESETS cost TD_REV3_RESET_COST each (was 2 beyond 5), so random tapping (6–23 resets)
+ * stays near 0 while the simulated players (0–6) lose little.
+ */
+export const TEN_DROP_RAW_REV = 3;
+export const TD_REV3_FREE_RESETS = 4;
+export const TD_REV3_RESET_COST = 5;
 
 /* ============================= Checkpoints ============================= */
 

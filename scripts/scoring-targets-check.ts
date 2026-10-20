@@ -208,7 +208,7 @@ section("Nucleus wordsmithRev 1 and Forage wordHuntRev 1");
 {
   const smith = generatePuzzle("wordsmith") as any;
   const hunt = generatePuzzle("wordhunt") as any;
-  ok(smith.wordsmithRev === WORDSMITH_REV_TARGET && hunt.wordHuntRev === WORDHUNT_REV_TARGET, "new rounds are stamped");
+  ok(smith.wordsmithRev === WORDSMITH_REV_TARGET && hunt.wordHuntRev === WORDHUNT_REV_TARGET && WORDSMITH_REV_TARGET >= 1 && WORDHUNT_REV_TARGET >= 1, "new rounds are stamped");
   for (let p = 0; p <= 120; p++) {
     ok(scoreWordsmith(p) === Math.min(150, Math.floor(2.5 * p)) && scoreWordHunt(p) === Math.min(150, 2 * p), `unstamped rounds keep 2.5 × / 2 × (${p})`);
     ok(scoreWordsmith(p, 1) === Math.min(150, bandPoints(WORDSMITH_V1_CURVE, p)) && scoreWordHunt(p, 1) === Math.min(150, bandPoints(WORDHUNT_V1_CURVE, p)), `stamped rounds score on the curves (${p})`);
@@ -221,6 +221,9 @@ section("Nucleus wordsmithRev 1 and Forage wordHuntRev 1");
   // The grader follows the stored stamp (on the rev-1 puzzle shape; rev 2 maps this score: scoring-bands-check).
   smith.puzzleScoreRev = 1;
   hunt.puzzleScoreRev = 1;
+  // Rooms deal wordsmithRev 2 and wordHuntRev 2 since 20 Oct 2026 (scoring-batch2-check); these prove rev 1.
+  smith.wordsmithRev = 1;
+  hunt.wordHuntRev = 1;
   const words = (smith.words as { word: string; points: number }[]).slice(0, 6);
   const answer = words.map((w) => w.word).join(",");
   const points = words.reduce((s, w) => s + w.points, 0);
