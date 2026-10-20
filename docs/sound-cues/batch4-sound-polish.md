@@ -37,8 +37,10 @@ today until the wire-in session sets its `url` (README, "Adding a recorded file"
    `RoundResultsTable` for three or more), the screen after the answer reveal, before the standings. Practice has no
    such screen: its answer reveal is the last screen of a run, so this note is about rooms only.
 2. **Hover "zone 2, zone 3…"** is `hover.newZone` (every 7th barrier, the border flashes the next zone's colour).
-3. **Ball Tracker "20 balls"** is `balltrack.homeStreak`. It fires on every 5th marble home (5, 10, 15, 20, 25), so
-   the new sound plays on all of them, not only at 20.
+3. **Ball Tracker "20 balls tracked correctly"** is `balltrack.homeStreak`, checked 19 Oct 2026. The "20 HOME" banner
+   is that cue's streak effect (`count: s.home, every: 5` in `arcadeFxGames.renderer.ts`, where `home` counts marbles
+   into their right cup; wrong cups are `wrong`). No other Ball Tracker sound fires at 20. The cue fires on every 5th
+   marble home (5, 10, 15, 20, 25), so the new sound plays on all of them, not only at 20.
 4. **Coral Pop's "torpedo"** is the line special: `bubble.line` (`BUB_LINE`; bubbleRev 4's directional torpedo).
    The "bomb" is the mine (`bubble.bomb`).
 5. **Rally's "+3 target"** is the far-wall pad (`rally.targetHit`: `RALLY_TARGET_POINTS`, "+3 pad" in `rally.ts`).
@@ -117,8 +119,16 @@ the wind would still play the old generic pop.
 
 ## 4. Gemstone
 
-Gemstone is jewels in recessed violet velvet sockets. Everything is remade except the bomb going off
-(`arc_gem_bomb`).
+Gemstone is jewels in recessed violet velvet sockets. Everything is remade except the bomb going off.
+
+**The bomb, kept (checked 19 Oct 2026).** The bomb gem is `MATCHUP_BOMB` (kind 6, made by a line of 4, a 3×3 blast in
+`matchup.ts`). When it goes off, `matchupStepSound` (`matchup.renderer.ts`) returns the app-wide entry **`arc_gem_bomb`**,
+which `matchup.tsx` plays over that step's match chime. It has no named `matchup.*` slot. No row in this list or the
+mapping sheet touches `arc_gem_bomb`: its entry, file and volume stay exactly as they are. **#15 is not the bomb.** It is
+the Jackpot gem (`MATCHUP_JACKPOT`, kinds 10–15, matchupRev 2+), a different special that clears every gem of its colour
+plus its row and column, and today plays `arc_rainbow`. So #15 stays. One existing rule carries over unchanged: when a
+single cascade step sets off a jackpot and a bomb together, `matchupStepSound` plays the jackpot's sound, not the
+bomb's, as it does today with `arc_rainbow`.
 
 | Trigger | Slot / entry | Per round | Plays today | Others sharing it |
 | --- | --- | --- | --- | --- |
@@ -133,7 +143,7 @@ Gemstone is jewels in recessed violet velvet sockets. Everything is remade excep
 | Five or more in a line: n IN A LINE! | `matchup.lineOfFive` | 0–5 | `banner.combo.mp3` | `beat.comboTier`, `slice.manyInOne`, `bintoss.inARow`, `bullseye.bullsRow`, `bubble.bigPop`, `wordfall.longWord`, `whack.cleanTwenty`, `clayshoot.doubleHit` (keep it) |
 | A jackpot gem is made: JACKPOT GEM! | `matchup.jackpotMade` | 0–3 | `pop.jackpotGem.mp3` | none (the file falls out of use) |
 | The score passes par: FULL CLEAR banner | `matchup.parSmashed` | 0–1 | `banner.fullClear.mp3` | `hover.allBarriers`, `breaker.wallCleared`, `beat.fullCombo`, `snake.allEaten`, `burst.flawlessFinish`, `wavefront.bossDown`, `orbit.allPlanets`, `swing.finishLine`, `flip.survivedFinish`, `inkbridge.allLevels`, `bullseye.allOnTarget`, `bubble.reefCleared`, `snip.allApples`, `tilt.allMazes`, `balltrack.allHome` (keep it) |
-| A bomb gem goes off | `arc_gem_bomb` | 0–10 | `arc_gem_bomb` | **unchanged** (Joe likes it) |
+| A bomb gem (`MATCHUP_BOMB`, line of 4, 3×3 blast) goes off | `arc_gem_bomb` | 0–10 | `arc_gem_bomb` | **unchanged, not in this list** (Joe likes it) |
 
 New: **#8–#16**: `gem.pick`, `gem.swap`, `gem.refuse`, `gem.glint` (hint), `gem.shatter` (match chime),
 `gem.crossBeam`, `gem.starBurst`, `gem.jackpot` and `gem.forge`. The last is shared by `matchup.lineOfFive` and
@@ -234,32 +244,41 @@ arrive at the hit line on that grid. That makes 29 bars of 4/4 between 2 s and 6
 
 **The plan, in plain words.**
 
-1. **One recorded track, made for Tempo's clock.** **#31 `music_beat.mp3`**: 120 BPM, 4/4, 62 s long. A one-bar
-   count-in from 0 to 2 s, starting with a clear stick click at exactly 0.000 s, then the groove's first downbeat at
-   exactly **2.000 s**. 29 bars run to 60.0 s, and a final hit rings out to 62 s. It's not a loop: every Tempo run is
-   exactly 60 s, so one straight track fits it and loop seams never come up. In C major (C–Am–F–G), so the notes'
-   lane pitches sit inside it.
-2. **The game starts the track on its own clock, not the round's.** Today a game's music starts at the 3-2-1 (the
+1. **One recorded track, made for Tempo's clock.** **#31 `music_beat.mp3`**: exactly 120 BPM, 4/4, about 60 s,
+   in C major (C–Am–F–G), so the notes' lane pitches sit inside it. **It starts straight on its first downbeat**: no
+   count-in, no silence, a full groove from the very first sample. It's not a loop: every Tempo run is exactly 60 s, and
+   the chart's beats run from 2 s to 60 s (58 s, 29 bars), so one straight track fits. Anything past 58 s is cut when the
+   run ends.
+2. **The wire-in session lines it up; the file doesn't.** Before wiring, that session:
+   - **measures** the file's tempo and its first downbeat (any audio editor, or a small onset check it writes);
+   - **adds the 2.000 s lead-in of silence itself**, so the file's measured first downbeat lands on the chart's first
+     beat, tick 120 = 2.000 s after the run starts (±10 ms). It does this in Tempo's player, by starting the file at
+     that tick and skipping anything before the measured downbeat, not by baking silence into the MP3. The music
+     loader trims leading audio quieter than -60 dB from MP3 beds (`detectLoopPoints` in `src/lib/sound.ts`), so a
+     baked-in lead-in would be cut off;
+   - **keeps the synthesised beat** (no `music_beat` url) if the file can't be fitted to the grid: tempo not within
+     about 0.1 % of 120 BPM (about 30 ms of drift over the run), a downbeat it can't find, or a tempo that wanders.
+     It then says so in its PR, and the file is regenerated or stretched in an editor. The game is never moved to fit the file.
+3. **The game starts the track on its own clock, not the round's.** Today a game's music starts at the 3-2-1 (the
    round-music owner), which is too early and too loose for a rhythm game. The wire-in session makes Tempo an
    exception:
    - leave `beat` out of `roundMusicFor`;
-   - start `music_beat` on the audio clock the moment the sim's tick 0 starts, at offset `tick / 60` s;
-   - every frame, compare where the track should be (`tick / 60`) with where it is. If they drift more than about
+   - start `music_beat` on the audio clock when the sim reaches tick 120, at file offset
+     `downbeat + (tick − 120) / 60` s (`downbeat` = the measured first downbeat, 0 for a file that starts on it);
+   - every frame, compare where the track should be (that offset) with where it is. If they drift more than about
      40 ms apart (a stalled frame, the tab hidden and shown), jump the track back into place;
    - stop it when the run ends or the player locks in.
 
    That's presentation only: the chart, judging, input log and score don't change, so no `beatRev` stamp is needed,
    and stored runs replay exactly as before.
-3. **The synthesised beat becomes the fallback.** While the track plays, `playBeatStep` is skipped. If the file fails
+4. **The synthesised beat becomes the fallback.** While the track plays, `playBeatStep` is skipped. If the file fails
    to load (or before it has decoded), the synth plays exactly as today, so a run is never silent.
-4. **A proper note sound that still climbs by lane.** **#32 `beat.noteHit.mp3`**: one short bright pluck tuned to
+5. **A proper note sound that still climbs by lane.** **#32 `beat.noteHit.mp3`**: one short bright pluck tuned to
    **C5 (523 Hz)**. The lanes then play C5, E5, G5 and C6, a C major chord, which fits every chord of the track (an own
    file keeps the lane pitch: `sfx(..., keepRate)`). **#33 `beat.miss.mp3`**: a muted, dead off-beat thud that sits
    under the music. **#34 `beat.swipe.mp3`**: a short swish for a swipe note hit.
-5. **Checking the file.** ElevenLabs Music doesn't promise an exact tempo or a click-exact start. Before wiring, the
-   file's beats must be confirmed at 120.0 BPM, with the first downbeat at 2.000 s (±10 ms), in any audio editor or by
-   a small onset check the wire-in session can write. If it's off, stretch or trim it (or regenerate) rather than move
-   the game.
+ElevenLabs Music doesn't promise an exact tempo or a click-exact start, which is why step 2 measures the file rather
+than trusting the prompt.
 
 **The decision Joe needs to make (Decision 2):** replace the synthesised beat with a recorded track locked to the
 chart as above, keeping the synth as the fallback. Recommended: yes. The alternative is to keep the synth and only
@@ -382,7 +401,7 @@ Ball Tracker is in the Toybox world too: a wooden marble run with glass marbles.
 | --- | --- | --- | --- | --- |
 | Every 5th marble home (5, 10, 15, 20, 25): n HOME banner | `balltrack.homeStreak` | 1–6 (5 on a full run) | `banner.streak.mp3` | see Hover |
 
-New: **#49 `balltrack.homeFive.mp3`**.
+New: **#49 `balltrack.homeStreak.mp3`**. This is the moment Joe heard at 20 (assumption 3). One slot uses it, so it is named after that slot.
 
 ---
 
@@ -425,7 +444,7 @@ length.
 | 28 | `bubble.seaMine.mp3` | `bubble.bomb` | An underwater sea mine detonating: a muffled deep boom with a burst of rushing bubbles, heard underwater | 800 ms | one-shot | 0.7 |
 | 29 | `bubble.torpedo.mp3` | `bubble.line` | A small torpedo launched underwater: a whirring propeller and a fizzing bubble trail rushing away, ending in a soft muffled thump | 600 ms | one-shot | 0.7 |
 | 30 | `bubble.joker.mp3` | `bubble.jokerLand` | A magical rainbow bubble settling into a coral reef: a sparkling underwater chime glissando with soft bubble pops | 700 ms | one-shot | 0.7 |
-| 31 | `music_beat.mp3` | `music_beat` (tick-locked player, see section 9) | **ElevenLabs Music.** Upbeat retro synthwave groove for a rhythm game, exactly 120 BPM, 4/4, C major, chords C, A minor, F, G. Tight drum machine, punchy bass, bright arpeggio, steady and danceable with no tempo changes. One-bar count-in of four stick clicks from the very start, the full groove from bar 2, a short final hit at the end | 62 s (1-bar count-in from 0 s, downbeat at 2.000 s, groove to 60 s, ring-out to 62 s) | music, one-shot (not a loop) | 0.8 (music channel) |
+| 31 | `music_beat.mp3` | `music_beat` (tick-locked player, see section 9) | **ElevenLabs Music.** Upbeat retro synthwave groove for a rhythm game, exactly 120 BPM, 4/4, C major, chords C, A minor, F, G. Tight drum machine, punchy bass, bright arpeggio, steady and danceable with no tempo changes. Starts immediately on the first downbeat with the full groove, no intro, count-in or silence, and plays straight through to a short final hit | about 60 s (30 bars), first downbeat at 0.000 s; the wire-in adds the 2.000 s lead-in (section 9) | music, one-shot (not a loop) | 0.8 (music channel) |
 | 32 | `beat.noteHit.mp3` | `beat.note` (lane pitch kept) | A single short bright retro synth pluck on the note C, clean sharp attack, quick decay, no reverb tail, no chord | 120 ms | one-shot | 0.8 |
 | 33 | `beat.miss.mp3` | `beat.miss` | A muted dead synth thud slightly off the beat, soft and low, a stumble that sits under music | 150 ms | one-shot | 0.6 |
 | 34 | `beat.swipe.mp3` | `beat.swipeHit` | A short bright synth swish across the stereo field with a sparkle at the end, rhythmic and tight | 200 ms | one-shot | 0.7 |
@@ -443,7 +462,7 @@ length.
 | 46 | `swing.hundredMetres.mp3` | `swing.distanceStreak` | A distance milestone deep in a lava cavern: a stone gong struck once with a cavern echo and a crackle of embers | 600 ms | one-shot | 0.8 |
 | 47 | `snip.goldLeaf.mp3` | `snip.star` | A golden leaf collected in an orchard: a soft leaf rustle with a warm glittering harp-like chime | 500 ms | one-shot | 0.7 |
 | 48 | `tilt.goldStar.mp3` | `tilt.starTaken` | A wooden marble rolling over a brass star inlay in a toy maze: a bright metallic ting on brass with a short music-box twinkle | 450 ms | one-shot | 0.7 |
-| 49 | `balltrack.homeFive.mp3` | `balltrack.homeStreak` | Wooden marble run milestone: glass marbles clacking into a wooden tray one after another, then a cheerful little wooden xylophone flourish | 600 ms | one-shot | 0.8 |
+| 49 | `balltrack.homeStreak.mp3` | `balltrack.homeStreak` | Wooden marble run milestone: glass marbles clacking into a wooden tray one after another, then a cheerful little wooden xylophone flourish | 600 ms | one-shot | 0.8 |
 
 **Optional, only if Decision 1 says the score page's music is the problem** (not in the mapping sheet):
 
@@ -460,8 +479,8 @@ didn't mention keeps its sound.
    `standings_loop` bed also plays on the standings screen, and the highlight replay's sounds are the replay's. If the
    bed is what bothers you, make **O1** too and it replaces `standings_loop` on both screens.
 2. **Tempo: a recorded 120 BPM track locked to the chart, with the synth kept as the fallback** (section 9).
-   Recommended. It needs the file checked at exactly 120 BPM with its downbeat at 2.000 s, and a small sync player in
-   code. The alternative: keep the synth and only improve its sounds.
+   Recommended. The wire-in session measures the file's tempo and first downbeat, adds the 2.000 s lead-in itself
+   and needs a small sync player in code. If the file can't be fitted to the grid, the synth stays. The alternative: keep the synth and only improve its sounds.
 3. **Tempo's other effects:** remake the note, miss and swipe hit only (#32–#34), and keep the combo banners, combo
    lost and swipe warning. Recommended: they're shared banners that Tempo plays rarely. Say if you want them themed
    too.
