@@ -1014,7 +1014,7 @@ are before it; the winner reveal's own end (status `finished`) is not a separate
 
 ## 7. The daily challenge (21 Oct 2026)
 
-The Daily Puzzle and Daily Arcade are async rooms (`supabase/migrations/20261021120000_async_rooms_daily.sql`,
+The Daily Puzzle and Daily Arcade are async rooms (`supabase/migrations/20261021130000_async_rooms_daily.sql`,
 **written but not applied**; `src/lib/duel/asyncRoom.server.ts`, `daily.server.ts`). Recording starts
 once that migration is applied and the code is published; until then the Play tab hides the daily card.
 

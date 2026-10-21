@@ -432,9 +432,14 @@ function postgresBin(): string | null {
   }
   return null;
 }
-const MIGRATION = "20261021120000_async_rooms_daily.sql";
+const MIGRATION = "20261021130000_async_rooms_daily.sql";
 const migrations = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
 check(migrations.includes(MIGRATION) && migrations.at(-1) === MIGRATION, "the daily migration exists and sorts last");
+// Two migrations with one timestamp: only one would apply (#125's share migration took 20261021120000).
+const stamps = migrations.map((f) => f.split("_")[0]!);
+const shared = stamps.filter((stamp, i) => stamps.indexOf(stamp) !== i);
+check(shared.length === 0, `no two migrations share a timestamp (${shared.join(", ") || "none"})`);
+check(MIGRATION > "20261021120000_beta_share_events.sql", "the daily migration sorts after #125's share-events migration");
 const sqlText = readFileSync(`supabase/migrations/${MIGRATION}`, "utf8");
 check(!/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*TO\s+(anon|authenticated)/i.test(sqlText), "SQL: no client write grant on any daily table");
 const bin = postgresBin();

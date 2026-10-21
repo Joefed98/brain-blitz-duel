@@ -252,7 +252,7 @@ export async function callerUserId(client: any): Promise<string | null> {
 /* ------------------------------------------------- async rooms (daily) ---- */
 
 /**
- * Async rooms and the daily challenge (21 Oct 2026, migration 20261021120000): an attempt's start
+ * Async rooms and the daily challenge (21 Oct 2026, migration 20261021130000): an attempt's start
  * and finish, and each round's start, finish (answered before the clock, or the time-out's draft)
  * and abandon (nothing arrived while it took answers). One row per (attempt, round, event): the
  * unique index keeps the first, so a retried call records each moment once. Best-effort, as above.

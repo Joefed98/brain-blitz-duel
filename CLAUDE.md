@@ -324,7 +324,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Daily challenge card (`DailyCard`, hidden until the status call finds the tables), `/daily` (tabs Puzzle / Arcade,
   Today / Yesterday, `DailyBoard`), Profile's Daily row (`dailyRecord.ts`: streak and bests, device only). Beta events in
   `async_events` (`recordAsyncEvent`; docs/beta-sql.md section 7, Q8a–c). Migration
-  `supabase/migrations/20261021120000_async_rooms_daily.sql` is **written but not applied**: until it is, the card is
+  `supabase/migrations/20261021130000_async_rooms_daily.sql` is **written but not applied**: until it is, the card is
   hidden and nothing else changes. RLS: no client writes at all; clients read only the leaderboard columns of attempts
   on an open board (plus their own row) and the rooms' window columns. daily-check (~15 s; the SQL on a local PostgreSQL
   when installed) proves it; the daily screens are in theme-check and no-wrap-check (`scripts/theme-screens.ts`,

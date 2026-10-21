@@ -315,6 +315,7 @@ function Home() {
           </button>
         ) : null}
 
+        {/* Below #125's share welcome card once both are on main (agreed order: welcome card, then Daily). */}
         <DailyCard
           status={daily}
           onOpen={(kind) => {
