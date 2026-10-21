@@ -60,6 +60,12 @@ interface Harness {
     view: unknown;
     reveals: unknown[];
   };
+  /** Where useNavigate was sent (share-check: a shared link's redirect). */
+  navigations?: unknown[];
+  /** The link join's room preview (share-check sets window.__harnessPreview before load: a finished or full room); an open lobby if unset. */
+  preview?: unknown;
+  /** Share loop events the page sent (share-check), in order. */
+  shareEvents?: unknown[];
   /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
   update?: (change: (room: Room) => void) => void;
 }
@@ -193,7 +199,8 @@ async function practiceGradeFn({
 
 /** The link-join preview: an open lobby with room to join. */
 async function fetchRoomPreview(roomCode: string) {
-  return { found: true, roomCode, state: "lobby", playerCount: 2, maxPlayers: 10 };
+  const forced = (window as unknown as { __harnessPreview?: unknown }).__harnessPreview;
+  return H.preview ?? forced ?? { found: true, roomCode, state: "lobby", playerCount: 2, maxPlayers: 10 };
 }
 
 /** Word checks (practice and room): every word is "not a word", so word boards (Slider) can be drawn. */
@@ -251,6 +258,12 @@ async function asyncSubmitFn({ data }: { data: { roundNumber: number; answer: st
   return { ok: true, score: H.verdict.score };
 }
 
+/** The share loop's beta recording: kept for share-check to read. */
+async function recordShareEventFn({ data }: { data: unknown }) {
+  (H.shareEvents ??= []).push(data);
+  return { ok: true };
+}
+
 const IMPLEMENTATIONS: Record<string, unknown> = {
   asyncRoundStartFn,
   asyncSubmitFn,
@@ -260,6 +273,7 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   asyncAttemptFn,
   asyncRevealFn,
   fetchRoomPreview,
+  recordShareEventFn,
   practiceCheckWordFn,
   checkWord,
   useDuel,

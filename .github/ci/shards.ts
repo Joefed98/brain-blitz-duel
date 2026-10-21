@@ -68,7 +68,9 @@ export const SHARDS: Record<string, string[]> = {
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's 63 draws in thirds (the daily screens joined 21 Oct 2026:
   // locally theme-check ~2 min, no-wrap-check ~4 min whole, so each job stays near 4 min).
   play16: ["theme-check.tsx", "no-wrap-check.tsx@1/3"],
-  play17: ["no-wrap-check.tsx@2/3", "no-wrap-check.tsx@3/3"],
+  // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
+  // harness, ~1 min with its dev server) rides with no-wrap's other two thirds.
+  play17: ["no-wrap-check.tsx@2/3", "no-wrap-check.tsx@3/3", "share-check.ts"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

@@ -14,7 +14,7 @@
 --   async_attempts      one row per device per room (unique), its totals for the board;
 --   async_results       one row per attempt per round: written when the round starts
 --                       (started_at, the per-player clock), filled when it is graded;
---   async_events        beta recording (docs/beta-sql.md section 7): attempt and round
+--   async_events        beta recording (docs/beta-sql.md section 8): attempt and round
 --                       starts, finishes and abandons, once each.
 --
 -- Every write goes through the server functions (service role), which only ever write

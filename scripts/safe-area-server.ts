@@ -21,7 +21,7 @@ export const createFileRoute = () => (options) => ({
   useParams: () => ({ code: "SAFE" }),
   useSearch: () => ({}),
 });
-export const useNavigate = () => () => undefined;
+export const useNavigate = () => (opts) => { const h = window.__harness; if (h) (h.navigations ??= []).push(opts); };
 export const useRouter = () => ({ navigate: () => undefined, invalidate: () => undefined });
 export const Link = ({ children }) => children;
 `;

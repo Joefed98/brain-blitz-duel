@@ -29,7 +29,7 @@
  *     other one; clients can't write any daily table, can't read results, secrets, events or the
  *     rooms' puzzles; can read only the leaderboard columns, and other players' attempts only once
  *     their own is finished or the day has closed; one attempt per device is a unique index; the
- *     beta queries (docs/beta-sql.md section 7) run.
+ *     beta queries (docs/beta-sql.md section 8) run.
  *
  *   bun scripts/daily-check.ts
  */
@@ -526,9 +526,9 @@ else {
       const out = as(A, sql);
       check(!out.ok && /permission denied/.test(out.err), `SQL: a device can't ${label} directly (writes go through the server)`);
     }
-    // The beta queries (docs/beta-sql.md section 7) run as written.
+    // The beta queries (docs/beta-sql.md section 8) run as written.
     const doc = readFileSync("docs/beta-sql.md", "utf8");
-    const blocks = [...doc.slice(doc.indexOf("## 7. The daily challenge")).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
+    const blocks = [...doc.slice(doc.indexOf("## 8. The daily challenge")).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
     psql(`INSERT INTO public.async_events (room_id, kind, attempt_id, user_id, round_number, event, reason)
       VALUES ('${OPEN}', 'daily_puzzle', 'b1000000-0000-0000-0000-000000000001', '${B}', 1, 'round_finished', 'answered')`);
     const ran = blocks.map((sql) => psql(sql));
