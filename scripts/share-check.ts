@@ -30,7 +30,7 @@
  *
  *   bun scripts/share-check.ts [--shots=<dir>]   (saves the podium screenshots and the card)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createCanvas } from "@napi-rs/canvas";
@@ -560,11 +560,51 @@ for (const nav of ["none", "refused"] as const) {
       /players BETWEEN 1 AND 20/.test(later),
     "the friend-challenge migration doesn't add share_events.source (room by default), challenge_code, daily_kind and 20-player counts",
   );
+  // The generated types (src/integrations/supabase/types.ts) are Lovable's, regenerated only after it
+  // applies a migration (21 Oct 2026: share_events and the async tables). Either state is fine: no
+  // share_events yet, or share_events as Lovable generated it from the applied migrations: the
+  // 20261021120000 columns, and the 20261022120000 ones (source, challenge_code, daily_kind) only once
+  // that migration is applied too. Never hand-edited: no column that no migration creates.
   const types = readFileSync("src/integrations/supabase/types.ts", "utf8");
-  check(
-    !types.includes("share_events"),
-    "generated types name share_events (only Lovable regenerates them, after applying)",
-  );
+  const block = /\n      share_events: \{\n        Row: \{\n([\s\S]*?)\n        \}/.exec(types);
+  const BASE = ["created_at", "duel_id", "event", "game_index", "id", "landing", "method", "place", "players", "room_code", "rounds", "user_id", "welcome"];
+  const LATER = ["challenge_code", "daily_kind", "source"];
+  if (!types.includes("share_events")) check(true, "");
+  else {
+    const columns = block ? [...block[1]!.matchAll(/^\s+(\w+)\??:/gm)].map((m) => m[1]!).sort() : [];
+    const later = LATER.filter((c) => columns.includes(c));
+    check(
+      !!block &&
+        BASE.every((c) => columns.includes(c)) &&
+        columns.every((c) => BASE.includes(c) || LATER.includes(c)) &&
+        (later.length === 0 || later.length === LATER.length),
+      `generated types name share_events with columns no applied migration makes, or only part of the 22 Oct ones (${columns.join(", ")})`,
+    );
+  }
+  // The app never relies on the generated types for share_events, the async tables or the challenge
+  // tables: every read and write goes through the server's untyped client (betaRecord.server.ts,
+  // asyncRoom.server.ts, challenge.server.ts take `client: any`), so it works before and after Lovable
+  // regenerates them, and the 22 Oct columns and tables need no regeneration to be written.
+  const typedUse: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.(ts|tsx)$/.test(entry.name) && !path.endsWith("integrations/supabase/types.ts")) {
+        const text = readFileSync(path, "utf8");
+        if (/(Tables|TablesInsert|TablesUpdate)<\s*["'](share_events|challenges|challenge_events|async_\w+)["']/.test(text) || /Database\[["']public["']\]\[["']Tables["']\]\[["'](share_events|challenges|challenge_events|async_\w+)["']\]/.test(text))
+          typedUse.push(path);
+        // A typed client (supabase from client.ts, or supabaseAdmin not cast to any) reading these tables.
+        if (!/\.server\.ts$/.test(path) && /\.from\(["'](share_events|challenges|challenge_events|async_\w+)["']\)/.test(text)) typedUse.push(path);
+      }
+    }
+  };
+  walk("src");
+  check(typedUse.length === 0, `code relies on the generated types for share_events, the async or the challenge tables (${typedUse.join(", ")})`);
+  for (const file of ["src/lib/duel/betaRecord.server.ts", "src/lib/duel/challenge.server.ts", "src/lib/duel/asyncRoom.server.ts", "src/lib/duel/daily.server.ts"])
+    check(/client: any/.test(readFileSync(file, "utf8")), `${file} doesn't take the untyped server client`);
+  for (const file of ["src/lib/duel/share.functions.ts", "src/lib/duel/challenge.functions.ts", "src/lib/duel/daily.functions.ts", "src/lib/duel/asyncRoom.functions.ts"])
+    check(!/supabaseAdmin\.from\(/.test(readFileSync(file, "utf8")), `${file} queries through the typed admin client`);
 }
 
 /* ------------------------------------------------------------ 4b. the welcome card's rule */
