@@ -1024,11 +1024,13 @@ client grants), written best-effort by `recordShareEventFn` (`src/lib/duel/share
 |---|---|---|
 | `share_tap` | tap on Share (podium or two-player result) | `user_id`, `duel_id`, `game_index`, `room_code`, `place` (null after leaving or a forfeit loss), `players`, `rounds`, `method` (`native` = the share sheet opened, `copy` = text and link copied), `created_at` |
 | `arrival` | device, its first visit from a shared link (`?ref=share`) | `user_id`, `landing` (`room` = the room link, `home` = the app's home), `room_code` (room links only) |
+| `arrival_welcome` | device and outcome: the Play tab's one-time welcome card for a home arrival (room arrivals get none) | `user_id`, `welcome`: `shown`, then one of `dismissed` (the ✕), `practice` (TRY A PRACTICE GAME), `public` (NEXT PUBLIC GAME); no close row when the visitor just left |
 | `arrival_finished` | device, the first room it saw to the final screen after arriving | `user_id`, `duel_id`, `game_index`, `room_code`, `place`, `players`, `rounds` |
 
 A tap means the sheet opened (or the text was copied), not that anything was sent: the share sheet does
-not say. Shared links name the room while it is open (not disbanded, host still in it) and the home
-otherwise; both carry `?ref=share`. `arrival` and `arrival_finished` are one row per device (unique
+not say. Shared links name the room only while a newcomer could join it (its lobby, not disbanded, a seat
+free) and the home otherwise, so a share from the final screen (the room is finished) links the home;
+both carry `?ref=share`. `arrival` and `arrival_finished` are one row per device (unique
 indexes keep the first), so a device that clears its storage is a new device (G8). The phone remembers
 its arrival in localStorage (`duelz-share-arrival:v1`) and sends `arrival_finished` from the final
 screen; `room_joins` and `room_events` give the same answer server-side (Q-S3).
@@ -1059,6 +1061,20 @@ from public.share_events a
 left join public.share_events f on f.user_id = a.user_id and f.event = 'arrival_finished'
 where a.event = 'arrival'
 group by 1 order by 1;
+```
+
+**Q-S2b. What home arrivals did with the welcome card, and whether they went on to finish a room.**
+
+```sql
+select coalesce(c.welcome, case when sh.user_id is null then 'not shown' else 'left it open' end) as card,
+       count(*) as arrivals,
+       count(f.user_id) as finished_a_room
+from public.share_events a
+left join public.share_events sh on sh.user_id = a.user_id and sh.event = 'arrival_welcome' and sh.welcome = 'shown'
+left join public.share_events c on c.user_id = a.user_id and c.event = 'arrival_welcome' and c.welcome <> 'shown'
+left join public.share_events f on f.user_id = a.user_id and f.event = 'arrival_finished'
+where a.event = 'arrival' and a.landing = 'home'
+group by 1 order by 2 desc;
 ```
 
 **Q-S3. The same from the room tables** (an arrival's device joined a game that reached `game_ended`

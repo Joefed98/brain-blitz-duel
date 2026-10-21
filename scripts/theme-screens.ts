@@ -122,6 +122,8 @@ export interface ThemeScreen {
   /** After the page is drawn: open a sheet or dialog. */
   go?: (page: Page) => Promise<void>;
   waitMs?: number;
+  /** Extra query on the harness page's URL (share-check: `ref=share`). */
+  query?: string;
   /** A screen with no card of its own (link join, the answer reveal). */
   plain?: boolean;
 }
@@ -238,7 +240,10 @@ function deviceInit(seed: { onboarding: string; bests: [string, number][] }) {
       const d = new Date(now + offset * 86_400_000);
       return d.toISOString().slice(0, 10);
     };
-    (window as unknown as { __DUELZ_PUBLIC_GAMES__: unknown }).__DUELZ_PUBLIC_GAMES__ = [
+    // A check that set its own schedule first (share-check: none) keeps it.
+    const schedule = window as unknown as { __DUELZ_PUBLIC_GAMES__?: unknown };
+    if (!schedule.__DUELZ_PUBLIC_GAMES__)
+      schedule.__DUELZ_PUBLIC_GAMES__ = [
       {
         date: day(2),
         time: "19:00",
@@ -318,7 +323,7 @@ export async function openThemeScreen(
     ),
   });
   const page = await context.newPage();
-  const url = `${origin}/safe-area.html?mode=${screen.mode}`;
+  const url = `${origin}/safe-area.html?mode=${screen.mode}${screen.query ? `&${screen.query}` : ""}`;
   try {
     await page.goto(url, { timeout: 180_000 });
   } catch (error) {

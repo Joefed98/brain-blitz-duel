@@ -7,9 +7,11 @@
 import { APP_NAME } from "@/lib/brand";
 import { gameRecord } from "@/lib/duel/deviceHistory";
 import { ordinal } from "@/lib/duel/ordinal";
+import { linkRoomState } from "@/lib/duel/roomLink";
 import { standings } from "@/lib/duel/scoring";
 import { roomTieRounds } from "@/lib/duel/tieBreak";
 import {
+  MAX_PLAYERS,
   TOTAL_ROUNDS,
   type DuelPlayerRow,
   type DuelRow,
@@ -31,7 +33,7 @@ export interface RoomShareData {
   /** The message lines (shareResult adds "Play: <link>"). */
   lines: string[];
   link: string;
-  /** True when the link is the room's own (still open), false for the app's home. */
+  /** True when the link is the room's own (joinable right now), false for the app's home. */
   linksRoom: boolean;
   /** The sharer's place (ties share it), or null after leaving or a forfeit loss. */
   place: number | null;
@@ -49,21 +51,24 @@ export interface RoomShareData {
 }
 
 /**
- * "Still open": the room hasn't been disbanded and its host is still in it, so the host can play
- * again and the link's join card takes newcomers in the lobby. Otherwise the link is the app's home.
+ * "Joinable": a newcomer opening the room's link could join it right now — the room is in its lobby
+ * (waiting for the next game, not disbanded; roomLink.ts linkRoomState) with a seat free. A finished
+ * room is never joinable, even before Play again: its link only says "This game has finished", so a
+ * share from the final screen links the app's home.
  */
-export function roomStillOpen(
-  duel: Pick<DuelRow, "disbanded_at" | "host_user_id">,
+export function roomJoinable(
+  duel: Pick<DuelRow, "status" | "disbanded_at" | "max_players">,
   players: readonly DuelPlayerRow[],
 ): boolean {
-  if (duel.disbanded_at) return false;
-  return players.some((p) => p.user_id === duel.host_user_id && p.status !== "left");
+  if (linkRoomState(duel) !== "lobby") return false;
+  const seated = players.filter((p) => p.status !== "left").length;
+  return seated < (duel.max_players ?? MAX_PLAYERS);
 }
 
-/** The shared link: the room's link while it's open, else the app's home; both carry ?ref=share. */
-export function roomShareLink(origin: string, roomCode: string, open: boolean): string {
+/** The shared link: the room's link while a newcomer can join it, else the app's home; both carry ?ref=share. */
+export function roomShareLink(origin: string, roomCode: string, joinable: boolean): string {
   const base = origin.replace(/\/+$/, "");
-  return open ? `${base}/duel/${roomCode}?ref=${SHARE_REF}` : `${base}/?ref=${SHARE_REF}`;
+  return joinable ? `${base}/duel/${roomCode}?ref=${SHARE_REF}` : `${base}/?ref=${SHARE_REF}`;
 }
 
 /** "I came 2nd in a 6-round Duelz room – 612 pts." (or "I played …" without a place). */
@@ -90,13 +95,13 @@ export function roomShareData(input: {
     undefined,
     roomTieRounds(duel.puzzles_public),
   );
-  const open = roomStillOpen(duel, players);
-  const link = roomShareLink(input.origin, duel.room_code, open);
+  const joinable = roomJoinable(duel, players);
+  const link = roomShareLink(input.origin, duel.room_code, joinable);
   return {
     title: `${APP_NAME} results`,
     lines: [roomShareLine(record.place, rounds, record.points)],
     link,
-    linksRoom: open,
+    linksRoom: joinable,
     place: record.place,
     total: record.points,
     players: record.players,

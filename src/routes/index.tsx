@@ -10,8 +10,10 @@ import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
+import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
-import { onboardingSeen } from "@/lib/onboarding";
+import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
+import { isShareRef } from "@/lib/share/shareRef";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
 import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session";
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
@@ -121,7 +123,9 @@ function Home() {
     setGames(scheduledGames());
   }, []);
   useEffect(() => {
-    if (!onboardingSeen()) setIntro(true);
+    // A shared link's arrival is welcomed by the card below instead (as a room link marks it seen).
+    if (isShareRef(window.location.search)) markOnboardingSeen();
+    else if (!onboardingSeen()) setIntro(true);
   }, []);
   // Silent until the slot gets a file (docs/sound-cues/music.md).
   useScreenMusic("music_home");
@@ -176,6 +180,17 @@ function Home() {
       </div>
 
       <div className="mt-5 flex flex-col gap-5">
+        <ShareWelcomeCard
+          nextGame={nextGame}
+          now={now}
+          onPractice={() => {
+            unlockAudio();
+            const first = warmUp[0];
+            goToTab(router, "play", "practice", first ? { game: first } : undefined);
+          }}
+          onPublic={() => goToTab(router, "play", "tournaments")}
+        />
+
         <div>
           <h1 className="whitespace-nowrap font-display text-[25px] font-bold leading-tight tracking-[0.02em]">
             Play live with friends

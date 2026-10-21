@@ -7,6 +7,10 @@
  * An arrival is counted once per device (the first shared link it opens), remembered in device
  * storage; the first room that device then sees to its final screen is counted once as
  * arrival_finished.
+ *
+ * An arrival that lands on the home (not a room's lobby, which is its own welcome) sees the Play
+ * tab's one-time welcome card (ShareWelcomeCard) on that visit only; it's counted as arrival_welcome:
+ * "shown" once, then "dismissed", "practice" or "public" once.
  */
 import type { ShareEventInput } from "@/lib/duel/share.functions";
 
@@ -20,7 +24,12 @@ export interface ShareArrival {
   roomCode: string | null;
   /** Set once the arrival's first finished room is counted. */
   finished?: boolean;
+  /** The welcome card: "shown", then how it was closed. */
+  welcome?: "shown" | WelcomeOutcome;
 }
+
+/** How a shared-link arrival closed the welcome card: the ✕, or one of its two buttons. */
+export type WelcomeOutcome = "dismissed" | "practice" | "public";
 
 export type ShareRecorder = (event: ShareEventInput) => void;
 
@@ -39,6 +48,8 @@ export const sendShareEvent: ShareRecorder = (event) => {
 };
 
 let memory: ShareArrival | null | undefined;
+/** True when this page load is the device's arrival from a shared link. */
+let arrivedThisLoad = false;
 
 function storage(): Storage | null {
   try {
@@ -90,7 +101,40 @@ export function noteShareArrival(
   const code = /^\/duel\/([A-Za-z]{4})\/?$/.exec(location.pathname)?.[1]?.toUpperCase() ?? null;
   const arrival: ShareArrival = { at: now, landing: code ? "room" : "home", roomCode: code };
   writeShareArrival(arrival);
+  arrivedThisLoad = true;
   record({ event: "arrival", landing: arrival.landing, roomCode: arrival.roomCode });
+  return true;
+}
+
+/**
+ * True while the Play tab should show the welcome card: this page load is the device's first
+ * arrival from a shared link, it landed on the home, and the card hasn't been closed. Counts the
+ * arrival itself first (a child route's effect runs before the root's).
+ */
+export function shareWelcomeDue(
+  location: { search: string; pathname: string },
+  record: ShareRecorder = sendShareEvent,
+): boolean {
+  noteShareArrival(location, record);
+  const arrival = readShareArrival();
+  return (
+    arrivedThisLoad &&
+    arrival?.landing === "home" &&
+    (!arrival.welcome || arrival.welcome === "shown")
+  );
+}
+
+/** Counts the welcome card being shown (once) or closed (once). Returns true when it counted. */
+export function noteShareWelcome(
+  welcome: "shown" | WelcomeOutcome,
+  record: ShareRecorder = sendShareEvent,
+): boolean {
+  const arrival = readShareArrival();
+  if (!arrival) return false;
+  if (welcome === "shown" ? arrival.welcome : arrival.welcome && arrival.welcome !== "shown")
+    return false;
+  writeShareArrival({ ...arrival, welcome });
+  record({ event: "arrival_welcome", welcome });
   return true;
 }
 
@@ -124,4 +168,5 @@ export function noteShareFinish(
 /** Test hook: forget the in-memory copy (storage is read again). */
 export function resetShareArrivalMemory(): void {
   memory = undefined;
+  arrivedThisLoad = false;
 }

@@ -3,8 +3,9 @@
  * final screen (src/lib/share/, src/components/share/, supabase/migrations/20261021120000).
  *
  *  1. Text and link: "I came 2nd in a 6-round {APP_NAME} room – 612 pts. Play: <link>"; the link is
- *     the room's own (/duel/CODE?ref=share) while the room is open (not disbanded, host still in it)
- *     and the app's home (/?ref=share) once it isn't; no place ("I played …") after leaving.
+ *     the room's own (/duel/CODE?ref=share) only while a newcomer can join it (the lobby, not
+ *     disbanded, a seat free) and the app's home (/?ref=share) otherwise, a finished room before
+ *     Play again included (its link would only say "This game has finished"); no place ("I played …") after leaving.
  *  2. No answer content: a room whose answers, extras and puzzles carry a marker shares nothing of
  *     it — not in the share data, and not in any text the card draws (the real card drawn on
  *     @napi-rs/canvas, every fillText captured), which carries the app name, place, total, the top
@@ -37,14 +38,17 @@ import {
   roomShareData,
   roomShareLine,
   roomShareLink,
-  roomStillOpen,
+  roomJoinable,
 } from "../src/lib/share/roomShare";
 import { shareResult, shareText } from "../src/lib/share/shareResult";
 import {
   noteShareArrival,
   noteShareFinish,
+  noteShareWelcome,
   resetShareArrivalMemory,
+  shareWelcomeDue,
 } from "../src/lib/share/shareRef";
+import { nextPublicLabel } from "../src/lib/share/welcome";
 import type { ShareEventInput } from "../src/lib/duel/share.functions";
 import { recordShareEvent, shareEventRow } from "../src/lib/duel/betaRecord.server";
 import type { DuelPlayerRow, DuelRow, RoundResultRow } from "../src/lib/duel/types";
@@ -63,7 +67,15 @@ function check(ok: boolean, message: string): void {
 const SECRET = "ZZSECRETANSWERZZ";
 const DUEL_ID = "6f1c2a4e-0b7d-4c3e-9a51-2d8e7f0a1b23";
 const ORDER = ["sudoku", "matchup", "tilegrid", "flood", "reaction", "hover"] as const;
-function room(opts: { hostLeft?: boolean; disbanded?: boolean; meLeft?: boolean } = {}) {
+function room(
+  opts: {
+    hostLeft?: boolean;
+    disbanded?: boolean;
+    meLeft?: boolean;
+    status?: string;
+    maxPlayers?: number;
+  } = {},
+) {
   const names = ["Ali", "Jo", "Sam", "Priya", "Kai", "Morgan"];
   const players = names.map(
     (name, i) =>
@@ -107,9 +119,10 @@ function room(opts: { hostLeft?: boolean; disbanded?: boolean; meLeft?: boolean 
   const duel = {
     id: DUEL_ID,
     room_code: "ABCD",
-    status: "finished",
+    status: opts.status ?? "finished",
     phase: "result",
     host_user_id: "u1",
+    max_players: opts.maxPlayers ?? 10,
     disbanded_at: opts.disbanded ? "2026-10-21T12:01:00Z" : null,
     round_count: 6,
     round_order: [...ORDER],
@@ -123,33 +136,62 @@ function room(opts: { hostLeft?: boolean; disbanded?: boolean; meLeft?: boolean 
 /* ------------------------------------------------------------ 1. text and link */
 
 const ORIGIN = "https://brain-blitz-duel.lovable.app";
-const open = roomShareData({ ...room(), origin: ORIGIN });
+const HOME = `${ORIGIN}/?ref=share`;
+// A finished room before Play again, host still in it: its link would only say "This game has
+// finished", so a newcomer goes to the home.
+const finished = roomShareData({ ...room(), origin: ORIGIN });
 check(
-  open.place === 2 && open.total === 612 && open.rounds === 6 && open.players === 6,
-  `place/total/rounds/players ${open.place}/${open.total}/${open.rounds}/${open.players}`,
+  finished.place === 2 && finished.total === 612 && finished.rounds === 6 && finished.players === 6,
+  `place/total/rounds/players ${finished.place}/${finished.total}/${finished.rounds}/${finished.players}`,
 );
-const expected = `I came 2nd in a 6-round ${APP_NAME} room – 612 pts. Play: ${ORIGIN}/duel/ABCD?ref=share`;
+const expected = `I came 2nd in a 6-round ${APP_NAME} room – 612 pts. Play: ${HOME}`;
 check(
-  shareText(open.lines, open.link) === expected,
-  `open room text: "${shareText(open.lines, open.link)}"`,
+  shareText(finished.lines, finished.link) === expected,
+  `finished room before Play again: "${shareText(finished.lines, finished.link)}"`,
 );
-check(open.linksRoom, "an open room's share does not link the room");
+check(
+  !finished.linksRoom,
+  'a finished room\'s share links the room (a newcomer would land on "This game has finished")',
+);
 const hostLeft = roomShareData({ ...room({ hostLeft: true }), origin: ORIGIN });
-check(
-  hostLeft.link === `${ORIGIN}/?ref=share` && !hostLeft.linksRoom,
-  `host left: link ${hostLeft.link}`,
-);
+check(hostLeft.link === HOME && !hostLeft.linksRoom, `host left: link ${hostLeft.link}`);
 check(
   shareText(hostLeft.lines, hostLeft.link) ===
-    `I came 1st in a 6-round ${APP_NAME} room – 612 pts. Play: ${ORIGIN}/?ref=share`,
+    `I came 1st in a 6-round ${APP_NAME} room – 612 pts. Play: ${HOME}`,
   `host left (Jo now first): "${shareText(hostLeft.lines, hostLeft.link)}"`,
 );
-const disbanded = roomShareData({ ...room({ disbanded: true }), origin: ORIGIN });
-check(disbanded.link === `${ORIGIN}/?ref=share`, `disbanded room: link ${disbanded.link}`);
 check(
-  roomStillOpen(room().duel, room().players) &&
-    !roomStillOpen(room({ disbanded: true }).duel, room().players),
-  "roomStillOpen rule",
+  roomShareData({ ...room({ disbanded: true }), origin: ORIGIN }).link === HOME,
+  "a disbanded room links the room",
+);
+check(
+  roomShareData({ ...room({ status: "in_progress" }), origin: ORIGIN }).link === HOME,
+  "a room whose next game has started links the room",
+);
+// The lobby (after Play again, before the next game starts) with a seat free: the room's own link.
+const lobby = roomShareData({ ...room({ status: "waiting" }), origin: ORIGIN });
+check(
+  lobby.linksRoom && lobby.link === `${ORIGIN}/duel/ABCD?ref=share`,
+  `a joinable lobby: link ${lobby.link}`,
+);
+check(
+  roomShareData({ ...room({ status: "waiting", maxPlayers: 6 }), origin: ORIGIN }).link === HOME,
+  "a full lobby links the room",
+);
+check(
+  roomShareData({ ...room({ status: "waiting", disbanded: true }), origin: ORIGIN }).link === HOME,
+  "a disbanded lobby links the room",
+);
+check(
+  roomShareData({ ...room({ status: "waiting", maxPlayers: 6, hostLeft: true }), origin: ORIGIN })
+    .link === `${ORIGIN}/duel/ABCD?ref=share`,
+  "a lobby with a seat freed by a leaver doesn't link the room",
+);
+check(
+  roomJoinable(room({ status: "waiting" }).duel, room().players) &&
+    !roomJoinable(room().duel, room().players) &&
+    !roomJoinable(room({ status: "waiting", disbanded: true }).duel, room().players),
+  "roomJoinable rule",
 );
 check(
   roomShareLink(`${ORIGIN}/`, "WXYZ", true) === `${ORIGIN}/duel/WXYZ?ref=share`,
@@ -166,15 +208,18 @@ check(
   `left before the end: "${meLeft.lines[0]}"`,
 );
 check(
-  open.top.map((t) => `${t.place}:${t.name}:${t.total}`).join(",") ===
+  finished.top.map((t) => `${t.place}:${t.name}:${t.total}`).join(",") ===
     "1:Ali:700,2:Jo:612,3:Sam:540",
-  `top three ${JSON.stringify(open.top)}`,
+  `top three ${JSON.stringify(finished.top)}`,
 );
-check(open.games.join(",") === ORDER.join(","), "card games are not the round order");
+check(finished.games.join(",") === ORDER.join(","), "card games are not the round order");
 
 /* ------------------------------------------------------------ 2. no answer content */
 
-check(!JSON.stringify(open).includes(SECRET), "the share data carries answer or puzzle content");
+check(
+  ![finished, lobby].some((d) => JSON.stringify(d).includes(SECRET)),
+  "the share data carries answer or puzzle content",
+);
 const drawn: string[] = [];
 const canvas = createCanvas(CARD_W, CARD_H);
 const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
@@ -185,7 +230,7 @@ ctx.fillText = ((text: string, x: number, y: number) => {
 }) as typeof ctx.fillText;
 let drawError = "";
 try {
-  drawResultCard(ctx, open);
+  drawResultCard(ctx, finished);
 } catch (error) {
   drawError = String(error);
 }
@@ -293,7 +338,7 @@ for (const nav of ["none", "refused"] as const) {
     "a plain visit was recorded",
   );
   check(
-    !noteShareFinish(open, record) && sent.length === 0,
+    !noteShareFinish(finished, record) && sent.length === 0,
     "a finish without a shared-link arrival was recorded",
   );
   check(
@@ -309,13 +354,13 @@ for (const nav of ["none", "refused"] as const) {
     "a second arrival on the same device was recorded",
   );
   check(
-    noteShareFinish(open, record) &&
+    noteShareFinish(finished, record) &&
       sent[1]?.event === "arrival_finished" &&
       sent[1].duelId === DUEL_ID &&
       sent[1].place === 2,
     `finish ${JSON.stringify(sent[1])}`,
   );
-  check(!noteShareFinish(open, record) && sent.length === 2, "a second finish was recorded");
+  check(!noteShareFinish(finished, record) && sent.length === 2, "a second finish was recorded");
   resetShareArrivalMemory();
   // Memory only here (no window): forgetting it is a fresh device.
   const home: ShareEventInput[] = [];
@@ -349,6 +394,7 @@ for (const nav of ["none", "refused"] as const) {
         rounds: 6,
         method: "copy",
         landing: null,
+        welcome: null,
       }),
     `tap row ${JSON.stringify(tap)}`,
   );
@@ -445,8 +491,15 @@ for (const nav of ["none", "refused"] as const) {
     "rounds",
     "method",
     "landing",
+    "welcome",
   ])
     check(new RegExp(`\\n  ${column} `).test(sql), `the migration lacks the ${column} column`);
+  check(
+    /share_events_welcome_once[\s\S]*\(user_id, welcome\) WHERE event = 'arrival_welcome'/.test(
+      sql,
+    ) && /'arrival_welcome'\)\)/.test(sql),
+    "arrival_welcome is not in the migration as one row per device and value",
+  );
   check(
     /share_events_arrival_once[\s\S]*WHERE event = 'arrival'/.test(sql),
     "an arrival is not one row per device",
@@ -455,6 +508,101 @@ for (const nav of ["none", "refused"] as const) {
   check(
     !types.includes("share_events"),
     "generated types name share_events (only Lovable regenerates them, after applying)",
+  );
+}
+
+/* ------------------------------------------------------------ 4b. the welcome card's rule */
+
+{
+  const sent: ShareEventInput[] = [];
+  const record = (e: ShareEventInput) => void sent.push(e);
+  // A finished room's share links the home: that arrival is due the card, once.
+  resetShareArrivalMemory();
+  check(
+    shareWelcomeDue({ search: "?ref=share", pathname: "/" }, record),
+    "a home arrival is not shown the welcome",
+  );
+  check(
+    sent.length === 1 && sent[0]?.event === "arrival",
+    `the welcome didn't count the arrival first: ${JSON.stringify(sent)}`,
+  );
+  check(
+    noteShareWelcome("shown", record) && !noteShareWelcome("shown", record),
+    "the card's showing is not counted once",
+  );
+  check(
+    shareWelcomeDue({ search: "?ref=share", pathname: "/" }, record),
+    "the card is gone before it was closed on the arrival's visit",
+  );
+  check(
+    noteShareWelcome("practice", record) && !noteShareWelcome("dismissed", record),
+    "the card's close is not counted once",
+  );
+  check(
+    !shareWelcomeDue({ search: "?ref=share", pathname: "/" }, record),
+    "the card shows again after it was closed",
+  );
+  check(
+    JSON.stringify(sent.slice(1)) ===
+      JSON.stringify([
+        { event: "arrival_welcome", welcome: "shown" },
+        { event: "arrival_welcome", welcome: "practice" },
+      ]),
+    `welcome events ${JSON.stringify(sent.slice(1))}`,
+  );
+  // A later page load (the arrival already stored) never shows it again: the browser part reloads.
+  // An open lobby's share lands a newcomer in the room: no card (the lobby is the welcome).
+  resetShareArrivalMemory();
+  const lobbyEvents: ShareEventInput[] = [];
+  check(
+    !shareWelcomeDue(
+      { search: "?ref=share", pathname: "/duel/ABCD" },
+      (e) => void lobbyEvents.push(e),
+    ),
+    "a room-lobby arrival is due the welcome card",
+  );
+  check(
+    lobbyEvents.length === 1 && lobbyEvents[0]?.landing === "room",
+    `room arrival ${JSON.stringify(lobbyEvents)}`,
+  );
+  resetShareArrivalMemory();
+  check(
+    !shareWelcomeDue({ search: "", pathname: "/" }, () => undefined),
+    "a plain visit is due the welcome card",
+  );
+  resetShareArrivalMemory();
+  const game = {
+    startsAt: Date.UTC(2026, 9, 24, 18, 0),
+    lobbyAt: 0,
+    date: "2026-10-24",
+    time: "19:00",
+    lobbyOpens: "18:45",
+    rounds: 6,
+    roomCode: "PLAY",
+  };
+  const label = nextPublicLabel(game as never, Date.UTC(2026, 9, 21, 12));
+  check(/^NEXT PUBLIC GAME: SAT 24 OCT 7:00 PM$/.test(label), `public game button "${label}"`);
+  const row = shareEventRow("user-1", {
+    event: "arrival_welcome",
+    welcome: "public",
+    duelId: DUEL_ID,
+    roomCode: "ABCD",
+    place: 1,
+  });
+  check(
+    row?.welcome === "public" &&
+      row.duel_id === null &&
+      row.room_code === null &&
+      row.place === null,
+    `welcome row ${JSON.stringify(row)}`,
+  );
+  check(
+    shareEventRow("user-1", { event: "arrival_welcome", welcome: "clicked" }) === null,
+    "a malformed welcome made a row",
+  );
+  check(
+    shareEventRow("user-1", { event: "share_tap", welcome: "shown" })?.welcome === null,
+    "a tap row kept a welcome",
   );
 }
 
@@ -472,6 +620,20 @@ for (const nav of ["none", "refused"] as const) {
   );
   const root = readFileSync("src/routes/__root.tsx", "utf8");
   check(/noteShareArrival\(window\.location\)/.test(root), "the root route doesn't count arrivals");
+  const home = readFileSync("src/routes/index.tsx", "utf8");
+  check(
+    home.indexOf("<ShareWelcomeCard") > 0 &&
+      home.indexOf("<ShareWelcomeCard") < home.indexOf("Play live with friends"),
+    "the Play tab doesn't show the welcome card at its top",
+  );
+  check(
+    !/ShareWelcomeCard/.test(route),
+    "the room route shows the welcome card (the lobby is the welcome)",
+  );
+  check(
+    /isShareRef\(window\.location\.search\)\) markOnboardingSeen\(\)/.test(home),
+    "a shared-link arrival still gets the first-time intro over the welcome card",
+  );
   for (const f of ["src/components/duel/Podium.tsx", "src/components/duel/FinalResult.tsx"])
     check(/\{share\}/.test(readFileSync(f, "utf8")), `${f} doesn't draw the Share button`);
   for (const f of [
@@ -480,6 +642,8 @@ for (const nav of ["none", "refused"] as const) {
     "src/lib/share/resultCard.ts",
     "src/lib/share/shareRef.ts",
     "src/components/share/ShareResultButton.tsx",
+    "src/components/share/ShareWelcomeCard.tsx",
+    "src/lib/share/welcome.ts",
   ])
     check(
       !readFileSync(f, "utf8").includes(`"${APP_NAME}"`) &&
@@ -646,7 +810,8 @@ else {
           });
           // The harness's device is slot 1, the host and top scorer.
           const text = `I came 1st in a 6-round ${APP_NAME} room – `;
-          const link = `${server.origin}/duel/SAFE?ref=share`;
+          // The harness room is finished (host still in it): a newcomer goes to the home.
+          const link = `${server.origin}/?ref=share`;
           if (mode === "copy") {
             check(
               out.copied.length === 1 &&
@@ -697,6 +862,250 @@ else {
         }
       }
     }
+
+    // The welcome card: a finished room's share links the home, so its newcomer lands there.
+    type Ev = Record<string, unknown>;
+    const events = (page: import("playwright").Page) =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __harness: { shareEvents?: Ev[] } }).__harness.shareEvents ?? [],
+      );
+    const welcomeEvents = (list: Ev[]) =>
+      list.filter((e) => e["event"] === "arrival_welcome").map((e) => e["welcome"]);
+    const probeCard = (page: import("playwright").Page) =>
+      page.evaluate(() => {
+        const card = document.querySelector("[data-share-welcome]") as HTMLElement | null;
+        if (!card) return null;
+        const h1 = [...document.querySelectorAll("h1")].find((h) =>
+          /play live with friends/i.test(h.textContent ?? ""),
+        );
+        const lines = (el: Element) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return new Set(
+            [...range.getClientRects()].filter((r) => r.width > 0.5).map((r) => Math.round(r.top)),
+          ).size;
+        };
+        const items = [...card.querySelectorAll("h2, p, p > span, button")].map((el) => {
+          const r = el.getBoundingClientRect();
+          const h = el as HTMLElement;
+          return {
+            text: h.innerText.trim(),
+            label: h.getAttribute("aria-label"),
+            tag: el.tagName,
+            cls: h.className,
+            w: r.width,
+            h: r.height,
+            lines: lines(el),
+            overflow: h.scrollWidth > h.clientWidth + 0.5,
+            right: r.right,
+          };
+        });
+        return {
+          cls: card.className,
+          top: card.getBoundingClientRect().top,
+          h1Top: h1?.getBoundingClientRect().top ?? -1,
+          items,
+          vw: window.innerWidth,
+          onboarding: !!document.querySelector("[data-onboarding]"),
+        };
+      });
+    const judgeCard = (
+      where: string,
+      probe: Awaited<ReturnType<typeof probeCard>>,
+      publicGame: boolean,
+    ) => {
+      check(!!probe, `${where}: no welcome card for a home arrival from a shared link`);
+      if (!probe) return;
+      check(
+        probe.top < probe.h1Top,
+        `${where}: the welcome card is not at the top of the Play tab`,
+      );
+      const heading = probe.items.find((i) => i.tag === "H2");
+      check(
+        heading?.text === `YOUR FRIEND PLAYED ${APP_NAME.toUpperCase()}`,
+        `${where}: heading "${heading?.text}"`,
+      );
+      const line = probe.items.find((i) => i.tag === "P");
+      check(
+        line?.text.replace(/\s+/g, " ") ===
+          "Quick multiplayer puzzle and arcade games. No sign-up.",
+        `${where}: line "${line?.text}"`,
+      );
+      const buttons = probe.items.filter((i) => i.tag === "BUTTON");
+      const practice = buttons.find((b) => b.text === "TRY A PRACTICE GAME");
+      const pub = buttons.find((b) => b.text.startsWith("NEXT PUBLIC GAME: "));
+      check(
+        !!practice && /\bth-btn-gold\b/.test(practice.cls),
+        `${where}: no gold TRY A PRACTICE GAME button`,
+      );
+      check(
+        publicGame ? !!pub && /\bth-btn-teal\b/.test(pub.cls) : !pub,
+        `${where}: public game button ${pub?.text ?? "missing"} (scheduled: ${publicGame})`,
+      );
+      check(!!buttons.find((b) => b.label === "Dismiss"), `${where}: no dismiss button`);
+      check(/\bth-card\b/.test(probe.cls), `${where}: not a th-card`);
+      for (const i of probe.items) {
+        if (i.tag === "BUTTON")
+          check(
+            i.w >= 44 && i.h >= 44,
+            `${where}: "${i.text || i.label}" is ${Math.round(i.w)}×${Math.round(i.h)} px`,
+          );
+        if (i.tag === "P")
+          check(
+            i.lines === 2 && !i.overflow && i.right <= probe.vw,
+            `${where}: the line is not its two set lines`,
+          );
+        else if (i.text)
+          check(
+            i.lines === 1 && !i.overflow && i.right <= probe.vw,
+            `${where}: "${i.text}" wraps or is cut off`,
+          );
+      }
+      check(!probe.onboarding, `${where}: the first-time intro covers the welcome`);
+    };
+    const welcomeScreen = (query: string) => ({
+      name: "welcome",
+      mode: "home" as const,
+      query,
+      waitMs: 1200,
+    });
+    {
+      // 414×896 home-screen app, a public game scheduled: shown, dismissed, never again after a reload.
+      const { context, page } = await openThemeScreen(
+        browser,
+        server.origin,
+        welcomeScreen("ref=share"),
+        viewport,
+      );
+      try {
+        judgeCard("welcome (414x896 app)", await probeCard(page), true);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, "welcome-414x896.png") });
+        const first = await events(page);
+        check(
+          first.some((e) => e["event"] === "arrival" && e["landing"] === "home"),
+          `welcome: arrival not recorded as home: ${JSON.stringify(first)}`,
+        );
+        check(
+          JSON.stringify(welcomeEvents(first)) === JSON.stringify(["shown"]),
+          `welcome: shown events ${JSON.stringify(welcomeEvents(first))}`,
+        );
+        await page.locator("[data-share-welcome-dismiss]").click();
+        await page.waitForTimeout(200);
+        check(
+          (await page.locator("[data-share-welcome]").count()) === 0,
+          "welcome: the card stays after Dismiss",
+        );
+        check(
+          JSON.stringify(welcomeEvents(await events(page))) ===
+            JSON.stringify(["shown", "dismissed"]),
+          `welcome: dismiss not recorded: ${JSON.stringify(await events(page))}`,
+        );
+        await page.reload();
+        await page.waitForSelector("#root *", { timeout: 60_000 });
+        await page.waitForTimeout(1200);
+        check(
+          (await page.locator("[data-share-welcome]").count()) === 0,
+          "welcome: the card shows again on a later visit",
+        );
+        const again = await events(page);
+        check(
+          !again.some((e) => e["event"] === "arrival" || e["event"] === "arrival_welcome"),
+          `welcome: a later visit recorded ${JSON.stringify(again)}`,
+        );
+      } finally {
+        await context.close();
+      }
+    }
+    {
+      // 375×667, a public game scheduled: its button goes to Tournaments and is recorded.
+      const small = { name: "375x667", w: 375, h: 667 };
+      const { context, page } = await openThemeScreen(
+        browser,
+        server.origin,
+        welcomeScreen("ref=share"),
+        small,
+      );
+      try {
+        judgeCard("welcome (375x667)", await probeCard(page), true);
+        await page.locator("[data-share-welcome-public]").click();
+        await page.waitForTimeout(200);
+        check(
+          JSON.stringify(welcomeEvents(await events(page))) === JSON.stringify(["shown", "public"]),
+          `welcome (375x667): public tap not recorded: ${JSON.stringify(await events(page))}`,
+        );
+      } finally {
+        await context.close();
+      }
+    }
+    {
+      // No public game scheduled: only the practice button, and its tap is recorded.
+      const { context, page } = await openThemeScreen(
+        browser,
+        server.origin,
+        welcomeScreen("ref=share"),
+        viewport,
+        async (ctx) => {
+          await ctx.addInitScript(() => {
+            (window as unknown as { __DUELZ_PUBLIC_GAMES__: unknown[] }).__DUELZ_PUBLIC_GAMES__ =
+              [];
+          });
+        },
+      );
+      try {
+        judgeCard("welcome, no public game", await probeCard(page), false);
+        if (SHOTS)
+          await page.screenshot({ path: join(SHOTS, "welcome-414x896-no-public-game.png") });
+        await page.locator("[data-share-welcome-practice]").click();
+        await page.waitForTimeout(200);
+        check(
+          JSON.stringify(welcomeEvents(await events(page))) ===
+            JSON.stringify(["shown", "practice"]),
+          `welcome, no public game: practice tap not recorded: ${JSON.stringify(await events(page))}`,
+        );
+      } finally {
+        await context.close();
+      }
+    }
+    {
+      // A plain visit: no card.
+      const { context, page } = await openThemeScreen(
+        browser,
+        server.origin,
+        welcomeScreen(""),
+        viewport,
+      );
+      try {
+        check(
+          (await page.locator("[data-share-welcome]").count()) === 0,
+          "a plain visit shows the welcome card",
+        );
+      } finally {
+        await context.close();
+      }
+    }
+    {
+      // An open lobby's share lands in the room: the lobby, no card.
+      const lobbyScreen = {
+        ...THEME_SCREENS.find((s) => s.name === "lobby, 2 players")!,
+        query: "ref=share",
+      };
+      const { context, page } = await openThemeScreen(
+        browser,
+        server.origin,
+        lobbyScreen,
+        viewport,
+      );
+      try {
+        check(
+          (await page.locator("[data-share-welcome]").count()) === 0,
+          "an open lobby shows the welcome card",
+        );
+        check((await page.locator("text=/lobby|start/i").count()) > 0, "the lobby didn't draw");
+      } finally {
+        await context.close();
+      }
+    }
   } finally {
     await browser.close();
     await server.close();
@@ -709,6 +1118,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${passes} checks (text and link for open and closed rooms, no answer content in the data or card, share sheet and clipboard fallback, arrival and finish recorded once, server rows and migration, wiring, Share on the podium and two-player result in Chromium)`,
+  `PASS: ${passes} checks (text and link for finished, closed, started and joinable rooms, no answer content in the data or card, share sheet and clipboard fallback, arrival and finish recorded once, server rows and migration, wiring, Share on the podium and two-player result in Chromium)`,
 );
 process.exit(0);

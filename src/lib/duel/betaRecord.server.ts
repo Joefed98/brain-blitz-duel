@@ -251,8 +251,11 @@ export async function callerUserId(client: any): Promise<string | null> {
 
 /* ------------------------------------------------------- share loop ---- */
 
-/** share_events (20261021120000): a Share tap, an arrival from a shared link, and that arrival's first finished room. */
-export type ShareEvent = "share_tap" | "arrival" | "arrival_finished";
+/**
+ * share_events (20261021120000): a Share tap, an arrival from a shared link, what that arrival did
+ * with the Play tab's welcome card, and its first finished room.
+ */
+export type ShareEvent = "share_tap" | "arrival" | "arrival_finished" | "arrival_welcome";
 
 export interface ShareEventRow {
   user_id: string;
@@ -265,7 +268,10 @@ export interface ShareEventRow {
   rounds: number | null;
   method: "native" | "copy" | null;
   landing: "home" | "room" | null;
+  welcome: "shown" | "dismissed" | "practice" | "public" | null;
 }
+
+const WELCOME = new Set(["shown", "dismissed", "practice", "public"]);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -280,23 +286,28 @@ function whole(value: unknown, min: number, max: number): number | null {
  */
 export function shareEventRow(userId: string, input: Record<string, unknown>): ShareEventRow | null {
   const event = input["event"];
-  if (event !== "share_tap" && event !== "arrival" && event !== "arrival_finished") return null;
+  if (event !== "share_tap" && event !== "arrival" && event !== "arrival_finished" && event !== "arrival_welcome")
+    return null;
+  const welcome = typeof input["welcome"] === "string" && WELCOME.has(input["welcome"]) ? input["welcome"] : null;
+  // A welcome row is nothing but its outcome.
+  if (event === "arrival_welcome" && !welcome) return null;
   const duelId = typeof input["duelId"] === "string" && UUID.test(input["duelId"]) ? input["duelId"] : null;
   const code = typeof input["roomCode"] === "string" && /^[A-Z]{4}$/.test(input["roomCode"]) ? input["roomCode"] : null;
   const method = input["method"] === "native" || input["method"] === "copy" ? input["method"] : null;
   const landing = input["landing"] === "home" || input["landing"] === "room" ? input["landing"] : null;
-  const inRoom = event !== "arrival";
+  const inRoom = event === "share_tap" || event === "arrival_finished";
   return {
     user_id: userId,
     event,
     duel_id: inRoom ? duelId : null,
     game_index: inRoom ? whole(input["gameIndex"], 0, 10_000) : null,
-    room_code: code,
+    room_code: event === "arrival_welcome" ? null : code,
     place: inRoom ? whole(input["place"], 1, 10) : null,
     players: inRoom ? whole(input["players"], 1, 10) : null,
     rounds: inRoom ? whole(input["rounds"], 1, 20) : null,
     method: event === "share_tap" ? method : null,
     landing: event === "arrival" ? landing : null,
+    welcome: event === "arrival_welcome" ? (welcome as ShareEventRow["welcome"]) : null,
   };
 }
 

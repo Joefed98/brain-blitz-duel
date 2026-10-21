@@ -1,6 +1,6 @@
 /**
  * The share loop's beta recording (share_events, supabase/migrations/20261021120000): a Share tap on
- * the final screen, an arrival from a shared link and that arrival's first finished room. Outcome
+ * the final screen, an arrival from a shared link, its welcome card and its first finished room. Outcome
  * only, best-effort and never part of play: until the migration is applied every write fails
  * quietly (betaRecord.server.ts) and the phone carries on.
  */
@@ -9,7 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface ShareEventInput {
-  event: "share_tap" | "arrival" | "arrival_finished";
+  event: "share_tap" | "arrival" | "arrival_finished" | "arrival_welcome";
   duelId?: string | null;
   gameIndex?: number | null;
   roomCode?: string | null;
@@ -18,6 +18,7 @@ export interface ShareEventInput {
   rounds?: number | null;
   method?: "native" | "copy" | null;
   landing?: "home" | "room" | null;
+  welcome?: "shown" | "dismissed" | "practice" | "public" | null;
 }
 
 export const recordShareEventFn = createServerFn({ method: "POST" })
