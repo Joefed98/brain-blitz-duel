@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
+import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
@@ -133,9 +134,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Before the first paint: which late Play tab cards to reserve (lib/playCards.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: PLAY_CARDS_BOOT }} />
       </head>
       <body>
         {children}

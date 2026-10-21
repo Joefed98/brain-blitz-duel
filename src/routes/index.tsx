@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { ChevronRight, DoorOpen } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
@@ -10,7 +10,10 @@ import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
-import { DailyCard, useDailyStatus } from "@/components/daily/DailyCard";
+import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
+import { ChallengeCard } from "@/components/challenge/ChallengeCard";
+import { PlaySlot } from "@/components/app/PlaySlot";
+import { readPlayCards, writePlayCards } from "@/lib/playCards";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
@@ -62,35 +65,54 @@ interface OpenRoom {
   lobby: boolean;
 }
 
-function useLastOpenRoom(): OpenRoom | null {
-  const [room, setRoom] = useState<OpenRoom | null>(null);
-  useEffect(() => {
+/**
+ * The device's last room while it is still open with this device in it: `shown` is what the card
+ * draws now (the last known state from playCards.ts until the server answers), `settled` once it has.
+ */
+function useLastOpenRoom(): { shown: OpenRoom | null; settled: boolean; open: boolean } {
+  const [state, setState] = useState<{ shown: OpenRoom | null; settled: boolean; open: boolean }>({
+    shown: null,
+    settled: false,
+    open: false,
+  });
+  useBeforePaint(() => {
     const last = readLastRoom();
-    if (!last) return;
+    if (!last) return setState({ shown: null, settled: true, open: false });
+    const cached = readPlayCards().rejoin;
+    const known = cached?.code === last.code ? cached.open : null;
+    setState({ shown: known ?? { code: last.code, players: 0, lobby: false }, settled: false, open: false });
     let live = true;
+    const done = (room: OpenRoom | null) => {
+      writePlayCards({ rejoin: { code: last.code, open: room } });
+      if (live) setState((current) => ({ shown: room ?? current.shown, settled: true, open: !!room }));
+    };
     void (async () => {
       try {
         const duel = await fetchDuelByCode(last.code);
-        if (!duel || duel.disbanded_at || duel.status === "finished") return;
+        if (!duel || duel.disbanded_at || duel.status === "finished") return done(null);
         const [players, uid] = await Promise.all([fetchPlayers(duel.id), currentUserId()]);
         const mine = players.find((p) => p.user_id === uid);
-        if (!mine || mine.status === "left") return;
-        if (live)
-          setRoom({
-            code: duel.room_code,
-            players: players.filter((p) => p.status !== "left").length,
-            lobby: duel.status === "waiting",
-          });
+        if (!mine || mine.status === "left") return done(null);
+        done({
+          code: duel.room_code,
+          players: players.filter((p) => p.status !== "left").length,
+          lobby: duel.status === "waiting",
+        });
       } catch {
         /* no row: nothing to rejoin */
+        done(null);
       }
     })();
     return () => {
       live = false;
     };
   }, []);
-  return room;
+  return state;
 }
+
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+const slotState = (settled: boolean, show: boolean) => (!settled ? "pending" : show ? "show" : "hide");
 
 function Home() {
   const navigate = useNavigate();
@@ -108,9 +130,15 @@ function Home() {
   // mount, so the server-rendered page and the first client render agree.
   const [recent, setRecent] = useState<PuzzleType[] | null>(null);
   const [bests, setBests] = useState<Record<string, number | null>>({});
+  // Read before the first client paint; its card's height is reserved from the last visit (playCards.ts).
   const [games, setGames] = useState<PublicGame[]>([]);
+  const [welcome, setWelcome] = useState<boolean | null>(null);
+  // Set after mount: until then the name row keeps the height reserved before the first paint.
+  const [mounted, setMounted] = useState(false);
+  const publicSlot = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  // Before the first client paint (the page's layout is already reserved from device storage).
+  useBeforePaint(() => {
     const stored = getStoredName();
     setName(stored);
     setEditingName(stored.trim() === "");
@@ -122,6 +150,7 @@ function Home() {
       ),
     );
     setGames(scheduledGames());
+    setMounted(true);
   }, []);
   useEffect(() => {
     // A shared link's arrival is welcomed by the card below instead (as a room link marks it seen).
@@ -134,8 +163,22 @@ function Home() {
   const lastRoom = useLastOpenRoom();
   // Today's dailies (hidden until the daily tables exist: DailyCard).
   const daily = useDailyStatus();
+  // The last known status is device storage: read only once mounted (before its first paint), so the
+  // server-rendered page and the first client render agree.
+  const dailyShown = useMemo(() => (mounted ? shownDailyStatus(daily) : shownDailyStatus({ status: daily.status }, Date.now(), false)), [daily, mounted]);
+  // Friend challenges (hidden until their tables exist: ChallengeCard): the daily status call answers
+  // for both; null until it has.
+  const challenges = daily.settled ? daily.status?.challenges === true : null;
+  useEffect(() => {
+    if (challenges !== null) writePlayCards({ challenges });
+  }, [challenges]);
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
+  // The public game card's height, for the next visit's first paint (0: none).
+  useEffect(() => {
+    if (!mounted) return;
+    writePlayCards({ publicH: nextGame ? Math.round(publicSlot.current?.getBoundingClientRect().height ?? 0) : 0 });
+  }, [mounted, nextGame]);
   const warmUp = recent ?? warmUpTypes([]);
 
   const fail = (message: string) => {
@@ -183,7 +226,10 @@ function Home() {
       </div>
 
       <div className="mt-5 flex flex-col gap-5">
+        <PlaySlot id="welcome" state={slotState(welcome !== null, welcome === true)}>
         <ShareWelcomeCard
+          assumeDue
+          onDue={setWelcome}
           nextGame={nextGame}
           now={now}
           onPractice={() => {
@@ -193,6 +239,7 @@ function Home() {
           }}
           onPublic={() => goToTab(router, "play", "tournaments")}
         />
+        </PlaySlot>
 
         <div>
           <h1 className="whitespace-nowrap font-display text-[25px] font-bold leading-tight tracking-[0.02em]">
@@ -210,6 +257,9 @@ function Home() {
           className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
         >
           <p className="th-kicker text-primary">Quick play</p>
+          {/* Its height is set before the first paint from whether a name is stored (app-shell.css), so
+              the name loading after mount never moves anything. */}
+          <div data-name-row data-editing={mounted ? String(editingName) : undefined}>
           {editingName ? (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="name" className="th-kicker text-muted-foreground">
@@ -246,6 +296,7 @@ function Home() {
               </button>
             </p>
           )}
+          </div>
           <button
             type="button"
             onClick={() => void start("create")}
@@ -306,11 +357,15 @@ function Home() {
           )}
         </section>
 
-        {lastRoom ? (
+        <PlaySlot id="rejoin" state={slotState(lastRoom.settled, lastRoom.open)}>
+        {(() => {
+          // Until the device's last room is read (the server-rendered page): a quiet card of the same size.
+          const shown = lastRoom.shown ?? { code: "····", players: 0, lobby: false };
+          return (
           <button
             type="button"
-            data-rejoin-room={lastRoom.code}
-            onClick={() => void navigate({ to: "/duel/$code", params: { code: lastRoom.code } })}
+            data-rejoin-room={shown.code}
+            onClick={() => lastRoom.shown && void navigate({ to: "/duel/$code", params: { code: lastRoom.shown.code } })}
             data-tint="gold"
             className="th-card press flex min-h-14 w-full items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-left"
           >
@@ -320,19 +375,24 @@ function Home() {
                 Rejoin your last room
               </span>
               <span className="truncate text-xs text-muted-foreground">
-                <span className="font-mono tracking-widest text-foreground">{lastRoom.code}</span> ·{" "}
-                {lastRoom.lobby
-                  ? `${lastRoom.players} ${lastRoom.players === 1 ? "player" : "players"} in the lobby`
-                  : "Game in progress"}
+                <span className="font-mono tracking-widest text-foreground">{shown.code}</span> ·{" "}
+                {shown.players === 0
+                  ? "Checking the room"
+                  : shown.lobby
+                    ? `${shown.players} ${shown.players === 1 ? "player" : "players"} in the lobby`
+                    : "Game in progress"}
               </span>
             </span>
             <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
           </button>
-        ) : null}
+          );
+        })()}
+        </PlaySlot>
 
         {/* The Daily card sits below the share welcome card (the first card on the tab), as agreed for #125 + #126. */}
+        <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
         <DailyCard
-          status={daily}
+          status={dailyShown}
           onOpen={(kind) => {
             unlockAudio();
             void router.navigate({
@@ -342,7 +402,26 @@ function Home() {
             });
           }}
         />
+        </PlaySlot>
 
+        <PlaySlot id="challenge" state={slotState(challenges !== null, challenges === true)}>
+        <ChallengeCard
+          available
+          onOpen={() => {
+            unlockAudio();
+            void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never);
+          }}
+        />
+        </PlaySlot>
+
+        {/* Its last height is reserved before the first paint (playCards.ts): the schedule is read on the phone. */}
+        <div
+          ref={publicSlot}
+          data-public-slot
+          data-ready={mounted || undefined}
+          data-empty={(mounted && !nextGame) || undefined}
+          className="play-public-slot"
+        >
         {nextGame ? (
           <PublicGameCard
             game={nextGame}
@@ -360,6 +439,7 @@ function Home() {
             }
           />
         ) : null}
+        </div>
 
         <section aria-label="Warm up" className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-2">

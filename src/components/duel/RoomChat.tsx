@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2, MessageCircle, Minimize2, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   type RoomMessageRow,
 } from "@/lib/duel/chatConstants";
 import { CHAT_TOAST_BUZZ_MS, CHAT_TOAST_MS, chatToastText, shouldToast } from "@/lib/duel/chatNotice";
+import { chatToastBottom } from "@/lib/duel/chatToastPlace";
 import type { RoomChatState } from "@/lib/duel/useRoomChat";
 import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/playerLook";
 import type { DuelPlayerRow } from "@/lib/duel/types";
@@ -177,6 +178,16 @@ export function RoomChat({
   useEffect(() => {
     if (open || !available) setToast(null);
   }, [open, available]);
+  // At the bottom, above the home bar and every control pinned there (chatToastPlace.ts).
+  const toastRef = useRef<HTMLButtonElement | null>(null);
+  const [toastBottom, setToastBottom] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!toast) return setToastBottom(null);
+    const place = () => setToastBottom(chatToastBottom(document, window, toastRef.current));
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [toast]);
 
   useEffect(() => {
     setMounted(true);
@@ -477,6 +488,7 @@ export function RoomChat({
     <button
       type="button"
       key={toast.id}
+      ref={toastRef}
       data-chat-toast={toast.id}
       data-skin="room"
       aria-label={`New message from ${toast.sender_name}: ${toast.text}. Open messages`}
@@ -484,9 +496,10 @@ export function RoomChat({
         setToast(null);
         setSheetOpen(true);
       }}
-      className="th-sheet fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg animate-fade-in"
+      className="th-sheet fixed inset-x-0 z-[58] mx-auto flex h-12 w-[calc(100%-32px)] max-w-[398px] items-center gap-2 rounded-full border bg-card px-3 text-left shadow-lg chat-toast-up"
       style={{
-        top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+        bottom: toastBottom === null ? "calc(env(safe-area-inset-bottom, 0px) + 8px)" : `${toastBottom}px`,
+        visibility: toastBottom === null ? "hidden" : undefined,
         borderColor: playerColourHex(lookOf(toast.sender_user_id)),
       }}
     >

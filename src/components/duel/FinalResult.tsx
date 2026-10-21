@@ -39,6 +39,8 @@ interface FinalResultProps {
   playOfTheGame?: ReactNode;
   /** The Share button (RoomShareButton), beside Play again. */
   share?: ReactNode;
+  /** "Challenge a friend" (RoomChallengeButton), its own row under Play again and Share. */
+  challenge?: ReactNode;
 }
 
 export function FinalResult({
@@ -62,6 +64,7 @@ export function FinalResult({
   onHome,
   playOfTheGame,
   share,
+  challenge,
 }: FinalResultProps) {
   const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
   const headlineColor =
@@ -175,6 +178,7 @@ export function FinalResult({
             {share}
           </div>
         )}
+        {challenge}
         <button
           type="button"
           onClick={onHome}

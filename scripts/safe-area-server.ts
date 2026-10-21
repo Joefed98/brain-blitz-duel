@@ -19,7 +19,7 @@ const ROUTER_STUB = `
 export const createFileRoute = () => (options) => ({
   options,
   useParams: () => ({ code: "SAFE" }),
-  useSearch: () => ({}),
+  useSearch: () => (window.__harness && window.__harness.search) || {},
 });
 export const useNavigate = () => (opts) => { const h = window.__harness; if (h) (h.navigations ??= []).push(opts); };
 export const useRouter = () => ({ navigate: () => undefined, invalidate: () => undefined });

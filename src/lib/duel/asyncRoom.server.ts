@@ -220,7 +220,7 @@ export async function attemptsIn(client: any, roomId: string): Promise<AsyncAtte
   return (data ?? []) as AsyncAttemptRow[];
 }
 
-async function resultsOf(client: any, attemptId: string): Promise<AsyncResultRow[]> {
+export async function resultsOf(client: any, attemptId: string): Promise<AsyncResultRow[]> {
   const { data, error } = await client
     .from("async_results")
     .select("*")
@@ -281,6 +281,68 @@ export async function startAttempt(
   return { ok: true, attempt: row, created: true };
 }
 
+/**
+ * Stores a finished attempt whose rounds were played elsewhere (friend challenges made from a
+ * finished room, challenge.server.ts): the room's own stored results, copied as they are (never
+ * regraded), each round's start set so the time from start to receipt is what that player used,
+ * and a round with no stored answer stored as missed (0). Its board columns are computed exactly as
+ * a played attempt's are. Records no beta event (nobody played it here).
+ */
+export async function importFinishedAttempt(
+  client: any,
+  room: AsyncRoomRow,
+  who: { userId: string; name: string; colour: number | null; icon: string | null },
+  rounds: readonly (Omit<AsyncResultRow, "id" | "room_id" | "attempt_id" | "user_id"> | null)[],
+  nowMs: number,
+): Promise<AsyncAttemptRow> {
+  const attempt: AsyncAttemptRow = {
+    id: crypto.randomUUID(),
+    room_id: room.id,
+    user_id: who.userId,
+    display_name: who.name,
+    colour: who.colour,
+    icon: who.icon,
+    started_at: iso(nowMs),
+    finished_at: null,
+    rounds_done: 0,
+    total_score: 0,
+    tie_ms: tieTotal(room, []),
+    round_scores: Array.from({ length: room.round_count }, () => null),
+  };
+  const { error } = await client.from("async_attempts").insert(attempt);
+  if (error) throw new Error(error.message);
+  const rows: AsyncResultRow[] = Array.from({ length: room.round_count }, (_, i) => {
+    const stored = rounds[i];
+    const base = {
+      id: crypto.randomUUID(),
+      room_id: room.id,
+      attempt_id: attempt.id,
+      user_id: who.userId,
+      round_number: i + 1,
+    };
+    return stored
+      ? { ...stored, ...base }
+      : {
+          ...base,
+          started_at: iso(nowMs),
+          answered: false,
+          answered_at: null,
+          missed: true,
+          answer: null,
+          is_correct: false,
+          ms_remaining: 0,
+          reaction_avg_ms: null,
+          correct_count: null,
+          errors: null,
+          extra: { missed: true },
+          score: 0,
+        };
+  });
+  const { error: resultError } = await client.from("async_results").insert(rows);
+  if (resultError) throw new Error(resultError.message);
+  return refreshAttempt(client, room, attempt, rows, nowMs, false);
+}
+
 /** The tie-break rounds of an async room (every round dealt is stamped tieRev; tieBreak.ts). */
 function tieRounds(room: AsyncRoomRow): TieRound[] {
   return room.puzzles_public.map((puzzle) => tieRoundFor(puzzle));
@@ -304,6 +366,7 @@ async function refreshAttempt(
   attempt: AsyncAttemptRow,
   rows: readonly AsyncResultRow[],
   nowMs: number,
+  record = true,
 ): Promise<AsyncAttemptRow> {
   const scores = Array.from({ length: room.round_count }, (_, i) => {
     const row = rows.find((r) => r.round_number === i + 1);
@@ -323,7 +386,7 @@ async function refreshAttempt(
     .update(next)
     .eq("id", attempt.id)
     .eq("user_id", attempt.user_id);
-  if (finished && !attempt.finished_at)
+  if (record && finished && !attempt.finished_at)
     await recordAsyncEvent(client, {
       room_id: room.id,
       kind: room.kind,

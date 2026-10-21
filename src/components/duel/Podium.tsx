@@ -80,6 +80,13 @@ interface PodiumProps {
   playOfTheGame?: ReactNode;
   /** The Share button (RoomShareButton), beside Play again. */
   share?: ReactNode;
+  /** Rooms: "Challenge a friend" (RoomChallengeButton), its own row under Play again and Share. */
+  challenge?: ReactNode;
+  /**
+   * A friend challenge's final screen (22 Oct 2026): its own buttons in place of the room's
+   * (Play again, Share, Leave), pinned to the screen's bottom (no chat bar under it).
+   */
+  actions?: ReactNode;
 }
 
 /** The final screen for a room of three or more players. */
@@ -96,6 +103,8 @@ export function Podium({
   onLeave,
   playOfTheGame,
   share,
+  challenge,
+  actions,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
   const mine = rows.find((r) => r.slot === mySlot);
@@ -184,8 +193,10 @@ export function Podium({
       <div
         data-podium-actions
         className="room-sticky-footer sticky z-30 mt-auto flex flex-col gap-2 bg-background pb-2 pt-2"
-        style={{ bottom: `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
+        style={{ bottom: actions ? "0px" : `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
       >
+        {actions ?? (
+        <>
         {!isHost && (
           <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Waiting for host…
@@ -213,6 +224,7 @@ export function Podium({
             {share}
           </div>
         )}
+        {challenge}
         <button
           type="button"
           onClick={onLeave}
@@ -220,6 +232,8 @@ export function Podium({
         >
           Leave
         </button>
+        </>
+        )}
       </div>
     </div>
   );

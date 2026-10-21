@@ -22,7 +22,8 @@ const ARRIVAL_KEY = "duelz-share-arrival:v1";
 
 export interface ShareArrival {
   at: number;
-  landing: "home" | "room";
+  /** Where the link landed: a room link's lobby or the home; or a daily's or challenge's own page (22 Oct 2026). */
+  landing: "home" | "room" | "daily" | "challenge";
   roomCode: string | null;
   /** Set once the arrival's first finished room is counted. */
   finished?: boolean;
@@ -95,7 +96,23 @@ const ROOM_CODE = /^[A-Za-z]{4}$/;
 function writeArrival(arrival: ShareArrival, record: ShareRecorder): void {
   writeShareArrival(arrival);
   arrivedThisLoad = true;
-  record({ event: "arrival", landing: arrival.landing, roomCode: arrival.roomCode });
+  record({ event: "arrival", source: "room", landing: arrival.landing as "home" | "room", roomCode: arrival.roomCode });
+}
+
+/**
+ * A daily's or a friend challenge's shared link opened (?ref=daily, ?ref=challenge; 22 Oct 2026):
+ * counts the device's arrival with its source, once per device like a room link's (the first shared
+ * link a device opens is its arrival). No welcome card: the page itself is the welcome.
+ */
+export function noteLinkArrival(
+  link: { source: "daily"; dailyKind: "puzzle" | "arcade" } | { source: "challenge"; challengeCode: string },
+  record: ShareRecorder = sendShareEvent,
+  now: number = Date.now(),
+): boolean {
+  if (readShareArrival()) return false;
+  writeShareArrival({ at: now, landing: link.source, roomCode: null });
+  record({ event: "arrival", ...link });
+  return true;
 }
 
 /**

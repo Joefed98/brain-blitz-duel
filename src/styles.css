@@ -1845,3 +1845,13 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
 /* Practice's "New best!" moment on the reveal (NewBestMoment; skipped entirely with reduced motion or effects). */
 .new-best-moment { animation: new-best-moment 1800ms ease-out both; }
 @keyframes new-best-moment { 0% { opacity: 0; transform: scale(0.6); } 14% { opacity: 1; transform: scale(1.08); } 22% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* The room's chat toast (RoomChat, 22 Oct 2026): slides up from the bottom. */
+@keyframes chat-toast-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chat-toast-up { animation: chat-toast-up 220ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .chat-toast-up { animation: none; }
+}

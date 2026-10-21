@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
@@ -33,6 +33,8 @@ export function AsyncResults({
   placeLine,
   onBoard,
   boardLabel = "See leaderboard",
+  actions,
+  share,
 }: {
   roomId: string;
   view: AsyncAttemptView;
@@ -41,6 +43,10 @@ export function AsyncResults({
   placeLine: string | null;
   onBoard: () => void;
   boardLabel?: string;
+  /** In place of the board button (a friend challenge's creator: Send the challenge, Done). */
+  actions?: ReactNode;
+  /** A Share button beside the board button (the daily's). */
+  share?: ReactNode;
 }) {
   const [reveals, setReveals] = useState<(AsyncReveal | null | undefined)[]>(() =>
     view.rounds.map(() => undefined),
@@ -227,14 +233,19 @@ export function AsyncResults({
           })}
         </ol>
 
-        <button
-          type="button"
-          data-async-board
-          onClick={onBoard}
-          className="th-btn-gold press tap-target mt-auto w-full whitespace-nowrap rounded-xl bg-primary px-6 py-3 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
-        >
-          {boardLabel}
-        </button>
+        {actions ?? (
+          <div className="mt-auto flex gap-2">
+            <button
+              type="button"
+              data-async-board
+              onClick={onBoard}
+              className="th-btn-gold press tap-target min-w-0 flex-1 whitespace-nowrap rounded-xl bg-primary px-4 py-3 font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+            >
+              {boardLabel}
+            </button>
+            {share}
+          </div>
+        )}
       </div>
     </PhoneShell>
   );

@@ -15,12 +15,14 @@ import "../src/styles.css";
 import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
+import { bootPlayCards } from "@/lib/playCards";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
 import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
+import { Route as ChallengeRoute } from "@/routes/challenge";
 
 interface Verdict {
   isCorrect: boolean;
@@ -60,12 +62,34 @@ interface Harness {
     view: unknown;
     reveals: unknown[];
   };
+  /**
+   * Friend challenges' server (challenge-shots, theme-check, no-wrap-check): the link's info, the
+   * run's roster, pings and round boards, the final board and Profile's list. Absent: unavailable.
+   * The run's rounds themselves go through the async-room stand-ins above (H.daily's view).
+   */
+  challenge?: {
+    info: unknown;
+    roster: unknown;
+    pings: number[];
+    boards: Record<number, unknown>;
+    final: unknown;
+    list: unknown[];
+  };
+  /** play-tab-shift-check: the stand-in server's delay, challenge availability and the last room's state. */
+  slowMs?: number;
+  challengesAvailable?: boolean;
+  rejoin?: { code: string; status: string; players: number };
+  /** The route's search (useSearch): the challenge screen's ?code=. */
+  search?: Record<string, string>;
   /** Where useNavigate was sent (share-check: a shared link's redirect). */
   navigations?: unknown[];
   /** The link join's room preview (share-check sets window.__harnessPreview before load: a finished or full room); an open lobby if unset. */
   preview?: unknown;
   /** Share loop events the page sent (share-check), in order. */
   shareEvents?: unknown[];
+  /** A chat message arriving live (chat-notice-check: the toast); set through H.chat. */
+  chatIncoming?: unknown;
+  chat?: (message: unknown) => void;
   /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
   update?: (change: (room: Room) => void) => void;
 }
@@ -117,7 +141,9 @@ function useDuel() {
 }
 
 function useRoomChat() {
+  useSyncExternalStore(subscribe, () => version);
   return {
+    incoming: H.chatIncoming ?? null,
     messages: [],
     reactions: [],
     unread: 0,
@@ -213,8 +239,10 @@ async function checkWord(_duelId: string, _round: number, word: string) {
 
 /* The daily challenge (daily.functions.ts, asyncRoom.functions.ts) from H.daily. */
 async function dailyStatusFn() {
+  await slow();
   if (!H.daily) throw new Error("no daily");
-  return H.daily.status;
+  // The same call says whether challenges are available (daily.server.ts).
+  return { ...(H.daily.status as object), challenges: H.challengesAvailable ?? !!H.challenge };
 }
 async function dailyBoardFn({ data }: { data: { kind: string; day: string } }) {
   return H.daily?.boards[`${data.kind}:${data.day}`] ?? null;
@@ -258,6 +286,57 @@ async function asyncSubmitFn({ data }: { data: { roundNumber: number; answer: st
   return { ok: true, score: H.verdict.score };
 }
 
+/** The stand-in server's answer time for the Play tab's late cards (play-tab-shift-check: a slow server). */
+const slow = () => new Promise((resolve) => setTimeout(resolve, H.slowMs ?? 0));
+
+/* Friend challenges (challenge.functions.ts) from H.challenge (or H.challengesAvailable). */
+async function challengeStatusFn() {
+  await slow();
+  return { available: H.challengesAvailable ?? !!H.challenge };
+}
+
+/** The device's last room for the Play tab's Rejoin card (H.rejoin; none: not found). */
+const SUPABASE = inert();
+async function fetchDuelByCode(code: string) {
+  await slow();
+  const r = H.rejoin;
+  if (!r || r.code !== code) return null;
+  return { id: "rejoin-duel", room_code: code, status: r.status, disbanded_at: null };
+}
+async function fetchPlayers() {
+  const r = H.rejoin;
+  // The device's own row carries the stand-in session's id (the inert client's), as currentUserId reads it.
+  return Array.from({ length: r?.players ?? 0 }, (_, i) => ({ player_slot: i + 1, status: "active", user_id: i === 0 ? SUPABASE : `u${i}` }));
+}
+async function challengeInfoFn() {
+  return H.challenge?.info ?? { found: false };
+}
+async function createChallengeFn() {
+  return { ok: true, code: "K7QM2X", roomId: "challenge-room" };
+}
+async function startChallengeFn() {
+  return { ok: true, roomId: "challenge-room", created: true };
+}
+async function challengeFromRoomFn() {
+  return { ok: true, code: "K7QM2X", roomId: "challenge-room", created: true };
+}
+async function challengeRosterFn() {
+  return H.challenge?.roster ?? null;
+}
+async function challengePingsFn() {
+  return H.challenge?.pings ?? [];
+}
+async function challengeRoundBoardFn({ data }: { data: { roundNumber: number } }) {
+  const board = H.challenge?.boards[data.roundNumber];
+  return board ? { ok: true, json: JSON.stringify(board) } : { ok: false, message: "none" };
+}
+async function challengeFinalFn() {
+  return H.challenge?.final ? { ok: true, json: JSON.stringify(H.challenge.final) } : { ok: false, message: "none" };
+}
+async function myChallengesFn() {
+  return H.challenge?.list ?? [];
+}
+
 /** The share loop's beta recording: kept for share-check to read. */
 async function recordShareEventFn({ data }: { data: unknown }) {
   (H.shareEvents ??= []).push(data);
@@ -265,6 +344,16 @@ async function recordShareEventFn({ data }: { data: unknown }) {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  challengeStatusFn,
+  challengeInfoFn,
+  createChallengeFn,
+  startChallengeFn,
+  challengeFromRoomFn,
+  challengeRosterFn,
+  challengePingsFn,
+  challengeRoundBoardFn,
+  challengeFinalFn,
+  myChallengesFn,
   asyncRoundStartFn,
   asyncSubmitFn,
   dailyStatusFn,
@@ -282,8 +371,15 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   submitAnswer,
   practiceGenerateFn,
   practiceGradeFn,
-  supabase: inert(),
+  supabase: SUPABASE,
+  fetchDuelByCode,
+  fetchPlayers,
   DuelError: class DuelError extends Error {},
+};
+
+H.chat = (message) => {
+  H.chatIncoming = message;
+  bump();
 };
 
 H.update = (change) => {
@@ -295,6 +391,9 @@ H.update = (change) => {
 H.call = (_module, name) => IMPLEMENTATIONS[name] ?? (async () => null);
 
 /* --------------------------------------------------------------------- mount */
+
+// The root's inline boot script (playCards.ts): which Play tab cards to reserve before the first paint.
+bootPlayCards();
 
 for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;
@@ -311,7 +410,9 @@ const Screen = (
           ? ProfileRoute
           : mode === "daily"
             ? DailyRoute
-            : PracticeRoute
+            : mode === "challenge"
+              ? ChallengeRoute
+              : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

@@ -9,6 +9,7 @@ import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
+import { YourChallenges } from "@/components/challenge/YourChallenges";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
@@ -204,6 +205,12 @@ function ProfileScreen() {
             ))}
           </span>
         </section>
+
+        <YourChallenges
+          onOpen={(code) =>
+            void router.navigate({ to: "/challenge", search: { code }, state: { fromPlayTab: true } as never } as never)
+          }
+        />
 
         <section aria-label="Practice bests" className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">

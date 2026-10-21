@@ -284,7 +284,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.fillStyle = GOLD;
   c.font = `700 44px ${MONO}`;
   c.letterSpacing = "6px";
-  c.fillText(`ROOM ${data.roomCode}`, CARD_W / 2, CARD_H - 110);
+  c.fillText(`${data.codeLabel ?? "ROOM"} ${data.roomCode}`, CARD_W / 2, CARD_H - 110);
   c.letterSpacing = "0px";
   c.fillStyle = MUTED;
   c.font = `600 30px ${BODY}`;

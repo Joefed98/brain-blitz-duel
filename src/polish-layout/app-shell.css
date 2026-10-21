@@ -104,3 +104,57 @@ html:has([data-tab-screen]) {
 .game-icon-gold {
   color: var(--primary);
 }
+
+/* The Play tab's late cards (PlaySlot, src/lib/playCards.ts, 22 Oct 2026): in the markup from the first
+   frame, hidden unless the boot script reserved them (<html data-play-cards>), collapsing smoothly
+   (height, then the 20 px gap above) when the server says they shouldn't show. */
+.play-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 320ms ease,
+    opacity 200ms ease,
+    margin-top 320ms ease;
+}
+.play-slot[data-slot-state="hide"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: -1.25rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+html:not([data-play-cards~="daily"]) [data-play-slot="daily"],
+html:not([data-play-cards~="challenge"]) [data-play-slot="challenge"],
+html:not([data-play-cards~="rejoin"]) [data-play-slot="rejoin"],
+html:not([data-play-cards~="welcome"]) [data-play-slot="welcome"] {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-slot {
+    transition: opacity 200ms ease;
+  }
+}
+
+/* Quick play's name row (src/routes/index.tsx): until the page is up, the height of the variant the
+   stored name will show (the input without one, "Playing as" with one; <html data-play-cards~="named">,
+   set before the first paint), so reading the name after mount moves nothing. */
+[data-name-row]:not([data-editing]) {
+  height: 69.1875px;
+  overflow: hidden;
+}
+html[data-play-cards~="named"] [data-name-row]:not([data-editing]) {
+  height: 48px;
+}
+
+/* The Next public game card's slot (src/routes/index.tsx): until the page is up, the card's last height
+   (--play-public-h, from device storage before the first paint), or nothing (and no gap) without one. */
+[data-public-slot]:not([data-ready]) {
+  height: var(--play-public-h, 0px);
+  overflow: hidden;
+}
+html:not([data-play-cards~="public"]) [data-public-slot]:not([data-ready]),
+[data-public-slot][data-empty] {
+  margin-top: -1.25rem;
+  height: 0;
+  overflow: hidden;
+}

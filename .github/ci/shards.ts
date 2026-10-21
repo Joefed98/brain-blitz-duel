@@ -52,8 +52,12 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
   play11: ["bottom-clearance-check.ts@6/8", "arcade-fill-check.ts@1/3"],
-  play12: ["bottom-clearance-check.ts@7/8", "arcade-fill-check.ts@2/3"],
-  play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3"],
+  // chat-notice-check (22 Oct 2026: its browser pass draws the chat toast on six room screens at three sizes, ~1 min
+  // with its dev server) needs Chromium, so it rides on a play job.
+  play12: ["bottom-clearance-check.ts@7/8", "arcade-fill-check.ts@2/3", "chat-notice-check.tsx"],
+  // play-tab-shift-check (22 Oct 2026: the Play tab's layout from the first frame, five visits with a slow
+  // server, ~1 min with its dev server) needs Chromium.
+  play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3", "play-tab-shift-check.ts"],
   // room-extras-check (17 Oct 2026: the room's "finished" pings and the reveal's snake chart, ~3 min with its dev
   // server) on its own job: beside a bottom-clearance part and an arcade-fill third it would pass 10 minutes.
   // desktop-geometry-check (17 Oct 2026: PC and laptop browsers at four sizes and while resizing, ~2-3 min with its

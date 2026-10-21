@@ -299,9 +299,13 @@ export async function recordRoundRecordsFor(
  */
 export type ShareEvent = "share_tap" | "arrival" | "arrival_finished" | "arrival_welcome";
 
+/** What was shared, or what kind of link an arrival came from (22 Oct 2026; rows before it are rooms). */
+export type ShareSource = "room" | "daily" | "challenge";
+
 export interface ShareEventRow {
   user_id: string;
   event: ShareEvent;
+  source: ShareSource;
   duel_id: string | null;
   game_index: number | null;
   room_code: string | null;
@@ -311,6 +315,10 @@ export interface ShareEventRow {
   method: "native" | "copy" | null;
   landing: "home" | "room" | null;
   welcome: "shown" | "dismissed" | "practice" | "public" | null;
+  /** A challenge's code (source challenge). */
+  challenge_code: string | null;
+  /** Which daily (source daily). */
+  daily_kind: "puzzle" | "arcade" | null;
 }
 
 const WELCOME = new Set(["shown", "dismissed", "practice", "public"]);
@@ -337,23 +345,62 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
   const code = typeof input["roomCode"] === "string" && /^[A-Z]{4}$/.test(input["roomCode"]) ? input["roomCode"] : null;
   const method = input["method"] === "native" || input["method"] === "copy" ? input["method"] : null;
   const landing = input["landing"] === "home" || input["landing"] === "room" ? input["landing"] : null;
-  const inRoom = event === "share_tap" || event === "arrival_finished";
+  // Daily and challenge shares and arrivals (22 Oct 2026); anything else, and every row before, is a room's.
+  // A room's finish and the welcome card are always the room loop's.
+  const asked = input["source"] === "daily" || input["source"] === "challenge" ? input["source"] : "room";
+  const source: ShareSource = event === "share_tap" || event === "arrival" ? asked : "room";
+  const room = source === "room";
+  const inRoom = room && (event === "share_tap" || event === "arrival_finished");
+  const challengeCode =
+    source === "challenge" && typeof input["challengeCode"] === "string" && /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(input["challengeCode"])
+      ? input["challengeCode"]
+      : null;
+  const dailyKind = source === "daily" && (input["dailyKind"] === "puzzle" || input["dailyKind"] === "arcade") ? input["dailyKind"] : null;
+  // A challenge's share carries its place and counts (up to 20 players, 10 rounds).
+  const placed = inRoom || (source === "challenge" && event === "share_tap");
+  const most = room ? 10 : 20;
   return {
     user_id: userId,
     event,
+    source,
     duel_id: inRoom ? duelId : null,
     game_index: inRoom ? whole(input["gameIndex"], 0, 10_000) : null,
-    room_code: event === "arrival_welcome" ? null : code,
-    place: inRoom ? whole(input["place"], 1, 10) : null,
-    players: inRoom ? whole(input["players"], 1, 10) : null,
-    rounds: inRoom ? whole(input["rounds"], 1, 20) : null,
+    room_code: event === "arrival_welcome" || !room ? null : code,
+    place: placed ? whole(input["place"], 1, most) : null,
+    players: placed ? whole(input["players"], 1, most) : null,
+    rounds: placed ? whole(input["rounds"], 1, 20) : null,
     method: event === "share_tap" ? method : null,
-    landing: event === "arrival" ? landing : null,
+    landing: event === "arrival" && room ? landing : null,
     welcome: event === "arrival_welcome" ? (welcome as ShareEventRow["welcome"]) : null,
+    challenge_code: challengeCode,
+    daily_kind: dailyKind,
   };
 }
 
 /** Writes one share_events row, best-effort (a duplicate arrival is the unique index keeping the first). */
 export async function recordShareEvent(client: any, row: ShareEventRow): Promise<void> {
   await bestEffort(`share_events ${row.event}`, () => client.from("share_events").insert(row));
+}
+
+/* ------------------------------------------------- friend challenges ---- */
+
+/**
+ * challenge_events (20261022120000): a challenge made (from the Play tab or a room's podium), its
+ * link opened, a friend's finish, and that friend's first room or daily afterwards. Once per
+ * challenge and device (follow-ups once per device and kind): the unique indexes keep the first.
+ */
+export type ChallengeEvent = "created" | "link_opened" | "friend_finished" | "followup_room" | "followup_daily";
+
+export interface ChallengeEventRow {
+  room_id: string | null;
+  code: string | null;
+  user_id: string;
+  event: ChallengeEvent;
+  source?: "play" | "room" | null;
+}
+
+export async function recordChallengeEvent(client: any, row: ChallengeEventRow): Promise<void> {
+  await bestEffort(`challenge_events ${row.event} code=${row.code ?? "-"}`, () =>
+    client.from("challenge_events").insert({ source: null, ...row }),
+  );
 }

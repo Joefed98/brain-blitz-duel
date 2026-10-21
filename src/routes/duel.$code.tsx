@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
@@ -37,6 +37,10 @@ import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
 import { RoomChat, RoundChatDot } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { FinishedPingStrip, useFinishedPings } from "@/components/duel/FinishedPings";
+// Loaded on demand: only a finished room shows it, so the room's own screens never wait for it.
+const RoomChallengeButton = lazy(() =>
+  import("@/components/challenge/ChallengeShare").then((m) => ({ default: m.RoomChallengeButton })),
+);
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
@@ -401,6 +405,15 @@ function DuelScreen() {
   // Everyone's colour and icon, the same on every phone (every row, left players included).
   const looks = useMemo(() => resolvePlayerLooks(players), [players]);
   // Who else has finished this round (never how they did); the live round only, never practice or replays.
+  // Beta: a device's first room played after finishing a friend's challenge (challengeRecord.ts).
+  const playing = duel?.status === "in_progress" && !!me;
+  useEffect(() => {
+    if (!playing) return;
+    void import("@/lib/duel/challengeRecord").then(({ takeChallengeFollowup }) => {
+      const code = takeChallengeFollowup("room");
+      if (code) void import("@/lib/duel/challengeApi").then(({ sendChallengeFollowup }) => sendChallengeFollowup("room", code));
+    });
+  }, [playing]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
     const line = phase === "result" && puzzle ? nearMiss(puzzle.type, resultFor(results, row.slot, round)?.extra) : null;
@@ -913,6 +926,7 @@ function DuelScreen() {
               onLeave={() => void handleLeave()}
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
               share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
+              challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
             />
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
@@ -951,6 +965,7 @@ function DuelScreen() {
             onHome={() => void handleLeave()}
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
             share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
+            challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
           />
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>

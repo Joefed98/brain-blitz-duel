@@ -1,4 +1,5 @@
 import { Lock } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Medal } from "@/components/duel/Medal";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
@@ -21,12 +22,15 @@ export function DailyBoard({
   board,
   lockedNote,
   look,
+  share,
 }: {
   board: DailyBoardView;
   /** What opens today's board ("Finish today's 6 rounds to see the board."). */
   lockedNote: string;
   /** This device's look, for its pinned line. */
   look: PlayerLook;
+  /** Today's Share, under your line once you've finished (DailyShareButton). */
+  share?: ReactNode;
 }) {
   const me = board.me;
   return (
@@ -76,6 +80,7 @@ export function DailyBoard({
               </span>
             ))}
           </div>
+          {me.finished && share ? <div className="flex">{share}</div> : null}
         </section>
       ) : null}
 

@@ -38,10 +38,16 @@ export function ShareResultButton({
   input,
   onTap,
   className = "",
+  label = "Share",
+  linkPrefix,
 }: {
   input: ShareResultInput;
   onTap?: (method: "native" | "copy") => void;
   className?: string | undefined;
+  /** The button's word ("Share"; a friend challenge's "Challenge someone else"). */
+  label?: string;
+  /** What goes before the link in the text (shareText's "Play: " when absent). */
+  linkPrefix?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -49,7 +55,7 @@ export function ShareResultButton({
   const onClick = () => {
     onTap?.(shareMethod());
     // No await before shareResult: iOS opens the sheet only straight from the tap.
-    void shareResult(input).then((outcome: ShareOutcome) => {
+    void shareResult(linkPrefix === undefined ? input : { ...input, linkPrefix }).then((outcome: ShareOutcome) => {
       if (outcome !== "copied") return;
       setCopied(true);
       clearTimeout(timer.current);
@@ -65,7 +71,7 @@ export function ShareResultButton({
       className={`th-btn-teal press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 font-display text-base font-extrabold uppercase tracking-wide ${className}`}
     >
       <ShareGlyph />
-      <span aria-live="polite">{copied ? "Copied" : "Share"}</span>
+      <span aria-live="polite">{copied ? "Copied" : label}</span>
     </button>
   );
 }
@@ -145,6 +151,7 @@ export function RoomShareButton({
       onTap={(method) =>
         record({
           event: "share_tap",
+          source: "room",
           duelId: data.duelId,
           gameIndex: data.gameIndex,
           roomCode: data.roomCode,

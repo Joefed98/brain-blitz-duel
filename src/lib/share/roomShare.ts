@@ -41,6 +41,8 @@ export interface RoomShareData {
   /** The round games in order (their icons on the card). */
   games: StoredPuzzleType[];
   roomCode: string;
+  /** The word before the code on the card: "ROOM" when absent (a friend challenge: "CHALLENGE"). */
+  codeLabel?: string;
   /** For the beta recording: which room and which game in it. */
   duelId: string;
   gameIndex: number;

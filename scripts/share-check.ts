@@ -30,7 +30,7 @@
  *
  *   bun scripts/share-check.ts [--shots=<dir>]   (saves the podium screenshots and the card)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { createCanvas } from "@napi-rs/canvas";
@@ -40,6 +40,7 @@ import { CARD_H, CARD_W, drawResultCard } from "../src/lib/share/resultCard";
 import { roomShareData, roomShareLine, roomShareLink } from "../src/lib/share/roomShare";
 import { shareResult, shareText } from "../src/lib/share/shareResult";
 import {
+  noteLinkArrival,
   noteShareArrival,
   noteShareFinish,
   noteShareWelcome,
@@ -362,6 +363,35 @@ for (const nav of ["none", "refused"] as const) {
   const bare: ShareEventInput[] = [];
   noteShareArrival({ search: "?ref=share&room=x'", pathname: "/" }, (e) => void bare.push(e));
   check(bare[0]?.roomCode === null, `a malformed room code kept: ${JSON.stringify(bare[0])}`);
+  check(sent[0]?.source === "room" && home[0]?.source === "room", "a room link's arrival doesn't say its source is a room");
+
+  // A daily's or challenge's link (22 Oct 2026): an arrival with its source, once per device, no welcome card.
+  resetShareArrivalMemory();
+  const links: ShareEventInput[] = [];
+  check(noteLinkArrival({ source: "challenge", challengeCode: "K7QM2X" }, (e) => void links.push(e)), "a challenge link's arrival was not recorded");
+  check(
+    links[0]?.event === "arrival" && links[0].source === "challenge" && links[0].challengeCode === "K7QM2X",
+    `challenge arrival ${JSON.stringify(links[0])}`,
+  );
+  check(!noteLinkArrival({ source: "daily", dailyKind: "puzzle" }, (e) => void links.push(e)) && links.length === 1, "a second arrival (a daily link after a challenge link) was recorded");
+  check(!noteShareArrival({ search: "?ref=share", pathname: "/" }, (e) => void links.push(e)) && links.length === 1, "a room link after a challenge link made a second arrival");
+  check(!shareWelcomeDue({ search: "", pathname: "/" }, (e) => void links.push(e)), "a challenge arrival was shown the home's welcome card");
+  resetShareArrivalMemory();
+  const dailyLinks: ShareEventInput[] = [];
+  noteLinkArrival({ source: "daily", dailyKind: "arcade" }, (e) => void dailyLinks.push(e));
+  check(dailyLinks[0]?.source === "daily" && dailyLinks[0].dailyKind === "arcade", `daily arrival ${JSON.stringify(dailyLinks[0])}`);
+  resetShareArrivalMemory();
+}
+
+/* ------------------------------------------------------------ 4c. every Share tap with its source */
+{
+  const room = readFileSync("src/components/share/ShareResultButton.tsx", "utf8");
+  const challenge = readFileSync("src/components/challenge/ChallengeShare.tsx", "utf8");
+  const daily = readFileSync("src/components/daily/DailyShareButton.tsx", "utf8");
+  check(/event: "share_tap",\s*source: "room"/.test(room), "a room's Share tap doesn't record source room");
+  check(/event: "share_tap",\s*source: "challenge",\s*challengeCode: code/.test(challenge), "a challenge's Share tap doesn't record source challenge and its code");
+  check(/event: "share_tap", source: "daily", dailyKind: kind/.test(daily), "a daily's Share tap doesn't record source daily and which daily");
+  check(/noteLinkArrival\(\{ source: "daily"/.test(readFileSync("src/routes/daily.tsx", "utf8")) && /noteLinkArrival\(\{ source: "challenge"/.test(readFileSync("src/routes/challenge.tsx", "utf8")), "the daily and challenge pages don't record their links' arrivals");
 }
 {
   const tap = shareEventRow("user-1", {
@@ -379,6 +409,7 @@ for (const nav of ["none", "refused"] as const) {
       JSON.stringify({
         user_id: "user-1",
         event: "share_tap",
+        source: "room",
         duel_id: DUEL_ID,
         game_index: 0,
         room_code: "ABCD",
@@ -388,6 +419,8 @@ for (const nav of ["none", "refused"] as const) {
         method: "copy",
         landing: null,
         welcome: null,
+        challenge_code: null,
+        daily_kind: null,
       }),
     `tap row ${JSON.stringify(tap)}`,
   );
@@ -420,6 +453,27 @@ for (const nav of ["none", "refused"] as const) {
     arrival?.landing === "room" && arrival.place === null && arrival.duel_id === null,
     `arrival row ${JSON.stringify(arrival)}`,
   );
+  // Sources (22 Oct 2026): daily and challenge taps and arrivals; anything else is a room's.
+  const daily = shareEventRow("user-1", { event: "share_tap", source: "daily", dailyKind: "arcade", method: "native", duelId: DUEL_ID, roomCode: "ABCD", place: 2 });
+  check(
+    daily?.source === "daily" && daily.daily_kind === "arcade" && daily.method === "native" && daily.duel_id === null && daily.room_code === null && daily.place === null && daily.challenge_code === null,
+    `daily tap row ${JSON.stringify(daily)}`,
+  );
+  const challenge = shareEventRow("user-1", { event: "share_tap", source: "challenge", challengeCode: "K7QM2X", place: 14, players: 20, rounds: 10, method: "copy", dailyKind: "puzzle" });
+  check(
+    challenge?.source === "challenge" && challenge.challenge_code === "K7QM2X" && challenge.place === 14 && challenge.players === 20 && challenge.rounds === 10 && challenge.daily_kind === null && challenge.duel_id === null,
+    `challenge tap row ${JSON.stringify(challenge)}`,
+  );
+  const badCode = shareEventRow("user-1", { event: "share_tap", source: "challenge", challengeCode: "I0O1L'", players: 21 });
+  check(badCode?.challenge_code === null && badCode.players === null, `a malformed challenge code or count kept: ${JSON.stringify(badCode)}`);
+  check(shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.source === "room" && shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.players === null, "an unknown source is not stored as a room's (with a room's limits)");
+  check(shareEventRow("user-1", { event: "share_tap", players: 6 })?.source === "room", "a tap without a source (a phone from before this change) is not a room's");
+  const linkArrival = shareEventRow("user-1", { event: "arrival", source: "challenge", challengeCode: "K7QM2X", landing: "home", roomCode: "ABCD" });
+  check(
+    linkArrival?.source === "challenge" && linkArrival.challenge_code === "K7QM2X" && linkArrival.landing === null && linkArrival.room_code === null,
+    `challenge arrival row ${JSON.stringify(linkArrival)}`,
+  );
+  check(shareEventRow("user-1", { event: "arrival_finished", source: "daily", duelId: DUEL_ID, place: 2 })?.source === "room", "a finished room is always the room loop's");
   const inserted: { table: string; row: unknown }[] = [];
   await recordShareEvent(
     {
@@ -497,11 +551,60 @@ for (const nav of ["none", "refused"] as const) {
     /share_events_arrival_once[\s\S]*WHERE event = 'arrival'/.test(sql),
     "an arrival is not one row per device",
   );
-  const types = readFileSync("src/integrations/supabase/types.ts", "utf8");
+  const later = readFileSync("supabase/migrations/20261022120000_friend_challenges.sql", "utf8");
   check(
-    !types.includes("share_events"),
-    "generated types name share_events (only Lovable regenerates them, after applying)",
+    /ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'room'/.test(later) &&
+      /CHECK \(source IN \('room', 'daily', 'challenge'\)\)/.test(later) &&
+      /ADD COLUMN IF NOT EXISTS challenge_code text/.test(later) &&
+      /ADD COLUMN IF NOT EXISTS daily_kind text/.test(later) &&
+      /players BETWEEN 1 AND 20/.test(later),
+    "the friend-challenge migration doesn't add share_events.source (room by default), challenge_code, daily_kind and 20-player counts",
   );
+  // The generated types (src/integrations/supabase/types.ts) are Lovable's, regenerated only after it
+  // applies a migration (21 Oct 2026: share_events and the async tables). Either state is fine: no
+  // share_events yet, or share_events as Lovable generated it from the applied migrations: the
+  // 20261021120000 columns, and the 20261022120000 ones (source, challenge_code, daily_kind) only once
+  // that migration is applied too. Never hand-edited: no column that no migration creates.
+  const types = readFileSync("src/integrations/supabase/types.ts", "utf8");
+  const block = /\n      share_events: \{\n        Row: \{\n([\s\S]*?)\n        \}/.exec(types);
+  const BASE = ["created_at", "duel_id", "event", "game_index", "id", "landing", "method", "place", "players", "room_code", "rounds", "user_id", "welcome"];
+  const LATER = ["challenge_code", "daily_kind", "source"];
+  if (!types.includes("share_events")) check(true, "");
+  else {
+    const columns = block ? [...block[1]!.matchAll(/^\s+(\w+)\??:/gm)].map((m) => m[1]!).sort() : [];
+    const later = LATER.filter((c) => columns.includes(c));
+    check(
+      !!block &&
+        BASE.every((c) => columns.includes(c)) &&
+        columns.every((c) => BASE.includes(c) || LATER.includes(c)) &&
+        (later.length === 0 || later.length === LATER.length),
+      `generated types name share_events with columns no applied migration makes, or only part of the 22 Oct ones (${columns.join(", ")})`,
+    );
+  }
+  // The app never relies on the generated types for share_events, the async tables or the challenge
+  // tables: every read and write goes through the server's untyped client (betaRecord.server.ts,
+  // asyncRoom.server.ts, challenge.server.ts take `client: any`), so it works before and after Lovable
+  // regenerates them, and the 22 Oct columns and tables need no regeneration to be written.
+  const typedUse: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.(ts|tsx)$/.test(entry.name) && !path.endsWith("integrations/supabase/types.ts")) {
+        const text = readFileSync(path, "utf8");
+        if (/(Tables|TablesInsert|TablesUpdate)<\s*["'](share_events|challenges|challenge_events|async_\w+)["']/.test(text) || /Database\[["']public["']\]\[["']Tables["']\]\[["'](share_events|challenges|challenge_events|async_\w+)["']\]/.test(text))
+          typedUse.push(path);
+        // A typed client (supabase from client.ts, or supabaseAdmin not cast to any) reading these tables.
+        if (!/\.server\.ts$/.test(path) && /\.from\(["'](share_events|challenges|challenge_events|async_\w+)["']\)/.test(text)) typedUse.push(path);
+      }
+    }
+  };
+  walk("src");
+  check(typedUse.length === 0, `code relies on the generated types for share_events, the async or the challenge tables (${typedUse.join(", ")})`);
+  for (const file of ["src/lib/duel/betaRecord.server.ts", "src/lib/duel/challenge.server.ts", "src/lib/duel/asyncRoom.server.ts", "src/lib/duel/daily.server.ts"])
+    check(/client: any/.test(readFileSync(file, "utf8")), `${file} doesn't take the untyped server client`);
+  for (const file of ["src/lib/duel/share.functions.ts", "src/lib/duel/challenge.functions.ts", "src/lib/duel/daily.functions.ts", "src/lib/duel/asyncRoom.functions.ts"])
+    check(!/supabaseAdmin\.from\(/.test(readFileSync(file, "utf8")), `${file} queries through the typed admin client`);
 }
 
 /* ------------------------------------------------------------ 4b. the welcome card's rule */

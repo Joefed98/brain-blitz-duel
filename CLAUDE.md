@@ -209,7 +209,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Room screen fixes** (19 Oct 2026; display and room data only, no version stamps, no scoring or grading changed):
   - *Chat* (`src/lib/duel/chatNotice.ts`): placeholder "Chat…"; the chat button shows only other players' unread
     messages, in gold; between rounds a live message from another player shows a toast (their badge, name, first words;
-    tap opens the messages) with `playBlip` and a light haptic; during a round (intro countdown to reveal) nothing but a
+    tap opens the messages) with `playBlip` and a light haptic, at the screen's bottom since 22 Oct 2026 (slides up,
+    above the home bar and every control pinned there, `chatToastPlace.ts`; chat-notice-check's browser pass,
+    `scripts/chat-toast-browser.ts`, proves it at 414×896 app, 375×667 and desktop); during a round (intro countdown to reveal) nothing but a
     small silent dot on the play header (`RoundChatDot`). chat-notice-check (~1 s, happy-dom).
   - *Finished pings* only for a finish before the buzzer (`src/lib/duel/buzzer.ts`: received in the puzzle phase with
     ≥ 1 s left on the round's own clock, an arcade run's length or the time limit); never a time-out draft, an answer at
@@ -351,6 +353,44 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`screenshots/daily-oct-2026/`). A friend challenge can reuse the engine as is (kind `challenge`). The deal
   (`dailyRoundOrder`) is the one place the daily reads categories (category-pool-check allows it there only); the stored
   daily keeps its types and puzzles, so a later category move or retirement never changes it (daily-check).
+- **Friend challenges** (22 Oct 2026, on the daily's async rooms; no game's rules, scoring or grading changed, no
+  version stamps): a challenge is an async room of kind `challenge` (`room_key` `challenge:<CODE>`, 6 characters from
+  `CHALLENGE_CODE_ALPHABET`) plus a row in `challenges` (`src/lib/duel/challenge.ts` rules, `challenge.server.ts`,
+  `challenge.functions.ts`, `challengeApi.ts`, route `/challenge?code=`). Made from the Play tab's "Challenge a friend"
+  card (`ChallengeCard`; categories as the lobby, arcade allowed, 3 / the lobby's 6 or 7 / 10 rounds, never more than
+  the categories hold games, `challengeRoundOrder`), the creator plays it alone first and gets the link at the end;
+  or from any finished room's podium or two-player final screen (`RoomChallengeButton`: first tap makes or finds the
+  game's challenge, second tap shares): the room's own stored puzzles and every player's stored results copied as
+  finished attempts (never regraded; one challenge per room game; a round's start is set from its stored time left,
+  since rooms keep no per-round start). Friends play the stored rounds through the async-room calls (graded as rooms
+  and practice), with `rivals` on `AsyncRun` (`src/components/async/rivals.tsx`): the earlier players (attempts
+  finished when this one started, a fixed set) ping "finished ✓" when the friend's own clock passes their stored
+  receipt time (`challengePingsFn`, polled each second, slots only; the room's buzzer rule measured at receipt),
+  then the reveal (arcade chart), the round leaderboard and standings from `challengeRoundBoardFn` once the friend's
+  own result is stored (that round and earlier only; others' rows through `rivalRow`: no answer, `extra` numbers and
+  booleans only), and the room's Podium with awards (`actions`: Share, Challenge someone else, New challenge, Done).
+  Up to 20 players (server and a database trigger), the link lasts 7 days, one attempt per device; making one is
+  rate limited (`CHALLENGE_CREATE_LIMIT` and 10 an hour counted from `challenges`). Profile's "Your challenges"
+  (`YourChallenges`: device-remembered codes, `challengeRecord.ts`, plus the server's) shows "Sam beat you 612–580".
+  The daily's results and today's board have Share ("I scored 612 on today's Daily Puzzle – can you beat it? <link>",
+  `dailyShare.ts`, `shareResult` with `linkPrefix: ""`). Beta: `challenge_events` (created, link_opened,
+  friend_finished, followup_room / followup_daily from the device), queries in `docs/beta-sql.md` section 9.
+  Migration `supabase/migrations/20261022120000_friend_challenges.sql` is **written but not applied** (after
+  20261021130000): until it is, the card, the podium button and Your challenges stay hidden. challenge-check (~12 s;
+  the SQL on a local PostgreSQL when installed); the screens are in theme-check and no-wrap-check;
+  `bun scripts/shots/challenge-shots.ts` draws the review screenshots (`screenshots/challenge-oct-2026/`).
+- **Play tab without jumps** (22 Oct 2026, presentation and device storage only): the late cards (share welcome,
+  Rejoin, Daily challenge, Challenge a friend) are `PlaySlot`s, always in the markup; `PLAY_CARDS_BOOT`
+  (`src/lib/playCards.ts`, an inline script in the root's `<head>`) marks `<html data-play-cards>` from device storage
+  before the first paint and CSS (`polish-layout/app-shell.css`) hides the slots not reserved; a reserved card draws
+  its last known status (`duelz-play-cards:v1`) and updates in place; a "no" from the server collapses it smoothly and
+  is remembered; an unreserved card never pops in (it is reserved next visit). The Quick play name row's height is
+  reserved the same way; the public-games schedule is read in the first render. play-tab-shift-check (headless
+  Chromium, `play13`) proves positions within 2 px from the first frame at 414×896 with a slow server.
+- **Share sources** (22 Oct 2026): `share_events.source` (`room` / `daily` / `challenge`, existing rows `room`; added
+  in `20261022120000_friend_challenges.sql`) on every Share tap and on arrivals from `?ref=daily` / `?ref=challenge`
+  links (`noteLinkArrival`; still one arrival per device), with `daily_kind` / `challenge_code`; queries Q-S4/Q-S5 in
+  `docs/beta-sql.md` section 7.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
