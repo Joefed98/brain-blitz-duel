@@ -20,6 +20,7 @@ import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
 import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
+import { Route as DailyRoute } from "@/routes/daily";
 
 interface Verdict {
   isCorrect: boolean;
@@ -49,6 +50,16 @@ interface Harness {
   /** Display names drawn in place of a game's own (the room play header's longest-name case). */
   names?: Record<string, string>;
   call: (module: string, name: string, args: unknown[]) => unknown;
+  /**
+   * The daily challenge's server (daily-shots, no-wrap-check): today's status, each board by
+   * "<kind>:<day>", the attempt view and each round's reveal. Absent: the daily is unavailable.
+   */
+  daily?: {
+    status: unknown;
+    boards: Record<string, unknown>;
+    view: unknown;
+    reveals: unknown[];
+  };
   /** Where useNavigate was sent (share-check: a shared link's redirect). */
   navigations?: unknown[];
   /** The link join's room preview (share-check sets window.__harnessPreview before load: a finished or full room); an open lobby if unset. */
@@ -200,6 +211,53 @@ async function checkWord(_duelId: string, _round: number, word: string) {
   return { valid: false, points: 0, word, reason: "harness" };
 }
 
+/* The daily challenge (daily.functions.ts, asyncRoom.functions.ts) from H.daily. */
+async function dailyStatusFn() {
+  if (!H.daily) throw new Error("no daily");
+  return H.daily.status;
+}
+async function dailyBoardFn({ data }: { data: { kind: string; day: string } }) {
+  return H.daily?.boards[`${data.kind}:${data.day}`] ?? null;
+}
+async function dailyStartFn() {
+  return { ok: true, roomId: "daily-room", created: false };
+}
+async function asyncAttemptFn() {
+  return { ok: true, view: H.daily?.view, serverNow: Date.now() };
+}
+async function asyncRevealFn({ data }: { data: { roundNumber: number } }) {
+  const reveal = H.daily?.reveals[data.roundNumber - 1];
+  return reveal ? { ok: true, json: JSON.stringify(reveal) } : { ok: false, message: "none" };
+}
+
+/** A round starts on the stand-in server's clock and its puzzle (H.puzzles by type) arrives. */
+async function asyncRoundStartFn({ data }: { data: { roundNumber: number } }) {
+  const view = H.daily?.view as { rounds: { type: string; startedAt: number | null }[] } | undefined;
+  const round = view?.rounds[data.roundNumber - 1];
+  if (!round) return { ok: false, message: "none" };
+  round.startedAt ??= Date.now();
+  return { ok: true, puzzle: H.puzzles[round.type], startedAt: round.startedAt };
+}
+/** Stores H.verdict's score for the round (the stand-in grade) and its reveal. */
+async function asyncSubmitFn({ data }: { data: { roundNumber: number; answer: string; msRemaining: number } }) {
+  H.submissions.push({ at: Date.now(), msRemaining: data.msRemaining, answer: data.answer });
+  const view = H.daily?.view as { rounds: { type: string; score: number | null }[]; total: number; finished: boolean };
+  const round = view.rounds[data.roundNumber - 1]!;
+  if (round.score !== null) return { ok: true, alreadySubmitted: true };
+  round.score = H.verdict.score;
+  view.total = view.rounds.reduce((sum, r) => sum + (r.score ?? 0), 0);
+  view.finished = view.rounds.every((r) => r.score !== null);
+  H.daily!.reveals[data.roundNumber - 1] = {
+    puzzle: H.puzzles[round.type],
+    result: { id: "r", duel_id: "daily-room", player_slot: 1, round_number: data.roundNumber, answer: data.answer, is_correct: H.verdict.isCorrect, ms_remaining: data.msRemaining, reaction_avg_ms: null, correct_count: null, errors: null, extra: null, score: H.verdict.score, submitted_at: "" },
+    missed: false,
+    summary: "Sample",
+    detail: [],
+    correctAnswer: null,
+  };
+  return { ok: true, score: H.verdict.score };
+}
+
 /** The share loop's beta recording: kept for share-check to read. */
 async function recordShareEventFn({ data }: { data: unknown }) {
   (H.shareEvents ??= []).push(data);
@@ -207,6 +265,13 @@ async function recordShareEventFn({ data }: { data: unknown }) {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  asyncRoundStartFn,
+  asyncSubmitFn,
+  dailyStatusFn,
+  dailyBoardFn,
+  dailyStartFn,
+  asyncAttemptFn,
+  asyncRevealFn,
   fetchRoomPreview,
   recordShareEventFn,
   practiceCheckWordFn,
@@ -244,7 +309,9 @@ const Screen = (
         ? TournamentsRoute
         : mode === "profile"
           ? ProfileRoute
-          : PracticeRoute
+          : mode === "daily"
+            ? DailyRoute
+            : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

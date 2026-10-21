@@ -254,7 +254,13 @@ src(/const \{ gradeRoomAnswer \} = await import\("\.\/roomGrade\.server"\);/.tes
     if (/\bgradeAnswer\(|\bgradeRoomAnswer\(/.test(text) && !/src\/lib\/duel\/(generate|roomGrade)\.server\.ts$/.test(file)) graders.push(file);
     if (/from\("round_results"\)\s*\.(update|delete|upsert)\(/.test(text)) writes.push(file);
   }
-  src(graders.sort().join(",") === "src/lib/duel/duel.functions.ts,src/lib/duel/practice.functions.ts", `grading runs only for new answers (found in ${graders.join(", ")})`);
+  // Async rooms (21 Oct 2026, the daily challenge): asyncRoom.server.ts grades a new answer once, its
+  // store guarded on the round not yet answered (daily-check proves the first stored answer stands).
+  src(
+    graders.sort().join(",") === "src/lib/duel/asyncRoom.server.ts,src/lib/duel/duel.functions.ts,src/lib/duel/practice.functions.ts" &&
+      /\.eq\("answered", false\)/.test(readFileSync("src/lib/duel/asyncRoom.server.ts", "utf8")),
+    `grading runs only for new answers (found in ${graders.join(", ")})`,
+  );
   src(writes.length === 0, `round_results rows are rewritten in ${writes.join(", ")}`);
   const submit = server.slice(server.indexOf("export const submitAnswerFn"), server.indexOf("export const readyUpFn"));
   src(/if \(existing\.data\) return \{ ok: true as const, alreadySubmitted: true \};/.test(submit) && submit.indexOf("existing.data") < submit.indexOf("gradeRoomAnswer("), "a stored answer is never graded again");

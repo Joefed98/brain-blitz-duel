@@ -10,6 +10,7 @@ import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
+import { DailyCard, useDailyStatus } from "@/components/daily/DailyCard";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
@@ -131,6 +132,8 @@ function Home() {
   useScreenMusic("music_home");
 
   const lastRoom = useLastOpenRoom();
+  // Today's dailies (hidden until the daily tables exist: DailyCard).
+  const daily = useDailyStatus();
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
   const warmUp = recent ?? warmUpTypes([]);
@@ -326,6 +329,19 @@ function Home() {
             <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
           </button>
         ) : null}
+
+        {/* The Daily card sits below the share welcome card (the first card on the tab), as agreed for #125 + #126. */}
+        <DailyCard
+          status={daily}
+          onOpen={(kind) => {
+            unlockAudio();
+            void router.navigate({
+              to: "/daily",
+              search: { kind },
+              state: { fromPlayTab: true } as never,
+            });
+          }}
+        />
 
         {nextGame ? (
           <PublicGameCard

@@ -78,8 +78,26 @@ const sources = [
     .filter((f) => f.endsWith(".server.ts"))
     .map((f) => `src/lib/duel/${f}`),
 ];
+// Allowed: files that deal a set of rounds, which is choosing games by category, as a room's deal does
+// (selection.ts). daily.server.ts deals the day's Daily Puzzle (one game per puzzle category) and Daily
+// Arcade (arcade games) once, then stores only the dealt games' types and puzzles (async_rooms.round_order,
+// puzzles_public); nothing after the deal reads a category, so a later category move never changes a stored
+// daily, the same rule as stored rounds (daily-check proves it). Its category reads must stay inside the deal.
+const DEALS = new Set(["src/lib/duel/daily.server.ts"]);
 for (const file of sources) {
   const text = readFileSync(file, "utf8");
+  if (DEALS.has(file)) {
+    const deal = /export function dailyRoundOrder\([\s\S]*?\n\}\n/.exec(text)?.[0] ?? "";
+    // Outside the deal, with comments and imports left out ("arcade" is also a daily's kind, so not matched).
+    const rest = text
+      .replace(deal, "")
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
+      .replace(/^import[\s\S]*?;$/gm, "");
+    if (!deal) fail(`${file}: its deal (dailyRoundOrder) is missing`);
+    if (/DAILY_PUZZLE_CATEGORIES|\.category\b|typesInCategory|allTypesInCategory|from "\.\/categories"/.test(rest))
+      fail(`${file} reads a game's category outside its deal (dailyRoundOrder)`);
+    continue;
+  }
   if (
     /(puzzleDef\([^)]*\)|PUZZLE_REGISTRY\[[^\]]*\]|\bdef(inition)?)\.category\b|typesInCategory|allTypesInCategory|from "\.\/categories"/.test(
       text,
