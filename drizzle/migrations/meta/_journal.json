@@ -57,6 +57,20 @@
       "when": 1792274699789,
       "tag": "0007_20261017140000_player_submitted_round",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792587583347,
+      "tag": "0008_20261021120000_beta_share_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792587621164,
+      "tag": "0009_20261021130000_async_rooms_daily",
+      "breakpoints": true
     }
   ]
 }
