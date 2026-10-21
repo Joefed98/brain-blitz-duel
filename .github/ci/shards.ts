@@ -65,7 +65,8 @@ export const SHARDS: Record<string, string[]> = {
   // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
   // in the harness, ~2 min with its dev server) rides here too.
   play15: ["arcade-room-practice-check.ts", "fission-repeat-check.ts", "app-shell-check.ts"],
-  // The page skin (19 Oct 2026): theme-check and no-wrap-check's 54 draws in thirds.
+  // The page skin (19 Oct 2026): theme-check and no-wrap-check's 63 draws in thirds (the daily screens joined 21 Oct 2026:
+  // locally theme-check ~2 min, no-wrap-check ~4 min whole, so each job stays near 4 min).
   play16: ["theme-check.tsx", "no-wrap-check.tsx@1/3"],
   play17: ["no-wrap-check.tsx@2/3", "no-wrap-check.tsx@3/3"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and

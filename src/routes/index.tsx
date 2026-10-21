@@ -10,6 +10,7 @@ import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
+import { DailyCard, useDailyStatus } from "@/components/daily/DailyCard";
 import { useClock } from "@/components/app/useClock";
 import { onboardingSeen } from "@/lib/onboarding";
 import { createRoom, fetchDuelByCode, fetchPlayers, joinRoomByCode } from "@/lib/duel/api";
@@ -127,6 +128,8 @@ function Home() {
   useScreenMusic("music_home");
 
   const lastRoom = useLastOpenRoom();
+  // Today's dailies (hidden until the daily tables exist: DailyCard).
+  const daily = useDailyStatus();
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
   const warmUp = recent ?? warmUpTypes([]);
@@ -311,6 +314,18 @@ function Home() {
             <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
           </button>
         ) : null}
+
+        <DailyCard
+          status={daily}
+          onOpen={(kind) => {
+            unlockAudio();
+            void router.navigate({
+              to: "/daily",
+              search: { kind },
+              state: { fromPlayTab: true } as never,
+            });
+          }}
+        />
 
         {nextGame ? (
           <PublicGameCard

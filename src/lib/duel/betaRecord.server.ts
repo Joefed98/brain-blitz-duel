@@ -248,3 +248,45 @@ export async function callerUserId(client: any): Promise<string | null> {
     return null;
   }
 }
+
+/* ------------------------------------------------- async rooms (daily) ---- */
+
+/**
+ * Async rooms and the daily challenge (21 Oct 2026, migration 20261021120000): an attempt's start
+ * and finish, and each round's start, finish (answered before the clock, or the time-out's draft)
+ * and abandon (nothing arrived while it took answers). One row per (attempt, round, event): the
+ * unique index keeps the first, so a retried call records each moment once. Best-effort, as above.
+ */
+export type AsyncEvent = "attempt_started" | "round_started" | "round_finished" | "round_abandoned" | "attempt_finished";
+export type AsyncEventReason = "answered" | "timeout" | "no_answer";
+
+export interface AsyncEventRow {
+  room_id: string;
+  kind: string;
+  attempt_id: string;
+  user_id: string | null;
+  /** 0 for attempt_started / attempt_finished. */
+  round_number: number;
+  event: AsyncEvent;
+  reason?: AsyncEventReason | null;
+  at?: string;
+}
+
+export async function recordAsyncEvent(client: any, row: AsyncEventRow): Promise<void> {
+  await bestEffort(`async_events ${row.event} attempt=${row.attempt_id} round=${row.round_number}`, () =>
+    client.from("async_events").insert({ reason: null, ...row }),
+  );
+}
+
+/** recordRoundRecords for another table's row (async_room_secrets keyed on room_id), best-effort. */
+export async function recordRoundRecordsFor(
+  client: any,
+  table: string,
+  key: string,
+  id: string,
+  rounds: readonly RoundRecord[],
+): Promise<void> {
+  await bestEffort(`${table}.round_records ${key}=${id}`, () =>
+    client.from(table).update({ round_records: JSON.parse(JSON.stringify(rounds)) }).eq(key, id),
+  );
+}

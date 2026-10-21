@@ -306,6 +306,30 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   on one line under the name (ellipsis; a tap opens the detail). theme-check (fonts, tokens, contrast ≥ 4.5:1,
   targets ≥ 44 px, `play16`) and no-wrap-check (single-line text never wraps or is cut off but names, at 414×896 app,
   375×667 and desktop; thirds on `play16`/`play17`) prove it; run both after changing a skinned screen.
+- **Daily challenge and async rooms** (21 Oct 2026, the beta's daily; no game's rules, scoring or grading changed, no
+  version stamps): an *async room* (`src/lib/duel/asyncRoom.ts` timings, `asyncRoom.server.ts` engine,
+  `asyncRoom.functions.ts` calls, `src/components/async/AsyncRun.tsx` / `AsyncResults.tsx`) is a set of rounds dealt once
+  on the server from a seed and stored (`async_rooms` + `async_room_secrets`), played by each player at their own time:
+  a round starts when the player taps READY (no auto-start), the server stores that start (`async_results.started_at`) and
+  only then sends the round's puzzle; every timing after it is the room's (`roomTimeoutMs`, `roomPuzzleCloseMs`, then a
+  late answer with 0 ms left until the reveal's length, then missed = 0), and grading is `gradeRoomAnswer` on that start
+  (so practice's). The phone keeps the room's one-answer sender, stored draft and stage state, so a reload continues the
+  same round on the same clock. One attempt per device per room (unique index); answers, the private half and other
+  players' scores never leave the server before the player's own result (the board only once they finish or the day
+  closes). The dailies (`src/lib/duel/daily.ts`, `daily.server.ts`, `daily.functions.ts`): Daily Puzzle (one active game
+  per puzzle category) and Daily Arcade (three active arcade games), dealt on the UK day's first start under
+  `daily_<kind>:<YYYY-MM-DD>`, avoiding yesterday's games and banked boards; closes at UK midnight (no round starts after
+  it; a round started before it finishes); boards ranked by the room tie-break, count shown from 20 players, names as set
+  with offensive ones refused (`boardName.server.ts`), start rate-limited (`DAILY_START_LIMIT`). Screens: the Play tab's
+  Daily challenge card (`DailyCard`, hidden until the status call finds the tables), `/daily` (tabs Puzzle / Arcade,
+  Today / Yesterday, `DailyBoard`), Profile's Daily row (`dailyRecord.ts`: streak and bests, device only). Beta events in
+  `async_events` (`recordAsyncEvent`; docs/beta-sql.md section 7, Q8a–c). Migration
+  `supabase/migrations/20261021120000_async_rooms_daily.sql` is **written but not applied**: until it is, the card is
+  hidden and nothing else changes. RLS: no client writes at all; clients read only the leaderboard columns of attempts
+  on an open board (plus their own row) and the rooms' window columns. daily-check (~15 s; the SQL on a local PostgreSQL
+  when installed) proves it; the daily screens are in theme-check and no-wrap-check (`scripts/theme-screens.ts`,
+  `scripts/daily-fixture.ts`); `bun scripts/shots/daily-shots.ts` draws the review screenshots
+  (`screenshots/daily-oct-2026/`). A friend challenge can reuse the engine as is (kind `challenge`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

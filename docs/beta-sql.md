@@ -1011,3 +1011,84 @@ without an archive (the player never played that game); rooms and practice befor
 rows in the new tables; a phone that never sends its answer still leaves no row, so `missing_answers` stays
 inferred; `round_started` is the clock's start, so the round title and intro (and a puzzle's prep time)
 are before it; the winner reveal's own end (status `finished`) is not a separate event.
+
+## 7. The daily challenge (21 Oct 2026)
+
+The Daily Puzzle and Daily Arcade are async rooms (`supabase/migrations/20261021120000_async_rooms_daily.sql`,
+**written but not applied**; `src/lib/duel/asyncRoom.server.ts`, `daily.server.ts`). Recording starts
+once that migration is applied and the code is published; until then the Play tab hides the daily card.
+
+| Table | One row per | Use |
+|---|---|---|
+| `async_rooms` | daily per UK day (`kind` `daily_puzzle` / `daily_arcade`, `day`, `round_order`) | which games were dealt |
+| `async_attempts` | device per daily per day (unique) | starts, finishes (`finished_at`), totals |
+| `async_results` | attempt per round started (`started_at` the player's own clock start) | per-round plays, scores, `missed` |
+| `async_events` | attempt, round and event (unique) | `attempt_started`, `round_started`, `round_finished` (`answered` before the clock / `timeout` the draft at or after it), `round_abandoned` (`no_answer`: nothing arrived while the round took answers), `attempt_finished` |
+
+A round that was started but never answered is recorded as abandoned only when the player's device next
+asks the server about that attempt (any status, board or round call), since nothing runs at midnight;
+Q8b therefore also counts started-but-unanswered rounds straight from `async_results`, which needs no
+event. Rounds never started (the player stopped between rounds) are `round_count - rounds_done` on an
+unfinished attempt once its day has closed. The filter block (section 2) applies through `user_id`.
+
+### Q8a. Daily starts, finishes and players per day
+
+```sql
+-- Q8a: per daily per UK day: devices that started, finished, and the share that finished.
+SELECT r.day, r.kind,
+       count(a.id) AS started,
+       count(a.finished_at) AS finished,
+       round(100.0 * count(a.finished_at) / nullif(count(a.id), 0), 1) AS finished_pct,
+       round(avg(a.total_score) FILTER (WHERE a.finished_at IS NOT NULL), 1) AS avg_total_finished
+FROM public.async_rooms r
+LEFT JOIN public.async_attempts a ON a.room_id = r.id
+WHERE r.kind IN ('daily_puzzle', 'daily_arcade')
+GROUP BY r.day, r.kind
+ORDER BY r.day, r.kind;
+```
+
+### Q8b. Per round: starts, finishes, abandons
+
+```sql
+-- Q8b: per daily, day and round: rounds started, answered (before the clock / by the time-out draft),
+-- abandoned (started, no answer by the round's close) and never started (unfinished attempts after the day closed).
+WITH rounds AS (
+  SELECT r.id AS room_id, r.day, r.kind, r.closes_at, n AS round_number, r.round_order ->> (n - 1) AS game
+  FROM public.async_rooms r, generate_series(1, r.round_count) n
+  WHERE r.kind IN ('daily_puzzle', 'daily_arcade')
+)
+SELECT rd.day, rd.kind, rd.round_number, rd.game,
+       count(res.id) AS started,
+       count(*) FILTER (WHERE res.answered AND ev.reason = 'answered') AS answered_in_time,
+       count(*) FILTER (WHERE res.answered AND ev.reason IS DISTINCT FROM 'answered') AS answered_by_timeout,
+       count(*) FILTER (WHERE res.id IS NOT NULL AND NOT res.answered) AS abandoned,
+       (SELECT count(*) FROM public.async_attempts a
+         WHERE a.room_id = rd.room_id AND rd.closes_at <= now() AND a.finished_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM public.async_results x WHERE x.attempt_id = a.id AND x.round_number = rd.round_number)) AS never_started,
+       round(avg(res.score) FILTER (WHERE res.answered), 1) AS avg_score
+FROM rounds rd
+LEFT JOIN public.async_results res ON res.room_id = rd.room_id AND res.round_number = rd.round_number
+LEFT JOIN public.async_events ev
+  ON ev.attempt_id = res.attempt_id AND ev.round_number = res.round_number AND ev.event = 'round_finished'
+GROUP BY rd.room_id, rd.day, rd.kind, rd.round_number, rd.game, rd.closes_at
+ORDER BY rd.day, rd.kind, rd.round_number;
+```
+
+### Q8c. Daily return: devices playing on consecutive days
+
+```sql
+-- Q8c: for each day, devices that played a daily, and how many of them played one the day before.
+WITH played AS (
+  SELECT DISTINCT a.user_id, r.day
+  FROM public.async_attempts a JOIN public.async_rooms r ON r.id = a.room_id
+  WHERE r.kind IN ('daily_puzzle', 'daily_arcade')
+)
+SELECT p.day, count(*) AS devices,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM played q WHERE q.user_id = p.user_id AND q.day = p.day - 1)) AS also_yesterday
+FROM played p
+GROUP BY p.day
+ORDER BY p.day;
+```
+
+`scripts/daily-check.ts` applies every migration to a local PostgreSQL (when installed) and runs Q8a–Q8c
+as written on its test rows.

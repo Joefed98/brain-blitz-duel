@@ -21,6 +21,8 @@ export interface RateLimit {
 export const CREATE_ROOM_LIMIT: RateLimit = { bucket: "create-room", max: 20, windowSeconds: 3600 };
 /** Room-code lookups (link preview and join, shared): 60 per 10 minutes, so codes can't be brute-forced. */
 export const ROOM_LOOKUP_LIMIT: RateLimit = { bucket: "room-lookup", max: 60, windowSeconds: 600 };
+/** Starting a daily (21 Oct 2026): 30 per 10 minutes, far above two dailies' worth of retries. */
+export const DAILY_START_LIMIT: RateLimit = { bucket: "daily-start", max: 30, windowSeconds: 600 };
 /** Chat reports: 20 per 10 minutes. */
 export const REPORT_LIMIT: RateLimit = { bucket: "report", max: 20, windowSeconds: 600 };
 

@@ -47,6 +47,11 @@ interface RoundIntroProps {
   puzzle?: PuzzleData | null;
   /** The room's round count; its last round announces "final round". */
   totalRounds?: number;
+  /**
+   * False where the intro waits for READY (an async room's round, played on the player's own
+   * clock): no "auto-start in" line. Rooms and practice keep it.
+   */
+  autoStart?: boolean;
 }
 
 export function RoundIntro({
@@ -64,6 +69,7 @@ export function RoundIntro({
   deviceBest = null,
   onBack,
   puzzle = null,
+  autoStart = true,
 }: RoundIntroProps) {
   const elapsed = Math.max(0, now - startedAt);
   const remaining = Math.max(0, INTRO_MS - elapsed);
@@ -172,7 +178,7 @@ export function RoundIntro({
             {practice ? "Practice" : `Round ${round} of ${totalRounds}`}{" "}
             <span className="category-tag">· {theme.accent}</span>
           </span>
-          {!counting && onReady ? (
+          {!counting && onReady && autoStart ? (
             <span className="font-mono text-[0.7rem] text-foreground/70">
               auto-start in {autoSeconds}s
             </span>

@@ -10,6 +10,8 @@ import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { SettingsSheet } from "@/components/app/SettingsSheet";
 import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
+import { dailyStreak, readDailyRecord, type DailyRecord } from "@/lib/duel/dailyRecord";
+import { ukDayKey } from "@/lib/duel/daily";
 import { rememberLook, rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { readPracticeBest } from "@/lib/duel/practiceBest";
 import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
@@ -47,12 +49,14 @@ function ProfileScreen() {
   const [intro, setIntro] = useState(false);
   const [history, setHistory] = useState<RoomRecord[]>([]);
   const [bests, setBests] = useState<{ type: PuzzleType; best: number }[]>([]);
+  const [daily, setDaily] = useState<DailyRecord | null>(null);
 
   useEffect(() => {
     setName(getStoredName());
     const remembered = rememberedLook();
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
     setHistory(readRoomHistory());
+    setDaily(readDailyRecord());
     setBests(
       ACTIVE_PUZZLE_TYPES.map((type) => ({
         type,
@@ -166,6 +170,39 @@ function ProfileScreen() {
               </span>
             </div>
           ))}
+        </section>
+
+        {/* The daily challenge on this device (dailyRecord.ts): the streak of UK days played and best totals. */}
+        <section
+          aria-label="Daily"
+          data-profile-daily
+          className="th-card flex items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3"
+        >
+          <span className="th-kicker shrink-0 text-primary">Daily</span>
+          <span className="grid min-w-0 flex-1 grid-cols-3 gap-2">
+            {[
+              {
+                label: "Streak",
+                value: daily ? dailyStreak(daily.days, ukDayKey(Date.now())) : 0,
+                unit: "d",
+              },
+              { label: "Best puzzle", value: daily?.best.puzzle ?? null, unit: "" },
+              { label: "Best arcade", value: daily?.best.arcade ?? null, unit: "" },
+            ].map((stat) => (
+              <span
+                key={stat.label}
+                data-profile-daily-stat={stat.label}
+                className="flex min-w-0 flex-col items-center"
+              >
+                <span className="th-score font-mono text-xl font-bold tabular-nums text-foreground">
+                  {stat.value === null ? "—" : `${stat.value}${stat.unit}`}
+                </span>
+                <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
+                  {stat.label}
+                </span>
+              </span>
+            ))}
+          </span>
         </section>
 
         <section aria-label="Practice bests" className="flex flex-col gap-2">

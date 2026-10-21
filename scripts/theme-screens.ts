@@ -4,7 +4,9 @@
  * the settings sheet, the room's lobby (2 and 10 players, and its confirm dialog), link join, the
  * round leaderboard (2 and 10 players, after a puzzle and an arcade round), the answer reveal
  * (puzzle and arcade), standings (2 and 10 players) and the final results and podium (2 and 10
- * players), drawn through scripts/safe-area-harness.tsx (the real routes, network stubbed).
+ * players), and the daily challenge (21 Oct 2026: the Play card, /daily before and after playing,
+ * the daily results and Profile's Daily row; scripts/daily-fixture.ts), drawn through
+ * scripts/safe-area-harness.tsx (the real routes, network stubbed).
  */
 import type { Browser, BrowserContext, Page } from "playwright";
 
@@ -15,6 +17,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { currentPracticeStamp } from "../src/lib/duel/practiceStamps";
 import type { PuzzleData } from "../src/lib/duel/types";
+import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -117,8 +120,10 @@ const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily";
   room?: () => ReturnType<typeof roomNow>;
+  /** The daily challenge's stand-in server (H.daily) and this device's daily record. */
+  daily?: () => HarnessDaily;
   /** After the page is drawn: open a sheet or dialog. */
   go?: (page: Page) => Promise<void>;
   waitMs?: number;
@@ -127,10 +132,22 @@ export interface ThemeScreen {
 }
 
 export const THEME_SCREENS: ThemeScreen[] = [
-  { name: "play", mode: "home" },
+  { name: "play", mode: "home", daily: () => dailyFixture().after },
   { name: "practice list", mode: "practice" },
   { name: "tournaments", mode: "tournaments" },
-  { name: "profile", mode: "profile" },
+  { name: "profile", mode: "profile", daily: () => dailyFixture().after },
+  { name: "daily, before playing", mode: "daily", daily: () => dailyFixture().before },
+  { name: "daily, board after playing", mode: "daily", daily: () => dailyFixture().after },
+  {
+    name: "daily results",
+    mode: "daily",
+    daily: () => dailyFixture().after,
+    go: async (page) => {
+      await page.locator("[data-daily-results]").click();
+      await page.locator("[data-async-results]").waitFor({ timeout: 20_000 });
+      await page.waitForTimeout(600);
+    },
+  },
   {
     name: "settings sheet",
     mode: "profile",
@@ -300,9 +317,20 @@ export async function openThemeScreen(
         submissions: [],
         verdictAt: null,
         room: r.room,
+        daily: r.daily,
       };
+      try {
+        if (r.record) localStorage.setItem(r.record[0], r.record[1]);
+      } catch {
+        /* ignore */
+      }
     },
-    { room: screen.room?.() ?? null, puzzle: PUZZLE },
+    {
+      room: screen.room?.() ?? null,
+      puzzle: PUZZLE,
+      daily: screen.daily?.() ?? undefined,
+      record: screen.daily ? dailyFixture().record : null,
+    },
   );
   await context.addInitScript(deviceInit, {
     onboarding: ONBOARDING_KEY,
