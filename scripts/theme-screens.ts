@@ -114,7 +114,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       : [],
   };
 }
-const room =
+export const room =
   (status: Status, phase: string, opts: RoomOpts = {}) =>
   () =>
     roomNow(status, phase, opts);
@@ -137,9 +137,18 @@ export interface ThemeScreen {
   plain?: boolean;
 }
 
+/** Opens the challenge's run from its link: round 1 started `startOffsetMs` ago on the page's clock. */
+export async function startChallengeRun(page: Page) {
+  await page.evaluate(() => {
+    const h = (window as unknown as { __harness: { startOffsetMs: number | null; daily?: { view?: { rounds: { startedAt: number | null }[] } } } }).__harness;
+    if (h.startOffsetMs !== null && h.daily?.view) h.daily.view.rounds[0]!.startedAt = Date.now() - h.startOffsetMs;
+  });
+  await page.locator("[data-challenge-play]").click();
+}
+
 /** A challenge round's results screens are reached by playing: past round 1's time-out, its reveal, then them. */
 async function toChallengeResults(page: Page, standingsToo: boolean) {
-  await page.locator("[data-challenge-play]").click();
+  await startChallengeRun(page);
   await page.getByText("Round results", { exact: true }).waitFor({ timeout: 45_000 });
   await page.waitForTimeout(800);
   if (!standingsToo) return;
@@ -356,9 +365,8 @@ export async function openThemeScreen(
   await context.addInitScript(
     (r) => {
       const daily = (r.challengeRun?.daily ?? r.daily) as { view?: { rounds: { startedAt: number | null }[] } } | undefined;
-      // A challenge run starts mid-round (or past round 1's time-out), on this page's own clock.
-      if (r.challengeRun && r.challengeRun.startOffsetMs !== null && daily?.view)
-        daily.view.rounds[0]!.startedAt = Date.now() - r.challengeRun.startOffsetMs;
+      // A challenge run starts mid-round (or past round 1's time-out): startChallengeRun sets round 1's
+      // start on this page's clock just before the run opens (a slow page open must not pass its close).
       (window as unknown as { __harness: unknown }).__harness = {
         puzzles: { sudoku: r.puzzle, ...(r.challengeRun?.challenge.puzzles ?? {}) },
         verdict: { isCorrect: true, score: 150 },
@@ -368,6 +376,7 @@ export async function openThemeScreen(
         room: r.room,
         daily,
         challenge: r.challengeRun?.challenge,
+        startOffsetMs: r.challengeRun?.startOffsetMs ?? null,
         search: r.search,
       };
       try {

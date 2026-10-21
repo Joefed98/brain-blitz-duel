@@ -17,7 +17,7 @@ import { chromium, type Page } from "playwright";
 import { startSafeAreaServer } from "../safe-area-server";
 import { CHALLENGE_CODE, challengeFixture } from "../challenge-fixture";
 import { dailyFixture } from "../daily-fixture";
-import { CHALLENGE_SCREENS, CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen, type ThemeScreen } from "../theme-screens";
+import { CHALLENGE_SCREENS, CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen, startChallengeRun, type ThemeScreen } from "../theme-screens";
 
 const OUT = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "screenshots/challenge-oct-2026";
 const ONLY = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -40,7 +40,7 @@ const SHOTS: { file: string; screen: ThemeScreen; act?: (page: Page) => Promise<
     file: "05-live-round-pings",
     screen: { name: "challenge, live round", mode: "challenge", challenge: () => challengeFixture("live"), search: { code: CHALLENGE_CODE } },
     act: async (page) => {
-      await page.locator("[data-challenge-play]").click();
+      await startChallengeRun(page);
       await page.locator("[data-finished-ping]").waitFor({ timeout: 30_000 });
       await page.waitForTimeout(500);
     },

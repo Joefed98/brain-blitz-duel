@@ -209,7 +209,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
 - **Room screen fixes** (19 Oct 2026; display and room data only, no version stamps, no scoring or grading changed):
   - *Chat* (`src/lib/duel/chatNotice.ts`): placeholder "Chat…"; the chat button shows only other players' unread
     messages, in gold; between rounds a live message from another player shows a toast (their badge, name, first words;
-    tap opens the messages) with `playBlip` and a light haptic; during a round (intro countdown to reveal) nothing but a
+    tap opens the messages) with `playBlip` and a light haptic, at the screen's bottom since 22 Oct 2026 (slides up,
+    above the home bar and every control pinned there, `chatToastPlace.ts`; chat-notice-check's browser pass,
+    `scripts/chat-toast-browser.ts`, proves it at 414×896 app, 375×667 and desktop); during a round (intro countdown to reveal) nothing but a
     small silent dot on the play header (`RoundChatDot`). chat-notice-check (~1 s, happy-dom).
   - *Finished pings* only for a finish before the buzzer (`src/lib/duel/buzzer.ts`: received in the puzzle phase with
     ≥ 1 s left on the round's own clock, an arcade run's length or the time limit); never a time-out draft, an answer at

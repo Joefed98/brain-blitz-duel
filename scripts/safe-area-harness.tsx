@@ -82,6 +82,9 @@ interface Harness {
   preview?: unknown;
   /** Share loop events the page sent (share-check), in order. */
   shareEvents?: unknown[];
+  /** A chat message arriving live (chat-notice-check: the toast); set through H.chat. */
+  chatIncoming?: unknown;
+  chat?: (message: unknown) => void;
   /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
   update?: (change: (room: Room) => void) => void;
 }
@@ -133,7 +136,9 @@ function useDuel() {
 }
 
 function useRoomChat() {
+  useSyncExternalStore(subscribe, () => version);
   return {
+    incoming: H.chatIncoming ?? null,
     messages: [],
     reactions: [],
     unread: 0,
@@ -343,6 +348,11 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   practiceGradeFn,
   supabase: inert(),
   DuelError: class DuelError extends Error {},
+};
+
+H.chat = (message) => {
+  H.chatIncoming = message;
+  bump();
 };
 
 H.update = (change) => {

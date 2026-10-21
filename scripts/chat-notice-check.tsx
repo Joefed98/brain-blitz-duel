@@ -14,8 +14,13 @@
  *     untappable, and only while something is unread.
  *  5. Wiring: the hook plays no sound itself; the room route shows the dot through
  *     showRoundChatDot on the live round's header.
+ *  6. Position (22 Oct 2026): the toast sits at the bottom and slides up, for CHAT_TOAST_MS (3.5 s);
+ *     in a real browser (scripts/chat-toast-browser.ts) on the room's between-round screens at
+ *     414x896 (iPhone 11 home-screen app), 375x667 and desktop 1440x900 it sits above the home bar
+ *     and never overlaps a control: none pinned to the screen (the chat bar, Ready, Play again,
+ *     Share, Continue, Leave) and none within the bottom zone.
  *
- *   bun scripts/chat-notice-check.tsx
+ *   bun scripts/chat-notice-check.tsx [--no-browser] [--shots=<dir>]
  */
 import { readFileSync } from "node:fs";
 import { mock } from "bun:test";
@@ -23,6 +28,7 @@ import { Window } from "happy-dom";
 
 import {
   CHAT_TOAST_CHARS,
+  CHAT_TOAST_MS,
   CHAT_TOAST_WORDS,
   chatToastText,
   shouldToast,
@@ -122,6 +128,11 @@ check(toast()?.textContent?.includes(chatToastText(live.text)) === true, `toast 
 check(!!toast()?.querySelector("[data-player-badge], svg, span"), "toast lacks the sender's badge");
 check((toast() as HTMLElement | null)?.style.borderColor !== "", "toast lacks the sender's colour");
 check(blips === 1 && vibrations === 1, `toast sound ${blips} / haptic ${vibrations}, expected 1 / 1`);
+// At the bottom (22 Oct 2026): placed from the bottom, sliding up; never from the top.
+const placed = toast() as HTMLElement | null;
+check(!!placed && placed.style.top === "" && placed.style.bottom !== "", `toast is not placed from the bottom (top "${placed?.style.top}", bottom "${placed?.style.bottom}")`);
+check(/chat-toast-up/.test(placed?.className ?? "") && !/animate-fade-in/.test(placed?.className ?? ""), "toast does not slide up from the bottom");
+check(CHAT_TOAST_MS === 3500, `toast shows for ${CHAT_TOAST_MS} ms, expected 3500`);
 await draw(state({ messages: [...two, live], unread: 3, incoming: live }), true);
 check(blips === 1, "the same message played its sound twice");
 await act(async () => (toast() as HTMLElement).click());
@@ -158,15 +169,34 @@ check(/unreadCount\(/.test(hookSrc), "useRoomChat does not count unread through 
 const routeSrc = readFileSync("src/routes/duel.$code.tsx", "utf8");
 check(/showRoundChatDot\(chat\.unread, chatAvailable\)/.test(routeSrc) && /\{chatDot\}/.test(routeSrc), "the live round's header does not show the chat dot");
 
+// The toast leaves after CHAT_TOAST_MS.
+const later = msg("f", "u2", "gg");
+await draw(state({ messages: [...two, live, mine, inRound, later], unread: 2, incoming: later }), true);
+check(!!toast(), "no toast for a later message between rounds");
+await act(async () => new Promise((resolve) => setTimeout(resolve, CHAT_TOAST_MS + 150)));
+check(!toast(), `toast still up after ${CHAT_TOAST_MS} ms`);
+
 await act(async () => {
   root.unmount();
   dotRoot.unmount();
 });
+
+// 6: in a real browser (scripts/chat-toast-browser.ts): at the bottom above the home bar and every
+// control pinned there, on the room's between-round screens at 414x896 (home-screen app), 375x667
+// and desktop. Its own process (this one runs happy-dom).
+if (!process.argv.includes("--no-browser")) {
+  const { spawnSync } = await import("node:child_process");
+  const shots = process.argv.find((a) => a.startsWith("--shots="));
+  const out = spawnSync("bun", ["scripts/chat-toast-browser.ts", ...(shots ? [shots] : [])], { encoding: "utf8", timeout: 280_000 });
+  const text = `${out.stdout ?? ""}${out.stderr ?? ""}`;
+  for (const line of text.split("\n")) if (/^(PASS|FAIL|NOTE|  )/.test(line)) console.log(`  ${line}`);
+  check(out.status === 0 && /^PASS/m.test(text), "the browser placement pass failed (scripts/chat-toast-browser.ts)");
+}
 
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
   console.log(`FAIL: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS: ${passes} checks (placeholder, unread badge, toast with badge, name and first words, one blip and haptic, silent dot during rounds)`);
+console.log(`PASS: ${passes} checks (placeholder, unread badge, toast with badge, name and first words, one blip and haptic, silent dot during rounds, the toast at the bottom above the home bar and the pinned controls)`);
 process.exit(0);
