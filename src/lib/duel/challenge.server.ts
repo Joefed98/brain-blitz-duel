@@ -311,7 +311,7 @@ export async function createChallengeFromRoom(
     .select("puzzles_private")
     .eq("duel_id", room.id)
     .maybeSingle();
-  const priv = ((secretRow?.puzzles_private ?? []) as Record<string, unknown>[]) ?? [];
+  const priv = (secretRow?.puzzles_private ?? []) as Record<string, unknown>[];
   const puzzles = pub.map((p, i) => mergePuzzle(p, priv[i]));
   const { data: resultRows } = await client
     .from("round_results")
