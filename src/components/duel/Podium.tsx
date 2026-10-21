@@ -78,6 +78,8 @@ interface PodiumProps {
   onLeave: () => void;
   /** Replays: the play of the game panel (display only; never blocks Play again or Leave). */
   playOfTheGame?: ReactNode;
+  /** The Share button (RoomShareButton), beside Play again. */
+  share?: ReactNode;
 }
 
 /** The final screen for a room of three or more players. */
@@ -93,6 +95,7 @@ export function Podium({
   onPlayAgain,
   onLeave,
   playOfTheGame,
+  share,
 }: PodiumProps) {
   const [open, setOpen] = useState<number | null>(null);
   const mine = rows.find((r) => r.slot === mySlot);
@@ -183,26 +186,32 @@ export function Podium({
         className="room-sticky-footer sticky z-30 mt-auto flex flex-col gap-2 bg-background pb-2 pt-2"
         style={{ bottom: `calc(${CHAT_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}
       >
-        {isHost ? (
-          <button
-            type="button"
-            onClick={onPlayAgain}
-            disabled={busy}
-            className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
-          >
-            {busy ? (
-              <>
-                <span>Setting up</span>
-                <Dots className="bg-primary-foreground" />
-              </>
-            ) : (
-              "Play again"
-            )}
-          </button>
-        ) : (
+        {!isHost && (
           <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Waiting for host…
           </p>
+        )}
+        {(isHost || share) && (
+          <div className="flex gap-2">
+            {isHost && (
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                disabled={busy}
+                className="th-btn-gold press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+              >
+                {busy ? (
+                  <>
+                    <span>Setting up</span>
+                    <Dots className="bg-primary-foreground" />
+                  </>
+                ) : (
+                  "Play again"
+                )}
+              </button>
+            )}
+            {share}
+          </div>
         )}
         <button
           type="button"

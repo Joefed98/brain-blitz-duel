@@ -267,6 +267,25 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `wordSearchRev 2` (no theme-name words, `wordSearchBankRev2.server.ts`); a room round's stage state is saved with
   the draft (`stageState.ts` `persistStageState`, puzzles only), so a reload continues the board
   (stage-state-reload-check).
+- **Sharing results** (21 Oct 2026, presentation and beta recording only, no version stamps): the room's final screen
+  (Podium and FinalResult) has Share beside Play again (`RoomShareButton`, `th-btn-teal`, one line, 48 px). It goes through
+  `shareResult()` (`src/lib/share/shareResult.ts`: title, lines, image, link; reusable for the daily challenge and friend
+  challenges): the share sheet (`navigator.share`, the link inside the text, never also `url`; the PNG attached where
+  `canShare({ files })`), else the text and link copied and "Copied". Text and link from `roomShare.ts` ("I came 2nd in a
+  6-round {APP_NAME} room – 612 pts. Play: <link>"; always the room's link with `?ref=share`; where it leads is decided when
+  it's opened, in `JoinFromLink` (`shareLinkJoinable`: the lobby, not disbanded, a seat free → the lobby's join; else a
+  redirect to `/?ref=share&room=CODE` and the welcome card), so friends who open it after Play again join the next game and
+  no newcomer lands on "This game has finished"). The card (`resultCard.ts`, 1080×1350, drawn when the screen opens so iOS can attach
+  it to the tap): APP_NAME, place and total, the top three with medals, the round games' icons (`gameIconImages.tsx`: the
+  arcade painters, puzzles' GameIcon SVGs rasterised) and the room code; built only from what the final screen shows, never
+  an answer or puzzle. Beta counts (`shareRef.ts` → `recordShareEventFn`, fire-and-forget): `share_tap` (room, place,
+  method), `arrival` (the first `?ref=share` visit per device, counted by the root route) and `arrival_finished` (that device's
+  first final screen). A home arrival (never a room-lobby one: the lobby is the welcome) sees a one-time welcome card at the top
+  of the Play tab on that visit only (`ShareWelcomeCard`, the only Play tab change; the first-time intro is skipped for it,
+  as for a room link): "YOUR FRIEND PLAYED {APP_NAME}", TRY A PRACTICE GAME (Warm up's first game), NEXT PUBLIC GAME: {day
+  time} (the Tournaments tab, only when one is scheduled) and a ✕, counted as `arrival_welcome` (`shown`, then `dismissed`,
+  `practice` or `public`). Table `share_events` from `supabase/migrations/20261021120000_beta_share_events.sql`, **written but
+  not applied** (until it is, the writes fail quietly; queries in `docs/beta-sql.md` section 7). share-check (~1 min, `play17`).
 - **Desktop browsers** (17 Oct 2026, presentation and input only; `docs/desktop-support.md` has the control map for every
   game): `src/lib/desktop.ts` (`DESKTOP_QUERY`: a mouse or trackpad, hover and a fine pointer, in a window ≥ 1180×560; phones
   and tablets never match), `src/polish-layout/desktop.css` (pages a centred 480 px column; puzzle screens a centred ≤ 560×1000
