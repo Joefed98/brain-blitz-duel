@@ -14,6 +14,241 @@ export type Database = {
   }
   public: {
     Tables: {
+      async_attempts: {
+        Row: {
+          colour: number | null
+          display_name: string
+          finished_at: string | null
+          icon: string | null
+          id: string
+          room_id: string
+          round_scores: Json
+          rounds_done: number
+          started_at: string
+          tie_ms: number
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          colour?: number | null
+          display_name: string
+          finished_at?: string | null
+          icon?: string | null
+          id?: string
+          room_id: string
+          round_scores?: Json
+          rounds_done?: number
+          started_at?: string
+          tie_ms?: number
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          colour?: number | null
+          display_name?: string
+          finished_at?: string | null
+          icon?: string | null
+          id?: string
+          room_id?: string
+          round_scores?: Json
+          rounds_done?: number
+          started_at?: string
+          tie_ms?: number
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "async_attempts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "async_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      async_events: {
+        Row: {
+          at: string
+          attempt_id: string
+          event: string
+          id: number
+          kind: string
+          reason: string | null
+          room_id: string
+          round_number: number
+          user_id: string | null
+        }
+        Insert: {
+          at?: string
+          attempt_id: string
+          event: string
+          id?: never
+          kind: string
+          reason?: string | null
+          room_id: string
+          round_number?: number
+          user_id?: string | null
+        }
+        Update: {
+          at?: string
+          attempt_id?: string
+          event?: string
+          id?: never
+          kind?: string
+          reason?: string | null
+          room_id?: string
+          round_number?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      async_results: {
+        Row: {
+          answer: string | null
+          answered: boolean
+          answered_at: string | null
+          attempt_id: string
+          correct_count: number | null
+          errors: number | null
+          extra: Json | null
+          id: string
+          is_correct: boolean
+          missed: boolean
+          ms_remaining: number
+          reaction_avg_ms: number | null
+          room_id: string
+          round_number: number
+          score: number
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          answered?: boolean
+          answered_at?: string | null
+          attempt_id: string
+          correct_count?: number | null
+          errors?: number | null
+          extra?: Json | null
+          id?: string
+          is_correct?: boolean
+          missed?: boolean
+          ms_remaining?: number
+          reaction_avg_ms?: number | null
+          room_id: string
+          round_number: number
+          score?: number
+          started_at: string
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          answered?: boolean
+          answered_at?: string | null
+          attempt_id?: string
+          correct_count?: number | null
+          errors?: number | null
+          extra?: Json | null
+          id?: string
+          is_correct?: boolean
+          missed?: boolean
+          ms_remaining?: number
+          reaction_avg_ms?: number | null
+          room_id?: string
+          round_number?: number
+          score?: number
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "async_results_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "async_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "async_results_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "async_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      async_room_secrets: {
+        Row: {
+          puzzles_private: Json
+          room_id: string
+          round_records: Json | null
+        }
+        Insert: {
+          puzzles_private?: Json
+          room_id: string
+          round_records?: Json | null
+        }
+        Update: {
+          puzzles_private?: Json
+          room_id?: string
+          round_records?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "async_room_secrets_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "async_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      async_rooms: {
+        Row: {
+          closes_at: string
+          created_at: string
+          created_by: string | null
+          day: string | null
+          id: string
+          kind: string
+          opens_at: string
+          puzzles_public: Json
+          room_key: string
+          round_count: number
+          round_order: Json
+          seed: number
+        }
+        Insert: {
+          closes_at: string
+          created_at?: string
+          created_by?: string | null
+          day?: string | null
+          id?: string
+          kind: string
+          opens_at: string
+          puzzles_public?: Json
+          room_key: string
+          round_count: number
+          round_order?: Json
+          seed: number
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          created_by?: string | null
+          day?: string | null
+          id?: string
+          kind?: string
+          opens_at?: string
+          puzzles_public?: Json
+          room_key?: string
+          round_count?: number
+          round_order?: Json
+          seed?: number
+        }
+        Relationships: []
+      }
       duel_players: {
         Row: {
           colour: number | null
@@ -595,6 +830,54 @@ export type Database = {
         }
         Relationships: []
       }
+      share_events: {
+        Row: {
+          created_at: string
+          duel_id: string | null
+          event: string
+          game_index: number | null
+          id: number
+          landing: string | null
+          method: string | null
+          place: number | null
+          players: number | null
+          room_code: string | null
+          rounds: number | null
+          user_id: string
+          welcome: string | null
+        }
+        Insert: {
+          created_at?: string
+          duel_id?: string | null
+          event: string
+          game_index?: number | null
+          id?: never
+          landing?: string | null
+          method?: string | null
+          place?: number | null
+          players?: number | null
+          room_code?: string | null
+          rounds?: number | null
+          user_id: string
+          welcome?: string | null
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string | null
+          event?: string
+          game_index?: number | null
+          id?: never
+          landing?: string | null
+          method?: string | null
+          place?: number | null
+          players?: number | null
+          room_code?: string | null
+          rounds?: number | null
+          user_id?: string
+          welcome?: string | null
+        }
+        Relationships: []
+      }
       unblock_bank: {
         Row: {
           created_at: string
@@ -627,6 +910,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      async_board_open: { Args: { p_room_id: string }; Returns: boolean }
       disband_stale_room: { Args: { p_room_id: string }; Returns: boolean }
       duel_round_ended: {
         Args: { _duel_id: string; _round: number }
