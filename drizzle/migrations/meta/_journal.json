@@ -71,6 +71,13 @@
       "when": 1792587621164,
       "tag": "0009_20261021130000_async_rooms_daily",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792606604139,
+      "tag": "0010_20261022120000_friend_challenges",
+      "breakpoints": true
     }
   ]
 }
