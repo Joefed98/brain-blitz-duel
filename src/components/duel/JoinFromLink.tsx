@@ -1,9 +1,15 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { fetchRoomPreview, joinRoomByCode, type RoomPreview } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { buzz } from "@/lib/motion";
+import {
+  isShareRef,
+  noteShareLobbyArrival,
+  shareHomeSearch,
+  shareLinkJoinable,
+} from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 
 import { Dots, WaitingLine } from "./Dots";
@@ -13,6 +19,10 @@ import { Dots, WaitingLine } from "./Dots";
  * lobby they only give a display name (remembered on this device) and join
  * through the same joinRoomByCode server function as the home screen. Once
  * the game has started, the page says so and offers Home.
+ *
+ * A shared result's link (?ref=share, lib/share) is decided here, when it's opened: while the
+ * newcomer can join they get the lobby's join (counted as a lobby arrival); otherwise they're sent
+ * to the home, where the Play tab's welcome card greets them, never to "This game has finished".
  */
 export function JoinFromLink({
   roomCode,
@@ -37,6 +47,18 @@ export function JoinFromLink({
       cancelled = true;
     };
   }, [roomCode]);
+
+  // A shared link: the lobby's join while there's a seat, else the home and its welcome card.
+  const shared = typeof window !== "undefined" && isShareRef(window.location.search);
+  const redirect = !!preview && shared && !shareLinkJoinable(preview);
+  const decided = useRef(false);
+  useEffect(() => {
+    if (!preview || !shared || decided.current) return;
+    decided.current = true;
+    if (redirect)
+      void navigate({ to: "/", search: shareHomeSearch(roomCode) as never, replace: true });
+    else noteShareLobbyArrival(roomCode);
+  }, [preview, shared, redirect, navigate, roomCode]);
 
   const join = async () => {
     const trimmed = name.trim();
@@ -69,7 +91,7 @@ export function JoinFromLink({
     </button>
   );
 
-  if (!preview) return <WaitingLine label="Loading room" />;
+  if (!preview || redirect) return <WaitingLine label="Loading room" />;
 
   if (!preview.found) {
     return (

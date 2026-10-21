@@ -8,6 +8,8 @@
  * storage; the first room that device then sees to its final screen is counted once as
  * arrival_finished.
  *
+ * A shared link is always a room's (roomShare.ts); when it's opened, JoinFromLink sends a newcomer
+ * to the lobby while they can join, else to the home (?ref=share&room=CODE).
  * An arrival that lands on the home (not a room's lobby, which is its own welcome) sees the Play
  * tab's one-time welcome card (ShareWelcomeCard) on that visit only; it's counted as arrival_welcome:
  * "shown" once, then "dismissed", "practice" or "public" once.
@@ -88,9 +90,19 @@ export function isShareRef(search: string): boolean {
   }
 }
 
+const ROOM_CODE = /^[A-Za-z]{4}$/;
+
+function writeArrival(arrival: ShareArrival, record: ShareRecorder): void {
+  writeShareArrival(arrival);
+  arrivedThisLoad = true;
+  record({ event: "arrival", landing: arrival.landing, roomCode: arrival.roomCode });
+}
+
 /**
- * On a page load: counts an arrival from a shared link once per device. Returns true when it
- * counted one (the root route calls it once per load).
+ * On a page load: counts an arrival from a shared link on the home once per device (`room` is the
+ * room whose link redirected here). Returns true when it counted one. A room link (/duel/CODE) is
+ * not counted here: where it leads is decided once the room is known (noteShareLobbyArrival, or a
+ * redirect to the home that is counted here).
  */
 export function noteShareArrival(
   location: { search: string; pathname: string },
@@ -98,18 +110,64 @@ export function noteShareArrival(
   now: number = Date.now(),
 ): boolean {
   if (!isShareRef(location.search) || readShareArrival()) return false;
-  const code = /^\/duel\/([A-Za-z]{4})\/?$/.exec(location.pathname)?.[1]?.toUpperCase() ?? null;
-  const arrival: ShareArrival = { at: now, landing: code ? "room" : "home", roomCode: code };
-  writeShareArrival(arrival);
-  arrivedThisLoad = true;
-  record({ event: "arrival", landing: arrival.landing, roomCode: arrival.roomCode });
+  if (/^\/duel\//.test(location.pathname)) return false;
+  let room: string | null = null;
+  try {
+    room = new URLSearchParams(location.search).get("room");
+  } catch {
+    /* no room */
+  }
+  writeArrival(
+    {
+      at: now,
+      landing: "home",
+      roomCode: room && ROOM_CODE.test(room) ? room.toUpperCase() : null,
+    },
+    record,
+  );
   return true;
+}
+
+/** A shared room link opened while a newcomer can join: counts the arrival as landing in the lobby. */
+export function noteShareLobbyArrival(
+  roomCode: string,
+  record: ShareRecorder = sendShareEvent,
+  now: number = Date.now(),
+): boolean {
+  if (readShareArrival()) return false;
+  writeArrival(
+    {
+      at: now,
+      landing: "room",
+      roomCode: ROOM_CODE.test(roomCode) ? roomCode.toUpperCase() : null,
+    },
+    record,
+  );
+  return true;
+}
+
+/**
+ * Where a shared room link leads, decided when it's opened (from the room's preview): true while a
+ * newcomer can join (its lobby, not disbanded, a seat free), so they go straight to the lobby's join;
+ * false (finished, playing, disbanded, full or not found) sends them to the home with the welcome card.
+ */
+export function shareLinkJoinable(
+  preview:
+    { found: false } | { found: true; state: string; playerCount: number; maxPlayers: number },
+): boolean {
+  return preview.found && preview.state === "lobby" && preview.playerCount < preview.maxPlayers;
+}
+
+/** The home's query a shared room link redirects to: ?ref=share&room=CODE. */
+export function shareHomeSearch(roomCode: string): { ref: string; room: string } {
+  return { ref: SHARE_REF, room: roomCode.toUpperCase() };
 }
 
 /**
  * True while the Play tab should show the welcome card: this page load is the device's first
  * arrival from a shared link, it landed on the home, and the card hasn't been closed. Counts the
- * arrival itself first (a child route's effect runs before the root's).
+ * arrival itself first (a child route's effect runs before the root's, and a shared room link's
+ * redirect reaches the home without a page load).
  */
 export function shareWelcomeDue(
   location: { search: string; pathname: string },

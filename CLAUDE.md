@@ -272,9 +272,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `shareResult()` (`src/lib/share/shareResult.ts`: title, lines, image, link; reusable for the daily challenge and friend
   challenges): the share sheet (`navigator.share`, the link inside the text, never also `url`; the PNG attached where
   `canShare({ files })`), else the text and link copied and "Copied". Text and link from `roomShare.ts` ("I came 2nd in a
-  6-round {APP_NAME} room – 612 pts. Play: <link>"; the room's link only while a newcomer can join it, `roomJoinable`: the
-  lobby, not disbanded, a seat free; else the home, so a finished room before Play again links the home and no newcomer
-  lands on "This game has finished"; both `?ref=share`). The card (`resultCard.ts`, 1080×1350, drawn when the screen opens so iOS can attach
+  6-round {APP_NAME} room – 612 pts. Play: <link>"; always the room's link with `?ref=share`; where it leads is decided when
+  it's opened, in `JoinFromLink` (`shareLinkJoinable`: the lobby, not disbanded, a seat free → the lobby's join; else a
+  redirect to `/?ref=share&room=CODE` and the welcome card), so friends who open it after Play again join the next game and
+  no newcomer lands on "This game has finished"). The card (`resultCard.ts`, 1080×1350, drawn when the screen opens so iOS can attach
   it to the tap): APP_NAME, place and total, the top three with medals, the round games' icons (`gameIconImages.tsx`: the
   arcade painters, puzzles' GameIcon SVGs rasterised) and the room code; built only from what the final screen shows, never
   an answer or puzzle. Beta counts (`shareRef.ts` → `recordShareEventFn`, fire-and-forget): `share_tap` (room, place,

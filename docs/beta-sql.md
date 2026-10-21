@@ -1023,14 +1023,15 @@ client grants), written best-effort by `recordShareEventFn` (`src/lib/duel/share
 | event | One row per | Columns |
 |---|---|---|
 | `share_tap` | tap on Share (podium or two-player result) | `user_id`, `duel_id`, `game_index`, `room_code`, `place` (null after leaving or a forfeit loss), `players`, `rounds`, `method` (`native` = the share sheet opened, `copy` = text and link copied), `created_at` |
-| `arrival` | device, its first visit from a shared link (`?ref=share`) | `user_id`, `landing` (`room` = the room link, `home` = the app's home), `room_code` (room links only) |
+| `arrival` | device, its first visit from a shared link (`?ref=share`) | `user_id`, `landing` (`room` = the link opened in the lobby's join, `home` = redirected to the home because the room couldn't be joined then), `room_code` (the shared room; null for a bare home link) |
 | `arrival_welcome` | device and outcome: the Play tab's one-time welcome card for a home arrival (room arrivals get none) | `user_id`, `welcome`: `shown`, then one of `dismissed` (the ✕), `practice` (TRY A PRACTICE GAME), `public` (NEXT PUBLIC GAME); no close row when the visitor just left |
 | `arrival_finished` | device, the first room it saw to the final screen after arriving | `user_id`, `duel_id`, `game_index`, `room_code`, `place`, `players`, `rounds` |
 
 A tap means the sheet opened (or the text was copied), not that anything was sent: the share sheet does
-not say. Shared links name the room only while a newcomer could join it (its lobby, not disbanded, a seat
-free) and the home otherwise, so a share from the final screen (the room is finished) links the home;
-both carry `?ref=share`. `arrival` and `arrival_finished` are one row per device (unique
+not say. Shared links are always the room's (`/duel/CODE?ref=share`); where they lead is decided when opened:
+the lobby's join while a newcomer could join (its lobby, not disbanded, a seat free), else a redirect
+to the home (`/?ref=share&room=CODE`) and its welcome card. A room member opening the link is not an
+arrival. `arrival` and `arrival_finished` are one row per device (unique
 indexes keep the first), so a device that clears its storage is a new device (G8). The phone remembers
 its arrival in localStorage (`duelz-share-arrival:v1`) and sends `arrival_finished` from the final
 screen; `room_joins` and `room_events` give the same answer server-side (Q-S3).
