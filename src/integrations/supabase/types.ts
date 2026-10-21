@@ -249,6 +249,83 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_events: {
+        Row: {
+          at: string
+          code: string | null
+          event: string
+          id: number
+          room_id: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          code?: string | null
+          event: string
+          id?: never
+          room_id?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          at?: string
+          code?: string | null
+          event?: string
+          id?: never
+          room_id?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      challenges: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          room_id: string
+          round_count: number
+          selected_categories: string[]
+          source: string
+          source_duel_id: string | null
+          source_game_index: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          room_id: string
+          round_count: number
+          selected_categories?: string[]
+          source: string
+          source_duel_id?: string | null
+          source_game_index?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          room_id?: string
+          round_count?: number
+          selected_categories?: string[]
+          source?: string
+          source_duel_id?: string | null
+          source_game_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "async_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       duel_players: {
         Row: {
           colour: number | null
@@ -832,7 +909,9 @@ export type Database = {
       }
       share_events: {
         Row: {
+          challenge_code: string | null
           created_at: string
+          daily_kind: string | null
           duel_id: string | null
           event: string
           game_index: number | null
@@ -843,11 +922,14 @@ export type Database = {
           players: number | null
           room_code: string | null
           rounds: number | null
+          source: string
           user_id: string
           welcome: string | null
         }
         Insert: {
+          challenge_code?: string | null
           created_at?: string
+          daily_kind?: string | null
           duel_id?: string | null
           event: string
           game_index?: number | null
@@ -858,11 +940,14 @@ export type Database = {
           players?: number | null
           room_code?: string | null
           rounds?: number | null
+          source?: string
           user_id: string
           welcome?: string | null
         }
         Update: {
+          challenge_code?: string | null
           created_at?: string
+          daily_kind?: string | null
           duel_id?: string | null
           event?: string
           game_index?: number | null
@@ -873,6 +958,7 @@ export type Database = {
           players?: number | null
           room_code?: string | null
           rounds?: number | null
+          source?: string
           user_id?: string
           welcome?: string | null
         }
