@@ -6,6 +6,8 @@ import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/Ph
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { RoundLabel } from "@/components/duel/RoundLabel";
+import { FinishedPingStrip } from "@/components/duel/FinishedPings";
+import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
@@ -40,6 +42,18 @@ import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { buzz } from "@/lib/motion";
 import { holdMusicBed, playLock, releaseRoomMusic, stopWarning10, unlockAudio } from "@/lib/sound";
 import type { SubmitMeta } from "@/puzzles/types";
+import type { ChallengeRoundBoard } from "@/lib/duel/challenge";
+import { standings } from "@/lib/duel/scoring";
+
+import {
+  RivalRoundResults,
+  RivalStandings,
+  rivalLooks,
+  rivalRevealPlayers,
+  rivalRows,
+  useRivalPings,
+  type AsyncRivals,
+} from "./rivals";
 
 /**
  * One player's run through an async room (21 Oct 2026; the daily challenge, later friend
@@ -54,6 +68,10 @@ import type { SubmitMeta } from "@/puzzles/types";
  * round whose clock ran out while the phone was away is sent its draft when the phone is back
  * (graded late, 0 ms left, as a room's reveal-phase answer). The intro waits for READY: the
  * player's clock starts only when they do.
+ *
+ * With `rivals` (a friend challenge, 22 Oct 2026) the run plays against the earlier players as a room
+ * would: their "finished ✓" pings while the round runs, the arcade reveal's chart, then the round
+ * leaderboard and the standings, each from the server once this device's own result is stored.
  */
 
 /** RoundIntro's start while it waits for READY: never reaches the 3-2-1. */
@@ -70,7 +88,10 @@ type Step =
       puzzle: PuzzleData;
       reveal: AsyncReveal | null;
       shownAt: number;
+      /** The earlier players' results for the round (rivals only; undefined while loading). */
+      board?: ChallengeRoundBoard | null;
     }
+  | { kind: "result" | "standings"; round: number; puzzle: PuzzleData; board: ChallengeRoundBoard }
   | { kind: "error"; message: string };
 
 function useTicker(): number {
@@ -87,6 +108,7 @@ export function AsyncRun({
   title,
   onDone,
   leave,
+  rivals,
 }: {
   roomId: string;
   /** "Daily Puzzle": the intro's and play header's name for the run. */
@@ -94,6 +116,8 @@ export function AsyncRun({
   onDone: (view: AsyncAttemptView) => void;
   /** A way back out between rounds (the run continues later from where it was left). */
   leave: ReactNode;
+  /** A friend challenge's earlier players (rivals.tsx); a run with none plays alone, as the daily does. */
+  rivals?: AsyncRivals | undefined;
 }) {
   const [step, setStep] = useState<Step>({ kind: "loading" });
   const [view, setView] = useState<AsyncAttemptView | null>(null);
@@ -107,6 +131,9 @@ export function AsyncRun({
   const syncing = useRef(false);
   const done = useRef(onDone);
   done.current = onDone;
+  const withRivals = !!rivals && rivals.roster.players.some((p) => p.slot !== rivals.roster.mySlot);
+  // The last round board seen: the play header's place among the earlier players.
+  const lastBoard = useRef<ChallengeRoundBoard | null>(null);
 
   const roundCount = view?.roundCount ?? 0;
   const stateKey = step.kind === "puzzle" ? `async-${roomId}-${step.round}` : "";
@@ -238,6 +265,20 @@ export function AsyncRun({
                 ? { ...current, reveal }
                 : current,
             );
+            if (!withRivals || !rivals) return;
+            // The earlier players' results, released now that this round's own result is stored.
+            void rivals.board(round).then(
+              (board) => {
+                if (board) lastBoard.current = board;
+                setStep((current) =>
+                  current.kind === "reveal" && current.round === round ? { ...current, board } : current,
+                );
+              },
+              () =>
+                setStep((current) =>
+                  current.kind === "reveal" && current.round === round ? { ...current, board: null } : current,
+                ),
+            );
           },
           () => void sync(),
         );
@@ -257,8 +298,24 @@ export function AsyncRun({
   useEffect(() => {
     if (step.kind !== "reveal" || !step.reveal) return;
     if (now - step.shownAt < puzzleRevealMs(step.puzzle)) return;
+    // With earlier players: their round leaderboard and the standings first (once their results are in).
+    if (withRivals && step.board === undefined) return;
+    if (withRivals && step.board) {
+      setStep({ kind: "result", round: step.round, puzzle: step.puzzle, board: step.board });
+      return;
+    }
     void sync();
-  }, [step, now, sync]);
+  }, [step, now, sync, withRivals]);
+
+  // The live round's pings from the earlier players (rivals only; never their results).
+  const pingKey = step.kind === "puzzle" ? `async-${roomId}-${step.round}` : "";
+  const pings = useRivalPings(
+    withRivals ? rivals : undefined,
+    step.kind === "puzzle" ? step.round : 0,
+    step.kind === "puzzle" && !(pingKey !== "" && sender.claimed(`${roomId}-${step.round}`)),
+    pingKey,
+  );
+  const looks = useMemo(() => (rivals ? rivalLooks(rivals.roster.players) : new Map()), [rivals]);
 
   const latest = useRef({ step, clockDeadline, stateKey });
   latest.current = { step, clockDeadline, stateKey };
@@ -421,6 +478,25 @@ export function AsyncRun({
     );
   }
 
+  if (step.kind === "result" || step.kind === "standings") {
+    const { board, puzzle: shown, round } = step;
+    return (
+      <PhoneShell skin="room" gameType={shown.type} topAction={leave}>
+        {step.kind === "result" ? (
+          <RivalRoundResults
+            key={`result-${round}`}
+            board={board}
+            puzzle={shown}
+            roundCount={roundCount}
+            onNext={() => setStep({ kind: "standings", round, puzzle: shown, board })}
+          />
+        ) : (
+          <RivalStandings key={`standings-${round}`} board={board} puzzle={shown} roundCount={roundCount} onNext={() => void sync()} />
+        )}
+      </PhoneShell>
+    );
+  }
+
   if (step.kind === "reveal") {
     const reveal = step.reveal;
     return (
@@ -436,6 +512,7 @@ export function AsyncRun({
           myMsRemaining={reveal?.result.ms_remaining ?? 0}
           myScore={reveal ? reveal.result.score : null}
           myExtra={reveal?.result.extra ?? null}
+          {...(step.board ? { players: rivalRevealPlayers(step.board, looks) } : {})}
           startedAt={step.shownAt}
           now={now}
         />
@@ -443,12 +520,41 @@ export function AsyncRun({
     );
   }
 
+  if (step.kind !== "puzzle") return null;
   const shownPuzzle = step.puzzle;
   const Stage = puzzleDef(shownPuzzle.type).Stage;
   const clockActive = clockStart !== null && server >= clockStart;
+  // With earlier players: the room's own score strip (total and place so far) and their pings over it.
+  const stacked = isArcadeScreenType(shownPuzzle.type);
+  let gameHeader: ReactNode = undefined;
+  let pingStrip: ReactNode = null;
+  if (withRivals && rivals) {
+    const board = lastBoard.current;
+    const playedThrough = step.round - 1;
+    const table =
+      board && board.round === playedThrough
+        ? standings(rivalRows(board.players), board.results, playedThrough, new Map(), board.tie)
+        : null;
+    const mine = table?.find((row) => row.slot === rivals.roster.mySlot);
+    pingStrip = pings.length ? <FinishedPingStrip pings={pings} looks={looks} lines={stacked ? 2 : 1} /> : null;
+    gameHeader = (
+      <div className="relative min-w-0">
+        <SoloScoreStrip
+          name={rivals.roster.myName}
+          total={view.rounds.reduce((sum, r) => sum + (r.round < step.round ? (r.score ?? 0) : 0), 0)}
+          position={mine?.position ?? 1}
+          playerCount={rivals.roster.players.length}
+          compact
+          stacked={stacked}
+        />
+        {stacked ? null : pingStrip}
+      </div>
+    );
+  }
   return (
-    <PhoneShell constrained gameScreen play gameType={shownPuzzle.type}>
+    <PhoneShell constrained gameScreen play gameType={shownPuzzle.type} gameHeader={gameHeader}>
       <GameLayout
+        ping={stacked ? pingStrip : undefined}
         label={`Round ${step.round} of ${roundCount}`}
         title={puzzleName(shownPuzzle.type)}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}

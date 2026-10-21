@@ -357,3 +357,26 @@ export function shareEventRow(userId: string, input: Record<string, unknown>): S
 export async function recordShareEvent(client: any, row: ShareEventRow): Promise<void> {
   await bestEffort(`share_events ${row.event}`, () => client.from("share_events").insert(row));
 }
+
+/* ------------------------------------------------- friend challenges ---- */
+
+/**
+ * challenge_events (20261022120000): a challenge made (from the Play tab or a room's podium), its
+ * link opened, a friend's finish, and that friend's first room or daily afterwards. Once per
+ * challenge and device (follow-ups once per device and kind): the unique indexes keep the first.
+ */
+export type ChallengeEvent = "created" | "link_opened" | "friend_finished" | "followup_room" | "followup_daily";
+
+export interface ChallengeEventRow {
+  room_id: string | null;
+  code: string | null;
+  user_id: string;
+  event: ChallengeEvent;
+  source?: "play" | "room" | null;
+}
+
+export async function recordChallengeEvent(client: any, row: ChallengeEventRow): Promise<void> {
+  await bestEffort(`challenge_events ${row.event} code=${row.code ?? "-"}`, () =>
+    client.from("challenge_events").insert({ source: null, ...row }),
+  );
+}

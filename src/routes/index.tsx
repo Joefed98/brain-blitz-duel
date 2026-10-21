@@ -11,6 +11,8 @@ import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
 import { PublicGameCard } from "@/components/app/PublicGameCard";
 import { DailyCard, useDailyStatus } from "@/components/daily/DailyCard";
+import { ChallengeCard } from "@/components/challenge/ChallengeCard";
+import { useChallengesAvailable } from "@/components/challenge/ChallengeShare";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
@@ -134,6 +136,8 @@ function Home() {
   const lastRoom = useLastOpenRoom();
   // Today's dailies (hidden until the daily tables exist: DailyCard).
   const daily = useDailyStatus();
+  // Friend challenges (hidden until their tables exist: ChallengeCard).
+  const challenges = useChallengesAvailable();
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
   const warmUp = recent ?? warmUpTypes([]);
@@ -340,6 +344,14 @@ function Home() {
               search: { kind },
               state: { fromPlayTab: true } as never,
             });
+          }}
+        />
+
+        <ChallengeCard
+          available={challenges}
+          onOpen={() => {
+            unlockAudio();
+            void router.navigate({ to: "/challenge", search: {}, state: { fromPlayTab: true } as never } as never);
           }}
         />
 

@@ -1173,3 +1173,67 @@ ORDER BY p.day;
 
 `scripts/daily-check.ts` applies every migration to a local PostgreSQL (when installed) and runs Q8a–Q8c
 as written on its test rows.
+
+## 9. Friend challenges (22 Oct 2026)
+
+A friend challenge is an async room of kind `challenge` (`room_key` `challenge:<CODE>`) plus one row in
+`challenges` (`supabase/migrations/20261022120000_friend_challenges.sql`, **written but not applied**;
+it builds on section 8's migration). Recording starts once both are applied and the code is published;
+until then the Play tab's "Challenge a friend" card and the podium's button stay hidden.
+
+| Table | One row per | Use |
+|---|---|---|
+| `challenges` | challenge (`code`, `created_by`, `source` `play` / `room`, `source_duel_id`, `round_count`, `expires_at`) | challenges made, where from |
+| `async_attempts` (rooms of kind `challenge`) | device per challenge (unique; at most 20) | who played, finished, totals; a room-made challenge's room players are imported as finished attempts at its creation |
+| `challenge_events` | `created` (once per challenge), `link_opened` (once per challenge and device, never the creator), `friend_finished` (once per challenge and device, when a non-creator reaches the final podium), `followup_room` / `followup_daily` (once per device: its first room played, or daily started, after finishing someone else's challenge; `code` is that challenge) | the loop: made → opened → finished → came back |
+
+Follow-ups are reported by the phone (device storage remembers the finished challenge), so a device that
+clears its storage between the challenge and its next room is not counted. The filter block (section 2)
+applies through `user_id`.
+
+### Q9a. Challenges made, opened and finished per day
+
+```sql
+-- Q9a: per UK day of creation and source: challenges made, links opened by friends, friends who finished.
+SELECT (c.created_at AT TIME ZONE 'Europe/London')::date AS day, c.source,
+       count(DISTINCT c.room_id) AS challenges,
+       count(DISTINCT e.user_id || ':' || e.room_id) FILTER (WHERE e.event = 'link_opened') AS links_opened,
+       count(DISTINCT e.user_id || ':' || e.room_id) FILTER (WHERE e.event = 'friend_finished') AS friend_finishes
+FROM public.challenges c
+LEFT JOIN public.challenge_events e ON e.room_id = c.room_id
+GROUP BY 1, 2
+ORDER BY 1, 2;
+```
+
+### Q9b. Per challenge: players, finishes and the creator's result
+
+```sql
+-- Q9b: each challenge: attempts (room players imported included), finished, and how many beat the creator.
+SELECT c.code, c.source, c.round_count, c.created_at, c.expires_at,
+       count(a.id) AS attempts,
+       count(a.finished_at) AS finished,
+       max(a.total_score) FILTER (WHERE a.user_id = c.created_by) AS creator_total,
+       count(*) FILTER (WHERE a.user_id <> c.created_by AND a.finished_at IS NOT NULL
+         AND a.total_score > (SELECT x.total_score FROM public.async_attempts x WHERE x.room_id = c.room_id AND x.user_id = c.created_by)) AS beat_creator
+FROM public.challenges c
+LEFT JOIN public.async_attempts a ON a.room_id = c.room_id
+GROUP BY c.room_id, c.code, c.source, c.round_count, c.created_at, c.expires_at
+ORDER BY c.created_at;
+```
+
+### Q9c. Friends who came back: a room or a daily after a challenge
+
+```sql
+-- Q9c: devices that finished someone else's challenge, and how many then played a room or started a daily.
+WITH finishers AS (
+  SELECT DISTINCT user_id FROM public.challenge_events WHERE event = 'friend_finished'
+)
+SELECT count(*) AS friends_finished,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM public.challenge_events e WHERE e.user_id = f.user_id AND e.event = 'followup_room')) AS then_room,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM public.challenge_events e WHERE e.user_id = f.user_id AND e.event = 'followup_daily')) AS then_daily,
+       count(*) FILTER (WHERE EXISTS (SELECT 1 FROM public.challenge_events e WHERE e.user_id = f.user_id AND e.event IN ('followup_room', 'followup_daily'))) AS then_either
+FROM finishers f;
+```
+
+`scripts/challenge-check.ts` applies every migration to a local PostgreSQL (when installed) and runs
+Q9a–Q9c as written.

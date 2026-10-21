@@ -5,6 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
 import { DailyBoard } from "@/components/daily/DailyBoard";
+import { DailyShareButton } from "@/components/daily/DailyShareButton";
+import { sendChallengeFollowup } from "@/lib/duel/challengeApi";
+import { takeChallengeFollowup } from "@/lib/duel/challengeRecord";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { asyncAttempt, dailyBoard, dailyStatus, startDaily } from "@/lib/duel/asyncApi";
@@ -186,6 +189,9 @@ function DailyScreen() {
       }
       setStoredName(trimmed);
       if (status) noteDailyPlayed(status.day);
+      // Beta: a device's first daily after finishing a friend's challenge (challengeRecord.ts).
+      const followup = takeChallengeFollowup("daily");
+      if (followup) sendChallengeFollowup("daily", followup);
       setMode({ kind: "run", roomId: started.roomId });
     } catch {
       setError("Couldn't reach the server. Try again.");
@@ -243,6 +249,8 @@ function DailyScreen() {
           setDay("today");
           setMode({ kind: "board" });
         }}
+        boardLabel="Leaderboard"
+        share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
       />
     );
   }
@@ -409,7 +417,12 @@ function DailyScreen() {
             onChange={setDay}
           />
           {board ? (
-            <DailyBoard board={board} lockedNote={lockedNote} look={look} />
+            <DailyBoard
+              board={board}
+              lockedNote={lockedNote}
+              look={look}
+              share={day === "today" && board.me ? <DailyShareButton kind={kind} total={board.me.total} /> : undefined}
+            />
           ) : (
             <div className="flex justify-center py-6">
               <WaitingLine label="Loading the board" />

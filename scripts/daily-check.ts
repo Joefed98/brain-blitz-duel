@@ -465,7 +465,8 @@ function postgresBin(): string | null {
 }
 const MIGRATION = "20261021130000_async_rooms_daily.sql";
 const migrations = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
-check(migrations.includes(MIGRATION) && migrations.at(-1) === MIGRATION, "the daily migration exists and sorts last");
+// Later migrations (the friend challenges' 20261022120000 builds on these tables) sort after it.
+check(migrations.includes(MIGRATION) && migrations.filter((f) => f > MIGRATION).every((f) => f >= "20261022120000"), "the daily migration exists and sorts after every earlier one");
 // Two migrations with one timestamp: only one would apply (#125's share migration took 20261021120000).
 const stamps = migrations.map((f) => f.split("_")[0]!);
 const shared = stamps.filter((stamp, i) => stamps.indexOf(stamp) !== i);
@@ -559,7 +560,7 @@ else {
     }
     // The beta queries (docs/beta-sql.md section 8) run as written.
     const doc = readFileSync("docs/beta-sql.md", "utf8");
-    const blocks = [...doc.slice(doc.indexOf("## 8. The daily challenge")).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
+    const blocks = [...doc.slice(doc.indexOf("## 8. The daily challenge"), doc.indexOf("## 9.") > 0 ? doc.indexOf("## 9.") : undefined).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
     psql(`INSERT INTO public.async_events (room_id, kind, attempt_id, user_id, round_number, event, reason)
       VALUES ('${OPEN}', 'daily_puzzle', 'b1000000-0000-0000-0000-000000000001', '${B}', 1, 'round_finished', 'answered')`);
     const ran = blocks.map((sql) => psql(sql));

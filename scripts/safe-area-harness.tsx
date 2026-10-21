@@ -21,6 +21,7 @@ import { Route as PracticeRoute } from "@/routes/practice";
 import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
+import { Route as ChallengeRoute } from "@/routes/challenge";
 
 interface Verdict {
   isCorrect: boolean;
@@ -60,6 +61,21 @@ interface Harness {
     view: unknown;
     reveals: unknown[];
   };
+  /**
+   * Friend challenges' server (challenge-shots, theme-check, no-wrap-check): the link's info, the
+   * run's roster, pings and round boards, the final board and Profile's list. Absent: unavailable.
+   * The run's rounds themselves go through the async-room stand-ins above (H.daily's view).
+   */
+  challenge?: {
+    info: unknown;
+    roster: unknown;
+    pings: number[];
+    boards: Record<number, unknown>;
+    final: unknown;
+    list: unknown[];
+  };
+  /** The route's search (useSearch): the challenge screen's ?code=. */
+  search?: Record<string, string>;
   /** Where useNavigate was sent (share-check: a shared link's redirect). */
   navigations?: unknown[];
   /** The link join's room preview (share-check sets window.__harnessPreview before load: a finished or full room); an open lobby if unset. */
@@ -258,6 +274,39 @@ async function asyncSubmitFn({ data }: { data: { roundNumber: number; answer: st
   return { ok: true, score: H.verdict.score };
 }
 
+/* Friend challenges (challenge.functions.ts) from H.challenge. */
+async function challengeStatusFn() {
+  return { available: !!H.challenge };
+}
+async function challengeInfoFn() {
+  return H.challenge?.info ?? { found: false };
+}
+async function createChallengeFn() {
+  return { ok: true, code: "K7QM2X", roomId: "challenge-room" };
+}
+async function startChallengeFn() {
+  return { ok: true, roomId: "challenge-room", created: true };
+}
+async function challengeFromRoomFn() {
+  return { ok: true, code: "K7QM2X", roomId: "challenge-room", created: true };
+}
+async function challengeRosterFn() {
+  return H.challenge?.roster ?? null;
+}
+async function challengePingsFn() {
+  return H.challenge?.pings ?? [];
+}
+async function challengeRoundBoardFn({ data }: { data: { roundNumber: number } }) {
+  const board = H.challenge?.boards[data.roundNumber];
+  return board ? { ok: true, json: JSON.stringify(board) } : { ok: false, message: "none" };
+}
+async function challengeFinalFn() {
+  return H.challenge?.final ? { ok: true, json: JSON.stringify(H.challenge.final) } : { ok: false, message: "none" };
+}
+async function myChallengesFn() {
+  return H.challenge?.list ?? [];
+}
+
 /** The share loop's beta recording: kept for share-check to read. */
 async function recordShareEventFn({ data }: { data: unknown }) {
   (H.shareEvents ??= []).push(data);
@@ -265,6 +314,16 @@ async function recordShareEventFn({ data }: { data: unknown }) {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  challengeStatusFn,
+  challengeInfoFn,
+  createChallengeFn,
+  startChallengeFn,
+  challengeFromRoomFn,
+  challengeRosterFn,
+  challengePingsFn,
+  challengeRoundBoardFn,
+  challengeFinalFn,
+  myChallengesFn,
   asyncRoundStartFn,
   asyncSubmitFn,
   dailyStatusFn,
@@ -311,7 +370,9 @@ const Screen = (
           ? ProfileRoute
           : mode === "daily"
             ? DailyRoute
-            : PracticeRoute
+            : mode === "challenge"
+              ? ChallengeRoute
+              : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

@@ -18,6 +18,7 @@ import { splitPuzzle } from "../src/lib/duel/secrets";
 import { currentPracticeStamp } from "../src/lib/duel/practiceStamps";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
+import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 
 export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
   .pub as PuzzleData;
@@ -120,7 +121,10 @@ const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge";
+  /** Friend challenges' stand-in server (H.challenge), the run's view (H.daily) and the route's ?code=. */
+  challenge?: () => ChallengeScreenData;
+  search?: Record<string, string>;
   room?: () => ReturnType<typeof roomNow>;
   /** The daily challenge's stand-in server (H.daily) and this device's daily record. */
   daily?: () => HarnessDaily;
@@ -133,11 +137,44 @@ export interface ThemeScreen {
   plain?: boolean;
 }
 
+/** A challenge round's results screens are reached by playing: past round 1's time-out, its reveal, then them. */
+async function toChallengeResults(page: Page, standingsToo: boolean) {
+  await page.locator("[data-challenge-play]").click();
+  await page.getByText("Round results", { exact: true }).waitFor({ timeout: 45_000 });
+  await page.waitForTimeout(800);
+  if (!standingsToo) return;
+  await page.locator("[data-continue-footer] button").click();
+  await page.getByText("Overall standings", { exact: true }).waitFor({ timeout: 15_000 });
+  await page.waitForTimeout(800);
+}
+
+export const CHALLENGE_SCREENS: ThemeScreen[] = [
+  { name: "challenge, make one", mode: "challenge", challenge: () => challengeFixture("create") },
+  { name: "challenge, link opened", mode: "challenge", challenge: () => challengeFixture("landing"), search: { code: CHALLENGE_CODE } },
+  {
+    name: "challenge, round leaderboard",
+    mode: "challenge",
+    challenge: () => challengeFixture("result"),
+    search: { code: CHALLENGE_CODE },
+    go: (page) => toChallengeResults(page, false),
+  },
+  {
+    name: "challenge, standings",
+    mode: "challenge",
+    challenge: () => challengeFixture("result"),
+    search: { code: CHALLENGE_CODE },
+    go: (page) => toChallengeResults(page, true),
+  },
+  { name: "challenge, podium", mode: "challenge", challenge: () => challengeFixture("podium"), search: { code: CHALLENGE_CODE }, waitMs: 2500 },
+  { name: "challenge, creator's results", mode: "challenge", challenge: () => challengeFixture("creator"), search: { code: CHALLENGE_CODE }, waitMs: 1500 },
+];
+
 export const THEME_SCREENS: ThemeScreen[] = [
-  { name: "play", mode: "home", daily: () => dailyFixture().after },
+  { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
   { name: "tournaments", mode: "tournaments" },
-  { name: "profile", mode: "profile", daily: () => dailyFixture().after },
+  { name: "profile", mode: "profile", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
+  ...CHALLENGE_SCREENS,
   { name: "daily, before playing", mode: "daily", daily: () => dailyFixture().before },
   { name: "daily, board after playing", mode: "daily", daily: () => dailyFixture().after },
   {
@@ -318,17 +355,24 @@ export async function openThemeScreen(
   if (prepare) await prepare(context);
   await context.addInitScript(
     (r) => {
+      const daily = (r.challengeRun?.daily ?? r.daily) as { view?: { rounds: { startedAt: number | null }[] } } | undefined;
+      // A challenge run starts mid-round (or past round 1's time-out), on this page's own clock.
+      if (r.challengeRun && r.challengeRun.startOffsetMs !== null && daily?.view)
+        daily.view.rounds[0]!.startedAt = Date.now() - r.challengeRun.startOffsetMs;
       (window as unknown as { __harness: unknown }).__harness = {
-        puzzles: { sudoku: r.puzzle },
+        puzzles: { sudoku: r.puzzle, ...(r.challengeRun?.challenge.puzzles ?? {}) },
         verdict: { isCorrect: true, score: 150 },
         latencyMs: 50,
         submissions: [],
         verdictAt: null,
         room: r.room,
-        daily: r.daily,
+        daily,
+        challenge: r.challengeRun?.challenge,
+        search: r.search,
       };
       try {
         if (r.record) localStorage.setItem(r.record[0], r.record[1]);
+        if (r.challengeRun) localStorage.setItem(r.challengeRun.record[0], r.challengeRun.record[1]);
       } catch {
         /* ignore */
       }
@@ -338,6 +382,14 @@ export async function openThemeScreen(
       puzzle: PUZZLE,
       daily: screen.daily?.() ?? undefined,
       record: screen.daily ? dailyFixture().record : null,
+      // Run screens carry their own attempt view; the others only the challenge server (the daily's stays).
+      challengeRun: screen.challenge
+        ? (() => {
+            const data = screen.challenge();
+            return screen.mode === "challenge" ? data : { ...data, daily: undefined, startOffsetMs: null };
+          })()
+        : null,
+      search: screen.search ?? {},
     },
   );
   await context.addInitScript(deviceInit, {

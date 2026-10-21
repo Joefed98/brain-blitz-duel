@@ -21,6 +21,8 @@ export interface ShareResultInput {
   link: string;
   /** The results card (a PNG), attached where files can be shared. */
   image?: File | null;
+  /** What goes before the link ("Play: " when absent; the daily's text has none: ""). */
+  linkPrefix?: string;
 }
 
 /**
@@ -29,13 +31,13 @@ export interface ShareResultInput {
  */
 export type ShareOutcome = "shared" | "cancelled" | "copied" | "failed";
 
-/** The text a share sends: the lines, then "Play: <link>". */
-export function shareText(lines: readonly string[], link: string): string {
+/** The text a share sends: the lines, then "Play: <link>" (or the link after `prefix`). */
+export function shareText(lines: readonly string[], link: string, prefix = "Play: "): string {
   const body = lines
     .map((line) => line.trim())
     .filter(Boolean)
     .join("\n");
-  return body ? `${body} Play: ${link}` : `Play: ${link}`;
+  return body ? `${body} ${prefix}${link}` : `${prefix}${link}`;
 }
 
 type ShareNavigator = Pick<Navigator, "clipboard"> & {
@@ -96,7 +98,7 @@ export async function shareResult(
   input: ShareResultInput,
   nav: ShareNavigator | undefined = currentNavigator(),
 ): Promise<ShareOutcome> {
-  const text = shareText(input.lines, input.link);
+  const text = shareText(input.lines, input.link, input.linkPrefix);
   if (nav && typeof nav.share === "function") {
     // The link rides in the text, never also as `url`, so targets that append the url don't show it twice.
     const data: ShareData = { title: input.title, text };
