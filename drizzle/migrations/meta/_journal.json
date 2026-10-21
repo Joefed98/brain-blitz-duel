@@ -64,6 +64,13 @@
       "when": 1792587583347,
       "tag": "0008_20261021120000_beta_share_events",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792587621164,
+      "tag": "0009_20261021130000_async_rooms_daily",
+      "breakpoints": true
     }
   ]
 }
