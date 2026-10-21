@@ -42,6 +42,7 @@ import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
 import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
+import { RoomShareButton } from "@/components/share/ShareResultButton";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { buzz, prefersReducedMotion } from "@/lib/motion";
@@ -911,6 +912,7 @@ function DuelScreen() {
               onPlayAgain={() => void handlePlayAgain()}
               onLeave={() => void handleLeave()}
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
+              share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
             />
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
@@ -948,6 +950,7 @@ function DuelScreen() {
             onPlayAgain={() => void handlePlayAgain()}
             onHome={() => void handleLeave()}
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
+            share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
           />
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>

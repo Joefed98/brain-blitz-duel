@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ensureSession } from "../lib/duel/session";
+import { noteShareArrival } from "../lib/share/shareRef";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
@@ -152,6 +153,11 @@ function RootComponent() {
     void ensureSession().catch(() => {
       /* retried on the next action that needs it */
     });
+  }, []);
+
+  // Beta count: an arrival from a shared link (?ref=share), once per device (lib/share/shareRef).
+  useEffect(() => {
+    noteShareArrival(window.location);
   }, []);
 
   // The first tap anywhere unlocks audio (iOS only counts touchend/click).

@@ -1011,3 +1011,67 @@ without an archive (the player never played that game); rooms and practice befor
 rows in the new tables; a phone that never sends its answer still leaves no row, so `missing_answers` stays
 inferred; `round_started` is the clock's start, so the round title and intro (and a puzzle's prep time)
 are before it; the winner reveal's own end (status `finished`) is not a separate event.
+
+## 7. The share loop (21 Oct 2026)
+
+`share_events` (migration `20261021120000_beta_share_events.sql`, **written but not applied**; until it
+is, every write fails quietly and the app is unchanged) records the growth loop from the final screen's
+Share button (`src/components/share/ShareResultButton.tsx`, `src/lib/share/`). Server-only (RLS on, no
+client grants), written best-effort by `recordShareEventFn` (`src/lib/duel/share.functions.ts` →
+`betaRecord.server.ts` `recordShareEvent`); outcome only, never an answer, puzzle, name or score.
+
+| event | One row per | Columns |
+|---|---|---|
+| `share_tap` | tap on Share (podium or two-player result) | `user_id`, `duel_id`, `game_index`, `room_code`, `place` (null after leaving or a forfeit loss), `players`, `rounds`, `method` (`native` = the share sheet opened, `copy` = text and link copied), `created_at` |
+| `arrival` | device, its first visit from a shared link (`?ref=share`) | `user_id`, `landing` (`room` = the room link, `home` = the app's home), `room_code` (room links only) |
+| `arrival_finished` | device, the first room it saw to the final screen after arriving | `user_id`, `duel_id`, `game_index`, `room_code`, `place`, `players`, `rounds` |
+
+A tap means the sheet opened (or the text was copied), not that anything was sent: the share sheet does
+not say. Shared links name the room while it is open (not disbanded, host still in it) and the home
+otherwise; both carry `?ref=share`. `arrival` and `arrival_finished` are one row per device (unique
+indexes keep the first), so a device that clears its storage is a new device (G8). The phone remembers
+its arrival in localStorage (`duelz-share-arrival:v1`) and sends `arrival_finished` from the final
+screen; `room_joins` and `room_events` give the same answer server-side (Q-S3).
+
+**Q-S1. Shares per day.**
+
+```sql
+select date_trunc('day', created_at) as day,
+       count(*) as taps,
+       count(*) filter (where method = 'native') as share_sheet,
+       count(*) filter (where method = 'copy') as copied,
+       count(distinct user_id) as sharing_devices,
+       round(avg(place), 2) as avg_place
+from public.share_events
+where event = 'share_tap'
+group by 1 order by 1;
+```
+
+**Q-S2. Arrivals from shared links, and how many went on to finish a room.**
+
+```sql
+select date_trunc('day', a.created_at) as day,
+       count(*) as arrivals,
+       count(*) filter (where a.landing = 'room') as via_room_link,
+       count(f.user_id) as finished_a_room,
+       round(100.0 * count(f.user_id) / nullif(count(*), 0), 1) as finish_pct
+from public.share_events a
+left join public.share_events f on f.user_id = a.user_id and f.event = 'arrival_finished'
+where a.event = 'arrival'
+group by 1 order by 1;
+```
+
+**Q-S3. The same from the room tables** (an arrival's device joined a game that reached `game_ended`
+`completed` after it arrived; works even for phones whose final-screen send failed).
+
+```sql
+select count(distinct a.user_id) as arrivals,
+       count(distinct a.user_id) filter (where exists (
+         select 1 from public.room_joins j
+         join public.room_events e on e.duel_id = j.duel_id and e.game_index = j.game_index
+           and e.event = 'game_ended' and e.reason = 'completed'
+         where j.user_id = a.user_id and j.joined_at >= a.created_at
+       )) as finished_a_room
+from public.share_events a
+where a.event = 'arrival';
+```

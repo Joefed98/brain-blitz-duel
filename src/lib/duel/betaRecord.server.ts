@@ -248,3 +248,59 @@ export async function callerUserId(client: any): Promise<string | null> {
     return null;
   }
 }
+
+/* ------------------------------------------------------- share loop ---- */
+
+/** share_events (20261021120000): a Share tap, an arrival from a shared link, and that arrival's first finished room. */
+export type ShareEvent = "share_tap" | "arrival" | "arrival_finished";
+
+export interface ShareEventRow {
+  user_id: string;
+  event: ShareEvent;
+  duel_id: string | null;
+  game_index: number | null;
+  room_code: string | null;
+  place: number | null;
+  players: number | null;
+  rounds: number | null;
+  method: "native" | "copy" | null;
+  landing: "home" | "room" | null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function whole(value: unknown, min: number, max: number): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max ? value : null;
+}
+
+/**
+ * The share_events row for what the phone reported, or null when it isn't one of the three events.
+ * Everything else the phone sends is kept only when it has the column's shape (anything else is
+ * stored as null), so a stale or tampered phone can't write past the table's checks.
+ */
+export function shareEventRow(userId: string, input: Record<string, unknown>): ShareEventRow | null {
+  const event = input["event"];
+  if (event !== "share_tap" && event !== "arrival" && event !== "arrival_finished") return null;
+  const duelId = typeof input["duelId"] === "string" && UUID.test(input["duelId"]) ? input["duelId"] : null;
+  const code = typeof input["roomCode"] === "string" && /^[A-Z]{4}$/.test(input["roomCode"]) ? input["roomCode"] : null;
+  const method = input["method"] === "native" || input["method"] === "copy" ? input["method"] : null;
+  const landing = input["landing"] === "home" || input["landing"] === "room" ? input["landing"] : null;
+  const inRoom = event !== "arrival";
+  return {
+    user_id: userId,
+    event,
+    duel_id: inRoom ? duelId : null,
+    game_index: inRoom ? whole(input["gameIndex"], 0, 10_000) : null,
+    room_code: code,
+    place: inRoom ? whole(input["place"], 1, 10) : null,
+    players: inRoom ? whole(input["players"], 1, 10) : null,
+    rounds: inRoom ? whole(input["rounds"], 1, 20) : null,
+    method: event === "share_tap" ? method : null,
+    landing: event === "arrival" ? landing : null,
+  };
+}
+
+/** Writes one share_events row, best-effort (a duplicate arrival is the unique index keeping the first). */
+export async function recordShareEvent(client: any, row: ShareEventRow): Promise<void> {
+  await bestEffort(`share_events ${row.event}`, () => client.from("share_events").insert(row));
+}

@@ -285,12 +285,15 @@ export async function openThemeScreen(
   origin: string,
   screen: ThemeScreen,
   viewport: ThemeViewport,
+  /** Extra set-up on the context before the page opens (share-check's share-sheet stubs). */
+  prepare?: (context: BrowserContext) => Promise<void>,
 ): Promise<{ context: BrowserContext; page: Page }> {
   const context = await browser.newContext({
     viewport: { width: viewport.w, height: viewport.h },
     ...(viewport.desktop ? { hasTouch: false, isMobile: false } : { hasTouch: true }),
   });
   await context.addInitScript(DEVICE_INIT);
+  if (prepare) await prepare(context);
   await context.addInitScript(
     (r) => {
       (window as unknown as { __harness: unknown }).__harness = {

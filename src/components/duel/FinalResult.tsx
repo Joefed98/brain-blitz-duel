@@ -37,6 +37,8 @@ interface FinalResultProps {
   onHome: () => void;
   /** Replays: the play of the game panel (display only; never blocks Play again or Home). */
   playOfTheGame?: ReactNode;
+  /** The Share button (RoomShareButton), beside Play again. */
+  share?: ReactNode;
 }
 
 export function FinalResult({
@@ -59,6 +61,7 @@ export function FinalResult({
   isHost,
   onHome,
   playOfTheGame,
+  share,
 }: FinalResultProps) {
   const headline = outcome === "win" ? "WIN" : outcome === "loss" ? "LOSS" : "DRAW";
   const headlineColor =
@@ -145,26 +148,32 @@ export function FinalResult({
       </div>
 
       <div className="flex flex-col gap-3">
-        {isHost ? (
-          <button
-            type="button"
-            onClick={onPlayAgain}
-            disabled={busy}
-            className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
-          >
-            {busy ? (
-              <>
-                <span>Setting up</span>
-                <Dots className="bg-primary-foreground" />
-              </>
-            ) : (
-              "Play again"
-            )}
-          </button>
-        ) : (
+        {!isHost && (
           <p className="text-center text-sm text-muted-foreground">
             Waiting for the host to play again
           </p>
+        )}
+        {(isHost || share) && (
+          <div className="flex gap-2">
+            {isHost && (
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                disabled={busy}
+                className="th-btn-gold press tap-target flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary font-display text-base font-extrabold uppercase tracking-wide text-primary-foreground"
+              >
+                {busy ? (
+                  <>
+                    <span>Setting up</span>
+                    <Dots className="bg-primary-foreground" />
+                  </>
+                ) : (
+                  "Play again"
+                )}
+              </button>
+            )}
+            {share}
+          </div>
         )}
         <button
           type="button"
