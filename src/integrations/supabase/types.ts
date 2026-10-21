@@ -595,6 +595,54 @@ export type Database = {
         }
         Relationships: []
       }
+      share_events: {
+        Row: {
+          created_at: string
+          duel_id: string | null
+          event: string
+          game_index: number | null
+          id: number
+          landing: string | null
+          method: string | null
+          place: number | null
+          players: number | null
+          room_code: string | null
+          rounds: number | null
+          user_id: string
+          welcome: string | null
+        }
+        Insert: {
+          created_at?: string
+          duel_id?: string | null
+          event: string
+          game_index?: number | null
+          id?: never
+          landing?: string | null
+          method?: string | null
+          place?: number | null
+          players?: number | null
+          room_code?: string | null
+          rounds?: number | null
+          user_id: string
+          welcome?: string | null
+        }
+        Update: {
+          created_at?: string
+          duel_id?: string | null
+          event?: string
+          game_index?: number | null
+          id?: never
+          landing?: string | null
+          method?: string | null
+          place?: number | null
+          players?: number | null
+          room_code?: string | null
+          rounds?: number | null
+          user_id?: string
+          welcome?: string | null
+        }
+        Relationships: []
+      }
       unblock_bank: {
         Row: {
           created_at: string
