@@ -232,6 +232,37 @@ const NOW = at("2026-10-27T12:00:00Z");
   check(status.available && status.puzzle.state === "continue" && status.arcade.state === "play", "status: Continue for a started daily, Play for an untouched one");
   const signedOut = await dailyStatus(db.client, null, NOW + 5000);
   check(signedOut.available && signedOut.puzzle.state === "play", "status needs no session: a signed-out visitor sees Play");
+
+  // A stored daily keeps its games when a game later moves category (or retires), the same rule as stored
+  // rounds: the deal stores types and puzzles only, and nothing after it reads a category.
+  const before = JSON.stringify(db.tables.async_rooms!.find((r) => r.id === r1.id));
+  check(!/categor/i.test(before), "a stored daily holds its games' types and puzzles, no category");
+  const moved = r1.round_order.map((t) => [t, PUZZLE_REGISTRY[t as never].category, PUZZLE_REGISTRY[t as never].retired] as const);
+  for (const [t] of moved) {
+    const def = PUZZLE_REGISTRY[t as never] as { category: string; retired: boolean };
+    def.category = def.category === "logic" ? "pattern" : "logic";
+    def.retired = true;
+  }
+  try {
+    const again = await quiet(() => ensureDailyRoom(db.client, "puzzle", NOW + 120_000, "u9"));
+    const { view: after } = await attemptView(db.client, again, attempt, NOW + 120_000);
+    const replay = await startAsyncRound(db.client, again, attempt, 2, NOW + 120_000);
+    check(
+      again.id === r1.id &&
+        JSON.stringify(again.round_order) === JSON.stringify(r1.round_order) &&
+        after.rounds.map((r) => r.type).join() === r1.round_order.join() &&
+        replay.ok && replay.puzzle.type === r1.round_order[1] &&
+        JSON.stringify(db.tables.async_rooms!.find((r) => r.id === r1.id)) === before,
+      "after its games move category (and retire), today's stored daily deals, shows and plays the same games",
+    );
+  } finally {
+    for (const [t, category, retired] of moved) {
+      const def = PUZZLE_REGISTRY[t as never] as { category: string; retired: boolean };
+      def.category = category;
+      def.retired = retired;
+    }
+  }
+  check(!/categor/i.test(readFileSync("supabase/migrations/20261021130000_async_rooms_daily.sql", "utf8").replace(/--.*$/gm, "")), "the daily tables have no category column");
   check(!/requireSupabaseAuth\]\)\s*\.handler\(\s*async \(\{ context \}\): Promise<DailyStatus>/.test(readFileSync("src/lib/duel/daily.functions.ts", "utf8")) && !/await ensureSession\(\);\s*return \(await dailyStatusFn/.test(readFileSync("src/lib/duel/asyncApi.ts", "utf8")), "the Play card's status call never signs a visitor in");
 }
 

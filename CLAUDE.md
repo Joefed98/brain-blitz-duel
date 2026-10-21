@@ -348,7 +348,9 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   on an open board (plus their own row) and the rooms' window columns. daily-check (~15 s; the SQL on a local PostgreSQL
   when installed) proves it; the daily screens are in theme-check and no-wrap-check (`scripts/theme-screens.ts`,
   `scripts/daily-fixture.ts`); `bun scripts/shots/daily-shots.ts` draws the review screenshots
-  (`screenshots/daily-oct-2026/`). A friend challenge can reuse the engine as is (kind `challenge`).
+  (`screenshots/daily-oct-2026/`). A friend challenge can reuse the engine as is (kind `challenge`). The deal
+  (`dailyRoundOrder`) is the one place the daily reads categories (category-pool-check allows it there only); the stored
+  daily keeps its types and puzzles, so a later category move or retirement never changes it (daily-check).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
