@@ -151,6 +151,7 @@ export function RoomShareButton({
       onTap={(method) =>
         record({
           event: "share_tap",
+          source: "room",
           duelId: data.duelId,
           gameIndex: data.gameIndex,
           roomCode: data.roomCode,

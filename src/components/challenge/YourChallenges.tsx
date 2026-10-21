@@ -13,18 +13,14 @@ const SHOWN = 4;
  * with each friend's result from the server ("Sam beat you 612–580"). Hidden until challenges are
  * available, and while the device has none.
  */
-export function YourChallenges({
-  available,
-  onOpen,
-}: {
-  available: boolean;
-  onOpen: (code: string) => void;
-}) {
+export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
   const [list, setList] = useState<ChallengeSummary[] | null>(null);
   useEffect(() => {
-    if (!available) return;
-    let live = true;
+    // Only a device that has made or sent a challenge asks the server (an error, e.g. before the
+    // migration, hides the section).
     const codes = readChallengeRecord().mine.map((m) => m.code);
+    if (!codes.length) return;
+    let live = true;
     void myChallenges(codes).then(
       (next) => live && setList(next),
       () => live && setList([]),
@@ -32,8 +28,8 @@ export function YourChallenges({
     return () => {
       live = false;
     };
-  }, [available]);
-  if (!available || !list || list.length === 0) return null;
+  }, []);
+  if (!list || list.length === 0) return null;
   const now = Date.now();
   return (
     <section aria-label="Your challenges" data-your-challenges className="flex flex-col gap-2">

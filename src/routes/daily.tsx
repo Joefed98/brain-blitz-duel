@@ -6,6 +6,8 @@ import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
 import { DailyBoard } from "@/components/daily/DailyBoard";
 import { DailyShareButton } from "@/components/daily/DailyShareButton";
+import { DAILY_REF } from "@/lib/share/dailyShare";
+import { noteLinkArrival } from "@/lib/share/shareRef";
 import { sendChallengeFollowup } from "@/lib/duel/challengeApi";
 import { takeChallengeFollowup } from "@/lib/duel/challengeRecord";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
@@ -120,6 +122,12 @@ function DailyScreen() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => serverNow());
 
+  // Beta: a device's first arrival from a shared daily link (?ref=daily), with its source.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("ref") === DAILY_REF)
+      noteLinkArrival({ source: "daily", dailyKind: search.kind ?? "puzzle" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const stored = getStoredName();
     setName(stored);

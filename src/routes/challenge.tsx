@@ -15,6 +15,7 @@ import { STANDARD_CATEGORIES } from "@/lib/duel/categories";
 import { asyncAttempt } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import {
+  CHALLENGE_REF,
   challengeCodeFrom,
   challengeEndsIn,
   challengeRoundChoices,
@@ -42,6 +43,7 @@ import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { serverNow } from "@/lib/duel/clock";
 import type { PuzzleCategory } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
+import { noteLinkArrival } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 
 export const Route = createFileRoute("/challenge")({
@@ -170,6 +172,11 @@ function ChallengeScreen() {
     [finish],
   );
 
+  // Beta: a device's first arrival from a shared challenge link (?ref=challenge), with its source.
+  useEffect(() => {
+    if (search.code && search.ref === CHALLENGE_REF) noteLinkArrival({ source: "challenge", challengeCode: search.code });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (code) void load(code);
     else setMode({ kind: "create" });

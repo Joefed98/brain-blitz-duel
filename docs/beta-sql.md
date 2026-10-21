@@ -1093,6 +1093,46 @@ from public.share_events a
 where a.event = 'arrival';
 ```
 
+**Sources (22 Oct 2026).** `share_events.source` (added by `20261022120000_friend_challenges.sql`, also
+**written but not applied**; every earlier row reads `room`) says what was shared or which kind of link an
+arrival came from:
+
+| source | `share_tap` from | `arrival` from | Extra columns |
+|---|---|---|---|
+| `room` | a room's final screen (podium or two-player result) | `/duel/CODE?ref=share` (or its redirect home) | `duel_id`, `game_index`, `room_code`, `place`, `players`, `rounds`, `landing` as above |
+| `daily` | the daily's results or today's board (Share) | `/daily?kind=…&ref=daily` | `daily_kind` (`puzzle` / `arcade`) |
+| `challenge` | a challenge's Send the challenge, Share, Challenge someone else, or a room's Send the challenge | `/challenge?code=…&ref=challenge` | `challenge_code`; a result share also `place`, `players` (up to 20), `rounds` |
+
+An arrival is still one row per device: the first shared link of any source it opens (a device that
+first came from a daily link and later opens a room link is a daily arrival). Daily and challenge
+arrivals get no welcome card (the page is the welcome); `arrival_finished` is still the device's first
+finished room, whatever its arrival's source. Challenge links are also counted per challenge in
+`challenge_events` (`link_opened`, section 9), which counts every device that opens one, not only first arrivals.
+
+**Q-S4. Share taps and arrivals by source.**
+
+```sql
+select date_trunc('day', created_at) as day, source,
+       count(*) filter (where event = 'share_tap') as taps,
+       count(distinct user_id) filter (where event = 'share_tap') as sharing_devices,
+       count(*) filter (where event = 'arrival') as arrivals
+from public.share_events
+group by 1, 2 order by 1, 2;
+```
+
+**Q-S5. Arrivals by source, and how many went on to finish a room.**
+
+```sql
+select a.source,
+       count(*) as arrivals,
+       count(f.user_id) as finished_a_room,
+       round(100.0 * count(f.user_id) / nullif(count(*), 0), 1) as finish_pct
+from public.share_events a
+left join public.share_events f on f.user_id = a.user_id and f.event = 'arrival_finished'
+where a.event = 'arrival'
+group by 1 order by 1;
+```
+
 ## 8. The daily challenge (21 Oct 2026)
 
 The Daily Puzzle and Daily Arcade are async rooms (`supabase/migrations/20261021130000_async_rooms_daily.sql`,

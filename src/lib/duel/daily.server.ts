@@ -249,8 +249,10 @@ export async function dailyStatus(
     .maybeSingle();
   if (probe?.error)
     return { available: false, ...base, puzzle: { state: "play" }, arcade: { state: "play" } };
+  const { challengesAvailable } = await import("./challenge.server");
   return {
     available: true,
+    challenges: await challengesAvailable(client).catch(() => false),
     ...base,
     puzzle: userId ? await stateFor(client, "puzzle", day, userId, nowMs) : { state: "play" },
     arcade: userId ? await stateFor(client, "arcade", day, userId, nowMs) : { state: "play" },

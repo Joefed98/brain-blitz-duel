@@ -19,6 +19,10 @@ export interface ShareEventInput {
   method?: "native" | "copy" | null;
   landing?: "home" | "room" | null;
   welcome?: "shown" | "dismissed" | "practice" | "public" | null;
+  /** What was shared or where the arrival's link came from (22 Oct 2026); a room's when absent. */
+  source?: "room" | "daily" | "challenge" | null;
+  challengeCode?: string | null;
+  dailyKind?: "puzzle" | "arcade" | null;
 }
 
 export const recordShareEventFn = createServerFn({ method: "POST" })

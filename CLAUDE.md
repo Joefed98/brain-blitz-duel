@@ -379,6 +379,18 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   20261021130000): until it is, the card, the podium button and Your challenges stay hidden. challenge-check (~12 s;
   the SQL on a local PostgreSQL when installed); the screens are in theme-check and no-wrap-check;
   `bun scripts/shots/challenge-shots.ts` draws the review screenshots (`screenshots/challenge-oct-2026/`).
+- **Play tab without jumps** (22 Oct 2026, presentation and device storage only): the late cards (share welcome,
+  Rejoin, Daily challenge, Challenge a friend) are `PlaySlot`s, always in the markup; `PLAY_CARDS_BOOT`
+  (`src/lib/playCards.ts`, an inline script in the root's `<head>`) marks `<html data-play-cards>` from device storage
+  before the first paint and CSS (`polish-layout/app-shell.css`) hides the slots not reserved; a reserved card draws
+  its last known status (`duelz-play-cards:v1`) and updates in place; a "no" from the server collapses it smoothly and
+  is remembered; an unreserved card never pops in (it is reserved next visit). The Quick play name row's height is
+  reserved the same way; the public-games schedule is read in the first render. play-tab-shift-check (headless
+  Chromium, `play13`) proves positions within 2 px from the first frame at 414×896 with a slow server.
+- **Share sources** (22 Oct 2026): `share_events.source` (`room` / `daily` / `challenge`, existing rows `room`; added
+  in `20261022120000_friend_challenges.sql`) on every Share tap and on arrivals from `?ref=daily` / `?ref=challenge`
+  links (`noteLinkArrival`; still one arrival per device), with `daily_kind` / `challenge_code`; queries Q-S4/Q-S5 in
+  `docs/beta-sql.md` section 7.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

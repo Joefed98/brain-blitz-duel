@@ -11,12 +11,13 @@ import type { StoredPuzzleType } from "@/lib/duel/types";
 import { resultCardFile } from "@/lib/share/resultCard";
 import type { RoomShareData, RoomShareTop } from "@/lib/share/roomShare";
 import { buzz } from "@/lib/motion";
+import { sendShareEvent, type ShareRecorder } from "@/lib/share/shareRef";
 
 const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
 
-/** Whether friend challenges are available (the migration applied); false while unknown. */
-export function useChallengesAvailable(): boolean {
-  const [available, setAvailable] = useState(false);
+/** Whether friend challenges are available (the migration applied); null until the server answers. */
+export function useChallengeStatus(): boolean | null {
+  const [available, setAvailable] = useState<boolean | null>(null);
   useEffect(() => {
     let live = true;
     void challengeStatus().then(
@@ -28,6 +29,11 @@ export function useChallengesAvailable(): boolean {
     };
   }, []);
   return available;
+}
+
+/** Whether friend challenges are available; false while unknown. */
+export function useChallengesAvailable(): boolean {
+  return useChallengeStatus() === true;
 }
 
 /** The results card for a challenge (the room's card, "CHALLENGE <code>" at its foot), drawn when the screen opens. */
@@ -77,6 +83,7 @@ export function ChallengeShareButton({
   games = [],
   label = "Share",
   className,
+  record = sendShareEvent,
 }: {
   code: string;
   kind: "invite" | "result";
@@ -88,6 +95,7 @@ export function ChallengeShareButton({
   games?: StoredPuzzleType[];
   label?: string;
   className?: string;
+  record?: ShareRecorder;
 }) {
   const link = challengeLink(origin(), code);
   const card = useMemo(
@@ -108,7 +116,19 @@ export function ChallengeShareButton({
         link,
         image,
       }}
-      onTap={() => noteMyChallenge(code)}
+      onTap={(method) => {
+        noteMyChallenge(code);
+        // Beta: every Share tap with its source (share_events; a result share carries its place).
+        record({
+          event: "share_tap",
+          source: "challenge",
+          challengeCode: code,
+          place: kind === "result" ? place : null,
+          players: kind === "result" ? players : null,
+          rounds,
+          method,
+        });
+      }}
     />
   );
 }

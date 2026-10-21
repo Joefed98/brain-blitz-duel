@@ -161,6 +161,11 @@ export interface DailyStatus {
   closesAt: number;
   puzzle: DailyState;
   arcade: DailyState;
+  /**
+   * Whether friend challenges are available (their migration applied; 22 Oct 2026). Answered here so
+   * the Play tab needs one status call for both cards.
+   */
+  challenges?: boolean;
 }
 
 /** "3rd of 45" from 20 players, "3rd" before. */

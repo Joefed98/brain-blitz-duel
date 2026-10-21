@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
@@ -37,9 +37,10 @@ import { RoundResultsTable } from "@/components/duel/RoundResultsTable";
 import { RoomChat, RoundChatDot } from "@/components/duel/RoomChat";
 import { RoomLobby } from "@/components/duel/RoomLobby";
 import { FinishedPingStrip, useFinishedPings } from "@/components/duel/FinishedPings";
-import { RoomChallengeButton } from "@/components/challenge/ChallengeShare";
-import { takeChallengeFollowup } from "@/lib/duel/challengeRecord";
-import { sendChallengeFollowup } from "@/lib/duel/challengeApi";
+// Loaded on demand: only a finished room shows it, so the room's own screens never wait for it.
+const RoomChallengeButton = lazy(() =>
+  import("@/components/challenge/ChallengeShare").then((m) => ({ default: m.RoomChallengeButton })),
+);
 import { ScoreStrip } from "@/components/duel/ScoreStrip";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { Standings } from "@/components/duel/Standings";
@@ -408,8 +409,10 @@ function DuelScreen() {
   const playing = duel?.status === "in_progress" && !!me;
   useEffect(() => {
     if (!playing) return;
-    const code = takeChallengeFollowup("room");
-    if (code) sendChallengeFollowup("room", code);
+    void import("@/lib/duel/challengeRecord").then(({ takeChallengeFollowup }) => {
+      const code = takeChallengeFollowup("room");
+      if (code) void import("@/lib/duel/challengeApi").then(({ sendChallengeFollowup }) => sendChallengeFollowup("room", code));
+    });
   }, [playing]);
   const finishedPings = useFinishedPings(players, round, mySlot, duel?.status === "in_progress" && phase === "puzzle", stateKey);
   const table = standings(roomPlayers, results, scoredThrough, roundDetails, tieRounds).map((row) => {
@@ -923,7 +926,7 @@ function DuelScreen() {
               onLeave={() => void handleLeave()}
               playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
               share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
-              challenge={forfeit ? null : <RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} />}
+              challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
             />
             <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
           </PhoneShell>
@@ -962,7 +965,7 @@ function DuelScreen() {
             onHome={() => void handleLeave()}
             playOfTheGame={forfeit ? null : <PlayOfTheGame roomId={duel.id} active />}
             share={<RoomShareButton duel={duel} players={players} results={results} me={me} />}
-            challenge={forfeit ? null : <RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} />}
+            challenge={forfeit ? null : <Suspense fallback={null}><RoomChallengeButton duelId={duel.id} total={totalScore(results, mySlot)} rounds={duel.round_count ?? TOTAL_ROUNDS} /></Suspense>}
           />
           <RoomChat chat={chat} myUserId={me.user_id} players={players} looks={looks} available={chatAvailable} screenLabel={chatLabel} />
         </PhoneShell>

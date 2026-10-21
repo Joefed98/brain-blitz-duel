@@ -94,3 +94,25 @@ DROP TRIGGER IF EXISTS challenge_attempt_cap ON public.async_attempts;
 CREATE TRIGGER challenge_attempt_cap
   BEFORE INSERT ON public.async_attempts
   FOR EACH ROW EXECUTE FUNCTION public.challenge_attempt_cap();
+
+-- Share taps and arrivals by source (share_events, 20261021120000, also written but not applied).
+-- A Share tap on a room's final screen, a daily's results or board, or a challenge's screens, and a
+-- device's first arrival from any of those links, now say which: source 'room' (every row before this
+-- migration, and the default), 'daily' (with daily_kind) or 'challenge' (with challenge_code). A
+-- challenge's share carries its place and counts, so place and players allow up to 20.
+ALTER TABLE public.share_events
+  ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'room',
+  ADD COLUMN IF NOT EXISTS challenge_code text,
+  ADD COLUMN IF NOT EXISTS daily_kind text;
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_source_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_source_check CHECK (source IN ('room', 'daily', 'challenge'));
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_challenge_code_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_challenge_code_check
+  CHECK (challenge_code IS NULL OR challenge_code ~ '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$');
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_daily_kind_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_daily_kind_check CHECK (daily_kind IS NULL OR daily_kind IN ('puzzle', 'arcade'));
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_place_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_place_check CHECK (place IS NULL OR place BETWEEN 1 AND 20);
+ALTER TABLE public.share_events DROP CONSTRAINT IF EXISTS share_events_players_check;
+ALTER TABLE public.share_events ADD CONSTRAINT share_events_players_check CHECK (players IS NULL OR players BETWEEN 1 AND 20);
+CREATE INDEX IF NOT EXISTS share_events_source_idx ON public.share_events (source, event, created_at);

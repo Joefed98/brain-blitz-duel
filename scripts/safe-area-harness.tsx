@@ -15,6 +15,7 @@ import "../src/styles.css";
 import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
+import { bootPlayCards } from "@/lib/playCards";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
@@ -74,6 +75,10 @@ interface Harness {
     final: unknown;
     list: unknown[];
   };
+  /** play-tab-shift-check: the stand-in server's delay, challenge availability and the last room's state. */
+  slowMs?: number;
+  challengesAvailable?: boolean;
+  rejoin?: { code: string; status: string; players: number };
   /** The route's search (useSearch): the challenge screen's ?code=. */
   search?: Record<string, string>;
   /** Where useNavigate was sent (share-check: a shared link's redirect). */
@@ -234,8 +239,10 @@ async function checkWord(_duelId: string, _round: number, word: string) {
 
 /* The daily challenge (daily.functions.ts, asyncRoom.functions.ts) from H.daily. */
 async function dailyStatusFn() {
+  await slow();
   if (!H.daily) throw new Error("no daily");
-  return H.daily.status;
+  // The same call says whether challenges are available (daily.server.ts).
+  return { ...(H.daily.status as object), challenges: H.challengesAvailable ?? !!H.challenge };
 }
 async function dailyBoardFn({ data }: { data: { kind: string; day: string } }) {
   return H.daily?.boards[`${data.kind}:${data.day}`] ?? null;
@@ -279,9 +286,27 @@ async function asyncSubmitFn({ data }: { data: { roundNumber: number; answer: st
   return { ok: true, score: H.verdict.score };
 }
 
-/* Friend challenges (challenge.functions.ts) from H.challenge. */
+/** The stand-in server's answer time for the Play tab's late cards (play-tab-shift-check: a slow server). */
+const slow = () => new Promise((resolve) => setTimeout(resolve, H.slowMs ?? 0));
+
+/* Friend challenges (challenge.functions.ts) from H.challenge (or H.challengesAvailable). */
 async function challengeStatusFn() {
-  return { available: !!H.challenge };
+  await slow();
+  return { available: H.challengesAvailable ?? !!H.challenge };
+}
+
+/** The device's last room for the Play tab's Rejoin card (H.rejoin; none: not found). */
+const SUPABASE = inert();
+async function fetchDuelByCode(code: string) {
+  await slow();
+  const r = H.rejoin;
+  if (!r || r.code !== code) return null;
+  return { id: "rejoin-duel", room_code: code, status: r.status, disbanded_at: null };
+}
+async function fetchPlayers() {
+  const r = H.rejoin;
+  // The device's own row carries the stand-in session's id (the inert client's), as currentUserId reads it.
+  return Array.from({ length: r?.players ?? 0 }, (_, i) => ({ player_slot: i + 1, status: "active", user_id: i === 0 ? SUPABASE : `u${i}` }));
 }
 async function challengeInfoFn() {
   return H.challenge?.info ?? { found: false };
@@ -346,7 +371,9 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   submitAnswer,
   practiceGenerateFn,
   practiceGradeFn,
-  supabase: inert(),
+  supabase: SUPABASE,
+  fetchDuelByCode,
+  fetchPlayers,
   DuelError: class DuelError extends Error {},
 };
 
@@ -364,6 +391,9 @@ H.update = (change) => {
 H.call = (_module, name) => IMPLEMENTATIONS[name] ?? (async () => null);
 
 /* --------------------------------------------------------------------- mount */
+
+// The root's inline boot script (playCards.ts): which Play tab cards to reserve before the first paint.
+bootPlayCards();
 
 for (const [type, name] of Object.entries(H.names ?? {}))
   (puzzleDef(type as never) as { name: string }).name = name;

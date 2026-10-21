@@ -25,17 +25,28 @@ export function ShareWelcomeCard({
   onPractice,
   onPublic,
   record = sendShareEvent,
+  assumeDue = false,
+  onDue,
 }: {
   nextGame: PublicGame | null;
   now: number;
   onPractice: () => void;
   onPublic: () => void;
   record?: ShareRecorder;
+  /**
+   * The Play tab reserved the card before the first paint (playCards.ts): draw it from the first frame
+   * (the decision below then confirms it, or the Play tab's slot collapses it).
+   */
+  assumeDue?: boolean;
+  /** Told the decision once device storage has been read. */
+  onDue?: (due: boolean) => void;
 }) {
   // Device storage is read after mount, so the server-rendered page and the first client render agree.
-  const [due, setDue] = useState(false);
+  const [due, setDue] = useState(assumeDue);
   useEffect(() => {
-    if (!shareWelcomeDue(window.location, record)) return;
+    const now = shareWelcomeDue(window.location, record);
+    onDue?.(now);
+    if (!now) return;
     setDue(true);
     noteShareWelcome("shown", record);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -567,7 +567,18 @@ async function playInChallenge(puzzle: PuzzleData, answer: string, claimedMs: nu
   check(/<Podium/.test(route) && /podiumAwards\(/.test(route) && /Challenge someone else/.test(route), "the final screen is the room's podium with awards, Share and Challenge someone else");
   const share = readFileSync("src/components/challenge/ChallengeShare.tsx", "utf8");
   check(/ShareResultButton/.test(share) && !/navigator\.share/.test(share), "challenges share through shareResult() only");
-  check(/useChallengesAvailable/.test(readFileSync("src/routes/index.tsx", "utf8")) && /if \(!available\) return null/.test(readFileSync("src/components/challenge/ChallengeCard.tsx", "utf8")), "the Play card shows only once challenges are available");
+  // The Play card (22 Oct 2026, no jumps): reserved from the first frame unless the last answer was no, and
+  // collapsed when the daily status call says challenges aren't available (PlaySlot, play-tab-shift-check).
+  const { dailyStatus } = await import("../src/lib/duel/daily.server");
+  const withTables = store();
+  check((await dailyStatus(withTables.client, null, NOW)).challenges === true, "the daily status call says challenges are available once their table exists");
+  const noChallenges = { from: (t: string) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => (t === "challenges" ? { data: null, error: { code: "42P01", message: "relation does not exist" } } : { data: null, error: null }) }) }) }) };
+  check((await dailyStatus(noChallenges, null, NOW)).challenges === false, "the daily status call says no before the challenge migration");
+  const home = readFileSync("src/routes/index.tsx", "utf8");
+  check(
+    /daily\.status\?\.challenges === true/.test(home) && /<PlaySlot id="challenge" state=\{slotState\(challenges !== null, challenges === true\)\}>/.test(home) && /if \(!available\) return null/.test(readFileSync("src/components/challenge/ChallengeCard.tsx", "utf8")),
+    "the Play card shows only while challenges may be available, and collapses when they aren't",
+  );
   const daily = readFileSync("src/lib/share/dailyShare.ts", "utf8");
   check(/I scored \$\{total\} on today's \$\{DAILY_TITLE\[kind\]\} – can you beat it\?/.test(daily), "the daily's share text");
   const { dailyShareLine } = await import("../src/lib/share/dailyShare");
@@ -653,6 +664,20 @@ else {
     const ev = psql(`INSERT INTO public.challenge_events (room_id, code, user_id, event) VALUES ('${ROOM}', 'ABCDEF', '${A}', 'link_opened');
       INSERT INTO public.challenge_events (room_id, code, user_id, event) VALUES ('${ROOM}', 'ABCDEF', '${A}', 'link_opened');`);
     check(!ev.ok && /duplicate|challenge_events_once/.test(ev.err), "SQL: a link's opening is stored once per device");
+    // share_events by source (this migration adds it; 20261021120000 made the table).
+    const shares = psql(`INSERT INTO public.share_events (user_id, event, method) VALUES ('${A}', 'share_tap', 'copy');
+      INSERT INTO public.share_events (user_id, event, source, daily_kind, method) VALUES ('${A}', 'share_tap', 'daily', 'puzzle', 'native');
+      INSERT INTO public.share_events (user_id, event, source, challenge_code, place, players, rounds) VALUES ('${A}', 'share_tap', 'challenge', 'ABCDEF', 14, 20, 10);
+      SELECT string_agg(source, ',' ORDER BY id) FROM public.share_events;`);
+    check(shares.ok && shares.out === "room,daily,challenge", `SQL: share_events takes a source, room by default; 20-player challenge shares fit (${shares.err || shares.out})`);
+    const badSource = psql(`INSERT INTO public.share_events (user_id, event, source) VALUES ('${A}', 'share_tap', 'sms')`);
+    check(!badSource.ok, "SQL: an unknown share source is refused");
+    const badKind = psql(`INSERT INTO public.share_events (user_id, event, source, daily_kind) VALUES ('${A}', 'share_tap', 'daily', 'weekly')`);
+    check(!badKind.ok, "SQL: an unknown daily kind is refused");
+    const shareDoc = readFileSync("docs/beta-sql.md", "utf8");
+    const sourceBlocks = [...shareDoc.slice(shareDoc.indexOf("**Q-S4."), shareDoc.indexOf("## 8.")).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
+    const sourceRan = sourceBlocks.map((sql) => psql(sql));
+    check(sourceBlocks.length === 2 && sourceRan.every((r) => r.ok), `SQL: the share-source queries Q-S4 and Q-S5 run (${sourceRan.map((r) => r.err.split("\n")[0]).filter(Boolean).join("; ") || `${sourceBlocks.length} ran`})`);
     const doc = readFileSync("docs/beta-sql.md", "utf8");
     const blocks = [...doc.slice(doc.indexOf("## 9. Friend challenges")).matchAll(/```sql\n([\s\S]*?)```/g)].map((m) => m[1]!);
     const ran = blocks.map((sql) => psql(sql));

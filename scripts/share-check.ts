@@ -40,6 +40,7 @@ import { CARD_H, CARD_W, drawResultCard } from "../src/lib/share/resultCard";
 import { roomShareData, roomShareLine, roomShareLink } from "../src/lib/share/roomShare";
 import { shareResult, shareText } from "../src/lib/share/shareResult";
 import {
+  noteLinkArrival,
   noteShareArrival,
   noteShareFinish,
   noteShareWelcome,
@@ -362,6 +363,35 @@ for (const nav of ["none", "refused"] as const) {
   const bare: ShareEventInput[] = [];
   noteShareArrival({ search: "?ref=share&room=x'", pathname: "/" }, (e) => void bare.push(e));
   check(bare[0]?.roomCode === null, `a malformed room code kept: ${JSON.stringify(bare[0])}`);
+  check(sent[0]?.source === "room" && home[0]?.source === "room", "a room link's arrival doesn't say its source is a room");
+
+  // A daily's or challenge's link (22 Oct 2026): an arrival with its source, once per device, no welcome card.
+  resetShareArrivalMemory();
+  const links: ShareEventInput[] = [];
+  check(noteLinkArrival({ source: "challenge", challengeCode: "K7QM2X" }, (e) => void links.push(e)), "a challenge link's arrival was not recorded");
+  check(
+    links[0]?.event === "arrival" && links[0].source === "challenge" && links[0].challengeCode === "K7QM2X",
+    `challenge arrival ${JSON.stringify(links[0])}`,
+  );
+  check(!noteLinkArrival({ source: "daily", dailyKind: "puzzle" }, (e) => void links.push(e)) && links.length === 1, "a second arrival (a daily link after a challenge link) was recorded");
+  check(!noteShareArrival({ search: "?ref=share", pathname: "/" }, (e) => void links.push(e)) && links.length === 1, "a room link after a challenge link made a second arrival");
+  check(!shareWelcomeDue({ search: "", pathname: "/" }, (e) => void links.push(e)), "a challenge arrival was shown the home's welcome card");
+  resetShareArrivalMemory();
+  const dailyLinks: ShareEventInput[] = [];
+  noteLinkArrival({ source: "daily", dailyKind: "arcade" }, (e) => void dailyLinks.push(e));
+  check(dailyLinks[0]?.source === "daily" && dailyLinks[0].dailyKind === "arcade", `daily arrival ${JSON.stringify(dailyLinks[0])}`);
+  resetShareArrivalMemory();
+}
+
+/* ------------------------------------------------------------ 4c. every Share tap with its source */
+{
+  const room = readFileSync("src/components/share/ShareResultButton.tsx", "utf8");
+  const challenge = readFileSync("src/components/challenge/ChallengeShare.tsx", "utf8");
+  const daily = readFileSync("src/components/daily/DailyShareButton.tsx", "utf8");
+  check(/event: "share_tap",\s*source: "room"/.test(room), "a room's Share tap doesn't record source room");
+  check(/event: "share_tap",\s*source: "challenge",\s*challengeCode: code/.test(challenge), "a challenge's Share tap doesn't record source challenge and its code");
+  check(/event: "share_tap", source: "daily", dailyKind: kind/.test(daily), "a daily's Share tap doesn't record source daily and which daily");
+  check(/noteLinkArrival\(\{ source: "daily"/.test(readFileSync("src/routes/daily.tsx", "utf8")) && /noteLinkArrival\(\{ source: "challenge"/.test(readFileSync("src/routes/challenge.tsx", "utf8")), "the daily and challenge pages don't record their links' arrivals");
 }
 {
   const tap = shareEventRow("user-1", {
@@ -379,6 +409,7 @@ for (const nav of ["none", "refused"] as const) {
       JSON.stringify({
         user_id: "user-1",
         event: "share_tap",
+        source: "room",
         duel_id: DUEL_ID,
         game_index: 0,
         room_code: "ABCD",
@@ -388,6 +419,8 @@ for (const nav of ["none", "refused"] as const) {
         method: "copy",
         landing: null,
         welcome: null,
+        challenge_code: null,
+        daily_kind: null,
       }),
     `tap row ${JSON.stringify(tap)}`,
   );
@@ -420,6 +453,27 @@ for (const nav of ["none", "refused"] as const) {
     arrival?.landing === "room" && arrival.place === null && arrival.duel_id === null,
     `arrival row ${JSON.stringify(arrival)}`,
   );
+  // Sources (22 Oct 2026): daily and challenge taps and arrivals; anything else is a room's.
+  const daily = shareEventRow("user-1", { event: "share_tap", source: "daily", dailyKind: "arcade", method: "native", duelId: DUEL_ID, roomCode: "ABCD", place: 2 });
+  check(
+    daily?.source === "daily" && daily.daily_kind === "arcade" && daily.method === "native" && daily.duel_id === null && daily.room_code === null && daily.place === null && daily.challenge_code === null,
+    `daily tap row ${JSON.stringify(daily)}`,
+  );
+  const challenge = shareEventRow("user-1", { event: "share_tap", source: "challenge", challengeCode: "K7QM2X", place: 14, players: 20, rounds: 10, method: "copy", dailyKind: "puzzle" });
+  check(
+    challenge?.source === "challenge" && challenge.challenge_code === "K7QM2X" && challenge.place === 14 && challenge.players === 20 && challenge.rounds === 10 && challenge.daily_kind === null && challenge.duel_id === null,
+    `challenge tap row ${JSON.stringify(challenge)}`,
+  );
+  const badCode = shareEventRow("user-1", { event: "share_tap", source: "challenge", challengeCode: "I0O1L'", players: 21 });
+  check(badCode?.challenge_code === null && badCode.players === null, `a malformed challenge code or count kept: ${JSON.stringify(badCode)}`);
+  check(shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.source === "room" && shareEventRow("user-1", { event: "share_tap", source: "sms", players: 12 })?.players === null, "an unknown source is not stored as a room's (with a room's limits)");
+  check(shareEventRow("user-1", { event: "share_tap", players: 6 })?.source === "room", "a tap without a source (a phone from before this change) is not a room's");
+  const linkArrival = shareEventRow("user-1", { event: "arrival", source: "challenge", challengeCode: "K7QM2X", landing: "home", roomCode: "ABCD" });
+  check(
+    linkArrival?.source === "challenge" && linkArrival.challenge_code === "K7QM2X" && linkArrival.landing === null && linkArrival.room_code === null,
+    `challenge arrival row ${JSON.stringify(linkArrival)}`,
+  );
+  check(shareEventRow("user-1", { event: "arrival_finished", source: "daily", duelId: DUEL_ID, place: 2 })?.source === "room", "a finished room is always the room loop's");
   const inserted: { table: string; row: unknown }[] = [];
   await recordShareEvent(
     {
@@ -496,6 +550,15 @@ for (const nav of ["none", "refused"] as const) {
   check(
     /share_events_arrival_once[\s\S]*WHERE event = 'arrival'/.test(sql),
     "an arrival is not one row per device",
+  );
+  const later = readFileSync("supabase/migrations/20261022120000_friend_challenges.sql", "utf8");
+  check(
+    /ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'room'/.test(later) &&
+      /CHECK \(source IN \('room', 'daily', 'challenge'\)\)/.test(later) &&
+      /ADD COLUMN IF NOT EXISTS challenge_code text/.test(later) &&
+      /ADD COLUMN IF NOT EXISTS daily_kind text/.test(later) &&
+      /players BETWEEN 1 AND 20/.test(later),
+    "the friend-challenge migration doesn't add share_events.source (room by default), challenge_code, daily_kind and 20-player counts",
   );
   const types = readFileSync("src/integrations/supabase/types.ts", "utf8");
   check(

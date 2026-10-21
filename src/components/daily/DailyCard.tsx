@@ -6,11 +6,14 @@ import {
   DAILY_KINDS,
   DAILY_TITLE,
   rankLine,
+  ukDayKey,
+  ukDayWindow,
   type DailyKind,
   type DailyState,
   type DailyStatus,
 } from "@/lib/duel/daily";
 import { ordinal } from "@/lib/duel/ordinal";
+import { readPlayCards, writePlayCards } from "@/lib/playCards";
 
 /** The card's line for one daily: Play, Continue, or your score and place. */
 function cardState(state: DailyState): { action: string; detail: string | null } {
@@ -19,20 +22,44 @@ function cardState(state: DailyState): { action: string; detail: string | null }
   return { action: `${state.total}`, detail: rankLine(state.rank, state.count, ordinal) };
 }
 
-/** Today's dailies for this device, fetched after mount; null while loading or when unavailable. */
-export function useDailyStatus(): DailyStatus | null {
-  const [status, setStatus] = useState<DailyStatus | null>(null);
+/**
+ * Today's dailies for this device, fetched after mount: `status` once the server answers (null on a
+ * failure), `settled` from then on. The answer is remembered (playCards.ts) so the next visit's card
+ * draws it from the first frame.
+ */
+export function useDailyStatus(): { status: DailyStatus | null; settled: boolean } {
+  const [state, setState] = useState<{ status: DailyStatus | null; settled: boolean }>({ status: null, settled: false });
   useEffect(() => {
     let live = true;
     void dailyStatus().then(
-      (next) => live && setStatus(next),
-      () => live && setStatus(null),
+      (next) => {
+        writePlayCards({ daily: next });
+        if (live) setState({ status: next, settled: true });
+      },
+      // Unreachable: keep drawing the last known card (it still opens /daily).
+      () => undefined,
     );
     return () => {
       live = false;
     };
   }, []);
-  return status;
+  return state;
+}
+
+/**
+ * What the card draws: the server's answer once it's in (or, if it said the dailies aren't available,
+ * the card as it was, while it collapses), else the last known status when it's today's, else Play.
+ */
+export function shownDailyStatus(
+  state: { status: DailyStatus | null },
+  nowMs: number = Date.now(),
+  remembered = true,
+): DailyStatus {
+  if (state.status?.available) return state.status;
+  const cached = remembered ? readPlayCards().daily : undefined;
+  const day = ukDayKey(nowMs);
+  if (cached?.available && cached.day === day) return cached;
+  return { available: true, day, closesAt: ukDayWindow(day).closesAt, puzzle: { state: "play" }, arcade: { state: "play" } };
 }
 
 /**
