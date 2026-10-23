@@ -50,6 +50,8 @@ export interface HeroPose {
   stick: number;
   /** World px per pose unit (1 unless the game scales its figure). */
   scale: number;
+  /** Real px per pose unit for the eye-slit and bolt cut-off only (a game icon drawn larger than the game); NaN uses `scale`. */
+  detailScale: number;
   /** Travel direction in the pose frame (need not be unit length; 0,0 = standing). */
   moveX: number;
   moveY: number;
@@ -87,6 +89,7 @@ export function heroPose(): HeroPose {
     footBY: 0,
     stick: 2,
     scale: 1,
+    detailScale: NaN,
     moveX: 0,
     moveY: 0,
     speed: 0,
@@ -186,7 +189,9 @@ export function drawHero(ctx: CanvasRenderingContext2D, p: HeroPose): void {
       Math.hypot(p.footBX - p.hipX, p.footBY - p.hipY)) /
     2;
   const capeL = Math.round((torso + leg * 0.5) * 4) / 4;
-  const tall = (Math.max(p.footAY, p.footBY) - (p.headY - r)) * p.scale;
+  const tall =
+    (Math.max(p.footAY, p.footBY) - (p.headY - r)) *
+    (p.detailScale === p.detailScale ? p.detailScale : p.scale);
   const detail = tall >= HERO_DETAIL_MIN_PX;
   const paint = paintFor(ctx, r, capeL);
   const core = Math.max(p.stick * 1.3, 2.5 * unit);

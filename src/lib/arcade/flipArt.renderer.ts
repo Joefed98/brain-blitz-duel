@@ -14,7 +14,7 @@ import { flipSurfaceLine } from "./flip.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
-import { drawHero, heroPose } from "./hero.renderer";
+import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 
 const FP = 256;
 const RUNNER_X = 90;
@@ -438,59 +438,6 @@ function runnerFrame(ctx: CanvasRenderingContext2D, state: FlipState, y: number,
   return big;
 }
 
-/** The original gold stick figure; the game draws drawRunnerHero since the Joulz hero (23 Oct 2026), this stays for the Roofbound game icon. */
-export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
-  const dead = state.ended === 2;
-  const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
-  const upright = state.side === 0 ? 0 : Math.PI;
-  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
-  const big = runnerFrame(ctx, state, y, sink, dead, angle);
-  if (big) {
-    // Dark outline pass first so the gold reads against lava and rock alike.
-    ctx.strokeStyle = MATERIAL.obsidian;
-    ctx.lineWidth = 4.2;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.arc(0, -6.5, 3.4, 0, Math.PI * 2);
-    ctx.moveTo(0, -3); ctx.lineTo(0, 3);
-    ctx.moveTo(0, -3); ctx.lineTo(-5, 2);
-    ctx.moveTo(0, -3); ctx.lineTo(5, 1);
-    ctx.moveTo(0, 3); ctx.lineTo(-3, 9);
-    ctx.moveTo(0, 3); ctx.lineTo(3, 9);
-    ctx.stroke();
-  }
-  // Swing's small gold head/torso/limbs, with compact gravity boots.
-  ctx.strokeStyle = dead && sink === null ? FLIP_RED : MATERIAL.figure;
-  ctx.fillStyle = ctx.strokeStyle;
-  ctx.lineWidth = 2.4;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.arc(0, -6.5, 3.4, 0, Math.PI * 2);
-  ctx.fill();
-  const stride = still || state.flipT > 0 || dead ? 0 : Math.sin(state.tick * 0.5) * 1.5;
-  ctx.beginPath();
-  ctx.moveTo(0, -3); ctx.lineTo(0, 3);
-  ctx.moveTo(0, -3); ctx.lineTo(-5, 2 + stride);
-  ctx.moveTo(0, -3); ctx.lineTo(5, 1 - stride);
-  ctx.moveTo(0, 3); ctx.lineTo(-3 + stride, 9);
-  ctx.moveTo(0, 3); ctx.lineTo(3 - stride, 9);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(210, 238, 240, 0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = MATERIAL.boot;
-  ctx.fillRect(-5 + stride, 8, 4, 2.5);
-  ctx.fillRect(1 - stride, 8, 4, 2.5);
-  ctx.fillStyle = MATERIAL.hot;
-  ctx.globalAlpha = 0.65;
-  ctx.fillRect(-5 + stride, 10.5, 4, 0.8);
-  ctx.fillRect(1 - stride, 10.5, 4, 0.8);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = MATERIAL.lamp;
-  ctx.fillRect(2, -8, 2, 1.5);
-  ctx.restore();
-}
-
 /** Roofbound's hero pose (the stick figure's joints, 3.4 px head, 2.4 px stick), refilled every frame. */
 const runnerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
 
@@ -499,14 +446,14 @@ const runnerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
  * cape trails the run (the tube's speed and the flip's arc, turned into the figure's frame), so
  * it hangs towards the surface the runner stands on and stays inside the runner box.
  */
-export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
+export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null, pose: HeroPose = runnerHero): void {
   const dead = state.ended === 2;
   const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
   const upright = state.side === 0 ? 0 : Math.PI;
   const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
   const big = runnerFrame(ctx, state, y, sink, dead, angle);
   const stride = still || state.flipT > 0 || dead ? 0 : Math.sin(state.tick * 0.5) * 1.5;
-  const h = runnerHero;
+  const h = pose;
   h.scale = big ? 1.65 : 1;
   h.headX = 0; h.headY = -6.5;
   h.neckX = 0; h.neckY = -3;

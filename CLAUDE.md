@@ -433,6 +433,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`.ap-shelf`, `data-practice-shelf`, "See all" selects the chip); with a category or a search, a grid of three
   (`data-practice-grid`); Retired stays collapsed. Each tile is one button named exactly its game, its best its
   description.
+- **The Joulz hero** (23 Oct 2026, display only; `src/lib/arcade/hero.renderer.ts`): Grappler, Jaywalk and Roofbound draw
+  the hero (gold cape, gold-outlined black limbs, chest bolt, gold gloves and boots, masked head) on their old stick
+  figures' joints (`drawHero`, Jaywalk `drawWalkerHero`, Roofbound `drawRunnerHero`); their game icons (Practice, Play,
+  Profile, the share and challenge cards) draw it too, as vectors at the icon's real pixel size, each paint on a fresh
+  pose (`detailScale` judges the eye slits and bolt by the icon's real px). The old stick figures are gone.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
