@@ -7,6 +7,10 @@
  * Every painter draws a 64 × 64 icon space (the canvas is scaled to the icon's size and pixel
  * ratio first). Text is never drawn: tile faces that carry a letter or digit in play are painted
  * with fillText suppressed (`noText`).
+ *
+ * Grappler, Jaywalk and Roofbound draw the Joulz hero (hero.renderer) on their game's own joints,
+ * painted as vectors at the icon's real pixel size (never an enlarged sprite). Each paint gets a
+ * fresh pose, so the cape snaps to its angle and never shares the game's eased one.
  */
 import { drawSaucer } from "@/lib/arcade/hover.renderer";
 import { HOVER_IMPULSE, type HoverState } from "@/lib/arcade/hover";
@@ -23,15 +27,15 @@ import { paintBubble } from "@/lib/arcade/bubble.renderer";
 import { drawBar } from "@/lib/arcade/beat.renderer";
 import { BEAT_LANE_COLOURS } from "@/lib/arcade/beat";
 import { stamp as meteorStamp } from "@/lib/arcade/snake.renderer";
-import { drawVehicle, drawWalker } from "@/lib/arcade/cross.renderer";
+import { drawVehicle, drawWalkerHero } from "@/lib/arcade/cross.renderer";
 import { drawFighter } from "@/lib/arcade/wavefront.renderer";
-import { drawFigure } from "@/lib/arcade/flipArt.renderer";
+import { drawRunnerHero } from "@/lib/arcade/flipArt.renderer";
 import { FLIP_REV, type FlipState } from "@/lib/arcade/flip";
 import { INK_RAINBOW, coin, pot } from "@/lib/arcade/inkBridge.renderer";
 import { paintAtom } from "@/lib/arcade/burst.renderer";
 import { BURST_COLOURS } from "@/lib/arcade/burst";
 import { drawPlanet, getRocketSprite } from "@/lib/arcade/orbit.renderer";
-import { drawGrapplerHood } from "@/lib/arcade/grapplerFigure.renderer";
+import { drawHero, heroPose, type HeroPose } from "@/lib/arcade/hero.renderer";
 import { apple } from "@/lib/arcade/snip.renderer";
 import { TILT_MARBLE_BLUE, paintDisc } from "@/lib/arcade/tiltArt.renderer";
 import { toyMarble } from "@/lib/arcade/toybox.renderer";
@@ -74,6 +78,11 @@ function sprite(
   c.translate(x, y);
   painter(c, size);
   c.restore();
+}
+
+/** A fresh hero pose for one icon paint: the game's head and stick, details judged at the icon's real px per pose unit. */
+function iconHero(headR: number, stick: number, scale: number, realPx: number): HeroPose {
+  return Object.assign(heroPose(), { headR, stick, scale, detailScale: realPx });
 }
 
 function scaled(c: Ctx, x: number, y: number, s: number, paint: () => void): void {
@@ -156,23 +165,26 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
     draw("head", 24, 18, 0);
     draw("star", 48, 22);
   },
-  // Jaywalk: the gold walker crossing in front of a car (cross drawWalker, drawVehicle).
-  cross: (c) => {
+  // Jaywalk: the hero walker crossing in front of a car (cross drawWalkerHero, drawVehicle), facing the viewer.
+  cross: (c, k) => {
     drawVehicle(c, -14, 40, 44, 22, 1, "#5AA9FF", false, false);
-    scaled(c, 38, 28, 1.6, () => drawWalker(c, 0, 0, 1, 0, 0));
+    scaled(c, 38, 28, 1.6, () =>
+      drawWalkerHero(c, 0, 0, 1, 0, 0, 0, true, iconHero(4, 3, 1, 1.6 * k)),
+    );
   },
   // Wavefront: the player fighter (wavefront drawFighter; the bundled PNG once loaded).
   wavefront: (c) => scaled(c, 32, 34, 1.25, () => drawFighter(c, 0, 0, 40, 24, false, 0, 0)),
-  // Roofbound: the gold runner (flipArt drawFigure), standing.
-  flip: (c) =>
+  // Roofbound: the hero runner (flipArt drawRunnerHero, rev 2's 1.65 figure), standing.
+  flip: (c, k) =>
     scaled(c, 32, 33, 1.45, () => {
       c.translate(-90, 0);
-      drawFigure(
+      drawRunnerHero(
         c,
         { ended: 0, flipT: 0, side: 0, rev: FLIP_REV, tick: 0 } as unknown as FlipState,
         0,
         true,
         null,
+        iconHero(3.4, 2.4, 1.65, 1.45 * 1.65 * k),
       );
     }),
   // Rainbow Bridge: a rainbow line, the falling coin and the pot of gold (inkBridge coin, pot).
@@ -208,8 +220,8 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
       c.restore();
     }
   },
-  // Grappler: the hooded figure on its rope from the anchor (the game's stick figure and colours, grapplerFigure drawGrapplerHood, the anchor art).
-  swing: (c) => {
+  // Grappler: the hero on its rope from the anchor (hero.renderer drawHero on the icon's joints, the anchor art).
+  swing: (c, k) => {
     const fx = 38;
     const fy = 38;
     const s = 2.3;
@@ -226,30 +238,31 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
       c.arc(18, 8, 4.5, 0, Math.PI * 2);
       c.stroke();
     }
-    scaled(c, fx, fy, s, () => {
-      const limbs = () => {
-        c.beginPath();
-        c.moveTo(0, -3);
-        c.lineTo(0, 3);
-        c.moveTo(0, 3);
-        c.lineTo(-3, 8);
-        c.moveTo(0, 3);
-        c.lineTo(3, 7.5);
-        c.moveTo(0, -2);
-        c.lineTo(1.5, -6);
-        c.moveTo(0, -2);
-        c.lineTo(-3, 1);
-        c.stroke();
-      };
-      c.lineCap = "round";
-      c.strokeStyle = "#D2EEF0";
-      c.lineWidth = 2.6;
-      limbs();
-      c.strokeStyle = "#253541";
-      c.lineWidth = 1.5;
-      limbs();
-      drawGrapplerHood(c, 0, 0);
+    // The icon's own pose (its rope hand up to the rope), swinging up and to the right with the cape trailing.
+    const hero = iconHero(3.4, 2.4, 1, s * k);
+    Object.assign(hero, {
+      headX: 0,
+      headY: -6.5,
+      neckX: 0,
+      neckY: -3,
+      hipX: 0,
+      hipY: 3,
+      shoulderX: 0,
+      shoulderY: -2,
+      handAX: 1.5,
+      handAY: -6,
+      handBX: -3,
+      handBY: 1,
+      footAX: -3,
+      footAY: 8,
+      footBX: 3,
+      footBY: 7.5,
+      moveX: 0.6,
+      moveY: -0.8,
+      speed: 0.5,
+      face: 0.6,
     });
+    scaled(c, fx, fy, s, () => drawHero(c, hero));
   },
   // Scrumper: the apple on its twine (snip apple).
   snip: (c) => {
