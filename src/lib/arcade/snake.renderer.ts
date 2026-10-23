@@ -47,6 +47,17 @@ export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 
   if (!canvas || !c) return null;
   c.scale(SPRITE_RATIO, SPRITE_RATIO);
   c.imageSmoothingEnabled = false;
+  paintStamp(c as CanvasRenderingContext2D, kind, level, dir, tail, SPRITE_RATIO);
+  // Canvas itself clips every glow to the full-cell envelope.
+  stamps.set(id, canvas);
+  return canvas;
+}
+
+/**
+ * A stamp's art on a SNAKE_CELL square at (0, 0) (the cached sprite above; the game icon paints it at
+ * its real size). `ratio` is device px per cell px, so the glow keeps its size: the sprite's is 2.
+ */
+export function paintStamp(c: CanvasRenderingContext2D, kind: "bead" | "head" | "star" | "rock", level: number, dir: number, tail: number, ratio: number): void {
   const middle = SNAKE_CELL / 2;
   if (kind === "rock") {
     // A landed asteroid: a pixel boulder filling the cell (the head's whole collision square).
@@ -68,7 +79,7 @@ export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 
   } else if (kind === "star") {
     c.fillStyle = PELLET;
     c.shadowColor = PELLET;
-    c.shadowBlur = 3;
+    c.shadowBlur = 1.5 * ratio;
     // Four pointed pixel star; no soft/gradient geometry.
     c.fillRect(middle - 1, middle - 6, 2, 12);
     c.fillRect(middle - 6, middle - 1, 12, 2);
@@ -85,7 +96,7 @@ export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 
     const flame = FLAMES[level] ?? ACCENT;
     c.fillStyle = kind === "head" ? RIMS[0] ?? ACCENT : RIMS[level] ?? ACCENT;
     c.shadowColor = kind === "head" ? ACCENT : flame;
-    c.shadowBlur = 3;
+    c.shadowBlur = 1.5 * ratio;
     for (let y = 0; y < SNAKE_CELL; y += 2) {
       for (let x = 0; x < SNAKE_CELL; x += 2) {
         const dx = x + 1 - middle, dy = y + 1 - middle;
@@ -121,9 +132,6 @@ export function stamp(kind: "bead" | "head" | "star" | "rock", level = 0, dir = 
       c.fillRect(middle - 2, middle + 4, 2, 2);
     }
   }
-  // Canvas itself clips every glow to the full-cell envelope.
-  stamps.set(id, canvas);
-  return canvas;
 }
 
 function blit(ctx: CanvasRenderingContext2D, sprite: ArtCanvas | null, x: number, y: number, fallback = ACCENT): void {

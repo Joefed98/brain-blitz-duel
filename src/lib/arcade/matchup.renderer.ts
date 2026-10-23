@@ -218,8 +218,8 @@ function gemGlint(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, c
   ctx.restore();
 }
 
-/** One gem centred on (cx, cy) at the sim's symbol radius. */
-function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
+/** One gem centred on (cx, cy) at the sim's symbol radius (vector; the game icon paints it at its real size). */
+export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number, radius: number, time = 0): void {
   ctx.save();
   // Includes special fuse details: never exceed the symbol's bounds.
   ctx.beginPath();

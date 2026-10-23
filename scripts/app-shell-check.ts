@@ -115,6 +115,28 @@ const hydrated = (page: Page, selector: string) =>
   }, selector, { timeout: 120_000 });
 const currentTab = (page: Page) => page.locator("[data-app-tabbar] [aria-current='page']").getAttribute("data-tab");
 
+/**
+ * A cold `vite dev` can reload the page once while it optimises newly found dependencies, destroying the
+ * page's execution context mid-setup. Wait for the load, then until the main frame has gone 1 s without
+ * navigating (at most 60 s), then for that load: nothing is judged before it.
+ */
+const RELOADED = /Execution context was destroyed/;
+async function settled(page: Page): Promise<void> {
+  await page.waitForLoadState("load", { timeout: 120_000 });
+  let last = Date.now();
+  const navigated = (frame: unknown) => {
+    if (frame === page.mainFrame()) last = Date.now();
+  };
+  page.on("framenavigated", navigated);
+  try {
+    const until = Date.now() + 60_000;
+    while (Date.now() - last < 1_000 && Date.now() < until) await new Promise((r) => setTimeout(r, 100));
+  } finally {
+    page.off("framenavigated", navigated);
+  }
+  await page.waitForLoadState("load", { timeout: 120_000 });
+}
+
 async function openApp(path: string, opts: { clock?: number } = {}) {
   const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   const page = await context.newPage();
@@ -131,13 +153,30 @@ async function openApp(path: string, opts: { clock?: number } = {}) {
   if (opts.clock !== undefined) await page.clock.install({ time: opts.clock });
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message.split("\n")[0]!));
-  await gotoRetried(page, `${origin}${path}`, path);
-  await emulateDevice(page, IPHONE11_APP);
+  // Setup only (no assertion): load, let a cold dev server's reload pass, then the device. If the page
+  // still reloads under it ("Execution context was destroyed"), the setup alone is run once more.
+  const setup = async () => {
+    await gotoRetried(page, `${origin}${path}`, path);
+    await settled(page);
+    await emulateDevice(page, IPHONE11_APP);
+  };
+  try {
+    await setup();
+  } catch (error) {
+    if (!RELOADED.test(String((error as Error).message))) throw error;
+    console.log(`  ${path}: the page reloaded during setup; setting up once more`);
+    await setup();
+  }
   return { page, context, errors };
 }
 
 try {
-  await warmUp(browser, `${origin}/`, (page) => page.locator("[data-app-tabbar]").first().waitFor({ timeout: 180_000 }), {
+  await warmUp(browser, `${origin}/`, async (page) => {
+    await page.locator("[data-app-tabbar]").first().waitFor({ timeout: 180_000 });
+    // The dev server's optimiser reload, if any, happens here, not under the first real page.
+    await settled(page);
+    await page.locator("[data-app-tabbar]").first().waitFor({ timeout: 180_000 });
+  }, {
     init: () => localStorage.setItem("duelz_onboarding_seen", "1"),
   });
 
