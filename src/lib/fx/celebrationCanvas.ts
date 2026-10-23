@@ -28,7 +28,7 @@ const BRANCHES = 2;
 
 /** The hero's height (px) when running and on the podium. */
 export const HERO_RUN_H = 58;
-export const PODIUM_HERO_H = 50;
+export const PODIUM_HERO_H = 46;
 
 export interface SceneBox {
   left: number;
@@ -223,9 +223,10 @@ export class CelebrationScene {
     const age = now - podium.at;
     if (age < 0) return;
     const box = podium.box;
-    // Standing on the step's top right corner, beside the winner.
-    const cx = box.left + box.width - 15;
-    const footY = box.top;
+    // On the floor at the gold step's front right corner, beside the winner: below the winner's name
+    // and total, clear of the step's "1" (centred at its top).
+    const cx = box.left + box.width - 17;
+    const footY = box.top + box.height - 3;
     const t = Math.min(age, PODIUM_HERO_BOB_MS);
     heroVictoryPose(this.pose, cx, footY, PODIUM_HERO_H, t, podium.calm);
     ctx.save();

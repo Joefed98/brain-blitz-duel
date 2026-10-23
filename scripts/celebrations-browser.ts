@@ -307,7 +307,7 @@ try {
       const step = document.querySelector('[data-podium-step="1"]')!.getBoundingClientRect();
       return [
         document.elementFromPoint(banner.left + banner.width / 2, banner.top + banner.height / 2),
-        document.elementFromPoint(step.right - 15, step.top - 20),
+        document.elementFromPoint(step.right - 17, step.bottom - 25),
       ].map((el) => (el ? el.closest("[data-celebration-layer]") !== null : true));
     });
     check(under.every((x) => !x), "podium: the layer is what is under the banner or hero");
@@ -322,7 +322,7 @@ try {
     const log = await o.log();
     check(log.some((e) => e.kind === "podiumHero") && !log.some((e) => e.kind === "banner") && !log.some((e) => e.kind === "sound:zap"), `podium, not first: ${log.map((e) => e.kind).join(",")}`);
     await o.page.waitForTimeout(200);
-    await fire(o.page, `C.podiumHero(scope, document.querySelector('[data-podium-step="1"]')); const b = document.querySelector('[data-podium-step="1"]').getBoundingClientRect(); C.sparkBurst(scope, b.right - 15, b.top - 26, { count: 44 });`);
+    await fire(o.page, `C.podiumHero(scope, document.querySelector('[data-podium-step="1"]')); const b = document.querySelector('[data-podium-step="1"]').getBoundingClientRect(); C.sparkBurst(scope, b.right - 17, b.bottom - 30, { count: 44 });`);
     await o.page.waitForTimeout(220);
     await shot(o.page, "podium-hero");
     await o.close();

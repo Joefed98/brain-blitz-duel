@@ -97,7 +97,7 @@ try {
         await page.evaluate(`import("/src/lib/fx/celebrations.ts").then((C) => {
           const s = C.celebrationScope();
           const step = document.querySelector('[data-podium-step="1"]');
-          if (step) { C.podiumHero(s, step); const b = step.getBoundingClientRect(); C.sparkBurst(s, b.right - 15, b.top - 26, { count: 44 }); C.showBanner(s, "You win!", { burst: true }); }
+          if (step) { C.podiumHero(s, step); const b = step.getBoundingClientRect(); C.sparkBurst(s, b.right - 17, b.bottom - 30, { count: 44 }); C.showBanner(s, "You win!", { burst: true }); }
           else if (document.querySelector("[data-charge-meter]")) C.sparkBurstOn(s, document.querySelector(".charge-meter-track"), { row: true, count: 60 });
           else if (document.querySelector("[data-reveal-score]")) C.heroRun(s);
           else if (document.querySelector("ul li")) for (const li of document.querySelectorAll("ul li")) C.sparkBurstOn(s, li, { row: true, count: 16 });

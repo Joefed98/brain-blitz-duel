@@ -163,7 +163,7 @@ export function Podium({
       if (step) {
         podiumHero(scope, step);
         const box = step.getBoundingClientRect();
-        sparkBurst(scope, box.right - 15, box.top - 26, { count: 44 });
+        sparkBurst(scope, box.right - 17, box.bottom - 30, { count: 44 });
         celebrationSound("chime");
       }
       if (iWon) {
