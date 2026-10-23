@@ -51,7 +51,9 @@ export const SHARDS: Record<string, string[]> = {
   play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
   // home-screen app, ~15-20 s a game with one page load each) in thirds alongside the lighter bottom-clearance parts.
-  play11: ["bottom-clearance-check.ts@6/8", "arcade-fill-check.ts@1/3"],
+  // beta-extras-check (22 Oct 2026: the beta terms, the Add to Home Screen hint, Send feedback and crash reporting
+  // through the screen harness, ~2 min with its dev server) needs Chromium, so it rides on the lightest play job.
+  play11: ["bottom-clearance-check.ts@6/8", "arcade-fill-check.ts@1/3", "beta-extras-check.ts"],
   // chat-notice-check (22 Oct 2026: its browser pass draws the chat toast on six room screens at three sizes, ~1 min
   // with its dev server) needs Chromium, so it rides on a play job.
   play12: ["bottom-clearance-check.ts@7/8", "arcade-fill-check.ts@2/3", "chat-notice-check.tsx"],

@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChallengeRouteImport } from './routes/challenge'
 import { Route as DailyRouteImport } from './routes/daily'
+import { Route as DevCrashRouteImport } from './routes/dev-crash'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReplayLabRouteImport } from './routes/replay-lab'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TournamentsRouteImport } from './routes/tournaments'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
 
@@ -33,6 +35,11 @@ const DailyRoute = DailyRouteImport.update({
   path: '/daily',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevCrashRoute = DevCrashRouteImport.update({
+  id: '/dev-crash',
+  path: '/dev-crash',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -46,6 +53,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const ReplayLabRoute = ReplayLabRouteImport.update({
   id: '/replay-lab',
   path: '/replay-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TournamentsRoute = TournamentsRouteImport.update({
@@ -63,9 +75,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
+  '/dev-crash': typeof DevCrashRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -73,9 +87,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
+  '/dev-crash': typeof DevCrashRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -84,9 +100,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/challenge': typeof ChallengeRoute
   '/daily': typeof DailyRoute
+  '/dev-crash': typeof DevCrashRoute
   '/practice': typeof PracticeRoute
   '/profile': typeof ProfileRoute
   '/replay-lab': typeof ReplayLabRoute
+  '/terms': typeof TermsRoute
   '/tournaments': typeof TournamentsRoute
   '/duel/$code': typeof DuelCodeRoute
 }
@@ -96,9 +114,11 @@ export interface FileRouteTypes {
     | '/'
     | '/challenge'
     | '/daily'
+    | '/dev-crash'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/terms'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesByTo: FileRoutesByTo
@@ -106,9 +126,11 @@ export interface FileRouteTypes {
     | '/'
     | '/challenge'
     | '/daily'
+    | '/dev-crash'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/terms'
     | '/tournaments'
     | '/duel/$code'
   id:
@@ -116,9 +138,11 @@ export interface FileRouteTypes {
     | '/'
     | '/challenge'
     | '/daily'
+    | '/dev-crash'
     | '/practice'
     | '/profile'
     | '/replay-lab'
+    | '/terms'
     | '/tournaments'
     | '/duel/$code'
   fileRoutesById: FileRoutesById
@@ -127,9 +151,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChallengeRoute: typeof ChallengeRoute
   DailyRoute: typeof DailyRoute
+  DevCrashRoute: typeof DevCrashRoute
   PracticeRoute: typeof PracticeRoute
   ProfileRoute: typeof ProfileRoute
   ReplayLabRoute: typeof ReplayLabRoute
+  TermsRoute: typeof TermsRoute
   TournamentsRoute: typeof TournamentsRoute
   DuelCodeRoute: typeof DuelCodeRoute
 }
@@ -157,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DailyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev-crash': {
+      id: '/dev-crash'
+      path: '/dev-crash'
+      fullPath: '/dev-crash'
+      preLoaderRoute: typeof DevCrashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -176,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/replay-lab'
       fullPath: '/replay-lab'
       preLoaderRoute: typeof ReplayLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tournaments': {
@@ -199,9 +239,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChallengeRoute: ChallengeRoute,
   DailyRoute: DailyRoute,
+  DevCrashRoute: DevCrashRoute,
   PracticeRoute: PracticeRoute,
   ProfileRoute: ProfileRoute,
   ReplayLabRoute: ReplayLabRoute,
+  TermsRoute: TermsRoute,
   TournamentsRoute: TournamentsRoute,
   DuelCodeRoute: DuelCodeRoute,
 }

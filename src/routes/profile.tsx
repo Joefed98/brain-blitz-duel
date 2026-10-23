@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { PlayerBadge } from "@/components/duel/PlayerBadge";
 import { LookPicker } from "@/components/duel/RoomLobby";
@@ -279,6 +280,9 @@ function ProfileScreen() {
           )}
         </section>
 
+        {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
+        <FeedbackLink />
+
         <p className="text-center text-xs text-muted-foreground">
           Saved on this phone. Sign-in arrives after the beta and will keep all of this.
         </p>
@@ -289,6 +293,10 @@ function ProfileScreen() {
           onHowItWorks={() => {
             setSettings(false);
             setIntro(true);
+          }}
+          onTerms={() => {
+            setSettings(false);
+            void router.navigate({ to: "/terms" });
           }}
         />
       ) : null}

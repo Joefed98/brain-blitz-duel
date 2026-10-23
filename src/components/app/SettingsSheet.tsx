@@ -24,9 +24,12 @@ function readArrows(): "arrows" | "joystick" {
 export function SettingsSheet({
   onClose,
   onHowItWorks,
+  onTerms,
 }: {
   onClose: () => void;
   onHowItWorks: () => void;
+  /** Opens the beta terms (/terms). */
+  onTerms?: () => void;
 }) {
   const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
   useEffect(() => setArrows(readArrows()), []);
@@ -111,6 +114,16 @@ export function SettingsSheet({
         >
           How it works
         </button>
+        {onTerms ? (
+          <button
+            type="button"
+            data-open-terms
+            onClick={onTerms}
+            className="th-btn-ghost press tap-target w-full rounded-xl border border-border font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+          >
+            Beta terms
+          </button>
+        ) : null}
       </div>
     </div>,
     document.body,

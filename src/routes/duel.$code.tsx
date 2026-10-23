@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCrashContext } from "@/lib/useCrashContext";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { TermsGate } from "@/components/beta/TermsGate";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
 import type { ContinueState } from "@/components/duel/ContinueFooter";
@@ -166,8 +168,17 @@ export const Route = createFileRoute("/duel/$code")({
       },
     ],
   }),
-  component: DuelScreen,
+  component: GatedDuelScreen,
 });
+
+/** The beta terms come first: shown once on this device before its first room, daily or challenge. */
+function GatedDuelScreen() {
+  return (
+    <TermsGate>
+      <DuelScreen />
+    </TermsGate>
+  );
+}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -329,6 +340,8 @@ function DuelScreen() {
   // The live puzzle round's stage inputs are kept on the device too (stageState.ts), so a reload continues
   // the same board. Never an arcade run (its sim replays its input log); practice never marks a round.
   persistStageState(puzzle && !isArcadeScreenType(puzzle.type) ? stateKey : "");
+  // Crash reports name the game and round on screen (lib/crashReporting.ts; ids only).
+  useCrashContext(round > 0 ? puzzle?.type : null, round > 0 ? round : null);
   const currentReveal =
     revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 

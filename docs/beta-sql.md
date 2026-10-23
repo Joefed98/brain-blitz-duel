@@ -1277,3 +1277,63 @@ FROM finishers f;
 
 `scripts/challenge-check.ts` applies every migration to a local PostgreSQL (when installed) and runs
 Q9a–Q9c as written.
+
+## 10. Beta terms (22 Oct 2026)
+
+Every device agrees to the beta terms (`/terms`) once, before its first room, daily or challenge. The
+phone keeps the date it tapped I AGREE (`duelz-terms:v1`) and records it once in `terms_events`
+(`supabase/migrations/20261023120000_beta_terms_events.sql`, **written but not applied**: until it is,
+the write fails quietly and the agreement stays on the device only). One row per device and terms
+version; server-only (RLS on, no client access).
+
+### Q10a. Agreements per day
+
+```sql
+-- Q10a: devices agreeing to the beta terms per UK day (by the date the phone stored).
+SELECT (agreed_at AT TIME ZONE 'Europe/London')::date AS uk_day,
+       terms_version,
+       count(*) AS devices
+FROM public.terms_events
+GROUP BY 1, 2
+ORDER BY 1, 2;
+```
+
+### Q10b. Players without a recorded agreement
+
+```sql
+-- Q10b: devices that joined a room but have no terms_events row (agreed before the migration was
+-- applied, or the write failed). Expect only devices from before the migration.
+SELECT count(DISTINCT j.user_id) AS joined_without_row
+FROM public.room_joins j
+WHERE NOT EXISTS (SELECT 1 FROM public.terms_events t WHERE t.user_id = j.user_id);
+```
+
+## 11. The persistent public room, JULZ (22 Oct 2026)
+
+The public games (src/config/publicGames.ts: Tue 27 Oct and Thu 29 Oct 2026, 20:00 UK, lobby from
+19:45) are played in one room whose code is **JULZ** ("JOULZ" isn't a valid code: codes are four
+letters without I or O). New rooms never get that code (`RESERVED_ROOM_CODES` in
+src/lib/duel/puzzles.ts), but rooms are only made by a host tapping Create, so the room has to be made
+once by hand before Tuesday:
+
+1. On the phone that will host, tap **Create a room** and note its code (say `ABCD`).
+2. In Lovable Cloud's SQL editor, give that room the public code (the lobby is empty and nothing has
+   been dealt, so no round, result or score is touched):
+
+```sql
+-- S11: rename a new, empty lobby to the public room's code (replace ABCD with the room's code).
+UPDATE public.duels
+SET room_code = 'JULZ'
+WHERE room_code = 'ABCD'
+  AND status = 'waiting'
+  AND current_round = 0
+  AND NOT EXISTS (SELECT 1 FROM public.duels WHERE room_code = 'JULZ');
+```
+
+3. Reopen the room on the host phone (Rejoin, or /duel/JULZ). Players join from Tournaments → Join now
+   (or the code) once the lobby opens; the host starts the game at 20:00.
+
+After Tuesday's game the host taps **Play again** on the final screen, which keeps the room and its code
+for Thursday. If the room is disbanded instead, it keeps the code JULZ (codes are unique and stored rooms
+are never rewritten), so pick a new code in `PUBLIC_ROOM_CODE` (src/config/publicGames.ts, e.g. JLZZ),
+publish, and repeat the steps with it.

@@ -18,6 +18,7 @@ import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
 import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
+import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
 
@@ -48,6 +49,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportCrash(error);
   }, [error]);
 
   return (
@@ -150,6 +152,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Crash reporting (lib/crashReporting.ts): only when SENTRY_DSN is set in src/config/betaConfig.ts.
+  useEffect(() => {
+    startCrashReporting();
+  }, []);
 
   // Every device signs in anonymously so it has a real identity of its own.
   useEffect(() => {
