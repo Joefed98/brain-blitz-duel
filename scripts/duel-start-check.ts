@@ -102,6 +102,8 @@ assert.match(screen, /requestAnimationFrame\(paint\)/);
 assert.match(screen, /serverNow\(\) - startedAt/);
 assert.match(screen, /elapsed >= DUEL_START_VOICE_MS\) return/);
 assert.match(screen, /prepareRoundMusic/);
+assert.match(screen, /<LogoMark className="duel-start-logo/);
+assert.match(screen, /<PrepareLightning startedAt=\{startedAt\} \/>/);
 assert.doesNotMatch(screen, /<PhoneShell|<RoomChat|<TimerBar|<button|fx\./);
 assert.doesNotMatch(intro, /prepareToDuel/);
 assert.doesNotMatch(intro, /playVoice|finalRound|`round\$\{round\}`/);
@@ -179,8 +181,10 @@ for (const [width, height] of [
   [390, 700],
   [375, 667],
 ]) {
-  const boltWidth = width * 0.96;
-  const boltHeight = Math.min(height * 0.96, (boltWidth * 20) / 14);
+  // The logo mark's bolt, cropped to DuelStart's 16 × 33 viewBox inside the 96 % box.
+  const boxW = width * 0.96;
+  const boltHeight = Math.min(height * 0.96, (boxW * 33) / 16);
+  const boltWidth = (boltHeight * 16) / 33;
   assert(boltWidth <= width && boltHeight <= height);
   console.log(
     `${width}×${height}: fixed clipped screen; bolt ${boltWidth.toFixed(1)}×${boltHeight.toFixed(1)} fits`,

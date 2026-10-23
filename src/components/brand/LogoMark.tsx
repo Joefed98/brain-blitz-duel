@@ -22,11 +22,14 @@ export function LogoMark({
   width = 17,
   height = 22,
   className,
+  viewBox = "0 0 26 34",
 }: {
   variant?: "gold" | "inverted";
   width?: number;
   height?: number;
   className?: string;
+  /** A crop of the 26 × 34 box (Prepare to Duel fits the bolt alone); overflow stays visible. */
+  viewBox?: string;
 }) {
   const id = useId().replace(/:/g, "");
   const look = LOGO_COLOURS[variant];
@@ -38,7 +41,7 @@ export function LogoMark({
   );
   return (
     <svg
-      viewBox="0 0 26 34"
+      viewBox={viewBox}
       width={width}
       height={height}
       style={{ overflow: "visible" }}

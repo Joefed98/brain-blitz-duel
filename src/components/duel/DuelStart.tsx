@@ -7,7 +7,11 @@ import { roundMusicFor } from "@/lib/fx/theme";
 import { playVoice, prepareRoundMusic, stopMusicExcept } from "@/lib/sound";
 import { PREPARE_SPEC } from "@/lib/fx/roomMoments";
 import { RoomMomentFx } from "./RoomMomentFx";
-import { BoltGlyph } from "./Wordmark";
+import { LogoMark } from "@/components/brand/LogoMark";
+import { PrepareLightning } from "./PrepareLightning";
+
+/** The mark's bolt (logoGeometry: x 7–21, y 0.5–33.5), with a little room each side. */
+const DUEL_START_LOGO_VIEWBOX = "6 0.5 16 33";
 
 /** No shell, controls or local animation clock: refresh resumes the shared frame. */
 export function DuelStart({ startedAt, type }: { startedAt: number; type: PuzzleType | undefined }) {
@@ -58,8 +62,10 @@ export function DuelStart({ startedAt, type }: { startedAt: number; type: Puzzle
   return (
     <div className="duel-start-screen" aria-label="Duel starting">
       <RoomMomentFx spec={PREPARE_SPEC} startedAt={startedAt} />
+      <PrepareLightning startedAt={startedAt} />
       <div ref={bolt} className="duel-start-bolt" aria-hidden="true">
-        <BoltGlyph className="h-full w-full" viewBox="5 2 14 20" />
+        {/* The Joulz mark, its bolt filling the old bolt's box (the speed lines run past it). */}
+        <LogoMark className="duel-start-logo h-full w-full" viewBox={DUEL_START_LOGO_VIEWBOX} />
       </div>
     </div>
   );

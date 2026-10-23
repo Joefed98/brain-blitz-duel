@@ -10,6 +10,22 @@ export const APP_NAME = "Joulz";
 export const APP_TAGLINE = "Play skill games live with friends.";
 export const APP_DESCRIPTION = `${APP_TAGLINE} Everyone plays the same games at the same moment, and the highest score wins.`;
 export const APP_TITLE = `${APP_NAME} — Live skill games with friends`;
+/** The published site (Lovable hosts it); link previews need absolute URLs. */
+export const SITE_URL = "https://brain-blitz-duel.lovable.app";
+/**
+ * The link preview (Open Graph and Twitter card, Prompt Q, 23 Oct 2026): what a shared link shows in
+ * Messages, WhatsApp and the like. The 1200 × 630 image (public/og-image.png: the gold mark and the
+ * JOULZ wordmark on #0D0D0F, the line below in #A09DA6) is drawn once by `bun scripts/og-image.ts`.
+ */
+export const LINK_PREVIEW = {
+  title: APP_NAME,
+  description: "Live brain games with friends. Same games, same moment, highest score wins.",
+  url: `${SITE_URL}/`,
+  image: `${SITE_URL}/og-image.png`,
+  imageWidth: 1200,
+  imageHeight: 630,
+  imageAlt: `${APP_NAME}: the gold lightning mark and the ${APP_NAME.toUpperCase()} wordmark`,
+} as const;
 /**
  * The app logo (black square, yellow lightning bolt): the PWA icon, the touch icon and
  * the High Rise flag all draw this one file, so a new logo needs only a new file here.

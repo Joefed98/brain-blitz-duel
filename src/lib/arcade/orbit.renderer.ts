@@ -39,8 +39,14 @@ export function getRocketSprite(dead: boolean): HTMLCanvasElement | null {
   const canvas = document.createElement("canvas"); canvas.width = size; canvas.height = size;
   const c = canvas.getContext("2d"); if (!c) return null;
   c.translate(r, r);
+  paintRocket(c, dead, 1);
+  rocketCaches.set(key, canvas); return canvas;
+}
+
+/** The rocket's art centred on (0, 0), nose to +x (the 48 px sprite above; the game icon paints it at its real size, `ratio` device px per sprite px). */
+export function paintRocket(c: CanvasRenderingContext2D, dead: boolean, ratio: number): void {
   c.shadowColor = dead ? "rgba(255,77,77,0.4)" : "rgba(255,214,102,0.4)";
-  c.shadowBlur = 6;
+  c.shadowBlur = 6 * ratio;
   // Fins.
   c.fillStyle = dead ? "#8A2B33" : "#C8862A";
   c.beginPath(); c.moveTo(-6, -2); c.lineTo(-9, -6); c.lineTo(-2, -3); c.closePath();
@@ -52,7 +58,6 @@ export function getRocketSprite(dead: boolean): HTMLCanvasElement | null {
   c.fillStyle = dead ? "#5A1820" : "#F5C542";
   c.beginPath(); c.moveTo(10, 0); c.quadraticCurveTo(7, -2.6, 5, -2.6); c.lineTo(5, 2.6); c.quadraticCurveTo(7, 2.6, 10, 0); c.fill();
   c.fillStyle = "#4D8CFF"; c.beginPath(); c.arc(1, 0, 1.6, 0, Math.PI * 2); c.fill();
-  rocketCaches.set(key, canvas); return canvas;
 }
 
 
