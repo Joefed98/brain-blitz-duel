@@ -20,6 +20,12 @@ export const LOGO_LOWER: readonly (readonly [number, number])[] = [
 ];
 /** The speed lines: from where they are strongest to where they fade out. */
 export const LOGO_TRAIL = { y: 7, from: 15.6, to: 1.5 } as const;
+/**
+ * The speed lines' thickness on screen, px: hairlines at every size (follow-up to #133). They are drawn
+ * with a non-scaling stroke of min(LOGO_HAIRLINE_PX, px per box unit), so a header-sized mark (22 px tall,
+ * 0.65 px per unit) keeps its 1-unit lines exactly and a large one never grows them into bands.
+ */
+export const LOGO_HAIRLINE_PX = 1.5;
 export const LOGO_LEAD = { y: 27, from: 11.3, to: 24.5 } as const;
 
 export const LOGO_PATHS = {

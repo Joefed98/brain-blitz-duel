@@ -158,7 +158,9 @@ is cut off, except player names, which ellipsise (no-wrap-check).
   two faint speed lines. Draw it with `LogoMark` (SVG), or from the same geometry in canvas (share card)
   and scripts (app icons, the link preview image).
 - **Gold version on dark** (`LogoMark variant="gold"`, the default): upper half #FFEBA8 → #F7BF2F →
-  #C98A0E, lower half #F0B634 → #A86F08, speed lines #F7BF2F at 30 % fading out. Use it on any dark
+  #C98A0E, lower half #F0B634 → #A86F08, speed lines #F7BF2F at 30 % fading out. The speed lines are
+  hairlines at any size (a non-scaling stroke of min(1.5 px, the mark's px per unit), `LOGO_HAIRLINE_PX`): the
+  22 px header mark draws them exactly as before; a mark sized by CSS passes `lineWidth`. Use it on any dark
   background: the app header, Prepare to Duel, the link preview.
 - **Inverted version** (`variant="inverted"`): the mark in near-black (#2A2A30 → #0D0D0F, #0D0D0F →
   #000) on the gold shine (`GOLD_SHINE_STOPS`). Only for the app icons (`scripts/brand-icons.ts`) and

@@ -3,7 +3,7 @@
  * 1200 × 630, what a shared link shows (LINK_PREVIEW in src/lib/brand.ts, set in the root route's
  * head). The gold logo mark (logoGeometry.ts, as LogoMark draws it) and the JOULZ wordmark with its
  * gold last letter (Archivo 900, as AppWordmark), the preview's line below in #A09DA6 (Manrope), on
- * #0D0D0F. Drawn by the pre-installed Chromium with the app's own self-hosted fonts; no new dependency.
+ * #0D0D0F; the speed lines are LogoMark's hairlines (LOGO_HAIRLINE_PX). Drawn by the pre-installed Chromium with the app's own self-hosted fonts; no new dependency.
  * Re-run after a logo, name or line change:
  *
  *   bun scripts/og-image.ts
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { chromium } from "playwright";
 
-import { LOGO_COLOURS, LOGO_LEAD, LOGO_PATHS, LOGO_TRAIL } from "../src/components/brand/logoGeometry";
+import { LOGO_COLOURS, LOGO_HAIRLINE_PX, LOGO_LEAD, LOGO_PATHS, LOGO_TRAIL } from "../src/components/brand/logoGeometry";
 import { APP_NAME, LINK_PREVIEW } from "../src/lib/brand";
 
 const CHROMIUM = [process.env.PLAYWRIGHT_CHROMIUM, "/opt/pw-browsers/chromium", "/usr/bin/chromium"].find(
@@ -38,8 +38,8 @@ function markSvg(height: number): string {
   </defs>
   <path d="${LOGO_PATHS.upper}" fill="url(#a)"/>
   <path d="${LOGO_PATHS.lower}" fill="url(#b)"/>
-  <path d="${LOGO_PATHS.trail}" stroke="url(#t)" stroke-width="1" stroke-linecap="round"/>
-  <path d="${LOGO_PATHS.lead}" stroke="url(#l)" stroke-width="1" stroke-linecap="round"/>
+  <path d="${LOGO_PATHS.trail}" stroke="url(#t)" stroke-width="${LOGO_HAIRLINE_PX}" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+  <path d="${LOGO_PATHS.lead}" stroke="url(#l)" stroke-width="${LOGO_HAIRLINE_PX}" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
 </svg>`;
 }
 

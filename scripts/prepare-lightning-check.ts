@@ -113,6 +113,11 @@ ok(/safe-area-inset-bottom, 0px\) \+ 16px\)/.test(rule.slice(0, 600)), "the canv
 ok(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.duel-start-logo \{ filter: drop-shadow/.test(css), "reduced motion: a static glow round the logo");
 ok(/<PrepareLightning startedAt=\{startedAt\} \/>/.test(screen), "DuelStart mounts the lightning");
 ok(!/prepareLightning|PrepareLightning/.test(readFileSync("src/lib/duel/startPresentation.ts", "utf8")), "screen timing untouched");
+// The logo's speed lines stay hairlines at the screen's size (follow-up to #133).
+const mark = readFileSync("src/components/brand/LogoMark.tsx", "utf8");
+ok((mark.match(/vectorEffect="non-scaling-stroke"/g) ?? []).length === 2, "LogoMark's speed lines are non-scaling strokes");
+ok(/lineWidth \?\? Math\.min\(LOGO_HAIRLINE_PX, height \/ LOGO_BOX\.h\)/.test(mark), "LogoMark's default line width: min(1.5 px, px per unit)");
+ok(/lineWidth=\{LOGO_HAIRLINE_PX\}/.test(screen), "Prepare to Duel draws the speed lines as 1.5 px hairlines");
 
 console.log(`${strikes} strikes over 2,000 plans; max ${maxPerSecond} a second, ${maxFlashesPerSecond} with the gold flash.`);
 if (failures) {

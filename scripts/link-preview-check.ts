@@ -40,6 +40,12 @@ for (const [attr, key, value] of [
 ] as const)
   ok(root.includes(`{ ${attr}: "${key}", content: ${value} }`), `the root head sets ${key}`);
 
+const tool = readFileSync("scripts/og-image.ts", "utf8");
+ok(
+  (tool.match(/stroke-width="\$\{LOGO_HAIRLINE_PX\}" stroke-linecap="round" vector-effect="non-scaling-stroke"/g) ?? []).length === 2,
+  "the preview's speed lines are hairlines",
+);
+
 const png = readFileSync("public/og-image.png");
 ok(png.subarray(1, 4).toString("latin1") === "PNG", "og-image.png is a PNG");
 const w = png.readUInt32BE(16);
