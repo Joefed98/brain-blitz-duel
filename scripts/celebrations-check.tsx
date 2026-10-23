@@ -367,8 +367,12 @@ for (const mineFirst of [true, false]) {
   reset();
   check(!C.celebrationsOn(), "the override does not switch celebrations off");
   const podium = await mount(React.createElement(Podium, podiumProps(true)));
-  await wait(40);
-  check(scoreTexts(podium.host).every((t) => t === "0" || Number(t) < 120), `off: podium totals do not count up from 0 as before (${scoreTexts(podium.host).join(",")})`);
+  // Read at mount (a busy machine's next frames have counted on already).
+  const atMount = scoreTexts(podium.host);
+  // Off counts from 0 (as before): early values sit below each row's total before the round, where on would start.
+  const fromOn = podiumRows(true).map((r) => C.countUpFrom(r));
+  const listAtMount = atMount.slice(3);
+  check(listAtMount.length === 4 && listAtMount.every((t, i) => Number(t) < fromOn[i]!), `off: podium totals do not count up from 0 as before (${atMount.join(",")})`);
   check(JSON.stringify(listNames(podium.host)) === JSON.stringify(podiumRows(true).map((r) => r.name)), "off: the podium list does not start in the server's order");
   await wait(1500);
   const standingsRows = [standing(2, 640, 150, 1, 3), standing(1, 600, 80, 2, 1)];
