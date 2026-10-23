@@ -78,6 +78,13 @@
       "when": 1792606604139,
       "tag": "0010_20261022120000_friend_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792718444065,
+      "tag": "0011_beta_terms_events",
+      "breakpoints": true
     }
   ]
 }
