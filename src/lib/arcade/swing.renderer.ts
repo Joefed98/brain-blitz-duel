@@ -37,7 +37,13 @@ import {
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
-import { drawGrapplerHood } from "./grapplerFigure.renderer";
+import { drawHero, heroPose } from "./hero.renderer";
+import { ANG_PER_RAD } from "./trig";
+
+/** Grappler's hero pose (stick figure joints, 3.4 px head, 2.4 px stick), refilled every frame. */
+const grapplerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
+/** The sim's angle units per radian on a rope (swing.ts's SUB × ANG_PER_RAD): om / ROPE_RAD is radians a tick. */
+const ROPE_RAD = 16 * ANG_PER_RAD;
 import { drawGrapplerDragon } from "./grapplerDragon.renderer";
 import { drawGrapplerDragonV3 } from "./grapplerDragonV3.renderer";
 
@@ -580,34 +586,34 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     armY = -state.vy / d;
   }
 
+  // The Joulz hero on the stick figure's joints, inside the 10 px body radius: head, torso, arms to the rope, legs.
   const dead = state.ended === 2;
-  // Figure inside the 10 px body radius: head, torso, arms to the rope, legs.
-  const body = dead ? "#FF4D5E" : "#253541";
-  ctx.strokeStyle = body;
-  ctx.lineCap = "round";
-  ctx.lineWidth = 2.4;
-  ctx.beginPath();
-  ctx.moveTo(fx, fy - 3);
-  ctx.lineTo(fx + armX * 8, fy - 3 + armY * 8);
-  ctx.moveTo(fx, fy - 3);
-  ctx.lineTo(fx + armX * 7 + armY * 2, fy - 3 + armY * 7 - armX * 2);
-  ctx.moveTo(fx, fy - 3);
-  ctx.lineTo(fx, fy + 3);
-  ctx.moveTo(fx, fy + 3);
-  ctx.lineTo(fx - 3, fy + 9);
-  ctx.moveTo(fx, fy + 3);
-  ctx.lineTo(fx + 3, fy + 9);
-  ctx.strokeStyle = "#D2EEF0";
-  ctx.lineWidth = 4.4;
-  ctx.stroke();
-  ctx.strokeStyle = body;
-  ctx.lineWidth = 2.4;
-  ctx.stroke();
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(fx, fy - 6.5, 3.4, 0, Math.PI * 2);
-  ctx.fill();
-  drawGrapplerHood(ctx,fx,fy);
+  const hero = grapplerHero;
+  hero.headX = fx; hero.headY = fy - 6.5;
+  hero.neckX = fx; hero.neckY = fy - 3;
+  hero.hipX = fx; hero.hipY = fy + 3;
+  hero.shoulderX = fx; hero.shoulderY = fy - 3;
+  hero.handAX = fx + armX * 8; hero.handAY = fy - 3 + armY * 8;
+  hero.handBX = fx + armX * 7 + armY * 2; hero.handBY = fy - 3 + armY * 7 - armX * 2;
+  hero.footAX = fx - 3; hero.footAY = fy + 9;
+  hero.footBX = fx + 3; hero.footBY = fy + 9;
+  // Velocity in px a tick: on a rope the sim keeps only the angular rate, so the swing's is its tangent.
+  let vx = state.vx / FP;
+  let vy = state.vy / FP;
+  if (state.rope >= 0) {
+    const a = state.anchors[state.rope]!;
+    const turn = state.om / ROPE_RAD;
+    vx = (fy - a.y / FP) * turn;
+    vy = -(fx - sx(a.x)) * turn;
+  }
+  const speed = Math.hypot(vx, vy);
+  hero.moveX = vx;
+  hero.moveY = vy;
+  hero.speed = Math.min(1, speed / 8);
+  hero.face = speed > 0 ? vx / speed : 0;
+  hero.core = dead ? "#FF4D5E" : null;
+  hero.gentle = still;
+  drawHero(ctx, hero);
 
   // swingRev 4 edge warnings: the dragon behind (off the left edge) and a shadow ahead (off the right).
   if (state.rev === SWING_REV && state.ended === 0) {
