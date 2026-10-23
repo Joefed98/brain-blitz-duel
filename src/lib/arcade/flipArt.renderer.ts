@@ -5,7 +5,7 @@ import { FLIP_FX } from "./arcadeFxGames.renderer";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
-  flipCrackTick, flipGame, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
+  flipCrackTick, flipGame, flipSpeed, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
   FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
   FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
   type FlipSeg, type FlipState,
@@ -14,6 +14,7 @@ import { flipSurfaceLine } from "./flip.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
+import { drawHero, heroPose } from "./hero.renderer";
 
 const FP = 256;
 const RUNNER_X = 90;
@@ -410,11 +411,11 @@ export function drawFlipPool(ctx: CanvasRenderingContext2D, a: number, b: number
   ctx.restore();
 }
 
-export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
-  const dead = state.ended === 2;
-  const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
-  const upright = state.side === 0 ? 0 : Math.PI;
-  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
+/**
+ * Opens the runner's frame (saved; the caller restores): the clip to its collision box, rev 2's
+ * lamp-lit backing, then the translate, flip rotation and rev 2's 1.65 scale both figures use.
+ */
+function runnerFrame(ctx: CanvasRenderingContext2D, state: FlipState, y: number, sink: number | null, dead: boolean, angle: number): boolean {
   const box = runnerBox(state);
   const big = state.rev === FLIP_REV;
   ctx.save();
@@ -434,6 +435,16 @@ export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: n
   ctx.rotate(angle);
   // The original figure was drawn for a 24 × 28 box; rev 2 scales it up to fill its 32 × 36 box.
   if (big) ctx.scale(1.65, 1.65);
+  return big;
+}
+
+/** The original gold stick figure; the game draws drawRunnerHero since the Joulz hero (23 Oct 2026), this stays for the Roofbound game icon. */
+export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
+  const dead = state.ended === 2;
+  const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
+  const upright = state.side === 0 ? 0 : Math.PI;
+  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
+  const big = runnerFrame(ctx, state, y, sink, dead, angle);
   if (big) {
     // Dark outline pass first so the gold reads against lava and rock alike.
     ctx.strokeStyle = MATERIAL.obsidian;
@@ -477,6 +488,47 @@ export function drawFigure(ctx: CanvasRenderingContext2D, state: FlipState, y: n
   ctx.globalAlpha = 1;
   ctx.fillStyle = MATERIAL.lamp;
   ctx.fillRect(2, -8, 2, 1.5);
+  ctx.restore();
+}
+
+/** Roofbound's hero pose (the stick figure's joints, 3.4 px head, 2.4 px stick), refilled every frame. */
+const runnerHero = Object.assign(heroPose(), { headR: 3.4, stick: 2.4 });
+
+/**
+ * The Joulz hero on drawFigure's joints, stride and flip (same frame, clip and backing). The
+ * cape trails the run (the tube's speed and the flip's arc, turned into the figure's frame), so
+ * it hangs towards the surface the runner stands on and stays inside the runner box.
+ */
+export function drawRunnerHero(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean, sink: number | null): void {
+  const dead = state.ended === 2;
+  const progress = state.flipT > 0 ? 1 - state.flipT / FLIP_ARC_TICKS : 1;
+  const upright = state.side === 0 ? 0 : Math.PI;
+  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (1 - progress) : upright;
+  const big = runnerFrame(ctx, state, y, sink, dead, angle);
+  const stride = still || state.flipT > 0 || dead ? 0 : Math.sin(state.tick * 0.5) * 1.5;
+  const h = runnerHero;
+  h.scale = big ? 1.65 : 1;
+  h.headX = 0; h.headY = -6.5;
+  h.neckX = 0; h.neckY = -3;
+  h.hipX = 0; h.hipY = 3;
+  h.shoulderX = 0; h.shoulderY = -3;
+  h.handAX = -5; h.handAY = 2 + stride;
+  h.handBX = 5; h.handBY = 1 - stride;
+  h.footAX = -3 + stride; h.footAY = 9;
+  h.footBX = 3 - stride; h.footBY = 9;
+  // World velocity (px a tick): the run to the right, plus the flip's arc between surfaces.
+  const lift = runnerBox(state).h / 2;
+  const vx = dead ? 0 : flipSpeed(state.tick) / FP;
+  const vy = dead || state.flipT <= 0 ? 0 : runnerY(state.side, state.flipT - 1, lift) - runnerY(state.side, state.flipT, lift);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  h.moveX = vx * cos + vy * sin;
+  h.moveY = vy * cos - vx * sin;
+  h.speed = Math.min(1, Math.hypot(vx, vy) / 9);
+  h.face = h.moveX > 0.01 ? 1 : h.moveX < -0.01 ? -1 : 0;
+  h.core = dead && sink === null ? FLIP_RED : null;
+  h.gentle = still;
+  drawHero(ctx, h);
   ctx.restore();
 }
 
@@ -704,7 +756,7 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.
   if (sink !== null) { bandPath(ctx, ceilAt, floorAt); ctx.clip(); }
-  drawFigure(ctx, state, y, still, sink);
+  drawRunnerHero(ctx, state, y, still, sink);
   successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-(FLIP_ARC_TICKS-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
   ctx.restore();

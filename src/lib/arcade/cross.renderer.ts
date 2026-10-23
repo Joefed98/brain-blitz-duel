@@ -2,6 +2,7 @@ import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { CROSS_FX } from "./arcadeFxGames.renderer";
+import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
 /**
  * Cross art pass. Render only: reads CrossState and never mutates it. Vehicles
  * fill exactly their collision boxes; the walker's arms reach about 13.75 px
@@ -376,7 +377,43 @@ function drawRoadworks(ctx: CanvasRenderingContext2D, top: number, lane: CrossLa
   }
 }
 
-/** Gold stick figure inside the player disc (radius 16), facing the last move. */
+/** Jaywalk's hero pose (the stick figure's joints, 4 px head, 3 px stick), refilled every draw. */
+const walkerHero = Object.assign(heroPose(), { headR: 4, stick: 3 });
+/** The tumbling figure's own pose, so its cape never eases the live walker's. */
+const tumbleHero = Object.assign(heroPose(), { headR: 4, stick: 3 });
+
+/**
+ * The Joulz hero on drawWalker's joints (same head, torso, arms, legs and stride), inside
+ * the player disc. `speed` (0 … 1) lifts the cape away from the last move; facing up
+ * shows the back of the mask, so no eye slits.
+ */
+export function drawWalkerHero(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, stride: number, angle: number, speed: number, gentle: boolean, pose: HeroPose = walkerHero): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  const side = facing === 2 ? -1 : facing === 3 ? 1 : 0;
+  const h = pose;
+  h.headX = side * 1.5; h.headY = -9;
+  h.neckX = 0; h.neckY = -5;
+  h.hipX = 0; h.hipY = 4;
+  h.shoulderX = 0; h.shoulderY = -2;
+  h.handAX = -6 + side * 2 - stride * 3; h.handAY = 2;
+  h.handBX = 6 + side * 2 + stride * 3; h.handBY = 2;
+  h.footAX = -4 + side * 2 + stride * 4; h.footAY = 13;
+  h.footBX = 4 + side * 2 - stride * 4; h.footBY = 13;
+  h.moveX = side;
+  h.moveY = facing === 0 ? -1 : facing === 1 ? 1 : 0;
+  h.speed = speed;
+  h.face = facing === 0 ? NaN : side;
+  h.gentle = gentle;
+  drawHero(ctx, h);
+  ctx.restore();
+}
+
+/**
+ * Gold stick figure inside the player disc (radius 16), facing the last move. The game draws
+ * drawWalkerHero since the Joulz hero (23 Oct 2026); this stays for the Jaywalk game icon.
+ */
 export function drawWalker(ctx: CanvasRenderingContext2D, x: number, y: number, facing: number, stride: number, angle: number): void {
   ctx.save();
   ctx.translate(x, y);
@@ -646,7 +683,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
       ctx.arc(memory.hitX, memory.hitY, crossPlayerR(state), 0, Math.PI * 2);
       ctx.fill();
     }
-    drawWalker(ctx, memory.hitX, memory.hitY, memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5);
+    drawWalkerHero(ctx, memory.hitX, memory.hitY, memory.facing, 0, still ? 0 : Math.min(1, p * 1.5) * Math.PI * 1.5, 0, still, tumbleHero);
     ctx.globalAlpha = 1;
   }
   if (!state.dead) {
@@ -654,7 +691,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     const parity = memory.steps % 2 ? 1 : -1;
     const stride = still ? parity * 0.6 : parity * (state.hop > 0 ? Math.sin(done * Math.PI) : 0.6);
     ctx.globalAlpha = state.ghost && Math.floor(state.tick / 6) % 2 === 0 ? 0.45 : 1;
-    drawWalker(ctx, cx, cy, memory.facing, stride, 0);
+    drawWalkerHero(ctx, cx, cy, memory.facing, stride, 0, state.hop > 0 ? 0.7 : 0, still);
     ctx.globalAlpha = 1;
   }
 
