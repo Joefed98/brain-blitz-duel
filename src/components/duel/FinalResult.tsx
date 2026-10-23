@@ -8,6 +8,8 @@ import type { PodiumAward } from "@/lib/duel/podiumAwards";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
+import { COUNT_UP_MS } from "@/lib/fx/celebrations";
+import { useCelebrationsOn, useTapToSkip } from "@/components/fx/useCelebration";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 
@@ -72,6 +74,14 @@ export function FinalResult({
   const headlineColor =
     outcome === "win" ? "text-me" : outcome === "loss" ? "text-warn" : "text-foreground";
   const cued = useRef(false);
+  // Celebrations (src/lib/fx/celebrations.ts): both totals count up from the round before; a tap skips.
+  const celebrate = useCelebrationsOn();
+  const skipped = useTapToSkip(celebrate);
+  const last = breakdown[breakdown.length - 1];
+  const countUp = (total: number, round: number | undefined) =>
+    celebrate ? { from: Math.max(0, total - (round ?? 0)), durationMs: COUNT_UP_MS, quiet: true, skip: skipped } : {};
+  // Counting, a total's box keeps its final width, so the centred pair never shifts sideways.
+  const hold = (total: number) => (celebrate ? { minWidth: `${String(total).length}ch` } : undefined);
 
   useEffect(() => {
     if (cued.current) return;
@@ -108,8 +118,8 @@ export function FinalResult({
             <p className="th-name max-w-[110px] truncate text-sm text-me">
               {myName}
             </p>
-            <p className={`th-score font-mono text-4xl font-bold tabular-nums text-me ${myTotal > opponentTotal ? "th-score-top" : ""}`}>
-              <AnimatedScore value={myTotal} />
+            <p style={hold(myTotal)} className={`th-score font-mono text-4xl font-bold tabular-nums text-me ${myTotal > opponentTotal ? "th-score-top" : ""}`}>
+              <AnimatedScore value={myTotal} {...countUp(myTotal, last?.mine)} />
             </p>
           </div>
           <span className="pb-2 font-mono text-2xl text-muted-foreground">–</span>
@@ -118,8 +128,8 @@ export function FinalResult({
             <p className="th-name max-w-[110px] truncate text-sm text-opponent">
               {opponentName}
             </p>
-            <p className="th-score font-mono text-4xl font-bold tabular-nums text-opponent">
-              <AnimatedScore value={opponentTotal} />
+            <p style={hold(opponentTotal)} className="th-score font-mono text-4xl font-bold tabular-nums text-opponent">
+              <AnimatedScore value={opponentTotal} {...countUp(opponentTotal, last?.theirs)} />
             </p>
           </div>
         </div>

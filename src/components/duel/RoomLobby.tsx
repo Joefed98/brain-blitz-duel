@@ -19,6 +19,9 @@ import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
 
+import { ChargeMeter } from "@/components/fx/ChargeMeter";
+import { useCelebrationsOn } from "@/components/fx/useCelebration";
+
 import { Dots, WaitingLine } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PLAYER_ICON_ART } from "./playerIcons";
@@ -196,6 +199,7 @@ export function RoomLobby({
   onLookChange,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
+  const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
   const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
@@ -369,6 +373,8 @@ export function RoomLobby({
           );
         })}
       </ul>
+      {/* Celebrations' charge meter (lib/fx/celebrations.ts): its 20 px are there from the first frame. */}
+      {celebrate ? <ChargeMeter players={players.length} /> : null}
 
       <div className="w-full space-y-3 text-left">
         <p className="th-kicker text-foreground">Categories</p>

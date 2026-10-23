@@ -17,6 +17,8 @@ import { useSolveFlourish } from "@/components/puzzles/useSolveFlourish";
 import { nearMiss } from "@/lib/duel/nearMiss";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { NewBestMoment } from "@/components/duel/NewBestMoment";
+import { claimHeroRun, heroRun, heroRunEarned } from "@/lib/fx/celebrations";
+import { useCelebrationScope, useCelebrationsOn } from "@/components/fx/useCelebration";
 
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
@@ -47,6 +49,11 @@ interface AnswerRevealProps {
    * the reveal shows the "New best!" moment (NewBestMoment).
    */
   personalBest?: boolean;
+  /**
+   * Celebrations' hero run on a round score of HERO_RUN_SCORE or more (once per round); false for a
+   * reveal reopened from a results list (the daily's AsyncResults).
+   */
+  heroRun?: boolean;
   startedAt: number;
   now: number;
 }
@@ -237,6 +244,7 @@ function LiveAnswerReveal({
   answersReady,
   players,
   personalBest,
+  heroRun: heroRunAllowed = true,
   startedAt,
   now,
 }: AnswerRevealProps) {
@@ -272,6 +280,19 @@ function LiveAnswerReveal({
     scoreCue.current = window.setTimeout(() => fx.onRevealScore(score, def.theme), REVEAL_SCORE_DELAY_MS);
   }, [round, myCorrect, myScore, puzzle.type, def.category]);
   useEffect(() => () => window.clearTimeout(scoreCue.current), []);
+
+  // Celebrations (src/lib/fx/celebrations.ts): a round score of HERO_RUN_SCORE or more sends the
+  // hero running along the bottom once, just after the score lands; it ends with the reveal.
+  const celebrate = useCelebrationsOn();
+  const scope = useCelebrationScope();
+  useEffect(() => {
+    if (!celebrate || !heroRunAllowed || !heroRunEarned(myScore)) return;
+    const key = `${practice ? "practice" : "round"}:${puzzle.type}:${round}:${startedAt}`;
+    const timer = window.setTimeout(() => {
+      if (claimHeroRun(key)) heroRun(scope);
+    }, REVEAL_SCORE_DELAY_MS + 250);
+    return () => window.clearTimeout(timer);
+  }, [celebrate, myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div data-skin="room" className="relative flex min-h-0 flex-1 flex-col gap-2 animate-phase-in">

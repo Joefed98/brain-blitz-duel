@@ -292,3 +292,84 @@ export function drawHero(ctx: CanvasRenderingContext2D, p: HeroPose): void {
   ctx.stroke();
   ctx.restore();
 }
+
+/* ------------------------------------------------------------ celebration poses */
+
+/**
+ * The celebrations' two poses (Prompt P, 23 Oct 2026; src/lib/fx/celebrationCanvas.ts): filled
+ * into a pose the caller owns, so a frame allocates nothing, then drawn with drawHero as every
+ * game draws it. `h` is the figure's height in px (feet to raised hands), `footY` the ground.
+ */
+
+/** Victory: arms up in a V, the cape billowing to one side, a gentle bob of the body (`t` in ms; `gentle` holds still). */
+export function heroVictoryPose(p: HeroPose, cx: number, footY: number, h: number, t: number, gentle = false): HeroPose {
+  const u = h / 100;
+  const bob = gentle ? 0 : Math.sin((t / 1200) * Math.PI * 2) * 2.2 * u;
+  const y = footY - bob;
+  p.scale = 1;
+  p.detailScale = NaN;
+  p.stick = 3 * u;
+  p.headR = 10 * u;
+  p.footAX = cx - 11 * u;
+  p.footAY = footY;
+  p.footBX = cx + 11 * u;
+  p.footBY = footY;
+  p.hipX = cx;
+  p.hipY = y - 38 * u;
+  p.neckX = cx;
+  p.neckY = y - 68 * u;
+  p.shoulderX = cx;
+  p.shoulderY = y - 64 * u;
+  p.handAX = cx - 21 * u;
+  p.handAY = y - 96 * u;
+  p.handBX = cx + 21 * u;
+  p.handBY = y - 96 * u;
+  p.headX = cx;
+  p.headY = y - 80 * u;
+  // A steady breeze from the right: the cape lifts to the left and ripples.
+  p.moveX = 1;
+  p.moveY = 0.25;
+  p.speed = gentle ? 0.15 : 0.45 + 0.2 * Math.sin((t / 900) * Math.PI * 2);
+  p.face = 0;
+  p.core = null;
+  p.gentle = gentle;
+  return p;
+}
+
+/** Running to the right: legs and arms swinging, leaning in, the cape trailing (`phase` counts strides, 1 = one stride). */
+export function heroRunPose(p: HeroPose, x: number, footY: number, h: number, phase: number): HeroPose {
+  const u = h / 100;
+  const swing = Math.sin(phase * Math.PI * 2);
+  const a = swing * 0.62;
+  const leg = 38 * u;
+  const arm = 25 * u;
+  p.scale = 1;
+  p.detailScale = NaN;
+  p.stick = 3 * u;
+  p.headR = 10 * u;
+  p.hipX = x;
+  // The planted foot stays on the ground, so the body rises as the legs pass under it.
+  p.hipY = footY - Math.cos(a) * leg;
+  p.neckX = x + 7 * u;
+  p.neckY = p.hipY - 30 * u;
+  p.shoulderX = x + 6 * u;
+  p.shoulderY = p.neckY + 4 * u;
+  p.headX = x + 10 * u;
+  p.headY = p.neckY - 12 * u;
+  // The leg swinging back lifts its foot off the ground.
+  p.footAX = x + Math.sin(a) * leg;
+  p.footAY = p.hipY + Math.cos(a) * leg - (swing < 0 ? -swing * 9 * u : 0);
+  p.footBX = x - Math.sin(a) * leg;
+  p.footBY = p.hipY + Math.cos(a) * leg - (swing > 0 ? swing * 9 * u : 0);
+  p.handAX = p.shoulderX - Math.sin(a) * arm;
+  p.handAY = p.shoulderY + Math.cos(a) * arm * 0.9;
+  p.handBX = p.shoulderX + Math.sin(a) * arm;
+  p.handBY = p.shoulderY + Math.cos(a) * arm * 0.9;
+  p.moveX = 1;
+  p.moveY = 0;
+  p.speed = 1;
+  p.face = 0.8;
+  p.core = null;
+  p.gentle = false;
+  return p;
+}

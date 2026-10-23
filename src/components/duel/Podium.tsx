@@ -10,6 +10,18 @@ import { playerBreakdown } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
+import {
+  COUNT_UP_SLIDE_MS,
+  celebrationSound,
+  countUpFrom,
+  podiumHero,
+  podiumWinnerIsMe,
+  showBanner,
+  sparkBurst,
+} from "@/lib/fx/celebrations";
+import { previousStandingOrder } from "@/lib/duel/resultPresentation";
+import { useCelebrationScope, useCelebrationsOn, useCountUpClimbs, useTapToSkip } from "@/components/fx/useCelebration";
+import { useFlipRows } from "@/components/fx/useFlipRows";
 
 import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 
@@ -29,10 +41,24 @@ const PLINTH = [
   { height: "h-10", tone: "border-podium-bronze/80 bg-podium-bronze/20 text-podium-bronze" },
 ];
 
-/** Every total on the podium counts up from 0 over this long. */
+/** Every total on the podium counts up from 0 over this long (celebrations: from the round before). */
 const COUNT_UP_MS = 1200;
+/** Celebrations: the hero steps up once the gold block has popped in. */
+const PODIUM_HERO_DELAY_MS = 450;
 
-function Plinth({ standing, place, looks }: { standing: Standing | undefined; place: number; looks: PlayerLooks }) {
+function Plinth({
+  standing,
+  place,
+  looks,
+  celebrate,
+  skip,
+}: {
+  standing: Standing | undefined;
+  place: number;
+  looks: PlayerLooks;
+  celebrate: boolean;
+  skip: boolean;
+}) {
   if (!standing) return <div className="flex-1" />;
   const style = PLINTH[place - 1];
   if (!style) return null;
@@ -51,12 +77,14 @@ function Plinth({ standing, place, looks }: { standing: Standing | undefined; pl
       </span>
       <AnimatedScore
         value={standing.total}
-        from={0}
+        from={celebrate ? countUpFrom(standing) : 0}
         durationMs={COUNT_UP_MS}
         quiet
+        skip={skip}
         className={`th-score font-mono text-xl font-bold tabular-nums ${place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
       />
       <div
+        data-podium-step={celebrate ? place : undefined}
         className={`flex w-full animate-pop-in items-start justify-center rounded-t-xl border pt-2 font-mono text-sm font-bold ${style.height} ${style.tone}`}
       >
         {place}
@@ -113,6 +141,38 @@ export function Podium({
   const won = mine?.position === 1;
   const sharedFirst = won && rows.filter((r) => r.position === 1).length > 1;
   const cued = useRef(false);
+  // Celebrations (src/lib/fx/celebrations.ts): the hero beside the winner's step with a burst (and,
+  // for the winner's own phone, "You win!" and the zap); totals count up from the round before and
+  // the list slides from the previous order, a tap skipping to the final state.
+  const celebrate = useCelebrationsOn();
+  const scope = useCelebrationScope();
+  const skipped = useTapToSkip(celebrate);
+  const root = useRef<HTMLDivElement>(null);
+  const { displayRows, rowRef, nodes } = useFlipRows(rows, {
+    from: celebrate ? previousStandingOrder(rows) : rows,
+    slideMs: COUNT_UP_SLIDE_MS,
+    skip: skipped,
+  });
+  const listRows = celebrate ? displayRows : rows;
+  useCountUpClimbs(celebrate, scope, rows, nodes);
+  useEffect(() => {
+    if (!celebrate) return;
+    const iWon = podiumWinnerIsMe(rows, mySlot);
+    const timer = window.setTimeout(() => {
+      const step = root.current?.querySelector('[data-podium-step="1"]');
+      if (step) {
+        podiumHero(scope, step);
+        const box = step.getBoundingClientRect();
+        sparkBurst(scope, box.right - 15, box.top - 26, { count: 44 });
+        celebrationSound("chime");
+      }
+      if (iWon) {
+        showBanner(scope, "You win!");
+        celebrationSound("zap");
+      }
+    }, PODIUM_HERO_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [celebrate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (cued.current) return;
@@ -124,7 +184,7 @@ export function Podium({
   }, [won, sharedFirst]);
 
   return (
-    <div className="relative flex flex-1 flex-col gap-4 pt-2 animate-phase-in">
+    <div ref={root} className="relative flex flex-1 flex-col gap-4 pt-2 animate-phase-in">
       {won ? (
         <h1 className="text-center font-display text-4xl font-bold text-podium-gold animate-word-scale-in">
           1st
@@ -136,9 +196,9 @@ export function Podium({
       )}
 
       <div className="flex items-end gap-2">
-        <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} />
-        <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} />
-        <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} />
+        <Plinth standing={rows.find((r) => r.position === 2)} place={2} looks={looks} celebrate={celebrate} skip={skipped} />
+        <Plinth standing={rows.find((r) => r.position === 1)} place={1} looks={looks} celebrate={celebrate} skip={skipped} />
+        <Plinth standing={rows.find((r) => r.position === 3)} place={3} looks={looks} celebrate={celebrate} skip={skipped} />
       </div>
 
       <PodiumAwards awards={awards} looks={looks} names={new Map(rows.map((r) => [r.slot, r.name]))} mySlot={mySlot} />
@@ -147,8 +207,8 @@ export function Podium({
 
       <p className="-mb-2 whitespace-nowrap text-center text-[11px] text-muted-foreground">Tap a player for their round scores</p>
       <ul className="flex flex-col gap-1">
-        {rows.map((row) => (
-          <li key={row.slot} data-tint={row.slot === mySlot ? "me" : undefined} className="th-card overflow-hidden rounded-xl border border-border bg-card">
+        {listRows.map((row) => (
+          <li key={row.slot} ref={celebrate ? rowRef(row.slot) : undefined} data-tint={row.slot === mySlot ? "me" : undefined} className="th-card overflow-hidden rounded-xl border border-border bg-card">
             <button
               type="button"
               aria-expanded={open === row.slot}
@@ -163,9 +223,10 @@ export function Podium({
               <span className="th-name min-w-0 flex-1 truncate text-sm">{row.name}</span>
               <AnimatedScore
                 value={row.total}
-                from={0}
+                from={celebrate ? countUpFrom(row) : 0}
                 durationMs={COUNT_UP_MS}
                 quiet
+                skip={skipped}
                 className={`th-score font-mono text-xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : ""}`}
               />
               <span aria-hidden="true" className="w-3 text-center font-mono text-xs text-muted-foreground">

@@ -59,7 +59,9 @@ export const SHARDS: Record<string, string[]> = {
   play12: ["bottom-clearance-check.ts@7/8", "arcade-fill-check.ts@2/3", "chat-notice-check.tsx"],
   // play-tab-shift-check (22 Oct 2026: the Play tab's layout from the first frame, five visits with a slow
   // server, ~1 min with its dev server) needs Chromium.
-  play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3", "play-tab-shift-check.ts"],
+  // celebrations-check (23 Oct 2026, Prompt P: the celebrations' rules and components in happy-dom, then its browser
+  // pass on ten harness screens as an iPhone 11 home-screen app, ~2 min with its dev server) needs Chromium too.
+  play13: ["bottom-clearance-check.ts@8/8", "arcade-fill-check.ts@3/3", "play-tab-shift-check.ts", "celebrations-check.tsx"],
   // room-extras-check (17 Oct 2026: the room's "finished" pings and the reveal's snake chart, ~3 min with its dev
   // server) on its own job: beside a bottom-clearance part and an arcade-fill third it would pass 10 minutes.
   // desktop-geometry-check (17 Oct 2026: PC and laptop browsers at four sizes and while resizing, ~2-3 min with its
