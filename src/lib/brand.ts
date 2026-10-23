@@ -29,6 +29,11 @@ export const APP_ICONS = [
   { href: "/favicon-16.png", size: 16, bleed: false, mark: 0.7, use: "favicon" },
 ] as const;
 /**
+ * High Rise's flag (skyline.renderer.ts) draws the app's own icon, the manifest's 512 px one, so the flag and
+ * the home-screen icon are the same logo (arcade-tuning-a-check). The solve burst keeps APP_LOGO_URL.
+ */
+export const APP_FLAG_LOGO_URL: string = APP_ICONS.find((icon) => icon.use === "any" && icon.size === 512)!.href;
+/**
  * Player icons (src/components/duel/playerIcons.tsx): the one switch for the whole feature. Off,
  * everyone shows their initial in their colour and the lobby hides the icon picker; stored icons
  * are kept, just not drawn. Colours are not affected.

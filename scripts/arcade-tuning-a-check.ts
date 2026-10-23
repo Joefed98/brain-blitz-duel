@@ -78,7 +78,7 @@ import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND } from "../src/lib/arcade/tilt";
 import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
-import { APP_LOGO_URL } from "../src/lib/brand";
+import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -116,13 +116,15 @@ if (want("skyline")) {
   section("High Rise: logo flag, wind unchanged");
   // Tuning A changed no High Rise play; Tuning E (Oct 2026) later stamps its taller view, skylineRev 4, with the same play and curve.
   ok(playRevOf("skyline", generateSkyline().skylineRev) === SKYLINE_REV_TALL && skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "new High Rise rounds keep the band play and curve (Tuning E's taller view only)");
-  ok(APP_LOGO_URL.startsWith("/") && existsSync(`public${APP_LOGO_URL}`), `the app logo file ${APP_LOGO_URL} exists`);
-  const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8")) as { icons: { src: string }[] };
-  ok(manifest.icons.every((i) => i.src === APP_LOGO_URL), "the PWA icon is the same logo file the flag draws");
+  // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
+  // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.
+  ok(APP_FLAG_LOGO_URL.startsWith("/") && existsSync(`public${APP_FLAG_LOGO_URL}`), `the app logo file ${APP_FLAG_LOGO_URL} exists`);
+  const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8")) as { icons: { src: string; purpose?: string; sizes?: string }[] };
+  ok(manifest.icons.some((i) => i.src === APP_FLAG_LOGO_URL && i.purpose === "any" && i.sizes === "512x512"), "the PWA icon is the same logo file the flag draws");
   const art = readFileSync("src/lib/arcade/skyline.renderer.ts", "utf8");
-  ok(art.includes("APP_LOGO_URL") && !art.includes("FLAG_RED") && !art.includes("FLAG_WHITE"), "the flag draws the app logo, not red and white");
+  ok(art.includes("APP_FLAG_LOGO_URL") && !art.includes("FLAG_RED") && !art.includes("FLAG_WHITE"), "the flag draws the app logo, not red and white");
   const sim = readFileSync("src/lib/arcade/skyline.ts", "utf8");
-  ok(!sim.includes("APP_LOGO_URL"), "the logo is render-only (the sim never sees it)");
+  ok(!sim.includes("APP_FLAG_LOGO_URL") && !sim.includes("APP_LOGO_URL"), "the logo is render-only (the sim never sees it)");
 }
 
 /* ============================== 2b. Wavefront ============================== */
