@@ -37,6 +37,11 @@ export function CelebrationLayer() {
     let bannerAnimation: Animation | null = null;
     const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => measureAnchor());
 
+    // Only what was drawn last frame is cleared (the scene's dirty box), never the whole screen per frame.
+    let clearL = 0;
+    let clearT = 0;
+    let clearR = Infinity;
+    let clearB = Infinity;
     const size = () => {
       ratio = Math.min(2, window.devicePixelRatio || 1);
       width = window.innerWidth;
@@ -47,6 +52,10 @@ export function CelebrationLayer() {
         canvas.width = w;
         canvas.height = h;
       }
+      clearL = 0;
+      clearT = 0;
+      clearR = Infinity;
+      clearB = Infinity;
       bottomInset = insetRef.current?.getBoundingClientRect().height ?? 0;
     };
     const measureAnchor = () => {
@@ -62,9 +71,17 @@ export function CelebrationLayer() {
     const frame = (time: number) => {
       raf = 0;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (clearR > clearL && clearB > clearT) {
+        const l = Math.max(0, Math.floor(clearL * ratio) - 2);
+        const t = Math.max(0, Math.floor(clearT * ratio) - 2);
+        ctx.clearRect(l, t, Math.min(canvas.width, Math.ceil(clearR * ratio) + 2) - l, Math.min(canvas.height, Math.ceil(clearB * ratio) + 2) - t);
+      }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       scene.draw(ctx, width, height, bottomInset, time);
+      clearL = scene.dirtyL;
+      clearT = scene.dirtyT;
+      clearR = scene.dirtyR;
+      clearB = scene.dirtyB;
       if (scene.animating(time)) raf = requestAnimationFrame(frame);
       else if (!scene.podium) canvas.style.display = "none";
     };

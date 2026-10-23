@@ -134,6 +134,18 @@ export class CelebrationScene {
     }
   }
 
+  /** The hero's box: its joints, the cape's reach and the outline round them. */
+  private markHero(): void {
+    const p = this.pose;
+    const pad = p.headR * 3;
+    this.mark(
+      Math.min(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX) - pad,
+      Math.min(p.headY, p.handAY, p.handBY) - pad,
+      Math.max(p.headX, p.handAX, p.handBX, p.footAX, p.footBX, p.shoulderX) + pad,
+      Math.max(p.footAY, p.footBY) + pad,
+    );
+  }
+
   clear(scope: number): void {
     for (let s = 0; s < CELEBRATION_PARTICLES; s++) {
       if (this.sparks[s * F + 7] === scope) this.sparks[s * F + 5] = 0;
@@ -160,10 +172,29 @@ export class CelebrationScene {
 
   /** Draws one frame in CSS px (the caller set the device-pixel transform and cleared). */
   draw(ctx: CanvasRenderingContext2D, width: number, height: number, bottomInset: number, now: number): void {
+    this.dirtyL = Infinity;
+    this.dirtyT = Infinity;
+    this.dirtyR = -Infinity;
+    this.dirtyB = -Infinity;
     this.drawStrike(ctx, width, height, now);
     this.drawPodium(ctx, now);
     this.drawRun(ctx, width, height, bottomInset, now);
     this.drawSparks(ctx, now);
+  }
+
+  /**
+   * The box drawn into this frame (CSS px), so the layer clears only that next frame instead of the
+   * whole screen; empty (left > right) when nothing was drawn.
+   */
+  dirtyL = Infinity;
+  dirtyT = Infinity;
+  dirtyR = -Infinity;
+  dirtyB = -Infinity;
+  private mark(l: number, t: number, r: number, b: number): void {
+    if (l < this.dirtyL) this.dirtyL = l;
+    if (t < this.dirtyT) this.dirtyT = t;
+    if (r > this.dirtyR) this.dirtyR = r;
+    if (b > this.dirtyB) this.dirtyB = b;
   }
 
   private drawSparks(ctx: CanvasRenderingContext2D, now: number): void {
@@ -189,6 +220,7 @@ export class CelebrationScene {
         const y = p[o + 1]! + p[o + 3]! * t * (1 - k * 0.35) + 0.5 * GRAVITY * t * t;
         const size = p[o + 6]! * (1 - k * 0.6);
         ctx.rect(x - size / 2, y - size / 2, size, size);
+        this.mark(x - size, y - size, x + size, y + size);
       }
       ctx.fill();
     }
@@ -214,6 +246,7 @@ export class CelebrationScene {
     ctx.save();
     ctx.globalAlpha = Math.min(1, Math.min(age, HERO_RUN_MS - age) / 120);
     drawHero(ctx, this.pose);
+    this.markHero();
     ctx.restore();
   }
 
@@ -232,6 +265,7 @@ export class CelebrationScene {
     ctx.save();
     ctx.globalAlpha = Math.min(1, age / (podium.calm ? 300 : 180));
     drawHero(ctx, this.pose);
+    this.markHero();
     ctx.restore();
   }
 
@@ -249,6 +283,7 @@ export class CelebrationScene {
     ctx.globalAlpha = alpha * 0.1;
     ctx.fillStyle = "#FFE08A";
     ctx.fillRect(0, 0, width, height);
+    this.mark(0, 0, width, height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     for (let pass = 0; pass < 2; pass++) {
