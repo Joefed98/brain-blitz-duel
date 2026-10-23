@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import { Dumbbell, Trophy, UserRound, Zap, type LucideIcon } from "lucide-react";
+import { Target, Trophy, UserRound, Zap, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 
 import { unlockAudio } from "@/lib/sound";
@@ -24,7 +24,7 @@ export const TAB_PATHS: Record<AppTab, "/" | "/practice" | "/tournaments" | "/pr
 
 const TABS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
   { tab: "play", label: "Play", Icon: Zap },
-  { tab: "practice", label: "Practice", Icon: Dumbbell },
+  { tab: "practice", label: "Practice", Icon: Target },
   { tab: "tournaments", label: "Tournaments", Icon: Trophy },
   { tab: "profile", label: "Profile", Icon: UserRound },
 ];
@@ -76,14 +76,11 @@ export function AppTabBar({ current }: { current: AppTab }) {
               onClick={open(tab)}
               aria-current={here ? "page" : undefined}
               data-tab={tab}
-              className={`press flex min-w-0 flex-1 flex-col items-center justify-center gap-1 ${
-                here ? "text-primary" : "text-muted-foreground"
-              }`}
+              className="ap-tab press flex min-w-0 flex-1 flex-col items-center justify-center gap-1"
             >
-              <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={here ? 2.4 : 2} />
-              <span className="truncate font-display text-[11px] font-semibold leading-none tracking-wide">
-                {label}
-              </span>
+              {/* Simple line icons (Prompt R): one stroke weight, gold when current (polish-layout/app-pages.css). */}
+              <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={1.9} />
+              <span className="truncate text-[11px] font-semibold leading-none">{label}</span>
             </a>
           );
         })}

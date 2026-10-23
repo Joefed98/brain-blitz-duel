@@ -493,39 +493,7 @@
 }
 
 /* ------------------------------------------------------------------ the tab bar */
-[data-skin] .app-tabbar {
-  border-top: 0;
-  /* The 56px row a dark gradient; the home-bar strip below it the screen edge's black. */
-  background: linear-gradient(180deg, #17171F 0, #0C0C11 56px, var(--screen-edge) 56px);
-  box-shadow: 0 -10px 24px -14px rgb(0 0 0 / 0.9);
-}
-[data-skin] .app-tabbar::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(242 199 92 / 0.25) 20%, rgb(251 227 154 / 0.7) 50%, rgb(242 199 92 / 0.25) 80%, transparent);
-  pointer-events: none;
-}
-[data-skin] .app-tabbar-row > a {
-  color: var(--th-text-2);
-}
-[data-skin] .app-tabbar-row > a > span {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 10.5px;
-}
-[data-skin] .app-tabbar-row > a[aria-current="page"] {
-  color: var(--th-gold-text);
-}
-[data-skin] .app-tabbar-row > a[aria-current="page"] > svg {
-  filter: drop-shadow(0 0 6px rgb(242 199 92 / 0.6));
-}
-[data-skin] .app-tabbar-row > a[aria-current="page"] > span {
-  text-shadow: 0 0 10px rgb(242 199 92 / 0.55);
-}
+/* The tab bar is drawn only on the four tab screens, whose look is polish-layout/app-pages.css (Prompt R). */
 
 /* ------------------------------------------------------------------ game icon tiles */
 /* The game's own art is unchanged; the tile behind it is a glossy gradient in its category colour. */

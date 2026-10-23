@@ -16,7 +16,7 @@ import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
-import { APP_DESCRIPTION, APP_LOGO_URL, APP_NAME, APP_TITLE } from "../lib/brand";
+import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
@@ -122,9 +122,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap",
       },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "icon", href: APP_LOGO_URL, type: "image/png", sizes: "512x512" },
-      { rel: "apple-touch-icon", href: APP_LOGO_URL },
+      // The app's icons (Prompt R): the inverted logo mark on the gold shine (scripts/brand-icons.ts).
+      ...APP_ICONS.filter((icon) => icon.use === "favicon").map((icon) => ({
+        rel: "icon",
+        href: icon.href,
+        type: "image/png",
+        sizes: `${icon.size}x${icon.size}`,
+      })),
+      { rel: "apple-touch-icon", href: APP_ICONS.find((icon) => icon.use === "apple-touch-icon")!.href, sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),

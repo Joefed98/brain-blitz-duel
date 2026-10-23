@@ -28,10 +28,10 @@ import { chromium, type Browser } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP } from "./device-emulation";
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS } from "./theme-screens";
+import { CHROMIUM_PATHS, IPHONE_SAFARI_UA } from "./theme-screens";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { ukDayKey, ukDayWindow, type DailyStatus } from "../src/lib/duel/daily";
-import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
+import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, PUBLIC_CARD_H, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
 
 const failures: string[] = [];
 let passes = 0;
@@ -51,6 +51,7 @@ const ITEMS: Record<string, string> = {
   daily: "[data-daily-card]",
   challenge: "[data-challenge-card]",
   publicGame: "[data-public-game]",
+  homeHint: "[data-home-hint]",
   warmUp: '[aria-label="Warm up"]',
 };
 const day = ukDayKey(Date.now());
@@ -71,12 +72,14 @@ interface Scenario {
   name: string;
   storage: Record<string, string>;
   query?: string;
+  /** The browser (Prompt R merge: iPhone Safari draws the Add to Home Screen hint). */
+  userAgent?: string;
   server: { daily: boolean; done?: boolean; challenges: boolean; rejoin: "open" | "closed" | null };
   expect: "stable" | "collapse";
 }
 
 async function run(browser: Browser, origin: string, s: Scenario): Promise<{ frames: Frame[]; storage: Record<string, string>; nameRow: { natural: number; reserved: number } }> {
-  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true });
+  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true, ...(s.userAgent ? { userAgent: s.userAgent } : {}) });
   await context.addInitScript(DEVICE_INIT);
   await context.addInitScript(
     ({ storage, harness, items, onboarding, games }) => {
@@ -203,6 +206,15 @@ try {
   const arrived = await run(browser, server.origin, arrival);
   const arrivedSeen = judge(arrival, arrived.frames);
   check(!!arrivedSeen && arrivedSeen[0]!.items["welcome"] !== null, "arrival: the welcome card is there from the first frame");
+
+  // The public game card: a cached height (the last visit's) holds it from the first frame as the boot
+  // script's default does on a fresh device (above), and the Add to Home Screen hint on iPhone Safari.
+  const cached: Scenario = { name: "cached public card height", storage: { ...lastRoom, [PLAY_CARDS_KEY]: JSON.stringify({ publicH: PUBLIC_CARD_H.titled }) }, server: all, expect: "stable" };
+  const cachedSeen = judge(cached, (await run(browser, server.origin, cached)).frames);
+  check(!!cachedSeen && cachedSeen[0]!.items["publicGame"] !== null, "cached height: the public game card is there from the first frame");
+  const hint: Scenario = { name: "iPhone Safari with the home-screen hint", storage: lastRoom, userAgent: IPHONE_SAFARI_UA, server: all, expect: "stable" };
+  const hintSeen = judge(hint, (await run(browser, server.origin, hint)).frames);
+  check(!!hintSeen && hintSeen[0]!.items["homeHint"] !== null && hintSeen[0]!.items["publicGame"] !== null, "iPhone Safari: the hint and the public game card are there from the first frame");
 
   const no: Scenario = { name: "server says no", storage: lastRoom, server: { daily: false, challenges: false, rejoin: "closed" }, expect: "collapse" };
   const said = await run(browser, server.origin, no);

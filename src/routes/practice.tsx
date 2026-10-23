@@ -28,6 +28,7 @@ import {
   PUZZLE_REGISTRY,
   RETIRED_PUZZLE_TYPES,
   PREVIEW_PUZZLE_TYPES,
+  gameCounts,
   puzzleCategories,
   puzzleDef,
   puzzleDurationMs,
@@ -63,7 +64,6 @@ import { APP_NAME } from "@/lib/brand";
 import { noteSignatureSubmit, signatureHoldUntil } from "@/lib/fx/signature";
 import { useSignatureVerdict } from "@/lib/fx/useSignature";
 import { GameIcon } from "@/components/app/GameIcon";
-import { CategoryPill } from "@/components/app/CategoryPill";
 import { notePracticePlayed } from "@/lib/duel/practiceRecent";
 import type { PuzzleCategory } from "@/lib/duel/types";
 
@@ -133,9 +133,9 @@ function CardBest({ type }: { type: PuzzleType }) {
       id={cardBestId(type)}
       aria-hidden="true"
       data-card-best={best}
-      className="shrink-0 font-mono text-xs font-normal tabular-nums text-muted-foreground"
+      className="shrink-0 whitespace-nowrap text-[14px] font-medium tabular-nums text-muted-foreground"
     >
-      Best {best}
+      Best <b className="font-extrabold text-primary">{best}</b>
     </span>
   );
 }
@@ -152,6 +152,12 @@ function categoryLabel(category: PuzzleCategory): string {
 
 type PracticeFilter = PuzzleCategory | "all";
 
+/** The games rooms deal (the title's "73 games"). */
+const ACTIVE_GAME_COUNT = (() => {
+  const counts = gameCounts();
+  return counts.puzzle + counts.arcade;
+})();
+
 /** The list's chips and search: the game's name or category, any case. */
 function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string): boolean {
   const definition = PUZZLE_REGISTRY[type];
@@ -160,35 +166,18 @@ function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string):
   return q === "" || definition.name.toLowerCase().includes(q) || definition.category.includes(q);
 }
 
-const GAME_ROW =
-  "th-card press flex min-h-[60px] w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left font-display text-sm font-semibold text-foreground";
+const GAME_ROW = "ap-row press";
 
 /**
- * A practice row's icon, name and category line ("Arcade · Not played yet" before a first run).
- * Only the name is in the button's accessible name: the icon and the line are aria-hidden, the
- * best is the button's description (CardBest).
+ * A practice row's icon and name. The row's button is named exactly the game (aria-label; checks
+ * find it by name), the icon is aria-hidden and the best is the button's description (CardBest).
  */
 function GameRowLabel({ type }: { type: PuzzleType }) {
-  const definition = PUZZLE_REGISTRY[type];
-  const played = readPracticeBest(type, currentPracticeStamp(type)) !== null;
   return (
-    <span className="flex min-w-0 items-center gap-3">
+    <>
       <GameIcon type={type} size={44} />
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="min-w-0 truncate">{definition.name}</span>
-        <span
-          aria-hidden="true"
-          className="flex min-w-0 items-center gap-1.5 font-sans text-xs font-medium text-muted-foreground"
-        >
-          <CategoryPill
-            category={definition.category}
-            label={categoryLabel(definition.category)}
-            className="shrink-0"
-          />
-          {played ? null : <span className="truncate">Not played yet</span>}
-        </span>
-      </span>
-    </span>
+      <span className="ap-row-title min-w-0 flex-1">{PUZZLE_REGISTRY[type].name}</span>
+    </>
   );
 }
 
@@ -490,31 +479,44 @@ function PracticeScreen() {
 
   if (stage === "list") {
     const visible = (key: PuzzleType) => matchesFilter(key, filter, query);
-    const activeRows = puzzleCategories()
-      .flatMap((category) => typesInCategory(category))
-      .filter(visible);
+    const groups = puzzleCategories()
+      .map((category) => ({ category, rows: typesInCategory(category).filter(visible) }))
+      .filter((group) => group.rows.length > 0);
     const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
     ).filter(visible);
+    const row = (key: PuzzleType, retired = false) => (
+      <button
+        key={key}
+        type="button"
+        onClick={() => void load(key)}
+        aria-label={PUZZLE_REGISTRY[key].name}
+        aria-describedby={cardBestId(key)}
+        data-practice-game={key}
+        data-icon="44"
+        className={`${GAME_ROW}${retired ? " opacity-80" : ""}`}
+      >
+        <GameRowLabel type={key} />
+        <CardBest type={key} />
+      </button>
+    );
     return (
       <PhoneShell tabs="practice">
-        <div className="flex flex-1 flex-col gap-5">
+        <div className="ap-stack">
           <div>
-            <h1 className="font-display text-2xl font-bold">Practice</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              One game at a time. Personal bests stay on this device.
-            </p>
+            <div className="flex items-baseline gap-2.5">
+              <h1 className="ap-title">Practice</h1>
+              <span className="ap-meta text-[15px]">{ACTIVE_GAME_COUNT} games</span>
+            </div>
             <DevKeyStatus status={demoStatus} />
           </div>
 
           {demoKey ? (
-            <label className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
-              <span className="flex flex-col">
-                <span className="font-display text-sm font-semibold text-foreground">
-                  Intro examples
-                </span>
-                <span className="text-xs text-muted-foreground">
+            <label className="ap-panel ap-row">
+              <span className="ap-row-text">
+                <span className="ap-row-title">Intro examples</span>
+                <span className="ap-row-sub whitespace-normal">
                   Each game loads its fixed intro example, for recording demos.
                 </span>
               </span>
@@ -532,7 +534,7 @@ function PracticeScreen() {
             <div className="relative">
               <Search
                 aria-hidden="true"
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[var(--ap-faint)]"
               />
               <input
                 type="search"
@@ -542,10 +544,10 @@ function PracticeScreen() {
                 aria-label="Search games"
                 autoComplete="off"
                 spellCheck={false}
-                className="th-input tap-target w-full rounded-xl border border-border bg-card py-3 pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                className="ap-input ap-search"
               />
             </div>
-            <div role="group" aria-label="Category" className="-mx-1 flex flex-wrap gap-1.5 px-1">
+            <div role="group" aria-label="Category" data-scroll-x className="ap-chips">
               {(["all", ...puzzleCategories()] as const).map((chip) => {
                 const on = filter === chip;
                 return (
@@ -554,13 +556,9 @@ function PracticeScreen() {
                     type="button"
                     aria-pressed={on}
                     data-practice-filter={chip}
-                    data-cat={chip}
                     onClick={() => setFilter(chip)}
-                    className={`th-chip th-hit press inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-display text-xs font-bold uppercase tracking-wide ${
-                      on ? "text-primary" : "text-muted-foreground"
-                    }`}
+                    className="ap-chip th-hit press"
                   >
-                    <span aria-hidden="true" className="th-chip-dot" />
                     {chip === "all" ? "All" : categoryLabel(chip)}
                   </button>
                 );
@@ -568,70 +566,33 @@ function PracticeScreen() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {activeRows.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => void load(key)}
-                aria-describedby={cardBestId(key)}
-                data-practice-game={key}
-                className={GAME_ROW}
-              >
-                <GameRowLabel type={key} />
-                <CardBest type={key} />
-              </button>
-            ))}
-            {activeRows.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-              <p className="th-empty rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-                No games match.
-              </p>
-            ) : null}
-          </div>
+          {groups.map(({ category, rows }) => (
+            <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="flex flex-col gap-2">
+              <h2 className="ap-group-title">{categoryLabel(category)}</h2>
+              <div className="ap-panel">{rows.map((key) => row(key))}</div>
+            </section>
+          ))}
+          {groups.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
+            <p className="ap-panel ap-empty">No games match.</p>
+          ) : null}
 
           {previewRows.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p className="th-kicker text-muted-foreground">New · practice only</p>
-              <div className="flex flex-col gap-2">
-                {previewRows.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => void load(key)}
-                    aria-describedby={cardBestId(key)}
-                    data-practice-game={key}
-                    className={GAME_ROW}
-                  >
-                    <GameRowLabel type={key} />
-                    <CardBest type={key} />
-                  </button>
-                ))}
-              </div>
-            </div>
+            <section aria-label="Practice only" className="flex flex-col gap-2">
+              <h2 className="ap-group-title">New · practice only</h2>
+              <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
+            </section>
           )}
 
           {retiredRows.length > 0 && (
             <details className="flex flex-col gap-2" open={query.trim() !== "" || undefined}>
-              <summary className="th-kicker th-hit press cursor-pointer text-muted-foreground">
+              <summary className="ap-group-title th-hit press cursor-pointer">
                 Retired ({retiredRows.length})
               </summary>
-              <div className="mt-2 flex flex-col gap-2">
-                {retiredRows.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => void load(key)}
-                    aria-describedby={cardBestId(key)}
-                    data-practice-game={key}
-                    className={`${GAME_ROW} opacity-80`}
-                  >
-                    <GameRowLabel type={key} />
-                    <CardBest type={key} />
-                  </button>
-                ))}
-              </div>
+              <div className="ap-panel mt-2">{retiredRows.map((key) => row(key, true))}</div>
             </details>
           )}
+
+          <p className="ap-faint text-center text-[13px]">Personal bests stay on this device.</p>
         </div>
       </PhoneShell>
     );

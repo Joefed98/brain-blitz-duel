@@ -414,6 +414,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`docs/beta-sql.md` section 11). The boot script also reserves the next configured public game's card on a fresh device
   (`PUBLIC_CARD_STARTS`), and the server-rendered page draws a time-free stand-in card in that space (the real one
   needs the phone's clock), so it never pops in or jumps. beta-extras-check (~2 min, `play11`) proves it all.
+- **Tab screens redesign** (23 Oct 2026, Prompt R, look only; `src/polish-layout/app-pages.css`): the four tab pages
+  (PhoneShell marks their column `data-app-page`), the app header (`AppHeader`: `AppWordmark`, APP_NAME
+  uppercased with its last letter gold, plus `LogoMark`, `src/components/brand/`) and the tab bar take flat panels of divided rows, the gold
+  shine buttons and Archivo (self-hosted, OFL, `public/fonts`); rooms, rounds, results, daily/challenge play, sheets and
+  game tiles keep the page skin. The share welcome card keeps the skin's type (share-check). App icons (apple-touch 180,
+  manifest 192/512/maskable, favicons 32/16) are the inverted mark on the gold shine from `APP_ICONS` in `brand.ts`, drawn
+  by `bun scripts/brand-icons.ts`; the in-game logo (`APP_LOGO_URL`) is unchanged. Review shots:
+  `bun scripts/shots/app-pages-shots.ts` (`screenshots/app-redesign-oct-2026/`). Connected to the beta extras (#128):
+  Play's Next public game card is the panel row with its date tile (`PublicGameRow`; reserved 259 px, `PUBLIC_CARD_H`,
+  titled or not, with a same-size stand-in), the Add to Home Screen hint a plain panel, and Profile's Send feedback the gold
+  link on the right of the footer line (`FeedbackLink`); play-tab-shift-check covers a cached height and the hint.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

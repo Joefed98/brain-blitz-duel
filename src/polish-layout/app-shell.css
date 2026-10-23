@@ -107,19 +107,19 @@ html:has([data-tab-screen]) {
 
 /* The Play tab's late cards (PlaySlot, src/lib/playCards.ts, 22 Oct 2026): in the markup from the first
    frame, hidden unless the boot script reserved them (<html data-play-cards>), collapsing smoothly
-   (height, then the 20 px gap above) when the server says they shouldn't show. */
+   (height, then the 22 px gap above, .ap-stack) when the server says they shouldn't show. */
 .play-slot {
   display: grid;
   grid-template-rows: 1fr;
   transition:
-    grid-template-rows 320ms ease,
+    grid-template-rows 420ms ease,
     opacity 200ms ease,
-    margin-top 320ms ease;
+    margin-top 420ms ease;
 }
 .play-slot[data-slot-state="hide"] {
   grid-template-rows: 0fr;
   opacity: 0;
-  margin-top: -1.25rem;
+  margin-top: -22px;
   overflow: hidden;
   pointer-events: none;
 }
@@ -140,11 +140,11 @@ html:not([data-play-cards~="homescreen"]) [data-play-slot="homescreen"] {
    stored name will show (the input without one, "Playing as" with one; <html data-play-cards~="named">,
    set before the first paint), so reading the name after mount moves nothing. */
 [data-name-row]:not([data-editing]) {
-  height: 69.1875px;
+  height: 50px;
   overflow: hidden;
 }
 html[data-play-cards~="named"] [data-name-row]:not([data-editing]) {
-  height: 48px;
+  height: 44px;
 }
 
 /* The Next public game card's slot (src/routes/index.tsx): until the page is up, the card's last height
@@ -155,7 +155,7 @@ html[data-play-cards~="named"] [data-name-row]:not([data-editing]) {
 }
 html:not([data-play-cards~="public"]) [data-public-slot]:not([data-ready]),
 [data-public-slot][data-empty] {
-  margin-top: -1.25rem;
+  margin-top: -22px;
   height: 0;
   overflow: hidden;
 }

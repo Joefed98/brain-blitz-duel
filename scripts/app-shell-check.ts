@@ -151,8 +151,8 @@ try {
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
       check(tabs.join(",") === "Play,Practice,Tournaments,Profile", `four tabs with labels (${tabs.join(",")})`);
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
-      // The page skin's gold text (#F2C75C, polish-layout/theme.css, 19 Oct 2026).
-      check(gold === "rgb(242, 199, 92)", `the current tab is gold (${gold})`);
+      // The tab screens' gold (#F7BF2F, polish-layout/app-pages.css, Prompt R 23 Oct 2026).
+      check(gold === "rgb(247, 191, 47)", `the current tab is gold (${gold})`);
       // The device's geometry (emulateDevice: the short layout viewport, the insets) lands a frame or more
       // after the load: wait (up to 5 s) for the bar to settle on the bottom for 3 frames before judging it,
       // the intermittent CI failure was a measurement taken mid-resize. The check below is unchanged.
@@ -218,7 +218,7 @@ try {
       check(await page.getByRole("button", { name: "Change look" }).isVisible(), 'Profile: "Change look"');
       await page.getByRole("button", { name: "Change look" }).click();
       check((await page.locator("[data-look-picker]").count()) === 1, "Profile: Change look opens the lobby's look picker");
-      check(/Saved on this phone\. Sign-in arrives after the beta/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
+      check(/Saved on this phone\. Sign-in after the beta will keep it all/.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
       await page.goBack();
       await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 30_000 });
       check(new URL(page.url()).pathname === "/", "Back from the tabs returns to Play");

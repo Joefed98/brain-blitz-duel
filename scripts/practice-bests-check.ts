@@ -165,14 +165,15 @@ const localStorage = {
   check(/if \(!wasExample\) \{\s*const record = recordPracticeBest/.test(practice), "intro-example runs are never recorded");
   check(/readPracticeBest\(next, stampSignature\(made\.puzzle/.test(practice), "the intro reads the dealt puzzle's best");
   check(/function CardBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/.test(practice), "the list's cards read the current stamps");
-  check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 3, "every practice card shows its best (active, preview, retired)");
+  // Prompt R (23 Oct 2026): the three lists draw one row (row(key)), which carries the best and its description.
+  check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => row\(key, true\)\)/.test(practice), "every practice card shows its best (active, preview, retired)");
   check(/if \(best === null\) return null;/.test(practice), "a card with no best shows nothing");
-  check(/>\s*Best \{best\}\s*</.test(practice), 'the card reads "Best 132"');
+  check(/>\s*Best <b[^>]*>\{best\}<\/b>\s*</.test(practice), 'the card reads "Best 132" (the score in bold gold)');
   // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so
   // arcade-play-check and arcade-lowend-check, which reopen the list and find each game's button by its exact
   // name, lost multi-segment games after their first run. The best is now only the button's description.
   check(/id=\{cardBestId\(type\)\}\s*aria-hidden="true"/.test(practice), "the card's best is left out of the button's name");
-  check((practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 3, "every card's button is described by its best");
+  check((practice.match(/aria-describedby=\{cardBestId\(key\)\}/g) ?? []).length === 1 && /aria-label=\{PUZZLE_REGISTRY\[key\]\.name\}/.test(practice), "every card's button is named its game and described by its best");
 
   const reveal = readFileSync("src/components/duel/AnswerReveal.tsx", "utf8");
   check(/\{practice && personalBest && myScore !== null \? <NewBestMoment \/> : null\}/.test(reveal), "the moment shows only in practice, on a new best, once the score is in");

@@ -118,6 +118,20 @@ export function ukTime(ms: number): string {
     .toLowerCase();
 }
 
+const datePartsFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: UK,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+/** The UK date's parts for a date tile: { weekday: "Sat", day: "24", month: "Oct" }. */
+export function ukDateParts(ms: number): { weekday: string; day: string; month: string } {
+  const parts = datePartsFormat.formatToParts(new Date(ms));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+  return { weekday: part("weekday"), day: part("day"), month: part("month") };
+}
+
 /** "Today", "Tomorrow" or "Sat 24 Oct" (UK dates). */
 export function ukDay(ms: number, now: number): string {
   const day = dateKey.format(new Date(ms));

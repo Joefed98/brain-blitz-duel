@@ -299,6 +299,8 @@ export interface ThemeViewport {
   app?: boolean;
   /** A mouse or trackpad (hover, fine pointer): the desktop layout (#109). */
   desktop?: boolean;
+  /** Device pixel ratio for screenshots (scripts/shots/app-pages-shots.ts); 1 when unset. */
+  scale?: number;
 }
 export const VIEWPORTS: ThemeViewport[] = [
   { name: "414x896 home-screen app", w: IPHONE11_APP.w, h: IPHONE11_APP.h, app: true },
@@ -370,6 +372,7 @@ export async function openThemeScreen(
 ): Promise<{ context: BrowserContext; page: Page }> {
   const context = await browser.newContext({
     viewport: { width: viewport.w, height: viewport.h },
+    ...(viewport.scale ? { deviceScaleFactor: viewport.scale } : {}),
     ...(viewport.desktop ? { hasTouch: false, isMobile: false } : { hasTouch: true }),
     ...(screen.userAgent ? { userAgent: screen.userAgent } : {}),
   });

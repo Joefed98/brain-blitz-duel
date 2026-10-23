@@ -16,6 +16,24 @@ export const APP_TITLE = `${APP_NAME} — Live skill games with friends`;
  */
 export const APP_LOGO_URL = "/icon-512.png";
 /**
+ * The app's own icons (Prompt R, 23 Oct 2026): the inverted logo mark on the gold shine, drawn by
+ * scripts/brand-icons.ts. The home-screen icon, the manifest's icons and the browser tab's favicon;
+ * the in-game flag and burst keep APP_LOGO_URL. `mark` is the mark's height as a share of the icon.
+ */
+export const APP_ICONS = [
+  { href: "/app-icon-180.png", size: 180, bleed: true, mark: 0.58, use: "apple-touch-icon" },
+  { href: "/app-icon-192.png", size: 192, bleed: false, mark: 0.58, use: "any" },
+  { href: "/app-icon-512.png", size: 512, bleed: false, mark: 0.58, use: "any" },
+  { href: "/app-icon-maskable-512.png", size: 512, bleed: true, mark: 0.46, use: "maskable" },
+  { href: "/favicon-32.png", size: 32, bleed: false, mark: 0.66, use: "favicon" },
+  { href: "/favicon-16.png", size: 16, bleed: false, mark: 0.7, use: "favicon" },
+] as const;
+/**
+ * High Rise's flag (skyline.renderer.ts) draws the app's own icon, the manifest's 512 px one, so the flag and
+ * the home-screen icon are the same logo (arcade-tuning-a-check). The solve burst keeps APP_LOGO_URL.
+ */
+export const APP_FLAG_LOGO_URL: string = APP_ICONS.find((icon) => icon.use === "any" && icon.size === 512)!.href;
+/**
  * Player icons (src/components/duel/playerIcons.tsx): the one switch for the whole feature. Off,
  * everyone shows their initial in their colour and the lobby hides the icon picker; stored icons
  * are kept, just not drawn. Colours are not affected.

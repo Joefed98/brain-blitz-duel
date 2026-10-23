@@ -3,15 +3,15 @@ import { CalendarClock, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { PublicGameCard } from "@/components/app/PublicGameCard";
+import { PublicGameAction, PublicGameRow } from "@/components/app/PublicGameCard";
 import { useClock } from "@/components/app/useClock";
 import { readRoomHistory, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { ordinal } from "@/lib/duel/ordinal";
 import {
+  nextUpState,
   publicRoomCodes,
   scheduledGames,
   ukDay,
-  ukTime,
   upcomingGames,
 } from "@/lib/publicSchedule";
 import { APP_NAME } from "@/lib/brand";
@@ -45,106 +45,75 @@ function TournamentsScreen() {
 
   return (
     <PhoneShell tabs="tournaments">
-      <div className="flex flex-1 flex-col gap-5">
+      <div className="ap-stack">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl font-bold">Tournaments</h1>
-            <span data-tone="teal" className="th-pill">
-              Beta
-            </span>
+          <div className="flex items-center gap-2.5">
+            <h1 className="ap-title">Tournaments</h1>
+            <span className="ap-beta">Beta</span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Scheduled public games. Join the room when its lobby opens; everyone plays the same
-            rounds.
+          <p className="ap-sub">
+            Public games on set dates. Join when the lobby opens, and everyone plays the same rounds.
           </p>
         </div>
 
-        {next ? (
-          <PublicGameCard
-            game={next}
-            now={now}
-            heading="Next up"
-            tint="gold"
-            onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
-          />
-        ) : (
-          <div
-            data-public-none
-            className="th-empty flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-4 py-6 text-center"
-          >
-            <CalendarClock aria-hidden="true" className="h-7 w-7 text-muted-foreground" />
-            <p className="font-display text-sm font-semibold text-foreground">
-              No public games scheduled
-            </p>
-            <p className="text-xs text-muted-foreground">
-              New dates appear here as soon as they are set.
-            </p>
+        <section aria-label="Upcoming" className="ap-section">
+          <div className="ap-section-head">
+            <h2 className="ap-section-title">Upcoming</h2>
           </div>
-        )}
+          <div className="ap-panel">
+            {next ? (
+              <div data-public-game={nextUpState(next, now)}>
+                <PublicGameRow game={next} />
+                <PublicGameAction
+                  game={next}
+                  now={now}
+                  onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
+                />
+              </div>
+            ) : (
+              <p data-public-none className="ap-empty">
+                <CalendarClock aria-hidden="true" />
+                No public games scheduled yet
+              </p>
+            )}
+            {later.map((game) => (
+              <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
+                <PublicGameRow game={game} />
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {later.length > 0 ? (
-          <section aria-label="Coming up" className="flex flex-col gap-2">
-            <h2 className="font-display text-lg font-bold">Coming up</h2>
-            <ul className="flex flex-col gap-2">
-              {later.map((game) => (
-                <li
-                  key={`${game.roomCode}-${game.startsAt}`}
-                  data-public-later
-                  className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-display text-sm font-semibold text-foreground">
-                      {ukDay(game.startsAt, now)} · {ukTime(game.startsAt)}
+        <section aria-label="Your results" className="ap-section">
+          <div className="ap-section-head">
+            <h2 className="ap-section-title">Your results</h2>
+          </div>
+          <div className="ap-panel">
+            {results.length === 0 ? (
+              <p data-public-results-empty className="ap-empty">
+                <Trophy aria-hidden="true" />
+                Your public game finishes will show here
+              </p>
+            ) : (
+              <ul>
+                {results.map((r) => (
+                  <li key={r.key} className="ap-row">
+                    <span className="ap-row-text">
+                      <span className="ap-row-title">{ukDay(r.at, now)}</span>
+                      <span data-ellipsis className="ap-row-sub">
+                        {r.players} players · {r.points} points
+                      </span>
                     </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {game.title ? `${game.title} · ` : ""}
-                      {game.rounds} rounds · lobby {ukTime(game.lobbyAt)}
+                    <span
+                      className={`shrink-0 text-[18px] font-extrabold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                    >
+                      {r.place === null ? "Left" : ordinal(r.place)}
                     </span>
-                  </span>
-                  <span data-tone="teal" className="th-pill shrink-0">
-                    UK
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <section aria-label="Your results" className="flex flex-col gap-2">
-          <h2 className="font-display text-lg font-bold">Your results</h2>
-          {results.length === 0 ? (
-            <div
-              data-public-results-empty
-              className="th-empty flex items-center gap-3 rounded-xl border border-dashed border-border px-4 py-4"
-            >
-              <Trophy aria-hidden="true" className="h-6 w-6 shrink-0 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No public games played yet</p>
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {results.map((r) => (
-                <li
-                  key={r.key}
-                  className="th-card flex items-center justify-between gap-3 rounded-xl border border-border bg-card/80 px-4 py-3"
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-display text-sm font-semibold text-foreground">
-                      {ukDay(r.at, now)}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {r.players} players ·{" "}
-                      <span className="font-mono tabular-nums">{r.points}</span> points
-                    </span>
-                  </span>
-                  <span
-                    className={`th-score shrink-0 font-mono text-lg font-bold tabular-nums ${r.place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
-                  >
-                    {r.place === null ? "Left" : ordinal(r.place)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
       </div>
     </PhoneShell>

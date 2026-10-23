@@ -5,6 +5,15 @@
  * only what RoomShareData carries, so no answer or puzzle content can reach it. Presentation only.
  */
 import { APP_NAME } from "@/lib/brand";
+import {
+  GOLD_SHINE_STOPS,
+  LOGO_BOX,
+  LOGO_COLOURS,
+  LOGO_LEAD,
+  LOGO_LOWER,
+  LOGO_TRAIL,
+  LOGO_UPPER,
+} from "@/components/brand/logoGeometry";
 import { ordinal } from "@/lib/duel/ordinal";
 import { puzzleDef } from "@/lib/duel/registry";
 
@@ -110,6 +119,45 @@ function bolt(c: Ctx, x: number, y: number, s: number): void {
   c.fill();
 }
 
+/** The app's logo (Prompt R): the inverted mark on a rounded square of the gold shine (logoGeometry.ts). */
+function logoMark(c: Ctx, x: number, y: number, s: number): void {
+  c.save();
+  c.shadowBlur = 0;
+  roundRect(c, x, y, s, s, s * 0.225);
+  const shine = c.createLinearGradient(0, y, 0, y + s);
+  for (const [offset, colour] of GOLD_SHINE_STOPS) shine.addColorStop(offset, colour);
+  c.fillStyle = shine;
+  c.fill();
+  const k = (s * 0.58) / LOGO_BOX.h;
+  const ox = x + (s - LOGO_BOX.w * k) / 2;
+  const oy = y + (s - LOGO_BOX.h * k) / 2;
+  const look = LOGO_COLOURS.inverted;
+  const polygon = (points: readonly (readonly [number, number])[], colours: readonly string[]) => {
+    const fill = c.createLinearGradient(0, oy + Math.min(...points.map((p) => p[1])) * k, 0, oy + Math.max(...points.map((p) => p[1])) * k);
+    colours.forEach((colour, i) => fill.addColorStop(i / (colours.length - 1), colour));
+    c.beginPath();
+    points.forEach(([px, py], i) => (i ? c.lineTo(ox + px * k, oy + py * k) : c.moveTo(ox + px * k, oy + py * k)));
+    c.closePath();
+    c.fillStyle = fill;
+    c.fill();
+  };
+  polygon(LOGO_UPPER, look.upper);
+  polygon(LOGO_LOWER, look.lower);
+  c.lineWidth = k;
+  c.lineCap = "round";
+  for (const line of [LOGO_TRAIL, LOGO_LEAD]) {
+    const fade = c.createLinearGradient(ox + line.from * k, 0, ox + line.to * k, 0);
+    fade.addColorStop(0, `rgb(13 13 15 / ${look.lineOpacity})`);
+    fade.addColorStop(1, "rgb(13 13 15 / 0)");
+    c.strokeStyle = fade;
+    c.beginPath();
+    c.moveTo(ox + line.from * k, oy + line.y * k);
+    c.lineTo(ox + line.to * k, oy + line.y * k);
+    c.stroke();
+  }
+  c.restore();
+}
+
 function medal(c: Ctx, cx: number, cy: number, r: number, place: number): void {
   const [hi, lo] = MEDALS[place] ?? ["#3A3D4C", "#2A2C38"];
   const g = c.createLinearGradient(0, cy - r, 0, cy + r);
@@ -196,7 +244,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.lineWidth = 4;
   c.stroke();
 
-  // The app name: Saira 800, its last letter gold (the Wordmark), the bolt beside it.
+  // The app name: Saira 800, its last letter gold (the Wordmark), the logo beside it.
   c.font = `800 112px ${DISPLAY}`;
   const head = APP_NAME.slice(0, -1);
   const last = APP_NAME.slice(-1);
@@ -213,7 +261,7 @@ export function drawResultCard(c: Ctx, data: RoomShareData, icons: CardIcons = n
   c.shadowBlur = 24;
   c.fillText(last, x + headW, 196);
   x += headW + lastW + 18;
-  bolt(c, x, 106, boltS);
+  logoMark(c, x, 106, boltS);
   c.shadowBlur = 0;
   c.textAlign = "center";
 

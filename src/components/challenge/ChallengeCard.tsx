@@ -10,20 +10,20 @@ export function ChallengeCard({ available, onOpen }: { available: boolean; onOpe
     <button
       type="button"
       data-challenge-card
-      data-tint="gold"
       onClick={onOpen}
-      className="th-card press flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3 text-left"
+      data-icon="sq"
+      className="ap-panel ap-row press"
     >
-      <Swords aria-hidden="true" className="h-6 w-6 shrink-0 text-primary" />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="whitespace-nowrap font-display text-sm font-bold uppercase text-foreground">
-          Challenge a friend
-        </span>
-        <span className="truncate text-xs text-muted-foreground">
-          Play a set, then dare them to beat it.
+      <span className="ap-icon-sq">
+        <Swords aria-hidden="true" />
+      </span>
+      <span className="ap-row-text">
+        <span className="ap-row-title">Challenge a friend</span>
+        <span data-ellipsis className="ap-row-sub">
+          Play a set, then dare them to beat it
         </span>
       </span>
-      <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
+      <ChevronRight aria-hidden="true" className="ap-chevron" />
     </button>
   );
 }

@@ -10,7 +10,7 @@ import { px, type CanvasSize } from "./engine";
 import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
-import { APP_LOGO_URL } from "@/lib/brand";
+import { APP_FLAG_LOGO_URL } from "@/lib/brand";
 import { realMemo, realNow, realNightSky, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP, REAL_LAMP_WASH } from "./realworld.renderer";
 
 /** City glass tints, cycled per level. */
@@ -150,13 +150,16 @@ function drawCrane(ctx: CanvasRenderingContext2D, trolleyX: number, tick: number
   void tick;
 }
 
-/** The app logo's black and bolt yellow, for the cloth before the logo file has loaded. */
-const FLAG_BLACK = "#0B0B0F";
-const FLAG_BOLT = "#FFD21F";
+/**
+ * The app icon's gold and its dark bolt (APP_FLAG_LOGO_URL, Prompt R): the cloth, and the bolt drawn on it
+ * before the logo file has loaded (display only).
+ */
+const FLAG_CLOTH = "#F7BF2F";
+const FLAG_BOLT = "#0D0D0F";
 /** BoltGlyph's bolt (24-unit box), the stand-in until the logo file is ready. */
 const FLAG_BOLT_PATH = [[14, 2], [5, 14], [11, 14], [9, 22], [19, 9], [13, 9], [14, 2]] as const;
 
-/** The app logo (APP_LOGO_URL), loaded once per page; null until it is ready or if it fails. */
+/** The app icon (APP_FLAG_LOGO_URL), loaded once per page; null until it is ready or if it fails. */
 let flagLogo: HTMLImageElement | null = null;
 let flagLogoStarted = false;
 function flagLogoImage(): HTMLImageElement | null {
@@ -165,7 +168,7 @@ function flagLogoImage(): HTMLImageElement | null {
     const img = new Image();
     img.decoding = "async";
     img.onload = () => (flagLogo = img);
-    img.src = APP_LOGO_URL;
+    img.src = APP_FLAG_LOGO_URL;
   }
   return flagLogo;
 }
@@ -188,7 +191,7 @@ function drawFlagLogo(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: 
 
 /**
  * skylineRev 2: the flag on the top block (pole at its centre, behind the
- * sliding block), showing the app logo (black with the yellow bolt). Hanging
+ * sliding block), showing the app icon (the dark bolt on gold, since Prompt R). Hanging
  * still = calm; streaming and rippling = a gust is about to blow or is
  * blowing, toward `dir`. Presentation only.
  */
@@ -215,10 +218,10 @@ function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: nu
   const phase = (tick / 60) * Math.PI * 2 * 2.2;
   const y0 = top - poleH + 2 * k;
   if (dir === 0) {
-    // Hanging limp down the pole: the logo's black cloth with the bolt upright on it.
+    // Hanging limp down the pole: the icon's gold cloth with the bolt upright on it.
     const w = 8 * k;
     const drop = len * 0.75;
-    ctx.fillStyle = FLAG_BLACK;
+    ctx.fillStyle = FLAG_CLOTH;
     ctx.beginPath();
     ctx.moveTo(x, y0);
     ctx.lineTo(x + w, y0 + 2 * k);
@@ -237,7 +240,7 @@ function drawFlag(ctx: CanvasRenderingContext2D, x: number, top: number, dir: nu
     const u = i / 8;
     pts.push([x + dir * len * u, y0 + wave(u)]);
   }
-  ctx.fillStyle = FLAG_BLACK;
+  ctx.fillStyle = FLAG_CLOTH;
   ctx.beginPath();
   ctx.moveTo(pts[0]![0], pts[0]![1]);
   for (const [px0, py0] of pts) ctx.lineTo(px0, py0);

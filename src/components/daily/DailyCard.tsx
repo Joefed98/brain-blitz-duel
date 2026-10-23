@@ -1,9 +1,10 @@
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { ChevronRight, Gamepad2, Puzzle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { dailyStatus } from "@/lib/duel/asyncApi";
 import {
   DAILY_KINDS,
+  DAILY_ROUNDS,
   DAILY_TITLE,
   rankLine,
   ukDayKey,
@@ -15,12 +16,15 @@ import {
 import { ordinal } from "@/lib/duel/ordinal";
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
 
-/** The card's line for one daily: Play, Continue, or your score and place. */
-function cardState(state: DailyState): { action: string; detail: string | null } {
-  if (state.state === "play") return { action: "Play", detail: null };
-  if (state.state === "continue") return { action: "Continue", detail: null };
-  return { action: `${state.total}`, detail: rankLine(state.rank, state.count, ordinal) };
+/** A daily's row: its size, then (once played) the device's score and place, and its button. */
+function rowState(kind: DailyKind, state: DailyState): { sub: string; action: string | null } {
+  const size = kind === "puzzle" ? `${DAILY_ROUNDS[kind]} rounds` : `${DAILY_ROUNDS[kind]} games`;
+  if (state.state === "play") return { sub: size, action: "Play" };
+  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue" };
+  return { sub: `You scored ${state.total} · ${rankLine(state.rank, state.count, ordinal)}`, action: null };
 }
+
+const DAILY_ICON = { puzzle: Puzzle, arcade: Gamepad2 } as const;
 
 /**
  * Today's dailies for this device, fetched after mount: `status` once the server answers (null on a
@@ -76,24 +80,15 @@ export function DailyCard({
 }) {
   if (!status?.available) return null;
   return (
-    <section
-      aria-label="Daily challenge"
-      data-daily-card
-      data-tint="gold"
-      className="th-card flex flex-col gap-2 rounded-2xl border border-border bg-card/80 p-4"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="th-kicker flex items-center gap-1.5 text-primary">
-          <CalendarDays aria-hidden="true" className="h-4 w-4" /> Daily challenge
-        </p>
-        <span className="whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
-          New at midnight UK
-        </span>
+    <section aria-label="Daily challenge" data-daily-card className="ap-section">
+      <div className="ap-section-head">
+        <h2 className="ap-section-title">Today</h2>
+        <span className="ap-meta">New at midnight</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="ap-panel">
         {DAILY_KINDS.map((kind) => {
-          const { action, detail } = cardState(status[kind]);
-          const done = status[kind].state === "done";
+          const { sub, action } = rowState(kind, status[kind]);
+          const Icon = DAILY_ICON[kind];
           return (
             <button
               key={kind}
@@ -101,24 +96,25 @@ export function DailyCard({
               data-daily-open={kind}
               data-daily-state={status[kind].state}
               onClick={() => onOpen(kind)}
-              className="th-card press flex min-h-[64px] min-w-0 items-center justify-between gap-1 rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-left"
+              data-icon="sq"
+              className="ap-row press"
             >
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  {DAILY_TITLE[kind]}
-                </span>
-                <span
-                  className={`truncate ${done ? "th-score font-mono text-xl font-bold tabular-nums text-foreground" : "font-display text-base font-extrabold uppercase tracking-wide text-primary"}`}
-                >
-                  {action}
-                  {detail ? (
-                    <span className="ml-1.5 font-display text-xs font-bold uppercase text-primary">
-                      {detail}
-                    </span>
-                  ) : null}
+              <span className="ap-icon-sq">
+                <Icon aria-hidden="true" />
+              </span>
+              <span className="ap-row-text">
+                <span className="ap-row-title">{DAILY_TITLE[kind]}</span>
+                <span data-ellipsis className="ap-row-sub">
+                  {sub}
                 </span>
               </span>
-              <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {action ? (
+                <span className="ap-pill-gold">
+                  {action}
+                </span>
+              ) : (
+                <ChevronRight aria-hidden="true" className="ap-chevron" />
+              )}
             </button>
           );
         })}
