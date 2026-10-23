@@ -151,6 +151,13 @@ interface Screen {
   go?: (page: Page) => Promise<void>;
   waitMs?: number;
   fresh?: boolean;
+  /**
+   * Settles a timed screen: once the page is up, restarts the room's phase this long ago (ms), so it
+   * is measured at the same point of its timeline however long the page took to load.
+   */
+  settleAt?: number;
+  /** A selector that must still be on screen after the last screenshot (the screen didn't move on). */
+  expect?: string;
 }
 const openGame = async (page: Page) => {
   await page.getByRole("button", { name: "Box Six", exact: true }).first().click();
@@ -174,7 +181,17 @@ const ALL_SCREENS: Screen[] = [
   },
   { name: "room link join", mode: "room", room: room("waiting", "starting", { join: true }) },
   { name: "Prepare to Duel", mode: "room", room: room("in_progress", "starting"), waitMs: 1200 },
-  { name: "round title", mode: "room", room: room("in_progress", "round_title"), waitMs: 200 },
+  // The title runs ROUND_TITLE_MS (3 s) from the phase start, then the room shows the round intro. A
+  // one-round room plays the Final Round moment, whose shock rings are done 1.8 s in (FINAL_SPEC);
+  // measured from page load, a fast load caught the screen mid-moment and a slow one caught the intro
+  // fading in (the CI flake, 85 px of #18181a at (165, 814)), so it is measured at 1.85 s, settled.
+  {
+    name: "round title",
+    mode: "room",
+    room: room("in_progress", "round_title"),
+    settleAt: 1850,
+    expect: '[aria-label="Round title"]',
+  },
   { name: "room round intro", mode: "room", room: room("in_progress", "intro"), waitMs: 1500 },
   {
     name: "round result, 2 players",
@@ -355,6 +372,16 @@ const failures: string[] = [];
 const checked: string[] = [];
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
+async function settle(page: Page, at: number) {
+  await page.evaluate((ms) => {
+    const h = (window as unknown as { __harness: { update: (f: (r: { duel: { phase_started_at: string } }) => void) => void } }).__harness;
+    h.update((r) => {
+      r.duel.phase_started_at = new Date(Date.now() - ms).toISOString();
+    });
+  }, at);
+  await page.waitForTimeout(200);
+}
+
 async function goto(page: Page, url: string, where: string) {
   try {
     await page.goto(url, { timeout: 180_000 });
@@ -402,7 +429,8 @@ try {
       await emulateDevice(page, DEVICE);
       await page.waitForTimeout(800);
       if (screen.go) await screen.go(page);
-      await page.waitForTimeout(screen.waitMs ?? 600);
+      if (screen.settleAt !== undefined) await settle(page, screen.settleAt);
+      else await page.waitForTimeout(screen.waitMs ?? 600);
       const first = await page.evaluate(contentProbe);
       const stops =
         first.maxScroll > 0 ? [0, Math.round(first.maxScroll / 2), first.maxScroll] : [0];
@@ -454,6 +482,8 @@ try {
             `  ${where} ${at}: ${background.tested} background and ${drawn.tested} uncovered pixels tested`,
           );
       }
+      if (screen.expect && !(await page.locator(screen.expect).count()))
+        problems.push(`the screen moved on (no ${screen.expect}) before it was measured`);
     } catch (error) {
       problems.push(String((error as Error).message ?? error).split("\n")[0]!);
     } finally {

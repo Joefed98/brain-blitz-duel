@@ -26,6 +26,14 @@ export interface PublicGameConfig {
   title?: string;
 }
 
+/**
+ * The beta's persistent public room. "JOULZ" can't be a room code: codes are 4 letters with no I or O
+ * (generateRoomCode, src/lib/duel/puzzles.ts), so the nearest valid code is JULZ. New rooms never get
+ * it (RESERVED_ROOM_CODES); the room itself is made once by hand (docs/beta-sql.md section 11).
+ */
+export const PUBLIC_ROOM_CODE = "JULZ";
+
 export const PUBLIC_GAMES: PublicGameConfig[] = [
-  // { date: "2026-10-24", time: "19:00", lobbyOpens: "18:45", rounds: 6, roomCode: "PLAY" },
+  { date: "2026-10-27", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Launch night" },
+  { date: "2026-10-29", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Thursday night game" },
 ];

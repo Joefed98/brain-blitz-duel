@@ -404,3 +404,29 @@ export async function recordChallengeEvent(client: any, row: ChallengeEventRow):
     client.from("challenge_events").insert({ source: null, ...row }),
   );
 }
+
+/* ---------------------------------------------------------- beta terms ---- */
+
+/**
+ * terms_events (20261023120000): a device agreeing to the beta terms (/terms, before its first room,
+ * daily or challenge), with the date the phone stored and the terms' version. One row per device and
+ * version: the unique index keeps the first.
+ */
+export interface TermsEventRow {
+  user_id: string;
+  terms_version: number;
+  agreed_at: string;
+}
+
+/** The row for an agreement, or null when the phone's input isn't one (no row is better than a wrong one). */
+export function termsEventRow(userId: string, input: Record<string, unknown>): TermsEventRow | null {
+  const version = input["version"];
+  const agreedAt = typeof input["agreedAt"] === "string" ? Date.parse(input["agreedAt"]) : Number.NaN;
+  if (!Number.isInteger(version) || (version as number) < 1 || (version as number) > 1000) return null;
+  if (!Number.isFinite(agreedAt)) return null;
+  return { user_id: userId, terms_version: version as number, agreed_at: new Date(agreedAt).toISOString() };
+}
+
+export async function recordTermsAgreed(client: any, row: TermsEventRow): Promise<void> {
+  await bestEffort(`terms_events v${row.terms_version}`, () => client.from("terms_events").insert(row));
+}

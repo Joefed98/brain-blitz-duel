@@ -2,6 +2,8 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
+import { FeedbackLink } from "@/components/beta/FeedbackLink";
+import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
 import { DailyBoard } from "@/components/daily/DailyBoard";
@@ -48,8 +50,17 @@ export const Route = createFileRoute("/daily")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: DailyScreen,
+  component: GatedDailyScreen,
 });
+
+/** The beta terms come first: shown once on this device before its first room, daily or challenge. */
+function GatedDailyScreen() {
+  return (
+    <TermsGate>
+      <DailyScreen />
+    </TermsGate>
+  );
+}
 
 type Day = "today" | "yesterday";
 type Mode =
@@ -259,6 +270,7 @@ function DailyScreen() {
         }}
         boardLabel="Leaderboard"
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
+        footer={<FeedbackLink small />}
       />
     );
   }

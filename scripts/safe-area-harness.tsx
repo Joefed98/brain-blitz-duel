@@ -16,6 +16,7 @@ import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { puzzleDef } from "@/lib/duel/registry";
 import { bootPlayCards } from "@/lib/playCards";
+import { TERMS_KEY, TERMS_VERSION, termsAgreed } from "@/lib/beta/terms";
 import { Route as DuelRoute } from "@/routes/duel.$code";
 import { Route as HomeRoute } from "@/routes/index";
 import { Route as PracticeRoute } from "@/routes/practice";
@@ -23,6 +24,7 @@ import { Route as TournamentsRoute } from "@/routes/tournaments";
 import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
 import { Route as ChallengeRoute } from "@/routes/challenge";
+import { Route as TermsRoute } from "@/routes/terms";
 
 interface Verdict {
   isCorrect: boolean;
@@ -90,6 +92,8 @@ interface Harness {
   /** A chat message arriving live (chat-notice-check: the toast); set through H.chat. */
   chatIncoming?: unknown;
   chat?: (message: unknown) => void;
+  /** The stubbed exports called, in order (beta-extras-check: nothing is created before the terms). */
+  calls?: string[];
   /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
   update?: (change: (room: Room) => void) => void;
 }
@@ -387,10 +391,23 @@ H.update = (change) => {
   bump();
 };
 
-/** Every stubbed export resolves here; anything not listed is an async no-op. */
-H.call = (_module, name) => IMPLEMENTATIONS[name] ?? (async () => null);
+/** Every stubbed export resolves here; anything not listed is an async no-op. Each call's name is kept in order (beta-extras-check). */
+H.call = (_module, name) => {
+  (H.calls ??= []).push(name);
+  return IMPLEMENTATIONS[name] ?? (async () => null);
+};
 
 /* --------------------------------------------------------------------- mount */
+
+// A returning device: the beta terms (lib/beta/terms.ts) were agreed on an earlier visit, so the room,
+// daily and challenge screens draw themselves. ?terms=0 draws a device that hasn't agreed yet
+// (beta-extras-check: the terms come first).
+if (new URLSearchParams(location.search).get("terms") !== "0")
+  try {
+    if (!termsAgreed()) localStorage.setItem(TERMS_KEY, JSON.stringify({ version: TERMS_VERSION, agreedAt: "2026-10-20T12:00:00.000Z" }));
+  } catch {
+    /* ignore */
+  }
 
 // The root's inline boot script (playCards.ts): which Play tab cards to reserve before the first paint.
 bootPlayCards();
@@ -412,7 +429,9 @@ const Screen = (
             ? DailyRoute
             : mode === "challenge"
               ? ChallengeRoute
-              : PracticeRoute
+              : mode === "terms"
+                ? TermsRoute
+                : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>

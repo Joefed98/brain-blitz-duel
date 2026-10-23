@@ -122,6 +122,8 @@ async function openApp(path: string, opts: { clock?: number } = {}) {
   await page.addInitScript(
     ([key, schedule]) => {
       localStorage.setItem(key as string, "1");
+      // A device that agreed to the beta terms on an earlier visit (beta-extras-check proves the first visit).
+      localStorage.setItem("duelz-terms:v1", JSON.stringify({ version: 1, agreedAt: "2026-10-20T12:00:00.000Z" }));
       (window as unknown as { __DUELZ_PUBLIC_GAMES__: unknown }).__DUELZ_PUBLIC_GAMES__ = schedule;
     },
     [ONBOARDING_KEY, SCHEDULE] as const,
@@ -151,6 +153,28 @@ try {
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
       // The tab screens' gold (#F7BF2F, polish-layout/app-pages.css, Prompt R 23 Oct 2026).
       check(gold === "rgb(247, 191, 47)", `the current tab is gold (${gold})`);
+      // The device's geometry (emulateDevice: the short layout viewport, the insets) lands a frame or more
+      // after the load: wait (up to 5 s) for the bar to settle on the bottom for 3 frames before judging it,
+      // the intermittent CI failure was a measurement taken mid-resize. The check below is unchanged.
+      await page
+        .waitForFunction(
+          () =>
+            new Promise<boolean>((done) => {
+              const at = () => {
+                const el = document.querySelector("[data-app-tabbar]");
+                return el ? `${el.getBoundingClientRect().bottom}/${innerHeight}` : "";
+              };
+              const first = at();
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => done(first !== "" && at() === first && Math.abs(Number(first.split("/")[0]) - innerHeight) < 0.5)),
+                ),
+              );
+            }),
+          undefined,
+          { timeout: 5_000, polling: 100 },
+        )
+        .catch(() => undefined);
       const bar = await page.locator("[data-app-tabbar]").evaluate((el) => {
         const r = el.getBoundingClientRect();
         const row = el.querySelector(".app-tabbar-row")!.getBoundingClientRect();
@@ -208,6 +232,9 @@ try {
       await page.getByRole("button", { name: "Join now" }).click();
       await page.waitForURL(/\/duel\/PUBL$/, { timeout: 30_000 });
       check(true, "Join now opens the public room");
+      // The URL changes before the room route has loaded and drawn (a cold route chunk on CI): wait for the
+      // Tournaments screen to leave before judging the room's (the intermittent "no tab bar" failure).
+      await page.getByRole("heading", { level: 1, name: "Tournaments" }).waitFor({ state: "detached", timeout: 60_000 });
       await page.waitForTimeout(1500);
       check((await tabBar(page)) === 0, "the room screen has no tab bar");
       for (const e of errors) check(false, `page error: ${e}`);

@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCrashContext } from "@/lib/useCrashContext";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { TermsGate } from "@/components/beta/TermsGate";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { ConfirmDialog } from "@/components/duel/ConfirmDialog";
 import type { ContinueState } from "@/components/duel/ContinueFooter";
@@ -329,6 +331,8 @@ function DuelScreen() {
   // The live puzzle round's stage inputs are kept on the device too (stageState.ts), so a reload continues
   // the same board. Never an arcade run (its sim replays its input log); practice never marks a round.
   persistStageState(puzzle && !isArcadeScreenType(puzzle.type) ? stateKey : "");
+  // Crash reports name the game and round on screen (lib/crashReporting.ts; ids only).
+  useCrashContext(round > 0 ? puzzle?.type : null, round > 0 ? round : null);
   const currentReveal =
     revealed?.round === round && revealed.tournamentKey === tournamentKey ? revealed.data : null;
 
@@ -776,12 +780,16 @@ function DuelScreen() {
   }
 
   // Not in the room (a room's rows are only readable by its players): the link
-  // offers a name-only join while the room is in its lobby.
+  // offers a name-only join while the room is in its lobby. That join is an entry point, so the
+  // beta terms come first there (once per device); a device already in the room (its lobby, rounds,
+  // reveals or results) is never interrupted by them: it sees them at its next entry point.
   if (state.notFound || !duel || !me || (me.status === "left" && duel.status === "waiting")) {
     return (
-      <Centered>
-        <JoinFromLink roomCode={roomCode} onJoined={state.refresh} />
-      </Centered>
+      <TermsGate>
+        <Centered>
+          <JoinFromLink roomCode={roomCode} onJoined={state.refresh} />
+        </Centered>
+      </TermsGate>
     );
   }
 

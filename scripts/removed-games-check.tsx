@@ -21,6 +21,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderToString } from "react-dom/server";
+import { APP_NAME } from "@/lib/brand";
 
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { FinalResult } from "@/components/duel/FinalResult";
@@ -179,7 +180,7 @@ for (const type of REMOVED_PUZZLE_TYPES) {
         <Stage puzzle={stored} phaseStartedAt={0} now={0} locked={false} onSubmit={() => {}} />,
       ),
     );
-    ok(Boolean(stage?.includes("no longer in Duelz")), `${type}: stage notice missing`);
+    ok(Boolean(stage?.includes(`no longer in ${APP_NAME}`)), `${type}: stage notice missing`);
     attempt(`${type} intro`, () => renderToString(<Intro />));
     attempt(`${type} help`, () => renderToString(<PuzzleInstructions type={type as never} />));
   }

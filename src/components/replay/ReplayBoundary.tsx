@@ -1,5 +1,7 @@
 import { Component, type ReactNode } from "react";
 
+import { reportCrash } from "@/lib/crashReporting";
+
 /**
  * Replays are display only: a replay that fails (a draw error, an odd stored
  * run) must never take the results screen or the podium down with it. Anything
@@ -12,6 +14,7 @@ export class ReplayBoundary extends Component<{ children: ReactNode }, { failed:
   }
   override componentDidCatch(error: unknown): void {
     console.error("[replay] panel failed", error);
+    reportCrash(error);
   }
   override render(): ReactNode {
     return this.state.failed ? null : this.props.children;

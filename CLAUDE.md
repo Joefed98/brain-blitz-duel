@@ -391,14 +391,40 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   in `20261022120000_friend_challenges.sql`) on every Share tap and on arrivals from `?ref=daily` / `?ref=challenge`
   links (`noteLinkArrival`; still one arrival per device), with `daily_kind` / `challenge_code`; queries Q-S4/Q-S5 in
   `docs/beta-sql.md` section 7.
+- **Beta extras** (22 Oct 2026, presentation, device storage and beta recording only; no scoring, game or stamp
+  changes): the app's public name is **Joulz** (`APP_NAME`, `src/lib/brand.ts`, and the manifest; storage keys, tables,
+  the build id and "Duelz Mono" keep the old name). Values Joe supplies later live in `src/config/betaConfig.ts`
+  (`SENTRY_DSN`, `TALLY_URL`, `CONTACT_EMAIL`, empty until then; read through `betaValue`, which checks can stand in
+  through `window.__DUELZ_BETA_CONFIG__`); an empty value switches its feature off with nothing shown or loaded.
+  *Crash reporting* (`src/lib/crashReporting.ts`): a first-party client for Sentry's envelope API (no package, so
+  bun.lock is untouched), started by the root only when `SENTRY_DSN` is set; uncaught errors, unhandled rejections and
+  boundary-caught errors with device type, screen, viewport, display, route pattern, game id and round
+  (`useCrashContext` in the room, practice and async runs), the commit as release, no user, names, chat, answers or
+  breadcrumbs, no performance data; it only observes, so a round always carries on; `/dev-crash` (development only) raises
+  each kind. *Beta terms* (`/terms`, `TermsScreen`, `lib/beta/terms.ts`): shown once before a device's first room (the
+  room link's join, Create and Join), daily or challenge (`TermsGate`; never inside a room the device is already in: its
+  lobby, rounds, reveals and results show without them, and its next entry point asks), I AGREE stored as `duelz-terms:v1` with its date and
+  sent once to `terms_events` (`supabase/migrations/20261023120000_beta_terms_events.sql`, **written but not applied**);
+  Profile → settings → Beta terms. The screen harnesses seed an agreement unless `?terms=0`. *Add to Home Screen hint*
+  (`HomeScreenHint`): the Play tab's `homescreen` PlaySlot, reserved by the boot script on iPhone Safari outside a
+  home-screen app until shown once (`duelz-home-hint:v1`). *Send feedback* (`FeedbackLink`, `lib/beta/feedback.ts`):
+  Profile, under the podium and two-player final screen, under the daily results; `TALLY_URL` with `device` (the anonymous
+  sign-in id) and `version`. *Public games*: the persistent room **JULZ** (`PUBLIC_ROOM_CODE`; JOULZ isn't a valid code),
+  Tue 27 and Thu 29 Oct 2026 at 20:00 UK; new rooms never get it (`RESERVED_ROOM_CODES`); made by hand once
+  (`docs/beta-sql.md` section 11). The boot script also reserves the next configured public game's card on a fresh device
+  (`PUBLIC_CARD_STARTS`), and the server-rendered page draws a time-free stand-in card in that space (the real one
+  needs the phone's clock), so it never pops in or jumps. beta-extras-check (~2 min, `play11`) proves it all.
 - **Tab screens redesign** (23 Oct 2026, Prompt R, look only; `src/polish-layout/app-pages.css`): the four tab pages
-  (PhoneShell marks their column `data-app-page`), the app header (`AppHeader`: `AppWordmark`, hard-coded "JOULZ" until
-  APP_NAME is renamed, plus `LogoMark`, `src/components/brand/`) and the tab bar take flat panels of divided rows, the gold
+  (PhoneShell marks their column `data-app-page`), the app header (`AppHeader`: `AppWordmark`, APP_NAME
+  uppercased with its last letter gold, plus `LogoMark`, `src/components/brand/`) and the tab bar take flat panels of divided rows, the gold
   shine buttons and Archivo (self-hosted, OFL, `public/fonts`); rooms, rounds, results, daily/challenge play, sheets and
   game tiles keep the page skin. The share welcome card keeps the skin's type (share-check). App icons (apple-touch 180,
   manifest 192/512/maskable, favicons 32/16) are the inverted mark on the gold shine from `APP_ICONS` in `brand.ts`, drawn
   by `bun scripts/brand-icons.ts`; the in-game logo (`APP_LOGO_URL`) is unchanged. Review shots:
-  `bun scripts/shots/app-pages-shots.ts` (`screenshots/app-redesign-oct-2026/`).
+  `bun scripts/shots/app-pages-shots.ts` (`screenshots/app-redesign-oct-2026/`). Connected to the beta extras (#128):
+  Play's Next public game card is the panel row with its date tile (`PublicGameRow`; reserved 259 px, `PUBLIC_CARD_H`,
+  titled or not, with a same-size stand-in), the Add to Home Screen hint a plain panel, and Profile's Send feedback the gold
+  link on the right of the footer line (`FeedbackLink`); play-tab-shift-check covers a cached height and the hint.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

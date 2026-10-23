@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router"
 import { ChevronRight, DoorOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
+import { TermsScreen } from "@/components/beta/TermsScreen";
 import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
 import { Onboarding } from "@/components/duel/Onboarding";
@@ -11,6 +13,8 @@ import { PublicGameCard } from "@/components/app/PublicGameCard";
 import { DailyCard, shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { ChallengeCard } from "@/components/challenge/ChallengeCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
+import { PUBLIC_GAMES } from "@/config/publicGames";
+import { termsAgreed } from "@/lib/beta/terms";
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { useClock } from "@/components/app/useClock";
@@ -124,10 +128,15 @@ function Home() {
   const nameRef = useRef<HTMLInputElement | null>(null);
   // The first-time intro (lib/onboarding): once per device on a plain visit, or from "How it works".
   const [intro, setIntro] = useState(false);
+  // The beta terms come before the first room (lib/beta/terms.ts): Create or Join waits for I AGREE.
+  const [termsFor, setTermsFor] = useState<"create" | "join" | null>(null);
+  // The Add to Home Screen hint (iPhone Safari, first visit; reserved before the first paint, playCards.ts).
+  const [homeHint, setHomeHint] = useState<"show" | "hide">("show");
   // Device-only values (practice history, the schedule against this device's clock) are read after
   // mount, so the server-rendered page and the first client render agree.
   const [recent, setRecent] = useState<PuzzleType[] | null>(null);
-  // Read before the first client paint; its card's height is reserved from the last visit (playCards.ts).
+  // Read before the first client paint; its card's height is reserved from the last visit, or from the
+  // schedule on a first visit (playCards.ts). Until then a quiet card of the same kind stands in.
   const [games, setGames] = useState<PublicGame[]>([]);
   const [welcome, setWelcome] = useState<boolean | null>(null);
   // Set after mount: until then the name row keeps the height reserved before the first paint.
@@ -193,6 +202,11 @@ function Home() {
       return;
     }
 
+    if (!termsAgreed()) {
+      setTermsFor(mode);
+      return;
+    }
+
     setBusy(mode);
     setError(null);
     try {
@@ -209,6 +223,15 @@ function Home() {
   };
 
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
+  if (termsFor)
+    return (
+      <TermsScreen
+        onAgree={() => {
+          setTermsFor(null);
+          void start(termsFor);
+        }}
+      />
+    );
 
   return (
     <PhoneShell tabs="play">
@@ -324,6 +347,10 @@ function Home() {
           )}
         </section>
 
+        <PlaySlot id="homescreen" state={homeHint}>
+          <HomeScreenHint onDismiss={() => setHomeHint("hide")} />
+        </PlaySlot>
+
         <PlaySlot id="rejoin" state={slotState(lastRoom.settled, lastRoom.open)}>
         {(() => {
           // Until the device's last room is read (the server-rendered page): a quiet row of the same size.
@@ -389,7 +416,9 @@ function Home() {
           data-empty={(mounted && !nextGame) || undefined}
           className="play-public-slot"
         >
-        {nextGame ? (
+        {nextGame || (!mounted && PUBLIC_GAMES.length > 0) ? (
+          // Before the page is up (the server-rendered page and the first client render, which can't know the
+          // phone's clock): a quiet stand-in with no day or time, inside the height reserved for the card.
           <PublicGameCard
             game={nextGame}
             now={now}

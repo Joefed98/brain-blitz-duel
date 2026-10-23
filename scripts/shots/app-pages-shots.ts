@@ -1,6 +1,7 @@
 /**
  * Screenshots of the tab screens' look for review (Prompt R, 23 Oct 2026; a design tool, not a check):
- * Play (top and scrolled), Practice (top and scrolled), Tournaments, Profile and the header close up, at 414×896 as an
+ * Play (top and scrolled, the public game card, the Add to Home Screen hint), Practice (top and scrolled), Tournaments,
+ * Profile (and its footer with a test TALLY_URL) and the header close up, at 414×896 as an
  * iPhone 11 home-screen app, on the real screens with only the network edge stubbed
  * (scripts/theme-screens.ts: a scheduled public game, room history, practice bests, the daily and
  * challenge cards), plus the new app icon. JPEG at 2×, each well under 1 MB.
@@ -33,10 +34,19 @@ try {
     ["practice-scrolled", "practice list", 1400],
     ["tournaments", "tournaments", null],
     ["profile", "profile", null],
+    // #128 connected (Prompt R merge): the public game card, the Add to Home Screen hint, the feedback link.
+    ["play-public-card", "play", "[data-public-game]"],
+    ["play-home-screen-hint", "play, Add to Home Screen hint", null],
+    ["profile-footer-feedback", "profile, feedback link", 99999],
   ] as const) {
     const { context, page } = await openThemeScreen(browser, server.origin, screen(name), viewport);
     try {
-      if (act) await page.evaluate((y) => window.scrollTo(0, y), act);
+      if (typeof act === "number") await page.evaluate((y) => window.scrollTo(0, y), act);
+      else if (typeof act === "string")
+        await page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 120);
+        }, act);
       await page.waitForTimeout(400);
       await page.screenshot({ path: join(OUT, `${file}-414x896.jpg`), ...jpeg });
       if (file === "play") {

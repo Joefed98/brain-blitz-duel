@@ -13,6 +13,8 @@ import { fx } from "@/lib/fx";
 
 import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 
+import { FeedbackLink } from "@/components/beta/FeedbackLink";
+
 import { AnimatedScore } from "./AnimatedScore";
 import { ConfettiBurst } from "./ArcadeCelebration";
 import { Dots } from "./Dots";
@@ -188,6 +190,9 @@ export function Podium({
           </li>
         ))}
       </ul>
+
+      {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
+      <FeedbackLink small />
 
       {/* Pinned flush on the chat bar, solid, so Play again and Leave never need a scroll and no row shows through. */}
       <div

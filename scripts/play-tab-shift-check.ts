@@ -28,10 +28,10 @@ import { chromium, type Browser } from "playwright";
 
 import { DEVICE_INIT, IPHONE11_APP } from "./device-emulation";
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS } from "./theme-screens";
+import { CHROMIUM_PATHS, IPHONE_SAFARI_UA } from "./theme-screens";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { ukDayKey, ukDayWindow, type DailyStatus } from "../src/lib/duel/daily";
-import { ARRIVAL_KEY, LAST_ROOM_KEY, NAME_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, applyTokens, playCardTokens } from "../src/lib/playCards";
+import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, PUBLIC_CARD_H, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
 
 const failures: string[] = [];
 let passes = 0;
@@ -51,6 +51,7 @@ const ITEMS: Record<string, string> = {
   daily: "[data-daily-card]",
   challenge: "[data-challenge-card]",
   publicGame: "[data-public-game]",
+  homeHint: "[data-home-hint]",
   warmUp: '[aria-label="Warm up"]',
 };
 const day = ukDayKey(Date.now());
@@ -71,12 +72,14 @@ interface Scenario {
   name: string;
   storage: Record<string, string>;
   query?: string;
+  /** The browser (Prompt R merge: iPhone Safari draws the Add to Home Screen hint). */
+  userAgent?: string;
   server: { daily: boolean; done?: boolean; challenges: boolean; rejoin: "open" | "closed" | null };
   expect: "stable" | "collapse";
 }
 
 async function run(browser: Browser, origin: string, s: Scenario): Promise<{ frames: Frame[]; storage: Record<string, string>; nameRow: { natural: number; reserved: number } }> {
-  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true });
+  const context = await browser.newContext({ viewport: { width: IPHONE11_APP.w, height: IPHONE11_APP.h }, hasTouch: true, isMobile: true, ...(s.userAgent ? { userAgent: s.userAgent } : {}) });
   await context.addInitScript(DEVICE_INIT);
   await context.addInitScript(
     ({ storage, harness, items, onboarding, games }) => {
@@ -204,6 +207,15 @@ try {
   const arrivedSeen = judge(arrival, arrived.frames);
   check(!!arrivedSeen && arrivedSeen[0]!.items["welcome"] !== null, "arrival: the welcome card is there from the first frame");
 
+  // The public game card: a cached height (the last visit's) holds it from the first frame as the boot
+  // script's default does on a fresh device (above), and the Add to Home Screen hint on iPhone Safari.
+  const cached: Scenario = { name: "cached public card height", storage: { ...lastRoom, [PLAY_CARDS_KEY]: JSON.stringify({ publicH: PUBLIC_CARD_H.titled }) }, server: all, expect: "stable" };
+  const cachedSeen = judge(cached, (await run(browser, server.origin, cached)).frames);
+  check(!!cachedSeen && cachedSeen[0]!.items["publicGame"] !== null, "cached height: the public game card is there from the first frame");
+  const hint: Scenario = { name: "iPhone Safari with the home-screen hint", storage: lastRoom, userAgent: IPHONE_SAFARI_UA, server: all, expect: "stable" };
+  const hintSeen = judge(hint, (await run(browser, server.origin, hint)).frames);
+  check(!!hintSeen && hintSeen[0]!.items["homeHint"] !== null && hintSeen[0]!.items["publicGame"] !== null, "iPhone Safari: the hint and the public game card are there from the first frame");
+
   const no: Scenario = { name: "server says no", storage: lastRoom, server: { daily: false, challenges: false, rejoin: "closed" }, expect: "collapse" };
   const said = await run(browser, server.origin, no);
   const saidSeen = judge(no, said.frames);
@@ -301,10 +313,22 @@ check(readFileSync("src/lib/duel/deviceHistory.ts", "utf8").includes(`"${LAST_RO
 check(readFileSync("src/lib/share/shareRef.ts", "utf8").includes(`"${ARRIVAL_KEY}"`), "the arrival key differs from shareRef.ts");
 const src = readFileSync("src/lib/playCards.ts", "utf8");
 const body = src.slice(src.indexOf("export function playCardTokens"), src.indexOf("/** The inline script"));
-check([NAME_KEY, LAST_ROOM_KEY, ARRIVAL_KEY, PLAY_CARDS_KEY].every((k) => body.includes(`"${k}"`)), "the boot script doesn't read every key it should");
+check([NAME_KEY, LAST_ROOM_KEY, ARRIVAL_KEY, PLAY_CARDS_KEY, HOME_HINT_KEY].every((k) => body.includes(`"${k}"`)), "the boot script doesn't read every key it should");
+check(readFileSync("src/components/beta/HomeScreenHint.tsx", "utf8").includes("HOME_HINT_KEY"), "the hint doesn't mark the key the boot script reads");
 const mem = (o: Record<string, string>) => ({ getItem: (k: string) => o[k] ?? null });
-check(playCardTokens(mem({}), "").join() === "daily,challenge", `fresh tokens ${playCardTokens(mem({}), "").join()}`);
-check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ daily: { available: false }, challenges: false }) }), "?ref=share").join() === "welcome", "remembered no's and a share arrival");
+check(playCardTokens(mem({}), "", null, []).join() === "daily,challenge", `fresh tokens ${playCardTokens(mem({}), "", null, []).join()}`);
+check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ daily: { available: false }, challenges: false }) }), "?ref=share", null, []).join() === "welcome", "remembered no's and a share arrival");
+// A configured public game still to come reserves its card on a device with no height cached (the
+// server-rendered page can't draw it: it depends on the phone's clock); a cached height wins; none once it has started.
+{
+  const starts: [number, number][] = [[Date.UTC(2026, 9, 27, 20), 238], [Date.UTC(2026, 9, 29, 20), 216]];
+  const before = Date.UTC(2026, 9, 26);
+  check(playCardTokens(mem({}), "", null, starts, before).includes("public:238"), "a fresh device reserves the next public game's card");
+  check(playCardTokens(mem({}), "", null, starts, Date.UTC(2026, 9, 28)).includes("public:216"), "after the first game, the next one's card");
+  check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ publicH: 0 }) }), "", null, starts, before).includes("public:238"), "a device that saw no card last time still reserves a scheduled one");
+  check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ publicH: 241 }) }), "", null, starts, before).includes("public:241"), "a cached height wins");
+  check(!playCardTokens(mem({}), "", null, starts, Date.UTC(2026, 9, 30)).some((t) => t.startsWith("public")), "nothing reserved once every game has started");
+}
 check(/__html: PLAY_CARDS_BOOT/.test(readFileSync("src/routes/__root.tsx", "utf8")), "the root doesn't run the boot script before the first paint");
 const bootFn = new Function("window", "location", "document", PLAY_CARDS_BOOT);
 const attrs: Record<string, string> = {};
@@ -317,30 +341,53 @@ bootFn(
 check(attrs["data-play-cards"] === "named daily challenge public" && props["--play-public-h"] === "212px", `the inline boot script runs on its own (${attrs["data-play-cards"]}, ${props["--play-public-h"]})`);
 // The inline script (a fixed string) gives the same tokens as playCardTokens + applyTokens in every case.
 {
-  const cases: [Record<string, string>, string][] = [];
+  const cases: [Record<string, string>, string, BootDevice | null][] = [];
+  // The Add to Home Screen hint (22 Oct 2026): iPhone Safari outside a home-screen app, once per device.
+  const SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1";
+  const devices: (BootDevice | null)[] = [
+    null,
+    { ua: SAFARI, standalone: false },
+    { ua: SAFARI, standalone: true },
+    { ua: SAFARI.replace("Version/18.6", "CriOS/141.0.7390.96"), standalone: false },
+    { ua: `${SAFARI} [FBAN/FBIOS;FBAV/530.0]`, standalone: false },
+    { ua: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36", standalone: false },
+    { ua: "Mozilla/5.0 (iPad; CPU OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1", standalone: false },
+  ];
   const caches = [undefined, "{}", JSON.stringify({ daily: { available: false } }), JSON.stringify({ daily: { available: true }, challenges: false }), JSON.stringify({ rejoin: { code: "ABCD", open: null } }), JSON.stringify({ rejoin: { code: "WXYZ", open: null }, publicH: 230.4 }), JSON.stringify({ publicH: 0 }), "not json"];
   for (const cache of caches)
     for (const name of [undefined, "", "  ", "Jo"])
       for (const last of [undefined, JSON.stringify({ code: "ABCD" }), JSON.stringify({ code: "abcd" })])
         for (const arrival of [undefined, JSON.stringify({ at: 1 })])
-          for (const search of ["", "?ref=share", "?mode=home&ref=share&room=ABCD", "?ref=sharex"]) {
-            const store: Record<string, string> = {};
-            if (cache !== undefined) store[PLAY_CARDS_KEY] = cache;
-            if (name !== undefined) store[NAME_KEY] = name;
-            if (last !== undefined) store[LAST_ROOM_KEY] = last;
-            if (arrival !== undefined) store[ARRIVAL_KEY] = arrival;
-            cases.push([store, search]);
-          }
+          for (const search of ["", "?ref=share", "?mode=home&ref=share&room=ABCD", "?ref=sharex"])
+            for (const device of devices)
+              for (const hinted of [undefined, "", JSON.stringify({ shownAt: "2026-10-22T20:00:00Z" })]) {
+                const store: Record<string, string> = {};
+                if (cache !== undefined) store[PLAY_CARDS_KEY] = cache;
+                if (name !== undefined) store[NAME_KEY] = name;
+                if (last !== undefined) store[LAST_ROOM_KEY] = last;
+                if (arrival !== undefined) store[ARRIVAL_KEY] = arrival;
+                if (hinted !== undefined) store[HOME_HINT_KEY] = hinted;
+                cases.push([store, search, device]);
+              }
   let differ = 0;
-  for (const [store, search] of cases) {
+  let hints = 0;
+  for (const [store, search, device] of cases) {
     const a: Record<string, string> = {};
     const p: Record<string, string> = {};
-    bootFn({ localStorage: mem(store) }, { search }, { documentElement: { setAttribute: (k: string, v: string) => void (a[k] = v), style: { setProperty: (k: string, v: string) => void (p[k] = v) } } });
+    const win = device
+      ? { localStorage: mem(store), navigator: { userAgent: device.ua, standalone: device.standalone }, matchMedia: () => ({ matches: false }) }
+      : { localStorage: mem(store) };
+    bootFn(win, { search }, { documentElement: { setAttribute: (k: string, v: string) => void (a[k] = v), style: { setProperty: (k: string, v: string) => void (p[k] = v) } } });
     const b: Record<string, string> = {};
     const q: Record<string, string> = {};
-    applyTokens({ setAttribute: (k: string, v: string) => void (b[k] = v), style: { setProperty: (k: string, v: string) => void (q[k] = v) } } as never, playCardTokens(mem(store), search));
+    applyTokens({ setAttribute: (k: string, v: string) => void (b[k] = v), style: { setProperty: (k: string, v: string) => void (q[k] = v) } } as never, playCardTokens(mem(store), search, device));
     if (JSON.stringify([a, p]) !== JSON.stringify([b, q])) differ++;
+    const hinted = (b["data-play-cards"] ?? "").split(" ").includes("homescreen");
+    if (hinted) hints++;
+    // Only iPhone Safari outside a home-screen app, and only before the device was shown it.
+    if (hinted !== (device === devices[1] && store[HOME_HINT_KEY] === undefined)) differ++;
   }
+  check(hints > 0, `the home-screen hint is reserved for iPhone Safari on a first visit (${hints} cases)`);
   check(differ === 0, `the inline boot script and playCardTokens agree on ${cases.length} storage cases (${differ} differ)`);
 }
 
