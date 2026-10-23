@@ -35,6 +35,7 @@ export function AsyncResults({
   boardLabel = "See leaderboard",
   actions,
   share,
+  footer,
 }: {
   roomId: string;
   view: AsyncAttemptView;
@@ -47,6 +48,8 @@ export function AsyncResults({
   actions?: ReactNode;
   /** A Share button beside the board button (the daily's). */
   share?: ReactNode;
+  /** Under the buttons (the daily's SEND FEEDBACK link). */
+  footer?: ReactNode;
 }) {
   const [reveals, setReveals] = useState<(AsyncReveal | null | undefined)[]>(() =>
     view.rounds.map(() => undefined),
@@ -246,6 +249,7 @@ export function AsyncResults({
             {share}
           </div>
         )}
+        {footer}
       </div>
     </PhoneShell>
   );

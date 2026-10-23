@@ -6,6 +6,7 @@ import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
+import { useCrashContext } from "@/lib/useCrashContext";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 
@@ -212,6 +213,8 @@ function PracticeScreen() {
   // A new version reloads only on the list, never mid-run (lib/appUpdate).
   useUpdateGate(practiceUpdateGate(stage));
   const [type, setType] = useState<PuzzleType | null>(null);
+  // Crash reports name the game on screen (lib/crashReporting.ts); practice has no round number.
+  useCrashContext(type, null);
   const [puzzle, setPuzzle] = useState<PuzzleData | null>(null);
   const [sealed, setSealed] = useState("");
   const [startedAt, setStartedAt] = useState(0);

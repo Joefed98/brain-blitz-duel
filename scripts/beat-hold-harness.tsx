@@ -12,6 +12,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 
 import "../src/styles.css";
+import { TERMS_KEY, TERMS_VERSION, termsAgreed } from "@/lib/beta/terms";
 import { serverNow } from "@/lib/duel/clock";
 import type { DuelPlayerRow, DuelRow, PuzzleData, RoundResultRow } from "@/lib/duel/types";
 import { Route as DuelRoute } from "@/routes/duel.$code";
@@ -187,6 +188,16 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
 H.call = (_module, name) => IMPLEMENTATIONS[name] ?? (async () => null);
 
 /* --------------------------------------------------------------------- mount */
+
+// A returning device: the beta terms (lib/beta/terms.ts) were agreed on an earlier visit, so the room,
+// daily and challenge screens draw themselves. ?terms=0 draws a device that hasn't agreed yet
+// (beta-extras-check: the terms come first).
+if (new URLSearchParams(location.search).get("terms") !== "0")
+  try {
+    if (!termsAgreed()) localStorage.setItem(TERMS_KEY, JSON.stringify({ version: TERMS_VERSION, agreedAt: "2026-10-20T12:00:00.000Z" }));
+  } catch {
+    /* ignore */
+  }
 
 const mode = new URLSearchParams(location.search).get("mode");
 const Screen = (mode === "room" ? DuelRoute : PracticeRoute).options.component as () => JSX.Element;

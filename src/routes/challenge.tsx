@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Swords } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
 import { rivalLooks, rivalRows, type AsyncRivals } from "@/components/async/rivals";
@@ -65,8 +66,17 @@ export const Route = createFileRoute("/challenge")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: ChallengeScreen,
+  component: GatedChallengeScreen,
 });
+
+/** The beta terms come first: shown once on this device before its first room, daily or challenge. */
+function GatedChallengeScreen() {
+  return (
+    <TermsGate>
+      <ChallengeScreen />
+    </TermsGate>
+  );
+}
 
 type Mode =
   | { kind: "loading" }

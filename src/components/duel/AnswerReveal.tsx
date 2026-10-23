@@ -20,6 +20,7 @@ import { NewBestMoment } from "@/components/duel/NewBestMoment";
 
 const REVEAL_SCORE_DELAY_MS = 350;
 import { fx } from "@/lib/fx";
+import { APP_NAME } from "@/lib/brand";
 
 interface AnswerRevealProps {
   round: number;
@@ -216,7 +217,7 @@ function RemovedRoundReveal({ round, totalRounds = TOTAL_ROUNDS, puzzle, myScore
         <p data-reveal-score={myScore ?? "none"} className="shrink-0 font-mono text-2xl font-bold tabular-nums text-primary">
           {myScore === null ? "No score" : `${myScore} points`}
         </p>
-        <p className="text-center text-sm text-muted-foreground">This game is no longer in Duelz; the stored score stands.</p>
+        <p className="text-center text-sm text-muted-foreground">{`This game is no longer in ${APP_NAME}; the stored score stands.`}</p>
       </div>
     </div>
   );

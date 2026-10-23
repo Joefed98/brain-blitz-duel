@@ -121,7 +121,11 @@ export const room =
 
 export interface ThemeScreen {
   name: string;
-  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge";
+  mode: "home" | "practice" | "tournaments" | "profile" | "room" | "daily" | "challenge" | "terms";
+  /** The browser's user agent (the Add to Home Screen hint shows on iPhone Safari only). */
+  userAgent?: string;
+  /** Stand-in beta values (src/config/betaConfig.ts) through window.__DUELZ_BETA_CONFIG__. */
+  beta?: Record<string, string>;
   /** Friend challenges' stand-in server (H.challenge), the run's view (H.daily) and the route's ?code=. */
   challenge?: () => ChallengeScreenData;
   search?: Record<string, string>;
@@ -178,6 +182,10 @@ export const CHALLENGE_SCREENS: ThemeScreen[] = [
   { name: "challenge, creator's results", mode: "challenge", challenge: () => challengeFixture("creator"), search: { code: CHALLENGE_CODE }, waitMs: 1500 },
 ];
 
+/** iPhone 11 Safari (iOS 18), not a home-screen app. */
+export const IPHONE_SAFARI_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1";
+
 export const THEME_SCREENS: ThemeScreen[] = [
   { name: "play", mode: "home", daily: () => dailyFixture().after, challenge: () => challengeFixture("create") },
   { name: "practice list", mode: "practice" },
@@ -196,6 +204,10 @@ export const THEME_SCREENS: ThemeScreen[] = [
       await page.waitForTimeout(600);
     },
   },
+  // The beta extras (22 Oct 2026): the terms before a first room, the iPhone Safari hint, the feedback link.
+  { name: "beta terms", mode: "terms", query: "terms=0" },
+  { name: "play, Add to Home Screen hint", mode: "home", userAgent: IPHONE_SAFARI_UA },
+  { name: "profile, feedback link", mode: "profile", beta: { TALLY_URL: "https://tally.so/r/test12" } },
   {
     name: "settings sheet",
     mode: "profile",
@@ -359,8 +371,13 @@ export async function openThemeScreen(
   const context = await browser.newContext({
     viewport: { width: viewport.w, height: viewport.h },
     ...(viewport.desktop ? { hasTouch: false, isMobile: false } : { hasTouch: true }),
+    ...(screen.userAgent ? { userAgent: screen.userAgent } : {}),
   });
   await context.addInitScript(DEVICE_INIT);
+  if (screen.beta)
+    await context.addInitScript((beta) => {
+      (window as unknown as { __DUELZ_BETA_CONFIG__: unknown }).__DUELZ_BETA_CONFIG__ = beta;
+    }, screen.beta);
   if (prepare) await prepare(context);
   await context.addInitScript(
     (r) => {

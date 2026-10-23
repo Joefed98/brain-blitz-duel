@@ -1,6 +1,7 @@
 import type { PuzzleCategory, PuzzleData, PuzzleType } from "@/lib/duel/types";
 import { REMOVED_GAMES, removedRoundScore, type RemovedPuzzleType } from "@/lib/duel/removedGames";
 import { ROUND_MS } from "@/lib/duel/types";
+import { APP_NAME } from "@/lib/brand";
 
 import type { PuzzleDefinition } from "./types";
 
@@ -8,7 +9,7 @@ function Notice({ name }: { name: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
       <p className="font-display text-lg font-bold text-foreground">{name}</p>
-      <p className="text-sm text-muted-foreground">This game is no longer in Duelz.</p>
+      <p className="text-sm text-muted-foreground">{`This game is no longer in ${APP_NAME}.`}</p>
     </div>
   );
 }
@@ -43,7 +44,7 @@ export function removedGameDefinition(type: RemovedPuzzleType | string): PuzzleD
     showTimer: false,
     retired: true,
     instructions: {
-      goal: `${name} is no longer in Duelz.`,
+      goal: `${name} is no longer in ${APP_NAME}.`,
       how: [
         { action: "Nothing to play.", detail: "This round was dealt before the game was deleted." },
         { action: "Scores stand:", detail: "every stored score counts as it was." },

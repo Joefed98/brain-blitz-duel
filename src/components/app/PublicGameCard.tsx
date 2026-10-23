@@ -22,7 +22,8 @@ export function PublicGameCard({
   footer,
   tint = "teal",
 }: {
-  game: PublicGame;
+  /** null: a stand-in before the page is up (no day, time or state: those need the phone's clock). */
+  game: PublicGame | null;
   now: number;
   heading: string;
   onJoin: (roomCode: string) => void;
@@ -31,10 +32,10 @@ export function PublicGameCard({
   tint?: "teal" | "gold";
 }) {
   const gold = tint === "gold";
-  const state = nextUpState(game, now);
+  const state = game ? nextUpState(game, now) : "calendar";
   return (
     <section
-      data-public-game={state}
+      data-public-game={game ? state : "pending"}
       aria-label={heading}
       data-tint={tint}
       className="th-card th-card-clip flex flex-col gap-3 rounded-2xl border border-category-logic/35 bg-card/80 p-4"
@@ -44,14 +45,14 @@ export function PublicGameCard({
         <div className="min-w-0">
           <p className={`th-kicker ${gold ? "text-primary" : "text-category-logic"}`}>{heading}</p>
           <p className="mt-1 whitespace-nowrap font-display text-xl font-bold uppercase leading-tight text-foreground">
-            {ukDay(game.startsAt, now)} · {ukTime(game.startsAt)}
+            {game ? `${ukDay(game.startsAt, now)} · ${ukTime(game.startsAt)}` : "····"}
           </p>
-          {game.title ? (
+          {game?.title ? (
             <p className="mt-0.5 truncate text-sm text-foreground">{game.title}</p>
           ) : null}
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-mono tabular-nums">{game.rounds}</span> rounds ·{" "}
-            {state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
+            <span className="font-mono tabular-nums">{game ? game.rounds : "·"}</span> rounds ·{" "}
+            {!game ? "Lobby opens at ····" : state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
           </p>
         </div>
         <span data-tone={gold ? "gold" : "teal"} className="th-pill shrink-0">
@@ -62,7 +63,7 @@ export function PublicGameCard({
         <button
           type="button"
           data-public-join
-          onClick={() => onJoin(game.roomCode)}
+          onClick={() => game && onJoin(game.roomCode)}
           className={`${gold ? "th-btn-gold" : "th-btn-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-category-logic font-display text-base font-extrabold uppercase tracking-wide text-[#0B0B0F]`}
         >
           <Users aria-hidden="true" className="h-5 w-5" /> Join now
@@ -71,7 +72,7 @@ export function PublicGameCard({
         <button
           type="button"
           data-public-calendar
-          onClick={() => downloadCalendar(game)}
+          onClick={() => game && downloadCalendar(game)}
           className={`${gold ? "th-btn-outline-gold" : "th-btn-outline-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl border border-category-logic/60 bg-category-logic/10 font-display text-sm font-bold uppercase tracking-wide text-category-logic`}
         >
           <CalendarPlus aria-hidden="true" className="h-5 w-5" /> Add to calendar

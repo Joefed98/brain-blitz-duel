@@ -10,6 +10,7 @@ import { FinishedPingStrip } from "@/components/duel/FinishedPings";
 import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { TimerBar } from "@/components/duel/TimerBar";
+import { useCrashContext } from "@/lib/useCrashContext";
 import { arcadeMsRemaining } from "@/lib/arcade/clock";
 import { asyncRoundWindow, currentAsyncRound, type AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import {
@@ -138,6 +139,11 @@ export function AsyncRun({
   const roundCount = view?.roundCount ?? 0;
   const stateKey = step.kind === "puzzle" ? `async-${roomId}-${step.round}` : "";
   const puzzle = step.kind === "puzzle" ? step.puzzle : null;
+  // Crash reports name the game and round on screen (lib/crashReporting.ts; ids only).
+  useCrashContext(
+    "puzzle" in step ? step.puzzle.type : "type" in step ? step.type : null,
+    "round" in step ? step.round : null,
+  );
   // The live puzzle round's board inputs are kept on the device, as in a room (never an arcade run).
   persistStageState(puzzle && !isArcadeScreenType(puzzle.type) ? stateKey : "");
 

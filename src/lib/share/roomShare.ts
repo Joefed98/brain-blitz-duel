@@ -58,7 +58,7 @@ export function roomShareLink(origin: string, roomCode: string): string {
   return `${origin.replace(/\/+$/, "")}/duel/${roomCode}?ref=${SHARE_REF}`;
 }
 
-/** "I came 2nd in a 6-round Duelz room – 612 pts." (or "I played …" without a place). */
+/** "I came 2nd in a 6-round Joulz room – 612 pts." (or "I played …" without a place). */
 export function roomShareLine(place: number | null, rounds: number, total: number): string {
   const room = `a ${rounds}-round ${APP_NAME} room`;
   const pts = `${total} pts`;

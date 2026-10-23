@@ -9,6 +9,8 @@ import { buzz } from "@/lib/motion";
 import { playVoice } from "@/lib/sound";
 import { fx } from "@/lib/fx";
 
+import { FeedbackLink } from "@/components/beta/FeedbackLink";
+
 import { AnimatedScore } from "./AnimatedScore";
 import { Dots } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
@@ -186,6 +188,8 @@ export function FinalResult({
         >
           Home
         </button>
+        {/* SEND FEEDBACK (the beta's form; nothing while TALLY_URL is empty). */}
+        <FeedbackLink small />
       </div>
     </div>
   );
