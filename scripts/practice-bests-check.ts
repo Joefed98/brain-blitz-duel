@@ -165,8 +165,8 @@ const localStorage = {
   check(/if \(!wasExample\) \{\s*const record = recordPracticeBest/.test(practice), "intro-example runs are never recorded");
   check(/readPracticeBest\(next, stampSignature\(made\.puzzle/.test(practice), "the intro reads the dealt puzzle's best");
   check(/function CardBest[\s\S]*?readPracticeBest\(type, currentPracticeStamp\(type\)\)/.test(practice), "the list's cards read the current stamps");
-  // Prompt R (23 Oct 2026): the three lists draw one row (row(key)), which carries the best and its description.
-  check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => row\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => row\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => row\(key, true\)\)/.test(practice), "every practice card shows its best (active, preview, retired)");
+  // Shelves and grid (follow-up to #129): every list draws one tile (tile(key…)), which carries the best and its description.
+  check((practice.match(/<CardBest type=\{key\} \/>/g) ?? []).length === 1 && /rows\.map\(\(key\) => tile\(key, TILE_PX\)\)/.test(practice) && /matches\.map\(\(key\) => tile\(key\)\)/.test(practice) && /previewRows\.map\(\(key\) => tile\(key\)\)/.test(practice) && /retiredRows\.map\(\(key\) => tile\(key, GRID_TILE_PX, true\)\)/.test(practice), "every practice card shows its best (active shelves and grid, preview, retired)");
   check(/if \(best === null\) return null;/.test(practice), "a card with no best shows nothing");
   check(/>\s*Best <b[^>]*>\{best\}<\/b>\s*</.test(practice), 'the card reads "Best 132" (the score in bold gold)');
   // 17 Oct 2026 (CI on #108): the best inside the button changed its accessible name ("Grappler Best 45"), so

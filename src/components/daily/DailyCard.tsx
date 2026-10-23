@@ -1,4 +1,4 @@
-import { ChevronRight, Gamepad2, Puzzle } from "lucide-react";
+import { Gamepad2, Puzzle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { dailyStatus } from "@/lib/duel/asyncApi";
@@ -6,22 +6,23 @@ import {
   DAILY_KINDS,
   DAILY_ROUNDS,
   DAILY_TITLE,
-  rankLine,
   ukDayKey,
   ukDayWindow,
   type DailyKind,
   type DailyState,
   type DailyStatus,
 } from "@/lib/duel/daily";
-import { ordinal } from "@/lib/duel/ordinal";
 import { readPlayCards, writePlayCards } from "@/lib/playCards";
 
-/** A daily's row: its size, then (once played) the device's score and place, and its button. */
-function rowState(kind: DailyKind, state: DailyState): { sub: string; action: string | null } {
+/**
+ * A daily's row: its size, then (once played today) the device's score ("6 rounds · 742"), and its pill:
+ * gold Play or Continue (tap to play), grey Done once played.
+ */
+function rowState(kind: DailyKind, state: DailyState): { sub: string; action: string; done: boolean } {
   const size = kind === "puzzle" ? `${DAILY_ROUNDS[kind]} rounds` : `${DAILY_ROUNDS[kind]} games`;
-  if (state.state === "play") return { sub: size, action: "Play" };
-  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue" };
-  return { sub: `You scored ${state.total} · ${rankLine(state.rank, state.count, ordinal)}`, action: null };
+  if (state.state === "play") return { sub: size, action: "Play", done: false };
+  if (state.state === "continue") return { sub: `${size} · started`, action: "Continue", done: false };
+  return { sub: `${size} · ${state.total}`, action: "Done", done: true };
 }
 
 const DAILY_ICON = { puzzle: Puzzle, arcade: Gamepad2 } as const;
@@ -87,7 +88,7 @@ export function DailyCard({
       </div>
       <div className="ap-panel">
         {DAILY_KINDS.map((kind) => {
-          const { sub, action } = rowState(kind, status[kind]);
+          const { sub, action, done } = rowState(kind, status[kind]);
           const Icon = DAILY_ICON[kind];
           return (
             <button
@@ -99,7 +100,7 @@ export function DailyCard({
               data-icon="sq"
               className="ap-row press"
             >
-              <span className="ap-icon-sq">
+              <span data-tone={kind} className="ap-icon-sq">
                 <Icon aria-hidden="true" />
               </span>
               <span className="ap-row-text">
@@ -108,13 +109,7 @@ export function DailyCard({
                   {sub}
                 </span>
               </span>
-              {action ? (
-                <span className="ap-pill-gold">
-                  {action}
-                </span>
-              ) : (
-                <ChevronRight aria-hidden="true" className="ap-chevron" />
-              )}
+              <span className={done ? "ap-pill-done" : "ap-pill-gold"}>{action}</span>
             </button>
           );
         })}

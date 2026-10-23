@@ -46,7 +46,7 @@ function ProfileScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
-  // Whether this device has picked a colour or icon (the default avatar is the gold initial until then).
+  // Whether this device has picked a colour or icon (the default avatar is the plain initial until then).
   const [lookChosen, setLookChosen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -98,7 +98,7 @@ function ProfileScreen() {
 
         <section aria-label="Your look" className="ap-panel ap-pad flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            {/* No colour or icon chosen yet: the initial on the gold shine; else the player's own badge. */}
+            {/* No colour or icon chosen yet: the initial on a quiet disc; else the player's own badge. */}
             {!lookChosen && look.icon === null ? (
               <span aria-hidden="true" data-default-look className="ap-avatar-default">
                 {playerInitial(shownName)}
@@ -220,7 +220,7 @@ function ProfileScreen() {
                   <li key={type} data-icon="44" className="ap-row">
                     <GameIcon type={type} size={44} />
                     <span className="ap-row-title min-w-0 flex-1">{PUZZLE_REGISTRY[type].name}</span>
-                    <span className="shrink-0 text-[18px] font-extrabold tabular-nums text-primary">{best}</span>
+                    <span className="ap-score shrink-0 text-[18px]">{best}</span>
                   </li>
                 ))}
               </ul>
@@ -246,7 +246,7 @@ function ProfileScreen() {
                       </span>
                     </span>
                     <span
-                      className={`shrink-0 text-[18px] font-extrabold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                      className="ap-score shrink-0 text-[18px]"
                     >
                       {r.place === null ? "Left" : ordinal(r.place)}
                     </span>

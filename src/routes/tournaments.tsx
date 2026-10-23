@@ -3,12 +3,11 @@ import { CalendarClock, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { PublicGameAction, PublicGameRow } from "@/components/app/PublicGameCard";
+import { PublicGameNext, PublicGameRow } from "@/components/app/PublicGameCard";
 import { useClock } from "@/components/app/useClock";
 import { readRoomHistory, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { ordinal } from "@/lib/duel/ordinal";
 import {
-  nextUpState,
   publicRoomCodes,
   scheduledGames,
   ukDay,
@@ -62,14 +61,11 @@ function TournamentsScreen() {
           </div>
           <div className="ap-panel">
             {next ? (
-              <div data-public-game={nextUpState(next, now)}>
-                <PublicGameRow game={next} />
-                <PublicGameAction
-                  game={next}
-                  now={now}
-                  onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
-                />
-              </div>
+              <PublicGameNext
+                game={next}
+                now={now}
+                onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
+              />
             ) : (
               <p data-public-none className="ap-empty">
                 <CalendarClock aria-hidden="true" />
@@ -78,7 +74,7 @@ function TournamentsScreen() {
             )}
             {later.map((game) => (
               <div key={`${game.roomCode}-${game.startsAt}`} data-public-later>
-                <PublicGameRow game={game} />
+                <PublicGameRow game={game} now={now} />
               </div>
             ))}
           </div>
@@ -105,7 +101,7 @@ function TournamentsScreen() {
                       </span>
                     </span>
                     <span
-                      className={`shrink-0 text-[18px] font-extrabold tabular-nums ${r.place === 1 ? "text-primary" : "text-foreground"}`}
+                      className="ap-score shrink-0 text-[18px]"
                     >
                       {r.place === null ? "Left" : ordinal(r.place)}
                     </span>

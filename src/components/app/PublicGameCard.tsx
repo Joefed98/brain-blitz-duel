@@ -16,14 +16,18 @@ export function publicGameWhen(game: PublicGame): string {
 }
 
 /**
- * A public game's row: its date tile (UK date), title and day and time (polish-layout/app-pages.css).
- * `game` null: the stand-in before the page is up (no day or time: those need the phone's clock), the
- * same size as the real row.
+ * A public game's date tile and its three stacked lines: the title, "Tue 27 Oct · 8:00 pm UK" (secondary)
+ * and "Lobby opens 7:45 pm · 6 rounds" (faint). Every line is one line (ellipsis), so the height never
+ * depends on the title. `game` null: the stand-in before the page is up (no day or time: those need the
+ * phone's clock), the same size as the real one.
  */
-export function PublicGameRow({ game }: { game: PublicGame | null }) {
+function PublicGameLines({ game, now }: { game: PublicGame | null; now: number }) {
   const parts = game ? ukDateParts(game.startsAt) : null;
+  const lobby = !game
+    ? "Lobby opens ····"
+    : `${nextUpState(game, now) === "join" ? "Lobby open now" : `Lobby opens ${ukTime(game.lobbyAt)}`} · ${game.rounds} rounds`;
   return (
-    <div data-icon="date" className="ap-row">
+    <>
       <span aria-hidden="true" className="ap-date">
         <span className="ap-date-day">{parts ? parts.weekday : "···"}</span>
         <span className="ap-date-num">{parts ? parts.day : "··"}</span>
@@ -35,86 +39,93 @@ export function PublicGameRow({ game }: { game: PublicGame | null }) {
         <span data-ellipsis className="ap-row-sub">
           {game ? publicGameWhen(game) : "····"}
         </span>
+        <span data-ellipsis className="ap-row-sub ap-faint">
+          {lobby}
+        </span>
       </span>
+    </>
+  );
+}
+
+/** A later public game's row (Tournaments): its date tile and lines, no buttons. */
+export function PublicGameRow({ game, now }: { game: PublicGame; now: number }) {
+  return (
+    <div data-icon="date" className="ap-row">
+      <PublicGameLines game={game} now={now} />
     </div>
   );
 }
 
 /**
- * The next public game's lobby line and its one button. Before the lobby opens it offers "Add to
- * calendar" (an .ics file); from lobby time until the start it offers "Join now", which opens the
- * public room (the room's own link join asks for a name). `game` null: the stand-in (Add to calendar,
- * doing nothing).
+ * The next public game, in one layout (Play's card and Tournaments' first row): the date tile and lines,
+ * then two equal 44 px buttons side by side. Join now opens the public room (its link join asks for a
+ * name) and is gold from lobby time until the start; before the lobby opens it is there but off. Add to
+ * calendar (an .ics file) is always offered. `data-public-game` is the state ("calendar" before the
+ * lobby opens, "join" from then; "pending" for the stand-in). Its height is reserved before the first
+ * paint (PUBLIC_CARD_H in lib/playCards.ts, the same with or without a title).
  */
-export function PublicGameAction({
+export function PublicGameNext({
   game,
   now,
   onJoin,
-  footer,
 }: {
   game: PublicGame | null;
   now: number;
   onJoin: (roomCode: string) => void;
-  footer?: ReactNode;
 }) {
   const state = game ? nextUpState(game, now) : "calendar";
+  const open = state === "join";
   return (
-    <div className="flex flex-col gap-3 px-4 pb-4">
-      <p className="text-[14px] text-muted-foreground">
-        {game ? game.rounds : "·"} rounds ·{" "}
-        {!game ? "Lobby opens at ····" : state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
-      </p>
-      {state === "join" ? (
+    <div data-public-game={game ? state : "pending"} className="flex flex-col gap-3 p-4">
+      <div className="flex items-center gap-3">
+        <PublicGameLines game={game} now={now} />
+      </div>
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           type="button"
           data-public-join
-          onClick={() => game && onJoin(game.roomCode)}
-          className="ap-btn-gold press tap-target h-[50px] w-full text-base"
+          disabled={!open}
+          onClick={() => game && open && onJoin(game.roomCode)}
+          className={`${open ? "ap-btn-gold" : "ap-btn-outline ap-btn-off"} press tap-target h-11 w-full text-[15px]`}
         >
-          <Users aria-hidden="true" className="h-5 w-5" /> Join now
+          <Users aria-hidden="true" className="h-[18px] w-[18px]" /> Join now
         </button>
-      ) : (
         <button
           type="button"
           data-public-calendar
           onClick={() => game && downloadCalendar(game)}
-          className="ap-btn-outline press tap-target h-[50px] w-full text-base"
+          className="ap-btn-outline press tap-target h-11 w-full text-[15px]"
         >
-          <CalendarPlus aria-hidden="true" className="h-5 w-5" /> Add to calendar
+          <CalendarPlus aria-hidden="true" className="h-[18px] w-[18px]" /> Add to calendar
         </button>
-      )}
-      {footer}
+      </div>
     </div>
   );
 }
 
-/**
- * Play's "Next public game": the game's row, its lobby line and its button, in one panel. Its height
- * is reserved before the first paint (PUBLIC_CARD_H in lib/playCards.ts, the same for every game: the
- * row's title and lines are one line each), so the stand-in and the real card never move anything.
- */
+/** Play's "Next public game": its heading (with `link` on the right) and the next game in one panel. */
 export function PublicGameCard({
   game,
   now,
   heading,
   onJoin,
-  footer,
+  link,
 }: {
   /** null: a stand-in before the page is up (no day, time or state: those need the phone's clock). */
   game: PublicGame | null;
   now: number;
   heading: string;
   onJoin: (roomCode: string) => void;
-  footer?: ReactNode;
+  link?: ReactNode;
 }) {
   return (
-    <section data-public-game={game ? nextUpState(game, now) : "pending"} aria-label={heading} className="ap-section">
+    <section aria-label={heading} className="ap-section">
       <div className="ap-section-head">
         <h2 className="ap-section-title">{heading}</h2>
+        {link}
       </div>
       <div className="ap-panel">
-        <PublicGameRow game={game} />
-        <PublicGameAction game={game} now={now} onJoin={onJoin} footer={footer} />
+        <PublicGameNext game={game} now={now} onJoin={onJoin} />
       </div>
     </section>
   );

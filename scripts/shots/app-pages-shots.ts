@@ -14,7 +14,8 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 
 import { startSafeAreaServer } from "../safe-area-server";
-import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen } from "../theme-screens";
+import { dailyFixture } from "../daily-fixture";
+import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen, type ThemeScreen } from "../theme-screens";
 
 const OUT = process.argv.find((a) => a.startsWith("--out="))?.slice(6) ?? "screenshots/app-redesign-oct-2026";
 const SCALE = Number(process.argv.find((a) => a.startsWith("--scale="))?.slice(8) ?? 2);
@@ -22,7 +23,19 @@ const CHROMIUM = CHROMIUM_PATHS.find((path): path is string => Boolean(path && e
 mkdirSync(OUT, { recursive: true });
 
 const viewport = { ...VIEWPORTS[0]!, scale: SCALE };
-const screen = (name: string) => THEME_SCREENS.find((s) => s.name === name)!;
+// Both of today's dailies already played on this device (the follow-up to #129: grey Done pills).
+const bothDone = (): ThemeScreen => {
+  const play = THEME_SCREENS.find((s) => s.name === "play")!;
+  return {
+    ...play,
+    name: "play, both dailies done",
+    daily: () => {
+      const after = dailyFixture().after;
+      return { ...after, status: { ...after.status, arcade: { state: "done", total: 412, rank: 9, count: null } } };
+    },
+  };
+};
+const screen = (name: string) => (name === "play, both dailies done" ? bothDone() : THEME_SCREENS.find((s) => s.name === name)!);
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-app-pages-shots", buildId: "app-pages-shots" });
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 const jpeg = { type: "jpeg" as const, quality: 82 };
@@ -32,16 +45,23 @@ try {
     ["play-scrolled", "play", 2000],
     ["practice-top", "practice list", null],
     ["practice-scrolled", "practice list", 1400],
+    // Practice's shelves give way to a grid of three with a category or a search (follow-up to #129).
+    ["practice-category", "practice list", "click:[data-practice-filter='logic']"],
+    ["practice-search", "practice list", "fill:ra"],
     ["tournaments", "tournaments", null],
     ["profile", "profile", null],
     // #128 connected (Prompt R merge): the public game card, the Add to Home Screen hint, the feedback link.
     ["play-public-card", "play", "[data-public-game]"],
     ["play-home-screen-hint", "play, Add to Home Screen hint", null],
     ["profile-footer-feedback", "profile, feedback link", 99999],
+    ["play-dailies-done", "play, both dailies done", "[data-daily-card]"],
   ] as const) {
     const { context, page } = await openThemeScreen(browser, server.origin, screen(name), viewport);
     try {
       if (typeof act === "number") await page.evaluate((y) => window.scrollTo(0, y), act);
+      else if (typeof act === "string" && act.startsWith("click:")) await page.locator(act.slice(6)).click();
+      else if (typeof act === "string" && act.startsWith("fill:"))
+        await page.getByRole("searchbox", { name: "Search games" }).fill(act.slice(5));
       else if (typeof act === "string")
         await page.evaluate((sel) => {
           const el = document.querySelector(sel);
