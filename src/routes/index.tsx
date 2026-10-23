@@ -337,7 +337,7 @@ function Home() {
               disabled={busy !== null}
               className="ap-btn-outline press tap-target h-[50px] w-[88px] shrink-0 text-base"
             >
-              {busy === "join" ? <Dots className="bg-primary" /> : "Join"}
+              {busy === "join" ? <Dots className="bg-foreground" /> : "Join"}
             </button>
           </div>
           {error && (
@@ -424,11 +424,11 @@ function Home() {
             now={now}
             heading="Next public game"
             onJoin={(room) => void navigate({ to: "/duel/$code", params: { code: room } })}
-            footer={
+            link={
               <button
                 type="button"
                 onClick={() => goToTab(router, "play", "tournaments")}
-                className="ap-link press h-11 self-center px-3"
+                className="ap-link press -my-2.5 -mr-1 h-11 px-1"
               >
                 All public games
               </button>

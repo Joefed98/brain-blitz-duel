@@ -7,7 +7,7 @@ import { currentUserId } from "@/lib/duel/session";
 /**
  * SEND FEEDBACK: opens the beta's Tally form in a new tab with this device's anonymous id and the app
  * version (lib/beta/feedback.ts). Renders nothing while TALLY_URL is empty. `small`: the quiet link
- * under the podium and the daily results; otherwise Profile's gold link on the right of its
+ * under the podium and the daily results; otherwise Profile's link on the right of its
  * footer line (Prompt R, polish-layout/app-pages.css).
  */
 export function FeedbackLink({ small = false }: { small?: boolean }) {

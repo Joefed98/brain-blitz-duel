@@ -8,7 +8,7 @@
  *  1. Fresh device, a last room, everything available: from the first frame every card is where it
  *     ends up (within 2 px) and none appears later.
  *  2. Returning device (a stored name, today's daily done, the room cached): the same, and the daily
- *     card shows the remembered "694 4TH" from the first frame.
+ *     card shows the remembered "6 rounds · 694" and its grey Done pill from the first frame.
  *  3. Arriving from a shared link (?ref=share): the welcome card is there from the first frame.
  *  4. The server says no (dailies and challenges not migrated, the room closed): the reserved cards
  *     collapse smoothly (nothing below moves more than 40 px in a frame, nothing ever moves down)
@@ -200,7 +200,8 @@ try {
   check(Math.abs(back.nameRow.natural - back.nameRow.reserved) <= 0.5, `a stored name: the name row reserved ${back.nameRow.reserved} px before the page is up, ${back.nameRow.natural} px after`);
   const backSeen = judge(returning, back.frames);
   const firstDaily = backSeen?.find((f) => f.items["daily"] !== null)?.daily ?? "";
-  check(/694/.test(firstDaily) && /4th/i.test(firstDaily), `returning device: the daily card's first frame shows the remembered score (${firstDaily})`);
+  // The follow-up to #129: a played daily's row shows its score ("6 rounds · 694") and a grey Done pill, no place.
+  check(/6 rounds · 694/.test(firstDaily) && /Done/.test(firstDaily), `returning device (a daily already played): the daily card's first frame shows the remembered score and Done (${firstDaily})`);
 
   const arrival: Scenario = { name: "arrival from a shared link", storage: {}, query: "ref=share", server: all, expect: "stable" };
   const arrived = await run(browser, server.origin, arrival);
@@ -324,6 +325,8 @@ check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ daily: { available
   const starts: [number, number][] = [[Date.UTC(2026, 9, 27, 20), 238], [Date.UTC(2026, 9, 29, 20), 216]];
   const before = Date.UTC(2026, 9, 26);
   check(playCardTokens(mem({}), "", null, starts, before).includes("public:238"), "a fresh device reserves the next public game's card");
+  // The default heights are the card's own: one layout whether or not the game has a title (PublicGameNext).
+  check(PUBLIC_CARD_H.titled === PUBLIC_CARD_H.plain, "the public card is the same height with and without a title");
   check(playCardTokens(mem({}), "", null, starts, Date.UTC(2026, 9, 28)).includes("public:216"), "after the first game, the next one's card");
   check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ publicH: 0 }) }), "", null, starts, before).includes("public:238"), "a device that saw no card last time still reserves a scheduled one");
   check(playCardTokens(mem({ [PLAY_CARDS_KEY]: JSON.stringify({ publicH: 241 }) }), "", null, starts, before).includes("public:241"), "a cached height wins");

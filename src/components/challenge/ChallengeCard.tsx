@@ -14,7 +14,7 @@ export function ChallengeCard({ available, onOpen }: { available: boolean; onOpe
       data-icon="sq"
       className="ap-panel ap-row press"
     >
-      <span className="ap-icon-sq">
+      <span data-tone="challenge" className="ap-icon-sq">
         <Swords aria-hidden="true" />
       </span>
       <span className="ap-row-text">

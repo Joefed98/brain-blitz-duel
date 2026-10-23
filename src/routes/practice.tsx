@@ -135,7 +135,7 @@ function CardBest({ type }: { type: PuzzleType }) {
       data-card-best={best}
       className="shrink-0 whitespace-nowrap text-[14px] font-medium tabular-nums text-muted-foreground"
     >
-      Best <b className="font-extrabold text-primary">{best}</b>
+      Best <b className="ap-score">{best}</b>
     </span>
   );
 }
