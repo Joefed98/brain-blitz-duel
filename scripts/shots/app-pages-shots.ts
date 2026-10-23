@@ -45,6 +45,9 @@ try {
     ["play-scrolled", "play", 2000],
     ["practice-top", "practice list", null],
     ["practice-scrolled", "practice list", 1400],
+    // Practice's shelves give way to a grid of three with a category or a search (follow-up to #129).
+    ["practice-category", "practice list", "click:[data-practice-filter='logic']"],
+    ["practice-search", "practice list", "fill:ra"],
     ["tournaments", "tournaments", null],
     ["profile", "profile", null],
     // #128 connected (Prompt R merge): the public game card, the Add to Home Screen hint, the feedback link.
@@ -56,6 +59,9 @@ try {
     const { context, page } = await openThemeScreen(browser, server.origin, screen(name), viewport);
     try {
       if (typeof act === "number") await page.evaluate((y) => window.scrollTo(0, y), act);
+      else if (typeof act === "string" && act.startsWith("click:")) await page.locator(act.slice(6)).click();
+      else if (typeof act === "string" && act.startsWith("fill:"))
+        await page.getByRole("searchbox", { name: "Search games" }).fill(act.slice(5));
       else if (typeof act === "string")
         await page.evaluate((sel) => {
           const el = document.querySelector(sel);

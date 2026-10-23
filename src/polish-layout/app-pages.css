@@ -690,3 +690,81 @@ a.ap-row:active {
   opacity: 1;
   color: var(--ap-faint);
 }
+
+/* ------------------------------------------------------------------ Practice: shelves and tiles */
+/* (Follow-up to #129.) All with no search: one shelf per category, a row of square tiles that starts at the
+   page margin and scrolls out to the screen's edges (native momentum, no bar, no snapping). A category or a
+   search: the same tiles in a grid of three. Each tile is one button named exactly its game. */
+.ap-shelf {
+  display: flex;
+  gap: 10px;
+  margin: 0 -20px;
+  padding: 2px 20px 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 20px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ap-shelf::-webkit-scrollbar {
+  display: none;
+}
+.ap-tile {
+  display: flex;
+  width: 104px;
+  min-width: 0;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  color: var(--ap-text);
+  -webkit-tap-highlight-color: transparent;
+}
+.ap-tile-art {
+  display: block;
+  width: 104px;
+  height: 104px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+.ap-tile-art > .game-icon {
+  display: flex;
+  border-radius: 16px;
+}
+.ap-tile-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ap-tile-best {
+  margin-top: -3px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--ap-text-2);
+  white-space: nowrap;
+}
+.ap-tile-best > .ap-score {
+  font-weight: 700;
+}
+.ap-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 10px;
+}
+.ap-tile-grid > .ap-tile {
+  width: auto;
+}
+.ap-tile-grid .ap-tile-art {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.ap-tile-grid .ap-tile-art > .game-icon {
+  width: 100% !important;
+  height: 100% !important;
+}

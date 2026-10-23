@@ -429,6 +429,10 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Continue pills, Join now, the selected Practice chip, the current tab, the logo and wordmark Z); links, secondary buttons,
   scores and the Beta pill are neutral, icon squares take the category palette (`data-tone`), a played daily shows a grey
   Done pill and "6 rounds · 742", and every `.press` control on the pages sinks to 98 % and lightens while pressed.
+  Practice is shelves: with All and no search, one horizontally scrolling row of 104 px square tiles per category
+  (`.ap-shelf`, `data-practice-shelf`, "See all" selects the chip); with a category or a search, a grid of three
+  (`data-practice-grid`); Retired stays collapsed. Each tile is one button named exactly its game, its best its
+  description.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
