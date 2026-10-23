@@ -102,7 +102,7 @@ assert.match(screen, /requestAnimationFrame\(paint\)/);
 assert.match(screen, /serverNow\(\) - startedAt/);
 assert.match(screen, /elapsed >= DUEL_START_VOICE_MS\) return/);
 assert.match(screen, /prepareRoundMusic/);
-assert.match(screen, /<LogoMark className="duel-start-logo/);
+assert.match(screen, /<LogoMark\s+className="duel-start-logo/);
 assert.match(screen, /<PrepareLightning startedAt=\{startedAt\} \/>/);
 assert.doesNotMatch(screen, /<PhoneShell|<RoomChat|<TimerBar|<button|fx\./);
 assert.doesNotMatch(intro, /prepareToDuel/);
