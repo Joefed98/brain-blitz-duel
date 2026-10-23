@@ -43,7 +43,7 @@ export const NOT_SAFARI_UA = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo|FB
  * the server-rendered page can't draw the card (it depends on the phone's clock) but the boot script
  * can reserve it: each configured game's start (UTC ms) and its card's height, soonest first.
  */
-export const PUBLIC_CARD_H = { titled: 259, plain: 259 } as const;
+export const PUBLIC_CARD_H = { titled: 186, plain: 186 } as const;
 export const PUBLIC_CARD_STARTS: [number, number][] = scheduledGames(PUBLIC_GAMES).map((g) => [
   g.startsAt,
   g.title ? PUBLIC_CARD_H.titled : PUBLIC_CARD_H.plain,

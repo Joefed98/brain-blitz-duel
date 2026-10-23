@@ -189,7 +189,8 @@ try {
       const card = page.locator("[data-public-game]").first();
       check((await card.getAttribute("data-public-game")) === "calendar", "Next public game: before lobby time it offers a calendar");
       check(await page.getByRole("button", { name: "Add to calendar" }).isVisible(), 'Next public game: "Add to calendar"');
-      check(/Lobby opens at 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
+      check(await page.getByRole("button", { name: "Join now" }).isDisabled(), 'Next public game: "Join now" is off before lobby time');
+      check(/Lobby opens 6:45 pm/.test((await card.textContent()) ?? ""), "Next public game: the lobby time in UK time");
       const download = page.waitForEvent("download", { timeout: 10_000 }).catch(() => null);
       await page.getByRole("button", { name: "Add to calendar" }).click();
       const file = await download;
@@ -197,7 +198,8 @@ try {
       await page.clock.fastForward(45_000);
       await page.waitForTimeout(300);
       check((await card.getAttribute("data-public-game")) === "join", "Next public game: at lobby time it switches to Join now");
-      check(await page.getByRole("button", { name: "Join now" }).isVisible(), 'Next public game: "Join now"');
+      // Since the follow-up to #129 Join now is always on the card, off until lobby time: judge it enabled here.
+      check((await page.getByRole("button", { name: "Join now" }).isVisible()) && (await page.getByRole("button", { name: "Join now" }).isEnabled()), 'Next public game: "Join now"');
 
       // Tabs: Play → Practice (pushed) → Tournaments → Profile (replaced), then Back returns to Play.
       for (const [label, path, tab] of [

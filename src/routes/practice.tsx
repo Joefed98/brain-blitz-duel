@@ -133,9 +133,9 @@ function CardBest({ type }: { type: PuzzleType }) {
       id={cardBestId(type)}
       aria-hidden="true"
       data-card-best={best}
-      className="shrink-0 whitespace-nowrap text-[14px] font-medium tabular-nums text-muted-foreground"
+      className="ap-tile-best"
     >
-      Best <b className="font-extrabold text-primary">{best}</b>
+      Best <b className="ap-score">{best}</b>
     </span>
   );
 }
@@ -166,20 +166,28 @@ function matchesFilter(type: PuzzleType, filter: PracticeFilter, query: string):
   return q === "" || definition.name.toLowerCase().includes(q) || definition.category.includes(q);
 }
 
-const GAME_ROW = "ap-row press";
-
 /**
- * A practice row's icon and name. The row's button is named exactly the game (aria-label; checks
- * find it by name), the icon is aria-hidden and the best is the button's description (CardBest).
+ * A practice tile's picture and name (follow-up to #129: the list is shelves and a grid of square
+ * tiles): the game's own icon filling a 104 px square, the name on one line. The tile's button is named
+ * exactly the game (aria-label; checks find it by name), the icon is aria-hidden and the best is the
+ * button's description (CardBest).
  */
-function GameRowLabel({ type }: { type: PuzzleType }) {
+function GameTileLabel({ type, size }: { type: PuzzleType; size: number }) {
   return (
     <>
-      <GameIcon type={type} size={44} />
-      <span className="ap-row-title min-w-0 flex-1">{PUZZLE_REGISTRY[type].name}</span>
+      <span className="ap-tile-art">
+        <GameIcon type={type} size={size} />
+      </span>
+      <span data-ellipsis className="ap-tile-name">
+        {PUZZLE_REGISTRY[type].name}
+      </span>
     </>
   );
 }
+
+/** A shelf tile's square, in CSS px; a grid tile's icon is drawn at GRID_TILE_PX and fits its column (never upscaled). */
+const TILE_PX = 104;
+const GRID_TILE_PX = 128;
 
 /** The signature verdict for a graded practice run. */
 function practiceVerdict(graded: Graded) {
@@ -479,14 +487,19 @@ function PracticeScreen() {
 
   if (stage === "list") {
     const visible = (key: PuzzleType) => matchesFilter(key, filter, query);
+    // All with no search: one shelf per category; a category or a search: one grid of what matches.
+    const shelves = filter === "all" && query.trim() === "";
     const groups = puzzleCategories()
       .map((category) => ({ category, rows: typesInCategory(category).filter(visible) }))
       .filter((group) => group.rows.length > 0);
+    const matches = groups.flatMap((group) => group.rows);
     const previewRows = PREVIEW_PUZZLE_TYPES.filter(visible);
     const retiredRows = RETIRED_PUZZLE_TYPES.filter(
       (key) => !PREVIEW_PUZZLE_TYPES.includes(key),
     ).filter(visible);
-    const row = (key: PuzzleType, retired = false) => (
+    // One button per game: a tap opens its round; a swipe along a shelf scrolls it (the browser
+    // cancels the click once a touch moves into a scroll), so a swipe never starts a game.
+    const tile = (key: PuzzleType, size = GRID_TILE_PX, retired = false) => (
       <button
         key={key}
         type="button"
@@ -494,10 +507,9 @@ function PracticeScreen() {
         aria-label={PUZZLE_REGISTRY[key].name}
         aria-describedby={cardBestId(key)}
         data-practice-game={key}
-        data-icon="44"
-        className={`${GAME_ROW}${retired ? " opacity-80" : ""}`}
+        className={`ap-tile press${retired ? " opacity-80" : ""}`}
       >
-        <GameRowLabel type={key} />
+        <GameTileLabel type={key} size={size} />
         <CardBest type={key} />
       </button>
     );
@@ -566,20 +578,41 @@ function PracticeScreen() {
             </div>
           </div>
 
-          {groups.map(({ category, rows }) => (
-            <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="flex flex-col gap-2">
-              <h2 className="ap-group-title">{categoryLabel(category)}</h2>
-              <div className="ap-panel">{rows.map((key) => row(key))}</div>
-            </section>
-          ))}
-          {groups.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
-            <p className="ap-panel ap-empty">No games match.</p>
+          {shelves ? (
+            groups.map(({ category, rows }) => (
+              <section key={category} aria-label={categoryLabel(category)} data-practice-group={category} className="flex flex-col gap-2.5">
+                <div className="ap-section-head">
+                  <h2 className="ap-group-title">{categoryLabel(category)}</h2>
+                  <button
+                    type="button"
+                    data-practice-see-all={category}
+                    onClick={() => {
+                      setFilter(category);
+                      window.scrollTo({ top: 0 });
+                    }}
+                    className="ap-link press -my-2.5 -mr-1 h-11 px-1"
+                  >
+                    See all
+                  </button>
+                </div>
+                <div data-scroll-x data-practice-shelf={category} className="ap-shelf">
+                  {rows.map((key) => tile(key, TILE_PX))}
+                </div>
+              </section>
+            ))
+          ) : matches.length > 0 ? (
+            <div data-practice-grid className="ap-tile-grid">
+              {matches.map((key) => tile(key))}
+            </div>
+          ) : null}
+          {matches.length === 0 && previewRows.length === 0 && retiredRows.length === 0 ? (
+            <p className="ap-panel ap-empty">No games match</p>
           ) : null}
 
           {previewRows.length > 0 && (
-            <section aria-label="Practice only" className="flex flex-col gap-2">
+            <section aria-label="Practice only" className="flex flex-col gap-2.5">
               <h2 className="ap-group-title">New · practice only</h2>
-              <div className="ap-panel">{previewRows.map((key) => row(key))}</div>
+              <div className="ap-tile-grid">{previewRows.map((key) => tile(key))}</div>
             </section>
           )}
 
@@ -588,7 +621,7 @@ function PracticeScreen() {
               <summary className="ap-group-title th-hit press cursor-pointer">
                 Retired ({retiredRows.length})
               </summary>
-              <div className="ap-panel mt-2">{retiredRows.map((key) => row(key, true))}</div>
+              <div className="ap-tile-grid mt-3">{retiredRows.map((key) => tile(key, GRID_TILE_PX, true))}</div>
             </details>
           )}
 
