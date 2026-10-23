@@ -391,6 +391,14 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   in `20261022120000_friend_challenges.sql`) on every Share tap and on arrivals from `?ref=daily` / `?ref=challenge`
   links (`noteLinkArrival`; still one arrival per device), with `daily_kind` / `challenge_code`; queries Q-S4/Q-S5 in
   `docs/beta-sql.md` section 7.
+- **Tab screens redesign** (23 Oct 2026, Prompt R, look only; `src/polish-layout/app-pages.css`): the four tab pages
+  (PhoneShell marks their column `data-app-page`), the app header (`AppHeader`: `AppWordmark`, hard-coded "JOULZ" until
+  APP_NAME is renamed, plus `LogoMark`, `src/components/brand/`) and the tab bar take flat panels of divided rows, the gold
+  shine buttons and Archivo (self-hosted, OFL, `public/fonts`); rooms, rounds, results, daily/challenge play, sheets and
+  game tiles keep the page skin. The share welcome card keeps the skin's type (share-check). App icons (apple-touch 180,
+  manifest 192/512/maskable, favicons 32/16) are the inverted mark on the gold shine from `APP_ICONS` in `brand.ts`, drawn
+  by `bun scripts/brand-icons.ts`; the in-game logo (`APP_LOGO_URL`) is unchanged. Review shots:
+  `bun scripts/shots/app-pages-shots.ts` (`screenshots/app-redesign-oct-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

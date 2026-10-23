@@ -4,8 +4,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { Dots } from "@/components/duel/Dots";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { Wordmark } from "@/components/duel/Wordmark";
-import { MuteToggle } from "@/components/duel/MuteToggle";
 import { Onboarding } from "@/components/duel/Onboarding";
 import { goToTab } from "@/components/app/AppTabBar";
 import { GameIcon } from "@/components/app/GameIcon";
@@ -23,8 +21,6 @@ import { currentUserId, getStoredName, setStoredName } from "@/lib/duel/session"
 import { ROOM_CODE_LENGTH, codeFromInput } from "@/lib/duel/roomLink";
 import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
-import { readPracticeBest } from "@/lib/duel/practiceBest";
-import { currentPracticeStamp } from "@/lib/duel/practiceStamps";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { unlockAudio } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
@@ -34,6 +30,8 @@ import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useScreenMusic } from "@/lib/useScreenMusic";
 
 const GAME_COUNTS = gameCounts();
+/** Every game rooms deal (the Warm up's "All 73 games"). */
+const ACTIVE_GAMES = GAME_COUNTS.puzzle + GAME_COUNTS.arcade;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -126,10 +124,9 @@ function Home() {
   const nameRef = useRef<HTMLInputElement | null>(null);
   // The first-time intro (lib/onboarding): once per device on a plain visit, or from "How it works".
   const [intro, setIntro] = useState(false);
-  // Device-only values (practice history, bests, the schedule against this device's clock) are read after
+  // Device-only values (practice history, the schedule against this device's clock) are read after
   // mount, so the server-rendered page and the first client render agree.
   const [recent, setRecent] = useState<PuzzleType[] | null>(null);
-  const [bests, setBests] = useState<Record<string, number | null>>({});
   // Read before the first client paint; its card's height is reserved from the last visit (playCards.ts).
   const [games, setGames] = useState<PublicGame[]>([]);
   const [welcome, setWelcome] = useState<boolean | null>(null);
@@ -144,11 +141,6 @@ function Home() {
     setEditingName(stored.trim() === "");
     const types = warmUpTypes(recentPracticeTypes());
     setRecent(types);
-    setBests(
-      Object.fromEntries(
-        types.map((type) => [type, readPracticeBest(type, currentPracticeStamp(type))]),
-      ),
-    );
     setGames(scheduledGames());
     setMounted(true);
   }, []);
@@ -219,13 +211,8 @@ function Home() {
   if (intro) return <Onboarding onDone={() => setIntro(false)} />;
 
   return (
-    <PhoneShell bare tabs="play">
-      <div className="flex items-center justify-between gap-2">
-        <Wordmark />
-        <MuteToggle />
-      </div>
-
-      <div className="mt-5 flex flex-col gap-5">
+    <PhoneShell tabs="play">
+      <div className="ap-stack">
         <PlaySlot id="welcome" state={slotState(welcome !== null, welcome === true)}>
         <ShareWelcomeCard
           assumeDue
@@ -242,47 +229,36 @@ function Home() {
         </PlaySlot>
 
         <div>
-          <h1 className="whitespace-nowrap font-display text-[25px] font-bold leading-tight tracking-[0.02em]">
-            Play live with friends
+          <h1 className="ap-title" aria-label="Play live with friends">
+            <span>Play live</span> <span>with friends</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Up to 10 players. Same games, same moment. Highest score wins.
-          </p>
+          <p className="ap-sub">Up to 10 players. Same games, same moment.</p>
         </div>
 
         {/* Quick play: create a room, or join one with its code. */}
-        <section
-          aria-label="Quick play"
-          data-tint="gold"
-          className="th-card flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4"
-        >
-          <p className="th-kicker text-primary">Quick play</p>
+        <section aria-label="Quick play" className="ap-panel ap-pad flex flex-col gap-3">
           {/* Its height is set before the first paint from whether a name is stored (app-shell.css), so
               the name loading after mount never moves anything. */}
           <div data-name-row data-editing={mounted ? String(editingName) : undefined}>
           {editingName ? (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="name" className="th-kicker text-muted-foreground">
-                Display name
-              </label>
-              <input
-                id="name"
-                ref={nameRef}
-                value={name}
-                maxLength={14}
-                placeholder="Your name"
-                autoComplete="nickname"
-                onChange={(e) => {
-                  setError(null);
-                  setName(e.target.value);
-                }}
-                className="th-input tap-target w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-              />
-            </div>
+            <input
+              id="name"
+              aria-label="Display name"
+              ref={nameRef}
+              value={name}
+              maxLength={14}
+              placeholder="Your name"
+              autoComplete="nickname"
+              onChange={(e) => {
+                setError(null);
+                setName(e.target.value);
+              }}
+              className="ap-input tap-target"
+            />
           ) : (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <p className="flex h-11 items-center justify-between gap-3 text-[15px] text-muted-foreground">
               <span className="min-w-0 truncate">
-                Playing as <span className="th-name text-foreground">{name}</span>
+                Playing as <span className="th-name font-semibold text-foreground">{name}</span>
               </span>
               <button
                 type="button"
@@ -290,9 +266,9 @@ function Home() {
                   setEditingName(true);
                   requestAnimationFrame(() => nameRef.current?.focus());
                 }}
-                className="press tap-target shrink-0 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+                className="ap-link press h-11 shrink-0 px-1"
               >
-                Change name
+                Change
               </button>
             </p>
           )}
@@ -301,7 +277,7 @@ function Home() {
             type="button"
             onClick={() => void start("create")}
             disabled={busy !== null}
-            className="th-btn-gold press tap-target relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-extrabold uppercase tracking-wide text-primary-foreground"
+            className="ap-btn-gold press tap-target h-[58px] w-full text-[18px]"
           >
             {busy === "create" ? (
               <>
@@ -309,46 +285,37 @@ function Home() {
                 <Dots className="bg-primary-foreground" />
               </>
             ) : (
-              <span className="relative z-10">Create a room</span>
+              <span>Create a room</span>
             )}
-            <span
-              aria-hidden="true"
-              className="animate-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-primary-foreground/20"
-            />
           </button>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="code" className="th-kicker text-muted-foreground">
-              Or join with a code
-            </label>
-            <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
-              <input
-                id="code"
-                value={code}
-                inputMode="text"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder="ABCD"
-                aria-label="Room code"
-                onChange={(e) => {
-                  setError(null);
-                  setCode(codeFromInput(e.target.value));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void start("join");
-                }}
-                className="th-input tap-target min-w-0 flex-1 rounded-xl border border-border bg-background px-4 text-center font-mono text-2xl font-bold uppercase tracking-[0.4em] text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => void start("join")}
-                disabled={busy !== null}
-                className="th-btn-outline-gold press tap-target w-24 shrink-0 rounded-xl border border-primary/70 bg-primary/10 font-display text-base font-bold uppercase tracking-wide text-primary"
-              >
-                {busy === "join" ? <Dots className="bg-primary" /> : "Join"}
-              </button>
-            </div>
+          <div key={shake} className={`flex gap-2 ${error ? "animate-shake" : ""}`}>
+            <input
+              id="code"
+              value={code}
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Room code"
+              aria-label="Room code"
+              onChange={(e) => {
+                setError(null);
+                setCode(codeFromInput(e.target.value));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void start("join");
+              }}
+              className="ap-input ap-code tap-target flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => void start("join")}
+              disabled={busy !== null}
+              className="ap-btn-outline press tap-target h-[50px] w-[88px] shrink-0 text-base"
+            >
+              {busy === "join" ? <Dots className="bg-primary" /> : "Join"}
+            </button>
           </div>
           {error && (
             <p role="alert" className="text-sm text-warn">
@@ -359,23 +326,23 @@ function Home() {
 
         <PlaySlot id="rejoin" state={slotState(lastRoom.settled, lastRoom.open)}>
         {(() => {
-          // Until the device's last room is read (the server-rendered page): a quiet card of the same size.
+          // Until the device's last room is read (the server-rendered page): a quiet row of the same size.
           const shown = lastRoom.shown ?? { code: "····", players: 0, lobby: false };
           return (
           <button
             type="button"
             data-rejoin-room={shown.code}
             onClick={() => lastRoom.shown && void navigate({ to: "/duel/$code", params: { code: lastRoom.shown.code } })}
-            data-tint="gold"
-            className="th-card press flex min-h-14 w-full items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-left"
+            data-icon="sq"
+            className="ap-panel ap-row press"
           >
-            <DoorOpen aria-hidden="true" className="h-6 w-6 shrink-0 text-primary" />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="font-display text-sm font-bold uppercase text-foreground">
-                Rejoin your last room
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                <span className="font-mono tracking-widest text-foreground">{shown.code}</span> ·{" "}
+            <span className="ap-icon-sq">
+              <DoorOpen aria-hidden="true" />
+            </span>
+            <span className="ap-row-text">
+              <span className="ap-row-title">Rejoin your last room</span>
+              <span data-ellipsis className="ap-row-sub">
+                <span className="tracking-[0.12em] text-foreground">{shown.code}</span> ·{" "}
                 {shown.players === 0
                   ? "Checking the room"
                   : shown.lobby
@@ -383,7 +350,7 @@ function Home() {
                     : "Game in progress"}
               </span>
             </span>
-            <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <ChevronRight aria-hidden="true" className="ap-chevron" />
           </button>
           );
         })()}
@@ -432,7 +399,7 @@ function Home() {
               <button
                 type="button"
                 onClick={() => goToTab(router, "play", "tournaments")}
-                className="press tap-target -mb-1 self-center px-3 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+                className="ap-link press h-11 self-center px-3"
               >
                 All public games
               </button>
@@ -441,51 +408,39 @@ function Home() {
         ) : null}
         </div>
 
-        <section aria-label="Warm up" className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-display text-lg font-bold">Warm up</h2>
+        <section aria-label="Warm up" className="ap-section">
+          <div className="ap-section-head">
+            <h2 className="ap-section-title">Warm up</h2>
             <button
               type="button"
               onClick={() => goToTab(router, "play", "practice")}
-              className="press tap-target -mr-2 px-2 font-display text-xs font-semibold uppercase tracking-widest text-primary"
+              className="ap-link press -my-2.5 -mr-1 h-11 px-1"
             >
-              All games
+              All {ACTIVE_GAMES} games
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {warmUp.map((type) => {
-              const best = bests[type] ?? null;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  data-warm-up={type}
-                  onClick={() => {
-                    unlockAudio();
-                    goToTab(router, "play", "practice", { game: type });
-                  }}
-                  className="th-card press flex min-w-0 flex-col items-center gap-2 rounded-2xl border border-border bg-card/80 px-2 py-3"
-                >
-                  <GameIcon type={type} size={52} />
-                  <span className="w-full truncate text-center font-display text-sm font-semibold text-foreground">
-                    {PUZZLE_REGISTRY[type].name}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="font-mono text-[11px] tabular-nums text-muted-foreground"
-                  >
-                    {best === null ? "New" : `Best ${best}`}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-3 gap-3">
+            {warmUp.map((type) => (
+              <button
+                key={type}
+                type="button"
+                data-warm-up={type}
+                onClick={() => {
+                  unlockAudio();
+                  goToTab(router, "play", "practice", { game: type });
+                }}
+                className="press flex min-w-0 flex-col items-center gap-2 rounded-[18px] py-1"
+              >
+                <GameIcon type={type} size={62} />
+                <span className="w-full truncate text-center text-[14px] font-semibold text-foreground">
+                  {PUZZLE_REGISTRY[type].name}
+                </span>
+              </button>
+            ))}
           </div>
         </section>
 
-        <div className="flex flex-col items-center gap-1 pb-1">
-          <p className="whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-            {GAME_COUNTS.puzzle} puzzle games · {GAME_COUNTS.arcade} arcade games
-          </p>
+        <div className="flex justify-center pb-1">
           <button
             type="button"
             data-how-it-works
@@ -493,7 +448,7 @@ function Home() {
               unlockAudio();
               setIntro(true);
             }}
-            className="press tap-target px-3 font-display text-sm uppercase tracking-widest text-muted-foreground"
+            className="ap-link-quiet press tap-target px-3"
           >
             How it works
           </button>

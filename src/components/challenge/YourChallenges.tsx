@@ -32,27 +32,29 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
   if (!list || list.length === 0) return null;
   const now = Date.now();
   return (
-    <section aria-label="Your challenges" data-your-challenges className="flex flex-col gap-2">
-      <h2 className="font-display text-lg font-bold">Your challenges</h2>
-      <ul className="flex flex-col gap-2">
+    <section aria-label="Your challenges" data-your-challenges className="ap-section">
+      <div className="ap-section-head">
+        <h2 className="ap-section-title">Your challenges</h2>
+      </div>
+      <ul className="ap-panel">
         {list.map((c) => (
           <li key={c.code}>
             <button
               type="button"
               data-your-challenge={c.code}
               onClick={() => onOpen(c.code)}
-              className="th-card press flex w-full items-center gap-3 rounded-xl border border-border bg-card/80 px-4 py-3 text-left"
+              className="ap-row press"
             >
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex items-baseline gap-2">
-                  <span className="font-mono text-sm font-bold tracking-widest text-foreground">
+                  <span className="text-[16px] font-semibold tracking-[0.12em] text-foreground">
                     {c.code}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  <span data-ellipsis className="min-w-0 flex-1 truncate text-[13.5px] text-muted-foreground">
                     {c.roundCount} rounds ·{" "}
                     {c.myTotal === null ? "not finished" : `you ${c.myTotal}`}
                   </span>
-                  <span className="shrink-0 whitespace-nowrap font-mono text-[11px] uppercase text-muted-foreground">
+                  <span className="shrink-0 whitespace-nowrap text-[12.5px] text-muted-foreground">
                     {challengeEndsIn(c.expiresAt, now)}
                   </span>
                 </span>
@@ -80,7 +82,7 @@ export function YourChallenges({ onOpen }: { onOpen: (code: string) => void }) {
                   </>
                 )}
               </span>
-              <ChevronRight aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <ChevronRight aria-hidden="true" className="ap-chevron" />
             </button>
           </li>
         ))}

@@ -8,7 +8,12 @@ export const THEME_FONTS = [
   "/fonts/saira-600-800-latin.woff2",
   "/fonts/manrope-500-800-latin.woff2",
   "/fonts/jetbrains-mono-600-700-latin.woff2",
+  // The tab screens' Archivo (polish-layout/app-pages.css, Prompt R).
+  "/fonts/archivo-var-latin.woff2",
 ] as const;
+
+/** The tab screens' one family (data-app-page: headings, body, numbers, buttons). */
+export const APP_PAGE_FAMILY = "Archivo";
 
 /** The font families the skin's tokens name (--th-font-head, --th-font-body, --th-font-mono). */
 export const THEME_FAMILIES = { head: "Saira", body: "Manrope", mono: "Duelz Mono" } as const;

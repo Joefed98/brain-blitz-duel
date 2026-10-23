@@ -1,69 +1,67 @@
-import { CalendarPlus, Trophy, Users } from "lucide-react";
+import { CalendarPlus, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
   downloadCalendar,
   nextUpState,
-  ukDay,
+  ukDateParts,
   ukTime,
   type PublicGame,
 } from "@/lib/publicSchedule";
 
+/** "Sat 24 Oct · 7:00 pm UK" (UK time). */
+export function publicGameWhen(game: PublicGame): string {
+  const { weekday, day, month } = ukDateParts(game.startsAt);
+  return `${weekday} ${day} ${month} · ${ukTime(game.startsAt)} UK`;
+}
+
+/** A public game's row: its date tile (UK date), title and day and time (polish-layout/app-pages.css). */
+export function PublicGameRow({ game }: { game: PublicGame }) {
+  const { weekday, day } = ukDateParts(game.startsAt);
+  return (
+    <div data-icon="date" className="ap-row">
+      <span aria-hidden="true" className="ap-date">
+        <span className="ap-date-day">{weekday}</span>
+        <span className="ap-date-num">{day}</span>
+      </span>
+      <span className="ap-row-text">
+        <span className="ap-row-title">{game.title ?? "Public game"}</span>
+        <span data-ellipsis className="ap-row-sub">
+          {publicGameWhen(game)}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 /**
- * A scheduled public game: day and time (UK time), rounds and lobby time, and one button. Before
- * the lobby opens it offers "Add to calendar" (an .ics file); from lobby time until the start it
- * offers "Join now", which opens the public room (the room's own link join asks for a name).
+ * The next public game's lobby line and its one button. Before the lobby opens it offers "Add to
+ * calendar" (an .ics file); from lobby time until the start it offers "Join now", which opens the
+ * public room (the room's own link join asks for a name).
  */
-export function PublicGameCard({
+export function PublicGameAction({
   game,
   now,
-  heading,
   onJoin,
   footer,
-  tint = "teal",
 }: {
   game: PublicGame;
   now: number;
-  heading: string;
   onJoin: (roomCode: string) => void;
   footer?: ReactNode;
-  /** The card's tint (polish-layout/theme.css): teal on Play, gold with a faint trophy for Tournaments' Next up. */
-  tint?: "teal" | "gold";
 }) {
-  const gold = tint === "gold";
   const state = nextUpState(game, now);
   return (
-    <section
-      data-public-game={state}
-      aria-label={heading}
-      data-tint={tint}
-      className="th-card th-card-clip flex flex-col gap-3 rounded-2xl border border-category-logic/35 bg-card/80 p-4"
-    >
-      {gold ? <Trophy aria-hidden="true" strokeWidth={1.5} className="th-trophy" /> : null}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className={`th-kicker ${gold ? "text-primary" : "text-category-logic"}`}>{heading}</p>
-          <p className="mt-1 whitespace-nowrap font-display text-xl font-bold uppercase leading-tight text-foreground">
-            {ukDay(game.startsAt, now)} · {ukTime(game.startsAt)}
-          </p>
-          {game.title ? (
-            <p className="mt-0.5 truncate text-sm text-foreground">{game.title}</p>
-          ) : null}
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-mono tabular-nums">{game.rounds}</span> rounds ·{" "}
-            {state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
-          </p>
-        </div>
-        <span data-tone={gold ? "gold" : "teal"} className="th-pill shrink-0">
-          UK time
-        </span>
-      </div>
+    <div className="flex flex-col gap-3 px-4 pb-4">
+      <p className="text-[14px] text-muted-foreground">
+        {game.rounds} rounds · {state === "join" ? "Lobby open now" : `Lobby opens at ${ukTime(game.lobbyAt)}`}
+      </p>
       {state === "join" ? (
         <button
           type="button"
           data-public-join
           onClick={() => onJoin(game.roomCode)}
-          className={`${gold ? "th-btn-gold" : "th-btn-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-category-logic font-display text-base font-extrabold uppercase tracking-wide text-[#0B0B0F]`}
+          className="ap-btn-gold press tap-target h-[50px] w-full text-base"
         >
           <Users aria-hidden="true" className="h-5 w-5" /> Join now
         </button>
@@ -72,12 +70,39 @@ export function PublicGameCard({
           type="button"
           data-public-calendar
           onClick={() => downloadCalendar(game)}
-          className={`${gold ? "th-btn-outline-gold" : "th-btn-outline-teal"} press tap-target flex w-full items-center justify-center gap-2 rounded-xl border border-category-logic/60 bg-category-logic/10 font-display text-sm font-bold uppercase tracking-wide text-category-logic`}
+          className="ap-btn-outline press tap-target h-[50px] w-full text-base"
         >
           <CalendarPlus aria-hidden="true" className="h-5 w-5" /> Add to calendar
         </button>
       )}
       {footer}
+    </div>
+  );
+}
+
+/** Play's "Next public game": the game's row, its lobby line and its button, in one panel. */
+export function PublicGameCard({
+  game,
+  now,
+  heading,
+  onJoin,
+  footer,
+}: {
+  game: PublicGame;
+  now: number;
+  heading: string;
+  onJoin: (roomCode: string) => void;
+  footer?: ReactNode;
+}) {
+  return (
+    <section data-public-game={nextUpState(game, now)} aria-label={heading} className="ap-section">
+      <div className="ap-section-head">
+        <h2 className="ap-section-title">{heading}</h2>
+      </div>
+      <div className="ap-panel">
+        <PublicGameRow game={game} />
+        <PublicGameAction game={game} now={now} onJoin={onJoin} footer={footer} />
+      </div>
     </section>
   );
 }

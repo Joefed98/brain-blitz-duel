@@ -12,7 +12,8 @@
  *  - not overflow: not clipped by its own box (scrollWidth past clientWidth), unless it is a
  *    player name (.th-name, or a line listing names, [data-names]) or a leaderboard row's
  *    time · verdict · summary line ([data-ellipsis]), which truncate with an ellipsis, and never
- *    past the screen's edge.
+ *    past the screen's edge (but inside a horizontally scrolling row, [data-scroll-x], whose items
+ *    scroll into view).
  * Body paragraphs (descriptions, notes) may wrap; text in a game's own art (data-skin-off) and the
  * tapped-open detail of a leaderboard row (whitespace-normal) are not judged.
  *
@@ -100,7 +101,10 @@ function wrapProbe() {
         );
       const right = Math.max(...rects.map((r) => r.right));
       const left = Math.min(...rects.map((r) => r.left));
-      if (rects.length && !clipped && (right > window.innerWidth + 0.5 || left < -0.5))
+      // A horizontally scrolling row ([data-scroll-x]: Practice's category chips, Prompt R) holds
+      // whole one-line items past the screen's edge that scroll into view; wrapping and clipping
+      // inside each item are still judged above.
+      if (rects.length && !clipped && !el.closest("[data-scroll-x]") && (right > window.innerWidth + 0.5 || left < -0.5))
         problems.push(
           `"${text}" runs off the screen (${Math.round(left)}–${Math.round(right)}px of ${window.innerWidth}px)`,
         );

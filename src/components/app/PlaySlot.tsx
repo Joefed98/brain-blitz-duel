@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { slotReserved, type PlaySlotId } from "@/lib/playCards";
 
 /** How long a card takes to collapse when the server says it shouldn't show. */
-export const SLOT_COLLAPSE_MS = 320;
+export const SLOT_COLLAPSE_MS = 420;
 
 const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 

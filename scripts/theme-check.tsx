@@ -30,7 +30,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { startSafeAreaServer } from "./safe-area-server";
 import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, openThemeScreen } from "./theme-screens";
-import { THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
+import { APP_PAGE_FAMILY, THEME_FAMILIES, THEME_FONTS } from "../src/lib/theme";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -41,8 +41,10 @@ const fail = (message: string) => failures.push(message);
 
 /* ------------------------------------------------------------------ 1. the fonts */
 const css = readFileSync("src/polish-layout/theme.css", "utf8");
+// The tab screens' Archivo (Prompt R, 23 Oct 2026) has its @font-face with their look.
+const appCss = readFileSync("src/polish-layout/app-pages.css", "utf8");
 const root = readFileSync("src/routes/__root.tsx", "utf8");
-const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => m[1]!);
+const faces = [...`${css}\n${appCss}`.matchAll(/@font-face\s*\{([^}]*)\}/g)].map((m) => m[1]!);
 if (faces.length < 3) fail(`theme.css: ${faces.length} @font-face rules, expected one per family`);
 for (const face of faces) {
   const family = /font-family:\s*"([^"]+)"/.exec(face)?.[1] ?? "?";
@@ -68,8 +70,9 @@ for (const [token, generic] of [
   ["--th-font-head", "sans-serif"],
   ["--th-font-body", "sans-serif"],
   ["--th-font-mono", "monospace"],
+  ["--ap-font", "sans-serif"],
 ] as const) {
-  const value = new RegExp(`${token}:\\s*([^;]+);`).exec(css)?.[1] ?? "";
+  const value = new RegExp(`${token}:\\s*([^;]+);`).exec(token === "--ap-font" ? appCss : css)?.[1] ?? "";
   if (!value.trim().endsWith(generic))
     fail(`${token} has no fallback stack ending in ${generic}: ${value}`);
 }
@@ -90,10 +93,16 @@ const SCREENS = ONLY.length
   ? THEME_SCREENS.filter((s) => ONLY.some((o) => s.name.includes(o)))
   : THEME_SCREENS;
 const VIEWPORT = VIEWPORTS[0]!;
+/** The screens drawn with the tab screens' Archivo (data-app-page). */
+const TAB_SCREEN_MODES = new Set(["home", "practice", "tournaments", "profile"]);
 
 /** In-page: fonts, tokens, text to measure and controls. */
-function themeProbe(families: { head: string; body: string; mono: string }) {
+function themeProbe(families: { head: string; body: string; mono: string; app: string }) {
   const NOT_JUDGED = "[data-skin-off]";
+  // The four tab screens' pages (data-app-page, Prompt R) use one family, Archivo, for everything.
+  // (The share welcome card on Play keeps the skin's type, as share-check pins it.)
+  const familyFor = (el: Element, kind: "head" | "mono") =>
+    el.closest("[data-app-page]") && !el.closest("[data-share-welcome]") ? families.app : families[kind];
   const visible = (el: Element) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
@@ -234,15 +243,15 @@ function themeProbe(families: { head: string; body: string; mono: string }) {
   for (const h of document.querySelectorAll("[data-skin] :is(h1, h2, h3)")) {
     if (h.closest(NOT_JUDGED) || !visible(h)) continue;
     const family = first(getComputedStyle(h).fontFamily);
-    if (family !== families.head)
-      problems.push(`heading "${h.textContent?.trim()}" is ${family}, not ${families.head}`);
+    if (family !== familyFor(h, "head"))
+      problems.push(`heading "${h.textContent?.trim()}" is ${family}, not ${familyFor(h, "head")}`);
   }
   for (const m of document.querySelectorAll("[data-skin] :is(.font-mono, .th-score)")) {
     if (m.closest(NOT_JUDGED) || !visible(m)) continue;
     const family = first(getComputedStyle(m).fontFamily);
-    if (family !== families.mono)
+    if (family !== familyFor(m, "mono"))
       problems.push(
-        `score/code "${m.textContent?.trim().slice(0, 20)}" is ${family}, not ${families.mono}`,
+        `score/code "${m.textContent?.trim().slice(0, 20)}" is ${family}, not ${familyFor(m, "mono")}`,
       );
   }
   for (const b of document.querySelectorAll(
@@ -250,9 +259,9 @@ function themeProbe(families: { head: string; body: string; mono: string }) {
   )) {
     if (b.closest(NOT_JUDGED) || !visible(b)) continue;
     const family = first(getComputedStyle(b).fontFamily);
-    if (family !== families.head)
+    if (family !== familyFor(b, "head"))
       problems.push(
-        `button "${b.textContent?.trim().slice(0, 20)}" is ${family}, not ${families.head}`,
+        `button "${b.textContent?.trim().slice(0, 20)}" is ${family}, not ${familyFor(b, "head")}`,
       );
   }
   // Touch targets and tap highlights.
@@ -294,7 +303,7 @@ function themeProbe(families: { head: string; body: string; mono: string }) {
   }
   return {
     skins: skins.length,
-    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet").length,
+    cards: document.querySelectorAll("[data-skin] .th-card, [data-skin] .th-sheet, [data-skin] .ap-panel").length,
     // The round leaderboard's closed rows: each shows its verdict line under the name.
     rowLines: [...document.querySelectorAll("[data-skin] [aria-expanded='false'] [data-row-line]")].map((line) => ({
       shown: visible(line) && !!line.querySelector("[data-verdict]") && visible(line.querySelector("[data-verdict]")!),
@@ -311,8 +320,11 @@ function themeProbe(families: { head: string; body: string; mono: string }) {
   };
 }
 
+// The wordmark's gold last letter is painted through its text (background-clip: text): with the text
+// hidden its gradient would still be drawn, so it is dropped too and the letter is judged in its gold.
 const HIDE_TEXT = `[data-skin] *, [data-skin] { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; }
 [data-skin] svg, [data-skin] canvas, [data-skin] img, [data-player-badge], .game-icon { visibility: hidden !important; }
+.ap-wordmark-last { background: none !important; }
 * { transition: none !important; animation-play-state: paused !important; }`;
 
 const lum = (c: number[]) => {
@@ -351,7 +363,7 @@ try {
         // Let a font in use finish loading (font-display: swap paints the fallback first).
         await page.waitForTimeout(300);
         await page.evaluate(() => document.fonts.ready.then(() => undefined));
-        const probe = await page.evaluate(themeProbe, THEME_FAMILIES);
+        const probe = await page.evaluate(themeProbe, { ...THEME_FAMILIES, app: APP_PAGE_FAMILY });
         problems.push(
           ...probe.problems,
           ...probe.controls.map((c) => `touch target under 44px: ${c}`),
@@ -364,7 +376,7 @@ try {
         }
         if (probe.cards === 0 && !screen.plain)
           problems.push("no skin card or sheet (.th-card / .th-sheet) on the screen");
-        for (const family of Object.values(THEME_FAMILIES)) {
+        for (const family of [...Object.values(THEME_FAMILIES), APP_PAGE_FAMILY]) {
           if (probe.used.includes(family)) {
             familiesUsed.add(family);
             if (!probe.loaded.includes(family)) problems.push(`${family} is used but not loaded`);
@@ -428,7 +440,7 @@ try {
   await server.close();
 }
 if (!ONLY.length)
-  for (const family of Object.values(THEME_FAMILIES))
+  for (const family of [...Object.values(THEME_FAMILIES), ...(SCREENS.some((s) => TAB_SCREEN_MODES.has(s.mode)) ? [APP_PAGE_FAMILY] : [])])
     if (!familiesUsed.has(family) || !familiesLoaded.has(family))
       fail(`${family} is never used and loaded on the skinned screens`);
 
