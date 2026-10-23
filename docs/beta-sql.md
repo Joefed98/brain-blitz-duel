@@ -1330,8 +1330,27 @@ WHERE room_code = 'ABCD'
   AND NOT EXISTS (SELECT 1 FROM public.duels WHERE room_code = 'JULZ');
 ```
 
-3. Reopen the room on the host phone (Rejoin, or /duel/JULZ). Players join from Tournaments → Join now
-   (or the code) once the lobby opens; the host starts the game at 20:00.
+3. **Straight away**, reopen the room on the host phone at `/duel/JULZ` (Rejoin on the Play tab, or the
+   address). The page still open on `/duel/ABCD` looks the room up by its old code, so it stops finding it
+   and stops the host's heartbeat. Players join from Tournaments → Join now (or the code) once the lobby
+   opens; the host starts the game at 20:00.
+
+**How long a lobby lives, and what closes it** (`disband_stale_room`, migration 20260923170429, called by
+`checkHostPresenceFn`):
+
+- Nothing deletes or closes a lobby on a timer: an empty lobby (only the host) stays open indefinitely.
+- The one automatic close is the *stale host* rule: while the room is in its lobby, every other player's
+  phone asks the server every 8 s whether the host has been seen in the last **2 minutes**; if not, the
+  room is disbanded (and a disbanded room keeps its code, so JULZ would be gone for Thursday too).
+- The host is "seen" through a heartbeat every 4 s while the room screen is open in the foreground. On an
+  iPhone, locking the phone or switching apps pauses it; reopening resumes it.
+
+So: made at about 19:15 and renamed straight away, the room is safe until 20:00 **as long as the host
+phone is back on the room screen before anyone joins** (19:45 onwards) and then stays on it, unlocked and
+in the foreground. A lock or app switch before anyone has joined is harmless once the host returns; a
+lock or app switch of more than 2 minutes once players are waiting disbands the room within about 8 s of
+the next player check. Set the host phone's Auto-Lock to Never for the evening and keep the room open.
+During the game itself (after Start) the rule no longer applies.
 
 After Tuesday's game the host taps **Play again** on the final screen, which keeps the room and its code
 for Thursday. If the room is disbanded instead, it keeps the code JULZ (codes are unique and stored rooms

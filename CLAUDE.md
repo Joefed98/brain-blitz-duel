@@ -402,7 +402,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`useCrashContext` in the room, practice and async runs), the commit as release, no user, names, chat, answers or
   breadcrumbs, no performance data; it only observes, so a round always carries on; `/dev-crash` (development only) raises
   each kind. *Beta terms* (`/terms`, `TermsScreen`, `lib/beta/terms.ts`): shown once before a device's first room (the
-  room route, Create and Join), daily or challenge (`TermsGate`), I AGREE stored as `duelz-terms:v1` with its date and
+  room link's join, Create and Join), daily or challenge (`TermsGate`; never inside a room the device is already in: its
+  lobby, rounds, reveals and results show without them, and its next entry point asks), I AGREE stored as `duelz-terms:v1` with its date and
   sent once to `terms_events` (`supabase/migrations/20261023120000_beta_terms_events.sql`, **written but not applied**);
   Profile → settings → Beta terms. The screen harnesses seed an agreement unless `?terms=0`. *Add to Home Screen hint*
   (`HomeScreenHint`): the Play tab's `homescreen` PlaySlot, reserved by the boot script on iPhone Safari outside a

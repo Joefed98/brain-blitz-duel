@@ -34,6 +34,6 @@ export interface PublicGameConfig {
 export const PUBLIC_ROOM_CODE = "JULZ";
 
 export const PUBLIC_GAMES: PublicGameConfig[] = [
-  { date: "2026-10-27", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Beta launch night" },
+  { date: "2026-10-27", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Launch night" },
   { date: "2026-10-29", time: "20:00", lobbyOpens: "19:45", rounds: 6, roomCode: PUBLIC_ROOM_CODE, title: "Thursday night game" },
 ];

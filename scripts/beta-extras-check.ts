@@ -52,7 +52,7 @@ import { iphoneSafari } from "../src/lib/playCards";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { IPHONE11_APP, emulateDevice } from "./device-emulation";
 import { startSafeAreaServer } from "./safe-area-server";
-import { CHROMIUM_PATHS, IPHONE_SAFARI_UA, THEME_SCREENS, VIEWPORTS, openThemeScreen } from "./theme-screens";
+import { CHROMIUM_PATHS, IPHONE_SAFARI_UA, THEME_SCREENS, VIEWPORTS, openThemeScreen, room as roomAt } from "./theme-screens";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -300,7 +300,9 @@ try {
       check(!(await calls(page)).includes("createRoom"), "no room is created before I AGREE");
       check((await page.locator("[data-terms-contact]").count()) === 0, "CONTACT_EMAIL empty: no contact line");
       const text = (await page.locator("[data-terms-content]").textContent()) ?? "";
-      for (const phrase of ["early access", "free", "18", "copy", "reverse engineer", "scrape", "redistribute", "leaderboards", "share", "device ID", "nicknames", "scores", "crash reports", "run the game", "delete your data"])
+      check(text.includes('Joulz ("we", "us")') && !/the company/.test(text), "the terms name the operator: Joulz (\"we\", \"us\")");
+      check(text.includes("chat messages you send in a room"), "what we record includes room chat");
+      for (const phrase of ["early-access beta", "free", "18", "copy", "reverse engineer", "scrape", "redistribute", "leaderboards", "share", "device ID", "nicknames", "scores", "crash reports", "run the game", "delete your data"])
         check(text.includes(phrase), `the terms say "${phrase}"`);
       check(text.includes("Joulz") && !text.includes("Duelz"), "the terms use the app's name");
       await page.getByRole("button", { name: "I agree" }).click();
@@ -321,9 +323,46 @@ try {
     }
   }
 
-  /* A room link, the daily and a challenge show the terms first, then the screen. */
+  /* Never inside a room in progress: a device that hasn't agreed and is already in a room (its lobby,
+     rounds, reveals, results, final screen) sees the room, not the terms; its next entry point shows them. */
+  {
+    const phases: [string, () => unknown][] = [
+      ["lobby", roomAt("waiting", "starting")],
+      ["Prepare to Duel", roomAt("in_progress", "starting")],
+      ["round title", roomAt("in_progress", "round_title")],
+      ["round intro", roomAt("in_progress", "intro")],
+      ["live round", roomAt("in_progress", "puzzle")],
+      ["answer reveal", roomAt("in_progress", "reveal")],
+      ["round results", roomAt("in_progress", "result")],
+      ["standings", roomAt("in_progress", "standings")],
+      ["final screen", roomAt("finished", "standings", { players: 3 })],
+    ];
+    for (const [label, build] of phases) {
+      const { context, page } = await open("room", { query: "terms=0", harness: { room: build() } });
+      try {
+        await page.waitForTimeout(1500);
+        // Drawn: the room's screen is up (Prepare to Duel has no text in its first seconds).
+        const drawn = await page.evaluate(() => document.querySelectorAll("#root *").length > 3);
+        check(drawn && (await page.locator("[data-terms]").count()) === 0, `a room in progress (${label}): the room, never the terms`);
+        check((await page.evaluate((k) => localStorage.getItem(k), TERMS_KEY)) === null, `a room in progress (${label}): still not agreed, so the next entry point asks`);
+        if (label === "live round") {
+          // The next entry point: Create a room from the Play tab shows the terms first.
+          await page.goto(`${server.origin}/safe-area.html?mode=home&terms=0`);
+          await page.getByRole("button", { name: "Create a room" }).waitFor({ timeout: 60_000 });
+          await page.locator("#name").fill("Jo");
+          await page.getByRole("button", { name: "Create a room" }).click();
+          await page.locator("[data-terms]").waitFor({ timeout: 10_000 });
+          check(!(await calls(page)).includes("createRoom"), "after a room in progress, the next entry point (Create) shows the terms first");
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  }
+
+  /* A room link (a device not in the room: its join), the daily and a challenge show the terms first, then the screen. */
   for (const [label, mode, screen] of [
-    ["a room link", "room", "lobby, 2 players"],
+    ["a room link", "room", "link join"],
     ["the daily", "daily", "daily, before playing"],
     ["a challenge", "challenge", "challenge, link opened"],
   ] as const) {
@@ -341,7 +380,8 @@ try {
     try {
       await page.locator("[data-terms]").waitFor({ timeout: 30_000 });
       check(true, `${label}: the terms first`);
-      const early = (await calls(page)).filter((name) => /^(useDuel|useRoomChat|daily|asyncAttempt|challenge)/.test(name));
+      // Nothing of the entry point behind starts: no room preview or join, no daily or challenge call.
+      const early = (await calls(page)).filter((name) => /^(fetchRoomPreview|joinRoomByCode|daily|asyncAttempt|challenge)/.test(name));
       check(early.length === 0, `${label}: nothing of the screen behind starts before I AGREE (${early.join(", ")})`);
       await page.getByRole("button", { name: "I agree" }).click();
       await page.waitForTimeout(1200);

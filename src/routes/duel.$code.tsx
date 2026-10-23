@@ -168,17 +168,8 @@ export const Route = createFileRoute("/duel/$code")({
       },
     ],
   }),
-  component: GatedDuelScreen,
+  component: DuelScreen,
 });
-
-/** The beta terms come first: shown once on this device before its first room, daily or challenge. */
-function GatedDuelScreen() {
-  return (
-    <TermsGate>
-      <DuelScreen />
-    </TermsGate>
-  );
-}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -789,12 +780,16 @@ function DuelScreen() {
   }
 
   // Not in the room (a room's rows are only readable by its players): the link
-  // offers a name-only join while the room is in its lobby.
+  // offers a name-only join while the room is in its lobby. That join is an entry point, so the
+  // beta terms come first there (once per device); a device already in the room (its lobby, rounds,
+  // reveals or results) is never interrupted by them: it sees them at its next entry point.
   if (state.notFound || !duel || !me || (me.status === "left" && duel.status === "waiting")) {
     return (
-      <Centered>
-        <JoinFromLink roomCode={roomCode} onJoined={state.refresh} />
-      </Centered>
+      <TermsGate>
+        <Centered>
+          <JoinFromLink roomCode={roomCode} onJoined={state.refresh} />
+        </Centered>
+      </TermsGate>
     );
   }
 

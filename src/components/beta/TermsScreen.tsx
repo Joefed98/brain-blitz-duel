@@ -33,6 +33,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** Who runs the beta: the operator the terms name ("Joulz ('we', 'us')"). */
+const OPERATOR = "Joulz";
+
 /**
  * The beta terms in plain English (/terms; shown once before a device's first room, daily or
  * challenge). Not legal advice: Joe's adviser reviews the wording before the beta. The contact line
@@ -44,8 +47,7 @@ export function TermsContent() {
     <div data-terms-content className="flex flex-col gap-4">
       <Section title="An early-access beta">
         <p>
-          {APP_NAME} is in early access. It's free to play. Games, scores and features may change,
-          break or be reset while we test.
+          {`${OPERATOR} ("we", "us") runs this early-access beta of ${APP_NAME}. It's free to play. Games, scores and features may change, break or be reset while we test.`}
         </p>
       </Section>
       <Section title="For ages 18 and over">
@@ -53,8 +55,7 @@ export function TermsContent() {
       </Section>
       <Section title="Our games stay ours">
         <p>
-          The games, puzzles, art, sounds and code belong to the company that runs {APP_NAME}.
-          Please don't copy, reverse engineer, scrape or redistribute them.
+          {`The games, puzzles, art, sounds and code belong to ${OPERATOR}. Please don't copy, reverse engineer, scrape or redistribute them.`}
         </p>
       </Section>
       <Section title="What other players see">
