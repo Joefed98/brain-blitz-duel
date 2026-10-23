@@ -422,9 +422,13 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   manifest 192/512/maskable, favicons 32/16) are the inverted mark on the gold shine from `APP_ICONS` in `brand.ts`, drawn
   by `bun scripts/brand-icons.ts`; the in-game logo (`APP_LOGO_URL`) is unchanged. Review shots:
   `bun scripts/shots/app-pages-shots.ts` (`screenshots/app-redesign-oct-2026/`). Connected to the beta extras (#128):
-  Play's Next public game card is the panel row with its date tile (`PublicGameRow`; reserved 259 px, `PUBLIC_CARD_H`,
-  titled or not, with a same-size stand-in), the Add to Home Screen hint a plain panel, and Profile's Send feedback the gold
-  link on the right of the footer line (`FeedbackLink`); play-tab-shift-check covers a cached height and the hint.
+  Play's Next public game card is one layout (`PublicGameNext`: the teal date tile and three lines, then Join now and
+  Add to calendar side by side; reserved 186 px, `PUBLIC_CARD_H`, titled or not, with a same-size stand-in), the Add to Home
+  Screen hint a plain panel, and Profile's Send feedback the link on the right of the footer line (`FeedbackLink`);
+  play-tab-shift-check covers a cached height and the hint. Gold means "tap to play" (Create a room, the Daily Play and
+  Continue pills, Join now, the selected Practice chip, the current tab, the logo and wordmark Z); links, secondary buttons,
+  scores and the Beta pill are neutral, icon squares take the category palette (`data-tone`), a played daily shows a grey
+  Done pill and "6 rounds · 742", and every `.press` control on the pages sinks to 98 % and lightens while pressed.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
