@@ -27,6 +27,13 @@ export function CelebrationLayer() {
     const ctx = canvas?.getContext("2d") ?? null;
     if (!canvas || !banner || !ctx) return;
     const scene = new CelebrationScene();
+    // The podium hero's loop is pre-drawn once into a small canvas (then one drawImage a frame).
+    scene.makeCanvas = (w, h) => {
+      const sprite = document.createElement("canvas");
+      sprite.width = w;
+      sprite.height = h;
+      return sprite;
+    };
     let raf = 0;
     let width = 0;
     let height = 0;
@@ -44,6 +51,7 @@ export function CelebrationLayer() {
     let clearB = Infinity;
     const size = () => {
       ratio = Math.min(2, window.devicePixelRatio || 1);
+      scene.spriteRatio = ratio;
       width = window.innerWidth;
       height = window.innerHeight;
       const w = Math.round(width * ratio);

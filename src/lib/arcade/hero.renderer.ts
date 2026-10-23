@@ -301,10 +301,13 @@ export function drawHero(ctx: CanvasRenderingContext2D, p: HeroPose): void {
  * game draws it. `h` is the figure's height in px (feet to raised hands), `footY` the ground.
  */
 
+/** The victory pose's loop (ms): the bob and the cape's billow repeat over it. */
+export const HERO_VICTORY_LOOP_MS = 1200;
+
 /** Victory: arms up in a V, the cape billowing to one side, a gentle bob of the body (`t` in ms; `gentle` holds still). */
 export function heroVictoryPose(p: HeroPose, cx: number, footY: number, h: number, t: number, gentle = false): HeroPose {
   const u = h / 100;
-  const bob = gentle ? 0 : Math.sin((t / 1200) * Math.PI * 2) * 2.2 * u;
+  const bob = gentle ? 0 : Math.sin((t / HERO_VICTORY_LOOP_MS) * Math.PI * 2) * 2.2 * u;
   const y = footY - bob;
   p.scale = 1;
   p.detailScale = NaN;
@@ -329,7 +332,8 @@ export function heroVictoryPose(p: HeroPose, cx: number, footY: number, h: numbe
   // A steady breeze from the right: the cape lifts to the left and ripples.
   p.moveX = 1;
   p.moveY = 0.25;
-  p.speed = gentle ? 0.15 : 0.45 + 0.2 * Math.sin((t / 900) * Math.PI * 2);
+  // The billow shares the bob's 1.2 s period (twice over), so the pose loops seamlessly.
+  p.speed = gentle ? 0.15 : 0.45 + 0.2 * Math.sin((t / HERO_VICTORY_LOOP_MS) * Math.PI * 4);
   p.face = 0;
   p.core = null;
   p.gentle = gentle;

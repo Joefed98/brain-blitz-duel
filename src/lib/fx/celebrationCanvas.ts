@@ -5,7 +5,7 @@
  * sparks live in one Float32Array of CELEBRATION_PARTICLES slots, the strike's bolt in another,
  * the hero in one reused pose, so a frame allocates nothing.
  */
-import { drawHero, heroPose, heroRunPose, heroVictoryPose } from "@/lib/arcade/hero.renderer";
+import { HERO_VICTORY_LOOP_MS, drawHero, heroPose, heroRunPose, heroVictoryPose } from "@/lib/arcade/hero.renderer";
 
 import {
   CELEBRATION_PARTICLES,
@@ -29,6 +29,16 @@ const BRANCHES = 2;
 /** The hero's height (px) when running and on the podium. */
 export const HERO_RUN_H = 58;
 export const PODIUM_HERO_H = 46;
+/** The podium hero's loop, pre-drawn once into a strip of this many frames (then one drawImage a frame). */
+export const PODIUM_HERO_FRAMES = 24;
+
+/** A canvas to pre-draw into (the layer passes a DOM one); without it the hero is drawn as vectors each frame. */
+export type SpriteCanvas = { width: number; height: number; getContext(id: "2d"): unknown };
+/** The sprite's box round the pose's foot point, in multiples of the hero's height. */
+const SPRITE_LEFT = 1.3;
+const SPRITE_RIGHT = 1.0;
+const SPRITE_TOP = 1.25;
+const SPRITE_BOTTOM = 0.2;
 
 export interface SceneBox {
   left: number;
@@ -44,6 +54,10 @@ export class CelebrationScene {
   private readonly pose = heroPose();
 
   run: { scope: number; at: number } | null = null;
+  /** The layer's canvas factory and device pixel ratio, for the podium hero's sprite strip. */
+  makeCanvas: ((width: number, height: number) => SpriteCanvas) | null = null;
+  spriteRatio = 1;
+  private sprite: { canvas: SpriteCanvas; ratio: number; calm: boolean } | null = null;
   podium: { scope: number; at: number; calm: boolean; box: SceneBox } | null = null;
   strikeAt = -1;
   private readonly bolt = new Float32Array((BOLT_MAIN + BRANCHES * BOLT_BRANCH) * 2);
@@ -90,6 +104,31 @@ export class CelebrationScene {
 
   podiumHero(scope: number, box: SceneBox, calm: boolean, now: number): void {
     this.podium = { scope, at: now, calm, box };
+  }
+
+  /** The victory loop pre-drawn into one strip (once per ratio and calm), foot point at a fixed place in each frame. */
+  private podiumSprite(calm: boolean): SpriteCanvas | null {
+    if (!this.makeCanvas) return null;
+    const ratio = this.spriteRatio;
+    if (this.sprite && this.sprite.ratio === ratio && this.sprite.calm === calm) return this.sprite.canvas;
+    const h = PODIUM_HERO_H;
+    const fw = Math.ceil((SPRITE_LEFT + SPRITE_RIGHT) * h * ratio);
+    const fh = Math.ceil((SPRITE_TOP + SPRITE_BOTTOM) * h * ratio);
+    const frames = calm ? 1 : PODIUM_HERO_FRAMES;
+    const canvas = this.makeCanvas(fw * frames, fh);
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | null;
+    if (!ctx) return null;
+    const pose = heroPose();
+    for (let i = 0; i < frames; i++) {
+      heroVictoryPose(pose, SPRITE_LEFT * h, SPRITE_TOP * h, h, (i / frames) * HERO_VICTORY_LOOP_MS, calm);
+      // Each frame's cape at its own angle (no easing between pre-drawn frames).
+      pose.capeAt = -1;
+      ctx.setTransform(ratio, 0, 0, ratio, i * fw, 0);
+      drawHero(ctx, pose);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.sprite = { canvas, ratio, calm };
+    return canvas;
   }
 
   /** One branching bolt from near the top to the lower part of the screen. */
@@ -261,11 +300,25 @@ export class CelebrationScene {
     const cx = box.left + box.width - 17;
     const footY = box.top + box.height - 3;
     const t = Math.min(age, PODIUM_HERO_BOB_MS);
-    heroVictoryPose(this.pose, cx, footY, PODIUM_HERO_H, t, podium.calm);
     ctx.save();
     ctx.globalAlpha = Math.min(1, age / (podium.calm ? 300 : 180));
-    drawHero(ctx, this.pose);
-    this.markHero();
+    const sprite = this.podiumSprite(podium.calm);
+    if (sprite) {
+      const h = PODIUM_HERO_H;
+      const frames = podium.calm ? 1 : PODIUM_HERO_FRAMES;
+      const frame = Math.floor(((t % HERO_VICTORY_LOOP_MS) / HERO_VICTORY_LOOP_MS) * frames) % frames;
+      const fw = sprite.width / frames;
+      const left = cx - SPRITE_LEFT * h;
+      const top = footY - SPRITE_TOP * h;
+      const w = (SPRITE_LEFT + SPRITE_RIGHT) * h;
+      const hh = (SPRITE_TOP + SPRITE_BOTTOM) * h;
+      ctx.drawImage(sprite as unknown as CanvasImageSource, frame * fw, 0, fw, sprite.height, left, top, w, hh);
+      this.mark(left, top, left + w, top + hh);
+    } else {
+      heroVictoryPose(this.pose, cx, footY, PODIUM_HERO_H, t, podium.calm);
+      drawHero(ctx, this.pose);
+      this.markHero();
+    }
     ctx.restore();
   }
 

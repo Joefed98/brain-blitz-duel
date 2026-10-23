@@ -15,6 +15,9 @@ import { IPHONE11_APP } from "./device-emulation";
 import { INTRO_MS } from "../src/lib/duel/types";
 
 const RATE = Number(process.argv.find((a) => a.startsWith("--rate="))?.slice(7) ?? 4);
+/** --only=<screen name> measures one screen; --fire=<js> replaces what is fired there (C, s and step in scope). */
+const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7) ?? null;
+const FIRE = process.argv.find((a) => a.startsWith("--fire="))?.slice(7) ?? null;
 const APP: ThemeViewport = { name: "414x896 home-screen app", w: IPHONE11_APP.w, h: IPHONE11_APP.h, app: true };
 type Room = ReturnType<ReturnType<typeof room>>;
 const tweak = (make: () => Room, change: (r: Room) => void) => () => {
@@ -65,7 +68,7 @@ const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM_PATHS.find((p) => p && existsSync(p)) });
 const rows: string[] = [];
 try {
-  for (const screen of SCREENS) {
+  for (const screen of SCREENS.filter((x) => !ONLY || x.name === ONLY)) {
     const line: string[] = [screen.label.padEnd(24)];
     for (const on of [true, false]) {
       const { context, page } = await openThemeScreen(browser, server.origin, screen, APP, async (ctx) => {
@@ -97,6 +100,7 @@ try {
         await page.evaluate(`import("/src/lib/fx/celebrations.ts").then((C) => {
           const s = C.celebrationScope();
           const step = document.querySelector('[data-podium-step="1"]');
+          if (${JSON.stringify(FIRE)}) return eval(${JSON.stringify(FIRE ?? "")});
           if (step) { C.podiumHero(s, step); const b = step.getBoundingClientRect(); C.sparkBurst(s, b.right - 17, b.bottom - 30, { count: 44 }); C.showBanner(s, "You win!", { burst: true }); }
           else if (document.querySelector("[data-charge-meter]")) C.sparkBurstOn(s, document.querySelector(".charge-meter-track"), { row: true, count: 60 });
           else if (document.querySelector("[data-reveal-score]")) C.heroRun(s);
