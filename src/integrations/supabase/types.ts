@@ -964,6 +964,30 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_events: {
+        Row: {
+          agreed_at: string
+          created_at: string
+          id: number
+          terms_version: number
+          user_id: string
+        }
+        Insert: {
+          agreed_at: string
+          created_at?: string
+          id?: never
+          terms_version: number
+          user_id: string
+        }
+        Update: {
+          agreed_at?: string
+          created_at?: string
+          id?: never
+          terms_version?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       unblock_bank: {
         Row: {
           created_at: string
