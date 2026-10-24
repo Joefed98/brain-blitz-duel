@@ -96,6 +96,14 @@ interface Harness {
   calls?: string[];
   /** Change the room from a check (room-extras-check: a player finishing) and redraw. */
   update?: (change: (room: Room) => void) => void;
+  /**
+   * Intro demos (demo-intro-check): the saved demo getIntroDemoFn returns for each type (absent: none),
+   * after demoDelayMs (a slow server, so the still shows first).
+   */
+  demos?: Record<string, unknown>;
+  demoDelayMs?: number;
+  /** The closed round roundReplayFn returns on the results screen (demo-intro-check's replay pass; absent: none). */
+  replay?: unknown;
 }
 
 const w = window as unknown as { __harness: Harness };
@@ -341,6 +349,16 @@ async function myChallengesFn() {
   return H.challenge?.list ?? [];
 }
 
+/** The saved intro demo for a type (H.demos), after H.demoDelayMs. */
+async function getIntroDemoFn({ data }: { data: { type: string } }) {
+  await new Promise((resolve) => setTimeout(resolve, H.demoDelayMs ?? 0));
+  return (H.demos?.[data.type] as unknown) ?? null;
+}
+/** The results screen's closed round (H.replay). */
+async function roundReplayFn() {
+  return H.replay ? { ok: true, data: H.replay } : { ok: false, message: "none" };
+}
+
 /** The share loop's beta recording: kept for share-check to read. */
 async function recordShareEventFn({ data }: { data: unknown }) {
   (H.shareEvents ??= []).push(data);
@@ -348,6 +366,8 @@ async function recordShareEventFn({ data }: { data: unknown }) {
 }
 
 const IMPLEMENTATIONS: Record<string, unknown> = {
+  getIntroDemoFn,
+  roundReplayFn,
   challengeStatusFn,
   challengeInfoFn,
   createChallengeFn,

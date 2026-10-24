@@ -438,6 +438,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   figures' joints (`drawHero`, Jaywalk `drawWalkerHero`, Roofbound `drawRunnerHero`); their game icons (Practice, Play,
   Profile, the share and challenge cards) draw it too, as vectors at the icon's real pixel size, each paint on a fresh
   pose (`detailScale` judges the eye slits and bolt by the icon's real px). The old stick figures are gone.
+- **Intro demos, puzzle replays and the arcade reveal line** (23 Oct 2026, Prompt D; display only, no version stamps;
+  `docs/demo-replay-audit.md` audits all 73 games): every intro has one layout, GOAL, HOW, a demo box (`IntroStage`) and
+  SCORE, the box sized by the text alone; the game's still (its `IntroExample`) fills it until a saved demo draws its first
+  frame, and stays for a game without one; the intro fades in without moving. Puzzle time-lapses showed an empty card (their
+  fitting box had no width, so every board scaled to 0): fixed, the board laid out as on the answer reveal, Lightbender's
+  action-log rounds at their recorded rhythm, Lookout and Roundabout added, at most about 8 s, ending on the stored score;
+  every other puzzle shows the winner's real final board with "Replay not available for this game yet". The arcade reveal's
+  snake gives each player a 6 px line in their colour (this player's 8 px, on top), fills the spare height and draws all
+  text #F3F1EC at 13 px semibold on a dark backing, never overlapping (still no points figure for anyone).
+  demo-intro-check (`play18`/`play19`, thirds) proves zero shift from the first frame to the demo playing for every game,
+  with and without a demo; replay-board-check (`play19`) plays 46 stored puzzle answers on the room's results screen.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

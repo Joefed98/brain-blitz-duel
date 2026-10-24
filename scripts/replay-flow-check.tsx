@@ -36,7 +36,7 @@ import {
   planHighlight,
   planPlayOfTheGame,
 } from "../src/lib/replay/pick";
-import { planTimelapse } from "../src/lib/replay/timelapse";
+import { planTimelapse, TIMELAPSE_CAP_MS } from "../src/lib/replay/timelapse";
 import { NEXT_ROUND_AUTO_MS, type PuzzleData } from "../src/lib/duel/types";
 import type { Moment } from "../src/lib/replay/moments";
 import { runTimelapseChecks } from "./replay-timelapse-lib";
@@ -349,6 +349,24 @@ ok(
   lapse !== null && lapse.frames.length * lapse.frameMs <= 4000 + 1e-6,
   `a time-lapse with 4 s left runs ${lapse ? (lapse.frames.length * lapse.frameMs).toFixed(0) : "-"} ms`,
 );
+// A timed answer (Lightbender's action log) keeps its moves' real rhythm, sped up into at most about 8 s.
+{
+  const timedPuzzle = { type: "laser", alogRev: 1 } as unknown as PuzzleData;
+  const times = [2_000, 3_000, 9_000, 9_500, 40_000];
+  const log = `alog1:${times.map((t, i) => `${i === times.length - 1 ? "f" : `p${10 + i}s`}@${t}`).join(",")}`;
+  const timed = planTimelapse(timedPuzzle, log, true);
+  ok(timed !== null && timed.timed, "a Lightbender action log plans a timed time-lapse");
+  if (timed) {
+    const at = timed.atMs;
+    ok(at.every((t, i) => i === 0 || t > at[i - 1]!), `timed frames rise (${at.map(Math.round).join(", ")})`);
+    ok(at[at.length - 1]! + timed.frameMs <= TIMELAPSE_CAP_MS, `the timed time-lapse lasts ${Math.round(at[at.length - 1]! + timed.frameMs)} ms (cap ${TIMELAPSE_CAP_MS})`);
+    const gap = (i: number) => at[i + 1]! - at[i]!;
+    ok(Math.abs(gap(2) / gap(1) - 6) < 1e-6 && Math.abs(gap(4) / gap(1) - 30.5) < 1e-6, "gaps keep the moves' real proportions");
+  }
+  ok(planTimelapse({ type: "laser" } as unknown as PuzzleData, "1|", true) === null, "an old Lightbender answer (no action log) has no time-lapse");
+  const even = planTimelapse({ type: "tower", minMoves: 7 } as unknown as PuzzleData, "0>2,0>1,2>1,0>2,1>0,1>2,0>2", true);
+  ok(even !== null && !even.timed && even.atMs.every((t, k) => Math.abs(t - k * even.frameMs) < 1e-9), "an untimed move list is evenly spaced");
+}
 // A stale-version reload (lib/appUpdate) on the results or final screen ends the panel: it never claims the gate or holds a submission.
 for (const file of files)
   ok(

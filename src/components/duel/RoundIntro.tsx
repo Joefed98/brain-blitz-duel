@@ -13,17 +13,18 @@ import { preloadGameData, useGameDataReady } from "@/lib/duel/gamePreload";
 import { RoundPips } from "./RoundPips";
 import { Dots } from "./Dots";
 import { PuzzleInstructions } from "./PuzzleInstructions";
-import { hasIntroDemo, IntroDemo, useArcadeIntroDemo } from "./IntroDemo";
+import { hasIntroDemo, IntroDemo, introDemoAspect, useArcadeIntroDemo } from "./IntroDemo";
 import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
-import { IntroFit } from "./IntroFit";
+import { IntroStage } from "./IntroStage";
 import { useDesktop } from "@/lib/desktop";
 import { DESKTOP_KEYS } from "@/lib/desktopKeys";
 
 /**
- * The demo or example is never squeezed below this height (px) while a smaller
+ * The demo box (IntroStage) is never squeezed below this height (px) while a smaller
  * text step is left: past it the intro steps GOAL / HOW / SCORE down a size
  * (data-compact 1, then 2) instead, so the text always fits above READY with
- * no scrolling and the picture stays readable.
+ * no scrolling and the picture stays readable. The box's size comes from the text
+ * alone, never from the demo, so it is the same with a demo, while one loads and without.
  */
 const INTRO_VISUAL_MIN_PX = 110;
 const INTRO_COMPACT_STEPS = 2;
@@ -79,8 +80,8 @@ export function RoundIntro({
   const Example = puzzleDef(type).IntroExample;
   const savedPuzzleDemo = usePuzzleDemo(type);
   const puzzleDemo = hasIntroDemo(type) ? null : savedPuzzleDemo;
-  // Engine games show their demo only once a recorded one is there to play; a stopped or missing demo
-  // leaves no demo area (no still frame, no DEMO tag) until it is re-recorded.
+  // Engine games play their demo once a recorded one is there; until then, and for good when it is
+  // stopped or missing, the same box shows the game's still (IntroStage), so the intro never moves.
   const savedArcadeDemo = useArcadeIntroDemo(type);
   const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
   const introLine = puzzle ? (puzzleDef(type).introLine?.(puzzle) ?? null) : null;
@@ -131,9 +132,10 @@ export function RoundIntro({
 
   // Round music is owned by the room/practice round state, never by this screen.
 
-  // Fit: the text takes what it needs and the demo/example box (IntroFit) the
-  // rest. If that leaves the picture under INTRO_VISUAL_MIN_PX, or the text
-  // itself does not fit, step the text down one size and measure again.
+  // Fit: the text takes what it needs and the demo box (IntroStage) the rest.
+  // If that leaves the box under INTRO_VISUAL_MIN_PX, or the text itself does
+  // not fit, step the text down one size and measure again. Only the text and
+  // the screen decide this, so a demo arriving later never changes the layout.
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [compact, setCompact] = useState(0);
   useLayoutEffect(() => setCompact(0), [type]);
@@ -146,21 +148,19 @@ export function RoundIntro({
     const el = contentRef.current;
     if (!el || compact >= INTRO_COMPACT_STEPS) return;
     const check = () => {
-      const fit = el.querySelector<HTMLElement>("[data-intro-fit]");
-      const natural = fit ? Number.parseFloat(fit.style.height) || 0 : 0;
+      const stage = el.querySelector<HTMLElement>("[data-intro-stage]");
       const overflow = el.scrollHeight - el.clientHeight > 1;
-      const cramped = fit !== null && natural > 0 && fit.clientHeight + 1 < Math.min(natural, INTRO_VISUAL_MIN_PX);
+      const cramped = stage !== null && stage.clientHeight + 1 < INTRO_VISUAL_MIN_PX;
       if (overflow || cramped) setCompact((c) => Math.min(INTRO_COMPACT_STEPS, c + 1));
     };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
-    for (const child of Array.from(el.querySelectorAll("[data-intro-fit] > div"))) ro.observe(child);
     return () => ro.disconnect();
-  }, [compact, counting, type, puzzleDemo]);
+  }, [compact, counting, type]);
 
   return (
-    <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-phase-in">
+    <div data-compact={compact} className="round-intro flex min-h-0 flex-1 flex-col gap-2 overflow-hidden animate-round-in">
       <div className="category-header flex items-start justify-between">
         {practice && onBack ? (
           <Button
@@ -203,39 +203,29 @@ export function RoundIntro({
         </div>
       ) : (
         <>
-          {/* Without its demo an engine game's intro is text only: centred, so the screen still reads as complete. */}
+          {/* One layout for every game: GOAL, HOW, the demo box, SCORE. The box is the same size with a demo,
+              while it loads and without one (IntroStage); the still fills it until a demo plays. */}
           <div
             ref={contentRef}
-            className={`round-intro-content flex min-h-0 flex-1 flex-col items-center gap-2 overflow-hidden py-1 ${hasIntroDemo(type) && !arcadeDemo ? "justify-center" : "justify-start"}`}
+            className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-hidden py-1"
           >
-            {arcadeDemo ? (
-              <PuzzleInstructions
-                type={type}
-                beforeScore={
-                  <IntroFit>
-                    <IntroDemo type={type} demo={arcadeDemo} />
-                  </IntroFit>
-                }
-              />
-            ) : hasIntroDemo(type) ? (
-              <PuzzleInstructions type={type} />
-            ) : puzzleDemo ? (
-              <PuzzleInstructions
-                type={type}
-                beforeScore={
-                  <IntroFit>
-                    <PuzzleIntroDemo demo={puzzleDemo} />
-                  </IntroFit>
-                }
-              />
-            ) : (
-              <>
-                <PuzzleInstructions type={type} />
-                <IntroFit className="round-intro-example">
-                  <Example />
-                </IntroFit>
-              </>
-            )}
+            <PuzzleInstructions
+              type={type}
+              beforeScore={
+                <IntroStage
+                  key={type}
+                  still={<Example />}
+                  aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
+                  demo={
+                    arcadeDemo
+                      ? (onDemoReady) => <IntroDemo type={type} demo={arcadeDemo} onReady={onDemoReady} />
+                      : puzzleDemo
+                        ? (onDemoReady) => <PuzzleIntroDemo demo={puzzleDemo} onReady={onDemoReady} />
+                        : null
+                  }
+                />
+              }
+            />
             {introLine ? (
               <p className="shrink-0 font-mono text-sm font-bold uppercase tracking-widest text-primary">
                 {introLine}

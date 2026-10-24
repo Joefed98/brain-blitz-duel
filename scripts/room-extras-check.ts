@@ -9,11 +9,13 @@
  *     appear, name them ("Ali and Jo finished"), sit below the notch, and never overlap the play
  *     area, the timer, "?", sound, Leave or any control, and the play area must not move when it
  *     appears or when it clears (about 3 s later). It never shows a score.
- *  2. The chart: Hover's room reveal at 414x896 (the home-screen app) with 2, 6 and 10 players on
+ *  2. The chart (--chart-only runs just this): Hover's room reveal at 414x896 (the home-screen app) with 2, 6 and 10 players on
  *     the snake: two players three points apart, ties, and 0, 50, 51, 100, 101 and 150. Every
  *     marker's badge sits on its score's row and exact place, no marker shows a number (only the
  *     reveal's own big score does), and Every marker sits on its score's row, no two overlap, "You" is ringed, the
- *     labels are drawn, and the whole chart is on screen, unclipped, above the home bar.
+ *     labels are drawn, and the whole chart is on screen, unclipped, above the home bar. Since 23 Oct
+ *     2026 (Prompt D) every chart text is #F3F1EC, at least 13 px and semibold, no two labels (names or
+ *     scale) overlap, and the reveal page does not scroll.
  *
  *   bun scripts/room-extras-check.ts [--verbose] [--shots=<dir>]   (screenshots for review)
  */
@@ -30,6 +32,8 @@ import { CHART_MARGIN, chartPoint, chartRow } from "../src/lib/duel/arcadeChart"
 import type { PuzzleData } from "../src/lib/duel/types";
 
 const VERBOSE = process.argv.includes("--verbose");
+/** Only the chart (section 2), for a quick local run after a chart change. */
+const CHART_ONLY = process.argv.includes("--chart-only");
 const SHOTS = process.argv.find((a) => a.startsWith("--shots="))?.slice(8);
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
@@ -171,7 +175,7 @@ try {
     { name: "puzzle Box Six", type: "sudoku" },
     { name: "Double Take (no score strip)", type: "spotdiff" },
   ];
-  for (const device of SIZES) {
+  for (const device of CHART_ONLY ? [] : SIZES) {
     for (const c of CASES) {
       for (const players of [2, 4]) {
         const where = `ping ${c.name}, ${players} players, ${device.key}`;
@@ -264,6 +268,12 @@ try {
               ...box(el),
             })),
             labels: Array.from(document.querySelectorAll("[data-chart-label]")).map((el) => el.textContent),
+            // Every piece of chart text (scale labels and names, 23 Oct 2026): its box, size, weight and colour.
+            texts: Array.from(chart.querySelectorAll<HTMLElement>("[data-chart-label], [data-chart-marker] > span:last-child, [data-chart-marker]")).map((el) => {
+              const cs = getComputedStyle(el);
+              return { ...box(el), text: (el.textContent ?? "").trim(), marker: el.hasAttribute("data-chart-marker"), size: parseFloat(cs.fontSize), weight: Number(cs.fontWeight), colour: cs.color };
+            }),
+            pageScrolls: (document.scrollingElement?.scrollHeight ?? 0) > window.innerHeight + 1,
             // Everything the chart says outside its scale labels.
             words: (() => {
               const copy = chart.cloneNode(true) as HTMLElement;
@@ -289,6 +299,18 @@ try {
         for (const a of g.markers)
           for (const b of g.markers)
             if (a.slot < b.slot && overlap({ ...a, what: "" }, { ...b, what: "" })) fails.push(`markers ${a.slot} and ${b.slot} overlap`);
+        // Legibility (23 Oct 2026): #F3F1EC text, at least 13 px, names semibold; no two labels (names or scale) overlap.
+        const words = g.texts.filter((t) => !t.marker);
+        for (const t of words) {
+          if (t.size < 13) fails.push(`"${t.text}" is ${t.size} px`);
+          if (t.colour !== "rgb(243, 241, 236)") fails.push(`"${t.text}" is ${t.colour}, not #F3F1EC`);
+          if (t.weight < 600) fails.push(`"${t.text}" weight ${t.weight}`);
+        }
+        const blocks = [...words.filter((t) => /^\d+$/.test(t.text)), ...g.texts.filter((t) => t.marker)];
+        for (let i = 0; i < blocks.length; i++)
+          for (let j = i + 1; j < blocks.length; j++)
+            if (overlap({ ...blocks[i]!, what: "" }, { ...blocks[j]!, what: "" })) fails.push(`"${blocks[i]!.text}" and "${blocks[j]!.text}" overlap`);
+        if (g.pageScrolls) fails.push("the reveal page scrolls");
         const wantLabels = ["0", "50", "100", "150"];
         if (JSON.stringify(g.labels) !== JSON.stringify(wantLabels)) fails.push(`labels ${g.labels}`);
         const bottom = g.chart.y + g.chart.h;

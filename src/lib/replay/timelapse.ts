@@ -3,11 +3,13 @@
  * already an ordered move list AND whose reveal board draws the board from the
  * answer it is given, the winner's moves are played back by handing the
  * game's own Reveal component growing prefixes of the stored list (read-only;
- * no game file is edited). Stored lists carry no times, so moves are spaced
- * evenly. Every other puzzle is listed in docs/replays.md with what it needs;
- * the timestamped puzzle action log (docs/puzzle-action-log.md, Room rules and
- * trust) is the format the rest get wired to in a follow-up.
+ * no game file is edited). Where the stored answer carries each move's time
+ * (Lightbender's timestamped action log, docs/puzzle-action-log.md) the moves
+ * keep their real relative timing, sped up to fit; plain move lists carry no
+ * times, so their moves are spaced evenly. Every other puzzle is listed in
+ * docs/replays.md and docs/demo-replay-audit.md with what it needs.
  */
+import { ACTION_LOG_PREFIX, decodeActionLog, usesActionLog } from "@/lib/duel/actionLog";
 import type { PuzzleData } from "@/lib/duel/types";
 
 export interface TimelapseSpec {
@@ -26,6 +28,10 @@ export interface TimelapseSpec {
   minLabel: string;
   /** The Reveal draws the player's board only when told the answer was right (Gridlock, Heave). */
   needsCorrect?: boolean;
+  /** Round-clock ms of each token, when the stored answer records them (an action log). */
+  times?: (tokens: string[]) => number[];
+  /** Only some stored puzzles keep a list this spec can read (Lightbender: the action-log stamp). */
+  applies?: (puzzle: PuzzleData) => boolean;
 }
 
 const num = (p: PuzzleData, key: string): number | null => {
@@ -44,6 +50,14 @@ const letters = (allowed: RegExp) => (answer: string) =>
 const joinComma = (tokens: string[], k: number) => tokens.slice(0, k).join(",");
 const joinLetters = (tokens: string[], k: number) => tokens.slice(0, k).join("");
 const same = (k: number) => k;
+/** An action log's items in time order (every item kept: a replay shows what was sent, the Reveal applies its own rules). */
+const logItems = (answer: string) =>
+  decodeActionLog(String(answer ?? ""), Number.MAX_SAFE_INTEGER).actions.map(
+    (x) => `${x.a}@${x.t}`,
+  );
+const joinLog = (tokens: string[], k: number) => ACTION_LOG_PREFIX + tokens.slice(0, k).join(",");
+const logTimes = (tokens: string[]) =>
+  tokens.map((t) => Number(t.slice(t.lastIndexOf("@") + 1)) || 0);
 
 export const TIMELAPSE: Record<string, TimelapseSpec> = {
   unblock: {
@@ -138,6 +152,39 @@ export const TIMELAPSE: Record<string, TimelapseSpec> = {
     minLabel: "fewest pushes",
     needsCorrect: true,
   },
+  // Lookout and Roundabout (23 Oct 2026): their stored lists are the words found, in order, and their
+  // reveal boards draw the words found so far from a part of the list (found-so-far highlights, the
+  // crossword filling in).
+  wordsearch: {
+    sep: ",",
+    tokens: comma,
+    prefix: joinComma,
+    moves: same,
+    min: () => null,
+    unit: "word",
+    minLabel: "",
+  },
+  letterwheel: {
+    sep: ",",
+    tokens: comma,
+    prefix: joinComma,
+    moves: same,
+    min: () => null,
+    unit: "word",
+    minLabel: "",
+  },
+  // Lightbender (alogRev 1): every placement, turn, move, removal and FIRE with its round-clock time.
+  laser: {
+    sep: ",",
+    tokens: logItems,
+    prefix: joinLog,
+    moves: same,
+    min: () => null,
+    unit: "action",
+    minLabel: "",
+    times: logTimes,
+    applies: usesActionLog,
+  },
 };
 
 export function canTimelapse(type: string): boolean {
@@ -151,12 +198,22 @@ export interface TimelapsePlan {
   frames: string[];
   total: number;
   min: number | null;
-  /** Milliseconds per frame, so the whole time-lapse runs 5–10 s (results screen: within its time left). */
+  /** Milliseconds per frame on average, so the whole time-lapse runs 5–7.5 s (results screen: within its time left). */
   frameMs: number;
+  /**
+   * When each frame is shown, ms from the start (frame 0 at 0). Evenly spaced (k × frameMs) for an untimed
+   * list; for a timed one the real gaps between moves, all scaled by one factor so the moves never take
+   * longer than the even plan would (never sped up past real time's order, never slowed past it).
+   */
+  atMs: number[];
+  /** True when atMs follows the moves' recorded times. */
+  timed: boolean;
 }
 
 export const TIMELAPSE_MIN_MS = 5_000;
 export const TIMELAPSE_MAX_MS = 10_000;
+/** A replay lasts at most about this long (Prompt D, 23 Oct 2026: "at most about 8 s"); the plans keep to 7.5 s. */
+export const TIMELAPSE_CAP_MS = 8_000;
 
 /** The time-lapse of a stored answer, or null when it can't be shown (needs a solved answer for some boards). */
 export function planTimelapse(
@@ -169,6 +226,7 @@ export function planTimelapse(
   const spec = TIMELAPSE[puzzle.type];
   if (!spec || !answer) return null;
   if (spec.needsCorrect && !isCorrect) return null;
+  if (spec.applies && !spec.applies(puzzle)) return null;
   const tokens = spec.tokens(answer);
   if (tokens.length < 2) return null;
   const frames = Array.from({ length: tokens.length + 1 }, (_, k) => spec.prefix(tokens, k));
@@ -178,5 +236,34 @@ export function planTimelapse(
     budgetMs === undefined
       ? Math.max(TIMELAPSE_MIN_MS / frames.length, Math.min(600, 7_500 / frames.length))
       : Math.min(600, Math.max(0, Math.min(7_500, budgetMs)) / frames.length);
-  return { spec, tokens, frames, total: spec.moves(tokens.length), min: spec.min(puzzle), frameMs };
+  const span = frameMs * (frames.length - 1);
+  const even = frames.map((_, k) => k * frameMs);
+  const times = spec.times?.(tokens) ?? null;
+  let atMs = even;
+  let timed = false;
+  if (times && times.length === tokens.length) {
+    // Real relative timing: frame k (k moves made) shows at the k-th move's time, measured from the first
+    // move, scaled into the even plan's span (a long think stays long, a quick burst stays quick).
+    const first = times[0]!;
+    const last = times[times.length - 1]!;
+    const real = Math.max(0, last - first);
+    if (real > 0) {
+      const scale = Math.min(1, span / real);
+      // Frame 1 (the first move) shows one even step in, so the opening board is seen.
+      const lead = Math.min(frameMs, span / 4);
+      const k = real * scale > span - lead ? (span - lead) / real : scale;
+      atMs = [0, ...times.map((t) => lead + (t - first) * k)];
+      timed = true;
+    }
+  }
+  return {
+    spec,
+    tokens,
+    frames,
+    total: spec.moves(tokens.length),
+    min: spec.min(puzzle),
+    frameMs,
+    atMs,
+    timed,
+  };
 }
