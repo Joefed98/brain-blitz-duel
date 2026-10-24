@@ -92,6 +92,11 @@ async function prepare(context: BrowserContext, on: boolean | null, ready: strin
     ({ on, ready }) => {
       const w = window as unknown as Record<string, unknown>;
       w.__DUELZ_CELEBRATION_LOG__ = [];
+      // Whether the header's mark ever charged in (it settles to the plain mark after 0.6 s).
+      w.__celLogoCharged = false;
+      new MutationObserver(() => {
+        if (document.querySelector("[data-app-wordmark] [data-logo-charge]")) w.__celLogoCharged = true;
+      }).observe(document, { childList: true, subtree: true, attributes: true });
       if (on !== null) w.__DUELZ_BETA_CONFIG__ = { ...((w.__DUELZ_BETA_CONFIG__ as object) ?? {}), FX_CELEBRATIONS: on };
       const ids = new WeakMap<Element, number>();
       let next = 1;
@@ -431,7 +436,8 @@ try {
   // On: Create a room's zap; the logo's charge-in.
   {
     const o = await open(browser, server.origin, "home", true);
-    check(!!(await o.page.$("[data-app-wordmark] [data-logo-charge]")), "home: the first logo does not charge in");
+    check(await o.page.evaluate(() => (window as unknown as { __celLogoCharged: boolean }).__celLogoCharged), "home: the first logo does not charge in");
+    check(!(await o.page.$("[data-logo-charge]")) && (await o.page.$$("[data-app-wordmark] svg g, [data-app-wordmark] svg clipPath")).length === 0, "home: the mark is not the plain mark once the charge-in ends");
     await o.page.getByRole("button", { name: "Create a room" }).click();
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:zap"), "Create a room: no zap");
@@ -439,6 +445,9 @@ try {
     if (SHOTS) {
       // The charge-in part-way: the logo's SMIL clock paused at 0.3 s.
       const c = await open(browser, server.origin, "home", true);
+      // A reopen charges the header in again; its clock is paused at 0.3 s for the picture.
+      await fire(c.page, `C.appReopened();`);
+      await c.page.waitForSelector("[data-logo-charge]");
       await c.page.evaluate(() => {
         const svg = document.querySelector("[data-logo-charge]") as SVGSVGElement | null;
         svg?.pauseAnimations();
