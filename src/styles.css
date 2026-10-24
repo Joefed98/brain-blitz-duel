@@ -1060,16 +1060,19 @@ html,
   animation: countdown-number 1s ease-out both;
 }
 
-/* Fixed examples keep their visual demonstration inside the intro's IntroFit
- * box (scaled to the room the text leaves). Their old first and last
+/* Fixed examples are the intro's still, inside its demo box (IntroStage: scaled
+ * down to the room the text leaves, centred). Their old first and last
  * instruction captions are superseded by the shared GOAL / HOW / SCORE card. */
-.round-intro-example > div > div > p:first-child,
-.round-intro-example > div > div > p:last-child {
+.intro-still > div > div > p:first-child,
+.intro-still > div > div > p:last-child {
   display: none;
 }
 
-.round-intro-example {
-  order: 3;
+/* A demo fills its contained slot in the box (IntroStage sizes the slot to the demo's aspect). */
+.intro-stage .intro-demo {
+  width: 100%;
+  height: 100%;
+  max-width: none;
 }
 
 .round-intro-time {
@@ -1876,3 +1879,9 @@ html[data-reduced-effects] .podium-award-in { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .chat-toast-up { animation: none; }
 }
+
+/* Puzzle time-lapses (ReplayPanels, 23 Oct 2026): the board only. A Reveal's own text lines describe the
+   answer it is handed, so on a part-played prefix they would read "Solved" or a points breakdown that
+   isn't the stored score; the panel's counter line carries the moves and the stored score instead.
+   (A final board is handed the real answer, so it keeps its lines, as on the answer reveal.) */
+.replay-board-lapse p { display: none; }

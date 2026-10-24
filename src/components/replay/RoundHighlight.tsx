@@ -22,6 +22,7 @@ import {
   ClipPlayer,
   FullRunViewer,
   MomentCardView,
+  PuzzleFinalBoard,
   PuzzleTimelapse,
   ReplayFrame,
 } from "./ReplayPanels";
@@ -128,7 +129,31 @@ export function RoundHighlightView({
     return px > 0 && secondsLeft() >= HIGHLIGHT_MIN_S ? (
       <TimelapseHighlight round={round} px={px} secondsLeft={secondsLeft} />
     ) : null;
+  // No move history stored: the winner's real final board, never invented moves.
+  if (winner.answer && !canReplay(type))
+    return px > 0 ? <FinalBoardHighlight round={round} px={px} /> : null;
   return null;
+}
+
+function FinalBoardHighlight({ round, px }: { round: ReplayRound; px: number }) {
+  const winner = round.winner!;
+  const [done, setDone] = useState(false);
+  if (done) return null;
+  return (
+    <ReplayFrame
+      heading={`Final board · ${winner.name}`}
+      onSkip={() => (soundCue(SHARED_CUES.highlightSkip), setDone(true))}
+      testId="final-board"
+    >
+      <PuzzleFinalBoard
+        puzzle={round.puzzle}
+        answer={winner.answer ?? ""}
+        isCorrect={winner.isCorrect}
+        height={Math.max(HIGHLIGHT_MIN_PX, px - 30)}
+        score={winner.score}
+      />
+    </ReplayFrame>
+  );
 }
 
 function ArcadeHighlight({
@@ -293,6 +318,7 @@ function TimelapseHighlight({
         plan={plan}
         isCorrect={winner.isCorrect}
         height={Math.max(HIGHLIGHT_MIN_PX, px - 30)}
+        score={winner.score}
         onEnd={() => window.setTimeout(() => setDone(true), 1500)}
       />
     </ReplayFrame>

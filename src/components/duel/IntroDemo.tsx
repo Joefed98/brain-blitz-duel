@@ -43,17 +43,27 @@ export function useArcadeIntroDemo(type: PuzzleType): ArcadeIntroDemo | "pending
   }, [demo, isPending, type]);
 }
 
+/** The demo's world shape (width / height), so the intro can reserve its box before it draws. */
+export function introDemoAspect(type: PuzzleType, demo: ArcadeIntroDemo): number | null {
+  const renderer = ARCADE_REVEAL_RENDERERS[type];
+  if (!renderer) return null;
+  const h = revealWorldH(renderer, demo.puzzle);
+  return h > 0 ? renderer.worldW / h : null;
+}
+
 /**
  * Looping intro demo: the saved run replayed from its seed on the sim clock,
  * ticks 1–480, drawn with the game's own renderer. Visual only, silent.
- * Only a recorded demo is drawn: without one the intro shows no demo area
- * (RoundIntro), never a still frame with a DEMO tag.
+ * Inside the intro's fixed box (IntroStage): the game's still shows until this
+ * has drawn its first frame (onReady), never a blank canvas with a DEMO tag.
  */
-export function IntroDemo({ type, demo }: { type: PuzzleType; demo: ArcadeIntroDemo }) {
+export function IntroDemo({ type, demo, onReady }: { type: PuzzleType; demo: ArcadeIntroDemo; onReady?: () => void }) {
   const renderer = ARCADE_REVEAL_RENDERERS[type];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const worldH = renderer ? revealWorldH(renderer, demo.puzzle) : 0;
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,8 +115,10 @@ export function IntroDemo({ type, demo }: { type: PuzzleType; demo: ArcadeIntroD
         const tick = (Math.floor(((now - started) * TICKS_PER_SECOND) / 1000) % DEMO_LENGTH_TICKS) + 1;
         // Two sim ticks per drawn frame keeps the replay-to-tick cost low.
         if (tick !== lastTick && (tick - lastTick >= 2 || tick < lastTick)) {
+          const first = lastTick < 0;
           lastTick = tick;
           drawTick(tick);
+          if (first) readyRef.current?.();
         }
         frame = requestAnimationFrame(loop);
       };

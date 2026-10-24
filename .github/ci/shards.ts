@@ -79,6 +79,11 @@ export const SHARDS: Record<string, string[]> = {
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides with no-wrap's other two thirds.
   play17: ["no-wrap-check.tsx@2/3", "no-wrap-check.tsx@3/3", "share-check.ts"],
+  // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
+  // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game, so in thirds of ~25 games, ~3 min each
+  // with its dev server) and replay-board-check (46 puzzle replays on the room's results screen, ~2 min).
+  play18: ["demo-intro-check.ts@1/3", "demo-intro-check.ts@2/3"],
+  play19: ["demo-intro-check.ts@3/3", "replay-board-check.ts"],
   // Non-browser checks. puzzle-bank-check's every-entry verification and
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.

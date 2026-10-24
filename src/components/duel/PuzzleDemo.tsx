@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -41,15 +41,15 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
 }
 
 /** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
-export function PuzzleIntroDemo({ demo }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog } }) {
+export function PuzzleIntroDemo({ demo, onReady }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog }; onReady?: () => void }) {
   return (
-    <div className="flex justify-center">
-      <PuzzleDemoPlayer puzzle={demo.puzzle} log={demo.log} />
+    <div className="flex h-full w-full justify-center">
+      <PuzzleDemoPlayer puzzle={demo.puzzle} log={demo.log} onReady={onReady} />
     </div>
   );
 }
 
-function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemoLog }) {
+function PuzzleDemoPlayer({ puzzle, log, onReady }: { puzzle: PuzzleData; log: PuzzleDemoLog; onReady?: (() => void) | undefined }) {
   const Stage = puzzleDef(puzzle.type).Stage;
   const events = useMemo(() => expandActions(log.actions), [log]);
   const loopMs = (events.at(-1)?.t ?? 0) + PUZZLE_DEMO_HOLD_MS;
@@ -228,7 +228,7 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
       if (!shown) return;
       const b = box.getBoundingClientRect();
       const s = stage.getBoundingClientRect();
-      // Rects are on-screen (after the intro's IntroFit scaling); the cursor canvas
+      // Rects are on-screen (inside any scaling around the demo); the cursor canvas
       // draws in the box's own unscaled pixels.
       const k = b.width > 0 ? w / b.width : 1;
       const px = (s.left - b.left + shown.x * s.width) * k;
@@ -282,6 +282,14 @@ function PuzzleDemoPlayer({ puzzle, log }: { puzzle: PuzzleData; log: PuzzleDemo
   }, [loop, events, loopMs, stateKey]);
 
   useEffect(() => () => clearStageState(stateKey), [stateKey]);
+
+  // Ready as the demo's Stage mounts, before that frame paints (the intro shows its still until then),
+  // so the stage is visible before its first recorded touch is aimed at it.
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
+  useLayoutEffect(() => {
+    if (mounted) readyRef.current?.();
+  }, [mounted]);
 
   const verdict = (fallback: DemoVerdict): Promise<DemoVerdict> => {
     const v = log.verdicts?.[verdictIndex.current++];

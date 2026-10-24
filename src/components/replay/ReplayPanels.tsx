@@ -282,30 +282,131 @@ export function MomentCardView({ card }: { card: MomentCard }) {
   );
 }
 
-/** Scales its child down (never up) to fit the given height, keeping it centred. */
-function FitHeight({ height, children }: { height: number; children: ReactNode }) {
+/** The reveal board's layout box: the answer reveal's board width on a phone, and a tall definite height. */
+const BOARD_W = 360;
+const BOARD_H = 520;
+
+/**
+ * Shows a game's Reveal board inside `height` px (23 Oct 2026). The Reveal is laid out as on the answer
+ * reveal, in a definite BOARD_W × BOARD_H flex box (boards that size from their parent, flex-1 min-h-0,
+ * collapsed to nothing in an auto-height box), with the page's original tokens (data-skin-off) as there.
+ * What it actually drew (the union of its visible boxes) is then scaled down, never up, to fit the width
+ * and height and centred. `grow` keeps the largest drawn area seen, so a time-lapse never resizes as
+ * pieces move.
+ */
+function FitHeight({
+  height,
+  grow = false,
+  children,
+}: {
+  height: number;
+  grow?: boolean;
+  children: ReactNode;
+}) {
+  const outer = useRef<HTMLDivElement | null>(null);
   const inner = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
+  const [fit, setFit] = useState({ scale: 1, x: 0, y: 0, ready: false });
+  const seen = useRef<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   useLayoutEffect(() => {
     const node = inner.current;
-    if (!node) return;
+    const box = outer.current;
+    if (!node || !box) return;
     const measure = () => {
-      const h = node.scrollHeight;
-      const w = node.scrollWidth;
-      const parentW = node.parentElement?.clientWidth ?? w;
-      setScale(Math.min(1, h > 0 ? height / h : 1, w > 0 ? parentW / w : 1));
+      const base = node.getBoundingClientRect();
+      const k = base.width > 0 ? BOARD_W / base.width : 1;
+      let x0 = Infinity,
+        y0 = Infinity,
+        x1 = -Infinity,
+        y1 = -Infinity;
+      for (const el of Array.from(node.querySelectorAll("*"))) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        const style = getComputedStyle(el);
+        // Only leaves and painted boxes count: a stretched wrapper is not drawn area.
+        const painted =
+          el.children.length === 0 ||
+          style.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+          style.borderTopWidth !== "0px" ||
+          el.tagName === "svg" ||
+          el.tagName === "CANVAS";
+        if (!painted) continue;
+        x0 = Math.min(x0, (r.left - base.left) * k);
+        y0 = Math.min(y0, (r.top - base.top) * k);
+        x1 = Math.max(x1, (r.right - base.left) * k);
+        y1 = Math.max(y1, (r.bottom - base.top) * k);
+      }
+      if (!Number.isFinite(x0)) return;
+      const prev = grow ? seen.current : null;
+      const area = prev
+        ? {
+            x0: Math.min(prev.x0, x0),
+            y0: Math.min(prev.y0, y0),
+            x1: Math.max(prev.x1, x1),
+            y1: Math.max(prev.y1, y1),
+          }
+        : { x0, y0, x1, y1 };
+      seen.current = area;
+      const w = Math.max(1, area.x1 - area.x0);
+      const h = Math.max(1, area.y1 - area.y0);
+      const scale = Math.min(1, box.clientWidth / w, height / h);
+      const x = (box.clientWidth - w * scale) / 2 - area.x0 * scale;
+      const y = (height - h * scale) / 2 - area.y0 * scale;
+      setFit((f) =>
+        Math.abs(f.scale - scale) < 1e-3 &&
+        Math.abs(f.x - x) < 0.25 &&
+        Math.abs(f.y - y) < 0.25 &&
+        f.ready
+          ? f
+          : { scale, x, y, ready: true },
+      );
     };
     measure();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    observer?.observe(node);
-    return () => observer?.disconnect();
-  }, [height]);
+    // Later changes (a new frame, a resize) are measured once per animation frame, never in the
+    // observer callbacks themselves, and the box's own transform is not a change of the board.
+    let frame = 0;
+    const raf =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (fn: () => void) => window.setTimeout(fn, 16);
+    const later = () => {
+      if (!frame) frame = raf(() => ((frame = 0), measure()));
+    };
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(later) : null;
+    observer?.observe(box);
+    const mutations =
+      typeof MutationObserver !== "undefined"
+        ? new MutationObserver((records) => {
+            if (records.some((r) => r.target !== node)) later();
+          })
+        : null;
+    mutations?.observe(node, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+    return () => {
+      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
+      else window.clearTimeout(frame);
+      observer?.disconnect();
+      mutations?.disconnect();
+    };
+  }, [height, grow]);
   return (
-    <div className="relative mx-auto overflow-hidden" style={{ height }}>
+    // w-full: inside the time-lapse's centred flex column a box with only an absolute child has no
+    // width of its own, so it measured 0 and every board was scaled to nothing (fixed 23 Oct 2026).
+    <div ref={outer} className="relative mx-auto w-full overflow-hidden" style={{ height }}>
       <div
         ref={inner}
-        className="pointer-events-none absolute left-1/2 top-0 w-[360px] origin-top"
-        style={{ transform: `translateX(-50%) scale(${scale})` }}
+        data-skin-off=""
+        className="pointer-events-none absolute left-0 top-0 flex flex-col items-center justify-start"
+        style={{
+          width: BOARD_W,
+          height: BOARD_H,
+          transform: `translate(${fit.x}px, ${fit.y}px) scale(${fit.scale})`,
+          transformOrigin: "0 0",
+          opacity: fit.ready ? 1 : 0,
+        }}
       >
         {children}
       </div>
@@ -325,12 +426,15 @@ export function PuzzleTimelapse({
   isCorrect,
   height,
   onEnd,
+  score,
 }: {
   puzzle: PuzzleData;
   plan: TimelapsePlan;
   isCorrect: boolean;
   height: number;
   onEnd: () => void;
+  /** The round's stored score, shown once the last move is on the board (only AnswerReveal's stored figure). */
+  score?: number;
 }) {
   const [frame, setFrame] = useState(0);
   const Reveal = puzzleDef(puzzle.type).Reveal;
@@ -341,36 +445,93 @@ export function PuzzleTimelapse({
   }, []);
   const timeLimitMs = puzzleTimeLimitMs(puzzle);
   useEffect(() => {
-    let k = 0;
-    const timer = window.setInterval(() => {
-      k += 1;
-      if (k >= plan.frames.length) {
-        window.clearInterval(timer);
-        onEnd();
-        return;
-      }
-      setFrame(k);
-    }, plan.frameMs);
-    return () => window.clearInterval(timer);
+    // Each frame at its own time (the moves' recorded rhythm where the answer keeps times, else evenly),
+    // then one more step's pause on the final board before onEnd.
+    const timers = plan.atMs.slice(1).map((at, i) => window.setTimeout(() => setFrame(i + 1), at));
+    const last = plan.atMs[plan.atMs.length - 1] ?? 0;
+    timers.push(window.setTimeout(onEnd, last + plan.frameMs));
+    return () => timers.forEach((t) => window.clearTimeout(t));
   }, [plan]); // eslint-disable-line react-hooks/exhaustive-deps
   const done = plan.spec.moves(frame);
+  const finished = frame >= plan.frames.length - 1;
   return (
-    <div className="relative flex w-full flex-col items-center gap-1" data-timelapse={puzzle.type}>
+    <div
+      className="relative flex w-full flex-col items-center gap-1"
+      data-timelapse={puzzle.type}
+      data-timelapse-frame={frame}
+    >
       <span
         className="rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-foreground"
         data-timelapse-counter
       >
         {plan.spec.unit} {done} / {plan.total}
         {plan.min !== null ? ` · ${plan.spec.minLabel} ${plan.min}` : ""}
+        {finished && score !== undefined ? ` · ${score} pts` : ""}
       </span>
-      <FitHeight height={height}>
-        <div inert className="select-none">
+      <FitHeight height={height} grow>
+        <div
+          inert
+          className="replay-board replay-board-lapse flex min-h-0 w-full flex-1 select-none flex-col items-center"
+        >
           <Reveal
             puzzle={puzzle}
             myAnswer={plan.frames[frame] ?? ""}
             myCorrect={isCorrect}
             myReactionAvgMs={null}
             timeLimitMs={timeLimitMs}
+          />
+        </div>
+      </FitHeight>
+    </div>
+  );
+}
+
+/**
+ * A puzzle whose stored answer has no move history (a final layout, a set of picks): the winner's
+ * real final board on the game's own Reveal, with the stored score and "Replay not available for
+ * this game yet". Nothing is invented; docs/demo-replay-audit.md lists what each game would need
+ * to record.
+ */
+export function PuzzleFinalBoard({
+  puzzle,
+  answer,
+  isCorrect,
+  height,
+  score,
+}: {
+  puzzle: PuzzleData;
+  answer: string;
+  isCorrect: boolean;
+  height: number;
+  score: number;
+}) {
+  const Reveal = puzzleDef(puzzle.type).Reveal;
+  useLayoutEffect(() => {
+    quietForReplay(true);
+    return () => quietForReplay(false);
+  }, []);
+  return (
+    <div
+      className="relative flex w-full flex-col items-center gap-1"
+      data-replay-final={puzzle.type}
+    >
+      <span
+        className="rounded bg-background/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-foreground"
+        data-replay-unavailable
+      >
+        Replay not available for this game yet · {score} pts
+      </span>
+      <FitHeight height={height}>
+        <div
+          inert
+          className="replay-board flex min-h-0 w-full flex-1 select-none flex-col items-center"
+        >
+          <Reveal
+            puzzle={puzzle}
+            myAnswer={answer}
+            myCorrect={isCorrect}
+            myReactionAvgMs={null}
+            timeLimitMs={puzzleTimeLimitMs(puzzle)}
           />
         </div>
       </FitHeight>
