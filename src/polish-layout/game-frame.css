@@ -179,9 +179,9 @@
 .game-frame-score-note {
   max-width: 88px;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 13px;
+  line-height: 14px;
   color: #a09da6;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -295,10 +295,12 @@
 [data-puzzle-play] > .screen-background > .screen-drift {
   display: none;
 }
-/* The vignette, inside the same top and bottom edge strips as every puzzle screen (bottom.css). */
+/* The vignette, inside the same top and bottom edge strips as every puzzle screen (bottom.css). The top
+   strip fades over 24px (0.5rem elsewhere): the frame's header starts right at the notch's inset, over a
+   brighter top than the old black, and a shorter fade showed there as a step (bottom-clearance-check). */
 [data-puzzle-play] > .screen-background::after {
   background:
-    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 0.5rem) no-repeat,
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
     radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
 }
@@ -420,6 +422,17 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -10px 30px rgba(0, 0, 0, 0.35),
     0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* A tray with no control dock after it (Chroma Lines, Don't Break the Chain, Swapword…) ends near the game
+   region's bottom edge, which clips: the full 40px drop shadow was cut there in a faint line across the
+   home-bar strip (bottom-clearance-check). Those trays keep the inset shading and a short drop shadow;
+   a tray with its dock after it keeps the full one (the dock covers its reach). */
+[data-puzzle-play] [data-game-stage]:not(:has([data-game-arena] ~ * :is(button, [role="button"]), [data-game-arena] ~ :is(button, [role="button"]))) [data-game-arena]:not([data-tray="off"] [data-game-arena]) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.35),
+    0 6px 12px -6px rgba(0, 0, 0, 0.45);
 }
 
 /*

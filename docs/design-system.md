@@ -280,6 +280,10 @@ home bar. Arcade backgrounds (their screen fills) are unchanged.
 Every puzzle board sits on a tray: the game's own arena box (`data-game-arena`) dressed with a 26 px
 radius, 14 px padding, `linear-gradient(180deg, {cat}14, rgba(255,255,255,.02))`, a 1 px `{cat}2E` border
 and `inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 30px rgba(0,0,0,.35), 0 18px 40px rgba(0,0,0,.45)`.
+A tray with no control dock after it keeps the inset shading but a short drop shadow (`0 6px 12px -6px`):
+it ends near the game region's clipping bottom edge, where the long shadow was cut in a faint line across
+the home-bar strip. On puzzle play screens the notch strip fades over 24 px (0.5 rem elsewhere), because
+the header starts right at the inset over the brighter category top.
 The arena's height cap is lifted, so the tray fills the space between the goal line and the dock, with
 16 px side margins; the board inside keeps its aspect ratio and is never cropped or under the dock,
 because it sizes from the tray's content box as it sized from the arena. This is all in the shared layout
