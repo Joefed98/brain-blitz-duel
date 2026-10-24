@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 285 | 320 |
+| game event | 35 | 0 | 300 | 335 |
 | room moment | 1 | 0 | 34 | 35 |
 | music | 12 | 0 | 82 | 94 |
 | UI tap | 10 | 0 | 22 | 32 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 3 | 0 | 68 | 71 |
 | ambience | 0 | 1 | 8 | 9 |
 | replay | 0 | 0 | 129 | 129 |
-| **all** | 65 | 1 | 663 | 729 |
+| **all** | 65 | 1 | 678 | 744 |
 
 ## Silent and placeholder cues
 
@@ -332,7 +332,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | Cryptogrid | word | yes | music_word_2 (shared) | `music_word_codeword` |
 | Forage | word | yes | music_word_2 (shared) | `music_word_wordhunt` |
 | Interlock | word | yes | music_word_3 (shared) | `music_word_tilegrid` |
-| Letterfall | word | yes | music_word_2 (shared) | `music_word_wordfall` |
+| Letterfall | word | practice only | music_word_2 (shared) | `music_word_wordfall` |
 | Lookout | word | yes | music_word_2 (shared) | `music_word_wordsearch` |
 | Nucleus | word | yes | music_word_1 (shared) | `music_word_wordsmith` |
 | Roundabout | word | yes | music_word_1 (shared) | `music_word_letterwheel` |
@@ -428,6 +428,21 @@ Grouped by game or screen.
 | `shared.help.open` | An in-game "?" help sheet opens. [shared.md] |  | 0–2 | recorded sound | `shared.help.open` | 150 | UI tap | `shared.help.open` |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). [shared.md] |  | 0–2 | recorded sound | `shared.help.close` | 150 | UI tap | `shared.help.close` |
 | `shared.reject` | A puzzle refuses a move with the shared shake (puzzleReject(): Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays wrong; never in an intro demo. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.reject` | 200 | fail sting | `shared.reject` |
+| `shared.celebrate.zap` | Create a room (the Play tab's button) and GO (goStrike, with the thunder). sfx_joulz_zap.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.zap` | 380 | game event | `shared.celebrate.zap` |
+| `shared.celebrate.chime` | A spark burst: practice's New best!, the podium's "You win!" on the winner's phone, the lobby meter filling up. sfx_spark_chime.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.chime` | 600 | game event | `shared.celebrate.chime` |
+| `shared.celebrate.crackle1` | A lobby join (the charge meter rising): the three crackles rotate 1, 2, 3, so the same one never plays twice in a row. sfx_meter_crackle_1.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.crackle1` | 450 | game event | `shared.celebrate.crackle1` |
+| `shared.celebrate.crackle2` | As crackle1, the second in turn. sfx_meter_crackle_2.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.crackle2` | 380 | game event | `shared.celebrate.crackle2` |
+| `shared.celebrate.crackle3` | As crackle1, the third in turn. sfx_meter_crackle_3.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.crackle3` | 450 | game event | `shared.celebrate.crackle3` |
+| `shared.celebrate.victory` | The podium hero takes his pose beside the winner's step, on every phone. sfx_victory_sting.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.victory` | 1760 | game event | `shared.celebrate.victory` |
+| `shared.celebrate.heroRun` | The hero's run after a round of 150+ (rooms, practice, daily), as it starts; none under reduced motion (no run). sfx_hero_whoosh.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.heroRun` | 1500 | game event | `shared.celebrate.heroRun` |
+| `shared.celebrate.overtake` | A player moved up a place: once as the standings, podium or two-player final rows finish sliding. sfx_overtake_zap.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.overtake` | 280 | game event | `shared.celebrate.overtake` |
+| `shared.celebrate.countTick` | The results count-up's number changes: at most 12 ticks a second across every counting row. sfx_count_tick.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.countTick` | 60 | game event | `shared.celebrate.countTick` |
+| `shared.celebrate.countDing` | A count-up lands on its final score (or a tap skips to it); rows landing together share one ding. sfx_count_ding.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.countDing` | 490 | game event | `shared.celebrate.countDing` |
+| `shared.celebrate.thunder` | GO's lightning strike (RoundIntro); with reduced motion the sound still plays. sfx_thunder_crack.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.thunder` | 750 | game event | `shared.celebrate.thunder` |
+| `shared.celebrate.prepareThunder` | Each Prepare to Duel strike as it lands, at half GO's level; never within 400 ms of the "Prepare to Duel" voice line (that strike is silent, strikeSounds in prepareLightning.ts). Shares sfx_thunder_crack.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.prepareThunder` | 750 | game event | `shared.celebrate.prepareThunder` |
+| `shared.celebrate.streak` | The daily results' 3- and 7-day streak banners. sfx_streak_flourish.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.streak` | 1200 | game event | `shared.celebrate.streak` |
+| `shared.celebrate.streakBig` | The 30-day streak banner. sfx_streak_flourish_big.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.streakBig` | 2000 | game event | `shared.celebrate.streakBig` |
+| `shared.celebrate.logoCharge` | The app header's logo charges in, only if sound is already unlocked (an iPhone blocks sound before the first tap: the app's first charge-in is silent); none under reduced motion. sfx_logo_charge.mp3. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.celebrate.logoCharge` | 690 | game event | `shared.celebrate.logoCharge` |
 
 ### App-wide sounds
 
@@ -669,7 +684,7 @@ Grouped by game or screen.
 | `wordfall.parReached` | The score reaches par [arcade-effects.md] | PAR REACHED! banner | 0–1 | recorded sound | `wordfall.parReached` | 1000 | game event | `wordfall.parReached` |
 | `wordfall.danger` | A column comes within one tile of full [arcade-effects.md] | The column's top glows red | 0–6 | recorded sound | `wordfall.danger` | 300 | game event | `wordfall.danger` |
 | `wordfall.finish` | Letterfall: The run ends (time or a full column) with a local score (wordfallScore of the sim's points) of 120 or more, on the live stage only (never the reveal's replay). The well's tiles shimmer from bottom to top, inside each tile's face. [word.md] |  | 0–1 | recorded sound | `wordfall.finish` | 1100 | success sting | `wordfall.finish` |
-| `music.wordfall` | Letterfall round bed: music_word_2 (word bed shared with other games) |  | loop | recorded sound | `music_word_2` (shared) | 60000 | music | `music_word_wordfall` |
+| `music.wordfall` | Letterfall round bed (retired, practice): music_word_2 (word bed shared with other games) |  | loop | recorded sound | `music_word_2` (shared) | 60000 | music | `music_word_wordfall` |
 
 ### Lookout
 
@@ -1637,6 +1652,21 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `shared.signature.fast` | effects | `shared.signature.fast` | 1000 |
 | `shared.perfect` | effects | `shared.perfect` | 486 |
 | `shared.roundResults` | effects | `shared.roundResults` | 875 |
+| `shared.celebrate.zap` | effects | `shared.celebrate.zap` | 380 |
+| `shared.celebrate.chime` | effects | `shared.celebrate.chime` | 600 |
+| `shared.celebrate.crackle1` | effects | `shared.celebrate.crackle1` | 450 |
+| `shared.celebrate.crackle2` | effects | `shared.celebrate.crackle2` | 378 |
+| `shared.celebrate.crackle3` | effects | `shared.celebrate.crackle3` | 450 |
+| `shared.celebrate.victory` | effects | `shared.celebrate.victory` | 1756 |
+| `shared.celebrate.heroRun` | effects | `shared.celebrate.heroRun` | 1500 |
+| `shared.celebrate.overtake` | effects | `shared.celebrate.overtake` | 280 |
+| `shared.celebrate.countTick` | effects | `shared.celebrate.countTick` | 60 |
+| `shared.celebrate.countDing` | effects | `shared.celebrate.countDing` | 487 |
+| `shared.celebrate.thunder` | effects | `shared.celebrate.thunder` | 750 |
+| `shared.celebrate.prepareThunder` | effects | `shared.celebrate.prepareThunder` | 750 |
+| `shared.celebrate.streak` | effects | `shared.celebrate.streak` | 1200 |
+| `shared.celebrate.streakBig` | effects | `shared.celebrate.streakBig` | 1993 |
+| `shared.celebrate.logoCharge` | effects | `shared.celebrate.logoCharge` | 687 |
 | `shared.help.open` | effects | `shared.help.open` | 486 |
 | `shared.help.close` | effects | `shared.help.close` | 486 |
 | `room.prepare` | effects | `room.prepare` | 5165 |

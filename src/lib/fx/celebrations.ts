@@ -6,8 +6,10 @@
  *   streak!", "You win!"), the Joulz hero's victory pose and run, and the GO lightning strike, all
  *   drawn by the one shared full-screen layer (CelebrationLayer: one canvas, pointer-events none,
  *   particles capped at CELEBRATION_PARTICLES and pooled; src/lib/fx/celebrationCanvas.ts);
- * - the synthesised sounds (sound.ts `playCelebrationSynth`: the signature zap, the spark chime,
- *   the meter's crackle), which follow mute and the effects volume.
+ * - the recorded sounds (Prompt S, 24 Oct 2026: the sfx_* files in public/sounds, one manifest slot
+ *   each under `shared.celebrate.*`, CELEBRATION_SOUND_SLOTS), played through playCueSlot, so they
+ *   follow mute and the effects volume, are preloaded with every effect once sound unlocks, and a
+ *   file not decoded yet is skipped, never waited for.
  *
  * Every effect is an overlay on what already happens: nothing here waits, nothing changes a score,
  * a timer, a phase, a call or what a screen says, and a screen that moves on clears its own
@@ -20,7 +22,7 @@ import { FX_CELEBRATIONS, HERO_RUN_SCORE } from "@/config/betaConfig";
 import { MAX_PLAYERS } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { prefersReducedMotion } from "@/lib/motion";
-import { playCelebrationSynth, type CelebrationSynth } from "@/lib/sound";
+import { playCueSlot, soundUnlocked } from "@/lib/sound";
 
 /** The most sparks alive at once, across every burst. */
 export const CELEBRATION_PARTICLES = 120;
@@ -110,6 +112,8 @@ export function claimHeroRun(key: string): boolean {
 export function resetCelebrationMemory(): void {
   heroRuns.clear();
   logoCharged = false;
+  crackleTurn = 0;
+  lastTickAt = -Infinity;
 }
 
 let logoCharged = false;
@@ -128,6 +132,15 @@ export const APP_REOPEN_HIDDEN_MS = 30_000;
 export function logoChargeWanted(): boolean {
   if (!celebrationsOn() || logoCharged) return false;
   return typeof window === "undefined" || openPath === null || window.location.pathname === openPath;
+}
+/**
+ * The charge-in's sound, as it plays: only when sound is already unlocked (an iPhone blocks sound
+ * before the first tap, so the app's first charge-in is silent), never queued; none under reduced
+ * motion, where the mark is drawn finished.
+ */
+export function logoChargeSound(): void {
+  if (!celebrationsOn() || celebrationCalm() || !soundUnlocked()) return;
+  celebrationSound("logoCharge");
 }
 /** Called once the first logo has mounted: every later logo is drawn finished. */
 export function noteLogoCharged(): void {
@@ -193,8 +206,8 @@ export function logCelebrations(on: boolean): CelebrationRequest[] {
   log.length = 0;
   return log;
 }
-const soundLog: CelebrationSynth[] = [];
-export function celebrationSoundLog(): CelebrationSynth[] {
+const soundLog: CelebrationSound[] = [];
+export function celebrationSoundLog(): CelebrationSound[] {
   return soundLog;
 }
 
@@ -221,12 +234,73 @@ export function clearCelebrations(scope: number): void {
   send({ kind: "clear", scope });
 }
 
-/** A celebration sound (follows mute), only while celebrations are on. */
-export function celebrationSound(kind: CelebrationSynth, volume = 1): void {
+/* ------------------------------------------------------------------ sounds */
+
+export type CelebrationSound =
+  | "zap"
+  | "chime"
+  | "crackle"
+  | "victory"
+  | "heroRun"
+  | "overtake"
+  | "countTick"
+  | "countDing"
+  | "thunder"
+  | "prepareThunder"
+  | "streak"
+  | "streakBig"
+  | "logoCharge";
+
+/** Each sound's manifest slot (src/lib/fx/manifest.ts); the crackle rotates through its three. */
+export const CELEBRATION_SOUND_SLOTS: Record<Exclude<CelebrationSound, "crackle">, string> & { crackle: readonly string[] } = {
+  zap: "shared.celebrate.zap",
+  chime: "shared.celebrate.chime",
+  crackle: ["shared.celebrate.crackle1", "shared.celebrate.crackle2", "shared.celebrate.crackle3"],
+  victory: "shared.celebrate.victory",
+  heroRun: "shared.celebrate.heroRun",
+  overtake: "shared.celebrate.overtake",
+  countTick: "shared.celebrate.countTick",
+  countDing: "shared.celebrate.countDing",
+  thunder: "shared.celebrate.thunder",
+  prepareThunder: "shared.celebrate.prepareThunder",
+  streak: "shared.celebrate.streak",
+  streakBig: "shared.celebrate.streakBig",
+  logoCharge: "shared.celebrate.logoCharge",
+};
+
+let crackleTurn = 0;
+/** The next crackle's slot: 1, 2, 3, 1… so the same one never plays twice in a row. */
+export function nextCrackleSlot(): string {
+  const slots = CELEBRATION_SOUND_SLOTS.crackle;
+  const slot = slots[crackleTurn % slots.length]!;
+  crackleTurn = (crackleTurn + 1) % slots.length;
+  return slot;
+}
+
+/**
+ * A celebration sound, only while celebrations are on: the slot's recorded file (follows mute and
+ * the effects volume; the slot's own volume and play cap). Silent before sound is unlocked or while
+ * the file is still decoding, never queued for later.
+ */
+export function celebrationSound(kind: CelebrationSound, volume = 1): void {
   if (!celebrationsOn()) return;
   if (logging) soundLog.push(kind);
   pageLog({ kind: `sound:${kind}`, at: Date.now() });
-  playCelebrationSynth(kind, volume);
+  playCueSlot(kind === "crackle" ? nextCrackleSlot() : CELEBRATION_SOUND_SLOTS[kind], volume);
+}
+
+/** The count-up's ticks: at most this many a second, across every row counting at once. */
+export const COUNT_TICKS_PER_S = 12;
+let lastTickAt = -Infinity;
+/** A count-up's displayed number changed: a tick, unless one played under 1/COUNT_TICKS_PER_S s ago. */
+export function countUpTick(now = typeof performance === "undefined" ? Date.now() : performance.now()): void {
+  if (!celebrationsOn() || now - lastTickAt < 1000 / COUNT_TICKS_PER_S) return;
+  lastTickAt = now;
+  celebrationSound("countTick");
+}
+/** A count-up landed on its final score (rows landing together share one ding: the slot's gap). */
+export function countUpDing(): void {
+  celebrationSound("countDing");
 }
 
 /** A gold spark burst at a point (CSS px in the viewport); `w` spreads it along a row. */
@@ -256,6 +330,7 @@ export function showBanner(scope: number, text: string, options: { burst?: boole
 export function heroRun(scope: number): void {
   if (!celebrationsOn() || celebrationCalm()) return;
   send({ kind: "heroRun", scope });
+  celebrationSound("heroRun");
 }
 
 /** The hero in the victory pose beside the winner's step (`anchor`); still under reduced motion. */
@@ -264,9 +339,10 @@ export function podiumHero(scope: number, anchor: Element): void {
   send({ kind: "podiumHero", scope, anchor, calm: celebrationCalm() });
 }
 
-/** GO: one lightning strike across the screen and the zap (the zap alone under reduced motion). */
+/** GO: one lightning strike across the screen, its thunder and the zap (the sounds alone under reduced motion). */
 export function goStrike(): void {
   if (!celebrationsOn()) return;
   celebrationSound("zap");
+  celebrationSound("thunder");
   if (!celebrationCalm()) send({ kind: "strike" });
 }

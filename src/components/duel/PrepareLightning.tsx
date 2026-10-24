@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { serverNow } from "@/lib/duel/clock";
+import { celebrationSound } from "@/lib/fx/celebrations";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import {
   LIGHTNING_BOLTS,
@@ -8,6 +9,8 @@ import {
   buildBolt,
   liveStrike,
   planStrikes,
+  STRIKE_SOUND_LATE_MS,
+  strikeSounds,
   strikeStrength,
   type BoltShape,
 } from "@/lib/fx/prepareLightning";
@@ -44,7 +47,8 @@ function renderBolt(shape: BoltShape, w: number, h: number, ratio: number): HTML
  * Prepare to Duel's lightning (src/lib/fx/prepareLightning.ts): a canvas behind the logo,
  * clear of the home-bar strip. The bolts and their glows are built once per size; a frame
  * with no live strike draws nothing (one clear after a strike fades). Nothing under
- * prefers-reduced-motion or reduced effects.
+ * prefers-reduced-motion or reduced effects. Each strike sounds the thunder once as it lands
+ * (celebrations only, quieter than GO's; skipped near the voice line, strikeSounds).
  */
 export function PrepareLightning({ startedAt }: { startedAt: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -70,6 +74,7 @@ export function PrepareLightning({ startedAt }: { startedAt: number }) {
     let h = 0;
     let ratio = 1;
     let drawn = false;
+    let sounded: (typeof plan)[number] | null = null;
 
     const build = () => {
       const box = el.getBoundingClientRect();
@@ -108,6 +113,10 @@ export function PrepareLightning({ startedAt }: { startedAt: number }) {
       const elapsed = serverNow() - startedAt;
       const strike = liveStrike(plan, elapsed);
       const strength = strike ? strikeStrength(elapsed - strike.atMs) : 0;
+      if (strike && strike !== sounded) {
+        sounded = strike;
+        if (elapsed - strike.atMs < STRIKE_SOUND_LATE_MS && strikeSounds(strike.atMs)) celebrationSound("prepareThunder");
+      }
       if (strength > 0 || drawn) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, el.width, el.height);

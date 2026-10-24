@@ -79,7 +79,7 @@ export function FinalResult({
   const skipped = useTapToSkip(celebrate);
   const last = breakdown[breakdown.length - 1];
   const countUp = (total: number, round: number | undefined) =>
-    celebrate ? { from: Math.max(0, total - (round ?? 0)), durationMs: COUNT_UP_MS, quiet: true, skip: skipped } : {};
+    celebrate ? { from: Math.max(0, total - (round ?? 0)), durationMs: COUNT_UP_MS, quiet: true, skip: skipped, countSound: true } : {};
   // Counting, a total's box keeps its final width, so the centred pair never shifts sideways.
   const hold = (total: number) => (celebrate ? { minWidth: `${String(total).length}ch` } : undefined);
 

@@ -51,7 +51,7 @@ export function useTapToSkip(active: boolean, windowMs = COUNT_UP_MS + 100): boo
 
 /**
  * Celebrations: once the rows have slid into their new order, every player who climbed gets a
- * small spark burst along their row, and the climb one zap (whoever climbed).
+ * small spark burst along their row, and the climb one overtake zap (whoever climbed).
  */
 export function useCountUpClimbs(
   on: boolean,
@@ -65,7 +65,7 @@ export function useCountUpClimbs(
     if (!climbers.length) return;
     const timer = window.setTimeout(() => {
       for (const slot of climbers) sparkBurstOn(scope, nodes.get(slot) ?? null, { row: true, count: 16 });
-      celebrationSound("zap", 0.55);
+      celebrationSound("overtake");
     }, COUNT_UP_SLIDE_MS + 60);
     return () => window.clearTimeout(timer);
   }, [on]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -296,7 +296,7 @@ try {
     const log = await o.log();
     check(log.some((e) => e.kind === "podiumHero"), "podium: no hero");
     check(log.some((e) => e.kind === "burst"), "podium: no burst");
-    check(log.some((e) => e.kind === "banner" && e.text === "You win!") && log.some((e) => e.kind === "sound:zap"), "podium, winner: no You win! and zap");
+    check(log.some((e) => e.kind === "banner" && e.text === "You win!") && log.some((e) => e.kind === "sound:chime") && log.some((e) => e.kind === "sound:victory"), "podium, winner: no You win!, chime and victory sting");
     await judgeLayout(o.page, "podium");
     const final = await o.page.evaluate(() => [
       ...Array.from(document.querySelectorAll("#root .th-score")).map((e) => e.textContent ?? ""),
@@ -325,7 +325,7 @@ try {
   {
     const o = await open(browser, server.origin, "podiumLost", true);
     const log = await o.log();
-    check(log.some((e) => e.kind === "podiumHero") && !log.some((e) => e.kind === "banner") && !log.some((e) => e.kind === "sound:zap"), `podium, not first: ${log.map((e) => e.kind).join(",")}`);
+    check(log.some((e) => e.kind === "podiumHero") && !log.some((e) => e.kind === "banner") && log.some((e) => e.kind === "sound:victory") && !log.some((e) => e.kind === "sound:chime"), `podium, not first: ${log.map((e) => e.kind).join(",")}`);
     await o.page.waitForTimeout(200);
     await fire(o.page, `C.podiumHero(scope, document.querySelector('[data-podium-step="1"]')); const b = document.querySelector('[data-podium-step="1"]').getBoundingClientRect(); C.sparkBurst(scope, b.right - 17, b.bottom - 30, { count: 44 });`);
     await o.page.waitForTimeout(220);
@@ -489,7 +489,7 @@ try {
     const o = await open(browser, server.origin, "podium", true, { reduced: true });
     const log = await o.log();
     check(log.some((e) => e.kind === "podiumHero") && !log.some((e) => e.kind === "burst"), `reduced motion, podium: ${log.map((e) => e.kind).join(",")}`);
-    check(log.some((e) => e.kind === "sound:zap"), "reduced motion: the sounds stop");
+    check(log.some((e) => e.kind === "sound:victory"), "reduced motion: the sounds stop");
     const list = await samples(o.page);
     const first = list.find((s) => s.scores.length)?.scores ?? [];
     const end = list[list.length - 1]?.scores ?? [];
