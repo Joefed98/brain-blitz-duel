@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -21,6 +21,8 @@ import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
+import { CelebrationLayer } from "../components/fx/CelebrationLayer";
+import { celebrationsOn } from "../lib/fx/celebrations";
 
 function NotFoundComponent() {
   return (
@@ -199,11 +201,16 @@ function RootComponent() {
     [router],
   );
 
+  // Celebrations' shared overlay (lib/fx/celebrations.ts), only while FX_CELEBRATIONS is on.
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => setCelebrate(celebrationsOn()), []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <AppUpdateOverlay />
+      {celebrate ? <CelebrationLayer /> : null}
     </QueryClientProvider>
   );
 }

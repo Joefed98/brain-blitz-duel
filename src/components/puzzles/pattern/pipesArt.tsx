@@ -4,7 +4,7 @@
  * network and the solve-time rush. Nothing here reads or changes what the
  * stage grades; water directions come from the presentation-only BFS.
  */
-import { useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 
 import { PIPE_E, PIPE_N, PIPE_S, PIPE_W } from "@/lib/duel/logic";
 
@@ -60,8 +60,10 @@ export function PipeDefs({ id }: { id: string }) {
 /**
  * One tile's pipework. `inflow` holds the arms water enters through (towards
  * the source); every other wet arm carries water away from the centre.
+ * Memoised on its primitive props: a board is 49 of these (about 2,300 SVG nodes), and the
+ * practice and room clocks re-render the stage ten times a second.
  */
-export function PipeArt({
+export const PipeArt = memo(function PipeArt({
   id,
   mask,
   wet,
@@ -154,7 +156,7 @@ export function PipeArt({
       </g>
     </svg>
   );
-}
+});
 
 /** The solve-time rush through one tile: in through its inflow arms, out of the rest. */
 export function PipeSurge({

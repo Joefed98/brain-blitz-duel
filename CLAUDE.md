@@ -440,6 +440,25 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   figures' joints (`drawHero`, Jaywalk `drawWalkerHero`, Roofbound `drawRunnerHero`); their game icons (Practice, Play,
   Profile, the share and challenge cards) draw it too, as vectors at the icon's real pixel size, each paint on a fresh
   pose (`detailScale` judges the eye slits and bolt by the icon's real px). The old stick figures are gone.
+- **Celebrations** (23 Oct 2026, Prompt P; display, sound and animation only, no version stamps): one switch,
+  `FX_CELEBRATIONS` in `src/config/betaConfig.ts` (false: every screen exactly as before, proved against
+  `scripts/fixtures/celebrations-off.json`, recorded on main), and `HERO_RUN_SCORE` (150). The kit
+  (`src/lib/fx/celebrations.ts`): gold spark bursts, the banner pill, the hero's victory pose and run
+  (`heroVictoryPose` / `heroRunPose` in `hero.renderer.ts`), the GO strike, all drawn by one fixed full-screen
+  layer mounted by the root (`CelebrationLayer`, one canvas, pointer-events none, 120 pooled sparks, its frame loop
+  stopped when idle; `celebrationCanvas.ts`); three synthesised sounds (`playCelebrationSynth` in `sound.ts`: the
+  "Joulz zap", the spark chime, the meter's crackle; no files, they follow mute). Moments: the podium hero beside
+  the winner's step with a burst ("You win!" and the zap on the winner's phone); the hero run on a reveal of 150+
+  (once per round; rooms, practice, daily; not on reopened daily reveals); practice's new best (banner, burst,
+  chime); daily streaks of 3, 7 and 30 on the results (today's first daily only); standings, podium and two-player
+  final totals counting up from the round before over 1.2 s with a FLIP slide and climbs sparking (tap to skip;
+  `useFlipRows`, `AnimatedScore` `skip`); the app header logo charging in once per app open (SMIL, `LogoMark`
+  `charge`, memory only; then #133's mark exactly); the zap on Create a room and GO; the lobby's charge meter (`ChargeMeter`, directly under the "{n} of 10 players" line, no label of its own, 20 px reserved); one
+  lightning strike on GO (`RoundIntro`; never on Prepare to Duel). Reduced motion: no sparks, runs, strikes or
+  count-ups, banners and the podium hero fade in still, sounds kept. Each screen's effects end when it unmounts
+  (`useCelebrationScope`). celebrations-check (~2 min with its browser pass, `play13`; `--shots=<dir>`);
+  `bun scripts/celebrations-perf.ts` measures the moments at 4× CPU slowdown. Screenshots:
+  `screenshots/celebrations-oct-2026/`.
 - **Quick wins before the beta** (23 Oct 2026, Prompt Q; display, docs and checks only, no stamps): Prepare to Duel
   (`DuelStart`) shows the gold `LogoMark` (cropped to its bolt, `viewBox` "6 0.5 16 33") where the old bolt grew, with the
   same zoom; thin branching gold-and-white lightning strikes behind it (`PrepareLightning.tsx`, `src/lib/fx/prepareLightning.ts`:

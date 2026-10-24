@@ -19,6 +19,9 @@ import { CHAT_BAR_HEIGHT } from "@/lib/duel/chatConstants";
 import { typesInCategory } from "@/lib/duel/registry";
 import { roomRoundCount } from "@/lib/duel/selection";
 
+import { ChargeMeter } from "@/components/fx/ChargeMeter";
+import { useCelebrationsOn } from "@/components/fx/useCelebration";
+
 import { Dots, WaitingLine } from "./Dots";
 import { PlayerBadge } from "./PlayerBadge";
 import { PLAYER_ICON_ART } from "./playerIcons";
@@ -196,6 +199,7 @@ export function RoomLobby({
   onLookChange,
 }: RoomLobbyProps) {
   const canStart = players.length >= MIN_PLAYERS;
+  const celebrate = useCelebrationsOn();
   const playersNeeded = MIN_PLAYERS - players.length;
   const hostName = players.find((player) => player.user_id === hostUserId)?.display_name;
   const hasEmptyCategory = CATEGORY_ORDER.some((category) => !typesInCategory(category).length);
@@ -246,9 +250,20 @@ export function RoomLobby({
           </p>
         </div>
       )}
-      <p className="th-kicker text-center text-muted-foreground">
-        {players.length} of {MAX_PLAYERS} players
-      </p>
+      {celebrate ? (
+        // Celebrations' charge meter (lib/fx/celebrations.ts) directly under the count it fills to; its
+        // 20 px are there from the first frame.
+        <div className="flex flex-col gap-1.5">
+          <p className="th-kicker text-center text-muted-foreground">
+            {players.length} of {MAX_PLAYERS} players
+          </p>
+          <ChargeMeter players={players.length} />
+        </div>
+      ) : (
+        <p className="th-kicker text-center text-muted-foreground">
+          {players.length} of {MAX_PLAYERS} players
+        </p>
+      )}
       {canChooseLook && me && (
         <p className="-mt-2 text-center text-xs font-semibold text-primary" data-look-hint>
           Tap your name to choose your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}

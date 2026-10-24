@@ -18,6 +18,11 @@ import { PuzzleIntroDemo, usePuzzleDemo } from "./PuzzleDemo";
 import { IntroFit } from "./IntroFit";
 import { useDesktop } from "@/lib/desktop";
 import { DESKTOP_KEYS } from "@/lib/desktopKeys";
+import { goStrike } from "@/lib/fx/celebrations";
+import { useCelebrationsOn } from "@/components/fx/useCelebration";
+
+/** The intro ending this close to GO (ms) still gets its GO strike as the round takes over. */
+const GO_STRIKE_GRACE_MS = 600;
 
 /**
  * The demo or example is never squeezed below this height (px) while a smaller
@@ -103,6 +108,27 @@ export function RoundIntro({
     countdownCued.current = key;
     fx.onCountdown(secondsLeft, theme);
   }, [counting, secondsLeft, startedAt, type]);
+
+  // Celebrations (src/lib/fx/celebrations.ts): GO (the countdown's end) gets one lightning strike
+  // and the zap. The round's own start is untouched: the intro hands over on time and the strike
+  // plays over the first moment of play.
+  const celebrate = useCelebrationsOn();
+  useEffect(() => {
+    if (!counting || !celebrate) return;
+    const delay = Math.max(0, INTRO_MS - Math.max(0, now - startedAt));
+    const at = Date.now() + delay;
+    let fired = false;
+    const fire = () => {
+      if (fired) return;
+      fired = true;
+      goStrike();
+    };
+    const timer = window.setTimeout(fire, delay);
+    return () => {
+      window.clearTimeout(timer);
+      if (at - Date.now() < GO_STRIKE_GRACE_MS) fire();
+    };
+  }, [counting, startedAt, celebrate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rooms preload in starting/round_title; practice keeps its existing entry point.
   useEffect(() => {

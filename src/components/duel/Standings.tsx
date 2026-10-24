@@ -1,10 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { TOTAL_ROUNDS } from "@/lib/duel/types";
 import { positionChange, previousStandingOrder } from "@/lib/duel/resultPresentation";
-import { prefersReducedMotion } from "@/lib/motion";
+import { COUNT_UP_MS, COUNT_UP_SLIDE_MS, countUpFrom } from "@/lib/fx/celebrations";
+import {
+  useCelebrationScope,
+  useCelebrationsOn,
+  useCountUpClimbs,
+  useTapToSkip,
+} from "@/components/fx/useCelebration";
+import { useFlipRows } from "@/components/fx/useFlipRows";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
@@ -37,30 +42,18 @@ interface StandingsProps {
 
 /** The ranked table between rounds in a room of three or more. */
 export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySlot, autoSeconds, continueState }: StandingsProps) {
-  const nodes = useRef(new Map<number, HTMLLIElement>());
-  const offsets = useRef(new Map<number, number>());
-  const [displayRows, setDisplayRows] = useState(() => previousStandingOrder(rows));
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setDisplayRows(rows));
-    return () => cancelAnimationFrame(frame);
-  }, [rows]);
-
-  // FLIP: rows slide from where they sat to their new position.
-  useLayoutEffect(() => {
-    nodes.current.forEach((node, slot) => {
-      const top = node.offsetTop;
-      const previous = offsets.current.get(slot);
-      offsets.current.set(slot, top);
-      if (previous === undefined || previous === top || prefersReducedMotion()) return;
-      node.style.transition = "none";
-      node.style.transform = `translateY(${previous - top}px)`;
-      requestAnimationFrame(() => {
-        node.style.transition = "transform 300ms ease-out";
-        node.style.transform = "translateY(0)";
-      });
-    });
-  }, [displayRows]);
+  // Celebrations (src/lib/fx/celebrations.ts): totals count up from the round before over
+  // COUNT_UP_MS, the rows slide into place more slowly and a climb gets sparks and a zap at its
+  // row; a tap anywhere skips to the final state. Off: today's quick slide and final totals.
+  const celebrate = useCelebrationsOn();
+  const scope = useCelebrationScope();
+  const skipped = useTapToSkip(celebrate);
+  const { displayRows, rowRef, nodes } = useFlipRows(rows, {
+    from: previousStandingOrder(rows),
+    slideMs: celebrate ? COUNT_UP_SLIDE_MS : 300,
+    skip: skipped,
+  });
+  useCountUpClimbs(celebrate, scope, rows, nodes);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
@@ -84,10 +77,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
           return (
             <li
               key={row.slot}
-              ref={(node) => {
-                if (node) nodes.current.set(row.slot, node);
-                else nodes.current.delete(row.slot);
-              }}
+              ref={rowRef(row.slot)}
               data-tint={isMe ? "me" : undefined}
               className={`th-card flex min-h-[44px] items-center rounded-lg border px-2 ${
                 isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
@@ -107,6 +97,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 </span>
                 <AnimatedScore
                   value={row.total}
+                  {...(celebrate ? { from: countUpFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped } : {})}
                   className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : "text-foreground"}`}
                 />
               </div>
