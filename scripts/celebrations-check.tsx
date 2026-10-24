@@ -453,19 +453,36 @@ for (const mineFirst of [true, false]) {
   reset();
   C.logoChargeSound();
   check(!sounds.length, "the logo charge sounds before sound is unlocked");
-  // Prepare to Duel: no strike's thunder within 400 ms of the voice line.
+  // Prepare to Duel: no strike's thunder while the voice line plays, nor within 400 ms either side of it,
+  // for the manifest's length and for shorter and longer decoded files.
+  const sound = await import("../src/lib/sound");
+  const voiceLengths = [sound.voiceDurationMs("prepareToDuel"), 1200, 2000, 4000];
+  check(voiceLengths[0] === SOUND_MANIFEST.prepareToDuel.ms, "the voice length before decoding is not the manifest's");
   let sounding = 0;
-  for (let n = 0; n < 2000; n++) {
-    for (const strike of PL.planStrikes(Math.random)) {
-      if (!PL.strikeSounds(strike.atMs)) continue;
-      sounding++;
-      const end = strike.atMs + PL.STRIKE_THUNDER_MS;
-      check(end <= DUEL_START_VOICE_MS - PL.STRIKE_VOICE_CLEAR_MS || strike.atMs >= DUEL_START_VOICE_MS + PL.STRIKE_VOICE_CLEAR_MS, `a strike at ${strike.atMs} ms thunders near the voice line`);
+  for (const voiceMs of voiceLengths) {
+    const from = DUEL_START_VOICE_MS - PL.STRIKE_VOICE_CLEAR_MS;
+    const to = DUEL_START_VOICE_MS + voiceMs + PL.STRIKE_VOICE_CLEAR_MS;
+    for (let n = 0; n < 2000; n++) {
+      for (const strike of PL.planStrikes(Math.random)) {
+        if (!PL.strikeSounds(strike.atMs, voiceMs)) continue;
+        sounding++;
+        // The crack [at, at + length) never overlaps the line widened by 400 ms each side.
+        const end = strike.atMs + PL.STRIKE_THUNDER_MS;
+        check(end <= from || strike.atMs >= to, `a strike at ${strike.atMs} ms thunders during the ${voiceMs} ms voice line`);
+      }
+    }
+    // Edges: every landing time from 0 to the screen's end, 1 ms apart.
+    for (let at = 0; at <= 6000; at++) {
+      const quiet = at + PL.STRIKE_THUNDER_MS > from && at < to;
+      if (PL.strikeSounds(at, voiceMs) === quiet) {
+        check(false, `a ${voiceMs} ms line: a strike at ${at} ms ${quiet ? "sounds" : "is silent"}`);
+        break;
+      }
     }
   }
   check(sounding > 0, "no Prepare to Duel strike ever thunders");
-  check(!PL.strikeSounds(DUEL_START_VOICE_MS - 100) && !PL.strikeSounds(DUEL_START_VOICE_MS + 399) && PL.strikeSounds(DUEL_START_VOICE_MS + 400), "the voice line's 400 ms clearance is wrong");
-  check(/celebrationSound\("prepareThunder"\)/.test(readFileSync("src/components/duel/PrepareLightning.tsx", "utf8")), "Prepare to Duel's strikes are silent");
+  check(PL.strikeSounds(DUEL_START_VOICE_MS + 1200 + 400, 1200) && !PL.strikeSounds(DUEL_START_VOICE_MS + 1200 + 399, 1200), "the 400 ms after the voice line ends is wrong");
+  check(/strikeSounds\(strike\.atMs, voiceDurationMs\("prepareToDuel"\)\)\) celebrationSound\("prepareThunder"\)/.test(readFileSync("src/components/duel/PrepareLightning.tsx", "utf8")), "Prepare to Duel's strikes are silent, or not judged on the voice file's real length");
   check(/celebrationSound\(days >= 30 \? "streakBig" : "streak"\)/.test(readFileSync("src/routes/daily.tsx", "utf8")), "the streak banners do not play the flourishes");
   check(!/playCelebrationSynth|CELEBRATION_SYNTH/.test(readFileSync("src/lib/sound.ts", "utf8")), "the synthesised placeholders are still in sound.ts");
   reset();

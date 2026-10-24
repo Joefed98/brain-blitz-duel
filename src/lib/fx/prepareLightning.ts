@@ -66,15 +66,19 @@ export function strikeStrength(sinceMs: number): number {
 
 /** A strike's thunder (Prompt S): its recorded crack, quieter than GO's. */
 export const STRIKE_THUNDER_MS = 750;
-/** No strike's thunder sounds within this long of the "Prepare to Duel" voice line's start. */
+/** No strike's thunder sounds while the "Prepare to Duel" voice line plays, nor this close either side of it. */
 export const STRIKE_VOICE_CLEAR_MS = 400;
 /**
- * Whether a strike landing at `atMs` sounds its thunder: never when the crack (STRIKE_THUNDER_MS
- * long) would come within STRIKE_VOICE_CLEAR_MS of the voice line (DUEL_START_VOICE_MS); that
- * strike is still drawn, silently.
+ * Whether a strike landing at `atMs` sounds its thunder. The voice line plays from DUEL_START_VOICE_MS
+ * for `voiceMs` (the decoded file's real length, voiceDurationMs("prepareToDuel")): the crack
+ * (STRIKE_THUNDER_MS long) must end STRIKE_VOICE_CLEAR_MS before the line starts, or start
+ * STRIKE_VOICE_CLEAR_MS after it ends. Strikes in between are still drawn, silently.
  */
-export function strikeSounds(atMs: number): boolean {
-  return atMs + STRIKE_THUNDER_MS <= DUEL_START_VOICE_MS - STRIKE_VOICE_CLEAR_MS || atMs >= DUEL_START_VOICE_MS + STRIKE_VOICE_CLEAR_MS;
+export function strikeSounds(atMs: number, voiceMs: number): boolean {
+  return (
+    atMs + STRIKE_THUNDER_MS <= DUEL_START_VOICE_MS - STRIKE_VOICE_CLEAR_MS ||
+    atMs >= DUEL_START_VOICE_MS + voiceMs + STRIKE_VOICE_CLEAR_MS
+  );
 }
 
 /** A strike lands now (`sinceMs` after its time): late arrivals (a screen opened mid-strike) stay silent. */
