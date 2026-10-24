@@ -32,3 +32,15 @@ export const TALLY_URL = "";
  * Empty: the terms page leaves the contact line out.
  */
 export const CONTACT_EMAIL = "";
+
+/**
+ * Celebrations (Prompt P, 23 Oct 2026; display, sound and animation only): the podium hero, the
+ * hero run, the new-best and streak banners, the results count-up, the logo charge-in, the lobby
+ * charge meter, the GO lightning and the signature zap (src/lib/fx/celebrations.ts).
+ *
+ * false: every screen behaves and looks exactly as it did before them (celebrations-check proves it).
+ */
+export const FX_CELEBRATIONS = true;
+
+/** A round score at least this high sends the Joulz hero running across the screen once. */
+export const HERO_RUN_SCORE = 150;

@@ -98,7 +98,13 @@ export function getBrickSprite(colour: string, power: number, taken: number, blo
   const canvas = artCanvas(BRK_BRICK_W, BRK_BRICK_H);
   const ctx = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
   if (!canvas || !ctx) return undefined;
+  paintBrick(ctx, colour, power, taken, bloom);
+  brickCache.set(key, canvas);
+  return canvas;
+}
 
+/** A brick's art at (0, 0), BRK_BRICK_W × BRK_BRICK_H (the sprite above; the game icon paints it at its real size). */
+export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power: number, taken: number, bloom: number): void {
   if (power >= 0) {
     // Dark brick, metal outline, white pixel star.
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
@@ -123,8 +129,6 @@ export function getBrickSprite(colour: string, power: number, taken: number, blo
       pixelRect(ctx, cx, 12, 2, 4, "#000000");
     }
   }
-  brickCache.set(key, canvas);
-  return canvas;
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: BrkState, size: CanvasSize): void {

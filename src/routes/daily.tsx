@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
 import { TermsGate } from "@/components/beta/TermsGate";
@@ -28,7 +28,17 @@ import {
   type DailyState,
   type DailyStatus,
 } from "@/lib/duel/daily";
-import { noteDailyFinished, noteDailyPlayed } from "@/lib/duel/dailyRecord";
+import { dailyStreak, noteDailyFinished, noteDailyPlayed, readDailyRecord } from "@/lib/duel/dailyRecord";
+import {
+  BANNER_HOLD_MS,
+  BANNER_IN_MS,
+  BANNER_OUT_MS,
+  celebrationSound,
+  showBanner,
+  streakBannerText,
+  streakMilestone,
+} from "@/lib/fx/celebrations";
+import { useCelebrationScope } from "@/components/fx/useCelebration";
 import { ordinal } from "@/lib/duel/ordinal";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
@@ -126,6 +136,9 @@ function DailyScreen() {
   const [status, setStatus] = useState<DailyStatus | null>(null);
   const [board, setBoard] = useState<DailyBoardView | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: "board" });
+  /** Celebrations: the streak milestone today's first daily reached, shown on its results. */
+  const streakReached = useRef<number | null>(null);
+  const [streakShown, setStreakShown] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
@@ -207,7 +220,11 @@ function DailyScreen() {
         return;
       }
       setStoredName(trimmed);
-      if (status) noteDailyPlayed(status.day);
+      if (status) {
+        const firstToday = !readDailyRecord().days.includes(status.day);
+        noteDailyPlayed(status.day);
+        streakReached.current = firstToday ? streakMilestone(dailyStreak(readDailyRecord().days, status.day)) : null;
+      }
       // Beta: a device's first daily after finishing a friend's challenge (challengeRecord.ts).
       const followup = takeChallengeFollowup("daily");
       if (followup) sendChallengeFollowup("daily", followup);
@@ -234,6 +251,10 @@ function DailyScreen() {
   const finished = useCallback(
     (view: AsyncAttemptView) => {
       if (status && view.finished) noteDailyFinished(status.day, kind, view.total);
+      if (streakReached.current !== null) {
+        setStreakShown(streakReached.current);
+        streakReached.current = null;
+      }
       setMode((current) =>
         current.kind === "run" ? { kind: "results", roomId: current.roomId, view } : current,
       );
@@ -257,6 +278,8 @@ function DailyScreen() {
   if (mode.kind === "results") {
     const me = board?.day === status?.day ? board?.me : null;
     return (
+      <>
+      {streakShown !== null ? <StreakCelebration days={streakShown} onDone={() => setStreakShown(null)} /> : null}
       <AsyncResults
         roomId={mode.roomId}
         view={mode.view}
@@ -272,6 +295,7 @@ function DailyScreen() {
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
         footer={<FeedbackLink small />}
       />
+      </>
     );
   }
 
@@ -452,4 +476,27 @@ function DailyScreen() {
       </div>
     </PhoneShell>
   );
+}
+
+/** Celebrations (src/lib/fx/celebrations.ts): a 3-, 7- or 30-day streak's banner and burst on the results. */
+function StreakCelebration({ days, onDone }: { days: number; onDone: () => void }) {
+  const scope = useCelebrationScope();
+  const left = useRef(false);
+  useEffect(() => {
+    const show = window.setTimeout(() => {
+      showBanner(scope, streakBannerText(days), { burst: true });
+      celebrationSound("chime");
+    }, 500);
+    // Once only: forgotten after it has played (or the results closed), so reopening shows none.
+    const done = window.setTimeout(() => {
+      left.current = true;
+      onDone();
+    }, 500 + BANNER_IN_MS + BANNER_HOLD_MS + BANNER_OUT_MS + 200);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(done);
+      if (!left.current) onDone();
+    };
+  }, [scope, days]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }

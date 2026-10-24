@@ -14,6 +14,7 @@
 @import "./polish-layout/desktop.css";
 @import "./polish-layout/theme.css";
 @import "./polish-layout/app-pages.css";
+@import "./polish-layout/celebrations.css";
 
 /*
  * Duelz design system — dark competitive esports feel.
@@ -164,6 +165,25 @@
  * inline from the moment's table (started at the shared-clock elapsed time).
  */
 .duel-start-screen > :not(.room-fx) { position: relative; z-index: 1; }
+/*
+ * Prepare to Duel's lightning (PrepareLightning.tsx): behind the logo, over the moment's glow, never
+ * taps; it stops 16 px above the home-bar strip and fades out over its last 48 px, so the screen's
+ * bottom strip stays the page's black.
+ */
+.duel-start-screen > .prepare-lightning {
+  position: absolute;
+  inset: 0 0 calc(env(safe-area-inset-bottom, 0px) + 16px) 0;
+  width: 100%;
+  height: calc(100% - env(safe-area-inset-bottom, 0px) - 16px);
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+}
+/* With reduced motion the mark stands still from the start: a gentle static glow round it. */
+@media (prefers-reduced-motion: reduce) {
+  .duel-start-logo { filter: drop-shadow(0 0 10px rgba(247, 191, 47, 0.45)) drop-shadow(0 0 28px rgba(247, 191, 47, 0.2)); }
+}
 .room-fx { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .room-fx[data-over] { z-index: 2; }
 .room-fx [data-part] {

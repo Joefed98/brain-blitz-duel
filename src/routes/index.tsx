@@ -27,6 +27,7 @@ import { readLastRoom } from "@/lib/duel/deviceHistory";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
 import { unlockAudio } from "@/lib/sound";
+import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
 import { buzz } from "@/lib/motion";
 import { PUZZLE_REGISTRY, gameCounts } from "@/lib/duel/registry";
 import type { PuzzleType } from "@/lib/duel/types";
@@ -298,7 +299,14 @@ function Home() {
           </div>
           <button
             type="button"
-            onClick={() => void start("create")}
+            onClick={() => {
+              // Celebrations: the signature zap (lib/fx/celebrations.ts; silent while they're off or muted).
+              if (celebrationsOn()) {
+                unlockAudio();
+                celebrationSound("zap");
+              }
+              void start("create");
+            }}
             disabled={busy !== null}
             className="ap-btn-gold press tap-target h-[58px] w-full text-[18px]"
           >

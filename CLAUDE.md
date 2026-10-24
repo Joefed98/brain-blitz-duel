@@ -1,7 +1,9 @@
 # CLAUDE.md — Duelz
 
 Guide for Claude Code sessions. Read `docs/` first (master plan, game bank, scoring
-reference, anti-cheat), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
+reference, anti-cheat; **`docs/design-system.md` for every screen's look**: colour tokens, the gold
+rule, the tile palette, fonts, radii, panels and rows, tap feedback, the logo, the wordmark and the
+Joulz hero; follow it for any screen change), then the `AGENTS.md` files (root, `scripts/`, `src/lib/arcade/`,
 `src/lib/duel/`, `src/puzzles/`). Those hold Lovable's per-area design rules and
 override anything general here.
 
@@ -449,6 +451,38 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   text #F3F1EC at 13 px semibold on a dark backing, never overlapping (still no points figure for anyone).
   demo-intro-check (`play18`/`play19`, thirds) proves zero shift from the first frame to the demo playing for every game,
   with and without a demo; replay-board-check (`play19`) plays 46 stored puzzle answers on the room's results screen.
+- **Celebrations** (23 Oct 2026, Prompt P; display, sound and animation only, no version stamps): one switch,
+  `FX_CELEBRATIONS` in `src/config/betaConfig.ts` (false: every screen exactly as before, proved against
+  `scripts/fixtures/celebrations-off.json`, recorded on main), and `HERO_RUN_SCORE` (150). The kit
+  (`src/lib/fx/celebrations.ts`): gold spark bursts, the banner pill, the hero's victory pose and run
+  (`heroVictoryPose` / `heroRunPose` in `hero.renderer.ts`), the GO strike, all drawn by one fixed full-screen
+  layer mounted by the root (`CelebrationLayer`, one canvas, pointer-events none, 120 pooled sparks, its frame loop
+  stopped when idle; `celebrationCanvas.ts`); three synthesised sounds (`playCelebrationSynth` in `sound.ts`: the
+  "Joulz zap", the spark chime, the meter's crackle; no files, they follow mute). Moments: the podium hero beside
+  the winner's step with a burst ("You win!" and the zap on the winner's phone); the hero run on a reveal of 150+
+  (once per round; rooms, practice, daily; not on reopened daily reveals); practice's new best (banner, burst,
+  chime); daily streaks of 3, 7 and 30 on the results (today's first daily only); standings, podium and two-player
+  final totals counting up from the round before over 1.2 s with a FLIP slide and climbs sparking (tap to skip;
+  `useFlipRows`, `AnimatedScore` `skip`); the app header logo charging in once per app open (SMIL, `LogoMark`
+  `charge`, memory only; then #133's mark exactly); the zap on Create a room and GO; the lobby's charge meter (`ChargeMeter`, directly under the "{n} of 10 players" line, no label of its own, 20 px reserved); one
+  lightning strike on GO (`RoundIntro`; never on Prepare to Duel). Reduced motion: no sparks, runs, strikes or
+  count-ups, banners and the podium hero fade in still, sounds kept. Each screen's effects end when it unmounts
+  (`useCelebrationScope`). celebrations-check (~2 min with its browser pass, `play13`; `--shots=<dir>`);
+  `bun scripts/celebrations-perf.ts` measures the moments at 4× CPU slowdown. Screenshots:
+  `screenshots/celebrations-oct-2026/`.
+- **Quick wins before the beta** (23 Oct 2026, Prompt Q; display, docs and checks only, no stamps): Prepare to Duel
+  (`DuelStart`) shows the gold `LogoMark` (cropped to its bolt, `viewBox` "6 0.5 16 33") where the old bolt grew, with the
+  same zoom; thin branching gold-and-white lightning strikes behind it (`PrepareLightning.tsx`, `src/lib/fx/prepareLightning.ts`:
+  ≥ 550 ms apart, so ≤ 2 a second, each gone in 260 ms, a dim gold brightening, none within 700 ms of the gold flash, a
+  canvas clear of the home-bar strip, bolts built once per size); reduced motion or reduced effects: no strikes and the
+  logo's static glow (prepare-lightning-check). Orbit, Breaker, Gemstone, Meteor and Tempo's icons paint their sprite's
+  art at the icon's real size (`paintRocket`, `paintBrick`, `paintMatchupGem`, `paintStamp`, `paintNote`, the same
+  painters behind the games' cached sprites, so in-game art is unchanged). Link previews: Open Graph and Twitter
+  large-card tags in the root route's head from `LINK_PREVIEW` (`src/lib/brand.ts`, absolute on `SITE_URL`; there is no
+  index.html, TanStack Start renders the head), image `public/og-image.png` from `bun scripts/og-image.ts`
+  (link-preview-check). app-shell-check waits out a cold dev server's reload before setup and repeats only the setup once
+  on "Execution context was destroyed". `docs/design-system.md` (the look rules) and `docs/stale-code-report.md` (a
+  report; nothing deleted).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

@@ -3,7 +3,7 @@ import { PIPE_ARMS, PipeArt, PipeDefs, PipeSurge } from "@/components/puzzles/pa
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   decodeSides,
@@ -28,40 +28,50 @@ import { buzz } from "@/lib/motion";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
-/** One pipe tile, drawn straight from its set of open sides. */
-function PipeTileView({
+/**
+ * One pipe tile, drawn straight from its set of open sides. Memoised (its props are primitives,
+ * the tile object kept while its sides are unchanged and a stable tap handler), so the page clock's
+ * ticks never re-render the board's 49 tiles: at 4x CPU slowdown that re-render took 150-450 ms a
+ * tick and held a practice round to two painted frames in its first 1.2 s (first-paint-check).
+ */
+const PipeTileView = memo(function PipeTileView({
   defsId,
+  cell,
   tile,
   lit,
   source,
   leak,
-  onTap,
+  onTapCell,
   label,
   inflow = 0,
-  surge,
+  surgeDelay,
+  surgeStep = 0,
 }: {
   defsId: string;
+  cell: number;
   tile: PipeTile;
   lit: boolean;
   source: boolean;
   leak?: boolean | undefined;
-  onTap?: (() => void) | undefined;
+  onTapCell?: ((cell: number) => void) | undefined;
   label?: string;
   inflow?: number;
-  surge?: { delay: number; step: number } | undefined;
+  /** The solve rush's start for this tile (ms), or undefined for none. */
+  surgeDelay?: number | undefined;
+  surgeStep?: number;
 }) {
   const mask = tileOpenings(tile);
   const [turns, setTurns] = useState(0);
   return (
     <button
       type="button"
-      disabled={!onTap}
+      disabled={!onTapCell}
       onClick={
-        onTap &&
+        onTapCell &&
         (() => {
           setTurns((value) => value + 1);
           soundCue("pipes.rotate");
-          onTap();
+          onTapCell(cell);
         })
       }
       className="pipe-tile relative rounded-[6px]"
@@ -69,13 +79,14 @@ function PipeTileView({
       aria-label={label ?? "Pipe tile"}
     >
       <PipeArt id={defsId} mask={mask} wet={lit} source={source} inflow={inflow} turnKey={turns} />
-      {surge && <PipeSurge mask={mask} inflow={inflow} delay={surge.delay} step={surge.step} />}
+      {surgeDelay !== undefined && <PipeSurge mask={mask} inflow={inflow} delay={surgeDelay} step={surgeStep} />}
       {leak && <span className="pipe-leak pointer-events-none absolute right-[5%] top-[5%] h-[22%] w-[22%]" />}
     </button>
   );
-}
+});
 
-function PipesBoard({
+/** Memoised with its tiles: a clock tick above it (unchanged props) skips the whole board. */
+const PipesBoard = memo(function PipesBoard({
   tiles,
   source,
   connected,
@@ -114,19 +125,21 @@ function PipesBoard({
         <PipeTileView
           key={cell}
           defsId={defsId}
+          cell={cell}
           label={`Pipe tile ${cell + 1}`}
           tile={tile}
           lit={connected.has(cell)}
           source={cell === source}
           leak={leaks?.has(cell)}
           inflow={inflows[cell] ?? 0}
-          surge={solvedFlow && depths.has(cell) ? { delay: (depths.get(cell) ?? 0) * stepMs, step: stepMs } : undefined}
-          {...(onTap ? { onTap: () => onTap(cell) } : {})}
+          surgeDelay={solvedFlow && depths.has(cell) ? (depths.get(cell) ?? 0) * stepMs : undefined}
+          surgeStep={stepMs}
+          onTapCell={onTap}
         />
       ))}
     </div>
   );
-}
+});
 
 /** Per tile, the open sides that face a mutually open neighbour one step nearer the source. */
 function pipeInflows(tiles: PipeTile[], depths: Map<number, number>, cols: number): number[] {
@@ -213,16 +226,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
     onSubmit(encodeSides(tiles));
   }, [state.solved, tiles, locked, onSubmit]);
 
-  if (puzzle.type !== "pipes") return null;
+  /** A tap turns only the tapped tile, one quarter turn clockwise (stable, so the memoised board keeps its tiles). */
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked;
+  const rotate = useCallback(
+    (cell: number) => {
+      if (lockedRef.current || submitted.current) return;
+      buzz(8);
+      setSides((current) =>
+        current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
+      );
+    },
+    [setSides],
+  );
 
-  /** A tap turns only the tapped tile, one quarter turn clockwise. */
-  const rotate = (cell: number) => {
-    if (locked || submitted.current) return;
-    buzz(8);
-    setSides((current) =>
-      current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
-    );
-  };
+  if (puzzle.type !== "pipes") return null;
 
   return (
     <div data-stage-column="3" data-polish="pipes" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -245,12 +263,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
 }
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
-  if (puzzle.type !== "pipes") return null;
-  const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
-    sides: puzzle.solution?.[index] ?? tileOpenings(tile),
-  }));
-  const mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
-  const mineState = pipesState(mine, puzzle.source);
+  // Kept per puzzle and answer, so the reveal clock's ticks leave both memoised boards alone.
+  const boards = useMemo(() => {
+    if (puzzle.type !== "pipes") return null;
+    const solved: PipeTile[] = puzzle.tiles.map((tile, index) => ({
+      sides: puzzle.solution?.[index] ?? tileOpenings(tile),
+    }));
+    const mine = decodeSides(puzzle.tiles, myAnswer ?? encodeSides(puzzle.tiles));
+    return { solved, all: new Set(solved.map((_, index) => index)), mine, mineState: pipesState(mine, puzzle.source) };
+  }, [puzzle, myAnswer]);
+  if (puzzle.type !== "pipes" || !boards) return null;
+  const { solved, all, mine, mineState } = boards;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
@@ -262,7 +285,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           <PipesBoard
             tiles={solved}
             source={puzzle.source}
-            connected={new Set(solved.map((_, index) => index))}
+            connected={all}
             solvedFlow
             gap={4}
           />

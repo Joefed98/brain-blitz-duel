@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -16,11 +16,13 @@ import { ensureSession } from "../lib/duel/session";
 import { noteShareArrival } from "../lib/share/shareRef";
 import { PLAY_CARDS_BOOT } from "../lib/playCards";
 import { installSoundCueBridge, installSoundUnlock } from "../lib/sound";
-import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE } from "../lib/brand";
+import { APP_DESCRIPTION, APP_ICONS, APP_NAME, APP_TITLE, LINK_PREVIEW } from "../lib/brand";
 import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
+import { CelebrationLayer } from "../components/fx/CelebrationLayer";
+import { celebrationsOn } from "../lib/fx/celebrations";
 
 function NotFoundComponent() {
   return (
@@ -93,10 +95,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: APP_DESCRIPTION,
       },
-      { property: "og:title", content: APP_TITLE },
-      { property: "og:description", content: APP_DESCRIPTION },
+      // The link preview (LINK_PREVIEW, src/lib/brand.ts): absolute URLs on the published site.
+      { property: "og:title", content: LINK_PREVIEW.title },
+      { property: "og:description", content: LINK_PREVIEW.description },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:site_name", content: APP_NAME },
+      { property: "og:url", content: LINK_PREVIEW.url },
+      { property: "og:image", content: LINK_PREVIEW.image },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: String(LINK_PREVIEW.imageWidth) },
+      { property: "og:image:height", content: String(LINK_PREVIEW.imageHeight) },
+      { property: "og:image:alt", content: LINK_PREVIEW.imageAlt },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: LINK_PREVIEW.title },
+      { name: "twitter:description", content: LINK_PREVIEW.description },
+      { name: "twitter:image", content: LINK_PREVIEW.image },
+      { name: "twitter:image:alt", content: LINK_PREVIEW.imageAlt },
       { name: "theme-color", content: "#0B0B0F" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
@@ -187,11 +201,16 @@ function RootComponent() {
     [router],
   );
 
+  // Celebrations' shared overlay (lib/fx/celebrations.ts), only while FX_CELEBRATIONS is on.
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => setCelebrate(celebrationsOn()), []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <AppUpdateOverlay />
+      {celebrate ? <CelebrationLayer /> : null}
     </QueryClientProvider>
   );
 }

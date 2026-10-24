@@ -25,6 +25,8 @@ import { Route as ProfileRoute } from "@/routes/profile";
 import { Route as DailyRoute } from "@/routes/daily";
 import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
+import { CelebrationLayer } from "@/components/fx/CelebrationLayer";
+import { celebrationsOn } from "@/lib/fx/celebrations";
 
 interface Verdict {
   isCorrect: boolean;
@@ -456,5 +458,7 @@ const Screen = (
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>
     <Screen />
+    {/* The root's celebrations layer (src/routes/__root.tsx), while FX_CELEBRATIONS is on. */}
+    {celebrationsOn() ? <CelebrationLayer /> : null}
   </QueryClientProvider>,
 );

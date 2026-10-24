@@ -91,6 +91,7 @@ export function AsyncResults({
           myMsRemaining={shown.result.ms_remaining}
           myScore={shown.result.score}
           myExtra={shown.result.extra}
+          heroRun={false}
           startedAt={0}
           now={now}
         />

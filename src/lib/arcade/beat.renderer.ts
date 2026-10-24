@@ -167,6 +167,25 @@ export function drawBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 }
 
 const NOTE_SCALE = 3;
+/** A note bar's art with its 2 px halo, the bar at (0, 0) (the sprite below; the game icon paints it at its real size). */
+export function paintNote(c: CanvasRenderingContext2D, colour: string, w: number): void {
+  // Soft 2 px halo, then the bar itself.
+  c.fillStyle = `${colour}30`;
+  c.fillRect(-2, -2, w + 4, BEAT_NOTE_H + 4);
+  c.fillStyle = `${colour}60`;
+  c.fillRect(-1, -1, w + 2, BEAT_NOTE_H + 2);
+  c.fillStyle = colour;
+  c.fillRect(0, 0, w, BEAT_NOTE_H);
+  c.fillStyle = "rgba(255,255,255,0.55)";
+  c.fillRect(2, 2, w - 4, 2);
+  c.fillStyle = "rgba(0,0,0,0.3)";
+  c.fillRect(0, BEAT_NOTE_H - 2, w, 2);
+  c.fillStyle = "rgba(0,0,0,0.35)";
+  c.fillRect(4, 6, w - 8, 4);
+  c.fillStyle = "rgba(255,255,255,0.9)";
+  c.fillRect(0, 0, 2, 2);
+  c.fillRect(w - 2, 0, 2, 2);
+}
 const noteSprites = new Map<string, ArtCanvas | null>();
 function noteSprite(colour: string, width: number): ArtCanvas | null {
   const w = Math.round(width);
@@ -177,22 +196,7 @@ function noteSprite(colour: string, width: number): ArtCanvas | null {
   if (canvas && c) {
     c.scale(NOTE_SCALE, NOTE_SCALE);
     c.translate(2, 2);
-    // Soft 2 px halo, then the bar itself.
-    c.fillStyle = `${colour}30`;
-    c.fillRect(-2, -2, w + 4, BEAT_NOTE_H + 4);
-    c.fillStyle = `${colour}60`;
-    c.fillRect(-1, -1, w + 2, BEAT_NOTE_H + 2);
-    c.fillStyle = colour;
-    c.fillRect(0, 0, w, BEAT_NOTE_H);
-    c.fillStyle = "rgba(255,255,255,0.55)";
-    c.fillRect(2, 2, w - 4, 2);
-    c.fillStyle = "rgba(0,0,0,0.3)";
-    c.fillRect(0, BEAT_NOTE_H - 2, w, 2);
-    c.fillStyle = "rgba(0,0,0,0.35)";
-    c.fillRect(4, 6, w - 8, 4);
-    c.fillStyle = "rgba(255,255,255,0.9)";
-    c.fillRect(0, 0, 2, 2);
-    c.fillRect(w - 2, 0, 2, 2);
+    paintNote(c, colour, w);
   }
   noteSprites.set(key, canvas && c ? canvas : null);
   return canvas && c ? canvas : null;
