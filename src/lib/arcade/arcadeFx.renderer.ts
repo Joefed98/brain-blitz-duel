@@ -21,6 +21,13 @@
  * integration or allocation), no shadowBlur, glow from one cached sprite per
  * colour. Shake is at most ARCADE_FX_SHAKE_PX world pixels and is reserved for
  * clear/final moments; reduced motion turns off shake, flash and movement.
+ *
+ * Misses (Polish 1, 24 Oct 2026): a spec's `misses` are the counterpart of its
+ * success events, read the same way from counters the sim keeps (a life lost,
+ * a crash, a miss). Each paints a brief, faint red pulse round the world's edge
+ * (ARCADE_FX_MISS_MS, never a full-screen flash) and, where the game names a
+ * point, a small puff (a pixel crack on Retro screens) there. Sound stays the
+ * game's own; with reduced motion the edge holds still and the puff only fades.
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { reducedMotion } from "./art.renderer";
@@ -54,10 +61,19 @@ export interface ArcadeWorldTheme {
   outline: string;
   particle: FxParticleShape;
   font: string;
+  /** Text weight for pops and banners (700 unless the face asks for more). */
+  weight?: number;
 }
 
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
-const DISPLAY = "'Fredoka', 'Nunito', ui-rounded, system-ui, sans-serif";
+/**
+ * Banners and pops on every world but Retro and Space (Polish 1): Archivo 800, the
+ * self-hosted face of the tab pages (polish-layout/app-pages.css, preloaded by the
+ * root). It replaced "Fredoka"/"Nunito", which nothing ever loaded.
+ */
+export const ARCADE_FX_DISPLAY_FONT = "'Archivo', system-ui, sans-serif";
+const DISPLAY = ARCADE_FX_DISPLAY_FONT;
+const DISPLAY_WEIGHT = 800;
 
 /** One theme per arcade world; colours echo each world's existing renderer palette. */
 export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
@@ -90,6 +106,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#1B2433",
     particle: "confetti",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   kitchen: {
     label: "Kitchen",
@@ -100,6 +117,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#3A2418",
     particle: "drop",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   fairground: {
     label: "Fairground",
@@ -110,6 +128,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#1B1330",
     particle: "confetti",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   underwater: {
     label: "Underwater",
@@ -120,6 +139,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#06172E",
     particle: "bubble",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   cavelava: {
     label: "Cave & Lava",
@@ -130,6 +150,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#1A0B06",
     particle: "ember",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   orchard: {
     label: "Orchard",
@@ -140,6 +161,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#2E3B1C",
     particle: "leaf",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   toybox: {
     label: "Toybox",
@@ -150,6 +172,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#2B1A0E",
     particle: "star",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
   gem: {
     label: "Gemstone",
@@ -160,6 +183,7 @@ export const ARCADE_WORLD_THEMES: Record<ArcadeWorld, ArcadeWorldTheme> = {
     outline: "#1A1030",
     particle: "diamond",
     font: DISPLAY,
+    weight: DISPLAY_WEIGHT,
   },
 };
 
@@ -309,6 +333,21 @@ export interface ArcadeFxBulbs<S> {
   level?: number;
 }
 
+/**
+ * A mistake moment (Polish 1): a counter the sim already keeps that rises on a
+ * miss, a life lost or a crash. Read only, like an event's `count`.
+ */
+export interface ArcadeFxMiss<S> {
+  count: (state: S) => number;
+  /**
+   * Where it happened, for the puff; none for the edge pulse alone. `before` is
+   * the state drawn on the previous frame (a lost ball's last place).
+   */
+  at?: (state: S, before: S | null) => ArcadeFxPoint | null | undefined;
+  /** Extra gate read from state at the moment the counter rises. */
+  when?: (state: S) => boolean;
+}
+
 export interface ArcadeFxSpec<S> {
   /** Stable game id; also the memory key on the canvas. */
   game: string;
@@ -317,6 +356,8 @@ export interface ArcadeFxSpec<S> {
   width: number;
   height: number;
   events: readonly ArcadeFxEvent<S>[];
+  /** Mistake moments (Polish 1): the red edge pulse and a puff at the miss. */
+  misses?: readonly ArcadeFxMiss<S>[];
   /** False for aim/draw games where even a 2 px shake would mislead a finger. */
   shake?: boolean;
   /** Clip effects to this rectangle (default: the whole width × height). */
@@ -346,6 +387,12 @@ export const ARCADE_FX_FLASH_MS = [480, 900] as const;
 export const ARCADE_FX_CHASE_MS = 950;
 export const ARCADE_FX_STEP_MS = [420, 900] as const;
 export const ARCADE_FX_RIPPLE_MS = [620, 1000] as const;
+/** The miss moment (Polish 1): the red edge pulse's length and peak opacity, the puff's life and its budget. */
+export const ARCADE_FX_MISS_MS = 200;
+export const ARCADE_FX_MISS_ALPHA = 0.32;
+export const ARCADE_FX_MISS_RED = "#FF3B3B";
+export const ARCADE_FX_PUFF_MS = 420;
+export const ARCADE_FX_MAX_PUFFS = 3;
 
 interface FxTiming {
   particles: number;
@@ -472,9 +519,21 @@ interface Ring {
   colour: string;
 }
 
+interface Puff {
+  x: number;
+  y: number;
+  born: number;
+  seed: number;
+}
+
 interface Memory {
   tick: number;
   counts: number[];
+  missCounts: number[];
+  /** The state drawn last frame (for a miss's `before`). */
+  last: unknown;
+  missAt: number;
+  puffs: Puff[];
   particles: Particle[];
   pops: Pop[];
   rings: Ring[];
@@ -530,10 +589,14 @@ function memoryFor(ctx: object): Map<string, Memory> {
   return map;
 }
 
-function freshMemory(tick: number, counts: number[]): Memory {
+function freshMemory(tick: number, counts: number[], missCounts: number[], last: unknown): Memory {
   return {
     tick,
     counts,
+    missCounts,
+    last,
+    missAt: -Infinity,
+    puffs: [],
     particles: [],
     pops: [],
     rings: [],
@@ -915,9 +978,13 @@ function observe<S extends { tick: number }>(
     const value = event.count(state);
     return Number.isFinite(value) ? value : 0;
   });
+  const missCounts = (spec.misses ?? []).map((miss) => {
+    const value = miss.count(state);
+    return Number.isFinite(value) ? value : 0;
+  });
   let m = map.get(spec.game);
   if (!m || state.tick < m.tick) {
-    m = freshMemory(state.tick, counts);
+    m = freshMemory(state.tick, counts, missCounts, state);
     map.set(spec.game, m);
     return m;
   }
@@ -936,10 +1003,141 @@ function observe<S extends { tick: number }>(
       if (event.when && !event.when(state)) return;
       spawn(m!, spec, event, state, after, after - before, now, still);
     });
+    (spec.misses ?? []).forEach((miss, i) => {
+      const before = m!.missCounts[i] ?? 0;
+      const after = missCounts[i] ?? 0;
+      if (after <= before) return;
+      if (miss.when && !miss.when(state)) return;
+      spawnMiss(m!, miss.at?.(state, (m!.last as S | null) ?? null), now);
+    });
   }
   m.tick = state.tick;
   m.counts = counts;
+  m.missCounts = missCounts;
+  m.last = state;
   return m;
+}
+
+/** A miss: the red edge pulse, and a puff where it happened when the game names the place. */
+function spawnMiss(m: Memory, point: ArcadeFxPoint | null | undefined, now: number): void {
+  m.missAt = now;
+  if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+  const seed = (m.seed = (m.seed + 1) | 0);
+  m.puffs.push({ x: point.x, y: point.y, born: now, seed });
+  if (m.puffs.length > ARCADE_FX_MAX_PUFFS) m.puffs.splice(0, m.puffs.length - ARCADE_FX_MAX_PUFFS);
+}
+
+/** The crack sprite's side in world px (each arm reaches at most 5 steps of 3 px from the centre). */
+const CRACK_SPRITE = 36;
+const crackCache = new Map<number, CanvasImageSource | null>();
+
+/**
+ * One of four pixel cracks (by variant), drawn once on its own canvas: 2 px squares along four jagged
+ * arms and a 4 px centre, in the miss red. Null where no canvas can be made (the crack is then skipped).
+ */
+function crackSprite(variant: number): CanvasImageSource | null {
+  if (crackCache.has(variant)) return crackCache.get(variant) ?? null;
+  let sprite: CanvasImageSource | null = null;
+  try {
+    const size = CRACK_SPRITE;
+    const canvas: HTMLCanvasElement | OffscreenCanvas | null =
+      typeof OffscreenCanvas !== "undefined"
+        ? new OffscreenCanvas(size, size)
+        : typeof document !== "undefined"
+          ? Object.assign(document.createElement("canvas"), { width: size, height: size })
+          : null;
+    const g = canvas?.getContext("2d") as
+      CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null | undefined;
+    if (canvas && g) {
+      const seed = variant + 1;
+      const c = size / 2;
+      g.fillStyle = ARCADE_FX_MISS_RED;
+      for (let arm = 0; arm < 4; arm++) {
+        const angle = (arm / 4) * Math.PI * 2 + 0.4 + hash(seed, arm) * 0.8;
+        const steps = 3 + Math.floor(hash(seed, arm + 11) * 3);
+        let x = c;
+        let y = c;
+        for (let k = 0; k < steps; k++) {
+          const wobble = (hash(seed, arm * 7 + k) - 0.5) * 1.2;
+          x += Math.cos(angle + wobble) * 3;
+          y += Math.sin(angle + wobble) * 3;
+          g.fillRect(Math.round(x - 1), Math.round(y - 1), 2, 2);
+        }
+      }
+      g.fillRect(c - 2, c - 2, 4, 4);
+      sprite = canvas;
+    }
+  } catch {
+    sprite = null;
+  }
+  crackCache.set(variant, sprite);
+  return sprite;
+}
+
+/**
+ * The miss moment's paint: a faint red pulse inside the edge (up in its first quarter, then
+ * down, over ARCADE_FX_MISS_MS; a steady, fainter fade under reduced motion) and the puffs: on
+ * Retro screens a pixel crack, elsewhere a small grey puff of smoke that spreads and
+ * fades (in place under reduced motion). Edge and point only.
+ */
+function paintMisses(
+  ctx: CanvasRenderingContext2D,
+  world: ArcadeWorld,
+  m: Memory,
+  clip: { x: number; y: number; w: number; h: number },
+  now: number,
+  still: boolean,
+  lite: boolean,
+): void {
+  const missAge = now - m.missAt;
+  if (missAge >= 0 && missAge < ARCADE_FX_MISS_MS) {
+    const p = missAge / ARCADE_FX_MISS_MS;
+    // Up within the first quarter, then down: a quick red blink at the edge.
+    const level = still ? 0.6 * (1 - p) : p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75;
+    ctx.strokeStyle = ARCADE_FX_MISS_RED;
+    for (const [inset, width, alpha] of lite ? ([[2, 4, 1]] as const) : ([[6, 12, 0.35], [2, 4, 1]] as const)) {
+      ctx.globalAlpha = ARCADE_FX_MISS_ALPHA * alpha * level;
+      ctx.lineWidth = width;
+      ctx.strokeRect(clip.x + inset, clip.y + inset, clip.w - inset * 2, clip.h - inset * 2);
+    }
+  }
+  if (!m.puffs.length) return;
+  for (const puff of m.puffs) {
+    const p = (now - puff.born) / ARCADE_FX_PUFF_MS;
+    if (p < 0 || p >= 1) continue;
+    const fade = 1 - p;
+    if (world === "retro") {
+      // A pixel crack: four jagged arms of square pixels from the point, in the miss red. It is painted
+      // once on its own small canvas (crackSprite) and laid over the world in one blit, so the game's
+      // own frame gets no extra pixel rects; it grows in over the first quarter and fades.
+      const sprite = crackSprite(puff.seed & 3);
+      const grow = still ? 1 : 0.5 + 0.5 * Math.min(1, p / 0.25);
+      const half = (CRACK_SPRITE / 2) * grow;
+      ctx.globalAlpha = 0.9 * fade;
+      if (sprite) ctx.drawImage(sprite, Math.round(puff.x - half), Math.round(puff.y - half), half * 2, half * 2);
+      continue;
+    }
+    // A puff of smoke: soft grey rounds that spread a little and fade, with a dark rim so it reads on light worlds.
+    const blobs = lite ? 3 : 5;
+    const spread = still ? 0 : 1 - (1 - p) * (1 - p);
+    for (let k = 0; k < blobs; k++) {
+      const angle = (k / blobs) * Math.PI * 2 + hash(puff.seed, k + 23) * 0.9;
+      const dist = 3 + spread * (8 + hash(puff.seed, k + 37) * 6);
+      const r = (still ? 5 : 3.5 + spread * 3.5) * (0.8 + hash(puff.seed, k + 51) * 0.4);
+      const x = puff.x + Math.cos(angle) * dist;
+      const y = puff.y + Math.sin(angle) * dist * 0.75 - spread * 4;
+      ctx.globalAlpha = 0.5 * fade;
+      ctx.fillStyle = "#2A2A30";
+      ctx.beginPath();
+      ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.75 * fade;
+      ctx.fillStyle = "#D9D6D0";
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 }
 
 const glowCache = new Map<string, CanvasImageSource | null>();
@@ -1085,7 +1283,9 @@ function paint<S>(
   if (m.pops.length) m.pops = m.pops.filter((p) => now - p.born < p.life);
   if (m.rings.length) m.rings = m.rings.filter((r) => now - r.born < r.life);
   if (m.lights.length) m.lights = m.lights.filter((l) => now - l.born < ARCADE_FX_LIGHTS_MS);
+  if (m.puffs.length) m.puffs = m.puffs.filter((p) => now - p.born < ARCADE_FX_PUFF_MS);
   const flashAge = now - m.flashAt;
+  const missAge = now - m.missAt;
   const edgeAge = now - m.edgeAt;
   const neonAge = now - m.neonAt;
   const sweepAge = now - m.sweepAt;
@@ -1094,7 +1294,7 @@ function paint<S>(
   if (
     !m.particles.length && !m.pops.length && !m.rings.length && !m.lights.length && flashAge > 260 && edgeAge > 600 &&
     neonAge > ARCADE_FX_NEON_MS && sweepAge > ARCADE_FX_SWEEP_MS &&
-    arenaAge > m.arenaMs && bulbsAge > m.bulbsMs
+    arenaAge > m.arenaMs && bulbsAge > m.bulbsMs && missAge > ARCADE_FX_MISS_MS && !m.puffs.length
   )
     return;
 
@@ -1169,6 +1369,7 @@ function paint<S>(
   }
 
   paintBulbs(ctx, m, clip, now, still);
+  paintMisses(ctx, spec.world, m, clip, now, still, lite);
 
   const previous = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = "lighter";
@@ -1230,7 +1431,7 @@ function paint<S>(
             : 1;
     const size = Math.round(pop.size * scale);
     ctx.globalAlpha = p < 0.75 ? 1 : Math.max(0, 1 - (p - 0.75) / 0.25);
-    ctx.font = `700 ${size}px ${theme.font}`;
+    ctx.font = `${theme.weight ?? 700} ${size}px ${theme.font}`;
     ctx.lineWidth = Math.max(2, size / 5);
     ctx.strokeStyle = pop.outline;
     // Keep the whole text inside the arena, wherever the event happened (an edge or the top).
@@ -1244,6 +1445,20 @@ function paint<S>(
     ctx.fillText(pop.text, x, y);
   }
   ctx.restore();
+}
+
+/**
+ * A canvas draws only faces that have loaded, and nothing on an arcade play screen
+ * uses Archivo in the page, so the first world that needs it asks for it once.
+ */
+let displayFontAsked = false;
+function askDisplayFont(): void {
+  displayFontAsked = true;
+  try {
+    if (typeof document !== "undefined") void document.fonts?.load(`${DISPLAY_WEIGHT} 24px Archivo`).catch(() => undefined);
+  } catch {
+    /* Presentation only. */
+  }
 }
 
 interface FxView {
@@ -1284,6 +1499,7 @@ export function arcadeFx<S extends { tick: number }>(
   drawWorld: () => void,
   size?: { width: number; height: number },
 ): void {
+  if (!displayFontAsked && ARCADE_WORLD_THEMES[spec.world]?.font === DISPLAY) askDisplayFont();
   const now = clock();
   const still = reducedMotion();
   let m: Memory;
@@ -1358,6 +1574,17 @@ export function arcadeFxStats(
     pops: m.pops.filter((p) => now - p.born < p.life).length,
     rings: m.rings.filter((r) => now - r.born < r.life).length,
     shaking: now - m.shakeAt >= 0 && now - m.shakeAt < m.shakeMs,
+  };
+}
+
+/** Diagnostics for checks: whether a miss's edge pulse is up, and its live puffs (Polish 1). */
+export function arcadeFxMissStats(ctx: object, game: string): { pulse: boolean; puffs: ArcadeFxPoint[] } {
+  const m = memories.get(ctx)?.get(game);
+  if (!m) return { pulse: false, puffs: [] };
+  const now = clock();
+  return {
+    pulse: now - m.missAt >= 0 && now - m.missAt < ARCADE_FX_MISS_MS,
+    puffs: m.puffs.filter((p) => now - p.born >= 0 && now - p.born < ARCADE_FX_PUFF_MS).map((p) => ({ x: p.x, y: p.y })),
   };
 }
 

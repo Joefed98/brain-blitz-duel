@@ -273,13 +273,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         tone={(letter) => (placed.has(letter) ? "used" : "plain")}
         locked={done}
         keyHeight={42}
+        keyFontPx={19}
         left={
-          <KeypadAction label="Clear" keyHeight={42} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
+          <KeypadAction label="Clear" keyHeight={42} fontPx={16} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
             Clear
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Next empty" keyHeight={42} disabled={done || complete} onPress={nextEmpty}>
+          <KeypadAction label="Next empty" keyHeight={42} fontPx={16} disabled={done || complete} onPress={nextEmpty}>
             Next
           </KeypadAction>
         }

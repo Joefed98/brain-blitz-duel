@@ -485,6 +485,19 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (link-preview-check). app-shell-check waits out a cold dev server's reload before setup and repeats only the setup once
   on "Execution context was destroyed". `docs/design-system.md` (the look rules) and `docs/stale-code-report.md` (a
   report; nothing deleted).
+- **Polish 1: game feedback, fonts and readability** (24 Oct 2026; display and sound only, no stamps; from the game
+  look audit): arcade banners and pops on every world but Retro and Space draw in Archivo 800
+  (`ARCADE_FX_DISPLAY_FONT`; "Fredoka"/"Nunito" were never loaded; the layer asks `document.fonts` for it once). The shared
+  arcade layer has a miss moment (`misses` on each spec in `arcadeFxGames.renderer.ts`, read from the counters the sound
+  observers use): a 200 ms faint red edge pulse (`ARCADE_FX_MISS_*`, edge only) and, where a point is given, a small puff
+  (a pixel crack on Retro screens, painted once on its own cached canvas and blitted, so a game's own frame gets no
+  extra pixel rects: snake-renderer-check counts them on Meteor's death frame); every active arcade game declares one; Gemstone's sliding gems are drawn inside the
+  layer so the puff shows over them. Puzzles: Bang On's "Missed" plays `wrong`; Ascend's wrong tap gets the shared
+  shake and red outline on the disc, a right tap a quiet `tick`; Interlock and Slider play `fx.onCorrect` for a word the
+  player made (not words already on the board at mount). Readability (`polish-layout/readability.css`): puzzle HUD lines
+  13 px / 600 on their 16 px line; Lookout letters 60 % of a cell (16–28 px); Bomb Defusal rules 14 px on 1.5;
+  Cryptogrid keys 19 px, Clear/Next 16 px. arcade-fx-check proves the miss layer; `bun scripts/shots/miss-shots.ts
+  --url=<origin>` draws the review frames (`screenshots/polish1-oct-2026/`).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

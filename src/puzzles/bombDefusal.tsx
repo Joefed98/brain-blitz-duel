@@ -355,7 +355,7 @@ function Stage({
       <div data-game-arena="logic">
         <div className="logic-bomb-rules w-full shrink-0 rounded-xl border border-border bg-card p-2">
           {puzzle.rules.map((rule, index) => (
-            <p key={rule.id} className="text-[14px] leading-snug">
+            <p key={rule.id} className="text-[14px] leading-[1.5]">
               <span className="font-mono text-primary">{index + 1}.</span>{" "}
               <RuleText text={rule.text} wires={puzzle.wires} buttons={puzzle.buttons} />
             </p>

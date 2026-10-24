@@ -25,6 +25,7 @@ import {
 } from "@/lib/duel/types";
 
 import { registerFxPreview } from "@/components/puzzles/speedFx";
+import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -374,6 +375,15 @@ function WatchView({
     fireBangOnGoldFaces(rootRef.current);
   }, [fxScore, runKey]);
   useEffect(() => registerFxPreview("stopwatch", () => fireBangOnGoldFaces(rootRef.current)), []);
+  // A missed watch plays the shared wrong sound as its "Missed" label shows (display only), once per
+  // watch, never for one already missed when the stage mounts (a reload).
+  const missedAt = useRef(result === "missed" ? `${runKey}:${index}` : "");
+  useEffect(() => {
+    const at = `${runKey}:${index}`;
+    if (result !== "missed" || missedAt.current === at) return;
+    missedAt.current = at;
+    playSound("wrong");
+  }, [result, index, runKey]);
   return (
     <div
       ref={rootRef}
