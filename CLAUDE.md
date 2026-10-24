@@ -490,7 +490,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`ARCADE_FX_DISPLAY_FONT`; "Fredoka"/"Nunito" were never loaded; the layer asks `document.fonts` for it once). The shared
   arcade layer has a miss moment (`misses` on each spec in `arcadeFxGames.renderer.ts`, read from the counters the sound
   observers use): a 200 ms faint red edge pulse (`ARCADE_FX_MISS_*`, edge only) and, where a point is given, a small puff
-  (a pixel crack on Retro screens); every active arcade game declares one; Gemstone's sliding gems are drawn inside the
+  (a pixel crack on Retro screens, painted once on its own cached canvas and blitted, so a game's own frame gets no
+  extra pixel rects: snake-renderer-check counts them on Meteor's death frame); every active arcade game declares one; Gemstone's sliding gems are drawn inside the
   layer so the puff shows over them. Puzzles: Bang On's "Missed" plays `wrong`; Ascend's wrong tap gets the shared
   shake and red outline on the disc, a right tap a quiet `tick`; Interlock and Slider play `fx.onCorrect` for a word the
   player made (not words already on the board at mount). Readability (`polish-layout/readability.css`): puzzle HUD lines

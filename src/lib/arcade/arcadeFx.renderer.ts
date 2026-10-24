@@ -1027,6 +1027,53 @@ function spawnMiss(m: Memory, point: ArcadeFxPoint | null | undefined, now: numb
   if (m.puffs.length > ARCADE_FX_MAX_PUFFS) m.puffs.splice(0, m.puffs.length - ARCADE_FX_MAX_PUFFS);
 }
 
+/** The crack sprite's side in world px (each arm reaches at most 5 steps of 3 px from the centre). */
+const CRACK_SPRITE = 36;
+const crackCache = new Map<number, CanvasImageSource | null>();
+
+/**
+ * One of four pixel cracks (by variant), drawn once on its own canvas: 2 px squares along four jagged
+ * arms and a 4 px centre, in the miss red. Null where no canvas can be made (the crack is then skipped).
+ */
+function crackSprite(variant: number): CanvasImageSource | null {
+  if (crackCache.has(variant)) return crackCache.get(variant) ?? null;
+  let sprite: CanvasImageSource | null = null;
+  try {
+    const size = CRACK_SPRITE;
+    const canvas: HTMLCanvasElement | OffscreenCanvas | null =
+      typeof OffscreenCanvas !== "undefined"
+        ? new OffscreenCanvas(size, size)
+        : typeof document !== "undefined"
+          ? Object.assign(document.createElement("canvas"), { width: size, height: size })
+          : null;
+    const g = canvas?.getContext("2d") as
+      CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null | undefined;
+    if (canvas && g) {
+      const seed = variant + 1;
+      const c = size / 2;
+      g.fillStyle = ARCADE_FX_MISS_RED;
+      for (let arm = 0; arm < 4; arm++) {
+        const angle = (arm / 4) * Math.PI * 2 + 0.4 + hash(seed, arm) * 0.8;
+        const steps = 3 + Math.floor(hash(seed, arm + 11) * 3);
+        let x = c;
+        let y = c;
+        for (let k = 0; k < steps; k++) {
+          const wobble = (hash(seed, arm * 7 + k) - 0.5) * 1.2;
+          x += Math.cos(angle + wobble) * 3;
+          y += Math.sin(angle + wobble) * 3;
+          g.fillRect(Math.round(x - 1), Math.round(y - 1), 2, 2);
+        }
+      }
+      g.fillRect(c - 2, c - 2, 4, 4);
+      sprite = canvas;
+    }
+  } catch {
+    sprite = null;
+  }
+  crackCache.set(variant, sprite);
+  return sprite;
+}
+
 /**
  * The miss moment's paint: a faint red pulse inside the edge (up in its first quarter, then
  * down, over ARCADE_FX_MISS_MS; a steady, fainter fade under reduced motion) and the puffs: on
@@ -1060,23 +1107,14 @@ function paintMisses(
     if (p < 0 || p >= 1) continue;
     const fade = 1 - p;
     if (world === "retro") {
-      // A pixel crack: four jagged arms of square pixels from the point, in the miss red.
-      ctx.fillStyle = ARCADE_FX_MISS_RED;
+      // A pixel crack: four jagged arms of square pixels from the point, in the miss red. It is painted
+      // once on its own small canvas (crackSprite) and laid over the world in one blit, so the game's
+      // own frame gets no extra pixel rects; it grows in over the first quarter and fades.
+      const sprite = crackSprite(puff.seed & 3);
+      const grow = still ? 1 : 0.5 + 0.5 * Math.min(1, p / 0.25);
+      const half = (CRACK_SPRITE / 2) * grow;
       ctx.globalAlpha = 0.9 * fade;
-      const reach = still ? 1 : Math.min(1, p / 0.25);
-      for (let arm = 0; arm < 4; arm++) {
-        const angle = (arm / 4) * Math.PI * 2 + 0.4 + hash(puff.seed, arm) * 0.8;
-        const steps = Math.round((3 + Math.floor(hash(puff.seed, arm + 11) * 3)) * reach);
-        let x = puff.x;
-        let y = puff.y;
-        for (let k = 0; k < steps; k++) {
-          const wobble = (hash(puff.seed, arm * 7 + k) - 0.5) * 1.2;
-          x += Math.cos(angle + wobble) * 3;
-          y += Math.sin(angle + wobble) * 3;
-          ctx.fillRect(Math.round(x - 1), Math.round(y - 1), 2, 2);
-        }
-      }
-      ctx.fillRect(Math.round(puff.x - 2), Math.round(puff.y - 2), 4, 4);
+      if (sprite) ctx.drawImage(sprite, Math.round(puff.x - half), Math.round(puff.y - half), half * 2, half * 2);
       continue;
     }
     // A puff of smoke: soft grey rounds that spread a little and fade, with a dark rim so it reads on light worlds.
