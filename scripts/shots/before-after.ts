@@ -4,7 +4,7 @@
  *
  *   bun scripts/shots/before-after.ts [games…] [--main=<origin>] [--branch=<origin>]
  *       [--out=screenshots/before-after] [--work=.shots/before-after] [--ref=origin/main]
- *       [--reuse] [--sheets-only]
+ *       [--reuse] [--sheets-only] [--pairs=<game,game…>]
  *
  * Frames come from scripts/shots/contact-sheet.ts (its practice setup, the fixed intro example,
  * `Math.random` seeded, its game drivers and seeded taps), run once against each tree:
@@ -14,8 +14,8 @@
  * Both dev servers point Supabase at a closed port, as the contact sheet's does, so server calls fail
  * fast. --reuse keeps frames already in <work>/before and <work>/after; --sheets-only only redraws.
  *
- * Writes <out>/<game>.png (before | after, full size, labelled) and <out>/overview.png (every pair
- * at a quarter size, in category order).
+ * Writes <out>/<game>.png (before | after, full size, labelled; every game, or only those named in
+ * --pairs) and <out>/overview.png (every captured pair at a quarter size, in category order).
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
@@ -166,9 +166,10 @@ async function main() {
         capture(origin, join(WORK, side), missing);
       }
     }
-    for (const game of games) await pair(game);
+    const pairs = opt("pairs")?.split(",").filter(Boolean);
+    for (const game of games) if (!pairs || pairs.includes(game)) await pair(game);
     if (!named.length) await overview(games);
-    console.log(`${games.length} before/after sheet(s) in ${OUT}${named.length ? "" : " (and overview.png)"}`);
+    console.log(`${pairs ? games.filter((t) => pairs.includes(t)).length : games.length} full-size sheet(s) in ${OUT}${named.length ? "" : `, and overview.png with all ${games.length} games`}`);
   } finally {
     for (const proc of servers) if (proc.pid) process.kill(-proc.pid);
   }
