@@ -11,6 +11,11 @@
  * Grappler, Jaywalk and Roofbound draw the Joulz hero (hero.renderer) on their game's own joints,
  * painted as vectors at the icon's real pixel size (never an enlarged sprite). Each paint gets a
  * fresh pose, so the cape snaps to its angle and never shares the game's eased one.
+ *
+ * Orbit, Breaker, Gemstone, Meteor and Tempo (Prompt Q, 23 Oct 2026) paint their sprite's own art
+ * (the renderer's paint function behind its cached sprite) at the icon's real pixel size, never an
+ * enlarged small sprite, so they stay sharp on the 104 px Practice tile; glows are scaled by `k` to
+ * keep the sprite's look.
  */
 import { drawSaucer } from "@/lib/arcade/hover.renderer";
 import { HOVER_IMPULSE, type HoverState } from "@/lib/arcade/hover";
@@ -18,15 +23,16 @@ import { drawBlock } from "@/lib/arcade/skyline.renderer";
 import { drawRubberBall } from "@/lib/arcade/binTossArt.renderer";
 import { drawDart, paintBoard } from "@/lib/arcade/bullseye.renderer";
 import { BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
-import { drawMatchupGem } from "@/lib/arcade/matchup.renderer";
-import { getBrickSprite } from "@/lib/arcade/breaker.renderer";
+import { paintMatchupGem } from "@/lib/arcade/matchup.renderer";
+import { paintBrick } from "@/lib/arcade/breaker.renderer";
 import { RETRO_WHITE, retroBall, retroNeon, retroPaddle } from "@/lib/arcade/retro.renderer";
 import { drawBall as drawPinball, paintBumper } from "@/lib/arcade/pinball.renderer";
 import { paintFood } from "@/lib/arcade/slice.renderer";
 import { paintBubble } from "@/lib/arcade/bubble.renderer";
-import { drawBar } from "@/lib/arcade/beat.renderer";
+import { paintNote } from "@/lib/arcade/beat.renderer";
 import { BEAT_LANE_COLOURS } from "@/lib/arcade/beat";
-import { stamp as meteorStamp } from "@/lib/arcade/snake.renderer";
+import { paintStamp as paintMeteorStamp } from "@/lib/arcade/snake.renderer";
+import { SNAKE_CELL } from "@/lib/arcade/snake";
 import { drawVehicle, drawWalkerHero } from "@/lib/arcade/cross.renderer";
 import { drawFighter } from "@/lib/arcade/wavefront.renderer";
 import { drawRunnerHero } from "@/lib/arcade/flipArt.renderer";
@@ -34,7 +40,7 @@ import { FLIP_REV, type FlipState } from "@/lib/arcade/flip";
 import { INK_RAINBOW, coin, pot } from "@/lib/arcade/inkBridge.renderer";
 import { paintAtom } from "@/lib/arcade/burst.renderer";
 import { BURST_COLOURS } from "@/lib/arcade/burst";
-import { drawPlanet, getRocketSprite } from "@/lib/arcade/orbit.renderer";
+import { drawPlanet, paintRocket } from "@/lib/arcade/orbit.renderer";
 import { drawHero, heroPose, type HeroPose } from "@/lib/arcade/hero.renderer";
 import { apple } from "@/lib/arcade/snip.renderer";
 import { TILT_MARBLE_BLUE, paintDisc } from "@/lib/arcade/tiltArt.renderer";
@@ -118,16 +124,18 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
     paintBoard(c, 32, 30, 30, BULLSEYE_RING_VALUES);
     drawDart(c, 37, 26, 0.85, "#F5B82E");
   },
-  // Gemstone: a cut gem (matchup drawMatchupGem).
-  matchup: (c) => drawMatchupGem(c, 3, 32, 32, 25),
-  // Breaker: neon bricks, the paddle and the ball (breaker getBrickSprite, retroPaddle, retroBall).
+  // Gemstone: a cut gem (matchup paintMatchupGem, the gem sprite's art).
+  matchup: (c) => paintMatchupGem(c, 3, 32, 32, 25),
+  // Breaker: neon bricks, the paddle and the ball (breaker paintBrick, the brick sprite's art; retroPaddle, retroBall).
   breaker: (c) => {
     const colours = ["#FF3B5C", "#FFD84A", "#3DFFE0", "#C59CFF"];
     scaled(c, 4, 6, 0.62, () => {
       for (let row = 0; row < 2; row++)
         for (let col = 0; col < 2; col++) {
-          const brick = getBrickSprite(colours[row * 2 + col]!, 0, 0, 0);
-          if (brick) c.drawImage(brick as CanvasImageSource, 0 + col * 46, row * 22, 44, 20);
+          c.save();
+          c.translate(col * 46, row * 22);
+          paintBrick(c, colours[row * 2 + col]!, 0, 0, 0);
+          c.restore();
         }
     });
     retroBall(c, 38, 40, 5, "#BFF6FF");
@@ -148,18 +156,26 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
   slice: (c) => sprite(c, paintFood("cabbage"), 9, 9, 46),
   // Coral Pop: a glass bubble with its creature (bubble paintBubble).
   bubble: (c) => sprite(c, paintBubble(4), 8, 8, 48),
-  // Tempo: falling neon note bars (beat drawBar).
+  // Tempo: falling neon note bars (beat paintNote, the note sprite's art).
   beat: (c) => {
     BEAT_LANE_COLOURS.forEach((colour, lane) => {
-      drawBar(c, 4 + lane * 15, [36, 12, 44, 24][lane]!, 12, retroNeon(colour), 0);
+      c.save();
+      c.translate(4 + lane * 15, [36, 12, 44, 24][lane]!);
+      paintNote(c, retroNeon(colour), 12);
+      c.restore();
     });
   },
-  // Meteor: the flaming head and its tail beads (snake stamp), heading up, and a star pellet.
-  snake: (c) => {
-    const draw = (kind: "bead" | "head" | "star", x: number, y: number, dir = 0) => {
-      const art = meteorStamp(kind, 0, dir);
-      if (art) c.drawImage(art as CanvasImageSource, x - 10, y - 10, 20, 20);
-    };
+  // Meteor: the flaming head and its tail beads (snake paintStamp, the stamp sprite's art), heading up, and a star pellet.
+  snake: (c, k) => {
+    const s = 20 / SNAKE_CELL;
+    const draw = (kind: "bead" | "head" | "star", x: number, y: number, dir = 0) =>
+      scaled(c, x - 10, y - 10, s, () => {
+        // The sprite's canvas clipped each glow to its cell; so does this.
+        c.beginPath();
+        c.rect(0, 0, SNAKE_CELL, SNAKE_CELL);
+        c.clip();
+        paintMeteorStamp(c, kind, 0, dir, 0, s * k);
+      });
     draw("bead", 24, 52);
     draw("bead", 24, 36);
     draw("head", 24, 18, 0);
@@ -202,8 +218,8 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
   },
   // Fission: a neon atom (burst paintAtom).
   burst: (c) => scaled(c, 8, 8, 1, () => paintAtom(c, 24, retroNeon(BURST_COLOURS[0]), 3)),
-  // Orbit: a ringed planet and the rocket (orbit drawPlanet, getRocketSprite).
-  orbit: (c) => {
+  // Orbit: a ringed planet and the rocket (orbit drawPlanet, paintRocket).
+  orbit: (c, k) => {
     drawPlanet(c, 25, 38, 15, {
       type: 1,
       colour: "#5AA9FF",
@@ -211,14 +227,13 @@ export const ARCADE_ICON_PAINTERS: Record<string, IconPainter> = {
       tilt: -0.35,
       h: 0x9e3779b1,
     });
-    const rocket = getRocketSprite(false);
-    if (rocket) {
-      c.save();
-      c.translate(46, 18);
-      c.rotate(-Math.PI / 4);
-      c.drawImage(rocket, -22, -22, 44, 44);
-      c.restore();
-    }
+    // The rocket sprite's art (orbit paintRocket), 48 sprite px in 44 units.
+    c.save();
+    c.translate(46, 18);
+    c.rotate(-Math.PI / 4);
+    c.scale(44 / 48, 44 / 48);
+    paintRocket(c, false, (44 / 48) * k);
+    c.restore();
   },
   // Grappler: the hero on its rope from the anchor (hero.renderer drawHero on the icon's joints, the anchor art).
   swing: (c, k) => {

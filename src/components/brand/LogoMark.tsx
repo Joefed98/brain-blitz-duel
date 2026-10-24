@@ -1,33 +1,43 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
-import { LOGO_COLOURS, LOGO_LEAD, LOGO_PATHS, LOGO_TRAIL } from "./logoGeometry";
+import { LOGO_BOX, LOGO_COLOURS, LOGO_HAIRLINE_PX, LOGO_LEAD, LOGO_PATHS, LOGO_TRAIL } from "./logoGeometry";
 
-/** The charge-in (LOGO_CHARGE_MS): the facets fill over the first 0.45 s, the lines streak out after. */
+/**
+ * The charge-in (celebrations, LOGO_CHARGE_MS in src/lib/fx/celebrations.ts): the facets fill top to
+ * bottom over the first 0.45 s, then each speed line streaks out from its strong end over 0.3 s. Both
+ * are clips that grow (SMIL) round the mark's own paths, so the paths are drawn exactly as without it.
+ */
 const CHARGE_FILL_S = 0.45;
 const CHARGE_LINE_AT_S = 0.3;
 const CHARGE_LINE_S = 0.3;
-const CHARGE_LINE_LENGTH = 16;
 
-function ChargeLine({ d, stroke }: { d: string; stroke: string }) {
+/** A clip rect that grows from `from` (x or y) to cover `to`, keyed by the axis it grows along. */
+function ChargeClip({ id, x, y, w, h, axis, begin, dur }: { id: string; x: number; y: number; w: number; h: number; axis: "down" | "left" | "right"; begin: number; dur: number }) {
+  const size = axis === "down" ? h : w;
   return (
-    <path
-      className="logo-charge-line"
-      d={d}
-      stroke={stroke}
-      strokeWidth="1"
-      strokeLinecap="round"
-      strokeDasharray={CHARGE_LINE_LENGTH}
-      strokeDashoffset={CHARGE_LINE_LENGTH}
-    >
-      <animate
-        attributeName="stroke-dashoffset"
-        values={`${CHARGE_LINE_LENGTH};0`}
-        begin={`${CHARGE_LINE_AT_S}s`}
-        dur={`${CHARGE_LINE_S}s`}
-        fill="freeze"
-      />
-    </path>
+    <clipPath id={id}>
+      <rect x={axis === "left" ? x + w : x} y={y} width={axis === "down" ? w : 0} height={axis === "down" ? 0 : h}>
+        <animate
+          attributeName={axis === "down" ? "height" : "width"}
+          values={`0;${size}`}
+          begin={`${begin}s`}
+          dur={`${dur}s`}
+          calcMode="spline"
+          keyTimes="0;1"
+          keySplines="0.35 0 0.25 1"
+          fill="freeze"
+        />
+        {axis === "left" ? (
+          <animate attributeName="x" values={`${x + w};${x}`} begin={`${begin}s`} dur={`${dur}s`} calcMode="spline" keyTimes="0;1" keySplines="0.35 0 0.25 1" fill="freeze" />
+        ) : null}
+      </rect>
+    </clipPath>
   );
+}
+
+/** The charge-in's clipped group; without it, the paths alone (the mark's own markup, unchanged). */
+function clipped(charge: boolean, clip: string, paths: ReactNode) {
+  return charge ? <g className="logo-charge-clip" clipPath={`url(#${clip})`}>{paths}</g> : paths;
 }
 
 function Stops({ colours }: { colours: readonly string[] }) {
@@ -45,26 +55,37 @@ function Stops({ colours }: { colours: readonly string[] }) {
  * use on the gold shine (the app icons and the share card draw that version from the same geometry).
  * Every instance has its own gradient ids (useId), so two marks on one page never share them.
  *
- * `charge` (celebrations, src/lib/fx/celebrations.ts; the app's first screen only): the mark
- * "charges in" over LOGO_CHARGE_MS, both facets filling top to bottom and the faint lines streaking
- * out. SMIL on the server-rendered markup, so it plays while the app loads and never holds it up;
- * reduced motion shows the finished mark (polish-layout/celebrations.css).
+ * The speed lines are hairlines at any size (a non-scaling stroke, `lineWidth` screen px): by default
+ * min(LOGO_HAIRLINE_PX, the mark's px per box unit from `height`), so the header's 22 px mark draws them
+ * exactly as its 1-unit strokes did. A mark sized by CSS rather than `height` passes `lineWidth`.
+ *
+ * `charge` (celebrations; the app header's first mark per app open): the mark charges in (see
+ * ChargeClip). The caller draws it without `charge` once the charge-in has ended. Reduced motion shows
+ * the finished mark (polish-layout/celebrations.css).
  */
 export function LogoMark({
   variant = "gold",
   width = 17,
   height = 22,
   className,
+  viewBox = "0 0 26 34",
+  lineWidth,
   charge = false,
 }: {
   variant?: "gold" | "inverted";
   width?: number;
   height?: number;
   className?: string;
+  /** A crop of the 26 × 34 box (Prepare to Duel fits the bolt alone); overflow stays visible. */
+  viewBox?: string;
+  /** The speed lines' thickness on screen, px (default: see above). */
+  lineWidth?: number;
+  /** Celebrations' charge-in (see above). */
   charge?: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const look = LOGO_COLOURS[variant];
+  const hairline = lineWidth ?? Math.min(LOGO_HAIRLINE_PX, height / LOGO_BOX.h);
   const line = (key: string, x1: number, x2: number) => (
     <linearGradient id={`${id}-${key}`} gradientUnits="userSpaceOnUse" x1={x1} y1="0" x2={x2} y2="0">
       <stop offset="0" stopColor={look.line} stopOpacity={look.lineOpacity} />
@@ -73,7 +94,7 @@ export function LogoMark({
   );
   return (
     <svg
-      viewBox="0 0 26 34"
+      viewBox={viewBox}
       width={width}
       height={height}
       style={{ overflow: "visible" }}
@@ -93,37 +114,44 @@ export function LogoMark({
         {line("t", LOGO_TRAIL.from, LOGO_TRAIL.to)}
         {line("l", LOGO_LEAD.from, LOGO_LEAD.to)}
         {charge ? (
-          <clipPath id={`${id}-c`}>
-            <rect x="-2" y="0" width="30" height="0">
-              <animate
-                attributeName="height"
-                values="0;34"
-                keyTimes="0;1"
-                calcMode="spline"
-                keySplines="0.35 0 0.25 1"
-                dur={`${CHARGE_FILL_S}s`}
-                fill="freeze"
-              />
-            </rect>
-          </clipPath>
+          <>
+            <ChargeClip id={`${id}-cf`} x={-2} y={0} w={30} h={34} axis="down" begin={0} dur={CHARGE_FILL_S} />
+            <ChargeClip id={`${id}-ct`} x={0} y={LOGO_TRAIL.y - 2} w={LOGO_TRAIL.from + 1} h={4} axis="left" begin={CHARGE_LINE_AT_S} dur={CHARGE_LINE_S} />
+            <ChargeClip id={`${id}-cl`} x={LOGO_LEAD.from - 1} y={LOGO_LEAD.y - 2} w={26 - LOGO_LEAD.from + 1} h={4} axis="right" begin={CHARGE_LINE_AT_S} dur={CHARGE_LINE_S} />
+          </>
         ) : null}
       </defs>
-      {charge ? (
-        <>
-          <g className="logo-charge-clip" clipPath={`url(#${id}-c)`}>
-            <path d={LOGO_PATHS.upper} fill={`url(#${id}-a)`} />
-            <path d={LOGO_PATHS.lower} fill={`url(#${id}-b)`} />
-          </g>
-          <ChargeLine d={LOGO_PATHS.trail} stroke={`url(#${id}-t)`} />
-          <ChargeLine d={LOGO_PATHS.lead} stroke={`url(#${id}-l)`} />
-        </>
-      ) : (
+      {clipped(
+        charge,
+        `${id}-cf`,
         <>
           <path d={LOGO_PATHS.upper} fill={`url(#${id}-a)`} />
           <path d={LOGO_PATHS.lower} fill={`url(#${id}-b)`} />
-          <path d={LOGO_PATHS.trail} stroke={`url(#${id}-t)`} strokeWidth="1" strokeLinecap="round" />
-          <path d={LOGO_PATHS.lead} stroke={`url(#${id}-l)`} strokeWidth="1" strokeLinecap="round" />
-        </>
+        </>,
+      )}
+      {clipped(
+        charge,
+        `${id}-ct`,
+        <path
+          d={LOGO_PATHS.trail}
+          stroke={`url(#${id}-t)`}
+          strokeWidth={hairline}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+          data-logo-line=""
+        />,
+      )}
+      {clipped(
+        charge,
+        `${id}-cl`,
+        <path
+          d={LOGO_PATHS.lead}
+          stroke={`url(#${id}-l)`}
+          strokeWidth={hairline}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+          data-logo-line=""
+        />,
       )}
     </svg>
   );

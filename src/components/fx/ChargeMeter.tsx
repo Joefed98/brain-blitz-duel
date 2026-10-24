@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { MAX_PLAYERS } from "@/lib/duel/types";
-import { celebrationSound, meterFill, meterLabel, sparkBurstOn } from "@/lib/fx/celebrations";
+import { celebrationSound, meterFill, sparkBurstOn } from "@/lib/fx/celebrations";
 
 import { useCelebrationScope } from "./useCelebration";
 
@@ -9,8 +9,9 @@ import { useCelebrationScope } from "./useCelebration";
 const FILL_MS = 520;
 
 /**
- * The lobby's charge meter (Prompt P, 23 Oct 2026; celebrations only): a slim gold bar under the
- * player list, filled players / MAX_PLAYERS, "{n} of 10 players" beside it. Its height is fixed
+ * The lobby's charge meter (Prompt P, 23 Oct 2026; celebrations only): a slim gold bar directly under
+ * the lobby's "{n} of 10 players" line (it has no label of its own), filled players / MAX_PLAYERS, read
+ * out as that line already says. Its height is fixed
  * (20 px), so it is there from the first frame and nothing below it moves. A join eases the fill
  * up with a soft crackle; the room filling up sparks once along the bar. Display only.
  */
@@ -37,7 +38,6 @@ export function ChargeMeter({ players }: { players: number }) {
       <div ref={track} className="charge-meter-track">
         <div className="charge-meter-fill" style={{ transform: `scaleX(${meterFill(players)})` }} />
       </div>
-      <span className="charge-meter-label">{meterLabel(players)}</span>
     </div>
   );
 }

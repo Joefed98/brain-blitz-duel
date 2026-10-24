@@ -362,7 +362,13 @@ try {
     const o = await open(browser, server.origin, "lobby3", true);
     const list = await samples(o.page);
     check(list.length > 0 && list.filter((s) => s.list).every((s) => s.meter), "lobby: the meter is not there from the list's first frame");
-    check((await o.page.textContent("[data-charge-meter] .charge-meter-label")) === "3 of 10 players", "lobby: meter label at 3");
+    const placed = await o.page.evaluate(() => {
+      const meter = document.querySelector("[data-charge-meter]") as HTMLElement | null;
+      const line = meter?.previousElementSibling as HTMLElement | null;
+      if (!meter || !line) return null;
+      return { line: line.textContent, own: meter.textContent, gap: meter.getBoundingClientRect().top - line.getBoundingClientRect().bottom, h: meter.getBoundingClientRect().height };
+    });
+    check(placed?.line === "3 of 10 players" && placed.own === "" && placed.gap >= 0 && placed.gap <= 8 && placed.h === 20, `lobby: the meter is not directly under "3 of 10 players" with no label of its own (${JSON.stringify(placed)})`);
     await judgeLayout(o.page, "lobby");
     await shot(o.page, "lobby-meter-3-of-10");
     await o.page.evaluate(() => {
@@ -374,12 +380,12 @@ try {
     });
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:crackle"), "lobby: a join does not crackle");
-    check((await o.page.textContent("[data-charge-meter] .charge-meter-label")) === "4 of 10 players", "lobby: meter label after a join");
+    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "4" && (await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.previousElementSibling?.textContent)) === "4 of 10 players", "lobby: the meter or its line after a join");
     await o.close();
   }
   {
     const o = await open(browser, server.origin, "lobby10", true);
-    check((await o.page.textContent("[data-charge-meter] .charge-meter-label")) === "10 of 10 players", "lobby: meter label at 10");
+    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "10", "lobby: meter at 10");
     await fire(o.page, `C.sparkBurstOn(scope, document.querySelector(".charge-meter-track"), { row: true, count: 60 });`);
     await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.scrollIntoView({ block: "center" }));
     await o.page.waitForTimeout(160);

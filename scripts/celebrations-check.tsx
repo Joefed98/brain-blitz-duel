@@ -97,7 +97,6 @@ for (const [days, want] of [[1, null], [2, null], [3, 3], [4, null], [6, null], 
 }
 check(C.streakBannerText(7) === "7-day streak!", `streak banner text: ${C.streakBannerText(7)}`);
 check(C.meterFill(3) === 0.3 && C.meterFill(10) === 1 && C.meterFill(0) === 0 && C.meterFill(12) === 1, "meter fill is not players / 10");
-check(C.meterLabel(3) === "3 of 10 players" && C.meterLabel(10) === "10 of 10 players", `meter label: ${C.meterLabel(3)}`);
 
 type Row = Parameters<typeof C.podiumWinnerIsMe>[0][number];
 const standing = (slot: number, total: number, roundScore: number, position: number, previousPosition: number | null): Row =>
@@ -310,7 +309,7 @@ for (const mineFirst of [true, false]) {
   const view = await mount(React.createElement(ChargeMeter, { players: 3 }));
   const fill = view.host.querySelector(".charge-meter-fill") as HTMLElement;
   check(fill.style.transform === "scaleX(0.3)", `meter at 3: ${fill.style.transform}`);
-  check(view.host.querySelector(".charge-meter-label")?.textContent === "3 of 10 players", "meter label at 3");
+  check(!view.host.querySelector(".charge-meter-label") && (view.host.textContent ?? "") === "", "the meter has a label of its own (the line above it says the count)");
   check(!sounds.length, "the meter makes a sound when it first draws");
   await view.rerender(React.createElement(ChargeMeter, { players: 4 }));
   check(sounds.join() === "crackle" && !requests.some((r) => r.kind === "burst"), `a join: ${sounds.join()}`);
@@ -322,17 +321,39 @@ for (const mineFirst of [true, false]) {
   await view.unmount();
 }
 
-// 3e. The logo charges in on the first wordmark only.
+// 3e. The logo charges in once per app open: the first header as the app opens, again on a reopen,
+// never on a later mount (a tab switch, a route change, back to Play); then it is #133's mark exactly.
 {
   setOn(true);
+  const normal = (el: Element | null) => (el?.outerHTML ?? "").replace(/_r_[0-9a-z]+_|«r[0-9a-z]+»|:r[0-9a-z]+:/g, "#");
   C.resetCelebrationMemory();
   const first = await mount(React.createElement(AppWordmark));
-  check(!!first.host.querySelector("[data-logo-charge] animate"), "the first wordmark does not charge in");
+  check(!!first.host.querySelector("[data-logo-charge] animate"), "the app's first header does not charge in");
+  const plain = await mount(React.createElement(LogoMark, { width: 17, height: 22, className: "ap-wordmark-mark" }));
+  check(!plain.host.querySelector("[data-logo-charge], clipPath, animate, g"), "a mark without the charge-in is not the plain mark");
+  check(first.host.querySelectorAll("[data-logo-line]").length === 2 && Array.from(first.host.querySelectorAll("[data-logo-line]")).every((l) => l.getAttribute("vector-effect") === "non-scaling-stroke" && l.getAttribute("stroke-width") === plain.host.querySelector("[data-logo-line]")!.getAttribute("stroke-width")), "the charge-in does not draw #133's hairline speed lines");
+  await wait(C.LOGO_CHARGE_MS + 250);
+  check(normal(first.host.querySelector("svg")) === normal(plain.host.querySelector("svg")), "once the charge-in ends the header mark is not exactly the plain mark");
+  // A tab switch or route change: a new header, drawn finished.
   const second = await mount(React.createElement(AppWordmark));
-  check(!second.host.querySelector("[data-logo-charge]"), "a later wordmark charges in again");
-  await first.unmount();
+  check(!second.host.querySelector("[data-logo-charge]"), "a later header (tab switch, route change, back to Play) charges in again");
   await second.unmount();
+  // A reopened app: the header on screen charges in again, then settles to the plain mark.
+  await act(async () => C.appReopened());
+  check(!!first.host.querySelector("[data-logo-charge] animate"), "reopening the app does not charge the header in again");
+  await wait(C.LOGO_CHARGE_MS + 250);
+  check(normal(first.host.querySelector("svg")) === normal(plain.host.querySelector("svg")), "after a reopen's charge-in the mark is not the plain mark");
+  await first.unmount();
+  // The app opened on a room link, then a route change to Play: its first header is drawn finished.
+  C.resetCelebrationMemory();
+  win.history.pushState({}, "", "/duel/ABCD");
+  const late = await mount(React.createElement(AppWordmark));
+  check(!late.host.querySelector("[data-logo-charge]"), "a header first drawn after a route change charges in");
+  await late.unmount();
+  win.history.pushState({}, "", "/");
+  await plain.unmount();
   check(C.LOGO_CHARGE_MS === 600, "the charge-in is not about 600 ms");
+  check(!/localStorage|sessionStorage/.test(readFileSync("src/components/brand/AppWordmark.tsx", "utf8")) && !/Storage/.test(readFileSync("src/lib/fx/celebrations.ts", "utf8")), "the charge-in keeps a storage key");
 }
 
 // 4. Reduced motion.
@@ -381,7 +402,11 @@ for (const mineFirst of [true, false]) {
   const pill = await mount(React.createElement(NewBestMoment));
   check(!!pill.host.querySelector("[data-new-best] .new-best-moment"), "off: the new best pill is gone");
   const meterless = readFileSync("src/components/duel/RoomLobby.tsx", "utf8");
-  check(/\{celebrate \? <ChargeMeter players=\{players\.length\} \/> : null\}/.test(meterless), "off: the lobby still draws the meter");
+  check(
+    /\{celebrate \? \([\s\S]*?<ChargeMeter players=\{players\.length\} \/>[\s\S]*?\) : \(\s*<p className="th-kicker text-center text-muted-foreground">\s*\{players\.length\} of \{MAX_PLAYERS\} players\s*<\/p>\s*\)\}/.test(meterless) &&
+      (meterless.match(/<ChargeMeter /g) ?? []).length === 1,
+    "off: the lobby still draws the meter, or its count line changed",
+  );
   const mark = await mount(React.createElement(LogoMark, {}));
   const wordmark = await mount(React.createElement(AppWordmark));
   check(!wordmark.host.querySelector("[data-logo-charge]") && !mark.host.querySelector("[data-logo-charge]"), "off: the logo charges in");

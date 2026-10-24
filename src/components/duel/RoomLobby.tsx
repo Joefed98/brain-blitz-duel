@@ -250,9 +250,20 @@ export function RoomLobby({
           </p>
         </div>
       )}
-      <p className="th-kicker text-center text-muted-foreground">
-        {players.length} of {MAX_PLAYERS} players
-      </p>
+      {celebrate ? (
+        // Celebrations' charge meter (lib/fx/celebrations.ts) directly under the count it fills to; its
+        // 20 px are there from the first frame.
+        <div className="flex flex-col gap-1.5">
+          <p className="th-kicker text-center text-muted-foreground">
+            {players.length} of {MAX_PLAYERS} players
+          </p>
+          <ChargeMeter players={players.length} />
+        </div>
+      ) : (
+        <p className="th-kicker text-center text-muted-foreground">
+          {players.length} of {MAX_PLAYERS} players
+        </p>
+      )}
       {canChooseLook && me && (
         <p className="-mt-2 text-center text-xs font-semibold text-primary" data-look-hint>
           Tap your name to choose your colour{PLAYER_ICONS_ENABLED ? " and icon" : ""}
@@ -373,8 +384,6 @@ export function RoomLobby({
           );
         })}
       </ul>
-      {/* Celebrations' charge meter (lib/fx/celebrations.ts): its 20 px are there from the first frame. */}
-      {celebrate ? <ChargeMeter players={players.length} /> : null}
 
       <div className="w-full space-y-3 text-left">
         <p className="th-kicker text-foreground">Categories</p>

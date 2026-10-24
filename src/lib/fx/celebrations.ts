@@ -83,10 +83,6 @@ export function meterFill(players: number): number {
   return Math.max(0, Math.min(1, players / MAX_PLAYERS));
 }
 
-export function meterLabel(players: number): string {
-  return `${players} of ${MAX_PLAYERS} players`;
-}
-
 /** The podium's "You win!" banner and zap: this device holds first place (shared or not). */
 export function podiumWinnerIsMe(rows: readonly Standing[], mySlot: number): boolean {
   return rows.some((row) => row.slot === mySlot && row.position === 1);
@@ -118,15 +114,53 @@ export function resetCelebrationMemory(): void {
 
 let logoCharged = false;
 /**
- * The logo charges in on the app's first screen only (the server-rendered page and its hydration
- * draw the same markup); any later mount draws the finished logo. Reading it is stable for a mount.
+ * The first charge-in belongs to the screen the app opened on: a header first drawn after a route
+ * change (a room link opened first, then Play) is drawn finished.
+ */
+const openPath = typeof window === "undefined" ? null : window.location.pathname;
+/** Back from at least this long in the background counts as reopening the app (an iOS home-screen app resumed). */
+export const APP_REOPEN_HIDDEN_MS = 30_000;
+/**
+ * The logo charges in once per app open (memory only, no storage): the app's first header, drawn as it
+ * opens (the server-rendered page and its hydration draw the same markup), and again when the app is
+ * reopened (onAppOpen). Never on a tab switch, a route change or a return to the Play tab.
  */
 export function logoChargeWanted(): boolean {
-  return celebrationsOn() && !logoCharged;
+  if (!celebrationsOn() || logoCharged) return false;
+  return typeof window === "undefined" || openPath === null || window.location.pathname === openPath;
 }
 /** Called once the first logo has mounted: every later logo is drawn finished. */
 export function noteLogoCharged(): void {
   logoCharged = true;
+}
+
+const openListeners = new Set<() => void>();
+let openInstalled = false;
+let hiddenAt: number | null = null;
+/** The app was reopened (a bfcache restore, or back after APP_REOPEN_HIDDEN_MS hidden): the header on screen charges in again. */
+export function appReopened(): void {
+  if (!celebrationsOn()) return;
+  openListeners.forEach((listener) => listener());
+}
+/** The header listens for a reopen while it is on screen. */
+export function onAppOpen(listener: () => void): () => void {
+  if (!openInstalled && typeof window !== "undefined" && typeof document !== "undefined") {
+    openInstalled = true;
+    window.addEventListener("pageshow", (event) => {
+      if ((event as PageTransitionEvent).persisted) appReopened();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else {
+        if (hiddenAt !== null && Date.now() - hiddenAt >= APP_REOPEN_HIDDEN_MS) appReopened();
+        hiddenAt = null;
+      }
+    });
+  }
+  openListeners.add(listener);
+  return () => {
+    openListeners.delete(listener);
+  };
 }
 
 /* ------------------------------------------------------------------ events */
