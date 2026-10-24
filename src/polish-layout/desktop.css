@@ -50,27 +50,7 @@
     flex: none;
     height: round(down, calc((100cqh - round(down, min(100cqh, 100cqw * var(--arena-h) / var(--arena-w)), 1px)) / 2), 1px);
   }
-
-  /* The header: 56px, the timer's ring 28px with 24px seconds, labels 14px. */
-  [data-arcade-header] {
-    height: 56px;
-    padding-inline: 8px;
-  }
-  [data-arcade-header] .text-xs {
-    font-size: 14px;
-    line-height: 18px;
-  }
-  [data-arcade-header] [role="timer"] {
-    height: 28px;
-    gap: 6px;
-  }
-  [data-arcade-header] [role="timer"] > svg {
-    width: 28px;
-    height: 28px;
-  }
-  [data-arcade-header] [role="timer"] > span {
-    font-size: 24px;
-  }
+  /* The header is the game frame's 60px one on every screen (polish-layout/game-frame.css). */
 }
 
 /* Mouse and trackpad: buttons show they can be clicked. Phones never hover, so never see this. */

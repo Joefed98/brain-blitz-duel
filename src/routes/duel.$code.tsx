@@ -31,7 +31,6 @@ import {
 import { WinnerReveal } from "@/components/duel/WinnerReveal";
 import { animateFx } from "@/lib/fx/motion";
 import { RoundPips } from "@/components/duel/RoundPips";
-import { RoundLabel } from "@/components/duel/RoundLabel";
 import { RoundResult } from "@/components/duel/RoundResult";
 import { RoundHighlight } from "@/components/replay/RoundHighlight";
 import { PlayOfTheGame } from "@/components/replay/PlayOfTheGame";
@@ -43,8 +42,8 @@ import { FinishedPingStrip, useFinishedPings } from "@/components/duel/FinishedP
 const RoomChallengeButton = lazy(() =>
   import("@/components/challenge/ChallengeShare").then((m) => ({ default: m.RoomChallengeButton })),
 );
-import { ScoreStrip } from "@/components/duel/ScoreStrip";
-import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
+import { FrameScore } from "@/components/duel/GameFrame";
+import { ordinal } from "@/lib/duel/ordinal";
 import { Standings } from "@/components/duel/Standings";
 import { DuelOverall } from "@/components/duel/DuelOverall";
 import { Podium } from "@/components/duel/Podium";
@@ -1167,53 +1166,36 @@ function DuelScreen() {
 
   const clockActive = clockStart !== null && now >= clockStart;
   const Stage = puzzle ? puzzleDef(puzzle.type).Stage : null;
-  // Arcade play screens carry the score in their one compact header row, on two 20px lines.
-  const stackedScore = isArcadeScreenType(puzzle?.type);
-  // Live "finished" pings (finishedPings.ts): over the arcade header's score and round label, or
-  // over the score strip (the wordmark's place on boards without one); never the board or timer.
+  // Live "finished" pings (finishedPings.ts): over the frame header's name and context line; never
+  // the board, the timer or the score.
   const pingStrip = finishedPings.length ? (
-    <FinishedPingStrip pings={finishedPings} looks={looks} lines={stackedScore ? 2 : 1} />
+    <FinishedPingStrip pings={finishedPings} looks={looks} lines={2} />
   ) : null;
-  const scoreHeader =
-    puzzle?.type === "spotdiff" || puzzle?.type === "blockparty" ? undefined : isMulti ? (
-      <SoloScoreStrip
-        name={me.display_name}
-        total={myTotal}
-        position={myStanding?.position ?? 1}
-        playerCount={roomPlayers.length}
-        compact
-        stacked={stackedScore}
-      />
-    ) : (
-      <ScoreStrip
-        myName={me.display_name}
-        opponentName={opponent?.display_name ?? "Opponent"}
-        myTotal={myTotal}
-        opponentTotal={opponentTotal}
-        compact
-        stacked={stackedScore}
-      />
-    );
-  // During the round, unread chat shows only as a small dot on the score header (chatNotice.ts).
+  // During the round, unread chat shows only as a small dot on the header's score (chatNotice.ts).
   const chatDot = showRoundChatDot(chat.unread, chatAvailable) ? <RoundChatDot unread={chat.unread} /> : null;
-  // One wrapper whether or not a ping or the chat dot shows, so the score strip never remounts (and never re-counts).
-  const roomGameHeader =
-    !scoreHeader && !pingStrip && !chatDot ? scoreHeader : (
-      <div className={`relative min-w-0 ${scoreHeader ? "" : "h-9"}`}>
-        {scoreHeader}
-        {stackedScore ? null : pingStrip}
-        {chatDot}
-      </div>
-    );
+  // The frame's score block: my room total, with my place (3+ players) or the opponent's total under it.
+  const frameScore = isMulti ? (
+    <FrameScore
+      value={myTotal}
+      note={`${ordinal(myStanding?.position ?? 1)} of ${roomPlayers.length}`}
+      extra={chatDot}
+    />
+  ) : (
+    <FrameScore
+      value={myTotal}
+      note={<span className="text-opponent">{opponent?.display_name ?? "Opponent"} {opponentTotal}</span>}
+      extra={chatDot}
+    />
+  );
   return (
-    <PhoneShell constrained gameScreen play gameType={puzzle?.type} gameHeader={roomGameHeader}>
+    <PhoneShell constrained gameScreen play gameType={puzzle?.type}>
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
         title={puzzle ? puzzleName(puzzle.type) : ""}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
-        roundLabel={puzzle ? <RoundLabel round={round} total={duel.round_count ?? TOTAL_ROUNDS} name={puzzleName(puzzle.type)} /> : undefined}
-        ping={stackedScore ? pingStrip : undefined}
+        score={frameScore}
+        ping={pingStrip}
         timer={
           showTimer ? (
             <TimerBar

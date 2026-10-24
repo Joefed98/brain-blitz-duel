@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
+import { FrameScore } from "@/components/duel/GameFrame";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { useArcadeScreenTickMs } from "@/lib/fx/useArcadeScreenTick";
@@ -753,9 +754,11 @@ function PracticeScreen() {
   return (
     <PhoneShell constrained gameScreen play gameType={type}>
       <GameLayout
-        label="PRACTICE"
+        label="Practice"
         title={puzzleName(puzzle.type)}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
+        // Practice has no live score: the block shows this device's best under today's stamps.
+        score={<FrameScore label="Best" value={deviceBest} />}
         timer={
           puzzleShowsTimer(puzzle) ? (
             <TimerBar

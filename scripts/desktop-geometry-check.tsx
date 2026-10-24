@@ -11,8 +11,8 @@
  *    560px wide and 1000px tall, centred vertically, with its board and every control inside it and
  *    on screen, or the page scrolls;
  *  - an arcade live round (Breaker, Coral Pop, Tilt, Gemstone, Fission, Orbit; Breaker, Tilt and Gemstone at DPR 1 and 2) is not a centred column
- *    at most 640px wide and 1120px tall; its header not 56px with a 28px timer ring and 24px
- *    seconds, the timer not centred; its world not the game's phone shape (within 2px), not the
+ *    at most 640px wide and 1120px tall; its header not the game frame's 60px with its 48px timer ring
+ *    and 15px seconds (Polish 2, 24 Oct 2026; 56px, 28px and 24px before), the timer not centred; its world not the game's phone shape (within 2px), not the
  *    largest uniform fit of its box (within 2px: an even whole-pixel width), not on whole CSS pixels, or its canvas backing
  *    store not the box × the pixel ratio (crisp at DPR 1 and 2); its fill (where the game has one)
  *    not covering the whole screen; a control off screen; the page scrolling;
@@ -238,9 +238,10 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   }
   if (m.arena && (m.arena.x < m.column.x - 0.5 || m.arena.r > m.column.r + 0.5 || m.arena.b > m.innerH + 0.5)) problems.push(`board outside the column (${fmt(m.arena)})`);
   if (!arcade) return;
-  if (!m.header || !near(m.header.h, 56, 0.5)) problems.push(`header ${m.header?.h ?? "missing"}px tall (want 56)`);
-  if (!m.ring || !near(m.ring.w, 28, 0.5)) problems.push(`timer ring ${m.ring?.w ?? "missing"}px (want 28)`);
-  if (!near(m.seconds, 24, 0.5)) problems.push(`timer seconds ${m.seconds}px (want 24)`);
+  // The game frame (Polish 2): the same 60px header, 48px ring and 15px seconds as on a phone.
+  if (!m.header || !near(m.header.h, 60, 0.5)) problems.push(`header ${m.header?.h ?? "missing"}px tall (want 60)`);
+  if (!m.ring || !near(m.ring.w, 48, 0.5)) problems.push(`timer ring ${m.ring?.w ?? "missing"}px (want 48)`);
+  if (!near(m.seconds, 15, 0.5)) problems.push(`timer seconds ${m.seconds}px (want 15)`);
   if (m.timer && m.header && !near(m.timer.x + m.timer.w / 2, m.header.x + m.header.w / 2, 24)) problems.push("timer not centred in the header");
   if (!m.slot || !m.arena || !m.worldW) return void problems.push("no arena slot / world");
   const scale = Math.min(m.slot.w / m.worldW, m.slot.h / m.worldH);
@@ -440,7 +441,7 @@ try {
       await page.waitForTimeout(4200);
       const m = await page.evaluate(playProbe);
       if (!m.column || m.column.w < 1440 - 1) problems.push(`the column is ${m.column?.w ?? "missing"}px (a touch screen keeps the full-width phone layout)`);
-      if (!m.header || !near(m.header.h, 44, 0.5)) problems.push(`the header is ${m.header?.h ?? "missing"}px (a touch screen keeps the 44px phone header)`);
+      if (!m.header || !near(m.header.h, 60, 0.5)) problems.push(`the header is ${m.header?.h ?? "missing"}px (a touch screen keeps the 60px phone header)`);
       await page.keyboard.press("ArrowRight");
       await page.waitForTimeout(150);
       if (await page.locator("[data-key-cursor]").count()) problems.push("a touch screen took a game key");
@@ -460,5 +461,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${judged} desktop geometries at ${SIZES.map(([w, h]) => `${w}x${h}`).join(", ")} and while resizing: pages a centred ≤${PAGE_MAX}px column, text ≥ 10px; puzzle rounds (${PUZZLES.join(", ")}) a centred ≤${PUZZLE_MAX_W}×${PUZZLE_MAX_H} column; arcade rounds (${ARCADE.join(", ")}; ${HIGH_DPI.join(", ")} at DPR 1 and 2 too) a centred ≤${ARCADE_MAX_W}×${ARCADE_MAX_H} column, 56px header, 28px timer, the world its phone shape at the largest whole-pixel fit with a crisp canvas, the fill over the whole screen; intros show the keys; keys drive Nucleus and Gemstone; a touch screen keeps the phone layout and takes no keys.`,
+  `PASS: ${judged} desktop geometries at ${SIZES.map(([w, h]) => `${w}x${h}`).join(", ")} and while resizing: pages a centred ≤${PAGE_MAX}px column, text ≥ 10px; puzzle rounds (${PUZZLES.join(", ")}) a centred ≤${PUZZLE_MAX_W}×${PUZZLE_MAX_H} column; arcade rounds (${ARCADE.join(", ")}; ${HIGH_DPI.join(", ")} at DPR 1 and 2 too) a centred ≤${ARCADE_MAX_W}×${ARCADE_MAX_H} column, the 60px frame header, 48px timer, the world its phone shape at the largest whole-pixel fit with a crisp canvas, the fill over the whole screen; intros show the keys; keys drive Nucleus and Gemstone; a touch screen keeps the phone layout and takes no keys.`,
 );

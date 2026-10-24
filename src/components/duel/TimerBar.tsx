@@ -58,22 +58,24 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
     }
   }, [active, seconds, remaining]);
   useEffect(() => () => stopWarning10(), []);
+  // The game frame's ring (Polish 2, 24 Oct 2026, display only): 48px, a #26262C track and the
+  // category-colour arc with a round cap, the seconds inside (polish-layout/game-frame.css).
   return (
     <div
-      className={`flex h-5 w-full shrink-0 items-center justify-end gap-1 ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
+      className={`game-timer ${finalTen && !reduced ? "fx-timer-pulse" : ""} ${critical ? "fx-timer-critical" : ""}`}
       aria-label={`${seconds} seconds remaining`}
       role="timer"
     >
-      <svg key={seconds} viewBox="0 0 20 20" className="h-5 w-5 shrink-0 fx-timer-ring" aria-hidden="true">
-        <circle cx="10" cy="10" r="8" className="timer-ring-track" />
+      <svg key={seconds} viewBox="0 0 48 48" className="game-timer-ring fx-timer-ring" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" className="timer-ring-track" />
         <circle
-          cx="10"
-          cy="10"
-          r="8"
+          cx="24"
+          cy="24"
+          r="22"
           pathLength="100"
           strokeDasharray="100"
           strokeDashoffset={100 - progress * 100}
-          transform="rotate(-90 10 10)"
+          transform="rotate(-90 24 24)"
           className={
             reduced
               ? "timer-ring-fill"
@@ -81,7 +83,7 @@ export function TimerBar({ msRemaining, totalMs, active }: TimerBarProps) {
           }
         />
       </svg>
-      <span key={`digit-${seconds}`} className="w-9 text-right font-mono text-[11px] font-bold leading-none tabular-nums text-timer-gold">
+      <span key={`digit-${seconds}`} className="game-timer-seconds">
         {seconds}
       </span>
     </div>

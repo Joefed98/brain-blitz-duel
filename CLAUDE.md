@@ -498,6 +498,17 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   13 px / 600 on their 16 px line; Lookout letters 60 % of a cell (16–28 px); Bomb Defusal rules 14 px on 1.5;
   Cryptogrid keys 19 px, Clear/Next 16 px. arcade-fx-check proves the miss layer; `bun scripts/shots/miss-shots.ts
   --url=<origin>` draws the review frames (`screenshots/polish1-oct-2026/`).
+- **Polish 2: the game frame** (24 Oct 2026; display only, no stamps; `docs/design-system.md` "Game screens"): every
+  game's live round (PhoneShell `play`) draws GameLayout's one 60 px header (`polish-layout/game-frame.css`,
+  `GameFrame.tsx`) instead of the app's top bar and the old arcade row: the name and "{Category} · Practice / Round n
+  of N / Daily" left, the 48 px timer ring centred (TimerBar), the score block (`FrameScore`: room total with place or
+  opponent, daily total, practice "Best"), "?" and one sound button (MuteToggle `variant="frame"`) right; the arena
+  starts directly under it (no 4 px gaps). Puzzles (`data-puzzle-play`) add the goal line (`GoalLine`, `frameGoal`;
+  StageProgress games publish "Stage n of N" through `useGoalProgress`), the category gradient background, the tray
+  on `[data-game-arena]` (its height cap lifted; `TRAY_SKIP` keeps five boards at today's size) and a 52 px dock.
+  Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
+  `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
+  and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

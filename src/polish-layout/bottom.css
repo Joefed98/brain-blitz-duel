@@ -66,10 +66,10 @@
  * an arcade game or an engine game on the arcade stage, so Letterfall, Tenfall, Bonk,
  * Pull! and Mixed Signals too; never its intro or reveal). The play screen gives the
  * game every pixel it can:
- * - One compact 44px header row (GameLayout, data-arcade-header) just below the
- *   safe-area top (4px down without a notch): score or PRACTICE left, the timer
- *   centred, "?" and sound right; in a room the round and game (RoundLabel) sit between
- *   the score and the timer (16 Oct 2026). The arena starts 4px under it.
+ * - The game frame's 60px header (GameLayout, data-arcade-header; Polish 2,
+ *   polish-layout/game-frame.css) just below the safe-area top: the game and its
+ *   context left, the timer centred, the score, "?" and sound right. The arena starts
+ *   directly under it.
  * - The arena slot runs edge to edge (no side insets) and down to the controls, or to
  *   16px above the bottom of the visible screen; the lowest control row ends exactly
  *   16px above it, whatever the home-bar inset (as the 8px rule this replaces).
@@ -132,26 +132,7 @@ html:has([data-arcade-play]) {
   padding-bottom: 0;
   align-items: end;
 }
-/* The header's timer: centred, a 22px ring and 18px seconds (red pulse and ticks unchanged). */
-[data-arcade-header] [role="timer"] {
-  width: auto;
-  height: 22px;
-  justify-content: center;
-  gap: 4px;
-}
-[data-arcade-header] [role="timer"] > svg {
-  width: 22px;
-  height: 22px;
-}
-[data-arcade-header] [role="timer"] > span {
-  width: auto;
-  min-width: 2ch;
-  font-size: 18px;
-  text-align: left;
-}
-[data-arcade-header] [aria-label="Round progress"] {
-  gap: 4px;
-}
+/* The header and its 48px timer ring: polish-layout/game-frame.css (Polish 2). */
 
 /*
  * Puzzle screens: no colour seam at the top or bottom edge (15 Oct 2026, display

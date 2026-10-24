@@ -751,7 +751,8 @@ async function main() {
           if (Math.abs(columnGap - BOTTOM_PX) > 0.5) failures.push(`${where}: play column ends ${columnGap}px above the bottom of the screen (want ${BOTTOM_PX})`);
           if (Math.abs(bottomGap - BOTTOM_PX) > 0.5)
             failures.push(`${where}: ${g.lowestControl != null ? "lowest control" : "arena box"} ends ${bottomGap}px above the bottom of the screen (want ${BOTTOM_PX})`);
-          const headerTop = Math.max(4, config.top);
+          // The game frame's header (Polish 2, 24 Oct 2026) starts at the top inset, or 0 (4px down before).
+          const headerTop = config.top;
           if (Math.abs(g.header.top - headerTop) > 0.5) failures.push(`${where}: header starts ${g.header.top}px down (want ${headerTop})`);
           if (game === "tilt" && Math.abs(above - below) > 1) failures.push(`${where}: Tilt's world is not centred in its box (${above}px above, ${below}px below)`);
           for (const c of g.clips)
