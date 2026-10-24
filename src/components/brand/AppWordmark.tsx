@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { APP_NAME } from "@/lib/brand";
-import { LOGO_CHARGE_MS, logoChargeWanted, noteLogoCharged, onAppOpen } from "@/lib/fx/celebrations";
+import { LOGO_CHARGE_MS, logoChargeSound, logoChargeWanted, noteLogoCharged, onAppOpen } from "@/lib/fx/celebrations";
 
 import { LogoMark } from "./LogoMark";
 
@@ -10,7 +10,8 @@ import { LogoMark } from "./LogoMark";
  * the last, which is shiny gold, then the gold logo mark (polish-layout/app-pages.css). The name is
  * APP_NAME (src/lib/brand.ts), uppercased. With celebrations on, the mark charges in once per app open
  * (LogoMark `charge`; celebrations.ts logoChargeWanted / onAppOpen), then is drawn without `charge`: the
- * mark exactly as it is without celebrations.
+ * mark exactly as it is without celebrations. The charge-in sounds sfx_logo_charge when sound is already
+ * unlocked (logoChargeSound), else nothing.
  */
 
 export function AppWordmark() {
@@ -20,6 +21,7 @@ export function AppWordmark() {
   useEffect(() => noteLogoCharged(), []);
   useEffect(() => {
     if (!charge) return;
+    logoChargeSound();
     const done = window.setTimeout(() => setCharge(false), LOGO_CHARGE_MS + 100);
     return () => window.clearTimeout(done);
   }, [charge, opening]);

@@ -97,7 +97,7 @@ export function Standings({ round, totalRounds = TOTAL_ROUNDS, rows, looks, mySl
                 </span>
                 <AnimatedScore
                   value={row.total}
-                  {...(celebrate ? { from: countUpFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped } : {})}
+                  {...(celebrate ? { from: countUpFrom(row), durationMs: COUNT_UP_MS, quiet: true, skip: skipped, countSound: true } : {})}
                   className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : "text-foreground"}`}
                 />
               </div>

@@ -81,6 +81,7 @@ function Plinth({
         durationMs={COUNT_UP_MS}
         quiet
         skip={skip}
+        countSound={celebrate}
         className={`th-score font-mono text-xl font-bold tabular-nums ${place === 1 ? "th-score-top text-primary" : "text-foreground"}`}
       />
       <div
@@ -142,7 +143,7 @@ export function Podium({
   const sharedFirst = won && rows.filter((r) => r.position === 1).length > 1;
   const cued = useRef(false);
   // Celebrations (src/lib/fx/celebrations.ts): the hero beside the winner's step with a burst (and,
-  // for the winner's own phone, "You win!" and the zap); totals count up from the round before and
+  // for the winner's own phone, "You win!" and the spark chime); totals count up from the round before and
   // the list slides from the previous order, a tap skipping to the final state.
   const celebrate = useCelebrationsOn();
   const scope = useCelebrationScope();
@@ -164,11 +165,12 @@ export function Podium({
         podiumHero(scope, step);
         const box = step.getBoundingClientRect();
         sparkBurst(scope, box.right - 17, box.bottom - 30, { count: 44 });
-        celebrationSound("chime");
+        // The hero takes his pose: the sting on every phone (the winner's and everyone watching).
+        celebrationSound("victory");
       }
       if (iWon) {
         showBanner(scope, "You win!");
-        celebrationSound("zap");
+        celebrationSound("chime");
       }
     }, PODIUM_HERO_DELAY_MS);
     return () => window.clearTimeout(timer);
@@ -227,6 +229,7 @@ export function Podium({
                 durationMs={COUNT_UP_MS}
                 quiet
                 skip={skipped}
+                countSound={celebrate}
                 className={`th-score font-mono text-xl font-bold tabular-nums ${row.position === 1 ? "th-score-top text-primary" : ""}`}
               />
               <span aria-hidden="true" className="w-3 text-center font-mono text-xs text-muted-foreground">

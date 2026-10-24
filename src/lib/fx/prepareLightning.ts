@@ -14,7 +14,7 @@
  * Pure: the plan and the bolt shapes come from a random source passed in (Math.random on
  * the phone: the strikes are decoration, so they need not match between players).
  */
-import { DUEL_START_MS } from "@/lib/duel/startPresentation";
+import { DUEL_START_MS, DUEL_START_VOICE_MS } from "@/lib/duel/startPresentation";
 import { PREPARE_FLASH_MS } from "./roomMoments";
 
 /** A strike's whole life: drawn, then faded to nothing. */
@@ -63,6 +63,26 @@ export function strikeStrength(sinceMs: number): number {
   // The dip at 40–70 ms reads as the second return stroke of a real strike.
   return sinceMs >= 40 && sinceMs < 70 ? fade * 0.45 : fade;
 }
+
+/** A strike's thunder (Prompt S): its recorded crack, quieter than GO's. */
+export const STRIKE_THUNDER_MS = 750;
+/** No strike's thunder sounds while the "Prepare to Duel" voice line plays, nor this close either side of it. */
+export const STRIKE_VOICE_CLEAR_MS = 400;
+/**
+ * Whether a strike landing at `atMs` sounds its thunder. The voice line plays from DUEL_START_VOICE_MS
+ * for `voiceMs` (the decoded file's real length, voiceDurationMs("prepareToDuel")): the crack
+ * (STRIKE_THUNDER_MS long) must end STRIKE_VOICE_CLEAR_MS before the line starts, or start
+ * STRIKE_VOICE_CLEAR_MS after it ends. Strikes in between are still drawn, silently.
+ */
+export function strikeSounds(atMs: number, voiceMs: number): boolean {
+  return (
+    atMs + STRIKE_THUNDER_MS <= DUEL_START_VOICE_MS - STRIKE_VOICE_CLEAR_MS ||
+    atMs >= DUEL_START_VOICE_MS + voiceMs + STRIKE_VOICE_CLEAR_MS
+  );
+}
+
+/** A strike lands now (`sinceMs` after its time): late arrivals (a screen opened mid-strike) stay silent. */
+export const STRIKE_SOUND_LATE_MS = 120;
 
 /** The strike live at `elapsedMs` (the latest one landed and not yet faded), if any. */
 export function liveStrike(plan: readonly Strike[], elapsedMs: number): Strike | null {

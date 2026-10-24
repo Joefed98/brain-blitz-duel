@@ -243,8 +243,9 @@ for (const mineFirst of [true, false]) {
   check(requests.some((r) => r.kind === "burst"), "the podium hero has no spark burst");
   const banner = requests.find((r) => r.kind === "banner") as { text: string } | undefined;
   check(mineFirst ? banner?.text === "You win!" : !banner, `${mineFirst ? "winner" : "non-winner"}: banner ${banner?.text ?? "none"}`);
-  check(mineFirst ? sounds.includes("zap") : !sounds.includes("zap"), `${mineFirst ? "winner" : "non-winner"}: zap ${sounds.join(",")}`);
-  check(sounds.includes("chime"), "the podium burst has no chime");
+  // Prompt S: the victory sting as the hero takes his pose on every phone; the winner's "You win!" chimes; no zap.
+  check(mineFirst ? sounds.includes("chime") : !sounds.includes("chime"), `${mineFirst ? "winner" : "non-winner"}: chime ${sounds.join(",")}`);
+  check(sounds.filter((s) => s === "victory").length === 1 && !sounds.includes("zap"), `the podium hero has no victory sting (or a zap): ${sounds.join(",")}`);
   await wait(1200);
   const want = podiumRows(mineFirst).map((r) => String(r.total));
   const shown = scoreTexts(view.host);
@@ -270,7 +271,11 @@ for (const mineFirst of [true, false]) {
   await wait(C.COUNT_UP_MS + 300);
   check(JSON.stringify(scoreTexts(view.host)) === JSON.stringify(standingsRows.map((r) => String(r.total))), `standings end on ${scoreTexts(view.host).join(",")}`);
   check(JSON.stringify(Array.from(view.host.querySelectorAll("li .th-name")).map((e) => e.textContent)) === JSON.stringify(standingsRows.map((r) => r.name)), "standings order is not the server's");
-  check(requests.some((r) => r.kind === "burst") && sounds.includes("zap"), "a climb has no sparks and zap");
+  check(requests.some((r) => r.kind === "burst") && sounds.filter((s) => s === "overtake").length === 1 && !sounds.includes("zap"), `a climb has no sparks and one overtake zap: ${sounds.join(",")}`);
+  // The count-up ticks, at most COUNT_TICKS_PER_S a second, then dings (rows landing together share the slot's gap).
+  const ticks = sounds.filter((s) => s === "countTick").length;
+  check(ticks >= 2 && ticks <= Math.ceil((C.COUNT_UP_MS / 1000) * C.COUNT_TICKS_PER_S) + 1, `the count-up ticks ${ticks} times over ${C.COUNT_UP_MS} ms`);
+  check(sounds.includes("countDing") && sounds.lastIndexOf("countDing") > sounds.lastIndexOf("countTick"), `the count-up does not ding as it lands: ${sounds.join(",")}`);
   await view.unmount();
 
   // A tap skips to the final state.
@@ -371,14 +376,15 @@ for (const mineFirst of [true, false]) {
   check(!requests.some((r) => r.kind === "burst"), "reduced motion: sparks");
   const banner = requests.find((r) => r.kind === "banner") as { calm: boolean; burst: boolean } | undefined;
   check(banner?.calm === true && banner.burst === false, "reduced motion: the banner drops in or sparks");
-  check(sounds.includes("zap"), "reduced motion: the sounds stop");
+  check(sounds.includes("victory"), "reduced motion: the sounds stop");
+  check(!sounds.includes("countTick"), "reduced motion: the count-up ticks (there is no count-up)");
   await view.unmount();
   reset();
   C.heroRun(1);
   C.goStrike();
   C.sparkBurst(1, 10, 10);
   check(!requests.length, `reduced motion: ${requests.map((r) => r.kind).join(",")}`);
-  check(sounds.join() === "zap", "reduced motion: GO's zap is gone");
+  check(sounds.join() === "zap,thunder", `reduced motion: GO's zap and thunder are not all that sounds (${sounds.join()})`);
   reduced = false;
 }
 
@@ -426,6 +432,60 @@ for (const mineFirst of [true, false]) {
   await mark.unmount();
   await wordmark.unmount();
   setOn(true);
+}
+
+/* --------------------------------------------- 5b. the recorded set (Prompt S) */
+{
+  const { SOUND_MANIFEST } = await import("../src/lib/fx/manifest");
+  const PL = await import("../src/lib/fx/prepareLightning");
+  const { DUEL_START_VOICE_MS } = await import("../src/lib/duel/startPresentation");
+  const slots = Object.values(C.CELEBRATION_SOUND_SLOTS).flat();
+  for (const slot of slots) {
+    const entry = (SOUND_MANIFEST as Record<string, { channel: string; url: string | null; frequency: number }>)[slot];
+    check(!!entry && entry.channel === "effects" && /^\/sounds\/sfx_[a-z_0-9]+\.mp3$/.test(entry.url ?? "") && entry.frequency === 0, `${slot}: not an effects slot on an sfx_ file (no beep)`);
+  }
+  C.resetCelebrationMemory();
+  const turns = Array.from({ length: 7 }, () => C.nextCrackleSlot());
+  check(turns.every((slot, i) => i === 0 || slot !== turns[i - 1]) && new Set(turns).size === 3, `the crackles do not rotate: ${turns.join(",")}`);
+  reset();
+  C.heroRun(1);
+  check(sounds.join() === "heroRun", `the hero run has no whoosh: ${sounds.join()}`);
+  reset();
+  C.logoChargeSound();
+  check(!sounds.length, "the logo charge sounds before sound is unlocked");
+  // Prepare to Duel: no strike's thunder while the voice line plays, nor within 400 ms either side of it,
+  // for the manifest's length and for shorter and longer decoded files.
+  const sound = await import("../src/lib/sound");
+  const voiceLengths = [sound.voiceDurationMs("prepareToDuel"), 1200, 2000, 4000];
+  check(voiceLengths[0] === SOUND_MANIFEST.prepareToDuel.ms, "the voice length before decoding is not the manifest's");
+  let sounding = 0;
+  for (const voiceMs of voiceLengths) {
+    const from = DUEL_START_VOICE_MS - PL.STRIKE_VOICE_CLEAR_MS;
+    const to = DUEL_START_VOICE_MS + voiceMs + PL.STRIKE_VOICE_CLEAR_MS;
+    for (let n = 0; n < 2000; n++) {
+      for (const strike of PL.planStrikes(Math.random)) {
+        if (!PL.strikeSounds(strike.atMs, voiceMs)) continue;
+        sounding++;
+        // The crack [at, at + length) never overlaps the line widened by 400 ms each side.
+        const end = strike.atMs + PL.STRIKE_THUNDER_MS;
+        check(end <= from || strike.atMs >= to, `a strike at ${strike.atMs} ms thunders during the ${voiceMs} ms voice line`);
+      }
+    }
+    // Edges: every landing time from 0 to the screen's end, 1 ms apart.
+    for (let at = 0; at <= 6000; at++) {
+      const quiet = at + PL.STRIKE_THUNDER_MS > from && at < to;
+      if (PL.strikeSounds(at, voiceMs) === quiet) {
+        check(false, `a ${voiceMs} ms line: a strike at ${at} ms ${quiet ? "sounds" : "is silent"}`);
+        break;
+      }
+    }
+  }
+  check(sounding > 0, "no Prepare to Duel strike ever thunders");
+  check(PL.strikeSounds(DUEL_START_VOICE_MS + 1200 + 400, 1200) && !PL.strikeSounds(DUEL_START_VOICE_MS + 1200 + 399, 1200), "the 400 ms after the voice line ends is wrong");
+  check(/strikeSounds\(strike\.atMs, voiceDurationMs\("prepareToDuel"\)\)\) celebrationSound\("prepareThunder"\)/.test(readFileSync("src/components/duel/PrepareLightning.tsx", "utf8")), "Prepare to Duel's strikes are silent, or not judged on the voice file's real length");
+  check(/celebrationSound\(days >= 30 \? "streakBig" : "streak"\)/.test(readFileSync("src/routes/daily.tsx", "utf8")), "the streak banners do not play the flourishes");
+  check(!/playCelebrationSynth|CELEBRATION_SYNTH/.test(readFileSync("src/lib/sound.ts", "utf8")), "the synthesised placeholders are still in sound.ts");
+  reset();
 }
 
 /* ------------------------------------------------------------ 6. wiring */

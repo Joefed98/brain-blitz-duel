@@ -318,6 +318,11 @@ export function installSoundUnlock(): () => void {
   return detach;
 }
 
+/** Sound is unlocked and running now (iPhones block it until the first tap); asks nothing to resume. */
+export function soundUnlocked(): boolean {
+  return unlocked && !!ctx && contextState() === "running";
+}
+
 function ready(): boolean {
   if (!unlocked || !ctx) return false;
   const state = contextState();
@@ -812,118 +817,6 @@ export function playTone(
     osc.stop(end + 0.02);
   } catch (error) {
     warnOnce("tone playback failed", error);
-  }
-}
-
-/* ------------------------------------------------------- celebration synths */
-
-/**
- * The celebrations' three synthesised sounds (Prompt P, 23 Oct 2026; no files, src/lib/fx/celebrations.ts):
- * the signature "Joulz zap" (a rising electric zap, 320 ms), the spark chime for bursts and the
- * lobby meter's soft crackle. On the effects channel, so they follow mute and the effects volume.
- */
-export type CelebrationSynth = "zap" | "chime" | "crackle";
-export const CELEBRATION_SYNTH_MS: Record<CelebrationSynth, number> = { zap: 320, chime: 520, crackle: 140 };
-
-let noiseBuffer: AudioBuffer | null = null;
-function noise(context: AudioContext): AudioBuffer {
-  if (noiseBuffer && noiseBuffer.sampleRate === context.sampleRate) return noiseBuffer;
-  const length = Math.floor(context.sampleRate * 0.4);
-  const buffer = context.createBuffer(1, length, context.sampleRate);
-  const data = buffer.getChannelData(0);
-  // A fixed pattern (not Math.random), so every play of a synth sounds the same.
-  let seed = 0x2f6b;
-  for (let i = 0; i < length; i++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    data[i] = (seed / 0x3fffffff - 1) * 0.9;
-  }
-  noiseBuffer = buffer;
-  return buffer;
-}
-
-function envelope(context: AudioContext, at: number, peak: number, attack: number, end: number): GainNode {
-  const gain = context.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), at + attack);
-  gain.gain.exponentialRampToValueAtTime(0.0001, end);
-  return gain;
-}
-
-/** Plays one celebration synth; silent while muted, before audio is unlocked and in intro demos. */
-export function playCelebrationSynth(kind: CelebrationSynth, volume = 1): void {
-  if (demoHushed()) return;
-  if (isMuted() || !ready() || !ctx || !effectsGain) return;
-  const context = ctx;
-  const out = effectsGain;
-  const v = Math.max(0, Math.min(1, volume));
-  try {
-    const now = context.currentTime;
-    if (kind === "zap") {
-      const end = now + CELEBRATION_SYNTH_MS.zap / 1000;
-      // A buzzy saw sweeping up through a band-pass, over a short noise crack.
-      const saw = context.createOscillator();
-      saw.type = "sawtooth";
-      saw.frequency.setValueAtTime(140, now);
-      saw.frequency.exponentialRampToValueAtTime(1900, now + 0.26);
-      const wobble = context.createOscillator();
-      wobble.frequency.setValueAtTime(38, now);
-      const depth = context.createGain();
-      depth.gain.setValueAtTime(90, now);
-      wobble.connect(depth).connect(saw.frequency);
-      const band = context.createBiquadFilter();
-      band.type = "bandpass";
-      band.Q.setValueAtTime(2.2, now);
-      band.frequency.setValueAtTime(500, now);
-      band.frequency.exponentialRampToValueAtTime(3200, now + 0.26);
-      saw.connect(band).connect(envelope(context, now, 0.2 * v, 0.02, end)).connect(out);
-      const crack = context.createBufferSource();
-      crack.buffer = noise(context);
-      const high = context.createBiquadFilter();
-      high.type = "highpass";
-      high.frequency.setValueAtTime(2400, now);
-      crack.connect(high).connect(envelope(context, now, 0.16 * v, 0.004, now + 0.09)).connect(out);
-      saw.start(now);
-      wobble.start(now);
-      crack.start(now);
-      saw.stop(end + 0.02);
-      wobble.stop(end + 0.02);
-      crack.stop(now + 0.1);
-      return;
-    }
-    if (kind === "chime") {
-      // Three bright partials, the top two a touch late, like sparks settling.
-      const notes: [number, number, number][] = [
-        [1318.5, 0, 0.12],
-        [1975.5, 0.05, 0.09],
-        [2637, 0.1, 0.06],
-      ];
-      for (const [frequency, delay, peak] of notes) {
-        const at = now + delay;
-        const end = at + 0.42;
-        const osc = context.createOscillator();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(frequency, at);
-        osc.connect(envelope(context, at, peak * v, 0.008, end)).connect(out);
-        osc.start(at);
-        osc.stop(end + 0.02);
-      }
-      return;
-    }
-    // Crackle: four tiny band-passed noise ticks over 140 ms.
-    for (let i = 0; i < 4; i++) {
-      const at = now + i * 0.032 + (i % 2) * 0.008;
-      const tick = context.createBufferSource();
-      tick.buffer = noise(context);
-      const band = context.createBiquadFilter();
-      band.type = "bandpass";
-      band.frequency.setValueAtTime(2600 + i * 700, at);
-      band.Q.setValueAtTime(3, at);
-      tick.connect(band).connect(envelope(context, at, (0.09 - i * 0.012) * v, 0.002, at + 0.03)).connect(out);
-      tick.start(at, i * 0.05);
-      tick.stop(at + 0.04);
-    }
-  } catch (error) {
-    warnOnce("celebration synth failed", error);
   }
 }
 

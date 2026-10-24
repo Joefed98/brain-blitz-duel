@@ -485,7 +485,7 @@ function StreakCelebration({ days, onDone }: { days: number; onDone: () => void 
   useEffect(() => {
     const show = window.setTimeout(() => {
       showBanner(scope, streakBannerText(days), { burst: true });
-      celebrationSound("chime");
+      celebrationSound(days >= 30 ? "streakBig" : "streak");
     }, 500);
     // Once only: forgotten after it has played (or the results closed), so reopening shows none.
     const done = window.setTimeout(() => {

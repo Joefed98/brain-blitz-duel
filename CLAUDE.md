@@ -457,9 +457,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   (`src/lib/fx/celebrations.ts`): gold spark bursts, the banner pill, the hero's victory pose and run
   (`heroVictoryPose` / `heroRunPose` in `hero.renderer.ts`), the GO strike, all drawn by one fixed full-screen
   layer mounted by the root (`CelebrationLayer`, one canvas, pointer-events none, 120 pooled sparks, its frame loop
-  stopped when idle; `celebrationCanvas.ts`); three synthesised sounds (`playCelebrationSynth` in `sound.ts`: the
-  "Joulz zap", the spark chime, the meter's crackle; no files, they follow mute). Moments: the podium hero beside
-  the winner's step with a burst ("You win!" and the zap on the winner's phone); the hero run on a reveal of 150+
+  stopped when idle; `celebrationCanvas.ts`); recorded sounds since Prompt S (24 Oct 2026: Joe's
+  `public/sounds/sfx_*.mp3`, slots `shared.celebrate.*`, `celebrationSound` / `CELEBRATION_SOUND_SLOTS`; table in
+  `docs/sound-cues/shared.md` "Celebrations"; effects channel, preloaded on unlock, skipped if not decoded, silent with
+  the switch off). Moments: the podium hero beside the winner's step with a burst and the victory sting on every phone
+  ("You win!" and the spark chime on the winner's); the hero run on a reveal of 150+
   (once per round; rooms, practice, daily; not on reopened daily reveals); practice's new best (banner, burst,
   chime); daily streaks of 3, 7 and 30 on the results (today's first daily only); standings, podium and two-player
   final totals counting up from the round before over 1.2 s with a FLIP slide and climbs sparking (tap to skip;

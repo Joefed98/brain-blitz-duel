@@ -13,3 +13,30 @@ Cues for moments every game shares. Convention: [README.md](README.md). No audio
 | `shared.reject` | A puzzle refuses a move with the shared shake (`puzzleReject()`: Operator, Chroma Lines, Labyrinth, Lamplighter, Counterweight, Slider, Heave, Cryptogrid and the rest that call it), unless the move already plays `wrong`; never in an intro demo. | 200 ms |
 
 Where they fire: `src/lib/fx/signature.ts` (beat and perfect burst), `src/lib/fx/useSignature.ts` (the rooms and practice verdict point), `src/lib/fx/arcade.ts` (the arcade run-end point), `src/components/duel/PuzzleInstructions.tsx` (help sheet).
+
+## Celebrations (Prompt S, 24 Oct 2026)
+
+The celebrations' recorded set (Joe's ElevenLabs `sfx_*.mp3` files, in `public/sounds/`) replaces #134's three
+synthesised placeholders. Each plays through `celebrationSound()` (`src/lib/fx/celebrations.ts`, slot table
+`CELEBRATION_SOUND_SLOTS`) and `playCueSlot`, on the effects channel, only while `FX_CELEBRATIONS` is on; a file not
+yet decoded is skipped, never waited for. Processing: leading silence off (each begins within 5 ms), cut to the
+target length with a 15 ms fade, mono 44.1 kHz 112 kbps, levelled to sfx_joulz_zap's -17 LUFS momentary peak (about
+2 dB under the library's median, -15.4), peaks under -0.5 dBFS.
+
+| Cue | Trigger | Length |
+|---|---|---|
+| `shared.celebrate.zap` | Create a room (the Play tab's button) and GO (`goStrike`, with the thunder). `sfx_joulz_zap.mp3`. | 0.38 s |
+| `shared.celebrate.chime` | A spark burst: practice's New best!, the podium's "You win!" on the winner's phone, the lobby meter filling up. `sfx_spark_chime.mp3`. | 0.6 s |
+| `shared.celebrate.crackle1` | A lobby join (the charge meter rising): the three crackles rotate 1, 2, 3, so the same one never plays twice in a row. `sfx_meter_crackle_1.mp3`. | 0.45 s |
+| `shared.celebrate.crackle2` | As crackle1, the second in turn. `sfx_meter_crackle_2.mp3`. | 0.38 s |
+| `shared.celebrate.crackle3` | As crackle1, the third in turn. `sfx_meter_crackle_3.mp3`. | 0.45 s |
+| `shared.celebrate.victory` | The podium hero takes his pose beside the winner's step, on every phone. `sfx_victory_sting.mp3`. | 1.76 s |
+| `shared.celebrate.heroRun` | The hero's run after a round of 150+ (rooms, practice, daily), as it starts; none under reduced motion (no run). `sfx_hero_whoosh.mp3`. | 1.5 s |
+| `shared.celebrate.overtake` | A player moved up a place: once as the standings, podium or two-player final rows finish sliding. `sfx_overtake_zap.mp3`. | 0.28 s |
+| `shared.celebrate.countTick` | The results count-up's number changes: at most 12 ticks a second across every counting row. `sfx_count_tick.mp3`. | 0.06 s |
+| `shared.celebrate.countDing` | A count-up lands on its final score (or a tap skips to it); rows landing together share one ding. `sfx_count_ding.mp3`. | 0.49 s |
+| `shared.celebrate.thunder` | GO's lightning strike (`RoundIntro`); with reduced motion the sound still plays. `sfx_thunder_crack.mp3`. | 0.75 s |
+| `shared.celebrate.prepareThunder` | Each Prepare to Duel strike as it lands, at half GO's level; never while the "Prepare to Duel" voice line plays: a strike sounds only if its crack ends 400 ms before the line starts or it lands 400 ms after the line ends (the decoded file's real length, `voiceDurationMs`; the manifest's 2,837 ms until it decodes). Strikes in between are drawn silently (`strikeSounds` in `prepareLightning.ts`). Shares `sfx_thunder_crack.mp3`. | 0.75 s |
+| `shared.celebrate.streak` | The daily results' 3- and 7-day streak banners. `sfx_streak_flourish.mp3`. | 1.2 s |
+| `shared.celebrate.streakBig` | The 30-day streak banner. `sfx_streak_flourish_big.mp3`. | 2.0 s |
+| `shared.celebrate.logoCharge` | The app header's logo charges in, only if sound is already unlocked (an iPhone blocks sound before the first tap: the app's first charge-in is silent); none under reduced motion. `sfx_logo_charge.mp3`. | 0.69 s |
