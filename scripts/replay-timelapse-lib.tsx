@@ -12,6 +12,8 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { puzzleDef, puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { planTimelapse, TIMELAPSE } from "../src/lib/replay/timelapse";
+import { encodeActionLog } from "../src/lib/duel/actionLog";
+import { laserAction } from "../src/lib/duel/laserLog";
 
 /** A move list each puzzle could store: its own minimum solution where it keeps one. */
 export function answerFor(type: string, p: any): string {
@@ -32,6 +34,17 @@ export function answerFor(type: string, p: any): string {
       return "r0+,r1+,c2-,r3+,c0+,r4-";
     case "push":
       return "LLUURRDDLURD";
+    case "wordsearch":
+      // Each placed word selected start to end, in placement order.
+      return (p.placements ?? []).map((w: { cells: number[] }) => `${w.cells[0]}.${w.cells[w.cells.length - 1]}`).join(",");
+    case "letterwheel":
+      return (p.words ?? []).join(",");
+    case "laser":
+      // Lightbender's action log (alogRev 1): each solution piece placed, a turn, then FIRE, at uneven times.
+      return encodeActionLog([
+        ...(p.solution ?? []).map((m: { cell: number; kind: string }, i: number) => ({ a: laserAction.place(m.cell, m.kind as never), t: 1500 + i * 1300 + (i % 2) * 2200 })),
+        { a: laserAction.fire(), t: 30_000 },
+      ]);
     default:
       return "";
   }

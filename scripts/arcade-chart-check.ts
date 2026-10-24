@@ -15,6 +15,10 @@
  *  4. No points figure: markers carry a badge and a name only (widths have no room for a number),
  *     the component never draws, titles or tags a score, and there is no other look and no
  *     address option.
+ *  5. Legibility (23 Oct 2026, Prompt D): every player's own line along the snake in their colour,
+ *     about twice the old 3 px track (6 px, round caps and joins), this player's drawn last and
+ *     thicker; all text #F3F1EC, at least 13 px, names semibold, on a dark backing; the chart takes
+ *     the reveal's spare height. room-extras-check proves in the browser that no two labels overlap.
  *
  *   bun scripts/arcade-chart-check.ts
  */
@@ -138,6 +142,21 @@ check(markerWidth("Sam") === markerWidth("Sam"), "a marker's width depends on it
   check(!/"rows"|\?chart=|URLSearchParams|ARCADE_CHART_STYLE|arcadeChartStyle|lineY.map/.test(code), "one look: no rows drawing and no address option");
   const lib = readFileSync("src/lib/duel/arcadeChart.ts", "utf8");
   check(!/ARCADE_CHART_STYLE|ArcadeChartStyle|"rows"|URLSearchParams/.test(lib), "arcadeChart.ts has the snake only");
+}
+/* 5. Legibility. */
+{
+  const code = readFileSync("src/components/duel/ArcadeScoreChart.tsx", "utf8");
+  check(/const TEXT = "#F3F1EC"/.test(code), "chart text is #F3F1EC");
+  check(!/text-\[(9|10|11|12)px\]|text-xs/.test(code), "no chart text under 13 px");
+  check(/text-\[13px\]/.test(code) && /font-semibold/.test(code), "names and labels are 13 px semibold");
+  check(/BACKING = "rgba\(7, 7, 10, 0\.\d+\)"/.test(code) && /background: BACKING/.test(code), "text sits on a dark backing");
+  const lineW = Number(/const LINE_W = (\d+)/.exec(code)?.[1]);
+  const myW = Number(/const MY_LINE_W = (\d+)/.exec(code)?.[1]);
+  check(lineW >= 6 && myW > lineW, `lines about twice the old 3 px (${lineW}), this player's thicker (${myW})`);
+  check((code.match(/strokeLinejoin="round"/g) ?? []).length >= 2 && /data-chart-line/.test(code), "each player's line has round joins");
+  check(/Number\(a\.isMe\) - Number\(b\.isMe\)/.test(code), "this player's line is drawn last (on top)");
+  check(/stroke=\{colourOf\(p\)\}/.test(code), "each line in its player's colour");
+  check(/flex-1/.test(code) && /MAX_EXTRA/.test(code), "the chart takes the reveal's spare height");
 }
 const reveal = readFileSync("src/components/duel/ArcadeReveal.tsx", "utf8");
 check(/<ArcadeScoreChart/.test(reveal) && !/function Track\(/.test(reveal), "the reveal draws the chart in place of the single line");

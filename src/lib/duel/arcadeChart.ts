@@ -72,20 +72,25 @@ export function chartLabels(): ChartLabel[] {
 
 /* ---------------------------------------------------------------- markers */
 
-/** Space each side of the line for the scale's labels and the snake's bends, CSS px. */
-export const CHART_MARGIN = 36;
+/**
+ * Space each side of the line for the scale's labels and the snake's bends, CSS px (23 Oct 2026: the
+ * labels are 13 px semibold on a dark backing, so "150" needs a little more than the 11 px labels did).
+ */
+export const CHART_MARGIN = 44;
 /** A marker's badge diameter and the vertical step between stacked markers, CSS px. */
-export const CHART_BADGE = 20;
-export const CHART_LANE = 28;
+export const CHART_BADGE = 22;
+export const CHART_LANE = 30;
 /** The widest a name is drawn before it ellipsises, CSS px. */
-export const CHART_NAME_MAX = 56;
+export const CHART_NAME_MAX = 68;
 /** Space kept clear between two markers in one lane, CSS px. */
 export const CHART_GAP = 4;
+/** A name's widest likely advance per character at 13 px semibold (Manrope), CSS px, so short names never ellipsise. */
+const NAME_CHAR_PX = 8.8;
 
-/** A marker's drawn width: badge and name (capped), in an 11 px font; no points figure. */
+/** A marker's drawn width: badge and name (capped, on its 4 px-padded backing) in a 13 px font; no points figure. */
 export function markerWidth(name: string): number {
-  const nameW = Math.min(CHART_NAME_MAX, Math.ceil(Math.max(1, name.length) * 6.6));
-  return CHART_BADGE + 4 + nameW + 6;
+  const nameW = Math.min(CHART_NAME_MAX, Math.ceil(Math.max(1, name.length) * NAME_CHAR_PX));
+  return CHART_BADGE + 4 + nameW + 8 + 2;
 }
 
 export interface MarkerIn {

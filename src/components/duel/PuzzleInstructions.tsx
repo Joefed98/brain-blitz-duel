@@ -9,7 +9,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 interface PuzzleInstructionsProps {
   type: PuzzleType;
   overlay?: boolean;
-  /** Shown between HOW and SCORE (intro demo). */
+  /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
 }
 
@@ -21,7 +21,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
       className={
         overlay
           ? "flex w-full flex-col gap-4"
-          : `round-instructions flex w-full flex-col gap-2 ${beforeScore ? "min-h-0 shrink" : "shrink-0"}`
+          : `round-instructions flex w-full flex-col gap-2 ${beforeScore ? "min-h-0 flex-1" : "shrink-0"}`
       }
       aria-label={`${puzzleDef(type).name} instructions`}
     >

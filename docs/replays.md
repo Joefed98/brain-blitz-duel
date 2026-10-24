@@ -234,7 +234,16 @@ The time-lapse hands the game's own `Reveal` component growing prefixes of the s
 list, read-only (no game file is edited), with a move counter against the minimum where the
 puzzle stores one. Stored lists carry no times, so moves are spaced evenly (about 7.5 s in all,
 never under 5 s or over 10 s, at most 0.6 s a move; on the results screen within the time it has
-left). Wired today: Gridlock, Slider, Hanoi,
+left).
+
+**23 Oct 2026 (Prompt D, `docs/demo-replay-audit.md`):** until then every time-lapse drew an empty
+card (its fitting box had no width and scaled the board to 0). The board is now laid out as on the
+answer reveal (a 360 × 520 box, `data-skin-off`) and what it drew is scaled to fit; the counter line
+shows the stored score at the end; the reveal's own text is hidden mid-way. Lightbender's action-log
+rounds (`alogRev 1`) time-lapse at their recorded rhythm, every gap scaled by one factor; Lookout and
+Roundabout join (their boards draw the words found so far). Every other puzzle shows the winner's
+real final board with "Replay not available for this game yet". replay-board-check proves it in the
+browser for 46 stored answers. Wired today: Gridlock, Slider, Hanoi,
 Labyrinth, Polypotions, Topsy-Turvy, Colour Flood, Turntable, Strikeout and Heave (Gridlock and
 Heave draw the player's board only when told the answer was right, so they time-lapse only
 solved rounds). The remaining puzzles are wired to the timestamped puzzle action log that Room
