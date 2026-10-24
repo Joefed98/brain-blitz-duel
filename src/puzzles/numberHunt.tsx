@@ -25,6 +25,7 @@ import {
 
 import { fireAscendFinish } from "@/components/puzzles/numberHuntFx";
 import { playSound } from "@/lib/sound";
+import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -131,6 +132,19 @@ function IntroExample() {
   );
 }
 
+/**
+ * Display only: a wrong tap plays the existing wrong sound (directly: playWrong's duelz-cue would
+ * shake the whole board) and gives the tapped disc the shared shake and red outline; a right tap
+ * a light, quiet tick.
+ */
+function ascendWrongTap(disc: Element | null): void {
+  playSound("wrong");
+  if (disc) puzzleReject(disc, false);
+}
+function ascendRightTap(): void {
+  playSound("tick", 0.45, 1.25, true);
+}
+
 /** Rounds stored before tap logs (no `tapRev`): the phone's own "reached,errors" summary. */
 function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleStageProps) {
   const layouts = puzzle.type === "numhunt" ? puzzle.layouts : [];
@@ -166,13 +180,15 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
 
   if (puzzle.type !== "numhunt") return null;
 
-  const handleTap = (index: number) => {
+  const handleTap = (index: number, disc: Element | null) => {
     if (locked || index < next) return;
     if (index !== next) {
       setErrors((e) => e + 1);
       setFlash(index);
+      ascendWrongTap(disc);
       return;
     }
+    ascendRightTap();
     const done = index + 1;
     setNext(done);
     if (done === spots.length && submitted.current !== key) {
@@ -216,7 +232,7 @@ function AscendBoard({
   pulse: boolean;
   locked: boolean;
   elapsed: number;
-  onTap: (index: number) => void;
+  onTap: (index: number, disc: Element | null) => void;
   arenaRef: RefObject<HTMLDivElement | null>;
 }) {
   const spotsRef = useRef(spots);
@@ -241,7 +257,7 @@ function AscendBoard({
             type="button"
             aria-label={`Circle ${spot.n}`}
             disabled={locked}
-            onClick={() => onTap(index)}
+            onClick={(e) => onTap(index, e.currentTarget.querySelector(".ascend-disc"))}
             className="absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
           >
@@ -317,7 +333,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
   if (puzzle.type !== "numhunt") return null;
   const replay = replayAscend(puzzle, taps.current);
 
-  const handleTap = (index: number) => {
+  const handleTap = (index: number, disc: Element | null) => {
     const spot = spots[index];
     if (locked || !spot || replay.finishedAt !== null) return;
     const log = taps.current;
@@ -330,9 +346,8 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     const outcome = after.outcomes[after.outcomes.length - 1];
     if (outcome === "wrong") {
       setFlash(index);
-      // The existing wrong sound, played directly: playWrong's duelz-cue would also shake the board.
-      playSound("wrong");
-    }
+      ascendWrongTap(disc);
+    } else if (after.reached > replay.reached) ascendRightTap();
     if (after.finishedAt !== null && submitted.current !== key) {
       submitted.current = key;
       fireAscendFinish(arenaRef.current, spots);

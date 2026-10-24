@@ -23,6 +23,7 @@ import {
   type SlideShift,
 } from "@/lib/duel/wordSlide";
 import { playSound } from "@/lib/sound";
+import { fx } from "@/lib/fx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
@@ -176,13 +177,24 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const rowWords = replay ? WS_MARKED_ROWS.map((r) => markedRowWord(replay.grid, r)) : [];
   const rowKey = rowWords.join("|");
 
+  // Rows that already read as words when the stage opened (a reload) get no "correct" (display only).
+  const openingWords = useRef<Set<string> | null>(null);
+  if (openingWords.current === null && replay) openingWords.current = new Set(rowWords);
+  const lockedNow = useRef(locked);
+  lockedNow.current = locked;
+
   // Check all five rows on the server; lock the moment all read as words.
   useEffect(() => {
     if (!checkWord) return;
     for (const word of rowWords) {
       if (word in verdicts) continue;
       void checkWord(word, [])
-        .then((v) => { setVerdicts((c) => ({ ...c, [word]: v.valid })); if (v.valid) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 })); })
+        .then((v) => {
+          setVerdicts((c) => ({ ...c, [word]: v.valid }));
+          if (v.valid) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 }));
+          // A row the player made into a word: the shared "correct" and its small burst, like the other word games.
+          if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) fx.onCorrect();
+        })
         .catch(() => undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

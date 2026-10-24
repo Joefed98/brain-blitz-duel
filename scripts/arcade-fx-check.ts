@@ -187,7 +187,9 @@ for (const [name, game] of Object.entries(GAMES)) {
   const canvas = createCanvas(390, 620);
   const ctx = canvas.getContext("2d") as unknown as CanvasRenderingContext2D;
   const fired = spec.events.map(() => 0);
+  let missed = 0;
   let last: number[] | null = null;
+  let lastMiss: number[] | null = null;
   for (const seed of [11, 4242]) {
     const events = inputsFor(game, seed * 7 + name.length, TICKS);
     let drawn = game.init(seed);
@@ -207,6 +209,13 @@ for (const [name, game] of Object.entries(GAMES)) {
           if (c > last![i]!) fired[i] += 1;
         });
       last = counts;
+      const misses = (spec.misses ?? []).map((m: any) => m.count(drawn));
+      for (const c of misses) assert.ok(Number.isFinite(c), `${name}: non-finite miss counter`);
+      if (lastMiss && misses.some((c: number, i: number) => c > lastMiss![i]!)) {
+        missed += 1;
+        assert.ok(fx.arcadeFxMissStats(ctx, spec.game).pulse, `${name}: a miss starts the red edge pulse`);
+      }
+      lastMiss = misses;
       const stats = fx.arcadeFxStats(ctx, spec.game);
       assert.ok(stats.particles <= fx.ARCADE_FX_MAX_PARTICLES, `${name}: particle cap`);
       assert.ok(stats.pops <= fx.ARCADE_FX_MAX_POPS, `${name}: pop cap`);
@@ -218,10 +227,11 @@ for (const [name, game] of Object.entries(GAMES)) {
       `${name}: run with drawing diverged from run without`,
     );
     last = null;
+    lastMiss = null;
     checks++;
   }
   summary.push(
-    `${name} [${spec.world}] rises ${spec.events.map((e: any, i: number) => `${e.kind}:${fired[i]}`).join(" ")}`,
+    `${name} [${spec.world}] rises ${spec.events.map((e: any, i: number) => `${e.kind}:${fired[i]}`).join(" ")} miss:${missed}`,
   );
 }
 
@@ -769,6 +779,74 @@ const unit = (
   );
   assert.equal(thrown, 1, "a broken event still draws the game");
   checks += 4;
+}
+
+/* ------------------- Miss moments (Polish 1, 24 Oct 2026) ------------------- */
+{
+  // Every active arcade game wires its existing miss, life-lost or crash moment to the shared miss effect.
+  for (const [game, spec] of Object.entries(specs.ARCADE_FX_SPECS)) {
+    assert.ok((spec.misses?.length ?? 0) > 0, `${game}: a miss moment is declared`);
+    checks += 1;
+  }
+  assert.ok(specs.ORBIT3_FX.misses?.length, "orbit rev 3–7 view: a miss moment is declared");
+  type M = { tick: number; lives: number; px: number };
+  const W = 390, H = 620;
+  const spec: Parameters<typeof fx.arcadeFx<M>>[1] = {
+    game: "misses",
+    world: "fairground",
+    width: W,
+    height: H,
+    events: [],
+    misses: [{ count: (s) => -s.lives, at: (s, before) => ({ x: (before ?? s).px, y: 300 }) }],
+  };
+  const c = createCanvas(W, H).getContext("2d") as unknown as CanvasRenderingContext2D;
+  const frame = (s: M) => fx.arcadeFx(c, spec, s, () => c.clearRect(0, 0, W, H));
+  const alphaAt = (x: number, y: number) => c.getImageData(x, y, 1, 1).data;
+  frame({ tick: 1, lives: 2, px: 100 });
+  assert.deepEqual(fx.arcadeFxMissStats(c, "misses"), { pulse: false, puffs: [] }, "miss: the first frame never fires");
+  frame({ tick: 2, lives: 2, px: 120 });
+  frame({ tick: 3, lives: 1, px: 40 });
+  const lit = fx.arcadeFxMissStats(c, "misses");
+  assert.ok(lit.pulse, "miss: a life lost starts the red edge pulse");
+  assert.deepEqual(lit.puffs, [{ x: 120, y: 300 }], "miss: the puff sits where it happened (the frame before)");
+  clock += fx.ARCADE_FX_MISS_MS / 2;
+  frame({ tick: 4, lives: 1, px: 40 });
+  const edge = alphaAt(4, H / 2);
+  assert.ok(edge[0]! > edge[1]! + 20 && edge[3]! > 0, "miss: the edge pulse is red");
+  assert.ok(edge[3]! <= Math.ceil(255 * fx.ARCADE_FX_MISS_ALPHA) + 2, `miss: the edge pulse stays faint (alpha ${edge[3]})`);
+  assert.equal(alphaAt(W / 2, 60)[3], 0, "miss: no full-screen flash (the middle of the world is untouched)");
+  assert.ok(alphaAt(120, 300)[3]! > 0, "miss: the puff is painted at the miss");
+  clock += fx.ARCADE_FX_MISS_MS;
+  frame({ tick: 5, lives: 1, px: 40 });
+  assert.equal(fx.arcadeFxMissStats(c, "misses").pulse, false, `miss: the pulse is over within ${fx.ARCADE_FX_MISS_MS} ms`);
+  clock += fx.ARCADE_FX_PUFF_MS;
+  frame({ tick: 6, lives: 1, px: 40 });
+  assert.deepEqual(fx.arcadeFxMissStats(c, "misses").puffs, [], "miss: the puff fades on the presentation clock");
+  assert.equal(alphaAt(4, H / 2)[3], 0, "miss: nothing left on screen afterwards");
+  frame({ tick: 7, lives: 1, px: 40 });
+  assert.equal(fx.arcadeFxMissStats(c, "misses").pulse, false, "miss: no rise, no pulse");
+  frame({ tick: 1, lives: 0, px: 40 });
+  assert.equal(fx.arcadeFxMissStats(c, "misses").pulse, false, "miss: a rewind resets without firing");
+  for (let i = 0; i < 20; i++) frame({ tick: 2 + i, lives: -1 - i, px: i });
+  assert.ok(fx.arcadeFxMissStats(c, "misses").puffs.length <= fx.ARCADE_FX_MAX_PUFFS, "miss: puff cap under spam");
+
+  // Reduced motion: the pulse holds still and fades (no rise), the puff never spreads.
+  reduced = true;
+  const calm = createCanvas(W, H).getContext("2d") as unknown as CanvasRenderingContext2D;
+  const calmSpec = { ...spec, game: "misses-calm" };
+  fx.arcadeFx(calm, calmSpec, { tick: 1, lives: 2, px: 100 }, () => calm.clearRect(0, 0, W, H));
+  fx.arcadeFx(calm, calmSpec, { tick: 2, lives: 1, px: 100 }, () => calm.clearRect(0, 0, W, H));
+  const first = calm.getImageData(4, H / 2, 1, 1).data[3]!;
+  clock += fx.ARCADE_FX_MISS_MS / 2;
+  fx.arcadeFx(calm, calmSpec, { tick: 3, lives: 1, px: 100 }, () => calm.clearRect(0, 0, W, H));
+  const later = calm.getImageData(4, H / 2, 1, 1).data[3]!;
+  assert.ok(first > 0 && later < first, "reduced motion: the miss edge only fades");
+  reduced = false;
+
+  // Misses read state only: the sim's state object is never written.
+  const frozen = Object.freeze({ tick: 9, lives: 0, px: 5 });
+  fx.arcadeFx(c, spec, frozen, () => {});
+  checks += 17;
 }
 
 /* ------------------------------ Art pipeline ------------------------------ */

@@ -1,0 +1,13 @@
+/*
+ * Readability at 414 px (Polish 1, 24 Oct 2026, display only; docs/game-look-audit.md item 8).
+ *
+ * Puzzle HUD lines (the small mono capitals over and under a board: "CONNECTED 3 / 49",
+ * "1 / 6 FOUND", "STEPS 3 / 6") were 10–12 px. On a live puzzle stage they are at least 13 px
+ * and weight 600, on a 16 px line, so no line grows taller and nothing below moves. Buttons keep
+ * their own type. no-wrap-check proves none of them wraps or is cut off.
+ */
+[data-game-stage] :is(p, div, span).font-mono.uppercase:is(.tracking-widest, .tracking-wider):is(.text-xs, .text-\[11px\], .text-\[10px\]):not(button, button *) {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+}

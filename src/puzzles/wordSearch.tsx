@@ -59,7 +59,7 @@ function Grid({
             key={cell}
             data-ws-cell={cell}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
-            style={{ fontSize: small ? "max(9px, 5.6cqw)" : "clamp(14px, 5cqw, 22px)" }}
+            style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
           >
             {grid[cell]}
           </div>

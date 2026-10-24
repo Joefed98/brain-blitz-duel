@@ -20,6 +20,7 @@ import {
 } from "@/lib/duel/tileGrid";
 import type { TileGridPuzzleData } from "@/lib/duel/types";
 import { playLock, playWrong } from "@/lib/sound";
+import { fx } from "@/lib/fx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
@@ -117,6 +118,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
+  // Runs already on the board when the stage opened (a reload) get no "correct" (display only).
+  const openingWords = useRef<Set<string> | null>(null);
+  if (openingWords.current === null) openingWords.current = new Set(runs.map((run) => run.word));
+  const lockedNow = useRef(locked);
+  lockedNow.current = locked;
+
   // Live word feedback: each new run of three or more is checked on the server once.
   const pending = useRef(new Set<string>());
   const verify = useCallback(
@@ -129,6 +136,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       pending.current.delete(word);
       setVerdicts((v) => ({ ...v, [word]: verdict.valid }));
       if (verdict.valid) setAccepted(previous => ({ word, points: "points" in verdict && typeof verdict.points === "number" ? verdict.points : 0, serial: (previous?.serial ?? 0) + 1 }));
+      // A word the player built: the shared "correct" and its small burst, like the other word games.
+      if (verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) fx.onCorrect();
       return verdict.valid;
     },
     [checkWord, verdicts],

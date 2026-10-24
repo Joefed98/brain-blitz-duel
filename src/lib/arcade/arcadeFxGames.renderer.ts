@@ -5,8 +5,12 @@
  * changes a sim, an input or a score. Pops show counter facts ("+1", "×3",
  * "LEVEL 4!"), never points, so nothing on screen can disagree with the stored
  * score. Coordinates are in each game's world (or view) units.
+ *
+ * `misses` (Polish 1) are each game's existing miss, life-lost or crash moment, read
+ * from the same counters its sound observer uses (src/lib/fx/gameSounds.ts), for the
+ * shared red edge pulse and, where a point is given, the puff at the miss.
  */
-import type { ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
 import { HOVER_DISC_X, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
@@ -124,7 +128,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   const row = Math.floor(cell / BUB_COLS);
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
-import { SNIP_CONFIG, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
+import { SNIP_CONFIG, SNIP_EATEN, SNIP_H, SNIP_TALL_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
@@ -174,6 +178,17 @@ function matchupClearPoint(s: MatchupState): { x: number; y: number } {
     }
   }
   return best;
+}
+
+/** Between the two gems of Gemstone's last refused swap. */
+function matchupInvalidPoint(s: MatchupState): { x: number; y: number } {
+  const centre = (index: number) => ({
+    x: MATCHUP_BOARD_X + ((index % MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+    y: MATCHUP_BOARD_Y + (Math.floor(index / MATCHUP_SIZE) + 0.5) * MATCHUP_CELL_PX,
+  });
+  const a = centre(s.lastInvalidA);
+  const b = centre(s.lastInvalidB);
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
 /** A Jackpot gem's cell on the board (matchupRev 2+), else the last clear. */
@@ -340,6 +355,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
     },
   ],
+  misses: [{ count: (s) => (s.crashed ? 1 : 0), at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) }],
 };
 
 function brickCentre(index: number): { x: number; y: number } {
@@ -371,6 +387,15 @@ function lowestClearedRow(s: BrkState): { x: number; y: number } {
     if (clear) return { x: BRK_WORLD_W / 2, y: brickCentre(r * BRK_COLS).y };
   }
   return { x: BRK_WORLD_W / 2, y: BRK_WALL_Y };
+}
+
+/** Where Breaker's last ball left the court: its x on the frame before, at the court's foot. */
+function breakerLostAt(s: BrkState, before: BrkState | null): { x: number; y: number } {
+  const balls = before?.balls ?? [];
+  let low = balls[0];
+  for (const b of balls) if (low && b.y > low.y) low = b;
+  const x = low ? low.x / 256 : s.paddleX;
+  return { x: Math.max(8, Math.min(BRK_WORLD_W - 8, x)), y: brkWorldH(s) - 10 };
 }
 
 /**
@@ -427,6 +452,8 @@ export const BREAKER_FX: ArcadeFxSpec<BrkState> = {
     { kind: "clear", count: brkRowsCleared, at: lowestClearedRow, label: () => "ROW CLEAR!", ...BREAKER_TEXT, bulbs: BREAKER_CHASE },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "WALL CLEARED!", ...BREAKER_TEXT, bulbs: { ...BREAKER_CHASE, strong: true } },
   ],
+  // The last ball out: where it left the bottom of the court.
+  misses: [{ count: (s) => s.losses, at: (s, before) => breakerLostAt(s, before) }],
 };
 
 export const RALLY_FX: ArcadeFxSpec<RallyState> = {
@@ -484,6 +511,7 @@ export const RALLY_FX: ArcadeFxSpec<RallyState> = {
       bulbs: { pattern: "flash", colours: RALLY_BULBS, heat: rallyHeat },
     },
   ],
+  misses: [{ count: (s) => (s.dead ? 1 : 0), at: (s) => ({ x: px(s.x), y: Math.min(px(s.y), rallyWorldH(s) - 8) }) }],
 };
 
 export const BEAT_FX: ArcadeFxSpec<BeatState> = {
@@ -515,6 +543,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       sweep: true,
     },
   ],
+  misses: [{ count: (s) => s.misses }],
 };
 
 function snakeHead(s: SnakeState): { x: number; y: number } {
@@ -573,6 +602,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       label: () => "ALL EATEN!",
     },
   ],
+  misses: [{ count: (s) => (s.dead ? 1 : 0), at: snakeHead }],
 };
 
 export const BURST_FX: ArcadeFxSpec<BurstState> = {
@@ -599,6 +629,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
       label: () => "FLAWLESS!",
     },
   ],
+  misses: [{ count: (s) => -s.lives, at: (s) => ({ x: s.x / 256, y: burstFloorY(s) - 16 }) }],
 };
 
 /* ================================ Space ================================ */
@@ -654,6 +685,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       label: (s) => (s.rev !== undefined ? "BOSS DOWN!" : "ALL WAVES!"),
     },
   ],
+  misses: [{ count: (s) => -s.lives, at: (s) => ({ x: s.shipX, y: wavShipY(s) }) }],
 };
 
 const orbitEvents = [
@@ -671,12 +703,18 @@ const orbitEvents = [
   },
 ];
 
+/** A crash: the rocket respawns (respawnTick moves on), or the run ends on one. */
+const orbitMisses: ArcadeFxMiss<OrbitState | OrbitRev3State>[] = [
+  { count: (s) => s.respawnTick + (s.ended === 2 ? 1 : 0) },
+];
+
 export const ORBIT_FX: ArcadeFxSpec<OrbitState> = {
   game: "orbit",
   world: "space",
   width: ORBIT_WORLD_W,
   height: ORBIT_WORLD_H,
   events: orbitEvents,
+  misses: orbitMisses,
 };
 export const ORBIT3_FX: ArcadeFxSpec<OrbitRev3State> = {
   game: "orbit3",
@@ -696,6 +734,7 @@ export const ORBIT3_FX: ArcadeFxSpec<OrbitRev3State> = {
       },
     },
   ],
+  misses: orbitMisses,
 };
 
 /* ============================== Real World ============================== */
@@ -729,6 +768,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
       label: () => "PERFECT IN THE WIND!",
     },
   ],
+  misses: [{ count: (s) => (s.missed ? 1 : 0) }],
 };
 
 export const CROSS_FX: ArcadeFxSpec<CrossState> = {
@@ -757,6 +797,8 @@ export const CROSS_FX: ArcadeFxSpec<CrossState> = {
       label: () => "THROUGH THE CONES!",
     },
   ],
+  // Where the walker was hit (the frame before it went back to the kerb).
+  misses: [{ count: (s) => -s.lives, at: (s, before) => { const w = before ?? s; return { x: px(crossColumnCentreFp(w.col)), y: crossLaneCentre(w.lane) }; } }],
 };
 
 export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
@@ -786,6 +828,7 @@ export const JUNCTION_FX: ArcadeFxSpec<JuncState> = {
     { kind: "pop", count: (s) => s.busCleared ?? 0, at: () => ({ x: JUNC_WORLD_W / 2, y: JUNC_WORLD_H / 2 - 50 }), label: () => "BUS THROUGH!" },
     { kind: "streak", count: (s) => s.diagCleared ?? 0, every: 5, label: (_s, n) => `${n} FROM THE NEW ROADS` },
   ],
+  misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };
 
 export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
@@ -817,6 +860,8 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
       label: () => "ALL 10 LEVELS!",
     },
   ],
+  // A failed drop (off the bridge or onto a block): the red flash the renderer draws, kind 2.
+  misses: [{ count: (s) => (s.flashKind === 2 ? s.flashTick + 1 : 0) }],
 };
 
 /* ================================ Kitchen ================================ */
@@ -848,6 +893,7 @@ export const SLICE_FX: ArcadeFxSpec<SliceState> = {
       label: (_s, _n, d) => `${d} IN ONE!`,
     },
   ],
+  misses: [{ count: (s) => s.bombsHit, at: (s) => (s.strokeX >= 0 ? { x: s.strokeX, y: s.strokeY } : null) }],
 };
 
 /* =============================== Fairground =============================== */
@@ -897,6 +943,7 @@ export const BINTOSS_FX: ArcadeFxSpec<BinTossState> = {
       label: () => "TEN OUT OF TEN!",
     },
   ],
+  misses: [{ count: (s) => s.resolved - s.baskets }],
 };
 
 /**
@@ -964,6 +1011,8 @@ export const BULLSEYE_FX: ArcadeFxSpec<BullseyeState> = {
       label: () => "ALL TEN ON TARGET!",
     },
   ],
+  // A dart off the scoring rings (a popped balloon scores, so it is no miss): a dust puff where it landed.
+  misses: [{ count: (s) => bullLanded(s).filter((h) => h.ring < 0 && h.pop !== 1).length, at: lastLanded }],
 };
 
 /* =============================== Underwater =============================== */
@@ -996,6 +1045,7 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
     { kind: "perfect", count: (s) => s.lines ?? 0, at: (s) => bubSpecialPoint(s), label: (s) => `TORPEDO! ×${s.lastSpecialCleared ?? 0}` },
     { kind: "final", count: (s) => (s.cleared ? 1 : 0), label: () => "REEF CLEARED!" },
   ],
+  misses: [{ count: (s) => (s.dead ? 1 : 0) }],
 };
 
 /* ============================== Cave & Lava ============================== */
@@ -1021,6 +1071,7 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     },
     { kind: "pop", count: flipEscapes, at: () => ({ x: 90, y: FLIP_WORLD_H / 2 + 30 }), label: () => "JUST IN TIME!" },
   ],
+  misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
 };
 
 export const SWING_FX: ArcadeFxSpec<SwingState> = {
@@ -1060,6 +1111,7 @@ export const SWING_FX: ArcadeFxSpec<SwingState> = {
       label: (s) => ((s.chaseX ?? 0) !== 0 ? "500 M! DRAGON OUTRUN!" : "500 M!"),
     },
   ],
+  misses: [{ count: (s) => (s.ended === 2 ? 1 : 0), at: (s) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 }) }],
 };
 
 /* ================================ Orchard ================================ */
@@ -1097,6 +1149,8 @@ export const SNIP_FX: ArcadeFxSpec<SnipState> = {
     // snipRev 3 (springy branches exist only there): each bounce off one.
     { kind: "pop", count: (s) => s.springHits ?? 0, at: (s) => ({ x: s.sx / 256 - snipCam(s), y: s.sy / 256 - 16 }), label: () => "BOING!" },
   ],
+  // A level that ended without the apple in the basket.
+  misses: [{ count: (s) => (s.lastOutcome !== SNIP_EATEN && s.level > 0 ? s.endTick + 1 : 0), when: (s) => s.endTick >= 0 }],
 };
 
 /** snipRev 3: the level just fed names the orchard element it beat (older templates have none). */
@@ -1142,6 +1196,7 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
       label: (s) => (s.aHome ? "BLUE IN! NOW THE AMBER" : "AMBER IN! NOW THE BLUE"),
     },
   ],
+  misses: [{ count: (s) => s.caught + (s.ended === 2 ? 1 : 0), at: (s) => tiltMarbleAt(s) }],
 };
 
 /** World point of the marble nearest the last star taken (rotated maze frame → screen), tiltRev 2. */
@@ -1168,6 +1223,7 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
   ],
+  misses: [{ count: (s) => s.wrong + s.lost }],
 };
 
 /* ================================ Gemstone ================================ */
@@ -1198,6 +1254,8 @@ export const MATCHUP_FX: ArcadeFxSpec<MatchupState> = {
       label: () => "PAR SMASHED!",
     },
   ],
+  // An invalid swap (no match): a puff between the two gems as they slide back.
+  misses: [{ count: (s) => s.lastInvalidTick, when: (s) => s.lastInvalidA >= 0 && s.lastInvalidB >= 0, at: matchupInvalidPoint }],
 };
 
 /** All 22 arcade game specs: the 21 active games and practice-only Junction (Orbit counts once; rev 3 has its own view-sized spec). */
@@ -1288,6 +1346,7 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
     { kind: "streak", count: (s) => s.laneSets, at: () => ({ x: (PIN_LANE_POSTS[0]! + PIN_LANE_POSTS[3]!) / 2, y: PIN_LANE_SENSOR_Y + 30 }), label: (s) => `MULTIPLIER x${s.mult}`, textOnly: true, neon: true, bulbs: { ...PIN_RIPPLE, strong: true } },
     { kind: "combo", count: (s) => s.spins, minDelta: 8, at: () => ({ x: (PIN_LEFT_WALL + PIN_ORBIT_INNER) / 2 + 30, y: PIN_SPINNER_Y }), label: () => "SPINNER!", textOnly: true, bulbs: PIN_RIPPLE },
   ],
+  misses: [{ count: (s) => s.lost, at: () => ({ x: PIN_WORLD_W / 2, y: PIN_WORLD_H - 24 }) }],
 };
 
 export const ARCADE_FX_SPECS = {

@@ -33,9 +33,11 @@ export interface LetterKeypadProps {
   right?: ReactNode;
   /** Key height in px (44 by default). */
   keyHeight?: number;
+  /** Letter size in px (16 by default; display only). */
+  keyFontPx?: number;
 }
 
-export function LetterKeypad({ onLetter, tone, disabled, locked = false, left, right, keyHeight = 44 }: LetterKeypadProps) {
+export function LetterKeypad({ onLetter, tone, disabled, locked = false, left, right, keyHeight = 44, keyFontPx }: LetterKeypadProps) {
   const box = useRef<HTMLDivElement>(null);
   // Desktop keys: typing a letter presses its key; Backspace (or Delete) presses the action left of the
   // bottom row (Delete, Clear) and Enter the one right of it (Solve, Next), exactly as a tap on them.
@@ -77,7 +79,7 @@ export function LetterKeypad({ onLetter, tone, disabled, locked = false, left, r
                 disabled={off}
                 onClick={() => onLetter(letter)}
                 className={`flex min-w-0 flex-1 items-center justify-center rounded-md font-display text-base font-bold transition-colors disabled:cursor-default ${TONE[tone?.(letter) ?? "plain"]} ${off ? "opacity-70" : "active:brightness-125"}`}
-                style={{ height: keyHeight, maxWidth: 40, touchAction: "manipulation" }}
+                style={{ height: keyHeight, maxWidth: 40, touchAction: "manipulation", ...(keyFontPx ? { fontSize: keyFontPx } : {}) }}
               >
                 {letter}
               </button>
@@ -98,6 +100,7 @@ export function KeypadAction({
   children,
   emphasis = false,
   keyHeight = 44,
+  fontPx,
 }: {
   label: string;
   onPress: () => void;
@@ -105,6 +108,8 @@ export function KeypadAction({
   children: ReactNode;
   emphasis?: boolean;
   keyHeight?: number;
+  /** Label size in px (11 px with wide tracking by default; a size here drops the tracking). */
+  fontPx?: number;
 }) {
   return (
     <button
@@ -114,8 +119,8 @@ export function KeypadAction({
       data-key-action=""
       disabled={disabled}
       onClick={onPress}
-      className={`flex shrink-0 items-center justify-center rounded-md px-2 font-mono text-[11px] font-bold uppercase tracking-wider disabled:opacity-50 ${emphasis ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
-      style={{ height: keyHeight, minWidth: 52, touchAction: "manipulation" }}
+      className={`flex shrink-0 items-center justify-center rounded-md px-2 font-mono font-bold uppercase ${fontPx ? "" : "text-[11px] tracking-wider"} disabled:opacity-50 ${emphasis ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
+      style={{ height: keyHeight, minWidth: 52, touchAction: "manipulation", ...(fontPx ? { fontSize: fontPx } : {}) }}
     >
       {children}
     </button>

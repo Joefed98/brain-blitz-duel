@@ -819,19 +819,23 @@ export function drawMatchupSwap(
   tween: MatchupSwapTween,
   elapsedMs: number,
 ): void {
-  drawScene(ctx, { ...state, heads: tween.before.heads }, size, {
-    cells: tween.before.cells, skip: new Set([tween.a, tween.b]),
-  });
-  const { scale, offsetX, offsetY } = matchupTransform(size);
-  ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-  const a = centre(tween.a);
-  const b = centre(tween.b);
-  const p = matchupSwapProgress(elapsedMs, tween.rejected);
-  drawMatchupGem(ctx, tween.before.cells[tween.a] ?? 0, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, RADIUS);
-  drawMatchupGem(ctx, tween.before.cells[tween.b] ?? 0, b.x + (a.x - b.x) * p, b.y + (a.y - b.y) * p, RADIUS);
-  ctx.restore();
+  const scene = { ...state, heads: tween.before.heads };
+  const options = { cells: tween.before.cells, skip: new Set([tween.a, tween.b]) };
+  // The two sliding gems are part of the world, so the shared layer's effects (a refused swap's
+  // miss puff, Polish 1) paint over them, as over every other gem.
+  arcadeFx(ctx, MATCHUP_FX, scene, () => {
+    drawSceneWorld(ctx, scene, size, options);
+    const { scale, offsetX, offsetY } = matchupTransform(size);
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+    const a = centre(tween.a);
+    const b = centre(tween.b);
+    const p = matchupSwapProgress(elapsedMs, tween.rejected);
+    drawMatchupGem(ctx, tween.before.cells[tween.a] ?? 0, a.x + (b.x - a.x) * p, a.y + (b.y - a.y) * p, RADIUS);
+    drawMatchupGem(ctx, tween.before.cells[tween.b] ?? 0, b.x + (a.x - b.x) * p, b.y + (a.y - b.y) * p, RADIUS);
+    ctx.restore();
+  }, size);
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */
