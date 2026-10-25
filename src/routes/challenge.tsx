@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, Swords } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ErrorState } from "@/components/app/ErrorState";
 import { TermsGate } from "@/components/beta/TermsGate";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
@@ -342,6 +343,20 @@ function ChallengeScreen() {
   }
 
   const info = mode.info;
+  if (!info.found) {
+    // The shared error layout (Polish batch R): Back to Play, or Make your own challenge.
+    return (
+      <PhoneShell skin="play">
+        <div data-challenge-screen="landing" className="flex flex-1 flex-col">
+          <ErrorState
+            title="Challenge not found"
+            body="This challenge link doesn't work. Check it with whoever sent it, or make your own."
+            action={{ label: "Make your own challenge", onClick: () => setCode(null) }}
+          />
+        </div>
+      </PhoneShell>
+    );
+  }
   return (
     <PhoneShell skin="play">
       <div data-challenge-screen="landing" className="flex flex-1 flex-col gap-4">

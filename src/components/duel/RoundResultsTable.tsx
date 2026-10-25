@@ -11,6 +11,8 @@ import {
 import type { PlayerLooks } from "@/lib/duel/playerLook";
 import type { Standing } from "@/lib/duel/scoring";
 import { buzz } from "@/lib/motion";
+import { roundPlaces, tieMarks } from "@/lib/duel/tieDisplay";
+import { ChevronDown } from "lucide-react";
 import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 
@@ -18,6 +20,8 @@ import { AnimatedScore } from "./AnimatedScore";
 import { ContinueFooter, type ContinueState } from "./ContinueFooter";
 import { Medal } from "./Medal";
 import { PlayerBadge } from "./PlayerBadge";
+import { useScrollMore } from "./RoomFooter";
+import { youStyle } from "./Standings";
 
 interface RoundResultsTableProps {
   roundTitle: string;
@@ -74,56 +78,54 @@ export function RoundResultsTable({
     soundCue("shared.roundResults");
   }, [mySlot, ordered, topScore]);
 
+  // Places: the round score, then the time used; level on both shares the place (tieDisplay.ts).
+  const marks = tieMarks(roundPlaces(ordered, times));
+  const listRef = useScrollMore<HTMLOListElement>();
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 pt-2 animate-phase-in">
-      <header className="relative shrink-0 px-12 text-center">
-        <p className="th-kicker text-primary">Round results</p>
-        <h1 className="mt-1 break-words font-display text-sm font-bold text-foreground">
-          {roundTitle}
-        </h1>
-        {best && <p className="font-mono text-[11px] text-foreground/80">{best}</p>}
-        <span className="th-kicker absolute right-0 top-0 whitespace-nowrap text-[10px] tracking-[0.06em] text-muted-foreground">
-          {finalRound ? "Final round" : "This round"}
-        </span>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
+      <header className="flex shrink-0 flex-col gap-0.5">
+        <div className="rs-head">
+          <h1 className="rs-title">{finalRound ? "Final round" : "Round results"}</h1>
+          {best && <span className="rs-meta">{best}</span>}
+        </div>
+        <p className="rs-sub">{roundTitle}</p>
       </header>
 
       {highlight}
 
-      {/* Rows take their content's height from the top; the list scrolls if a big room needs it. */}
-      <ol className="grid min-h-0 flex-[1_1_0px] content-start gap-1.5 overflow-y-auto">
-        {ordered.map((row, index) => {
+      {/* Rows take their content's height from the top; the list scrolls (and fades) if a big room needs it. */}
+      <ol ref={listRef} className="rs-list rs-scroll min-h-0 shrink">
+        {ordered.map((row) => {
           const isMe = row.slot === mySlot;
           const won = row.roundScore > 0 && row.roundScore === topScore;
           const open = expanded === row.slot;
           const verdict = roundVerdict(row, scoreOnly);
           const summary = summaryWithoutTime(row.summary);
           const time = formatElapsed(times.get(row.slot) ?? null, clockMs);
+          const mark = marks.get(row.slot);
+          const look = looks?.get(row.slot);
+          const note = finalRound ? null : mark?.note;
           return (
-            <li key={row.slot}>
+            <li key={row.slot} className="rs-row p-0">
               <button
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded((value) => (value === row.slot ? null : row.slot))}
-                data-tint={isMe ? "me" : undefined}
-                className={`th-card grid min-h-[44px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.375rem_minmax(0,1fr)_auto]"} items-center gap-x-2 rounded-lg border px-2 py-1 text-left ${
-                  isMe ? "border-primary/70 bg-primary/10" : "border-border bg-card"
-                } ${row.status === "inactive" ? "opacity-40" : ""}`}
+                data-you={isMe ? "" : undefined}
+                style={isMe ? youStyle(look) : undefined}
+                className={`grid min-h-[52px] w-full ${finalRound ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[1.5rem_minmax(0,1fr)_auto]"} items-center gap-x-2 py-1.5 pl-3.5 pr-2 text-left ${row.status === "inactive" ? "opacity-40" : ""}`}
               >
                 {/* Last round: no positions, so the overall winner stays hidden until the reveal. */}
-                {!finalRound && <Medal place={index + 1} />}
+                {!finalRound && mark && <Medal place={Number(mark.label.replace("=", ""))} shared={mark.shared} />}
                 <span className="min-w-0 self-center">
                   <span className="flex min-w-0 items-center gap-2">
-                    <PlayerBadge look={looks?.get(row.slot)} name={row.name} size={24} />
+                    <PlayerBadge look={look} name={row.name} size={28} />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="th-name truncate text-sm leading-tight text-foreground">
-                          {row.name}
-                        </span>
-                        {won && (
-                          <span data-tone="gold" className="th-pill shrink-0">
-                            Round won
-                          </span>
-                        )}
+                        <span className="rs-name th-name leading-tight">{row.name}</span>
+                        {isMe ? <span className="rs-you shrink-0 text-[13px]">(you)</span> : null}
+                        {won && <span className="rs-pill shrink-0">Round won</span>}
                       </span>
                       {/* Under the name, on one line in secondary text: the time used (the buzzer shows the
                           round's full clock), the verdict and the summary, cut with an ellipsis when long.
@@ -131,12 +133,13 @@ export function RoundResultsTable({
                       <span
                         data-ellipsis
                         data-row-line
-                        className={`font-mono text-[11px] leading-tight text-muted-foreground ${open ? "block whitespace-normal" : "block truncate"}`}
+                        className={`text-[12.5px] leading-tight text-[var(--ap-text-2)] ${open ? "block whitespace-normal" : "block truncate"}`}
                       >
                         {time ? <span className="tabular-nums">{time} · </span> : null}
                         <span data-verdict={verdict} className={`font-bold ${VERDICT_TONE[verdict]}`}>
                           {VERDICT_LABEL[verdict]}
                         </span>
+                        {note ? ` · ${note}` : ""}
                         {summary ? ` · ${open ? [summary, ...row.detail].join(" · ") : summary}` : ""}
                       </span>
                     </span>
@@ -145,17 +148,16 @@ export function RoundResultsTable({
                 <span className="flex items-center gap-1">
                   <AnimatedScore
                     value={row.roundScore}
-                    className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${won ? "th-score-top text-primary" : "text-foreground"}`}
+                    className="th-score rs-total w-12 text-right"
                   />
-                  <span aria-hidden="true" className="w-3 text-center font-mono text-[11px] text-muted-foreground">
-                    {open ? "▴" : "▾"}
-                  </span>
+                  <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[var(--ap-faint)] transition-transform ${open ? "rotate-180" : ""}`} />
                 </span>
               </button>
             </li>
           );
         })}
       </ol>
+      <div className="min-h-0 flex-1" />
 
       <ContinueFooter next={finalRound ? "Winner" : "Standings"} autoSeconds={autoSeconds} state={continueState} />
     </div>

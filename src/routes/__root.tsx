@@ -4,6 +4,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useNavigate,
   useRouter,
   HeadContent,
   Scripts,
@@ -21,26 +22,27 @@ import { installAppUpdater } from "../lib/appUpdate";
 import { reportCrash, startCrashReporting } from "../lib/crashReporting";
 import { THEME_FONTS } from "../lib/theme";
 import { AppUpdateOverlay } from "../components/app/AppUpdateOverlay";
+import { ErrorState } from "../components/app/ErrorState";
+import { AppWordmark } from "../components/brand/AppWordmark";
 import { CelebrationLayer } from "../components/fx/CelebrationLayer";
 import { celebrationsOn } from "../lib/fx/celebrations";
 
+/** The 404 page: the shared error layout (ErrorState, Polish batch R) on the room screens' shell. */
 function NotFoundComponent() {
+  const navigate = useNavigate();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+    // PhoneShell's page frame, drawn light (the root route never loads the game registry PhoneShell needs).
+    <div data-skin="room" className="relative min-h-[100dvh] w-full bg-background">
+      <div aria-hidden="true" className="screen-background" />
+      <div data-shell-column="page" className="relative mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col pad-safe">
+        <header className="ap-header">
+          <AppWordmark />
+        </header>
+        <ErrorState
+          title="Page not found"
+          body={`This page isn't part of ${APP_NAME}, or it has moved. Head back to Play, or start a room.`}
+          action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
+        />
       </div>
     </div>
   );

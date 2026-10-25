@@ -512,6 +512,15 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
   `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
+- **Polish batch R: room and other screens** (25 Oct 2026; presentation only, no stamps;
+  `docs/polish-batches/room-screens.md`, `src/polish-layout/room-screens.css`, design-system.md "Room and other
+  screens"): every non-tab skinned screen (lobby, link join, round results, standings, podium and final, the
+  answer reveal's chrome, daily and challenge screens, terms, settings, chat sheet, dialogs, first-time intro)
+  takes the tab pages' look, gold only on the action that plays; one room footer row (`RoomFooter`: chat
+  button and the main action; Disband / Leave in the header's "⋯" `RoomMenu`); intros draw the game frame's
+  header (`bare` PhoneShell); ties shown with `tieDisplay.ts` (tie-display-check); one error layout
+  (`ErrorState`) for the 404, room not found and challenge not found; `Wordmark.tsx` retired for
+  `AppWordmark`. celebrations-off.json was re-recorded on the branch (switch set off).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

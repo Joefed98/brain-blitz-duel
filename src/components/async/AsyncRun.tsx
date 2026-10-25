@@ -462,8 +462,10 @@ export function AsyncRun({
   if (step.kind === "intro" || step.kind === "starting") {
     const counting = step.kind === "starting" || step.introAt !== WAITING_INTRO;
     return (
-      <PhoneShell gameType={step.type} topAction={counting ? undefined : leave}>
+      // The intro draws the game frame's header itself (RoundIntro, Polish batch R).
+      <PhoneShell gameType={step.type} bare>
         <RoundIntro
+          topAction={counting ? undefined : leave}
           round={step.round}
           totalRounds={roundCount}
           type={step.type}

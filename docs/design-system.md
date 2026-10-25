@@ -10,7 +10,10 @@ There are two screen families:
   flat panels of divided rows, the gold shine, Archivo.
 - **Skinned screens** (lobby, round leaderboard, reveal, standings, results and podium, daily and
   challenge play, dialogs and sheets; `data-skin`, `src/polish-layout/theme.css`, `src/lib/theme.ts`):
-  the `--th-*` tokens, Saira / Manrope / Duelz Mono.
+  since Polish batch R (25 Oct 2026, `src/polish-layout/room-screens.css`) every skinned screen that is not
+  a tab page takes the tab pages' palette, Archivo in sentence case, flat `#17171B` panels of divided rows
+  and a neutral `--primary`; see "Room and other screens" below. Saira / Manrope / Duelz Mono remain only
+  on the Play tab's share welcome card.
 
 Game screens, round intros and room moments (Prepare to Duel, round titles, the winner reveal) are
 neither; they use the app tokens in `src/styles.css` (`--background` #0B0B0F, `--primary` #F5B82E). A game's
@@ -339,3 +342,29 @@ Effects slider and reduced motion, and animates nothing in layout.
 `bun scripts/shots/before-after.ts [games…]` captures main and the branch at 414 × 896 with the contact
 sheet's setup and drivers and writes side-by-side sheets to `screenshots/before-after/` (plus
 `overview.png` for a full run).
+
+## Room and other screens (Polish batch R, 25 Oct 2026)
+
+`src/polish-layout/room-screens.css`, notes in `docs/polish-batches/room-screens.md`.
+
+- **Scope**: `[data-skin]` without `[data-tab-screen]`: the lobby, link join, round results, standings,
+  podium and final results, the answer reveal's chrome, the daily and challenge screens, terms, the first-time
+  intro, the settings sheet, the chat sheet and confirm dialogs. The tokens resolve to the tab pages' (`--ap-*`);
+  `--primary` is neutral #F3F1EC, so old gold accents read as light text.
+- **Gold**: only the action that plays, drawn with `th-btn-gold` / `ap-btn-gold` (the gold shine): Start
+  game, Ready, Continue, Play again, Join room, the daily and challenge Play / Continue, Create a room,
+  I agree, Let's play. `th-btn-teal` and the gold outlines are neutral outlines (secondary).
+- **You**: `data-you` with `--you` (the player's colour): a 3 px left bar, and "(you)" after the name.
+- **Rows**: `.rs-list` panels of `.rs-row`s (48 px, divider inset 14 px); `.rs-total` scores in white;
+  `.rs-move` ▲ green / ▼ red / – grey; medals for 1st–3rd only; a shared place reads "=1" (`Medal shared`).
+- **Ties** (`src/lib/duel/tieDisplay.ts`): the ranking already breaks ties by time used; rows level on
+  points say "Level on 230 · ahead on time" / "behind on time", rows level on points and time share the
+  place and medal with "Level on 230".
+- **Room footer** (`RoomFooter`): one 68 px row, the 52 px chat button then the main action (and Share);
+  Disband and Leave in the header's "⋯" menu (`RoomMenu`).
+- **Segmented controls** `.rs-seg` (selected = light fill, dark text); **category chips** `.rs-cat`
+  (`data-cat`, tinted when on, grey when off); **pills** `.rs-pill` (neutral).
+- **Intros**: the game frame's header, the category gradient, a tray hugging the still or demo, the
+  auto-start ring in the category colour beside a gold Ready.
+- **Errors**: `ErrorState` (dimmed mark, title, explanation, optional room-code box, Back to Play, one gold
+  action) for the 404, room not found and challenge not found.

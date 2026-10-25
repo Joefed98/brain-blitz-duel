@@ -86,9 +86,11 @@ export function PublicGameNext({
           data-public-join
           disabled={!open}
           onClick={() => game && open && onJoin(game.roomCode)}
+          // Before the lobby opens it says when it does (Polish batch R): "Opens 7:45 pm", still named Join now.
+          aria-label={open || !game ? "Join now" : `Join now (opens ${ukTime(game.lobbyAt)})`}
           className={`${open ? "ap-btn-gold" : "ap-btn-outline ap-btn-off"} press tap-target h-11 w-full text-[15px]`}
         >
-          <Users aria-hidden="true" className="h-[18px] w-[18px]" /> Join now
+          <Users aria-hidden="true" className="h-[18px] w-[18px]" /> {open || !game ? "Join now" : `Opens ${ukTime(game.lobbyAt)}`}
         </button>
         <button
           type="button"

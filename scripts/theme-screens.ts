@@ -157,7 +157,8 @@ async function toChallengeResults(page: Page, standingsToo: boolean) {
   await page.waitForTimeout(800);
   if (!standingsToo) return;
   await page.locator("[data-continue-footer] button").click();
-  await page.getByText("Overall standings", { exact: true }).waitFor({ timeout: 15_000 });
+  // Polish batch R: the standings' one title line ("Standings" and "After round n of N").
+  await page.getByText("Standings", { exact: true }).waitFor({ timeout: 15_000 });
   await page.waitForTimeout(800);
 }
 
@@ -223,7 +224,9 @@ export const THEME_SCREENS: ThemeScreen[] = [
     mode: "room",
     room: room("waiting", "starting", { players: 3 }),
     go: async (page) => {
-      await page.getByRole("button", { name: "Disband room" }).click();
+      // Polish batch R: Disband room is in the header's "⋯" menu.
+      await page.locator("[data-room-menu]").first().click();
+      await page.getByRole("menuitem", { name: "Disband room" }).click();
       await page.getByRole("alertdialog").waitFor({ timeout: 10_000 });
     },
   },

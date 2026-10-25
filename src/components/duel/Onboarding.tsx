@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PhoneShell } from "./PhoneShell";
-import { BoltGlyph, Wordmark } from "./Wordmark";
+import { AppWordmark } from "@/components/brand/AppWordmark";
+import { LogoMark } from "@/components/brand/LogoMark";
 import { markOnboardingSeen } from "@/lib/onboarding";
 import { playLock, unlockAudio } from "@/lib/sound";
 
 /**
  * The first-time intro (16 Oct 2026, presentation only; src/lib/onboarding.ts): three
  * panels, swiped or stepped with Next, Skip on every one. Home shows it once per device
- * and from "How it works". The name comes only from the Wordmark (APP_NAME), never the copy.
+ * and from "How it works". The name comes only from the wordmark (AppWordmark, APP_NAME), never the copy.
  */
 interface Panel {
   title: string;
@@ -67,7 +68,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <PhoneShell bare>
+    // The room screens' look (Polish batch R): Archivo, sentence case, gold only for "Let's play".
+    <PhoneShell bare skin="room">
       <div
         data-onboarding
         role="dialog"
@@ -81,7 +83,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         }}
       >
         <div className="flex h-12 shrink-0 items-center justify-between gap-2">
-          <Wordmark />
+          <AppWordmark />
           <button
             type="button"
             data-onboarding-skip
@@ -89,7 +91,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               unlockAudio();
               onDone();
             }}
-            className="press tap-target -mr-3 px-3 font-display text-sm font-semibold uppercase tracking-widest text-muted-foreground"
+            className="press tap-target -mr-3 px-3 text-[15px] font-semibold text-[var(--ap-link)]"
           >
             Skip
           </button>
@@ -134,7 +136,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 </div>
                 <h2
                   id={`onboarding-title-${i}`}
-                  className="mt-6 font-display text-[1.75rem] font-bold leading-tight tracking-[-0.02em] text-foreground"
+                  className="mt-6 text-[1.75rem] font-extrabold leading-tight text-foreground"
                 >
                   {panel.title}
                 </h2>
@@ -153,7 +155,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 key={panel.title}
                 data-onboarding-dot={i === index ? "current" : ""}
                 className={`h-2 rounded-full transition-all duration-200 motion-reduce:transition-none ${
-                  i === index ? "w-6 bg-primary" : "w-2 bg-border"
+                  i === index ? "w-6 bg-[var(--ap-text)]" : "w-2 bg-[var(--ap-line)]"
                 }`}
               />
             ))}
@@ -165,7 +167,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             type="button"
             data-onboarding-next
             onClick={next}
-            className="press tap-target relative w-full overflow-hidden rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground"
+            className={`press tap-target relative h-[52px] w-full overflow-hidden rounded-[14px] text-[17px] font-bold ${
+              last ? "ap-btn-gold" : "bg-[var(--ap-text)] text-[var(--ap-bg)]"
+            }`}
           >
             {last ? "Let's play" : "Next"}
           </button>
@@ -187,7 +191,7 @@ function RivalsArt() {
   return (
     <div className="flex items-center gap-4">
       {avatar("A", "border-primary/70 bg-primary/10 text-primary")}
-      <BoltGlyph className="h-9 w-9 text-primary" />
+      <LogoMark width={26} height={34} />
       {avatar("B", "border-border bg-card text-foreground")}
     </div>
   );
@@ -216,7 +220,7 @@ function ScoreArt() {
   return (
     <div className="flex flex-col items-center leading-none">
       <span className="font-mono text-6xl font-bold text-primary">150</span>
-      <span className="mt-2 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+      <span className="mt-2 text-[13px] font-semibold text-muted-foreground">
         top score
       </span>
     </div>
