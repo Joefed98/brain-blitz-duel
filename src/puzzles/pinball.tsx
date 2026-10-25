@@ -1,9 +1,9 @@
-import { pinballAmbient, pinballFill } from "@/lib/arcade/arenaFills.renderer";
+import { pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
 import { arcadeFeedback } from "@/lib/fx/arcade";
-import { pinballArtGameFor, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
+import { pinballArtGameFor, pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -216,7 +216,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   };
 
   return (
-    <ArcadeArenaSlot width={PIN_WORLD_W} height={PIN_WORLD_H} scene={pinballFill} ambient={pinballAmbient} playCentre>
+    <ArcadeArenaSlot width={PIN_WORLD_W} height={PIN_WORLD_H} scene={pinballGlowFill} ambient={pinballAmbient} playCentre>
       <div ref={wrap} data-game-arena="canvas" className="relative min-h-0 w-full flex-1 overflow-hidden" style={NO_SCROLL_STYLE}>
         <canvas
           ref={canvas}
