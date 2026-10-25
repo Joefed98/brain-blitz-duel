@@ -40,6 +40,12 @@ export interface LiveBand {
   field: string;
   rev: number;
   curve: BandCurve;
+  /**
+   * Games raised to 200 by an expansion (docs/scoring-200.md): the score-bands revision (19 Oct 2026,
+   * band 3) and its strict curve that rooms dealt before the expansion. The score-band checks prove
+   * those; `rev` and `curve` are the expansion's own.
+   */
+  bands?: { rev: number; curve: BandCurve };
 }
 
 export const LIVE_BANDS = {
@@ -69,6 +75,12 @@ export const LIVE_BANDS = {
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;
+
+/** A game's score-bands revision and strict curve (19 Oct 2026): its expansion's `bands`, else what rooms deal. */
+export function scoreBandsLive(game: LiveBandGame): { rev: number; curve: BandCurve } {
+  const live: LiveBand = LIVE_BANDS[game];
+  return live.bands ?? { rev: live.rev, curve: live.curve };
+}
 
 /** The "?" help SCORE text for a band game, its numbers from the curve new rounds are dealt on. */
 export function liveBandHelp(game: LiveBandGame, units: string, words: BandHelpWords): string {

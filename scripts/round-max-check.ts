@@ -46,12 +46,29 @@ function ok(cond: boolean, message: string): void {
 const TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
+/**
+ * Games an expansion has raised to 200 (docs/scoring-200.md). Sections 1 and 2 run with them put back to
+ * 150 (asToday), so they prove the mechanism exactly as before; section 1b proves the raised lines.
+ */
+const RAISED = TYPES.filter((t) => ROUND_MAX[t] !== DEFAULT_ROUND_MAX);
+function asToday<T>(fn: () => T, list: readonly PuzzleType[] = RAISED): T {
+  return list.length ? withRoundMax(list[0]!, DEFAULT_ROUND_MAX, () => asToday(fn, list.slice(1))) : fn();
+}
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
 
+/* 1b. The raised games. */
+for (const type of RAISED) {
+  ok(ROUND_MAX[type] === SCORE_CEILING && roundMaxFor(type) === SCORE_CEILING, `${type}: raised to ${SCORE_CEILING} (${ROUND_MAX[type]})`);
+  ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/.test(INTRO_SCORE[type].replace(/150 ms/g, "")), `${type}: its intro states 200: "${INTRO_SCORE[type]}"`);
+  ok(isPerfectScore(type, 200) && !isPerfectScore(type, 199) && signatureMinScore(type) === 160, `${type}: perfect is 200, the no-finish beat 160`);
+}
+ok(RAISED.length === 0 || (topRoundMax().top === SCORE_CEILING && !topRoundMax().shared), "with a game raised, the onboarding's top is 200");
+
+asToday(() => {
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");
 ok(TYPES.length >= 80 && TYPES.every((t) => t in ROUND_MAX) && Object.keys(ROUND_MAX).every((t) => t in GAME_DISPLAY_NAMES), "every game has its own maximum line, and only games do");
-for (const type of TYPES) ok(ROUND_MAX[type] === 150 && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
+for (const type of TYPES) ok((RAISED.includes(type) || ROUND_MAX[type] === 150) && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
 ok(topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is 150, shared by every game");
@@ -118,6 +135,8 @@ for (const type of TYPES) ok(JSON.stringify(texts(type)) === JSON.stringify(base
 withRoundMax("wordsmith", 200, () => {
   const v = { type: "wordsmith" as PuzzleType, arcade: false, correct: true, msRemaining: 0, timeLimitMs: 90_000 };
   ok(signatureTierForVerdict({ ...v, score: 150 }) === null && signatureTierForVerdict({ ...v, score: 160 }) === "solve", "Nucleus at 200: 150 earns no beat, 160 does");
+});
+
 });
 
 /* 3. The wiring: screens read the game's maximum. */
