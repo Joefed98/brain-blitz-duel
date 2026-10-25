@@ -10,7 +10,7 @@ old-stamp rounds recorded before any change (`scripts/fixtures/depth-<game>-lega
 | Interlock | Stretch | `tileGridRev 1` | a finish clearly faster than today's 150 pace, no mistakes |
 | Slider | Feature: par moves | `wordSlideRev 1` | finishing within par (the stored scramble count), more the faster |
 | Forage | Features: 6×6, long words, golden tile | `wordHuntRev 3` | 6+ letter words (×1.5, 7+ ×2) and words through the golden tile (×2), on their own 50-point curve |
-| Lookout | Feature: hidden bonus word | `wordSearchRev 3` | finding the unlisted on-theme word (+20, up to +30 more for time) |
+| Lookout | Feature: hidden bonus word | `wordSearchRev 3` | finding the unlisted on-theme word: a fixed +15, and the other 35 only at elite pace (the stretch curve, all of it at 86 % of the clock left with no mistakes) |
 | Roundabout | Feature: bonus jar | `wheelRev 2` | real words not in the crossword fill a jar (50 × drops ÷ jar size) |
 | Strikeout | Stretch + early solves | `strikeoutRev 5` | up to 25 for pace and up to 25 for solving words with letters still hidden |
 | Cryptogrid | Stretch | `codewordRev 4` | a finish clearly faster than today's 150 pace, no mistakes |
@@ -81,11 +81,15 @@ old-stamp rounds recorded before any change (`scripts/fixtures/depth-<game>-lega
 | Player | Before (max 150) | Now (max 200) | Median change |
 | --- | --- | --- | --- |
 | Average | 121 / 127 / 129 | 120 / 129 / 134 | -1 (-1 %) |
-| Good | 140 / 143 / 146 | 139 / 145 / 164 | -1 (-1 %) |
-| Great | 146 / 148 / 150 | 147 / 174 / 180 | +1 (+1 %) |
-| Near-perfect | 150 / 150 / 150 | 150 / 190 / 194 | 0 (0 %) |
-| Elite | 150 / 150 / 150 | 194 / 196 / 198 | +44 (+29 %) |
-| All levels | 146 / 150 / 150 | 147 / 194 / 198 | +1 |
+| Good | 140 / 143 / 146 | 139 / 145 / 156 | -1 (-1 %) |
+| Great | 146 / 148 / 150 | 147 / 160 / 162 | +1 (+1 %) |
+| Near-perfect | 150 / 150 / 150 | 150 / 166 / 184 | 0 (0 %) |
+| Elite | 150 / 150 / 150 | 181 / 194 / 200 | +31 (+21 %) |
+| All levels | 146 / 150 / 150 | 147 / 182 / 200 | +1 |
+
+Retuned 26 Oct 2026 (same stamp, not live yet): the hidden word pays a fixed 15 and the rest only at elite pace. Of
+the players who find it and finish: near-perfect 165 median / 171 top 10 % (18 of 40 seeds), great 159, elite 185 /
+194 / 200 (33 of 40). Before the retune near-perfect's top 10 % reached 190.
 
 **Roundabout**
 
@@ -414,7 +418,7 @@ Shared edits made (one line each, for all nine depth games): scoring-rev3-check 
 - Grading: the wordsearch case in grade.ts sets bonus drags aside (`wsSplitBonus`: never a wrong pick) and stores `extra.bonusFound`; everything else is rev 2/3 as today.
 
 **Score:** today's rev-3 score (≤ 150) + `wsBonusPoints` (the only way past 150):
-- found with all six: `WS_BONUS_FOUND` 20 + `WS_BONUS_SPEED` 30 × clamp((left share − 0.5) ÷ (0.9 − 0.5)) → 200 needs the bonus and a clean finish in about 12 s (90 % of the 120 s clock left);
+- found with all six (retuned 26 Oct 2026): `WS_BONUS_FOUND` 15 + `WS_BONUS_SPEED` 35 × s^1.5 × efficiency², s = clamp((left share − 0.75) ÷ (0.86 − 0.75)) (`WS_STRETCH`, the stretch games' curve from today's 150 pace) → 200 needs the bonus and a clean finish in about 17 s (86 % of the 120 s clock left);
 - found without finishing: +9 (`WS_BONUS_UNFINISHED`; 110 + 9 = 119 stays under every finish);
 - parts: finish `120 + N bonus word + N speed`; unfinished `N for progress`.
 
@@ -432,11 +436,15 @@ Shared edits made (one line each, for all nine depth games): scoring-rev3-check 
 | Player | Before (max 150) | Now (max 200) | Median change |
 | --- | --- | --- | --- |
 | Average | 121 / 127 / 129 | 120 / 129 / 134 | -1 (-1 %) |
-| Good | 140 / 143 / 146 | 139 / 145 / 164 | -1 (-1 %) |
-| Great | 146 / 148 / 150 | 147 / 174 / 180 | +1 (+1 %) |
-| Near-perfect | 150 / 150 / 150 | 150 / 190 / 194 | 0 (0 %) |
-| Elite | 150 / 150 / 150 | 194 / 196 / 198 | +44 (+29 %) |
-| All levels | 146 / 150 / 150 | 147 / 194 / 198 | +1 |
+| Good | 140 / 143 / 146 | 139 / 145 / 156 | -1 (-1 %) |
+| Great | 146 / 148 / 150 | 147 / 160 / 162 | +1 (+1 %) |
+| Near-perfect | 150 / 150 / 150 | 150 / 166 / 184 | 0 (0 %) |
+| Elite | 150 / 150 / 150 | 181 / 194 / 200 | +31 (+21 %) |
+| All levels | 146 / 150 / 150 | 147 / 182 / 200 | +1 |
+
+Retuned 26 Oct 2026 (same stamp, not live yet): the hidden word pays a fixed 15 and the rest only at elite pace. Of
+the players who find it and finish: near-perfect 165 median / 171 top 10 % (18 of 40 seeds), great 159, elite 185 /
+194 / 200 (33 of 40). Before the retune near-perfect's top 10 % reached 190.
 
 **Checks run:**
 - depth-wordsearch-check (new, ~11 s): PASS (7,221 checks: 482 legacy cases recorded before the change in `scripts/fixtures/depth-wordsearch-legacy.json.gz` regrade identically; pinPreDepth deals rev 2 as before; rev-3 bank byte-for-byte and all 1,520 boards' rules; privacy; scoring (no bonus = rev 2 exactly, bonus adds its points, monotonic in time, 200 only with bonus + fast finish, parts add up, unfinished + bonus < any finish, bonus drags never wrong); live check; texts; stage draws the chip only on rev 3; bands)

@@ -234,6 +234,10 @@ if (RECORD) {
   ok(Math.abs(good.now.median - good.old.median) <= good.old.median * 0.1, `a good player's median stays within 10 % (${good.old.median} → ${good.now.median})`);
   ok(lvl("near").now.median >= 145 && lvl("near").now.median <= 165, `near-perfect median 150–165 (${lvl("near").now.median})`);
   ok(lvl("elite").now.best >= 190 && lvl("elite").now.best <= 200, `elite best 190–200 (${lvl("elite").now.best})`);
+  // 26 Oct 2026 retune: the hidden word pays a fixed 15; the rest of the top 50 only at elite pace (the stretch curve).
+  ok(lvl("near").now.top10 <= 175, `near-perfect top 10 % at most 175 (${lvl("near").now.top10})`);
+  ok(lvl("elite").now.top10 >= 190, `elite top 10 % 190 or more (${lvl("elite").now.top10})`);
+  ok(wsBonusPoints(true, true, 0.75) === WS_BONUS_FOUND && WS_BONUS_FOUND >= 12 && WS_BONUS_FOUND <= 15, "at today's 150 pace the hidden word pays only its fixed part");
   ok(lvl("average").now.top10 <= 160, `average play stays low (${lvl("average").now.top10})`);
 }
 

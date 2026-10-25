@@ -17,7 +17,8 @@ export const wordsearchDepth: DepthGrader = {
     const bonusFound = extra["bonusFound"] === true;
     const finished = today.isCorrect;
     const left = typeof extra["time"] === "number" ? (extra["time"] as number) : 0;
-    const bonusPoints = wsBonusPoints(bonusFound, finished, left);
+    const efficiency = typeof extra["efficiency"] === "number" ? (extra["efficiency"] as number) : 1;
+    const bonusPoints = wsBonusPoints(bonusFound, finished, left, efficiency);
     const score = withBonus(today.score, bonusPoints);
     const before = storedScoreParts(extra);
     const parts: ScoreParts =
