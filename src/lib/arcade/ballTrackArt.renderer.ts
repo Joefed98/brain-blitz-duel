@@ -244,9 +244,11 @@ function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderin
   pass(BALL_R * 2, movable ? "#C47A48" : "#AD7A4A");
   // Polish A3 (25 Oct 2026, art only): two carved rail grooves the marble rides between, each with
   // a lit lower lip, then the polished centre and the fine centre groove, all inside the channel.
-  pass(BALL_R * 1.3, movable ? "rgba(255,226,190,0.22)" : "rgba(255,232,200,0.2)", 0, 1.5);
-  pass(BALL_R * 1.3, "rgba(90,53,25,0.6)");
-  pass(BALL_R * 1.3 - 3, movable ? "#C47A48" : "#AD7A4A");
+  // Refinement: deeper grooves (a darker cut, a shadow under its upper wall and a brighter lower lip).
+  pass(BALL_R * 1.3 + 1, movable ? "rgba(255,226,190,0.4)" : "rgba(255,232,200,0.36)", 0, 2);
+  pass(BALL_R * 1.3, "rgba(58,30,10,0.9)");
+  pass(BALL_R * 1.3 - 3, "rgba(40,20,6,0.55)", 0, -1);
+  pass(BALL_R * 1.3 - 4, movable ? "#C47A48" : "#AD7A4A");
   pass(BALL_R * 0.9, movable ? "rgba(255,214,170,0.2)" : "rgba(255,226,186,0.17)");
 }
 
@@ -309,17 +311,22 @@ function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: numb
     c.fillStyle = tone > 0 ? `rgba(255,230,190,${0.035 * tone})` : `rgba(70,38,14,${-0.05 * tone})`;
     c.fillRect(x, y, t, t);
   }
-  const b = 5;
-  // Lit top and left faces.
-  c.fillStyle = "rgba(255,236,200,0.2)";
+  const b = 7;
+  // Lit top and left faces (refinement: a clearly visible bevel).
+  c.fillStyle = "rgba(255,238,205,0.4)";
   c.beginPath();
   c.moveTo(x, y); c.lineTo(x + t, y); c.lineTo(x + t - b, y + b); c.lineTo(x + b, y + b); c.lineTo(x + b, y + t - b); c.lineTo(x, y + t);
   c.closePath();
   c.fill();
   // Shaded bottom and right faces.
-  c.fillStyle = "rgba(70,36,12,0.26)";
+  c.fillStyle = "rgba(62,30,8,0.45)";
   c.beginPath();
-  c.moveTo(x + t, y + t); c.lineTo(x, y + t); c.lineTo(x + b, y + t - b); c.lineTo(x + t - b, y + t - b); c.lineTo(x + t - b, y + b); c.lineTo(x + t, y);
+  if (outerR) {
+    // On the world's right side only the bottom face is shaded (the screen fill runs on beside it).
+    c.moveTo(x + t, y + t); c.lineTo(x, y + t); c.lineTo(x + b, y + t - b); c.lineTo(x + t, y + t - b);
+  } else {
+    c.moveTo(x + t, y + t); c.lineTo(x, y + t); c.lineTo(x + b, y + t - b); c.lineTo(x + t - b, y + t - b); c.lineTo(x + t - b, y + b); c.lineTo(x + t, y);
+  }
   c.closePath();
   c.fill();
   // The joint between tiles and a hairline highlight on the bevel's crest. No joint along the world's
@@ -334,7 +341,7 @@ function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: numb
   c.lineTo(x + 0.75, y + t - 0.75);
   if (!outerL) c.lineTo(x + 0.75, y + 0.75);
   c.stroke();
-  c.strokeStyle = "rgba(255,240,210,0.16)";
+  c.strokeStyle = "rgba(255,240,210,0.3)";
   c.lineWidth = 1;
   c.strokeRect(x + b + 0.5, y + b + 0.5, t - b * 2 - 1, t - b * 2 - 1);
 }
@@ -385,11 +392,25 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
   }
   // Warm overhead light: a soft lamp pool from above the board's top, falling off down the board.
   const lamp = c.createRadialGradient(BT_W / 2, -BT_H * 0.08, BT_W * 0.1, BT_W / 2, BT_H * 0.25, BT_H * 0.75);
-  lamp.addColorStop(0, "rgba(255,214,150,0.2)");
-  lamp.addColorStop(0.55, "rgba(255,200,130,0.06)");
+  lamp.addColorStop(0, "rgba(255,220,160,0.36)");
+  lamp.addColorStop(0.5, "rgba(255,200,130,0.1)");
   lamp.addColorStop(1, "rgba(30,14,4,0.16)");
   c.fillStyle = lamp;
   c.fillRect(0, 0, BT_W, BT_H);
+  // Refinement: a darker vignette round the tile grid's edges (the grid only, so the shelves where the
+  // screen fill meets the world keep their colour and no seam shows).
+  const gridH = BT_ROWS * BT_TILE;
+  const vx = BT_W / 2;
+  const vy = gridY + gridH * 0.42;
+  c.save();
+  c.translate(vx, vy);
+  c.scale(1, gridH / BT_W);
+  const vig = c.createRadialGradient(0, 0, BT_W * 0.3, 0, 0, BT_W * 0.78);
+  vig.addColorStop(0, "rgba(30,14,4,0)");
+  vig.addColorStop(1, "rgba(30,14,4,0.3)");
+  c.fillStyle = vig;
+  c.fillRect(-vx, (gridY - vy) * (BT_W / gridH), BT_W, BT_W);
+  c.restore();
 }
 
 /**

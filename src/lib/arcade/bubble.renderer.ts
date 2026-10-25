@@ -348,7 +348,7 @@ function paintSpecial(value: number, directional: boolean) {
 function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
   c.save();
   const fine = Math.max(0.8, r * 0.06);
-  c.strokeStyle = "rgba(3,12,28,0.55)";
+  c.strokeStyle = "rgba(3,12,28,0.7)";
   c.lineWidth = fine;
   c.beginPath();
   c.arc(r, r, r - 0.5 - fine / 2, 0, Math.PI * 2);
@@ -357,19 +357,28 @@ function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
   c.rotate(-0.6);
   c.scale(1, 0.55);
   const sheen = c.createRadialGradient(0, 0, 0, 0, 0, r * 0.42);
-  sheen.addColorStop(0, "rgba(255,255,255,0.75)");
-  sheen.addColorStop(0.55, "rgba(255,255,255,0.22)");
+  sheen.addColorStop(0, "rgba(255,255,255,0.9)");
+  sheen.addColorStop(0.55, "rgba(255,255,255,0.32)");
   sheen.addColorStop(1, "rgba(255,255,255,0)");
   c.fillStyle = sheen;
   c.beginPath();
   c.arc(0, 0, r * 0.42, 0, Math.PI * 2);
   c.fill();
   c.restore();
-  c.strokeStyle = "rgba(255,255,255,0.28)";
-  c.lineWidth = Math.max(0.6, r * 0.035);
+  c.strokeStyle = "rgba(255,255,255,0.45)";
+  c.lineWidth = Math.max(0.8, r * 0.05);
   c.beginPath();
   c.arc(r, r, r - fine - Math.max(0.6, r * 0.05), Math.PI * 0.55, Math.PI * 1.05);
   c.stroke();
+  // Refinement (A3): a bright highlight crescent high on the lit side, inside the rim.
+  c.save();
+  c.strokeStyle = "rgba(255,255,255,0.92)";
+  c.lineCap = "round";
+  c.lineWidth = Math.max(1, r * 0.11);
+  c.beginPath();
+  c.arc(r, r, r * 0.8, Math.PI * 1.12, Math.PI * 1.5);
+  c.stroke();
+  c.restore();
 }
 
 export function paintBubble(value: number) {
@@ -399,7 +408,8 @@ export function paintBubble(value: number) {
     c.beginPath();
     c.arc(r, r, r - c.lineWidth, 0, Math.PI * 2);
     c.stroke();
-    drawCreature(c, bubCreature(value), r, r + r * 0.04, r);
+    // Refinement (A3): the creature fills about 60 % of the bubble's diameter (was ~80 %), so more glass shows.
+    drawCreature(c, bubCreature(value), r, r + r * 0.03, r * 0.75);
     // Rim highlight, a round glint and the reflected light low on the far side.
     c.strokeStyle = "rgba(255,255,255,0.85)";
     c.lineWidth = Math.max(1, r * 0.12);
@@ -575,8 +585,8 @@ function bubbleRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: numb
     const x = w * (0.06 + i * 0.22) + sway;
     const spread = w * (0.1 + (i % 2) * 0.05);
     const ray = ctx.createLinearGradient(0, 0, 0, h * 0.85);
-    ray.addColorStop(0, `rgba(170,225,255,${i % 2 ? 0.1 : 0.14})`);
-    ray.addColorStop(0.6, "rgba(150,215,255,0.04)");
+    ray.addColorStop(0, `rgba(170,225,255,${i % 2 ? 0.2 : 0.28})`);
+    ray.addColorStop(0.6, "rgba(150,215,255,0.08)");
     ray.addColorStop(1, "rgba(150,215,255,0)");
     ctx.fillStyle = ray;
     ctx.beginPath();
