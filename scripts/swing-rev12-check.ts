@@ -1,5 +1,5 @@
 /**
- * Grappler's expansion (swingRev 12, 25 Oct 2026, docs/expansions/e7-swing.md): a wider, deeper cave
+ * Grappler's expansion (swingRev 12, 25 Oct 2026, docs/expansions/e7.md): a wider, deeper cave
  * (450 × 844) with high-route gems, low-route speed gates, swing combos and set-route ledge sections
  * (start ledge, landing ledges, a collapsing one, the finish flag), scored to 200.
  *

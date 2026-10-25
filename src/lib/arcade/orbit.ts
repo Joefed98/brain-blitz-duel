@@ -53,7 +53,7 @@ export const ORBIT_REV_TARGET = 9;
 /** orbitRev 10 (score bands, 19 Oct 2026, docs/scoring-targets.md): orbitRev 9 play, scored on its strict curve (band 3). */
 export const ORBIT_REV_STRICT = 10;
 /**
- * orbitRev 11 (world expansion, 25 Oct 2026, docs/expansions/e7-orbit.md): orbitRev 10's course, holes and base
+ * orbitRev 11 (world expansion, 25 Oct 2026, docs/expansions/e7.md): orbitRev 10's course, holes and base
  * scoring in a bigger 450 × 782 view, plus stardust trails, slingshot moons, asteroid fields and perfect orbits,
  * which alone earn the extra 50 to 200 (orbitRev3.ts "World expansion").
  */

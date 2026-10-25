@@ -1,5 +1,5 @@
 /**
- * orbit-rev11-check: Orbit's world expansion (orbitRev 11, 25 Oct 2026, docs/expansions/e7-orbit.md).
+ * orbit-rev11-check: Orbit's world expansion (orbitRev 11, 25 Oct 2026, docs/expansions/e7.md).
  *
  *  1. Legacy: 96 runs recorded on main before orbitRev 11 (scripts/orbit-rev11-record.ts: the skill-band bots on
  *     orbitRev 10, 8 and 7 bank courses) replay through the server's path to the same score, final checkpoint

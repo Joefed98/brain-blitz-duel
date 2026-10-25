@@ -1,5 +1,5 @@
 /**
- * Old-round records for Grappler's expansion (swingRev 12, 25 Oct 2026, docs/expansions/e7-swing.md).
+ * Old-round records for Grappler's expansion (swingRev 12, 25 Oct 2026, docs/expansions/e7.md).
  * Real skill-band runs on the revisions rooms stamped just before it (swingRev 9, 10 and 11; every
  * older one is in scripts/fixtures/arcade-tuning-g3-legacy.json), played by the skill-band bots
  * through the server encode + replay path of the code at <root>, recorded as score + FNV-1a of the

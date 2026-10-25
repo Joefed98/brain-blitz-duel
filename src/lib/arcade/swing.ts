@@ -1408,7 +1408,7 @@ export const SWING_V11_BAND_CURVE = bandStrict(SWING_V9_BAND_CURVE);
 /* ================= The expansion (swingRev 12, 25 Oct 2026) ================= */
 
 /**
- * swingRev 12 (world expansion and depth, docs/expansions/e7-swing.md; the round's maximum is 200,
+ * swingRev 12 (world expansion and depth, docs/expansions/e7.md; the round's maximum is 200,
  * src/lib/duel/roundMax.ts). Every rule below is gated on the state's `expand` marker, so every
  * earlier revision plays and scores exactly as before.
  *
@@ -1481,7 +1481,7 @@ export const SWING_V12_MAX = 200;
  * star, as rev 11. The deeper cave takes fewer runs into the lava, so the same players go further; the
  * knots were fitted by matching the skill-band players' unit quantiles on rev 12 to their curve points
  * on rev 11 (the same bank courses, 30 a level), so today's players keep today's base score
- * (docs/expansions/e7-swing.md has the fit and the tuning table).
+ * (docs/expansions/e7.md has the fit and the tuning table).
  */
 export const SWING_V12_BAND_CURVE = bandCurve([0, 55, 74, 129, 166, 215, 260, 329, 489, 515, 550], [0, 46, 60, 84, 93, 107, 117, 129, 133, 135, 140]);
 
