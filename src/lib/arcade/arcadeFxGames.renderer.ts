@@ -1288,7 +1288,8 @@ export const hoverFxFor = (s: HoverState): ArcadeFxSpec<HoverState> => fxSpecAt(
 /** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
 export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
-const SNAKE_FX_V9: ArcadeFxSpec<SnakeState> = { ...SNAKE_FX, width: SNAKE_V9_WORLD_W, height: SNAKE_V9_H };
+/** snakeRev 9 (expansion E2): the wider, taller world rooms deal. */
+export const SNAKE_FX_V9: ArcadeFxSpec<SnakeState> = { ...SNAKE_FX, width: SNAKE_V9_WORLD_W, height: SNAKE_V9_H };
 export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => (s.cols ? SNAKE_FX_V9 : fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s))));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
@@ -1362,7 +1363,7 @@ export const ARCADE_FX_SPECS = {
   breaker: BREAKER_FX_TALL,
   rally: RALLY_FX_TALL,
   beat: BEAT_FX_TALL,
-  snake: SNAKE_FX_TALL,
+  snake: SNAKE_FX_V9,
   burst: BURST_FX_TALL,
   wavefront: WAVEFRONT_FX_TALL,
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
