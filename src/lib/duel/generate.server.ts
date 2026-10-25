@@ -9,6 +9,7 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
+import { stampNumberDepth, withNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -125,7 +126,8 @@ export interface GenerateContext {
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
+  // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
+  return stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -267,11 +269,21 @@ export function gradeAnswer(
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
   const today = gradeToday(puzzle, answer, graded, receivedMsRemaining);
-  // Word depth to 200 (25 Oct 2026, wordDepth.server.ts): only puzzles carrying their game's depth stamp.
-  const depth = wordDepthGrader(puzzle);
-  return depth ? depth.grade({ puzzle, answer, graded, today, receivedMsRemaining }) : today;
+  // Depth to 200 (25 Oct 2026): a puzzle carrying its game's depth stamp goes to that game's depth grader, once.
+  // Word games (wordDepth.server.ts) by their own stamps; Number games (numberDepth.server.ts) by depthRev 1, on a grade
+  // rev 2 / rev 3 made. Puzzles without a depth stamp grade as today.
+  const word = wordDepthGrader(puzzle);
+  if (word) return word.grade({ puzzle, answer, graded, today, receivedMsRemaining });
+  return gradedOnBands(puzzle) ? withNumberDepth(puzzle, answer, today) : today;
 }
 
+/** True when today's grade came through rev 3's helper or rev 2's curve (not the game's own grade as is). */
+function gradedOnBands(puzzle: PuzzleData): boolean {
+  const rev = puzzleScoreRevOf(puzzle);
+  return (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) || (rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type));
+}
+
+/** The grade today's stamps give: rev 3's helper, rev 2's curve, or the game's own grade (at most 150). */
 function gradeToday(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.

@@ -62,7 +62,8 @@ import type {
   PuzzleType,
 } from "@/lib/duel/types";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
-import { bandsIntro } from "../src/lib/duel/puzzleBandsText";
+import { depthIntro } from "../src/lib/duel/numberDepthText";
+import { fillMax } from "../src/lib/duel/roundMax";
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
@@ -92,10 +93,11 @@ const REV_KEY = { measure: "measureRev", checkout: "checkoutRev", numline: "numl
 const LIMIT = { measure: 120_000, checkout: 90_000, numline: 75_000 } as const;
 // The Oct 2026 puzzle score shape (puzzleScoreRev 1) lines; stored rounds keep their old scoring (anchors below).
 // The intro lines since the score bands (19 Oct 2026, puzzleBandsText.ts); the rev-1 numbers stay in this check's grading.
+// The intros state the rounds rooms deal today: depthRev 1, to 200 (numberDepthText.ts; number-depth-check proves them).
 const SCORE_LINES = {
-  measure: bandsIntro("measure"),
-  checkout: bandsIntro("checkout"),
-  numline: "Up to 8 per number, more if quick and close; far-off ones lose 1. 150 is perfect.",
+  measure: fillMax(depthIntro("measure"), "measure"),
+  checkout: fillMax(depthIntro("checkout"), "checkout"),
+  numline: fillMax(depthIntro("numline"), "numline"),
 };
 /**
  * The same puzzle as a stored round from before the new shape (no puzzleScoreRev stamp). Ballpark's copy

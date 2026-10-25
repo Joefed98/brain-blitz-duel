@@ -36,6 +36,9 @@ import {
 import { clearProgressCaches, targetProgress, SLIDER_ROW_POINTS } from "../src/lib/duel/puzzleProgress";
 import { DEALT_LIMIT_S, fastFinishSeconds, rev3Help, rev3Intro } from "../src/lib/duel/puzzleBandsText";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { isNumberDepthType } from "../src/lib/duel/numberDepth";
+import { depthHelp, depthIntro } from "../src/lib/duel/numberDepthText";
+import { fillMax } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { REV3_FIXTURE, type Rev3Game } from "./scoring-rev3-record";
@@ -268,8 +271,11 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(rev3Help(type).includes(`about ${n} s with no mistakes`), `${type}: the rev-3 help states its numbers`);
   // Word depth (25 Oct 2026): the nine word games state their depth curves (proved by their depth-<game>-checks).
   if (WORD_DEPTH_GAMES.includes(type)) continue;
-  ok(PUZZLE_INSTRUCTIONS[type]?.score === rev3Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
-  ok(INTRO_SCORE[type] === rev3Intro(type) && rev3Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
+  // The Number puzzles to 200 (depthRev 1) keep rev 3's numbers inside their own text (numberDepthText.ts).
+  const help = isNumberDepthType(type) ? depthHelp(type) : rev3Help(type);
+  const intro = isNumberDepthType(type) ? fillMax(depthIntro(type), type) : rev3Intro(type);
+  ok(help.includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === help, `${type}: the "?" help does not state the rev-3 numbers`);
+  ok(INTRO_SCORE[type] === intro && intro.length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
 }
 
 if (failures.length) {

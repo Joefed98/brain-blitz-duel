@@ -82,6 +82,8 @@ export interface TenDropResult {
   inputDiag: InputDiag;
   replayTick: number;
   checkpoints: TenDropCheckpoint[];
+  /** tenRev 4: tens made by the gold tile (absent on older revisions). */
+  goldTens?: number;
   reason?: string;
   state: TenDropState;
 }
@@ -136,6 +138,7 @@ export function replayTenDropRun(seed: number, raw: string, scoreRev?: number): 
     inputDiag: check.diag,
     replayTick: reached,
     checkpoints: serverCheckpoints,
+    ...(state.goldTens !== undefined ? { goldTens: state.goldTens } : {}),
     state,
   };
   if (check.reason) result.reason = check.reason;

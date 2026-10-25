@@ -105,7 +105,9 @@ export async function startPractice(page: Page, type: string, again = false): Pr
 
 /** The room's intro (chat bar showing), then the server moves the round live. */
 export async function startRoom(page: Page): Promise<void> {
-  await page.waitForSelector("[data-chat-bar]", { timeout: 120_000 });
+  // The room's round intro with its chat control. Since Polish batch R (25 Oct 2026) the chat button
+  // sits in the intro's own footer (RoundIntro, RoomChatSlot) instead of a separate chat bar.
+  await page.waitForSelector(".round-intro [data-room-chat-button]", { timeout: 120_000 });
   await page.evaluate(() =>
     (window as unknown as { __harness: { update: (f: (r: { duel: Record<string, unknown> }) => void) => void } }).__harness.update((r) => {
       const at = new Date(Date.now() + 300).toISOString();

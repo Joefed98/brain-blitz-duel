@@ -7,6 +7,8 @@
  * room API, Supabase, the room/chat hooks and the router. The check sets the room
  * state (status, phase, results) each screen is drawn from.
  */
+// First: a check may pin games' maximums before any app module reads one (round-max-pin.ts).
+import "./round-max-pin";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";

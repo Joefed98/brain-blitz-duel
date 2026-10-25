@@ -63,6 +63,13 @@ export const NUMBER_TUNING_PRESENTATION = "oct14-number-tuning";
 export const WORD_BATCH_DEMOS = new Set(["strikeout", "wordsearch", "letterwheel", "codeword"]);
 export const WORD_BATCH_PRESENTATION = "oct14-word-batch";
 /**
+ * Number depth to 200 (25 Oct 2026, depthRev 1): Exact deals targets with a five- and a six-number answer and
+ * Checkout's boards take a big finish, so both fixed intro examples change; older coordinate demos would tap the
+ * wrong numbers and wedges, so they are rejected (the intro shows the game's still) until re-recorded.
+ */
+export const NUMBER_DEPTH_DEMOS = new Set(["target", "checkout"]);
+export const NUMBER_DEPTH_PRESENTATION = "oct25-number-depth";
+/**
  * Lookout depth (25 Oct 2026, wordSearchRev 3): the board hides a bonus word (its letters change the intro grid)
  * and the chips gain the bonus star; older coordinate demos are rejected until re-recorded.
  */
@@ -84,6 +91,7 @@ export function puzzlePresentation(type: string): string {
   if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
   if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
   if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;
+  if (NUMBER_DEPTH_DEMOS.has(type)) return NUMBER_DEPTH_PRESENTATION;
   if (OCT14_BATCH_DEMOS.has(type)) return OCT14_BATCH_PRESENTATION;
   if (WORD_BATCH_DEMOS.has(type)) return WORD_BATCH_PRESENTATION;
   if (ATTENTION_REWORK_DEMOS.has(type)) return ATTENTION_REWORK_PRESENTATION;
@@ -97,7 +105,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

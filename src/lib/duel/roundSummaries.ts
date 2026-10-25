@@ -1104,9 +1104,11 @@ const whackSummary: SummaryBuilder = (result, puzzle) => {
 const tenDropSummary: SummaryBuilder = (result) => {
   const cleared = Number(result.extra?.["cleared"] ?? 0);
   const resets = Number(result.extra?.["resets"] ?? 0);
+  // tenRev 4: tens made by the gold tile.
+  const gold = result.extra?.["goldTens"];
   return {
     summary: `${cleared} / 10 targets`,
-    detail: [`${resets} reset${resets === 1 ? "" : "s"}`],
+    detail: [`${resets} reset${resets === 1 ? "" : "s"}`, ...(typeof gold === "number" ? [`${gold} gold ten${gold === 1 ? "" : "s"}`] : [])],
   };
 };
 
