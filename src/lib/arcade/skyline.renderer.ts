@@ -641,11 +641,12 @@ export const SKYLINE_ART_BG = REAL_NIGHT_BG;
 export function skylineRiverFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  const quay = Math.min(10, r.h * 0.3);
+  // The quay's top runs on from the base's ground colour (at least 10 px, so no seam at the world's edge).
+  const quay = Math.min(12, r.h);
   fillGradient(ctx, r, r.y, r.y + r.h, [
     [0, "#3E4B5E"],
-    [Math.min(0.4, (quay - 3) / r.h), "#2F3A4E"],
-    [Math.min(0.5, quay / r.h), "#161C3C"],
+    [Math.min(0.9, (quay - 3) / r.h), "#36435A"],
+    [Math.min(0.95, quay / r.h), "#161C3C"],
     [1, "#0A0D22"],
   ]);
   ctx.fillStyle = "rgba(190,205,230,0.22)";

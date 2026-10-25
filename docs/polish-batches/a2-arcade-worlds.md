@@ -64,7 +64,7 @@ colour), or a cheap per-frame blit of a cached sprite. Glows are skipped under r
   body, rim caps and exact stamp are unchanged (ink-rainbow-check).
 - **HUD**: the level and the ink meter (with its fail dots, now outlined) sit on soft white pills.
 - **Dock**: the four buttons keep their order, names, size (48 px) and place; Undo, Reset and Drop
-  again are dark glass (the toolkit's `.gf-glass` over a dark fill), Release is gold, and a dark
+  again are dark glass (the toolkit's `.gf-glass` look, set inline), Release is gold, and a dark
   translucent backing is drawn round the row (absolutely placed, so the row's size and the world's
   size are unchanged).
 
