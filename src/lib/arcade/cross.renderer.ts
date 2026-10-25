@@ -11,6 +11,7 @@ import { drawHero, heroPose, type HeroPose } from "./hero.renderer";
  */
 import { px, type CanvasSize } from "./engine";
 import {
+  CROSS_WORLD_H,
   crossColumnCentreFp,
   crossCourse,
   CROSS_COL_W,
@@ -47,6 +48,9 @@ import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
+
+/** crossRev 8: the plain paving stone of the world's foot (the slab pattern's own face colour). */
+const CROSS_X_FOOT_PAVING = "#B5B9C0";
 
 // Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
 // realworld.renderer re-exports drawVehicle from this module).
@@ -1021,7 +1025,9 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   // grass strip under it is paved too, so pavement runs on unbroken past the world's edge.
   if (pavedFoot) {
     const foot = crossStartTop(g) + g.startH - 2;
-    ctx.fillStyle = tex.paving ?? "#BCC1C8";
+    // crossRev 8's world ends 7 px under a slab joint: its foot is the paving's plain stone, so no
+    // joint lines the world's bottom edge (the scene below carries the slabs on).
+    ctx.fillStyle = g.island ? CROSS_X_FOOT_PAVING : (tex.paving ?? "#BCC1C8");
     ctx.fillRect(CROSS_BOARD_X, foot, CROSS_BOARD_W, worldH - foot);
   }
   // Finish pavement pulse after a clean crossing.
@@ -1228,16 +1234,19 @@ export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneV
   const below = sceneBelow(view);
   if (!below) return;
   paintGrass(ctx, below.x, below.y, below.w, below.h);
-  const verge = Math.min(14, below.h);
+  // crossRev 8's world fills the screen: the short strip below is all pavement, no grass verge.
+  const verge = view.worldH > CROSS_WORLD_H && below.h < 40 ? 0 : Math.min(14, below.h);
   const paved = below.h - verge;
   if (paved > 0) {
     ctx.fillStyle = tex.paving ?? "#BCC1C8";
     ctx.fillRect(CROSS_BOARD_X, below.y, CROSS_BOARD_W, paved);
     // The paving's outer edge: a low edging stone, then the grass edge's shadow.
+    if (verge > 0) {
     ctx.fillStyle = REAL_KERB;
     ctx.fillRect(CROSS_BOARD_X, below.y + paved - 3, CROSS_BOARD_W, 3);
     ctx.fillStyle = "rgba(30,38,48,0.35)";
     ctx.fillRect(CROSS_BOARD_X, below.y + paved - 1, CROSS_BOARD_W, 1);
+    }
     ctx.fillStyle = "rgba(30,50,20,0.18)";
     ctx.fillRect(CROSS_BOARD_X - 2, below.y, 2, paved);
     ctx.fillRect(CROSS_BOARD_X + CROSS_BOARD_W, below.y, 2, paved);
