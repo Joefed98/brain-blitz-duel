@@ -211,6 +211,9 @@ function eyes(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number):
 function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: CanvasRenderingContext2D): void {
   const now = typeof performance === "undefined" ? 0 : performance.now();
   const motion = !reducedMotion();
+  // snakeRev 9: the wider board (the original otherwise), set before anything places a square.
+  BX = snakeBoardXOf(state);
+  COLS = snakeColsOf(state);
   const memo = memory(key, state, now);
   const age = now - memo.eatAt;
   const deathAge = now - memo.deathAt;
@@ -218,8 +221,6 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const SNAKE_WORLD_H = snakeWorldHFor(rows);
   // snakeRev 9: the wider world and board (the original otherwise).
   const W = snakeWorldWOf(state);
-  BX = snakeBoardXOf(state);
-  COLS = snakeColsOf(state);
   const cols = COLS, bx = BX;
   backdrop(ctx, `meteor-space:${W}`, W, SNAKE_WORLD_H, (c) => paintSpace(c, rows, SNAKE_WORLD_H, W, cols, bx));
   drawGrid(ctx, rows, cols, bx);

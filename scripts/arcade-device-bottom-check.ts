@@ -282,7 +282,7 @@ const METEOR_INIT = `(() => {
     const fxKey = (s.showerDone ?? 0) + ":" + Math.floor((s.eaten ?? 0) / 10) + ":" + dodged;
     if (window.__meteorFxKey !== undefined && window.__meteorFxKey !== fxKey) window.__meteorFxAt = performance.now();
     window.__meteorFxKey = fxKey;
-    window.__meteor = { tick: s.tick, head: s.body[0], nextDir: s.nextDir, rows: s.rows ?? 20, rocks: (s.rocks ?? []).length, dead: !!s.dead, over: !!over, t0: p ? p.t0 : null, fxAt: window.__meteorFxAt ?? null };
+    window.__meteor = { tick: s.tick, head: s.body[0], nextDir: s.nextDir, rows: s.rows ?? 20, cols: s.cols ?? 15, rocks: (s.rocks ?? []).length, dead: !!s.dead, over: !!over, t0: p ? p.t0 : null, fxAt: window.__meteorFxAt ?? null };
   };
 })();`;
 const METEOR_DPR = 2;
@@ -381,7 +381,7 @@ const METEOR_MODES: readonly MeteorMode[] = ["full", "reduced-motion", "reduced-
  */
 async function meteorEdgePass(browser: import("playwright").Browser, origin: string, failures: string[], mode: MeteorMode = "full"): Promise<void> {
   const { loadImage, createCanvas } = await import("@napi-rs/canvas");
-  const { SNAKE_COLS, SNAKE_WORLD_W, snakeWorldHFor } = await import("../src/lib/arcade/snake");
+  const { snakeBoardXOf, snakeWorldWOf, snakeWorldHFor } = await import("../src/lib/arcade/snake");
   const { meteorBorderLook, meteorBorderRect, METEOR_BORDER_COLOURS, METEOR_BORDER_PERIOD_MS, METEOR_BORDER_PULSE_MS, METEOR_BORDER_REST_ALPHA } = await import("../src/lib/arcade/snake.renderer");
   const where = `snake iphone11-app bottom edge${mode === "full" ? "" : ` (${mode})`}`;
   const hold = mode !== "full";
@@ -436,12 +436,16 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
     await freezeClock(page);
     const step = () => page.clock.runFor(16);
     for (let i = 0; i < 6; i++) await step();
-    const start = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; rows: number } | null }).__meteor);
+    const start = await page.evaluate(() => (window as unknown as { __meteor: { tick: number; rows: number; cols: number } | null }).__meteor);
     if (!start) {
       failures.push(`${where}: the run never reported a tick`);
       return;
     }
     const rows = start.rows;
+    // snakeRev 9 (expansion E2): the wider grid's columns, world width and board edge.
+    const SNAKE_COLS = start.cols;
+    const SNAKE_WORLD_W = snakeWorldWOf({ cols: SNAKE_COLS === 15 ? undefined : SNAKE_COLS });
+    const boardX = snakeBoardXOf({ cols: SNAKE_COLS === 15 ? undefined : SNAKE_COLS });
     const bottomRow = rows - 1;
     const cell = (r: number, c: number) => r * SNAKE_COLS + c;
     // The rock lands at 2.3 s and the shower at 3.7 s (each after Meteor's 2 s warning), on the bottom row, clear of the bot's loop.
@@ -519,7 +523,7 @@ async function meteorEdgePass(browser: import("playwright").Browser, origin: str
       frames++;
       const dpr = f.dpr;
       // The border and the margin under it, from the canvas's own pixels (see the header).
-      const r = meteorBorderRect(f.canvas.w / SNAKE_WORLD_W, f.canvas.h / snakeWorldHFor(rows), 0, 0, rows);
+      const r = meteorBorderRect(f.canvas.w / SNAKE_WORLD_W, f.canvas.h / snakeWorldHFor(rows), 0, 0, rows, SNAKE_COLS, boardX);
       const bf = await page.evaluate(meteorBorderFrame, { k: BORDER_ROWS, top: r.y0, x0: r.x0, x1: r.x1 });
       if (bf) {
         const top = f.canvas.h - BORDER_ROWS;
