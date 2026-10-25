@@ -29,6 +29,13 @@ import { INTRO_MS } from "../src/lib/duel/types";
 
 const FIXTURE = "scripts/fixtures/celebrations-off.json";
 const RECORD = process.argv.includes("--record-off");
+/**
+ * The maximums the fixture's room screens were recorded with (theme-screens' rooms play Box Six and
+ * Gemstone, scores up to 176): every screen here is drawn with them pinned in the page (round-max-pin.ts),
+ * so the switched-off markup and the count-ups' end values compare the same screens after an expansion
+ * raises either game (docs/scoring-200.md), and a re-recording on any branch draws them the same way.
+ */
+const RECORDED_MAX = { sudoku: 150, matchup: 150 } as const;
 const SHOTS = process.argv.find((a) => a.startsWith("--shots="))?.slice(8) ?? null;
 const CHROMIUM = CHROMIUM_PATHS.find((p) => p && existsSync(p));
 const APP: ThemeViewport = { name: "414x896 home-screen app", w: IPHONE11_APP.w, h: IPHONE11_APP.h, app: true, scale: 2 };
@@ -174,6 +181,9 @@ interface Opened {
 async function open(browser: Browser, origin: string, key: string, on: boolean | null, opts: { reduced?: boolean } = {}): Promise<Opened> {
   const screen = SCREENS[key]!;
   const { context, page } = await openThemeScreen(browser, origin, screen, APP, async (ctx) => {
+    await ctx.addInitScript((pin) => {
+      (window as unknown as { __DUELZ_PIN_ROUND_MAX__: Record<string, number> }).__DUELZ_PIN_ROUND_MAX__ = pin;
+    }, { ...RECORDED_MAX });
     await prepare(ctx, on, screen.ready);
     if (opts.reduced) await ctx.addInitScript(() => {
       const real = window.matchMedia.bind(window);
