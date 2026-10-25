@@ -34,6 +34,8 @@ import {
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
 import { FX_PARTICLE_LIMIT } from "@/lib/fx/limits";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { addPop, addShatter, backdrop, blob, drawPops, glow, linear, pixelStars, radial, rise } from "./polishA1.renderer";
 
 export const BURST_FX_ENEMY_THRESHOLD = 24;
 export const BURST_FX_SHOT_THRESHOLD = 8;
@@ -54,6 +56,9 @@ const SNOWFLAKE = ["X..X..X.", ".X.X.X..", "..XXX...", "XXXXXXX.", "..XXX...", "
 export function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string, tier: number, bloom = true): void {
   c.save(); c.beginPath(); c.arc(r, r, r, 0, Math.PI * 2); c.clip();
   c.fillStyle = `${colour}22`; c.fill();
+  // Polish A1: shaded like a sphere, lit from the top left, darker towards the bottom right (inside the disc).
+  c.fillStyle = radial(c, r * 0.7, r * 0.62, r * 1.45, [[0, `${colour}66`], [0.45, `${colour}26`], [1, "rgba(0,0,0,0.45)"]]);
+  c.fillRect(0, 0, r * 2, r * 2);
   c.strokeStyle = colour; c.lineWidth = 1.2;
   c.beginPath(); c.arc(r, r, r - .6, 0, Math.PI * 2); c.stroke();
   c.shadowColor = colour; c.shadowBlur = bloom ? 4 : 0;
@@ -96,7 +101,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BurstState, size: CanvasSize
   lifeMemo.set(ctx, { tick: state.tick, lives: state.lives });
   const age = retroEventAge(ctx, "life", lost);
   const flash = age < 400 ? 1 - age / 400 : 0;
-  retroScreen(ctx, size, BURST_WORLD_W, burstFloorY(state), "fit", (c) => arcadeFx(c, burstFxFor(state), state, () => drawWorld(c, state, flash)), flash);
+  retroScreen(ctx, size, BURST_WORLD_W, burstFloorY(state), "fit", (c) => arcadeFx(c, burstFxFor(state), state, () => drawWorld(c, state, flash, ctx)), flash);
 }
 
 type Stamp = { layer: ArtCanvas; width: number; height: number; pad: number };
@@ -187,11 +192,12 @@ function particles(ctx: CanvasRenderingContext2D, state: BurstState): void {
   ctx.globalAlpha = 1;
 }
 
-function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: number): void {
+function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: number, key: object = ctx): void {
   const tick = state.tick;
   // burstRev 4: the taller arena's floor and its scaled ceiling (560 otherwise).
   const BURST_FLOOR_Y = burstFloorY(state);
   const ceil = burstCeiling(state.wave, BURST_FLOOR_Y);
+  backdrop(ctx, "fission-space", BURST_WORLD_W, BURST_FLOOR_Y, (c) => paintSpace(c, BURST_FLOOR_Y));
 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
   const touching = state.balls.some((b) => b.y / FP - (BURST_RADIUS[b.size] ?? 8) <= ceil + 2);
@@ -209,7 +215,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const x = shot.x / FP;
     const top = shot.top / FP;
     const bottom = shot.short ? top + BURST_SHORT_LEN : BURST_FLOOR_Y;
-    if (bottom > top) glowRect(ctx, x - 1, top, 2, bottom - top, BEAM, shot.short ? "beam-short" : "beam-long", true);
+    if (bottom > top) {
+      beamHalo(ctx, x, top, bottom - top);
+      glowRect(ctx, x - 1, top, 2, bottom - top, BEAM, shot.short ? "beam-short" : "beam-long", true);
+    }
   }
 
   // Power-up icons inside their 16 × 16 boxes.
@@ -234,6 +243,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const stamp = cachedArt(`atom:${ball.size}`, r * 2, r * 2, colour, 0,
       c => paintAtom(c, r, colour, ball.size));
     const x = ball.x / FP, y = ball.y / FP;
+    // Polish A1: a soft glow in the atom's colour, at most 3 px past its disc.
+    glow(ctx, colour, x, y, r + 3, r + 3, 0.42);
     if (stamp) blit(ctx, stamp, x - r, y - r);
     else { ctx.save(); ctx.translate(x - r, y - r); paintAtom(ctx, r, colour, ball.size, false); ctx.restore(); }
     // A bounded, short flash at the existing split event; daughters are sim objects.
@@ -268,6 +279,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   }
   successFrame(ctx,{id:'burst',tick:state.tick,count:0,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
+  splitPop(ctx, state, key);
 
   // Ship in the exact player box; flashes while invulnerable or just hit.
   const hide = state.invuln > 0 && Math.trunc(tick / 5) % 2 === 1;
@@ -304,6 +316,67 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   if (freeze > 0) retroText(ctx, `FREEZE ${Math.ceil(freeze / 60)}`, 14, 34, 10, ICE);
   for (let i = 0; i < BURST_LIVES; i++) {
     sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  }
+}
+
+/**
+ * Polish A1: a split's pixel shatter in the atom's colour and white, with "SPLIT!" (the smallest atom,
+ * which vanishes, gets the shatter alone). Blitted from cached squares, so the game's own particle
+ * rects (and their shared cap) are unchanged; skipped while the arena is crowded, as the particles are.
+ */
+function splitPop(ctx: CanvasRenderingContext2D, state: BurstState, key: object): void {
+  const fresh = rise(key, "burst-pop", state.tick, state.popTick) > 0 && state.tick - state.popTick < 4;
+  if (fresh && state.balls.length <= BURST_FX_ENEMY_THRESHOLD && state.shots.length <= BURST_FX_SHOT_THRESHOLD) {
+    const x = state.popX / FP, y = state.popY / FP;
+    const colour = retroNeon(BURST_COLOURS[state.popSize] ?? RETRO_WHITE);
+    const r = BURST_RADIUS[state.popSize] ?? 8;
+    addShatter(key, x, y, [colour, RETRO_WHITE, colour], state.popSize < 3 ? 12 : 8, r + 10);
+    if (state.popSize < 3) addPop(key, x, y - r - 8, "SPLIT!", colour, 9, 3);
+  }
+  drawPops(ctx, key, BURST_WORLD_W);
+}
+
+/** Polish A1: a soft green light round a beam (one stretched glow blit; skipped under reduced effects). */
+const beamHalos = new Map<string, ArtCanvas | null>();
+function beamHalo(ctx: CanvasRenderingContext2D, x: number, top: number, height: number): void {
+  if (arcadeReducedEffects()) return;
+  let layer = beamHalos.get("beam");
+  if (layer === undefined) {
+    const canvas = artCanvas(32, 2);
+    const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+    if (canvas && c) {
+      c.fillStyle = linear(c, 0, 0, 32, 0, [[0, `${BEAM}00`], [0.5, `${BEAM}88`], [1, `${BEAM}00`]]);
+      c.fillRect(0, 0, 32, 2);
+    }
+    layer = canvas && c ? canvas : null;
+    beamHalos.set("beam", layer);
+  }
+  if (!layer) return;
+  ctx.globalAlpha = 0.45;
+  ctx.drawImage(layer as CanvasImageSource, x - 8, top, 16, height);
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Polish A1: Fission's sky, painted once per arena height (backdrop): near-black with a deep green
+ * glow rising from the ground and a fainter one overhead, and a pixel starfield; it settles to the
+ * ground's dark teal at the floor (where the screen fill takes over) and to black at the sides.
+ */
+function paintSpace(c: CanvasRenderingContext2D, floorY: number): void {
+  const W = BURST_WORLD_W;
+  c.fillStyle = linear(c, 0, 0, 0, floorY, [[0, "#020604"], [0.6, "#03100A"], [1, "#072019"]]);
+  c.fillRect(0, 0, W, floorY);
+  blob(c, W * 0.5, floorY * 1.02, W * 0.85, "#0F7A45", 0.5, 0.75);
+  blob(c, W * 0.2, floorY * 0.3, W * 0.5, "#0B5A3A", 0.26, 1.3);
+  blob(c, W * 0.82, floorY * 0.45, W * 0.42, "#126B5A", 0.2, 1.3);
+  pixelStars(c, 0, 0, W, floorY * 0.85, 120, 1717, ["#FFFFFF", "#B8FFD0", "#9FF5EA", "#E8FFE0"], 0.8);
+  // The last few px settle to black under the floor's soft edge, as before, so the floor stays a soft
+  // edge (not a line) against the ground below.
+  c.fillStyle = linear(c, 0, floorY - 12, 0, floorY - 2, [[0, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,1)"]]);
+  c.fillRect(0, floorY - 12, W, 12);
+  for (const [x, x0, x1] of [[0, 0, 8], [W - 8, W, W - 8]] as const) {
+    c.fillStyle = linear(c, x0, 0, x1, 0, [[0, "rgba(0,0,0,0.75)"], [1, "rgba(0,0,0,0)"]]);
+    c.fillRect(x, 0, 8, floorY);
   }
 }
 
