@@ -273,7 +273,11 @@ export const SO2_RULES: So2Rules = { maxStrikes: SO_MAX_STRIKES, maxVowels: SO2_
 export const SO3_RULES: So2Rules = { maxStrikes: SO3_MAX_STRIKES, maxVowels: SO3_MAX_VOWELS, strikePoints: SO3_STRIKE_POINTS };
 export const SO4_RULES: So2Rules = { maxStrikes: SO4_MAX_STRIKES, maxVowels: SO3_MAX_VOWELS, strikePoints: SO4_STRIKE_POINTS };
 
-/** The rules for a stored rev (2, 3 or 4; rev 1 has its own replay). */
+// Rev 5 (25 Oct 2026, word depth to 200; docs/depth/d1-word.md): rev 4's rules exactly, scored to 200 with the
+// early-solve bonus (depth/strikeout.server.ts). so2Rules treats 5 as 4.
+export const STRIKEOUT_REV5 = 5;
+
+/** The rules for a stored rev (2, 3, 4 or 5; rev 1 has its own replay). */
 export function so2Rules(rev: number): So2Rules {
   return rev >= STRIKEOUT_REV4 ? SO4_RULES : rev >= STRIKEOUT_REV3 ? SO3_RULES : SO2_RULES;
 }
@@ -492,4 +496,38 @@ export function so2View(words: readonly string[], state: So2State, count: number
     word: state.word,
     vowelsLeft: Math.max(0, rules.maxVowels - state.vowelsUsed),
   };
+}
+
+/**
+ * Rev 5's early solves (public information: the phone shows the same): for each word solved with a right Solve,
+ * the tiles still hidden at that moment, and for every word the tiles hidden at its start (not starting letters).
+ * `share` = hidden at the solves ÷ hidden at the starts over all five words (0 when every word was guessed out).
+ */
+export interface So2EarlySolves {
+  /** Per word: tiles still hidden when it was solved with Solve (0 if guessed out or unsolved). */
+  hiddenAtSolve: number[];
+  /** Per word: tiles hidden at its start. */
+  openAtStart: number[];
+  share: number;
+}
+
+export function so2EarlySolves(
+  words: readonly string[],
+  givens: readonly string[],
+  actions: readonly So2Action[],
+  isWord: (word: string) => boolean,
+  rules: So2Rules = SO2_RULES,
+): So2EarlySolves {
+  const target = words.map((w) => w.toUpperCase());
+  const openAtStart = target.map((w, wi) => [...w].filter((_, i) => (givens[wi]?.[i] ?? "_") === "_").length);
+  const hiddenAtSolve = target.map(() => 0);
+  const full = replayStrikeout2(words, givens, actions, isWord, rules);
+  actions.forEach((action, i) => {
+    if (action.kind !== "solve" || full.outcomes[i] !== "right") return;
+    const before = replayStrikeout2(words, givens, actions.slice(0, i), isWord, rules);
+    hiddenAtSolve[action.word] = before.revealed[action.word]!.filter((on) => !on).length;
+  });
+  const open = openAtStart.reduce((a, b) => a + b, 0);
+  const hidden = hiddenAtSolve.reduce((a, b) => a + b, 0);
+  return { hiddenAtSolve, openAtStart, share: open > 0 ? hidden / open : 0 };
 }

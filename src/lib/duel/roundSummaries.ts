@@ -365,7 +365,9 @@ function wordsmithSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
     // wordsmithRev 1 and later score word points on a curve (scoring.ts); only older rounds use 2.5 ×.
     summary:
       ((puzzle as { wordsmithRev?: number }).wordsmithRev ?? 0) >= WORDSMITH_REV_CURVE
-        ? `${points} word points → ${result.score} · ${words.length} words`
+        ? typeof result.extra?.["pangramBonus"] === "number" && result.extra["pangramBonus"] > 0
+          ? `${points} word points + pangram ${result.extra["pangramBonus"]} → ${result.score} · ${words.length} words`
+          : `${points} word points → ${result.score} · ${words.length} words`
         : `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
@@ -442,6 +444,19 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
   const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
   // wordHuntRev 2: the share misses took off (stored by the grader), shown only when they cost something.
   const missCut = typeof result.extra?.["missCutPct"] === "number" ? result.extra["missCutPct"] : 0;
+  // wordHuntRev 3 (word depth): the stored extras the long words and the golden tile added.
+  if (((puzzle as { wordHuntRev?: number }).wordHuntRev ?? 0) >= 3) {
+    const extras = Number(result.extra?.["extraPoints"] ?? 0);
+    const gold = Array.isArray(result.extra?.["goldWords"]) ? (result.extra["goldWords"] as unknown[]).length : 0;
+    return {
+      summary: `${points} word points + ${extras} extra → ${result.score} · ${words.length} words${missCut > 0 ? ` · misses −${missCut}%` : ""}`,
+      detail: [
+        seconds(elapsedMs(result, puzzle)),
+        `${gold} through the golden tile`,
+        ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
+      ],
+    };
+  }
   return {
     // wordHuntRev 1 and later score word points on a curve (scoring.ts); only older rounds use × 2.
     summary:
@@ -1401,7 +1416,9 @@ const digSummary: SummaryBuilder = (result) => {
 const wordSearchSummary: SummaryBuilder = (result) => {
   const found = Number(result.extra?.["found"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 6);
-  return { summary: `${found} / ${total} found`, detail: [] };
+  // wordSearchRev 3 (word depth): the hidden bonus word.
+  const bonus = result.extra?.["bonusFound"] === true;
+  return { summary: `${found} / ${total} found${bonus ? " · bonus word" : ""}`, detail: [] };
 };
 
 const letterWheelSummary: SummaryBuilder = (result) => {
@@ -1409,7 +1426,9 @@ const letterWheelSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["total"] ?? 0);
   // wheelRev 1 rounds store their misses (traces that were not words); older rounds have none.
   const misses = Number(result.extra?.["misses"] ?? 0);
-  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}`, detail: [] };
+  // wheelRev 2 (word depth): bonus words in the jar.
+  const jar = Number(result.extra?.["bonusWords"] ?? 0);
+  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}${jar > 0 ? ` · ${jar} in the jar` : ""}`, detail: [] };
 };
 
 const strikeoutSummary: SummaryBuilder = (result) => {

@@ -2,9 +2,11 @@
  * Depth to 200, server only: the one depth path (gradeAnswer calls it once, after the game's own grade and
  * today's puzzleScoreRev 2 / 3 mapping, which caps at 150). Each stamped puzzle is routed to its game's depth
  * grader: the twelve Speed and Attention games (D3, docs/depth/d3-speed-attention.md) grade from the game's own
- * grade; the Number games (depthRev 1, numberDepth.server.ts, docs/depth/d2-number.md) from today's grade. A
- * grader applies only to puzzles stamped with its game's depth revision; every older round returns null and grades
- * exactly as before. The D5 remodels (Topsy-Turvy, Jumbled) already score to 200 in their own grader. Engine games score inside their sims and need nothing here.
+ * grade; the nine word games (wordDepth.server.ts, docs/depth/d1-word.md) from both; the Number games (depthRev 1,
+ * numberDepth.server.ts, docs/depth/d2-number.md) from today's grade. A grader applies only to puzzles stamped with
+ * its game's depth revision; every older round returns null and grades exactly as before. The D5 remodels
+ * (Topsy-Turvy, Jumbled) already score to 200 in their own grader. Engine games score inside their sims and need
+ * nothing here.
  */
 import type { Graded } from "./grade";
 import type { PuzzleData, PuzzleType } from "./types";
@@ -22,6 +24,7 @@ import { doubleTakeDepth } from "./depth/doubleTake.server";
 import { tallyDepth } from "./depth/tally.server";
 import { labyrinthDepth } from "./depth/labyrinth.server";
 import { matchmakerDepth } from "./depth/matchmaker.server";
+import { WORD_DEPTH_GRADERS, type DepthGrader as WordDepthGrader } from "./wordDepth.server";
 import { isTopsy } from "./topsy";
 import { isJumbledGradient } from "./jumbled";
 
@@ -53,10 +56,14 @@ const numberDepth: DepthGrader = {
   grade: ({ puzzle, answer, today }) => withNumberDepth(puzzle, answer, today()),
 };
 
+/** The word games (wordDepth.server.ts, docs/depth/d1-word.md), each by its own stamp, from the game's own grade and today's. */
+const wordDepth = (g: WordDepthGrader): DepthGrader => ({ applies: g.applies, grade: (input) => g.grade({ ...input, today: input.today() }) });
+
 /** The D5 remodels (Topsy-Turvy gravityRev 3, Jumbled tilesRev 3, docs/depth/d5-remodels.md) score to 200 in their own grader. */
 const ownGrade = (applies: (puzzle: PuzzleData) => boolean): DepthGrader => ({ applies, grade: ({ graded }) => graded });
 
 const GRADERS: Partial<Record<PuzzleType, DepthGrader>> = {
+  ...Object.fromEntries(Object.entries(WORD_DEPTH_GRADERS).map(([type, g]) => [type, wordDepth(g!)])),
   ...Object.fromEntries(Object.keys(NUMBER_DEPTH_GAMES).map((type) => [type, numberDepth])),
   reaction: flashDepth,
   numhunt: ascendDepth,

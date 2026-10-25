@@ -12,9 +12,12 @@ import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
 import { gradeDepth200 } from "./depth200.server";
 import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
-import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
+import { dealtDepthRev } from "./wordDepth";
+import { stampTileGridRev } from "./tileGrid";
+import { STRIKEOUT_REV4, STRIKEOUT_REV5 } from "./strikeout";
 import { generateBlockParty } from "./blockParty.server";
 import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
@@ -22,7 +25,8 @@ import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock, type UnblockBankRow } from "./unblock.server";
-import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
+import { generateWordHunt, generateWordHuntDepth, gradeWordHunt } from "./wordHunt.server";
+import { WORDHUNT_REV_DEPTH } from "./wordHunt";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
@@ -138,11 +142,14 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
   // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
-  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: WORDSMITH_REV_TARGET };
-  if (type === "wordhunt") return { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
+  // Word depth (25 Oct 2026): Nucleus deals wordsmithRev 3 (the curve to 200 and the pangram bonus).
+  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET) };
+  // Forage wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): the 6×6 board with its golden tile.
+  if (type === "wordhunt") return dealtDepthRev(WORDHUNT_REV_DEPTH, WORDHUNT_REV_TARGET) >= WORDHUNT_REV_DEPTH ? generateWordHuntDepth() : { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
   if (type === "unblock") return generateUnblock(context.unblockRow);
   if (type === "blockparty") return generateBlockParty();
-  if (type === "tilegrid") return generateTileGrid();
+  // Word depth (25 Oct 2026): Interlock tileGridRev 1 scores to 200 (depth/tilegrid.server.ts); the board is unchanged.
+  if (type === "tilegrid") return stampTileGridRev(generateTileGrid());
   if (type === "wordslide") return generateWordSlide();
   if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
@@ -208,7 +215,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // wheelRev 1: room-seeded draw from the 11–14 word bank.
   if (type === "letterwheel") return generateLetterWheel(wordGameSeed(type, context.bankSeed));
   // Room-seeded: every player in a room gets the same board from the room seed.
-  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed));
+  // Word depth (25 Oct 2026): Strikeout rev 5 = rev 4's draw and rules, scored to 200 (depth/strikeout.server.ts).
+  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed), dealtDepthRev(STRIKEOUT_REV5, STRIKEOUT_REV4));
   if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
   if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
   if (type === "measure") return generateMeasure(gameSeed(type, context));

@@ -20,6 +20,8 @@ import { standardComplete } from "./scoring";
  * their own stored givens.
  */
 export const CODEWORD_REV = 3;
+/** Word depth to 200 (25 Oct 2026): rev 3's board and rules, scored to 200 (depth/codeword.server.ts). */
+export const CODEWORD_DEPTH_REV = 4;
 export const CW_SIZE = 7;
 /** Givens in every bank entry (and on rev-1 boards). */
 export const CW_GIVENS = 4;

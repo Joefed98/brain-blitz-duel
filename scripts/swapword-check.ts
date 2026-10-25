@@ -58,9 +58,12 @@ import {
 import { SWAPWORD_TIME_MS, type PuzzleData, type SwapwordPuzzleData } from "../src/lib/duel/types";
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);
+// Written for swapwordRev 3: new deals carry it (rooms deal rev 4's par swaps since 25 Oct 2026, depth-swapword-check).
+pinPreDepth(true);
 
 const failures: string[] = [];
 let checks = 0;

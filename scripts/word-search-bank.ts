@@ -21,6 +21,13 @@
  * src/lib/duel/wordSearchBankRev2.server.ts, built (seeded, REV2_SEED) from the theme's other words
  * under the same rules, the stray-word scan still covering the theme's whole list, so a clashing word
  * appears nowhere in the grid; every other grid is dealt unchanged.
+ *
+ * wordSearchRev 3 (25 Oct 2026, word depth d1): every grid rev 2 deals gets one hidden bonus word
+ * (src/lib/duel/wordSearchBankRev3.server.ts, seeded REV3_SEED): an unlisted on-theme word (rev2Words, not
+ * one of the six, neither inside another), written in a straight line over filler cells only (at most one
+ * crossing, on a matching letter), so the six words keep their cells. The rev-3 grid is the rev-2 grid with
+ * the bonus written in; the six words and the bonus each appear exactly once, no other theme word appears,
+ * and no blocked word appears.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -34,6 +41,7 @@ export const MIN_CATEGORIES = 70;
 export const MIN_WORDS = 38;
 const SEED = 0x5eed_2026;
 const REV2_SEED = 0x5eed_1019;
+const REV3_SEED = 0x5eed_1025;
 const PROPER_NOUN_CATEGORIES = new Set(["Countries", "Cities"]);
 const DIRS = [
   [0, 1],
@@ -251,6 +259,85 @@ export function buildRev2Replacements(bank: readonly Entry[]): { replacements: M
   return { replacements, attempts };
 }
 
+/** A rev-3 bonus: the word and its cells (the rev-3 grid is the rev-2 grid with the word written in). */
+export type Rev3Bonus = { word: string; cells: number[] };
+
+/** The rev-3 grid of a rev-2 entry and its bonus. */
+export function rev3Grid(entry: Entry, bonus: Rev3Bonus): string {
+  const g = entry.grid.split("");
+  bonus.cells.forEach((cell, i) => (g[cell] = bonus.word[i]!));
+  return g.join("");
+}
+
+/** Every rule a rev-3 board keeps (the check reuses it); null when it holds, else the reason. */
+export function rev3Problem(entry: Entry, bonus: Rev3Bonus): string | null {
+  const all = WORD_SEARCH_CATEGORIES[entry.category] ?? [];
+  const chosen = entry.placements.map((p) => p.word);
+  if (!rev2Words(entry.category).includes(bonus.word)) return `${bonus.word} is not a rev-2 word of ${entry.category}`;
+  if (chosen.includes(bonus.word)) return `${bonus.word} is one of the six`;
+  const rev = (w: string) => [...w].reverse().join("");
+  if (chosen.some((c) => c.includes(bonus.word) || bonus.word.includes(c) || rev(c).includes(bonus.word) || bonus.word.includes(rev(c))))
+    return `${bonus.word} nests with a listed word`;
+  const g = rev3Grid(entry, bonus).split("");
+  const owned = new Set(entry.placements.flatMap((p) => p.cells));
+  const shared = bonus.cells.filter((c) => owned.has(c));
+  if (shared.length > 1) return `${bonus.word} crosses ${shared.length} listed cells`;
+  if (shared.some((c) => entry.grid[c] !== g[c])) return `${bonus.word} changes a listed word's letter`;
+  if (bonus.cells.map((c) => g[c]).join("") !== bonus.word) return `${bonus.word} mismatch`;
+  for (const p of entry.placements) if (countInGrid(g, p.word) !== 1) return `${p.word} appears ${countInGrid(g, p.word)} times`;
+  if (countInGrid(g, bonus.word) !== 1) return `${bonus.word} appears ${countInGrid(g, bonus.word)} times`;
+  for (const other of all) if (other !== bonus.word && !chosen.includes(other) && countInGrid(g, other) > 0) return `stray ${other}`;
+  for (const bad of BLOCKED) if (countInGrid(g, bad) > 0) return `blocked ${bad}`;
+  return null;
+}
+
+/**
+ * Rev-3 bonus words, by bank index, for the grid rev 2 deals at that index (`rev2Entry`): seeded, indices in bank
+ * order. A word is tried in up to 400 random lines; words are tried in a seeded shuffle until one fits.
+ */
+export function buildRev3Bonus(count: number, rev2Entry: (index: number) => Entry): { bonus: Rev3Bonus[]; attempts: number } {
+  random = mulberry32(REV3_SEED);
+  const bonus: Rev3Bonus[] = [];
+  let attempts = 0;
+  for (let i = 0; i < count; i++) {
+    const e = rev2Entry(i);
+    const chosen = e.placements.map((p) => p.word);
+    const candidates = shuffle(rev2Words(e.category).filter((w) => !chosen.includes(w)));
+    let made: Rev3Bonus | null = null;
+    for (const word of candidates) {
+      for (let t = 0; t < 400 && !made; t++) {
+        attempts++;
+        const [dr, dc] = DIRS[rand(8)]!;
+        const r0 = rand(N), c0 = rand(N);
+        const r1 = r0 + dr * (word.length - 1), c1 = c0 + dc * (word.length - 1);
+        if (r1 < 0 || r1 >= N || c1 < 0 || c1 >= N) continue;
+        const cells = Array.from({ length: word.length }, (_, k) => (r0 + dr * k) * N + (c0 + dc * k));
+        const candidate = { word, cells };
+        if (rev3Problem(e, candidate) === null) made = candidate;
+      }
+      if (made) break;
+    }
+    if (!made) throw new Error(`${e.category} #${i}: no bonus word fits`);
+    bonus.push(made);
+  }
+  return { bonus, attempts };
+}
+
+export function rev3Source(bonus: readonly Rev3Bonus[]): string {
+  return `/**
+ * Lookout wordSearchRev 3 bonus words (25 Oct 2026, word depth d1) — generated by scripts/word-search-bank.ts
+ * (seeded; \`bun scripts/word-search-bank.ts --check\` proves it current).
+ * Indexed like WORD_SEARCH_BANK: the hidden, unlisted on-theme word of the grid rev 2 deals at that index. The
+ * rev-3 grid is that rev-2 grid with the word written into its cells (filler cells only, at most one crossing on
+ * a matching letter). Server-only until the reveal. Do not edit by hand.
+ */
+
+export const WORD_SEARCH_REV3_BONUS: readonly { word: string; cells: number[] }[] = [
+${bonus.map((b) => JSON.stringify(b)).join(",\n")},
+];
+`;
+}
+
 export function rev2Source(replacements: ReadonlyMap<number, Entry>): string {
   return `/**
  * Lookout wordSearchRev 2 replacement grids — generated by scripts/word-search-bank.ts
@@ -301,17 +388,23 @@ if (import.meta.main) {
   const { replacements, attempts: rev2Attempts } = buildRev2Replacements(bank);
   const out2 = rev2Source(replacements);
   const target2 = new URL("../src/lib/duel/wordSearchBankRev2.server.ts", import.meta.url);
+  const { bonus, attempts: rev3Attempts } = buildRev3Bonus(bank.length, (i) => replacements.get(i) ?? bank[i]!);
+  const out3 = rev3Source(bonus);
+  const target3 = new URL("../src/lib/duel/wordSearchBankRev3.server.ts", import.meta.url);
   const words = cats.reduce((n, [, w]) => n + w.length, 0);
   if (process.argv.includes("--check")) {
     const same = readFileSync(target, "utf8") === out;
     const same2 = readFileSync(target2, "utf8") === out2;
+    const same3 = readFileSync(target3, "utf8") === out3;
     console.log(
-      `word search bank ${same ? "is current" : "is STALE"}: ${bank.length} puzzles · ${cats.length} categories · ${words} words; rev-2 replacements ${same2 ? "are current" : "are STALE"}: ${replacements.size}`,
+      `word search bank ${same ? "is current" : "is STALE"}: ${bank.length} puzzles · ${cats.length} categories · ${words} words; rev-2 replacements ${same2 ? "are current" : "are STALE"}: ${replacements.size}; rev-3 bonus words ${same3 ? "are current" : "are STALE"}: ${bonus.length}`,
     );
-    process.exit(same && same2 ? 0 : 1);
+    process.exit(same && same2 && same3 ? 0 : 1);
   }
   writeFileSync(target, out);
   writeFileSync(target2, out2);
+  writeFileSync(target3, out3);
+  console.log(`rev 3: ${bonus.length} bonus words from ${rev3Attempts} attempts`);
   console.log(
     `word search bank: ${bank.length} puzzles from ${attempts} attempts · ${cats.length} categories · ${words} words; rev 2: ${replacements.size} replacement grids from ${rev2Attempts} attempts`,
   );

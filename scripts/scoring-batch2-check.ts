@@ -61,6 +61,9 @@ import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
 import { PROFILES } from "./arcade-skill-bands/human";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 
 // Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.

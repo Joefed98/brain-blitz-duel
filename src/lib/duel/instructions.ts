@@ -1,24 +1,42 @@
 import { bandsHelp, openBandsLine } from "./puzzleBandsText";
+import { wordSearchBonusHelp } from "./wordSearchText";
+import { letterWheelJarHelp } from "./letterWheelText";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchHelp, strikeoutDepthHelp } from "./depth/stretchShapes";
+import { parBonusHelp } from "./parBonusText";
+import { SLIDE_PAR_BONUS } from "./wordSlide";
+import { SWAP_PAR_BONUS } from "./swapword";
 import { doubleTakeDepthHelp, eagleEyeDepthHelp, tallyDepthHelp } from "./depth/attentionTexts";
 import { depthHelp } from "./numberDepthText";
 import {
   scoreWordHunt,
-  scoreWordsmith,
   WORDHUNT_FREE_MISSES,
   WORDHUNT_FREE_MISSES_PER_WORD,
   WORDHUNT_MISS_COST_PCT,
   WORDHUNT_REV_TARGET,
-  WORDSMITH_REV_TARGET,
-  WORDSMITH_V2_CAP,
+  WORDSMITH_V3_CAP,
+  WORDSMITH_V3_PANGRAM_BONUS,
+  wordsmithV3Words,
 } from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
+import { WORDHUNT_DEPTH_BASE_MAX, WORDHUNT_DEPTH_BONUS_MAX, WORDHUNT_V3_BASE_CURVE, WORDHUNT_V3_BONUS_CURVE } from "./wordHunt";
 import { ascendDepthHelp, bangOnDepthHelp, flashDepthHelp } from "./depth/speedTexts";
-import { bandMapTotal } from "@/lib/arcade/scoreBands";
-import { TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, tenDropScore, TD_GOLD_MAX, TD_GOLD_POINTS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
+import { bandMapTotal, bandOpen, bandUnitsFor } from "@/lib/arcade/scoreBands";
+import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_DEPTH_MAX_WRONG, CLASH_GOLD_POINTS, CLASH_GOLD_STREAK, CLASH_GOLDS, CLASH_GREAT_MAP, CLASH_PACE_ZERO_TICK, CLASH_REV3_RUN_TICKS, CLASH_STREAK_POINTS, CLASH_STRETCH_POINTS } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_COMBO_POINTS, WHACK_DIAMOND_POINTS, WHACK_DIAMONDS, WHACK_QUICK_ZERO_TICKS } from "@/lib/arcade/whack";
 import { CLAY_DOUBLE_POINTS, CLAY_DOUBLES, CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS, CLAY_STREAK_POINTS } from "@/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP } from "@/lib/arcade/wordfall";
+
+/** Nucleus wordsmithRev 3's help numbers: the word points that first reach each score, then the curve's top. */
+function wordsmithV3Line(): string {
+  const first = (p: number) => RANGE_0_200.find((x) => wordsmithV3Words(x) >= p) ?? null;
+  const parts = [70, 100, 130, 150, 165].map((p) => {
+    const x = first(p);
+    return x === null ? null : `${x} points ≈ ${wordsmithV3Words(x)}`;
+  }).filter(Boolean);
+  return `${parts.join(", ")}, up to ${WORDSMITH_V3_CAP} at ${first(WORDSMITH_V3_CAP)} points`;
+}
+const RANGE_0_200 = Array.from({ length: 201 }, (_, i) => i);
 
 /** Search range for the open games' help numbers (word points rising). */
 const RANGE_0_80 = Array.from({ length: 81 }, (_, i) => i);
@@ -88,12 +106,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap letters,", detail: "then Enter. 4+ letters a word." },
         { action: "Use each tile once.", detail: "No plurals." },
         { action: "Shuffle", detail: "is free; the centre stays put." },
-        { action: "There's always a word", detail: "using every tile.", helpOnly: true },
+        { action: "Pangram bonus:", detail: `the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}. There's always one.`, helpOnly: true },
         { action: "Tap a selected letter again", detail: "to remove it. Clear empties the word; Enter checks it.", helpOnly: true },
         { action: "No plurals", detail: "or -s verb forms (FINDS, BOXES); words like GLASS are fine.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${openBandsLine("wordsmith", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordsmith(x, WORDSMITH_REV_TARGET)), (x) => `${x} points`)}; ${WORDSMITH_V2_CAP} at most unless you find the word that uses every tile, {max} only with it. The counter shows word points.`,
+      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8 → 11, 9+ → 15. More points, higher score: ${wordsmithV3Line()}. The word that uses every tile (the pangram) adds ${WORDSMITH_V3_PANGRAM_BONUS}: {max} only with it. The counter shows word points.`,
     },
     tilegrid: {
       goal: "Build a mini crossword from your tiles.",
@@ -105,7 +123,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Red runs", detail: "need fixing.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: bandsHelp("tilegrid"),
+      score: stretchHelp("tilegrid", TILEGRID_STRETCH),
     },
     balance: {
       goal: "Balance each of the four scales.",
@@ -125,11 +143,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swipe a row or column;", detail: "letters wrap round." },
         { action: "Lock a finished word", detail: "with its padlock." },
-        { action: "Undo and Reset", detail: "still count as moves." },
+        { action: "Finish within par", detail: "moves for a bonus; Undo and Reset count." },
+        { action: "Par", detail: "is the number of slides that scrambled the board, shown beside your moves (gold while you are within it).", helpOnly: true },
         { action: "Words are 5 letters.", detail: "Column swipes go around a locked row.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: bandsHelp("wordslide"),
+      score: parBonusHelp("wordslide", SLIDE_PAR_BONUS, "moves", "the par moves"),
     },
     target: {
       goal: "Use the six numbers to make the target.",
@@ -243,12 +262,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag or tap", detail: "through touching letters." },
         { action: "Words are 4+ letters;", detail: "plurals count." },
-        { action: "Let go or tap Submit", detail: "to enter a word." },
+        { action: "6+ letters and the gold tile", detail: "multiply a word's points." },
+        { action: "Let go or tap Submit", detail: "to enter a word.", helpOnly: true },
+        { action: "Long words:", detail: "6 letters ×1.5, 7 or more ×2. A word through the glowing gold tile scores double (both can stack).", helpOnly: true },
         { action: "Diagonals count.", detail: "Don't reuse a tile in one word.", helpOnly: true },
         { action: "Tapping the last letter again", detail: "also submits the word.", helpOnly: true },
         { action: "Words are checked", detail: "against a standard British English dictionary.", helpOnly: true },
       ],
-      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. More points, higher score: ${openBandsLine("wordhunt", RANGE_0_80, (x) => withPuzzleScoreRev(1, () => scoreWordHunt(x, WORDHUNT_REV_TARGET)), (x) => `${x} points`)}. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points.`,
+      // wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): base points on their curve, the features' extras on theirs.
+      score: `Word points: 4 letters 1, 5 → 2, 6 → 4, 7 → 7, 8+ → 11. Base points score up to ${WORDHUNT_DEPTH_BASE_MAX}: ${[18, 27, 44].map((u) => `${u} points ≈ ${bandOpen(WORDHUNT_V3_BASE_CURVE, u)}`).join(", ")}, ${WORDHUNT_DEPTH_BASE_MAX} at ${bandUnitsFor(WORDHUNT_V3_BASE_CURVE, WORDHUNT_DEPTH_BASE_MAX)}. What long words and the gold tile add (6 letters ×1.5, 7+ ×2, through the gold tile ×2) scores up to ${WORDHUNT_DEPTH_BONUS_MAX} more: ${[17, 48].map((u) => `${u} extra ≈ ${bandOpen(WORDHUNT_V3_BONUS_CURVE, u, WORDHUNT_DEPTH_BONUS_MAX)}`).join(", ")}, ${WORDHUNT_DEPTH_BONUS_MAX} at ${bandUnitsFor(WORDHUNT_V3_BONUS_CURVE, WORDHUNT_DEPTH_BONUS_MAX)}; {max} only with both. Tracing lots of non-words costs: ${WORDHUNT_FREE_MISSES} plus ${WORDHUNT_FREE_MISSES_PER_WORD} per word found are free, then ${WORDHUNT_MISS_COST_PCT} % off each. The counter shows word points with their multipliers.`,
     },
     unblock: {
       goal: "Slide the gold block out through the exit.",
@@ -1068,23 +1090,26 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag in a straight line", detail: "through the letters." },
         { action: "Words run", detail: "any way, backwards too." },
-        { action: "A found word", detail: "is struck through." },
+        { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
+        { action: "A found word", detail: "is struck through.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word's letter count until you find it; the word then fills it.", helpOnly: true },
+        { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
-      score: bandsHelp("wordsearch"),
+      score: wordSearchBonusHelp(),
     },
     letterwheel: {
       goal: "Fill the crossword from the letter wheel.",
       how: [
         { action: "Drag across the letters", detail: "and let go." },
         { action: "Crossword words", detail: "fill gold. 3+ letters." },
-        { action: "Lift off the wheel or ×", detail: "to drop a trace." },
+        { action: "Other real words", detail: "fill the bonus jar." },
+        { action: "Lift off the wheel or ×", detail: "to drop a trace.", helpOnly: true },
         { action: "Or tap letters", detail: "then Submit.", helpOnly: true },
-        { action: "Other real words", detail: "are not in this puzzle, and free.", helpOnly: true },
+        { action: "The bonus jar", detail: "fills by word length; a full jar adds the top 50 points. Misses after the first 5 spill a drop each.", helpOnly: true },
         { action: "A trace that is not a word", detail: "is a miss: the first 5 are free, then each costs 3.", helpOnly: true },
         { action: "Shuffle", detail: "rearranges the wheel without changing the crossword.", helpOnly: true },
       ],
-      score: bandsHelp("letterwheel"),
+      score: letterWheelJarHelp(),
     },
     strikeout: {
       goal: "Reveal five long words, one at a time, before twelve strikes.",
@@ -1092,13 +1117,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a letter", detail: "to fill every matching tile in the word." },
         { action: "Three vowel guesses", detail: "per word (the dots)." },
         { action: "Vowels are A E I O U;", detail: "the keypad resets for each word.", helpOnly: true },
-        { action: "Tap Solve", detail: "to guess the word; a wrong guess is a strike." },
+        { action: "Tap Solve", detail: "to guess the word; early earns more, wrong is a strike." },
+        { action: "Early solves:", detail: "the more letters still hidden when you Solve a word, the bigger its bonus.", helpOnly: true },
         { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
       ],
-      score: bandsHelp("strikeout"),
+      score: strikeoutDepthHelp(),
     },
     codeword: {
       goal: "Crack the code: each number is one letter.",
@@ -1110,19 +1136,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
       ],
-      score: bandsHelp("codeword"),
+      score: stretchHelp("codeword", CODEWORD_STRETCH),
     },
     swapword: {
       goal: "Swap tiles until all six words read correctly.",
       how: [
         { action: "Drag a tile onto another", detail: "to swap." },
         { action: "Gold", detail: "is in place; teal belongs elsewhere." },
-        { action: "Swaps are limited.", detail: "Running out ends the round." },
-        { action: "The budget", detail: "is 8 more than the fewest swaps that solve the board.", helpOnly: true },
+        { action: "Finish in par swaps", detail: "for a bonus. Swaps are limited." },
+        { action: "Par", detail: "is the fewest swaps that solve the board, shown beside your swaps (gold while you are within it).", helpOnly: true },
+        { action: "The budget", detail: "is 8 more than par; running out ends the round.", helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],
-      score: bandsHelp("swapword"),
+      score: parBonusHelp("swapword", SWAP_PAR_BONUS, "swaps", "par swaps (the fewest that solve the board)"),
     },
     lightup: {
       goal: "Place bulbs so every white square is lit.",

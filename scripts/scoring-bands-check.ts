@@ -52,6 +52,9 @@ import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/ty
 import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
 import { FLOOD_REV2_SPARE_MOVES } from "../src/lib/duel/moveLimits";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 

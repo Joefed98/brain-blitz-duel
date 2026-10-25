@@ -715,6 +715,15 @@ export const COUNTUP_MAX_COUNT = 12;
 
 export const WORDHUNT_COLS = 5;
 export const WORDHUNT_CELLS = WORDHUNT_COLS * WORDHUNT_COLS;
+/** wordHuntRev 3 (word depth, 25 Oct 2026): a 6×6 board (wordHunt.ts). */
+export const WORDHUNT_COLS_DEPTH = 6;
+/**
+ * A stored board's side: 6 for wordHuntRev 3's 36 tiles, else WORDHUNT_COLS (every older board, whatever its
+ * length, keeps the 5-column rules it was graded under).
+ */
+export function wordHuntCols(grid: readonly unknown[] | null | undefined): number {
+  return grid?.length === WORDHUNT_COLS_DEPTH * WORDHUNT_COLS_DEPTH ? WORDHUNT_COLS_DEPTH : WORDHUNT_COLS;
+}
 export const WORDHUNT_TIME_MS = 100_000;
 export const WORDHUNT_MIN_LENGTH = 4;
 /** A board is only used when the dictionary finds at least this many words. */
@@ -737,14 +746,19 @@ export interface WordHuntWord {
 
 export interface WordHuntPuzzleData {
   type: "wordhunt";
-  /** Sixteen tiles, row-major; a Q tile always reads "QU". */
+  /** 25 tiles (5×5; 36 on wordHuntRev 3), row-major; a Q tile always reads "QU". */
   grid: string[];
   /** Server-side only until the reveal: every word the board allows. */
   words?: WordHuntWord[];
   totalPoints?: number;
   par?: number;
-  /** Scoring targets (18 Oct 2026): 1 = word points on WORDHUNT_V1_CURVE; absent = 2 × points. */
+  /**
+   * Scoring targets (18 Oct 2026): 1 = word points on WORDHUNT_V1_CURVE; absent = 2 × points; 2 = misses cost
+   * (20 Oct 2026); 3 = the 6×6 board, long-word multiplier and golden tile (wordHunt.ts, 25 Oct 2026).
+   */
   wordHuntRev?: number;
+  /** wordHuntRev 3: the golden tile's index (public; a word traced through it scores double). */
+  golden?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1955,6 +1969,8 @@ export interface TileGridPuzzleData {
   tray: string[];
   /** Server-side only until reveal: one reference grid, 49 cells, "" for empty. */
   solution?: string[];
+  /** Word depth (25 Oct 2026): 1 = scored to 200 by the stretch curve (depth/tilegrid.server.ts). Absent on older rounds. */
+  tileGridRev?: number;
 }
 
 /* ============================== Word Slide ============================== */
@@ -1967,6 +1983,8 @@ export interface WordSlidePuzzleData {
   par: number;
   /** Server-side only until reveal: the five intended words. */
   words?: string[];
+  /** Par moves (25 Oct 2026, word depth d1): 1 = a finish within par adds the par bonus, up to 200. Absent on older rounds. */
+  wordSlideRev?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -2318,8 +2336,13 @@ export interface LetterWheelPuzzleData {
   slots: LetterWheelSlot[];
   /** Word for each slot — private until the reveal. */
   words?: string[];
-  /** 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules. */
+  /**
+   * 1 (14 Oct 2026): 11–14 word bank and the attempt-log answer (letterWheel.ts); absent = original rules.
+   * 2 (25 Oct 2026, word depth): rev 1 plus the bonus jar (real non-crossword words fill it; up to 50 more).
+   */
   wheelRev?: number;
+  /** wheelRev 2: the jar's size in drops (public; LW_JAR_DROPS unless the board's bonus words hold fewer). */
+  jarSize?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2330,7 +2353,8 @@ export interface StrikeoutPuzzleData {
   /**
    * Rules revision (1 = five five-letter words at once; 2 = five 7–8 letter words one at a time, 14 Oct 2026;
    * 3 = rev 2 with ten strikes, three vowel guesses per word, one more starting letter on words 1–3 and
-   * 1.5 per strike left, 15 Oct 2026; 4 = rev 3 with twelve strikes and 1.25 per strike left, 19 Oct 2026).
+   * 1.5 per strike left, 15 Oct 2026; 4 = rev 3 with twelve strikes and 1.25 per strike left, 19 Oct 2026;
+   * 5 = rev 4's rules scored to 200 with the early-solve bonus, 25 Oct 2026).
    */
   strikeoutRev: number;
   rows: number;
@@ -2347,7 +2371,7 @@ export const CODEWORD_TIME_MS = 120_000;
 
 export interface CodewordPuzzleData {
   type: "codeword";
-  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026). */
+  /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026; 4 = rev 3's board scored to 200, 25 Oct 2026). */
   codewordRev: number;
   size: number;
   /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
@@ -2389,12 +2413,14 @@ export interface WordSearchPuzzleData {
   grid: string;
   category: string;
   wordCount: number;
-  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths. Absent on stored rounds. */
+  /** Lookout rev (14 Oct 2026): 1 = wider bank (76 themes) and public word lengths; 2 = no theme-name words; 3 = a hidden bonus word (25 Oct 2026). Absent on stored rounds. */
   wordSearchRev?: number;
   /** Rev 1: each hidden word's letter count, in placement order (public: the chips show it before a word is found). */
   wordLengths?: number[];
   /** Where each hidden word lies — private until the reveal. */
   placements?: WordSearchPlacement[];
+  /** Rev 3 (25 Oct 2026, word depth): the unlisted on-theme bonus word and where it lies — private until the reveal. */
+  bonus?: WordSearchPlacement;
 }
 
 export interface ShikakuPuzzleData {

@@ -36,6 +36,8 @@ import {
   withRoundMax,
 } from "../src/lib/duel/roundMax";
 import type { DuelPlayerRow, PuzzleType, RoundResultRow } from "../src/lib/duel/types";
+import { WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
+import { NUMBER_DEPTH_GAMES } from "../src/lib/duel/numberDepth";
 import { SIGNATURE_MIN_SCORE, signatureMinScore, signatureTierForVerdict } from "../src/lib/fx/signature";
 
 const failures: string[] = [];
@@ -49,8 +51,9 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /**
  * Games an expansion has raised to the ceiling, one list for every expansion (docs/scoring-200.md: each adds its
  * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
- * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156). Checked against ROUND_MAX below, so the list and the
- * maximums can't drift apart.
+ * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156), the twelve Speed and Attention games (depth D3, #160) and
+ * the nine word puzzles (word depth d1, #157). Checked against ROUND_MAX below, so the list and the maximums can't
+ * drift apart.
  */
 const RAISED: PuzzleType[] = [
   "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
@@ -58,6 +61,8 @@ const RAISED: PuzzleType[] = [
   "reaction", "numhunt", "stopwatch", "chain", "whack", "clayshoot", "stroop", "symscan", "spotdiff", "countup", "maze", "pairmatch",
   // The D5 remodels (docs/depth/d5-remodels.md): Topsy-Turvy and Jumbled.
   "gravity", "tiles",
+  // Word depth d1 (docs/depth/d1-word.md): the nine word puzzles.
+  "wordsmith", "wordhunt", "wordslide", "tilegrid", "letterwheel", "strikeout", "codeword", "swapword", "wordsearch",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
@@ -77,6 +82,8 @@ ok(ALL_TYPES.length >= 80 && ALL_TYPES.every((t) => t in ROUND_MAX) && Object.ke
 ok(JSON.stringify([...RAISED].sort()) === JSON.stringify(ALL_TYPES.filter((t) => ROUND_MAX[t] === SCORE_CEILING).sort()), `RAISED lists exactly the games ROUND_MAX puts at 200 (${ALL_TYPES.filter((t) => ROUND_MAX[t] === SCORE_CEILING).join(", ")})`);
 for (const type of ALL_TYPES) ok((ROUND_MAX[type] === 150 || ROUND_MAX[type] === 200) && roundMaxFor(type) === ROUND_MAX[type], `${type}: its maximum is 150, or 200 once raised (${ROUND_MAX[type]})`);
 ok(TYPES.length >= 2, "at least two games still at 150 for the samples below");
+// The depth sessions' games (word d1: wordDepth.ts; number: numberDepth.ts) are exactly the raised ones listed so far.
+for (const type of [...WORD_DEPTH_GAMES, ...(Object.keys(NUMBER_DEPTH_GAMES) as PuzzleType[])]) ok(RAISED.includes(type), `${type}: raised to 200 by its depth PR`);
 // The raised games (each expansion's own checks prove its texts and scoring): on the 200 scale.
 for (const type of RAISED) {
   ok(!isPerfectScore(type, 150) && !isPerfectScore(type, 199) && isPerfectScore(type, 200), `${type}: perfect is 200 only`);

@@ -79,7 +79,7 @@ import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
-import { scoreWordSearch, wsDecode, wsGrade } from "./wordSearch";
+import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -2105,14 +2105,16 @@ function gradeUnderRev(
     }
     case "wordsearch": {
       // Selections are matched against the stored placements; the client's word list is never read.
-      const selections = wsDecode(answer, puzzle.size);
+      // wordSearchRev 3: drags on the private bonus word are set aside (never a wrong pick); the depth grader adds its points.
+      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size));
+      const selections = split.rest;
       const verdict = wsGrade(puzzle.placements ?? [], selections);
       const total = puzzle.placements?.length ?? puzzle.wordCount;
       isCorrect = verdict.found.length === total;
       correctCount = verdict.found.length;
       errors = verdict.wrong;
       score = scoreWordSearch(verdict.found.length, total, verdict.wrong, ms, timeLimitMs);
-      extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong };
+      extraDetail = { found: verdict.found.length, total, wrong: verdict.wrong, ...(puzzle.bonus ? { bonusFound: split.bonusFound } : {}) };
       break;
     }
     case "letterwheel": {

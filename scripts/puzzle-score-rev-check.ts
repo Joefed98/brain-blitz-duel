@@ -32,9 +32,12 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { KITS } from "./puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { pinRev1Shape, roomPuzzle } from "./puzzle-fairness/run";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
 
 // This check proves the rev-1 shape (rooms deal rev 2 since 19 Oct 2026: scoring-bands-check); room puzzles carry rev-1 stamps.
 pinRev1Shape(true);
+// Word depth (25 Oct 2026): this check proves the rev-1 shape; the depth stamps have their own checks.
+pinPreDepth(true);
 import { clashCheckpoint, clashGatesAt, clashLaneCount, clashRev4Finished, clashRuleAt, colourClashGameFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_SET_LANE, CLASH_WORLD_W } from "../src/lib/arcade/colourClash";
 import { encodeColourClashRun, replayColourClashRun } from "../src/lib/duel/colourClash";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";

@@ -59,6 +59,9 @@ import { BURST_V4_BAND_CURVE } from "../src/lib/arcade/burst";
 import { SWING_V9_BAND_CURVE } from "../src/lib/arcade/swing";
 import { BULLSEYE_V4_BAND_CURVE } from "../src/lib/arcade/bullseye";
 import { PIN_BAND_CURVE } from "../src/lib/arcade/pinball";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 
 let checks = 0;
 const failures: string[] = [];

@@ -88,7 +88,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   shikaku: ["solution"],
   lightup: ["solution"],
   balltrack: ["par", "playbook"],
-  wordsearch: ["placements"],
+  wordsearch: ["placements", "bonus"],
   letterwheel: ["words", "bonus"],
   // The hidden words, the letter code and the solved board; live checks replay moves server-side.
   strikeout: ["words"],
