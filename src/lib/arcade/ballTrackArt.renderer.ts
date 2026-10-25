@@ -303,7 +303,7 @@ function tileTone(cell: number): number {
  * Polish A3 (25 Oct 2026, art only): each tile a bevelled wooden square, inside its own 100 px cell:
  * a faint tone of its own, a lit top-left bevel, a shaded bottom-right bevel and a fine joint line.
  */
-function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: number): void {
+function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: number, outerL = false, outerR = false): void {
   const t = BT_TILE;
   if (tone) {
     c.fillStyle = tone > 0 ? `rgba(255,230,190,${0.035 * tone})` : `rgba(70,38,14,${-0.05 * tone})`;
@@ -322,10 +322,18 @@ function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: numb
   c.moveTo(x + t, y + t); c.lineTo(x, y + t); c.lineTo(x + b, y + t - b); c.lineTo(x + t - b, y + t - b); c.lineTo(x + t - b, y + b); c.lineTo(x + t, y);
   c.closePath();
   c.fill();
-  // The joint between tiles and a hairline highlight on the bevel's crest.
+  // The joint between tiles and a hairline highlight on the bevel's crest. No joint along the world's
+  // outer sides, where the screen fill runs on (a line there reads as a border, arcade-fill-check).
   c.strokeStyle = "rgba(60,30,10,0.42)";
   c.lineWidth = 1.5;
-  c.strokeRect(x + 0.75, y + 0.75, t - 1.5, t - 1.5);
+  c.beginPath();
+  c.moveTo(x + 0.75, y + 0.75);
+  c.lineTo(x + t - 0.75, y + 0.75);
+  if (outerR) c.moveTo(x + t - 0.75, y + t - 0.75);
+  else c.lineTo(x + t - 0.75, y + t - 0.75);
+  c.lineTo(x + 0.75, y + t - 0.75);
+  if (!outerL) c.lineTo(x + 0.75, y + 0.75);
+  c.stroke();
   c.strokeStyle = "rgba(255,240,210,0.16)";
   c.lineWidth = 1;
   c.strokeRect(x + b + 0.5, y + b + 0.5, t - b * 2 - 1, t - b * 2 - 1);
@@ -364,7 +372,7 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
   toyBoard(c, 0, 0, BT_W, BT_H, 14);
   const gridY = BT_HOPPER_H;
   for (let row = 0; row < BT_ROWS; row++)
-    for (let col = 0; col < BT_COLS; col++) bevelTile(c, col * BT_TILE, gridY + row * BT_TILE, tileTone(row * BT_COLS + col));
+    for (let col = 0; col < BT_COLS; col++) bevelTile(c, col * BT_TILE, gridY + row * BT_TILE, tileTone(row * BT_COLS + col), col === 0, col === BT_COLS - 1);
   queueShelf(c);
   shelf(c, gridY + BT_ROWS * BT_TILE, BT_TRAY_H);
   for (const movable of [false, true]) {
