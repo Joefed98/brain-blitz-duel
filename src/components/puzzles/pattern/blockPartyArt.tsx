@@ -91,15 +91,15 @@ export function BlockArtDefs({ children }: { children: React.ReactNode }) {
       <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={ids.rim} x1="0" y1="0" x2="0.35" y2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.55" />
+            <stop offset="0" stopColor="#fff" stopOpacity="0.55" className="bp-rim-top" />
             <stop offset="0.45" stopColor="#fff" stopOpacity="0" />
             <stop offset="0.55" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.5" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.5" className="bp-rim-bottom" />
           </linearGradient>
           <linearGradient id={ids.face} x1="0" y1="0" x2="0.3" y2="1">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.2" />
+            <stop offset="0" stopColor="#fff" stopOpacity="0.2" className="bp-face-top" />
             <stop offset="0.6" stopColor="#fff" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.16" className="bp-face-bottom" />
           </linearGradient>
           <radialGradient id={ids.shine} cx="0.35" cy="0.3" r="0.8">
             <stop offset="0" stopColor="#fff" stopOpacity="0.95" />
@@ -135,7 +135,7 @@ export const PieceArt = memo(function PieceArt({
   }, [cells]);
   return (
     <>
-      <path d={outer} fill="#000" opacity="0.4" transform="translate(2 5)" />
+      <path d={outer} fill="#000" opacity="0.4" transform="translate(2 5)" className="bp-drop" />
       <path d={outer} style={{ fill: colour }} />
       {ids && <path d={outer} fill={`url(#${ids.rim})`} />}
       <path d={face} style={{ fill: colour }} />

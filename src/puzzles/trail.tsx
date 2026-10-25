@@ -14,6 +14,9 @@ import { playCorrect } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { useGoalProgress } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-trail.css";
 
 const NO_TOUCH: CSSProperties = {
   touchAction: "none",
@@ -235,6 +238,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     lastSteps.current = steps;
   }, [steps]);
   const glow = useSolveFx(complete, "trail.solve", 1150);
+  // Batch W: the "12 / 26" count moves to the frame's goal line in a live round (display only).
+  const placedTiles = data ? slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length : 0;
+  const framed = useGoalProgress({ done: placedTiles, total: 26, text: `${placedTiles} / 26` });
 
   // Desktop keys: Z or Backspace = Undo, R = Reset.
   useGameKeys((kind, key, event) => {
@@ -249,6 +255,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
   if (!data) return null;
   const busy = locked || complete;
+  const nextNumber = Math.min(data.givens.length, trDragPath(data.givens, path).length + 1);
   // Count, two gaps, top inset and 44px controls; no tray. Keep 36px squares.
   const fit = Math.min(space.w - 8, space.h - 84);
   const cell = Math.max(44, Math.min(68, Math.floor((fit - (TR_SIZE - 1) * GAP) / TR_SIZE)));
@@ -359,9 +366,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       style={NO_TOUCH}
     >
       {column && <div className="tr-spacer" aria-hidden />}
-      <p className="shrink-0 font-mono text-sm text-muted-foreground">
-        {slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length} / 26
-      </p>
+      {framed ? null : (
+        <p className="shrink-0 font-mono text-sm text-muted-foreground">
+          {placedTiles} / 26
+        </p>
+      )}
       <div
         ref={grid}
         data-game-arena="fixed" className="shrink-0"
@@ -375,12 +384,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         <Grid size={TR_SIZE} givens={data.givens} path={slots} cell={cell} shakeCell={shakeCell} endCell={trDragPath(data.givens, path).at(-1)} glow={glow} />
       </div>
       {column && <div className="tr-spacer" aria-hidden />}
+      {framed ? (
+        <LiveSummary
+          testId="trail"
+          parts={complete ? ["Trail complete"] : [`Next ${nextNumber}`, `${26 - placedTiles} to go`]}
+        />
+      ) : null}
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>
         <Button variant="outline"
           type="button"
           disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
           onClick={undo}
-          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
         >
           Undo
         </Button>
@@ -388,7 +403,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           type="button"
           disabled={busy || slots.every((c, i) => c < 0 || data.givens.includes(i + 1))}
           onClick={reset}
-          className="h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+          className="gf-glass h-11 flex-1 rounded-lg border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
         </Button>

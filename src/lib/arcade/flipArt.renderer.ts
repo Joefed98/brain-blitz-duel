@@ -162,8 +162,8 @@ function paintRockTile(c: CanvasRenderingContext2D): void {
     c.fillStyle = h % 4 === 0 ? "rgba(255,190,150,0.10)" : "rgba(0,0,0,0.28)";
     c.fillRect(h % W, (h >>> 9) % H, 1 + ((h >>> 20) & 1), 1);
   }
-  // Glowing lava veins deep in the rock.
-  for (let v = 0; v < 3; v++) {
+  // Glowing lava veins deep in the rock (Polish A4: five seams, with a wider molten glow and a hot core).
+  for (let v = 0; v < 5; v++) {
     const h = artHash(v, 619);
     let vx = (h % W);
     let vy = 70 + ((h >>> 8) % 120);
@@ -174,7 +174,7 @@ function paintRockTile(c: CanvasRenderingContext2D): void {
       pts.push([vx, vy]);
     }
     for (const dx of [0, -W]) {
-      for (const [width, colour] of [[6, "rgba(255,74,36,0.10)"], [2.5, "rgba(255,90,36,0.45)"], [1, "rgba(255,190,90,0.7)"]] as const) {
+      for (const [width, colour] of [[12, "rgba(255,74,36,0.08)"], [6, "rgba(255,84,36,0.16)"], [2.8, "rgba(255,96,40,0.6)"], [1.1, "rgba(255,206,120,0.9)"]] as const) {
         c.strokeStyle = colour;
         c.lineWidth = width;
         c.lineJoin = "round";
@@ -309,6 +309,17 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
 function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
   maxH: number, seed: number, pulse: number): void {
   if (b - a <= 1) return;
+  // Polish A4: a soft lava glow behind the hazard (light only, drawn before its silhouette).
+  if (!arcadeReducedEffects()) {
+    const mid = (a + b) / 2;
+    const gy = at(mid) + inward * maxH * 0.5;
+    const reach = Math.max(maxH * 1.1, (b - a) * 0.6);
+    const glow = ctx.createRadialGradient(mid, gy, 2, mid, gy, reach);
+    glow.addColorStop(0, `rgba(255,96,36,${0.22 + pulse * 0.12})`);
+    glow.addColorStop(1, "rgba(255,96,36,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(mid - reach, gy - reach, reach * 2, reach * 2);
+  }
   ctx.save();
   // Exact curve-following envelope, not a mid-point-height rectangle.
   ctx.beginPath();
@@ -349,6 +360,23 @@ function drawRockObstacle(ctx: CanvasRenderingContext2D, a: number, b: number, i
     ctx.moveTo(tip - slot * 0.12, at(tip) + inward * 2);
     ctx.lineTo(tip + slot * 0.1, at(tip) + inward * height * 0.4);
     ctx.lineTo(tip, at(tip) + inward * height * 0.86);
+    ctx.stroke();
+    // Polish A4: shading: the face away from the runner in shadow, a lit edge on the near face.
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = MATERIAL.obsidian;
+    ctx.beginPath();
+    ctx.moveTo(tip, at(tip) + inward * height);
+    ctx.lineTo(x1, at(x1));
+    ctx.lineTo(x1, at(x1) - inward * 3);
+    ctx.lineTo(tip, at(tip) - inward * 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = "rgba(255,214,150,0.8)";
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(x0 + 0.5, at(x0));
+    ctx.lineTo(tip, at(tip) + inward * height);
     ctx.stroke();
     ctx.globalAlpha = 0.55;
     ctx.strokeStyle = MATERIAL.mineral;
@@ -488,6 +516,26 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, tick: num
   glow.addColorStop(1, "rgba(255,236,110,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+  // Polish A4: a halo ring and four soft rays turning slowly round the star (light only).
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,244,170,${0.35 + pulse * 0.25})`;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 1.55, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.translate(x, y);
+  ctx.rotate(still ? 0 : tick / 60);
+  ctx.fillStyle = `rgba(255,240,150,${0.18 + pulse * 0.14})`;
+  for (let k = 0; k < 4; k++) {
+    ctx.rotate(Math.PI / 2);
+    ctx.beginPath();
+    ctx.moveTo(-1.2, r * 1.1);
+    ctx.lineTo(0, r * 2.4);
+    ctx.lineTo(1.2, r * 1.1);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
   ctx.beginPath();
   for (let k = 0; k < 10; k++) {
     const reach = k % 2 === 0 ? r : r * 0.45;
@@ -566,6 +614,56 @@ function drawCrumble(ctx: CanvasRenderingContext2D, state: FlipState, index: num
   ctx.restore();
 }
 
+/**
+ * Polish A4: a far city skyline rising from below the floor between the roofs, very dark and
+ * slow (a sixth of the run's speed), with a few warm windows lit. Seeded by building index.
+ */
+function drawFarCity(ctx: CanvasRenderingContext2D, run: number): void {
+  const par = run / 6;
+  const stride = 34;
+  const k0 = Math.floor(par / stride) - 1;
+  for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
+    const h = artHash(k, 1709);
+    const x = k * stride - par;
+    const w = stride - 4 - (h % 8);
+    const top = FLIP_FLOOR_Y - 60 - (h >>> 5) % 110;
+    ctx.fillStyle = h % 3 === 0 ? "rgba(6,6,9,0.48)" : "rgba(9,9,13,0.42)";
+    ctx.fillRect(x, top, w, FLIP_FLOOR_Y + 40 - top);
+    if (h % 5 === 0) ctx.fillRect(x + w * 0.4, top - 10, 2, 10);
+    // Two or three lit windows a building, the rest dark.
+    for (let n = 0; n < 3; n++) {
+      const wh = artHash(k, n + 1800);
+      if (wh % 3 === 0) continue;
+      const wx = x + 4 + (wh % Math.max(1, w - 8));
+      const wy = top + 8 + ((wh >>> 7) % 9) * 9;
+      if (wy > FLIP_FLOOR_Y - 6) continue;
+      ctx.fillStyle = wh % 4 === 0 ? "rgba(255,190,110,0.5)" : "rgba(255,214,150,0.32)";
+      ctx.fillRect(Math.round(wx), Math.round(wy), 2, 3);
+    }
+  }
+}
+
+/** Polish A4: embers drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
+function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean): void {
+  for (let k = 0; k < 14; k++) {
+    const h = artHash(k, 2203);
+    const life = 240 + (h % 160);
+    const age = still ? (h >>> 3) % life : (tick + (h % life)) % life;
+    const x = ((((h >>> 6) % FLIP_WORLD_W) - age * 0.25) % FLIP_WORLD_W + FLIP_WORLD_W) % FLIP_WORLD_W + (still ? 0 : Math.sin((tick + k * 37) / 40) * 6);
+    const y = FLIP_FLOOR_Y - 6 - age * ((FLIP_FLOOR_Y - FLIP_CEIL_Y) / life);
+    const fade = Math.sin((age / life) * Math.PI);
+    ctx.globalAlpha = fade * 0.3;
+    ctx.fillStyle = "#FF6A2A";
+    ctx.beginPath();
+    ctx.arc(x, y, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = fade * 0.85;
+    ctx.fillStyle = k % 3 ? "#FFB45A" : "#FFE2A0";
+    ctx.fillRect(x - 0.7, y - 0.7, 1.4, 1.4);
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawFlipArt(ctx: CanvasRenderingContext2D, state: FlipState, size: CanvasSize): void {
   arcadeFx(ctx, FLIP_FX, state, () => drawFlipArtWorld(ctx, state, size), size);
@@ -605,6 +703,16 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   air.addColorStop(1, "#2A1714");
   ctx.fillStyle = air;
   ctx.fill();
+  // Polish A4 (25 Oct 2026, display only): a faint far city between the roofs and embers drifting up
+  // through it, clipped to the tunnel, behind every hazard and the runner. Nothing in it collides.
+  if (!arcadeReducedEffects()) {
+    ctx.save();
+    bandPath(ctx, ceilAt, floorAt);
+    ctx.clip();
+    drawFarCity(ctx, still ? 0 : state.x / FP);
+    drawTunnelEmbers(ctx, state.tick, still);
+    ctx.restore();
+  }
 
   for (const [side, at] of [[0, floorAt], [1, ceilAt]] as const) {
     const rail = () => {
@@ -628,20 +736,27 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       rockPath(ctx, side, at);
       ctx.clip();
       rail();
-      ctx.strokeStyle = "rgba(255,69,24,0.1)";
-      ctx.lineWidth = 26;
+      ctx.strokeStyle = "rgba(255,69,24,0.14)";
+      ctx.lineWidth = 30;
       ctx.stroke();
-      ctx.strokeStyle = "rgba(255,76,24,0.2)";
-      ctx.lineWidth = 12;
+      ctx.strokeStyle = "rgba(255,80,26,0.28)";
+      ctx.lineWidth = 14;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,130,50,0.35)";
+      ctx.lineWidth = 5;
       ctx.stroke();
       ctx.restore();
     }
+    // Polish A4: a brighter roof edge, a hot white-gold core on the lava line.
     rail();
     ctx.strokeStyle = MATERIAL.lava;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.4;
     ctx.stroke();
     ctx.strokeStyle = MATERIAL.hot;
-    ctx.lineWidth = 0.8;
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,240,200,0.7)";
+    ctx.lineWidth = 0.5;
     ctx.stroke();
   }
 

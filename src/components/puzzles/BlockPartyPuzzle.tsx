@@ -34,6 +34,7 @@ import {
   type BlockPlacement,
 } from "@/lib/duel/types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 
 /** One distinct fill per piece, shared by the tray and board. */
 const PIECE_COLOURS = [
@@ -204,6 +205,7 @@ export function BlockPartyPuzzle({
 
   const covered = placed.reduce((sum, entry) => sum + entry.cells.length, 0);
   const celebrating = useSolveMoment(covered >= BLOCK_FREE_CELLS, "blockparty.solve");
+  const inFrame = useFrameProgress(covered, BLOCK_FREE_CELLS, "covered");
   const [turned, setTurned] = useState<{ piece: number; kind: "turn" | "flip"; n: number } | null>(
     null,
   );
@@ -388,18 +390,22 @@ export function BlockPartyPuzzle({
       (traySize.width - 20 - 8) / trayWidthUnits,
     ),
   );
-  const boardSize = Math.min(layoutSize.width, Math.max(0, layoutSize.height - traySize.height - 28));
+  // The board and the tray settle against each other (see useBeforePaint above); in the frame the HUD
+  // row (16px + an 8px gap) is not drawn, so its 24px leave the reserve, which keeps the same balance.
+  const boardSize = Math.min(layoutSize.width, Math.max(0, layoutSize.height - traySize.height - (inFrame ? 4 : 28)));
   const boardCell = boardSize / N;
   const trayCell = Math.min(boardCell * 0.92, trayCellCapacity);
 
   return (
     <div ref={layoutRef} data-stage-column="2" data-polish="blockparty" className="block-party-stage flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span>
-          covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
-        </span>
-        <span className="text-[10px]">tap to rotate</span>
-      </div>
+      {inFrame ? null : (
+        <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span>
+            covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
+          </span>
+          <span className="text-[10px]">tap to rotate</span>
+        </div>
+      )}
 
       <div data-game-arena="fixed" className="flex shrink-0 justify-center">
         <BlockBoard

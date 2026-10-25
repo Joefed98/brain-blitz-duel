@@ -9,6 +9,7 @@ import {
   usePrefersReducedMotion,
 } from "@/components/puzzles/GridDrag";
 import { UnblockCarArt, UnblockExitFx, UnblockLot } from "@/components/puzzles/pattern/unblockArt";
+import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
 import {
@@ -134,6 +135,7 @@ export function UnblockPuzzle({
   onDraftAnswer,
 }: UnblockPuzzleProps) {
   const reduced = usePrefersReducedMotion();
+  const inFrame = useInFrame();
   const boardRef = useRef<HTMLDivElement>(null);
   const [vehicles, setVehicles] = useState<UnblockVehicle[]>(() =>
     puzzle.vehicles.map((v) => ({ ...v })),
@@ -243,14 +245,18 @@ export function UnblockPuzzle({
     return true;
   });
 
+  const moveCount = moves.filter((move) => move.id >= 0).length;
+
   return (
     <div data-stage-column="3" data-polish="unblock" className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span>
-          moves <span className="text-primary">{moves.filter((move) => move.id >= 0).length}</span>
-        </span>
-        <span>get the gold block out</span>
-      </div>
+      {inFrame ? null : (
+        <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span>
+            moves <span className="text-primary">{moveCount}</span>
+          </span>
+          <span>get the gold block out</span>
+        </div>
+      )}
 
       <div data-game-arena="board" className="unblock-arena flex min-h-0 flex-1 items-center justify-center">
         <UnblockLot gridRef={boardRef} celebrate={celebrating}>
@@ -289,6 +295,8 @@ export function UnblockPuzzle({
           {celebrating && !reduced && gold && <UnblockExitFx fromCol={gold.col} />}
         </UnblockLot>
       </div>
+
+      <LiveSummary items={[<SummaryItem key="moves" label="Moves" value={moveCount} />]} />
 
       <div data-game-controls="actions" className="flex gap-2">
         <button

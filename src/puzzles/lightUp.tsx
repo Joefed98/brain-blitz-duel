@@ -19,6 +19,7 @@ import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** 0 empty, 1 bulb, 2 dot (a note: no bulb here). */
@@ -229,19 +230,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     },
   });
 
-  if (!data) return null;
-  const status = lightUpStatus(data, bulbs);
+  const liveStatus = data ? lightUpStatus(data, bulbs) : null;
+  const inFrame = useFrameProgress(liveStatus?.lit.size ?? 0, liveStatus?.whites ?? 0, "lit");
+  if (!data || !liveStatus) return null;
+  const status = liveStatus;
 
   return (
     <div data-logic-stage="lightup" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            lit <span className="text-primary">{status.lit.size}</span> / {status.whites}
+          </p>
+        )}
         <div className="logic-square logic-lamp-frame">
           <Board board={data} marks={marks} pointer={pointer} spread={spread} />
         </div>
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[
+            <SummaryItem key="lamps" label="Lamps" value={bulbs.length} />,
+            <SummaryItem key="dots" label="Dots" value={marks.filter((mark) => mark === 2).length} />,
+          ]}
+        />
       </div>
     </div>
   );

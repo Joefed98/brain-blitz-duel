@@ -11,6 +11,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { CLASSIC_TILES_LAYOUT, type TilesLayout } from "@/lib/duel/tiles";
 import { TILES_SIZE, TILES_SLIDE_MS } from "@/lib/duel/types";
 import { soundCue } from "@/lib/fx/patternFx";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 
 const TILE_GRADIENT_STOPS = 8;
 
@@ -37,8 +38,11 @@ export function TilesFrame({
   variant = "stage",
   celebrate = false,
   layout = CLASSIC_TILES_LAYOUT,
+  showHome = false,
 }: {
   frame: number[];
+  /** Live round (batch P): tiles in their solved cell glow, and a tile slid home flashes once. */
+  showHome?: boolean;
   /** The board's cells: the classic 3×3 frame, or the extra-cell board (tilesRev 1). */
   layout?: TilesLayout;
   onTile?: ((tile: number) => void) | undefined;
@@ -65,6 +69,7 @@ export function TilesFrame({
     const gap = root.querySelector<HTMLElement>("[data-tile-gap]");
     if (!tile || !gap) return;
     soundCue("tiles.slide");
+    if (showHome && layout.goal[frame.indexOf(value)] === value) rightMoveFlash(tile);
     if (reducedMotion() || typeof tile.animate !== "function") return;
     // The gap now sits where the tile came from.
     const dx = gap.offsetLeft - tile.offsetLeft;
@@ -112,6 +117,7 @@ export function TilesFrame({
             type="button"
             data-pointer-index={value}
             data-tile-value={value}
+            data-home={showHome && layout.goal[index] === value ? "" : undefined}
             disabled={!onTile}
             aria-label={`Tile ${value}`}
             onPointerDown={(event) => {

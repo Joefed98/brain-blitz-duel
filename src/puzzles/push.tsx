@@ -1,4 +1,5 @@
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -103,6 +104,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   );
 
   const solveFx = useSolveMoment(replay.solved, "push.solve");
+  const inFrame = useFrameProgress(replay.cratesOnTargets, targets.length, "home");
 
   useEffect(() => {
     onDraftAnswer?.(encodePushMoves(moves));
@@ -144,10 +146,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
 
   return (
     <div data-stage-column="2" data-polish="push" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
-        {replay.cratesOnTargets} / {targets.length} home
-      </p>
+      {inFrame ? null : (
+        <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
+          {replay.cratesOnTargets} / {targets.length} home
+        </p>
+      )}
       <div
         data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center touch-none"
         style={{ touchAction: "none" }}
@@ -162,6 +166,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           solveFx={solveFx}
         />
       </div>
+      <LiveSummary
+        items={[
+          <SummaryItem key="pushes" label="Pushes" value={replay.pushes} />,
+          <SummaryItem key="moves" label="Moves" value={replay.moves} />,
+        ]}
+      />
         <ArrowPad onPress={step} disabled={locked || replay.solved} />
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button

@@ -18,9 +18,16 @@ async function hang(page: Page, w: number, peg: number, pegs: number) {
   await page.waitForTimeout(300);
 }
 
-/** Waits for the scale counter to show scale n (the stage advances after its correct hold). */
+/**
+ * Waits for the scale counter to show scale n (the stage advances after its correct hold): the stage's
+ * "scale n / N" line, or the frame's goal line "Scale n of N" (polish batch W).
+ */
 async function onScale(page: Page, n: number, total: number) {
-  await stage(page).getByText(new RegExp(`scale ${n} / ${total}`, "i")).waitFor({ timeout: 10_000 });
+  await page
+    .locator("[data-game-stage], [data-goal-line]")
+    .getByText(new RegExp(`scale ${n} (/|of) ${total}`, "i"))
+    .first()
+    .waitFor({ timeout: 10_000 });
   await page.waitForTimeout(250);
 }
 
