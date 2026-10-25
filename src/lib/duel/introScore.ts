@@ -1,6 +1,5 @@
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
-import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
@@ -95,13 +94,13 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     skyline: "Points for each block and perfect drop, more for perfects in a row. Up to {max}.",
     bintoss: `Points for each bucket and hoop. All ${BINTOSS_THROWS} in for 10 more, up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,
-    matchup: "Match lines of three or more; longer lines score far more. Up to {max}.",
+    matchup: "Longer lines score more; goals, ice, treasure and cascades add more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
     cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
     breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to {max}.`,
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
     pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to {max}.",
-    bubble: "Points for each bubble cleared. Clear the whole field quickly for up to {max}.",
+    bubble: "Clear bubbles; falling chests, bank shots and combos add more. Up to {max}.",
     slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to {max}.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
@@ -113,7 +112,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
     swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
     tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
-    balltrack: `Points for each marble home. Get all ${BT_BALLS} home quickly for up to {max}.`,
+    balltrack: `Points per marble home; gold, boosted and in-a-row marbles add more. Up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",
     steady: "Start on {max}. Touching the edge: lose 5.",

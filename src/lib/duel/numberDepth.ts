@@ -14,6 +14,10 @@
  *   - FEATURES (Exact's elegance, Brimful's par pours, Checkout's big finish): the 150 part is puzzleScoreRev 3's;
  *     the extra 50 comes only from the feature, earned in full at the fast share of the clock:
  *     50 × feature share × min(1, left ÷ fast)². A solid finish without the feature scores as today.
+ *     On `depthRev 2` (25 Oct 2026, these three games only; rev 1 proved too generous, near-perfect play reached
+ *     200) the feature pays only a part (`featureBase`) at the fast share and the rest on a convex stretch to the
+ *     game's elite share, as the stretch games do: 50 × share × (base × min(1, left ÷ fast)² + (1 − base) × x²),
+ *     x = (left − fast) ÷ (featureElite − fast). Rev-1 rounds keep rev 1's curve.
  *   - Ballpark (STRETCH + bullseye streak): rev 2's score (≤ 150), plus up to 20 for finishing faster than the
  *     full-speed point (half the clock) on close placements, plus up to 30 for runs of placements within a hair
  *     of exact (the streak).
@@ -25,8 +29,10 @@
 import { dealtPuzzleScoreRev } from "./puzzleScoreRev";
 import type { PuzzleType } from "./types";
 
-/** The depth stamp new Number puzzles are dealt (on puzzleScoreRev 3). */
+/** The depth stamp new Number puzzles are dealt (on puzzleScoreRev 3); the feature games get NUMBER_DEPTH_FEATURE_REV. */
 export const NUMBER_DEPTH_REV = 1;
+/** The depth stamp Exact, Brimful and Checkout are dealt: the feature on its rev-2 curve (depthFeaturePointsRev2). */
+export const NUMBER_DEPTH_FEATURE_REV = 2;
 /** The round maximum on the depth stamp (ROUND_MAX's 200 for these games). */
 export const NUMBER_DEPTH_MAX = 200;
 /** The points above today's 150 a depth round can add. */
@@ -41,6 +47,13 @@ export interface DepthGame {
    * kit players (scripts/number-depth-bands.ts): clearly faster than the near-perfect player's 150 pace.
    */
   elite?: number;
+  /**
+   * depthRev 2 features: the share of the clock an elite finish leaves (the full bonus) and the part of the bonus
+   * paid at the fast share. Fitted on the kit players (scripts/number-depth-bands.ts) so near-perfect play lands
+   * about 165–175 and only the elite player 190–200.
+   */
+  featureElite?: number;
+  featureBase?: number;
 }
 
 export const NUMBER_DEPTH_GAMES: Readonly<Partial<Record<PuzzleType, DepthGame>>> = {
@@ -48,9 +61,9 @@ export const NUMBER_DEPTH_GAMES: Readonly<Partial<Record<PuzzleType, DepthGame>>
   equation: { route: "stretch", elite: 0.79 },
   numpyramid: { route: "stretch", elite: 0.505 },
   trail: { route: "stretch", elite: 0.765 },
-  target: { route: "feature" },
-  measure: { route: "feature" },
-  checkout: { route: "feature" },
+  target: { route: "feature", featureElite: 0.85, featureBase: 0.4 },
+  measure: { route: "feature", featureElite: 0.735, featureBase: 0.45 },
+  checkout: { route: "feature", featureElite: 0.66, featureBase: 0.6 },
   numline: { route: "open", elite: 0.81 },
 };
 
@@ -78,6 +91,13 @@ export function numberDepthDealt(): boolean {
   return !depthPinnedOff && dealtPuzzleScoreRev() >= 3;
 }
 
+/** The depth stamp rooms deal this game today (0: not a depth game). */
+export function dealtDepthRev(type: PuzzleType | string): number {
+  const game = NUMBER_DEPTH_GAMES[type as PuzzleType];
+  if (!game) return 0;
+  return game.route === "feature" ? NUMBER_DEPTH_FEATURE_REV : NUMBER_DEPTH_REV;
+}
+
 /** True when this stored round scores to 200 (a Number puzzle stamped depthRev ≥ 1). */
 export function usesNumberDepth(puzzle: unknown): boolean {
   const type = (puzzle as { type?: string } | null)?.type;
@@ -101,6 +121,18 @@ export function depthStretchPoints(left: number, fast: number, elite: number, ef
 export function depthFeaturePoints(share: number, left: number, fast: number): number {
   const t = clamp01(clamp01(left) / Math.max(0.01, fast));
   return Math.round(NUMBER_DEPTH_EXTRA * clamp01(share) * t * t);
+}
+
+/**
+ * depthRev 2 feature points (0–50): `base` of the bonus earned by the fast share (as rev 1, squared), the rest only
+ * on a convex stretch from the fast share to the game's elite share.
+ */
+export function depthFeaturePointsRev2(share: number, left: number, fast: number, elite: number, base: number): number {
+  const l = clamp01(left);
+  const t = clamp01(l / Math.max(0.01, fast));
+  const x = clamp01((l - fast) / Math.max(0.01, elite - fast));
+  const b = clamp01(base);
+  return Math.round(NUMBER_DEPTH_EXTRA * clamp01(share) * (b * t * t + (1 - b) * x * x));
 }
 
 /* ------------------------------------------------------------------ Exact: elegance */

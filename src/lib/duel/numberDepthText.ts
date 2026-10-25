@@ -1,5 +1,5 @@
 /**
- * Score text for the Number puzzles to 200 (depthRev 1, numberDepth.ts; docs/depth/d2-number.md): the round
+ * Score text for the Number puzzles to 200 (depthRev 1, the feature games depthRev 2, numberDepth.ts; docs/depth/d2-number.md): the round
  * intro SCORE line and the "?" help, for the rounds rooms deal today. Every maximum is the game's own
  * (roundMaxFor), never a written number; 150 and 110 are the milestones the rev-3 part keeps.
  */
@@ -15,9 +15,10 @@ import { dealtLimitMs, EFFICIENCY_WORD, fastFinishSeconds, PROGRESS_MEASURE, PRO
 import { roundMaxFor } from "./roundMax";
 import type { PuzzleType } from "./types";
 
-/** Seconds of play an elite finish (the stretch's top) may take: the clock less its elite share. */
+/** Seconds of play an elite finish (the stretch's top; a feature game's full bonus) may take: the clock less its elite share. */
 export function eliteFinishSeconds(type: PuzzleType): number {
-  const elite = NUMBER_DEPTH_GAMES[type]?.elite ?? 1;
+  const game = NUMBER_DEPTH_GAMES[type];
+  const elite = (game?.route === "feature" ? game.featureElite : game?.elite) ?? 1;
   return Math.round((dealtLimitMs(type) * (1 - elite)) / 1000);
 }
 
@@ -60,6 +61,6 @@ export function depthHelp(type: PuzzleType): string {
   const head = `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Unfinished scores up to 110: about ${f.half} half done, 110 one step short. Any finish scores 120 to 150: 120 as time runs out, 150 if you finish in about ${f.fastSeconds} s with no mistakes${eff ? ` (extra ${eff} only cut the speed points)` : ""}.`;
   const feature = FEATURE[type];
   if (feature)
-    return `${head} ${feature.help}, for up to ${NUMBER_DEPTH_EXTRA} more, in full when you also finish in about ${f.fastSeconds} s; ${max} is perfect.`;
+    return `${head} ${feature.help}, for up to ${NUMBER_DEPTH_EXTRA} more: about ${Math.round(NUMBER_DEPTH_EXTRA * (NUMBER_DEPTH_GAMES[type]?.featureBase ?? 1))} of it when you also finish in about ${f.fastSeconds} s, all of it only in about ${eliteFinishSeconds(type)} s; ${max} is perfect.`;
   return `${head} Finishing faster than that earns up to ${NUMBER_DEPTH_EXTRA} more, rising steeply: ${max} only for a finish in about ${eliteFinishSeconds(type)} s with no mistakes.`;
 }

@@ -10,9 +10,9 @@ Nine Number games now score up to 200 (`ROUND_MAX` in `src/lib/duel/roundMax.ts`
 | Operator | Stretch | `depthRev 1` | The same |
 | Integer Pyramid | Stretch | `depthRev 1` | The same |
 | Trail | Stretch | `depthRev 1` | The same |
-| Exact | Feature | `depthRev 1` | Elegance: hitting the target with 5 numbers, not all 6 |
-| Brimful | Feature | `depthRev 1` | Par pours: a puzzle solved in its fewest moves |
-| Checkout | Feature | `depthRev 1`, `checkoutRev 2` | Big finish: checking out on the Bull or a treble |
+| Exact | Feature | `depthRev 2` (was 1) | Elegance: hitting the target with 5 numbers, not all 6 |
+| Brimful | Feature | `depthRev 2` (was 1) | Par pours: a puzzle solved in its fewest moves |
+| Checkout | Feature | `depthRev 2` (was 1), `checkoutRev 2` | Big finish: checking out on the Bull or a treble |
 | Ballpark | Stretch + feature | `depthRev 1` | Bullseye streak (up to 30) and finishing faster (up to 20) |
 | Tenfall | Stretch + feature | `tenRev 4` | Gold tens (a gold tile as the tap that hits the target, 5 each, up to 25) and a faster clear (up to 25) |
 
@@ -37,8 +37,9 @@ graded, so stored rounds never change.
   | Integer Pyramid | 120 s | 0.40 | 0.505 | 72 s | 59 s |
   | Trail | 120 s | 0.66 | 0.765 | 41 s | 28 s |
 
-- **Features** (Exact, Brimful, Checkout): a finish keeps rev 3's 120 + up to 30, then adds
-  `50 × feature share × min(1, left ÷ fast)²`. The feature pays in full only with a finish at today's 150
+- **Features** (Exact, Brimful, Checkout): a finish keeps rev 3's 120 + up to 30, then adds the feature bonus.
+  Rooms deal these three `depthRev 2` (see "depthRev 2" below: part of the bonus at the fast share, all of it only
+  at an elite share). On `depthRev 1` the bonus is `50 × feature share × min(1, left ÷ fast)²`. The feature pays in full only with a finish at today's 150
   pace, and a finish without it scores exactly as today. The share is: Exact 1 for five numbers (else 0);
   Brimful the puzzles solved at par out of four; Checkout the boards ended on a big finish out of five.
 - **Ballpark**: rev 2's score (≤ 150) + streak (0–30) + speed (0–20). A *bullseye* is a placement within
@@ -130,6 +131,58 @@ unchanged and their mean moves by at most 7 %; the extra 50 goes to players who 
 at today's 150 pace. Exact's average-level median (16 vs 40) is the kit's bimodal finish-or-not on fresh
 boards (means 57 → 50): the new boards' six-number answers are no harder, but the average kit finishes about as
 often as it misses, so its median jumps between the two modes.
+
+### depthRev 2: the feature games retuned (25 Oct 2026)
+
+On `depthRev 1` the three feature games were too generous: near-perfect play already reached or nearly reached
+200 (Exact's near-perfect median 200, Brimful 188 with top 10 % 199, Checkout 183). The target shape is the
+stretch games': a solid player where they were, near-perfect about 165–175, only elite play 190–200. Rooms now
+deal Exact, Brimful and Checkout `depthRev 2` (`NUMBER_DEPTH_FEATURE_REV`, `dealtDepthRev`); the other five
+depth puzzles stay `depthRev 1`, Tenfall stays `tenRev 4`, and the boards, rules and features are unchanged.
+
+`depthRev 2` pays the feature in two parts (`depthFeaturePointsRev2`):
+
+    50 × share × (base × min(1, left ÷ fast)² + (1 − base) × x²),   x = clamp01((left − fast) ÷ (elite − fast))
+
+`base` is paid by today's 150 pace (rev 3's fast share, unchanged) and the rest only on a convex stretch to the
+game's elite share, fitted on the kit players so the elite median lands 190–200:
+
+| Game | Clock | fast (150) | featureElite (200) | base | base at the fast share | 150 in about | 200 in about |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Exact | 75 s | 0.75 | 0.85 | 0.40 | +20 | 19 s | 11 s |
+| Brimful | 120 s | 0.66 | 0.735 | 0.45 | +23 | 41 s | 32 s |
+| Checkout | 90 s | 0.58 | 0.66 | 0.60 | +30 | 38 s | 31 s |
+
+Rounds stored on `depthRev 1` keep rev 1's curve: `scripts/fixtures/number-depth-rev1.json.gz` (899 Exact,
+Brimful and Checkout answers dealt on `depthRev 1`, recorded on main dcd0298 by
+`scripts/number-depth-rev1-record.ts`: ladders, finishes, mistakes, spam, every kit level, and the feature and
+plain answers at every 10 % of the clock) regrades identically in number-depth-check. Practice bests for the
+three games start fresh (their stamp signature changed).
+
+`bun scripts/number-depth-bands.ts --seeds=30 --game=target,measure,checkout`, the same boards and plays graded
+three ways, median / top 10 % / best (mean):
+
+| Game | Level | Old (150) | depthRev 1 | depthRev 2 |
+| --- | --- | --- | --- | --- |
+| Exact | average | 40 / 131 / 133 (57.0) | 16 / 131 / 147 (50.3) | 16 / 131 / 140 (50.0) |
+| | good | 136 / 142 / 146 (136.6) | 137 / 169 / 183 (145.3) | 137 / 153 / 161 (140.7) |
+| | great | 143 / 148 / 149 (143.2) | 146 / 197 / 200 (163.1) | 146 / 168 / 180 (152.2) |
+| | near-perfect | 149 / 150 / 150 (148.4) | 200 / 200 / 200 (186.2) | 170 / 179 / 200 (168.0) |
+| | elite | 150 / 150 / 150 (149.9) | 200 / 200 / 200 (200.0) | 197 / 200 / 200 (193.4) |
+| Brimful | average | 28 / 78 / 88 (42.7) | 28 / 78 / 88 (42.7) | 28 / 78 / 88 (42.7) |
+| | good | 121 / 129 / 132 (110.9) | 121 / 133 / 141 (112.1) | 121 / 131 / 136 (111.5) |
+| | great | 133 / 142 / 143 (134.3) | 143 / 168 / 173 (146.2) | 138 / 154 / 157 (139.7) |
+| | near-perfect | 147 / 150 / 150 (146.6) | 188 / 199 / 200 (185.0) | 166 / 172 / 173 (163.9) |
+| | elite | 150 / 150 / 150 (150.0) | 200 / 200 / 200 (200.0) | 193 / 200 / 200 (191.6) |
+| Checkout | average | 51 / 79 / 110 (54.3) | 51 / 79 / 110 (54.3) | 51 / 79 / 110 (54.3) |
+| | good | 110 / 128 / 133 (109.5) | 110 / 127 / 136 (111.0) | 110 / 126 / 133 (110.9) |
+| | great | 136 / 144 / 146 (133.3) | 138 / 159 / 172 (137.2) | 136 / 151 / 159 (134.4) |
+| | near-perfect | 148 / 150 / 150 (147.2) | 183 / 194 / 195 (179.7) | 167 / 176 / 181 (165.7) |
+| | elite | 150 / 150 / 150 (150.0) | 194 / 200 / 200 (195.1) | 194 / 197 / 200 (190.0) |
+
+Reading it: good-level medians are unchanged and their means are within 3 % of the old 150 shape (Exact +3.0 %,
+Brimful +0.5 %, Checkout +1.3 %; rev 1 was +6.4 %, +1.1 %, +1.4 %). Near-perfect medians land 166–170, elite
+medians 193–197. Exact's near-perfect best is still 200 (one of 30 runs at the elite pace with five numbers).
 
 ### Tenfall (tenRev 4, details in d2-number-tenfall.md)
 

@@ -108,9 +108,13 @@ export const BT_ALWAYS_FIXED = BT_LAYOUT.alwaysFixed;
 export const BT_TALL_ROWS = 12;
 export const BT_LAYOUT_TALL = buildLayout(BT_TALL_ROWS);
 
+/** btRev 7 (expansion E6): BT_V7_ROWS rows, 700 × BT_V7_H. */
+export const BT_V7_ROWS = 13;
+export const BT_LAYOUT_V7 = buildLayout(BT_V7_ROWS);
+
 /** The board a course plays on (its stored `rows`, else the original 9). */
 export function btLayout(course?: { rows?: number } | null): BtLayout {
-  return course?.rows === BT_TALL_ROWS ? BT_LAYOUT_TALL : BT_LAYOUT;
+  return course?.rows === BT_TALL_ROWS ? BT_LAYOUT_TALL : course?.rows === BT_V7_ROWS ? BT_LAYOUT_V7 : BT_LAYOUT;
 }
 
 /* ================================ Course ================================ */
@@ -128,6 +132,10 @@ export interface BtCourse {
   fixed: number[];
   /** btRev 4 tall courses only: BT_TALL_ROWS. Absent = the original 9-row board. */
   rows?: number;
+  /** btRev 7 courses only (BT_V7_ROWS rows): gold marbles (ball indices), speed boosters and crossovers (fixed cells). */
+  gold?: number[];
+  boost?: number[];
+  cross?: number[];
 }
 
 /** Rotatable straights: every straight not in column 4 rows 1–6 and not a seeded fixed tile. */
@@ -163,9 +171,10 @@ export function btSwitchedOn(sw: number | undefined, col: number): boolean {
 export function btNext(cell: number, fromAbove: boolean, vertical: boolean, course?: BtCourse, tick = 0, sw = 0): { cell: number; fromAbove: boolean } {
   const { rows, kind } = btLayout(course);
   const r = Math.floor(cell / BT_COLS), c = cell % BT_COLS;
+  // btRev 7: a crossover passes a marble straight on, down if it came from above, along the row otherwise.
   const down = r === rows - 1
     ? c > 0 && (course ? btTraysAt(course, tick)[c]! : -1) >= 0 && !btSwitchedOn(sw, c)
-    : kind[cell] === 2 ? !fromAbove : vertical;
+    : kind[cell] === 2 ? !fromAbove : course?.cross?.includes(cell) ? fromAbove : vertical;
   if (down) return r === rows - 1 ? { cell: SLOT + c, fromAbove: true } : { cell: cell + BT_COLS, fromAbove: true };
   const nc = c + rowDir(r);
   if (nc < 0 || nc >= BT_COLS) return { cell: PIT, fromAbove: false };
@@ -186,8 +195,10 @@ export interface BtBall {
   /** Earliest tick the ball may move on. */
   at: number;
   steps: number;
-  /** btRev 2: 1 = rode a tube turn, 2 = passed a switch point (absent on original rounds). */
+  /** btRev 2: 1 = rode a tube turn, 2 = passed a switch point (absent on original rounds); btRev 7: 4 = boosted. */
   via?: number;
+  /** btRev 7 only: fast steps left after a speed booster. */
+  bst?: number;
 }
 
 export interface BtMark { cell: number; colour: number; tick: number; ok: number }
@@ -214,6 +225,18 @@ export interface BtState extends BandFields {
   switchHomes?: number;
   /** btRev 4 only (taller worlds): the world height in px (BT_TALL_H). Absent = BT_H. */
   worldH?: number;
+  /**
+   * btRev 7 only (absent otherwise): the expansion's mark, the correct-landing streak now and at best, combo
+   * landings (each correct one at a streak of BT_V7_COMBO_FROM or more), gold marbles home, boosted marbles
+   * home, and marbles knocked astray at a crossover.
+   */
+  r7?: number;
+  streak?: number;
+  bestStreak?: number;
+  combos?: number;
+  golds?: number;
+  boosts?: number;
+  crashes?: number;
 }
 
 export function btInit(course: BtCourse): BtState {
@@ -239,6 +262,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
   const s: BtState = { ...prev, tick: prev.tick + 1, vert: [...prev.vert], balls: prev.balls.map((b) => ({ ...b })) };
   const t = s.tick;
   const v2 = s.rev === BT_REV;
+  const v7 = s.r7 === 1;
 
   if (input && input.k === BT_K_ROTATE && rotatable.has(input.a) && (v2 || !s.balls.some((b) => b.cell === input.a))) {
     s.vert[input.a] = s.vert[input.a] ? 0 : 1;
@@ -255,8 +279,8 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
     s.actions++;
   }
 
-  if (s.next < BT_BALLS && (t - 1) % BT_DROP_TICKS === 0) {
-    s.balls.push({ id: s.next, colour: course.balls[s.next]!, cell: -1, from: -1, above: 1, arrived: t, at: t + BT_STEP_TICKS, steps: 0 });
+  if (s.next < (v7 ? BT_V7_BALLS : BT_BALLS) && (t - 1) % (v7 ? BT_V7_DROP_TICKS : BT_DROP_TICKS) === 0) {
+    s.balls.push({ id: s.next, colour: course.balls[s.next]!, cell: -1, from: -1, above: 1, arrived: t, at: t + BT_STEP_TICKS, steps: 0, ...(v7 ? { bst: 0 } : {}) });
     s.next++;
   }
 
@@ -270,9 +294,11 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
         s.home++;
         if (v2 && (ball.via ?? 0) & 1) s.rideHomes = (s.rideHomes ?? 0) + 1;
         if (v2 && (ball.via ?? 0) & 2) s.switchHomes = (s.switchHomes ?? 0) + 1;
+        if (v7) btV7Home(course, s, ball);
       }
       else if (tray < 0) s.lost++;
       else s.wrong++;
+      if (v7 && tray !== ball.colour) s.streak = 0;
       s.lastLand = t;
       s.landings = keep(s.landings, { cell: col, colour: ball.colour, tick: t, ok: tray === ball.colour ? 1 : 0 });
       removed.add(ball.id);
@@ -284,7 +310,23 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
       s.lost++;
       s.lastLand = t;
       removed.add(ball.id);
+      if (v7) s.streak = 0;
       continue;
+    }
+    // btRev 7: two marbles meeting at a crossover from different directions knock each other astray (both lost).
+    if (v7 && next.cell < SLOT && course.cross?.includes(next.cell)) {
+      const other = s.balls.find((b) => b.id !== ball.id && !removed.has(b.id) && b.cell === next.cell);
+      if (other && (other.above === 1) !== next.fromAbove) {
+        for (const lost of [ball, other]) {
+          s.falls = keep(s.falls, { cell: next.cell, colour: lost.colour, tick: t, ok: 0 });
+          removed.add(lost.id);
+        }
+        s.lost += 2;
+        s.lastLand = t;
+        s.crashes = (s.crashes ?? 0) + 1;
+        s.streak = 0;
+        continue;
+      }
     }
     if (next.cell < SLOT && s.balls.some((b) => b.id !== ball.id && !removed.has(b.id) && b.cell === next.cell)) continue; // waits behind
     if (v2 && ball.cell > BOTTOM && ball.cell < BOTTOM + BT_COLS && next.cell < SLOT &&
@@ -295,13 +337,24 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
     ball.arrived = t;
     ball.at = t + BT_STEP_TICKS;
     ball.steps++;
+    if (v7) {
+      // btRev 7: a speed booster sends the marble on at double speed for its next BT_V7_BOOST_STEPS steps.
+      if (course.boost?.includes(ball.cell)) {
+        ball.bst = BT_V7_BOOST_STEPS;
+        ball.via = (ball.via ?? 0) | 4;
+      }
+      if ((ball.bst ?? 0) > 0) {
+        ball.at = t + BT_V7_BOOST_TICKS;
+        ball.bst = (ball.bst ?? 0) - 1;
+      }
+    }
   }
   if (removed.size) s.balls = s.balls.filter((b) => !removed.has(b.id));
   return s;
 }
 
 export function btOver(s: BtState): boolean {
-  return s.tick >= BT_RUN_TICKS || (s.next >= BT_BALLS && s.balls.length === 0);
+  return s.tick >= BT_RUN_TICKS || (s.next >= (s.r7 ? BT_V7_BALLS : BT_BALLS) && s.balls.length === 0);
 }
 
 /** Perfect-run speed bonus: round(20 × (run ticks − last landing) ÷ run ticks). */
@@ -359,6 +412,11 @@ export function btCheckpoint(s: BtState): BtCheckpoint {
   for (const b of s.balls) values.push(b.id, b.cell, b.at, b.above, b.steps);
   // btRev 4 (taller worlds): the world height, last.
   if (s.worldH) values.push(s.worldH);
+  // btRev 7: its feature counters and each marble's boost, after that.
+  if (s.r7) {
+    values.push(s.r7, s.streak ?? 0, s.combos ?? 0, s.golds ?? 0, s.boosts ?? 0, s.crashes ?? 0);
+    for (const b of s.balls) values.push(b.bst ?? 0);
+  }
   let checksum = 0x811c9dc5;
   for (const v of values) {
     checksum ^= v | 0;
@@ -373,6 +431,8 @@ export const BT_W = BT_COLS * BT_TILE;
 export const BT_H = BT_HOPPER_H + BT_ROWS * BT_TILE + BT_TRAY_H;
 /** btRev 4: the taller board's height (58 + 12 × 100 + 42). */
 export const BT_TALL_H = BT_LAYOUT_TALL.h;
+/** btRev 7: the 13-row board's height (58 + 13 × 100 + 42). */
+export const BT_V7_H = BT_LAYOUT_V7.h;
 const BALL_R = 22.5;
 const BG = "#12161C";
 const TUBE = "#F5B82E";
@@ -394,13 +454,14 @@ export function btWorldH(state: { worldH?: number }): number {
 }
 /** The rows of the board a state plays on. */
 export function btRowsOf(state: { worldH?: number }): number {
-  return state.worldH === BT_TALL_H ? BT_TALL_ROWS : BT_ROWS;
+  return state.worldH === BT_TALL_H ? BT_TALL_ROWS : state.worldH === BT_V7_H ? BT_V7_ROWS : BT_ROWS;
 }
 
 export function btBallPoint(s: BtState, b: BtBall) {
   const rows = btRowsOf(s);
   const a = pointOf(b.from, rows), z = pointOf(b.cell, rows);
-  const k = Math.max(0, Math.min(1, (s.tick - b.arrived) / BT_STEP_TICKS));
+  // A step lasts until the marble may move on (btRev 7's boosted steps are shorter; every other step is BT_STEP_TICKS).
+  const k = Math.max(0, Math.min(1, (s.tick - b.arrived) / Math.max(1, b.at - b.arrived)));
   return { x: a.x + (z.x - a.x) * k, y: a.y + (z.y - a.y) * k };
 }
 
@@ -532,6 +593,8 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
 export const BT_INPUT_RANGES = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_ROWS - 1])] as const;
 /** btRev 4: a tap may name any cell of the taller board. */
 export const BT_INPUT_RANGES_TALL = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_TALL_ROWS - 1])] as const;
+/** btRev 7: any cell of the 13-row board. */
+export const BT_INPUT_RANGES_V7 = [inputRange(BT_K_ROTATE, [0, BT_COLS * BT_V7_ROWS - 1])] as const;
 
 export type BtGame = ArcadeGame<BtState, ArcadeInputEvent | null> & { course: BtCourse; rotatable: Set<number> };
 
@@ -546,7 +609,7 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
     rotatable,
     init: () => {
       // btRev 3 (score bands) and btRev 4 (taller worlds) play the rev-2 rules.
-      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT
+      const state = rev === BT_REV || rev === BT_REV_BAND || rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT || rev === BT_REV_RUSH
         ? { ...btInit(course), rev: BT_REV, sw: 0, turned: layout.kind.map(() => -1000), rideHomes: 0, switchHomes: 0 }
         : btInit(course);
       // btRev 4 adds the board's height (folded into the checkpoint checksum last).
@@ -555,13 +618,15 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
       if (rev === BT_REV_TARGET) return { ...bandInit({ ...state, worldH: layout.h }), band: BAND_TARGET_MARK };
       // btRev 6 (score bands): the same play on its strict curve.
       if (rev === BT_REV_STRICT) return { ...bandInit({ ...state, worldH: layout.h }), band: BAND_STRICT_MARK };
+      // btRev 7 (expansion E6): the rev-2 rules on the 13-row board with the expansion's features.
+      if (rev === BT_REV_RUSH) return bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 });
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
     isOver: btOver,
-    score: bandScoreOf(btScore, scoreBand),
+    score: (state) => (state.r7 ? btV7Score(state) : bandScoreOf(btScore, scoreBand)(state)),
     draw: (ctx, state) => btDraw(ctx, course, state, rotatable),
-    inputRanges: layout.rows === BT_TALL_ROWS ? BT_INPUT_RANGES_TALL : BT_INPUT_RANGES,
+    inputRanges: layout.rows === BT_TALL_ROWS ? BT_INPUT_RANGES_TALL : layout.rows === BT_V7_ROWS ? BT_INPUT_RANGES_V7 : BT_INPUT_RANGES,
   };
 }
 
@@ -623,6 +688,7 @@ export const BT_V4_BAND_CURVE = bandCurve([0, 10, 20, 26, 28, 29, 30], [0, 32, 7
 
 /** The world height (px) a stored round's btRev plays in. */
 export function ballTrackWorldHFor(rev?: number | null): number {
+  if (rev === BT_REV_RUSH) return BT_V7_H;
   return rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BT_TALL_H : BT_H;
 }
 
@@ -647,3 +713,92 @@ export const BT_V5_BAND_CURVE = bandRetarget(BT_V4_BAND_CURVE);
 export const BT_REV_STRICT = 6;
 /** The curve new rounds score on: BT_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BT_V6_BAND_CURVE = bandStrict(BT_V4_BAND_CURVE);
+
+
+/* ================= Expansion E6 (btRev 7, 25 Oct 2026): rush hour ================= */
+
+/**
+ * btRev 7 (docs/expansions/e6.md, docs/scoring-200.md): btRev 6's rules (tubes turn with a marble inside,
+ * switch points on the bottom row, the re-lay and the colour shuffle) on a 13-row board (700 × BT_V7_H) with
+ * BT_V7_BALLS marbles released every BT_V7_DROP_TICKS, and four skill features worth up to
+ * BT_V7_FEATURE_MAX more, so the round tops out at 200:
+ *  - Speed boosters (course.boost: fixed straights with chevrons): a marble leaving one takes its next
+ *    BT_V7_BOOST_STEPS steps at double speed, so the tubes ahead must be set sooner. Home after a boost: a
+ *    boosted marble.
+ *  - Gold marbles (course.gold): their colour's cup as usual; home is worth more.
+ *  - The combo: every correct landing at a streak of BT_V7_COMBO_FROM or more; a wrong cup, a lost marble
+ *    or a crash ends the streak.
+ *  - Crossovers (course.cross: X tiles): a marble from above passes straight down, one along the row passes
+ *    straight on. Two marbles meeting in one from different directions knock each other astray (both lost),
+ *    so when marbles drop through it matters.
+ * Courses come from their own proved bank (src/lib/duel/ballTrackBankV7.server.ts, scripts/ball-track-bank.ts
+ * --v7). Base points: marbles home on BT_V7_BAND_CURVE plus, with all home, up to 10 for speed (to 150);
+ * the features add btV7FeatureBonus (to 50). States keep rev 2 and add the `r7` fields (folded last).
+ */
+export const BT_REV_RUSH = 7;
+export const BT_V7_BALLS = 36;
+export const BT_V7_DROP_TICKS = 84; // last of 36 releases at tick 2941 (49 s)
+export const BT_V7_GOLDS = 6;
+export const BT_V7_BOOST_STEPS = 3;
+export const BT_V7_BOOST_TICKS = 8;
+export const BT_V7_COMBO_FROM = 3;
+/** The earliest the last marble can land on the 13-row board (released at 2941; e6-check proves it by search). */
+export const BT_V7_LAST_LAND_MIN = 3189;
+/** Feature points: a gold marble home, a boosted marble home, a combo landing. */
+export const BT_V7_GOLD_FP = 4;
+export const BT_V7_BOOST_FP = 1;
+export const BT_V7_COMBO_FP = 1;
+export const BT_V7_FEATURE_MAX = 50;
+/** Feature points → bonus (fitted by scripts/e6-bands.ts). */
+export const BT_V7_FEATURE_CURVE = bandCurve([0, 22, 54, 64, 78, 90], [0, 5, 12, 18, 38, 50]);
+/** btRev 7 base knots: marbles home of 36; 140 at all of them, all home adds up to 10 for speed (fitted by scripts/e6-bands.ts). */
+export const BT_V7_BAND_CURVE = bandCurve([0, 8, 16, 25, 33, 35, 36], [0, 30, 65, 91, 112, 128, 140]);
+/** btRev 7's round maximum (ROUND_MAX.balltrack). */
+export const BT_V7_MAX = 200;
+
+/** True for a btRev 7 gold marble. */
+export function btIsGold(course: BtCourse, id: number): boolean {
+  return course.gold?.includes(id) ?? false;
+}
+
+/** btRev 7: a marble just landed in its own cup (in place on `s`). */
+function btV7Home(course: BtCourse, s: BtState, ball: BtBall): void {
+  const streak = (s.streak ?? 0) + 1;
+  s.streak = streak;
+  if (streak > (s.bestStreak ?? 0)) s.bestStreak = streak;
+  if (streak >= BT_V7_COMBO_FROM) s.combos = (s.combos ?? 0) + 1;
+  if (btIsGold(course, ball.id)) s.golds = (s.golds ?? 0) + 1;
+  if ((ball.via ?? 0) & 4) s.boosts = (s.boosts ?? 0) + 1;
+}
+
+/** btRev 7 feature points so far. */
+export function btV7FeaturePoints(state: BtState): number {
+  return (state.golds ?? 0) * BT_V7_GOLD_FP + (state.boosts ?? 0) * BT_V7_BOOST_FP + (state.combos ?? 0) * BT_V7_COMBO_FP;
+}
+
+/** btRev 7 feature bonus, 0…BT_V7_FEATURE_MAX. */
+export function btV7FeatureBonus(state: BtState): number {
+  return clampInt(bandPoints(BT_V7_FEATURE_CURVE, btV7FeaturePoints(state)), 0, BT_V7_FEATURE_MAX);
+}
+
+export function btV7Parts(state: BtState): BandParts {
+  const units = clampInt(state.home, 0, BT_V7_BALLS);
+  const finished = units >= BT_V7_BALLS;
+  const window = BT_RUN_TICKS - BT_V7_LAST_LAND_MIN;
+  const left = BT_RUN_TICKS - Math.max(BT_V7_LAST_LAND_MIN, Math.min(BT_RUN_TICKS, state.lastLand));
+  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, left, window) : 0;
+  const golds = state.golds ?? 0;
+  return {
+    units,
+    points: bandPoints(BT_V7_BAND_CURVE, units),
+    bonus: speed + btV7FeatureBonus(state),
+    penalty: 0,
+    finished,
+    text: `${units} / ${BT_V7_BALLS} marbles home`,
+    bonusText: `${finished ? `All home +${speed} · ` : ""}${golds} gold · ${state.boosts ?? 0} boosted · ${state.combos ?? 0} combo`,
+  };
+}
+
+function btV7Score(state: BtState): number {
+  return bandTotal(btV7Parts(state), Boolean(state.acted), BT_V7_MAX);
+}
