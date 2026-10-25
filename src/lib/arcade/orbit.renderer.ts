@@ -212,10 +212,12 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, 
   }
   // Lit side (upper left) and dark limb.
   const shade = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.1, x, y, r * 1.05);
-  shade.addColorStop(0, "rgba(255,255,255,0.35)");
-  shade.addColorStop(0.45, "rgba(255,255,255,0)");
-  shade.addColorStop(0.8, "rgba(0,0,0,0.35)");
-  shade.addColorStop(1, "rgba(0,0,0,0.75)");
+  // Polish A4: clear sphere shading: a bright lit side, a soft terminator and a dark night side.
+  shade.addColorStop(0, "rgba(255,255,255,0.55)");
+  shade.addColorStop(0.3, "rgba(255,255,255,0.12)");
+  shade.addColorStop(0.55, "rgba(0,0,0,0.12)");
+  shade.addColorStop(0.8, "rgba(0,0,0,0.55)");
+  shade.addColorStop(1, "rgba(0,0,0,0.88)");
   ctx.fillStyle = shade;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
   // Atmosphere: a thin lit rim just inside the edge, and a soft highlight.
@@ -252,17 +254,18 @@ function nebulaSprite(): HTMLCanvasElement | null {
   if (!c) return (nebulaTile = null);
   c.scale(2, 2);
   const T = NEBULA_TILE;
-  // Polish A4 (25 Oct 2026, display only): richer purple, magenta and teal clouds, each with a brighter heart.
+  // Polish A4 (25 Oct 2026, display only): richer purple, magenta and teal clouds, each with a brighter heart
+  // (about twice main's strength, still soft: every cloud fades to nothing at its edge).
   const clouds = [
-    [80, 120, 190, "128,70,220", 0.24],
-    [330, 70, 150, "214,64,190", 0.18],
-    [420, 330, 210, "30,170,180", 0.17],
-    [170, 400, 170, "190,60,200", 0.15],
-    [260, 230, 120, "90,110,255", 0.12],
-    [470, 480, 140, "128,70,220", 0.17],
-    [30, 300, 110, "36,190,190", 0.14],
-    [120, 250, 90, "240,90,200", 0.1],
-    [380, 200, 80, "60,210,200", 0.1],
+    [80, 120, 190, "128,70,220", 0.46],
+    [330, 70, 150, "214,64,190", 0.36],
+    [420, 330, 210, "30,170,180", 0.34],
+    [170, 400, 170, "190,60,200", 0.3],
+    [260, 230, 120, "90,110,255", 0.22],
+    [470, 480, 140, "128,70,220", 0.34],
+    [30, 300, 110, "36,190,190", 0.28],
+    [120, 250, 90, "240,90,200", 0.2],
+    [380, 200, 80, "60,210,200", 0.2],
   ] as const;
   for (const [cx, cy, r, rgb, a] of clouds)
     for (const dx of [-T, 0, T])
@@ -317,7 +320,7 @@ interface ShipMemory {
   points: { x: number; y: number; tick: number }[];
 }
 const shipMemories = new WeakMap<object, ShipMemory>();
-const TRAIL_POINTS = 16;
+const TRAIL_POINTS = 22;
 const CAPTURE_GLOW_MS = 700;
 
 function presentationNow(): number {
@@ -347,7 +350,7 @@ function observeShip(ctx: object, state: { tick: number; captured: number; x: nu
   // A respawn or a black-hole jump teleports the ship: start the trail again.
   if (last && Math.hypot(x - last.x, y - last.y) > 40) m.points = [];
   m.points.push({ x, y, tick: state.tick });
-  while (m.points.length > TRAIL_POINTS || (m.points[0] && state.tick - m.points[0].tick > 24)) m.points.shift();
+  while (m.points.length > TRAIL_POINTS || (m.points[0] && state.tick - m.points[0].tick > 32)) m.points.shift();
   return m;
 }
 
@@ -362,9 +365,9 @@ function drawShipTrail(ctx: CanvasRenderingContext2D, m: ShipMemory, camX: numbe
     const a = pts[i - 1]!;
     const b = pts[i]!;
     const k = i / (pts.length - 1);
-    ctx.globalAlpha = 0.6 * k * k;
+    ctx.globalAlpha = 0.9 * k * k;
     ctx.strokeStyle = k > 0.85 ? "#FFE3B0" : k > 0.6 ? "#DDF0FF" : "#7FB8FF";
-    ctx.lineWidth = 0.6 + 2.6 * k;
+    ctx.lineWidth = 1 + 3.6 * k;
     ctx.beginPath();
     ctx.moveTo(a.x - camX, a.y - camY);
     ctx.lineTo(b.x - camX, b.y - camY);
@@ -540,8 +543,9 @@ function drawOrbitPaths(ctx: CanvasRenderingContext2D, state: { planets: Planet[
 
 /** A planet's soft atmosphere: a glow in its colour just past the disc, behind it (one cached glow sprite). */
 function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string): void {
-  drawFxGlow(ctx, colour, x, y, r * 1.7 + 8, 0.6);
-  drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.2 + 3, 0.18);
+  drawFxGlow(ctx, colour, x, y, r * 1.9 + 10, 0.85);
+  drawFxGlow(ctx, colour, x, y, r * 1.3 + 4, 0.55);
+  drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.15 + 3, 0.25);
   ctx.globalAlpha = 1;
 }
 
@@ -592,11 +596,11 @@ function drawAmbientShootingStar(ctx: CanvasRenderingContext2D, tick: number, w:
 function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean): void {
   const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(tick * 2.3);
   const boost = flying > 0 && since >= 0 && since < 24 ? (24 - since) * 0.35 : 0;
-  const flame = ((flying > 0 ? 8 : 5) + boost) * flicker;
+  const flame = ((flying > 0 ? 13 : 9) + boost) * flicker;
   if (!arcadeReducedEffects()) {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    drawFxGlow(ctx, "#FF9A3C", -7, 0, 6 + boost * 0.4, 0.5);
+    drawFxGlow(ctx, "#FF9A3C", -8, 0, 10 + boost * 0.5, 0.85);
     ctx.restore();
   }
   const fire = ctx.createLinearGradient(-6, 0, -6 - flame, 0);
@@ -605,9 +609,9 @@ function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: n
   fire.addColorStop(1, "rgba(255,77,77,0)");
   ctx.fillStyle = fire;
   ctx.beginPath();
-  ctx.moveTo(-5, -3);
+  ctx.moveTo(-5, -3.6);
   ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -6 - flame, 0);
-  ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3);
+  ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3.6);
   ctx.closePath();
   ctx.fill();
   // A white-hot core in the flame's root.
@@ -756,12 +760,12 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
 
   // Trail along the straight flight already flown.
   if (state.flying > 0) {
-    const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);
+    const back = Math.min(state.flying, 20) * (Math.hypot(state.vx, state.vy) / FP);
     const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
-    trail.addColorStop(0, "rgba(255,209,102,0.55)");
+    trail.addColorStop(0, "rgba(255,209,102,0.8)");
     trail.addColorStop(1, "rgba(255,209,102,0)");
     ctx.strokeStyle = trail;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(sx, sy);
@@ -1078,12 +1082,12 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
 
   if (state.flying > 0) {
-    const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);
+    const back = Math.min(state.flying, 20) * (Math.hypot(state.vx, state.vy) / FP);
     const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
-    trail.addColorStop(0, "rgba(255,209,102,0.55)");
+    trail.addColorStop(0, "rgba(255,209,102,0.8)");
     trail.addColorStop(1, "rgba(255,209,102,0)");
     ctx.strokeStyle = trail;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(sx, sy);

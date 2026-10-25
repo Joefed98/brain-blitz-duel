@@ -186,12 +186,43 @@ function drawTableDressing(c: CanvasRenderingContext2D): void {
     c.bezierCurveTo(TILT_WORLD_W * 0.3, y + ((h >>> 5) % 7) - 3, TILT_WORLD_W * 0.7, y - ((h >>> 9) % 5) + 2, TILT_WORLD_W, y + 1);
     c.stroke();
   }
-  const pool = c.createRadialGradient(CX - 30, CY - 50, 20, CX - 30, CY - 50, 250);
-  pool.addColorStop(0, "rgba(255,206,130,0.24)");
-  pool.addColorStop(0.6, "rgba(255,190,110,0.1)");
+  // The lamplight and the vignette are painted on their own layer, which fades out over the 48 px
+  // nearest the world's top and bottom edges: those edges meet the screen fill's plain oak, so the
+  // board's box never shows.
+  const K = 2;
+  const layer = artCanvas(TILT_WORLD_W * K, TILT_WORLD_H * K);
+  const l = layer && (artContext(layer) as CanvasRenderingContext2D | null);
+  const target = l ?? c;
+  if (l) l.scale(K, K);
+  const pool = target.createRadialGradient(CX - 20, CY - 40, 20, CX - 20, CY - 40, 300);
+  pool.addColorStop(0, "rgba(255,214,140,0.5)");
+  pool.addColorStop(0.45, "rgba(255,200,120,0.26)");
+  pool.addColorStop(0.8, "rgba(255,190,110,0.06)");
   pool.addColorStop(1, "rgba(255,190,110,0)");
-  c.fillStyle = pool;
-  c.fillRect(0, 12, TILT_WORLD_W, TILT_WORLD_H - 24);
+  target.fillStyle = pool;
+  target.fillRect(0, 0, TILT_WORLD_W, TILT_WORLD_H);
+  // A darker vignette towards the sides (an ellipse taller than it is wide).
+  target.save();
+  target.translate(CX, CY);
+  target.scale(1, 1.6);
+  const vignette = target.createRadialGradient(0, 0, 120, 0, 0, 262);
+  vignette.addColorStop(0, "rgba(40,20,6,0)");
+  vignette.addColorStop(0.6, "rgba(40,20,6,0.12)");
+  vignette.addColorStop(1, "rgba(40,20,6,0.38)");
+  target.fillStyle = vignette;
+  target.fillRect(-CX, -CY / 1.6, TILT_WORLD_W, TILT_WORLD_H / 1.6);
+  target.restore();
+  if (l && layer) {
+    const fade = l.createLinearGradient(0, 0, 0, TILT_WORLD_H);
+    fade.addColorStop(0, "rgba(0,0,0,0)");
+    fade.addColorStop(48 / TILT_WORLD_H, "rgba(0,0,0,1)");
+    fade.addColorStop(1 - 48 / TILT_WORLD_H, "rgba(0,0,0,1)");
+    fade.addColorStop(1, "rgba(0,0,0,0)");
+    l.globalCompositeOperation = "destination-in";
+    l.fillStyle = fade;
+    l.fillRect(0, 0, TILT_WORLD_W, TILT_WORLD_H);
+    c.drawImage(layer as CanvasImageSource, 0, 0, TILT_WORLD_W, TILT_WORLD_H);
+  }
   c.restore();
 }
 
@@ -199,12 +230,13 @@ function drawTableDressing(c: CanvasRenderingContext2D): void {
 function drawDiscBed(ctx: CanvasRenderingContext2D): void {
   // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
   // Polish A4: a deeper drop shadow under it.
-  const drop = ctx.createRadialGradient(5, 7, TILT_DISC_R - 10, 5, 7, TILT_DISC_R + 11);
-  drop.addColorStop(0, "rgba(30,14,4,0.6)");
-  drop.addColorStop(1, "rgba(30,14,4,0)");
+  const drop = ctx.createRadialGradient(8, 6, TILT_DISC_R - 12, 8, 6, TILT_DISC_R + 13);
+  drop.addColorStop(0, "rgba(24,10,2,0.85)");
+  drop.addColorStop(0.5, "rgba(24,10,2,0.4)");
+  drop.addColorStop(1, "rgba(24,10,2,0)");
   ctx.fillStyle = drop;
   ctx.beginPath();
-  ctx.arc(5, 7, TILT_DISC_R + 11, 0, Math.PI * 2);
+  ctx.arc(8, 6, TILT_DISC_R + 13, 0, Math.PI * 2);
   ctx.fill();
   const groove = ctx.createRadialGradient(3, 4, TILT_DISC_R - 4, 3, 4, TILT_DISC_R + 12);
   groove.addColorStop(0, "rgba(40,20,6,0.55)");
@@ -216,21 +248,28 @@ function drawDiscBed(ctx: CanvasRenderingContext2D): void {
   // Disc rim: darker wood ring just outside the sim's disc, bevelled (lit upper left).
   ctx.fillStyle = TOY_WOOD_DARK;
   ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 4, 0, Math.PI * 2);
+  ctx.arc(0, 0, TILT_DISC_R + 6, 0, Math.PI * 2);
   ctx.fill();
+  // The bevel: a bright lit face on the upper left, a dark one on the lower right.
   const bevel = ctx.createLinearGradient(-TILT_DISC_R, -TILT_DISC_R, TILT_DISC_R, TILT_DISC_R);
-  bevel.addColorStop(0, "rgba(255,226,180,0.55)");
-  bevel.addColorStop(0.5, "rgba(255,226,180,0)");
-  bevel.addColorStop(1, "rgba(20,8,2,0.5)");
+  bevel.addColorStop(0, "rgba(255,236,196,0.95)");
+  bevel.addColorStop(0.35, "rgba(255,226,180,0.35)");
+  bevel.addColorStop(0.6, "rgba(20,8,2,0.15)");
+  bevel.addColorStop(1, "rgba(20,8,2,0.7)");
   ctx.strokeStyle = bevel;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 2.4, 0, Math.PI * 2);
+  ctx.arc(0, 0, TILT_DISC_R + 3.4, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(255,220,170,0.35)";
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "rgba(255,246,220,0.85)";
   ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 1.2, Math.PI * 0.9, Math.PI * 1.7);
+  ctx.arc(0, 0, TILT_DISC_R + 4.8, Math.PI * 0.95, Math.PI * 1.55);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(20,8,2,0.6)";
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 0.6, 0, Math.PI * 2);
   ctx.stroke();
 }
 
@@ -270,12 +309,13 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   ctx.translate(x, y);
   ctx.rotate(-rot);
   // Polish A4: a warm glow round the star (light only).
-  const glow = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 1.9);
-  glow.addColorStop(0, "rgba(255,226,90,0.55)");
+  const glow = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 2.6);
+  glow.addColorStop(0, "rgba(255,240,140,0.9)");
+  glow.addColorStop(0.4, "rgba(255,220,80,0.45)");
   glow.addColorStop(1, "rgba(255,210,63,0)");
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(0, 0, r * 1.9, 0, Math.PI * 2);
+  ctx.arc(0, 0, r * 2.6, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
@@ -381,27 +421,27 @@ function drawStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void
   // top edge; the soft outer shadow and the faint highlight are skipped (the strips' footprint is unchanged).
   ctx.lineCap = "round";
   if (!lite) {
-    ctx.strokeStyle = "rgba(30,15,5,0.22)";
-    ctx.lineWidth = 4;
-    walls(ctx, m, o, 2, 2.6);
+    ctx.strokeStyle = "rgba(30,15,5,0.35)";
+    ctx.lineWidth = 4.5;
+    walls(ctx, m, o, 2.2, 2.9);
   }
   // Polish A4: deeper carving: a darker edge on the shadow side and a brighter lit edge.
-  ctx.strokeStyle = "rgba(30,15,5,0.5)";
+  ctx.strokeStyle = "rgba(30,15,5,0.7)";
   ctx.lineWidth = 3;
-  walls(ctx, m, o, 1.2, 1.6);
+  walls(ctx, m, o, 1.4, 1.9);
   ctx.strokeStyle = STRIP;
   ctx.lineWidth = 3;
   walls(ctx, m, o, 0, 0);
-  ctx.strokeStyle = "rgba(60,30,10,0.55)";
-  ctx.lineWidth = 0.8;
-  walls(ctx, m, o, 0.8, 0.8);
-  ctx.strokeStyle = STRIP_TOP;
+  ctx.strokeStyle = "rgba(50,24,8,0.8)";
   ctx.lineWidth = 1;
+  walls(ctx, m, o, 0.9, 0.9);
+  ctx.strokeStyle = STRIP_TOP;
+  ctx.lineWidth = 1.2;
   walls(ctx, m, o, -0.5, -0.5);
   if (!lite) {
-    ctx.strokeStyle = "rgba(255,236,200,0.6)";
-    ctx.lineWidth = 0.7;
-    walls(ctx, m, o, -0.9, -0.9);
+    ctx.strokeStyle = "rgba(255,240,210,0.85)";
+    ctx.lineWidth = 0.9;
+    walls(ctx, m, o, -1, -1);
   }
 }
 
@@ -510,9 +550,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     ctx.save();
     ctx.rotate(-rot);
     const gloss = ctx.createRadialGradient(-TILT_DISC_R * 0.45, -TILT_DISC_R * 0.5, 10, 0, 0, TILT_DISC_R);
-    gloss.addColorStop(0, "rgba(255,236,196,0.34)");
+    gloss.addColorStop(0, "rgba(255,236,196,0.46)");
     gloss.addColorStop(0.6, "rgba(255,246,220,0)");
-    gloss.addColorStop(1, "rgba(60,30,10,0.22)");
+    gloss.addColorStop(1, "rgba(60,30,10,0.32)");
     ctx.fillStyle = gloss;
     ctx.beginPath();
     ctx.arc(0, 0, TILT_DISC_R, 0, Math.PI * 2);

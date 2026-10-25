@@ -50,6 +50,23 @@ file, CSS, toolkit or check changed. The shared helpers are used as they are (`d
   glossy highlight; stars glow, with a gradient face and a glint; pits are deeper (shadowed inner walls, a
   lit far wall, a black core). The mazes are unchanged.
 
+## Second pass (25 Oct 2026): Orbit and Tilt pushed further
+
+Joe's review: the other four read clearly; Orbit and Tilt were still too subtle beside main.
+
+- **Orbit**: the nebula clouds at about twice the first pass's strength (still soft, each fading to
+  nothing); clear sphere shading on every planet (a bright lit side, a soft terminator, a dark night side);
+  a stronger two-layer atmosphere glow; a longer, wider flame with a bigger nozzle glow (orbiting and in
+  flight); a longer, brighter, wider trail.
+- **Tilt**: a brighter lamplight pool over the board's centre and a darker vignette towards the sides,
+  painted on their own layer that fades out over the 48 px nearest the world's top and bottom (those edges
+  meet the screen fill's plain oak, so the board's box never shows); a deeper drop shadow; a wider rim with
+  a clearly visible bevel (a bright lit face upper left, a dark one lower right, a bright outer highlight);
+  deeper carved walls (stronger shadow and dark edge, brighter lit edge); a stronger glow round the stars;
+  a warmer lamp gloss on the board.
+- Re-run for both: arcade-play-check, arcade-fill-check and arcade-lowend-check pass (at 4× slowdown
+  Tilt 43.1 fps, was 46.9; Orbit 46.7 fps, was 56.0; the floor is 30).
+
 ## Assumptions and decisions
 
 - **Wavefront's "+10" on a hit is left out.** A shape is one raw point and the HUD's 0–150 score rises by
@@ -68,7 +85,7 @@ file, CSS, toolkit or check changed. The shared helpers are used as they are (`d
 ## Checks run (all pass)
 
 arcade-play-check (the six games), arcade-fill-check (the six), arcade-lowend-check (tilt, swing, orbit:
-46.9 / 33.2 / 56.0 fps at 4×), arcade-fx-check, arcade-tuning-a-check, arcade-self-replay-check,
+46.9 / 33.2 / 56.0 fps at 4× in the first pass; 43.1 / – / 46.7 after the second), arcade-fx-check, arcade-tuning-a-check, arcade-self-replay-check,
 reveal-score-check, swing-rev8-check, snip-rev7-check, orbit-legacy-replay-check, orbit-camera-check,
 orbit-outside-belt-check, flip-bend-check, bullseye-cross-flip-tuning-check, first-paint-check,
 no-wrap-check, plus `tsc --noEmit`.
