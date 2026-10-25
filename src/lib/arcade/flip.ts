@@ -88,6 +88,8 @@ export function flipRulesFor(rev?: number | null): FlipRules {
 export const FLIP_DECISION_OVERHANG = 1;
 export const FLIP_DECISION_PAIRED_SPIKES = 2;
 export const FLIP_DECISION_FALSE_GAP = 3;
+/** flipRev 7: a moving spike (it counts towards the decision share). */
+export const FLIP_DECISION_MOVER = 4;
 
 /** Shared-band bends: long sweeps until 45 s, then a continuous late-run ramp. */
 export const FLIP_WARP_FROM = 20 * TICKS_PER_SECOND;
@@ -173,6 +175,10 @@ export interface FlipSeg {
   group: number;
   /** Zero for a simple hazard; otherwise one of the decision constants. */
   decision: number;
+  /** flipRev 7 moving spikes only: slide amplitude (1/256 px), period (ticks) and phase (angle units). */
+  amp?: number;
+  per?: number;
+  ph?: number;
 }
 
 /** Runner timers: side is the surface it is on or heading to; flipT > 0 while airborne. */
@@ -493,6 +499,24 @@ export interface FlipState extends BandFields {
   cracks?: number[];
   /** flipRev 4 only (Tuning C): 1 = the bend starts at 10 s and the run scores on FLIP_V4_BAND_CURVE. Absent on every earlier round. */
   tunec?: number;
+  /** flipRev 7 only (the expansion, absent on every earlier round): see FlipV7Fields. */
+  exp?: number;
+  v7?: FlipV7Course;
+  arcN?: number;
+  land?: number;
+  chain?: number;
+  combos?: number;
+  comboPts?: number;
+  save?: number;
+  saves?: number;
+  inv?: number;
+  cpPassed?: number;
+  cleanCps?: number;
+  zoneSaves?: number;
+  zonesOk?: number;
+  trailGot?: number[];
+  pause?: number;
+  lost?: number;
 }
 
 export function flipWarpAmp(tick: number, rev?: number | null, early?: number): number {
@@ -695,6 +719,9 @@ export function flipCheckpoint(state: FlipState): FlipCheckpoint {
   const extra = state.rev === FLIP_REV ? [state.got ?? 0, ...(state.cracks ?? [])] : [];
   // flipRev 4 adds its marker last.
   if (state.tunec) extra.push(state.tunec);
+  // flipRev 7 folds in its own counters after that.
+  if (state.exp) extra.push(state.exp, state.arcN ?? 0, state.land ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.save ?? 0,
+    state.saves ?? 0, state.inv ?? 0, state.cpPassed ?? 0, state.cleanCps ?? 0, state.zonesOk ?? 0, state.pause ?? 0, state.lost ?? 0, ...(state.trailGot ?? []));
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -792,6 +819,7 @@ const flipRev2Game: ArcadeGame<FlipState, ArcadeInputEvent | null> = { ...flipGa
 
 /** Takes puzzle.flipRev; anything else is the original corridor. */
 export function flipGameFor(rev?: number | null): ArcadeGame<FlipState, ArcadeInputEvent | null> {
+  if (rev === FLIP_REV_EXPAND) return flipExpandGame;
   if (rev === FLIP_REV_STRICT) return flipStrictGame;
   if (rev === FLIP_REV_TARGET) return flipTargetGame;
   if (rev === FLIP_REV_TUNEC) return flipTunecGame;
@@ -811,12 +839,14 @@ export const FLIP_REV_BAND = 3;
 /** Each half second survived counts 1 and each gold star 3; 140 at the full minute with all ten stars; lasting the minute adds 10. */
 export const FLIP_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 150], [0, 15, 70, 100, 120, 140]);
 export function flipBandParts(state: FlipState): BandParts {
+  if (state.exp) return flipV7Parts(state);
   const units = Math.floor((state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS)) / 30) + 3 * flipStarsTaken(state);
   const finished = state.ended === 1;
   return { units, points: bandPoints(bandCurveOf(state, state.tunec ? FLIP_V4_BAND_CURVE : FLIP_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1)} s · ${flipStarsTaken(state)} stars`, bonusText: "Lasted the minute" };
 }
 
 function scoreBand(state: FlipState): number {
+  if (state.exp) return flipV7Score(state);
   return bandTotal(flipBandParts(state), Boolean(state.acted));
 }
 
@@ -861,3 +891,726 @@ export const FLIP_REV_STRICT = 6;
 export const flipStrictGame = bandStrictGame(flipTargetGame);
 /** The curve new rounds score on: FLIP_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const FLIP_V6_BAND_CURVE = bandStrict(FLIP_V4_BAND_CURVE);
+
+/* ================= The expansion (flipRev 7, 25 Oct 2026) ================= */
+
+/**
+ * flipRev 7 (docs/expansions/e7.md, docs/scoring-200.md): a taller 390 × 730 world whose cave
+ * height changes along the run (normal 260 px, tight 200 px, tall 340 px sections), so a flip's
+ * arc takes 9 to 16 ticks (flipV7Arc: the height under the runner when it leaves), a faster top
+ * speed and two speed zones (the run goes 11/8 as fast for 5 s), moving spikes that slide along
+ * their surface, four bonus star trails (five stars on a flip's arc, taken in the air), double-flip
+ * combos (a flip within 8 ticks of landing with a hazard close by), and checkpoints at 15, 30 and
+ * 45 s (the next crash after one is saved: a second of shield, 5 s off the survival count).
+ *
+ * Scored to 200 (roundMaxFor("flip")): the rev-6 shape (half seconds + 3 per gold star on its own
+ * curve to 140, plus 10 for the full minute) and up to 50 more from the features only: 1 per trail
+ * star and 1 per full trail (24), combo points (a double flip 1, a triple 2, longer 3; 12 at most),
+ * 4 per speed zone run through without a save (8) and 2 per checkpoint reached without a crash (6).
+ *
+ * Collision is the original 1-D rule (side, x-span, on the surface): the height, trails and
+ * zones never move a hazard; the course is proved on the sim's own rule: one route takes every
+ * gold star and every trail star and lasts the minute.
+ */
+export const FLIP_REV_EXPAND = 7;
+export const FLIP_V7_WORLD_H = 730;
+/** The tunnel's middle line in the tall world; the cave's floor and ceiling sit half its height either side. */
+export const FLIP_V7_CY = 365;
+export const FLIP_V7_H_NORMAL = 260;
+export const FLIP_V7_H_TIGHT = 200;
+export const FLIP_V7_H_TALL = 340;
+const V7_HEIGHTS = [FLIP_V7_H_TIGHT, FLIP_V7_H_NORMAL, FLIP_V7_H_TALL] as const;
+/** A height change eases over this many px of tunnel. */
+export const FLIP_V7_RAMP = 160;
+const V7_SPEED_CAP = 2560;
+/** Speed zones: the run goes ZONE_NUM / ZONE_DEN as fast. */
+export const FLIP_V7_ZONE_NUM = 11;
+export const FLIP_V7_ZONE_DEN = 8;
+export const FLIP_V7_ZONE_TICKS = 5 * TICKS_PER_SECOND;
+export const FLIP_V7_CHECKPOINTS = [15, 30, 45].map((s) => s * TICKS_PER_SECOND);
+/** A saved crash: this many ticks of shield, and the survival count pauses this many ticks. */
+export const FLIP_V7_SHIELD_TICKS = 60;
+export const FLIP_V7_SAVE_PAUSE = 10 * TICKS_PER_SECOND;
+/** Double flip: the next flip begins within this many ticks of landing, with a hazard this close (px) ahead. */
+export const FLIP_V7_COMBO_TICKS = 8;
+export const FLIP_V7_COMBO_NEAR = 96;
+export const FLIP_V7_TRAILS = 4;
+export const FLIP_V7_TRAIL_STARS = 5;
+/** Trail stars sit at these points of their arc (per mille) and are taken within this share of the cave height. */
+const V7_TRAIL_AT = [150, 325, 500, 675, 850] as const;
+export const FLIP_V7_TRAIL_TOL = 230;
+export const FLIP_V7_TRAIL_R = 8;
+/** Moving spikes join the plain patterns from this tick. */
+const V7_MOVERS_FROM = 12 * TICKS_PER_SECOND;
+/** Feature points (50 in all): a full trail, combo points (doubled in a speed zone, capped), a clean zone, a clean checkpoint. */
+export const FLIP_V7_TRAIL_POINTS = 5;
+export const FLIP_V7_COMBO_CAP = 15;
+export const FLIP_V7_ZONE_POINTS = 3;
+export const FLIP_V7_CP_POINTS = 3;
+export const FLIP_V7_FEATURE_CAP = 50;
+/** The rev-7 survival curve: half seconds + 3 per gold star, to 140 (the full minute adds 10, the features up to 50). */
+export const FLIP_V7_BAND_CURVE = bandCurve([0, 40, 105, 130, 140, 146, 147, 150], [0, 10, 40, 56, 72, 84, 98, 140]);
+
+export interface FlipTrail {
+  /** Star centres (1/256 px) and heights (per mille of the cave: 0 the floor's runner line, 1000 the ceiling's). */
+  x: number[];
+  f: number[];
+  /** Launch point (1/256 px), its surface (the trail rises from the floor when 0) and the ticks it can be taken in. */
+  launch: number;
+  from: number;
+  t0: number;
+  t1: number;
+}
+
+/** The stored course's extra geometry, shared by every state of a run (never written after init). */
+export interface FlipV7Course {
+  /** Runner x (1/256 px) at every tick. */
+  xs: number[];
+  /** Height sections, flattened [x0, height px, …], x0 ascending. */
+  hts: number[];
+  /** Speed zones, flattened [first tick, end tick, …]. */
+  zones: number[];
+  trails: FlipTrail[];
+}
+
+export function flipWorldHFor(rev?: number | null): number {
+  return rev === FLIP_REV_EXPAND ? FLIP_V7_WORLD_H : FLIP_WORLD_H;
+}
+export function flipWorldH(state: Pick<FlipState, "exp">): number {
+  return state.exp ? FLIP_V7_WORLD_H : FLIP_WORLD_H;
+}
+
+/** Cave height (px) at world x on a rev-7 course: its section, eased in over FLIP_V7_RAMP px. */
+export function flipV7HeightAt(course: Pick<FlipV7Course, "hts">, x: number): number {
+  const hts = course.hts;
+  let i = 0;
+  while (i + 2 < hts.length && hts[i + 2]! <= x) i += 2;
+  const h = hts[i + 1]!;
+  if (i === 0) return h;
+  const into = x - hts[i]!;
+  const ramp = FLIP_V7_RAMP * FP;
+  if (into >= ramp) return h;
+  const prev = hts[i - 1]!;
+  return prev + Math.trunc(((h - prev) * into) / ramp);
+}
+
+/** The ticks a flip takes when it leaves at cave height h (12 at the original 260). */
+export function flipV7Arc(h: number): number {
+  return clampInt(Math.trunc((h * FLIP_ARC_TICKS + 130) / 260), 9, 16);
+}
+
+export function flipV7InZone(course: Pick<FlipV7Course, "zones">, tick: number): boolean {
+  const z = course.zones;
+  for (let i = 0; i < z.length; i += 2) if (tick > z[i]! && tick <= z[i + 1]!) return true;
+  return false;
+}
+
+function v7Speed(tick: number): number {
+  return Math.min(V7_SPEED_CAP, SPEED_START + SPEED_STEP * Math.trunc(tick / SPEED_STEP_TICKS));
+}
+
+/** The base speed step (no zone) a rev-7 run is on at a tick (sounds and art). */
+export function flipV7BaseSpeed(tick: number): number {
+  return v7Speed(tick);
+}
+
+function v7Xs(zones: number[]): number[] {
+  const out = [0];
+  let x = 0;
+  for (let t = 1; t <= FLIP_RUN_TICKS; t++) {
+    const v = v7Speed(t);
+    x += flipV7InZone({ zones }, t) ? Math.trunc((v * FLIP_V7_ZONE_NUM) / FLIP_V7_ZONE_DEN) : v;
+    out.push(x);
+  }
+  return out;
+}
+
+/** A moving spike's slide (1/256 px) on a tick; 0 for every other hazard. */
+export function flipSegShift(seg: FlipSeg, tick: number): number {
+  if (!seg.amp || !seg.per) return 0;
+  const angle = ((seg.ph ?? 0) + Math.trunc((tick * WARP_ANGLE) / seg.per)) & (WARP_ANGLE - 1);
+  return Math.trunc((seg.amp * isin(angle)) / TRIG_ONE);
+}
+
+function v7Blocked(side: number, flipT: number, x: number, seg: FlipSeg, tick: number, half: number): boolean {
+  if (flipT !== 0 || side !== seg.side) return false;
+  const d = flipSegShift(seg, tick);
+  return x + half >= seg.x0 + d && x - half <= seg.x1 + d;
+}
+
+/** Integer smoothstep on per mille (the arc's ease, as the art draws it). */
+function smooth(p: number): number {
+  const q = clampInt(p, 0, 1000);
+  return Math.trunc((q * q * (3000 - 2 * q)) / 1000000);
+}
+
+/** Where the runner is across the cave this tick, per mille (0 standing on the floor, 1000 on the ceiling). */
+export function flipV7Frac(side: number, flipT: number, arcN: number): number {
+  if (flipT <= 0) return side === 1 ? 1000 : 0;
+  const up = smooth(Math.trunc(((arcN - flipT) * 1000) / arcN));
+  return side === 1 ? up : 1000 - up;
+}
+
+/** Trail star bits a runner takes on this tick. */
+function trailTake(trail: FlipTrail, x: number, frac: number, half: number, got: number): number {
+  const reach = half + FLIP_V7_TRAIL_R * FP;
+  for (let k = 0; k < FLIP_V7_TRAIL_STARS; k++) {
+    if (got & (1 << k)) continue;
+    if (Math.abs(x - trail.x[k]!) <= reach && Math.abs(frac - trail.f[k]!) <= FLIP_V7_TRAIL_TOL) got |= 1 << k;
+  }
+  return got;
+}
+
+/* Solver codes for rev 7: side | flipT << 1 | arcN << 6 | landed << 11 | crumble << 15 | star << 20 | trail bits << 21. */
+const pack7 = (side: number, flipT: number, arcN: number, landed: number, crumble = 0, got = 0, trail = 0) =>
+  side | (flipT << 1) | (arcN << 6) | (landed << 11) | (crumble << 15) | (got << 20) | (trail << 21);
+const STAR7 = 1 << 20;
+const TRAIL7 = 31 << 21;
+const FULL_TRAIL = (1 << FLIP_V7_TRAIL_STARS) - 1;
+
+function solverTick7(set: readonly number[], t: number, hazards: readonly FlipSeg[], course: FlipV7Course,
+  star?: { x: number; side: number }, trail?: FlipTrail): number[] {
+  const x = course.xs[t]!;
+  const half = RULES_V2.runnerHalf;
+  let onCrumble = false;
+  for (const seg of hazards) if (seg.kind === FLIP_CRUMBLE && x + half >= seg.x0 && x - half <= seg.x1) onCrumble = true;
+  const arcHere = flipV7Arc(flipV7HeightAt(course, x));
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const code of set) {
+    const side = code & 1;
+    const flipT = (code >> 1) & 31;
+    const arcN = (code >> 6) & 31;
+    const landed = (code >> 11) & 15;
+    const crumble = onCrumble ? (code >> 15) & 31 : 0;
+    const got = (code >> 20) & 1;
+    const tbits = (code >> 21) & 31;
+    for (const tap of [false, true]) {
+      if (tap && (flipT > 0 || landed < SOLVER_LANDED)) continue;
+      let ns = side;
+      let nf = flipT;
+      let na = arcN;
+      if (nf > 0) nf -= 1;
+      else if (tap) {
+        ns ^= 1;
+        na = arcHere;
+        nf = na;
+      }
+      let c = crumble > 0 ? Math.min(CRUMBLE_CAP, crumble + 1) : 0;
+      let dead = false;
+      for (const seg of hazards) {
+        if (!v7Blocked(ns, nf, x, seg, t, half)) continue;
+        if (seg.kind !== FLIP_CRUMBLE) dead = true;
+        else if (c === 0) c = 1;
+        else if (c - 1 >= FLIP_CRUMBLE_TICKS) dead = true;
+        if (dead) break;
+      }
+      if (dead) continue;
+      const nl = nf > 0 ? 0 : Math.min(SOLVER_LANDED, landed + 1);
+      const taken = got || (star && nf === 0 && ns === star.side && Math.abs(x - star.x) <= half + FLIP_STAR_R * FP) ? 1 : 0;
+      const tb = trail ? trailTake(trail, x, flipV7Frac(ns, nf, na), half, tbits) : tbits;
+      const next = pack7(ns, nf, nf > 0 ? na : 0, nl, c, taken, tb);
+      if (seen.has(next)) continue;
+      seen.add(next);
+      out.push(next);
+    }
+  }
+  return out;
+}
+
+function v7Reach(seg: FlipSeg): number {
+  return seg.amp ?? 0;
+}
+
+interface V7Built {
+  segs: FlipSeg[];
+  rng: number;
+  course: FlipV7Course;
+}
+
+function buildCourseV7(seed: number): V7Built {
+  let rng = seed | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const half = RULES_V2.runnerHalf;
+  // Speed zones, then the tunnel's x at every tick, then the height sections.
+  const z1 = (17 + draw(4)) * TICKS_PER_SECOND;
+  const z2 = (37 + draw(4)) * TICKS_PER_SECOND;
+  const zones = [z1, z1 + FLIP_V7_ZONE_TICKS, z2, z2 + FLIP_V7_ZONE_TICKS];
+  const xs = v7Xs(zones);
+  const hts = [0, FLIP_V7_H_NORMAL];
+  {
+    let prev = 1;
+    for (let t = 8 * TICKS_PER_SECOND; t < FLIP_RUN_TICKS; t += (5 + draw(4)) * TICKS_PER_SECOND) {
+      const pick = (prev + 1 + draw(2)) % 3;
+      hts.push(xs[t]!, V7_HEIGHTS[pick]!);
+      prev = pick;
+    }
+  }
+  const course: FlipV7Course = { xs, hts, zones, trails: [] };
+  const trailTicks = [7 + draw(2), 20 + draw(3), 33 + draw(3), 48 + draw(3)].map((s) => s * TICKS_PER_SECOND);
+  const X = xs;
+  const speedAt = (t: number) => X[Math.min(FLIP_RUN_TICKS, t + 1)]! - X[Math.min(FLIP_RUN_TICKS - 1, t)]!;
+  let frontier: number[] = [pack7(0, 0, 0, SOLVER_LANDED)];
+  let tick = 0;
+  const end = X[FLIP_RUN_TICKS]!;
+  const segs: FlipSeg[] = [];
+  let group = 0;
+  let groupsAfterTen = 0;
+  let decisionsAfterTen = 0;
+  let lastWasCrumble = false;
+  let trailIdx = 0;
+
+  const advance = (from: number[], t0: number, xEnd: number, hazards: readonly FlipSeg[]) => {
+    let set = from;
+    let t = t0;
+    const reach = hazards.reduce((m, seg) => Math.max(m, v7Reach(seg)), 0);
+    while (t < FLIP_RUN_TICKS && X[t]! - half <= xEnd + reach) {
+      t += 1;
+      set = solverTick7(set, t, hazards, course);
+      if (!set.length) break;
+    }
+    return { set, tick: t };
+  };
+
+  let x = X[CLEAR_TICKS]!;
+  let lastEnd = x;
+  while (x < end) {
+    const speed = speedAt(tick);
+    // A star trail: a clear stretch, a launch point and five stars on the arc from it.
+    if (trailIdx < trailTicks.length && tick + 30 >= trailTicks[trailIdx]!) {
+      trailIdx += 1;
+      const tL = tick + 50;
+      if (tL + 40 < FLIP_RUN_TICKS) {
+        const from = draw(2);
+        const arc = flipV7Arc(flipV7HeightAt(course, X[tL]!));
+        const tx: number[] = [];
+        const tf: number[] = [];
+        for (const p of V7_TRAIL_AT) {
+          tx.push(X[tL + Math.trunc((p * arc) / 1000)]!);
+          const up = smooth(p);
+          tf.push(from === 0 ? up : 1000 - up);
+        }
+        const reach = half + FLIP_V7_TRAIL_R * FP;
+        let t1 = tL;
+        while (t1 < FLIP_RUN_TICKS && X[t1]! - reach <= tx[FLIP_V7_TRAIL_STARS - 1]!) t1 += 1;
+        const trail: FlipTrail = { x: tx, f: tf, launch: X[tL]!, from, t0: tick + 1, t1 };
+        let set = frontier.map((code) => code & ~TRAIL7);
+        let t = tick;
+        while (t < t1 && set.length) {
+          t += 1;
+          set = solverTick7(set, t, [], course, undefined, trail);
+        }
+        const took = set.filter((code) => ((code >> 21) & 31) === FULL_TRAIL).map((code) => code & ~TRAIL7);
+        if (took.length) {
+          course.trails.push(trail);
+          frontier = took;
+          tick = t;
+          x = X[t]! + 20 * speed;
+          lastEnd = x;
+          continue;
+        }
+      }
+    }
+    const tight = x >= X[TIGHT_AFTER]!;
+    const budget = Math.max(speed * 4, speed * MAX_GAP_TICKS - (x - lastEnd) - speed * 2);
+    const gap = tight
+      ? Math.min(budget, speed * (16 + SOLVER_LANDED + draw(MAX_GAP_TICKS - 16 - SOLVER_LANDED + 1)))
+      : Math.trunc(((33 + draw(88)) * FP * speed) / SPEED_START);
+    const start = x + gap;
+    if (start >= end) break;
+    let accepted: FlipSeg[] = [];
+    let result: { set: number[]; tick: number } | null = null;
+    const afterTen = start >= X[10 * TICKS_PER_SECOND]!;
+    const requireDecision = afterTen && decisionsAfterTen * 100 < (groupsAfterTen + 1) * 75;
+    const crumbleOk = start >= X[FLIP_CRUMBLE_FROM]! && !lastWasCrumble && start - lastEnd >= 2 * half + 8 * speed;
+    const moverOk = start >= X[V7_MOVERS_FROM]!;
+    for (let attempt = 0; attempt < 48 && !result; attempt++) {
+      // Rev 7: moving spikes count as decisions too (the safe moment moves with them).
+      const decide = draw(4);
+      const pattern = requireDecision && attempt < 40 ? (decide === 3 ? 8 : 3 + decide) : draw(10);
+      const side = draw(2);
+      const len = Math.trunc(((40 + draw(120)) * FP * speed) / SPEED_START);
+      let trial: FlipSeg[];
+      const nextGroup = group + 1;
+      if (pattern >= 8) {
+        if (!moverOk) continue;
+        // A moving spike: it slides to and fro along its surface, so the safe moment moves with it.
+        const amp = (40 + draw(31)) * FP;
+        const per = 90 + draw(61);
+        const spikeLen = (30 + draw(24)) * FP;
+        trial = [{ x0: start + amp, x1: start + amp + spikeLen, side, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_MOVER, amp, per, ph: draw(65536) }];
+      } else if (pattern >= 6) {
+        if (!crumbleOk) continue;
+        const crumbleLen = speed * (FLIP_CRUMBLE_TICKS + 18 + draw(30));
+        trial = [{ x0: start, x1: start + crumbleLen, side, kind: FLIP_CRUMBLE, group: nextGroup, decision: 0 }];
+      } else if (pattern === 3) {
+        const len1 = (30 + draw(40)) * FP;
+        const between = speed * (16 + SOLVER_LANDED + 4 + draw(12));
+        trial = [
+          { x0: start, x1: start + len1, side, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+          { x0: start + len1 + between, x1: start + len1 + between + len1, side: side ^ 1, kind: FLIP_OVERHANG, group: nextGroup, decision: FLIP_DECISION_OVERHANG },
+        ];
+      } else if (pattern === 4) {
+        const spikeLen = (32 + draw(34)) * FP;
+        const between = speed * (25 + draw(16));
+        trial = [
+          { x0: start, x1: start + spikeLen, side, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+          { x0: start + spikeLen + between, x1: start + spikeLen + between + spikeLen, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_PAIRED_SPIKES },
+        ];
+      } else if (pattern === 5) {
+        const gapLen = (55 + draw(45)) * FP;
+        const offset = speed * (16 + 8 + draw(12));
+        trial = [
+          { x0: start, x1: start + gapLen, side, kind: FLIP_GAP, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
+          { x0: start + gapLen + offset, x1: start + gapLen + offset + 38 * FP, side: side ^ 1, kind: FLIP_SPIKE, group: nextGroup, decision: FLIP_DECISION_FALSE_GAP },
+        ];
+      } else {
+        trial = [{ x0: start, x1: start + len, side, kind: pattern === 2 ? FLIP_GAP : FLIP_SPIKE, group: nextGroup, decision: 0 }];
+      }
+      const last = trial[trial.length - 1]!;
+      if (last.x1 + v7Reach(last) >= end) continue;
+      const tried = advance(frontier, tick, last.x1, trial);
+      if (tried.set.length) {
+        accepted = trial;
+        result = tried;
+      }
+    }
+    if (!result) {
+      const stepTo = tight ? x + speed * 6 : start;
+      result = advance(frontier, tick, stepTo, []);
+      x = stepTo;
+    } else {
+      segs.push(...accepted);
+      group += 1;
+      lastWasCrumble = accepted[0]?.kind === FLIP_CRUMBLE;
+      if (afterTen) {
+        groupsAfterTen += 1;
+        if (accepted[0]?.decision) decisionsAfterTen += 1;
+      }
+      const last = accepted[accepted.length - 1]!;
+      x = last.x1 + v7Reach(last);
+      lastEnd = x;
+    }
+    frontier = result.set;
+    tick = result.tick;
+    if (tick >= FLIP_RUN_TICKS) break;
+  }
+  return { segs, rng, course };
+}
+
+/**
+ * Ten gold stars that one route takes along with every trail star, as placeStars does on the
+ * original course (each nudged forward until a route takes it, clear of hazards, trails and the
+ * stretches a moving spike sweeps). Null if a placement fails.
+ */
+function placeStarsV7(built: V7Built): { stars: FlipStar[]; rng: number } | null {
+  const { segs, course } = built;
+  const X = course.xs;
+  let state = built.rng;
+  const draw = (bound: number) => {
+    const r = rngBelow(state, bound);
+    state = r.state;
+    return r.value;
+  };
+  const half = RULES_V2.runnerHalf;
+  const reach = half + FLIP_STAR_R * FP;
+  const near = (t: number) => {
+    const x = X[t]!;
+    return segs.filter((seg) => seg.x0 - v7Reach(seg) <= x + half + 64 * FP && seg.x1 + v7Reach(seg) >= x - half - 64 * FP);
+  };
+  const trailAt = (t: number) => course.trails.find((tr) => t >= tr.t0 && t <= tr.t1);
+  const clear = (x: number, side: number) =>
+    !segs.some((seg) => seg.side === side && seg.x0 - v7Reach(seg) <= x + reach + 8 * FP && seg.x1 + v7Reach(seg) >= x - reach - 8 * FP) &&
+    !course.trails.some((tr) => X[tr.t0]! <= x + reach + 8 * FP && X[tr.t1]! >= x - reach - 8 * FP);
+  /** One tick of the route: a trail's stars are required by the tick after its last can be taken. */
+  const stepRoute = (set: number[], t: number, star?: { x: number; side: number }) => {
+    const trail = trailAt(t);
+    let out = solverTick7(set, t, near(t), course, star, trail);
+    if (trail && t === trail.t1) out = out.filter((code) => ((code >> 21) & 31) === FULL_TRAIL).map((code) => code & ~TRAIL7);
+    return out;
+  };
+  let set = [pack7(0, 0, 0, SOLVER_LANDED)];
+  let t = 0;
+  const stars: FlipStar[] = [];
+  for (const second of STAR_SECONDS) {
+    const target = X[Math.trunc(second * TICKS_PER_SECOND)]!;
+    const firstSide = draw(2);
+    let placed = false;
+    for (let j = 0; j < 24 && !placed; j++) {
+      const x = target + j * 24 * FP;
+      for (const side of [firstSide, firstSide ^ 1]) {
+        if (!clear(x, side)) continue;
+        let trySet = set;
+        let tt = t;
+        while (tt < FLIP_RUN_TICKS && X[tt + 1]! < x - reach && trySet.length) {
+          tt += 1;
+          trySet = stepRoute(trySet, tt);
+        }
+        trySet = trySet.map((code) => code & ~STAR7);
+        while (tt < FLIP_RUN_TICKS && X[tt]! <= x + reach && trySet.length) {
+          tt += 1;
+          trySet = stepRoute(trySet, tt, { x, side });
+        }
+        const took = trySet.filter((code) => code & STAR7);
+        if (!took.length) continue;
+        stars.push({ x, side });
+        set = took.map((code) => code & ~STAR7);
+        t = tt;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) return null;
+  }
+  while (t < FLIP_RUN_TICKS && set.length) {
+    t += 1;
+    set = stepRoute(set, t);
+  }
+  return set.length ? { stars, rng: state } : null;
+}
+
+const cacheV7 = new Map<number, { segs: FlipSeg[]; rng: number; stars: FlipStar[]; course: FlipV7Course }>();
+
+/** The rev-7 course for a seed: hazards, trails and ten gold stars one route takes with every trail; re-rolled if that fails. */
+export function flipCourseV7(seed: number): { segs: FlipSeg[]; rng: number; stars: FlipStar[]; course: FlipV7Course } {
+  const hit = cacheV7.get(seed | 0);
+  if (hit) return hit;
+  let out: { segs: FlipSeg[]; rng: number; stars: FlipStar[]; course: FlipV7Course } | null = null;
+  for (let attempt = 0; attempt < 6 && !out; attempt++) {
+    const built = buildCourseV7(attempt === 0 ? seed : (Math.imul(seed | 0, 0x9e3779b1) + attempt) | 0);
+    const placed = placeStarsV7(built);
+    if (placed) out = { segs: built.segs, rng: placed.rng, stars: placed.stars, course: built.course };
+  }
+  if (!out) {
+    const built = buildCourseV7(seed);
+    out = { segs: built.segs, rng: built.rng, stars: [], course: { ...built.course, trails: [] } };
+  }
+  if (cacheV7.size > 16) cacheV7.clear();
+  cacheV7.set(seed | 0, out);
+  return out;
+}
+
+/** Rev 7 states carry the strict band mark for `acted` tracking; their score is flipV7Score's own. */
+const BAND_MARK_V7 = 3;
+
+function initV7(seed: number): FlipState {
+  const c = flipCourseV7(seed);
+  return {
+    ...initFrom(c),
+    rev: FLIP_REV,
+    stars: c.stars,
+    got: 0,
+    cracks: [],
+    tunec: 1,
+    band: BAND_MARK_V7,
+    acted: 0,
+    exp: 1,
+    v7: c.course,
+    arcN: 0,
+    land: 99,
+    chain: 0,
+    combos: 0,
+    comboPts: 0,
+    save: 0,
+    saves: 0,
+    inv: 0,
+    cpPassed: 0,
+    cleanCps: 0,
+    zoneSaves: 0,
+    zonesOk: 0,
+    trailGot: c.course.trails.map(() => 0),
+    pause: 0,
+    lost: 0,
+  };
+}
+
+/** A hazard on either surface within reach of a double flip (under the runner or close ahead). */
+function hazardNear(s: FlipState, x: number, tick: number, half: number): boolean {
+  for (let i = s.cursor; i < s.segs.length; i++) {
+    const seg = s.segs[i]!;
+    const d = flipSegShift(seg, tick);
+    if (seg.x0 - v7Reach(seg) > x + half + FLIP_V7_COMBO_NEAR * FP) break;
+    if (seg.x1 + d >= x - half && seg.x0 + d <= x + half + FLIP_V7_COMBO_NEAR * FP) return true;
+  }
+  return false;
+}
+
+function stepV7(state: FlipState, input: ArcadeInputEvent | null): FlipState {
+  if (isOver(state)) return state;
+  const course = state.v7!;
+  const tick = state.tick + 1;
+  const s: FlipState = { ...state, tick };
+  const x = course.xs[tick]!;
+  const half = RULES_V2.runnerHalf;
+  const tap = input !== null && input.k === FLIP_INPUT_TAP;
+  if (s.flipT > 0) {
+    s.flipT -= 1;
+    if (s.flipT === 0) s.land = 0;
+  } else if (tap) {
+    // Double flip: off again within FLIP_V7_COMBO_TICKS of landing, with a hazard close by.
+    if ((s.land ?? 99) <= FLIP_V7_COMBO_TICKS && hazardNear(s, x, tick, half)) {
+      s.chain = (s.chain ?? 0) + 1;
+      s.combos = (s.combos ?? 0) + 1;
+      s.comboPts = (s.comboPts ?? 0) + Math.min(3, s.chain) * (flipV7InZone(course, tick) ? 2 : 1);
+    } else s.chain = 0;
+    s.side ^= 1;
+    s.arcN = flipV7Arc(flipV7HeightAt(course, x));
+    s.flipT = s.arcN;
+  } else s.land = Math.min(99, (s.land ?? 99) + 1);
+  s.x = x;
+  let cursor = s.cursor;
+  while (cursor < s.segs.length && s.segs[cursor]!.x1 + v7Reach(s.segs[cursor]!) < s.x - half) cursor += 1;
+  s.cursor = cursor;
+  s.warpY = flipWarpAt(s, s.side, s.x, tick);
+  const shielded = (s.inv ?? 0) > 0;
+  if (shielded) s.inv = (s.inv ?? 0) - 1;
+  // After a save the survival count pauses (FLIP_V7_SAVE_PAUSE ticks), so lasting on never scores less.
+  if ((s.pause ?? 0) > 0) {
+    s.pause = (s.pause ?? 0) - 1;
+    s.lost = (s.lost ?? 0) + 1;
+  }
+  let hit = false;
+  for (let i = cursor; i < s.segs.length; i++) {
+    const seg = s.segs[i]!;
+    if (seg.x0 - v7Reach(seg) > s.x + half) break;
+    if (shielded || !v7Blocked(s.side, s.flipT, s.x, seg, tick, half)) continue;
+    if (seg.kind !== FLIP_CRUMBLE) {
+      hit = true;
+      continue;
+    }
+    const first = flipCrackTick(s, i);
+    if (first === null) s.cracks = [...(s.cracks ?? []), i, tick];
+    else if (tick - first >= FLIP_CRUMBLE_TICKS) hit = true;
+  }
+  if (s.stars) {
+    const reach = half + FLIP_STAR_R * FP;
+    let got = s.got ?? 0;
+    s.stars.forEach((star, i) => {
+      if (!(got & (1 << i)) && s.flipT === 0 && s.side === star.side && Math.abs(s.x - star.x) <= reach) got |= 1 << i;
+    });
+    s.got = got;
+  }
+  course.trails.forEach((trail, i) => {
+    if (tick < trail.t0 || tick > trail.t1) return;
+    const was = s.trailGot![i]!;
+    const now = trailTake(trail, s.x, flipV7Frac(s.side, s.flipT, s.arcN ?? 0), half, was);
+    if (now !== was) s.trailGot = s.trailGot!.map((v, k) => (k === i ? now : v));
+  });
+  if (hit) {
+    if (s.save) {
+      // A checkpoint's save: a second of shield where it happened, 5 s off the survival count, the combo lost.
+      s.save = 0;
+      s.saves = (s.saves ?? 0) + 1;
+      s.inv = FLIP_V7_SHIELD_TICKS;
+      s.pause = FLIP_V7_SAVE_PAUSE;
+      s.chain = 0;
+    } else {
+      s.ended = 2;
+      s.endedTick = tick;
+      return s;
+    }
+  }
+  if (FLIP_V7_CHECKPOINTS.includes(tick)) {
+    s.cpPassed = (s.cpPassed ?? 0) + 1;
+    s.save = 1;
+    if (!s.saves) s.cleanCps = (s.cleanCps ?? 0) + 1;
+  }
+  const z = course.zones;
+  for (let i = 0; i < z.length; i += 2) {
+    if (tick === z[i]) s.zoneSaves = s.saves ?? 0;
+    if (tick === z[i + 1] && (s.saves ?? 0) === s.zoneSaves) s.zonesOk = (s.zonesOk ?? 0) + 1;
+  }
+  if (tick >= FLIP_RUN_TICKS) {
+    s.ended = 1;
+    s.endedTick = tick;
+  }
+  return s;
+}
+
+/** Trail stars taken, and full trails, on a rev-7 run. */
+export function flipTrailStars(state: Pick<FlipState, "trailGot">): { stars: number; full: number } {
+  let stars = 0;
+  let full = 0;
+  for (const bits of state.trailGot ?? []) {
+    for (let b = bits; b; b &= b - 1) stars += 1;
+    if (bits === FULL_TRAIL) full += 1;
+  }
+  return { stars, full };
+}
+
+/** Rev 7's feature points (0…50): trails, combos, clean speed zones and clean checkpoints. */
+export function flipV7Features(state: FlipState): { trails: number; combo: number; zones: number; checkpoints: number; total: number } {
+  const trails = FLIP_V7_TRAIL_POINTS * flipTrailStars(state).full;
+  const combo = Math.min(FLIP_V7_COMBO_CAP, state.comboPts ?? 0);
+  const zones = FLIP_V7_ZONE_POINTS * (state.zonesOk ?? 0);
+  const checkpoints = FLIP_V7_CP_POINTS * (state.cleanCps ?? 0);
+  return { trails, combo, zones, checkpoints, total: Math.min(FLIP_V7_FEATURE_CAP, trails + combo + zones + checkpoints) };
+}
+
+/** Rev 7 survival units: half seconds lasted (the pauses after saves left out) and 3 per gold star. */
+export function flipV7Units(state: FlipState): number {
+  const alive = state.ended === 1 ? FLIP_RUN_TICKS : clampInt(state.tick, 0, FLIP_RUN_TICKS);
+  return Math.floor(Math.max(0, alive - (state.lost ?? 0)) / 30) + 3 * flipStarsTaken(state);
+}
+
+function flipV7Parts(state: FlipState): BandParts {
+  const units = flipV7Units(state);
+  const finished = state.ended === 1;
+  const f = flipV7Features(state);
+  const secs = ((state.ended === 1 ? FLIP_RUN_TICKS : state.tick) / 60).toFixed(1);
+  const saves = state.saves ? ` · ${state.saves} saved` : "";
+  const bits = [f.trails ? `trails ${f.trails}` : "", f.combo ? `combos ${f.combo}` : "", f.zones ? `zones ${f.zones}` : "", f.checkpoints ? `checkpoints ${f.checkpoints}` : ""].filter(Boolean);
+  return {
+    units,
+    points: bandPoints(FLIP_V7_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + f.total,
+    penalty: 0,
+    finished,
+    text: `${secs} s · ${flipStarsTaken(state)} stars${saves}`,
+    bonusText: [finished ? "Lasted the minute" : "", ...bits].filter(Boolean).join(" · ") || "Bonus",
+  };
+}
+
+/** The rev-7 cap: Roofbound's round maximum (roundMax.ts). */
+const FLIP_V7_MAX = 200;
+
+function flipV7Score(state: FlipState): number {
+  return bandTotal(flipV7Parts(state), Boolean(state.acted), FLIP_V7_MAX);
+}
+
+/* Render geometry (art, effects and checks only; the sim never reads it). */
+
+/** A surface's unbent y (px) at world x: the original corridor's fixed lines, or rev 7's cave height about FLIP_V7_CY. */
+export function flipSurfaceBase(state: Pick<FlipState, "exp" | "v7">, side: number, worldX: number): number {
+  if (!state.exp || !state.v7) return side === 0 ? FLIP_FLOOR_Y : FLIP_CEIL_Y;
+  const h = flipV7HeightAt(state.v7, worldX);
+  return side === 0 ? FLIP_V7_CY + h / 2 : FLIP_V7_CY - h / 2;
+}
+
+/** The runner's drawn centre y (px, before the bend) on a side and arc timer; `lift` is half the runner box's height. */
+export function flipRunnerBaseY(state: Pick<FlipState, "exp" | "v7" | "x" | "arcN">, side: number, flipT: number, lift: number): number {
+  const fy = flipSurfaceBase(state, 0, state.x) - lift;
+  const cy = flipSurfaceBase(state, 1, state.x) + lift;
+  const target = side === 0 ? fy : cy;
+  if (flipT <= 0) return target;
+  const from = side === 0 ? cy : fy;
+  const n = state.exp ? Math.max(1, state.arcN || FLIP_ARC_TICKS) : FLIP_ARC_TICKS;
+  const f = 1 - Math.min(n, flipT) / n;
+  return from + (target - from) * f * f * (3 - 2 * f);
+}
+
+/** The runner's drawn centre (px) this tick, the bend included (effects and checks). */
+export function flipRunnerPoint(state: FlipState): { x: number; y: number } {
+  const lift = state.rev === FLIP_REV ? FLIP_RUNNER_H_PX_V2 / 2 : FLIP_RUNNER_H_PX / 2;
+  return { x: 90, y: flipRunnerBaseY(state, state.side, state.flipT, lift) + state.warpY };
+}
+
+export const flipExpandGame: ArcadeGame<FlipState, ArcadeInputEvent | null> = {
+  ...flipGame,
+  init: initV7,
+  step: bandStep(stepV7),
+};

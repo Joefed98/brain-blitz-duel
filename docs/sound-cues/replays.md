@@ -116,6 +116,12 @@ game the round was.
 | `flip.star` | Star taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `flip.all-stars` | All 10 stars: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `flip.just-in-time` | Off a crumbling tile just in time: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.trail-star` | Trail star taken: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.star-trail` | A whole star trail: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.double-flip` | Double flip: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.checkpoint` | Checkpoint passed: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.saved` | A crash saved by a checkpoint: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `flip.speed-zone` | Into a speed zone: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.distance` | Distance (every 100 m): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.star` | Star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `swing.dodged` | Stalactite dodged: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

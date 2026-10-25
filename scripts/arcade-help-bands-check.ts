@@ -26,6 +26,7 @@ import {
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import type { PuzzleType } from "../src/lib/duel/types";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 const SIM_MODULES: Record<LiveBandGame, string[]> = {
   balltrack: ["ballTrack"],
@@ -127,8 +128,8 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
     );
   else
     ok(
-      score.includes(`– up to ${top}.`) && score.endsWith("Up to 150."),
-      `${type}: finish game states up to ${top} then up to 150`,
+      score.includes(`– up to ${top}.`) && score.endsWith(`Up to ${roundMaxFor(type)}.`),
+      `${type}: finish game states up to ${top} then up to ${roundMaxFor(type)}`,
     );
   ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
 }

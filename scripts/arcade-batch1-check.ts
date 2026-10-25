@@ -326,7 +326,8 @@ for (const seed of FLIP_SEEDS) {
 }
 ok(flipCracked > 0, "the winning runs stood on crumbling tiles and flipped off in time");
 console.log(`  150 reached through the server replay on ${flip150} of ${FLIP_SEEDS.length} seeds (survived 60 s, all 10 stars; ${flipCracked} crumbling tiles survived)`);
-ok(/gold star/.test(INTRO_SCORE.flip) && /minute for 10 more/.test(INTRO_SCORE.flip), "Roofbound intro states seconds, stars and the 10 for the minute (score bands, flipRev 3)");
+// flipRev 7 (25 Oct 2026) rewrote the line for its features and the 200 maximum (flip-rev7-check proves it).
+ok(/stars/.test(INTRO_SCORE.flip) && /\b200\b/.test(INTRO_SCORE.flip), "Roofbound intro states time, stars and the top (flipRev 7: 200)");
 }
 
 /* ============================= 2c. Ball Tracker ============================= */
