@@ -9,6 +9,7 @@
  *      score bands move to the 200 scale, and every other game keeps 150.
  *   3. The wiring: the screens read the game's maximum, never a written-in 150.
  *   4. Practice bests v3: old (v2 and unversioned) bests are never read after the switch.
+ *   5. Room arcade bests v2 (rooms, daily, challenge): old records are never read, the first new run is no "New best!".
  *
  *   bun scripts/round-max-check.ts
  */
@@ -153,9 +154,34 @@ ok(/roundMaxFor\(game\)/.test(read("src/lib/arcade/liveBands.ts")), "the band ga
   }
 }
 
+/* 5. Room arcade bests v2 (rooms, daily and challenge reveals): old records are never read after the switch. */
+{
+  const store = new Map<string, string>();
+  (globalThis as unknown as { window: unknown }).window = {
+    localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) },
+  };
+  const { ARCADE_ROOM_BEST_PREFIX, RETIRED_ARCADE_ROOM_BEST_PREFIXES, recordArcadeRoomBest } = await import("../src/lib/fx/arcadeBest");
+  ok(ARCADE_ROOM_BEST_PREFIX === "duelz-arcade-room-best:v2:" && !RETIRED_ARCADE_ROOM_BEST_PREFIXES.includes(ARCADE_ROOM_BEST_PREFIX as never), "room arcade bests are stored under the v2 prefix");
+  const arcade = TYPES.filter((t) => ["balltrack", "beat", "bintoss", "breaker", "pinball", "bubble", "bullseye", "burst", "cross", "flip", "hover", "inkbridge", "matchup", "orbit", "rally", "skyline", "slice", "snake", "snip", "swing", "tilt", "wavefront"].includes(t));
+  ok(arcade.length === 22, `the 22 active arcade games (${arcade.length})`);
+  for (const type of arcade) {
+    // A device from before the switch: an old record that a low score would otherwise "beat" or lose to.
+    const old = JSON.stringify({ best: 20, key: "old-run", improved: false });
+    store.set(`duelz-arcade-room-best:${type}`, old);
+    const first = recordArcadeRoomBest(type, 90, `${type}-first`);
+    ok(first === false, `${type}: the first room run after the switch is never a "New best!" over an old record`);
+    ok(JSON.parse(store.get(`${ARCADE_ROOM_BEST_PREFIX}${type}`) ?? "{}").best === 90, `${type}: the new record is written under v2`);
+    ok(store.get(`duelz-arcade-room-best:${type}`) === old, `${type}: the old record is left in storage, unread`);
+    ok(recordArcadeRoomBest(type, 80, `${type}-second`) === false && recordArcadeRoomBest(type, 95, `${type}-third`) === true, `${type}: later runs compare only with v2 records`);
+  }
+  const src = read("src/lib/fx/arcadeBest.ts");
+  ok(!/removeItem|\.clear\(/.test(src) && (src.match(/getItem\(/g) ?? []).length === 1 && /const PREFIX = ARCADE_ROOM_BEST_PREFIX;/.test(src), "the only read is under the v2 prefix, and nothing is deleted");
+  ok(/recordArcadeRoomBest\(puzzle\.type, myScore/.test(read("src/components/duel/ArcadeReveal.tsx")), "the room, daily and challenge arcade reveals record through it");
+}
+
 if (failures.length) {
   console.log(failures.join("\n"));
   console.log(`FAIL round-max-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice bests are never read`);
+console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice and room arcade bests are never read`);

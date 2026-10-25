@@ -3,8 +3,17 @@
  * screen's "new personal best" moment. Never imported by grading, rooms or the
  * server; the stored score it reads is the server's. Practice keeps its own
  * record (practiceBest.ts) and passes its verdict in directly.
+ *
+ * Bests v2 (25 Oct 2026, with the 200-point foundation, docs/scoring-200.md; Joe's option B, as practice):
+ * every device's room arcade bests (rooms, daily and challenge reveals) start fresh once. Records are read
+ * and written only under ARCADE_ROOM_BEST_PREFIX; the old `duelz-arcade-room-best:<type>` records stay in
+ * storage untouched and are never read, so no old best can count, and the first run after the switch has
+ * nothing to beat (never a "New best!").
  */
-const PREFIX = "duelz-arcade-room-best:";
+export const ARCADE_ROOM_BEST_PREFIX = "duelz-arcade-room-best:v2:";
+/** Earlier prefixes, kept only so checks can prove they are never read. */
+export const RETIRED_ARCADE_ROOM_BEST_PREFIXES = ["duelz-arcade-room-best:"] as const;
+const PREFIX = ARCADE_ROOM_BEST_PREFIX;
 
 interface Record_ {
   best: number;

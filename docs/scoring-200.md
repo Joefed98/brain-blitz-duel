@@ -68,6 +68,9 @@ version stamps.
 With this change practice bests start fresh once on every device: they are stored under
 `duelz-practice-best:v3:` (`PRACTICE_BEST_PREFIX`, `practiceBest.ts`). The v2 values stay in
 storage untouched and are simply never read, so no old best can show, even for a frame, and the
-first new run is never a "New best!". Daily history and boards, recent rooms, challenge results
-and the room arcade "new best" record keep their own keys. Later expansions need no reset: their
+first new run is never a "New best!". The room arcade "new best" record (`arcadeBest.ts`, the
+only "New best!" in rooms, daily and challenge reveals) resets the same way: `duelz-arcade-room-best:v2:`
+(`ARCADE_ROOM_BEST_PREFIX`), the old records kept and never read. Daily history and boards (including
+Profile's daily best totals, which show no "New best!"), recent rooms and challenge results keep
+their own keys. Later expansions need no reset: their
 stamp bump already starts a fresh best for that game.

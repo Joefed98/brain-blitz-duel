@@ -516,8 +516,8 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   `src/lib/duel/roundMax.ts` (`ROUND_MAX`, 150 for every game today; `SCORE_CEILING` 200; `roundMaxFor`) is what the
   perfect moment and `shared.perfect`, the signature beat's no-finish threshold, the arcade reveal chart's axis, the intro
   and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the results' top score and the onboarding read.
-  An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:`
-  (fresh once; v2 kept, never read). round-max-check (~1 s) proves it.
+  An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:` and room
+  arcade bests (`arcadeBest.ts`) to `duelz-arcade-room-best:v2:` (fresh once; old records kept, never read). round-max-check (~1 s) proves it.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
