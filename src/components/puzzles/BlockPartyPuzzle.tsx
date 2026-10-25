@@ -5,6 +5,7 @@ import {
   BlockBoardArt,
   BlockPiecesArt,
   BlockSolveFx,
+  BlockColsContext,
   PieceArt,
   pegDistances,
   SHINE_STEP_MS,
@@ -19,8 +20,8 @@ import {
   usePrefersReducedMotion,
 } from "@/components/puzzles/GridDrag";
 import {
-  BLOCK_PIECES,
   absoluteCells,
+  blockGeometry,
   encodePlacements,
   offsetsSize,
   orientationOffsets,
@@ -28,7 +29,6 @@ import {
 } from "@/lib/duel/blockParty";
 import {
   BLOCK_COLS as N,
-  BLOCK_FREE_CELLS,
   BLOCK_TIME_MS,
   type BlockPartyPuzzleData,
   type BlockPlacement,
@@ -47,9 +47,11 @@ const PIECE_COLOURS = [
   GLYPH_COLOURS.BROWN,
   GLYPH_COLOURS.YELLOW,
   "var(--color-foreground)",
+  // blockRev 1 (depth batch 4): the 7×7 board's Plus.
+  "#19C9C0",
 ];
 
-const pct = (value: number) => `${(value * 100) / N}%`;
+const pct = (value: number, n: number = N) => `${(value * 100) / n}%`;
 
 type Size = { width: number; height: number };
 /** A state update that keeps the current size (no re-render) when the new one is within half a pixel. */
@@ -117,9 +119,12 @@ export function BlockBoard({
   boardRef,
   snap,
   celebrate,
+  cols = N,
 }: {
   blockers: number[];
   placements: BlockPlacement[];
+  /** The board's width in cells (7 on blockRev 1). */
+  cols?: number;
   size?: number;
   children?: React.ReactNode;
   boardRef?: React.Ref<HTMLDivElement>;
@@ -130,15 +135,16 @@ export function BlockBoard({
 }) {
   const wave = useMemo(() => {
     if (!celebrate) return null;
-    const distance = pegDistances(blockers);
+    const distance = pegDistances(blockers, cols);
     return new Map(
       placements.map((placement) => [
         placement.piece,
         60 + (Math.min(...placement.cells.map((cell) => distance[cell] ?? 1)) - 1) * SHINE_STEP_MS,
       ]),
     );
-  }, [celebrate, blockers, placements]);
+  }, [celebrate, blockers, placements, cols]);
   return (
+    <BlockColsContext.Provider value={cols}>
     <BlockArtDefs>
       <div
         ref={boardRef}
@@ -152,6 +158,7 @@ export function BlockBoard({
         {children}
       </div>
     </BlockArtDefs>
+    </BlockColsContext.Provider>
   );
 }
 
@@ -181,6 +188,9 @@ export function BlockPartyPuzzle({
   onDraftAnswer,
 }: BlockPartyPuzzleProps) {
   const reduced = usePrefersReducedMotion();
+  // blockRev 1 (depth batch 4): the 7×7 board, fifteen pegs and ten pieces.
+  const geo = blockGeometry(puzzle);
+  const n = geo.cols;
   const layoutRef = useRef<HTMLDivElement>(null);
   const trayRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -204,8 +214,8 @@ export function BlockPartyPuzzle({
   );
 
   const covered = placed.reduce((sum, entry) => sum + entry.cells.length, 0);
-  const celebrating = useSolveMoment(covered >= BLOCK_FREE_CELLS, "blockparty.solve");
-  const inFrame = useFrameProgress(covered, BLOCK_FREE_CELLS, "covered");
+  const celebrating = useSolveMoment(covered >= geo.free, "blockparty.solve");
+  const inFrame = useFrameProgress(covered, geo.free, "covered");
   const [turned, setTurned] = useState<{ piece: number; kind: "turn" | "flip"; n: number } | null>(
     null,
   );
@@ -234,14 +244,14 @@ export function BlockPartyPuzzle({
   /** Where the piece would land if dropped with the pointer here. */
   const targetCells = useCallback(
     (item: DragItem, x: number, y: number): number[] | null => {
-      const at = gridColRowAt(boardRef.current, x, y, N, N);
+      const at = gridColRowAt(boardRef.current, x, y, n, n);
       if (!at) return null;
       const offsets = offsetsFor(item.piece);
       const row = at.row - item.grabR;
       const col = at.col - item.grabC;
-      return absoluteCells(offsets, row, col);
+      return absoluteCells(offsets, row, col, n);
     },
-    [offsetsFor],
+    [offsetsFor, n],
   );
 
   const blockedCells = useCallback(
@@ -317,14 +327,14 @@ export function BlockPartyPuzzle({
       ];
       setPlaced(next);
       soundCue("blockparty.place");
-      if (next.reduce((sum, entry) => sum + entry.cells.length, 0) >= BLOCK_FREE_CELLS) {
+      if (next.reduce((sum, entry) => sum + entry.cells.length, 0) >= geo.free) {
         setTimeout(() => lockIn(next), 200);
       }
       return true;
     },
   });
 
-  const inTray = BLOCK_PIECES.map((_, piece) => piece).filter(
+  const inTray = geo.pieces.map((_, piece) => piece).filter(
     (piece) => !placed.some((entry) => entry.piece === piece),
   );
   const draggedPiece = drag.drag?.item.piece;
@@ -367,12 +377,14 @@ export function BlockPartyPuzzle({
 
   // The centred board uses 85% of the stage width; the tray receives all
   // remaining height and uses the largest piece scale that keeps every piece visible.
+  const trayPerRow = geo.pieces.length > 9 ? 4 : 3;
   const trayRows = useMemo(() => {
     const rows: number[][] = [];
-    for (let index = 0; index < inTray.length; index += 3)
-      rows.push(inTray.slice(index, index + 3));
+    // Ten pieces sit four to a row, so the tray keeps three rows and the board its size.
+    for (let index = 0; index < inTray.length; index += trayPerRow)
+      rows.push(inTray.slice(index, index + trayPerRow));
     return rows;
-  }, [inTray]);
+  }, [inTray, trayPerRow]);
   const trayHeightUnits = trayRows.reduce(
     (sum, row) => Math.max(...row.map((piece) => offsetsSize(offsetsFor(piece)).rows), 1) + sum,
     0,
@@ -388,12 +400,16 @@ export function BlockPartyPuzzle({
     Math.min(
       (traySize.height - 20 - Math.max(0, trayRows.length - 1) * 4) / trayHeightUnits,
       (traySize.width - 20 - 8) / trayWidthUnits,
+      // Four to a row (the 7×7 board): the grid's columns are equal, so the widest piece must fit one column.
+      trayPerRow === 4
+        ? (traySize.width - 20 - 12) / 4 / Math.max(1, ...inTray.map((piece) => offsetsSize(offsetsFor(piece)).cols))
+        : Infinity,
     ),
   );
   // The board and the tray settle against each other (see useBeforePaint above); in the frame the HUD
   // row (16px + an 8px gap) is not drawn, so its 24px leave the reserve, which keeps the same balance.
   const boardSize = Math.min(layoutSize.width, Math.max(0, layoutSize.height - traySize.height - (inFrame ? 4 : 28)));
-  const boardCell = boardSize / N;
+  const boardCell = boardSize / n;
   const trayCell = Math.min(boardCell * 0.92, trayCellCapacity);
 
   return (
@@ -401,7 +417,7 @@ export function BlockPartyPuzzle({
       {inFrame ? null : (
         <div className="flex shrink-0 items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
           <span>
-            covered <span className="text-primary">{covered}</span> / {BLOCK_FREE_CELLS}
+            covered <span className="text-primary">{covered}</span> / {geo.free}
           </span>
           <span className="text-[10px]">tap to rotate</span>
         </div>
@@ -413,6 +429,7 @@ export function BlockPartyPuzzle({
           placements={placed}
           boardRef={boardRef}
           size={boardSize}
+          cols={n}
           snap
           celebrate={celebrating}
         >
@@ -426,10 +443,10 @@ export function BlockPartyPuzzle({
                     ghost.legal ? "border-current" : "bp-ghost--blocked border-warn/70 bg-warn/10"
                   }`}
                   style={{
-                    left: pct(cell % N),
-                    top: pct(Math.floor(cell / N)),
-                    width: pct(1),
-                    height: pct(1),
+                    left: pct(cell % n, n),
+                    top: pct(Math.floor(cell / n), n),
+                    width: pct(1, n),
+                    height: pct(1, n),
                     color: ghost.legal ? pieceColour(draggedPiece) : undefined,
                   }}
                 />
@@ -438,23 +455,23 @@ export function BlockPartyPuzzle({
           )}
           {/* Placed pieces can be picked back up. */}
           {placed.map((placement) => {
-            const minRow = Math.min(...placement.cells.map((cell) => Math.floor(cell / N)));
-            const minCol = Math.min(...placement.cells.map((cell) => cell % N));
+            const minRow = Math.min(...placement.cells.map((cell) => Math.floor(cell / n)));
+            const minCol = Math.min(...placement.cells.map((cell) => cell % n));
             return placement.cells.map((cell) => (
               <div
                 key={`grab-${placement.piece}-${cell}`}
                 onPointerDown={drag.start({
                   piece: placement.piece,
                   from: "board",
-                  grabR: Math.floor(cell / N) - minRow,
-                  grabC: (cell % N) - minCol,
+                  grabR: Math.floor(cell / n) - minRow,
+                  grabC: (cell % n) - minCol,
                 })}
                 className="absolute"
                 style={{
-                  left: pct(cell % N),
-                  top: pct(Math.floor(cell / N)),
-                  width: pct(1),
-                  height: pct(1),
+                  left: pct(cell % n, n),
+                  top: pct(Math.floor(cell / n), n),
+                  width: pct(1, n),
+                  height: pct(1, n),
                   touchAction: "none",
                 }}
               />
@@ -466,10 +483,10 @@ export function BlockPartyPuzzle({
       {/* Tray: every remaining piece, at a reduced scale. */}
       <div
         ref={trayRef}
-        data-game-controls="tray" className="block-party-tray grid min-h-0 flex-1 grid-cols-3 content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl px-2.5 py-2.5"
+        data-game-controls="tray" className={`block-party-tray grid min-h-0 flex-1 ${trayPerRow === 4 ? "grid-cols-4" : "grid-cols-3"} content-center items-center gap-x-1 gap-y-1 overflow-hidden rounded-xl px-2.5 py-2.5`}
       >
         {inTray.length === 0 ? (
-          <p className="col-span-3 text-center font-mono text-xs uppercase tracking-widest text-primary">
+          <p className="col-span-full text-center font-mono text-xs uppercase tracking-widest text-primary">
             board full
           </p>
         ) : (

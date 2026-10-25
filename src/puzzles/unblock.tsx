@@ -117,7 +117,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
       )}
       <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
         {myCorrect ? "✓" : "✗"} your moves: <span className="text-primary">{mine}</span>
-        {min > 0 ? ` · min ${min}` : ""}
+        {min > 0 ? ` · ${(puzzle.unblockRev ?? 0) >= 1 ? "par" : "min"} ${min}` : ""}
       </p>
       {myCorrect ? (
         <p className="font-mono text-base text-primary">

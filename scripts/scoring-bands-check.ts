@@ -20,6 +20,8 @@
  *   bun scripts/scoring-bands-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isD4Type } from "../src/lib/duel/depth4/stamps";
+import { d4Help } from "../src/lib/duel/depth4/text";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
@@ -257,7 +259,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+    ok(PUZZLE_INSTRUCTIONS[type].score === (isD4Type(type) ? d4Help(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

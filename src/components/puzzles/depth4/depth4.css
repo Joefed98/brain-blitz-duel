@@ -1,0 +1,141 @@
+/*
+ * Depth batch 4 (Pattern / Logic to 200, 25 Oct 2026; docs/depth/d4-pattern.md): the new features' looks.
+ * Imported only by this batch's games. Live-round rules start [data-puzzle-play][data-puzzle-play] like batch
+ * P's; the par meter sits in batch P's summary line. Nothing here changes a hit box or a board's size.
+ */
+
+/* ---------------------------------------------------------------- the par meter (summary line) */
+.d4-par {
+  display: inline-flex;
+  align-items: center;
+  white-space: pre;
+}
+.d4-par-bar {
+  position: relative;
+  display: inline-block;
+  margin-left: 7px;
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: visible;
+}
+.d4-par-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--category-accent, #6fd3c4) 85%, #fff);
+  transition: width 160ms ease-out;
+}
+.d4-par[data-over] .d4-par-fill {
+  background: var(--warn);
+}
+.d4-par-mark {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 10px;
+  margin-left: -1.5px;
+  border-radius: 1.5px;
+  background: #f7bf2f;
+  box-shadow: 0 0 6px rgba(247, 191, 47, 0.7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .d4-par-fill {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------- Skid: ice gems */
+.d4-gem {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 5px rgba(127, 227, 255, 0.75)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.45));
+}
+.d4-gem svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.d4-gem-facet {
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+.d4-gem[data-got] {
+  filter: none;
+  animation: d4-gem-pop 360ms ease-out;
+}
+.d4-gem[data-got] .d4-gem-body {
+  fill: rgba(127, 227, 255, 0.12);
+  stroke: rgba(190, 240, 255, 0.55);
+  stroke-width: 1.2;
+}
+.d4-gem[data-got] .d4-gem-facet {
+  stroke: rgba(190, 240, 255, 0.3);
+}
+@keyframes d4-gem-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(1.45);
+    filter: drop-shadow(0 0 10px rgba(190, 240, 255, 0.95));
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .d4-gem[data-got] {
+    animation: none;
+  }
+}
+
+/* Reduced effects (lowEnd.ts): no glows or pops on the new features. */
+:root[data-reduced-effects] .d4-gem,
+:root[data-reduced-effects] .d4-par-mark {
+  filter: none;
+  box-shadow: none;
+}
+:root[data-reduced-effects] .d4-gem[data-got] {
+  animation: none;
+}
+
+/* ---------------------------------------------------------------- Heave: the gold crate and its mark */
+.d4-gold-crate {
+  --crate: #e2a92c;
+  --crate-dark: #8a5a0e;
+  --crate-light: #ffe08a;
+}
+.d4-gold-crate .push-crate {
+  filter: drop-shadow(0 0 4px rgba(247, 191, 47, 0.55));
+}
+.d4-gold-crate[data-gold-home] .push-crate {
+  filter: drop-shadow(0 0 10px rgba(247, 191, 47, 0.95));
+}
+.d4-gold-mark-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* A gold diamond inset in the hatched marking: the gold crate's own spot. */
+.d4-gold-mark {
+  display: block;
+  width: 42%;
+  height: 42%;
+  transform: rotate(45deg);
+  border: 2px solid #f7bf2f;
+  border-radius: 3px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 224, 138, 0.55), rgba(201, 138, 14, 0.25));
+  box-shadow: 0 0 8px rgba(247, 191, 47, 0.6);
+}
+.d4-gold-mark[data-filled] {
+  box-shadow: none;
+}
+:root[data-reduced-effects] .d4-gold-crate .push-crate,
+:root[data-reduced-effects] .d4-gold-mark {
+  filter: none;
+  box-shadow: none;
+}

@@ -12,6 +12,7 @@ import { BUB_REV_TALL } from "@/lib/arcade/bubble";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
+import { isD4Type, isDepth4 } from "./depth4/stamps";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
@@ -99,6 +100,10 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
+    // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
+    // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
+    if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
     return demo;
   });
 

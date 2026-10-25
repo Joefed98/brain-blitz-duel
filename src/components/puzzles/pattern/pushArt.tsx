@@ -234,6 +234,7 @@ export function WarehouseBoard({
   cells,
   facing,
   solveFx = false,
+  gold,
 }: {
   walls: number[];
   targets: number[];
@@ -243,6 +244,8 @@ export function WarehouseBoard({
   cells: number;
   facing?: SlideDir | undefined;
   solveFx?: boolean;
+  /** pushRev 1 (depth batch 4): the gold crate (an index into `crates`) and its gold mark. */
+  gold?: { crate: number; target: number } | undefined;
 }) {
   const id = useId().replace(/:/g, "");
   const rows = Math.ceil(cells / cols);
@@ -300,10 +303,16 @@ export function WarehouseBoard({
       data-solve-fx={solveFx ? "true" : undefined}
     >
       {floor}
+      {gold ? (
+        <div className="push-piece d4-gold-mark-cell" style={pieceStyle(gold.target, cols, rows)} aria-hidden="true">
+          <span className="d4-gold-mark" data-filled={crates[gold.crate] === gold.target ? "" : undefined} />
+        </div>
+      ) : null}
       {crates.map((cell, index) => (
         <div
           key={index}
-          className="push-piece"
+          className={`push-piece${gold?.crate === index ? " d4-gold-crate" : ""}`}
+          data-gold-home={gold?.crate === index && cell === gold.target ? "" : undefined}
           style={pieceStyle(cell, cols, rows)}
         >
           <div ref={(node) => void (crateNodes.current[index] = node)} className="push-piece-inner">

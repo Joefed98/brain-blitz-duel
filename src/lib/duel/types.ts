@@ -762,6 +762,10 @@ export interface UnblockVehicle {
 export interface UnblockPuzzleData {
   type: "unblock";
   vehicles: UnblockVehicle[];
+  /** Depth batch 4 (docs/depth/d4-pattern.md): 1 = par moves, scored to 200; absent = the old rules. */
+  unblockRev?: number;
+  /** unblockRev 1: the par (the solver's minimum), public so the phone can show "Moves n · Par p". */
+  par?: number;
   /** Server-side only: the fewest moves the layout can be solved in. */
   minMoves?: number;
   /** Server-side only: one minimum-length solution, as encoded moves. */
@@ -793,8 +797,10 @@ export interface BlockPartyPuzzleData {
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "blockparty";
-  /** Seven peg cells the pieces must fit around. */
+  /** Seven peg cells the pieces must fit around (blockRev 1: fifteen, on a 7×7 board). */
   blockers: number[];
+  /** Depth batch 4: 1 = the 7×7 board with ten pieces, scored to 200; absent = 6×6 and nine pieces. */
+  blockRev?: number;
   /** Server-side only: one full solution. */
   solution?: BlockPlacement[];
   /** Server-side only: how many solutions the layout has (capped). */
@@ -854,6 +860,10 @@ export interface PipesPuzzleData {
   tiles: PipeTile[];
   /** The cell water flows from — the root of the spanning tree. */
   source: number;
+  /** Depth batch 4: 1 = par turns (the answer carries its tap log), scored to 200; absent = the old rules. */
+  pipesRev?: number;
+  /** pipesRev 1: the fewest taps that turn the board into the stored solution. */
+  par?: number;
   /** Server-side only: the solved open sides of every tile. */
   solution?: number[];
 }
@@ -932,6 +942,8 @@ export interface FlowPuzzleData {
   pairs: FlowPair[];
   /** Dark wall cells: no path may enter, and they need no filling. */
   walls?: number[];
+  /** Depth batch 4: 1 = scored to 200 (the stretch); absent = scored to 150. The board is unchanged. */
+  flowRev?: number;
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];
 }
@@ -1007,6 +1019,10 @@ export interface SlidePuzzleData {
   portals?: [number, number][];
   /** Thin-ice cells, in bit order for the broken-ice mask. */
   thin?: number[];
+  /** Depth batch 4: 1 = ice gems off the direct route, scored to 200; absent = the old rules. */
+  slideRev?: number;
+  /** slideRev 1: the gem cells; the ball collects one by sliding over or stopping on it. */
+  gems?: number[];
   /** Generator figures for the dev readout. */
   stats?: SlideStats;
   /** Server-side only: the fewest slides the layout needs. */
@@ -1054,6 +1070,10 @@ export interface PushPuzzleData {
   targets: number[];
   /** Where the pusher starts. */
   pusher: number;
+  /** Depth batch 4: 1 = the bigger warehouse with a gold crate, scored to 200; absent = the old rules. */
+  pushRev?: number;
+  /** pushRev 1: the gold crate (an index into `crates`) and its gold mark (a cell in `targets`). */
+  gold?: { crate: number; target: number };
   /** Generator figures for the dev readout. */
   stats?: PushStats;
   /** Server-side only: the fewest pushes the layout can be finished in. */
@@ -1162,6 +1182,10 @@ export interface LaserPuzzleData {
   solution?: MirrorPlacement[];
   /** 1: answered with the timestamped action log (laserLog.ts); absent: the old "shot|layout" answer. */
   alogRev?: number;
+  /** Depth batch 4: 1 = spare mirrors and the elegant beam, scored to 200; absent = the old rules. */
+  laserRev?: number;
+  /** laserRev 1: the mirrors the stored solution uses (an elegant beam lights every gem with no more). */
+  par?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1652,6 +1676,10 @@ export interface RingsPuzzleData {
   pattern: number;
   /** Colour index per segment, per ring, as the round starts. */
   segments: number[][];
+  /** Depth batch 4: 1 = par turns and two-rule link patterns only, scored to 200; absent = the old rules. */
+  ringsRev?: number;
+  /** ringsRev 1: the par (the exact minimum), public so the phone can show "Turns n · Par p". */
+  par?: number;
   /** Server-side only: the exact minimum number of taps. */
   minMoves?: number;
   /** Server-side only: one minimum-length turn order. */

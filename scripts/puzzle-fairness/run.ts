@@ -6,6 +6,7 @@
  */
 import { generatePuzzle, gradeAnswer } from "../../src/lib/duel/generate.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
+import { pinDepth4Off } from "../../src/lib/duel/depth4/deal.server";
 import { puzzleTimeLimitMs } from "../../src/lib/duel/registry";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { LEVELS, SKILLS, hashText, makeRng, type Level, type PuzzleKit } from "./kit";
@@ -25,7 +26,10 @@ const REV1_ENGINE_STAMPS: Partial<Record<PuzzleType, Record<string, number>>> = 
 
 /** The room puzzle for (type, seed), as a room started with that seed would store it. */
 export function roomPuzzle(type: PuzzleType, seed: number): PuzzleData {
+  // The rev-1 shape's checks also keep the boards dealt before depth batch 4's stamps.
+  if (pinRev1) pinDepth4Off(true);
   const puzzle = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
+  if (pinRev1) pinDepth4Off(false);
   return pinRev1 ? ({ ...(puzzle as object), puzzleScoreRev: 1, ...(REV1_ENGINE_STAMPS[type] ?? {}) } as unknown as PuzzleData) : puzzle;
 }
 

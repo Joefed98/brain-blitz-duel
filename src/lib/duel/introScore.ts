@@ -8,6 +8,7 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
+import { d4IntroTemplate } from "./depth4/text";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
 
@@ -64,14 +65,14 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     stroop: `Sort all ${CLASH_QUEUE} with 2 wrong at most, quicker for more; else right less wrong words.`,
 
     // Logic and pattern
-    unblock: bandsIntro("unblock"),
+    unblock: d4IntroTemplate("unblock"),
     lightsout: bandsIntro("lightsout"),
-    pipes: bandsIntro("pipes"),
+    pipes: d4IntroTemplate("pipes"),
     sudoku: bandsIntro("sudoku"),
-    flow: bandsIntro("flow"),
-    iceslide: bandsIntro("iceslide"),
-    push: bandsIntro("push"),
-    laser: bandsIntro("laser"),
+    flow: d4IntroTemplate("flow"),
+    iceslide: d4IntroTemplate("iceslide"),
+    push: d4IntroTemplate("push"),
+    laser: d4IntroTemplate("laser"),
     tower: bandsIntro("tower"),
     tubes: bandsIntro("tubes"),
     safe: bandsIntro("safe"),
@@ -80,8 +81,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     nonogram: bandsIntro("nonogram"),
     flood: bandsIntro("flood"),
     tiles: bandsIntro("tiles"),
-    rings: bandsIntro("rings"),
-    blockparty: bandsIntro("blockparty"),
+    rings: d4IntroTemplate("rings"),
+    blockparty: d4IntroTemplate("blockparty"),
     shikaku: bandsIntro("shikaku"),
     lightup: bandsIntro("lightup"),
     tents: bandsIntro("tents"),

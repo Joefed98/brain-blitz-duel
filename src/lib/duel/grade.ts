@@ -16,7 +16,11 @@ import {
   scoreSymbolScanStages,
   splitStages,
 } from "./stagedRounds";
-import { decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
+import { blockGeometry, decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
+import { isDepth4 } from "./depth4/stamps";
+import { decodePipesTaps, pipesAfterTaps } from "./depth4/pipesTaps";
+import { replayGems } from "./depth4/iceGems";
+import { gemMinMoves } from "./depth4/gems.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { decodeFlowPaths, verifyFlow } from "./flow";
@@ -600,12 +604,14 @@ function gradeUnderRev(
         fewerBlockers = after < before;
       }
       score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
-      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min };
+      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
       break;
     }
     case "blockparty": {
       // Only placements that are legal together count towards the coverage.
-      const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer));
+      // blockRev 1 (depth batch 4): the 7×7 board and its twelve pieces.
+      const geo = blockGeometry(puzzle);
+      const verdict = verifyPlacements(puzzle.blockers, decodePlacements(answer), geo);
       isCorrect = verdict.solved;
       // Rev 1: an unfinished board earns only pieces placed where the stored solution has a piece of that shape.
       const credited = scoreRev1() && puzzle.solution?.length
@@ -617,6 +623,8 @@ function gradeUnderRev(
         solved: verdict.solved,
         covered: verdict.covered,
         placements: encodePlacements(verdict.legal),
+        // The bigger board's unfinished progress: its own pieces in the solution's spots (11 of 12 = one short).
+        ...(isDepth4(puzzle) ? { d4Progress: Math.max(0, 2 * credited - verdict.legal.length) / (geo.pieces.length - 1) } : {}),
       };
       break;
     }
@@ -650,13 +658,22 @@ function gradeUnderRev(
     }
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
-      const board = decodeSides(puzzle.tiles, answer);
+      // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
+      const taps = isDepth4(puzzle) ? decodePipesTaps(answer, puzzle.tiles.length) : null;
+      let turns = 0;
+      if (taps) {
+        for (let k = 0; k <= taps.length; k++) {
+          turns = k;
+          if (gradePipesBoard(puzzle.source, pipesAfterTaps(puzzle.tiles, taps.slice(0, k))).solved) break;
+        }
+      }
+      const board = taps ? pipesAfterTaps(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
       const verdict = gradePipesBoard(puzzle.source, board);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
       const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
       score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
-      extraDetail = { solved: verdict.solved, connected: verdict.connected };
+      extraDetail = { solved: verdict.solved, connected: verdict.connected, ...(taps ? { turns, par: puzzle.par ?? 0 } : {}) };
       break;
     }
     case "sudoku": {
@@ -711,13 +728,20 @@ function gradeUnderRev(
       }
       isCorrect = replay.solved;
       correctCount = replay.moves;
-      score = scoreIceSlide(replay.solved, replay.moves, min, ms, progress, timeLimitMs);
+      // slideRev 1 (depth batch 4): the gems collected; the slides they need are not wasted moves, so a finish is
+      // measured against the fewest slides that collect those gems (gemRouteLength), not the bare minimum.
+      const gems = isDepth4(puzzle) ? (puzzle.gems ?? []) : [];
+      const gemReplay = gems.length ? replayGems(board, gems, decodeSlideMoves(answer)) : null;
+      const gemMin = gemReplay && replay.solved && gemReplay.collected > 0 ? gemMinMoves(puzzle, gems.filter((_g, i) => gemReplay.mask & (1 << i))) : null;
+      score = scoreIceSlide(replay.solved, replay.moves, gemMin ?? min, ms, progress, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
         moves: replay.moves,
         minMoves: min,
         movesFromExit: away,
         falls: replay.falls,
+        // slideRev 1 (depth batch 4): the ice gems the standing slides collected.
+        ...(isDepth4(puzzle) ? { gems: gems.length, gemsCollected: gemReplay?.collected ?? 0, ...(gemMin !== null ? { gemMinMoves: gemMin } : {}) } : {}),
       };
       break;
     }
@@ -740,6 +764,8 @@ function gradeUnderRev(
         minPushes: min,
         cratesHome: home,
         crates: puzzle.targets.length,
+        // pushRev 1 (depth batch 4): the gold crate ended on its gold mark (crates keep their index through every push).
+        ...(isDepth4(puzzle) && puzzle.gold ? { goldHome: replay.solved && replay.state.crates[puzzle.gold.crate] === puzzle.gold.target } : {}),
       };
       break;
     }
@@ -763,6 +789,8 @@ function gradeUnderRev(
           hitBomb: replay.hitBomb,
           shots: replay.shotLog.map((shot) => ({ t: shot.t, gems: shot.gemsLit, bomb: shot.hitBomb })),
           mirrorsPlaced: replay.layout.filter((piece) => !isSplitter(piece.kind)).length,
+          // laserRev 1 (depth batch 4): the mirrors in the solving shot's layout, against the par.
+          ...(isDepth4(puzzle) ? { solveMirrors: replay.solved ? replay.layout.filter((piece) => !isSplitter(piece.kind)).length : null, par: puzzle.par ?? 0 } : {}),
           ...actionLogDetail(replay.diag),
         };
         break;
@@ -1028,6 +1056,7 @@ function gradeUnderRev(
         moves: replay.moves,
         minMoves: puzzle.minMoves ?? 0,
         aligned: replay.aligned,
+        ...(isDepth4(puzzle) ? { par: puzzle.par ?? puzzle.minMoves ?? 0 } : {}),
       };
       break;
     }

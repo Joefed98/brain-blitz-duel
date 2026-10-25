@@ -13,6 +13,8 @@ import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
+import { dealDepth4 } from "./depth4/deal.server";
+import { withDepth4 } from "./depth4/grade.server";
 import { generateBlockParty } from "./blockParty.server";
 import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
@@ -124,6 +126,9 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
+  const depth = dealDepth4(type, context);
+  if (depth) return depth;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
@@ -259,7 +264,8 @@ export function gradeAnswer(
   });
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
-  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
+  // Depth batch 4's stamped puzzles add their stretch and feature points to it (depth4/grade.server.ts).
+  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withDepth4(puzzle, withRev3(puzzle, answer, graded, receivedMsRemaining));
   // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
   return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
 }

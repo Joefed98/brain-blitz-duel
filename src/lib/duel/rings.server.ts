@@ -41,10 +41,13 @@ export function innerRingsAligned(segments: number[][]): boolean {
   return alignedSpokes(segments.slice(0, 2), [0, 0]).length === RINGS_SEGMENTS;
 }
 
-function buildBoard(): RingsPuzzleData | null {
+/** ringsRev 1 (depth batch 4): only the link patterns with two rules on the legend, never one. */
+export const RINGS_TWO_RULE_PATTERNS: number[] = RING_PATTERNS.flatMap((p, index) => (p.legend.length >= 2 ? [index] : []));
+
+function buildBoard(patterns?: number[]): RingsPuzzleData | null {
   const sequence = baseSequence();
   if (hasRotationalSymmetry(sequence)) return null;
-  const pattern = randomBelow(RING_PATTERNS.length);
+  const pattern = patterns ? pick(patterns) : randomBelow(RING_PATTERNS.length);
   let offsets = Array.from({ length: RINGS_COUNT }, () => 0);
   const steps = randInt(RINGS_MIN_SCRAMBLE, RINGS_MAX_SCRAMBLE);
   for (let step = 0; step < steps; step += 1) offsets = ringsApply(offsets, pick(RING_TAPS), pattern);
@@ -55,9 +58,9 @@ function buildBoard(): RingsPuzzleData | null {
   return { type: "rings", pattern, segments, minMoves: solved.min, solution: solved.solution };
 }
 
-export function generateRings(): RingsPuzzleData {
+export function generateRings(patterns?: number[]): RingsPuzzleData {
   for (;;) {
-    const board = buildBoard();
+    const board = buildBoard(patterns);
     if (board) return board;
   }
 }
