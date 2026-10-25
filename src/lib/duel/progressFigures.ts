@@ -17,9 +17,10 @@
  */
 import { blockGeometry, decodePlacements, verifyPlacements } from "./blockParty";
 import { decodeFlowPaths, verifyFlow } from "./flow";
-import { acceptedRects, decodeShikaku } from "./shikaku";
+import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
+import { decodeJumbled, isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayJumbled } from "./jumbled";
 import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, WS_MARKED_ROWS } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
@@ -124,9 +125,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     }
     case "shikaku": {
       if (!puzzle.solution?.length) return null;
-      const accepted = acceptedRects(decodeShikaku(answer, puzzle.size), puzzle.clues, puzzle.size);
+      const height = shikakuHeightOf(puzzle);
+      const accepted = acceptedRects(decodeShikaku(answer, puzzle.size, height), puzzle.clues, puzzle.size);
       const { right, wrong } = shikakuAreas(puzzle.solution, accepted);
-      return { text: `${right}/${puzzle.size * puzzle.size} cells right`, cost: wrong > 0 ? `${plural(wrong, "cell")} in other rectangles` : null };
+      return { text: `${right}/${puzzle.size * height} cells right`, cost: wrong > 0 ? `${plural(wrong, "cell")} in other rectangles` : null };
     }
     case "lightup": {
       if (!puzzle.solution?.length) return null;
@@ -141,6 +143,12 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       return { text: `${inSpot}/${puzzle.solution.length} pieces in place`, cost: off > 0 ? `${plural(off, "piece")} elsewhere` : null };
     }
     case "tiles": {
+      // tilesRev 3 (the remodel): tiles put in place on the gradient.
+      if (isJumbledGradient(puzzle)) {
+        const end = replayJumbled(puzzle.frame, decodeJumbled(answer)).frame;
+        const out = JUMBLED_MOVABLE - jumbledInPlace(puzzle.frame);
+        return { text: `${Math.round(jumbledProgress(puzzle.frame, end) * out)}/${out} tiles placed`, cost: null };
+      }
       // puzzleScoreRev 3: progress is solver distance (puzzleProgress.ts), stored on the round as a share.
       const share = extra?.["progressShare"];
       if (puzzleScoreRevOf(puzzle) >= 3 && typeof share === "number" && (puzzle.minMoves ?? 0) > 0) {

@@ -5,10 +5,11 @@
  */
 import { puzzleScoreRevOf } from "../../src/lib/duel/puzzleScoreRev";
 import { answerWords, commonWords, isWord, wordsFrom } from "../../src/lib/duel/dictionary.server";
-import { lwEncodeLog, lwUsesLog } from "../../src/lib/duel/letterWheel";
+import { lwEncodeLog, lwUsesJar, lwUsesLog } from "../../src/lib/duel/letterWheel";
 import { checkWordsmithWord, gradeWordsmith } from "../../src/lib/duel/wordsmith.server";
 import { checkWordHuntPath, gradeWordHunt, isWordHuntMiss } from "../../src/lib/duel/wordHunt.server";
 import { WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "../../src/lib/duel/scoring";
+import { WORDSMITH_REV_DEPTH } from "../../src/lib/duel/scoring";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
 import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
@@ -29,7 +30,7 @@ import { strikeoutAnswerWords } from "../../src/lib/duel/strikeout.server";
 import { encodeCodeword, replayCodeword, type CwAction } from "../../src/lib/duel/codeword";
 import { encodeSwapword, replaySwapword, swapwordMarks, SW_TILES, type SwSwap } from "../../src/lib/duel/swapword";
 import { witnessSwaps } from "../../src/lib/duel/swapword.server";
-import { WORDHUNT_COLS, WORDSMITH_CENTRE_INDEX, WORDSMITH_SIZES } from "../../src/lib/duel/types";
+import { WORDHUNT_COLS, WORDSMITH_CENTRE_INDEX, WORDSMITH_SIZES, wordHuntCols } from "../../src/lib/duel/types";
 import type {
   CodewordPuzzleData,
   LetterWheelPuzzleData,
@@ -96,7 +97,14 @@ const nucleus: PuzzleKit = {
     // BASE 5 s per everyday word found (tap 4–6 letters + Enter, ~10–12 words/min for a good player);
     // dictionary-only words take 2.5× as long and late finds slow down as the easy words run out.
     const BASE = 5;
-    const pool = (d.words ?? []).map((w) => ({ word: w.word, key: (isCommon(w.word) ? 0 : 6) + w.word.length * 0.6 + rng.next() * 3 }));
+    const pool: { word: string; key: number }[] = (d.words ?? []).map((w) => ({ word: w.word, key: (isCommon(w.word) ? 0 : 6) + w.word.length * 0.6 + rng.next() * 3 }));
+    // Word depth (wordsmithRev 3): the every-tile word is worth a bonus, so better players hunt for it and spot
+    // it more often (average 5 %, good 15 %, great 35 %, near-perfect 60 %, elite 80 %), somewhere in the run's
+    // first half; otherwise it stays where its length and rarity put it (late, if ever). Older stamps unchanged.
+    if ((d.wordsmithRev ?? 0) >= WORDSMITH_REV_DEPTH) {
+      const spot = skill.err >= 0.2 ? 0.05 : skill.err >= 0.1 ? 0.15 : skill.err >= 0.05 ? 0.35 : skill.err > 0 ? 0.6 : 0.8;
+      for (const entry of pool) if (entry.word.length >= d.letters.length && rng.chance(spot)) entry.key = rng.next() * 7;
+    }
     pool.sort((a, b) => a.key - b.key);
     const steps: Step[] = [];
     const found: string[] = [];
@@ -118,8 +126,7 @@ const nucleus: PuzzleKit = {
 
 // ───────────────────────── Forage (wordhunt) ─────────────────────────
 
-function huntNeighbours(cell: number): number[] {
-  const N = WORDHUNT_COLS;
+function huntNeighbours(cell: number, N: number = WORDHUNT_COLS): number[] {
   const r = Math.floor(cell / N), c = cell % N;
   const out: number[] = [];
   for (let dr = -1; dr <= 1; dr++)
@@ -129,6 +136,28 @@ function huntNeighbours(cell: number): number[] {
       if (nr >= 0 && nr < N && nc >= 0 && nc < N) out.push(nr * N + nc);
     }
   return out;
+}
+
+/** wordHuntRev 3: a path for `word` on the board that avoids the golden tile (null when every path needs it). */
+function huntPathAvoiding(d: WordHuntPuzzleData, word: string, avoid: number): number[] | null {
+  const cols = wordHuntCols(d.grid);
+  const tiles = d.grid.map((t) => t.toUpperCase());
+  const walk = (cell: number, at: number, path: number[]): number[] | null => {
+    const tile = tiles[cell]!;
+    if (cell === avoid || path.includes(cell) || !word.startsWith(tile, at)) return null;
+    const next = [...path, cell];
+    if (at + tile.length === word.length) return next;
+    for (const n of huntNeighbours(cell, cols)) {
+      const found = walk(n, at + tile.length, next);
+      if (found) return found;
+    }
+    return null;
+  };
+  for (let cell = 0; cell < tiles.length; cell++) {
+    const found = walk(cell, 0, []);
+    if (found) return found;
+  }
+  return null;
 }
 
 const huntSendsMisses = (d: WordHuntPuzzleData) => (d.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
@@ -141,7 +170,7 @@ function huntNonWordPath(d: WordHuntPuzzleData, rng: Rng): number[] {
     const n = rng.int(4, 5);
     const path = [rng.below(d.grid.length)];
     while (path.length < n) {
-      const next = huntNeighbours(path[path.length - 1]!).filter((x) => !path.includes(x));
+      const next = huntNeighbours(path[path.length - 1]!, wordHuntCols(d.grid)).filter((x) => !path.includes(x));
       if (!next.length) break;
       path.push(rng.pick(next));
     }
@@ -163,7 +192,7 @@ const forage: PuzzleKit = {
         const n = len();
         const path = [rng.below(cells)];
         while (path.length < n) {
-          const next = huntNeighbours(path[path.length - 1]!).filter((x) => !path.includes(x));
+          const next = huntNeighbours(path[path.length - 1]!, wordHuntCols(d.grid)).filter((x) => !path.includes(x));
           if (!next.length) break;
           path.push(rng.pick(next));
         }
@@ -180,7 +209,9 @@ const forage: PuzzleKit = {
     const d = p as WordHuntPuzzleData;
     // BASE 5 s per word traced (spot + swipe), slowing as the obvious words run out; longer words take longer to spot.
     const BASE = 5;
-    const pool = (d.words ?? []).map((w) => ({ ...w, key: w.word.length * 0.8 + rng.next() * 3 }));
+    // wordHuntRev 3: careful players look round the golden tile first (its words come up sooner; none on older boards).
+    const goldFirst = typeof d.golden === "number" ? 2.5 * Math.max(0, 1 - 2.5 * skill.err) : 0;
+    const pool = (d.words ?? []).map((w) => ({ ...w, key: w.word.length * 0.8 + rng.next() * 3 - (goldFirst && w.path.includes(d.golden!) ? goldFirst : 0) }));
     pool.sort((a, b) => a.key - b.key);
     const steps: Step[] = [];
     const found: string[] = [];
@@ -195,7 +226,11 @@ const forage: PuzzleKit = {
         steps.push({ answer: answer(), atMs: at });
       }
       at += thinkMs(rng, BASE * (0.6 + w.word.length * 0.12) * (1 + i / Math.max(1, pool.length)), skill);
-      found.unshift(`${w.word}:${w.path.join("-")}`);
+      // wordHuntRev 3: the board's word paths run through the golden tile where they can; a player routes through it
+      // more often the more careful they are (an average player half the time, an error-free one always).
+      let path = w.path;
+      if (typeof d.golden === "number" && path.includes(d.golden) && !rng.chance(1 - 2.5 * skill.err)) path = huntPathAvoiding(d, w.word, d.golden) ?? path;
+      found.unshift(`${w.word}:${path.join("-")}`);
       steps.push({ answer: answer(), atMs: at });
     }
     return { steps: fullClock(steps, (a) => gradeWordHunt(d, a, 0).isCorrect, limitMs) };
@@ -445,7 +480,17 @@ const lookout: PuzzleKit = {
     const sels: number[][] = [];
     const steps: Step[] = [];
     let at = 0;
-    for (const pl of rng.shuffle(d.placements ?? [])) {
+    // wordSearchRev 3: the unlisted bonus word. Spotting it while scanning is rare for most players and likely for
+    // the quickest (0.85 at the elite's pace, about 0.47 near-perfect, 0.19 great, 0.06 good); it costs a little
+    // extra scanning and is dragged before the last listed word (the six found end the round).
+    const placements = rng.shuffle(d.placements ?? []);
+    const bonusAt = d.bonus && rng.chance(Math.min(0.9, 0.85 * Math.exp(-4 * (skill.pace - 0.35)))) ? rng.below(placements.length) : -1;
+    for (const [n, pl] of placements.entries()) {
+      if (n === bonusAt && d.bonus) {
+        at += thinkMs(rng, BASE * 0.6, skill);
+        sels.push(rng.chance(0.5) ? [...d.bonus.cells] : [...d.bonus.cells].reverse());
+        steps.push({ answer: wsEncode(sels), atMs: at });
+      }
       while (rng.chance(skill.err * 1.5)) {
         // A mis-drag: the right start but one cell short or long (counts as a wrong selection).
         at += thinkMs(rng, BASE * 0.5, skill);
@@ -515,7 +560,30 @@ const roundabout: PuzzleKit = {
     const answer = () => (log ? lwEncodeLog(traces) : filled.filter(Boolean).join(","));
     const steps: Step[] = [];
     let at = 0;
-    for (const { i } of order) {
+    // wheelRev 2 (word depth): the bonus jar. Stronger players spend a little time on bonus words before the
+    // crossword's last word (which ends the round), and spot longer ones: none for an average or good player
+    // (beyond real words traced by mistake), none for a great one, about 3 for a near-perfect one, 13 for the elite.
+    const jarPlan = new Map<number, string[]>();
+    if (lwUsesJar(d) && order.length > 1) {
+      const strength = Math.max(0, (1.7 - skill.pace) / 1.35);
+      const count = Math.round(13 * strength ** 12 + (rng.next() - 0.5));
+      const noise = 1 + 5 * skill.pace;
+      const picks = others
+        .map((w) => ({ w, key: w.length + rng.next() * noise }))
+        .sort((a, b) => b.key - a.key)
+        .slice(0, Math.max(0, count))
+        .map((e) => e.w);
+      for (const w of picks) {
+        const before = rng.below(order.length - 1);
+        jarPlan.set(before, [...(jarPlan.get(before) ?? []), w]);
+      }
+    }
+    for (const [k, { i }] of order.entries()) {
+      for (const w of jarPlan.get(k) ?? []) {
+        at += thinkMs(rng, 3.5 * (0.7 + w.length * 0.08), skill);
+        traces.push(w);
+        steps.push({ answer: answer(), atMs: at });
+      }
       while (rng.chance(skill.err * 1.5)) {
         // A real word that is not in this crossword, or a mis-trace (two letters swapped or one dropped): time only,
         // but wheelRev 1 logs it (a mis-trace that is not a word is a miss).
@@ -601,6 +669,15 @@ function so2Spam(p: StrikeoutPuzzleData, label: string, next: (open: string[]) =
   return { label, answer: encodeStrikeout2(actions) };
 }
 
+/** strikeoutRev 5: the most hidden tiles at which a player of this pace can still read the certain word. */
+function so5SeesHidden(skill: Skill): number {
+  if (skill.pace >= 1.7) return 4;
+  if (skill.pace >= 1) return 5;
+  if (skill.pace >= 0.72) return 5;
+  if (skill.pace >= 0.5) return 6;
+  return 99;
+}
+
 function so2Play(d: StrikeoutPuzzleData, rng: Rng, skill: Skill): Play {
   // BASE 4 s per letter guess (read the word, pick a letter); a solve takes 1.6× (type the missing letters).
   const BASE = 4;
@@ -611,8 +688,12 @@ function so2Play(d: StrikeoutPuzzleData, rng: Rng, skill: Skill): Play {
     const state = so2Replay(d, actions);
     if (state.done || state.over) break;
     const c = so2Candidates(d, state);
+    // strikeoutRev 5 (word depth, early-solve bonus): a player only sees the word once few enough tiles are left
+    // hidden for their skill; the elite see it the moment it is certain. Older revs keep the kit as it was.
+    const hidden = state.revealed[state.word]!.filter((on) => !on).length;
+    const sees = strikeoutRevOf(d) < 5 || hidden <= so5SeesHidden(skill);
     // A person solves once the word is certain; a strong player will also gamble on two options with three or more strikes to spare.
-    if (c.length === 1 || (c.length === 2 && so2Rules(strikeoutRevOf(d)).maxStrikes - state.strikes >= 3 && rng.chance(0.3))) {
+    if (sees && (c.length === 1 || (c.length === 2 && so2Rules(strikeoutRevOf(d)).maxStrikes - state.strikes >= 3 && rng.chance(0.3)))) {
       at += thinkMs(rng, BASE * 1.6, skill);
       actions.push({ kind: "solve", word: state.word, guess: rng.pick(c) });
       steps.push({ answer: encodeStrikeout2(actions), atMs: at });

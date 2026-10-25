@@ -27,6 +27,8 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { ParMeter } from "@/components/puzzles/depth/ParMeter";
+import { usesDepth } from "@/lib/duel/logicDepth";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 // The eight game colours from the shared palette (GOLD is reserved for the lift highlight).
@@ -270,7 +272,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
           inArena
           className="logic-status"
           items={[
-            pourLimit !== null ? (
+            // depthRev 1: the par line (sorting in the fewest pours earns the par bonus); the limit stays beside it.
+            puzzle.type === "tubes" && usesDepth(puzzle) && (puzzle.par ?? 0) > 0 ? (
+              <ParMeter key="pours" label="Pours" moves={replay.moves} par={puzzle.par!} limit={pourLimit} out={replay.outOfPours} />
+            ) : pourLimit !== null ? (
               <SummaryItem key="pours" label="Pours" value={<span data-move-limit={pourLimit}>{limitText(replay.moves, pourLimit)}</span>} warn={replay.outOfPours} />
             ) : (
               <SummaryItem key="moves" label="Moves" value={replay.moves} />
@@ -324,7 +329,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           {mine.moves} {myCorrect ? "✓" : "✗"}
         </span>
         <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          {pourLimit !== null ? `of ${pourLimit} pours` : "moves"}{puzzle.minMoves ? ` · min ${puzzle.minMoves}` : ""}
+          {pourLimit !== null ? `of ${pourLimit} pours` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}
           {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
         </span>
       </p>

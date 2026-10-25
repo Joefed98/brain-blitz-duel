@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { LAB_STARS } from "./depth/labyrinth";
 import { solutionProgress } from "./progressFigures";
 import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
@@ -15,6 +16,8 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
+import { isTopsy, TOPSY_BALLS, TOPSY_BOARDS, TOPSY_STARS } from "./topsy";
+import { isJumbledGradient, JUMBLED_MOVABLE } from "./jumbled";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
 import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
@@ -326,7 +329,12 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
       const got = difference.cells.some((cell) => (taps[difference.scene ?? 0] ?? []).includes(cell));
       return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label} · ${got ? "✓" : "✗"}`;
     });
-    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${found} / ${total}`, detail };
+    // spotRev 2: the hidden seventh difference, never counted in the twelve (depth/doubleTake.ts).
+    const bonus = puzzle.bonus;
+    const hidden = bonus ? bonus.cells.some((cell) => (taps[bonus.scene ?? 0] ?? []).includes(cell)) : false;
+    if (bonus) detail.push(`★ Picture ${(bonus.scene ?? 0) + 1} hidden: ${bonus.label} · ${hidden ? "✓" : "–"}`);
+    const star = hidden ? " · ★" : "";
+    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}${star}` : `${found} / ${total}${star}`, detail };
   }
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
@@ -357,7 +365,9 @@ function wordsmithSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDeta
     // wordsmithRev 1 and later score word points on a curve (scoring.ts); only older rounds use 2.5 ×.
     summary:
       ((puzzle as { wordsmithRev?: number }).wordsmithRev ?? 0) >= WORDSMITH_REV_CURVE
-        ? `${points} word points → ${result.score} · ${words.length} words`
+        ? typeof result.extra?.["pangramBonus"] === "number" && result.extra["pangramBonus"] > 0
+          ? `${points} word points + pangram ${result.extra["pangramBonus"]} → ${result.score} · ${words.length} words`
+          : `${points} word points → ${result.score} · ${words.length} words`
         : `2.5 × ${points}, rounded down = ${result.score} · ${words.length} words`,
     detail: words.map((word) => `${word} (${wordsmithPoints(word)})`),
   };
@@ -434,6 +444,19 @@ const wordHuntSummary: SummaryBuilder = (result, puzzle) => {
   const points = words.reduce((sum, word) => sum + wordHuntPoints(word), 0);
   // wordHuntRev 2: the share misses took off (stored by the grader), shown only when they cost something.
   const missCut = typeof result.extra?.["missCutPct"] === "number" ? result.extra["missCutPct"] : 0;
+  // wordHuntRev 3 (word depth): the stored extras the long words and the golden tile added.
+  if (((puzzle as { wordHuntRev?: number }).wordHuntRev ?? 0) >= 3) {
+    const extras = Number(result.extra?.["extraPoints"] ?? 0);
+    const gold = Array.isArray(result.extra?.["goldWords"]) ? (result.extra["goldWords"] as unknown[]).length : 0;
+    return {
+      summary: `${points} word points + ${extras} extra → ${result.score} · ${words.length} words${missCut > 0 ? ` · misses −${missCut}%` : ""}`,
+      detail: [
+        seconds(elapsedMs(result, puzzle)),
+        `${gold} through the golden tile`,
+        ...(words.length > 0 ? [words.join(" · ")] : ["No words"]),
+      ],
+    };
+  }
   return {
     // wordHuntRev 1 and later score word points on a curve (scoring.ts); only older rounds use × 2.
     summary:
@@ -686,13 +709,17 @@ const towerSummary: SummaryBuilder = (result, puzzle) => {
 const mazeSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "maze") return { summary: "—", detail: [] };
   const progress = Number(result.extra?.["progress"] ?? 0);
+  // mazeRev 1 (depth/labyrinth.ts): the stars the trail took, and their stored points on a finish.
+  const stars = Array.isArray(result.extra?.["stars"]) ? (result.extra!["stars"] as unknown[]).length : null;
+  const starText = stars === null ? "" : ` · ★ ${stars}/${LAB_STARS}`;
   if (result.is_correct) {
+    const bonus = Number(result.extra?.["starBonus"] ?? 0);
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`],
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}${starText}`,
+      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars · +${bonus}`])],
     };
   }
-  return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
+  return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? ["Stars count only with a finish"] : [])] };
 };
 
 const tubesSummary: SummaryBuilder = (result, puzzle) => {
@@ -764,6 +791,19 @@ function ordinalTry(value: number): string {
 const gravitySummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "gravity") return { summary: "—", detail: [] };
   const tilts = Number(result.extra?.["tilts"] ?? 0);
+  // gravityRev 3 (the remodel, topsy.ts): three boards, balls home and stars.
+  if (isTopsy(puzzle)) {
+    const cleared = Number(result.extra?.["cleared"] ?? 0);
+    const home = Number(result.extra?.["home"] ?? 0);
+    const stars = Number(result.extra?.["stars"] ?? 0);
+    const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    return {
+      summary: result.is_correct
+        ? `Cleared · ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars · ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${TOPSY_BOARDS} boards · ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+      detail: [`${tilts} tilts made${out ? ` · out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
+    };
+  }
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const locked = Number(result.extra?.["locked"] ?? 0);
   if (result.is_correct) {
@@ -842,6 +882,20 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
 const tilesSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tiles") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
+  // tilesRev 3 (the remodel, jumbled.ts): the gradient, moves against par.
+  if (isJumbledGradient(puzzle)) {
+    const par = Number(result.extra?.["par"] ?? puzzle.par ?? 0);
+    const inPlaceNow = Number(result.extra?.["inPlace"] ?? 0);
+    // Unfinished: the progress its credit counts (progressFigures.ts: tiles put in place).
+    const progress = result.is_correct ? null : progressOf(result, puzzle);
+    if (progress) return { summary: progress.summary, detail: [...progress.detail, `${moves} moves made`] };
+    return {
+      summary: result.is_correct
+        ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+        : `${inPlaceNow} / ${JUMBLED_MOVABLE} in place`,
+      detail: [result.is_correct && moves <= par ? "At or under par" : `${moves} moves made`],
+    };
+  }
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const inPlace = Number(result.extra?.["inPlace"] ?? 0);
   const progress = result.is_correct ? null : progressOf(result, puzzle);
@@ -1362,7 +1416,9 @@ const digSummary: SummaryBuilder = (result) => {
 const wordSearchSummary: SummaryBuilder = (result) => {
   const found = Number(result.extra?.["found"] ?? 0);
   const total = Number(result.extra?.["total"] ?? 6);
-  return { summary: `${found} / ${total} found`, detail: [] };
+  // wordSearchRev 3 (word depth): the hidden bonus word.
+  const bonus = result.extra?.["bonusFound"] === true;
+  return { summary: `${found} / ${total} found${bonus ? " · bonus word" : ""}`, detail: [] };
 };
 
 const letterWheelSummary: SummaryBuilder = (result) => {
@@ -1370,7 +1426,9 @@ const letterWheelSummary: SummaryBuilder = (result) => {
   const total = Number(result.extra?.["total"] ?? 0);
   // wheelRev 1 rounds store their misses (traces that were not words); older rounds have none.
   const misses = Number(result.extra?.["misses"] ?? 0);
-  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}`, detail: [] };
+  // wheelRev 2 (word depth): bonus words in the jar.
+  const jar = Number(result.extra?.["bonusWords"] ?? 0);
+  return { summary: `${slots} / ${total} words${misses > 0 ? ` · ${misses} miss${misses === 1 ? "" : "es"}` : ""}${jar > 0 ? ` · ${jar} in the jar` : ""}`, detail: [] };
 };
 
 const strikeoutSummary: SummaryBuilder = (result) => {

@@ -9,13 +9,16 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
-import { stampNumberDepth, withNumberDepth } from "./numberDepth.server";
+import { gradeDepth200 } from "./depth200.server";
+import { stampNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
-import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
+import { WORDHUNT_REV_TARGET, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
 import { stampTieRev } from "./tieBreak";
 import { dealDepth4 } from "./depth4/deal.server";
-import { withDepth4 } from "./depth4/grade.server";
+import { dealtDepthRev } from "./wordDepth";
+import { stampTileGridRev } from "./tileGrid";
+import { STRIKEOUT_REV4, STRIKEOUT_REV5 } from "./strikeout";
 import { generateBlockParty } from "./blockParty.server";
 import { gradeSubmission, latestTapMs, type Graded, type SubmitExtra } from "./grade";
 import { newRoomSeed, pickRoundOrder, type RoundSelectionOptions } from "./selection";
@@ -23,7 +26,8 @@ import { drawBankedPuzzle, isBankedType } from "./puzzleBank.server";
 import { puzzleDef } from "./registry";
 import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "./types";
 import { generateUnblock, type UnblockBankRow } from "./unblock.server";
-import { generateWordHunt, gradeWordHunt } from "./wordHunt.server";
+import { generateWordHunt, generateWordHuntDepth, gradeWordHunt } from "./wordHunt.server";
+import { WORDHUNT_REV_DEPTH } from "./wordHunt";
 import { generateWordsmith, gradeWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
@@ -39,11 +43,14 @@ import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
+import { generateTiles } from "./tiles.server";
+import { dealsD5Remodels } from "./d5Remodels";
+import { generateTopsy } from "./topsy.server";
+import { generateJumbled } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
-import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
 import {
@@ -128,6 +135,10 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
+  // for the previous versions pin the old deal, d5Remodels.ts).
+  if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;
@@ -135,11 +146,14 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
   // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
-  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: WORDSMITH_REV_TARGET };
-  if (type === "wordhunt") return { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
+  // Word depth (25 Oct 2026): Nucleus deals wordsmithRev 3 (the curve to 200 and the pangram bonus).
+  if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(WORDSMITH_REV_DEPTH, WORDSMITH_REV_TARGET) };
+  // Forage wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): the 6×6 board with its golden tile.
+  if (type === "wordhunt") return dealtDepthRev(WORDHUNT_REV_DEPTH, WORDHUNT_REV_TARGET) >= WORDHUNT_REV_DEPTH ? generateWordHuntDepth() : { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
   if (type === "unblock") return generateUnblock(context.unblockRow);
   if (type === "blockparty") return generateBlockParty();
-  if (type === "tilegrid") return generateTileGrid();
+  // Word depth (25 Oct 2026): Interlock tileGridRev 1 scores to 200 (depth/tilegrid.server.ts); the board is unchanged.
+  if (type === "tilegrid") return stampTileGridRev(generateTileGrid());
   if (type === "wordslide") return generateWordSlide();
   if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
@@ -205,7 +219,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // wheelRev 1: room-seeded draw from the 11–14 word bank.
   if (type === "letterwheel") return generateLetterWheel(wordGameSeed(type, context.bankSeed));
   // Room-seeded: every player in a room gets the same board from the room seed.
-  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed));
+  // Word depth (25 Oct 2026): Strikeout rev 5 = rev 4's draw and rules, scored to 200 (depth/strikeout.server.ts).
+  if (type === "strikeout") return generateStrikeout(wordGameSeed(type, context.bankSeed), dealtDepthRev(STRIKEOUT_REV5, STRIKEOUT_REV4));
   if (type === "codeword") return generateCodeword(wordGameSeed(type, context.bankSeed));
   if (type === "swapword") return generateSwapword(wordGameSeed(type, context.bankSeed));
   if (type === "measure") return generateMeasure(gameSeed(type, context));
@@ -264,21 +279,20 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
-  const rev = puzzleScoreRevOf(puzzle);
-  // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
-  // The depth PRs' 200-point grades (each returns the grade as is without its own stamp): one place, so a shared
-  // depth dispatcher can take them over (withDepthGrades below).
-  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withDepthGrades(puzzle, answer, withRev3(puzzle, answer, graded, receivedMsRemaining));
-  // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
-  return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withNumberDepth(puzzle, answer, withRev2(puzzle, graded)) : graded;
+  let todayGrade: Graded | null = null;
+  const today = () => (todayGrade ??= gradeToday(puzzle, answer, graded, receivedMsRemaining));
+  // Depth to 200 (depth200.server.ts, the one depth path): a puzzle stamped with its game's depth revision scores to
+  // 200 through that game's grader (from the game's own grade or today's); every other puzzle keeps today's grade.
+  return gradeDepth200({ puzzle, answer, graded, today, receivedMsRemaining }) ?? today();
 }
 
-/**
- * Every depth batch's 200-point grade on top of rev 3: Number (depthRev, numberDepth.server.ts) and depth batch 4
- * (Pattern / Logic, depth4/grade.server.ts). Each is gated on its own games and stamp, so at most one changes a grade.
- */
-function withDepthGrades(puzzle: PuzzleData, answer: string, graded: Graded): Graded {
-  return withDepth4(puzzle, withNumberDepth(puzzle, answer, graded));
+/** Today's grade before any depth revision: puzzleScoreRev 3's helper or rev 2's knots over the game's own grade. */
+function gradeToday(puzzle: PuzzleData, answer: string, graded: Graded, receivedMsRemaining?: number): Graded {
+  const rev = puzzleScoreRevOf(puzzle);
+  // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
+  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
+  // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
+  return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
 }
 
 /**

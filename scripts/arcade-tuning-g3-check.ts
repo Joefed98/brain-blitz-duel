@@ -111,6 +111,7 @@ import {
   BT_LAYOUT_TALL,
   BT_REV_BAND,
   BT_REV_TALL,
+  BT_REV_RUSH,
   BT_ROWS,
   BT_STEP_TICKS,
   BT_TALL_H,
@@ -199,7 +200,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     const orbit = generateOrbit();
     ok(playRevOf("orbit", orbit.orbitRev) === ORBIT_REV_TALL && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 8 with the course's planets");
     const bt = generateBallTrack();
-    ok(playRevOf("balltrack", bt.btRev) === BT_REV_TALL && bt.course.rows === BT_TALL_ROWS && JSON.stringify(bt.course) === JSON.stringify(BALL_TRACK_BANK_TALL[bt.seed - 1]!.course), "rooms deal btRev 4 on a 12-row bank course");
+    // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (btRev 7, its own bank); e6-check covers it.
+    ok(bt.btRev === BT_REV_TALL + 3 && bt.course.rows === 13, "rooms deal btRev 7 (expansion E6, after btRev 4)");
   }
   for (const [type, field, rev] of [["swing", "swingRev", SWING_REV_TALL], ["orbit", "orbitRev", ORBIT_REV_TALL], ["balltrack", "btRev", BT_REV_TALL]] as const)
     ok(puzzleUsesBands({ type, [field]: rev } as never), `${type} ${rev} scores on the bands`);
@@ -236,7 +238,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
-  ok(fx.swing!.height === 730 && fx.orbit!.height === 650 && fx.balltrack!.height === 1300, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  // Expansion E6 (25 Oct 2026) moved Ball Tracker on to its 13-row board (1400 px; e6-check).
+  ok(fx.swing!.height === 730 && fx.orbit!.height === 650 && fx.balltrack!.height === 1400, "ARCADE_FX_SPECS hold the heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");
@@ -514,7 +517,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_TALL\) return null/.test(src), "Grappler's demo plays only on swingRev 9");
   ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_TALL\) return null/.test(src), "Orbit's demo plays only on orbitRev 8");
-  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && demo\.puzzle\.btRev !== BT_REV_TALL\) return null/.test(src), "Ball Tracker's demo plays only on btRev 4");
+  // Expansion E6: Ball Tracker's demo now plays only on btRev 7 (e6-check).
+  ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && demo\.puzzle\.btRev !== BT_REV_RUSH\) return null/.test(src), "Ball Tracker's demo plays only on btRev 7");
 }
 
 if (failures.length) {

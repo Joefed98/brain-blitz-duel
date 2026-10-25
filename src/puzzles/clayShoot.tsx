@@ -33,13 +33,24 @@ import {
   CLAY_ORANGE,
   CLAY_W,
   clayWorldHFor,
+  clayDoublesHit,
+  clayStreakMultiplier,
+  CLAY_DOUBLES,
+  CLAY_REV_DEPTH,
   type ClayState,
 } from "@/lib/arcade/clayShoot";
 import { CLAY_WAITING, CLAY_EMPTY_SHOTS_PER_POINT, CLAY_FREE_EMPTY_SHOTS, CLAY_REV } from "@/lib/arcade/clayShoot";
-import { encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
+import { clayDepthDetail, encodeClayRun, replayClayRun } from "@/lib/duel/clayShoot";
 import { CLAYSHOOT_TIME_MS, type ClayShootPuzzleData } from "@/lib/duel/types";
 import { playSound, playTick } from "@/lib/sound";
 import { momentFrame } from "@/lib/fx/momentCues";
+import { soundCue as dispatchPitched } from "@/lib/fx/soundCues";
+import { demoHushed } from "@/lib/sound";
+
+/** A cue at a pitch (speedFx's soundCue has none), hushed in intro demos as it is. */
+function pitchedCue(cue: string, rate: number): void {
+  if (!demoHushed()) dispatchPitched(cue, rate);
+}
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -174,7 +185,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof clayCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(CLAY_COUNT).fill(0) });
+  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(CLAY_COUNT).fill(0), streak: 1, doubles: 0 });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -226,6 +237,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let seenBirdsIn = 0;
     let seenShot = -100;
     let shownKey = "";
+    // clayRev 9: doubles made and the streak's multiplier.
+    let seenDoubles = 0;
+    let seenMultiplier = 1;
 
     const loop = (time: number) => {
       frameTiming.begin(time);
@@ -275,10 +289,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenBirds = s.birdHits ?? 0;
         soundCue("clayshoot.birdStartle");
       }
-      const key = `${s.status.join("")}:${s.birdHits ?? 0}`;
+      const doubles = s.dp ? clayDoublesHit(s) : 0;
+      const multiplier = s.dp ? clayStreakMultiplier(s.dp.streak) : 1;
+      if (s.dp) {
+        if (doubles > seenDoubles) soundCue("clayshoot.doubleHit");
+        else if (multiplier > seenMultiplier && !game.isOver(s)) pitchedCue("clayshoot.claysStreak", 1 + 0.08 * multiplier);
+        seenDoubles = doubles;
+        seenMultiplier = multiplier;
+      }
+      const key = `${s.status.join("")}:${s.birdHits ?? 0}:${multiplier}`;
       if (key !== shownKey) {
         shownKey = key;
-        setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, birdHits: s.birdHits ?? 0, status: [...s.status] });
+        setHud({ hits: s.hits, orangeHits: s.orangeHits, goldHits: s.goldHits, birdHits: s.birdHits ?? 0, status: [...s.status], streak: multiplier, doubles });
       }
       if (devOn && s.tick % 6 === 0) {
         const log = s.log
@@ -343,9 +365,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   return (
     <div ref={wrap} data-stage-column="1" data-polish="clayshoot" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
-      <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
-        <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
-      </p>
+      {data.clayRev === CLAY_REV_DEPTH ? (
+        // clayRev 9: the same one line, with the hit streak's multiplier and the doubles made.
+        <p data-clay-depth className="shrink-0 whitespace-nowrap text-center font-mono text-xs font-semibold leading-none text-foreground">
+          <span className="text-primary">{hud.hits}</span>/{CLAY_COUNT} · {hud.goldHits} gold · {hud.birdHits} birds · Streak{" "}
+          <span data-clay-streak={hud.streak} className={hud.streak > 1 ? "text-primary" : undefined}>×{hud.streak}</span> · Doubles{" "}
+          <span data-clay-doubles className={hud.doubles > 0 ? "text-primary" : undefined}>{hud.doubles}/{CLAY_DOUBLES}</span>
+        </p>
+      ) : (
+        <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
+          <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
+        </p>
+      )}
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       {/* The sky at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; clayTapWorld maps through this box). */}
       <ArcadeArenaSlot width={CLAY_W} height={clayWorldHFor(data?.clayRev)} scene={clayArenaScene}>
@@ -385,6 +416,14 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         {result.hits} / {result.total} clays · {result.orangeHits} orange · {result.goldHits} gold · {result.birdHits} birds hit
       </p>
       <p className="text-center text-base text-muted-foreground">{result.shots} shot{result.shots === 1 ? "" : "s"} · Don't shoot the birds — each one costs 10.</p>
+      {result.state.dp ? (() => {
+        const d = clayDepthDetail(result.state);
+        return (
+          <p data-clay-depth-reveal className="text-center text-sm text-muted-foreground">
+            {d.base} for clays + {d.doubles} for {d.doublesHit} of {d.doublesTotal} doubles + {d.streak} streak (best {d.streakBest} in a row)
+          </p>
+        );
+      })() : null}
       {empty !== null && cost !== null ? (
         <p className="text-center text-sm text-muted-foreground">
           {empty} hit nothing{cost > 0 ? ` · −${cost}` : ""} (first {CLAY_FREE_EMPTY_SHOTS} free, then −1 per {CLAY_EMPTY_SHOTS_PER_POINT})

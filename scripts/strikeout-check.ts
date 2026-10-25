@@ -89,6 +89,10 @@ import { isPluralForm } from "../src/lib/duel/wordsmith.server";
 import { STRIKEOUT_TIME_MS, type PuzzleData, type StrikeoutPuzzleData } from "../src/lib/duel/types";
 import { strikeoutPuzzle } from "../src/puzzles/strikeout";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps (new deals pinned to them); depth-strikeout-check proves the depth stamp.
+pinPreDepth(true);
 
 // Written for the rev-1 puzzle shape: new puzzles here carry puzzleScoreRev 1 (rooms deal rev 2 since 19 Oct 2026, scoring-bands-check).
 pinDealtPuzzleScoreRev(1);

@@ -1,0 +1,51 @@
+/* Logic depth to 200 (25 Oct 2026; docs/depth/d6-logic.md): the par line of Blackout, Hanoi and Polypotions and
+   Safe Cracker's clean-crack hint. Only imported by those games' stages. No animation: the fill's width changes
+   with each move and nothing else moves. */
+.d6-par {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.d6-par-sep {
+  color: color-mix(in srgb, var(--category-accent, #a09da6) 70%, #a09da6);
+  padding-inline: 2px;
+}
+.d6-par .d6-par-value {
+  color: #f2c75c;
+}
+.d6-par-bar {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 56px;
+  height: 4px;
+  margin-left: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: visible;
+}
+.d6-par-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--d6-fill, 0) * 100%);
+  border-radius: 2px;
+  background: #f3f1ec;
+}
+.d6-par[data-over] .d6-par-fill {
+  background: var(--warn);
+}
+/* The gold par marker at the bar's middle (par is half its span). */
+.d6-par-mark {
+  position: absolute;
+  left: calc(50% - 1px);
+  top: -3px;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: #f2c75c;
+  box-shadow: 0 0 4px rgba(242, 199, 92, 0.6);
+}
+/* Safe Cracker: "· clean crack" beside the tries left while opening now would keep a try spare. */
+.d6-clean {
+  color: #f2c75c;
+}

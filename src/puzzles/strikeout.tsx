@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { Delete } from "lucide-react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -11,6 +11,7 @@ import {
   SO_ROWS,
   SO4_RULES,
   STRIKEOUT_REV2,
+  STRIKEOUT_REV5,
   decodeStrikeout,
   decodeStrikeout2,
   encodeStrikeout,
@@ -366,6 +367,32 @@ function VowelsLeft({ left, max }: { left: number; max: number }) {
   );
 }
 
+/**
+ * strikeoutRev 5 (word depth, early-solve bonus): letters still hidden when words were solved with Solve, summed
+ * over the round. Absolutely centred in the dots row, so it never moves anything; empty until the first early solve.
+ * The points are the server's (they also need a quick finish); this only counts what the board showed.
+ */
+function EarlyPill({ hidden, pillRef }: { hidden: number; pillRef: Ref<HTMLSpanElement> }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-live="polite">
+      <span
+        ref={pillRef}
+        data-so-early={hidden}
+        className={`so-early-pill rounded-full px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider ${hidden > 0 ? "" : "invisible"}`}
+        aria-label={`Early solves: ${hidden} letter${hidden === 1 ? "" : "s"} still hidden`}
+      >
+        Early +{hidden}
+      </span>
+    </div>
+  );
+}
+
+/** A small lift on the early pill when a word is solved early (none with reduced motion or reduced effects). */
+function popEarly(el: HTMLElement | null) {
+  if (!el || prefersReducedMotion() || document.documentElement.dataset["reducedEffects"]) return;
+  el.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 320, easing: "ease-out" });
+}
+
 /** Five progress dots: solved words gold, the current word ringed. */
 function WordDots({ solved, current }: { solved: number; current: number }) {
   return (
@@ -418,6 +445,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const [view, setView] = useStageState<SoView | null>(key, "so2View", () => null);
   const [solving, setSolving] = useStageState<boolean>(key, "so2Solving", () => false);
   const [typed, setTyped] = useStageState<string>(key, "so2Typed", () => "");
+  // strikeoutRev 5 (word depth): tiles still hidden when each word was solved with Solve (public: the board showed them).
+  const [early, setEarly] = useStageState<number[]>(key, "so5Early", () => []);
+  const earlyRef = useRef<HTMLSpanElement | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const submitted = useRef(false);
@@ -464,6 +494,19 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in the word: strike");
     } else if ((next.word ?? 0) > (before?.word ?? 0)) {
       const solvedWord = next.rows[before?.word ?? 0] ?? "";
+      if (rev >= STRIKEOUT_REV5 && next.last === "right") {
+        const w = before?.word ?? 0;
+        const hidden = [...(before?.rows[w] ?? words[w] ?? "")].filter((ch) => ch === "_").length;
+        if (hidden > 0) {
+          setEarly((list) => {
+            const out = [...list];
+            while (out.length < w) out.push(0);
+            out[w] = hidden;
+            return out;
+          });
+          popEarly(earlyRef.current);
+        }
+      }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
       buzz(16);
@@ -609,8 +652,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
         <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} />
       </div>
-      <div className="flex h-6 w-full shrink-0 items-center justify-between px-2">
+      <div className="relative flex h-6 w-full shrink-0 items-center justify-between px-2">
         <WordDots solved={solvedCount} current={view?.word ?? 0} />
+        {rev >= STRIKEOUT_REV5 ? <EarlyPill hidden={early.reduce((a, b) => a + (b ?? 0), 0)} pillRef={earlyRef} /> : null}
         <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>

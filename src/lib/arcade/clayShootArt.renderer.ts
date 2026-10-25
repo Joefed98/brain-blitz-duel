@@ -25,9 +25,13 @@ import {
   CLAY_KIND_GOLD,
   CLAY_W,
   clayGravity,
+  clayPairOf,
+  clayStreakMultiplier,
   clayWorldH,
+  CLAY_DOUBLES,
   type ClayState,
 } from "./clayShoot";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -771,6 +775,8 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
   // Clays are drawn where the next sim tick will judge a tap made now (a tap is applied on
   // the tick after the frame it was made on), each with its shot zone: the sim's hit
   // radius, so the drawn edge is the hit edge.
+  // clayRev 9 (depth to 200): a faint gold tether between the two clays of a double while both fly.
+  if (state.dp) drawDoubleTethers(ctx, state, ahead, still);
   for (let i = 0; i < state.status.length; i++) {
     if (state.status[i] !== CLAY_FLYING) continue;
     const gold = state.schedule.kind[i] === CLAY_KIND_GOLD;
@@ -790,7 +796,91 @@ export function drawClayArt(ctx: CanvasRenderingContext2D, state: ClayState, siz
 
   const shotAge = tick - state.shotTick;
   if (shotAge >= 0 && shotAge < 14 && state.shotHit === 0) drawMissPuff(ctx, state, shotAge, still);
+  if (state.dp) drawDepthTags(ctx, state, still || arcadeReducedEffects());
   ctx.restore();
+}
+
+/* ----------------------- clayRev 9: doubles and the hit streak ----------------------- */
+
+const TAG_TICKS = 26;
+
+/** Where a flying clay is drawn this frame (one tick ahead, as drawClayArt). */
+function clayDrawnAt(state: ClayState, i: number, ahead: number): { x: number; y: number } {
+  const vy = state.vy[i]! + clayGravity(state) * ahead;
+  return { x: (state.x[i]! + state.schedule.vx[i]! * ahead) / 256, y: (state.y[i]! + vy * ahead) / 256 };
+}
+
+function drawDoubleTethers(c: CanvasRenderingContext2D, state: ClayState, ahead: number, still: boolean): void {
+  for (let p = 0; p < CLAY_DOUBLES; p++) {
+    const a = CLAY_CONFIG.singles + 2 * p;
+    const b = a + 1;
+    const fa = state.status[a] === CLAY_FLYING, fb = state.status[b] === CLAY_FLYING;
+    // One clay of the pair hit and the other still up: its partner gets a gold ring ("finish the double").
+    if (fa !== fb && (state.status[a] === CLAY_HIT || state.status[b] === CLAY_HIT)) {
+      const at = clayDrawnAt(state, fa ? a : b, ahead);
+      const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick * 0.35);
+      c.save();
+      c.strokeStyle = `rgba(255,214,106,${0.55 + 0.35 * pulse})`;
+      c.lineWidth = 1.6;
+      c.beginPath();
+      c.ellipse(at.x, at.y, R + 3, RY + 3, 0, 0, TAU);
+      c.stroke();
+      c.restore();
+      continue;
+    }
+    if (!fa || !fb) continue;
+    const pa = clayDrawnAt(state, a, ahead), pb = clayDrawnAt(state, b, ahead);
+    c.save();
+    c.strokeStyle = "rgba(255,214,106,0.38)";
+    c.lineWidth = 1.2;
+    c.setLineDash([3, 5]);
+    c.lineDashOffset = still ? 0 : -state.tick * 0.6;
+    c.beginPath();
+    c.moveTo(pa.x, pa.y);
+    c.lineTo(pb.x, pb.y);
+    c.stroke();
+    c.restore();
+  }
+}
+
+/** A short gold word over a world point, rising a little (still under reduced motion or effects). */
+function tag(c: CanvasRenderingContext2D, text: string, x: number, y: number, age: number, calm: boolean, size: number): void {
+  c.save();
+  c.font = `800 ${size}px Archivo, system-ui, sans-serif`;
+  // Kept whole inside the sky: the word's own half-width from each side.
+  const half = c.measureText(text).width / 2 + 4;
+  const tx = Math.min(W - half, Math.max(half, x));
+  const ty = Math.max(size, y - 18 - (calm ? 0 : age * 0.6));
+  c.globalAlpha = age < TAG_TICKS - 8 ? 1 : Math.max(0, (TAG_TICKS - age) / 8);
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  c.lineJoin = "round";
+  c.lineWidth = 3.5;
+  c.strokeStyle = "rgba(20,24,36,0.85)";
+  c.strokeText(text, tx, ty);
+  const g = c.createLinearGradient(0, ty - size / 2, 0, ty + size / 2);
+  g.addColorStop(0, "#FFF6CF");
+  g.addColorStop(1, "#F5B82E");
+  c.fillStyle = g;
+  c.fillText(text, tx, ty);
+  c.restore();
+}
+
+function drawDepthTags(c: CanvasRenderingContext2D, state: ClayState, calm: boolean): void {
+  let last = -1;
+  for (let i = 0; i < state.status.length; i++) if (state.status[i] === CLAY_HIT && (last < 0 || state.doneTick[i]! > state.doneTick[last]!)) last = i;
+  if (last < 0) return;
+  const age = state.tick - state.doneTick[last]!;
+  if (age < 0 || age >= TAG_TICKS) return;
+  const x = state.x[last]! / 256, y = state.y[last]! / 256;
+  const pair = clayPairOf(last);
+  const partner = pair < 0 ? -1 : last % 2 === CLAY_CONFIG.singles % 2 ? last + 1 : last - 1;
+  if (partner >= 0 && state.status[partner] === CLAY_HIT) {
+    tag(c, "DOUBLE!", x, y, age, calm, 17);
+    return;
+  }
+  const m = state.dp && state.dp.streak > 0 ? clayStreakMultiplier(state.dp.streak) : 1;
+  if (m >= 2 && state.dp!.streak % 5 === 0) tag(c, `STREAK ×${m}`, x, y, age, calm, 15);
 }
 
 /* ======================= End-of-run overlay burst ======================= */

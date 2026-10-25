@@ -69,8 +69,46 @@ export const WORD_BATCH_PRESENTATION = "oct14-word-batch";
  */
 export const NUMBER_DEPTH_DEMOS = new Set(["target", "checkout"]);
 export const NUMBER_DEPTH_PRESENTATION = "oct25-number-depth";
+/**
+ * Lookout depth (25 Oct 2026, wordSearchRev 3): the board hides a bonus word (its letters change the intro grid)
+ * and the chips gain the bonus star; older coordinate demos are rejected until re-recorded.
+ */
+export const LOOKOUT_DEPTH_DEMOS = new Set(["wordsearch"]);
+export const LOOKOUT_DEPTH_PRESENTATION = "oct25-lookout-bonus";
+/**
+ * Forage depth (25 Oct 2026, wordHuntRev 3): the 6×6 board with its golden tile replaces the 5×5 one, so every tile
+ * moved; older coordinate demos are rejected (the intro shows its still) until re-recorded.
+ */
+export const FORAGE_DEPTH_DEMOS = new Set(["wordhunt"]);
+export const FORAGE_DEPTH_PRESENTATION = "oct25-forage-depth";
+/**
+ * Roundabout depth (25 Oct 2026, wheelRev 2): the bonus jar sits in the trace row and real non-crossword words now
+ * fill it; older demos never show it, so they are rejected (the intro shows its still) until re-recorded.
+ */
+export const ROUNDABOUT_DEPTH_DEMOS = new Set(["letterwheel"]);
+export const ROUNDABOUT_DEPTH_PRESENTATION = "oct25-roundabout-jar";
+/**
+ * Depth to 200, Double Take spotRev 2 (25 Oct 2026, docs/depth/d3-speed-attention.md): the intro example now deals
+ * the hidden seventh difference and a star in the counter row, so older coordinate demos are rejected until
+ * re-recorded (the intro shows its still). Labyrinth mazeRev 1 (same day): a 19 × 23 maze with detour stars, so
+ * its older demos (19 × 19, no stars) are rejected the same way.
+ */
+export const DEPTH_D3_ATTENTION_DEMOS = new Set(["maze", "spotdiff"]);
+export const DEPTH_D3_ATTENTION_PRESENTATION = "oct25-depth-d3-attention";
+/**
+ * Depth to 200, Flash, Bang On and Ascend tapRev 5 (25 Oct 2026, docs/depth/d3-speed-attention.md): their stored demos
+ * play older rounds, without the steady-hand line, the dead-centre line and zone streak, or the flow chip, so they are
+ * rejected until re-recorded on tapRev 5 (the intro shows its still).
+ */
+export const DEPTH_D3_SPEED_DEMOS = new Set(["reaction", "stopwatch", "numhunt"]);
+export const DEPTH_D3_SPEED_PRESENTATION = "oct25-depth-d3-speed";
 export function puzzlePresentation(type: string): string {
+  if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
+  if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
+  if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;
   if (NUMBER_DEPTH_DEMOS.has(type)) return NUMBER_DEPTH_PRESENTATION;
+  if (DEPTH_D3_SPEED_DEMOS.has(type)) return DEPTH_D3_SPEED_PRESENTATION;
+  if (DEPTH_D3_ATTENTION_DEMOS.has(type)) return DEPTH_D3_ATTENTION_PRESENTATION;
   if (OCT14_BATCH_DEMOS.has(type)) return OCT14_BATCH_PRESENTATION;
   if (WORD_BATCH_DEMOS.has(type)) return WORD_BATCH_PRESENTATION;
   if (ATTENTION_REWORK_DEMOS.has(type)) return ATTENTION_REWORK_PRESENTATION;
@@ -84,7 +122,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {

@@ -7,6 +7,8 @@
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
 import { BT_BALLS } from "./ballTrack";
+import { whackDepthScore, type WhackState } from "./whack";
+import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW } from "./matchup";
 import { WF_PAR } from "./wordfall";
 import { HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "./hover";
@@ -36,6 +38,22 @@ const n = (run: Run, key: string): number => {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 };
 const b = (run: Run, key: string): boolean => run[key] === true;
+
+/** Depth to 200, Bonk whackRev 3: the combo and diamonds line, for a run whose state carries them. */
+function whackDepthLine(run: Run): string[] {
+  const state = run["state"] as WhackState | undefined;
+  if (!state?.dp) return [];
+  const d = whackDepthScore(state);
+  return [`Combo +${d.combo} (best run ${state.dp.best}) · diamonds +${d.diamonds} (${state.dp.hits} of ${state.dp.at.length})`];
+}
+
+/** Depth to 200, Pull! clayRev 9: the doubles and streak line. */
+function clayDepthLine(run: Run): string[] {
+  const state = run["state"] as ClayState | undefined;
+  if (!state?.dp) return [];
+  const d = clayDepthScore(state);
+  return [`Doubles +${d.doubles} (${clayDoublesHit(state)} of ${CLAY_DOUBLES}) · streak +${d.streak} (best ${state.dp.best})`];
+}
 const sec = (value: number): string => `${value.toFixed(1)} s`;
 
 /** "x / y things → score", splitting the completion score into 130 + time when finished. */
@@ -437,6 +455,8 @@ const BUILDERS: Record<string, Builder> = {
       lines: [
         `${n(r, "hits")} / ${n(r, "totalTargets")} hits → ${s}`,
         ...(penalties.length ? [mapped ? `Total ${penalties.join(" · ")}` : penalties.join(" · ")] : []),
+        // whackRev 3 (depth to 200): the features' points past the hits' 150.
+        ...whackDepthLine(r),
       ],
       tiles: [
         { label: "Wrong colour", value: String(n(r, "wrong")) },
@@ -453,6 +473,8 @@ const BUILDERS: Record<string, Builder> = {
       ...(n(r, "birdTotal") > 0
         ? [`${n(r, "birdHits")} bird${n(r, "birdHits") === 1 ? "" : "s"} hit · −${n(r, "birdHits") * 10}${rawTotalMapped(r) ? " from the total" : ""}`]
         : []),
+      // clayRev 9 (depth to 200): the features' points past the clays' 150.
+      ...clayDepthLine(r),
     ],
     tiles: [
       { label: "Gold", value: String(n(r, "goldHits")) },
@@ -498,6 +520,27 @@ const BUILDERS: Record<string, Builder> = {
     // Fixed-queue rounds: correct / N, wrong and the completion-only time bonus.
     // clashRev 4 (puzzle score shape): a finish is all sorted with at most 2 wrong = 120 + the time bonus
     // (−5 per wrong from it); otherwise 110 × correct ÷ N − 2 per wrong. The bonus is the stored one.
+    // clashRev 8 (depth to 200): the same lines, then the gold, streak and speed-stretch points a finish added.
+    const depth = (r as { depth?: { base: number; gold: number; streak: number; stretch: number; best: number; golds: number; goldWords: number; touched: number } }).depth;
+    if (depth && n(r, "queue") > 0) {
+      const done = b(r, "finished");
+      const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");
+      const bonus = depth.gold + depth.streak + depth.stretch;
+      return {
+        axis: { value: n(r, "correct"), max: n(r, "queue"), label: "Correct" },
+        lines: [
+          `${n(r, "correct")} / ${n(r, "queue")} correct → ${s}`,
+          done ? `${n(r, "wrong")} wrong · finish ${n(r, "finishBase")} · time bonus +${n(r, "timeBonus")}` : `${n(r, "wrong")} wrong · ${Math.max(0, n(r, "net"))} net · ${sorted ? "more than 3 wrong" : "not all sorted"}`,
+          done ? `gold +${depth.gold} · streak +${depth.streak} · speed +${depth.stretch}` : `best streak ${depth.best} · gold ${depth.golds}/${depth.goldWords}`,
+        ],
+        tiles: [
+          { label: "Correct", value: `${n(r, "correct")} / ${n(r, "queue")}` },
+          { label: "Best streak", value: String(depth.best) },
+          { label: "Bonus", value: done ? `+${bonus}` : "—" },
+        ],
+        outcome: done ? "finish" : "time",
+      };
+    }
     if (n(r, "queue") > 0 && "finishBase" in (r as object)) {
       const done = b(r, "finished");
       const sorted = n(r, "correct") + n(r, "wrong") >= n(r, "queue");

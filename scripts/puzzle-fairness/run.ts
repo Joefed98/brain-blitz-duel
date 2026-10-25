@@ -7,6 +7,7 @@
 import { generatePuzzle, gradeAnswer } from "../../src/lib/duel/generate.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
 import { pinDepth4Off } from "../../src/lib/duel/depth4/deal.server";
+import { pinD5LegacyDeal } from "../../src/lib/duel/d5Remodels";
 import { puzzleTimeLimitMs } from "../../src/lib/duel/registry";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { LEVELS, SKILLS, hashText, makeRng, type Level, type PuzzleKit } from "./kit";
@@ -24,12 +25,25 @@ const REV1_ENGINE_STAMPS: Partial<Record<PuzzleType, Record<string, number>>> = 
   tendrop: { tenRev: 1 }, stroop: { clashRev: 5 }, whack: { whackRev: 1 }, clayshoot: { clayRev: 6 }, wordfall: { wordfallRev: 2 },
 };
 
+/**
+ * The kits model Topsy-Turvy and Jumbled as they were before the D5 remodels (gravityRev 2, tilesRev 2), and every
+ * band, fixture and fit built on them is the old games', so their room puzzles are the old deal (d5Remodels.ts).
+ * The remodels have their own bots (scripts/d5-remodels/).
+ */
+const D5_REMODELLED: ReadonlySet<PuzzleType> = new Set<PuzzleType>(["gravity", "tiles"]);
+
 /** The room puzzle for (type, seed), as a room started with that seed would store it. */
 export function roomPuzzle(type: PuzzleType, seed: number): PuzzleData {
   // The rev-1 shape's checks also keep the boards dealt before depth batch 4's stamps.
   if (pinRev1) pinDepth4Off(true);
-  const puzzle = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
-  if (pinRev1) pinDepth4Off(false);
+  const before = D5_REMODELLED.has(type) ? pinD5LegacyDeal(true) : null;
+  let puzzle: PuzzleData;
+  try {
+    puzzle = withSeededRandom(seed, () => generatePuzzle(type, { bankSeed: seed }));
+  } finally {
+    if (before !== null) pinD5LegacyDeal(before);
+    if (pinRev1) pinDepth4Off(false);
+  }
   return pinRev1 ? ({ ...(puzzle as object), puzzleScoreRev: 1, ...(REV1_ENGINE_STAMPS[type] ?? {}) } as unknown as PuzzleData) : puzzle;
 }
 

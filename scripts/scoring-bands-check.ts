@@ -22,9 +22,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isD4Type } from "../src/lib/duel/depth4/stamps";
 import { d4Help } from "../src/lib/duel/depth4/text";
+import { generateMazeClassic } from "../src/lib/duel/maze.server";
+import { withSeededRandom } from "../src/lib/duel/random";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
@@ -39,19 +41,29 @@ import { isNumberDepthType } from "../src/lib/duel/numberDepth";
 import { depthHelp } from "../src/lib/duel/numberDepthText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
-import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
-import { WHACK_BANDS_MAP, WHACK_REV_BANDS } from "../src/lib/arcade/whack";
-import { CLAY_BANDS_MAP, CLAY_REV_BANDS, CLAY_REV_QUICK } from "../src/lib/arcade/clayShoot";
+import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_DEPTH, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
+import { WHACK_BANDS_MAP, WHACK_REV_BANDS, WHACK_REV_DEPTH } from "../src/lib/arcade/whack";
+import { CLAY_BANDS_MAP, CLAY_REV_BANDS, CLAY_REV_DEPTH, CLAY_REV_QUICK } from "../src/lib/arcade/clayShoot";
 import { WORDFALL_BANDS_MAP, WORDFALL_REV_BANDS } from "../src/lib/arcade/wordfall";
 import { ensureWordfallDict } from "../src/lib/duel/wordfallDict.server";
 import { KNOWN_SPAM } from "./puzzle-fairness";
 import { FIXTURE, type AnswerRun, type ArcadeRun } from "./scoring-bands-record";
 import { roomPuzzle, runSpam } from "./puzzle-fairness/run";
+import { legacyRoomPuzzle, stripDepth } from "./depth-d6-legacy";
+import { isDepthType } from "../src/lib/duel/logicDepth";
 import { KITS } from "./puzzle-fairness/kits";
 import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
 import { FLOOD_REV2_SPARE_MOVES } from "../src/lib/duel/moveLimits";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
+import { roundMaxFor } from "../src/lib/duel/roundMax";
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.
+pinPreDepthTapRev(true);
 
 // This check proves puzzleScoreRev 2 (the score bands): new deals are pinned to it. Rooms deal 3 (scoring-rev3-check).
 pinDealtPuzzleScoreRev(2);
@@ -89,6 +101,9 @@ const RECORDED_STAMPS: Partial<Record<PuzzleType, Record<string, number | undefi
   tubes: { tubesRev: 1 },
   tiles: { tilesRev: 1, timeLimitMs: undefined },
   strikeout: { strikeoutRev: 3 },
+  // Depth to 200 (25 Oct 2026): rooms deal chainDepthRev 1 and pairRev 1 (depth-chain-check, depth-matchmaker-check).
+  chain: { chainDepthRev: undefined },
+  pairmatch: { pairRev: undefined, gold: undefined },
 };
 /**
  * Colour Flood floodRev 3 (20 Oct 2026) deals from a new pool by the same draw: the recorded runs played the
@@ -102,8 +117,17 @@ function floodRev2(p: PuzzleData): PuzzleData {
   return { ...f, grid: [...old.grid], solution: [...(old.solution ?? [])], par: old.par, floodRev: 2, moveLimit: old.par + FLOOD_REV2_SPARE_MOVES } as unknown as PuzzleData;
 }
 function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
-  if (type === "flood") return floodRev2(roomPuzzleCached(type, seed));
-  const p = roomPuzzleCached(type, seed);
+  if (type === "flood") return floodRev2(stripDepth(roomPuzzleCached(type, seed)));
+  // Labyrinth mazeRev 1 (depth to 200, 25 Oct 2026) deals a bigger maze: the recorded runs played the 19 × 19 one
+  // the same seeded draw built before it (depth-labyrinth-check holds mazeRev 1).
+  if (type === "maze") {
+    const { cells, start, exit, solution } = withSeededRandom(seed, () => generateMazeClassic());
+    const { mazeRev: _r, cols: _c, rows: _w, stars: _s, ...stamps } = roomPuzzleCached(type, seed) as unknown as Record<string, unknown>;
+    return { ...stamps, cells, start, exit, solution } as unknown as PuzzleData;
+  }
+  // The Logic depth revision (25 Oct 2026): the eleven games' answers were played before it (no depth stamp; Mosaic,
+  // Tents, Shikaku and Lamplighter on their old boards, scripts/depth-d6-legacy.ts).
+  const p = isDepthType(type) ? legacyRoomPuzzle(type, seed) : roomPuzzleCached(type, seed);
   return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;
 }
 
@@ -114,7 +138,8 @@ for (const type of ARCADE) {
   const live = LIVE_BANDS[type];
   ok(bandHasStrict(base), `${type}: its base curve has a strict row`);
   const strict = bandStrict(base);
-  ok(live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
+  // A game raised to 200 (docs/scoring-200.md) lists its expansion's base curve; its strict revision is `strictRev`.
+  if (live.strictRev === undefined) ok(live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
   ok(strict.units[0] === 0 && strict.points[0] === 0, `${type}: strict curve starts at (0, 0)`);
   ok(strict.points.at(-1) === base.points.at(-1) && bandTop(strict) === bandTop(base), `${type}: strict curve keeps the top (${base.points.at(-1)} at ${bandTop(base)})`);
   for (let i = 1; i < strict.units.length; i++) ok(strict.units[i]! > strict.units[i - 1]! && strict.points[i]! > strict.points[i - 1]!, `${type}: strict knots rise (${i})`);
@@ -122,7 +147,7 @@ for (const type of ARCADE) {
   ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
   const spec = GAMES.find((g) => g.type === type)!;
   const seed = spec.seedFor(0);
-  ok((spec.gameFor(live.rev, seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${live.rev}: band ${BAND_STRICT_MARK} from the first tick`);
+  ok((spec.gameFor(liveStrictRev(type), seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${liveStrictRev(type)}: band ${BAND_STRICT_MARK} from the first tick`);
   ok((spec.gameFor(TARGET_REVS[type]![0], seed).init(seed) as { band?: number }).band === BAND_TARGET_MARK, `${type} ${TARGET_REVS[type]![0]}: still band ${BAND_TARGET_MARK}`);
 }
 
@@ -138,7 +163,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const spec = GAMES.find((g) => g.type === run.type)!;
     const seed = spec.seedFor(run.n);
     const tag = `${run.type} ${run.level} #${run.n}`;
-    ok(run.rev === (LIVE_BANDS as Record<string, { rev: number }>)[run.type]!.rev, `${tag}: recorded on the revision rooms deal`);
+    ok(run.rev === liveStrictRev(run.type as LiveBandGame), `${tag}: recorded on the score-bands revision`);
     const now = spec.replay(seed, run.raw, run.rev);
     ok(!now.flagged && now.desyncTick == null, `${tag}: replays unflagged (${now.reason ?? ""})`);
     ok(now.score === run.score, `${tag}: replays to its stored ${run.score} (got ${now.score})`);
@@ -163,10 +188,12 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   ];
   // Scoring report batch 2 (20 Oct 2026) moved rooms on to these stamps (scoring-batch2-check); the recorded runs keep this one.
   const later: Partial<Record<PuzzleType, number>> = { tendrop: TEN_DROP_RAW_REV, stroop: CLASH_REV_GREAT, clayshoot: CLAY_REV_QUICK };
+  // Depth to 200 (25 Oct 2026, docs/depth/d3-speed-attention.md) moved rooms on again; the recorded runs keep this one.
+  const depthD3: Partial<Record<PuzzleType, number>> = { whack: WHACK_REV_DEPTH, clayshoot: CLAY_REV_DEPTH, stroop: CLASH_REV_DEPTH };
   for (const [type, field, rev, map, prev] of maps) {
     const dealt = (generatePuzzle(type) as unknown as Record<string, unknown>)[field];
-    // Tenfall's depth-to-200 tenRev 4 (25 Oct 2026) follows tenRev 3.
-    ok(dealt === rev || dealt === later[type] || (type === "tendrop" && dealt === TEN_DROP_DEPTH_REV), `${type}: rooms deal ${field} ${rev}${later[type] ? ` or ${later[type]}` : ""}`);
+    // Tenfall's depth-to-200 tenRev 4 (25 Oct 2026) follows tenRev 3; the D3 depth stamps (depthD3) follow theirs.
+    ok(dealt === rev || dealt === later[type] || dealt === depthD3[type] || (type === "tendrop" && dealt === TEN_DROP_DEPTH_REV), `${type}: rooms deal ${field} ${rev}${later[type] ? ` or ${later[type]}` : ""}`);
     ok(bandMapTotal(map, 0) === 0 && bandMapTotal(map, bandTop(map)) === 150, `${type}: the map runs 0 → 150`);
     for (let x = 1; x <= bandTop(map); x++) ok(bandMapTotal(map, x) >= bandMapTotal(map, x - 1), `${type}: the map never falls (${x})`);
     if (type !== "wordfall") ok(bandMapTotal(map, 149) < 150, `${type}: only a perfect 150 is 150`);
@@ -262,9 +289,15 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    // The Number puzzles to 200 (depthRev 1) and depth batch 4's games state their own text (numberDepthText.ts,
-    // depth4/text.ts; number-depth-check and depth4-check prove them).
-    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? depthHelp(type) : isD4Type(type) ? d4Help(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
+    // Depth to 200: a D3 game raised to 200 states its own revision's help (its depth check proves it); the Number
+    // puzzles to 200 (depthRev 1) state their own text (numberDepthText.ts; number-depth-check proves it).
+    // Depth batch 4's games state their own text (depth4/text.ts; depth4-check proves the rest).
+    if (isD4Type(type)) {
+      ok(PUZZLE_INSTRUCTIONS[type].score === d4Help(type), `${type}: the "?" help is not the puzzle's score text`);
+      continue;
+    }
+    if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
+    ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? depthHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

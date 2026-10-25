@@ -1,5 +1,7 @@
 import { successFrame } from "./success.renderer";
-import { whackGame, WHACK_COLS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
+import { whackComboMultiplier, whackGame, WHACK_COLS, WHACK_DIAMOND_LIFE_TICKS, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
+import { reducedMotion } from './art.renderer';
+import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import type { CanvasSize } from './engine';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { BONK_BODY, BONK_HAT, BONK_SPIKES } from './bonkShapes.renderer';
@@ -318,7 +320,121 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
   let lastHit = -1;
   for (let i = 0; i < state.status.length; i++) if (state.status[i] === WHACK_STATUS_HIT && (lastHit < 0 || (state.doneTick[i] ?? 0) > (state.doneTick[lastHit] ?? 0))) lastHit = i;
   const hitHole = state.schedule.hole[lastHit] ?? 0, hitOrigin = origin(hitHole);
+  // whackRev 3 (depth to 200): the diamonds and the gold combo's multiplier over the last hit.
+  if (state.dp) {
+    drawDiamonds(ctx, state, cellW, cellH, cell, origin);
+    const m = whackComboMultiplier(state.dp.combo);
+    const age = state.tick - (state.doneTick[lastHit] ?? -99);
+    if (lastHit >= 0 && state.dp.combo > 0 && m >= 2 && age >= 0 && age < 18) drawComboTag(ctx, hitOrigin.x + cellW / 2, hitOrigin.y + cellH * 0.18, cell, m, age);
+  }
   successFrame(ctx, { id: 'whack', tick: state.tick, count: state.hits, misses: state.wrong + state.bombs + state.empty, colour: PALETTE.gold, width: size.width, height: size.height, eventTick: state.doneTick[lastHit], point: { x: hitOrigin.x + cellW / 2, y: hitOrigin.y + cellH / 2 - 8, shape: 'spark' }, enabled: lastHit >= 0 && state.schedule.kind[lastHit] === 0 });
+  ctx.restore();
+}
+
+/* ------------------------------ whackRev 3: diamonds and the combo ------------------------------ */
+
+const DIAMOND = { light: '#E8FBFF', ice: '#9FE6FF', blue: '#4FB8F0', deep: '#1D6FB8', glow: '160,226,255' };
+
+/** A cut gem inside the target's circular footprint (radius r), lit from the top like the hats. */
+function paintDiamond(c: Ctx, x: number, y: number, r: number): void {
+  const w = r * 0.92, top = y - r * 0.62, girdle = y - r * 0.18, tip = y + r * 0.9;
+  const outline = () => { c.beginPath(); c.moveTo(x - w * 0.55, top); c.lineTo(x + w * 0.55, top); c.lineTo(x + w, girdle); c.lineTo(x, tip); c.lineTo(x - w, girdle); c.closePath(); };
+  c.save();
+  c.shadowColor = 'rgba(0,0,0,0.35)'; c.shadowBlur = r * 0.25; c.shadowOffsetY = r * 0.08;
+  outline();
+  const body = c.createLinearGradient(0, top, 0, tip);
+  body.addColorStop(0, DIAMOND.light); body.addColorStop(0.35, DIAMOND.ice); body.addColorStop(0.7, DIAMOND.blue); body.addColorStop(1, DIAMOND.deep);
+  c.fillStyle = body; c.fill();
+  c.restore();
+  // Facets: the crown's table and the pavilion's cuts.
+  c.save(); outline(); c.clip();
+  c.fillStyle = 'rgba(255,255,255,0.45)';
+  c.beginPath(); c.moveTo(x - w * 0.55, top); c.lineTo(x + w * 0.55, top); c.lineTo(x + w * 0.3, girdle); c.lineTo(x - w * 0.3, girdle); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(20,70,130,0.35)';
+  c.beginPath(); c.moveTo(x + w * 0.3, girdle); c.lineTo(x + w, girdle); c.lineTo(x, tip); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.22)';
+  c.beginPath(); c.moveTo(x - w, girdle); c.lineTo(x - w * 0.3, girdle); c.lineTo(x, tip); c.closePath(); c.fill();
+  c.restore();
+  outline();
+  c.strokeStyle = 'rgba(232,251,255,0.95)'; c.lineWidth = Math.max(1, r * 0.06); c.lineJoin = 'round'; c.stroke();
+  c.strokeStyle = 'rgba(29,111,184,0.6)'; c.lineWidth = Math.max(0.8, r * 0.035);
+  c.beginPath(); c.moveTo(x - w, girdle); c.lineTo(x + w, girdle); c.moveTo(x - w * 0.3, girdle); c.lineTo(x, tip); c.lineTo(x + w * 0.3, girdle); c.stroke();
+}
+
+function sparkle(c: CanvasRenderingContext2D, x: number, y: number, s: number): void {
+  c.beginPath();
+  c.moveTo(x, y - s); c.quadraticCurveTo(x, y, x + s, y); c.quadraticCurveTo(x, y, x, y + s); c.quadraticCurveTo(x, y, x - s, y); c.quadraticCurveTo(x, y, x, y - s);
+  c.fill();
+}
+
+function drawDiamonds(ctx: CanvasRenderingContext2D, state: WhackState, cellW: number, cellH: number, cell: number, origin: (h: number) => { x: number; y: number }): void {
+  const dp = state.dp!;
+  const r = cell * 0.3;
+  const calm = reducedMotion() || arcadeReducedEffects();
+  for (let d = 0; d < dp.at.length; d++) {
+    const status = dp.status[d], hole = dp.hole[d]!, done = dp.done[d]!;
+    const { x, y } = origin(hole);
+    const cx = x + cellW / 2, cy = y + cellH / 2;
+    if (status === WHACK_STATUS_UP) {
+      const age = state.tick - dp.at[d]!;
+      const grow = calm ? 1 : Math.min(1, (age + 1) / 5);
+      ctx.save();
+      ctx.beginPath(); ctx.ellipse(cx, cy, cellW * .47, cellH * .45, 0, 0, Math.PI * 2); ctx.clip();
+      // A cool light in the burrow (the diamond's own colour, unlike every target's warm one).
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cellW * 0.47);
+      glow.addColorStop(0, `rgba(${DIAMOND.glow},${0.7 * grow})`); glow.addColorStop(1, `rgba(${DIAMOND.glow},0)`);
+      ctx.fillStyle = glow; ctx.fillRect(x, y, cellW, cellH);
+      paintDiamond(ctx, cx, cy + (1 - grow) * cellH * 0.35, r * (0.4 + 0.6 * grow));
+      ctx.restore();
+      // Twinkles round it, inside the cell; still under reduced motion or effects.
+      const left = Math.max(0, 1 - age / WHACK_DIAMOND_LIFE_TICKS);
+      ctx.save();
+      ctx.fillStyle = `rgba(255,255,255,${0.55 + 0.4 * left})`;
+      const phase = calm ? 0.5 : (age % 8) / 8;
+      sparkle(ctx, cx + r * 0.95, cy - r * 0.75, r * (0.16 + 0.12 * Math.sin(phase * Math.PI)));
+      sparkle(ctx, cx - r * 0.9, cy - r * 0.2, r * (0.1 + 0.08 * Math.cos(phase * Math.PI)));
+      ctx.restore();
+    } else if (status === WHACK_STATUS_HIT) {
+      const age = state.tick - done;
+      if (age < 0 || age >= 16) continue;
+      const p = age / 16;
+      ctx.save();
+      ctx.beginPath(); ctx.roundRect(x, y, cellW, cellH, Math.min(14, cell * 0.18)); ctx.clip();
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cell * 0.5);
+      glow.addColorStop(0, `rgba(${DIAMOND.glow},${0.75 * (1 - p)})`); glow.addColorStop(1, `rgba(${DIAMOND.glow},0)`);
+      ctx.fillStyle = glow; ctx.fillRect(x, y, cellW, cellH);
+      ctx.globalAlpha = 1 - p;
+      ctx.strokeStyle = DIAMOND.light; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, r * (1 + (calm ? 0.2 : age * 0.07)), 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = DIAMOND.ice;
+      if (!calm) for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2 + 0.4; sparkle(ctx, cx + Math.cos(a) * r * (0.6 + p * 0.9), cy + Math.sin(a) * r * (0.6 + p * 0.9), r * 0.18 * (1 - p)); }
+      ctx.restore();
+    } else if (status === WHACK_STATUS_RETIRED) {
+      const fall = (state.tick - done) / 10;
+      if (fall < 0 || fall >= 1) continue;
+      ctx.save();
+      ctx.beginPath(); ctx.ellipse(cx, cy, cellW * .47, cellH * .45, 0, 0, Math.PI * 2); ctx.clip();
+      ctx.globalAlpha = 1 - fall;
+      paintDiamond(ctx, cx, cy + fall * cellH * 0.5, r * (1 - 0.3 * fall));
+      ctx.restore();
+    }
+  }
+}
+
+/** The gold combo's "×N" over the last hit, for a moment (a gentle rise; still under reduced motion). */
+function drawComboTag(ctx: CanvasRenderingContext2D, x: number, y: number, cell: number, m: number, age: number): void {
+  const calm = reducedMotion() || arcadeReducedEffects();
+  const size = Math.max(14, Math.round(cell * 0.24));
+  ctx.save();
+  ctx.globalAlpha = age < 12 ? 1 : 1 - (age - 12) / 6;
+  ctx.font = `800 ${size}px Archivo, system-ui, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const ty = y - (calm ? 0 : age * cell * 0.006);
+  ctx.lineWidth = Math.max(3, size * 0.2); ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(36,28,34,0.9)'; ctx.strokeText(`×${m}`, x, ty);
+  const g = ctx.createLinearGradient(0, ty - size / 2, 0, ty + size / 2);
+  g.addColorStop(0, PALETTE.shine); g.addColorStop(1, PALETTE.gold);
+  ctx.fillStyle = g; ctx.fillText(`×${m}`, x, ty);
   ctx.restore();
 }
 

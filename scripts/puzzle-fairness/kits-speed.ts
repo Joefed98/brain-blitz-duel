@@ -45,6 +45,7 @@ import {
   type SymbolScanPuzzleData,
 } from "../../src/lib/duel/types";
 import { countUpCounts, countUpStageTruth, spotScenes, usesCountRev2, usesSpotRev1 } from "../../src/lib/duel/attentionRev";
+import { usesScanDepth } from "../../src/lib/duel/depth/eagleEye";
 import { COUNTUP_COMPARE_GAP, COUNTUP_STAGE_COUNTS_REV2 } from "../../src/puzzles/countUp";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
@@ -361,7 +362,10 @@ const eagleEye: PuzzleKit = {
     const s = p as SymbolScanPuzzleData;
     const sel: number[][] = [[], [], []];
     const steps: Step[] = [];
-    const enc = () => joinStages(sel.map((x) => [...x].sort((a, b) => a - b).join(",")));
+    // scanRev 2 (depth/eagleEye.ts): the answer adds the taps taken back as a fourth part.
+    let undone = 0;
+    const depth = usesScanDepth(s);
+    const enc = () => joinStages(sel.map((x) => [...x].sort((a, b) => a - b).join(","))) + (depth ? `|${undone}` : "");
     // BASE 0.85 s per target arrow found and tapped; 0.6 s to confirm a grid.
     let t = 0;
     s.stages.forEach((stage, si) => {
@@ -380,6 +384,7 @@ const eagleEye: PuzzleKit = {
           if (rng.chance(0.9)) {
             t += thinkMs(rng, 0.7, skill);
             sel[si] = sel[si]!.filter((x) => x !== wrong);
+            undone++;
             steps.push({ answer: enc(), atMs: t });
           }
         }
@@ -411,17 +416,27 @@ function doubleTakeTwo(d: SpotPuzzleData, rng: Rng, skill: Skill): Play {
     const diffs = rng.shuffle((d.differences ?? []).filter((x) => (x.scene ?? 0) === si));
     const cells = new Set(diffs.flatMap((x) => x.cells));
     const others = scene.top.map((s) => s.cell).filter((c) => !cells.has(c));
-    for (const diff of diffs) {
+    // spotRev 2: the hidden seventh difference, if it is in this picture, is spotted with a chance that grows with
+    // skill (none for a careless player), at 4 s more search, and only counts if tapped before the sixth.
+    const bonus = d.bonus && (d.bonus.scene ?? 0) === si ? d.bonus : null;
+    const spotHidden = bonus !== null && rng.chance(Math.max(0, Math.min(0.8, 0.85 - 6 * skill.err - 0.6 * skill.pace)));
+    const hiddenAt = spotHidden ? rng.below(Math.max(1, diffs.length - 1)) : -1;
+    diffs.forEach((diff, di) => {
       if (rng.chance(skill.err) && others.length) {
         t += thinkMs(rng, 2, skill);
-        const wrong = rng.pick(others);
+        const wrong = rng.pick(others.filter((c) => !bonus?.cells.includes(c)));
         if (!taps[si]!.includes(wrong)) taps[si]!.push(wrong);
         steps.push({ answer: enc(), atMs: t });
       }
       t += thinkMs(rng, base, skill);
       taps[si]!.push(rng.pick(diff.cells));
       steps.push({ answer: enc(), atMs: t });
-    }
+      if (di === hiddenAt && bonus) {
+        t += thinkMs(rng, 4, skill);
+        taps[si]!.push(bonus.cells[0]!);
+        steps.push({ answer: enc(), atMs: t });
+      }
+    });
   });
   return { steps };
 }

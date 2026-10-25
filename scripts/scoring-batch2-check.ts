@@ -52,8 +52,8 @@ import { flashDecoyCut, replayFlash, TAP_REV_ONE_CURVE, TAP_REV_SPEED_TUNING } f
 import { isWordHuntMiss, wordFromPath } from "../src/lib/duel/wordHunt.server";
 import { isWord } from "../src/lib/duel/dictionary.server";
 import { TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
-import { CLAY_QUICK_STEPS, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
-import { CLASH_GREAT_MAP, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
+import { CLAY_QUICK_STEPS, CLAY_REV_DEPTH, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
+import { CLASH_GREAT_MAP, CLASH_REV_DEPTH, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { bandMapTotal } from "../src/lib/arcade/scoreBands";
 import { WORDFALL_REV_BANDS } from "../src/lib/arcade/wordfall";
 import type { PuzzleData, PuzzleType, ReactionPuzzleData, WordHuntPuzzleData, WordsmithPuzzleData } from "../src/lib/duel/types";
@@ -61,6 +61,13 @@ import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
 import { PROFILES } from "./arcade-skill-bands/human";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.
+pinPreDepthTapRev(true);
 
 const failures: string[] = [];
 let checks = 0;

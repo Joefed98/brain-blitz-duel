@@ -30,10 +30,18 @@ const symscan: Driver = {
 const spotdiff: Driver = {
   board: ".dt-arena",
   partial: async ({ page, puzzle }) => {
+    // spotRev 2 (depth to 200): the hidden seventh difference is tapped too, so mid-play shows its double ring and star.
+    const bonus = (puzzle as { bonus?: { scene?: number; cells: number[] } }).bonus;
+    if (bonus && (bonus.scene ?? 0) === 0) {
+      for (const cell of sceneCells(puzzle, 0).slice(0, 3)) await tapCell(page, cell);
+      await tapCell(page, bonus.cells[0]!);
+      return;
+    }
     for (const cell of sceneCells(puzzle, 0)) await tapCell(page, cell);
     // Picture 1 done: glow, then the rock pool slides in.
     await page.waitForTimeout(1300);
     for (const cell of sceneCells(puzzle, 1).slice(0, 2)) await tapCell(page, cell);
+    if (bonus) await tapCell(page, bonus.cells[0]!);
   },
   solve: async ({ page, puzzle }) => {
     for (const cell of sceneCells(puzzle, 1).slice(2)) await tapCell(page, cell);

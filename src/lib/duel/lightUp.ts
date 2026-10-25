@@ -8,27 +8,36 @@ import { speedBonusCurve } from "./speedPar";
  */
 
 export const LIGHTUP_SIZE = 9;
+/** The depth revision's slightly bigger grid (depthRev 1, 25 Oct 2026): 9 wide, 10 tall. */
+export const LIGHTUP_DEPTH_HEIGHT = 10;
 
 export interface LightUpBoard {
   size: number;
+  /** Rows, when taller than wide (the depth revision); absent = `size`. */
+  height?: number | undefined;
   walls: readonly number[];
   /** Parallel to walls: the number, or -1 for a plain wall. */
   wallNumbers: readonly number[];
 }
 
-export function orth(cell: number, size: number): number[] {
+/** A stored board's rows: its `height` (the depth revision's taller grid) or its `size` (square, every older board). */
+export function lightUpHeightOf(board: { size: number; height?: number | undefined }): number {
+  return typeof board.height === "number" && board.height > 0 ? board.height : board.size;
+}
+
+export function orth(cell: number, size: number, height = size): number[] {
   const r = Math.floor(cell / size);
   const c = cell % size;
   const out: number[] = [];
   if (r > 0) out.push(cell - size);
-  if (r < size - 1) out.push(cell + size);
+  if (r < height - 1) out.push(cell + size);
   if (c > 0) out.push(cell - 1);
   if (c < size - 1) out.push(cell + 1);
   return out;
 }
 
 /** Cells a bulb at `cell` would light (itself included), stopping at walls. */
-export function sightLine(cell: number, size: number, wallSet: ReadonlySet<number>): number[] {
+export function sightLine(cell: number, size: number, wallSet: ReadonlySet<number>, height = size): number[] {
   const out = [cell];
   const r = Math.floor(cell / size);
   const c = cell % size;
@@ -40,7 +49,7 @@ export function sightLine(cell: number, size: number, wallSet: ReadonlySet<numbe
   ] as const) {
     let rr = r + dr;
     let cc = c + dc;
-    while (rr >= 0 && cc >= 0 && rr < size && cc < size && !wallSet.has(rr * size + cc)) {
+    while (rr >= 0 && cc >= 0 && rr < height && cc < size && !wallSet.has(rr * size + cc)) {
       out.push(rr * size + cc);
       rr += dr;
       cc += dc;
@@ -51,7 +60,7 @@ export function sightLine(cell: number, size: number, wallSet: ReadonlySet<numbe
 
 export function whiteCells(board: LightUpBoard): number[] {
   const wallSet = new Set(board.walls);
-  return [...Array(board.size * board.size).keys()].filter((cell) => !wallSet.has(cell));
+  return [...Array(board.size * lightUpHeightOf(board)).keys()].filter((cell) => !wallSet.has(cell));
 }
 
 export interface LightUpStatus {
@@ -64,20 +73,21 @@ export interface LightUpStatus {
 
 export function lightUpStatus(board: LightUpBoard, bulbs: readonly number[]): LightUpStatus {
   const wallSet = new Set(board.walls);
+  const height = lightUpHeightOf(board);
   const bulbSet = new Set(bulbs);
   const lit = new Set<number>();
   const clashing = new Set<number>();
   for (const bulb of bulbs) {
-    for (const cell of sightLine(bulb, board.size, wallSet)) {
+    for (const cell of sightLine(bulb, board.size, wallSet, height)) {
       lit.add(cell);
       if (cell !== bulb && bulbSet.has(cell)) clashing.add(bulb);
     }
   }
   const numbersOk = board.walls.every((wall, i) => {
     const n = board.wallNumbers[i] ?? -1;
-    return n < 0 || orth(wall, board.size).filter((cell) => bulbSet.has(cell)).length === n;
+    return n < 0 || orth(wall, board.size, height).filter((cell) => bulbSet.has(cell)).length === n;
   });
-  return { lit, clashing, whites: board.size * board.size - board.walls.length, numbersOk };
+  return { lit, clashing, whites: board.size * height - board.walls.length, numbersOk };
 }
 
 export function lightUpValid(board: LightUpBoard, bulbs: readonly number[]): boolean {
@@ -94,17 +104,18 @@ export function decodeBulbs(raw: string, board: LightUpBoard): number[] {
   const cells = String(raw ?? "")
     .split(",")
     .map((part) => Number.parseInt(part, 10))
-    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < board.size * board.size && !wallSet.has(cell));
+    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < board.size * lightUpHeightOf(board) && !wallSet.has(cell));
   return [...new Set(cells)];
 }
 
 /** Counts valid layouts up to `limit` by backtracking over white cells in order. */
 export function countLightUpSolutions(board: LightUpBoard, limit = 2): number {
   const { size } = board;
+  const height = lightUpHeightOf(board);
   const wallSet = new Set(board.walls);
   const whites = whiteCells(board);
   const order = new Map(whites.map((cell, i) => [cell, i]));
-  const sight = new Map(whites.map((cell) => [cell, sightLine(cell, size, wallSet)]));
+  const sight = new Map(whites.map((cell) => [cell, sightLine(cell, size, wallSet, height)]));
   // After deciding index i, these cells must already be lit / these walls complete.
   const litDue: number[][] = whites.map(() => []);
   for (const cell of whites) {
@@ -117,7 +128,7 @@ export function countLightUpSolutions(board: LightUpBoard, limit = 2): number {
     .filter((w) => w.n >= 0);
   const wallsBeside = new Map<number, number[]>();
   for (const [index, w] of numbered.entries()) {
-    const around = orth(w.wall, size).filter((cell) => !wallSet.has(cell));
+    const around = orth(w.wall, size, height).filter((cell) => !wallSet.has(cell));
     if (!around.length) {
       if (w.n > 0) return 0;
       continue;
@@ -126,7 +137,7 @@ export function countLightUpSolutions(board: LightUpBoard, limit = 2): number {
     for (const cell of around) wallsBeside.set(cell, [...(wallsBeside.get(cell) ?? []), index]);
   }
   const wallCount = new Array<number>(numbered.length).fill(0);
-  const litCount = new Array<number>(size * size).fill(0);
+  const litCount = new Array<number>(size * height).fill(0);
   let found = 0;
 
   const walk = (i: number): void => {

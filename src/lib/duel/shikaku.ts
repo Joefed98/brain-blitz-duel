@@ -9,6 +9,13 @@ import { speedBonusCurve } from "./speedPar";
 
 export const SHIKAKU_SIZE = 10;
 export const SHIKAKU_CELLS = SHIKAKU_SIZE * SHIKAKU_SIZE;
+/** The depth revision's slightly bigger grid (depthRev 1, 25 Oct 2026): 10 wide, 11 tall. */
+export const SHIKAKU_DEPTH_HEIGHT = 11;
+
+/** A stored board's rows: its `height` (the depth revision's taller grid) or its `size` (square, every older board). */
+export function shikakuHeightOf(board: { size: number; height?: number | undefined }): number {
+  return typeof board.height === "number" && board.height > 0 ? board.height : board.size;
+}
 
 export interface ShikakuClue {
   cell: number;
@@ -55,20 +62,25 @@ export function rectValid(r: ShikakuRect, clues: readonly ShikakuClue[], size = 
   return inside.length === 1 && inside[0]!.n === rectArea(r);
 }
 
+/**
+ * One base-36 character per coordinate: rows and columns 0–9 are their digits, exactly as every answer before the
+ * depth revision; row 10 of its taller grid is "a".
+ */
 export function encodeShikaku(rects: readonly ShikakuRect[]): string {
-  return rects.map((r) => `${r.r0}${r.c0}${r.r1}${r.c1}`).join(",");
+  return rects.map((r) => [r.r0, r.c0, r.r1, r.c1].map((v) => v.toString(36)).join("")).join(",");
 }
 
-export function decodeShikaku(raw: string, size = SHIKAKU_SIZE): ShikakuRect[] {
+export function decodeShikaku(raw: string, size = SHIKAKU_SIZE, height = size): ShikakuRect[] {
   return String(raw ?? "")
     .split(",")
-    .slice(0, SHIKAKU_CELLS)
-    .filter((part) => /^\d{4}$/.test(part))
+    .slice(0, size * height)
+    // A letter decodes to 10 or more, which is past every square board's edge, so older answers decode as before.
+    .filter((part) => /^[0-9a-z]{4}$/.test(part))
     .map((part) => {
-      const [r0, c0, r1, c1] = part.split("").map(Number) as [number, number, number, number];
+      const [r0, c0, r1, c1] = part.split("").map((ch) => Number.parseInt(ch, 36)) as [number, number, number, number];
       return { r0, c0, r1, c1 };
     })
-    .filter((r) => r.r0 <= r.r1 && r.c0 <= r.c1 && r.r1 < size && r.c1 < size);
+    .filter((r) => r.r0 <= r.r1 && r.c0 <= r.c1 && r.r1 < height && r.c1 < size);
 }
 
 /** Valid rectangles in order, dropping any that overlaps an earlier one. */
@@ -86,13 +98,13 @@ export function shikakuCovered(rects: readonly ShikakuRect[], clues: readonly Sh
   return acceptedRects(rects, clues, size).reduce((sum, r) => sum + rectArea(r), 0);
 }
 
-export function shikakuSolved(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[], size = SHIKAKU_SIZE): boolean {
-  return shikakuCovered(rects, clues, size) === size * size;
+export function shikakuSolved(rects: readonly ShikakuRect[], clues: readonly ShikakuClue[], size = SHIKAKU_SIZE, height = size): boolean {
+  return shikakuCovered(rects, clues, size) === size * height;
 }
 
 /** Counts partitions up to `limit`: the first free cell is always a rectangle's top-left. */
-export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, size = SHIKAKU_SIZE): number {
-  const used = new Array<boolean>(size * size).fill(false);
+export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, size = SHIKAKU_SIZE, height = size): number {
+  const used = new Array<boolean>(size * height).fill(false);
   let found = 0;
   const walk = (): void => {
     if (found >= limit) return;
@@ -104,7 +116,7 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
     const r0 = Math.floor(first / size);
     const c0 = first % size;
     let maxC = size - 1;
-    for (let r1 = r0; r1 < size; r1++) {
+    for (let r1 = r0; r1 < height; r1++) {
       for (let c1 = c0; c1 <= maxC; c1++) {
         if (used[r1 * size + c1]) {
           maxC = c1 - 1;
@@ -125,11 +137,11 @@ export function countShikakuSolutions(clues: readonly ShikakuClue[], limit = 2, 
   return found;
 }
 
-/** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells. */
-export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number): number {
+/** Solved = 100 + time bonus; otherwise 70 × covered ÷ board cells (`cells`: 100, or 110 on the depth revision's grid). */
+export function scoreShikaku(solved: boolean, msRemaining: number, timeLimitMs: number, covered: number, cells = SHIKAKU_CELLS): number {
   if (scoreRev1()) {
     if (solved) return finishParts(speedBonusCurve(30, msRemaining, timeLimitMs));
-    return partialParts((110 * covered) / SHIKAKU_CELLS);
+    return partialParts((110 * covered) / cells);
   }
   if (solved) return Math.min(150, 130 + speedBonusCurve(20, msRemaining, timeLimitMs));
   return Math.max(0, Math.round((110 * covered) / SHIKAKU_CELLS));

@@ -18,7 +18,7 @@ import { gzipSync } from "node:zlib";
 import { GAMES } from "./arcade-skill-bands/games";
 import { Human, LEVELS as ARCADE_LEVELS } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
-import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveStrictRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { KITS } from "./puzzle-fairness/kits";
 import { LEVELS } from "./puzzle-fairness/kit";
 import { roomPuzzle, runPlay, runSpam } from "./puzzle-fairness/run";
@@ -36,7 +36,8 @@ if (import.meta.main) {
   const arcade: ArcadeRun[] = [];
   for (const spec of GAMES) {
     if (spec.type === "junction") continue;
-    const rev = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]!.rev;
+    // The score-bands revision (an expanded game's strictRev, docs/scoring-200.md).
+    const rev = liveStrictRev(spec.type as LiveBandGame);
     const bot = (await import(new URL(`./arcade-skill-bands/bots/${spec.type}.ts`, import.meta.url).href)).bot as SkillBot;
     for (const level of ARCADE_LEVELS)
       for (let n = 0; n < 2; n++) {

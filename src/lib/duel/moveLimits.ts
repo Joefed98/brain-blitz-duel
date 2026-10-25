@@ -71,9 +71,10 @@ export const MEASURE_LIMIT_REV = 2;
 /**
  * Tally's current count revision: 1 (13 Oct 2026) = the wider count ranges (generation
  * only); 2 (14 Oct 2026) = the same ranges plus the comparison tray and 60 s
- * (attentionRev.ts COUNT_COMPARE_REV).
+ * (attentionRev.ts COUNT_COMPARE_REV); 3 (25 Oct 2026) = countRev 2's trays scored to 200 (depth/tally.ts
+ * COUNT_DEPTH_REV).
  */
-export const COUNTUP_COUNT_REV = 2;
+export const COUNTUP_COUNT_REV = 3;
 
 const positive = (n: unknown): number | null =>
   typeof n === "number" && Number.isInteger(n) && n > 0 ? n : null;

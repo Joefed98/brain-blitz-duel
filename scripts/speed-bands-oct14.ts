@@ -47,6 +47,7 @@ export function beforePuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: numb
 export function afterPuzzle(type: (typeof SPEED_BAND_TYPES)[number], seed: number): PuzzleData {
   const p = roomPuzzle(type, seed);
   if (type === "reaction" || type === "stopwatch") return { ...(p as object), tapRev: TAP_REV_SPEED_TUNING } as unknown as PuzzleData;
+  if (type === "chain") return { ...(p as object), chainDepthRev: undefined } as unknown as PuzzleData; // depth's chainDepthRev 1: depth-chain-check
   return type === "clayshoot" ? ({ ...(p as Extract<PuzzleData, { type: "clayshoot" }>), clayRev: CLAY_REV5 }) : p;
 }
 
