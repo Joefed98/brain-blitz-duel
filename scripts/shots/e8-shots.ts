@@ -52,13 +52,24 @@ function findTick<S>(game: ArcadeGame<S, ArcadeInputEvent | null>, seed: number,
 
 const shots: Shot[] = [];
 {
-  const ace = fixture("wavefront-expand-runs").ace as { seed: number; raw: string };
-  const events = decodeWavefrontRun(ace.raw).events;
+  const f = fixture("wavefront-expand-runs") as { ace: { seed: number; raw: string }; runs: { level: string; seed: number; raw: string }[] };
+  const runs = [f.ace, ...f.runs.filter((r) => r.level === "near" || r.level === "great")];
   const g = wavefrontGameFor(WAV_REV_EXPAND);
-  const add = (name: string, want: (s: WavState) => boolean) => shots.push({ game: "wavefront", name, seed: ace.seed, events, tick: findTick(g, ace.seed, events, want) });
+  const add = (name: string, want: (s: WavState) => boolean) => {
+    for (const run of runs) {
+      const events = decodeWavefrontRun(run.raw).events;
+      try {
+        shots.push({ game: "wavefront", name, seed: run.seed, events, tick: findTick(g, run.seed, events, want) });
+        return;
+      } catch {
+        /* the next run */
+      }
+    }
+    throw new Error(`wavefront ${name}: no run shows it`);
+  };
   add("streak-spread", (s) => (s.spread ?? 0) > 0 && (s.streak ?? 0) >= 8 && !s.boss && s.bolts.length >= 2);
-  add("shield", (s) => (s.shield ?? 0) > 0 && !s.boss && (s.streak ?? 0) >= 4);
-  add("gunship", (s) => Boolean(s.boss) && (s.enter ?? 0) === 0 && s.wave <= 5);
+  add("shield", (s) => (s.shield ?? 0) > 0 && !s.boss && s.shapes.some((c) => c !== 0));
+  add("gunship", (s) => Boolean(s.boss) && (s.enter ?? 0) === 0 && s.wave === 4 && (s.weakHits ?? 0) > 0);
   add("boss-weak-points", (s) => Boolean(s.boss) && (s.enter ?? 0) === 0 && s.wave > 5 && (s.weakHits ?? 0) > 0);
 }
 {
@@ -91,7 +102,7 @@ async function open(page: Page, game: PuzzleType): Promise<void> {
   await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium" });
 for (const shot of shots) {
   const context = await browser.newContext({ viewport: { width: 414, height: 896 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   await context.addInitScript((w) => {
