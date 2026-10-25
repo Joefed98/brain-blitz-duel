@@ -381,6 +381,10 @@ export function drawSnipOrchardExample(c:CanvasRenderingContext2D,t:number):void
   twine(c,cut?[[80,10],[79,18],[80,24]]:[[80,10],[80,45]],cut?0.5:1);
   c.save();c.translate(68,108);c.scale(24/64,24/64);countryStamp(c,'orchard-basket',64,64,0,0,basket);c.restore();
   if(t<47){c.save();c.translate(73,38+fall*70);c.scale(14/24,14/24);countryStamp(c,'orchard-apple',24,24,0,0,apple);c.restore();}
+  // snipRev 10's features in the still: a second fruit, golden, on its own rope, and a ring below it.
+  twine(c,[[124,10],[124,34]],1);
+  c.save();c.translate(117,32);c.scale(14/24,14/24);countryStamp(c,'orchard-apple-gold',24,24,0,0,goldenApple);c.restore();
+  c.save();c.translate(124,78);c.scale(0.45,0.45);ringArt(c,0,0,false,0);c.restore();
   const swipe=t>=15&&t<30?(t-15)/10:-1;if(swipe>=0&&swipe<=1){c.strokeStyle=COUNTRY_SHINE;c.lineWidth=2;c.beginPath();c.moveTo(55,22);c.lineTo(55+50*Math.min(1,swipe),30);c.stroke();}
 }
 export const snipArtGame={...snipGame,draw:(c:CanvasRenderingContext2D,s:SnipState,size:CanvasSize)=>drawSnipArt(c,s,size)};

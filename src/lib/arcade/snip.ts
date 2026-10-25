@@ -1415,11 +1415,10 @@ export interface SnipCourseFields {
   windA?: number;
   windP?: number;
   windPh?: number;
-  /** Strokes: this level's, the run's, the tick of the last cut input and whether its stroke has cut. */
+  /** Strokes (swipes): this level's, the run's, and the tick of the last cut input. */
   lvlStrokes?: number;
   strokes?: number;
   lastCut?: number;
-  strokeHit?: number;
   /** Banked units, fully fed levels, golden fed, par levels, second leaves, perfect levels, fruits dealt. */
   xUnits?: number;
   cleared?: number;
@@ -1557,7 +1556,6 @@ export function snipCourseDeal(state: SnipState, level: number, wob: number, win
     windP,
     windPh,
     lvlStrokes: 0,
-    strokeHit: 0,
     lastCut: -1000,
     camY: snipPanEnds(course).from,
     worldH: course.h,
@@ -1609,31 +1607,28 @@ function stepCourse(state: SnipState, input: ArcadeInputEvent | null): SnipState
   next.fruits = fruits;
   const panning = levelTick <= SNIP_X_PAN_TICKS;
 
-  // 1. Cuts (none during the pan), and strokes: cut inputs on consecutive ticks are one stroke.
+  // 1. Cuts (none during the pan), and strokes: swipe inputs on consecutive ticks are one stroke, and
+  // every stroke counts, a missed one too (fewest cuts is fewest swipes).
   if (input && input.k === SNIP_INPUT_CUT && !panning) {
-    let hit = state.lastCut === tick - 1 ? (state.strokeHit ?? 0) : 0;
+    const same = state.lastCut === tick - 1;
+    if (!same) {
+      next.lvlStrokes = (state.lvlStrokes ?? 0) + 1;
+      next.strokes = (state.strokes ?? 0) + 1;
+    }
     next.lastCut = tick;
     const a = input.a * 256;
     const b = input.b * 256;
     const cc = input.c * 256;
     const d = input.d * 256;
-    let cutNow = false;
     for (let i = 0; i < ropes.length; i++) {
       const rope = ropes[i]!;
       const f = fruits[rope.f ?? 0]!;
       if (!rope.alive || !ropeCut(rope, f.x, f.y, a, b, cc, d)) continue;
       rope.alive = 0;
       next.cuts += 1;
-      cutNow = true;
       const log = [...next.cutLog, tick * 64 + (state.level % 16) * 4 + (i % 4)];
       next.cutLog = log.length > 16 ? log.slice(log.length - 16) : log;
     }
-    if (cutNow && !hit) {
-      hit = 1;
-      next.lvlStrokes = (state.lvlStrokes ?? 0) + 1;
-      next.strokes = (state.strokes ?? 0) + 1;
-    }
-    next.strokeHit = hit;
   }
 
   if (!panning) {

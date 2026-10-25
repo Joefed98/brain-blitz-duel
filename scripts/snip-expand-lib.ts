@@ -14,7 +14,11 @@ import {
   type SnipState,
   SNIP_REV_EXPAND,
   SNIP_REV_PROVEN,
+  SNIP_CHECKPOINT_INTERVAL,
+  snipCheckpoint,
+  type SnipCheckpoint,
 } from "../src/lib/arcade/snip";
+import { encodeSnipRun } from "../src/lib/duel/snip";
 import { playRevOf } from "./scoring-targets-revs";
 
 /** A stable digest of a whole sim state (every field, sorted keys). */
@@ -161,10 +165,11 @@ export function xDealKey(s: SnipState): string {
 }
 
 /** A whole run played with each level's stored plan (`best` or `win`), the ideal swipes at the plan's ticks. */
-export function xPlannedRun(seed: number, proofs: XProofs, which: "best" | "win"): { events: ArcadeInputEvent[]; state: SnipState } {
+export function xPlannedRun(seed: number, proofs: XProofs, which: "best" | "win"): { events: ArcadeInputEvent[]; state: SnipState; raw: string } {
   const game = snipExpandGame;
   let s = game.init(seed);
   const events: ArcadeInputEvent[] = [];
+  const checkpoints: SnipCheckpoint[] = [];
   let plan: XPlan = [];
   let level = -1;
   while (!game.isOver(s)) {
@@ -175,8 +180,9 @@ export function xPlannedRun(seed: number, proofs: XProofs, which: "best" | "win"
     const due = plan.find(([, t]) => t === s.levelTick + 1);
     if (due && s.ropes[due[0]]?.alive) recordInput(events, { ...xCutFor(s, due[0]), t: s.tick + 1 }, game.inputRanges);
     s = game.step(s, inputAt(events, s.tick + 1));
+    if (s.tick % SNIP_CHECKPOINT_INTERVAL === 0) checkpoints.push(snipCheckpoint(s));
   }
-  return { events, state: s };
+  return { events, state: s, raw: encodeSnipRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }) };
 }
 
 /**

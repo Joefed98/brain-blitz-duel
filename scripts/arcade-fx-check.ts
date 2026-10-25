@@ -372,6 +372,9 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, eaten: s.eaten + 1 }),
     (s) => ({ ...s, eaten: 10 }),
     (s) => ({ ...s, springHits: (s.springHits ?? 0) + 1 }),
+    // snipRev 10: a golden apple fed, a ring's catch.
+    (s) => ({ ...s, golden: (s.golden ?? 0) + 1 }),
+    (s) => ({ ...s, ringed: 1, ringTick: s.tick }),
   ],
   tilt: [
     (s) => ({ ...s, mazes: s.mazes + 1 }),

@@ -18,9 +18,7 @@
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { encodeInputEvents } from "../src/lib/arcade/engine";
 import {
-  snipExpandGame,
   snipFeatureBonus,
   snipGameFor,
   snipLevelOrderX,
@@ -104,13 +102,12 @@ SNIP_COURSES.forEach((course, t) => {
 /* 4. A perfect run. */
 {
   let found = -1;
-  for (let n = 0; n < 30 && found < 0; n++) {
+  for (let n = 0; n < 12; n++) {
     const seed = roomSeed(n);
-    const { events, state } = xPlannedRun(seed, proofs, "best");
-    const raw = [seed, snipExpandGame.score(state), encodeInputEvents(events), 0, ""].join("|");
+    const { raw } = xPlannedRun(seed, proofs, "best");
     const r = replaySnipRun(seed, raw, SNIP_REV_EXPAND);
-    if (r.score === 200) found = n;
-    if (n === 0) ok(r.score >= 190, `seed #0: the best plans score ${r.score} (190–200 expected)`);
+    ok(r.score === 200 && !r.flagged, `room seed #${n}: the stored best plans score ${r.score} through the server replay (200 expected)${r.flagged ? ` flagged (${r.reason})` : ""}`);
+    if (r.score === 200 && found < 0) found = n;
   }
   ok(found >= 0, "a room seed whose stored best plans score 200 through the server replay");
 }
