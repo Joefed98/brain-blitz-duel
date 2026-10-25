@@ -27,7 +27,7 @@ const BIRD = '#FFFFFF', BIRD_EDGE = '#26313F';
 function birdFrame(c: CanvasRenderingContext2D, f: number): void {
   const lift = [1, 4.5, 9, 4.5][f] ?? 1; // wingtip height from the top
   c.lineJoin = 'round';
-  c.fillStyle = BIRD; c.strokeStyle = BIRD_EDGE; c.lineWidth = 1.6;
+  c.fillStyle = BIRD; c.strokeStyle = BIRD_EDGE; c.lineWidth = 1.3;
   // Wings.
   c.beginPath();
   c.moveTo(0.5, lift); c.quadraticCurveTo(8, lift + 1, 13, 6); c.lineTo(19, 6); c.quadraticCurveTo(24, lift + 1, 31.5, lift);
@@ -37,6 +37,8 @@ function birdFrame(c: CanvasRenderingContext2D, f: number): void {
   c.beginPath(); c.ellipse(16, 6.5, 5, 6, 0, 0, Math.PI * 2); c.fill(); c.stroke();
   c.fillStyle = '#F5B82E'; c.beginPath(); c.moveTo(19.5, 5); c.lineTo(23, 6.5); c.lineTo(19.5, 8); c.fill();
   c.fillStyle = '#1C2430'; c.fillRect(17.5, 4, 1.4, 1.4);
+  // Polish A2: a soft grey under the wing roots and belly, so the white reads against pale sky.
+  c.fillStyle = 'rgba(38,49,63,0.16)'; c.beginPath(); c.ellipse(16, 9.2, 3.6, 2.2, 0, 0, Math.PI * 2); c.fill();
 }
 /** A flock filling the obstacle box exactly, flapping in place. */
 function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
@@ -77,6 +79,17 @@ function leprechaun(c:CanvasRenderingContext2D):void {
  c.fillStyle='#B06434';c.beginPath();c.moveTo(6,12);c.lineTo(11,19);c.lineTo(16,12);c.closePath();c.fill();
  c.fillStyle='#225C4B';c.fillRect(6,2,10,6);c.fillRect(3,7,16,2);c.fillStyle='#C5AC6D';c.fillRect(6,5,10,1);
  c.fillStyle='#24333C';c.fillRect(8,10,1,1);c.fillRect(13,10,1,1);
+ // Polish A2: a little more detail in the same pixel style: the hat's shine and gold buckle, rosy
+ // cheeks, a lighter beard edge, the coat's lapels and buttons, a belt and buckle, sleeves and shoe buckles.
+ c.fillStyle='#2F7560';c.fillRect(7,2,2,3);
+ c.fillStyle='#E7C85A';c.fillRect(10,5,2,1);c.fillStyle='#8E7330';c.fillRect(10,4,2,1);
+ c.fillStyle='rgba(226,120,110,0.7)';c.fillRect(7,11,1,1);c.fillRect(14,11,1,1);
+ c.fillStyle='#D07A42';c.fillRect(8,13,6,1);c.fillStyle='#8A4A26';c.fillRect(10,18,2,1);
+ c.fillStyle='#235A49';c.fillRect(6,14,2,6);c.fillRect(14,14,2,6);
+ c.fillStyle='#E7C85A';c.fillRect(10,16,1,1);c.fillRect(10,20,1,1);
+ c.fillStyle='#24333C';c.fillRect(6,21,10,2);c.fillStyle='#E7C85A';c.fillRect(10,21,2,2);c.fillStyle='#24333C';c.fillRect(10.5,21.5,1,1);
+ c.fillStyle='#235A49';c.fillRect(3,15,3,6);c.fillRect(16,15,3,6);c.fillStyle='#DDB17B';c.fillRect(3,21,3,2);c.fillRect(16,21,3,2);
+ c.fillStyle='#24333C';c.fillRect(5,27,6,1);c.fillRect(13,27,6,1);c.fillStyle='#E7C85A';c.fillRect(7,28,2,1);c.fillRect(15,28,2,1);
 }
 export function coin(c: CanvasRenderingContext2D): void {
   c.fillStyle = GOLD_EDGE; c.beginPath(); c.arc(7,7,BALL_R,0,Math.PI*2); c.fill();
@@ -93,7 +106,24 @@ export function pot(c: CanvasRenderingContext2D): void {
   for (let i=0;i<9;i++) { c.fillStyle = i%2 ? GOLD : SHINE; c.beginPath(); c.ellipse(7+i*6.2,4,3,2,0.2*(i%3),0,Math.PI*2); c.fill(); }
   c.fillStyle = POT_EDGE; c.fillRect(0,0,64,2);
 }
+/** Polish A2: a soft round glow (cached once per colour), for the coin and the pot's gold. */
+function glowSprite(key: string, rgb: string): ArtCanvas | null {
+  return sprite(`glow-${key}`, 64, 64, (m) => {
+    const g = m.createRadialGradient(32, 32, 2, 32, 32, 32);
+    g.addColorStop(0, `rgba(${rgb},0.75)`); g.addColorStop(0.45, `rgba(${rgb},0.3)`); g.addColorStop(1, `rgba(${rgb},0)`);
+    m.fillStyle = g; m.fillRect(0, 0, 64, 64);
+  }, 1);
+}
+function drawGlow(c: CanvasRenderingContext2D, key: string, rgb: string, x: number, y: number, rx: number, ry: number, alpha: number): void {
+  if (arcadeReducedEffects()) return;
+  const g = glowSprite(key, rgb);
+  if (!g) return;
+  c.globalAlpha = alpha; c.drawImage(g, x - rx, y - ry, rx * 2, ry * 2); c.globalAlpha = 1;
+}
 function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean): void {
+  // Polish A2: the gold glowing out of the pot's mouth (behind the pot, above its rim).
+  const t = countryClock();
+  drawGlow(c, 'gold', '255,214,80', x, y + 2, 46, 24, 0.75 + 0.15 * Math.sin(t * 2.2));
   stamp(c,'pot',INK_BUCKET_W,INK_BUCKET_H,x-INK_BUCKET_W/2,y,pot);
   c.fillStyle = POT;
   for (const rx of [x-INK_BUCKET_W/2,x+INK_BUCKET_W/2]) { c.beginPath(); c.arc(rx,y,RIM_R,0,Math.PI*2); c.fill(); }
@@ -126,6 +156,15 @@ function paintBridge(c: CanvasRenderingContext2D,state:InkState):void {
     c.strokeStyle=rainbow(c,s.x0,s.y0,s.x1,s.y1,distance,len);
     c.beginPath();c.moveTo(s.x0,s.y0);c.lineTo(s.x1,s.y1);c.stroke();distance+=len;
   }
+  // Polish A2: a shine line along the ink, a thin white highlight on its upper side (inside the 6 px stroke).
+  c.lineWidth=1.4;c.strokeStyle='rgba(255,255,255,0.5)';
+  c.beginPath();
+  for(const s of state.segs){
+    if(!s)continue;const len=Math.hypot(s.x1-s.x0,s.y1-s.y0);if(!len)continue;
+    let nx=-(s.y1-s.y0)/len,ny=(s.x1-s.x0)/len;if(ny>0){nx=-nx;ny=-ny;}
+    c.moveTo(s.x0+nx*1.4,s.y0+ny*1.4);c.lineTo(s.x1+nx*1.4,s.y1+ny*1.4);
+  }
+  c.stroke();
 }
 type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number};
 const bridges=new WeakMap<CanvasRenderingContext2D,BridgeCache>();
@@ -164,6 +203,23 @@ function goldStar(m: CanvasRenderingContext2D): void {
 }
 
 /* ===================== Tuning D: sky and grass (art only) ===================== */
+/** Polish A2: a richer blue at the top, the same pale haze at the horizon (the arena scene's sides use these too). */
+const INK_SKY_STOPS = [[0, '#2A86DA'], [0.45, '#6BBDF0'], [0.85, '#C3E8F8'], [1, '#E4F5FA']] as const;
+/**
+ * Polish A2: a shaded cloud in the same 48×26 cell as the shared countryside cloud: white puffs lit
+ * from the top, a soft blue-grey underside.
+ */
+function inkCloud(c: CanvasRenderingContext2D): void {
+  c.fillStyle = '#D4E6F2'; c.beginPath(); c.roundRect(0, 10, 48, 16, 8); c.fill();
+  const puffs = [[12, 13, 10], [26, 11, 11], [38, 16, 9]] as const;
+  for (const [x, y, r] of puffs) {
+    const g = c.createLinearGradient(0, y - r, 0, y + r);
+    g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.6, '#F6FBFF'); g.addColorStop(1, '#DCEAF4');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  }
+  c.fillStyle = 'rgba(150,180,205,0.35)'; c.beginPath(); c.roundRect(3, 20, 42, 5, 3); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.ellipse(23, 4.5, 5, 1.6, -0.2, 0, Math.PI * 2); c.fill();
+}
 /**
  * Deep-to-pale daylight sky, a sun haze and hazy far hills; baked once. No
  * rainbow in the sky: rainbow lines are what the player draws.
@@ -171,8 +227,19 @@ function goldStar(m: CanvasRenderingContext2D): void {
 function inkSky(m: CanvasRenderingContext2D): void {
   const W = INK_WORLD_W, H = INK_WORLD_H;
   const sky = m.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#3E9EE0'); sky.addColorStop(0.45, '#7CC6EF'); sky.addColorStop(0.85, '#C9EAF7'); sky.addColorStop(1, '#E4F5FA');
+  for (const [at, colour] of INK_SKY_STOPS) sky.addColorStop(at, colour);
   m.fillStyle = sky; m.fillRect(0, 0, W, H);
+  // Polish A2: soft sun rays fanning from the sun in the top right.
+  m.save(); m.translate(330, 86);
+  for (let i = 0; i < 9; i++) {
+    const a = Math.PI * (0.55 + i * 0.105);
+    const ray = m.createLinearGradient(0, 0, Math.cos(a) * 420, Math.sin(a) * 420);
+    ray.addColorStop(0, 'rgba(255,250,220,0.12)'); ray.addColorStop(1, 'rgba(255,250,220,0)');
+    m.fillStyle = ray; m.beginPath(); m.moveTo(0, 0);
+    m.lineTo(Math.cos(a - 0.03) * 420, Math.sin(a - 0.03) * 420); m.lineTo(Math.cos(a + 0.03) * 420, Math.sin(a + 0.03) * 420);
+    m.closePath(); m.fill();
+  }
+  m.restore();
   // Sun haze in the top right, behind the HUD's ink meter.
   const sun = m.createRadialGradient(330, 86, 0, 330, 86, 150);
   sun.addColorStop(0, 'rgba(255,252,228,0.9)'); sun.addColorStop(0.12, 'rgba(255,246,205,0.55)'); sun.addColorStop(1, 'rgba(255,246,205,0)');
@@ -225,7 +292,7 @@ function drawInkBackdrop(c: CanvasRenderingContext2D): void {
   const t=countryClock();
   for(const [x,y,f,a] of [[38,100,0.55,0.75],[278,146,0.7,0.8],[152,218,0.4,0.6],[300,300,0.35,0.5],[70,350,0.3,0.45]] as const) {
     c.save();c.globalAlpha=a;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);
-    countryStamp(c,'cloud',48,26,0,0,cloud);c.restore();
+    countryStamp(c,'inkcloud',48,26,0,0,inkCloud);c.restore();
   }
 }
 function drawInkGround(c: CanvasRenderingContext2D, base: number, x: number): void {
@@ -257,8 +324,11 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   // Background only, below the pot opening and every level block; touchable art paints above it.
   const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
   drawInkGround(c,base,bx);
-  stamp(c,"leprechaun",22,30,Math.min(INK_WORLD_W-24,Math.max(2,bx+40)),base-27,leprechaun);
-  countryStamp(c,'cloud',48,26,lvl.spoutX-24,19,cloud);
+  const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
+  // Polish A2: his soft shadow on the grass.
+  c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(lx+11,base+2.5,11,2.6,0,0,Math.PI*2);c.fill();
+  stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
+  countryStamp(c,'inkcloud',48,26,lvl.spoutX-24,19,inkCloud);
   for(const b of lvl.blocks) {
     if(b.h){drawBirds(c,b,inkBlockH(b),state.tick);continue;}
     // Fully fill all 4px of every hazard, never an inset silhouette.
@@ -273,6 +343,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
     const trail=state.positions.slice(-5);c.strokeStyle=GOLD;c.lineWidth=2;c.lineCap='round';
     for(let i=1;i<trail.length;i++){const a=trail[i-1],b=trail[i];if(!a||!b)continue;c.globalAlpha=i/trail.length*0.35;c.beginPath();c.moveTo(a.x/FP,a.y/FP);c.lineTo(b.x/FP,b.y/FP);c.stroke();}c.globalAlpha=1;
   }
+  drawGlow(c,'gold','255,214,80',state.ball.x/FP,state.ball.y/FP,BALL_R*2.4,BALL_R*2.4,0.7);
   stamp(c,'coin',BALL_R*2,BALL_R*2,state.ball.x/FP-BALL_R,state.ball.y/FP-BALL_R,coin);
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
@@ -296,6 +367,11 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   }
   // Left side empties first; the surviving right-hand rainbow is clipped, not rescaled.
   const remaining=Math.max(0,Math.min(1,state.ink/(inkBudgetFor(state.level,state.rev)*FP)));
+  // Polish A2: soft backing pills behind the level and the ink meter with its fails.
+  c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";
+  const levelText=`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`;
+  hudPill(c,4,4,Math.ceil(c.measureText(levelText).width)+16,26);
+  hudPill(c,216,4,168,28);
   c.fillStyle=EMPTY;c.fillRect(272,12,104,12);
   c.save();c.beginPath();c.rect(274+100*(1-remaining),14,100*remaining,8);c.clip();
   const meter=sprite('meter',100,8,m=>{m.fillStyle=rainbow(m,0,0,100,0,0,100);m.fillRect(0,0,100,8);});
@@ -316,8 +392,15 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
       c.restore();
     }
   }
-  for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();}
-  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(`Level ${Math.min(state.level+1,INK_LEVELS)} / ${INK_LEVELS}`,12,22));
+  for(let i=0;i<INK_FAILS;i++){c.fillStyle=i<state.fails?RED:EMPTY;c.beginPath();c.arc(228+i*14,18,5,0,Math.PI*2);c.fill();c.strokeStyle=i<state.fails?RED_EDGE:'rgba(36,51,60,0.35)';c.lineWidth=1;c.stroke();}
+  c.fillStyle=TEXT;c.font="bold 16px 'JetBrains Mono', ui-monospace, monospace";c.textAlign='left';c.textBaseline='alphabetic';successHud(c,'inkbridge',state.tick,12,22,()=>c.fillText(levelText,12,22));
+  c.restore();
+}
+function hudPill(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  c.save();
+  c.fillStyle='rgba(20,60,90,0.14)';c.beginPath();c.roundRect(x,y+1.5,w,h,h/2);c.fill();
+  c.fillStyle='rgba(255,255,255,0.48)';c.beginPath();c.roundRect(x,y,w,h,h/2);c.fill();
+  c.strokeStyle='rgba(255,255,255,0.85)';c.lineWidth=1;c.beginPath();c.roundRect(x+0.5,y+0.5,w-1,h-1,h/2);c.stroke();
   c.restore();
 }
 /** Fixed intro art shares the same sprites; no gameplay inputs or demo log changes. */
@@ -343,7 +426,7 @@ export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVie
   const H = INK_WORLD_H;
   for (const side of sceneSides(view)) {
     const left = side.x < 0;
-    sceneFill(ctx, side, 0, H, [[0, '#3E9EE0'], [0.45, '#7CC6EF'], [0.85, '#C9EAF7'], [1, '#E4F5FA']]);
+    sceneFill(ctx, side, 0, H, INK_SKY_STOPS);
     ctx.fillStyle = 'rgba(132,186,196,0.55)';
     ctx.fillRect(side.x, left ? 548 : 528, side.w, H);
     ctx.fillStyle = 'rgba(146,206,128,0.8)';

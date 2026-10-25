@@ -43,6 +43,7 @@ import {
 } from "./cross";
 import { artHash, reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
 import { sceneBelow, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 
 // Real World daylight palette (the values of realworld.renderer's REAL_*; not imported, because
@@ -140,6 +141,18 @@ function texture(ctx: CanvasRenderingContext2D) {
       for (let k = 0; k < 8; k++) {
         c.fillStyle = k % 2 ? "rgba(255,255,255,0.12)" : "rgba(60,66,76,0.08)";
         c.fillRect((k % 4) * 16, Math.floor(k / 4) * 32 + (k % 2) * 16, 16, 16);
+      }
+      // Polish A2: each slab subtly shaded, lit on its top-left edge and a touch darker to the bottom right.
+      for (let y = 0; y < 64; y += 16) {
+        for (let x = (y / 16) % 2 ? -16 : 0; x < 64; x += 32) {
+          const g = c.createLinearGradient(x, y, x + 32, y + 16);
+          g.addColorStop(0, "rgba(255,255,255,0.08)");
+          g.addColorStop(1, "rgba(40,46,56,0.07)");
+          c.fillStyle = g;
+          c.fillRect(x, y, 32, 16);
+          c.fillStyle = "rgba(255,255,255,0.16)";
+          c.fillRect(x + 1, y + 1, 30, 1);
+        }
       }
       c.strokeStyle = "rgba(70,76,88,0.45)";
       c.lineWidth = 1;
@@ -410,6 +423,56 @@ export function drawWalkerHero(ctx: CanvasRenderingContext2D, x: number, y: numb
   ctx.restore();
 }
 
+/* ------------------------------ Polish A2: vehicle light ------------------------------ */
+
+let sheenSprite: ArtCanvas | null | undefined;
+let lampSprite: ArtCanvas | null | undefined;
+function sheen(): ArtCanvas | null {
+  if (sheenSprite !== undefined) return sheenSprite;
+  const layer = artCanvas(32, 32);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    const g = c.createLinearGradient(0, 0, 0, 32);
+    g.addColorStop(0, "rgba(255,255,255,0.34)");
+    g.addColorStop(0.5, "rgba(255,255,255,0.08)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, 32, 32);
+  }
+  sheenSprite = layer && c ? layer : null;
+  return sheenSprite;
+}
+function lamp(): ArtCanvas | null {
+  if (lampSprite !== undefined) return lampSprite;
+  const layer = artCanvas(32, 32);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    const g = c.createRadialGradient(16, 16, 1, 16, 16, 16);
+    g.addColorStop(0, "rgba(255,248,214,0.9)");
+    g.addColorStop(0.4, "rgba(255,240,180,0.35)");
+    g.addColorStop(1, "rgba(255,240,180,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, 32, 32);
+  }
+  lampSprite = layer && c ? layer : null;
+  return lampSprite;
+}
+/** A sheen over the vehicle's upper half (inside its box) and a headlight glow at each front corner. */
+function vehicleLight(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, dir: number): void {
+  const s = sheen();
+  if (s) {
+    ctx.save();
+    roundRect(ctx, x, y, w, h, Math.min(12, h / 2));
+    ctx.clip();
+    ctx.drawImage(s as CanvasImageSource, x, y, w, h * 0.55);
+    ctx.restore();
+  }
+  const l = lamp();
+  if (!l) return;
+  const fx = dir > 0 ? x + w - 3 : x + 3;
+  for (const ly of [y + 6, y + h - 6]) ctx.drawImage(l as CanvasImageSource, fx - 7, ly - 7, 14, 14);
+}
+
 /* ------------------------------ Cached road layer ------------------------------ */
 
 const roadLayers = new WeakMap<object, { key: string; canvas: ArtCanvas | null }>();
@@ -423,6 +486,28 @@ function paintGrass(c: CanvasRenderingContext2D, x: number, y: number, w: number
   c.fillRect(x, y, w, h);
   c.fillStyle = "rgba(255,255,255,0.05)";
   for (let sx = x; sx < x + w; sx += 36) c.fillRect(sx, y, 18, h);
+  // Polish A2: soft clover patches and a scatter of tiny daisies and buttercups (seeded, world-anchored).
+  c.save();
+  c.beginPath();
+  c.rect(x, y, w, h);
+  c.clip();
+  for (let k = 0; k < Math.ceil((w * h) / 900); k++) {
+    const r = artHash(k, 59);
+    c.fillStyle = r % 2 ? "rgba(40,95,30,0.12)" : "rgba(200,240,150,0.1)";
+    c.beginPath();
+    c.ellipse(x + ((r % 1000) / 1000) * w, y + (((r >>> 10) % 1000) / 1000) * h, 7 + (r % 5), 3 + ((r >>> 4) % 2), 0, 0, Math.PI * 2);
+    c.fill();
+  }
+  for (let k = 0; k < Math.ceil((w * h) / 500); k++) {
+    const r = artHash(k, 73);
+    const fx = Math.round(x + ((r % 1000) / 1000) * w);
+    const fy = Math.round(y + (((r >>> 10) % 1000) / 1000) * h);
+    c.fillStyle = r % 3 ? "rgba(255,255,255,0.75)" : "rgba(255,226,92,0.85)";
+    c.fillRect(fx, fy, 2, 2);
+    c.fillStyle = "rgba(240,180,40,0.8)";
+    if (r % 3) c.fillRect(fx + 0.5, fy + 0.5, 1, 1);
+  }
+  c.restore();
   c.save();
   c.beginPath();
   c.rect(x, y, w, h);
@@ -457,6 +542,16 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
     for (let x = CROSS_BOARD_X + CROSS_COL_W; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W * 2) c.fillRect(x, kerbY, 1, 5);
     c.fillStyle = "rgba(30,38,48,0.4)";
     c.fillRect(CROSS_BOARD_X, finish ? kerbY + 4 : kerbY + 4, CROSS_BOARD_W, 1);
+    // Polish A2: the kerb stones lit along their road-side face, each stone slightly shaded.
+    for (let x = CROSS_BOARD_X; x < CROSS_BOARD_X + CROSS_BOARD_W; x += CROSS_COL_W) {
+      const g = c.createLinearGradient(x, 0, x + CROSS_COL_W, 0);
+      g.addColorStop(0, "rgba(255,255,255,0.18)");
+      g.addColorStop(1, "rgba(60,66,76,0.12)");
+      c.fillStyle = g;
+      c.fillRect(x, kerbY, Math.min(CROSS_COL_W, CROSS_BOARD_X + CROSS_BOARD_W - x), 4);
+    }
+    c.fillStyle = "rgba(255,255,255,0.7)";
+    c.fillRect(CROSS_BOARD_X, finish ? kerbY + 3 : kerbY, CROSS_BOARD_W, 1);
     // Grass edge shadow onto the pavement's outer side.
     c.fillStyle = "rgba(30,50,20,0.18)";
     c.fillRect(CROSS_BOARD_X, finish ? top : top + CROSS_KERB_H - 2, CROSS_BOARD_W, 2);
@@ -479,11 +574,17 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
       c.fillStyle = "rgba(30,34,40,0.08)";
       c.fillRect(x, top + 6 + ((r >>> 9) % 20), 22 + ((r >>> 14) % 18), 12);
     }
-    // Dashed lane marking on the upper edge.
+    // Dashed lane marking on the upper edge (Polish A2: snapped to the layer's own pixels, so crisp).
     if (lane < CROSS_LANES) {
-      c.fillStyle = "rgba(244,246,248,0.8)";
-      for (let x = CROSS_BOARD_X + 6; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 34)
-        c.fillRect(x, top - 1, Math.min(16, CROSS_BOARD_X + CROSS_BOARD_W - x), 2);
+      const k = c.getTransform ? c.getTransform().d || 1 : 1;
+      const y0 = Math.round((top - 1) * k) / k;
+      const dh = Math.max(1, Math.round(2 * k)) / k;
+      c.fillStyle = "rgba(248,250,252,0.9)";
+      for (let x = CROSS_BOARD_X + 6; x < CROSS_BOARD_X + CROSS_BOARD_W; x += 34) {
+        const x0 = Math.round(x * k) / k;
+        const x1 = Math.round(Math.min(x + 16, CROSS_BOARD_X + CROSS_BOARD_W) * k) / k;
+        c.fillRect(x0, y0, x1 - x0, dh);
+      }
     }
     const laneDef = course.lanes[lane - 1];
     if (!laneDef) continue;
@@ -494,6 +595,31 @@ function paintRoad(c: CanvasRenderingContext2D, course: ReturnType<typeof crossC
   c.fillStyle = "rgba(250,250,250,0.85)";
   c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + 1, CROSS_BOARD_W, 2);
   c.fillRect(CROSS_BOARD_X, CROSS_LANES_Y + CROSS_LANES * CROSS_LANE_H - 3, CROSS_BOARD_W, 2);
+  // Polish A2: low hedges along both verges, from the HUD band down (background only; no lane reaches them).
+  for (const x of [0, CROSS_BOARD_X + CROSS_BOARD_W]) paintHedge(c, x, CROSS_HUD_H, CROSS_BOARD_X, CROSS_WORLD_H - CROSS_HUD_H);
+}
+
+/** A trimmed hedge filling a narrow verge: dark leafy body, lighter rounded tops, a few highlights. */
+function paintHedge(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  if (w <= 1) return;
+  c.save();
+  c.beginPath();
+  c.rect(x, y, w, h);
+  c.clip();
+  c.fillStyle = "#3F7A35";
+  c.fillRect(x, y, w, h);
+  for (let k = 0, by = y; by < y + h; k++, by += 7) {
+    const r = artHash(k, x > 0 ? 91 : 89);
+    c.fillStyle = r % 2 ? "#4E8E40" : "#4A8A3C";
+    c.beginPath();
+    c.ellipse(x + w / 2, by + 3, w * 0.7, 4.5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "rgba(190,235,140,0.35)";
+    c.fillRect(x + 1 + (r % 3), by + 1, 2, 1);
+  }
+  c.fillStyle = "rgba(20,40,15,0.25)";
+  c.fillRect(x > 0 ? x : x + w - 1, y, 1, h);
+  c.restore();
 }
 
 /** Draws the crossing's cached scene (or paints it directly where no offscreen canvas exists); returns the layer. */
@@ -532,6 +658,7 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
   const rel = state.tick - state.crossStart;
   const course = crossCourse(state);
   const tex = texture(ctx);
+  const fxLite = arcadeReducedEffects();
 
   ctx.save();
   ctx.fillStyle = REAL_GRASS_DARK;
@@ -587,8 +714,19 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
         continue;
       }
       const colour = CROSS_BLOCK_COLOURS[(lane + index + 8) % CROSS_BLOCK_COLOURS.length] ?? CROSS_BLOCK;
+      const vw = px(laneDef.blockW);
+      const vh = CROSS_LANE_H - 14;
+      if (x > CROSS_BOARD_X + CROSS_BOARD_W || x + vw < CROSS_BOARD_X) continue;
+      // Polish A2: a soft shadow on the road under the vehicle (2 px down and right), then the vehicle,
+      // then a light sheen on its upper half and two small headlight glows at its front.
+      if (!fxLite) {
+        ctx.fillStyle = "rgba(10,14,20,0.28)";
+        roundRect(ctx, x + 2, top + 9, vw, vh, Math.min(12, vh / 2));
+        ctx.fill();
+      }
       // Daylight: no headlight beams, so nothing drawn reaches past the collision box.
-      drawVehicle(ctx, x, top + 7, px(laneDef.blockW), CROSS_LANE_H - 14, laneDef.dir, colour, lorry, false);
+      drawVehicle(ctx, x, top + 7, vw, vh, laneDef.dir, colour, lorry, false);
+      if (!fxLite) vehicleLight(ctx, x, top + 7, vw, vh, laneDef.dir);
     }
   }
 
@@ -630,8 +768,12 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     ctx.globalAlpha = 1;
   }
 
+  // Polish A2: the HUD on soft dark pills (the count and the lives).
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  hudPill(ctx, 6, 4, Math.ceil(ctx.measureText(`Crossings ${state.crossings}`).width) + 18, 28);
+  hudPill(ctx, CROSS_WORLD_W - 22 - (CROSS_LIVES - 1) * 18 - 14, 4, (CROSS_LIVES - 1) * 18 + 28, 28);
   for (let i = 0; i < CROSS_LIVES; i++) {
-    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(20,40,20,0.28)";
+    ctx.fillStyle = i < state.lives ? CROSS_PLAYER : "rgba(255,255,255,0.22)";
     ctx.beginPath();
     ctx.arc(CROSS_WORLD_W - 22 - i * 18, 18, 6, 0, Math.PI * 2);
     ctx.fill();
@@ -669,6 +811,16 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     ctx.fillRect(0, 0, CROSS_WORLD_W, CROSS_WORLD_H);
   }
   ctx.restore();
+}
+
+function hudPill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  ctx.fillStyle = "rgba(14,20,28,0.42)";
+  roundRect(ctx, x, y, w, h, h / 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, h / 2);
+  ctx.stroke();
 }
 
 /** The sim with the art renderer swapped in; step/score are the sim's own. */

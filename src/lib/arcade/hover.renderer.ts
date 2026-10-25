@@ -23,7 +23,10 @@ import {
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
-import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
+import { fillAbove, fillBelow, fillGradient } from "./arenaFills.renderer";
+import type { ArenaSceneView } from "./arenaScene.renderer";
 import {
   pixelRect,
   pixelShape,
@@ -66,8 +69,101 @@ function barrierSprite(w: number, colour: string): ArtCanvas | null {
     c.fillStyle = "rgba(255,255,255,0.55)"; c.fillRect(2, y + 2, w - 4, 1);
     c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(w / 2, y + 3, 1, 7);
   }
+  // Polish A2 (display only): rounded shading across the column, lit on the left, in shade on the right.
+  const shade = c.createLinearGradient(0, 0, w, 0);
+  shade.addColorStop(0, "rgba(255,255,255,0.22)");
+  shade.addColorStop(0.18, "rgba(255,255,255,0.06)");
+  shade.addColorStop(0.55, "rgba(0,0,0,0)");
+  shade.addColorStop(1, "rgba(0,0,0,0.42)");
+  c.fillStyle = shade; c.fillRect(0, 0, w, RH);
+  c.fillStyle = "rgba(255,255,255,0.32)"; c.fillRect(2, 0, 1, RH);
+  c.fillStyle = "rgba(0,0,0,0.5)"; c.fillRect(w - 2, 0, 2, RH);
   barrierCache.set(colour, layer);
   return layer;
+}
+
+/**
+ * Polish A2 (display only): the soft light round a barrier's gap end, a sprite per colour (painted
+ * once): a faint halo just past the lip into the gap and down the column's sides, kept dim so it
+ * reads as light, never as part of the barrier.
+ */
+const GLOW_REACH = 7;
+const capGlowCache = new Map<string, ArtCanvas | null>();
+function capGlowSprite(w: number, colour: string): ArtCanvas | null {
+  if (capGlowCache.has(colour)) return capGlowCache.get(colour)!;
+  const W = w + GLOW_REACH * 2;
+  const H = GLOW_REACH * 3;
+  const layer = artCanvas(W * 2, H * 2);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    c.scale(2, 2);
+    const g = c.createRadialGradient(W / 2, 0, 2, W / 2, 0, W / 2);
+    g.addColorStop(0, `${colour}AA`);
+    g.addColorStop(0.55, `${colour}33`);
+    g.addColorStop(1, `${colour}00`);
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, H);
+  }
+  capGlowCache.set(colour, layer && c ? layer : null);
+  return layer && c ? layer : null;
+}
+
+/**
+ * Polish A2 (display only): the night behind the course, painted once per canvas size into a
+ * device layer: a deep navy sky lifting to purple low down, then a dark pixel city along the
+ * bottom with a few dim windows. Seeded, so every phone and the reveal draw the same city.
+ */
+export const HOVER_SKY_TOP = "#060A22";
+export const HOVER_SKY_MID = "#120F38";
+export const HOVER_SKY_LOW = "#22124A";
+export const HOVER_CITY = "#0C0A20";
+export const HOVER_CITY_FAR = "#171236";
+const WINDOW_TONES = ["#FFE6A0", "#9FD8FF", "#FFD27A"] as const;
+function cityRow(ctx: CanvasRenderingContext2D, H: number, seed: number, base: number, rise: number, colour: string, windows: number): void {
+  let x = -4;
+  let i = 0;
+  while (x < HOVER_WORLD_W + 4) {
+    const h = hash(seed, i++);
+    const w = 18 + (h % 5) * 6;
+    const tall = base + ((h >>> 4) % 9) * rise;
+    const top = H - tall;
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, top, w, tall);
+    if ((h >>> 9) % 3 === 0) ctx.fillRect(x + Math.floor(w / 2) - 1, top - 6, 2, 6);
+    if (windows > 0) {
+      for (let wy = top + 5; wy < H - 6; wy += 6) {
+        for (let wx = x + 3; wx < x + w - 4; wx += 5) {
+          const lit = hash(wx * 7 + seed, wy);
+          if (lit % 100 >= windows) continue;
+          ctx.globalAlpha = 0.18 + (lit % 4) * 0.07;
+          ctx.fillStyle = WINDOW_TONES[lit % WINDOW_TONES.length]!;
+          ctx.fillRect(wx, wy, 2, 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    x += w + ((h >>> 13) % 3) * 2;
+  }
+}
+function hash(a: number, b: number): number {
+  let h = Math.imul((a | 0) ^ Math.imul(b | 0, 0x9e3779b1), 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function paintNight(c: CanvasRenderingContext2D, H: number): void {
+  const sky = c.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, HOVER_SKY_TOP);
+  sky.addColorStop(0.55, HOVER_SKY_MID);
+  sky.addColorStop(0.86, HOVER_SKY_LOW);
+  sky.addColorStop(1, HOVER_SKY_LOW);
+  c.fillStyle = sky;
+  c.fillRect(0, 0, HOVER_WORLD_W, H);
+  cityRow(c, H, 41, 34, 7, HOVER_CITY_FAR, 6);
+  cityRow(c, H, 7, 16, 6, HOVER_CITY, 10);
+}
+function drawNight(ctx: CanvasRenderingContext2D, H: number): void {
+  deviceLayer(ctx, `hover-night-${H}`, (c) => paintNight(c, H));
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
@@ -107,6 +203,7 @@ function drawStarField(ctx: CanvasRenderingContext2D, state: HoverState, H: numb
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator = true): void {
   const HOVER_WORLD_H = hoverWorldH(state);
+  drawNight(ctx, HOVER_WORLD_H);
   drawStarField(ctx, state, HOVER_WORLD_H);
   const bloom = retroBloom();
   const discLeft = HOVER_DISC_X - HOVER_DISC_R;
@@ -141,6 +238,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
     } else drawPipe(ctx, left, bottom, width, HOVER_WORLD_H - bottom, colour, bloom, flash, "top", pulse);
     if (pillar.movePhase !== undefined) drawSlideRail(ctx, left, width, pillar, state.tick);
     drawStar(ctx, state, pillar, index, left + width / 2);
+    drawStarPlusOne(ctx, state, pillar, index, left + width / 2);
   });
 
   // Ordinary passes are rewarded by the barrier itself, not a saucer trace.
@@ -149,6 +247,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   const latest = state.pillars[state.gates - 1];
   const colourAge = latest ? px(state.distance - (latest.x0 + HOVER_PILLAR_W - discLeft)) / px(hoverScroll(state.gates)) : Infinity;
   if(!reducedMotion()&&state.gates>0&&state.gates%7===0&&colourAge<20){ctx.save();ctx.globalAlpha=.22*(1-colourAge/20);ctx.strokeStyle=BARRIER_CYCLES[Math.floor(state.gates/7)%6]??SAUCER;ctx.lineWidth=1;ctx.strokeRect(4,4,HOVER_WORLD_W-8,HOVER_WORLD_H-8);ctx.restore();}
+  if (!(state.crashed && crashIndicator)) drawShipLight(ctx, state);
   drawSaucer(ctx, state, crashIndicator);
   successHud(ctx,'hover',state.tick,10,28,()=>{retroReadout(ctx, 10, 10, `BARRIERS ${state.gates}/${state.totalGates}`, RETRO_WHITE);});
   if ((state.totalStars ?? 0) > 0) retroText(ctx, `STARS ${state.stars ?? 0}/${state.totalStars}`, 10, 46, 14, STAR_GOLD, "left", 4);
@@ -167,6 +266,14 @@ function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: Hove
   if (starY === null || state.starsTaken?.includes(index)) return;
   const r = px(HOVER_STAR_R);
   const cy = px(starY);
+  // Polish A2: a soft gold glow round the star (a cached sprite; skipped with reduced effects).
+  const glow = !arcadeReducedEffects() ? starGlowSprite() : null;
+  if (glow) {
+    const pulse = reducedMotion() ? 0.7 : 0.6 + 0.2 * Math.sin(retroClock() / 260 + index);
+    ctx.globalAlpha = pulse;
+    ctx.drawImage(glow, cx - r * 2.4, cy - r * 2.4, r * 4.8, r * 4.8);
+    ctx.globalAlpha = 1;
+  }
   const twinkle = reducedMotion() ? 0 : Math.floor(retroClock() / 180) % 4;
   pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
     // A four-point pixel star: a plus with a filled core.
@@ -177,6 +284,39 @@ function drawStar(ctx: CanvasRenderingContext2D, state: HoverState, pillar: Hove
     return null;
   });
   if (twinkle === 0) pixelRect(ctx, cx + r - 1, cy - r - 1, 2, 2, RETRO_WHITE);
+}
+
+let starGlow: ArtCanvas | null | undefined;
+function starGlowSprite(): ArtCanvas | null {
+  if (starGlow !== undefined) return starGlow;
+  const layer = artCanvas(48, 48);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    const g = c.createRadialGradient(24, 24, 2, 24, 24, 24);
+    g.addColorStop(0, "rgba(255,216,74,0.75)");
+    g.addColorStop(0.45, "rgba(255,190,60,0.28)");
+    g.addColorStop(1, "rgba(255,190,60,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, 48, 48);
+  }
+  starGlow = layer && c ? layer : null;
+  return starGlow;
+}
+
+/** Polish A2: a "+1" in pixel type rising from a star just taken (age recovered from the course's distance). */
+function drawStarPlusOne(ctx: CanvasRenderingContext2D, state: HoverState, pillar: HoverState["pillars"][number], index: number, cx: number): void {
+  if (!state.starsTaken?.includes(index)) return;
+  const starY = hoverStarY(pillar, state.tick);
+  if (starY === null) return;
+  const passed = px(state.distance - (pillar.x0 + HOVER_PILLAR_W / 2 - HOVER_DISC_X));
+  const age = passed / px(hoverScroll(index + 1));
+  const span = 40;
+  if (!(age >= 0 && age < span)) return;
+  const k = age / span;
+  ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+  const lift = reducedMotion() ? 10 : 6 + k * 18;
+  retroText(ctx, "+1", cx, px(starY) - lift, 14, STAR_GOLD, "center", 4);
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -233,6 +373,23 @@ function drawPipe(
   pulse = 0,
 ): void {
   if (h <= 0) return;
+  const ends = capAt === "both" ? (["top", "bottom"] as const) : [capAt];
+  // Polish A2: the soft light the gap's lip throws into the gap (a cached sprite; reduced effects skip it).
+  const glow = !arcadeReducedEffects() ? capGlowSprite(w, colour) : null;
+  if (glow) {
+    ctx.globalAlpha = 0.55;
+    for (const end of ends) {
+      if (end === "bottom") ctx.drawImage(glow, x - GLOW_REACH, y + h - 1, w + GLOW_REACH * 2, GLOW_REACH * 3);
+      else {
+        ctx.save();
+        ctx.translate(0, y + 1);
+        ctx.scale(1, -1);
+        ctx.drawImage(glow, x - GLOW_REACH, 0, w + GLOW_REACH * 2, GLOW_REACH * 3);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
   const stamp = barrierSprite(w, colour);
   ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
   if (stamp) ctx.drawImage(stamp, 0, 0, w * 2, h * 2, x, y, w, h);
@@ -241,8 +398,19 @@ function drawPipe(
     for (let row = 0; row < h; row += 12)
       pixelRect(ctx, x, y + row, w, Math.min(11, h - row), colour);
   }
+  // Polish A2: a lit cap at the gap end, the colour at full strength brightening to the lip.
+  for (const end of ends) {
+    const cap = Math.min(8, h);
+    const capTop = end === "bottom" ? y + h - cap : y;
+    ctx.fillStyle = colour;
+    ctx.fillRect(x, capTop, w, cap);
+    ctx.fillStyle = "rgba(255,255,255,0.28)";
+    ctx.fillRect(x, end === "bottom" ? y + h - 3 : y, w, 3);
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(x, end === "bottom" ? capTop : capTop + cap - 1, w, 1);
+  }
   // A thin jagged energy trace remains inside the flat facing block edge.
-  for (const end of capAt === "both" ? (["top", "bottom"] as const) : [capAt]) {
+  for (const end of ends) {
     const edge = end === "bottom" ? y + h - 1 : y;
     pixelRect(ctx, x, edge, w, 1, colour);
     for (let column = 2; column < w; column += 6)
@@ -258,11 +426,52 @@ function drawPipe(
     ctx.globalAlpha = pulse * 0.42;
     pixelRect(ctx, x, y, w, h, RETRO_WHITE);
     ctx.globalAlpha = pulse * 0.9;
-    for (const end of capAt === "both" ? (["top", "bottom"] as const) : [capAt])
-      pixelRect(ctx, x, end === "bottom" ? y + h - 4 : y, w, 4, RETRO_WHITE);
+    for (const end of ends) pixelRect(ctx, x, end === "bottom" ? y + h - 4 : y, w, 4, RETRO_WHITE);
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+}
+
+/**
+ * Polish A2 (display only): a soft gold glow round the saucer and a faint beam under it, both cached
+ * sprites, drawn under the saucer's own blocks (the saucer stays exactly its gold). Reduced effects
+ * skip them.
+ */
+let shipLight: ArtCanvas | null | undefined;
+function shipLightSprite(): ArtCanvas | null {
+  if (shipLight !== undefined) return shipLight;
+  const W = 72;
+  const H = 96;
+  const layer = artCanvas(W * 2, H * 2);
+  const c = layer && artContext(layer);
+  if (layer && c) {
+    c.scale(2, 2);
+    const glow = c.createRadialGradient(W / 2, 24, 4, W / 2, 24, 30);
+    glow.addColorStop(0, "rgba(255,216,74,0.34)");
+    glow.addColorStop(0.5, "rgba(255,200,70,0.14)");
+    glow.addColorStop(1, "rgba(255,200,70,0)");
+    c.fillStyle = glow;
+    c.fillRect(0, 0, W, 56);
+    const beam = c.createLinearGradient(0, 30, 0, H);
+    beam.addColorStop(0, "rgba(255,226,120,0.11)");
+    beam.addColorStop(1, "rgba(255,226,120,0)");
+    c.fillStyle = beam;
+    c.beginPath();
+    c.moveTo(W / 2 - 7, 30);
+    c.lineTo(W / 2 + 7, 30);
+    c.lineTo(W / 2 + 20, H);
+    c.lineTo(W / 2 - 20, H);
+    c.closePath();
+    c.fill();
+  }
+  shipLight = layer && c ? layer : null;
+  return shipLight;
+}
+function drawShipLight(ctx: CanvasRenderingContext2D, state: HoverState): void {
+  if (arcadeReducedEffects()) return;
+  const sprite = shipLightSprite();
+  if (!sprite) return;
+  ctx.drawImage(sprite, px(HOVER_DISC_X) - 36, px(state.y) - 24, 72, 96);
 }
 
 /** Saucer drawn in 2 px blocks, every block inside the sim's disc. */
@@ -301,3 +510,29 @@ export function drawSaucer(ctx: CanvasRenderingContext2D, state: HoverState, cra
 export const hoverArtGame: ArcadeGame<HoverState> = { ...hoverGame, draw };
 /** Preserve the actual final state and live death art, but omit the reveal's red indicator. */
 export const hoverRevealGame = { draw: drawReveal };
+
+/**
+ * Polish A2 (display only): the play screen's fill below the course. The city's dark street level
+ * runs on from the world's bottom edge (its colour, so no seam), a few dim windows low in it, settling
+ * darker towards the screen's bottom. Painted once per size (ArcadeArenaSlot's scene canvas).
+ */
+export function hoverNightFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  for (const r of [fillBelow(view), fillAbove(view)]) {
+    if (!r) continue;
+    fillGradient(ctx, r, r.y, r.y + r.h, [
+      [0, HOVER_CITY],
+      [0.6, "#0A081C"],
+      [1, "#08071A"],
+    ]);
+    for (let wx = Math.floor(r.x) + 3; wx < r.x + r.w - 3; wx += 5) {
+      for (let wy = Math.floor(r.y) + 6; wy < r.y + Math.min(r.h, 40); wy += 6) {
+        const lit = hash(wx * 7 + 3, wy);
+        if (lit % 100 >= 7) continue;
+        ctx.globalAlpha = 0.14 + (lit % 4) * 0.05;
+        ctx.fillStyle = WINDOW_TONES[lit % WINDOW_TONES.length]!;
+        ctx.fillRect(wx, wy, 2, 2);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}

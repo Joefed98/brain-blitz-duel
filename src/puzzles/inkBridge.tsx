@@ -54,6 +54,31 @@ function inkBirdsArt(rev?: number) {
 
 const LIVE_HINT_KEY = "duelz-inkbridge-live-hint";
 
+/**
+ * Polish A2 (display only): the four buttons as a dock: dark glass for Undo, Reset and Drop again
+ * (the toolkit's `.gf-glass` over a dark fill), gold for Release. Sizes, places and names unchanged.
+ */
+const DOCK_BACKING: React.CSSProperties = {
+  background: "linear-gradient(180deg, rgba(10,22,18,0.38), rgba(6,14,12,0.55))",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 20px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
+};
+const DOCK_GLASS: React.CSSProperties = {
+  touchAction: "none",
+  position: "relative",
+  color: "#F3F1EC",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04)), rgba(14,18,26,0.82)",
+};
+const DOCK_GOLD: React.CSSProperties = {
+  touchAction: "none",
+  position: "relative",
+  color: "#2B1A00",
+  border: "1px solid rgba(255,240,180,0.7)",
+  background: "linear-gradient(180deg, #FFE68E 0%, #F5B82E 55%, #D4931A 100%)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(120,70,0,0.25), 0 6px 16px rgba(245,184,46,0.35)",
+};
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: InkBridgePuzzleData | null = puzzle.type === "inkbridge" ? puzzle : null;
   // Stroke points and button presses waiting to be sent, one a tick (see InkInputQueue).
@@ -165,9 +190,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           </>
         }
       />
-      <div data-game-controls="tools" className="flex h-12 shrink-0 gap-1.5">
+      <div data-game-controls="tools" className="relative flex h-12 shrink-0 gap-1.5">
+        {/* Polish A2: the dock's backing, drawn round the row without changing its size or place. */}
+        <span aria-hidden="true" className="pointer-events-none absolute -inset-x-1 -inset-y-1 rounded-2xl" style={DOCK_BACKING} />
         {([ [INK_INPUT_UNDO, "UNDO"], [INK_INPUT_RESET, "RESET"], [INK_INPUT_RELEASE, "RELEASE"], [INK_INPUT_DROP_AGAIN, "DROP AGAIN"] ] as const).map(([k, label]) => (
-          <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className="h-12 min-w-0 flex-1 px-1 text-xs font-bold" style={{ touchAction: "none" }} onPointerDown={(e) => {
+          <Button key={k} type="button" disabled={locked || (k === INK_INPUT_UNDO && liveDropping)} variant={k === INK_INPUT_RELEASE ? "default" : "outline"} className={`h-12 min-w-0 flex-1 rounded-xl px-1 text-xs font-bold ${k === INK_INPUT_RELEASE ? "" : "gf-glass"}`} style={k === INK_INPUT_RELEASE ? DOCK_GOLD : DOCK_GLASS} onPointerDown={(e) => {
             e.preventDefault();
             input.current.press(k);
           }}>{label}</Button>
