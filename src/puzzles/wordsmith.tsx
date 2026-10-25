@@ -4,6 +4,7 @@ import { WordsmithRing } from "@/components/puzzles/WordsmithRing";
 import { WordsmithPuzzle } from "@/components/puzzles/WordsmithPuzzle";
 import { wordsmithPoints, type WordsmithPuzzleData } from "@/lib/duel/types";
 import { WORDSMITH_TIME_MS } from "@/lib/duel/types";
+import { WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -30,7 +31,7 @@ function IntroExample() {
           ))}
         </ul>
       </div>
-      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score: 140 at most, {roundMaxFor("wordsmith")} only with the word that uses every tile. You have 100 seconds.</p>
+      <p className="text-xs text-muted-foreground">No plurals. Longer words score more: 9+ letters is 15 word points. More word points, higher score; the word that uses every tile adds a {WORDSMITH_V3_PANGRAM_BONUS}-point bonus, {roundMaxFor("wordsmith")} only with it. You have 100 seconds.</p>
     </div>
   );
 }
@@ -51,7 +52,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "wordsmith") return null;
   const mine = (myAnswer ?? "")
     .split(",")
@@ -78,6 +79,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               {puzzle.letters.length}-letter word:
               <br />
               <span className="text-primary">{pangram}</span>
+              {/* wordsmithRev 3: the stored pangram bonus (never computed here). */}
+              {typeof myExtra?.["pangramBonus"] === "number" && myExtra["pangramBonus"] > 0 ? (
+                <span className="text-primary"> +{myExtra["pangramBonus"]}</span>
+              ) : null}
             </p>
           )}
         </div>

@@ -56,6 +56,9 @@ import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
 import { PROFILES } from "./arcade-skill-bands/human";
+import { pinPreDepth } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 
 const failures: string[] = [];
 let checks = 0;

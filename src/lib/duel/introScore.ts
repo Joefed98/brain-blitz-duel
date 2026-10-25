@@ -8,6 +8,10 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
+import { wordSearchBonusIntro } from "./wordSearchText";
+import { letterWheelJarIntro } from "./letterWheelText";
+import { CODEWORD_STRETCH, TILEGRID_STRETCH, stretchIntro, strikeoutDepthIntro } from "./depth/stretchShapes";
+import { parBonusIntro } from "./parBonusText";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
 
@@ -25,15 +29,15 @@ const arcadeOpen = (counts: string, penalty?: string) =>
 function introScoreTemplates(): Record<PuzzleType, string> {
   return {
     // Word
-    wordsmith: "Longer words score much more. {max} only with the word that uses every tile.",
-    wordhunt: "Longer words score more. {max} for a big haul of words.",
-    tilegrid: bandsIntro("tilegrid"),
-    wordslide: bandsIntro("wordslide"),
-    wordsearch: bandsIntro("wordsearch"),
-    letterwheel: bandsIntro("letterwheel"),
-    strikeout: bandsIntro("strikeout"),
-    codeword: bandsIntro("codeword"),
-    swapword: bandsIntro("swapword"),
+    wordsmith: "Longer words score more. The word using every tile adds a big bonus; {max} only with it.",
+    wordhunt: "Longer words score more; 6+ letters and the gold tile add extra. {max} needs both.",
+    tilegrid: stretchIntro("tilegrid", TILEGRID_STRETCH),
+    wordslide: parBonusIntro("wordslide", "moves"),
+    wordsearch: wordSearchBonusIntro(),
+    letterwheel: letterWheelJarIntro(),
+    strikeout: strikeoutDepthIntro(),
+    codeword: stretchIntro("codeword", CODEWORD_STRETCH),
+    swapword: parBonusIntro("swapword", "swaps"),
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number

@@ -8,10 +8,13 @@ import { toggleWordsmithTile } from "./wordInput";
 import { Shuffle } from "lucide-react";
 import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
-import { scoreWordsmith } from "@/lib/duel/scoring";
+import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import { useStageState } from "@/lib/duel/stageState";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-wordsmith.css";
+
+/** The pangram moment (wordsmithRev 3): the shared moment-card sting, not a completion cue (docs/sound-cues/word.md lists those). */
+const PANGRAM_CUE = "shared.momentcard";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -70,6 +73,9 @@ export function WordsmithPuzzle({
   selectedRef.current = selectedTiles;
   const word = selectedTiles.map((index) => letters[index] ?? "").join("");
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
+  // Word depth (wordsmithRev 3): the pangram badge, the phone's display of a public rule (the server scores it).
+  const pangramRule = (puzzle.wordsmithRev ?? 0) >= WORDSMITH_REV_DEPTH;
+  const pangramFound = found.some((entry) => entry.word.length >= letters.length);
 
   const lockIn = useCallback(() => {
     if (submitted.current) return;
@@ -134,6 +140,7 @@ export function WordsmithPuzzle({
       setMessage(null);
       setAcceptedWord(verdict.word);
       rightMoveFlash(wordBoxRef.current);
+      if (pangramRule && verdict.word.length >= letters.length && !pangramFound) wordCue(PANGRAM_CUE);
     } else {
       setMessage(verdict.reason ?? "Not a word");
       setShake((n) => n + 1);
@@ -231,6 +238,14 @@ export function WordsmithPuzzle({
       </div>
 
       <div data-game-arena="word" data-word-first="" className="relative flex min-h-0 flex-1 flex-col items-center">
+        {pangramRule ? (
+          // Laid over the arena's top-left corner (outside the ring), so it never moves anything when it lights.
+          <div data-pangram-badge={pangramFound ? "found" : "open"} aria-label={pangramFound ? `Pangram found, plus ${WORDSMITH_V3_PANGRAM_BONUS}` : `Pangram: the word using every tile adds ${WORDSMITH_V3_PANGRAM_BONUS}`}
+            className="pointer-events-none absolute left-0 top-0 z-10 flex h-6 items-center gap-1 rounded-full px-2.5 font-mono text-[11px] font-bold uppercase tracking-widest">
+            <span>Pangram</span>
+            <span className="tabular-nums">+{WORDSMITH_V3_PANGRAM_BONUS}</span>
+          </div>
+        ) : null}
         <div className="word-confirmation-board-space word-board-centre">
           <div ref={ringRef} className="word-confirmation-board">
             <WordsmithRing letters={letters} order={order} selected={selectedTiles} disabled={locked || busy} onTap={tapTile} />

@@ -17,6 +17,52 @@ export const WS_WORDS = 6;
  * word are dealt as seeded rebuilds from the theme's other words (wordSearchBankRev2.server.ts).
  */
 export const WS_REV = 2;
+/**
+ * wordSearchRev 3 (25 Oct 2026, word depth d1; docs/depth/d1-word.md): each board hides one more, unlisted on-theme
+ * word (the bonus, `bonus`, private until the reveal; wordSearchBankRev3.server.ts). Finding it is the only way past
+ * 150 (the round's maximum is 200): WS_BONUS_FOUND for finding it, plus up to WS_BONUS_SPEED when all six listed
+ * words are found too, by the share of the clock left (0 at WS_BONUS_SLOW_SHARE, the full part at
+ * WS_BONUS_FAST_SHARE). Found without finishing it adds WS_BONUS_UNFINISHED (an unfinished round stays under every
+ * finish). A drag on the bonus never counts as a wrong pick.
+ */
+export const WS_DEPTH_REV = 3;
+export const WS_BONUS_FOUND = 20;
+export const WS_BONUS_SPEED = 30;
+export const WS_BONUS_UNFINISHED = 9;
+export const WS_BONUS_SLOW_SHARE = 0.5;
+export const WS_BONUS_FAST_SHARE = 0.9;
+
+/** True for a board that hides a bonus word (wordSearchRev 3 and later). */
+export function wsHasBonus(puzzle: { wordSearchRev?: number | undefined }): boolean {
+  return (puzzle.wordSearchRev ?? 0) >= WS_DEPTH_REV;
+}
+
+/**
+ * The bonus word's points (rev 3): 0 unless found; found without the six, WS_BONUS_UNFINISHED; with all six found,
+ * WS_BONUS_FOUND plus WS_BONUS_SPEED × the share of the clock left between the slow and fast shares.
+ */
+export function wsBonusPoints(bonusFound: boolean, finished: boolean, leftShare: number): number {
+  if (!bonusFound) return 0;
+  if (!finished) return WS_BONUS_UNFINISHED;
+  const l = Number.isFinite(leftShare) ? leftShare : 0;
+  const s = Math.max(0, Math.min(1, (l - WS_BONUS_SLOW_SHARE) / (WS_BONUS_FAST_SHARE - WS_BONUS_SLOW_SHARE)));
+  return WS_BONUS_FOUND + Math.round(WS_BONUS_SPEED * s);
+}
+
+/** Rev 3: the player's selections split into the bonus drags and the rest (only the rest are graded as today). */
+export function wsSplitBonus(
+  bonus: WordSearchPlacement | undefined,
+  selections: readonly number[][],
+): { bonusFound: boolean; rest: number[][] } {
+  if (!bonus) return { bonusFound: false, rest: [...selections] };
+  const rest: number[][] = [];
+  let bonusFound = false;
+  for (const cells of selections) {
+    if (wsMatch([bonus], cells) === 0) bonusFound = true;
+    else rest.push(cells);
+  }
+  return { bonusFound, rest };
+}
 
 /** Joining words in theme names that never count as the theme ("Toys and games", "On the farm"). */
 const WS_THEME_STOP = new Set(["AND", "THE"]);
@@ -146,15 +192,24 @@ export function wsGrade(
   return { found: [...found].sort((a, b) => a - b), wrong };
 }
 
-/** Live check of one drag, against the private placements. */
+/**
+ * Live check of one drag, against the private placements. Rev 3: a drag on the private bonus answers
+ * `{ valid: true, bonus: true, word }` (the stage shows it in the bonus chip, never in the six); any other drag
+ * answers as before, so the bonus never leaks before it is found.
+ */
 export function checkWordSearchPath(
   placements: readonly WordSearchPlacement[],
   size: number,
   path: readonly number[],
   already: readonly string[],
-): { valid: boolean; points: number; word: string; reason?: string } {
+  bonus?: WordSearchPlacement,
+): { valid: boolean; points: number; word: string; reason?: string; bonus?: boolean } {
   const line = path.length >= 2 ? wsLine(path[0]!, path[path.length - 1]!, size) : null;
   if (!line || line.join(".") !== path.join(".")) return { valid: false, points: 0, word: "", reason: "Not a line" };
+  if (bonus && wsMatch([bonus], line) === 0) {
+    if (already.map((w) => w.toUpperCase()).includes(bonus.word)) return { valid: false, points: 0, word: bonus.word, reason: "Already found" };
+    return { valid: true, points: 0, word: bonus.word, bonus: true };
+  }
   const i = wsMatch(placements, line);
   if (i < 0) return { valid: false, points: 0, word: "", reason: "Not a hidden word" };
   const word = placements[i]!.word;

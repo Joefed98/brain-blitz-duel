@@ -6,6 +6,7 @@
 import { answerWords } from "./dictionary.server";
 import {
   SWAPWORD_REV,
+  SWAPWORD_REV3,
   SW_SLOTS,
   SW_SLOT_TILES,
   SW_TILES,
@@ -17,6 +18,7 @@ import {
   type SwView,
 } from "./swapword";
 import type { SwapwordPuzzleData } from "./types";
+import { dealtDepthRev } from "./wordDepth";
 import { rngBelow, rngShuffle, seededRng } from "./wordSeed.server";
 
 export const SW_MIN_TARGET = 9;
@@ -166,6 +168,8 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
 
 /** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 3: budget minimum + 8; rev 2's boards). */
 export function generateSwapword(seed: number): SwapwordPuzzleData {
+  // Word depth d1: rev 4 (par swaps) deals rev 3's boards and budget; a check pinning the pre-depth stamps gets rev 3.
+  const rev = dealtDepthRev(SWAPWORD_REV, SWAPWORD_REV3);
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {
     const solution = fillWords(rng);
@@ -191,10 +195,10 @@ export function generateSwapword(seed: number): SwapwordPuzzleData {
       const min = minSwaps(start, solution);
       const puzzle: SwapwordPuzzleData = {
         type: "swapword",
-        swapwordRev: SWAPWORD_REV,
+        swapwordRev: rev,
         start,
         minSwaps: min,
-        maxSwaps: swapwordBudget(min, SWAPWORD_REV),
+        maxSwaps: swapwordBudget(min, rev),
         solution,
       };
       if (swapwordRuleBreak(puzzle) === null) return puzzle;

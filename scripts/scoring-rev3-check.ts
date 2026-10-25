@@ -43,6 +43,10 @@ import { KNOWN_SPAM } from "./puzzle-fairness";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinPreDepth, WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
+
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -261,7 +265,10 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(dealt.size === 1 && dealt.has((DEALT_LIMIT_S[type] ?? 0) * 1000), `${type}: the help's clock ${DEALT_LIMIT_S[type]} s, dealt ${[...dealt].join("/")} ms`);
   const n = fastFinishSeconds(type);
   ok(n === rev3FastFinishSeconds(type, [...dealt][0]!), `${type}: help says 150 in ${n} s`);
-  ok(rev3Help(type).includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === rev3Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
+  ok(rev3Help(type).includes(`about ${n} s with no mistakes`), `${type}: the rev-3 help states its numbers`);
+  // Word depth (25 Oct 2026): the nine word games state their depth curves (proved by their depth-<game>-checks).
+  if (WORD_DEPTH_GAMES.includes(type)) continue;
+  ok(PUZZLE_INSTRUCTIONS[type]?.score === rev3Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
   ok(INTRO_SCORE[type] === rev3Intro(type) && rev3Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
 }
 

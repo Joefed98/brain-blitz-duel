@@ -94,3 +94,14 @@
     transition: none;
   }
 }
+
+/* Word depth (strikeoutRev 5, 25 Oct 2026): the early-solve pill, the gold of a solved word, lifted like the tiles. */
+[data-word-polish="strikeout"] .so-early-pill {
+  color: var(--primary-foreground);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 100%, white 18%), var(--primary));
+  border: 1px solid color-mix(in srgb, var(--primary) 70%, white 30%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 0 10px color-mix(in srgb, var(--primary) 45%, transparent),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}

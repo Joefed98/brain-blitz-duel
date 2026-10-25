@@ -1,6 +1,6 @@
 import { useGameKeys } from "@/lib/desktop";
 import { playWrong } from "@/lib/sound";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AcceptedWordChip } from "./AcceptedWordChip";
 import { extendWordHuntPath, wordHuntInnerCell } from "./wordInput";
 
@@ -9,11 +9,12 @@ import {
   hapticTick,
 } from "@/components/puzzles/GridDrag";
 import {
-  WORDHUNT_COLS as N,
+  wordHuntCols,
   WORDHUNT_MIN_LENGTH,
   WORDHUNT_TIME_MS,
   type WordHuntPuzzleData,
 } from "@/lib/duel/types";
+import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue } from "@/lib/duel/wordHunt";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useStageState } from "@/lib/duel/stageState";
@@ -33,12 +34,20 @@ function encodeHunt(found: readonly Found[], misses: readonly number[][]): strin
   return [...found.map((entry) => `${entry.word}:${entry.path.join("-")}`), ...misses.map((cells) => `${WORDHUNT_MISS_MARK}${cells.join("-")}`)].join(",");
 }
 
-const centre = (cell: number) => ({
+/** A cell's centre in the board's 0–100 box, on a `N`-wide board (5, or 6 on wordHuntRev 3). */
+const centreOn = (N: number) => (cell: number) => ({
   x: ((cell % N) + 0.5) * (100 / N),
   y: (Math.floor(cell / N) + 0.5) * (100 / N),
 });
 
-/** The letter grid, with an optional gold path drawn through it. */
+/** "×1.5", "×2", "×3", "×4": the multiplier a found word scored on wordHuntRev 3 ("" for ×1). */
+function multLabel(base: number, value: number): string {
+  if (!(base > 0) || value === base) return "";
+  const m = value / base;
+  return `×${Number.isInteger(m) ? m : m.toFixed(1)}`;
+}
+
+/** The letter grid, with an optional gold path drawn through it (and, on wordHuntRev 3, the golden tile). */
 export function WordHuntBoard({
   grid,
   path = [],
@@ -47,6 +56,7 @@ export function WordHuntBoard({
   onPathStart,
   gridRef,
   pointer,
+  golden,
 }: {
   grid: string[];
   path?: number[];
@@ -55,9 +65,15 @@ export function WordHuntBoard({
   onPathStart?: (cell: number, event: React.PointerEvent) => void;
   gridRef?: React.Ref<HTMLDivElement>;
   pointer?: { x: number; y: number } | null;
+  golden?: number | undefined;
 }) {
+  const N = wordHuntCols(grid);
+  const centre = centreOn(N);
+  // 6×6 tiles sit a little closer (5 px gaps instead of 6) so each keeps as much width as it can.
+  const gap = N > 5 ? 5 : 6;
   return (
     <div
+      data-wordhunt-board=""
       className="relative aspect-square w-full select-none"
       style={{
         ...(size ? { width: size, height: size } : {}),
@@ -93,8 +109,8 @@ export function WordHuntBoard({
           />
         )}
       </svg>
-      <div ref={gridRef} className="puzzle-board grid h-full w-full gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))` }}>
+      <div ref={gridRef} className="puzzle-board grid h-full w-full"
+        style={{ gridTemplateColumns: `repeat(${N}, minmax(0, 1fr))`, gap }}>
         {grid.map((letter, cell) => {
           const lit = path.includes(cell);
           return (
@@ -102,6 +118,7 @@ export function WordHuntBoard({
               key={cell}
               data-cell={cell}
               data-bw-lit={lit ? "" : undefined}
+              data-golden={cell === golden ? "" : undefined}
               onPointerDown={
                 interactive && onPathStart ? (event) => onPathStart(cell, event) : undefined
               }
@@ -111,7 +128,7 @@ export function WordHuntBoard({
                   : "border-border bg-card text-foreground"
               }`}
               style={{
-                fontSize: `max(10px, calc((100cqw - ${(N - 1) * 6}px) / ${N} * 0.55))`,
+                fontSize: `max(10px, calc((100cqw - ${(N - 1) * gap}px) / ${N} * 0.55))`,
                 lineHeight: 1,
                 touchAction: "none",
               }}
@@ -149,6 +166,11 @@ export function WordHuntPuzzle({
   stateKey = "wordhunt",
 }: WordHuntPuzzleProps) {
   const grid = puzzle.grid;
+  const N = wordHuntCols(grid);
+  const centre = useMemo(() => centreOn(N), [N]);
+  // wordHuntRev 3: long words and the golden tile multiply a word's points (wordHunt.ts); the counter shows them.
+  const depth = wordHuntDepth(puzzle);
+  const golden = depth ? puzzle.golden : undefined;
   const [path, setPath] = useState<number[]>([]);
   const [found, setFound] = useStageState<Found[]>(stateKey, "wordHuntFound", () => []);
   // wordHuntRev 2: traces of 4+ letters the check rejected; the server judges which are misses.
@@ -172,6 +194,12 @@ export function WordHuntPuzzle({
   missesRef.current = misses;
 
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
+  /** What each found word shows on this board: its points, multiplied on wordHuntRev 3. */
+  const valueOf = (entry: Found) => (depth ? wordHuntValue(entry.word, entry.path, golden).value : entry.points);
+  const shownPoints = depth ? found.reduce((sum, entry) => sum + valueOf(entry), 0) : points;
+  const depthScore = depth
+    ? scoreWordHuntDepth(points, found.reduce((sum, entry) => sum + (valueOf(entry) - entry.points), 0)).score
+    : 0;
 
   const lockIn = useCallback(() => {
     if (submitted.current) return;
@@ -187,7 +215,7 @@ export function WordHuntPuzzle({
   }, [found, misses, onDraftAnswer]);
 
   // A run worth 120+ on this phone's count: a ripple runs out across the letter grid (display only).
-  useWordFinish(runEnded && scoreWordHunt(points, puzzle.wordHuntRev) >= WORD_FINISH_SCORE, () => {
+  useWordFinish(runEnded && (depth ? depthScore : scoreWordHunt(points, puzzle.wordHuntRev)) >= WORD_FINISH_SCORE, () => {
     wordCue("wordhunt.finish");
     const mid = (N - 1) / 2;
     const steps: FinishStep[] = [...(gridRef.current?.children ?? [])].map((el, cell) => ({
@@ -243,7 +271,10 @@ export function WordHuntPuzzle({
       ]);
       setFlash("good");
       setMessage(null);
-      setAcceptedWord(verdict.word);
+      if (depth) {
+        const v = wordHuntValue(verdict.word, cells, golden);
+        setAcceptedWord(`${verdict.word}${v.extra > 0 ? ` ${multLabel(v.base, v.value)}` : ""}${v.gold ? " ★" : ""} · ${v.value}`);
+      } else setAcceptedWord(verdict.word);
       hapticTick();
       cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
     } else {
@@ -252,7 +283,7 @@ export function WordHuntPuzzle({
       setMessage(verdict.reason ?? "Not a word");
       if (sendsMisses) setMisses((current) => (current.length >= WORDHUNT_MAX_MISSES ? current : [...current, cells]));
     }
-  }, [checkWord, wordOf, sendsMisses]);
+  }, [checkWord, wordOf, sendsMisses, depth, golden]);
 
   // Desktop keys: typing a letter taps a cell with it next to the path's end (the first such cell; anywhere to
   // start), Backspace taps the end again (taking it off), Enter submits the word.
@@ -317,7 +348,7 @@ export function WordHuntPuzzle({
     setPath(next);
     setPointer(centre(cell));
     hapticTick();
-  }, []);
+  }, [N, centre]);
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -376,21 +407,21 @@ export function WordHuntPuzzle({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [finish, tapCell]);
+  }, [finish, tapCell, N]);
 
   // Batch W live summary (display only): what the status line shows when no message is up.
-  const best = found.reduce<Found | null>((top, entry) => (!top || entry.points > top.points || (entry.points === top.points && entry.word.length > top.word.length) ? entry : top), null);
+  const best = found.reduce<Found | null>((top, entry) => (!top || valueOf(entry) > valueOf(top) || (valueOf(entry) === valueOf(top) && entry.word.length > top.word.length) ? entry : top), null);
   const summary = path.length > 0
     ? `${path.length} letter${path.length === 1 ? "" : "s"}${path.length < WORDHUNT_MIN_LENGTH ? ` · ${WORDHUNT_MIN_LENGTH} needed` : ""}`
     : best
-      ? `Best ${best.word} · ${best.points} pts`
+      ? `Best ${best.word} · ${valueOf(best)} pts`
       : `Drag through touching letters · ${WORDHUNT_MIN_LENGTH}+`;
 
   return (
     <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="grid grid-cols-2 items-center font-mono text-base font-semibold uppercase text-foreground">
         <span>
-          points <span className="text-primary">{points}</span>
+          points <span className="text-primary">{shownPoints}</span>
         </span>
         <span className="text-right">words: {found.length}</span>
       </div>
@@ -410,6 +441,7 @@ export function WordHuntPuzzle({
             onPathStart={startTrace}
             gridRef={gridRef}
             pointer={pointer}
+            golden={golden}
           />
         </div>
         </div>

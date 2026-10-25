@@ -48,6 +48,9 @@ import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/ty
 import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
 import { FLOOD_REV2_SPARE_MOVES } from "../src/lib/duel/moveLimits";
 import { pinDealtPuzzleScoreRev } from "../src/lib/duel/puzzleScoreRev";
+import { pinPreDepth, WORD_DEPTH_GAMES } from "../src/lib/duel/wordDepth";
+// Word depth (25 Oct 2026): this check proves the pre-depth stamps; new deals of the nine word games are pinned to them.
+pinPreDepth(true);
 
 // This check proves puzzleScoreRev 2 (the score bands): new deals are pinned to it. Rooms deal 3 (scoring-rev3-check).
 pinDealtPuzzleScoreRev(2);
@@ -257,7 +260,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+    // Word depth (25 Oct 2026): the nine word games state their depth curves (their depth-<game>-checks prove them).
+    if (!WORD_DEPTH_GAMES.includes(type)) ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

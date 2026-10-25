@@ -5,7 +5,9 @@ import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
-import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
+import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
+import { fx } from "@/lib/fx";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { buzz } from "@/lib/motion";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
@@ -21,6 +23,7 @@ function Grid({
   live,
   bad,
   missedPath,
+  bonusHint,
   pointer,
   small = false,
   foundPaths = [],
@@ -32,6 +35,8 @@ function Grid({
   bad?: ReadonlySet<number>;
   /** Reveal: cells along every word the player did not find. */
   missedPath?: ReadonlySet<number>;
+  /** Reveal (wordSearchRev 3): the bonus word's cells when the player missed it (a gold outline, not a miss). */
+  bonusHint?: ReadonlySet<number>;
   pointer?: ReturnType<typeof useGridPointer>;
   small?: boolean;
   foundPaths?: readonly (readonly number[])[];
@@ -56,7 +61,7 @@ function Grid({
               : missedOnly
                 ? "bg-destructive/15 text-destructive"
                 : "bg-card text-foreground";
-        const missedOutline = missedPath?.has(cell) ? "ring-2 ring-inset ring-destructive" : "";
+        const missedOutline = missedPath?.has(cell) ? "ring-2 ring-inset ring-destructive" : bonusHint?.has(cell) && !gold.has(cell) ? "ring-2 ring-inset ring-primary/70" : "";
         return (
           <div
             key={cell}
@@ -105,6 +110,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const key = stateKey ?? "wordsearch";
   const [selections, setSelections] = useStageState<number[][]>(key, "wsSelections", () => []);
   const [found, setFound] = useStageState<WordSearchPlacement[]>(key, "wsFound", () => []);
+  // wordSearchRev 3: the hidden bonus word, once the server confirmed a drag on it (display only; the server grades).
+  const [bonus, setBonus] = useStageState<WordSearchPlacement | null>(key, "wsBonus", () => null);
+  const bonusChip = useRef<HTMLSpanElement | null>(null);
   const [line, setLine] = useState<number[]>([]);
   const [bad, setBad] = useState<number[]>([]);
   const start = useRef<number | null>(null);
@@ -149,9 +157,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       setLine([]);
       if (path.length < 2 || !checkWord) return;
       setSelections((s) => [...s, path]);
-      const already = found.map((f) => f.word);
+      const already = [...found.map((f) => f.word), ...(bonus ? [bonus.word] : [])];
       void checkWord("", already, path).then((verdict) => {
-        if (verdict.valid) {
+        if (verdict.valid && (verdict as { bonus?: boolean }).bonus) {
+          buzz(18);
+          fx.onCorrect();
+          setBonus((b) => b ?? { word: verdict.word, cells: path });
+          rightMoveFlash(bonusChip.current);
+        } else if (verdict.valid) {
           buzz(12);
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
         } else if (verdict.reason !== "Already found") {
@@ -185,7 +198,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   });
 
   if (!data) return null;
-  const gold = new Set(found.flatMap((f) => f.cells));
+  const hasBonus = wsHasBonus(data);
+  const gold = new Set([...found.flatMap((f) => f.cells), ...(bonus?.cells ?? [])]);
   // Stored rounds before rev 1 carry no lengths and keep their blank chips.
   const slots = wsChipSlots(data.wordLengths, found.map((f) => f.word));
   return (
@@ -200,7 +214,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
-          <Grid grid={data.grid} size={size} gold={gold} foundPaths={found.map(f => f.cells)} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
+          <Grid grid={data.grid} size={size} gold={gold} foundPaths={[...found.map((f) => f.cells), ...(bonus ? [bonus.cells] : [])]} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>
       </div>
       <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
@@ -220,6 +234,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
               {found.map((entry) => <span key={entry.word} className="lookout-word-chip">{entry.word}</span>)}
               {Array.from({ length: Math.max(0, total - found.length) }, (_, i) => <span key={`empty-${i}`} className="lookout-word-placeholder" aria-label="Word still to find" />)}
             </>}
+        {hasBonus ? (
+          // Rev 3: the hidden bonus word's chip, drawn from the first paint at a fixed size so nothing moves when it fills.
+          <span
+            ref={bonusChip}
+            className="lookout-bonus-chip"
+            data-ws-chip="bonus"
+            data-found={bonus ? "" : undefined}
+            aria-label={bonus ? `Bonus word found: ${bonus.word}` : "Bonus word: one more theme word is hidden"}
+          >
+            <span aria-hidden="true" className="lookout-bonus-star">★</span>
+            <span aria-hidden="true" className="lookout-bonus-text">{bonus ? bonus.word : "?"}</span>
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -230,16 +257,19 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "wordsearch") return null;
   const placements = puzzle.placements ?? [];
-  const verdict = wsGrade(placements, wsDecode(myAnswer ?? "", puzzle.size));
+  // Rev 3: the bonus word's drags are set aside as the grader does.
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size));
+  const verdict = wsGrade(placements, split.rest);
+  const bonusCells = puzzle.bonus?.cells ?? [];
   const foundSet = new Set(verdict.found);
-  const gold = new Set(verdict.found.flatMap((i) => placements[i]?.cells ?? []));
+  const gold = new Set([...verdict.found.flatMap((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? bonusCells : [])]);
   const missed = new Set(placements.flatMap((p, i) => (foundSet.has(i) ? [] : p.cells)));
   const all = verdict.found.length === placements.length && placements.length > 0;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
     <div data-word-reveal="wordsearch" className="flex w-full flex-col items-center gap-2">
       <div style={{ width: "min(100%, 256px)", containerType: "inline-size" }}>
-        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={verdict.found.map(i => placements[i]?.cells ?? [])} missedPath={missed} small />
+        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPath={missed} bonusHint={new Set(bonusCells)} small />
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 font-mono text-sm uppercase tracking-wider">
         {placements.map((p, i) => (
@@ -249,6 +279,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
             <span className="ml-0.5 align-super text-[10px] opacity-70">{p.word.length}</span>
           </span>
         ))}
+        {puzzle.bonus ? (
+          <span data-ws-reveal-word={puzzle.bonus.word} data-ws-reveal-bonus={split.bonusFound ? "found" : "missed"} className={split.bonusFound ? "text-primary" : "text-muted-foreground"}>
+            ★ {puzzle.bonus.word}
+            <span className="ml-0.5 align-super text-[10px] opacity-70">bonus</span>
+          </span>
+        ) : null}
       </div>
       <p className="font-mono text-base text-primary">
         {all
