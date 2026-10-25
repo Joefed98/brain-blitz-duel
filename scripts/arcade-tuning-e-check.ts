@@ -23,6 +23,7 @@
  *   bun scripts/arcade-tuning-e-check.ts          (TUNING_E_ONLY=hover,snip,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { SNAKE_REV_STRICT } from "../src/lib/arcade/snake";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -153,7 +154,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   const stamps: [string, string, number | undefined, number][] = [
     ["skyline", "skylineRev", playRevOf("skyline", generateSkyline().skylineRev), SKYLINE_REV_TALL],
     // Tuning F moved Meteor rooms on to snakeRev 6: the same tall grid with more rocks (arcade-tuning-f-check).
-    ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS],
+    // Expansion E2 (25 Oct 2026) moved rooms on to the 200-point revisions (expansion-e2-check); the score-bands revision dealt before keeps this play.
+    ["snake", "snakeRev", playRevOf("snake", SNAKE_REV_STRICT), SNAKE_REV_ROCKS],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
@@ -465,7 +467,7 @@ if (want("snip")) {
 }
 // Screen audit Oct 2026: a plain line and a good run from the curve rooms deal (arcade-help-bands-check).
 if (want("hover")) ok(PUZZLE_INSTRUCTIONS.hover.score.includes("A good run (100 points) counts 42 – about 14 barriers"), "Hover's help states a good run on hoverRev 5's curve");
-if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 33") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 21 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 6 since Tuning F, arcade-tuning-f-check)");
+if (want("snake")) ok(PUZZLE_INSTRUCTIONS.snake.score.includes("150 at 31") && PUZZLE_INSTRUCTIONS.snake.score.includes("A good run (100 points) eats 22 stars"), "Meteor's help states the top and a good run rooms deal (snakeRev 9 since expansion E2, expansion-e2-check)");
 
 if (failures.length) {
   console.log(failures.slice(0, 60).join("\n"));

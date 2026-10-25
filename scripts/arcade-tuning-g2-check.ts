@@ -30,6 +30,7 @@
  *   bun scripts/arcade-tuning-g2-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { BEAT_REV_STRICT, BEAT_REV_200 } from "../src/lib/arcade/beat";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -203,7 +204,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g2-legacy.json", "
 /* ============================== 2. New rounds ============================== */
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
+  // Expansion E2 (25 Oct 2026) moved rooms on to the 200-point revisions (expansion-e2-check); the score-bands revision dealt before keeps this play.
+  ok(playRevOf("beat", BEAT_REV_STRICT) === BEAT_REV_TALL, "the score-bands revision rooms dealt before expansion E2 keeps beatRev 6 play");
   ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
   ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
@@ -521,7 +523,7 @@ section("Mixed Signals clashRev 5: the gentler unfinished credit");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_TALL\) return null/.test(src), "Tempo's demo plays only on beatRev 6");
+  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_200\) return null/.test(src), "Tempo's demo plays only on beatRev 9 (expansion E2; beatRev 6 before it)");
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
   ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== BUB_REV_TALL\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 5");
   ok(/data\.type === "stroop" && demo\?\.puzzle\.type === "stroop" && demo\.puzzle\.clashRev !== CLASH_REV_TALL\) return null/.test(src), "Mixed Signals' demo plays only on clashRev 5");

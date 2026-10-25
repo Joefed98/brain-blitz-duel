@@ -51,7 +51,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_V4_BAND_CURVE, BEAT_REV_STRICT } from "../src/lib/arcade/beat";
 import {
   wavDropPx,
   wavefrontGameFor,
@@ -170,7 +170,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
-    ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1],
+    // Expansion E2 (25 Oct 2026) moved Tempo on to beatRev 9 (expansion-e2-check); the score-bands revision rooms dealt before it keeps beatRev 6 play.
+    ["beat", playRevOf("beat", BEAT_REV_STRICT), BEAT_REV_TUNEF + 1],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
     ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
@@ -224,8 +225,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
     }
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
-  // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
+  // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 9 since expansion E2; arcade-help-bands-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 824"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

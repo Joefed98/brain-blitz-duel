@@ -11,6 +11,7 @@
  *
  *   bun scripts/arcade-batch5-check.ts        (BATCH5_ONLY=bintoss,bullseye,rally,beat,inkbridge,orbit)
  */
+import { BEAT_REV_STRICT } from "../src/lib/arcade/beat";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
@@ -276,7 +277,8 @@ if (want("rally")) {
 if (want("beat")) {
   section("Tempo beatRev 2 (swipe notes in the second half)");
   const game = beatGameFor(BEAT_REV);
-  ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TUNEF + 1 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 6 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
+  // Expansion E2 (25 Oct 2026) moved rooms on to the 200-point revisions (expansion-e2-check); the score-bands revision dealt before keeps this play.
+  ok(playRevOf("beat", BEAT_REV_STRICT) === BEAT_REV_TUNEF + 1 && BEAT_REV_TUNEC === 4, "new rounds are stamped beatRev 6 (rev 2 play on the score bands; Tuning C curve; Tuning F thinner chart, arcade-tuning-f-check; the taller lanes, arcade-tuning-g2-check)");
   ok(beatGameFor(undefined) === beatGame && beatGame.init(5).chart.swipes === undefined, "unstamped rounds keep the original game");
   let swipeTotal = 0;
   for (const seed of SEEDS(200, 7919)) {

@@ -31,6 +31,7 @@
  *   bun scripts/arcade-tuning-g1-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { BURST_REV_STRICT, BURST_REV_200 } from "../src/lib/arcade/burst";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -162,7 +163,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL, "rooms deal brkRev 6");
   ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
   ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL, "rooms deal wavRev 6");
-  ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
+  // Expansion E2 (25 Oct 2026) moved rooms on to the 200-point revisions (expansion-e2-check); the score-bands revision dealt before keeps this play.
+  ok(playRevOf("burst", BURST_REV_STRICT) === BURST_REV_TALL, "the score-bands revision rooms dealt before expansion E2 keeps burstRev 4 play");
 
   ok(breakerWorldHFor(BRK_REV_TALL) === 730 && breakerWorldHFor(BRK_REV_TUNEF) === BRK_WORLD_H && breakerWorldHFor(undefined) === 620, "Breaker world heights by revision");
   ok(rallyWorldHFor(RALLY_REV_TALL) === 730 && rallyWorldHFor(RALLY_REV_TUNEF) === RALLY_WORLD_H && rallyWorldHFor(undefined) === 620, "Rally world heights by revision");
@@ -350,7 +352,7 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== BRK_REV_TALL\) return null/.test(src), "Breaker's demo plays only on brkRev 6");
   ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== RALLY_REV_TALL\) return null/.test(src), "Rally's demo plays only on rallyRev 6");
   ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_TALL\) return null/.test(src), "Wavefront's demo plays only on wavRev 6");
-  ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_TALL\) return null/.test(src), "Fission's demo plays only on burstRev 4");
+  ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_200\) return null/.test(src), "Fission's demo plays only on burstRev 7 (expansion E2; burstRev 4 before it)");
 }
 
 if (failures.length) {
