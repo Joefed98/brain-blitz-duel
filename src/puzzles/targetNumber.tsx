@@ -26,6 +26,9 @@ import {
 } from "@/lib/duel/types";
 
 import { useStageState } from "@/lib/duel/stageState";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-target.css";
 import { fastFinishSeconds } from "@/lib/duel/puzzleBandsText";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -225,8 +228,11 @@ function TargetStage({
     onSubmit(encodeSteps(list));
   };
 
-  const refuse = () => {
+  const refuse = (tapped?: Tile) => {
     setShake((n) => n + 1);
+    // Polish batch W: the refused number also gets the shared red outline (its "wrong" already plays),
+    // found after the shake's re-render has drawn the row again.
+    if (tapped) requestAnimationFrame(() => wrongMoveFlash(rootRef.current?.querySelector(`[data-tile-id="${tapped.id}"]`), false));
     playWrong();
     buzz(20);
     setSelectedId(null);
@@ -273,7 +279,7 @@ function TargetStage({
     const first = pool.find((t) => t.id === selectedId);
     if (!first) return refuse();
     const result = applyOperation(first.value, tile.value, operator);
-    if (result === null) return refuse();
+    if (result === null) return refuse(tile);
 
     const step: TargetStep = { a: first.value, b: tile.value, operator, result };
     const before = pool.map((entry) => ({ ...entry }));
@@ -389,6 +395,15 @@ function TargetStage({
             ))
           )}
         </div>
+        {/* The live summary (polish batch W): numbers left, steps, the closest number so far. */}
+        <LiveSummary
+          testId="target"
+          parts={[
+            <><b>{pool.filter((t) => t.active).length}</b> numbers left</>,
+            <><b>{steps.length}</b> step{steps.length === 1 ? "" : "s"}</>,
+            closest !== null && (away === 0 ? <b>On target</b> : <>Closest <b>{closest}</b> · {away} away</>),
+          ]}
+        />
       </div>
 
       <div key={shake} data-game-controls="numbers" className={shake > 0 ? "animate-shake" : ""}>

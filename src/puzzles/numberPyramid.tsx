@@ -1,6 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
@@ -23,6 +23,9 @@ import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
+import { GoalLineContext } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-numpyramid.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -182,6 +185,9 @@ interface Drag {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const column = useGameColumnLayout();
+  // Batch W: inside a live round's frame the goal line shows "Stage n of 4", so the stage's own
+  // "Pyramid n of 4" text gives way to the live summary (same row, same height).
+  const framed = Boolean(useContext(GoalLineContext));
   const data: NumberPyramidPuzzleData | null = puzzle.type === "numpyramid" ? puzzle : null;
   const key = stateKey ?? "numpyramid";
   const [stage, setStage] = useStageState<number>(key, "numPyramidStage", () => 0);
@@ -238,6 +244,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   if (!data || !board) return null;
   const placedTray = new Set(Object.values(placements));
   const filled = npFilled(board.givens, board.tray, placements);
+  const givenCount = board.givens.filter((g) => g != null).length;
+  const emptyCount = board.givens.length - givenCount;
+  const placedCount = Object.keys(placements).length;
   // The plinth runs 4px past each side of the bottom row.
   const widthFit = Math.floor((size.width - (board.rows - 1) * 4 - 12) / board.rows);
   const cellW = Math.max(44, widthFit);
@@ -307,7 +316,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       {column && <div className="np-spacer" aria-hidden />}
       <StageProgress stage={stage} total={NP_SET_SIZE} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">
-        <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
+        {framed ? (
+          <div className="min-w-0 flex-1">
+            <LiveSummary
+              testId="numpyramid"
+              parts={[
+                `${givenCount} given`,
+                `${placedCount} placed`,
+                complete ? "complete" : `${Math.max(0, emptyCount - placedCount)} to go`,
+              ]}
+            />
+          </div>
+        ) : (
+          <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
+        )}
         <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>Skip</Button>
       </div>
       <StageCorrect visible={holding} />

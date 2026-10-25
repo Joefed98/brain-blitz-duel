@@ -1,0 +1,20 @@
+/* Polish batch W (25 Oct 2026, display only): Counterweight. Imported only from src/puzzles/balance.tsx. */
+
+/* The rack is a well the weights sit in; each cup keeps its brass ring and gains a light top edge and a soft shadow. */
+[data-polish="balance"] .bal-rack {
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-polish="balance"] .bal-tray-cup {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 236, 190, 0.18),
+    0 4px 9px rgba(0, 0, 0, 0.5);
+}
+/* The picked weight: a soft glow in the category colour (the lift is the game's own). */
+[data-polish="balance"] .bal-tray-cup[data-selected="true"] {
+  box-shadow:
+    0 0 0 2px var(--category-accent),
+    0 0 16px color-mix(in srgb, var(--category-accent) 55%, transparent),
+    0 6px 10px rgba(0, 0, 0, 0.45);
+}

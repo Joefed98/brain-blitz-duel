@@ -1,0 +1,22 @@
+/* Polish batch W (25 Oct 2026, display only): Brimful. Imported only from src/puzzles/measure.tsx. */
+
+/* The picked jug glows softly in the category colour (was the app's gold). Solved jugs keep their gold. */
+[data-polish="measure"][data-play-area] .mj-glass[data-selected]:not([data-solved]) {
+  border-color: var(--category-accent);
+  box-shadow:
+    0 0 0 2px var(--category-accent),
+    0 0 20px -2px color-mix(in srgb, var(--category-accent) 60%, transparent);
+}
+
+/* Each jug's glass stands on a soft contact shadow, so the jugs sit on the tray rather than float. */
+[data-polish="measure"][data-play-area] [data-measure-jug] > div:first-child::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent);
+  pointer-events: none;
+}

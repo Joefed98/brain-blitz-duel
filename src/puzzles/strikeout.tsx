@@ -34,6 +34,9 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-strikeout.css";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One strike marker per strike allowed (five, ten from rev 3 or twelve from rev 4, drawn smaller); used ones are filled red. */
@@ -75,6 +78,7 @@ function Row({
   selected,
   onTap,
   tile,
+  tileH,
   rowIndex,
 }: {
   letters: string[];
@@ -83,9 +87,12 @@ function Row({
   onTap?: (() => void) | undefined;
   /** Tile side: px, or a CSS length such as the board's --so-tile. */
   tile: number | string;
+  /** Tile height when it differs from its width (batch W: Strikeout's live row is a little taller than wide). */
+  tileH?: string | undefined;
   rowIndex: number;
 }) {
   const side = typeof tile === "number" ? `${tile}px` : tile;
+  const height = tileH ?? side;
   return (
     <div
       role={onTap ? "button" : undefined}
@@ -99,7 +106,7 @@ function Row({
           data-so-tile={`${rowIndex}-${i}`}
           data-so-look={looks[i] ?? "hidden"}
           className={`so-tile flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
-          style={{ width: side, height: side, fontSize: `calc(${side} * 0.55)` }}
+          style={{ width: side, height, fontSize: `calc(${side} * 0.55)` }}
         >
           {ch || "\u00a0"}
         </span>
@@ -573,8 +580,12 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
     return "plain";
   };
 
-  // One row of up to eight tiles, as large as the arena allows.
-  const tileSize = "min(52px, calc((100cqw - 44px) / 8), calc((100cqh - 56px) / 1.6))";
+  // One row of up to eight tiles, as large as the arena allows: batch W (display only) fills the tray's
+  // width with the word's own length (4px gaps, 8px for the row's ring) and stands each tile a fifth
+  // taller than wide, never smaller than before (the height limit is the old one).
+  const tileCount = Math.max(1, pattern.length || 8);
+  const tileSize = `min(64px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
+  const tileHeight = "min(calc(var(--so-tile) * 1.2), calc((100cqh - 56px) / 1.6))";
   let k = 0;
   const letters = [...shown].map((ch) => (ch === "_" ? (isSolving ? (typed[k++] ?? "") : "") : ch));
   k = 0;
@@ -609,11 +620,12 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             selected={isSolving}
             rowIndex={cur}
             tile="var(--so-tile)"
+            tileH={tileHeight}
             onTap={done ? undefined : toggleSolve}
           />
           <div className="flex min-h-5 flex-wrap justify-center gap-1" aria-label="Solved words">
             {solvedWords.map((w, i) => (
-              <span key={i} data-so-solved={i} className="rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
+              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
                 {w}
               </span>
             ))}
@@ -627,6 +639,16 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
           <span className="text-primary">Type the missing letters, then Solve</span>
         ) : pendingSolve ? (
           <span>Checking…</span>
+        ) : mine.length > 0 ? (
+          // Batch W: the live summary once this word has a guess (what the board and keypad already show).
+          <LiveSummary
+            testId="strikeout"
+            parts={[
+              <><b>{hits.size}</b> found</>,
+              <><b>{misses.size}</b> missed</>,
+              <><b>{holes.length}</b> to go</>,
+            ]}
+          />
         ) : (
           <span>Tap a letter · Solve to guess the word</span>
         )}

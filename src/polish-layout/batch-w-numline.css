@@ -1,0 +1,24 @@
+/* Polish batch W (25 Oct 2026, display only): Ballpark. Imported only from src/puzzles/numline.tsx. */
+
+/* In a live round the frame's dock already ends 16px above the home-bar inset (pad-game-safe), so
+   Place's own 16px pad doubled it; the live summary takes that space instead. Intros and demos
+   (no [data-puzzle-play]) keep the pad, so recorded touches still land. */
+[data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] {
+  padding-bottom: 0;
+}
+
+/* The number card: a light top edge and a deeper soft shadow, in its own colours. */
+[data-puzzle-play] [data-polish="numline"] .numline-card {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 16%, transparent),
+    inset 0 -2px 0 rgb(0 0 0 / 0.25),
+    0 8px 18px -8px rgb(0 0 0 / 0.75);
+}
+
+/* Place: a light top edge and a soft glow in the category colour while a marker is ready. */
+[data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] > button:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 0 16px color-mix(in srgb, var(--category-accent) 40%, transparent);
+}

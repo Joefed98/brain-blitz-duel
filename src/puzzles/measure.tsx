@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
@@ -23,6 +23,9 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { GoalLineContext } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-measure.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -411,6 +414,8 @@ function Stage({
   stateKey = "measure",
 }: PuzzleStageProps) {
   const data: MeasurePuzzleData | null = puzzle.type === "measure" ? puzzle : null;
+  // Batch W: in a live round the goal line shows "Stage n of 3", so the row drops its "Puzzle n of 3".
+  const framed = Boolean(useContext(GoalLineContext));
   const [stage, setStage] = useStageState<number>(stateKey, "measureStage", () => 0);
   const [allActions, setAllActions] = useStageState<MeasureAction[][]>(
     stateKey,
@@ -567,7 +572,7 @@ function Stage({
   const litre = Math.max(6, Math.min(30, Math.floor((size.height - 56) / maxCap)));
   const atStart = replay.amounts.every((v, i) => v === board.start[i]);
   const button =
-    "h-11 min-w-[72px] flex-1 rounded-xl border border-border font-mono text-xs uppercase tracking-widest text-foreground disabled:opacity-40";
+    "gf-glass h-11 min-w-[72px] flex-1 rounded-xl border border-border font-mono text-xs uppercase tracking-widest text-foreground disabled:opacity-40";
 
   return (
     <div
@@ -579,9 +584,9 @@ function Stage({
     >
       <PolishStyle id="measure" css={MEASURE_CSS} />
       <StageProgress stage={stage} total={MEASURE_BOARDS} />
-      <div className="flex h-9 w-full shrink-0 items-center justify-between gap-2">
+      <div className={`flex ${framed ? "h-8" : "h-9"} w-full shrink-0 items-center justify-between gap-2`}>
         <p className="font-mono text-xs uppercase text-muted-foreground">
-          Puzzle {stage + 1} of {MEASURE_BOARDS} · moves{" "}
+          {framed ? "Moves" : `Puzzle ${stage + 1} of ${MEASURE_BOARDS} · moves`}{" "}
           <span className={outOfMoves ? "text-warn" : "text-primary"} data-move-limit={moveLimit ?? undefined}>
             {moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}
           </span>
@@ -609,13 +614,28 @@ function Stage({
           onJug={busy ? undefined : tapJug}
         />
       </div>
-      <p className="h-4 shrink-0 text-center text-[11px] leading-4 text-muted-foreground">
-        {selected === null
-          ? "Tap a jug"
-          : board.tap
-            ? "Tap another jug to pour, or Fill / Empty"
-            : "Tap another jug to pour into it"}
-      </p>
+      {framed ? (
+        // Batch W: the hint line becomes the live summary (the row above gave up the 4px it needs).
+        <LiveSummary
+          testId="measure"
+          parts={
+            selected === null
+              ? ["Tap a jug", moveLimit !== null ? `${Math.max(0, moveLimit - replay.moves)} moves left` : null]
+              : [
+                  `Jug ${selected + 1}: ${replay.amounts[selected] ?? 0} of ${board.caps[selected] ?? 0} L`,
+                  board.tap ? "pour, Fill or Empty" : "tap another to pour",
+                ]
+          }
+        />
+      ) : (
+        <p className="h-4 shrink-0 text-center text-[11px] leading-4 text-muted-foreground">
+          {selected === null
+            ? "Tap a jug"
+            : board.tap
+              ? "Tap another jug to pour, or Fill / Empty"
+              : "Tap another jug to pour into it"}
+        </p>
+      )}
       <div data-game-controls="actions" className="flex w-full shrink-0 justify-center gap-2 px-1">
         {board.tap ? (
           <>

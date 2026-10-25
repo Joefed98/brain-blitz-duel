@@ -1,11 +1,14 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useGameKeys } from "@/lib/desktop";
+import { GoalLineContext } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-equation.css";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
@@ -161,7 +164,7 @@ function useFitOneLine(box: RefObject<HTMLElement | null>, line: RefObject<HTMLE
   }, [key, basePx, minPx]);
 }
 
-function OperatorSlot({ value, onClick, fresh }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean }) {
+function OperatorSlot({ value, onClick, fresh, next }: { value: Operator | null; onClick?: (() => void) | undefined; fresh?: boolean; next?: boolean }) {
   return (
     <Button
       variant="ghost"
@@ -169,6 +172,7 @@ function OperatorSlot({ value, onClick, fresh }: { value: Operator | null; onCli
       onClick={onClick}
       disabled={!onClick}
       data-filled={value ? "true" : undefined}
+      data-next={next ? "true" : undefined}
       aria-label={value ? `Operator ${display(value)}` : "Empty operator slot"}
       className="equation-slot op-slot flex h-14 w-14 shrink-0 items-center justify-center font-bold"
     >
@@ -211,6 +215,8 @@ function IntroSlot() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" }: PuzzleStageProps) {
   const column = useGameColumnLayout();
+  // In a live round's frame the goal line shows the stage (StageProgress), so the board drops its own count.
+  const inFrame = useContext(GoalLineContext) !== null;
   const data = puzzle.type === "equation" ? puzzle : null;
   const [stage, setStage] = useStageState<number>(stateKey, "eqStage", () => 0);
   const [answers, setAnswers] = useStageState<string[]>(stateKey, "eqAnswers", () => Array.from({ length: data?.stages.length ?? 4 }, () => ""));
@@ -304,7 +310,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
     // A full set is a try (the right one included).
     if (tryLimit !== null && next.every((s) => s !== null)) {
       setTries(tries.map((n, i) => (i === stage ? n + 1 : n)));
-      if (!equationStageCorrect(current.numbers, current.target, next.join(","))) puzzleReject();
+      if (!equationStageCorrect(current.numbers, current.target, next.join(","))) wrongMoveFlash(equationBox.current);
     }
     setDropped((d) => ({ index, n: (d?.n ?? 0) + 1 }));
     soundCue("equation.drop");
@@ -318,6 +324,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
   };
 
   const last = stage >= total - 1;
+  const nextSlot = slots.findIndex((slot) => slot === null);
+  const rightSoFar = data.stages.filter((st, i) => i < stage && equationStageCorrect(st.numbers, st.target, answers[i] ?? "")).length + (complete ? 1 : 0);
 
   return (
     <div data-polish="equation" data-stage-column="3" className={`flex min-h-0 flex-1 flex-col gap-3 ${column ? "" : "justify-between"}`}>
@@ -325,7 +333,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
       <div data-game-arena="fixed" className="op-board">
         <StageProgress stage={stage} total={total} />
         <p className="op-caption">
-          Equation {stage + 1} of {total} · left to right
+          {inFrame ? "Left to right" : <>Equation {stage + 1} of {total} · left to right</>}
         </p>
         <div
           key={stage}
@@ -343,6 +351,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
                   key={dropped?.index === index ? `drop-${dropped.n}` : "slot"}
                   value={slots[index] ?? null}
                   fresh={dropped?.index === index}
+                  next={!keysFrozen && index === nextSlot}
                   onClick={keysFrozen ? undefined : () => clearSlot(index)}
                 />
               )}
@@ -351,7 +360,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equation" 
           <span className="op-goal">= {current.target}</span>
           </span>
         </div>
-        {tryLimit !== null && (
+        {inFrame ? (
+          // The live summary (polish batch W): tries, slots filled, equations right so far, in the tries
+          // line's place inside the board, so the board keeps main's size.
+          <LiveSummary
+            testId="equation"
+            parts={[
+              tryLimit !== null ? (
+                <span data-move-limit={tryLimit}>
+                  {outOfTries ? <span className="text-warn">No tries left</span> : <>Tries <span className="text-primary">{limitText(triesUsed, tryLimit)}</span></>}
+                </span>
+              ) : null,
+              <><b>{slots.filter(Boolean).length}</b> of {slots.length} slots</>,
+              <><b>{rightSoFar}</b> of {total} right</>,
+            ]}
+          />
+        ) : null}
+        {tryLimit !== null && !inFrame && (
           <p className="op-caption" data-move-limit={tryLimit}>
             {outOfTries ? <span className="text-warn">No tries left</span> : <>tries <span className="text-primary">{limitText(triesUsed, tryLimit)}</span></>}
           </p>

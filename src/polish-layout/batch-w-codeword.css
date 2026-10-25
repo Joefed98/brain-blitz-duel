@@ -1,0 +1,54 @@
+/*
+ * Polish batch W (25 Oct 2026, display only): Cryptogrid's live board. Imported only from
+ * src/puzzles/codeword.tsx and scoped to its live stage ([data-word-polish="codeword"]); the intro's
+ * still and the reveal keep their look. The game's own colours (dark squares, gold givens, the gold
+ * selection) stay; this adds depth and glow. Sizes are unchanged, so the keypad stays as usable.
+ */
+
+/* Squares still to decode: wells. Decoded and given squares: glass pieces with a light top edge. */
+[data-word-polish="codeword"][data-word-polish] [data-cw-cell].bg-card:not([data-cw-filled]) {
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+[data-word-polish="codeword"][data-word-polish] [data-cw-cell][data-cw-filled]:is(.bg-card, .bg-secondary) {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 5px rgba(0, 0, 0, 0.45);
+}
+/* The selected number, wherever it appears: its gold ring plus a soft category glow. */
+[data-word-polish="codeword"][data-word-polish] [data-cw-cell].ring-primary {
+  box-shadow:
+    inset 0 0 0 2px var(--primary),
+    0 0 12px color-mix(in srgb, var(--category-accent) 55%, transparent);
+  z-index: 1;
+}
+
+/* The clue strip: each number a small glass key; the selected one glows. */
+[data-word-polish="codeword"][data-word-polish] [data-cw-key] {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 2px 5px rgba(0, 0, 0, 0.45);
+}
+[data-word-polish="codeword"][data-word-polish] [data-cw-key][data-cw-key-on] {
+  box-shadow:
+    inset 0 0 0 1px var(--primary),
+    0 0 10px color-mix(in srgb, var(--category-accent) 55%, transparent);
+}
+
+/* Keypad: a light top edge and a soft shadow on every key, in its own colour. */
+[data-word-polish="codeword"][data-word-polish] [data-game-controls="keypad"] :is([data-key], [data-key-action]) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+    0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-word-polish="codeword"] .bw-summary {
+  text-transform: none;
+  letter-spacing: 0;
+}

@@ -18,6 +18,7 @@ import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
+import { arcadeFx, type ArcadeFxPoint, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import {
   tdKind,
   tdLabel,
@@ -405,6 +406,51 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+}
+
+/** The centre of a tile in world px. */
+const tileCentre = (t: { col: number; y: number }): ArcadeFxPoint => ({ x: t.col * TD_COL_W + TD_COL_W / 2, y: t.y / 256 + TILE_H / 2 });
+
+/**
+ * Tenfall's miss moment (polish batch W, 25 Oct 2026, display only): the shared arcade miss layer
+ * (arcadeFx.renderer.ts `misses`: the faint red edge pulse and a small puff) on the two counters
+ * the live round's sounds already read, a refused tile (`refused`, `tendrop.refused`) and an
+ * overshoot reset (`resets`, `tendrop.reset`). No success events: Tenfall keeps its own rings,
+ * shimmer and confetti. Live round only; reveals and replays draw drawTenDrop unchanged.
+ */
+export const TENDROP_MISS_FX: ArcadeFxSpec<TenDropState> = {
+  game: "tendrop",
+  world: "toybox",
+  width: TD_W,
+  height: TD_H,
+  fit: "stretch",
+  shake: false,
+  events: [],
+  misses: [
+    {
+      count: (s) => s.refused,
+      // The refused tile is the one shaking most recently.
+      at: (s) => {
+        let best: TenDropState["tiles"][number] | null = null;
+        for (const t of s.tiles) if (t.shakeUntil > s.tick && (!best || t.shakeUntil > best.shakeUntil)) best = t;
+        return best ? tileCentre(best) : null;
+      },
+    },
+    {
+      count: (s) => s.resets,
+      // The overshooting tile left the board on that tick: its last place on the previous frame.
+      at: (s, before) => {
+        if (!before) return null;
+        const left = before.tiles.find((t) => !s.tiles.some((u) => u.id === t.id));
+        return left ? tileCentre(left) : null;
+      },
+    },
+  ],
+};
+
+/** The live round's frame: drawTenDrop unchanged, the shared miss layer on top (device px, stretched as tdView). */
+export function drawTenDropLive(ctx: CanvasRenderingContext2D, s: TenDropState, size: CanvasSize, ratio: number, now: number): void {
+  arcadeFx(ctx, TENDROP_MISS_FX, s, () => drawTenDrop(ctx, s, size, ratio, now), { width: size.width * ratio, height: size.height * ratio });
 }
 
 /**

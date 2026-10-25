@@ -1,0 +1,36 @@
+/* Polish batch W (25 Oct 2026, display only): Checkout. Imported only from src/puzzles/checkout.tsx.
+   The fairground palette stays; the pieces get a light top edge and a soft drop shadow. */
+
+[data-checkout-root][data-play-area] .co-tabs > button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+/* The board being played: its gold label, with a soft glow in the category colour. */
+[data-checkout-root][data-play-area] .co-tabs > button[aria-selected="true"]:not([data-solved="true"]) {
+  border-color: var(--category-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 0 1px var(--category-accent),
+    0 0 14px -2px color-mix(in srgb, var(--category-accent) 65%, transparent);
+}
+[data-checkout-root][data-play-area] .co-tabs > button[data-solved="true"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+[data-checkout-root][data-play-area] .co-ring:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+[data-checkout-root][data-play-area] [data-game-controls="actions"] > button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+[data-checkout-root] .co-darts {
+  opacity: 0.72;
+}
