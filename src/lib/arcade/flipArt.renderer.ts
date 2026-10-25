@@ -218,27 +218,39 @@ function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number,
   ctx.clip();
   const tile = rockTile(ctx);
   const tall = Boolean(state.exp);
-  // Rev 7's taller cave: the rock edge follows the cave's height at the runner and the tile repeats
-  // outwards (deeper, darker rock first underneath) so the rock reaches the world's edge.
-  const edge = side === 0 ? flipSurfaceBase(state, 0, state.x) - 24 - (tall ? 145 : 0) : flipSurfaceBase(state, 1, state.x) + 24 + (tall ? 145 : 0);
+  // Rev 7's taller cave: the rock's lit edge follows the cave (its height and bend at the runner) and the deeper
+  // rock beyond the tile is the tile's own darkest shade, so the rock reaches the world's edge without a seam.
+  const bend = tall ? state.warpY : 0;
+  const edge = side === 0 ? flipSurfaceBase(state, 0, state.x) - 24 + bend : flipSurfaceBase(state, 1, state.x) + 24 + bend;
   if (tile) {
     if (tall) {
       ctx.fillStyle = "#111115";
       ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
     }
     const off = (still ? 0 : cam * 0.4) % ROCK_TILE_W;
-    const rows = tall ? 2 : 1;
+    // Rev 7: the deeper rock repeats the tile mirrored (dark edge to dark edge, so no seam) and faint.
+    if (tall) {
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      for (let x = -off; x < FLIP_WORLD_W; x += ROCK_TILE_W) {
+        ctx.save();
+        ctx.translate(0, side === 0 ? edge + ROCK_TILE_H * 2 : edge - ROCK_TILE_H * 2);
+        ctx.scale(1, side === 0 ? -1 : 1);
+        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.61, 0, ROCK_TILE_W, ROCK_TILE_H);
+        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.61 - ROCK_TILE_W, 0, ROCK_TILE_W, ROCK_TILE_H);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
     for (let x = -off; x < FLIP_WORLD_W; x += ROCK_TILE_W) {
-      for (let r = 0; r < rows; r++) {
-        if (side === 0) ctx.drawImage(tile as CanvasImageSource, x, edge + r * ROCK_TILE_H, ROCK_TILE_W, ROCK_TILE_H);
-        else {
-          ctx.save();
-          ctx.translate(0, edge - r * ROCK_TILE_H);
-          ctx.scale(1, -1);
-          ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37, 0, ROCK_TILE_W, ROCK_TILE_H);
-          ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37 - ROCK_TILE_W, 0, ROCK_TILE_W, ROCK_TILE_H);
-          ctx.restore();
-        }
+      if (side === 0) ctx.drawImage(tile as CanvasImageSource, x, edge, ROCK_TILE_W, ROCK_TILE_H);
+      else {
+        ctx.save();
+        ctx.translate(0, edge);
+        ctx.scale(1, -1);
+        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37, 0, ROCK_TILE_W, ROCK_TILE_H);
+        ctx.drawImage(tile as CanvasImageSource, x + ROCK_TILE_W * 0.37 - ROCK_TILE_W, 0, ROCK_TILE_W, ROCK_TILE_H);
+        ctx.restore();
       }
     }
   } else {
@@ -700,7 +712,6 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText(`${flipGame.score(state)}`, 14, 14);
-  if (state.exp) drawSaveBadge(ctx, state, 14 + ctx.measureText(`${flipGame.score(state)}`).width + 10, 14);
   ctx.beginPath();
   ctx.rect(0, 0, FLIP_WORLD_W, FLIP_WORLD_H);
   ctx.clip();
@@ -714,7 +725,10 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   drawCave(ctx, state, 1, ceilAt, still);
   bandPath(ctx, ceilAt, floorAt);
   // Polish G: the tunnel air is darkest in the middle and warmed by the lava rails at both edges.
-  const air = ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
+  // Rev 7 lights the air from the bent rails at the runner (the corridor bends further in the taller cave).
+  const air = state.exp
+    ? ctx.createLinearGradient(0, ceilAt(RUNNER_X) - 30, 0, floorAt(RUNNER_X) + 30)
+    : ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
   air.addColorStop(0, "#2A1714");
   air.addColorStop(0.18, "#161518");
   air.addColorStop(0.5, MATERIAL.tunnel);
@@ -728,7 +742,8 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.save();
     bandPath(ctx, ceilAt, floorAt);
     ctx.clip();
-    drawFarCity(ctx, still ? 0 : state.x / FP, floorBase, state.exp ? 2 : 1);
+    // Rev 7: two rows of rooftops standing on the bent floor; earlier revisions keep one row on the fixed line.
+    drawFarCity(ctx, still ? 0 : state.x / FP, state.exp ? floorAt : floorBase, state.exp ? 2 : 1);
     drawTunnelEmbers(ctx, state.tick, still, floorBase, ceilBase);
     ctx.restore();
   }
@@ -849,6 +864,9 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   if (state.exp) {
     drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
     drawTrails(ctx, state, toScreen, ceilAt, floorAt, still);
+    // The save a checkpoint gives, while it is ready: a small gold shield at the tunnel's left edge, mid-height
+    // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
+    drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
   }
   ctx.save();
   // Pool deaths sink behind the opening; no new player or hazard geometry.

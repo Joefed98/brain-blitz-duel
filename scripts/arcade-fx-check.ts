@@ -124,7 +124,7 @@ const GAMES: Record<string, AnyGame> = {
   bintoss: { ...binTossArtGame, init: binTossGameFor(3).init } as AnyGame,
   bullseye: { ...bullseyeGame, init: bullseyeRev2Game.init, draw: drawBullseye } as AnyGame,
   bubble: { ...bubbleArtGame, init: bubbleRev2Game.init } as AnyGame,
-  flip: flipArtGameFor(2) as AnyGame,
+  flip: flipArtGameFor(7) as AnyGame,
   swing: swingArtGameFor(4) as AnyGame,
   snip: { ...snipArtGame, init: snipRev3Game.init } as AnyGame,
   tilt: tiltArtGame as AnyGame,
@@ -359,6 +359,13 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, got: (s.got ?? 0) | 1 }),
     (s) => ({ ...s, got: 1023 }),
     (s) => ({ ...s, cracks: [0, s.tick - 30] }),
+    // flipRev 7 (the rooms' revision since 25 Oct 2026): trail star, full trail, double flip, checkpoint, save, speed zone.
+    (s) => ({ ...s, trailGot: [1, 0, 0, 0] }),
+    (s) => ({ ...s, trailGot: [31, 0, 0, 0] }),
+    (s) => ({ ...s, combos: (s.combos ?? 0) + 1, chain: 1 }),
+    (s) => ({ ...s, cpPassed: (s.cpPassed ?? 0) + 1 }),
+    (s) => ({ ...s, saves: (s.saves ?? 0) + 1 }),
+    (s) => ({ ...s, tick: s.v7.zones[0] + 1 }),
   ],
   swing: [
     (s) => ({ ...s, maxX: s.maxX + 100 * 256 * 40 }),

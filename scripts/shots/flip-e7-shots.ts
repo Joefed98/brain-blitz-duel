@@ -71,7 +71,7 @@ async function main() {
     }, stopAfter);
   let taps: number[] = [];
   const plan = async (t: number) => {
-    await replan(t + 900);
+    await replan(3600 + 0 * t);
     taps = await page.evaluate(() => (window as unknown as { __taps: number[] }).__taps);
   };
   let s = await info(page);
@@ -112,8 +112,8 @@ async function main() {
     }
     if (want("tall", s.height === 340 && s.tick > 600)) await snap("tall");
     if (want("tight", s.height === 200 && s.tick > 600)) await snap("tight");
-    // After 45 s (a save ready), stop tapping until a crash is saved, then plan on.
-    if (tapping && s.tick > 2720 && s.cpPassed === 3 && !shots.has("saved")) tapping = false;
+    // After the second checkpoint (a save ready), stop tapping until a crash is saved, then plan on.
+    if (tapping && s.tick > 1960 && s.cpPassed >= 2 && !shots.has("saved")) tapping = false;
     if (!tapping && savedAt > 0 && s.tick === savedAt + 10) {
       await snap("saved");
       tapping = true;
