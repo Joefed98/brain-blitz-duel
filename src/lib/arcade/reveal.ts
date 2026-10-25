@@ -386,6 +386,18 @@ const BUILDERS: Record<string, Builder> = {
     };
   },
   snip: (r, s) => {
+    // snipRev 10: six courses with 1–3 fruits each; the lines come from its band parts.
+    if (n(r, "snipRev") >= 10)
+      return {
+        axis: { value: n(r, "eaten"), max: Math.max(1, n(r, "fruits")), label: "Fruit" },
+        lines: [`${n(r, "eaten")} / ${n(r, "fruits")} fruit → ${s}`],
+        tiles: [
+          { label: "Golden", value: String(n(r, "golden")) },
+          { label: "At par", value: `${n(r, "parLevels")} / 6` },
+          { label: "Leaves", value: String(n(r, "stars") + n(r, "stars2")) },
+        ],
+        outcome: n(r, "cleared") >= 6 ? "finish" : "time",
+      };
     const done = n(r, "eaten") >= 10;
     return {
       axis: { value: n(r, "eaten"), max: 10, label: "Apples" },

@@ -30,6 +30,7 @@
  *
  *   bun scripts/snip-rev7-check.ts
  */
+import { snipPlayBeforeExpand } from "./snip-expand-lib";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -100,7 +101,7 @@ section("Stored rounds (snipRev 6 and older) replay and score exactly as before"
 /* ======================== 2. Stamp, world, rules ======================== */
 section("New rounds: snipRev 7, the tall world, snipRev 6's rules");
 {
-  ok(playRevOf("snip", generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN} (got ${playRevOf("snip", generateSnip().snipRev)})`);
+  ok(snipPlayBeforeExpand(generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN} (got ${snipPlayBeforeExpand(generateSnip().snipRev)})`);
   ok(puzzleUsesBands({ type: "snip", snipRev: SNIP_REV_PROVEN } as never), "snipRev 7 scores on the bands");
   ok(snipWorldHFor(SNIP_REV_PROVEN) === SNIP_TALL_H, "snipRev 7 plays in the 360 × 640 world");
   ok(revealWorldH(ARCADE_REVEAL_RENDERERS.snip!, { type: "snip", seed: 5, snipRev: SNIP_REV_PROVEN } as never) === SNIP_TALL_H, "the reveal draws snipRev 7 at the tall height");

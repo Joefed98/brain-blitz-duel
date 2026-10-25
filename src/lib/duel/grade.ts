@@ -64,6 +64,7 @@ import { decodeOrbitRun, replayOrbitRun } from "./orbit";
 import { decodeSwingRun, replaySwingRun } from "./swing";
 import { SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { decodeSnipRun, replaySnipRun } from "./snip";
+import { SNIP_REV_EXPAND, SNIP_X_MAX } from "@/lib/arcade/snip";
 import { decodeTiltRun, replayTiltRun } from "./tilt";
 import { decodeHotFloorRun, replayHotFloorRun } from "./hotFloor";
 import { replayColourClashRun } from "./colourClash";
@@ -1800,7 +1801,8 @@ function gradeUnderRev(
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
         console.warn(`[arcade] slow replay ${puzzle.type}: ${arcadeDiag.replayMs}ms`);
-      isCorrect = run.score >= 150;
+      // snipRev 10 (E8 expansion) scores to 200: a perfect run is 200; older revisions keep 150.
+      isCorrect = run.score >= (puzzle.snipRev === SNIP_REV_EXPAND ? SNIP_X_MAX : 150);
       correctCount = run.eaten;
       score = run.score;
       extraDetail = {
@@ -1816,6 +1818,10 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeSnipRun(answer).events.length,
         claimedScore: decodeSnipRun(answer).claimedScore,
+        // snipRev 10: the course's fruit, levels, golden apples, par levels and second leaves.
+        ...(run.state.course
+          ? { snipRev: puzzle.snipRev, fruits: run.state.fruitsDealt ?? 0, cleared: run.state.cleared ?? 0, golden: run.state.golden ?? 0, parLevels: run.state.parLevels ?? 0, stars2: run.state.stars2 ?? 0, strokes: run.state.strokes ?? 0 }
+          : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

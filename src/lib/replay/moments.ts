@@ -187,6 +187,9 @@ export const MOMENT_TABLE: readonly MomentRow[] = [
   fx("snip", 1, "clear", "level", 35, "Apple fed"),
   fx("snip", 2, "final", "all-apples", 95, "All 10 apples", "finish"),
   fx("snip", 3, "pop", "spring", 10, "Off a springy branch"),
+  // snipRev 10: a golden apple fed in time, a ring's catch.
+  fx("snip", 4, "pop", "golden", 30, "Golden apple"),
+  fx("snip", 5, "pop", "ring", 12, "Caught by a ring"),
   // Tilt
   fx("tilt", 0, "clear", "maze", 45, "Maze done"),
   fx("tilt", 1, "final", "all-mazes", 95, "All 4 mazes", "finish"),

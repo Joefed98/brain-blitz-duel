@@ -24,6 +24,8 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
+import { SNIP_COURSES } from "./snipCourses.data";
+export { SNIP_COURSES };
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Config ============================== */
@@ -365,9 +367,11 @@ export interface SnipRope {
   y: number[];
   ox: number[];
   oy: number[];
+  /** snipRev 10 only: the fruit this rope holds (index into `fruits`). */
+  f?: number;
 }
 
-export interface SnipState extends BandFields {
+export interface SnipState extends BandFields, SnipCourseFields {
   tick: number;
   rng: number;
   /** Template per level (fixed rising order). */
@@ -411,7 +415,9 @@ export interface SnipState extends BandFields {
 }
 
 /** The world height (px) a state is drawn in: Tuning E's taller levels, or the original 560. */
-export function snipWorldH(state: { worldH?: number }): number {
+export function snipWorldH(state: { worldH?: number; course?: number }): number {
+  // snipRev 10: the camera's view (the course itself is taller: its `h`).
+  if (state.course) return SNIP_X_VIEW_H;
   return state.worldH ?? SNIP_CONFIG.worldH;
 }
 
@@ -923,6 +929,11 @@ export function snipCheckpoint(state: SnipState): SnipCheckpoint {
   let checksum = 0x811c9dc5;
   // snipRev 5 (Tuning E) folds its world height and crook catches in last; the encoded fields stay the same.
   const extra = state.worldH ? [state.worldH, state.hooked ?? 0] : [];
+  // snipRev 10 adds its fruits, camera and counters after those.
+  if (state.course) {
+    extra.push(state.course, state.camY ?? 0, state.ringed ?? 0, state.lvlStrokes ?? 0, state.strokes ?? 0, state.xUnits ?? 0, state.golden ?? 0, state.parLevels ?? 0, state.stars2 ?? 0, state.cleared ?? 0);
+    for (const f of state.fruits ?? []) extra.push(f.x, f.y, f.st, f.gold);
+  }
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1103,6 +1114,7 @@ function initRev3(seed: number): SnipState {
 
 export const snipRev3Game: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ...snipGame, init: initRev3 };
 export function snipGameFor(rev?: number | null): ArcadeGame<SnipState, ArcadeInputEvent | null> {
+  if (rev === SNIP_REV_EXPAND) return snipExpandGame;
   if (rev === SNIP_REV_STRICT) return snipStrictGame;
   if (rev === SNIP_REV_TARGET) return snipTargetGame;
   if (rev === SNIP_REV_PROVEN) return snipProvenGame;
@@ -1119,6 +1131,7 @@ export const SNIP_REV_BAND = 4;
 /** Apples count 10 and leaves 2; 140 at all ten apples and leaves; all ten apples adds up to 10 for speed. */
 export const SNIP_BAND_CURVE = bandCurve([0, 62, 80, 90, 120], [0, 70, 100, 134, 140]);
 export function snipBandParts(state: SnipState): BandParts {
+  if (state.course) return snipCourseParts(state);
   const units = 10 * clampInt(state.eaten, 0, SNIP_CONFIG.levels) + 2 * Math.max(0, state.stars);
   const finished = state.eaten >= SNIP_CONFIG.levels && state.finishTick > 0;
   return { units, points: bandPoints(bandCurveOf(state, state.worldH ? SNIP_V5_BAND_CURVE : SNIP_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, SNIP_RUN_TICKS - state.finishTick, SNIP_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.eaten} / ${SNIP_CONFIG.levels} apples · ${state.stars} leaves`, bonusText: "All ten apples" };
@@ -1176,6 +1189,7 @@ export const snipTallGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = { ..
 
 /** The world height (px) a stored round's snipRev plays in. */
 export function snipWorldHFor(rev?: number | null): number {
+  if (rev === SNIP_REV_EXPAND) return SNIP_X_VIEW_H;
   return rev === SNIP_REV_TALL || rev === SNIP_REV_BANK6 || rev === SNIP_REV_PROVEN || rev === SNIP_REV_TARGET || rev === SNIP_REV_STRICT ? SNIP_TALL_H : SNIP_H;
 }
 
@@ -1289,3 +1303,652 @@ export const SNIP_REV_STRICT = 9;
 export const snipStrictGame = bandStrictGame(snipTargetGame);
 /** The curve new rounds score on: SNIP_V5_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const SNIP_V9_BAND_CURVE = bandStrict(SNIP_V5_BAND_CURVE);
+
+
+/* ================= Expansion (snipRev 10, 25 Oct 2026) ================= */
+
+/**
+ * snipRev 10 (world expansion, docs/expansions/e8-snip.md; docs/scoring-200.md): a tall orchard course
+ * (SNIP_X_W wide, each course its own `h` tall, about two screens), seen through a vertical camera the
+ * sim carries in the state (`camY`, whole px, eased each tick), so the phone, the reveal and the cut
+ * mapping all see the same view. Six levels from SNIP_COURSES (2 easy, 2 medium, 2 hard). Each level
+ * opens with a SNIP_X_PAN_TICKS pan from the basket up to the fruit (the sim holds still and cuts are
+ * ignored), then play starts at the fruit.
+ *
+ *  - Several fruits per level (1–3), each on its own ropes; all can be fed. Fruits never touch each other.
+ *  - Golden apple: on levels 2, 4 and 6 one fruit (a seeded pick) is golden.
+ *  - Wind: a seeded preset per level (one of the course's three) pushes fruit and rope sideways on an
+ *    integer triangle wave, so the ropes swing.
+ *  - Pegs are the picker's crooks (they snag a free fruit falling past from above); rings snag a free
+ *    fruit that passes through their middle from any direction; both re-hang it on a vine to cut.
+ *    Slopes are planks and gutters, bouncers springy branches, as before.
+ *  - Fewest cuts: a level counts strokes (swipe inputs on consecutive ticks are one stroke; a missed
+ *    swipe counts too); every fruit fed in at most the course's `par` strokes is a par level.
+ *  - Falling fruit is capped at SNIP_X_MAX_SPEED (air drag), so nothing tunnels through a thin plank.
+ *
+ * A level's deal comes from the seed: a level-wide pin shift (SNIP_X_WOBBLES), the wind preset and the
+ * golden fruit, so a course has 3 × 3 deals (× its fruits for the gold), each with a stored human-paced
+ * winning plan (fixtures/snip-expand-proofs.json, scripts/snip-expand-check.ts).
+ */
+export const SNIP_REV_EXPAND = 10;
+export const SNIP_X_W = 360;
+/** The camera's view: 360 × 672 fills a 414 × 772 arena box at the largest uniform scale. */
+export const SNIP_X_VIEW_H = 672;
+export const SNIP_X_LEVELS = 6;
+export const SNIP_X_LEVEL_TICKS = 14 * TICKS_PER_SECOND;
+export const SNIP_X_PAN_TICKS = 60;
+/** Fastest a fruit moves, 1/256 px a tick (12 px, half a fruit). */
+export const SNIP_X_MAX_SPEED = 12 * 256;
+/** A ring snags a free fruit whose centre comes this close to its middle. */
+export const SNIP_X_RING_REACH = 14;
+/** A ring's drawn hoop radius (art; the catch is SNIP_X_RING_REACH). */
+export const SNIP_X_RING_R = 20;
+export const SNIP_X_WOBBLES: readonly number[] = [-10, 0, 10];
+/** Levels (0-based) with a golden fruit. */
+export const SNIP_X_GOLD_LEVELS: readonly number[] = [1, 3, 5];
+/** A golden apple counts only when fed by this level tick (7 s in, the pan included); then it ripens. */
+export const SNIP_X_GOLD_TICKS = 7 * TICKS_PER_SECOND;
+export const SNIP_X_LEVEL_PLAN = [2, 2, 2] as const;
+/** A level's fruit credit (shared by its fruits) and a star taken. */
+export const SNIP_X_FEED_UNITS = 18;
+export const SNIP_X_STAR_UNITS = 2;
+export const SNIP_X_UNITS_TOP = SNIP_X_LEVELS * (SNIP_X_FEED_UNITS + SNIP_X_STAR_UNITS);
+/** The feature bonus's raw points (to 50, then squared, see snipFeatureBonus): 5 a golden apple fed in time, 2.5 a par level, 2 a level's second star, 8 a perfect run. */
+export const SNIP_X_GOLD_POINTS = 5;
+export const SNIP_X_STAR2_POINTS = 2;
+export const SNIP_X_PERFECT_POINTS = 8;
+export const SNIP_X_FEATURE_MAX = 50;
+export const SNIP_X_MAX = 200;
+/** Feeding every fruit earns its full 10 for speed by 48 s, falling to 0 at the buzzer (the window runs from 36 s). */
+export const SNIP_X_FINISH_MIN = 36 * TICKS_PER_SECOND;
+
+/** Fruit status on a snipRev 10 level (else the outcome that lost it: SNIP_LOST, SNIP_STUNG, SNIP_LANDED, SNIP_TIMEOUT). */
+export const SNIP_X_PLAY = 0;
+export const SNIP_X_FED = 1;
+
+type Seg4 = readonly [number, number, number, number];
+export interface SnipCourseFruit {
+  sweet: readonly [number, number];
+  /** Pin x, y and extra slack (px), as a template's pins. */
+  pins: readonly (readonly [number, number, number])[];
+}
+export interface SnipCourse {
+  name: string;
+  band: 0 | 1 | 2;
+  /** The course height, px. */
+  h: number;
+  fruits: readonly SnipCourseFruit[];
+  mouth: readonly [number, number];
+  slide?: readonly [number, number];
+  platforms?: readonly Seg4[];
+  planks?: readonly Seg4[];
+  gutters?: readonly Seg4[];
+  springs?: readonly Seg4[];
+  nests?: readonly (readonly [number, number, number])[];
+  /** Pegs: picker's crooks (x, y, vine length). */
+  hooks?: readonly (readonly [number, number, number])[];
+  /** Rings (x, y, vine length). */
+  rings?: readonly (readonly [number, number, number])[];
+  /** Stars along the way (two). */
+  stars: readonly (readonly [number, number])[];
+  /** Three wind presets: amplitude (1/256 px a tick²), period and phase (ticks). */
+  winds: readonly (readonly [number, number, number])[];
+  /** The fruits a golden level may make golden (every deal has a perfect plan feeding it in time); all when absent. */
+  golds?: readonly number[];
+  /** Fewest strokes that feed every fruit (the stored plans' best). */
+  par: number;
+}
+
+export interface SnipFruit {
+  x: number;
+  y: number;
+  ox: number;
+  oy: number;
+  st: number;
+  gold: number;
+  rest: number;
+}
+
+/** snipRev 10 fields (absent on every older round). */
+export interface SnipCourseFields {
+  course?: number;
+  fruits?: SnipFruit[];
+  /** Camera top (whole px) and this level's deal. */
+  camY?: number;
+  wob?: number;
+  windA?: number;
+  windP?: number;
+  windPh?: number;
+  /** Strokes (swipes): this level's, the run's, and the tick of the last cut input. */
+  lvlStrokes?: number;
+  strokes?: number;
+  lastCut?: number;
+  /** Banked units, fully fed levels, golden fed, par levels, second leaves, perfect levels, fruits dealt. */
+  xUnits?: number;
+  cleared?: number;
+  golden?: number;
+  parLevels?: number;
+  stars2?: number;
+  perfect?: number;
+  fruitsDealt?: number;
+  /** Rings that have caught this level (bit per ring) and the tick of the last ring catch. */
+  ringed?: number;
+  ringTick?: number;
+  /** Tick the last fruit was fed (art and sound). */
+  fedTick?: number;
+}
+
+export const SNIP_X_BANDS = {
+  easy: SNIP_COURSES.map((c, i) => (c.band === 0 ? i : -1)).filter((i) => i >= 0),
+  medium: SNIP_COURSES.map((c, i) => (c.band === 1 ? i : -1)).filter((i) => i >= 0),
+  hard: SNIP_COURSES.map((c, i) => (c.band === 2 ? i : -1)).filter((i) => i >= 0),
+};
+
+/** The six-course order for a snipRev-10 seed (its own stream). */
+export function snipLevelOrderX(seed: number): number[] {
+  let rng = (seed ^ 0x10e8_5a1d) | 0;
+  const out: number[] = [];
+  [SNIP_X_BANDS.easy, SNIP_X_BANDS.medium, SNIP_X_BANDS.hard].forEach((band, b) => {
+    const pool = [...band];
+    for (let k = 0; k < SNIP_X_LEVEL_PLAN[b]! && pool.length; k++) {
+      const r = rngBelow(rng, pool.length);
+      rng = r.state;
+      out.push(pool.splice(r.value, 1)[0]!);
+    }
+  });
+  return out;
+}
+
+/** Wind acceleration on a level tick: a signed integer triangle wave, ± the amplitude. */
+export function snipWindAt(state: SnipState, levelTick = state.levelTick): number {
+  const amp = state.windA ?? 0;
+  const period = state.windP ?? 0;
+  if (!amp || period < 2) return 0;
+  const half = period >> 1;
+  const phase = (levelTick + (state.windPh ?? 0)) % period;
+  const u = phase < half ? phase : period - phase;
+  return Math.trunc((amp * (2 * u - half)) / half);
+}
+
+function clampCam(course: SnipCourse, y: number): number {
+  return clampInt(y, 0, Math.max(0, course.h - SNIP_X_VIEW_H));
+}
+/** Where a level's pan starts (the basket) and ends (the fruit): camera tops in px. */
+export function snipPanEnds(course: SnipCourse): { from: number; to: number } {
+  let top = course.h;
+  for (const f of course.fruits) top = Math.min(top, f.sweet[1]);
+  return { from: clampCam(course, course.mouth[1] - SNIP_X_VIEW_H + 120), to: clampCam(course, top - 120) };
+}
+
+/** The camera's target after the pan: the fruits in play, the lowest kept in the lower part of the view. */
+function camTarget(course: SnipCourse, fruits: readonly SnipFruit[]): number {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const f of fruits) {
+    if (f.st !== SNIP_X_PLAY) continue;
+    const y = f.y >> 8;
+    lo = Math.min(lo, y);
+    hi = Math.max(hi, y);
+  }
+  if (hi === -Infinity) return clampCam(course, course.mouth[1] - SNIP_X_VIEW_H + 120);
+  const mid = ((lo + hi) >> 1) - (SNIP_X_VIEW_H >> 1);
+  return clampCam(course, Math.max(hi - SNIP_X_VIEW_H + 220, Math.min(lo - 140, mid)));
+}
+
+function buildCourseLevel(state: SnipState, level: number): SnipState {
+  if (level >= SNIP_X_LEVELS || level >= state.order.length) return { ...state, level };
+  const course = SNIP_COURSES[state.order[level]!]!;
+  let rng = state.rng;
+  const w = rngBelow(rng, SNIP_X_WOBBLES.length);
+  rng = w.state;
+  const wd = rngBelow(rng, course.winds.length);
+  rng = wd.state;
+  let gold = -1;
+  if (SNIP_X_GOLD_LEVELS.includes(level)) {
+    // Among the fruits whose every deal has a stored plan feeding it golden at par with both leaves.
+    const golds = course.golds ?? course.fruits.map((_, k) => k);
+    const g = rngBelow(rng, golds.length);
+    rng = g.state;
+    gold = golds[g.value]!;
+  }
+  return snipCourseDeal({ ...state, rng }, level, SNIP_X_WOBBLES[w.value]!, wd.value, gold);
+}
+
+/** A level of a course on a given deal: pin shift (px), wind preset and golden fruit (−1 none). */
+export function snipCourseDeal(state: SnipState, level: number, wob: number, wind: number, gold: number): SnipState {
+  const t = state.order[level]!;
+  const course = SNIP_COURSES[t]!;
+  const n = SNIP_CONFIG.ropeNodes;
+  const ropes: SnipRope[] = [];
+  const fruits: SnipFruit[] = course.fruits.map((f, k) => {
+    const sx = f.sweet[0] * 256;
+    const sy = f.sweet[1] * 256;
+    for (const [px, py, slack] of f.pins) {
+      const x0 = (px + wob) * 256;
+      const y0 = py * 256;
+      const dist = isqrt((sx - x0) * (sx - x0) + (sy - y0) * (sy - y0)) + slack * 256;
+      const x: number[] = [];
+      const y: number[] = [];
+      for (let i = 0; i < n; i++) {
+        x.push(x0 + Math.trunc(((sx - x0) * i) / n));
+        y.push(y0 + Math.trunc(((sy - y0) * i) / n));
+      }
+      ropes.push({ alive: 1, len: Math.trunc(dist / n), x, y, ox: [...x], oy: [...y], f: k });
+    }
+    return { x: sx, y: sy, ox: sx, oy: sy, st: SNIP_X_PLAY, gold: k === gold ? 1 : 0, rest: 0 };
+  });
+  const [windA, windP, windPh] = course.winds[wind] ?? [0, 0, 0];
+  const lead = fruits[0]!;
+  return {
+    ...state,
+    level,
+    levelTick: 0,
+    template: t,
+    ropes,
+    fruits,
+    sx: lead.x,
+    sy: lead.y,
+    sox: lead.x,
+    soy: lead.y,
+    starX: course.stars.map((s) => s[0] * 256),
+    starY: course.stars.map((s) => s[1] * 256),
+    starGot: course.stars.map(() => 0),
+    outcome: SNIP_PLAYING,
+    rest: 0,
+    hooked: 0,
+    ringed: 0,
+    wob,
+    windA,
+    windP,
+    windPh,
+    lvlStrokes: 0,
+    lastCut: -1000,
+    camY: snipPanEnds(course).from,
+    worldH: course.h,
+    fruitsDealt: (state.fruitsDealt ?? 0) + fruits.length,
+  };
+}
+
+function initCourse(seed: number): SnipState {
+  const s = init(seed);
+  const base: SnipState = {
+    ...s,
+    rng: seed | 0,
+    order: snipLevelOrderX(seed),
+    rev: SNIP_REV_EXPAND,
+    course: 1,
+    strokes: 0,
+    xUnits: 0,
+    cleared: 0,
+    golden: 0,
+    parLevels: 0,
+    stars2: 0,
+    perfect: 0,
+    fruitsDealt: 0,
+    fedTick: -1000,
+  };
+  return bandInit(buildCourseLevel(base, 0));
+}
+
+function isOverCourse(state: SnipState): boolean {
+  return state.tick >= SNIP_RUN_TICKS || state.level >= SNIP_X_LEVELS;
+}
+
+/** A level's units: its fruits' share of SNIP_X_FEED_UNITS, and SNIP_X_STAR_UNITS for a star. */
+function levelUnits(fruits: readonly SnipFruit[], starGot: readonly number[]): number {
+  const fed = fruits.filter((f) => f.st === SNIP_X_FED).length;
+  return Math.trunc((SNIP_X_FEED_UNITS * fed) / Math.max(1, fruits.length)) + (starGot.some((g) => g) ? SNIP_X_STAR_UNITS : 0);
+}
+
+function stepCourse(state: SnipState, input: ArcadeInputEvent | null): SnipState {
+  if (isOverCourse(state)) return state;
+  const c = SNIP_CONFIG;
+  const course = SNIP_COURSES[state.template]!;
+  const tick = state.tick + 1;
+  const levelTick = state.levelTick + 1;
+  let next: SnipState = { ...state, tick, levelTick };
+  const ropes = state.ropes.map((r) => ({ ...r, x: [...r.x], y: [...r.y], ox: [...r.ox], oy: [...r.oy] }));
+  const fruits = (state.fruits ?? []).map((f) => ({ ...f }));
+  next.ropes = ropes;
+  next.fruits = fruits;
+  const panning = levelTick <= SNIP_X_PAN_TICKS;
+
+  // 1. Cuts (none during the pan), and strokes: swipe inputs on consecutive ticks are one stroke, and
+  // every stroke counts, a missed one too (fewest cuts is fewest swipes).
+  if (input && input.k === SNIP_INPUT_CUT && !panning) {
+    const same = state.lastCut === tick - 1;
+    if (!same) {
+      next.lvlStrokes = (state.lvlStrokes ?? 0) + 1;
+      next.strokes = (state.strokes ?? 0) + 1;
+    }
+    next.lastCut = tick;
+    const a = input.a * 256;
+    const b = input.b * 256;
+    const cc = input.c * 256;
+    const d = input.d * 256;
+    for (let i = 0; i < ropes.length; i++) {
+      const rope = ropes[i]!;
+      const f = fruits[rope.f ?? 0]!;
+      if (!rope.alive || !ropeCut(rope, f.x, f.y, a, b, cc, d)) continue;
+      rope.alive = 0;
+      next.cuts += 1;
+      const log = [...next.cutLog, tick * 64 + (state.level % 16) * 4 + (i % 4)];
+      next.cutLog = log.length > 16 ? log.slice(log.length - 16) : log;
+    }
+  }
+
+  // A golden apple stays golden until SNIP_X_GOLD_TICKS into the level, then ripens (gold 2: an ordinary fruit).
+  if (levelTick > SNIP_X_GOLD_TICKS) for (const f of fruits) if (f.gold === 1 && f.st === SNIP_X_PLAY) f.gold = 2;
+
+  if (!panning) {
+    const wind = snipWindAt(state, levelTick);
+    // 2. Verlet: fruit in play (speed capped) and every rope node, with gravity; the wind swings the
+    // ropes and the fruit they hold (a falling fruit is too compact to drift).
+    for (let k = 0; k < fruits.length; k++) {
+      const f = fruits[k]!;
+      if (f.st !== SNIP_X_PLAY) continue;
+      const vx = clampInt(f.x - f.ox, -SNIP_X_MAX_SPEED, SNIP_X_MAX_SPEED);
+      const vy = clampInt(f.y - f.oy, -SNIP_X_MAX_SPEED, SNIP_X_MAX_SPEED);
+      f.ox = f.x;
+      f.oy = f.y;
+      f.x += vx + (ropes.some((rope) => rope.alive && rope.f === k) ? wind : 0);
+      f.y += vy + c.gravity;
+    }
+    for (const rope of ropes) {
+      for (let i = 1; i < rope.x.length; i++) {
+        const rx = rope.x[i]! - rope.ox[i]!;
+        const ry = rope.y[i]! - rope.oy[i]!;
+        rope.ox[i] = rope.x[i]!;
+        rope.oy[i] = rope.y[i]!;
+        rope.x[i] = rope.x[i]! + rx + wind;
+        rope.y[i] = rope.y[i]! + ry + c.gravity;
+      }
+    }
+    // 3. Rope constraints: each rope pulls only its own fruit.
+    for (let it = 0; it < c.iterations; it++) {
+      for (const rope of ropes) {
+        const n = rope.x.length;
+        for (let i = 0; i + 1 < n; i++) satisfy(rope.x, rope.y, i, i + 1, rope.len, i === 0 ? 0 : 128, i === 0 ? 256 : 128);
+        const f = fruits[rope.f ?? 0]!;
+        if (rope.alive && f.st === SNIP_X_PLAY) {
+          const xs = [rope.x[n - 1]!, f.x];
+          const ys = [rope.y[n - 1]!, f.y];
+          satisfy(xs, ys, 0, 1, rope.len, 256 - c.sweetShare, c.sweetShare);
+          rope.x[n - 1] = xs[0]!;
+          rope.y[n - 1] = ys[0]!;
+          f.x = xs[1]!;
+          f.y = ys[1]!;
+        }
+      }
+    }
+    // 4. Walls, ledges, orchard surfaces, pegs and rings, per fruit.
+    const r = c.sweetRadius * 256;
+    const W = SNIP_X_W * 256;
+    for (const rope of ropes) {
+      for (let i = 1; i < rope.x.length; i++) {
+        const x = rope.x[i]!;
+        if (x >= 0 && x <= W) continue;
+        const pvx = x - rope.ox[i]!;
+        rope.x[i] = x < 0 ? 0 : W;
+        rope.ox[i] = rope.x[i]! + ((pvx * c.wallBounce) >> 8);
+      }
+    }
+    const prev = state.fruits ?? [];
+    fruits.forEach((f, k) => {
+      if (f.st !== SNIP_X_PLAY) return;
+      let sx = f.x;
+      let sy = f.y;
+      let sox = f.ox;
+      let soy = f.oy;
+      if (sx < r || sx > W - r) {
+        const pvx = sx - sox;
+        sx = sx < r ? r : W - r;
+        sox = sx + ((pvx * c.wallBounce) >> 8);
+      }
+      let resting = false;
+      for (const [x0p, y0p, x1p, y1p] of course.platforms ?? []) {
+        const x0 = x0p * 256, y0 = y0p * 256, x1 = x1p * 256, y1 = y1p * 256;
+        const cx = clampInt(sx, x0, x1);
+        const cy = clampInt(sy, y0, y1);
+        const dx = sx - cx;
+        const dy = sy - cy;
+        if (dx * dx + dy * dy >= r * r) continue;
+        const pvx = sx - sox;
+        const pvy = sy - soy;
+        const inside = dx === 0 && dy === 0;
+        if (inside || (dy !== 0 && Math.abs(dy) >= Math.abs(dx))) {
+          const top = inside ? sy <= (y0 + y1) >> 1 : dy < 0;
+          sy = top ? y0 - r : y1 + r;
+          if (top && Math.abs(pvx) < c.restSpeed && Math.abs(pvy) < c.restSpeed * 4) resting = true;
+          soy = sy + ((pvy * c.bounce) >> 8);
+          sox = sx - ((pvx * c.friction) >> 8);
+        } else {
+          sx = dx < 0 ? x0 - r : x1 + r;
+          sox = sx + ((pvx * c.bounce) >> 8);
+        }
+      }
+      let sprung = false;
+      const hit = (list: readonly Seg4[] | undefined, kind: number) => {
+        for (const seg of list ?? []) {
+          const res = collideSegment(seg, kind, sx, sy, sox, soy, r);
+          if (!res) continue;
+          if (kind === 2 && res.into) sprung = true;
+          sx = res.sx;
+          sy = res.sy;
+          sox = res.sox;
+          soy = res.soy;
+          if (res.resting) resting = true;
+        }
+      };
+      hit(course.planks, 0);
+      hit(course.gutters, 1);
+      hit(course.springs, 2);
+      if (sprung) {
+        next.springHits = (next.springHits ?? 0) + 1;
+        next.springTick = tick;
+      }
+      const prevY = prev[k]?.y ?? sy;
+      f.x = sx;
+      f.y = sy;
+      f.ox = sox;
+      f.oy = soy;
+      f.rest = resting ? f.rest + 1 : 0;
+      // Pegs and rings snag a free fruit (none of its own ropes left) and re-hang it on a vine.
+      if (ropes.some((rope) => rope.alive && rope.f === k)) return;
+      const vine = (hx: number, hy: number, len: number) => {
+        const n = c.ropeNodes;
+        const x: number[] = [];
+        const y: number[] = [];
+        for (let i = 0; i < n; i++) {
+          x.push(hx + Math.trunc(((sx - hx) * i) / n));
+          y.push(hy + Math.trunc(((sy - hy) * i) / n));
+        }
+        ropes.push({ alive: 1, len: Math.trunc((len * 256) / n), x, y, ox: [...x], oy: [...y], f: k });
+      };
+      let caught = false;
+      (course.hooks ?? []).forEach(([hxp, hyp, len], h) => {
+        if (caught || (next.hooked ?? 0) & (1 << h)) return;
+        const hx = hxp * 256;
+        const hy = hyp * 256;
+        if (!(prevY < hy && sy >= hy && Math.abs(sx - hx) <= SNIP_HOOK_REACH * 256)) return;
+        vine(hx, hy, len);
+        next.hooked = (next.hooked ?? 0) | (1 << h);
+        next.hookTick = tick;
+        caught = true;
+      });
+      (course.rings ?? []).forEach(([rxp, ryp, len], h) => {
+        if (caught || (next.ringed ?? 0) & (1 << h)) return;
+        const dx = sx - rxp * 256;
+        const dy = sy - ryp * 256;
+        const reach = SNIP_X_RING_REACH * 256;
+        if (dx * dx + dy * dy >= reach * reach) return;
+        vine(rxp * 256, ryp * 256, len);
+        next.ringed = (next.ringed ?? 0) | (1 << h);
+        next.ringTick = tick;
+        caught = true;
+      });
+    });
+
+    // 5. Stars (any fruit in play), then each fruit's outcome.
+    const reach = c.starReach * 256;
+    const got = [...next.starGot];
+    for (let i = 0; i < got.length; i++) {
+      if (got[i]) continue;
+      for (const f of fruits) {
+        if (f.st !== SNIP_X_PLAY) continue;
+        const dx = f.x - next.starX[i]!;
+        const dy = f.y - next.starY[i]!;
+        if (dx * dx + dy * dy < reach * reach) got[i] = 1;
+      }
+    }
+    next.starGot = got;
+    const mouth = snipCourseMouthAt(course, levelTick);
+    const mr = c.mouthRadius * 256;
+    fruits.forEach((f, k) => {
+      if (f.st !== SNIP_X_PLAY) return;
+      const mx = mouth.x - f.x;
+      const my = mouth.y - f.y;
+      if (mx * mx + my * my < mr * mr) {
+        f.st = SNIP_X_FED;
+        next.eaten += 1;
+        next.fedTick = tick;
+        if (f.gold === 1) next.golden = (next.golden ?? 0) + 1;
+      } else if (course.nests && courseTouchesNest(course, f.x, f.y)) f.st = SNIP_STUNG;
+      else if (f.y > (course.h + c.sweetRadius * 2) * 256 || f.y < -c.sweetRadius * 2 * 256) f.st = SNIP_LOST;
+      else if (f.rest >= c.restTicks) f.st = SNIP_LANDED;
+      // A fruit out of play lets its ropes and vines go slack.
+      if (f.st !== SNIP_X_PLAY) for (const rope of ropes) if (rope.f === k) rope.alive = 0;
+    });
+  }
+
+  // The legacy fields follow the lead fruit (the first in play), for effects and sounds.
+  const lead = fruits.find((f) => f.st === SNIP_X_PLAY) ?? fruits[0];
+  if (lead) {
+    next.sx = lead.x;
+    next.sy = lead.y;
+    next.sox = lead.ox;
+    next.soy = lead.oy;
+  }
+  // The camera: the pan (smoothstep from the basket up to the fruit), then easing after the fruit in play.
+  if (panning) {
+    const pan = snipPanEnds(course);
+    const k = Math.trunc((levelTick * 1024) / SNIP_X_PAN_TICKS);
+    const e = Math.trunc((k * k * (3 * 1024 - 2 * k)) / (1024 * 1024));
+    next.camY = pan.from + Math.trunc(((pan.to - pan.from) * e) / 1024);
+  } else {
+    const cam = state.camY ?? 0;
+    const d = camTarget(course, fruits) - cam;
+    next.camY = cam + (d === 0 ? 0 : Math.trunc(d / 6) || Math.sign(d));
+  }
+
+  if (tick % 300 === 0) next.trail = [...next.trail, clampInt(next.sx >> 8, 0, SNIP_W) * 1024 + clampInt(next.sy >> 8, 0, 1023)];
+
+  if (fruits.every((f) => f.st !== SNIP_X_PLAY) || levelTick >= SNIP_X_LEVEL_TICKS) {
+    for (const f of fruits) if (f.st === SNIP_X_PLAY) f.st = SNIP_TIMEOUT;
+    for (const rope of ropes) rope.alive = 0;
+    next = buildCourseLevel(finishCourseLevel(next, course, tick), state.level + 1);
+  }
+  return next;
+}
+
+function finishCourseLevel(s: SnipState, course: SnipCourse, tick: number): SnipState {
+  const fruits = s.fruits ?? [];
+  const fed = fruits.filter((f) => f.st === SNIP_X_FED).length;
+  const all = fed === fruits.length;
+  const stars = s.starGot.reduce((n, g) => n + g, 0);
+  const par = all && (s.lvlStrokes ?? 0) <= course.par;
+  const out: SnipState = {
+    ...s,
+    xUnits: (s.xUnits ?? 0) + levelUnits(fruits, s.starGot),
+    stars: s.stars + Math.min(1, stars),
+    stars2: (s.stars2 ?? 0) + (stars >= 2 ? 1 : 0),
+    cleared: (s.cleared ?? 0) + (all ? 1 : 0),
+    parLevels: (s.parLevels ?? 0) + (par ? 1 : 0),
+    perfect: (s.perfect ?? 0) + (par && stars >= course.stars.length ? 1 : 0),
+    endTick: tick,
+    lastOutcome: all ? SNIP_EATEN : (fruits.find((f) => f.st !== SNIP_X_FED)?.st ?? SNIP_TIMEOUT),
+  };
+  if (all && (out.cleared ?? 0) >= SNIP_X_LEVELS) out.finishTick = tick;
+  return out;
+}
+
+/** The basket on a level tick (1/256 px): fixed, or sliding as snipMouthAt. */
+export function snipCourseMouthAt(course: SnipCourse, levelTick: number): { x: number; y: number } {
+  return snipMouthAt({ mouth: course.mouth, slide: course.slide } as SnipTemplate, levelTick);
+}
+
+function courseTouchesNest(course: SnipCourse, sx: number, sy: number): boolean {
+  return snipTouchesNest({ nests: course.nests } as SnipTemplate, sx, sy);
+}
+
+/** A run's units, the level in progress included (a run can end mid-level). */
+export function snipCourseUnits(state: SnipState): number {
+  const live = state.level < SNIP_X_LEVELS && state.fruits ? levelUnits(state.fruits, state.starGot) : 0;
+  return clampInt((state.xUnits ?? 0) + live, 0, SNIP_X_UNITS_TOP);
+}
+
+/**
+ * snipRev 10 knots: units are 18 a level's fruits (shared) and 2 a star, 120 = everything on all six
+ * levels = 140; feeding everything adds up to 10 for speed. Fitted with scripts/arcade-skill-bands.ts
+ * snip --rev=now (docs/expansions/e8-snip.md) so today's players, with their usual share of the
+ * features, land about where snipRev 9 put them (median units: average 87, good 93, great 96, near 100).
+ */
+export const SNIP_V10_BAND_CURVE = bandCurve([0, 40, 70, 87, 93, 97, 102, 110, 120], [0, 26, 46, 62, 90, 104, 118, 130, 140]);
+
+/**
+ * The feature bonus on a snipRev 10 state (0–50). Its raw points: 5 a golden apple fed in time, 2.5 a par
+ * level, 2 a second leaf, 8 for a perfect run (all 50 at the top); the bonus is 50 × (raw ÷ 50)², so a
+ * little use of the features adds little and only strong use of all of them nears 50 (in half points:
+ * raw2 = 2 × raw, bonus = raw2² ÷ 200).
+ */
+export function snipFeatureRaw2(state: SnipState): number {
+  const run = (state.perfect ?? 0) >= SNIP_X_LEVELS && (state.golden ?? 0) >= SNIP_X_GOLD_LEVELS.length ? SNIP_X_PERFECT_POINTS : 0;
+  return 2 * SNIP_X_GOLD_POINTS * (state.golden ?? 0) + 5 * (state.parLevels ?? 0) + 2 * SNIP_X_STAR2_POINTS * (state.stars2 ?? 0) + 2 * run;
+}
+export function snipFeatureBonus(state: SnipState): number {
+  const raw2 = clampInt(snipFeatureRaw2(state), 0, 2 * SNIP_X_FEATURE_MAX);
+  return clampInt(Math.trunc((raw2 * raw2) / (4 * SNIP_X_FEATURE_MAX)), 0, SNIP_X_FEATURE_MAX);
+}
+
+export function snipCourseParts(state: SnipState): BandParts {
+  const units = snipCourseUnits(state);
+  const finished = (state.cleared ?? 0) >= SNIP_X_LEVELS && state.finishTick > 0;
+  // The speed window runs from SNIP_X_FINISH_MIN (six pans and falls take that long) to the buzzer.
+  const window = SNIP_RUN_TICKS - SNIP_X_FINISH_MIN;
+  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(SNIP_RUN_TICKS - state.finishTick, 0, window), window) : 0;
+  const feature = snipFeatureBonus(state);
+  return {
+    units,
+    points: bandPoints(SNIP_V10_BAND_CURVE, units),
+    bonus: speed + feature,
+    penalty: 0,
+    finished,
+    text: `${state.eaten} / ${state.fruitsDealt ?? 0} fruit · ${state.cleared ?? 0} / ${SNIP_X_LEVELS} levels · ${state.stars} leaves`,
+    bonusText: `${finished ? `All fed +${speed} · ` : ""}${state.golden ?? 0} golden · ${state.parLevels ?? 0} par · ${state.stars2 ?? 0} second leaves${feature >= SNIP_X_FEATURE_MAX ? " · perfect run" : ""}`,
+  };
+}
+
+function scoreCourse(state: SnipState): number {
+  return bandTotal(snipCourseParts(state), Boolean(state.acted), SNIP_X_MAX);
+}
+
+/** snipRev 10: cuts over the tall course (courses up to SNIP_X_MAX_H tall). */
+export const SNIP_X_MAX_H = 1400;
+export const SNIP_X_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(SNIP_INPUT_CUT, [-PAD, SNIP_X_W + PAD], [-PAD, SNIP_X_MAX_H + PAD], [-PAD, SNIP_X_W + PAD], [-PAD, SNIP_X_MAX_H + PAD]),
+];
+
+export const snipExpandGame: ArcadeGame<SnipState, ArcadeInputEvent | null> = {
+  ...snipGame,
+  init: initCourse,
+  step: bandStep(stepCourse),
+  isOver: isOverCourse,
+  score: bandScoreOf(scoreCourse, scoreCourse),
+  inputRanges: SNIP_X_INPUT_RANGES,
+};
+
+/** Scripts only: one course level on a given deal (pin shift px, wind preset, golden fruit or −1). */
+export function snipCourseTestLevel(course: number, wob: number, wind: number, gold: number): SnipState {
+  const s = initCourse(1);
+  return snipCourseDeal({ ...s, order: [course] }, 0, wob, wind, gold);
+}

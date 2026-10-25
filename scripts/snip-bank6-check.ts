@@ -25,6 +25,7 @@
  *
  *   bun scripts/snip-bank6-check.ts
  */
+import { snipPlayBeforeExpand } from "./snip-expand-lib";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -90,7 +91,7 @@ section("Stored snipRev 5 rounds replay and score exactly as before");
 section("New rounds: snipRev 6, the tall world, the same rules");
 {
   // Rooms moved on to snipRev 7 (snipRev 6's game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-  ok(playRevOf("snip", generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN}, snipRev 6's successor (got ${playRevOf("snip", generateSnip().snipRev)})`);
+  ok(snipPlayBeforeExpand(generateSnip().snipRev) === SNIP_REV_PROVEN, `new rounds stamped ${SNIP_REV_PROVEN}, snipRev 6's successor (got ${snipPlayBeforeExpand(generateSnip().snipRev)})`);
   ok(puzzleUsesBands({ type: "snip", snipRev: SNIP_REV_BANK6 } as never), "snipRev 6 scores on the bands");
   ok(snipWorldHFor(SNIP_REV_BANK6) === SNIP_TALL_H, "snipRev 6 plays in the 360 × 640 world");
   const r = ARCADE_REVEAL_RENDERERS.snip!;

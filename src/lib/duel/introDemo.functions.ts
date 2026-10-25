@@ -9,6 +9,7 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -104,6 +105,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Tilt's expansion (tiltRev 7, 25 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
     // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 7.
     if (data.type === "tilt" && demo?.puzzle.type === "tilt" && demo.puzzle.tiltRev !== TILT_REV_EXPAND) return null;
+    // E8 expansion (25 Oct 2026): Scrumper's snipRev 10 tall course (several fruits, a vertical camera). An older demo
+    // would show the old one-apple levels, so the intro shows its still until a demo is recorded on snipRev 10.
+    if (data.type === "snip" && demo?.puzzle.type === "snip" && demo.puzzle.snipRev !== SNIP_REV_EXPAND) return null;
     return demo;
   });
 

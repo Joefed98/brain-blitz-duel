@@ -20,7 +20,7 @@ import { CROSS_REV_STRICT, CROSS_V7_BAND_CURVE } from "./cross";
 import { RALLY_REV_STRICT, RALLY_V8_BAND_CURVE } from "./rally";
 import { SNAKE_REV_STRICT, SNAKE_V8_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_V6_BAND_CURVE } from "./binToss";
-import { SNIP_REV_STRICT, SNIP_V9_BAND_CURVE } from "./snip";
+import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V9_BAND_CURVE, SNIP_V10_BAND_CURVE } from "./snip";
 import { HOVER_REV_STRICT, HOVER_V7_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_STRICT, SKYLINE_V6_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
@@ -59,7 +59,7 @@ export const LIVE_BANDS = {
   rally: { field: "rallyRev", rev: RALLY_REV_STRICT, curve: RALLY_V8_BAND_CURVE },
   snake: { field: "snakeRev", rev: SNAKE_REV_STRICT, curve: SNAKE_V8_BAND_CURVE },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STRICT, curve: BINTOSS_V6_BAND_CURVE },
-  snip: { field: "snipRev", rev: SNIP_REV_STRICT, curve: SNIP_V9_BAND_CURVE },
+  snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V10_BAND_CURVE, bands: { rev: SNIP_REV_STRICT, curve: SNIP_V9_BAND_CURVE } },
   hover: { field: "hoverRev", rev: HOVER_REV_STRICT, curve: HOVER_V7_BAND_CURVE },
   skyline: { field: "skylineRev", rev: SKYLINE_REV_STRICT, curve: SKYLINE_V6_BAND_CURVE },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
