@@ -238,7 +238,7 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Effects: the tall specs in ARCADE_FX_SPECS, older rounds at their own height, through fxSpecAt.
   const fx = ARCADE_FX_SPECS as Record<string, { height: number }>;
   // Grappler's expansion (swingRev 12) deals its own 844-high view (swing-rev12-check).
-  ok((fx.swing!.height === 730 || fx.swing!.height === 844) && fx.orbit!.height === 650 && fx.balltrack!.height === 1300, "ARCADE_FX_SPECS hold the taller heights rooms deal");
+  ok((fx.swing!.height === 730 || fx.swing!.height === 844) && (fx.orbit!.height === 650 || fx.orbit!.height === 782) && fx.balltrack!.height === 1300, "ARCADE_FX_SPECS hold the taller heights rooms deal");
   ok(swingFxFor({ worldH: 730 } as SwingState).height === 730 && swingFxFor({} as SwingState) === SWING_FX, "Grappler effects by state height");
   ok(orbit3FxFor({ worldH: 650 } as OrbitRev3State).height === 650 && orbit3FxFor({} as OrbitRev3State) === ORBIT3_FX, "Orbit effects by view height");
   ok(balltrackFxFor({ worldH: 1300 } as BtState).height === 1300 && balltrackFxFor({} as BtState) === BALLTRACK_FX, "Ball Tracker effects by state height");

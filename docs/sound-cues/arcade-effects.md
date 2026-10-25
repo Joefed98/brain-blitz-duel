@@ -174,6 +174,11 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.distanceStreak` | Every 100 m | STREAK banner with embers | `banner.streak.mp3` · own file `swing.hundredMetres.mp3` (sound batch 4, volume 0.8) | 1–5 | 562 ms |
 | `swing.overLava` | Past a lava jet | A +1 pop behind the jet | `pop.bonus.mp3` | 2–8 | 250 ms |
 | `swing.finishLine` | 500 m reached (dragon outrun) | FULL CLEAR banner, embers, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
+| `swing.gemTaken` | A high-route gem taken (swingRev 12) | +GEM pop in cyan at the hero | `sfx_spark_chime.mp3` (shared recording, volume 0.7) | 0–12 | 600 ms |
+| `swing.gateLit` | A speed gate lit by a fast swoop (swingRev 12) | SPEED GATE! pop under the hero | `sfx_joulz_zap.mp3` (shared recording, volume 0.8) | 0–8 | 380 ms |
+| `swing.ledgeLanded` | Landed on a set-route ledge (swingRev 12) | LANDED! pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.7) | 0–15 | 487 ms |
+| `swing.comboPoint` | Every fifth linked swing (swingRev 12) | SWING COMBO ×n streak | `banner.combo.mp3` (volume 0.85) | 0–10 | 500 ms |
+| `swing.sectionClear` | A set-route section's finish flag reached (swingRev 12) | SECTION CLEAR! banner | `done.chimeSweep.mp3` | 0–3 | 600 ms |
 | `swing.rockFall` | A shaking stalactite drops | The stalactite falls with a pale streak above it | `cave.rockCrumble.mp3` | 2–8 | 250 ms |
 | `swing.jetBubble` | A lava jet starts bubbling (at most one per 600 ms across all jets) | Bubbles rise and a glowing ring opens on the lava | `cave.lavaBubble.mp3` | 5–20 | 400 ms |
 | `swing.jetErupt` | A lava jet erupts (at most one per 600 ms across all jets) | A molten column shoots up | `cave.lavaErupt.mp3` | 5–20 | 500 ms |

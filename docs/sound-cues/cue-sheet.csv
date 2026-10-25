@@ -252,6 +252,11 @@ swing.star,Replays,Star: the clip reaches the moment's key tick [replays.md],,0�
 swing.dodged,Replays,Stalactite dodged: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.dodged,250,replay,swing.dodged,public/sounds/swing.dodged.mp3 (from replay.moment.mp3)
 swing.over-lava,Replays,Over the lava jet: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.over-lava,250,replay,swing.over-lava,public/sounds/swing.over-lava.mp3 (from replay.moment.mp3)
 swing.finish,Replays,500 m (dragon outrun): the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.finish,250,replay,swing.finish,public/sounds/swing.finish.mp3 (from replay.moment.mp3)
+swing.gem,Replays,High-route gem: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.gem,250,replay,swing.gem,
+swing.speed-gate,Replays,Speed gate lit: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.speed-gate,250,replay,swing.speed-gate,
+swing.ledge,Replays,Landed on a ledge: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.ledge,250,replay,swing.ledge,
+swing.combo,Replays,Swing combo point: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.combo,250,replay,swing.combo,
+swing.section,Replays,Set-route section cleared: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,swing.section,250,replay,swing.section,
 snip.leaf,Replays,Leaf taken: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.leaf,250,replay,snip.leaf,public/sounds/snip.leaf.mp3 (from replay.moment.mp3)
 snip.level,Replays,Apple fed: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.level,250,replay,snip.level,public/sounds/snip.level.mp3 (from replay.moment.mp3)
 snip.all-apples,Replays,All 10 apples: the clip reaches the moment's key tick [replays.md],,0–2 per highlight,recorded sound,snip.all-apples,250,replay,snip.all-apples,public/sounds/snip.all-apples.mp3 (from replay.moment.mp3)
@@ -550,6 +555,11 @@ music.matchup,Gemstone,Gemstone: music_matchup,,loop,recorded sound,music_matchu
 swing.distanceStreak,Grappler,Every 100 m [arcade-effects.md],STREAK banner with embers,1–5,recorded sound,swing.distanceStreak,562,game event,swing.distanceStreak,
 swing.overLava,Grappler,Past a lava jet [arcade-effects.md],A +1 pop behind the jet,2–8,recorded sound,swing.overLava,250,game event,swing.overLava,
 swing.finishLine,Grappler,500 m reached (dragon outrun) [arcade-effects.md],"FULL CLEAR banner, embers, shake",0–1,recorded sound,swing.finishLine,1200,success sting,swing.finishLine,
+swing.gemTaken,Grappler,A high-route gem taken (swingRev 12) [arcade-effects.md],+GEM pop in cyan at the hero,0–12,recorded sound,swing.gemTaken,600,game event,swing.gemTaken,
+swing.gateLit,Grappler,A speed gate lit by a fast swoop (swingRev 12) [arcade-effects.md],SPEED GATE! pop under the hero,0–8,recorded sound,swing.gateLit,380,game event,swing.gateLit,
+swing.ledgeLanded,Grappler,Landed on a set-route ledge (swingRev 12) [arcade-effects.md],LANDED! pop above the hero,0–15,recorded sound,swing.ledgeLanded,487,game event,swing.ledgeLanded,
+swing.comboPoint,Grappler,Every fifth linked swing (swingRev 12) [arcade-effects.md],SWING COMBO ×n streak,0–10,recorded sound,swing.comboPoint,500,game event,swing.comboPoint,
+swing.sectionClear,Grappler,A set-route section's finish flag reached (swingRev 12) [arcade-effects.md],SECTION CLEAR! banner,0–3,recorded sound,swing.sectionClear,600,game event,swing.sectionClear,
 swing.rockFall,Grappler,A shaking stalactite drops [arcade-effects.md],The stalactite falls with a pale streak above it,2–8,recorded sound,swing.rockFall,250,game event,swing.rockFall,
 swing.jetBubble,Grappler,A lava jet starts bubbling (at most one per 600 ms across all jets) [arcade-effects.md],Bubbles rise and a glowing ring opens on the lava,5–20,recorded sound,swing.jetBubble,400,game event,swing.jetBubble,
 swing.jetErupt,Grappler,A lava jet erupts (at most one per 600 ms across all jets) [arcade-effects.md],A molten column shoots up,5–20,recorded sound,swing.jetErupt,500,game event,swing.jetErupt,
