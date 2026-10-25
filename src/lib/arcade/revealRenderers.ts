@@ -46,7 +46,7 @@ import { snipCamera, snipWorldH, snipWorldHFor, SNIP_CONFIG, SNIP_H, type SnipSt
 import { tiltArtGame as tiltGame } from "./tiltArt.renderer";
 import { btArtDraw } from "./ballTrackArt.renderer";
 import { ballTrackWorldHFor, BT_H, BT_W, type BtState } from "./ballTrack";
-import { swingWorldHFor } from "./swing";
+import { swingRevealHFor } from "./swing";
 import { flipWorldHFor } from "./flip";
 import { whackArtGame as whackGame } from "./whack.renderer";
 import { CLAY_H, CLAY_W, clayWorldHFor } from "./clayShoot";
@@ -250,7 +250,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return (state as { rev?: number }).rev === 3 ? null : { x: state.x / FP, y: (state.y - state.camY) / FP };
     },
   },
-  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined), undefined, undefined, (p) => swingWorldHFor(p.type === "swing" ? p.swingRev : undefined)),
+  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined), undefined, undefined, (p) => swingRevealHFor(p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,

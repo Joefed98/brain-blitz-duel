@@ -1,5 +1,5 @@
 /** Private bounded search: only seeds with a complete timed witness are used. */
-import { swingGameFor, SWING_REV, SWING_STARS, swingMetres, type SwingState } from '@/lib/arcade/swing';
+import { swingGameFor, SWING_GATES, SWING_GEMS, SWING_REV, SWING_REV_EXPAND, SWING_SECTIONS, SWING_SECTION_LEDGES, SWING_STARS, swingMetres, type SwingState } from '@/lib/arcade/swing';
 import type { ArcadeInputEvent } from '@/lib/arcade/engine';
 
 export function proveSwingSeed(seed: number, rev = SWING_REV): ArcadeInputEvent[] | null {
@@ -73,4 +73,11 @@ export function proveSwingSeedV4(seed: number, opts: { beam?: number; starWeight
     if (found && found.stars >= SWING_STARS) break;
   }
   return best;
+}
+
+/** swingRev 12: true when a course's start state carries every expansion feature (the rev-12 bank's first test). */
+export function swingExpandComplete(seed: number): boolean {
+  const s = swingGameFor(SWING_REV_EXPAND).init(seed);
+  return (s.starSpots ?? []).length === SWING_STARS && (s.gems ?? []).length === SWING_GEMS && (s.gates ?? []).length === SWING_GATES &&
+    (s.ledges ?? []).length >= (SWING_SECTIONS - 1) * SWING_SECTION_LEDGES;
 }

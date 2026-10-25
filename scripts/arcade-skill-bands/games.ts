@@ -53,10 +53,11 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LON
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND, BURST_REV_TALL } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_STRICT, SWING_REV_EXPAND } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { SWING_V9_BANK } from "../../src/lib/duel/swingBankV9.server";
+import { SWING_V12_BANK } from "../../src/lib/duel/swingBankV12.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
 import { pinCheckpoint, pinballGameFor, PIN_REV } from "../../src/lib/arcade/pinball";
@@ -91,6 +92,11 @@ export interface GameSpec {
   tuneg3?: number;
   /** The seed a live room would store for the n-th sample. */
   seedFor: (n: number) => number;
+  /** The seed for a revision whose rooms deal from their own bank (an expansion), when it differs from seedFor. */
+  seedForRev?: (n: number, rev: number | null) => number | undefined;
+  /** A game's expansion revision (Oct 2026, docs/expansions/) and the one rooms dealt before it (`--rev=x`). */
+  expand?: number;
+  expandBefore?: number;
   /** The game (sim + score) for a revision and stored seed. */
   gameFor: (rev: number | null, seed: number) => ArcadeGame<any, any>;
   checkpoint: (state: any) => unknown;
@@ -193,6 +199,10 @@ export const GAMES: GameSpec[] = [
     tunec: SWING_REV_TUNEC,
     tunef: SWING_REV_SPREAD,
     tuneg3: SWING_REV_TALL,
+    expand: SWING_REV_EXPAND,
+    expandBefore: SWING_REV_STRICT,
+    // swingRev 12 rooms deal from SWING_V12_BANK (the courses re-proved with every expansion feature).
+    seedForRev: (n, rev) => (rev === SWING_REV_EXPAND && SWING_V12_BANK.length ? SWING_V12_BANK[roomSeed(n) % SWING_V12_BANK.length]!.seed : undefined),
     // Rooms pick a proved course from the bank by the room seed (swingRev 9: from the 298 re-proved on the taller cavern,
     // which keep SWING_V4_BANK's order, so a seed that is in both is the same course on both revisions).
     seedFor: (n) => SWING_V4_BANK[roomSeed(n) % SWING_V4_BANK.length]!.seed,

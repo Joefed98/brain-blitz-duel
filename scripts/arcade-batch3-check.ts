@@ -391,7 +391,8 @@ if (want("swing")) {
   }
   // Scoring: distance up to 120, stars up to 10 (130 unfinished), 500 m adds 20.
   ok(swingScoreV4(499, 10) === 130 && swingScoreV4(250, 0) === 60 && swingScoreV4(500, 10) === 150 && swingScoreV4(500, 3) === 143, "120 × m ÷ 500 + stars; 500 m adds 20");
-  ok(INTRO_SCORE.swing.includes("500 metres for 10 more") && !INTRO_SCORE.swing.includes("otherwise"), "intro states the 10 for 500 m and no partial cap (score bands)");
+  // Grappler's expansion (swingRev 12) words it "10 more at 500 m" (swing-rev12-check).
+  ok((INTRO_SCORE.swing.includes("500 metres for 10 more") || INTRO_SCORE.swing.includes("10 more at 500 m")) && !INTRO_SCORE.swing.includes("otherwise"), "intro states the 10 for 500 m and no partial cap (score bands)");
   // The bank: every entry has 10 stars; sampled entries reach 150 through the server replay.
   ok(SWING_V4_BANK.length >= 200 && SWING_V4_BANK.every((e) => e.stars === SWING_STARS), `${SWING_V4_BANK.length} banked courses, each proved with all 10 stars`);
   let reached = 0;

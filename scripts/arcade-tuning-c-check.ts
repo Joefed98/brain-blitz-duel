@@ -19,6 +19,8 @@
  *   bun scripts/arcade-tuning-c-check.ts          (TUNING_C_ONLY=matchup,tilt,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { bandUnitsFor } from "../src/lib/arcade/scoreBands";
+import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -225,7 +227,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
+  // Grappler's expansion (swingRev 12) states its own good run (swing-rev12-check, arcade-help-bands-check).
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes(`A good run (100 points) counts ${bandUnitsFor(LIVE_BANDS.swing.curve, 100)}`) && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

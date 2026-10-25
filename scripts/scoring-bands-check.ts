@@ -26,7 +26,7 @@ import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandFingerprint, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
-import { EXPANSION_REVS, STRICT_REVS, TARGET_REVS } from "./scoring-targets-revs";
+import { EXPANSION_REVS, STRICT_REVS, TARGET_REVS, bandRevOf } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, REV2_IDENTITY_KNOTS, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
@@ -107,7 +107,11 @@ function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
 const ARCADE = (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((t) => t !== "junction");
 for (const type of ARCADE) {
   const { base } = BASES[type]!;
-  const live = LIVE_BANDS[type];
+  // An expansion (EXPANSION_BEFORE: new play on its own curve, its own check) is checked here on the score-bands
+  // revision rooms dealt before it; rooms dealing the expansion is checked below.
+  const dealtNow = LIVE_BANDS[type];
+  const expanded = bandRevOf(type) !== dealtNow.rev;
+  const live = expanded ? { ...dealtNow, rev: bandRevOf(type), curve: bandStrict(base) } : dealtNow;
   ok(bandHasStrict(base), `${type}: its base curve has a strict row`);
   const strict = bandStrict(base);
   // A game expanded to 200 (scripts/scoring-targets-revs.ts EXPANDED_FROM) lists its expansion's curve; its score-bands revision is proved here.
@@ -118,7 +122,7 @@ for (const type of ARCADE) {
   for (let i = 1; i < strict.units.length; i++) ok(strict.units[i]! > strict.units[i - 1]! && strict.points[i]! > strict.points[i - 1]!, `${type}: strict knots rise (${i})`);
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
   // An expanded game deals its expansion revision, or its score-bands revision on a course without the features.
-  ok(dealt === live.rev || dealt === STRICT_REVS[type], `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
+  ok(dealt === dealtNow.rev || dealt === STRICT_REVS[type], `${type}: rooms deal ${live.field} ${dealtNow.rev} (got ${String(dealt)})`);
   const spec = GAMES.find((g) => g.type === type)!;
   const seed = spec.seedFor(0);
   ok((spec.gameFor(strictRev, seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${strictRev}: band ${BAND_STRICT_MARK} from the first tick`);

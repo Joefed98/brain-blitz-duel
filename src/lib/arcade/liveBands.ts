@@ -31,7 +31,7 @@ import { ORBIT_V11_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STRICT, BEAT_V8_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_V8_BAND_CURVE } from "./slice";
 import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "./burst";
-import { SWING_REV_STRICT, SWING_V11_BAND_CURVE } from "./swing";
+import { SWING_REV_EXPAND, SWING_V12_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STRICT, BULLSEYE_V6_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STRICT, PIN_V3_BAND_CURVE } from "./pinball";
 
@@ -63,7 +63,8 @@ export const LIVE_BANDS = {
   beat: { field: "beatRev", rev: BEAT_REV_STRICT, curve: BEAT_V8_BAND_CURVE },
   slice: { field: "sliceRev", rev: SLICE_REV_STRICT, curve: SLICE_V8_BAND_CURVE },
   burst: { field: "burstRev", rev: BURST_REV_STRICT, curve: BURST_V6_BAND_CURVE },
-  swing: { field: "swingRev", rev: SWING_REV_STRICT, curve: SWING_V11_BAND_CURVE },
+  // swingRev 12 (the expansion): the base curve; the features add up to 50 on top (the help says so).
+  swing: { field: "swingRev", rev: SWING_REV_EXPAND, curve: SWING_V12_BAND_CURVE },
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STRICT, curve: BULLSEYE_V6_BAND_CURVE },
   pinball: { field: "pinRev", rev: PIN_REV_STRICT, curve: PIN_V3_BAND_CURVE },
 } as const satisfies Record<string, LiveBand>;

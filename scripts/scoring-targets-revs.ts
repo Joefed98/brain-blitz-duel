@@ -9,6 +9,7 @@
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "../src/lib/arcade/orbit";
 import { FLIP_REV_EXPAND } from "../src/lib/arcade/flip";
+import { SWING_REV_EXPAND } from "../src/lib/arcade/swing";
 
 /**
  * World expansions (25 Oct 2026, docs/scoring-200.md): a game whose rooms now deal an expansion revision
@@ -18,6 +19,7 @@ import { FLIP_REV_EXPAND } from "../src/lib/arcade/flip";
 export const EXPANSION_REVS: Partial<Record<LiveBandGame, readonly [expansion: number, strict: number]>> = {
   flip: [FLIP_REV_EXPAND, 6],
   orbit: [ORBIT_REV_XP, ORBIT_REV_STRICT],
+  swing: [SWING_REV_EXPAND, 11],
 };
 /**
  * The score-bands revision an expansion revision builds on (any other revision is itself). Checks written before
@@ -39,7 +41,9 @@ export const EXPANDED_FROM: Partial<Record<LiveBandGame, number>> = Object.fromE
 );
 
 /** The score-bands revision (19 Oct 2026) for a game: LIVE_BANDS' rev, or the one before its expansion. */
-const strictRevOf = (type: LiveBandGame) => EXPANDED_FROM[type] ?? LIVE_BANDS[type].rev;
+export const strictRevOf = (type: LiveBandGame) => EXPANDED_FROM[type] ?? LIVE_BANDS[type].rev;
+/** The same, under the name the swing expansion's checks use. */
+export const bandRevOf = strictRevOf;
 
 /**
  * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms then dealt the score-bands

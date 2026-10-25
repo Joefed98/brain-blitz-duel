@@ -86,6 +86,9 @@ import {
   SWING_FINISH_M,
   SWING_WORLD_H,
   SWING_TALL_H,
+  SWING_V12_H,
+  SWING_V12_W,
+  swingFeatureCounts,
   swingWorldH,
   SWING_WORLD_W,
   swingMetres,
@@ -1330,7 +1333,26 @@ export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
-export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
+/**
+ * swingRev 12 (the expansion): the wider, taller view, plus a pop for each gem, lit gate and ledge
+ * landed, a streak on every combo point, a banner for each cleared set-route section and one for a
+ * collapsing ledge that gives way under the hero (counters the sim keeps).
+ */
+const swingAt = (s: SwingState, dy = -22) => ({ x: s.x / 256 - s.camX / 256, y: s.y / 256 + dy });
+export const SWING_FX_V12: ArcadeFxSpec<SwingState> = {
+  ...SWING_FX,
+  width: SWING_V12_W,
+  height: SWING_V12_H,
+  events: [
+    ...SWING_FX.events,
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gems, at: (s) => swingAt(s), label: () => "+GEM", colour: () => "#8FF4FF" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).gates, at: (s) => swingAt(s, 26), label: () => "SPEED GATE!" },
+    { kind: "pop", count: (s) => swingFeatureCounts(s).ledges, at: (s) => swingAt(s, -26), label: () => "LANDED!" },
+    { kind: "streak", count: (s) => s.comboPts ?? 0, at: (s) => swingAt(s, -40), label: (s) => `SWING COMBO ×${s.chain ?? 0}` },
+    { kind: "perfect", count: (s) => swingFeatureCounts(s).sections, at: (s) => swingAt(s, -30), label: () => "SECTION CLEAR!", colour: () => "#FFD84A" },
+  ],
+};
+export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => (s.expand ? SWING_FX_V12 : fxSpecAt(SWING_FX, swingWorldH(s)));
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
 /** The live round's view size on orbitRev 11 (world expansion), with ORBIT_FX's events (ARCADE_FX_SPECS). */
 const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
@@ -1400,7 +1422,8 @@ export const ARCADE_FX_SPECS = {
   bullseye: BULLSEYE_FX,
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX_TALL,
-  swing: SWING_FX_TALL,
+  // The live round's view (swingRev 12, the expansion); older rounds draw through swingFxFor.
+  swing: SWING_FX_V12,
   snip: SNIP_FX_TALL,
   tilt: TILT_FX,
   balltrack: BALLTRACK_FX_TALL,
