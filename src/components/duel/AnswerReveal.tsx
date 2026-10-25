@@ -96,6 +96,41 @@ function DevDiagnostics({ extra }: { extra: Record<string, unknown> | null }) {
 }
 
 /**
+ * The reveal's scroll area fades out at its bottom while there is more below (data-more, the room lists'
+ * .rs-scroll fade, styles.css), so a board cut off by the scroll edge runs into the screen's home-bar strip
+ * with no step (bottom-clearance-check's reveal seams; Counterweight's scales after #149). It watches the
+ * content box and every scroller a game's Reveal draws inside it (Counterweight has its own). Display only.
+ */
+function useRevealMore(ref: { current: HTMLElement | null }) {
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const scrollers = () =>
+      [root, ...root.querySelectorAll<HTMLElement>("*")].filter((el) => {
+        const y = getComputedStyle(el).overflowY;
+        return y === "auto" || y === "scroll";
+      });
+    const sync = () => {
+      const more = scrollers().some((el) => el.scrollHeight - el.scrollTop - el.clientHeight > 2);
+      if (more) root.dataset["more"] = "";
+      else delete root.dataset["more"];
+    };
+    sync();
+    // Scroll events don't bubble: listen in the capture phase for the inner scrollers too.
+    root.addEventListener("scroll", sync, { passive: true, capture: true });
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
+    ro?.observe(root);
+    const watch = new MutationObserver(sync);
+    watch.observe(root, { childList: true, subtree: true });
+    return () => {
+      root.removeEventListener("scroll", sync, { capture: true });
+      ro?.disconnect();
+      watch.disconnect();
+    };
+  }, [ref]);
+}
+
+/**
  * The reveal board's own "Solution" and "Yours" labels (each game's Reveal draws them): tagged so
  * the skin shows the correct answer's label in a green-tinted box and the player's in an orange
  * one (polish-layout/theme.css). Display only; the board and its text are unchanged.
@@ -341,6 +376,7 @@ function LiveAnswerReveal({
   const solvedBoard = useRef<HTMLDivElement>(null);
   useSolveFlourish(solvedBoard, puzzle.type, answersReady && myScore !== null && myCorrect);
   useRevealLabels(solvedBoard);
+  useRevealMore(solvedBoard);
   const trayRef = useRef<HTMLDivElement>(null);
   useRevealTray(solvedBoard, trayRef);
 

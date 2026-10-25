@@ -254,7 +254,7 @@ for (const seed of CROSS_SEEDS.slice(0, 12)) {
 }
 console.log(`  150 reached through the server replay on ${best150} of 12 seeds (planner never loses a life)`);
 const crossIntro = INTRO_SCORE.cross;
-ok(/Up to 150/.test(crossIntro) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to 150 (score bands, crossRev 4)");
+ok(crossIntro.includes(`Up to ${roundMaxFor("cross")}`) && /each lane crossed/.test(crossIntro) && /full crossing/.test(crossIntro), "Jaywalk intro states lanes, crossings, up to its maximum (score bands, crossRev 4)");
 }
 
 /* =============================== 2b. Roofbound =============================== */
@@ -601,7 +601,7 @@ ok(totals.v2.filter((x) => x === 150).length <= totals.v1.filter((x) => x === 15
   ok(after1.bombsHit === 1 && after1.comboLive === 1, "original: a chilli only costs points");
 }
 ok(SLICE_MAYO_TICKS > 60 && SLICE_MAYO_TICKS < 90, "the squeeze lasts just over a second");
-ok(/Up to 150/.test(INTRO_SCORE.slice) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to 150, chilli loses 10");
+ok(INTRO_SCORE.slice.includes(`Up to ${roundMaxFor("slice")}`) && /lose 10/.test(INTRO_SCORE.slice), "Slice intro: up to its maximum, chilli loses 10");
 }
 
 /* ============================ 3. Intro rules ============================ */

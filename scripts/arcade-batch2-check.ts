@@ -634,6 +634,6 @@ for (const type of (["matchup", "bubble", "snake", "hover"] as const).filter(wan
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters`);
   ok(!/pellet/i.test(JSON.stringify(help) + INTRO_SCORE[type]), `${type}: no "pellet" wording`);
 }
-ok(/up to 150/i.test(INTRO_SCORE.snake), "Meteor intro states the 150 maximum the bot reaches");
+ok(new RegExp(`up to ${roundMaxFor("snake")}\\b`, "i").test(INTRO_SCORE.snake), "Meteor intro states its maximum (150 today, the maximum the bot reaches)");
 
 console.log(`arcade batch 2: ${checks} checks passed`);

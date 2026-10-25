@@ -207,6 +207,11 @@ export interface TenDropPlan {
   proof: number[];
   /** Re-seeds each segment needed. */
   tries: number[];
+  /**
+   * tenRev 4 only (absent before): the queue position (mod the queue's length) of each target's gold digit,
+   * one of the digits the proof solver takes, so a ten made with the gold tile is always reachable.
+   */
+  gold?: number[];
 }
 
 function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
@@ -265,6 +270,8 @@ export interface TenDropTile {
   y: number;
   tile: number;
   shakeUntil: number;
+  /** tenRev 4: a gold digit (absent otherwise). */
+  gold?: true;
 }
 
 export interface TenDropState {
@@ -292,6 +299,8 @@ export interface TenDropState {
    * puzzle shape. Scoring only: play, checkpoints and the replay are unchanged.
    */
   scoreRev?: number;
+  /** tenRev 4 (absent before): gold tens, targets cleared by tapping a gold tile (the tile that makes the total). */
+  goldTens?: number;
 }
 
 function init(seed: number): TenDropState {
@@ -365,7 +374,11 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
     const pick = rngBelow(state.rng, free.length);
     next.rng = pick.state;
     const col = free[pick.value]!;
-    tiles = [...tiles, { id: state.nextId, col, y: -c.tileH * 256, tile, shakeUntil: 0 }];
+    const gold = state.plan.gold;
+    const isGold = !!gold && state.queueIndex % queue.length === gold[state.stage];
+    tiles = [...tiles, isGold
+      ? { id: state.nextId, col, y: -c.tileH * 256, tile, shakeUntil: 0, gold: true as const }
+      : { id: state.nextId, col, y: -c.tileH * 256, tile, shakeUntil: 0 }];
     next.nextId = state.nextId + 1;
     next.queueIndex = state.queueIndex + 1;
     next.recentCols = [...state.recentCols, col].slice(-c.avoidRecentCols);
@@ -408,6 +421,7 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
           next.clearTick = tick;
           next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_CLEAR, col);
+          if (state.goldTens !== undefined && t.gold) next.goldTens = state.goldTens + 1;
         } else {
           next.total = result;
           next.log = pushLog(next.log, tick, TD_LOG_APPLIED, col);
@@ -426,7 +440,96 @@ export const TD_REV1_FREE_RESETS = 5;
 /** The run's starting state under a score revision (0 / absent = the original 13 per target). */
 export function tenDropInit(seed: number, scoreRev?: number): TenDropState {
   const state = init(seed);
+  if (scoreRev && scoreRev >= TEN_DROP_DEPTH_REV) {
+    // tenRev 4: the same plan and rng as tenRev 3, plus each target's gold position (from a hash of the seed,
+    // never the rng stream).
+    return { ...state, plan: { ...state.plan, gold: tdGoldPlan(seed, state.plan) }, scoreRev, goldTens: 0 };
+  }
   return scoreRev && scoreRev >= TEN_DROP_SCORE_REV ? { ...state, scoreRev } : state;
+}
+
+/**
+ * Fewest tiles that must arrive (the hitting tile included) to clear `target` from the queue's first tile and a
+ * total of 0, over the repeating queue (an overshoot resets to 0, as in play). With `gold` ≥ 0 the ten must be
+ * made by the tile at that queue position (a gold ten). Integer only; TD_ARRIVALS_NONE when it can't be done.
+ */
+export const TD_ARRIVALS_NONE = 1 << 20;
+export function tdMinArrivals(queue: readonly number[], target: number, gold = -1): number {
+  const n = queue.length;
+  // V[j·target + r]: fewest arrivals from position j with total r (< target).
+  const V = new Int32Array(n * target).fill(TD_ARRIVALS_NONE);
+  for (let pass = 0; pass < 64; pass++) {
+    let changed = false;
+    for (let j = n - 1; j >= 0; j--) {
+      const nx = ((j + 1) % n) * target;
+      const finishes = gold < 0 || j === gold;
+      for (let r = 0; r < target; r++) {
+        let v = 1 + V[nx + r]!;
+        const res = tdApply(queue[j]!, r);
+        if (res !== null) {
+          // A ten made by another tile (when it must be the gold one) is not this line.
+          const take = res === target ? (finishes ? 1 : TD_ARRIVALS_NONE) : 1 + V[nx + (res > target ? 0 : res)]!;
+          if (take < v) v = take;
+        }
+        if (v > TD_ARRIVALS_NONE) v = TD_ARRIVALS_NONE;
+        if (v < V[j * target + r]!) {
+          V[j * target + r] = v;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+  return V[0]!;
+}
+
+/** Integer mix (murmur3 finaliser) for the gold positions; integer only. */
+function tdMix(x: number): number {
+  let h = x | 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+/** A gold ten costs the fastest line this many extra tiles (first choice), else up to TD_GOLD_DETOUR_FAR, else any. */
+export const TD_GOLD_DETOUR: readonly [number, number] = [1, 2];
+export const TD_GOLD_DETOUR_FAR = 6;
+
+const goldCache = new Map<string, number[]>();
+
+/**
+ * tenRev 4: each target's gold digit, as a queue position (mod the queue's length; it repeats every pass). It is
+ * a digit that can make the ten (proved by tdMinArrivals from the stage's first tile and a total of 0), preferring
+ * one whose gold ten costs the fastest line TD_GOLD_DETOUR more tiles (then up to TD_GOLD_DETOUR_FAR, then any),
+ * so a gold ten is a plan, not an accident; among those, picked by a hash of (seed, target), never the rng.
+ * Pure and integer only (cached by seed and plan).
+ */
+export function tdGoldPlan(seed: number, plan: TenDropPlan): number[] {
+  const key = `${seed}|${plan.targets.join(",")}`;
+  const hit = goldCache.get(key);
+  if (hit) return [...hit];
+  const out = plan.queues.map((queue, i) => {
+    const target = plan.targets[i]!;
+    const base = tdMinArrivals(queue, target);
+    const near: number[] = [];
+    const far: number[] = [];
+    const free: number[] = [];
+    for (let j = 0; j < queue.length; j++) {
+      if (tdKind(queue[j]!) !== TD_DIGIT) continue;
+      const cost = tdMinArrivals(queue, target, j);
+      if (cost >= TD_ARRIVALS_NONE) continue;
+      const extra = cost - base;
+      if (extra >= TD_GOLD_DETOUR[0] && extra <= TD_GOLD_DETOUR[1]) near.push(j);
+      else if (extra > TD_GOLD_DETOUR[1] && extra <= TD_GOLD_DETOUR_FAR) far.push(j);
+      else if (extra <= 0) free.push(j);
+    }
+    const pool = near.length ? near : far.length ? far : free;
+    if (pool.length === 0) return -1;
+    return pool[tdMix((seed ^ Math.imul(i + 1, 0x9e3779b1)) | 0) % pool.length]!;
+  });
+  if (goldCache.size > 32) goldCache.clear();
+  goldCache.set(key, out);
+  return [...out];
 }
 
 /**
@@ -434,11 +537,14 @@ export function tenDropInit(seed: number, scoreRev?: number): TenDropState {
  * Rev 1: all ten = 120 + speedBonusCurve(30, …) (the full 30 when the last clears by 45 s);
  * otherwise floor(110 × targets ÷ 9) − 2 per reset beyond 5, so nine is 110.
  */
-export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0): number {
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0): number {
   const n = clampInt(cleared, 0, TD_TARGETS);
   if (scoreRev >= TEN_DROP_SCORE_REV) {
     if (n >= TD_TARGETS) {
       const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
+      if (scoreRev >= TEN_DROP_DEPTH_REV) {
+        return clampInt(120 + speedBonusCurve(30, left, TD_RUN_TICKS) + tdStretchBonus(left) + tdGoldBonus(goldTens), 0, TD_DEPTH_MAX);
+      }
       return clampInt(120 + speedBonusCurve(30, left, TD_RUN_TICKS), 0, 150);
     }
     // Overshoots beyond the first TD_REV1_FREE_RESETS cost 2 each, so mashing tiles earns about nothing
@@ -457,7 +563,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 }
 
 function score(state: TenDropState): number {
-  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets);
+  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0);
   return state.scoreRev === TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
 
@@ -479,6 +585,41 @@ export const TEN_DROP_BANDS_MAP = bandCurve([0, 97, 128, 135, 137, 150], [0, 70,
 export const TEN_DROP_RAW_REV = 3;
 export const TD_REV3_FREE_RESETS = 4;
 export const TD_REV3_RESET_COST = 5;
+
+/**
+ * tenRev 4 (depth to 200, 25 Oct 2026, docs/depth/d2-number-tenfall.md): tenRev 3's plan, play and unfinished
+ * score (at most 110, the same reset cost, no gold), plus gold tiles (one gold digit per target's queue, repeating
+ * every pass, `plan.gold`, tdGoldPlan; a gold ten is a target made exactly by tapping the gold tile, `goldTens`)
+ * and a finish scored to TD_DEPTH_MAX (200):
+ * all ten = 120 + speedBonusCurve(30, …) (tenRev 3: the full 30 with half the clock left)
+ *   + tdStretchBonus: up to TD_STRETCH_MAX, quadratic in the time left beyond TD_STRETCH_FROM ticks, full at
+ *     TD_STRETCH_FROM + TD_STRETCH_SPAN: from the last clear at 66 s to 52 s. tenRev 3's full-speed point (45 s)
+ *     is about a board's fastest possible clear (every needed tile tapped the tick it arrives: 37–52 s on room
+ *     seeds), so the stretch rides the seconds just before it, where only near-flawless play reaches.
+ *   + tdGoldBonus: TD_GOLD_POINTS per gold ten, at most TD_GOLD_MAX.
+ * Tuned on kit players (scripts/tendrop-depth-bands.ts): good 129 → 137, near-perfect 141 → 158, elite with
+ * gold up to about 188, a scripted best run 198–200.
+ */
+export const TEN_DROP_DEPTH_REV = 4;
+export const TD_STRETCH_MAX = 25;
+/** Ticks left at the last clear where the stretch starts (66 s into the run). */
+export const TD_STRETCH_FROM = 1440;
+/** Ticks over which the stretch rises to its full value (full at 52 s). */
+export const TD_STRETCH_SPAN = 840;
+export const TD_GOLD_POINTS = 5;
+export const TD_GOLD_MAX = 25;
+export const TD_DEPTH_MAX = 200;
+
+/** tenRev 4's speed stretch for `left` ticks on the clock at the last clear. */
+export function tdStretchBonus(left: number): number {
+  const d = clampInt(left - TD_STRETCH_FROM, 0, TD_STRETCH_SPAN);
+  return Math.floor((TD_STRETCH_MAX * d * d) / (TD_STRETCH_SPAN * TD_STRETCH_SPAN));
+}
+
+/** tenRev 4's gold part for a finished run: TD_GOLD_POINTS per gold ten, at most TD_GOLD_MAX. */
+export function tdGoldBonus(goldTens: number): number {
+  return Math.min(TD_GOLD_MAX, TD_GOLD_POINTS * clampInt(goldTens, 0, TD_TARGETS));
+}
 
 /* ============================= Checkpoints ============================= */
 

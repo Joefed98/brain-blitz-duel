@@ -10,6 +10,7 @@ import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
+import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -104,6 +105,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
     if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
+    // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
+    // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
+    if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
     return demo;
   });
 

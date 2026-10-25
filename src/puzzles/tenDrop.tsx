@@ -203,6 +203,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let seenCleared = 0;
     let seenResets = 0;
     let seenRefused = 0;
+    let seenGold = 0;
     let seenStage = 0;
     let seenLogTick = 0;
     let shownKey = "";
@@ -233,6 +234,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seenCleared = s.cleared;
         playCorrect();
         soundCue("tendrop.clear");
+      }
+      // tenRev 4: a ten made by the gold tile adds the moment cue over the clear (an existing cue, no new audio).
+      if ((s.goldTens ?? 0) > seenGold) {
+        seenGold = s.goldTens ?? 0;
+        soundCue("tendrop.ten");
       }
       if (s.resets > seenResets) {
         seenResets = s.resets;
@@ -347,7 +353,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tendrop") return null;
-  const result = replayTenDropRun(puzzle.seed, myAnswer ?? "");
+  const result = replayTenDropRun(puzzle.seed, myAnswer ?? "", puzzle.tenRev);
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="text-center font-mono text-lg font-bold text-foreground">

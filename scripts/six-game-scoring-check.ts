@@ -18,6 +18,7 @@ import { inkRev4Score, inkScoreOf, INK_LEVELS, INK_STAR_LEVELS, INK_V4_PARTIAL_M
 import { orbitGame, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { orbitRev3Game } from "../src/lib/arcade/orbitRev3";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BALL_TRACK_BANK } from "../src/lib/duel/ballTrackBank.server";
 
@@ -137,9 +138,9 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-// Expansion E6 (25 Oct 2026): Ball Tracker's btRev 7 tops out at 200 (e6-check covers its rules).
-for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to 200"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to 150"], ["inkbridge", "All 10 levels quickly: up to 150"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
-  eq(INTRO_SCORE[type].includes(goal), true, `${type} intro goal`);
+// Expansion E6: Ball Tracker's btRev 7 intro names its features. "{max}" is the game's own maximum (roundMax.ts: 150 today, 200 once its expansion raises it).
+for (const [type, goal] of [["balltrack", "in-a-row marbles add more. Up to {max}"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to {max}"], ["inkbridge", "All 10 levels quickly: up to {max}"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to {max}"]] as const) {
+  eq(INTRO_SCORE[type].includes(goal.replace("{max}", String(roundMaxFor(type)))), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.
 for (const type of ["snip", "stroop"] as const) eq(INTRO_SCORE[type].includes("otherwise up to 130"), false, `${type} intro has no split line`);

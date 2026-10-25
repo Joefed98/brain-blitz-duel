@@ -1,9 +1,11 @@
 /**
  * round-max-check (25 Oct 2026, the 200-point foundation; docs/scoring-200.md, src/lib/duel/roundMax.ts).
  *
- *   1. Today: every game's round maximum is 150, the ceiling is 200, every game has its line, and the
- *      chart, texts, perfect moment and bands read exactly as they did with 150 written in.
- *   2. One game raised (withRoundMax(type, 200), for every game in turn): its intro and "?" help state
+ *   1. Today: every game's round maximum is 150 or, once its expansion raised it, the ceiling (200);
+ *      every game has its line; the 150 scale's chart, texts, perfect moment and bands read exactly as
+ *      they did with 150 written in, and every raised game is on the 200 scale (perfect, bands, the
+ *      signature threshold, valid scores, a text stating its 200).
+ *   2. One game raised (withRoundMax(type, 200), for every game still at 150 in turn): its intro and "?" help state
  *      200 where they stated 150 and change nowhere else, every other game's texts stay as they are,
  *      its reveal chart's scale ends at 200, its perfect moment, Perfectionist, signature threshold and
  *      score bands move to the 200 scale, and every other game keeps 150.
@@ -45,11 +47,18 @@ function ok(cond: boolean, message: string): void {
 
 const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /**
- * Games an expansion has raised to 200 (docs/scoring-200.md: each expansion adds its games here). Their own
- * texts, chart, perfect moment and bands are proved at 200 below; every other game stays 150.
+ * Games an expansion has raised to the ceiling, one list for every expansion (docs/scoring-200.md: each adds its
+ * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
+ * #153). Checked against ROUND_MAX below, so the list and the maximums can't drift apart.
  */
-const RAISED: ReadonlySet<PuzzleType> = new Set<PuzzleType>(["bubble", "matchup", "balltrack"]);
-const TYPES = ALL_TYPES.filter((type) => !RAISED.has(type));
+const RAISED: PuzzleType[] = ["target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack"];
+/** The games still at 150: section 2 raises each of them in turn. */
+const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
+/** A game still at 150 for the samples below (the preferred one while it is). */
+const at150 = (preferred: PuzzleType, not?: PuzzleType): PuzzleType =>
+  TYPES.includes(preferred) && preferred !== not ? preferred : TYPES.find((t) => t !== not)!;
+/** Expansion E6's games: their intros state the 200 themselves (not only the help). */
+const E6_RAISED: PuzzleType[] = ["bubble", "matchup", "balltrack"];
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
@@ -57,25 +66,30 @@ const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_IN
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");
 ok(ALL_TYPES.length >= 80 && ALL_TYPES.every((t) => t in ROUND_MAX) && Object.keys(ROUND_MAX).every((t) => t in GAME_DISPLAY_NAMES), "every game has its own maximum line, and only games do");
-for (const type of TYPES) ok(ROUND_MAX[type] === 150 && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
+ok(JSON.stringify([...RAISED].sort()) === JSON.stringify(ALL_TYPES.filter((t) => ROUND_MAX[t] === SCORE_CEILING).sort()), `RAISED lists exactly the games ROUND_MAX puts at 200 (${ALL_TYPES.filter((t) => ROUND_MAX[t] === SCORE_CEILING).join(", ")})`);
+for (const type of ALL_TYPES) ok((ROUND_MAX[type] === 150 || ROUND_MAX[type] === 200) && roundMaxFor(type) === ROUND_MAX[type], `${type}: its maximum is 150, or 200 once raised (${ROUND_MAX[type]})`);
+ok(TYPES.length >= 2, "at least two games still at 150 for the samples below");
+// The raised games (each expansion's own checks prove its texts and scoring): on the 200 scale.
 for (const type of RAISED) {
-  // An expanded game: 200, and everything that follows its maximum reads 200.
-  ok(ROUND_MAX[type] === 200 && roundMaxFor(type) === 200, `${type}: its expansion raised it to 200 (${ROUND_MAX[type]})`);
-  ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/.test(INTRO_SCORE[type]), `${type}: the intro states its 200: "${INTRO_SCORE[type]}"`);
-  ok(isPerfectScore(type, 200) && !isPerfectScore(type, 199) && signatureMinScore(type) === 160, `${type}: perfect is 200; the no-finish beat needs 160`);
-  ok(chartLabels(roundMaxFor(type)).map((l) => l.text)[3] === "200", `${type}: its chart tops out at 200`);
-  ok(scoreBandFloor(type, "near-perfect") === 173 && scoreBandOf(type, 150) === "great", `${type}: its bands are on the 200 scale`);
+  ok(!isPerfectScore(type, 150) && !isPerfectScore(type, 199) && isPerfectScore(type, 200), `${type}: perfect is 200 only`);
+  ok(scoreBandFloor(type, "perfect") === 200 && scoreBandFloor(type, "near-perfect") === 173 && scoreBandFloor(type, "great") === 147 && scoreBandFloor(type, "average") === 80 && scoreBandOf(type, 150) === "great", `${type}: bands on the 200 scale`);
+  ok(signatureMinScore(type) === 160 && isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: the beat needs 160 and valid scores run to 200`);
+  ok(chartLabels(roundMaxFor(type)).map((l) => l.text)[3] === "200", `${type}: the chart's top label is 200`);
+  ok(TOP200.test(INTRO_SCORE[type] + " " + PUZZLE_INSTRUCTIONS[type].score), `${type}: its intro or help states its 200 maximum`);
+  TOP200.lastIndex = 0;
 }
+for (const type of E6_RAISED) ok(/\b200\b/.test(INTRO_SCORE[type]) && !/\b150\b/.test(INTRO_SCORE[type]), `${type}: the intro states its 200: "${INTRO_SCORE[type]}"`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
-ok(RAISED.size ? topRoundMax().top === 200 && !topRoundMax().shared : topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is 200 once a game is raised (150, shared, before)");
+ok(RAISED.length ? topRoundMax().top === 200 && !topRoundMax().shared : topRoundMax().top === 150 && topRoundMax().shared, `the onboarding's top score is ${RAISED.length ? "200, not every game's" : "150, shared by every game"}`);
 ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150"]', "the chart reads 0 / 50 / 100 / 150");
-ok(signatureMinScore("wordsmith") === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, "the no-finish beat still needs 120");
-ok(scaledToMax("snake", 110) === 110 && scaledToMax("snake", 120) === 120, "thresholds on the 150 scale are unchanged at 150");
+const [S_WORD, S_SNAKE, S_TILE, S_HOVER] = [at150("wordsmith"), at150("snake"), at150("tilegrid"), at150("hover")];
+ok(signatureMinScore(S_WORD) === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, `the no-finish beat still needs 120 (${S_WORD})`);
+ok(scaledToMax(S_SNAKE, 110) === 110 && scaledToMax(S_SNAKE, 120) === 120, `thresholds on the 150 scale are unchanged at 150 (${S_SNAKE})`);
 for (const [score, band] of [[150, "perfect"], [149, "near-perfect"], [130, "near-perfect"], [129, "great"], [110, "great"], [109, "good"], [90, "good"], [89, "decent"], [80, "decent"], [79, "average"], [60, "average"], [59, "low"], [0, "low"]] as const)
-  ok(scoreBandOf("tilegrid", score) === band, `bands at 150: ${score} is ${band} (${scoreBandOf("tilegrid", score)})`);
-ok(isPerfectScore("hover", 150) && !isPerfectScore("hover", 149) && !isPerfectScore("hover", null), "perfect is 150 only");
-ok(isValidRoundScore("hover", 150) && !isValidRoundScore("hover", 151) && !isValidRoundScore("hover", -1) && !isValidRoundScore("hover", 1.5), "a valid score is a whole number 0–150");
+  ok(scoreBandOf(S_TILE, score) === band, `bands at 150: ${score} is ${band} (${S_TILE}: ${scoreBandOf(S_TILE, score)})`);
+ok(isPerfectScore(S_HOVER, 150) && !isPerfectScore(S_HOVER, 149) && !isPerfectScore(S_HOVER, null), `perfect is 150 only (${S_HOVER})`);
+ok(isValidRoundScore(S_HOVER, 150) && !isValidRoundScore(S_HOVER, 151) && !isValidRoundScore(S_HOVER, -1) && !isValidRoundScore(S_HOVER, 1.5), `a valid score is a whole number 0–150 (${S_HOVER})`);
 
 /* 2. One game raised to 200. */
 const baseline = new Map(ALL_TYPES.map((t) => [t, texts(t)]));
@@ -116,13 +130,13 @@ for (const type of TYPES) {
     ok(isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: valid scores run to 200`);
     ok(topRoundMax().top === 200 && !topRoundMax().shared, `${type}: the onboarding's top becomes 200, no longer every game's`);
     // Every other game is untouched.
-    const other = type === "hover" ? "tilegrid" : "hover";
+    const other = at150("hover", type);
     ok(roundMaxFor(other) === 150 && isPerfectScore(other, 150) && signatureMinScore(other) === 120, `${type}: ${other} keeps 150`);
   });
-  ok(roundMaxFor(type) === 150, `${type}: the override ends with its call`);
+  ok(roundMaxFor(type) === ROUND_MAX[type], `${type}: the override ends with its call`);
 }
 // Every other game's texts are untouched by one game's change (checked once for a sample, all games each way).
-for (const raised of ["snake", "tilegrid", "wordsmith", "reaction"] as const) {
+for (const raised of [at150("snake"), at150("tilegrid"), at150("wordsmith"), at150("reaction")]) {
   withRoundMax(raised, 200, () => {
     for (const type of ALL_TYPES) if (type !== raised) ok(JSON.stringify(texts(type)) === JSON.stringify(baseline.get(type)), `${raised} raised: ${type}'s texts changed`);
   });
@@ -157,7 +171,7 @@ ok(/roundMaxFor\(game\)/.test(read("src/lib/arcade/liveBands.ts")), "the band ga
   };
   const { PRACTICE_BEST_PREFIX, practiceBestKey, readPracticeBest, recordPracticeBest } = await import("../src/lib/duel/practiceBest");
   const { currentPracticeStamp } = await import("../src/lib/duel/practiceStamps");
-  for (const type of TYPES) {
+  for (const type of ALL_TYPES) {
     const stamp = currentPracticeStamp(type);
     store.set(`duelz-practice-best:v2:${type}@${stamp}`, "140");
     store.set(`duelz-practice-best:${type}`, "150");
@@ -198,4 +212,4 @@ if (failures.length) {
   console.log(`FAIL round-max-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today but the expanded games' 200; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice and room arcade bests are never read`);
+console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today${RAISED.length ? ` but ${RAISED.length} raised to 200 (${RAISED.join(", ")})` : ""}; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice and room arcade bests are never read`);

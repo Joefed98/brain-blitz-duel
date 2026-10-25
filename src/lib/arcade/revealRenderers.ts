@@ -278,7 +278,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   // Tenfall's polished board (tenDrop.renderer.ts), as in play; it draws in device px from the context's scale.
-  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a)),
+  // tenRev 4 (gold tiles) rides in the start state, so the final board shows its gold tiles.
+  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a, p.type === "tendrop" ? p.tenRev : undefined)),
   wordfall: {
     accent: "#D4A84A",
     worldW: WF_W,

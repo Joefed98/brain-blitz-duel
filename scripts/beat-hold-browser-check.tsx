@@ -33,6 +33,7 @@ import {
   puzzlePrepMs,
   puzzleTimeLimitMs,
 } from "../src/lib/duel/registry";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { SIGNATURE_DELAY_MS, SIGNATURE_HOLD_MAX_MS, SIGNATURE_MS } from "../src/lib/fx/signature";
@@ -162,6 +163,8 @@ const pub = (type: PuzzleType, seed: number) =>
   splitPuzzle(withSeededRandom(seed, () => generatePuzzle(type))).pub as PuzzleData;
 const SOLVE = pub("sudoku", 41);
 const NO_FINISH = pub("numline", 42);
+/** A no-finish run above the beat's threshold: 130 of 150, scaled to Ballpark's own maximum (173 at 200; roundMax.ts). */
+const NO_FINISH_SCORE = Math.round((130 * roundMaxFor("numline")) / 150);
 const BEAT_END = SIGNATURE_DELAY_MS + SIGNATURE_MS;
 /** Rendering and the 100 ms screen ticker: how far a sample may sit from the exact moment. */
 const SLACK = 250;
@@ -483,10 +486,10 @@ try {
     const run = await play({
       mode,
       puzzle: NO_FINISH,
-      verdict: { isCorrect: false, score: 130 },
+      verdict: { isCorrect: false, score: NO_FINISH_SCORE },
       buzzer: mode === "room",
     });
-    report.push(`${mode} Ballpark 130: released at ${held(`${mode} no-finish 130`, mode, run)} ms`);
+    report.push(`${mode} Ballpark ${NO_FINISH_SCORE}: released at ${held(`${mode} no-finish ${NO_FINISH_SCORE}`, mode, run)} ms`);
 
     const unsolved = await play({ mode, puzzle: SOLVE, verdict: { isCorrect: false, score: 60 } });
     notHeld(`${mode} unsolved`, mode, unsolved);
@@ -525,6 +528,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "PASS: beat hold in Chromium (390 × 700, real practice and room screens): solve and Ballpark 130 held until the beat ends (≤ 2 s) with the beat over the bright board, then reveal / dim + Locked as before; unsolved rounds released straight after the verdict; a tap skips the practice wait; every submission at the solve moment with its time unchanged",
+  `PASS: beat hold in Chromium (390 × 700, real practice and room screens): solve and Ballpark ${NO_FINISH_SCORE} held until the beat ends (≤ 2 s) with the beat over the bright board, then reveal / dim + Locked as before; unsolved rounds released straight after the verdict; a tap skips the practice wait; every submission at the solve moment with its time unchanged`,
 );
 process.exit(0);
