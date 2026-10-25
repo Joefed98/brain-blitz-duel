@@ -12,8 +12,12 @@
  * for the players who go for them, and at forks a weaker player sometimes
  * misreads a long dead-end branch as the way on, rolls down it and stops to
  * rethink. A slip is a moment of tilting the wrong way.
+ *
+ * tiltRev 7 (the expansion): a shut gate is a wall until its key is taken, so a marble whose cup is
+ * cut off goes for the nearest key first; quick stars are taken first (by the players who go for them,
+ * while their window still has time), then the bonus stars, then the cup.
  */
-import { tiltCellCentre, tiltStarPoint, TILT_INPUT_DRAG, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltQuickLeft, tiltStarPoint, TILT_INPUT_DRAG, TILT_WORLD_W, type Maze, type TiltState } from "../../../src/lib/arcade/tilt";
 import { driveEvents, type SkillBot } from "../bot";
 import type { SkillLevel } from "../human";
 
@@ -34,6 +38,22 @@ const HORIZON: Record<SkillLevel, number> = { average: 30, good: 38, great: 44, 
 const MOUTH_GO = 0.5;
 /** Chance of detouring for each bonus star. */
 const STAR_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.15, good: 0.45, great: 0.75, near: 0.92 };
+/** tiltRev 7: chance of going for each quick star (while its window has time left). */
+const QUICK_GO: Record<SkillLevel, number> = process.env.TILT_NO_STARS ? { average: 0, good: 0, great: 0, near: 0 } : { average: 0.25, good: 0.5, great: 0.8, near: 0.97 };
+
+/** tiltRev 7: the keys taken in the maze being played (the bot's own view of the gates). */
+let KEYS = 0;
+function gateShut(m: Maze, c: number, nc: number): boolean {
+  const gates = m.gates ?? [];
+  for (let k = 0; 2 * k < gates.length; k++) {
+    if ((KEYS >> k) & 1) continue;
+    const gc = gates[2 * k]!;
+    const gd = gates[2 * k + 1]!;
+    const other = (Math.trunc(gc / m.n) + DY[gd]!) * m.n + (gc % m.n) + DX[gd]!;
+    if ((c === gc && nc === other) || (c === other && nc === gc)) return true;
+  }
+  return false;
+}
 
 function openCell(m: Maze, c: number, d: number): number {
   const i = (c % m.n) + DX[d]!;
@@ -42,14 +62,15 @@ function openCell(m: Maze, c: number, d: number): number {
   const nc = j * m.n + i;
   if (!m.inside[nc]) return -1;
   const wall = d === 0 ? m.wallR[c] : d === 1 ? m.wallD[c] : d === 2 ? m.wallR[nc] : m.wallD[nc];
-  return wall ? -1 : nc;
+  return wall || gateShut(m, c, nc) ? -1 : nc;
 }
 
 const fieldCache = new WeakMap<Maze, Map<number, number[]>>();
 function field(m: Maze, target: number): number[] {
   let byMaze = fieldCache.get(m);
   if (!byMaze) fieldCache.set(m, (byMaze = new Map()));
-  const hit = byMaze.get(target);
+  const key = target + 100000 * KEYS;
+  const hit = byMaze.get(key);
   if (hit) return hit;
   const dist = new Array<number>(m.n * m.n).fill(1e6);
   dist[target] = 0;
@@ -64,7 +85,7 @@ function field(m: Maze, target: number): number[] {
       }
     }
   }
-  byMaze.set(target, dist);
+  byMaze.set(key, dist);
   return dist;
 }
 
@@ -152,6 +173,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let thinkUntil = 0;
   let focus = 0;
   let starPlan: number[] = [];
+  let quickPlan: number[] = [];
   const decided = new Set<number>();
   let detour: { cell: number; until: number } | null = null;
   let rethinkUntil = 0;
@@ -181,6 +203,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const atHole = !!m.starXY && (m.starXY[2 * k] !== centre.x || m.starXY[2 * k + 1] !== centre.y);
       return human.chance(STAR_GO[level] * (atHole ? MOUTH_GO : 1));
     });
+    quickPlan = (m.quick ?? []).filter(() => human.chance(QUICK_GO[level]));
     focus = 0;
     if (two) {
       const da = field(m, m.exit)[cellAt(m, s.x, s.y)] ?? 99;
@@ -201,6 +224,27 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const exit = which === 0 ? m.exit : m.exit2!;
     const exitDir = which === 0 ? m.exitDir : m.exitDir2!;
     if (detour) return { which, cell: detour.cell, dir: -1 };
+    if (s.xp && c >= 0) {
+      // Quick stars first while their window still has time for the trip (about 4 ticks a cell, and a margin).
+      const qGot = s.quickGot ?? [];
+      const quick = m.quick ?? [];
+      const dist = field(m, c);
+      const live = quickPlan.filter((q) => !qGot[quick.indexOf(q)] && dist[q]! < 1e6 && dist[q]! * 4 + 60 < tiltQuickLeft(s));
+      if (live.length) {
+        live.sort((p, q) => dist[p]! - dist[q]!);
+        return { which, cell: live[0]!, dir: -1 };
+      }
+      // A cup cut off by a shut gate: the nearest key that can be reached.
+      if (field(m, exit)[c]! >= 1e6) {
+        const keys = (m.keys ?? []).filter((k, i) => !((KEYS >> i) & 1) && dist[k]! < 1e6);
+        if (keys.length) {
+          keys.sort((p, q) => dist[p]! - dist[q]!);
+          return { which, cell: keys[0]!, dir: -1 };
+        }
+        // This marble cannot reach a key: the other one must.
+        if (bodyOf(s, 1 - which)) focus = 1 - which;
+      }
+    }
     const got = s.starGot ?? [];
     const stars = m.stars ?? [];
     const want = starPlan.filter((sc) => !got[stars.indexOf(sc)]);
@@ -238,7 +282,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const home0 = (s0.aHome ?? 0) + (s0.bHome ?? 0);
     const home = (p.aHome ?? 0) + (p.bHome ?? 0);
     v += (home - home0) * 1e10;
-    v += ((p.stars ?? 0) - (s0.stars ?? 0)) * (goal.dir < 0 ? 1e8 : 0);
+    v += ((p.stars ?? 0) - (s0.stars ?? 0) + (p.quickTaken ?? 0) - (s0.quickTaken ?? 0)) * (goal.dir < 0 ? 1e8 : 0);
+    if ((p.keysGot ?? 0) !== (s0.keysGot ?? 0)) v += 1e9;
     const b = bodyOf(p, goal.which);
     if (b) v -= pathDist(m, b.x, b.y, goal.cell, goal.dir, goal.pt);
     // A light pull on the other marble toward its own cup.
@@ -275,6 +320,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     (s: TiltState, t) => {
       history.push(s);
       if (s.level !== mazeLevel) enter(s, t);
+      KEYS = s.keysGot ?? 0;
       const seen = history[Math.max(0, history.length - 1 - lag)]!;
       if (seen.level !== s.level || t < thinkUntil || t < rethinkUntil) return null;
       const m = s.list[s.level]!;

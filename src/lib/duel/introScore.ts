@@ -6,7 +6,7 @@ import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
 import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
-import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
+import { TILT_X_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -109,7 +109,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
     swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
-    tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
+    tilt: `Mazes, progress and stars; early quick stars add more. All ${TILT_X_MAZES} mazes quickly: up to {max}.`,
     balltrack: `Points for each marble home. Get all ${BT_BALLS} home quickly for up to {max}.`,
     swerve: arcadeOpen("each coin you collect"),
     dual: "The longer both runners survive, the more you score. The full minute is {max}.",

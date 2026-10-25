@@ -1250,15 +1250,18 @@ const tiltSummary: SummaryBuilder = (result) => {
   const survived = result.extra?.["survived"] !== false;
   const ended = Number(result.extra?.["survivedSeconds"] ?? 0);
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
+  // tiltRev 7 (the expansion): three mazes and quick stars.
+  const all = Number(result.extra?.["tiltRev"] ?? 0) === 7 ? 3 : 4;
+  const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:
-      mazes >= 4
-        ? `4 / 4 mazes · ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
+      mazes >= all
+        ? `${all} / ${all} mazes · ${Number(result.extra?.["secondsLeft"] ?? 0).toFixed(1)}s left`
         : survived
           ? `${head} · survived`
           : `${head} · ${result.extra?.["caught"] === true ? "caught by the red ball" : "dark hole"} at ${ended.toFixed(1)}s`,
     detail: result.extra?.["tiltRev"]
-      ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars`, "Same mazes for everyone"]
+      ? [`${Number(result.extra?.["stars"] ?? 0)} / ${Number(result.extra?.["totalStars"] ?? 0)} stars`, ...(quick > 0 ? [`${Number(result.extra?.["quickStars"] ?? 0)} / ${quick} quick stars`] : []), "Same mazes for everyone"]
       : ["Same mazes for everyone"],
   };
 };

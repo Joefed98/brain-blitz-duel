@@ -83,6 +83,11 @@ export interface Maze {
    * Stars there sit at the mouth of a black hole beside a route; `stars` keeps the cell each point is in.
    */
   starXY?: number[];
+  /** tiltRev 7 only: key cells, gates (cell, dir per key, flattened), ice per cell (0/1) and quick-star cells. */
+  keys?: number[];
+  gates?: number[];
+  ice?: number[];
+  quick?: number[];
 }
 
 function buildMaze(level: number, draw: (n: number) => number): Maze {
@@ -288,6 +293,18 @@ export interface TiltState extends BandFields {
   progMaze?: number;
   /** tiltRev 4 only (Tuning C): 1 = mazes decorated by decorateV4. Absent on every earlier round. */
   tunec?: number;
+  /** tiltRev 7 only (the expansion): 1. Keys taken in this maze (bit per key), quick stars taken in this maze, the tick the maze began. */
+  xp?: number;
+  keysGot?: number;
+  quickGot?: number[];
+  mazeAt?: number;
+  /** tiltRev 7: quick-star points so far, quick stars taken over the run, and the last key / quick star tick (render only reads them). */
+  quickPts?: number;
+  quickTaken?: number;
+  /** tiltRev 7: keys taken over the run. */
+  keysTaken?: number;
+  keyTick?: number;
+  quickTick?: number;
 }
 
 const cache = new Map<number, { list: Maze[]; rng: number }>();
@@ -477,14 +494,19 @@ function score(state: TiltState): number {
 }
 
 export function tiltExtra(s: TiltState) {
+  const all = s.xp ? TILT_X_MAZES : TILT_MAX_MAZES;
   return {
     mazes: s.mazes,
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
     caught: s.caught === 1,
-    secondsLeft: s.mazes >= TILT_MAX_MAZES ? Math.max(0, TILT_RUN_TICKS - s.endedTick) / 60 : 0,
+    secondsLeft: s.mazes >= all ? Math.max(0, TILT_RUN_TICKS - s.endedTick) / 60 : 0,
     stars: s.stars ?? 0,
     totalStars: tiltTotalStars(s),
+    // tiltRev 7 only (0 on older rounds): quick stars taken and on offer, and their points.
+    quickStars: s.quickTaken ?? 0,
+    totalQuick: tiltTotalQuick(s),
+    quickPoints: s.xp ? tiltQuickBonus(s) : 0,
   };
 }
 
@@ -544,6 +566,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.rev === TILT_REV) values.push(state.b ? (state.b.x ^ Math.imul(state.b.y, 31)) | 0 : 0, state.aHome ?? 0, state.bHome ?? 0, state.stars ?? 0);
   // tiltRev 4 adds its marker last.
   if (state.tunec) values.push(state.tunec);
+  // tiltRev 7 adds its marker, keys, quick stars and maze start last.
+  if (state.xp) values.push(state.xp, state.keysGot ?? 0, state.quickPts ?? 0, state.quickTaken ?? 0, state.mazeAt ?? 0, state.keysTaken ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1007,6 +1031,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_EXPAND) return tiltExpandGame;
   if (rev === TILT_REV_STRICT) return tiltStrictGame;
   if (rev === TILT_REV_TARGET) return tiltTargetGame;
   if (rev === TILT_REV_TUNEC) return tiltTunecGame;
@@ -1064,6 +1089,8 @@ function tiltTrack(_prev: TiltState, next: TiltState): TiltState {
 }
 
 export function tiltBandParts(state: TiltState): BandParts {
+  // tiltRev 7 has its own units and bonuses.
+  if (state.xp) return tiltXBandParts(state);
   const mazes = clampInt(state.mazes, 0, TILT_MAX_MAZES);
   const prog = mazes < TILT_MAX_MAZES && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_BAND_PROGRESS) : 0;
   const stars = clampInt(state.stars ?? 0, 0, TILT_V2_STARS);
@@ -1333,3 +1360,589 @@ export const TILT_REV_STRICT = 6;
 export const tiltStrictGame = bandStrictGame(tiltTargetGame);
 /** The curve new rounds score on: TILT_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const TILT_V6_BAND_CURVE = bandStrict(TILT_V4_BAND_CURVE);
+
+/* ================= Expansion (tiltRev 7, 25 Oct 2026) ================= */
+
+/**
+ * tiltRev 7 (world expansion, docs/expansions/e8.md; round maximum 200, docs/scoring-200.md): three
+ * bigger mazes (TILT_X_SIZES cells across at TILT_X_CELL px a cell, so a maze is wider than the screen)
+ * in a taller world (TILT_X_W × TILT_X_H). The physics, the drag input and the marbles are tiltRev 4's;
+ * the renderer's camera follows the marbles and turns the drawing about them (display only: the sim
+ * only uses the angle to turn gravity into the maze frame). The amber marble joins from maze 2; there
+ * is no chaser. New, all seeded on the decoration stream:
+ *  - ice: patches of cells where the marble keeps its speed (no rolling drag) up to TILT_X_ICE_CAP;
+ *  - keys and gates: a brass key in a dead end before the route's gate (one per marble's route): either
+ *    marble rolling over the key opens its gate (the old padlock's gate, generalised; a shut gate is a
+ *    wall for both marbles); every key is reachable with every gate shut, and every cup once the keys
+ *    reachable that way are taken (tiltCupReachableX);
+ *  - quick stars: TILT_X_QUICK per maze, each at the end of an iced corridor, there only for
+ *    TILT_X_QUICK_WINDOW ticks from the maze's start, worth TILT_X_QUICK_POINTS within TILT_X_QUICK_FULL
+ *    and less as the window runs out (tiltQuickPoints), plus TILT_X_SWEEP for taking every one.
+ * Score: mazes 40, progress in the maze being played up to 39, stars 5 on TILT_V7_BAND_CURVE (to 140),
+ * finishing all three adds up to 10 for speed, quick stars add up to 50: up to 200. States add `xp: 1`.
+ */
+export const TILT_REV_EXPAND = 7;
+export const TILT_X_W = 440;
+export const TILT_X_H = 820;
+export const TILT_X_MAZES = 3;
+/** Cells across per maze, and px a cell (today's mazes are 11–13 cells of 27–32 px in a 360 px disc). */
+export const TILT_X_SIZES: readonly number[] = [13, 15, 17];
+export const TILT_X_CELL = 30;
+/** Black holes per maze. */
+const TILT_X_PITS = [1, 2, 3];
+/** The amber marble joins from this maze (1-based). */
+export const TILT_X_TWO_FROM = 3;
+/** Quick stars per maze, their window from the maze's start (ticks) and their points. */
+export const TILT_X_QUICK = 2;
+export const TILT_X_QUICK_WINDOW = 20 * TICKS_PER_SECOND;
+/** A quick star taken within this many ticks of the maze's start scores in full; later, its points fall evenly to 0 at the window's end. */
+export const TILT_X_QUICK_FULL = 12 * TICKS_PER_SECOND;
+export const TILT_X_QUICK_POINTS = 8;
+export const TILT_X_SWEEP = 50 - TILT_X_QUICK_POINTS * TILT_X_QUICK * TILT_X_MAZES;
+/** Ice: patches per maze, cells per patch, and the speed cap on ice (FP a tick). */
+const TILT_X_ICE_PATCHES = [2, 3, 3];
+const TILT_X_ICE_CELLS = 5;
+export const TILT_X_ICE_CAP = Math.trunc(4.8 * FP);
+/** Units: a finished maze, the most progress in the maze being played. */
+export const TILT_X_MAZE_UNITS = 40;
+export const TILT_X_PROGRESS = 39;
+/** The earliest a strong run finishes all three mazes (the speed window runs from here to the buzzer). */
+export const TILT_X_FINISH_MIN = 55 * TICKS_PER_SECOND;
+/**
+ * tiltRev 7 base knots (mazes 40, progress up to 39, stars 5; 150 = three mazes and all six stars = 140),
+ * fitted with scripts/arcade-skill-bands.ts tilt --rev=now so today's players land where they did on
+ * tiltRev 6 once their quick stars are counted (docs/expansions/e8.md).
+ */
+export const TILT_V7_BAND_CURVE = bandCurve([0, 45, 85, 115, 130, 150], [0, 45, 60, 72, 104, 140]);
+
+/** The world height (px) a stored round's tiltRev plays in. */
+export function tiltWorldHFor(rev?: number | null): number {
+  return rev === TILT_REV_EXPAND ? TILT_X_H : TILT_WORLD_H;
+}
+
+/** The blue route's length (cells) each maze's cup is placed nearest to: the bigger mazes keep more to find off the route. */
+export const TILT_X_ROUTE: readonly number[] = [56, 64, 58];
+
+/** One expansion maze: tiltRev 0's depth-first carve at the bigger size, its exit the rim cell whose route is nearest TILT_X_ROUTE. */
+function buildMazeX(level: number, draw: (n: number) => number): Maze {
+  const n = TILT_X_SIZES[level]!;
+  const csPx = TILT_X_CELL;
+  const cs = csPx * FP;
+  const half = Math.trunc((n * csPx) / 2);
+  const lim = half - Math.trunc(csPx / 2);
+  const inside: number[] = [];
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const x = i * csPx + Math.trunc(csPx / 2) - half;
+      const y = j * csPx + Math.trunc(csPx / 2) - half;
+      inside.push(x * x + y * y <= lim * lim ? 1 : 0);
+    }
+  const wallR = new Array<number>(n * n).fill(1);
+  const wallD = new Array<number>(n * n).fill(1);
+  const inCell = (i: number, j: number) => i >= 0 && j >= 0 && i < n && j < n && inside[j * n + i] === 1;
+  const mid = Math.trunc(n / 2);
+  const start = mid * n + mid;
+  const seen = new Array<number>(n * n).fill(0);
+  const stack = [start];
+  seen[start] = 1;
+  while (stack.length) {
+    const c = stack[stack.length - 1]!;
+    const ci = c % n;
+    const cj = Math.trunc(c / n);
+    const options: number[] = [];
+    for (let d = 0; d < 4; d++) {
+      const ni = ci + DX[d]!;
+      const nj = cj + DY[d]!;
+      if (inCell(ni, nj) && !seen[nj * n + ni]) options.push(d);
+    }
+    if (!options.length) {
+      stack.pop();
+      continue;
+    }
+    const d = options[draw(options.length)]!;
+    const nc = (cj + DY[d]!) * n + ci + DX[d]!;
+    if (d === 0) wallR[c] = 0;
+    else if (d === 1) wallD[c] = 0;
+    else if (d === 2) wallR[nc] = 0;
+    else wallD[nc] = 0;
+    seen[nc] = 1;
+    stack.push(nc);
+  }
+  const base: Maze = { n, cs, inside, wallR, wallD, pits: [], start, exit: start, exitDir: 0, br: Math.trunc((cs * 28) / 100), crevice: -1, gateDir: -1, lock: -1 };
+  const { dist, parent } = bfsFrom(base, start);
+  let far = -1;
+  let farDir = 0;
+  for (let c = 0; c < n * n; c++) {
+    if (!inside[c]) continue;
+    for (let d = 0; d < 4; d++) {
+      if (inCell((c % n) + DX[d]!, Math.trunc(c / n) + DY[d]!)) continue;
+      const off = Math.abs(dist[c]! - TILT_X_ROUTE[level]!);
+      if (far < 0 || off < Math.abs(dist[far]! - TILT_X_ROUTE[level]!)) {
+        far = c;
+        farDir = d;
+      }
+      break;
+    }
+  }
+  const path = routeCells(parent, far);
+  const ends: number[] = [];
+  for (let c = 0; c < n * n; c++) {
+    if (!inside[c] || path.has(c) || dist[c]! < 3) continue;
+    let open = 0;
+    for (let d = 0; d < 4; d++) if (openNeighbour(n, inside, wallR, wallD, c, d) >= 0) open += 1;
+    if (open === 1) ends.push(c);
+  }
+  const pits: number[] = [];
+  const count = Math.min(ends.length, TILT_X_PITS[level]!);
+  for (let k = 0; k < count; k++) pits.push(ends.splice(draw(ends.length), 1)[0]!);
+  return { ...base, pits, exit: far, exitDir: farDir };
+}
+
+function cellDegree(m: Maze, c: number): number {
+  let open = 0;
+  for (let d = 0; d < 4; d++) if (openNeighbour(m.n, m.inside, m.wallR, m.wallD, c, d) >= 0) open += 1;
+  return open;
+}
+
+/** The route (start … cup cell) as an ordered list. */
+function routeList(m: Maze, from: number, to: number): number[] {
+  const { parent } = bfsFrom(m, from);
+  const out: number[] = [];
+  for (let c = to; c >= 0; c = parent[c]!) out.unshift(c);
+  return out;
+}
+
+/** Whether a gate (cell, dir) stands on the edge c → d. */
+function onGate(m: Maze, gc: number, gd: number, c: number, d: number): boolean {
+  return (c === gc && d === gd) || (c === cellStep(m, gc, gd) && d === (gd + 2) % 4);
+}
+
+/** canPass with the expansion's gates: gate k is a wall until key k is taken (bit k of keysGot). */
+function canPassX(m: Maze, c: number, d: number, which: number, keysGot: number): boolean {
+  const gates = m.gates ?? [];
+  for (let k = 0; 2 * k < gates.length; k++) if (!((keysGot >> k) & 1) && onGate(m, gates[2 * k]!, gates[2 * k + 1]!, c, d)) return false;
+  return canPass(m, c, d, false, which);
+}
+
+/** Cells reachable from `from` with the gates of keys not in `keysGot` shut, pits avoided (inside the maze only). */
+function reachX(m: Maze, from: number, keysGot: number): Set<number> {
+  const seen = new Set<number>([from]);
+  const queue = [from];
+  for (let q = 0; q < queue.length; q++) {
+    const c = queue[q]!;
+    for (let d = 0; d < 4; d++) {
+      const i = (c % m.n) + DX[d]!;
+      const j = Math.trunc(c / m.n) + DY[d]!;
+      if (i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i]) continue;
+      if (!canPassX(m, c, d, 0, keysGot)) continue;
+      const nc = j * m.n + i;
+      if (seen.has(nc) || m.pits.includes(nc)) continue;
+      seen.add(nc);
+      queue.push(nc);
+    }
+  }
+  return seen;
+}
+
+/** The keys either marble can take from the maze's starts, gates opening as their keys are taken. */
+function keysReachableX(m: Maze): number {
+  const keys = m.keys ?? [];
+  let got = 0;
+  for (;;) {
+    const cells = reachX(m, m.start, got);
+    if ((m.start2 ?? -1) >= 0) for (const c of reachX(m, m.start2!, got)) cells.add(c);
+    let next = got;
+    keys.forEach((k, i) => {
+      if (cells.has(k)) next |= 1 << i;
+    });
+    if (next === got) return got;
+    got = next;
+  }
+}
+
+/**
+ * tiltRev 7: is every key reachable from the marbles' starts (gates opening as their keys are taken,
+ * pits avoided), and can this marble then reach its own cup?
+ */
+export function tiltCupReachableX(m: Maze, which: 0 | 1): boolean {
+  const keys = m.keys ?? [];
+  const got = keysReachableX(m);
+  if (got !== (1 << keys.length) - 1) return false;
+  const start = which === 1 ? (m.start2 ?? -1) : m.start;
+  if (start < 0) return which === 1;
+  for (const c of reachX(m, start, got))
+    for (let d = 0; d < 4; d++) {
+      const i = (c % m.n) + DX[d]!;
+      const j = Math.trunc(c / m.n) + DY[d]!;
+      const outside = i < 0 || j < 0 || i >= m.n || j >= m.n || !m.inside[j * m.n + i];
+      if (outside && canPass(m, c, d, false, which)) return true;
+    }
+  return false;
+}
+
+/** Keys and gates, ice and quick stars for one expansion maze (after decorateV4's cups and stars). */
+function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
+  const out: Maze = { ...m, keys: [], gates: [], ice: new Array<number>(m.n * m.n).fill(0), quick: [] };
+  const n = m.n;
+  const used = new Set<number>([m.start, m.exit, ...m.pits, ...(m.stars ?? [])]);
+  if ((m.start2 ?? -1) >= 0) {
+    used.add(m.start2!);
+    used.add(m.exit2!);
+  }
+  const routes: number[][] = [routeList(m, m.start, m.exit)];
+  if ((m.start2 ?? -1) >= 0) routes.push(routeList(m, m.start2!, m.exit2!));
+  const onRoute = new Set<number>(routes.flat());
+  const { parent } = bfsFrom(m, m.start);
+  // Cells off every route, with the route cell their branch leaves from and how far off it they are.
+  const branches: { c: number; junction: number; hops: number }[] = [];
+  for (let c = 0; c < n * n; c++) {
+    if (!m.inside[c] || used.has(c) || onRoute.has(c) || m.pits.includes(c)) continue;
+    let x = c;
+    let hops = 0;
+    while (x >= 0 && !onRoute.has(x)) {
+      x = parent[x]!;
+      hops += 1;
+    }
+    if (x >= 0) branches.push({ c, junction: x, hops });
+  }
+  // Keys and gates: on each marble's route, a gate (the blue one between 40 % and 70 % of the way, the amber
+  // one anywhere off the blue route); its key three to eight cells into a side passage (never at a fork), on the start's side.
+  // A key sits at a dead end, or at a bend or straight with no other way on, never at a fork.
+  const keyCell = (c: number) => cellDegree(m, c) <= 2;
+  routes.forEach((route, r) => {
+    // The amber route mostly joins the blue one: its gate goes anywhere on its own part. The blue gate goes
+    // between 30 % and 75 % of the way, anywhere on the route if no key fits there.
+    const options: { at: number; key: number }[] = [];
+    for (const [lo, hi] of r === 1 ? [[2, route.length]] : [[Math.trunc((route.length * 30) / 100), Math.trunc((route.length * 75) / 100)], [2, route.length]])
+    for (let at = Math.max(2, lo!); at <= hi! && at + 2 < route.length && !options.length; at++) {
+      const a = route[at]!;
+      const b = route[at + 1]!;
+      // The amber gate never on the blue route.
+      if (r === 1 && routes[0]!.includes(a) && routes[0]!.includes(b)) continue;
+      // The start's side of the gate (the maze is a tree, so the gate splits it in two).
+      let dir = 0;
+      for (let d = 0; d < 4; d++) if (cellStep(m, a, d) === b) dir = d;
+      const side = new Set<number>([route[0]!]);
+      const queue = [route[0]!];
+      for (let q = 0; q < queue.length; q++)
+        for (let d = 0; d < 4; d++) {
+          const c = queue[q]!;
+          const nc = openNeighbour(n, m.inside, m.wallR, m.wallD, c, d);
+          if (nc < 0 || side.has(nc) || onGate(m, a, dir, c, d)) continue;
+          side.add(nc);
+          queue.push(nc);
+        }
+      for (const e of branches) if (e.hops >= 2 && e.hops <= 10 && !used.has(e.c) && side.has(e.c) && keyCell(e.c)) options.push({ at, key: e.c });
+    }
+    if (!options.length) return;
+    const pick = options[draw(options.length)]!;
+    const a = route[pick.at]!;
+    const b = route[pick.at + 1]!;
+    let dir = 0;
+    for (let d = 0; d < 4; d++) if (cellStep(m, a, d) === b) dir = d;
+    const trial: Maze = { ...out, keys: [...out.keys!, pick.key], gates: [...out.gates!, a, dir] };
+    if (!tiltCupReachableX(trial, 0) || !tiltCupReachableX(trial, 1)) return;
+    out.keys = trial.keys!;
+    out.gates = trial.gates!;
+    used.add(pick.key);
+    used.add(a);
+    used.add(b);
+  });
+  // Quick stars: two to four cells into a side passage off the first half of the blue route (or the amber
+  // route), a seeded pick; each star's corridor is ice, from the route to the star.
+  const blue = routes[0]!;
+  const early = new Set(blue.slice(0, Math.trunc(blue.length / 2)));
+  const amber = new Set(routes[1] ?? []);
+  const quickOk = (e: { c: number; hops: number }, most: number) => !used.has(e.c) && e.hops >= 3 && e.hops <= most && cellDegree(m, e.c) <= 2;
+  const early4 = branches.filter((e) => quickOk(e, 5) && (early.has(e.junction) || amber.has(e.junction)));
+  // Too few that early: the side passages nearest the start along the route, up to six cells in.
+  const near6 = branches.filter((e) => quickOk(e, 7)).sort((x, y) => blue.indexOf(x.junction) - blue.indexOf(y.junction) || x.hops - y.hops || x.c - y.c);
+  let quickPool = early4.length >= TILT_X_QUICK ? early4 : near6.slice(0, 4);
+  for (let k = 0; k < TILT_X_QUICK; k++) {
+    // Never two stars down the same passage, unless nothing else is left.
+    if (!quickPool.length) quickPool = near6.filter((e) => !used.has(e.c)).slice(0, 4);
+    if (!quickPool.length) break;
+    const e = quickPool.splice(draw(quickPool.length), 1)[0]!;
+    out.quick!.push(e.c);
+    used.add(e.c);
+    for (let x = e.c; x >= 0; x = parent[x]!) {
+      out.ice![x] = 1;
+      if (x === e.junction) break;
+    }
+    for (let i = quickPool.length - 1; i >= 0; i--) if (quickPool[i]!.junction === e.junction) quickPool.splice(i, 1);
+  }
+  // Ice patches on the routes: a seeded route cell and the open cells round it, up to TILT_X_ICE_CELLS.
+  const all = [...onRoute].filter((c) => !used.has(c)).sort((a, b) => a - b);
+  for (let p = 0; p < TILT_X_ICE_PATCHES[level]! && all.length; p++) {
+    const seed = all.splice(draw(all.length), 1)[0]!;
+    const patch = [seed];
+    for (let q = 0; q < patch.length && patch.length < TILT_X_ICE_CELLS; q++)
+      for (let d = 0; d < 4 && patch.length < TILT_X_ICE_CELLS; d++) {
+        const nc = openNeighbour(n, m.inside, m.wallR, m.wallD, patch[q]!, d);
+        if (nc >= 0 && !patch.includes(nc) && !m.pits.includes(nc) && nc !== m.start && nc !== m.start2) patch.push(nc);
+      }
+    for (const c of patch) out.ice![c] = 1;
+  }
+  return out;
+}
+
+const cacheX = new Map<number, Maze[]>();
+
+/** The three expansion mazes of a seed (cached): carved from the seed, decorated on their own stream. */
+function mazesX(seed: number): Maze[] {
+  let list = cacheX.get(seed | 0);
+  if (!list) {
+    let rng = seed | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    const built: Maze[] = [];
+    for (let l = 0; l < TILT_X_MAZES; l++) built.push(buildMazeX(l, draw));
+    let rng2 = (seed ^ 0x7a11_5eed) | 0;
+    const draw2 = (bound: number) => {
+      const r = rngBelow(rng2, bound);
+      rng2 = r.state;
+      return r.value;
+    };
+    // decorateV4 adds the amber marble when its index + 1 reaches TILT_TWO_FROM.
+    list = built.map((m, i) => decorateX(decorateV4(m, i + 1 >= TILT_X_TWO_FROM ? TILT_TWO_FROM - 1 : 0, draw2), draw2, i));
+    if (cacheX.size > 16) cacheX.clear();
+    cacheX.set(seed | 0, list);
+  }
+  return list;
+}
+
+function enterMazeX(s: TiltState, level: number): TiltState {
+  const m = s.list[level]!;
+  return { ...enterMaze(s, level), keysGot: 0, quickGot: (m.quick ?? []).map(() => 0), mazeAt: s.tick };
+}
+
+function initX(seed: number): TiltState {
+  const base = init(seed);
+  const list = mazesX(seed);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000 }, 0));
+}
+
+/** One tick of tiltRev 7 physics: tiltRev 4's, with the gates as walls and no rolling drag on ice. */
+function moveBodyX(m: Maze, b: { x: number; y: number; vx: number; vy: number }, angle: number, which: number, keysGot: number): void {
+  const r = m.br;
+  const c0 = cellOf(m, b.x, b.y);
+  const ice = c0 >= 0 && m.ice?.[c0] === 1;
+  b.vx += Math.trunc((GRAVITY * isin(angle)) / TRIG_ONE);
+  b.vy += Math.trunc((GRAVITY * icos(angle)) / TRIG_ONE);
+  const cap = ice ? TILT_X_ICE_CAP : SPEED_CAP;
+  b.vx = clampInt(ice ? b.vx : b.vx - Math.trunc(b.vx / 64), -cap, cap);
+  b.vy = clampInt(ice ? b.vy : b.vy - Math.trunc(b.vy / 64), -cap, cap);
+  let c = c0;
+  if (c >= 0) {
+    const i = c % m.n;
+    let nx = b.x + b.vx;
+    if (b.vx > 0 && nx + r > (i + 1) * m.cs && !canPassX(m, c, 0, which, keysGot)) {
+      nx = (i + 1) * m.cs - r;
+      b.vx = 0;
+    } else if (b.vx < 0 && nx - r < i * m.cs && !canPassX(m, c, 2, which, keysGot)) {
+      nx = i * m.cs + r;
+      b.vx = 0;
+    }
+    b.x = nx;
+  } else b.x += b.vx;
+  c = cellOf(m, b.x, b.y);
+  if (c >= 0) {
+    const j = Math.trunc(c / m.n);
+    let ny = b.y + b.vy;
+    if (b.vy > 0 && ny + r > (j + 1) * m.cs && !canPassX(m, c, 1, which, keysGot)) {
+      ny = (j + 1) * m.cs - r;
+      b.vy = 0;
+    } else if (b.vy < 0 && ny - r < j * m.cs && !canPassX(m, c, 3, which, keysGot)) {
+      ny = j * m.cs + r;
+      b.vy = 0;
+    }
+    b.y = ny;
+  } else b.y += b.vy;
+}
+
+function stepX(state: TiltState, input: ArcadeInputEvent | null): TiltState {
+  if (isOver(state)) return state;
+  const tick = state.tick + 1;
+  let s: TiltState = { ...state, tick };
+  if (input !== null && input.k === TILT_INPUT_DRAG) {
+    if (input.c !== s.lastC) s.lastC = input.c;
+    else s.angle = (s.angle + (input.a - s.lastA) * ANG_PER_PX) & 65535;
+    s.lastA = input.a;
+  }
+  const m = s.list[s.level]!;
+  const keysGot = s.keysGot ?? 0;
+  const end = () => {
+    s.ended = 2;
+    s.endedTick = tick;
+    return s;
+  };
+  if (!s.aHome) {
+    const ball = { x: s.x, y: s.y, vx: s.vx, vy: s.vy };
+    moveBodyX(m, ball, s.angle, 0, keysGot);
+    s.x = ball.x;
+    s.y = ball.y;
+    s.vx = ball.vx;
+    s.vy = ball.vy;
+  }
+  if (s.b && !s.bHome) {
+    const ball = { ...s.b };
+    moveBodyX(m, ball, s.angle, 1, keysGot);
+    s.b = ball;
+  }
+  const live: { x: number; y: number }[] = [];
+  if (!s.aHome) {
+    const now = cellOf(m, s.x, s.y);
+    if (now < 0) {
+      s.aHome = 1;
+      s.cupped = (s.cupped ?? 0) + 1;
+    } else if (inPit(m, now, s.x, s.y)) return end();
+    else live.push({ x: s.x, y: s.y });
+  }
+  if (s.b && !s.bHome) {
+    const now = cellOf(m, s.b.x, s.b.y);
+    if (now < 0) {
+      s.bHome = 1;
+      s.cupped = (s.cupped ?? 0) + 1;
+    } else if (inPit(m, now, s.b.x, s.b.y)) return end();
+    else live.push({ x: s.b.x, y: s.b.y });
+  }
+  const q = Math.trunc(m.cs / 3);
+  const near = (p: { x: number; y: number }) => live.some((ball) => Math.abs(ball.x - p.x) < q && Math.abs(ball.y - p.y) < q);
+  // Keys: a live marble over the key's cell centre opens its gate.
+  (m.keys ?? []).forEach((c, k) => {
+    if ((s.keysGot ?? 0) & (1 << k) || !near(cellCentre(m, c))) return;
+    s.keysGot = (s.keysGot ?? 0) | (1 << k);
+    s.keysTaken = (s.keysTaken ?? 0) + 1;
+    s.keyTick = tick;
+  });
+  // Stars, as tiltRev 4.
+  const stars = m.stars ?? [];
+  if (stars.length) {
+    const got = [...(s.starGot ?? [])];
+    for (let k = 0; k < stars.length; k++) {
+      if (got[k] || !near(tiltStarPoint(m, k))) continue;
+      got[k] = 1;
+      s.stars = (s.stars ?? 0) + 1;
+      s.starTick = tick;
+    }
+    s.starGot = got;
+  }
+  // Quick stars: only while their window runs from the maze's start.
+  const quick = m.quick ?? [];
+  const elapsed = tick - (s.mazeAt ?? 0);
+  if (quick.length && elapsed <= TILT_X_QUICK_WINDOW) {
+    const got = [...(s.quickGot ?? [])];
+    for (let k = 0; k < quick.length; k++) {
+      if (got[k] || !near(cellCentre(m, quick[k]!))) continue;
+      got[k] = 1;
+      s.quickTaken = (s.quickTaken ?? 0) + 1;
+      s.quickPts = (s.quickPts ?? 0) + tiltQuickPoints(elapsed);
+      s.quickTick = tick;
+    }
+    s.quickGot = got;
+  }
+  if (s.aHome && (!s.b || s.bHome)) {
+    s.mazes += 1;
+    if (s.mazes >= TILT_X_MAZES) {
+      s.ended = 1;
+      s.endedTick = tick;
+      return s;
+    }
+    s = enterMazeX(s, s.level + 1);
+  }
+  return endAtTime(s, tick);
+}
+
+/** A quick star's points, taken `elapsed` ticks after its maze began (integer only). */
+export function tiltQuickPoints(elapsed: number): number {
+  if (elapsed <= TILT_X_QUICK_FULL) return TILT_X_QUICK_POINTS;
+  const span = TILT_X_QUICK_WINDOW - TILT_X_QUICK_FULL;
+  return Math.trunc((TILT_X_QUICK_POINTS * Math.max(0, TILT_X_QUICK_WINDOW - elapsed) + span - 1) / span);
+}
+
+/** Ticks left on the maze being played's quick-star window (render and bots read it). */
+export function tiltQuickLeft(s: TiltState): number {
+  return Math.max(0, TILT_X_QUICK_WINDOW - (s.tick - (s.mazeAt ?? 0)));
+}
+
+/** Progress (0–39) in the maze being played: tiltMazeProgress on the expansion's scale. */
+export function tiltMazeProgressX(s: TiltState): number {
+  const m = s.list[s.level];
+  if (!m || s.mazes >= TILT_X_MAZES) return 0;
+  const d = tiltExitDist(m);
+  const share = (home: number | undefined, x: number, y: number, dist: number[], d0: number) => {
+    if (home) return 1;
+    const c = cellOf(m, x, y);
+    const left = c >= 0 ? dist[c]! : 0;
+    return left < 0 ? 0 : Math.max(0, Math.min(1, (d0 - left) / d0));
+  };
+  const pa = share(s.aHome, s.x, s.y, d.a, d.a0);
+  const pb = d.b && s.b ? share(s.bHome, s.b.x, s.b.y, d.b, d.b0) : null;
+  const p = pb === null ? pa : (pa + pb) / 2;
+  return Math.max(0, Math.min(TILT_X_PROGRESS, Math.floor(TILT_X_PROGRESS * p)));
+}
+
+function tiltTrackX(_prev: TiltState, next: TiltState): TiltState {
+  const same = next.progMaze === next.mazes;
+  const best = same ? (next.prog ?? 0) : 0;
+  const now = tiltMazeProgressX(next);
+  if (same && now <= best) return next;
+  return { ...next, prog: Math.max(best, now), progMaze: next.mazes };
+}
+
+/** Quick stars on the three mazes of a tiltRev 7 state (0 on older rounds). */
+export function tiltTotalQuick(state: TiltState): number {
+  return state.xp ? state.list.reduce((n, m) => n + (m.quick?.length ?? 0), 0) : 0;
+}
+
+/** The feature bonus: quick-star points, and the sweep for every quick star of the run. */
+export function tiltQuickBonus(state: TiltState): number {
+  const total = tiltTotalQuick(state);
+  const sweep = total > 0 && (state.quickTaken ?? 0) >= total ? TILT_X_SWEEP : 0;
+  return clampInt((state.quickPts ?? 0) + sweep, 0, TILT_X_QUICK_POINTS * total + TILT_X_SWEEP);
+}
+
+export function tiltXBandParts(state: TiltState): BandParts {
+  const mazes = clampInt(state.mazes, 0, TILT_X_MAZES);
+  const prog = mazes < TILT_X_MAZES && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_X_PROGRESS) : 0;
+  const stars = clampInt(state.stars ?? 0, 0, TILT_X_MAZES * TILT_STARS_PER_MAZE);
+  const units = TILT_X_MAZE_UNITS * mazes + prog + TILT_V2_STAR_POINTS * stars;
+  const finished = mazes >= TILT_X_MAZES;
+  const finish = finished ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(TILT_RUN_TICKS - state.endedTick, 0, TILT_RUN_TICKS - TILT_X_FINISH_MIN), TILT_RUN_TICKS - TILT_X_FINISH_MIN) : 0;
+  const quick = tiltQuickBonus(state);
+  const words = [finished ? `All ${TILT_X_MAZES} mazes +${finish}` : "", quick > 0 ? `${state.quickTaken ?? 0} quick stars +${quick}` : ""].filter(Boolean);
+  return {
+    units,
+    points: bandPoints(TILT_V7_BAND_CURVE, units),
+    bonus: finish + quick,
+    penalty: 0,
+    finished,
+    text: `${mazes} / ${TILT_X_MAZES} mazes${finished ? "" : ` + ${Math.round((100 * prog) / TILT_X_PROGRESS)}% of the next`} · ${stars} stars`,
+    bonusText: words.join(" · ") || "Bonus",
+  };
+}
+
+/** tiltRev 7's score: the base curve, the finish bonus and the quick stars, 0–200 (no input scores 0). */
+function scoreX(state: TiltState): number {
+  return bandTotal(tiltXBandParts(state), Boolean(state.acted), 200);
+}
+
+export const tiltExpandGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltRev2Game,
+  init: initX,
+  step: bandStep(stepX, tiltTrackX),
+  score: scoreX,
+};
+
+/** True when every maze a seed deals on tiltRev 7 has every key and both cups reachable (the server deals only such seeds). */
+export function tiltSeedReachableX(seed: number): boolean {
+  return mazesX(seed).every((m) => tiltCupReachableX(m, 0) && tiltCupReachableX(m, 1));
+}
+
+/** True when every tiltRev 7 maze of a seed has at least one key and gate (the server deals only such seeds). */
+export function tiltExpandHasKeys(seed: number): boolean {
+  return mazesX(seed).every((m) => (m.keys?.length ?? 0) > 0);
+}
