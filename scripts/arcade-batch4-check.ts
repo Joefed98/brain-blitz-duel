@@ -525,7 +525,8 @@ for (const type of (["skyline", "tilt", "junction", "snip"] as const).filter(wan
   ok(INTRO_SCORE[type].length <= 90, `${type}: intro SCORE within 90 characters (${INTRO_SCORE[type].length})`);
 }
 if (want("skyline")) ok(/up to 150/i.test(INTRO_SCORE.skyline), "High Rise intro states the 150 maximum the bot reaches");
-if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => !l.helpOnly && `${l.action} ${l.detail}`.includes("up to 12 s each")), "Scrumper intro says up to 12 s each");
+// Expansion E8 (snipRev 10): six levels of up to 14 s each, stated in the help (the intro's three lines carry the features).
+if (want("snip")) ok(PUZZLE_INSTRUCTIONS.snip.how.some((l) => `${l.action} ${l.detail}`.includes("up to 14 s each")), "Scrumper help says up to 14 s each");
 if (want("junction")) ok(/minute for 10 more/i.test(INTRO_SCORE.junction), "Junction intro states the 10 for lasting the minute (score bands)");
 if (want("tilt")) ok(!INTRO_SCORE.tilt.includes(`up to ${TILT_V2_PARTIAL_MAX}`) && new RegExp(`up to ${roundMaxFor("tilt")}`).test(INTRO_SCORE.tilt), "Tilt intro states its maximum and no partial cap (score bands; 200 since the expansion)");
 

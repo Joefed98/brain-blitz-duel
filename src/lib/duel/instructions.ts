@@ -881,7 +881,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     },
 
     snip: {
-      goal: "Feed every fruit down the tall orchard into the basket.",
+      goal: "Feed every fruit into the basket.",
       how: [
         { action: "Swipe a rope", detail: "to cut it; crooks catch fruit." },
         { action: "Feed every fruit;", detail: "golden ones within 7 s." },
