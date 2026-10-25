@@ -27,9 +27,10 @@
  *    375 × 667, 390 × 700, 390 × 844, 430 × 932 or a 1280 × 800 touch-screen laptop window (checked once
  *    per game on its own practice run with the clock frozen, as bottom-clearance-check, so a
  *    game that dies in seconds without input, Hover, stays on its play screen, and no played
- *    run loses its first seconds to the proof): READY off screen or the page scrolls; the compact header not
- *    one 44 px row 4 px from the top (its timer centred, its text 12 px or more); the box
- *    (arena slot) not the full screen width or not starting 4 px under the header (below
+ *    run loses its first seconds to the proof): READY off screen or the page scrolls; the game frame's
+ *    header (Polish 2) not 60 px at the top (its timer centred, its text 12 px or more but the
+ *    score block's 11 px "Score" / "Best" label); the box
+ *    (arena slot) not the full screen width or not starting directly under the header (below
  *    the game's own HUD rows, ABOVE); the arena not the game's world aspect (within 1 px),
  *    not the largest uniform fit of its box, not top-anchored (Tilt, since 15 Oct 2026:
  *    centred vertically, data-arena-centred) and centred across, or its top moving between
@@ -336,9 +337,16 @@ async function main() {
 
 /** Px from the bottom of the visible screen to the end of an arcade play column and its lowest control (15 Oct 2026). */
 const ARCADE_BOTTOM_PX = 16;
-/** The compact header: 4 px from the top (or the notch's inset), one 44 px row, 4 px to the box. */
-const HEADER_TOP_PX = 4;
-const HEADER_ROW_PX = 44;
+/**
+ * The game frame's header (Polish 2, 24 Oct 2026): at the top (or the notch's inset), 60 px, the box
+ * directly under it. Until then one 44 px row 4 px down with 4 px to the box.
+ */
+const HEADER_TOP_PX = 0;
+const HEADER_ROW_PX = 60;
+/** The header's smallest text: 12 px, as before the frame. */
+const HEADER_MIN_TEXT_PX = 12;
+/** The one exception: the score block's "Score" / "Best" label, 11 px by the frame's spec (game-frame.css). */
+const SCORE_LABEL_MIN_PX = 11;
 /** The game's own HUD rows between the header and the box (presentation-geometry-check's ABOVE). */
 const ABOVE_PX: Record<string, number> = { snip: 24, tendrop: 56, whack: 10 + 36 * 1.1 + 10 + 4 + 8 + 20 + 8, clayshoot: 26 };
 /** The screen edge's black (--screen-edge), every gap on an arcade play screen. */
@@ -404,6 +412,9 @@ function playScreen() {
   const header = document.querySelector("[data-arcade-header]");
   const timer = header?.querySelector("[role='timer']") ?? null;
   const texts = header ? [...header.querySelectorAll("*")].filter((el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim())) : [];
+  // The score block's label ("Score" / "Best") is the only header text allowed under 12 px (Polish 2: 11 px).
+  const scoreLabels = texts.filter((el) => el.matches(".game-frame-score-label"));
+  const otherTexts = texts.filter((el) => !el.matches(".game-frame-score-label"));
   const doc = document.scrollingElement!;
   const shell = document.querySelector("[data-arcade-play]");
   // The box, the world and every control, each with the lowest point a clipping ancestor lets it draw to.
@@ -439,7 +450,8 @@ function playScreen() {
         })(),
       };
     })(),
-    header: box(header), timer: box(timer), smallestText: Math.min(...texts.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))),
+    header: box(header), timer: box(timer), smallestText: Math.min(...otherTexts.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))),
+    scoreLabel: scoreLabels.length ? Math.min(...scoreLabels.map((el) => Number.parseFloat(getComputedStyle(el).fontSize))) : null,
     colours: {
       slot: slot ? getComputedStyle(slot).backgroundColor : "",
       below: slot ? getComputedStyle(slot, "::after").backgroundColor : "",
@@ -488,8 +500,9 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     if (m.scroll > 0) problems.push(`${at}: page scrolls by ${m.scroll} px`);
     if (!m.header || Math.abs(m.header.y - HEADER_TOP_PX) > 0.5 || Math.abs(m.header.h - HEADER_ROW_PX) > 0.5) problems.push(`${at}: header ${m.header ? `${m.header.h.toFixed(1)} px tall at ${m.header.y.toFixed(1)}` : "missing"}, want one ${HEADER_ROW_PX} px row ${HEADER_TOP_PX} px down`);
     if (!m.timer || Math.abs(m.timer.x + m.timer.w / 2 - w / 2) > 1) problems.push(`${at}: header timer not centred`);
-    if (!(m.smallestText >= 12)) problems.push(`${at}: header text ${m.smallestText} px, want 12 px or more`);
-    const boxTop = HEADER_TOP_PX + HEADER_ROW_PX + 4 + (ABOVE_PX[game] ?? 0);
+    if (!(m.smallestText >= HEADER_MIN_TEXT_PX)) problems.push(`${at}: header text ${m.smallestText} px, want ${HEADER_MIN_TEXT_PX} px or more`);
+    if (m.scoreLabel !== null && !(m.scoreLabel >= SCORE_LABEL_MIN_PX)) problems.push(`${at}: the score label ${m.scoreLabel} px, want ${SCORE_LABEL_MIN_PX} px or more`);
+    const boxTop = HEADER_TOP_PX + HEADER_ROW_PX + (ABOVE_PX[game] ?? 0);
     if (Math.abs(slot.y - boxTop) > 0.5) problems.push(`${at}: box starts at ${slot.y.toFixed(1)} px, want ${boxTop.toFixed(1)} (4 px under the header${ABOVE_PX[game] ? " and the game's HUD" : ""})`);
     if (Math.abs(slot.x) > 0.5 || Math.abs(slot.w - w) > 0.5) problems.push(`${at}: box ${slot.x.toFixed(1)}..${(slot.x + slot.w).toFixed(1)} px, want the full ${w} px width`);
     if (engine && m.touch.some((t) => t !== "none")) problems.push(`${at}: arena canvas / play area touch-action ${m.touch.join(" / ")}, want none`);
@@ -547,7 +560,7 @@ async function arenaFits(page: import("playwright").Page, game: string, problems
     await nextFrames(page);
     const notch = await page.evaluate(playScreen);
     if (!notch.header || Math.abs(notch.header.y - 47) > 0.5) problems.push(`layout 390x844 with a 47 px notch: header at ${notch.header?.y.toFixed(1)} px, want just under the inset (47)`);
-    const notchTop = 47 + HEADER_ROW_PX + 4 + (ABOVE_PX[game] ?? 0);
+    const notchTop = 47 + HEADER_ROW_PX + (ABOVE_PX[game] ?? 0);
     if (!notch.slot || Math.abs(notch.slot.y - notchTop) > 0.5) problems.push(`layout 390x844 with a 47 px notch: box at ${notch.slot?.y.toFixed(1)} px, want ${notchTop.toFixed(1)} (directly under the header)`);
     for (const [where, colour] of Object.entries(notch.colours))
       if (colour !== EDGE_RGB && !((ARENA_SCENE_GAMES as readonly string[]).includes(game) && (where === "slot" || where === "below") && colour === "rgba(0, 0, 0, 0)"))

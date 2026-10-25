@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
+import { BOARD_FILL, CATEGORY_NAMES, GoalLine, useBoardTray } from "./GameFrame";
 import { Wordmark } from "./Wordmark";
 import { AppHeader } from "@/components/app/AppHeader";
 import { FxLayer } from "./FxLayer";
@@ -22,14 +23,15 @@ interface PhoneShellProps {
   /** Suppress iOS selection/callouts throughout an active round screen. */
   gameScreen?: boolean;
   gameType?: PuzzleType | undefined;
-  /** Room score summary that replaces the wordmark without taking board height. */
+  /** Room score summary that replaces the wordmark (screens other than a live round; the frame has its own score). */
   gameHeader?: ReactNode;
   /** A small control beside the mute toggle (a guest's Leave between rounds). */
   topAction?: ReactNode;
   /**
-   * The live round (GameLayout's play screen), as opposed to its intro or reveal. An
-   * arcade play screen (isArcadeScreenType) then gives its top bar to GameLayout's one
-   * compact header row and paints every gap the screen edge's black (display only).
+   * The live round (GameLayout's play screen), as opposed to its intro or reveal. Its top bar
+   * gives way to GameLayout's frame header (Polish 2); an arcade play screen (isArcadeScreenType)
+   * also paints every gap the screen edge's black, a puzzle's (data-puzzle-play) draws the
+   * category background and tray (display only).
    */
   play?: boolean;
   /**
@@ -50,8 +52,11 @@ export function isArcadeScreenType(type: PuzzleType | undefined): boolean {
   return Boolean(definition && (definition.arcadeRun || definition.category === "arcade"));
 }
 
-/** What an arcade play screen's shell hands to GameLayout's compact header (null on every other screen). */
-const ArcadePlayHeader = createContext<{ gameHeader?: ReactNode; topAction?: ReactNode } | null>(null);
+/**
+ * What a live round's shell hands to GameLayout's frame (null on every other screen): the game, and
+ * whether it is an arcade play screen (the arena edge to edge under the header, no goal line).
+ */
+const GameFrameShell = createContext<{ type: PuzzleType | undefined; arcade: boolean; topAction?: ReactNode } | null>(null);
 
 /** Inline no-select style for text on game screens (timer digits, HUD, banners). */
 export const NO_SELECT_STYLE = {
@@ -63,22 +68,32 @@ export const NO_SELECT_STYLE = {
 
 const CONTROL = "button, a, input, textarea, select, [role='button']";
 
-/** Identical round geometry: mode-specific text cannot resize the game region. */
-export function GameLayout({ label, title, help, progress, roundLabel, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+/**
+ * Identical round geometry: mode-specific text cannot resize the game region.
+ *
+ * The game frame (Polish 2, 24 Oct 2026, display only; docs/design-system.md "Game screens"): every
+ * game's live round, puzzle or arcade, in practice, a room or the daily, has one 60px header
+ * (polish-layout/game-frame.css): the game's name over a dot in its category colour and
+ * "{Category} · {label}" (Practice, Round n of N, Daily) on the left, the 48px timer ring centred,
+ * the score block, "?" and sound on the right. Puzzles add the goal line under it (GoalLine) and sit
+ * on the tray; arcade worlds start directly under it.
+ */
+export function GameLayout({ label, title, help, progress, score, ping, timer, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+  /** The context after the category: "Practice", "Round 2 of 6", "Daily". */
   label: ReactNode;
   title: ReactNode;
   help: ReactNode;
+  /** A room's round pips: in the context line where the header has room for them (game-frame.css). */
   progress?: ReactNode;
+  /** The header's score block (FrameScore). */
+  score?: ReactNode;
   /**
-   * A room's round and game (RoundLabel) for the arcade play header: beside the timer,
-   * after the score, in place of the round pips. Other screens ignore it.
-   */
-  roundLabel?: ReactNode;
-  /**
-   * A room's live "finished" ping (FinishedPingStrip), laid over the arcade header's score and
-   * round label while it shows; never over the timer, "?", sound or the arena. Other screens ignore it.
+   * A room's live "finished" ping (FinishedPingStrip), laid over the header's name and context
+   * while it shows; never over the timer, the score, "?", sound or the board.
    */
   ping?: ReactNode;
+  /** @deprecated The frame's name and context line say the round and game; kept so callers compile. */
+  roundLabel?: ReactNode;
   timer?: ReactNode;
   beforeGame?: ReactNode;
   children: ReactNode;
@@ -88,60 +103,74 @@ export function GameLayout({ label, title, help, progress, roundLabel, ping, tim
   /** A locked board held at full brightness while the signature beat plays (dims after). */
   held?: boolean;
 }) {
-  const arcade = useContext(ArcadePlayHeader);
+  const frame = useContext(GameFrameShell);
+  const arcade = Boolean(frame?.arcade);
+  const type = frame?.type;
+  const category = type ? puzzleDef(type).category : undefined;
+  const regionRef = useRef<HTMLDivElement | null>(null);
+  const trayRef = useRef<HTMLDivElement | null>(null);
+  const setRegion = (el: HTMLDivElement | null) => {
+    regionRef.current = el;
+    if (typeof stageRef === "function") stageRef(el);
+    else if (stageRef) (stageRef as { current: HTMLDivElement | null }).current = el;
+  };
+  // Puzzles: the tray behind the board (GameFrame useBoardTray); arcade worlds have none.
+  useBoardTray(regionRef, trayRef, Boolean(frame && !arcade && type));
   const stage = (
-    <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div ref={setRegion} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      {frame && !arcade && type ? <div ref={trayRef} data-game-tray aria-hidden="true" className="game-tray" /> : null}
       <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
         <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
       </div>
       {overlay}
     </div>
   );
-  if (arcade) {
-    // Arcade play screens (15 Oct 2026, display only): one 44px row under the safe-area
-    // top: the score (or PRACTICE and the game) left, the timer centred, "?" and sound
-    // right; the arena starts 4px under it (styles.css "Arcade play screen"). In a room
-    // (16 Oct 2026) the round and game (RoundLabel) sit between the score and the timer,
-    // 8px from each, and replace the round pips, which no phone width has room for beside it.
-    const roomLabel = arcade.gameHeader && roundLabel;
-    return (
-      <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-round-in">
-        <div data-round-heading data-game-topbar data-arcade-header className="grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 px-1" style={NO_SELECT_STYLE}>
-          {roomLabel ? (
-            <div data-header-left className="relative flex min-w-0 items-center gap-2 pr-1">
-              <div className="min-w-0 flex-1">{arcade.gameHeader}</div>
-              {roundLabel}
-              {ping}
-            </div>
-          ) : <div className="min-w-0">
-            {arcade.gameHeader ?? (
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                <span className="truncate font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
-                <span className="truncate font-display text-xs font-bold text-foreground">{title}</span>
-              </div>
-            )}
-          </div>}
-          <div data-arcade-timer className="flex min-w-[52px] flex-col items-center justify-center gap-1">{timer}{roomLabel ? null : progress}</div>
-          <div className="flex min-w-0 items-center justify-end gap-1">{help}{arcade.topAction}<MuteToggle /></div>
-        </div>
-        {beforeGame}
-        {stage}
-        <GameLayoutDevOverlay />
+  const nameLength = typeof title === "string" ? Math.max(6, title.length) : 12;
+  const contextLength = (category ? CATEGORY_NAMES[category].length + 3 : 0) + (typeof label === "string" ? label.length : 12);
+  const header = (
+    <div
+      data-round-heading
+      data-game-topbar
+      data-game-frame-header
+      data-arcade-header={arcade ? "" : undefined}
+      className="game-frame-header"
+      style={NO_SELECT_STYLE}
+    >
+      <div data-header-left className="game-frame-left">
+        <span data-frame-name data-long={nameLength > 15 ? "" : undefined} className="game-frame-name" style={{ ["--name-len" as string]: nameLength }}>{title}</span>
+        <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
+          <span aria-hidden="true" className="game-frame-dot" />
+          <span className="game-frame-context-text">
+            {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]} · </span> : null}
+            {label}
+          </span>
+          {progress ? <span data-frame-pips className="game-frame-pips">{progress}</span> : null}
+        </span>
+        {ping}
       </div>
-    );
-  }
+      <div data-frame-timer data-arcade-timer={arcade ? "" : undefined} className="game-frame-timer">{timer}</div>
+      <div data-header-right className="game-frame-right">
+        {score}
+        {help}
+        {frame?.topAction}
+        <MuteToggle variant="frame" />
+      </div>
+    </div>
+  );
   return (
-    <div data-round-layout className="flex min-h-0 flex-1 flex-col gap-2 animate-round-in">
-      <div data-round-heading data-game-topbar className="grid h-7 shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <span className="min-w-0 whitespace-normal break-words text-right font-display text-sm font-bold leading-none text-foreground">{title}</span>
-          <div className="flex shrink-0 items-center gap-2">{help}{progress}</div>
-        </div>
-      </div>
-      {timer}
-      {beforeGame}
-      {stage}
+    <div data-round-layout data-frame={arcade ? "arcade" : "puzzle"} className="flex min-h-0 flex-1 flex-col animate-round-in">
+      {header}
+      {!arcade && type ? (
+        <GoalLine type={type}>
+          {beforeGame}
+          {stage}
+        </GoalLine>
+      ) : (
+        <>
+          {beforeGame}
+          {stage}
+        </>
+      )}
       <GameLayoutDevOverlay />
     </div>
   );
@@ -359,6 +388,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
   /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
   const arcadePlay = arcadeScreen && play;
   useStandaloneShortfall(arcadePlay && constrained);
+  /** Every game's live round (Polish 2): GameLayout's frame header replaces the app's top bar. */
+  const framePlay = Boolean(gameScreen && play);
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -376,6 +407,8 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-arcade-screen={arcadeScreen ? "" : undefined}
       data-arcade-play={arcadePlay ? "" : undefined}
       data-puzzle-screen={puzzleScreen ? "" : undefined}
+      data-puzzle-play={framePlay && puzzleScreen ? "" : undefined}
+      data-board-fill={framePlay && puzzleScreen && gameType && BOARD_FILL.has(gameType) ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       data-tab-screen={tabs && !gameScreen ? tabs : undefined}
       data-skin={gameScreen ? undefined : (skin ?? tabs)}
@@ -391,13 +424,13 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
         }`}
       >
         {/* The four tab screens: their own header (Prompt R); every other screen keeps the top bar. */}
-        {tabs && !gameScreen ? <AppHeader /> : !bare && !arcadePlay && (
+        {tabs && !gameScreen ? <AppHeader /> : !bare && !framePlay && (
           <div data-game-topbar={gameScreen ? "" : undefined} className="mb-2 grid h-9 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" style={gameScreen ? NO_SELECT_STYLE : undefined}>
             <div className="min-w-0">{gameHeader ?? <Wordmark />}</div>
             <div className="flex shrink-0 items-center">{topAction}<MuteToggle /></div>
           </div>
         )}
-        {arcadePlay ? <ArcadePlayHeader.Provider value={{ gameHeader, topAction }}>{children}</ArcadePlayHeader.Provider> : children}
+        {framePlay ? <GameFrameShell.Provider value={{ type: gameType, arcade: arcadeScreen, topAction }}>{children}</GameFrameShell.Provider> : children}
       </div>
       {tabs && !gameScreen ? <AppTabBar current={tabs} /> : null}
       <FxLayer theme={theme} />

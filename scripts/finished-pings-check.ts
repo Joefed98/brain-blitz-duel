@@ -206,7 +206,8 @@ for (let room = 0; room < 300; room++) {
 
   const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
   check(/useFinishedPings\(players, round, mySlot, duel\?\.status === "in_progress" && phase === "puzzle", stateKey\)/.test(route), "the room pings only in its live puzzle phase");
-  check(/ping=\{stackedScore \? pingStrip : undefined\}/.test(route), "arcade screens lay the ping over the header's score and round label");
+  // The game frame (Polish 2, 24 Oct 2026): every live round lays the ping over the header's left half (name and context).
+  check(/ping=\{pingStrip\}/.test(route), "live rounds lay the ping over the frame header's name and context");
   for (const file of ["src/routes/practice.tsx", "src/routes/replay-lab.tsx"])
     check(!/FinishedPing|finishedPings/.test(readFileSync(file, "utf8")), `${file} never shows pings`);
   for (const file of ["src/components/duel/FinishedPings.tsx", "src/lib/duel/finishedPings.ts"])

@@ -322,15 +322,13 @@ function underInsets(arg: {
 /* ------------------------------------------------- the room play header (16 Oct 2026) */
 
 /**
- * The room's arcade play header carries the round and game (RoundLabel) between the score
- * and the timer. Each case draws a room's live round through the real room route and
- * checks: the header row is 44px under max(4px, the top inset) (52px to the arena), the
- * timer is exactly centred, the label takes the widest form that fits ("Round 2 of 6 ·
- * Gemstone", "Round 2 of 6" over the name, "2/6 · Gemstone", "2/6" over the name
- * truncated), never wraps (two lines at most, each one line high) or overflows, reads
- * "Final round" on the last round, and keeps 8px from the timer, the score and every
- * other header item. Puzzle screens keep their own heading row (no RoundLabel there).
- * Every box (header, arena slot, world, game region, controls) is written with
+ * The room's play header: the game frame's 60px header (Polish 2, 24 Oct 2026; until then the
+ * arcade's 44px row with RoundLabel beside the timer, 16 Oct 2026). Each case draws a room's live
+ * round, arcade and puzzle, through the real room route and checks: the header is 60px at the top
+ * inset (or 0) and an arcade arena starts directly under it; the timer is exactly centred; the
+ * game's name is never cut (one line, or two for a long name) and the context line reads
+ * "Round n of N" whole; the left half, the timer and every right-hand item keep the grid's 8px apart
+ * and stay on screen; a puzzle screen has its goal line under the header. Every box is written with
  * --geometry=<file> so a run on main and one here compare before → after.
  */
 interface HeaderSize {
@@ -428,8 +426,18 @@ function headerGeometry() {
   const left = header?.querySelector("[data-header-left] > div");
   const scoreContent = left ? Array.from(left.querySelectorAll("*")).map(box).filter(Boolean) : [];
   const scoreRight = scoreContent.length ? Math.max(...scoreContent.map((b) => b!.x + b!.w)) : null;
+  const nameEl = header?.querySelector<HTMLElement>("[data-frame-name]") ?? null;
+  const contextEl = header?.querySelector<HTMLElement>(".game-frame-context-text") ?? null;
+  const frame = {
+    left: box(header?.querySelector("[data-header-left]") ?? null),
+    right: Array.from(header?.querySelectorAll("[data-header-right] > *") ?? []).map((el) => ({ what: (el.getAttribute("aria-label") ?? el.getAttribute("data-sound-controls") ?? el.className).toString().slice(0, 24), ...box(el)! })),
+    name: nameEl ? { text: nameEl.textContent ?? "", cut: nameEl.scrollWidth > nameEl.clientWidth + 0.5 || nameEl.scrollHeight > nameEl.clientHeight + 1, lines: Math.round(nameEl.getBoundingClientRect().height / parseFloat(getComputedStyle(nameEl).lineHeight)), size: parseFloat(getComputedStyle(nameEl).fontSize) } : null,
+    context: contextEl ? { text: (contextEl.textContent ?? "").replace(/\s+/g, " ").trim(), cut: contextEl.scrollWidth > contextEl.clientWidth + 0.5 } : null,
+    goal: box(document.querySelector("[data-goal-line]")),
+  };
   return {
     width: window.innerWidth,
+    frame,
     header: box(header),
     arcade: Boolean(document.querySelector("[data-arcade-header]")),
     timer: box(header?.querySelector("[role='timer']") ?? null),
@@ -486,42 +494,28 @@ async function roomPlayHeader(): Promise<{ rows: string[]; geometry: Record<stri
         geometry[`${c.name} | ${size.name}`] = g;
         if (SHOTS) await page.screenshot({ path: `${SHOTS}/room-header-${c.name.replace(/\W+/g, "-")}-${size.w}x${size.device.screenH}.png`, clip: { x: 0, y: 0, width: size.w, height: Math.max(4, size.top) + 60 } });
         const near = (a: number, b: number, tol = 0.6) => Math.abs(a - b) <= tol;
-        if (!c.long) {
-          // A puzzle screen: its own heading row, no RoundLabel in it.
-          if (g.arcade) fails.push("a puzzle screen drew the arcade header");
-          if (g.label) fails.push("a puzzle screen drew the arcade round label");
-          rows.push(`| ${c.name} | ${size.name} | puzzle heading row (unchanged) | - | - |`);
+        const top = size.top;
+        const F = g.frame;
+        if (!g.header || !near(g.header.h, 60) || !near(g.header.y, top)) fails.push(`header ${JSON.stringify(g.header)}: want 60px at y ${top}`);
+        if (!g.timer || !near(g.timer.x + g.timer.w / 2, g.width / 2)) fails.push(`timer centre ${g.timer ? g.timer.x + g.timer.w / 2 : "?"}: want ${g.width / 2}`);
+        if (g.label) fails.push("a RoundLabel drawn in the frame header");
+        const name = c.as ?? gameName(c.type);
+        if (!F.name || F.name.text !== name) fails.push(`name reads "${F.name?.text}": want "${name}"`);
+        else if (F.name.cut || F.name.lines > 2) fails.push(`name "${F.name.text}" cut (${F.name.lines} line(s), ${F.name.size}px)`);
+        const want = `Round ${c.round} of ${c.rounds}`;
+        if (!F.context || !F.context.text.endsWith(want) || F.context.cut) fails.push(`context reads "${F.context?.text}"${F.context?.cut ? " (cut)" : ""}: want it to end "${want}"`);
+        if (F.left && g.timer && F.left.x + F.left.w > g.timer.x - 8 + 0.5) fails.push(`left half ${(g.timer.x - F.left.x - F.left.w).toFixed(1)}px from the timer (want ≥ 8)`);
+        const rightStart = Math.min(...F.right.map((r) => r.x));
+        if (g.timer && F.right.length && rightStart < g.timer.x + g.timer.w + 8 - 0.5) fails.push(`right items ${(rightStart - g.timer.x - g.timer.w).toFixed(1)}px from the timer (want ≥ 8)`);
+        for (const r of F.right) if (r.x < -0.5 || r.x + r.w > g.width + 0.5) fails.push(`${r.what} off screen`);
+        if (c.long) {
+          if (!g.arcade) fails.push("an arcade screen without data-arcade-header");
+          if (!g.slot || !near(g.slot.y, top + 60)) fails.push(`arena slot at y ${g.slot?.y}: want ${top + 60} (directly under the 60px header)`);
         } else {
-          const top = Math.max(4, size.top);
-          if (!g.header || !near(g.header.h, 44) || !near(g.header.y, top)) fails.push(`header ${JSON.stringify(g.header)}: want 44px at y ${top}`);
-          if (!g.slot || !near(g.slot.y, top + 48)) fails.push(`arena slot at y ${g.slot?.y}: want ${top + 48} (52px header)`);
-          if (!g.timer || !near(g.timer.x + g.timer.w / 2, g.width / 2)) fails.push(`timer centre ${g.timer ? g.timer.x + g.timer.w / 2 : "?"}: want ${g.width / 2}`);
-          if (g.pips) fails.push("round pips drawn beside the label");
-          const L = g.label;
-          if (!L) fails.push("no round label");
-          else {
-            const compact = L.form === "compact-line" || L.form === "compact-stack";
-            const want = compact ? `${c.round}/${c.rounds}` : c.long;
-            const name = c.as ?? gameName(c.type);
-            const first = L.lines[0];
-            if (!first?.text.startsWith(want)) fails.push(`label reads "${first?.text}": want it to start "${want}"`);
-            if (L.lines.length > 2) fails.push(`label on ${L.lines.length} lines`);
-            for (const line of L.lines) if (line.h > line.lineH * 1.5) fails.push(`label line "${line.text}" wraps (${line.h}px high)`);
-            const nameLine = L.lines[L.lines.length - 1]!;
-            if (L.form !== "compact-stack" && (L.lines.some((l) => l.truncated) || !L.lines.map((l) => l.text).join(" ").includes(name)))
-              fails.push(`${L.form}: label cut ("${L.lines.map((l) => l.text).join(" / ")}")`);
-            if (L.form === "compact-stack" && L.lines[0]!.truncated) fails.push(`"${L.lines[0]!.text}" cut`);
-            if (!g.header || L.y < g.header.y - 0.5 || L.y + L.h > g.header.y + g.header.h + 0.5) fails.push("label outside the header row");
-            if (L.x < 0) fails.push("label off the left edge");
-            for (const item of g.headerItems) {
-              const gap = Math.max(item.x - (L.x + L.w), L.x - (item.x + item.w));
-              if (gap < 8 - 0.5) fails.push(`label ${gap.toFixed(1)}px from ${item.what} (want ≥ 8)`);
-            }
-            if (g.scoreRight !== null && L.x - g.scoreRight < 8 - 0.5) fails.push(`label ${(L.x - g.scoreRight).toFixed(1)}px from the score (want ≥ 8)`);
-            const shownText = L.lines.map((l) => l.text).join(L.form.endsWith("stack") ? " / " : "");
-            rows.push(`| ${c.name} | ${size.name} | ${L.form} | ${shownText}${nameLine.truncated ? " (name ellipsised)" : ""} | ${L.room}px |`);
-          }
+          if (g.arcade) fails.push("a puzzle screen drew the arcade header");
+          if (!F.goal || !g.header || !near(F.goal.y, g.header.y + 60)) fails.push(`goal line at ${F.goal?.y}: want directly under the header`);
         }
+        rows.push(`| ${c.name} | ${size.name} | ${F.name?.text} (${F.name?.size}px, ${F.name?.lines} line) | ${F.context?.text} | ${F.left?.w.toFixed(0)}px |`);
         if (errors.length) fails.push(`page errors: ${[...new Set(errors)].slice(0, 2).join(" | ")}`);
       } catch (error) {
         fails.push(String((error as Error).message ?? error).split("\n")[0]!);
@@ -703,7 +697,7 @@ try {
   await browser.close();
   await server.close();
 }
-if (headerRows.length) console.log(["| Case | Size | Label form | Drawn | Room |", "|---|---|---|---|---|", ...headerRows].join("\n"));
+if (headerRows.length) console.log(["| Case | Size | Name | Context | Left half |", "|---|---|---|---|---|", ...headerRows].join("\n"));
 for (const f of failures) console.log(`  ${f}`);
 if (failures.length) {
   console.log(
@@ -712,5 +706,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS: ${SCREENS.length} screens at 375x667 and 390x844 keep text and controls clear of a ${INSETS.top}px notch and a ${INSETS.bottom}px home bar${HEADER_RUN ? `; ${HEADER_CASES.length} room play-header cases at ${HEADER_SIZES.length} sizes keep a 52px header, a centred timer and the round label 8px clear` : ""}`,
+  `PASS: ${SCREENS.length} screens at 375x667 and 390x844 keep text and controls clear of a ${INSETS.top}px notch and a ${INSETS.bottom}px home bar${HEADER_RUN ? `; ${HEADER_CASES.length} room play-header cases at ${HEADER_SIZES.length} sizes keep the 60px frame header, a centred timer, the name and "Round n of N" whole and 8px between its parts` : ""}`,
 );

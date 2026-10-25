@@ -2,7 +2,7 @@
 
 The look rules for every screen outside a game's own art (23 Oct 2026, Prompt Q). Follow these
 when you add or change a screen; the sources named here are the truth, and this page says how to use
-them. Game worlds (arcade art, puzzle boards) keep their own look and are not covered here.
+them. Game worlds (arcade art, puzzle boards) keep their own look; the frame round them is "Game screens" below.
 
 There are two screen families:
 
@@ -13,7 +13,8 @@ There are two screen families:
   the `--th-*` tokens, Saira / Manrope / Duelz Mono.
 
 Game screens, round intros and room moments (Prepare to Duel, round titles, the winner reveal) are
-neither; they use the app tokens in `src/styles.css` (`--background` #0B0B0F, `--primary` #F5B82E).
+neither; they use the app tokens in `src/styles.css` (`--background` #0B0B0F, `--primary` #F5B82E). A game's
+live round is drawn inside the game frame (see "Game screens" below).
 
 ## Colour tokens
 
@@ -205,3 +206,136 @@ Roofbound and draws their game icons.
   (Prepare to Duel's lightning: at most 2 strikes a second, each under 300 ms, a dim gold brightening;
   prepare-lightning-check).
 - Effects animate transform and opacity (or draw on their own canvas layer), never layout.
+
+## Game screens
+
+The frame round every game's live round (Polish 2, 24 Oct 2026; `src/polish-layout/game-frame.css`,
+`GameLayout` in `src/components/duel/PhoneShell.tsx`, `src/components/duel/GameFrame.tsx`). Intros,
+reveals, results, the lobby, the podium and the tab pages are not game screens and do not change.
+
+### The principle: same game, enhanced
+
+Every game keeps its art style, characters, palette, layout logic and rules. The frame, the background,
+the tray and the dock are shared and drawn round the game; per-game art changes come in category batches
+using the toolkit below. Nothing in the frame touches scoring, rules, timing, seeds, hitboxes, physics,
+server calls, stored data, routes, storage keys or version stamps.
+
+### Category colours
+
+The frame uses the app's category colours (`--category-*`, "Tile and category palette" above) through
+`--category-accent`, which the game screen sets from its category (`data-category`). A game on the
+arcade stage that belongs to another category (Tenfall, Bonk, Pull!, Mixed Signals) uses its own
+category's colour.
+
+### The header (all 73 games)
+
+One 60 px header replaces the app header, the old PRACTICE/name row and the 52 px arcade header. On a
+live round the Joulz app header is not drawn. It starts right under the notch (no extra margin) and runs
+three columns, the timer exactly centred:
+
+| Part | Look |
+| --- | --- |
+| Left, line 1 | The game's name: Archivo 800, 19 px, `font-stretch` 110 %, #F3F1EC. A long name steps down to fit its half (never under 14 px, `--name-len`; no measuring, so it is right from the first paint), then ellipsises. |
+| Left, line 2 | A 7 px dot in the category colour, then "{Category} · Practice", "· Round {n} of {N}" (rooms and friend challenges) or "· Daily": 12 px, 600, #A09DA6. Where the half is narrow, a long line drops the category word (the dot stays). Round pips show after it only where the half is 240 px or wider. |
+| Centre | The timer ring (`TimerBar`): 48 px, a 4 px #26262C track, the arc in the category colour with a round cap, the seconds inside in Archivo 800, 15 px, tabular. The last ten seconds still pulse and turn red, with the same ticks and voice. |
+| Right | The score block (`FrameScore`): a label (11 px, #8E8B94) over the number (Archivo 800, 22 px, tabular), then the "?" and the sound button, each 36 × 44 px in #A09DA6. |
+
+The score block shows the room total (with the place, "2nd of 6", or the opponent's total under it) in a
+room, the total so far in the daily or a challenge, and this device's best ("Best") in practice, where
+no live score exists. The room's unread-chat dot sits on the block's corner; the "finished" ping lies
+over the left half, never over the timer, the score or the board. A guest's Leave (between rounds) sits
+before the sound button. The sound button opens one popover with both channels' switches and sliders.
+
+Arcade games keep their in-world HUD line ("1UP", "WAVE 1", "BRICKS 12/80") inside the arena, and their
+world starts directly under the header, edge to edge.
+
+### The goal line (puzzles)
+
+Under the header, one 13 px, 600, #A09DA6 line (`GoalLine`): the game's goal on the left (its intro goal,
+shortened in `frameGoal` where it would not fit at 375 px) and its progress on the right. A game with
+stages publishes them with `useGoalProgress` (today: every `StageProgress` game: Operator, Tally, Integer
+Pyramid, Brimful, Eagle Eye, Ballpark), which draws "Stage n of N" and a 6 px bar of pips in the category
+colour, the done part with a soft glow, in place of the game's own bar. The line's height (18 px, or 28 px
+with a bar, `GOAL_BAR_GAMES`) is fixed before the first paint, so nothing moves when progress arrives.
+
+### The puzzle background
+
+Puzzle game screens (`data-puzzle-play`) replace plain black with the category gradient:
+
+```css
+background:
+  radial-gradient(130% 45% at 50% 0%, {cat}33, transparent 65%),
+  radial-gradient(120% 40% at 50% 100%, {cat}24, transparent 70%),
+  linear-gradient(180deg, {deep} 0%, #0D0D0F 45%, #0D0D0F 60%, {deep} 100%);
+/* plus the vignette */
+radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%);
+```
+
+`{cat}` is the category colour, `{deep}` that colour mixed 10 % into #0D0D0F. No patterns or textures, and
+no drift. The top and bottom edge strips still fade to `--screen-edge`, so no seam shows at the notch or
+home bar. Arcade backgrounds (their screen fills) are unchanged.
+
+### The tray and the board's size (puzzles)
+
+**Never smaller than main.** A puzzle's board keeps main's layout exactly: the same column (4 px sides),
+the same arena and design caps, centred between the goal line and the dock by layout 2's auto margins.
+The frame's top (60 px header and an 18 or 28 px goal line) is shorter than main's (top bar, heading and
+timer row), so a height-limited board gets more room, never less. Two games whose content spreads over
+their arena's height, Tally and Don't Break the Chain, lift the arena's cap and fill the whole height
+(`BOARD_FILL` in `GameFrame.tsx`, `data-board-fill`); measured with every cap lifted, the other boards
+that "grew" only grew an empty panel round a board of the same size, so they keep main's cap.
+
+**The tray hugs the board.** The tray is its own layer (`[data-game-tray]`, `useBoardTray` in
+`GameFrame.tsx`), drawn under the stage in the game region (isolated, pointer-events none), so the
+board's layout, size and input are untouched. It is the board's box (`boardBox`, `src/lib/boardBox.ts`)
+plus 10 px all round, 8 px clear of the screen's sides; beside a board too wide for that the side
+padding shrinks to 4 px and then the margin to 0, so a full-width board keeps main's width and its tray
+runs to the screen's edge. It is placed before the first paint and again whenever the board's box
+changes size; it never follows a dragged piece (absolutely placed content is left out of the box).
+Look: a 26 px radius, `linear-gradient(180deg, {cat}14, rgba(255,255,255,.02))`, a 1 px `{cat}2E`
+border and `inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 30px rgba(0,0,0,.35), 0 18px 40px
+rgba(0,0,0,.45)`; a tray within 58 px of the game region's clipping bottom edge gets a short drop shadow
+(`0 6px 12px -6px`), or the region would cut the long one in a faint line across the home-bar strip. On
+puzzle play screens the notch strip fades over 24 px (0.5 rem elsewhere), because the header starts right
+at the inset over the brighter category top.
+
+**The board-size check.** `bun scripts/shots/frame-probe.ts --compare=scripts/fixtures/board-sizes-main.json`
+opens every puzzle at 414 × 896 and 375 × 667 on the fixed intro example and fails unless each board's box
+is at least main's width and height and the tray's empty space above and below the board is at most
+24 px each (`--record` re-records main's sizes, run against main; `--fill` measures with every cap lifted).
+It also reports cut header or goal-line text and dock buttons under 52 px.
+
+**Small boards in a big space** need the game's own code to grow and are left for the category batches:
+Strikeout's word row, Bang On's track, Hanoi's pegs, Roundabout's wheel and Safe Cracker's dials stay at
+main's size, centred, with the tray round them.
+
+### The control dock
+
+A game's controls (keypads, number chips, arrows, Submit, Reset) follow the tray and so sit at the
+bottom, above the home-bar inset plus 16 px. Every button after the tray is at least 52 px tall
+(`game-frame.css`, "the dock"), except Cryptogrid's clue strip and keypad (a dense board of their own) and
+Tally's number pad (its taller keys would take height from its board). A one-line live summary may sit just above the dock
+where the game already has that information; the category batches add those.
+
+### The toolkit (for the category batches)
+
+Shared and documented, not yet applied game by game:
+
+| Piece | Where | Look |
+| --- | --- | --- |
+| Glass piece | `.gf-glass`, `.gf-glass-cat` (tinted) | `linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.035))`, 1 px rgba(255,255,255,.11) border, `inset 0 1px 0 rgba(255,255,255,.2), 0 6px 14px rgba(0,0,0,.5)` |
+| Well (empty slot) | `.gf-well` | rgba(0,0,0,.35) fill, 1 px rgba(255,255,255,.06) border, `inset 0 2px 6px rgba(0,0,0,.6)` |
+| Glow | `.gf-glow` | a soft blurred copy of the piece's fill behind it (`--gf-glow-blur`, `--gf-glow-opacity`) |
+| Alert ring | `.gf-alert` | a dashed red ring pulsing once a second (still under reduced motion) |
+| Right move | `rightMoveFlash(el)` (`src/lib/fx/gameToolkit.ts`) | a 240 ms category-colour ring and glow |
+| Wrong move | `wrongMoveFlash(el, sound)` | the shared ±3 px shake and 240 ms red outline (`puzzleReject`) |
+| Arcade atmosphere | `ArcadeAtmosphere` (`src/components/arcade/ArcadeAtmosphere.tsx`) | a gradient, then a still seeded starfield or a soft top glow, a vignette, and optional scanlines for retro worlds; pointer-events none |
+
+All of it is display only, respects mute (it plays nothing but `puzzleReject`'s existing cue), the
+Effects slider and reduced motion, and animates nothing in layout.
+
+### Seeing a change
+
+`bun scripts/shots/before-after.ts [games…]` captures main and the branch at 414 × 896 with the contact
+sheet's setup and drivers and writes side-by-side sheets to `screenshots/before-after/` (plus
+`overview.png` for a full run).

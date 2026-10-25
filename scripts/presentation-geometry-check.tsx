@@ -137,8 +137,9 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
 }
 // Arcade play screens (15 Oct 2026, display only; polish-layout/bottom.css "Arcade play screen"), CSS
 // arithmetic. The live round of every arcade game and every engine game on the arcade stage has one
-// compact header row: 4px under the top (or just under a notch's safe-area inset), 44px tall, then 4px, so
-// the arena slot starts 52px down, below any of the game's own HUD rows (Scrumper's 20px line, Tenfall's
+// header: since Polish 2 (24 Oct 2026) the game frame's 60px header at the top (or just under a notch's
+// safe-area inset; until then a 44px row 4px down with 4px under it, 52px), so the arena slot starts 60px
+// down, below any of the game's own HUD rows (Scrumper's 20px line, Tenfall's
 // 56px HUD, Bonk's rule box and hit line, Pull!'s hit line and pips). The slot runs the full width, edge
 // to edge, down to its controls (8px above them) or 16px above the bottom, and the lowest control row ends
 // exactly 16px above the bottom, whatever the home-bar inset. The arena is the world at
@@ -188,25 +189,21 @@ assert.match(css2, /html\.game-lock,\s*body\.game-lock \{\s*overflow: hidden;\s*
 assert.match(css2, /\[data-arena-slot\]\[data-arena-centred\]::before \{[^}]*flex: 1 1 0;[^}]*background: var\(--screen-edge\);/, "a centred slot splits its spare height evenly");
 assert.match(readFileSync("src/puzzles/tilt.tsx", "utf8"), /fitWorld\s+centreWorld/, "Tilt's world is centred in its box");
 const shell = readFileSync("src/components/duel/PhoneShell.tsx", "utf8");
-assert.match(shell, /data-arcade-header className="grid h-11 shrink-0 grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-1 px-1"/, "one 44px header row, timer in the centre column");
-assert.match(shell, /<div data-round-layout className="flex min-h-0 flex-1 flex-col gap-1 animate-round-in">\s*<div data-round-heading data-game-topbar data-arcade-header/, "4px from the header to the arena");
+// The game frame (Polish 2, 24 Oct 2026): every live round, arcade or puzzle, has one 60px header
+// (polish-layout/game-frame.css): three columns, the timer's 48px column exactly centred, and the arena
+// directly under it. It replaced the 44px arcade row (4px under the top, 4px to the arena: 52px) and the
+// room's RoundLabel beside the timer (the frame's context line says "Round n of N").
+const frameCss = readFileSync("src/polish-layout/game-frame.css", "utf8");
+assert.match(frameCss, /\.game-frame-header \{[^}]*grid-template-columns: minmax\(0, 1fr\) 48px minmax\(0, 1fr\);[^}]*height: 60px;/, "one 60px header, the timer in the centre column");
+assert.match(frameCss, /\.game-screen:is\(\[data-puzzle-play\], \[data-arcade-play\]\) > \[data-game-column\] \{\s*padding-top: env\(safe-area-inset-top, 0px\);\s*\}/, "the header starts just under the notch, or at the top");
+assert.match(shell, /<div data-round-layout data-frame=\{arcade \? "arcade" : "puzzle"\} className="flex min-h-0 flex-1 flex-col animate-round-in">\s*\{header\}/, "no gap from the header to the arena");
+assert.match(shell, /data-arcade-header=\{arcade \? "" : undefined\}/, "arcade play screens keep the header's data-arcade-header");
 // Prompt R (23 Oct 2026): the four tab screens (never a game screen) draw AppHeader instead; every other screen
-// keeps the old top bar, which still gives way on arcade play screens.
-assert.match(shell, /\{tabs && !gameScreen \? <AppHeader \/> : !bare && !arcadePlay && \(/, "the shell's own top bar gives way on arcade play screens");
-// Rooms (16 Oct 2026, display only): the round and game (RoundLabel) between the score and the timer, 8px from each
-// (gap-2, pr-1 plus the grid's 4px), in place of the round pips; the 44px row and its centred column are unchanged.
-// The live "finished" ping (17 Oct 2026) is laid over this cell (relative, the ping absolute), never in its flow.
-assert.match(shell, /<div data-header-left className="relative flex min-w-0 items-center gap-2 pr-1">\s*<div className="min-w-0 flex-1">\{arcade\.gameHeader\}<\/div>\s*\{roundLabel\}\s*\{ping\}/, "room label after the score, beside the timer");
-assert.match(shell, /\{timer\}\{roomLabel \? null : progress\}/, "the label replaces the round pips");
-{
-  const label = readFileSync("src/components/duel/RoundLabel.tsx", "utf8");
-  assert.match(label, /ROUND_LABEL_FORMS = \["line", "stack", "compact-line", "compact-stack"\] as const/, "label forms widest first");
-  assert.match(label, /round >= total \? "Final round" : `Round \$\{round\} of \$\{total\}`/, "the final round reads Final round");
-  assert.doesNotMatch(label, /animate|transition/, "nothing in the label moves or animates");
-  const route = readFileSync("src/routes/duel.$code.tsx", "utf8");
-  assert.match(route, /roundLabel=\{puzzle \? <RoundLabel round=\{round\} total=\{duel\.round_count \?\? TOTAL_ROUNDS\} name=\{puzzleName\(puzzle\.type\)\} \/> : undefined\}/, "rooms pass the label");
-  assert.doesNotMatch(readFileSync("src/routes/practice.tsx", "utf8"), /RoundLabel/, "practice has no round label");
-}
+// keeps the old top bar, which gives way on every live round (the frame's header replaces it).
+assert.match(shell, /\{tabs && !gameScreen \? <AppHeader \/> : !bare && !framePlay && \(/, "the shell's own top bar gives way on live rounds");
+// The live "finished" ping (17 Oct 2026) is laid over the header's left half (relative, the ping absolute), never in its flow.
+assert.match(shell, /<div data-header-left className="game-frame-left">[\s\S]*?\{ping\}\s*<\/div>/, "the ping lies over the left half");
+assert.match(frameCss, /\.game-frame-left \{\s*position: relative;/, "the left half holds the ping");
 assert.match(shell, /useStandaloneShortfall\(arcadePlay && constrained\);/, "the play screen measures an iOS home-screen app's shortfall");
 assert.match(shell, /\(navigator as Navigator & \{ standalone\?: boolean \}\)\.standalone !== true\) return null;/, "only in an iOS home-screen app");
 assert.match(shell, /shortfall\.px = geometry && shortfall\.screen > 0 \? Math\.round\(geometry\.inset\) : 0;/, "the growth is the top inset, capped by the screen's height (18 Oct 2026)");
@@ -216,8 +213,8 @@ assert.match(shell, /if \(key !== shortfall\.key\) \{/, "the shortfall is measur
 assert.doesNotMatch(shell.split("function applyShortfall")[1]?.split("function useStandaloneShortfall")[0] ?? "", /getBoundingClientRect|100dvh|innerHeight/, "the growth and cap never read the layout, so they cannot feed back");
 assert.match(shell, /if \(root\.style\.getPropertyValue\(name\) === value\) return;/, "an unchanged value writes nothing");
 assert.match(readFileSync("src/components/puzzles/ArcadeArenaSlot.tsx", "utf8"), /if \(at === painted\) return;/, "the arena scene repaints only when its integer canvas size or the world's place changes");
-/** Px from the top of the screen to the arena slot: 4px (or the notch's inset) + 44px header + 4px. */
-const HEADER_AT = (inset: number) => Math.max(4, inset) + 44 + 4;
+/** Px from the top of the screen to the arena slot: the notch's inset (or 0) + the frame's 60px header (Polish 2). */
+const HEADER_AT = (inset: number) => inset + 60;
 const HEADER = HEADER_AT(0);
 /** Games whose world sits centred vertically in its box (the spare height split above and below). */
 const CENTRED = new Set(["tilt"]);
@@ -308,16 +305,16 @@ for (const [width, height, inset] of ARENA_SIZES) {
   }
 }
 const gameCount = Object.keys(WORLDS).length;
-console.log(`PASS ${arenaChecks} arcade play-screen geometries (${gameCount} games × 375x667, 390x700, 390x844, 414x896 with a 48px notch, 430x932, 1280x800): 52px header (96px under the notch), edge-to-edge box, uniform world-aspect, largest fit, column 16px above the bottom, lowest control row 16px up, control targets ≥44px, every arcade arena larger than before.`);
+console.log(`PASS ${arenaChecks} arcade play-screen geometries (${gameCount} games × 375x667, 390x700, 390x844, 414x896 with a 48px notch, 430x932, 1280x800): 60px header (108px under the notch), edge-to-edge box, uniform world-aspect, largest fit, column 16px above the bottom, lowest control row 16px up, control targets ≥44px, every arcade arena larger than before.`);
 // The arena table is project documentation, not a Lovable audit: docs/, never .lovable/.
 const PHONE_SIZES = ARENA_SIZES.map(([w, h, inset]) => `${w}x${h}${inset ? ` (${inset}/34px insets)` : ""}`);
 writeFileSync("docs/arena-sizes-oct-2026.md", [
   "# Arcade arena sizes (Oct 2026)", "",
   "Generated by `bun scripts/presentation-geometry-check.tsx` from the CSS arithmetic of the arcade play screen",
   "(polish-layout/bottom.css, \"Arcade play screen\", and styles.css, \"Arcade arena slot\"), 15 Oct 2026. Every arcade game",
-  "and every engine game on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals) has one 44px header row (score",
-  "or PRACTICE, the timer centred, \"?\" and sound; in a room the round and game beside the timer), 4px under the top or just under a notch, and the box",
-  "(the arena slot) starts 4px under it (52px down without a notch), below any of the game's own HUD rows. The box runs edge",
+  "and every engine game on the arcade stage (Letterfall, Tenfall, Bonk, Pull!, Mixed Signals) has the game frame's 60px header",
+  "(Polish 2, 24 Oct 2026: the game and its context left, the timer centred, the score, \"?\" and sound right) at the top or just under a notch, and the box",
+  "(the arena slot) starts directly under it (60px down without a notch), below any of the game's own HUD rows. The box runs edge",
   "to edge and down to the controls (8px above them) or 16px above the bottom of the visible screen; the lowest control row",
   "ends exactly 16px above it. A home-bar inset does not change any of it (a notch moves the header and box down by its inset).",
   "That holds in an iOS home-screen app too, whose layout viewport is short by the top inset (WebKit bug 254868): the play",

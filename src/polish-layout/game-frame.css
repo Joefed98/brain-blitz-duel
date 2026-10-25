@@ -1,0 +1,455 @@
+/*
+ * The game frame (Polish 2, 24 Oct 2026, display only; docs/design-system.md "Game screens").
+ *
+ * "Same game, enhanced": every game keeps its own art, layout logic and rules; this file draws the
+ * shared frame round it. Every game's live round (PhoneShell `play`, GameLayout) has:
+ * - one 60px header (data-game-frame-header): the game's name and a category dot with
+ *   "{Category} · Practice / Round n of N / Daily" left, the 48px timer ring centred, the score
+ *   block, "?" and sound right. The app's own top bar is not drawn on a live round;
+ * - puzzles: the goal line under the header, the category background, the tray round the board
+ *   and the control dock at the bottom; arcade games: their world directly under the header, their
+ *   own screen fill unchanged.
+ * Intros, reveals, results, the lobby, the podium and the tab pages are untouched (none is `play`).
+ */
+
+/* ---------------------------------------------------------------- the header */
+
+.game-frame-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  height: 60px;
+  flex-shrink: 0;
+  font-family: var(--ap-font);
+}
+/* The arcade column runs edge to edge: the header keeps the 16px screen margin itself. */
+[data-frame="arcade"] > .game-frame-header {
+  padding-inline: 16px;
+}
+
+.game-frame-left {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 44px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  container-type: inline-size;
+}
+/* The name: Archivo 800 at 110 % stretch, 19px, stepping down (never under 14px) so a long name
+   fits its half of the header from the first paint (no measuring); an ellipsis only past that. */
+.game-frame-name {
+  display: block;
+  overflow: hidden;
+  font-size: clamp(14px, calc(100cqw / (var(--name-len, 12) * 0.63)), 19px);
+  font-weight: 800;
+  font-stretch: 110%;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  color: #f3f1ec;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A name over 15 characters ("Don't Break the Chain") takes two 15px lines instead of an ellipsis. */
+.game-frame-name[data-long] {
+  display: -webkit-box;
+  font-size: 15px;
+  line-height: 17px;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.game-frame-left:has(.game-frame-name[data-long]) {
+  height: 56px;
+  gap: 1px;
+}
+.game-frame-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: #a09da6;
+  white-space: nowrap;
+}
+.game-frame-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--category-accent);
+}
+.game-frame-context-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A long context ("Attention · Round 2 of 6") drops the category word where the half is narrow; the dot stays. */
+@container (max-width: 160px) {
+  .game-frame-context[data-fit="short"] .game-frame-cat {
+    display: none;
+  }
+}
+/* Round pips only where they fit beside the context (wide phones held sideways, desktop). */
+.game-frame-pips {
+  display: none;
+}
+@container (min-width: 240px) {
+  .game-frame-pips {
+    display: flex;
+    flex: none;
+  }
+}
+
+.game-frame-timer {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+}
+.game-timer {
+  position: relative;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+.game-timer-ring {
+  position: absolute;
+  inset: 0;
+  width: 48px;
+  height: 48px;
+}
+.game-timer .timer-ring-track {
+  stroke: #26262c;
+  stroke-width: 4;
+}
+.game-timer .timer-ring-fill {
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.game-timer-seconds {
+  position: relative;
+  font-family: var(--ap-font);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #f3f1ec;
+}
+
+.game-frame-right {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+.game-frame-score {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  margin-right: 4px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  font-family: var(--ap-font);
+}
+.game-frame-score-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 13px;
+  color: #8e8b94;
+  white-space: nowrap;
+}
+.game-frame-score-value {
+  font-family: var(--ap-font);
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+  color: #f3f1ec;
+}
+.game-frame-score-note {
+  max-width: 88px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 14px;
+  color: #a09da6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "?" and sound: 36 × 44, #A09DA6, no chip. */
+.game-frame-right :is([aria-label="Show puzzle instructions"], .game-frame-icon-button) {
+  position: relative;
+  display: flex;
+  width: 36px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font-family: var(--ap-font);
+  font-size: 20px;
+  font-weight: 800;
+  color: #a09da6;
+}
+.game-frame-right [aria-label="Show puzzle instructions"]::before {
+  inset: 0;
+}
+.game-frame-sound {
+  display: flex;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- the play column */
+
+/* Every live round's header starts right under the notch (no extra top margin). */
+.game-screen:is([data-puzzle-play], [data-arcade-play]) > [data-game-column] {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+/* Puzzles keep main's column (its 4px sides), so every board keeps main's width; the header and goal
+   line take 12px more, the frame's 16px screen margin. */
+[data-frame="puzzle"] > .game-frame-header,
+[data-frame="puzzle"] > .game-goal-line {
+  padding-inline: 12px;
+}
+
+/* ---------------------------------------------------------------- the goal line */
+
+.game-goal-line {
+  display: flex;
+  height: 18px;
+  flex: none;
+  flex-direction: column;
+  margin-bottom: 12px;
+  font-family: var(--ap-font);
+}
+.game-goal-line[data-goal-bar] {
+  height: 28px;
+}
+.game-goal-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #a09da6;
+  white-space: nowrap;
+}
+.game-goal-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game-goal-progress {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: #d6d3dc;
+}
+.game-goal-bar {
+  display: flex;
+  height: 6px;
+  margin-top: 4px;
+  gap: 4px;
+}
+.game-goal-bar > span {
+  flex: 1;
+  border-radius: 3px;
+  background: #26262c;
+}
+.game-goal-bar > span[data-current] {
+  background: color-mix(in srgb, var(--category-accent) 35%, #26262c);
+}
+.game-goal-bar > span[data-done] {
+  background: var(--category-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--category-accent) 55%, transparent);
+}
+
+/* ---------------------------------------------------------------- the puzzle background */
+
+[data-puzzle-play] {
+  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, #0d0d0f);
+}
+[data-puzzle-play] > .screen-background {
+  background:
+    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
+    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--frame-deep) 0%, #0d0d0f 45%, #0d0d0f 60%, var(--frame-deep) 100%);
+}
+/* No pattern or drift: the dot texture and the slow category glow give way to the gradient. */
+[data-puzzle-play] > .screen-background::before,
+[data-puzzle-play] > .screen-background > .screen-drift {
+  display: none;
+}
+/* The vignette, inside the same top and bottom edge strips as every puzzle screen (bottom.css). The top
+   strip fades over 24px (0.5rem elsewhere): the frame's header starts right at the notch's inset, over a
+   brighter top than the old black, and a shorter fade showed there as a step (bottom-clearance-check). */
+[data-puzzle-play] > .screen-background::after {
+  background:
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
+    linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
+    radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* ---------------------------------------------------------------- the toolkit (for the category batches)
+ * Shared looks the category batches apply game by game (docs/design-system.md "Game screens"). Not yet
+ * used by any game: this PR only builds and documents them. Every class is display only.
+ */
+
+/* Glass piece: a tile, key or chip lifted off the tray. `.gf-glass-cat` tints it in the category colour. */
+.gf-glass,
+.gf-glass-cat {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px rgba(0, 0, 0, 0.5);
+}
+.gf-glass-cat {
+  border-color: color-mix(in srgb, var(--category-accent) 38%, rgba(255, 255, 255, 0.11));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--category-accent) 34%, rgba(255, 255, 255, 0.12)),
+    color-mix(in srgb, var(--category-accent) 12%, rgba(255, 255, 255, 0.035))
+  );
+}
+
+/* Well: an empty slot sunk into the tray. */
+.gf-well {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Glow: a soft blurred copy of the piece's own fill behind it (the piece must not clip its overflow). */
+.gf-glow {
+  position: relative;
+  isolation: isolate;
+}
+.gf-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(var(--gf-glow-blur, 10px));
+  opacity: var(--gf-glow-opacity, 0.6);
+  pointer-events: none;
+}
+
+/* Alert ring: a dashed red ring that pulses, for a warning (a fuse, a last try). Still under reduced motion. */
+.gf-alert {
+  outline: 2px dashed var(--destructive);
+  outline-offset: 3px;
+  animation: gf-alert-pulse 1s ease-in-out infinite;
+}
+@keyframes gf-alert-pulse {
+  0%,
+  100% {
+    outline-color: color-mix(in srgb, var(--destructive) 55%, transparent);
+  }
+  50% {
+    outline-color: var(--destructive);
+  }
+}
+
+/* Right move: a 240ms glow in the category colour (gameToolkit.ts rightMoveFlash). A wrong move is the
+   shared shake and red outline (puzzleReject, [data-puzzle-rejected]); wrongMoveFlash calls it. */
+[data-move-flash="right"] {
+  box-shadow:
+    0 0 0 2px var(--category-accent),
+    0 0 14px color-mix(in srgb, var(--category-accent) 60%, transparent) !important;
+}
+
+/* Arcade atmosphere layer (ArcadeAtmosphere.tsx): gradient, starfield or glow, vignette, optional scanlines. */
+.gf-atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.gf-atmosphere > * {
+  position: absolute;
+  inset: 0;
+}
+.gf-atmosphere-vignette {
+  background: radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+.gf-atmosphere-scanlines {
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-alert {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------- the tray, the board's size and the dock */
+
+/*
+ * The tray (GameFrame useBoardTray): its own layer behind the board, the board's box plus 10px all
+ * round (less at the sides of a board too wide for it, down to 4px of padding and then no margin),
+ * 8px clear of the screen's sides. The board's layout is main's exactly: the same column, the same
+ * arena and design caps, centred between the goal line and the dock (layout 2's auto margins), so no
+ * board is ever smaller than on main; the frame's shorter top gives height-limited boards more room.
+ * Games in BOARD_FILL (data-board-fill) lift the arena's cap and grow to the whole height. The game
+ * region stacks the tray under the stage (isolation), and nothing on it takes a touch.
+ */
+[data-puzzle-play] [data-game-region] {
+  isolation: isolate;
+}
+.game-tray {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--category-accent) 18%, transparent);
+  border-radius: 26px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.35),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.game-tray:not([data-placed]) {
+  display: none;
+}
+/* A tray near the game region's clipping bottom edge: a short drop shadow, or the region would cut
+   the 40px one in a faint line across the home-bar strip (bottom-clearance-check). */
+.game-tray[data-tray-low] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -10px 30px rgba(0, 0, 0, 0.35),
+    0 6px 12px -6px rgba(0, 0, 0, 0.45);
+}
+[data-board-fill] [data-game-stage] [data-game-arena] {
+  --arena-max: none;
+  max-height: none;
+}
+
+/*
+ * The dock: the controls after the tray (keypads, number chips, arrows, Submit, Reset) are at least
+ * 52px tall, so every target clears a thumb; they sit at the bottom, 16px above the home-bar inset
+ * (pad-game-safe), under the centred board (layout 2's auto margins). Cryptogrid's clue
+ * number strip and keypad are a dense board of their own and keep their size; so does Tally's
+ * number pad, whose taller keys would take height from its board (never smaller than on main).
+ */
+[data-puzzle-play]:not([data-puzzle-surface="codeword"], [data-puzzle-surface="countup"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ * :is(button, [role="button"]),
+[data-puzzle-play]:not([data-puzzle-surface="codeword"], [data-puzzle-surface="countup"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ :is(button, [role="button"]) {
+  min-height: 52px;
+}

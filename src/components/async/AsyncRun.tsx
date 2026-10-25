@@ -5,9 +5,9 @@ import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
 import { PuzzleHelp, PuzzleHelpButton } from "@/components/duel/PuzzleInstructions";
 import { RoundIntro } from "@/components/duel/RoundIntro";
-import { RoundLabel } from "@/components/duel/RoundLabel";
+import { FrameScore } from "@/components/duel/GameFrame";
 import { FinishedPingStrip } from "@/components/duel/FinishedPings";
-import { SoloScoreStrip } from "@/components/duel/SoloScoreStrip";
+import { ordinal } from "@/lib/duel/ordinal";
 import { SteadyOrPlain } from "@/components/duel/SteadyStage";
 import { TimerBar } from "@/components/duel/TimerBar";
 import { useCrashContext } from "@/lib/useCrashContext";
@@ -530,9 +530,10 @@ export function AsyncRun({
   const shownPuzzle = step.puzzle;
   const Stage = puzzleDef(shownPuzzle.type).Stage;
   const clockActive = clockStart !== null && server >= clockStart;
-  // With earlier players: the room's own score strip (total and place so far) and their pings over it.
-  const stacked = isArcadeScreenType(shownPuzzle.type);
-  let gameHeader: ReactNode = undefined;
+  // The frame's score block: my total so far; with earlier players, my place under it and their pings
+  // over the header's name and context line.
+  const totalSoFar = view.rounds.reduce((sum, r) => sum + (r.round < step.round ? (r.score ?? 0) : 0), 0);
+  let place: string | undefined;
   let pingStrip: ReactNode = null;
   if (withRivals && rivals) {
     const board = lastBoard.current;
@@ -542,31 +543,19 @@ export function AsyncRun({
         ? standings(rivalRows(board.players), board.results, playedThrough, new Map(), board.tie)
         : null;
     const mine = table?.find((row) => row.slot === rivals.roster.mySlot);
-    pingStrip = pings.length ? <FinishedPingStrip pings={pings} looks={looks} lines={stacked ? 2 : 1} /> : null;
-    gameHeader = (
-      <div className="relative min-w-0">
-        <SoloScoreStrip
-          name={rivals.roster.myName}
-          total={view.rounds.reduce((sum, r) => sum + (r.round < step.round ? (r.score ?? 0) : 0), 0)}
-          position={mine?.position ?? 1}
-          playerCount={rivals.roster.players.length}
-          compact
-          stacked={stacked}
-        />
-        {stacked ? null : pingStrip}
-      </div>
-    );
+    pingStrip = pings.length ? <FinishedPingStrip pings={pings} looks={looks} lines={2} /> : null;
+    place = `${ordinal(mine?.position ?? 1)} of ${rivals.roster.players.length}`;
   }
+  const frameScore = <FrameScore value={totalSoFar} note={place} />;
   return (
-    <PhoneShell constrained gameScreen play gameType={shownPuzzle.type} gameHeader={gameHeader}>
+    <PhoneShell constrained gameScreen play gameType={shownPuzzle.type}>
       <GameLayout
-        ping={stacked ? pingStrip : undefined}
-        label={`Round ${step.round} of ${roundCount}`}
+        ping={pingStrip}
+        // A friend challenge counts its rounds like a room; the daily says so.
+        label={rivals ? `Round ${step.round} of ${roundCount}` : "Daily"}
         title={puzzleName(shownPuzzle.type)}
         help={<PuzzleHelpButton onClick={() => setHelpOpen(true)} />}
-        roundLabel={
-          <RoundLabel round={step.round} total={roundCount} name={puzzleName(shownPuzzle.type)} />
-        }
+        score={frameScore}
         timer={
           puzzleShowsTimer(shownPuzzle) ? (
             <TimerBar
