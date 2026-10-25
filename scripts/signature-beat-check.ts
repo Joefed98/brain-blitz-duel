@@ -246,12 +246,12 @@ for (const route of ["src/routes/duel.$code.tsx", "src/routes/practice.tsx"]) {
   );
 }
 ok(
-  /usePerfectBurst\(scoreRef, score\)/.test(read("src/components/duel/AnswerReveal.tsx")),
-  "puzzle reveal: perfect burst on the stored score",
+  /usePerfectBurst\(scoreRef, score, type\)/.test(read("src/components/duel/AnswerReveal.tsx")),
+  "puzzle reveal: perfect burst on the stored score at its game's maximum",
 );
 ok(
-  /usePerfectBurst\(scoreRef, myScore\)/.test(read("src/components/duel/ArcadeReveal.tsx")),
-  "arcade reveal: perfect burst on the stored score",
+  /usePerfectBurst\(scoreRef, myScore, puzzle\.type\)/.test(read("src/components/duel/ArcadeReveal.tsx")),
+  "arcade reveal: perfect burst on the stored score at its game's maximum",
 );
 const signatureSource = read("src/lib/fx/signature.ts");
 ok(

@@ -5,9 +5,22 @@
  * A best is kept per game and per version-stamp signature (practiceStamps.ts): a game dealt under
  * new stamps starts a fresh best, never compared with runs of older rules. Bests kept before
  * 17 Oct 2026 (`duelz-practice-best:<type>`, no stamps) are left unread: their rules are unknown.
+ *
+ * Bests v3 (25 Oct 2026, Joe's decision with the 200-point foundation, docs/scoring-200.md): every
+ * device's practice bests start fresh once. Bests are read and written only under PRACTICE_BEST_PREFIX;
+ * the v2 values (`duelz-practice-best:v2:<type>@<stamps>`) stay in storage untouched and are never read,
+ * so nothing old can show, even for a frame: the first run under v3 shows no best and no "New best!"
+ * until a second run beats it. Daily records, recent rooms and challenges keep their own keys.
  */
-const PREFIX = "duelz-practice-best:v2:";
+export const PRACTICE_BEST_PREFIX = "duelz-practice-best:v3:";
+/** Earlier prefixes, kept only so checks can prove they are never read. */
+export const RETIRED_PRACTICE_BEST_PREFIXES = ["duelz-practice-best:", "duelz-practice-best:v2:"] as const;
+const PREFIX = PRACTICE_BEST_PREFIX;
 const volatile = new Map<string, number>();
+
+export function practiceBestKey(type: string, stamp: string): string {
+  return storageKey(type, stamp);
+}
 
 function storageKey(type: string, stamp: string): string {
   return `${PREFIX}${type}@${stamp}`;

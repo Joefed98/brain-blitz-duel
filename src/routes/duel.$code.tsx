@@ -1097,6 +1097,7 @@ function DuelScreen() {
         {dropout}
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoundResult
+          gameType={puzzle?.type}
           roundTitle={roundTitle}
           best={bestLine}
           myName={me.display_name}

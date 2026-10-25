@@ -6,13 +6,13 @@
  *    FASTEST_MIN_SCORE (110, "great" in the 19 Oct score bands, docs/scoring-targets.md; 120 before) and use at most FASTEST_MAX_SHARE of the
  *    clock (the speed-bonus par: half the time left). Arcade runs, Flash and Bang On don't count:
  *    they have no finish time to compare.
- *  - Perfectionist: the most perfect 150s (at least one).
+ *  - Perfectionist: the most perfect scores, each its game's maximum (roundMax.ts; 150 today; at least one).
  *  - Comeback Kid: the biggest climb, from the lowest place held after any earlier round to the
  *    final place, of at least COMEBACK_MIN_PLACES places, finishing on the podium (top 3). Only in
  *    rooms of 3 or more: with 2 players there is no such climb (2nd to 1st is just winning).
  *  - So Close: the most genuinely close near misses (nearMiss.ts isGenuinelyClose: one thing left,
  *    or at most a fifth of a known count, or a tenth of a distance, time or points), in rounds that
- *    did not score 150. "4 mazes from the end" is a results line, never a So Close.
+ *    did not score its game's maximum. "4 mazes from the end" is a results line, never a So Close.
  *
  * Who gets each: the better figure first (so 3 perfects beat 1), then players who didn't win (the
  * winner already has the podium), then whoever has fewer awards so far, then the better final
@@ -23,7 +23,8 @@
  */
 import { isGenuinelyClose, nearMissInfo } from "./nearMiss";
 import { ordinal } from "./ordinal";
-import { MAX_ROUND_SCORE, standings, type TieRounds } from "./scoring";
+import { isPerfectScore, roundMaxFor, scaledToMax } from "./roundMax";
+import { standings, type TieRounds } from "./scoring";
 import type { DuelPlayerRow, PuzzleType, RoundResultRow, StoredPuzzleType } from "./types";
 
 export type AwardId = "fastest" | "perfect" | "comeback" | "close";
@@ -61,7 +62,7 @@ const AWARD_ORDER: readonly AwardId[] = ["perfect", "fastest", "comeback", "clos
 export const COMEBACK_MIN_PLACES = 2;
 /** …to a final place no lower than this. */
 export const COMEBACK_MAX_FINAL_PLACE = 3;
-/** Fastest Finger: the lowest score a qualifying solve may have (110, the score bands' "great"; 120 until 19 Oct 2026)… */
+/** Fastest Finger: the lowest score a qualifying solve may have (110, the score bands' "great"; 120 until 19 Oct 2026), on the 150 scale (scaledToMax: a 200 game's is 147)… */
 export const FASTEST_MIN_SCORE = 110;
 /** …and the largest share of the round's clock it may use (half the time left). */
 export const FASTEST_MAX_SHARE = 0.5;
@@ -84,7 +85,7 @@ function fastest(players: DuelPlayerRow[], results: RoundResultRow[], rounds: re
     for (const row of rows) {
       if (row.reaction_avg_ms !== null) continue;
       // A real solve with a good score, not merely the quickest answer.
-      if (!row.is_correct || row.score < FASTEST_MIN_SCORE) continue;
+      if (!row.is_correct || row.score < scaledToMax(round.type, FASTEST_MIN_SCORE)) continue;
       // 0 ms left is how older rounds stored "no finishing time": never a fast finish.
       if (!(row.ms_remaining > 0)) continue;
       const elapsed = Math.max(0, Math.min(round.timeLimitMs, round.timeLimitMs - row.ms_remaining));
@@ -105,18 +106,23 @@ function fastest(players: DuelPlayerRow[], results: RoundResultRow[], rounds: re
 function perfect(players: DuelPlayerRow[], results: RoundResultRow[], rounds: readonly AwardRound[]): Candidate[] {
   return players.flatMap((p) => {
     const perfects = results
-      .filter((r) => r.player_slot === p.player_slot && r.round_number <= rounds.length && r.score >= MAX_ROUND_SCORE)
+      .filter((r) => r.player_slot === p.player_slot && r.round_number <= rounds.length && isPerfectScore(rounds[r.round_number - 1]?.type, r.score))
       .sort((a, b) => a.round_number - b.round_number);
     if (!perfects.length) return [];
     const only = rounds[perfects[0]!.round_number - 1];
+    // Each perfect is its own game's maximum (roundMax.ts); one figure when they all share it.
+    const tops = new Set(perfects.map((r) => roundMaxFor(rounds[r.round_number - 1]?.type)));
+    const top = tops.size === 1 ? [...tops][0]! : null;
     return [
       {
         slot: p.player_slot,
         key: [-perfects.length],
         line:
           perfects.length === 1
-            ? `A perfect ${MAX_ROUND_SCORE} in ${only?.name ?? `round ${perfects[0]!.round_number}`}`
-            : `${perfects.length} perfect ${MAX_ROUND_SCORE}s`,
+            ? `A perfect ${top} in ${only?.name ?? `round ${perfects[0]!.round_number}`}`
+            : top !== null
+              ? `${perfects.length} perfect ${top}s`
+              : `${perfects.length} perfect scores`,
       },
     ];
   });
@@ -157,7 +163,7 @@ function close(players: DuelPlayerRow[], results: RoundResultRow[], rounds: read
   return players.flatMap((p) => {
     const misses = rounds.flatMap((round, index) => {
       const row = results.find((r) => r.player_slot === p.player_slot && r.round_number === index + 1);
-      if (!row || row.score >= MAX_ROUND_SCORE) return [];
+      if (!row || isPerfectScore(round.type, row.score)) return [];
       const info = nearMissInfo(round.type as PuzzleType, row.extra as Record<string, unknown> | null);
       return info && isGenuinelyClose(info) ? [{ round: index + 1, name: round.name, line: info.line }] : [];
     });

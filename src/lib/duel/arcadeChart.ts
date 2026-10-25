@@ -5,31 +5,41 @@
  * the end. It shows roughly who is ahead: markers carry each player's badge and name and no points
  * figure (exact scores are for the results screen; your own is the reveal's big number).
  *
+ * The scale is the round's game's maximum (roundMax.ts, 25 Oct 2026): the rows split it in thirds
+ * (rounded), so a game raised to 200 runs 0–67, 68–133 and 134–200 with 200 at the end. Every
+ * function takes `max` (DEFAULT_ROUND_MAX, today's 150 for every game, when left out).
+ *
  * Pure geometry (scripts/arcade-chart-check.ts proves every score's row and place, and that
  * markers never overlap); ArcadeScoreChart draws it. Places come from the server's stored scores.
  */
-import { MAX_ROUND_SCORE } from "./scoring";
+import { DEFAULT_ROUND_MAX } from "./roundMax";
 
-/** Each row's lowest and highest score. */
-export const CHART_ROWS = [
-  { lo: 0, hi: 50 },
-  { lo: 51, hi: 100 },
-  { lo: 101, hi: MAX_ROUND_SCORE },
-] as const;
-
-/** Points per row: a row runs from its previous boundary (0, 50, 100) to its own (50, 100, 150). */
-const SPAN = 50;
-
-/** A stored score on the chart's scale: a whole number from 0 to 150. */
-export function chartScore(score: number): number {
-  if (!Number.isFinite(score)) return 0;
-  return Math.max(0, Math.min(MAX_ROUND_SCORE, Math.round(score)));
+/** Each row's lowest and highest score on a scale topping out at `max`. */
+export function chartRows(max = DEFAULT_ROUND_MAX): readonly [{ lo: number; hi: number }, { lo: number; hi: number }, { lo: number; hi: number }] {
+  const top = Math.max(3, Math.round(max));
+  const b1 = Math.round(top / 3);
+  const b2 = Math.round((2 * top) / 3);
+  return [
+    { lo: 0, hi: b1 },
+    { lo: b1 + 1, hi: b2 },
+    { lo: b2 + 1, hi: top },
+  ];
 }
 
-/** The row a score sits on: 0 for 0–50, 1 for 51–100, 2 for 101–150. */
-export function chartRow(score: number): 0 | 1 | 2 {
-  const s = chartScore(score);
-  return s <= CHART_ROWS[0].hi ? 0 : s <= CHART_ROWS[1].hi ? 1 : 2;
+/** Today's rows (0–50, 51–100, 101–150). */
+export const CHART_ROWS = chartRows();
+
+/** A stored score on the chart's scale: a whole number from 0 to `max`. */
+export function chartScore(score: number, max = DEFAULT_ROUND_MAX): number {
+  if (!Number.isFinite(score)) return 0;
+  return Math.max(0, Math.min(chartRows(max)[2].hi, Math.round(score)));
+}
+
+/** The row a score sits on: 0 for 0–50, 1 for 51–100, 2 for 101–150 (at 150). */
+export function chartRow(score: number, max = DEFAULT_ROUND_MAX): 0 | 1 | 2 {
+  const s = chartScore(score, max);
+  const rows = chartRows(max);
+  return s <= rows[0].hi ? 0 : s <= rows[1].hi ? 1 : 2;
 }
 
 export interface ChartPoint {
@@ -45,10 +55,12 @@ export interface ChartPoint {
  * 150): 50 is the first row's end, 51 one point round the bend into the second, which reads right
  * to left, so its x is mirrored.
  */
-export function chartPoint(score: number): ChartPoint {
-  const s = chartScore(score);
-  const row = chartRow(s);
-  const along = (s - row * SPAN) / SPAN;
+export function chartPoint(score: number, max = DEFAULT_ROUND_MAX): ChartPoint {
+  const s = chartScore(score, max);
+  const row = chartRow(s, max);
+  const rows = chartRows(max);
+  const start = row === 0 ? 0 : rows[row - 1]!.hi;
+  const along = (s - start) / (rows[row].hi - start);
   return { row, along, x: row === 1 ? 1 - along : along };
 }
 
@@ -60,13 +72,14 @@ export interface ChartLabel {
   bend: boolean;
 }
 
-/** The scale's labels: 0 and 150 at the line's ends, 50 and 100 at its bends. */
-export function chartLabels(): ChartLabel[] {
+/** The scale's labels: 0 and the maximum (150) at the line's ends, the thirds (50 and 100) at its bends. */
+export function chartLabels(max = DEFAULT_ROUND_MAX): ChartLabel[] {
+  const rows = chartRows(max);
   return [
     { text: "0", row: 0, side: "left", bend: false },
-    { text: "50", row: 0, side: "right", bend: true },
-    { text: "100", row: 1, side: "left", bend: true },
-    { text: "150", row: 2, side: "right", bend: false },
+    { text: String(rows[0].hi), row: 0, side: "right", bend: true },
+    { text: String(rows[1].hi), row: 1, side: "left", bend: true },
+    { text: String(rows[2].hi), row: 2, side: "right", bend: false },
   ];
 }
 
@@ -117,11 +130,11 @@ export interface MarkerOut {
  * Places every marker: the badge's centre on the score's exact place, its name towards
  * the middle of the chart, and markers that would touch stacked into lanes above (lowest free lane
  * first, in order along the line; ties in key order), so no two ever overlap and every name stays
- * readable. `trackW` is the line's length in CSS px.
+ * readable. `trackW` is the line's length in CSS px; `max` the game's maximum.
  */
-export function layoutMarkers(markers: readonly MarkerIn[], trackW: number): MarkerOut[] {
+export function layoutMarkers(markers: readonly MarkerIn[], trackW: number, max = DEFAULT_ROUND_MAX): MarkerOut[] {
   const placed = markers.map((m) => {
-    const point = chartPoint(m.score);
+    const point = chartPoint(m.score, max);
     const px = point.x * trackW;
     const width = markerWidth(m.name);
     const labelSide: "left" | "right" = px > trackW / 2 ? "left" : "right";

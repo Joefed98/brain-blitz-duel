@@ -7,12 +7,12 @@
  *
  * Fired from the common solve/finish points only, never from a game:
  * - every puzzle, when its verdict says solved (rooms and practice, useSignatureVerdict);
- * - non-arcade games with no finish state, at the end of the run with 120 or more;
+ * - non-arcade games with no finish state, at the end of the run with 120 or more (signatureMinScore: 120 of 150, scaled to the game's maximum);
  * - arcade finish games, when the run ends with the finish reached (arcadeFeedback);
  * - open arcade games, at the end of a run of 120 or more on the phone's own sim.
  * Two tiers: "solve", and "fast" (solved with at least half the time left, the
- * full speed part), which is a little bigger. A stored 150 on the reveal gets a
- * short gold burst on the score (perfectBurst).
+ * full speed part), which is a little bigger. A stored score at the game's maximum
+ * (roundMax.ts, 150 today) on the reveal gets a short gold burst on the score (perfectBurst).
  *
  * Presentation only: it never changes recorded time or the submission, never
  * takes taps (pointer-events none) and never covers the timer (it is drawn
@@ -29,6 +29,7 @@
 import { APP_LOGO_URL } from "@/lib/brand";
 import { BAND_SPECS } from "@/lib/arcade/bandParts";
 import { bandTotal } from "@/lib/arcade/scoreBands";
+import { scaledToMax } from "@/lib/duel/roundMax";
 import type { PuzzleType } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { demoHushed, playVoice } from "@/lib/sound";
@@ -42,8 +43,13 @@ export const SIGNATURE_DELAY_MS = 1000;
 export const SIGNATURE_MS = 600;
 /** The perfect-score burst on the reveal (ms). */
 export const PERFECT_MS = 500;
-/** Games with no finish state need at least this on the run to earn the beat. */
+/** Games with no finish state need at least this on the run to earn the beat (on the 150 scale). */
 export const SIGNATURE_MIN_SCORE = 120;
+
+/** The no-finish threshold for a game: SIGNATURE_MIN_SCORE scaled to its maximum (120 at 150, 160 at 200). */
+export function signatureMinScore(type: string): number {
+  return scaledToMax(type, SIGNATURE_MIN_SCORE);
+}
 /** A verdict this late after the solve moment no longer gets a beat (the reveal has moved on). */
 export const SIGNATURE_LATE_MS = 4000;
 /** The longest the shared frame holds the board for the beat, from the solve or run's end (ms). */
@@ -87,7 +93,7 @@ export interface SignatureVerdict {
 /** The beat a verdict earns (null for none). Pure. */
 export function signatureTierForVerdict(v: SignatureVerdict): SignatureTier | null {
   if (v.arcade) return null;
-  if (NO_FINISH_TYPES.has(v.type)) return v.score >= SIGNATURE_MIN_SCORE ? "solve" : null;
+  if (NO_FINISH_TYPES.has(v.type)) return v.score >= signatureMinScore(v.type) ? "solve" : null;
   if (!v.correct) return null;
   return v.timeLimitMs > 0 && v.msRemaining * 2 >= v.timeLimitMs ? "fast" : "solve";
 }
@@ -112,7 +118,7 @@ export function signatureTierForArcadeRun(
       const elapsedMs = ((s.tick ?? 0) * 1000) / TICKS_PER_SECOND;
       return runMs !== null && runMs > 0 && elapsedMs * 2 <= runMs ? "fast" : "solve";
     }
-    return bandTotal(parts, Boolean(s.acted)) >= SIGNATURE_MIN_SCORE ? "solve" : null;
+    return bandTotal(parts, Boolean(s.acted)) >= signatureMinScore(type) ? "solve" : null;
   } catch {
     return null;
   }
@@ -336,7 +342,7 @@ export function playSignature(tier: SignatureTier): void {
 
 /**
  * The reveal's perfect-score moment: a short gold burst on the stored score
- * element (only ever called for a stored 150).
+ * element (only ever called for a stored score at the game's maximum).
  */
 export function perfectBurst(target: HTMLElement): void {
   if (typeof document === "undefined" || !document.body) return;

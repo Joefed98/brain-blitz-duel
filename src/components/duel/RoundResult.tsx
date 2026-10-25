@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 import type { PlayerLook } from "@/lib/duel/playerLook";
-import { MAX_ROUND_SCORE } from "@/lib/duel/scoring";
+import { roundMaxFor } from "@/lib/duel/roundMax";
 import { soundCue } from "@/lib/fx/soundCues";
 import { cueDurationMs, playRoundWon, playVoice } from "@/lib/sound";
 import {
@@ -48,6 +48,8 @@ interface RoundResultProps {
   continueState: ContinueState;
   /** Replays: the round winner's highlight (display only; never blocks Continue). */
   highlight?: ReactNode;
+  /** The round's game: its maximum (roundMax.ts) is the score bars' full width. */
+  gameType?: string | null | undefined;
 }
 
 export function RoundResult({
@@ -69,6 +71,7 @@ export function RoundResult({
   finalRound,
   continueState,
   highlight,
+  gameType,
 }: RoundResultProps) {
   const iWon = myRoundScore > opponentRoundScore;
   const theyWon = opponentRoundScore > myRoundScore;
@@ -84,7 +87,7 @@ export function RoundResult({
     playVoice(theyWon ? "roundLost" : "voice.tie", cueDurationMs("shared.roundResults"));
   }, [iWon, theyWon]);
 
-  const bar = (score: number) => `${Math.round((score / MAX_ROUND_SCORE) * 100)}%`;
+  const bar = (score: number) => `${Math.round((score / roundMaxFor(gameType)) * 100)}%`;
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-6 pt-4 animate-phase-in">

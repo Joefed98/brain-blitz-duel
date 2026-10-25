@@ -68,6 +68,10 @@ import {
 export const BASE_POINTS = 100;
 /** Speed bonus on top of the base — a correct answer always scores 100–150. */
 export const MAX_SPEED_BONUS = 50;
+/**
+ * The cap today's scoring formulas clamp to (100 + 50). Scoring only: what a round of a game can
+ * score, as screens, sounds and texts show it, is that game's maximum in roundMax.ts.
+ */
 export const MAX_ROUND_SCORE = BASE_POINTS + MAX_SPEED_BONUS;
 
 function clamp(value: number, min: number, max: number): number {

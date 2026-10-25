@@ -9,6 +9,7 @@ import { ReplayBoundary } from "@/components/replay/ReplayBoundary";
 import { asyncReveal, type AsyncReveal } from "@/lib/duel/asyncApi";
 import type { AsyncAttemptView } from "@/lib/duel/asyncRoom";
 import { puzzleName } from "@/lib/duel/registry";
+import { isPerfectScore } from "@/lib/duel/roundMax";
 import {
   VERDICT_LABEL,
   VERDICT_TONE,
@@ -192,7 +193,7 @@ export function AsyncResults({
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${score >= 150 ? "th-score-top text-primary" : "text-foreground"}`}
+                      className={`th-score w-14 text-right font-mono text-2xl font-bold tabular-nums ${isPerfectScore(type, score) ? "th-score-top text-primary" : "text-foreground"}`}
                     >
                       {score}
                     </span>

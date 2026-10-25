@@ -3,6 +3,7 @@
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 /** About two lines of text-sm on a 360 px phone. */
 const MAX_CHARS = 90;
@@ -27,7 +28,8 @@ for (const type of Object.keys(PUZZLE_INSTRUCTIONS)) {
 for (const type of Object.keys(BAND_SPECS) as (keyof typeof INTRO_SCORE)[]) {
   checks++;
   const text = INTRO_SCORE[type];
-  if (!/150|10 more/.test(text)) failures.push(`${type}: intro does not say how to reach the top: "${text}"`);
+  // The top is the game's own maximum (roundMax.ts; 150 today).
+  if (!new RegExp(`\\b${roundMaxFor(type)}\\b|10 more`).test(text)) failures.push(`${type}: intro does not say how to reach the top: "${text}"`);
   if (/otherwise up to \d+/.test(text)) failures.push(`${type}: intro still states a partial cap: "${text}"`);
   const help = PUZZLE_INSTRUCTIONS[type].score;
   if (!help.includes("higher score") || !help.includes("A good run (100 points)")) failures.push(`${type}: "?" help has no plain band line`);

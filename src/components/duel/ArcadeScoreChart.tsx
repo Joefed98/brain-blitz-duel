@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { CHART_BADGE, CHART_LANE, CHART_MARGIN, CHART_NAME_MAX, chartLabels, chartPoint, layoutMarkers, rowLanes } from "@/lib/duel/arcadeChart";
 import { PLAYER_COLOURS, type PlayerLook } from "@/lib/duel/playerLook";
+import { roundMaxFor } from "@/lib/duel/roundMax";
+import type { PuzzleType } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
 
@@ -37,14 +39,16 @@ const YOU_RING = "0 0 0 2px var(--background), 0 0 0 4px var(--foreground)";
 
 /**
  * The arcade reveal's chart (arcadeChart.ts): each player's badge (their colour and icon) and name
- * placed by their stored score on one snaking line, 0–50, 51–100 (right to left) and 101–150, so
+ * placed by their stored score on one snaking line, 0–50, 51–100 (right to left) and 101–150 (thirds of the game's maximum), so
  * everyone sees roughly who is ahead. Each player's own line runs along the snake from 0 to their
  * place in their colour (round caps and joins), this player's drawn last and thicker. No points
  * figure is drawn or carried in the page for anyone: exact scores are for the results screen.
  * Markers that would touch stack into lanes above the line, each with a thin leader to its dot.
- * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA). Display only.
+ * The chart takes the reveal's spare height (rows spread apart, up to MAX_EXTRA). The scale is the
+ * round's game's maximum (roundMax.ts; 150 today, its top label). Display only.
  */
-export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
+export function ArcadeScoreChart({ players, type }: { players: ChartPlayer[]; type: PuzzleType }) {
+  const max = roundMaxFor(type);
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   useLayoutEffect(() => {
@@ -64,6 +68,7 @@ export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
   const markers = layoutMarkers(
     scored.map((p) => ({ key: p.slot, score: p.score, name: p.isMe ? "You" : p.name })),
     trackW,
+    max,
   );
   const lanes = rowLanes(markers);
   // The height the rows need; any spare height the reveal gives the chart spreads evenly over the rows.
@@ -83,11 +88,11 @@ export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
   // Length along the snake to a score's place: whole rows and bends before its row, then its share of the row.
   const bendLen = (row: 0 | 1) => Math.PI * BEND + Math.max(0, lineY[row + 1]! - lineY[row]! - 2 * BEND);
   const lengthTo = (score: number) => {
-    const p = chartPoint(score);
+    const p = chartPoint(score, max);
     const before = p.row === 0 ? 0 : p.row === 1 ? trackW + bendLen(0) : 2 * trackW + bendLen(0) + bendLen(1);
     return before + p.along * trackW;
   };
-  const total = lengthTo(150) + 1;
+  const total = lengthTo(max) + 1;
   const byKey = new Map(scored.map((p) => [p.slot, p]));
   const colourOf = (p: ChartPlayer) => PLAYER_COLOURS[p.look?.colour ?? 0]?.hex ?? PLAYER_COLOURS[0].hex;
   // Longest lines first, so a shorter line stays visible on top of a longer one; this player's always last.
@@ -131,7 +136,7 @@ export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
                 );
               })}
             </svg>
-            {chartLabels().map((label) => {
+            {chartLabels(max).map((label) => {
               const top = label.bend ? (lineY[label.row]! + lineY[label.row + 1]!) / 2 : lineY[label.row]!;
               const edge = label.bend ? BEND + 6 : 8;
               return (

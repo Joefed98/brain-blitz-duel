@@ -15,6 +15,7 @@
 import { clampInt } from "./engine";
 import { speedBonusCurve } from "../duel/speedPar";
 import { STRICT_BANDS } from "./strictBands.data";
+import { DEFAULT_ROUND_MAX } from "../duel/roundMax";
 
 /** Knots: units ascending from 0, points ascending from 0. */
 export interface BandCurve {
@@ -51,9 +52,15 @@ export function bandTop(curve: BandCurve): number {
   return curve.units[curve.units.length - 1]!;
 }
 
+/*
+ * The clamps below take `max`, the most the score may be (DEFAULT_ROUND_MAX, 150, when left out, so
+ * every revision scores exactly as before). A game raised to 200 (docs/scoring-200.md) passes its own
+ * maximum (roundMaxFor) from its new revision's scoring only; older revisions keep the default.
+ */
+
 /** Finish games: curve points (to 140) plus the flat 10 for a full clear; 0…150. */
-export function bandFinishFlat(curve: BandCurve, achieved: number, finished: boolean): number {
-  return clampInt(bandPoints(curve, achieved) + (finished ? BAND_FINISH_BONUS : 0), 0, 150);
+export function bandFinishFlat(curve: BandCurve, achieved: number, finished: boolean, max = DEFAULT_ROUND_MAX): number {
+  return clampInt(bandPoints(curve, achieved) + (finished ? BAND_FINISH_BONUS : 0), 0, max);
 }
 
 /**
@@ -61,14 +68,14 @@ export function bandFinishFlat(curve: BandCurve, achieved: number, finished: boo
  * 50 % par speed curve over `window` ticks (the full 10 with at least half the
  * window left, falling evenly to 0 at the buzzer); 0…150.
  */
-export function bandFinishSpeed(curve: BandCurve, achieved: number, finished: boolean, ticksLeft: number, window: number): number {
+export function bandFinishSpeed(curve: BandCurve, achieved: number, finished: boolean, ticksLeft: number, window: number, max = DEFAULT_ROUND_MAX): number {
   const bonus = finished ? speedBonusCurve(BAND_FINISH_BONUS, clampInt(ticksLeft, 0, window), Math.max(1, window)) : 0;
-  return clampInt(bandPoints(curve, achieved) + bonus, 0, 150);
+  return clampInt(bandPoints(curve, achieved) + bonus, 0, max);
 }
 
 /** Open games: the curve itself, topping out at 150. */
-export function bandOpen(curve: BandCurve, achieved: number): number {
-  return clampInt(bandPoints(curve, achieved), 0, 150);
+export function bandOpen(curve: BandCurve, achieved: number, max = DEFAULT_ROUND_MAX): number {
+  return clampInt(bandPoints(curve, achieved), 0, max);
 }
 
 /** The fewest whole units that reach `points` on a curve (its full-run figure if none short of it does). */
@@ -93,15 +100,16 @@ export interface BandHelpWords {
 /**
  * The "?" help SCORE text for a band game: what counts, one plain line (more of
  * it, higher score, and the top), what a good run takes, and the finish rule.
- * Every number comes from the curve, so it follows the revision passed in.
+ * Every number comes from the curve, so it follows the revision passed in; `max` is the
+ * game's round maximum (roundMax.ts), the finish line's top.
  */
-export function bandHelp(units: string, curve: BandCurve, words: BandHelpWords): string {
+export function bandHelp(units: string, curve: BandCurve, words: BandHelpWords, max = DEFAULT_ROUND_MAX): string {
   const top = curve.points[curve.points.length - 1]!;
   const n = (u: number) => u.toLocaleString("en-GB");
   const goodUnits = bandUnitsFor(curve, BAND_GOOD_POINTS);
   const good = `A good run (${BAND_GOOD_POINTS} points) ${words.good ? words.good(goodUnits) : `counts ${n(goodUnits)}`}.`;
   return words.finish
-    ? `${units} ${words.more}, higher score – up to ${top}. ${good} ${words.finish} Up to 150.`
+    ? `${units} ${words.more}, higher score – up to ${top}. ${good} ${words.finish} Up to ${max}.`
     : `${units} ${words.more}, higher score – ${top} at ${n(bandTop(curve))}. ${good}`;
 }
 
@@ -168,9 +176,9 @@ export interface BandParts {
 }
 
 /** The score a breakdown adds up to; no input at all scores 0. */
-export function bandTotal(parts: BandParts, acted: boolean): number {
+export function bandTotal(parts: BandParts, acted: boolean, max = DEFAULT_ROUND_MAX): number {
   if (!acted) return 0;
-  return clampInt(parts.points + parts.bonus - parts.penalty, 0, 150);
+  return clampInt(parts.points + parts.bonus - parts.penalty, 0, max);
 }
 
 /** Reveal lines for a breakdown (they always add up to the stored score). */
@@ -265,8 +273,8 @@ export function bandStrictGame<G extends { init: (seed: number) => object }>(gam
 }
 
 /** Engine games (no band curve): the total itself mapped through a knot curve (0 → 0, flat past the top). */
-export function bandMapTotal(map: BandCurve, total: number): number {
-  return clampInt(bandPoints(map, total), 0, 150);
+export function bandMapTotal(map: BandCurve, total: number, max = DEFAULT_ROUND_MAX): number {
+  return clampInt(bandPoints(map, total), 0, max);
 }
 
 /** A band game whose new rounds score on the targets: the same play, `band` 2 from the first tick. */

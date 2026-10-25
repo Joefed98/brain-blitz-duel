@@ -24,7 +24,7 @@
 import { readFileSync } from "node:fs";
 
 import { buildPracticeStamps, practiceStampsSource } from "./practice-stamps";
-import { readPracticeBest, recordPracticeBest } from "../src/lib/duel/practiceBest";
+import { PRACTICE_BEST_PREFIX, RETIRED_PRACTICE_BEST_PREFIXES, practiceBestKey, readPracticeBest, recordPracticeBest } from "../src/lib/duel/practiceBest";
 import { PRACTICE_STAMPS } from "../src/lib/duel/practiceStamps.data";
 import { currentPracticeStamp, stampSignature } from "../src/lib/duel/practiceStamps";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
@@ -154,8 +154,32 @@ const localStorage = {
     const r = recordPracticeBest("tilt", s, bad);
     check(!r.improved && r.best === 70, `a bad score (${bad}) changes nothing`);
   }
-  store.set("duelz-practice-best:v2:slice@speedPar=1", "junk");
+  store.set(practiceBestKey("slice", "speedPar=1"), "junk");
   check(readPracticeBest("slice", "speedPar=1") === null, "a corrupt stored value reads as no best");
+}
+
+/* 5b. Bests v3 (25 Oct 2026, the 200-point foundation): every device's bests start fresh once; v2 is kept, never read. */
+{
+  store.clear();
+  check(PRACTICE_BEST_PREFIX === "duelz-practice-best:v3:" && !RETIRED_PRACTICE_BEST_PREFIXES.includes(PRACTICE_BEST_PREFIX as never), "bests are stored under the v3 prefix");
+  const games = Object.keys(PRACTICE_STAMPS).slice(0, 12);
+  // A device from before the switch: a v2 best (and an older unversioned one) for every game under today's stamps.
+  for (const [i, type] of games.entries()) {
+    store.set(`duelz-practice-best:v2:${type}@${currentPracticeStamp(type)}`, String(148 - i));
+    store.set(`duelz-practice-best:${type}`, "150");
+  }
+  const before = new Map(store);
+  for (const type of games) check(readPracticeBest(type, currentPracticeStamp(type)) === null, `${type}: an old v2 best is not read after the switch (no best until a new run)`);
+  for (const [i, type] of games.entries()) {
+    const run = recordPracticeBest(type, currentPracticeStamp(type), 40 + i);
+    check(run.best === 40 + i && !run.improved, `${type}: the first run after the switch is the best, never a "New best!" over an old one`);
+    check(store.get(practiceBestKey(type, currentPracticeStamp(type))) === String(40 + i), `${type}: the new best is written under v3`);
+  }
+  for (const [key, value] of before) check(store.get(key) === value, `old data is left as it was (${key})`);
+  check(games.every((type) => practiceBestKey(type, currentPracticeStamp(type)).startsWith(PRACTICE_BEST_PREFIX)), "every key the app reads is a v3 key");
+  const src = readFileSync("src/lib/duel/practiceBest.ts", "utf8");
+  check(!/removeItem|\.clear\(/.test(src), "the switch deletes nothing");
+  check((src.match(/getItem\(/g) ?? []).length === 1 && /const PREFIX = PRACTICE_BEST_PREFIX;/.test(src), "the only read is under the v3 prefix");
 }
 
 /* 6. The wiring. */

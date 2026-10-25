@@ -285,7 +285,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
   const shownScore = useCountUp(myScore);
   const celebration = useCelebration(puzzle, myAnswer, myScore, myReveal, personalBest, round);
   const scoreRef = useRef<HTMLParagraphElement>(null);
-  usePerfectBurst(scoreRef, myScore);
+  usePerfectBurst(scoreRef, myScore, puzzle.type);
   const shown = myReveal ? revealShown(myReveal, myScore) : null;
   // The score block's bottom edge, so the scrim behind it covers exactly that much of the frozen world.
   const head = useRef<HTMLDivElement>(null);
@@ -335,6 +335,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal, players, nea
 
         <ArcadeScoreChart
           players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
+          type={puzzle.type}
         />
 
         {shown && shown.tiles.length + costRows.length > 0 ? (

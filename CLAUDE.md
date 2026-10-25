@@ -512,6 +512,12 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
   `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).
+- **Per-game round maximum** (25 Oct 2026, the 200-point foundation; `docs/scoring-200.md`; no game's scoring changed):
+  `src/lib/duel/roundMax.ts` (`ROUND_MAX`, 150 for every game today; `SCORE_CEILING` 200; `roundMaxFor`) is what the
+  perfect moment and `shared.perfect`, the signature beat's no-finish threshold, the arcade reveal chart's axis, the intro
+  and "?" help texts (`{max}`), Perfectionist / So Close / Fastest Finger, the results' top score and the onboarding read.
+  An expansion raises its own line to 200 plus its stamped scoring. Practice bests moved to `duelz-practice-best:v3:`
+  (fresh once; v2 kept, never read). round-max-check (~1 s) proves it.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

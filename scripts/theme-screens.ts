@@ -16,6 +16,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { currentPracticeStamp } from "../src/lib/duel/practiceStamps";
+import { practiceBestKey } from "../src/lib/duel/practiceBest";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { dailyFixture, type HarnessDaily } from "./daily-fixture";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
@@ -425,7 +426,7 @@ export async function openThemeScreen(
     onboarding: ONBOARDING_KEY,
     bests: BEST_TYPES.map(
       (t, i) =>
-        [`duelz-practice-best:v2:${t}@${currentPracticeStamp(t)}`, 148 - i * 21] as [
+        [practiceBestKey(t, currentPracticeStamp(t)), 148 - i * 21] as [
           string,
           number,
         ],

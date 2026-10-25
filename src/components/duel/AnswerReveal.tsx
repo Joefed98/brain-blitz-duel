@@ -9,7 +9,7 @@ import { ARCADE_REVEAL_RENDERERS } from "@/lib/arcade/revealRenderers";
 
 import { puzzleDef, puzzleName, puzzleRevealMs, puzzleTimeLimitMs } from "@/lib/duel/registry";
 import { isRemovedType } from "@/lib/duel/removedGames";
-import { TOTAL_ROUNDS, type PuzzleData } from "@/lib/duel/types";
+import { TOTAL_ROUNDS, type PuzzleData, type PuzzleType } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playSound, stopMusicExcept } from "@/lib/sound";
 import { bombRevealExploded } from "@/puzzles/bombDefusal";
@@ -118,9 +118,9 @@ function useRevealLabels(ref: { current: HTMLElement | null }) {
 }
 
 /** The only score on the reveal: the server's stored number, never a local calculation. */
-export function StoredScore({ score }: { score: number | null }) {
+export function StoredScore({ score, type }: { score: number | null; type: PuzzleType }) {
   const scoreRef = useRef<HTMLParagraphElement>(null);
-  usePerfectBurst(scoreRef, score);
+  usePerfectBurst(scoreRef, score, type);
   if (score === null) {
     return (
       <div data-reveal-score="pending" className="shrink-0">
@@ -330,7 +330,7 @@ function LiveAnswerReveal({
             {def.revealHeading ?? "The answer was"}
           </p>
         ) : null}
-        <StoredScore score={myScore} />
+        <StoredScore score={myScore} type={puzzle.type} />
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center font-mono text-sm text-primary">{nearMiss(puzzle.type, myExtra)}</p>

@@ -6,6 +6,7 @@
  */
 import { rev2KnotsFor, rev2Points, REV2_UNFINISHED_TOP } from "./puzzleScoreRev2";
 import { rev3Applies, rev3FastFinishSeconds, rev3UnfinishedScore } from "./puzzleScoreRev3";
+import { roundMaxFor } from "./roundMax";
 import type { PuzzleType } from "./types";
 
 /** Each finish game's progress measure (the "?" help and docs/scoring-targets.md). */
@@ -103,12 +104,12 @@ export function dealtLimitMs(type: PuzzleType): number {
   return (DEALT_LIMIT_S[type] ?? 90) * 1000;
 }
 
-/** Seconds of play a finish with no mistakes may take and still score 150. */
+/** Seconds of play a finish with no mistakes may take and still score the maximum (150 today). */
 export function fastFinishSeconds(type: PuzzleType): number {
   return rev3FastFinishSeconds(type, dealtLimitMs(type));
 }
 
-/** The rev-3 numbers the help states: half done, one short, the buzzer finish and the 150 finish time. */
+/** The rev-3 numbers the help states: half done, one short, the buzzer finish and the top finish time. */
 export function rev3Figures(type: PuzzleType): { half: number; oneShort: number; buzzer: number; fastSeconds: number } {
   return { half: rev3UnfinishedScore(type, 0.5), oneShort: 110, buzzer: 120, fastSeconds: fastFinishSeconds(type) };
 }
@@ -117,13 +118,13 @@ export function rev3Figures(type: PuzzleType): { half: number; oneShort: number;
 export function rev3Help(type: PuzzleType): string {
   const f = rev3Figures(type);
   const eff = EFFICIENCY_WORD[type];
-  return `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Unfinished scores up to 110: about ${f.half} half done, 110 one step short. Any finish scores 120 to 150: 120 as time runs out, 150 if you finish in about ${f.fastSeconds} s with no mistakes${eff ? ` (extra ${eff} only cut the speed points)` : ""}.`;
+  return `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Unfinished scores up to 110: about ${f.half} half done, 110 one step short. Any finish scores 120 to ${roundMaxFor(type)}: 120 as time runs out, ${roundMaxFor(type)} if you finish in about ${f.fastSeconds} s with no mistakes${eff ? ` (extra ${eff} only cut the speed points)` : ""}.`;
 }
 
 /** The round intro SCORE line for a helper puzzle (at most two phone lines, no scoring terms). */
 export function rev3Intro(type: PuzzleType): string {
   const short = PROGRESS_SHORT[type] ?? "progress";
-  return `${short[0]!.toUpperCase()}${short.slice(1)}: up to 110. Finish: 120+, or 150 in about ${fastFinishSeconds(type)} s, no mistakes.`;
+  return `${short[0]!.toUpperCase()}${short.slice(1)}: up to 110. Finish: 120+, or ${roundMaxFor(type)} in about ${fastFinishSeconds(type)} s, no mistakes.`;
 }
 
 /** The "?" help SCORE text for a score-bands puzzle (rev 3's helper text for the helper games). */
@@ -131,13 +132,13 @@ export function bandsHelp(type: PuzzleType): string {
   if (rev3Applies(type)) return rev3Help(type);
   const f = bandsFigures(type);
   const eff = EFFICIENCY_WORD[type];
-  return `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Any finish beats every unfinished run, and the faster you finish${eff ? ` and the fewer ${eff}` : ""}, the more it scores. About ${f.half} for half done, ${f.buzzer} for a finish as time runs out, ${f.third} for a finish with a third of the time left${eff ? ` and none wasted` : ""}; 150 only for a perfect run.`;
+  return `Progress counts: ${PROGRESS_MEASURE[type] ?? "your progress"}. Any finish beats every unfinished run, and the faster you finish${eff ? ` and the fewer ${eff}` : ""}, the more it scores. About ${f.half} for half done, ${f.buzzer} for a finish as time runs out, ${f.third} for a finish with a third of the time left${eff ? ` and none wasted` : ""}; ${roundMaxFor(type)} only for a perfect run.`;
 }
 
 /** The round intro SCORE line for a score-bands puzzle (at most two phone lines, no scoring terms). */
 export function bandsIntro(type: PuzzleType): string {
   if (rev3Applies(type)) return rev3Intro(type);
-  return `Points for ${PROGRESS_SHORT[type] ?? "progress"}. Finish for more, quicker for more still; 150 is perfect.`;
+  return `Points for ${PROGRESS_SHORT[type] ?? "progress"}. Finish for more, quicker for more still; ${roundMaxFor(type)} is perfect.`;
 }
 
 /* ============ Open games (Nucleus, Forage, Flash, Bang On, Ballpark): the rev-1 score mapped ============ */
@@ -148,7 +149,7 @@ function firstReaching(xs: readonly number[], scoreOf: (x: number) => number, po
   return null;
 }
 
-/** "N ≈ 70, … , 150 at M" for an open game whose result is `rev1(x)`, x rising with skill. */
+/** "N ≈ 70, … , 150 at M" (the game's maximum at M) for an open game whose result is `rev1(x)`, x rising with skill. */
 export function openBandsLine(type: PuzzleType, xs: readonly number[], rev1: (x: number) => number, unit: (x: number) => string): string {
   const knots = rev2KnotsFor(type);
   const score = (x: number) => rev2Points(knots, rev1(x));
@@ -156,6 +157,7 @@ export function openBandsLine(type: PuzzleType, xs: readonly number[], rev1: (x:
     const x = firstReaching(xs, score, p);
     return x === null ? null : `${unit(x)} ≈ ${score(x)}`;
   }).filter(Boolean);
-  const top = firstReaching(xs, score, 150);
-  return `${parts.join(", ")}${top === null ? "" : `, 150 at ${unit(top)}`}`;
+  const max = roundMaxFor(type);
+  const top = firstReaching(xs, score, max);
+  return `${parts.join(", ")}${top === null ? "" : `, ${max} at ${unit(top)}`}`;
 }
