@@ -14,6 +14,7 @@ import {
   orbitBeltOffset,
   ORBIT_BELT_SPAN,
   orbitLobes,
+  phaseRate,
   ORBIT_BG,
   ORBIT_EIGHT,
   ORBIT_ELLIPSE,
@@ -593,13 +594,15 @@ function drawAmbientShootingStar(ctx: CanvasRenderingContext2D, tick: number, w:
  * The rocket's flame, in its frame (nose to +x): a small steady flame while it is alive, longer in
  * flight and longest just after a release, with a warm glow at the nozzle. Behind the body.
  */
-function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean): void {
+function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean, sling = false): void {
   const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(tick * 2.3);
-  const boost = flying > 0 && since >= 0 && since < 24 ? (24 - since) * 0.35 : 0;
+  // orbitRev 11: a slingshot flight burns longest, with a teal glow round the gold.
+  const boost = sling ? 9 : flying > 0 && since >= 0 && since < 24 ? (24 - since) * 0.35 : 0;
   const flame = ((flying > 0 ? 13 : 9) + boost) * flicker;
   if (!arcadeReducedEffects()) {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
+    if (sling) drawFxGlow(ctx, "#5CE1E6", -12, 0, 18, 0.7);
     drawFxGlow(ctx, "#FF9A3C", -8, 0, 10 + boost * 0.5, 0.85);
     ctx.restore();
   }
@@ -824,10 +827,10 @@ import {
   orbitCameraObserve,
   orbitVisiblePlanets,
   orbitViewH,
-  ORBIT_CAM_VIEW_W,
+  orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, ORBIT_HOLE_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitXpCounts, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
 
@@ -856,7 +859,7 @@ function rev3PlanetSprite(planets: Planet[], p: Planet, i: number, lobe: number,
   return off;
 }
 
-function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean, ORBIT_CAM_VIEW_H: number): void {
+function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: number, still: boolean, ORBIT_CAM_VIEW_H: number, ORBIT_CAM_VIEW_W: number): void {
   // Same seeded hashed layout as rev1/2's drawStars, parallaxed at 0.3x in both axes
   // since rev3 scrolls sideways as well as vertically.
   // Reduced effects (lib/fx/lowEnd.ts, slow devices only): no nebula tiles and no star glints.
@@ -938,7 +941,7 @@ function drawOrbitRev3Art(ctx: CanvasRenderingContext2D, state: OrbitRev3State, 
  * belongs to) brightens the rim; `since` is ticks since the last jump, for a
  * brief gold flash. Render only.
  */
-function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, armed: boolean, t: number, since: number, ORBIT_CAM_VIEW_H: number): void {
+function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, armed: boolean, t: number, since: number, ORBIT_CAM_VIEW_H: number, ORBIT_CAM_VIEW_W: number): void {
   const r = ORBIT_HOLE_R / FP;
   if (x < -r - 4 || y < -r - 4 || x > ORBIT_CAM_VIEW_W + r + 4 || y > ORBIT_CAM_VIEW_H + r + 4) return;
   ctx.save();
@@ -981,6 +984,8 @@ function drawBlackHole(ctx: CanvasRenderingContext2D, x: number, y: number, arme
 function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3State, size: CanvasSize): void {
   // orbitRev 8: the taller view (620 otherwise).
   const ORBIT_CAM_VIEW_H = orbitViewH(state);
+  // orbitRev 11: the wider view (390 otherwise).
+  const ORBIT_CAM_VIEW_W = orbitViewW(state);
   const still = prefersReducedMotion();
   const t = still ? 0 : state.tick / 60;
   const cam = orbitCamera(state, { reducedMotion: still });
@@ -998,7 +1003,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.clip();
 
   const capturePlanet=state.planets[state.cur];
-  rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H);
+  rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
   if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
    drawOrbitShootingStar(ctx, state, cam, still);
 
@@ -1007,6 +1012,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   drawOrbitPaths(ctx, state, visible, cam.x, cam.y, t);
   ctx.globalAlpha = 1;
+  // orbitRev 11: the rest of the first lap (a release on it is a perfect orbit).
+  drawFirstLap(ctx, state, cam);
 
   // Reduced effects: the additive corona and halo pass is skipped (the sun and planets still draw).
   if (!arcadeReducedEffects()) rev3GlowLayer(ctx, state, visible, cam, t);
@@ -1045,9 +1052,12 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
       ctx.save();
       ctx.globalAlpha = 0.35;
     }
-    drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, live && state.flying === 0, t, state.tick - (state.holeTick ?? -100), ORBIT_CAM_VIEW_H);
+    drawBlackHole(ctx, hole.x / FP - cam.x, hole.y / FP - cam.y, live && state.flying === 0, t, state.tick - (state.holeTick ?? -100), ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
     if (state.swept && !live) ctx.restore();
   }
+  // orbitRev 11: asteroid fields, slingshot moons and stardust.
+  const xpMemory = state.xp ? observeXp(ctx, state) : null;
+  if (state.xp) drawXpFeatures(ctx, state, cam, t, still, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
 
   const since = state.tick - state.releaseTick;
   if (since >= 0 && since < ORBIT_TRAIL_TICKS && state.flying > 0) {
@@ -1100,7 +1110,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.translate(sx, sy);
   ctx.rotate(Math.atan2(uy, ux));
   const dead = state.ended === 2;
-  if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still);
+  if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
   ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
   ctx.beginPath();
   ctx.moveTo(-6, -2);
@@ -1138,11 +1148,19 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.textAlign = "left";
   successHud(ctx,'orbit3',state.tick,14,26,()=>ctx.fillText(`Planets ${state.best} / ${ORBIT_TOTAL}`,14,26));
+  // orbitRev 11: what the run has taken of the features, under the planets.
+  if (state.xp) {
+    const c = orbitXpCounts(state);
+    ctx.font = "600 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "#FFE9A8";
+    ctx.fillText(`Dust ${c.dust}/${c.dustTotal} · Sling ${c.slings}/${c.slingsTotal} · Thread ${c.threads}/${c.threadsTotal} · Perfect ${c.perfect}`, 14, 44);
+  }
   if (state.checkpoint >= 0) {
     ctx.fillStyle = state.respawns > 0 ? ORBIT_GOLD : "rgba(255,255,255,0.4)";
     ctx.font = "600 14px 'JetBrains Mono', ui-monospace, monospace";
-    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, 44);
+    ctx.fillText(state.respawns > 0 ? `Checkpoint ${state.checkpoint} · 1 respawn` : `Checkpoint used`, 14, state.xp ? 62 : 44);
   }
+  if (xpMemory) drawXpPops(ctx, xpMemory, cam, still);
   if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;
@@ -1184,4 +1202,244 @@ export const orbitRev3ArtGame = {
  */
 export function orbitArtGameFor(state: object): { draw: typeof drawOrbitArt } {
   return (state && (state as { rev?: number }).rev === 3 ? orbitRev3ArtGame : orbitArtGame) as unknown as { draw: typeof drawOrbitArt };
+}
+
+/* ===================== World expansion (orbitRev 11, display only) ===================== */
+/*
+ * The features are drawn from the sim's own geometry: a rock's outline sits inside its collision radius, a moon's
+ * body is exactly its crash radius, a mote's glow is centred on its pickup point, and the slingshot ring is the
+ * assist reach itself. Presentation memory (pops, sparkles) is per canvas and never written to state.
+ */
+const XP_TEAL = "#5CE1E6";
+const XP_DUST = "#FFE9A8";
+
+interface XpMemory {
+  tick: number;
+  dustGot: number;
+  slung: number;
+  threaded: number;
+  perfect: number;
+  /** Recent moments: kind, world point, presentation time. */
+  pops: { text: string; x: number; y: number; at: number; colour: string }[];
+  sparks: { x: number; y: number; at: number }[];
+}
+const xpMemories = new WeakMap<object, XpMemory>();
+const XP_POP_MS = 900;
+const XP_SPARK_MS = 380;
+
+function observeXp(ctx: object, s: OrbitRev3State): XpMemory {
+  let m = xpMemories.get(ctx);
+  if (!m || s.tick < m.tick) {
+    m = { tick: s.tick, dustGot: s.dustGot ?? 0, slung: s.slung ?? 0, threaded: s.threaded ?? 0, perfect: s.perfect ?? 0, pops: [], sparks: [] };
+    xpMemories.set(ctx, m);
+    return m;
+  }
+  if (s.tick === m.tick) return m;
+  const now = presentationNow();
+  const rx = s.x / FP, ry = s.y / FP;
+  const got = (s.dustGot ?? 0) & ~m.dustGot;
+  (s.dust ?? []).forEach((d, i) => {
+    if (got & (1 << i)) m!.sparks.push({ x: d.x / FP, y: d.y / FP, at: now });
+  });
+  if ((s.slung ?? 0) !== m.slung) m.pops.push({ text: "SLINGSHOT! +4", x: rx, y: ry - 26, at: now, colour: XP_TEAL });
+  if ((s.threaded ?? 0) !== m.threaded) m.pops.push({ text: "THREADED! +4", x: rx, y: ry - 26, at: now, colour: ORBIT_GOLD });
+  if ((s.perfect ?? 0) > m.perfect) {
+    const n = s.perfect ?? 0;
+    const p = s.planets[s.cur];
+    m.pops.push({ text: n % 3 === 0 ? `PERFECT ORBIT ×${n} +1` : `PERFECT ORBIT ×${n}`, x: p ? p.x / FP : rx, y: p ? (p.y - p.ring) / FP - 14 : ry - 30, at: now, colour: "#FFF3C4" });
+  }
+  m.tick = s.tick;
+  m.dustGot = s.dustGot ?? 0;
+  m.slung = s.slung ?? 0;
+  m.threaded = s.threaded ?? 0;
+  m.perfect = s.perfect ?? 0;
+  m.pops = m.pops.filter((p) => now - p.at < XP_POP_MS).slice(-3);
+  m.sparks = m.sparks.filter((p) => now - p.at < XP_SPARK_MS).slice(-8);
+  return m;
+}
+
+/** A rough asteroid inside radius r (every vertex at 0.8–1.0 r), the belt rocks' palette. */
+function drawXpRock(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, hash: number, spin: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(((hash % 360) * Math.PI) / 180 + spin);
+  const n = 7;
+  ctx.beginPath();
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2;
+    const rr = r * (0.8 + (((hash >>> (k * 3)) & 7) / 7) * 0.2);
+    if (k === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+  g.addColorStop(0, "#EDE3D2");
+  g.addColorStop(0.45, hash & 1 ? "#B9AC98" : "#A89A86");
+  g.addColorStop(1, "#5E554B");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,214,160,0.75)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.beginPath();
+  ctx.arc(r * 0.25, r * 0.15, r * 0.24, 0, Math.PI * 2);
+  ctx.arc(-r * 0.3, r * 0.35, r * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A small grey-violet moon exactly its crash radius, lit from the upper left like the planets. */
+function drawXpMoon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.clip();
+  const base = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.05, x, y, r);
+  base.addColorStop(0, "#E6E2F2");
+  base.addColorStop(0.55, "#A7A2C2");
+  base.addColorStop(1, "#4E4A66");
+  ctx.fillStyle = base;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.fillStyle = "rgba(40,36,60,0.35)";
+  for (const [cx, cy, cr] of [[0.2, 0.1, 0.28], [-0.35, 0.3, 0.18], [0.1, -0.45, 0.14]] as const) {
+    ctx.beginPath();
+    ctx.arc(x + cx * r, y + cy * r, cr * r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Asteroid fields, slingshot moons and stardust in view. */
+function drawXpFeatures(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: OrbitCamOffset, t: number, still: boolean, W: number, H: number): void {
+  const lite = arcadeReducedEffects();
+  const inView = (x: number, y: number, m: number) => x > -m && y > -m && x < W + m && y < H + m;
+  // Asteroid fields: the gap's line as a faint dotted guide (gold once threaded), then the rocks.
+  (s.fields ?? []).forEach((f, i) => {
+    const ax = f.ax / FP - cam.x, ay = f.ay / FP - cam.y, bx = f.bx / FP - cam.x, by = f.by / FP - cam.y;
+    if (!inView((ax + bx) / 2, (ay + by) / 2, 120)) return;
+    const done = ((s.threaded ?? 0) >> i) & 1;
+    ctx.save();
+    ctx.strokeStyle = done ? ORBIT_GOLD : XP_TEAL;
+    ctx.globalAlpha = done ? 0.55 : 0.35;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.restore();
+    f.rocks.forEach((r, k) => {
+      const x = r.x / FP - cam.x, y = r.y / FP - cam.y;
+      const hash = Math.imul((r.x ^ (r.y * 31)) + k * 977, 0x85ebca6b) >>> 0;
+      drawXpRock(ctx, x, y, r.r / FP, hash, still ? 0 : (t * 0.4 * (hash & 1 ? 1 : -1)));
+    });
+  });
+  // Slingshot moons: the dashed assist ring (its exact reach), the moon, a gold ring once slung.
+  (s.moons ?? []).forEach((m, i) => {
+    const x = m.x / FP - cam.x, y = m.y / FP - cam.y;
+    if (!inView(x, y, 60)) return;
+    const used = ((s.slung ?? 0) >> i) & 1;
+    ctx.save();
+    ctx.strokeStyle = used ? ORBIT_GOLD : XP_TEAL;
+    ctx.globalAlpha = used ? 0.35 : 0.5;
+    ctx.lineWidth = 1.3;
+    ctx.setLineDash([5, 5]);
+    ctx.lineDashOffset = still ? 0 : -t * 10;
+    ctx.beginPath();
+    ctx.arc(x, y, ORBIT_MOON_ASSIST / FP, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    if (!lite) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      drawFxGlow(ctx, used ? ORBIT_GOLD : XP_TEAL, x, y, ORBIT_MOON_R / FP + 10, 0.4);
+      ctx.restore();
+    }
+    drawXpMoon(ctx, x, y, ORBIT_MOON_R / FP);
+  });
+  // Stardust: a soft glow and a bright core on each mote still to take.
+  ctx.save();
+  (s.dust ?? []).forEach((d, i) => {
+    if (((s.dustGot ?? 0) >> i) & 1) return;
+    const x = d.x / FP - cam.x, y = d.y / FP - cam.y;
+    if (!inView(x, y, 12)) return;
+    const tw = still ? 1 : 0.8 + 0.2 * Math.sin(t * 5 + i * 1.7);
+    if (!lite) {
+      ctx.globalCompositeOperation = "lighter";
+      drawFxGlow(ctx, XP_DUST, x, y, ORBIT_DUST_R / FP + 6, 0.55 * tw);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    ctx.globalAlpha = tw;
+    ctx.fillStyle = XP_DUST;
+    ctx.beginPath();
+    ctx.arc(x, y, ORBIT_DUST_R / FP - 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(x - 0.6, y - ORBIT_DUST_R / FP, 1.2, (ORBIT_DUST_R / FP) * 2);
+    ctx.fillRect(x - ORBIT_DUST_R / FP, y - 0.6, (ORBIT_DUST_R / FP) * 2, 1.2);
+    ctx.globalAlpha = 1;
+  });
+  ctx.restore();
+}
+
+/** While the first lap round the current planet lasts: that part of the orbit, ahead of the rocket, in gold. */
+function drawFirstLap(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: OrbitCamOffset): void {
+  const left = s.lapLeft ?? 0;
+  if (!s.xp || s.flying > 0 || (s.warp ?? 0) > 0 || left <= 0 || s.ended) return;
+  const p = s.planets[s.cur];
+  if (!p) return;
+  const px = p.x / FP - cam.x, py = p.y / FP - cam.y;
+  ctx.save();
+  ctx.strokeStyle = ORBIT_GOLD;
+  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  let phase = s.angle;
+  const step = Math.max(1, Math.ceil(left / 48));
+  for (let k = 0; k <= left; k += step) {
+    const o = orbitRendererPathOffset(p, phase);
+    if (k === 0) ctx.moveTo(px + o.u / FP, py + o.v / FP);
+    else ctx.lineTo(px + o.u / FP, py + o.v / FP);
+    for (let j = 0; j < step; j++) phase = (phase + p.dir * phaseRate(p, phase)) & 65535;
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Collection sparkles and the feature pops (SLINGSHOT!, THREADED!, PERFECT ORBIT); a still fade under reduced motion. */
+function drawXpPops(ctx: CanvasRenderingContext2D, m: XpMemory, cam: OrbitCamOffset, still: boolean): void {
+  const now = presentationNow();
+  ctx.save();
+  for (const sp of m.sparks) {
+    const p = (now - sp.at) / XP_SPARK_MS;
+    if (p < 0 || p >= 1) continue;
+    const x = sp.x - cam.x, y = sp.y - cam.y;
+    ctx.globalAlpha = 1 - p;
+    ctx.strokeStyle = XP_DUST;
+    ctx.lineWidth = 1.4;
+    const r = still ? 6 : 4 + 10 * p;
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2 + Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * r * 0.4, y + Math.sin(a) * r * 0.4);
+      ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      ctx.stroke();
+    }
+  }
+  ctx.font = "800 15px Archivo, 'JetBrains Mono', ui-monospace, sans-serif";
+  ctx.textAlign = "center";
+  for (const pop of m.pops) {
+    const p = (now - pop.at) / XP_POP_MS;
+    if (p < 0 || p >= 1) continue;
+    ctx.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+    const y = pop.y - cam.y - (still ? 0 : 18 * p);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(6,6,15,0.85)";
+    ctx.strokeText(pop.text, pop.x - cam.x, y);
+    ctx.fillStyle = pop.colour;
+    ctx.fillText(pop.text, pop.x - cam.x, y);
+  }
+  ctx.restore();
 }

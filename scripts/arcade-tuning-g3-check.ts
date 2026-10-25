@@ -130,7 +130,7 @@ import { SWING_V9_BANK } from "../src/lib/duel/swingBankV9.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { BALL_TRACK_BANK_TALL } from "../src/lib/duel/ballTrackBankTall.server";
-import { playRevOf } from "./scoring-targets-revs";
+import { expansionBaseOf, playRevOf } from "./scoring-targets-revs";
 
 const FP = 256;
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
@@ -197,7 +197,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     const swing = generateSwing();
     ok(playRevOf("swing", swing.swingRev) === SWING_REV_TALL && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 9 on a course re-proved for the taller cavern");
     const orbit = generateOrbit();
-    ok(playRevOf("orbit", orbit.orbitRev) === ORBIT_REV_TALL && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 8 with the course's planets");
+    // World expansion (25 Oct 2026): orbitRev 11 builds on orbitRev 10's course (orbit-rev11-check).
+    ok(playRevOf("orbit", expansionBaseOf("orbit", orbit.orbitRev)) === ORBIT_REV_TALL && orbit.planets?.length === ORBIT_TOTAL + 1, "rooms deal orbitRev 8 with the course's planets");
     const bt = generateBallTrack();
     ok(playRevOf("balltrack", bt.btRev) === BT_REV_TALL && bt.course.rows === BT_TALL_ROWS && JSON.stringify(bt.course) === JSON.stringify(BALL_TRACK_BANK_TALL[bt.seed - 1]!.course), "rooms deal btRev 4 on a 12-row bank course");
   }
@@ -513,7 +514,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_TALL\) return null/.test(src), "Grappler's demo plays only on swingRev 9");
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_TALL\) return null/.test(src), "Orbit's demo plays only on orbitRev 8");
+  // World expansion (25 Oct 2026): Orbit's demo now waits for one recorded on orbitRev 11 (orbit-rev11-check).
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_(TALL|XP)\) return null/.test(src), "Orbit's demo plays only on its tall (orbitRev 8) or expanded (orbitRev 11) revision");
   ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && demo\.puzzle\.btRev !== BT_REV_TALL\) return null/.test(src), "Ball Tracker's demo plays only on btRev 4");
 }
 

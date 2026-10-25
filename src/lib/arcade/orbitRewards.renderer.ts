@@ -1,7 +1,7 @@
 /** Orbit-only capture observations. Visual memory, never simulation state. */
 import type { OrbitRev3State } from "./orbitRev3";
 import type { OrbitCamOffset } from "./orbitCamera";
-import { orbitViewH, ORBIT_CAM_VIEW_W } from "./orbitCamera";
+import { orbitViewH, orbitViewW } from "./orbitCamera";
 export const ORBIT_STAR_TICKS = 48;
 type Star = { tick: number; milestone: number };
 let histories = new WeakMap<object, { tick: number; count: number; star: Star | null }>();
@@ -34,6 +34,7 @@ export function drawOrbitShootingStar(
   still: boolean,
 ): void {
   const ORBIT_CAM_VIEW_H = orbitViewH(s);
+  const ORBIT_CAM_VIEW_W = orbitViewW(s);
   const age = orbitStarAge(s),
     duration = still ? 15 : ORBIT_STAR_TICKS;
   if (age < 0 || age >= duration) return;

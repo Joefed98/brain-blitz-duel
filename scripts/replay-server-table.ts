@@ -60,7 +60,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   junction: (p, a) => replayJunctionRun(p.seed, a, p.junctionRev),
   inkbridge: (p, a) => replayInkBridgeRun(p.seed, a, p.inkRev),
   burst: (p, a) => replayBurstRun(p.seed, a, p.burstRev),
-  orbit: (p, a) => replayOrbitRun(p.seed, a, p.orbitRev, p.planets, p.holes),
+  orbit: (p, a) => replayOrbitRun(p.seed, a, p.orbitRev, p.planets, p.holes, p.extras),
   swing: (p, a) => replaySwingRun(p.seed, a, p.swingRev),
   snip: (p, a) => replaySnipRun(p.seed, a, p.snipRev),
   tilt: (p, a) => replayTiltRun(p.seed, a, p.tiltRev),

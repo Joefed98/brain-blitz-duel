@@ -80,7 +80,7 @@ import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWa
 import { skylineGameFor, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { expansionBaseOf, playRevOf } from "./scoring-targets-revs";
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const ONLY = (process.env.TUNING_A_ONLY ?? "").split(",").filter(Boolean);
@@ -223,7 +223,8 @@ if (want("orbit")) {
     const p = generateOrbit();
     // Tuning F (Oct 2026) moved rooms on to orbitRev 7 (rev-6 play with swept black holes), and taller worlds batch 3
     // (16 Oct 2026) to orbitRev 8 (rev 7 in a taller view); arcade-tuning-f-check and arcade-tuning-g3-check cover them.
-    ok(playRevOf("orbit", p.orbitRev) === ORBIT_REV_SWEPT + 1 && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 8 (rev 7 in the taller view) with their planets");
+    // World expansion (25 Oct 2026): orbitRev 11 builds on orbitRev 10's course (orbit-rev11-check).
+    ok(playRevOf("orbit", expansionBaseOf("orbit", p.orbitRev)) === ORBIT_REV_SWEPT + 1 && p.planets?.length === ORBIT_TOTAL + 1, "new Orbit rounds are stamped orbitRev 8 (rev 7 in the taller view) with their planets");
   }
   const bankBySeed = new Map(ORBIT_REV3_BANK.map((e) => [e.seed, e]));
   const courses = ORBIT_HOLE_BANK.slice(0, FULL ? 40 : 6);

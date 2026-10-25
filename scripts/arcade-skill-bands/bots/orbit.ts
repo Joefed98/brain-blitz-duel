@@ -13,6 +13,12 @@
  * follow the flight) — that stands in for the player's experience of where
  * the release point is. The tap itself is then the noisy human one, and its
  * outcome is whatever the sim does; nothing here looks at the score.
+ *
+ * orbitRev 11 (world expansion): the features are things a player sees, so the bot may aim for them. Within the
+ * window it picked, the forks also show which release ticks take stardust, a moon's slingshot or an asteroid
+ * gap; a player who goes for them (more often the better they are) aims at the best of those ticks instead of
+ * the window's middle (a narrower target, so the same timing error misses more), and better players more often
+ * let go in the first lap (perfect orbits) rather than waiting for a comfortable later window.
  */
 import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
 import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
@@ -24,6 +30,9 @@ const HOLE_TRY: Record<string, number> = { average: 0.2, good: 0.45, great: 0.7,
 const HESITATE: Record<string, number> = { average: 0.15, good: 0.1, great: 0.06, near: 0.03 };
 /** Flight sim cap (rev 3), ticks. */
 const FLIGHT_MAX = 190;
+/** orbitRev 11: chance of aiming for the features on a hop that has some, and of insisting on a first-lap release. */
+const FEATURE_TRY: Record<string, number> = { average: 0.25, good: 0.5, great: 0.75, near: 0.9 };
+const FIRST_LAP: Record<string, number> = { average: 0.35, good: 0.6, great: 0.8, near: 0.95 };
 
 type Kind = "hop" | "hole" | "die";
 
@@ -32,16 +41,22 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const step = (s: OrbitRev3State, tap: boolean) => game.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null) as OrbitRev3State;
 
   /** Wait d ticks in orbit, tap, follow the flight: what happens, and how long it flew. */
-  const fork = (from: OrbitRev3State, d: number): { kind: Kind; flight: number } => {
+  /** Feature points a fork's flight took (orbitRev 11): motes, slingshots and threads, as the score counts them. */
+  const gainOf = (from: OrbitRev3State, to: OrbitRev3State) => {
+    const bits = (n: number) => { let c = 0; for (let b = n; b; b &= b - 1) c++; return c; };
+    return (bits(to.dustGot ?? 0) - bits(from.dustGot ?? 0)) / 2 + 4 * (bits(to.slung ?? 0) - bits(from.slung ?? 0)) + 4 * (bits(to.threaded ?? 0) - bits(from.threaded ?? 0));
+  };
+  const fork = (from: OrbitRev3State, d: number): { kind: Kind; flight: number; gain: number } => {
     let s = from;
     for (let k = 0; k < d && !s.ended; k++) s = step(s, false);
     s = step(s, true);
     let n = 0;
     while (s.flying > 0 && s.ended === 0 && n++ < FLIGHT_MAX + 5) s = step(s, false);
-    if ((s.jumps ?? 0) > (from.jumps ?? 0)) return { kind: "hole", flight: n };
-    if (s.ended === 2 || s.respawns < from.respawns) return { kind: "die", flight: n };
-    if (s.cur > from.cur || s.finished === 1) return { kind: "hop", flight: n };
-    return { kind: "die", flight: n };
+    const gain = from.xp ? gainOf(from, s) : 0;
+    if ((s.jumps ?? 0) > (from.jumps ?? 0)) return { kind: "hole", flight: n, gain };
+    if (s.ended === 2 || s.respawns < from.respawns) return { kind: "die", flight: n, gain: 0 };
+    if (s.cur > from.cur || s.finished === 1) return { kind: "hop", flight: n, gain };
+    return { kind: "die", flight: n, gain: 0 };
   };
 
   const plan = new Plan();
@@ -61,6 +76,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const maxScan = Math.max(lap * 3, beltsNear ? 760 : 0) + ready;
     const kinds: Kind[] = [];
     const flights: number[] = [];
+    const gains: number[] = [];
     /** Windows found so far: [start delay, length, kind]. */
     const windows: [number, number, Kind][] = [];
     const hasHole = (s.holes ?? []).some((h) => h.from === s.cur);
@@ -74,6 +90,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const f = fork(s, d);
       kinds.push(f.kind);
       flights.push(f.flight);
+      gains.push(f.gain);
       // Close a window when it ends.
       const prev = kinds[d - 1];
       if (d > 0 && prev !== "die" && prev !== f.kind) {
@@ -83,6 +100,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         const w = windows[windows.length - 1]!;
         // Usable only if its middle comes round after the player is ready.
         if (w[0] + w[1] / 2 >= ready && (w[2] === "hole") === tryHole) {
+          // orbitRev 11: a first-lap release is a perfect orbit; a keen player never lets this one go round.
+          if (s.xp && skips > 0 && w[0] + w[1] / 2 < lap && human.chance(FIRST_LAP[level]!)) skips = 0;
           if (skips > 0) skips--;
           else chosen = w;
         }
@@ -93,7 +112,21 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       chosen = windows.find((w) => w[2] === "hop" && w[0] + w[1] / 2 >= ready) ?? windows.find((w) => w[2] === "hop") ?? [ready + lap / 2, 1, "hop"];
     }
     const [start, len] = chosen;
-    const mid = start + (len - 1) / 2;
+    let mid = start + (len - 1) / 2;
+    // orbitRev 11: going for the features means aiming at the window's best tick for them (nearest the middle on a tie).
+    if (s.xp && human.chance(FEATURE_TRY[level]!)) {
+      let best = -1, bestGain = 0;
+      for (let d = start; d < start + len; d++) {
+        // Only a tick with room either side (two ticks each way that still land): a player aims where a near miss is safe.
+        const roomy = [-2, -1, 1, 2].every((o) => kinds[d + o] !== undefined && kinds[d + o] !== "die");
+        const g = roomy ? (gains[d] ?? 0) : 0;
+        if (g > bestGain || (g === bestGain && g > 0 && Math.abs(d - mid) < Math.abs(best - mid))) {
+          best = d;
+          bestGain = g;
+        }
+      }
+      if (best >= 0) mid = best;
+    }
     const flight = flights[Math.round(mid)] ?? 60;
     // Read error on where the release point is: grows with the flight's length and with belts to thread.
     const readScale = flight / 150 + (beltsNear ? 0.4 : 0);

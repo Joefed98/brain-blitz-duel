@@ -7,15 +7,36 @@
  * scoring-targets-check proves the new revisions themselves.
  */
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { ORBIT_REV_STRICT, ORBIT_REV_XP } from "../src/lib/arcade/orbit";
+import { FLIP_REV_EXPAND } from "../src/lib/arcade/flip";
+
+/**
+ * World expansions (25 Oct 2026, docs/scoring-200.md): a game whose rooms now deal an expansion revision
+ * (new play, scored to 200) after its score-bands revision: type → [the expansion revision, the score-bands
+ * revision before it]. The revisions below stay keyed on the score-bands revision, which older rounds keep.
+ */
+export const EXPANSION_REVS: Partial<Record<LiveBandGame, readonly [expansion: number, strict: number]>> = {
+  flip: [FLIP_REV_EXPAND, 6],
+  orbit: [ORBIT_REV_XP, ORBIT_REV_STRICT],
+};
+/**
+ * The score-bands revision an expansion revision builds on (any other revision is itself). Checks written before
+ * an expansion that pin "rooms deal revision N" compare playRevOf(expansionBaseOf(dealt)) with N; the expansion's
+ * own check (e.g. orbit-rev11-check) proves what it changed.
+ */
+export function expansionBaseOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const pair = EXPANSION_REVS[type as LiveBandGame];
+  return pair && rev === pair[0] ? pair[1] : rev;
+}
 
 /**
  * Games whose rooms have moved past their score-bands revision to a 200-point expansion (docs/scoring-200.md,
  * docs/expansions/): type → the score-bands revision they dealt before it. The checks below keep proving that
  * revision; the expansion's own check proves the new one.
  */
-export const EXPANDED_FROM: Partial<Record<LiveBandGame, number>> = {
-  flip: 6,
-};
+export const EXPANDED_FROM: Partial<Record<LiveBandGame, number>> = Object.fromEntries(
+  Object.entries(EXPANSION_REVS).map(([type, pair]) => [type, pair![1]]),
+);
 
 /** The score-bands revision (19 Oct 2026) for a game: LIVE_BANDS' rev, or the one before its expansion. */
 const strictRevOf = (type: LiveBandGame) => EXPANDED_FROM[type] ?? LIVE_BANDS[type].rev;

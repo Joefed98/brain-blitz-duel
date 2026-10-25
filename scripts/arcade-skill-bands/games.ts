@@ -41,8 +41,9 @@ import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
 import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "../../src/lib/arcade/orbit";
-import { decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_STRICT, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "../../src/lib/arcade/orbit";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_HOLE_BANK } from "../../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../../src/lib/duel/orbitRev3Bank.server";
@@ -121,6 +122,9 @@ const btCourse = (seed: number) => BALL_TRACK_BANK[seed % BALL_TRACK_BANK.length
 const btCourseFor = (rev: number | null, seed: number) => (rev === BT_REV_TALL || rev === BT_REV_TARGET || rev === BT_REV_STRICT ? BALL_TRACK_BANK_TALL[seed % BALL_TRACK_BANK_TALL.length]!.course : btCourse(seed));
 const orbitEntry = (seed: number) => ORBIT_HOLE_BANK.find((e) => e.seed === seed)!;
 const orbitPlanets = (seed: number) => decodeRev3Planets(ORBIT_REV3_BANK.find((e) => e.seed === seed)!.planets);
+/** orbitRev 11 (world expansion): the course's features; a course without them is dealt orbitRev 10, as rooms do. */
+const orbitXpExtras = (seed: number) => ORBIT_XP_BANK.find((e) => e.seed === seed)?.extras;
+const orbitRevFor = (rev: number | null, seed: number) => (rev === ORBIT_REV_XP && !orbitXpExtras(seed) ? ORBIT_REV_STRICT : rev);
 
 const simple = (
   type: PuzzleType,
@@ -171,12 +175,12 @@ export const GAMES: GameSpec[] = [
     // Rooms deal bank courses with proved black holes (rev 4); the planets and holes ride in the puzzle.
     seedFor: (n) => ORBIT_HOLE_BANK[roomSeed(n) % ORBIT_HOLE_BANK.length]!.seed,
     gameFor: (rev, seed) => {
-      const start = orbitRev3StartFor(rev) ?? initRev4From;
+      const start = orbitRev3StartFor(orbitRevFor(rev, seed), decodeOrbitExtras(orbitXpExtras(seed))) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
-    replay: (seed, raw, rev) => replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes),
+    replay: (seed, raw, rev) => replayOrbitRun(seed, raw, orbitRevFor(rev, seed) ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, orbitXpExtras(seed)),
   },
   { ...simple("beat", BEAT_REV, BEAT_REV_BAND, beatGameFor, beatCheckpoint, encodeBeatRun, replayBeatRun), tunec: BEAT_REV_TUNEC, tunef: BEAT_REV_TUNEF, tuneg2: BEAT_REV_TALL },
   { ...simple("slice", SLICE_REV, SLICE_REV_BAND, sliceGameFor, sliceCheckpoint, encodeSliceRun, replaySliceRun), tunec: SLICE_REV_TUNEC, tunef: SLICE_REV_LONG, tuneg2: SLICE_REV_TALL },

@@ -126,8 +126,9 @@ import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { TILT_REV_BAND, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { initBandFrom, initSweptFrom, initTallFrom, initTunedFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
@@ -607,6 +608,18 @@ const GAMES: Game[] = [
     rate: 30,
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
+  },
+  // World expansion (25 Oct 2026), appended: Orbit orbitRev 11 on its feature-bank courses (stardust, moons, asteroid fields).
+  {
+    key: "orbit/xp",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => ({ ...orbitRev3Game, init: () => initXpFrom(orbitCourse(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitHoles(seed)), decodeOrbitExtras(ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras)) }),
+    seedFor: (n: number) => ORBIT_XP_BANK[n % ORBIT_XP_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => replayOrbitRun(seed, raw, ORBIT_REV_XP, encodeRev3Planets(orbitCourse(seed)), orbitHoles(seed), ORBIT_XP_BANK.find((e) => e.seed === seed)!.extras),
   },
 ];
 

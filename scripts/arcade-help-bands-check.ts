@@ -15,6 +15,7 @@
  *   bun scripts/arcade-help-bands-check.ts
  */
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
   BAND_GOOD_POINTS,

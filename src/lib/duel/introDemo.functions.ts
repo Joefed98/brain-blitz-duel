@@ -16,7 +16,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
-import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
+import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { BT_BALLS, BT_REV_TALL } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 
@@ -60,7 +60,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     const demo = (row as IntroDemoRow | null) ?? null;
     if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
-    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED) return null;
+    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP) return null;
 
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
@@ -98,7 +98,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
-    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
+    // World expansion (25 Oct 2026): orbitRev 11 shows a wider view with stardust, moons and asteroid fields, so Orbit's demo
+    // stays stopped (the intro shows its still) until one is recorded on orbitRev 11.
+    if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_XP) return null;
     // flipRev 7 (the expansion, 25 Oct 2026): a taller cave whose height changes, moving spikes, trails, checkpoints
     // and speed zones. An older demo would show the short corridor (and none of them), so Roofbound's stays stopped
     // until one is recorded on rev 7.

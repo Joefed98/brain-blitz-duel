@@ -92,6 +92,16 @@ export function orbitSounds(): GameSounds<OrbitState> {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
           else effectCue("orbit.planetCaught");
         }
+        // orbitRev 11 (world expansion), from the existing set: a tick per stardust mote, a zap for a slingshot,
+        // a chime for a threaded asteroid field, a ding for each perfect orbit.
+        const xp = state as OrbitState & { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number };
+        const was = prev as typeof xp;
+        if (xp.xp) {
+          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) sfx("shared.celebrate.countTick", "tick", 0.8);
+          if ((xp.slung ?? 0) !== (was.slung ?? 0)) sfx("shared.celebrate.zap", "arc_pickup");
+          if ((xp.threaded ?? 0) !== (was.threaded ?? 0)) sfx("shared.celebrate.chime", "arc_pickup");
+          if ((xp.perfect ?? 0) > (was.perfect ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.55);
+        }
         // The first figure-eight planet and the first asteroid belt: a heads-up as the one before is reached.
         for (const at of [state.planets.findIndex((p) => p.kind === ORBIT_EIGHT), state.planets.findIndex((p) => p.hazard >= 0)]) {
           if (at > 0 && !announced.has(at) && prev.cur < at - 1 && state.cur === at - 1) {
