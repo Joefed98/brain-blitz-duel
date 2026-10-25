@@ -9,6 +9,7 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
+import { gradeDepth200 } from "./depth200.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -257,6 +258,9 @@ export function gradeAnswer(
     if (puzzle.type === "wordhunt") return gradeWordHunt(puzzle, answer, msRemaining);
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
+  // Depth to 200 (25 Oct 2026, depth200.server.ts): a game's own new revision scores to 200 in place of rev 2 / 3.
+  const deep = gradeDepth200({ puzzle, answer, graded, receivedMsRemaining });
+  if (deep) return deep;
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
   if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
