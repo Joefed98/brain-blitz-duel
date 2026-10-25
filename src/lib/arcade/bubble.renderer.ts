@@ -18,21 +18,23 @@ import {
   bubNextColour,
   bubRowCols,
   BUB_BOMB,
+  BUB_CHEST,
   BUB_COLS,
   BUB_JOKER,
   BUB_LINE,
   BUB_PALETTE,
   BUB_HUD_H,
-  BUB_MAX_ROWS,
   BUB_R,
   BUB_ROW_H,
-  BUB_SHOOTER_LINE,
   BUB_SHOOTER_X,
   BUB_TOP,
   BUB_WALL,
   BUB_WORLD_W,
   bubShooterY,
   bubWorldH,
+  bubDangerLine,
+  bubRowsOf,
+  BUB_V8_CHESTS,
   type BubState,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
@@ -381,7 +383,69 @@ function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
   c.restore();
 }
 
+/**
+ * bubbleRev 8: the treasure chest bubble. The same glass bubble (gloss, rim, sheen) round a small
+ * wooden chest with brass bands, a lock plate and a gold glint, on a warm amber glow, so it reads as
+ * "not a colour" next to the creature bubbles and the specials.
+ */
+function paintChest(c: CanvasRenderingContext2D, size: number): void {
+  const r = size / 2;
+  c.save();
+  c.beginPath();
+  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+  c.clip();
+  const water = c.createRadialGradient(r * 0.8, r * 0.7, r * 0.08, r, r, r);
+  water.addColorStop(0, "#FFE7A0");
+  water.addColorStop(0.55, "#C98A2E");
+  water.addColorStop(1, "#5A3510");
+  c.fillStyle = water;
+  c.fillRect(0, 0, size, size);
+  // Chest: a lid (rounded top) over a box, both wood, with brass bands and a lock plate.
+  const w = r * 1.2, h = r * 0.62, lidH = r * 0.36;
+  const x0 = r - w / 2, boxTop = r - h / 2 + r * 0.14;
+  const wood = c.createLinearGradient(0, boxTop - lidH, 0, boxTop + h);
+  wood.addColorStop(0, "#A5642A");
+  wood.addColorStop(1, "#5C3412");
+  c.fillStyle = wood;
+  c.beginPath();
+  c.moveTo(x0, boxTop);
+  c.quadraticCurveTo(x0, boxTop - lidH * 1.1, r, boxTop - lidH * 1.15);
+  c.quadraticCurveTo(x0 + w, boxTop - lidH * 1.1, x0 + w, boxTop);
+  c.lineTo(x0 + w, boxTop + h);
+  c.lineTo(x0, boxTop + h);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = "#2E1806";
+  c.lineWidth = Math.max(0.8, r * 0.06);
+  c.stroke();
+  c.fillStyle = SEA_BRASS;
+  c.fillRect(x0, boxTop - r * 0.04, w, r * 0.1);
+  for (const bx of [x0 + w * 0.2, x0 + w * 0.8]) c.fillRect(bx - r * 0.05, boxTop - lidH, r * 0.1, h + lidH);
+  c.fillStyle = "#FFE7A0";
+  c.fillRect(r - r * 0.1, boxTop - r * 0.02, r * 0.2, r * 0.24);
+  c.fillStyle = "#2E1806";
+  c.fillRect(r - r * 0.025, boxTop + r * 0.07, r * 0.05, r * 0.08);
+  // A gold glint escaping under the lid.
+  c.fillStyle = "rgba(255,240,170,0.95)";
+  c.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 4;
+    const d = i % 2 === 0 ? r * 0.2 : r * 0.05;
+    c.lineTo(r + r * 0.42 + Math.cos(a) * d, r - r * 0.42 + Math.sin(a) * d);
+  }
+  c.closePath();
+  c.fill();
+  c.restore();
+  c.strokeStyle = "rgba(255,240,200,0.85)";
+  c.lineWidth = Math.max(1, r * 0.1);
+  c.beginPath();
+  c.arc(r, r, r - c.lineWidth / 2 - 0.5, 0, Math.PI * 2);
+  c.stroke();
+  bubbleGloss(c, r);
+}
+
 export function paintBubble(value: number) {
+  if (value === BUB_CHEST) return paintChest;
   if (bubIsSpecial(value)) return paintSpecial(value, false);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
@@ -654,14 +718,21 @@ interface Memo {
   rise: { born: number; seed: number } | null;
   /** bubbleRev 4: where the Torpedo in flight has been (world px), newest last; empty otherwise. */
   wake: { x: number; y: number }[];
+  /** bubbleRev 8: floating words (a chest's "TREASURE", "BANK", "COMBO ×n") and the counters they follow. */
+  notes: Note[];
+  banks: number;
+  combos: number;
 }
+/** bubbleRev 8: a floating word (world px), coloured gold for treasure, sea glass for bank and combo shots. */
+interface Note { text: string; x: number; y: number; born: number; gold: boolean }
+const NOTE_CAP = 4;
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
 
 function memoFor(ctx: CanvasRenderingContext2D, state: BubState): Memo {
   let m = memos.get(ctx);
   if (!m || state.tick < m.tick) {
-    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null, cleared: state.popped + state.dropped, rise: null, wake: [] };
+    m = { tick: state.tick, grid: [...state.grid], descents: state.descents, fx: [], specials: specialCount(state), blast: null, cleared: state.popped + state.dropped, rise: null, wake: [], notes: [], banks: state.banks ?? 0, combos: state.combos ?? 0 };
     memos.set(ctx, m);
   }
   return m;
@@ -707,11 +778,13 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
   if (special || drilling) colour = -1;
   if (!drilling) m.wake = [];
   if (state.popped + state.dropped > 0 && state.grid !== m.grid) {
-    for (let row = 0; row < BUB_MAX_ROWS; row++) {
+    for (let row = 0; row < bubRowsOf(state.grid); row++) {
       for (let col = 0; col < bubRowCols(row); col++) {
         const i = row * BUB_COLS + col;
         const was = m.grid[i]!;
         if (!was || state.grid[i]) continue;
+        // bubbleRev 8: a chest that fell with a cluster pays (one destroyed by a mine or torpedo is in `fx` only).
+        if (was === BUB_CHEST && state.reef && (state.chests ?? 0) > 0 && colour !== -1) note(m, "TREASURE", bubCellX(row, col), bubCellY(row, m.descents), now, true);
         if (m.fx.length >= FX_CAP) m.fx.shift();
         m.fx.push({
           kind: was === colour || colour === -1 ? 0 : 1,
@@ -724,9 +797,39 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
       }
     }
   }
+  // bubbleRev 8: a bank shot and a combo shot each get a word where the shot finished.
+  if (state.reef) {
+    const at = m.fx[m.fx.length - 1];
+    const x = at?.x ?? state.x / 256;
+    const y = at?.y ?? state.y / 256;
+    if ((state.banks ?? 0) > m.banks) note(m, "BANK", x, y + 18, now, false);
+    if ((state.combos ?? 0) > m.combos && (state.streak ?? 0) >= 2) note(m, `COMBO ×${state.streak}`, x, y - 4, now, false);
+    m.banks = state.banks ?? 0;
+    m.combos = state.combos ?? 0;
+  }
   m.tick = state.tick;
   m.grid = [...state.grid];
   m.descents = state.descents;
+}
+
+function note(m: Memo, text: string, x: number, y: number, born: number, gold: boolean): void {
+  if (m.notes.length >= NOTE_CAP) m.notes.shift();
+  m.notes.push({ text, x: Math.max(70, Math.min(BUB_WORLD_W - 70, x)), y, born, gold });
+}
+
+/** bubbleRev 8: a small chest for the HUD's tally (the chest bubble's own sprite, no bubble round it would read smaller). */
+function drawChestTally(ctx: CanvasRenderingContext2D, state: BubState, right: number, cy: number, rs: number, dpr: number): void {
+  const got = state.chests ?? 0;
+  ctx.save();
+  ctx.font = `bold ${Math.round(15 * rs)}px ui-monospace, monospace`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = got > 0 ? SEA_GOLD : SEA_TEXT;
+  const text = `${got}/${BUB_V8_CHESTS}`;
+  ctx.fillText(text, right, cy);
+  const w = ctx.measureText(text).width;
+  blitBubble(ctx, BUB_CHEST, right - w - 13 * rs, cy, 10 * rs, dpr);
+  ctx.restore();
 }
 
 let lastFlight = 0;
@@ -863,14 +966,15 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   ctx.setLineDash([6 * rs, 6 * rs]);
   ctx.lineWidth = Math.max(1, 1.5 * rs);
   ctx.beginPath();
-  ctx.moveTo(X(BUB_WALL), Y(BUB_SHOOTER_LINE));
-  ctx.lineTo(X(BUB_WORLD_W - BUB_WALL), Y(BUB_SHOOTER_LINE));
+  // bubbleRev 8: the deeper reef's line sits just above the gun.
+  ctx.moveTo(X(BUB_WALL), Y(bubDangerLine(state)));
+  ctx.lineTo(X(BUB_WORLD_W - BUB_WALL), Y(bubDangerLine(state)));
   ctx.stroke();
   ctx.setLineDash([]);
 
   // Field.
   const radius = (BUB_R - 1) * rs;
-  for (let row = 0; row < BUB_MAX_ROWS; row++) {
+  for (let row = 0; row < bubRowsOf(state.grid); row++) {
     for (let col = 0; col < bubRowCols(row); col++) {
       const value = state.grid[row * BUB_COLS + col]!;
       if (!value) continue;
@@ -1000,6 +1104,28 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     }
   }
 
+  // bubbleRev 8: floating words over the reef (held still, briefly, under reduced motion).
+  if (state.reef && m.notes.length) {
+    const life = still ? 0.5 : 0.9;
+    m.notes = m.notes.filter((n) => now - n.born < life * 1000);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `800 ${Math.round(16 * rs)}px Archivo, ui-sans-serif, sans-serif`;
+    ctx.lineJoin = "round";
+    for (const n of m.notes) {
+      const k = (now - n.born) / (life * 1000);
+      const y = Y(n.y) - (still ? 0 : k * 26 * rs);
+      ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
+      ctx.strokeStyle = "rgba(4,16,34,0.85)";
+      ctx.lineWidth = Math.max(2, 4 * rs);
+      ctx.strokeText(n.text, X(n.x), y);
+      ctx.fillStyle = n.gold ? SEA_GOLD : "#BFF4FF";
+      ctx.fillText(n.text, X(n.x), y);
+    }
+    ctx.restore();
+  }
+
   // Diver's bubble gun: riveted brass base and the brass cradle ring.
   const gx = X(BUB_SHOOTER_X);
   const gy = Y(BUB_SHOOTER_Y);
@@ -1095,6 +1221,18 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   successHud(ctx,'bubble',state.tick,14,18,()=>{ctx.fillText(`Popped ${state.popped}`, X(14), Y(BUB_HUD_H * 0.36));});
+  // bubbleRev 8: the chest tally on the rock's right, and the pop streak once it is a combo.
+  if (state.reef) {
+    drawChestTally(ctx, state, X(BUB_WORLD_W - 14), Y(BUB_HUD_H * 0.36), rs, dpr);
+    if ((state.streak ?? 0) >= 2) {
+      ctx.save();
+      ctx.font = `bold ${Math.round(13 * rs)}px ui-monospace, monospace`;
+      ctx.fillStyle = "#BFF4FF";
+      ctx.textAlign = "left";
+      ctx.fillText(`COMBO ×${state.streak}`, X(14), Y(BUB_HUD_H * 0.72));
+      ctx.restore();
+    }
+  }
   const pop=m.fx[m.fx.length-1];
   successFrame(ctx,{id:'bubble',tick:state.tick,count:state.popped,colour:SEA_GOLD,width:size.width,height:size.height,point:{x:X(pop?.x??BUB_SHOOTER_X),y:Y(pop?.y??BUB_TOP),shape:'fish'},hud:{x:X(14),y:Y(8),text:`Popped ${state.popped}`}});
   successFrame(ctx,{id:'bubble-drop',tick:state.tick,count:Math.floor(state.dropped/5),colour:SEA_TEXT,width:size.width,height:size.height,point:{x:X(pop?.x??BUB_SHOOTER_X),y:Y(pop?.y??BUB_TOP),shape:'bubble'}});

@@ -40,7 +40,7 @@ import { bubbleSounds } from "@/lib/fx/gameSounds";
 import { decodeBubbleRun, encodeBubbleRun, replayBubbleRun } from "@/lib/duel/bubble";
 import { ARCADE_CRASH_FREEZE_MS, type BubblePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
-import { playWrong } from "@/lib/sound";
+import { playSound, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -181,6 +181,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const feedback = arcadeFeedback({ game: "bubble" });
     const sounds = bubbleSounds();
     let popped = state.current.popped;
+    // bubbleRev 8: the skill features sound from the shared set (a chest's chime, a bank shot's zap, a combo's tick or ding).
+    let reefSeen = { chests: state.current.chests ?? 0, banks: state.current.banks ?? 0, combos: state.current.combos ?? 0 };
 
     const finish = () => {
       if (submitted.current) return;
@@ -217,6 +219,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
       if (state.current.popped > popped) {
         popped = state.current.popped;
+      }
+      if (state.current.reef) {
+        const now = state.current;
+        if ((now.chests ?? 0) > reefSeen.chests) playSound("shared.celebrate.chime", 0.7);
+        if ((now.banks ?? 0) > reefSeen.banks) playSound("shared.celebrate.zap", 0.45);
+        if ((now.combos ?? 0) > reefSeen.combos) playSound((now.streak ?? 0) >= 4 ? "shared.celebrate.countDing" : "shared.celebrate.countTick", 0.6);
+        reefSeen = { chests: now.chests ?? 0, banks: now.banks ?? 0, combos: now.combos ?? 0 };
       }
 
       reportArcadeTick(state.current.tick, bubbleGame.isOver(state.current));
@@ -371,6 +380,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {puzzle.bubbleRev ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           Jokers {result.jokers} · bombs {result.bombs} · torpedoes {result.lines}
+        </p>
+      ) : null}
+      {result.state.reef ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          Chests {result.state.chests ?? 0} · banks {result.state.banks ?? 0} · combos {result.state.combos ?? 0}
         </p>
       ) : null}
     </div>

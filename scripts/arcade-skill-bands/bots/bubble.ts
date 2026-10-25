@@ -15,7 +15,7 @@
  * jitter over the drag length, larger for bank shots.
  */
 import { dragLaunch, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
-import { bubIsSpecial, bubRemaining, bubCellY, BUB_COLS, BUB_INPUT_SHOT, BUB_MAX_ROWS, BUB_R, BUB_SHOOTER_LINE, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
+import { bubDangerLine, bubIsSpecial, bubRemaining, bubRowsOf, bubCellY, bubV8FeaturePoints, BUB_COLS, BUB_INPUT_SHOT, BUB_R, BUB_SPEED, bubSpeed, type BubState } from "../../../src/lib/arcade/bubble";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
 /** Typical drag length when aiming, phone px (the world is 390 px wide, so 1 world px = 1 phone px). */
@@ -44,7 +44,14 @@ function neighbours(row: number, col: number): [number, number][] {
   ];
 }
 const rowCols = (row: number) => (row % 2 === 0 ? BUB_COLS : BUB_COLS - 1);
-const inGrid = (r: number, c: number) => r >= 0 && r < BUB_MAX_ROWS && c >= 0 && c < rowCols(r);
+let ROWS = 18;
+const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < rowCols(r);
+
+/**
+ * bubbleRev 8: how much a player weighs the skill features (chests, bank shots, combos) against plain
+ * clearing; weaker players mostly just clear.
+ */
+const FEATURE_EYE: Record<string, number> = { average: 0.25, good: 0.5, great: 0.8, near: 1 };
 
 function groupSize(grid: readonly number[], start: number): number {
   const colour = grid[start]!;
@@ -66,8 +73,8 @@ function groupSize(grid: readonly number[], start: number): number {
 
 /** Lowest bubble's distance (px) above the shooter line. */
 function clearance(s: BubState): number {
-  for (let row = BUB_MAX_ROWS - 1; row >= 0; row--)
-    for (let col = 0; col < rowCols(row); col++) if (s.grid[row * BUB_COLS + col]) return BUB_SHOOTER_LINE - (bubCellY(row, s.descents) + BUB_R);
+  for (let row = bubRowsOf(s.grid) - 1; row >= 0; row--)
+    for (let col = 0; col < rowCols(row); col++) if (s.grid[row * BUB_COLS + col]) return bubDangerLine(s) - (bubCellY(row, s.descents) + BUB_R);
   return 999;
 }
 
@@ -102,6 +109,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const plan = new Plan();
   let planned = false;
   const init = game.init(seed) as BubState;
+  ROWS = bubRowsOf(init.grid);
+  const eye = init.reef ? FEATURE_EYE[level]! : 0;
   const { events } = driveEvents(game, (s: BubState, t) => {
     if (s.flightColour !== 0) {
       planned = false;
@@ -130,6 +139,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         let value = removed;
         let sensible = removed > 0;
         if (a.cleared) value += 40;
+        // bubbleRev 8: the feature points this shot earns (a dropped chest, a bank shot, a combo), as the player weighs them.
+        if (eye) value += eye * 0.9 * (bubV8FeaturePoints(a) - bubV8FeaturePoints(s));
         if (a.dead) value -= 60;
         if (removed <= 0) {
           // Nothing popped: a bubble placed by its own colour sets up the next pop.

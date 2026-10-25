@@ -3,6 +3,10 @@
  *   bun scripts/ball-track-bank.ts
  *   bun scripts/ball-track-bank.ts --tall   (btRev 4: 400 courses on the 12-row board, own PRNG stream,
  *                                            written to src/lib/duel/ballTrackBankTall.server.ts)
+ *   bun scripts/ball-track-bank.ts --v7     (btRev 7, expansion E6: 300 courses on the 13-row board with 36
+ *                                            marbles, BT_V7_GOLDS gold marbles, three speed boosters and two
+ *                                            crossovers, own PRNG stream, proved on the btRev 7 rules,
+ *                                            written to src/lib/duel/ballTrackBankV7.server.ts)
  * Seeds tray columns/order, the bottom-row re-lay, the tray colour shuffle, ball order and 8–10 upper fixed straights and sparse lower rotatables. Every tray
  * must be reachable from the all-horizontal start, and a just-in-time playbook
  * (each tile set for the next ball due through it) must route every ball home in the
@@ -27,14 +31,22 @@ import {
   BT_LAYOUT,
   BT_LAYOUT_TALL,
   BT_TALL_ROWS,
+  BT_LAYOUT_V7,
+  BT_V7_ROWS,
+  BT_V7_BALLS,
+  BT_V7_GOLDS,
+  BT_REV_RUSH,
   type BtCourse,
   type BtLayout,
 } from "../src/lib/arcade/ballTrack";
 
-const TARGET = Number(process.env.BT_TARGET ?? 400);
+const V7 = process.argv.includes("--v7");
+const TARGET = Number(process.env.BT_TARGET ?? (V7 ? 300 : 400));
 const TALL = process.argv.includes("--tall");
+/** Marbles per course: 36 on btRev 7, 30 before. */
+const BALLS = V7 ? BT_V7_BALLS : BT_BALLS;
 
-let seed = TALL ? 0x7a11_ba11 : 0x5eed_ba11;
+let seed = V7 ? 0xe6e6_ba11 : TALL ? 0x7a11_ba11 : 0x5eed_ba11;
 const rnd = (n: number) => {
   seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0;
   return ((seed ^ (seed >>> 13)) >>> 0) % n;
@@ -79,7 +91,7 @@ function seededFixed(layout: BtLayout = BT_LAYOUT): number[] {
   const { kind: BT_KIND, alwaysFixed: BT_ALWAYS_FIXED, rows } = layout;
   // The two rows above the bottom (cells 42–55 on the 9-row board) and the upper rows' budget.
   const lowerA = (rows - 3) * BT_COLS, lowerB = (rows - 2) * BT_COLS, bottom = (rows - 1) * BT_COLS;
-  const budgetMin = rows === BT_TALL_ROWS ? 12 : 8, budgetSpan = rows === BT_TALL_ROWS ? 4 : 3;
+  const budgetMin = rows === BT_V7_ROWS ? 13 : rows === BT_TALL_ROWS ? 12 : 8, budgetSpan = rows === BT_TALL_ROWS || rows === BT_V7_ROWS ? 4 : 3;
   const budgetMax = budgetMin + budgetSpan - 1;
   const row8Cols = shuffle([1, 2, 3, 4, 5]).slice(0, 4);
   const row7Cols = shuffle([1, 2, 3, 4, 5]).slice(0, 2);
@@ -128,17 +140,39 @@ function makeCourse(): BtCourse {
   const after = Array.from({ length: BT_COLS }, () => -1);
   order.forEach((c, i) => (after[moved[i]!] = c));
   // Balanced queue: seeded colours receive the remainder; triple runs are rerolled below.
-  const extra = shuffle([0, 1, 2, 3]).slice(0, BT_BALLS % BT_COLOURS);
-  const balls = shuffle([0, 1, 2, 3].flatMap((c) => Array.from({ length: Math.floor(BT_BALLS / BT_COLOURS) + (extra.includes(c) ? 1 : 0) }, () => c)));
-  const fixed = seededFixed(TALL ? BT_LAYOUT_TALL : BT_LAYOUT);
+  const extra = shuffle([0, 1, 2, 3]).slice(0, BALLS % BT_COLOURS);
+  const balls = shuffle([0, 1, 2, 3].flatMap((c) => Array.from({ length: Math.floor(BALLS / BT_COLOURS) + (extra.includes(c) ? 1 : 0) }, () => c)));
+  const fixed = seededFixed(V7 ? BT_LAYOUT_V7 : TALL ? BT_LAYOUT_TALL : BT_LAYOUT);
   const course: BtCourse = { trays, relay: { tick: 1200 + rnd(601), trays: relaid }, shuffle: { tick: 2400 + rnd(301), trays: after }, balls, fixed };
+  if (V7) return v7Features({ ...course, rows: BT_V7_ROWS });
   return TALL ? { ...course, rows: BT_TALL_ROWS } : course;
+}
+
+/**
+ * btRev 7: gold marbles (one in each block of six marbles, never the first two), two crossovers (upper fixed
+ * straights under a rotatable one, so marbles can drop into them, outside the hopper column) and three speed
+ * boosters (other upper fixed straights). Crossovers and boosters stay in `fixed` (never turned).
+ */
+function v7Features(course: BtCourse): BtCourse {
+  const layout = BT_LAYOUT_V7;
+  const lower = (layout.rows - 3) * BT_COLS;
+  const fixed = new Set([...layout.alwaysFixed, ...course.fixed]);
+  const rot = new Set(btRotatable(course));
+  const upperFixed = course.fixed.filter((c) => c < lower && c >= BT_COLS && c % BT_COLS !== BT_HOPPER_COL && layout.kind[c] === 1);
+  const crossOk = shuffle(upperFixed.filter((c) => rot.has(c - BT_COLS)));
+  const cross = crossOk.slice(0, 2).sort((a, b) => a - b);
+  const boost = shuffle(upperFixed.filter((c) => !cross.includes(c))).slice(0, 3).sort((a, b) => a - b);
+  const gold: number[] = [];
+  for (let block = 0; block < BT_V7_GOLDS; block++) gold.push(Math.max(2, block * 6 + rnd(6)));
+  void fixed;
+  return { ...course, gold: [...new Set(gold)].sort((a, b) => a - b), boost, cross };
 }
 
 
 /** Just-in-time playbook: each tick toggle the mismatched tile whose next ball is closest to it. */
 export function playRoutes(course: BtCourse, routes: { cell: number; vert: number }[][]) {
-  const game = makeBallTrackGame(course);
+  // btRev 7 courses are proved on their own rules (boosters and crossovers live).
+  const game = makeBallTrackGame(course, course.rows === BT_V7_ROWS ? BT_REV_RUSH : undefined);
   let state = game.init(1);
   const log: ArcadeInputEvent[] = [];
   const landed: number[] = [];
@@ -182,6 +216,7 @@ if (import.meta.main) {
     if (tries > 100_000) throw Error("Course constraints exhausted");
     const course = makeCourse();
     if (course.balls.some((b, i) => i >= 2 && b === course.balls[i - 1] && b === course.balls[i - 2])) continue;
+    if (V7 && ((course.cross?.length ?? 0) < 2 || (course.boost?.length ?? 0) < 3 || (course.gold?.length ?? 0) < BT_V7_GOLDS)) continue;
     if (hasLowerShortcut(course)) { stats.short++; continue; }
     if (![0, course.relay.tick, course.shuffle.tick].every((t) => btTraysAt(course, t).every((tray, col) => tray < 0 || routeTo(course, col, false, t)))) continue;
     // Aim each ball at the column its colour occupies when it lands; re-aim after each trial run.
@@ -189,7 +224,7 @@ if (import.meta.main) {
     const when = course.balls.map(() => 0);
     const plan = () => target.map((col, id) => routeTo(course, col, false, when[id]) ?? routeTo(course, col)!);
     let run = playRoutes(course, plan());
-    for (let pass = 0; pass < 8 && run.state.home !== BT_BALLS; pass++) {
+    for (let pass = 0; pass < 8 && run.state.home !== BALLS; pass++) {
       const landed = run.landed;
       let changed = false;
       course.balls.forEach((c, id) => {
@@ -200,11 +235,16 @@ if (import.meta.main) {
       if (!changed) break;
       run = playRoutes(course, plan());
     }
-    if (run.state.home !== BT_BALLS) { stats.fail++; stats.best = Math.max(stats.best, run.state.home); continue; }
+    if (run.state.home !== BALLS) { stats.fail++; stats.best = Math.max(stats.best, run.state.home); continue; }
     const par = run.state.actions;
     entries.push({ course, tier: par < 20 ? 1 : par < 30 ? 2 : 3, par, endTick: run.state.lastLand, playbook: encodeInputEvents(run.log) });
   }
-  if (TALL)
+  if (V7)
+    writeFileSync(
+      "src/lib/duel/ballTrackBankV7.server.ts",
+      `/** Generated by scripts/ball-track-bank.ts --v7; do not hand-edit. btRev 7 courses on the 13-row board (36 marbles, gold marbles, boosters, crossovers), each with its proving playbook. */\nimport type { BallTrackBankEntry } from "./ballTrackBank.server";\nexport const BALL_TRACK_BANK_V7: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`,
+    );
+  else if (TALL)
     writeFileSync(
       "src/lib/duel/ballTrackBankTall.server.ts",
       `/** Generated by scripts/ball-track-bank.ts --tall; do not hand-edit. btRev 4 courses on the 12-row board, each with its proving playbook. */\nimport type { BallTrackBankEntry } from "./ballTrackBank.server";\nexport const BALL_TRACK_BANK_TALL: BallTrackBankEntry[] = ${JSON.stringify(entries)};\n`,

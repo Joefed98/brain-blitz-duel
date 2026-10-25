@@ -8,7 +8,8 @@ import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
-import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { BUB_REV_REEF } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -17,7 +18,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
-import { BT_BALLS, BT_REV_TALL } from "@/lib/arcade/ballTrack";
+import { BT_BALLS, BT_REV_RUSH, BT_V7_BALLS } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
@@ -65,7 +66,7 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // The fixed-splitter demo cannot replay the new movable-piece example.
     if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
     // Old Ball Track queues and release timings cannot replay the current run.
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== BT_BALLS) return null;
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== (demo.puzzle.btRev === BT_REV_RUSH ? BT_V7_BALLS : BT_BALLS)) return null;
     // Open-stream Colour Clash demos cannot replay the fixed-queue run.
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && !clashPlays3(demo.puzzle.clashRev)) return null;
     // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
@@ -92,14 +93,18 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // until a demo is recorded on its tall revision.
     if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_TALL) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
-    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_TALL) return null;
+    // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
+    if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
-    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
+    // until a demo is recorded on its new revision (btRev 7, matchupRev 9).
+    if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_RUSH) return null;
+    if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_GOALS) return null;
     // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
     // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
     if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
