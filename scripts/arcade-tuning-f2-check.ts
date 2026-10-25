@@ -21,6 +21,7 @@
  *   bun scripts/arcade-tuning-f2-check.ts          (TUNING_F2_ONLY=cross,slice,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { snipPlayBeforeExpand } from "./snip-expand-lib";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -144,7 +145,7 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     // Their rules are proved by bubble-rev4-check, swing-rev8-check and snip-rev7-check.
     ["bubble", "bubbleRev", playRevOf("bubble", generateBubble().bubbleRev), BUB_REV_TORPEDO],
     ["swing", "swingRev", playRevOf("swing", generateSwing().swingRev), SWING_REV_SPREAD],
-    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
+    ["snip", "snipRev", snipPlayBeforeExpand(generateSnip().snipRev), SNIP_REV_PROVEN],
   ];
   // Taller worlds batch 3 (16 Oct 2026) moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
   const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };

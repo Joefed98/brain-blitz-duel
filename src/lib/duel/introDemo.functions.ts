@@ -9,6 +9,7 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -99,6 +100,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // E8 expansion (25 Oct 2026): Scrumper's snipRev 10 tall course (several fruits, a vertical camera). An older demo
+    // would show the old one-apple levels, so the intro shows its still until a demo is recorded on snipRev 10.
+    if (data.type === "snip" && demo?.puzzle.type === "snip" && demo.puzzle.snipRev !== SNIP_REV_EXPAND) return null;
     return demo;
   });
 

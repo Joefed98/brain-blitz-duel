@@ -4,7 +4,6 @@ import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
 import { INK_LEVELS } from "@/lib/arcade/inkBridge";
-import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
@@ -107,7 +106,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
-    snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
+    snip: "Points for fruit fed and leaves; golden apples, par cuts and second leaves add more. Up to {max}.",
     swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
     tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,
     balltrack: `Points for each marble home. Get all ${BT_BALLS} home quickly for up to {max}.`,

@@ -23,6 +23,7 @@
  *   bun scripts/arcade-tuning-e-check.ts          (TUNING_E_ONLY=hover,snip,…)
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { snipPlayBeforeExpand } from "./snip-expand-lib";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -156,7 +157,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS],
     // Scrumper rooms moved on to snipRev 6 (the same tall game on a bigger bank; scripts/snip-bank6-check.ts),
     // then snipRev 7 (the same game with every per-pin deal proven; scripts/snip-rev7-check.ts).
-    ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
+    ["snip", "snipRev", snipPlayBeforeExpand(generateSnip().snipRev), SNIP_REV_PROVEN],
     ["hover", "hoverRev", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
   ];
   for (const [type, field, got, rev] of stamps) {

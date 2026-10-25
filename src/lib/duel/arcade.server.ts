@@ -6,7 +6,7 @@ import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STRICT } from "@/lib/arcade/snake";
 import { BUB_REV_TARGET, BUB_REV_STRICT } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_TARGET, MATCHUP_REV_STRICT } from "@/lib/arcade/matchup";
-import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
+import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
@@ -204,7 +204,7 @@ export function generateOrbit(): OrbitPuzzleData {
 }
 
 export function generateSnip(): SnipPuzzleData {
-  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV_STRICT };
+  return { type: "snip", seed: arcadeSeed(), snipRev: SNIP_REV_EXPAND };
 }
 
 /**
