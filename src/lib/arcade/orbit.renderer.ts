@@ -212,10 +212,12 @@ export function drawPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, 
   }
   // Lit side (upper left) and dark limb.
   const shade = ctx.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.1, x, y, r * 1.05);
-  shade.addColorStop(0, "rgba(255,255,255,0.35)");
-  shade.addColorStop(0.45, "rgba(255,255,255,0)");
-  shade.addColorStop(0.8, "rgba(0,0,0,0.35)");
-  shade.addColorStop(1, "rgba(0,0,0,0.75)");
+  // Polish A4: clear sphere shading: a bright lit side, a soft terminator and a dark night side.
+  shade.addColorStop(0, "rgba(255,255,255,0.55)");
+  shade.addColorStop(0.3, "rgba(255,255,255,0.12)");
+  shade.addColorStop(0.55, "rgba(0,0,0,0.12)");
+  shade.addColorStop(0.8, "rgba(0,0,0,0.55)");
+  shade.addColorStop(1, "rgba(0,0,0,0.88)");
   ctx.fillStyle = shade;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
   // Atmosphere: a thin lit rim just inside the edge, and a soft highlight.
@@ -252,21 +254,26 @@ function nebulaSprite(): HTMLCanvasElement | null {
   if (!c) return (nebulaTile = null);
   c.scale(2, 2);
   const T = NEBULA_TILE;
+  // Polish A4 (25 Oct 2026, display only): richer purple, magenta and teal clouds, each with a brighter heart
+  // (about twice main's strength, still soft: every cloud fades to nothing at its edge).
   const clouds = [
-    [80, 120, 190, "120,72,210", 0.2],
-    [330, 70, 150, "50,96,220", 0.16],
-    [420, 330, 210, "34,150,170", 0.13],
-    [170, 400, 170, "170,70,190", 0.12],
-    [260, 230, 120, "90,120,255", 0.12],
-    [470, 480, 140, "120,72,210", 0.14],
-    [30, 300, 110, "40,170,190", 0.1],
+    [80, 120, 190, "128,70,220", 0.46],
+    [330, 70, 150, "214,64,190", 0.36],
+    [420, 330, 210, "30,170,180", 0.34],
+    [170, 400, 170, "190,60,200", 0.3],
+    [260, 230, 120, "90,110,255", 0.22],
+    [470, 480, 140, "128,70,220", 0.34],
+    [30, 300, 110, "36,190,190", 0.28],
+    [120, 250, 90, "240,90,200", 0.2],
+    [380, 200, 80, "60,210,200", 0.2],
   ] as const;
   for (const [cx, cy, r, rgb, a] of clouds)
     for (const dx of [-T, 0, T])
       for (const dy of [-T, 0, T]) {
         const g = c.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, r);
         g.addColorStop(0, `rgba(${rgb},${a})`);
-        g.addColorStop(0.5, `rgba(${rgb},${(a * 0.45).toFixed(3)})`);
+        g.addColorStop(0.18, `rgba(${rgb},${(a * 0.85).toFixed(3)})`);
+        g.addColorStop(0.5, `rgba(${rgb},${(a * 0.4).toFixed(3)})`);
         g.addColorStop(1, `rgba(${rgb},0)`);
         c.fillStyle = g;
         c.fillRect(cx + dx - r, cy + dy - r, r * 2, r * 2);
@@ -313,7 +320,7 @@ interface ShipMemory {
   points: { x: number; y: number; tick: number }[];
 }
 const shipMemories = new WeakMap<object, ShipMemory>();
-const TRAIL_POINTS = 16;
+const TRAIL_POINTS = 22;
 const CAPTURE_GLOW_MS = 700;
 
 function presentationNow(): number {
@@ -343,7 +350,7 @@ function observeShip(ctx: object, state: { tick: number; captured: number; x: nu
   // A respawn or a black-hole jump teleports the ship: start the trail again.
   if (last && Math.hypot(x - last.x, y - last.y) > 40) m.points = [];
   m.points.push({ x, y, tick: state.tick });
-  while (m.points.length > TRAIL_POINTS || (m.points[0] && state.tick - m.points[0].tick > 24)) m.points.shift();
+  while (m.points.length > TRAIL_POINTS || (m.points[0] && state.tick - m.points[0].tick > 32)) m.points.shift();
   return m;
 }
 
@@ -358,9 +365,9 @@ function drawShipTrail(ctx: CanvasRenderingContext2D, m: ShipMemory, camX: numbe
     const a = pts[i - 1]!;
     const b = pts[i]!;
     const k = i / (pts.length - 1);
-    ctx.globalAlpha = 0.5 * k * k;
-    ctx.strokeStyle = k > 0.7 ? "#DDF0FF" : "#7FB8FF";
-    ctx.lineWidth = 0.6 + 2.6 * k;
+    ctx.globalAlpha = 0.9 * k * k;
+    ctx.strokeStyle = k > 0.85 ? "#FFE3B0" : k > 0.6 ? "#DDF0FF" : "#7FB8FF";
+    ctx.lineWidth = 1 + 3.6 * k;
     ctx.beginPath();
     ctx.moveTo(a.x - camX, a.y - camY);
     ctx.lineTo(b.x - camX, b.y - camY);
@@ -500,6 +507,120 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
   ctx.restore();
 }
 
+
+/* ===================== Polish A4 (25 Oct 2026, display only) ===================== */
+
+/**
+ * Every visible orbit as a glowing dashed line: a soft wide stroke in the planet's colour under a
+ * dashed one (the current orbit brighter, its dashes drifting the way the rocket goes round).
+ * The same traced path as before; the glow pass is skipped with reduced effects.
+ */
+function drawOrbitPaths(ctx: CanvasRenderingContext2D, state: { planets: Planet[]; cur: number }, visible: number[], camX: number, camY: number, t: number): void {
+  const lite = arcadeReducedEffects();
+  ctx.save();
+  ctx.lineCap = "round";
+  for (const i of visible) {
+    const p = state.planets[i]!;
+    const sun = i === ORBIT_TOTAL;
+    const cur = i === state.cur;
+    ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
+    if (!lite) {
+      ctx.setLineDash([]);
+      ctx.globalAlpha = cur ? 0.2 : 0.08;
+      ctx.lineWidth = cur ? 7 : 4;
+      tracePath(ctx, p, p.x / FP - camX, p.y / FP - camY, 0, 65536, 72);
+      ctx.stroke();
+    }
+    ctx.setLineDash(cur ? [7, 5] : [4, 6]);
+    ctx.lineDashOffset = cur ? -t * 14 * p.dir : 0;
+    ctx.lineWidth = cur ? 2 : 1.2;
+    ctx.globalAlpha = cur ? 0.95 : 0.5;
+    tracePath(ctx, p, p.x / FP - camX, p.y / FP - camY, 0, 65536, 72);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** A planet's soft atmosphere: a glow in its colour just past the disc, behind it (one cached glow sprite). */
+function drawAtmosphere(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string): void {
+  drawFxGlow(ctx, colour, x, y, r * 1.9 + 10, 0.85);
+  drawFxGlow(ctx, colour, x, y, r * 1.3 + 4, 0.55);
+  drawFxGlow(ctx, "#DDEBFF", x, y, r * 1.15 + 3, 0.25);
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Now and then a faint shooting star crosses the far sky (one every 8 s, at a seeded moment, place
+ * and direction from the tick). Fainter and thinner than the milestone star; none under reduced
+ * motion or reduced effects.
+ */
+const AMBIENT_STAR_EVERY = 480;
+const AMBIENT_STAR_TICKS = 42;
+function drawAmbientShootingStar(ctx: CanvasRenderingContext2D, tick: number, w: number, h: number): void {
+  const n = Math.floor(tick / AMBIENT_STAR_EVERY);
+  const hash = Math.imul(n * 2654435761 + 41, 0x85ebca6b) >>> 0;
+  const age = tick - n * AMBIENT_STAR_EVERY - (hash % 300);
+  if (age < 0 || age >= AMBIENT_STAR_TICKS) return;
+  const p = age / AMBIENT_STAR_TICKS;
+  const dir = hash & 1 ? 1 : -1;
+  const x0 = w * (0.2 + ((hash >>> 4) % 60) / 100);
+  const y0 = h * (0.08 + ((hash >>> 11) % 45) / 100);
+  const x = x0 + dir * p * 170;
+  const y = y0 + p * 70;
+  const tail = 46;
+  const tx = x - dir * tail;
+  const ty = y - tail * 0.41;
+  ctx.save();
+  ctx.globalAlpha = Math.sin(Math.PI * p) * 0.55;
+  const g = ctx.createLinearGradient(tx, ty, x, y);
+  g.addColorStop(0, "rgba(200,220,255,0)");
+  g.addColorStop(1, "rgba(235,245,255,1)");
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * The rocket's flame, in its frame (nose to +x): a small steady flame while it is alive, longer in
+ * flight and longest just after a release, with a warm glow at the nozzle. Behind the body.
+ */
+function drawRocketFlame(ctx: CanvasRenderingContext2D, flying: number, since: number, tick: number, still: boolean): void {
+  const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(tick * 2.3);
+  const boost = flying > 0 && since >= 0 && since < 24 ? (24 - since) * 0.35 : 0;
+  const flame = ((flying > 0 ? 13 : 9) + boost) * flicker;
+  if (!arcadeReducedEffects()) {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    drawFxGlow(ctx, "#FF9A3C", -8, 0, 10 + boost * 0.5, 0.85);
+    ctx.restore();
+  }
+  const fire = ctx.createLinearGradient(-6, 0, -6 - flame, 0);
+  fire.addColorStop(0, "rgba(255,240,180,0.95)");
+  fire.addColorStop(0.4, "rgba(255,140,50,0.85)");
+  fire.addColorStop(1, "rgba(255,77,77,0)");
+  ctx.fillStyle = fire;
+  ctx.beginPath();
+  ctx.moveTo(-5, -3.6);
+  ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -6 - flame, 0);
+  ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3.6);
+  ctx.closePath();
+  ctx.fill();
+  // A white-hot core in the flame's root.
+  ctx.fillStyle = "rgba(255,255,235,0.85)";
+  ctx.beginPath();
+  ctx.ellipse(-6.5, 0, 1.6 + flame * 0.08, 1.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawStars(ctx: CanvasRenderingContext2D, cam: number, t: number, still: boolean): void {
   drawNebula(ctx, 0, cam, ORBIT_WORLD_W, ORBIT_WORLD_H);
   const layers = [
@@ -554,6 +675,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   const cam = state.camY / FP;
   const capturePlanet=state.planets[state.cur];
   drawStars(ctx, cam, t, still);
+  if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_WORLD_W, ORBIT_WORLD_H);
 
   const visible: number[] = [];
   for (let i = Math.max(0, state.cur - 2); i < state.planets.length; i++) {
@@ -564,18 +686,8 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
     visible.push(i);
   }
 
-  // Solid planet-coloured paths; only the current orbit is emphasized.
-  ctx.setLineDash([]);
-  for (const i of visible) {
-    const p = state.planets[i]!;
-    const sun = i === ORBIT_TOTAL;
-    ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
-    ctx.lineWidth = i === state.cur ? 2 : 1;
-    ctx.globalAlpha = i === state.cur ? 0.9 : 0.45;
-    tracePath(ctx, p, p.x / FP, p.y / FP - cam, 0, 65536, 72);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
+  // Planet-coloured glowing dashed paths; the current orbit is emphasized.
+  drawOrbitPaths(ctx, state, visible, 0, cam, t);
   ctx.globalAlpha = 1;
 
   for (const i of visible) {
@@ -586,6 +698,12 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
     else {
       const eight = p.kind === ORBIT_EIGHT;
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
+      if (!arcadeReducedEffects()) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour));
+        ctx.restore();
+      }
       bodies.forEach((bx, lobe) => drawPlanet(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe)));
     }
     if (i === state.checkpoint && state.respawns > 0) {
@@ -642,12 +760,12 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
 
   // Trail along the straight flight already flown.
   if (state.flying > 0) {
-    const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);
+    const back = Math.min(state.flying, 20) * (Math.hypot(state.vx, state.vy) / FP);
     const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
-    trail.addColorStop(0, "rgba(255,209,102,0.55)");
+    trail.addColorStop(0, "rgba(255,209,102,0.8)");
     trail.addColorStop(1, "rgba(255,209,102,0)");
     ctx.strokeStyle = trail;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(sx, sy);
@@ -661,21 +779,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   ctx.translate(sx, sy);
   ctx.rotate(Math.atan2(uy, ux));
   const dead = state.ended === 2;
-  if (state.flying > 0 && !dead && since < 24) {
-    const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(state.tick * 2.3);
-    const flame = (10 + (24 - since) * 0.35) * flicker;
-    const fire = ctx.createLinearGradient(-6, 0, -6 - flame, 0);
-    fire.addColorStop(0, "rgba(255,240,180,0.95)");
-    fire.addColorStop(0.4, "rgba(255,140,50,0.85)");
-    fire.addColorStop(1, "rgba(255,77,77,0)");
-    ctx.fillStyle = fire;
-    ctx.beginPath();
-    ctx.moveTo(-5, -3);
-    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -6 - flame, 0);
-    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3);
-    ctx.closePath();
-    ctx.fill();
-  }
+  if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still);
   const rocket = getRocketSprite(dead);
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
@@ -772,7 +876,9 @@ function rev3Starfield(ctx: CanvasRenderingContext2D, cam: OrbitCamOffset, t: nu
       const h = Math.imul(row * 92821 + col * 7919 + 11, 2654435761) >>> 0;
       const sx = col * gap + ((h >>> 12) % gap) - camX;
       const sy = row * gap + ((h >>> 18) % gap) - camY;
-      const twinkle = still ? 1 : 0.75 + 0.25 * Math.sin(t * 2 + (h % 97));
+      // Polish A4: one star in four twinkles deeply and a little faster.
+      const deep = h % 4 === 0;
+      const twinkle = still ? 1 : deep ? 0.6 + 0.4 * Math.sin(t * 3.1 + (h % 97)) : 0.75 + 0.25 * Math.sin(t * 2 + (h % 97));
       ctx.globalAlpha = (0.25 + ((h >>> 20) % 60) / 100) * twinkle;
       const size = 1 + ((h >>> 2) % 2) * 0.5;
       ctx.fillRect(sx, sy, size, size);
@@ -803,7 +909,13 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
       ctx.beginPath();
       ctx.arc(px, py, r * 2.2, 0, Math.PI * 2);
       ctx.fill();
-    } else if (i === state.cur) {
+    } else {
+      // Polish A4: every planet's soft atmosphere in its own colour.
+      const eight = p.kind === ORBIT_EIGHT;
+      const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
+      bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour));
+    }
+    if (!sun && i === state.cur) {
       const glow = ctx.createRadialGradient(px, py, r * 0.8, px, py, r * 1.6);
       glow.addColorStop(0, "rgba(255,255,255,0.18)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
@@ -887,21 +999,13 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H);
+  if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
    drawOrbitShootingStar(ctx, state, cam, still);
 
   // Cull to the view plus one ring's margin either side (orbitVisiblePlanets).
   const visible = orbitVisiblePlanets(state, cam);
 
-  ctx.setLineDash([]);
-  for (const i of visible) {
-    const p = state.planets[i]!;
-    const sun = i === ORBIT_TOTAL;
-    ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
-    ctx.lineWidth = i === state.cur ? 2 : 1;
-    ctx.globalAlpha = i === state.cur ? 0.9 : 0.45;
-    tracePath(ctx, p, p.x / FP - cam.x, p.y / FP - cam.y, 0, 65536, 72);
-    ctx.stroke();
-  }
+  drawOrbitPaths(ctx, state, visible, cam.x, cam.y, t);
   ctx.globalAlpha = 1;
 
   // Reduced effects: the additive corona and halo pass is skipped (the sun and planets still draw).
@@ -978,12 +1082,12 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
 
   if (state.flying > 0) {
-    const back = Math.min(state.flying, 14) * (Math.hypot(state.vx, state.vy) / FP);
+    const back = Math.min(state.flying, 20) * (Math.hypot(state.vx, state.vy) / FP);
     const trail = ctx.createLinearGradient(sx, sy, sx - ux * back, sy - uy * back);
-    trail.addColorStop(0, "rgba(255,209,102,0.55)");
+    trail.addColorStop(0, "rgba(255,209,102,0.8)");
     trail.addColorStop(1, "rgba(255,209,102,0)");
     ctx.strokeStyle = trail;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(sx, sy);
@@ -996,21 +1100,7 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   ctx.translate(sx, sy);
   ctx.rotate(Math.atan2(uy, ux));
   const dead = state.ended === 2;
-  if (state.flying > 0 && !dead && since < 24) {
-    const flicker = still ? 1 : 0.8 + 0.2 * Math.sin(state.tick * 2.3);
-    const flame = (10 + (24 - since) * 0.35) * flicker;
-    const fire = ctx.createLinearGradient(-6, 0, -6 - flame, 0);
-    fire.addColorStop(0, "rgba(255,240,180,0.95)");
-    fire.addColorStop(0.4, "rgba(255,140,50,0.85)");
-    fire.addColorStop(1, "rgba(255,77,77,0)");
-    ctx.fillStyle = fire;
-    ctx.beginPath();
-    ctx.moveTo(-5, -3);
-    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -6 - flame, 0);
-    ctx.quadraticCurveTo(-6 - flame * 0.6, 0, -5, 3);
-    ctx.closePath();
-    ctx.fill();
-  }
+  if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still);
   ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
   ctx.beginPath();
   ctx.moveTo(-6, -2);

@@ -26,6 +26,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 // The eight game colours from the shared palette (GOLD is reserved for the lift highlight).
@@ -178,6 +179,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
   const solving = useSolveFx("tubes", isTubes && replay.solved);
+  const inFrame = useFrameProgress(replay.sorted, TUBES_COLOURS, "corked");
 
   useEffect(() => {
     onDraftAnswer?.(encode(moves));
@@ -256,12 +258,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     <div data-logic-stage="tubes" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
-        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" data-move-limit={pourLimit ?? undefined}>
-          {pourLimit !== null
-            ? <>pours <span className={replay.outOfPours ? "text-warn" : "text-primary"}>{limitText(replay.moves, pourLimit)}</span></>
-            : <>moves <span className="text-primary">{replay.moves}</span></>}
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" data-move-limit={pourLimit ?? undefined}>
+            {pourLimit !== null
+              ? <>pours <span className={replay.outOfPours ? "text-warn" : "text-primary"}>{limitText(replay.moves, pourLimit)}</span></>
+              : <>moves <span className="text-primary">{replay.moves}</span></>}
+          </p>
+        )}
         <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[
+            pourLimit !== null ? (
+              <SummaryItem key="pours" label="Pours" value={<span data-move-limit={pourLimit}>{limitText(replay.moves, pourLimit)}</span>} warn={replay.outOfPours} />
+            ) : (
+              <SummaryItem key="moves" label="Moves" value={replay.moves} />
+            ),
+          ]}
+        />
       </div>
 
       {/* Taller than before and raised off the bottom edge (14 Oct 2026), so neither is cut off. */}

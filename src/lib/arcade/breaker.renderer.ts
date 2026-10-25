@@ -56,6 +56,7 @@ import {
   retroTrail,
   RETRO_WHITE,
 } from "./retro.renderer";
+import { addPop, addShatter, backdrop, clearPops, blob, drawPops, glow, linear, pixelStars } from "./polishA1.renderer";
 
 const PADDLE = "#FFD84A";
 const LASER = "#B4FF9A";
@@ -116,11 +117,17 @@ export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power:
   } else {
     // Neon brick with bevel highlights.
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, colour, bloom);
+    // Polish A1: shaded in 2 px bands, light at the top and dark at the bottom, over the bevel.
+    pixelRect(ctx, 1, 2, BRK_BRICK_W - 2, 4, "rgba(255,255,255,0.16)");
+    pixelRect(ctx, 1, BRK_BRICK_H - 8, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.1)");
+    pixelRect(ctx, 1, BRK_BRICK_H - 6, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.2)");
+    pixelRect(ctx, 1, BRK_BRICK_H - 4, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.28)");
     // Bevel: lighter top/left, darker bottom/right.
-    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, "rgba(255,255,255,0.35)");
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, "rgba(255,255,255,0.5)");
     pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "rgba(255,255,255,0.35)");
-    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.35)");
+    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.45)");
     pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "rgba(0,0,0,0.35)");
+    pixelRect(ctx, 5, 2, 6, 2, "rgba(255,255,255,0.7)");
     // Pixel cracks per hit taken.
     for (let c = 0; c < taken; c++) {
       const cx = 10 + c * 16;
@@ -158,14 +165,25 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   const BRK_WORLD_H = brkWorldH(state);
   const BRK_PADDLE_Y = brkPaddleY(state);
   let m = memo.get(key);
-  if (!m || state.tick < m.tick) m = { tick: state.tick, bricks: state.bricks.slice(), deaths: [] };
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, bricks: state.bricks.slice(), deaths: [] };
+    clearPops(key);
+  }
   for (let i = 0; i < BRK_BRICKS; i++) {
-    if ((m.bricks[i] ?? 0) > 0 && (state.bricks[i] ?? 0) <= 0) m.deaths.push({ index: i, at: now });
+    if ((m.bricks[i] ?? 0) > 0 && (state.bricks[i] ?? 0) <= 0) {
+      m.deaths.push({ index: i, at: now });
+      // Polish A1: a pixel shatter in the brick's colour and a "+10" where it broke (presentation only).
+      const { x, y } = brickXY(i, state);
+      const colour = brickColour(state, i, state.maxHp[i] ?? 1);
+      addShatter(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, [colour, RETRO_WHITE, colour, "#000000"], 10, 26);
+      addPop(key, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2, "+10", colour, 9, 4);
+    }
   }
   m.deaths = m.deaths.filter((d) => now - d.at < BURST_MS);
   m.tick = state.tick;
   // Previous HP remains available until hit effects have observed it.
   memo.set(key, m);
+  backdrop(ctx, "breaker-navy", BRK_WORLD_W, BRK_WORLD_H, (c) => paintNavy(c, BRK_WORLD_H));
 
   // The walls are real (the ball bounces off them): a soft edge, not a bright frame (17 Oct 2026, display only).
   const wallColour = "rgba(42,74,122,0.42)";
@@ -239,6 +257,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   const hitPoint=changed>=0?brickXY(changed):brickXY(m.deaths.at(-1)?.index??0);
   const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:`BRICKS ${brkDestroyed(state)}/${BRK_BRICKS}`}});
   if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
+  // Polish A1: the paddle's gold light.
+  glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
   // Art pilot (Retro): the paddle sprite fills the collision rectangle; code art when absent.
   if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
 
@@ -248,10 +268,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const burning = (state.fire ?? 0) > 0 && state.pause === 0;
     const colour = state.pause > 0 ? "rgba(255,216,74,0.45)" : burning ? FIRE : ball.spam === 1 ? PADDLE : "#BFF6FF";
     if (state.pause === 0) drawRetroTrail(ctx, retroTrail(key, state.tick, `b${i}`, bx, by, 6), BRK_BALL_R, colour);
+    if (state.pause === 0) glow(ctx, burning ? FIRE : ball.spam === 1 ? PADDLE : "#9FEFFF", bx, by, BRK_BALL_R + 9, BRK_BALL_R + 9, 0.5);
     retroBall(ctx, bx, by, BRK_BALL_R, colour, state.pause > 0 ? colour : RETRO_WHITE);
   });
 
   m.bricks = state.bricks.slice();
+  drawPops(ctx, key, BRK_WORLD_W);
   if (state.held > 0) {
     const laser = state.held === BRK_POWER_LASER + 1;
     retroText(
@@ -273,6 +295,32 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     pixelRect(ctx, BRK_WORLD_W - 110, 26, Math.round((96 * fire) / brkFireTicks(state)), 3, FIRE);
   }
   if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
+}
+
+/**
+ * Polish A1: Breaker's navy night, painted once per court height (backdrop): a navy gradient with
+ * pixel stars and a soft glow along the walls; black at the court's bottom, where the screen fill's
+ * pixel floor takes over.
+ */
+function paintNavy(c: CanvasRenderingContext2D, worldH: number): void {
+  const W = BRK_WORLD_W;
+  c.fillStyle = linear(c, 0, 0, 0, worldH, [[0, "#071433"], [0.45, "#060F28"], [0.85, "#030817"], [1, "#010206"]]);
+  c.fillRect(0, 0, W, worldH);
+  blob(c, W * 0.5, worldH * 0.2, W * 0.7, "#1C3C8C", 0.3, 0.8);
+  blob(c, W * 0.15, worldH * 0.6, W * 0.4, "#3A2A8C", 0.14, 1.4);
+  pixelStars(c, BRK_WALL, BRK_HUD_H + BRK_WALL, W - 2 * BRK_WALL, worldH * 0.8, 110, 4242, ["#FFFFFF", "#BFD4FF", "#E6D8FF"], 0.75);
+  // The frame: a soft blue light just inside the walls and the ceiling.
+  const top = BRK_HUD_H + BRK_WALL;
+  for (const [x, y, w, h, x0, y0, x1, y1] of [
+    [BRK_WALL, top, W - 2 * BRK_WALL, 14, 0, top, 0, top + 14],
+    [BRK_WALL, top, 14, worldH - top, BRK_WALL, 0, BRK_WALL + 14, 0],
+    [W - BRK_WALL - 14, top, 14, worldH - top, W - BRK_WALL, 0, W - BRK_WALL - 14, 0],
+  ] as const) {
+    c.fillStyle = linear(c, x0, y0, x1, y1, [[0, "rgba(92,160,255,0.22)"], [1, "rgba(92,160,255,0)"]]);
+    c.fillRect(x, y, w, h);
+  }
+  c.fillStyle = linear(c, 0, worldH - 40, 0, worldH, [[0, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0.9)"]]);
+  c.fillRect(0, worldH - 40, W, 40);
 }
 
 function pixelStar(ctx: CanvasRenderingContext2D, cx: number, cy: number): void {
