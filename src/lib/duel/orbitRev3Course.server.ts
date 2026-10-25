@@ -9,7 +9,7 @@ import { ORBIT_TOTAL, planetShape, type Planet } from "@/lib/arcade/orbit";
 import { ORBIT_REV3_WORLD_W, initRev3From, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
 import { ORBIT_REV3_BANK, type OrbitRev3BankEntry } from "./orbitRev3Bank.server";
 import { ORBIT_HOLE_BANK } from "./orbitHoleBank.server";
-import type { OrbitExtrasRow, OrbitHoleRow } from "@/lib/arcade/orbitRev3";
+import type { OrbitExtrasRow, OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "./orbitXpBank.server";
 
 export { encodeRev3Planets, decodeRev3Planets, type OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
@@ -33,11 +33,19 @@ export function orbitHolesForBankSeed(bankSeed: number): OrbitHoleRow[] | null {
 }
 const ORBIT_HOLE_BY_SEED = new Map(ORBIT_HOLE_BANK.map((entry) => [entry.seed, entry.holes]));
 
-/** orbitRev 11: a bank course's proved features (stardust, slingshot moons, asteroid fields), or null when it has none. */
-export function orbitExtrasForBankSeed(bankSeed: number): OrbitExtrasRow | null {
-  return ORBIT_XP_BY_SEED.get(bankSeed) ?? null;
+/**
+ * orbitRev 11 (world expansion): the course for a room seed from the feature bank (index = seed mod length):
+ * its proved planets, black holes and features, or null if the bank is empty.
+ */
+export function orbitXpCourseForSeed(seed: number): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {
+  if (ORBIT_XP_BANK.length === 0) return null;
+  const entry = ORBIT_XP_BANK[((seed % ORBIT_XP_BANK.length) + ORBIT_XP_BANK.length) % ORBIT_XP_BANK.length]!;
+  const course = ORBIT_REV3_BY_SEED.get(entry.seed);
+  const holes = ORBIT_HOLE_BY_SEED.get(entry.seed);
+  if (!course || !holes) return null;
+  return { planets: course.planets, holes, extras: entry.extras };
 }
-const ORBIT_XP_BY_SEED = new Map(ORBIT_XP_BANK.map((entry) => [entry.seed, entry.extras]));
+const ORBIT_REV3_BY_SEED = new Map(ORBIT_REV3_BANK.map((entry) => [entry.seed, entry]));
 
 /** Proved planets for a room seed, straight from the bank (null if the bank is empty). */
 export function orbitRev3PlanetsForSeed(seed: number): Planet[] | null {

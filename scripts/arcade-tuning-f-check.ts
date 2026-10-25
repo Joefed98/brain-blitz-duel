@@ -80,7 +80,7 @@ import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { generateBeat, generateBreaker, generateOrbit, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { expansionBaseOf, playRevOf } from "./scoring-targets-revs";
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
@@ -161,7 +161,8 @@ section("New rounds carry the Tuning F stamps and score on the bands");
     ["beat", "beatRev", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1, 6],
     ["snake", "snakeRev", playRevOf("snake", generateSnake().snakeRev), SNAKE_REV_ROCKS, 6],
     // Taller worlds batch 3 (16 Oct 2026) moved Orbit on to its taller view (orbitRev 8); arcade-tuning-g3-check covers it.
-    ["orbit", "orbitRev", playRevOf("orbit", generateOrbit().orbitRev), ORBIT_REV_SWEPT + 1, 8],
+    // World expansion (25 Oct 2026): orbitRev 11 builds on orbitRev 10's course (orbit-rev11-check).
+    ["orbit", "orbitRev", playRevOf("orbit", expansionBaseOf("orbit", generateOrbit().orbitRev)), ORBIT_REV_SWEPT + 1, 8],
   ];
   for (const [type, field, got, rev, n] of stamps) {
     ok(got === rev && rev === n, `${type}: new rounds stamped ${field} ${n} (got ${got})`);

@@ -859,9 +859,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Fly planet to planet to the sun.",
       how: [
         { action: "Tap to let go;", detail: "the next orbit catches you." },
-        { action: "Checkpoint:", detail: "a crash returns you there." },
-        { action: "Black hole:", detail: "fly in, skip 5-6 planets." },
-        { action: "Bonus:", detail: "stardust, moon slingshots, asteroid gaps, first-lap releases." },
+        { action: "Grab stardust;", detail: "sling through moon rings." },
+        { action: "Thread rock gaps;", detail: "let go on the first lap." },
+        { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
+        { action: "Black hole:", detail: "fly in, skip 5-6 planets.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until the next orbit catches you. Miss both of the next two orbits and the run ends (or you go back to your checkpoint) as soon as nothing ahead can catch you.", helpOnly: true },
         { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },

@@ -20,7 +20,7 @@ import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STRICT } from "@/lib/arcade/beat";
-import { orbitExtrasForBankSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { CLAY_REV_QUICK } from "@/lib/arcade/clayShoot";
@@ -191,6 +191,10 @@ export function generateBurst(): BurstPuzzleData {
 
 export function generateOrbit(): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Rev 11 (world expansion, 25 Oct 2026): one of the bank courses with proved holes and features
+  // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
+  const xp = orbitXpCourseForSeed(seed);
+  if (xp) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: xp.planets, holes: xp.holes, extras: xp.extras };
   // Rev 3 only from the proved bank: live proof is too slow for a room start, so an empty bank keeps rev 2.
   const bankPlanets = orbitRev3PlanetsForSeed(seed);
   if (!bankPlanets) return { type: "orbit", seed };
@@ -200,10 +204,6 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 8 (taller worlds, batch 3): rev-7 play framed in a taller 390 × 650 view.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
-  // Rev 11 (world expansion, 25 Oct 2026): a course with proved features (scripts/orbit-xp-bank.ts) in the bigger
-  // view; a course without them keeps rev 10.
-  const extras = bankSeed === undefined || !holes ? null : orbitExtrasForBankSeed(bankSeed);
-  if (extras) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [], extras };
   return { type: "orbit", seed, orbitRev: ORBIT_REV_STRICT, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 

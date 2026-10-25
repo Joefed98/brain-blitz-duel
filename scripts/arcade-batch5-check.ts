@@ -86,9 +86,10 @@ import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { expansionBaseOf, playRevOf } from "./scoring-targets-revs";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -351,7 +352,8 @@ if (want("orbit")) {
       const p = generateOrbit();
       // Score bands (Oct 2026), Tuning A, Tuning F, then taller worlds batch 3: every bank course is stamped orbitRev 8
       // (rev-7 play, swept holes, in the taller view; arcade-tuning-g3-check), with its holes when it has them.
-      ok(playRevOf("orbit", p.orbitRev) === ORBIT_REV_SWEPT + 1 && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 8 and ship their planets");
+      // World expansion (25 Oct 2026): orbitRev 11 builds on orbitRev 10's course (orbit-rev11-check).
+      ok(playRevOf("orbit", expansionBaseOf("orbit", p.orbitRev)) === ORBIT_REV_SWEPT + 1 && ORBIT_REV_TUNED === 6 && p.planets?.length === ORBIT_TOTAL + 1, "new rounds are stamped orbitRev 8 and ship their planets");
       if ((p.holes?.length ?? 0) > 0) {
         stamped++;
         ok(p.holes?.length === 3, "courses with holes ship all three");
@@ -441,7 +443,8 @@ if (want("orbit")) {
     }
   }
   console.log(`  ${runs} courses: witness runs take all three holes and score 150; normal routes unaffected; checkpoints work across a jump`);
-  ok(/up to 150/.test(INTRO_SCORE.orbit) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: 150 for the sun, no partial cap (score bands)");
+  // The expansion (orbitRev 11, 25 Oct 2026) raised the maximum; the intro states the game's own (roundMax.ts).
+  ok(new RegExp(`up to ${roundMaxFor("orbit")}`).test(INTRO_SCORE.orbit) && !/117/.test(INTRO_SCORE.orbit), "Orbit intro: up to the game's maximum, no partial cap (score bands)");
 }
 
 /* ============================ 3. Intro text rules ============================ */

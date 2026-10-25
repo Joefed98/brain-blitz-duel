@@ -184,15 +184,18 @@ const fly = (s: OrbitRev3State, ticks: number, until: (s: OrbitRev3State) => boo
     if (p.orbitRev === ORBIT_REV_XP && p.extras && p.planets && p.holes) {
       const start = orbitStartForPuzzle(p);
       if (start && start().xp === 1) xp++;
-    } else if (p.orbitRev !== ORBIT_REV_STRICT) xp = -999;
+    }
   }
-  // 371 of the 504 bank courses carry features (74 %); the rest (no proved holes or features) keep orbitRev 10.
-  ok(xp >= 120, `generateOrbit deals orbitRev 11 with extras (${xp} / ${dealt}; the rest orbitRev 10 courses without proved features)`);
+  ok(xp === dealt, `generateOrbit deals orbitRev 11 on a feature-bank course with its planets, holes and extras (${xp} / ${dealt})`);
 }
 ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_XP, "LIVE_BANDS lists orbitRev 11");
 ok(orbitWorldWFor(ORBIT_REV_XP) === 450 && orbitWorldHFor(ORBIT_REV_XP) === 782 && orbitWorldWFor(ORBIT_REV_STRICT) === 390 && orbitWorldHFor(ORBIT_REV_STRICT) === 650, "the view is 450 × 782 on orbitRev 11 and unchanged before");
 ok(roundMaxFor("orbit") === ORBIT_XP_MAX, "ROUND_MAX for orbit is 200");
 ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
+{
+  const src = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_XP\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 11");
+}
 void ORBIT_INPUT_CHECKPOINT;
 
 console.log(failed ? `\nFAIL: ${failed} failed` : "\nAll orbit-rev11 checks passed");
