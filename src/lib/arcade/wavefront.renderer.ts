@@ -1045,7 +1045,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  const head = state.boss ? "Boss" : `Wave ${state.wave}`;
+  const head = state.boss?.mid ? "Gunship" : state.boss ? "Boss" : `Wave ${state.wave}`;
   successHud(ctx,'wavefront-hit',state.tick,14,14,()=>ctx.fillText(`${head} · ${wavefrontGame.score(state)}`,14,14));
   // wavRev 2: "WAVE n" (or "BOSS") while the next formation flies in.
   if ((state.enter ?? 0) > 0 && state.ended === 0) {

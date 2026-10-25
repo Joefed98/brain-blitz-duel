@@ -23,14 +23,16 @@ if (import.meta.main) {
   for (const f of files) {
     const n = Number(/-(\d+)\.txt$/.exec(f)![1]);
     if (n % 5 !== 0) continue; // 8 seeds a level
-    const [seedS, , raw] = readFileSync(`${dir}/${f}`, "utf8").trim().split("|");
+    // The saved file is the encoded run itself ("seed|score|…").
+    const raw = readFileSync(`${dir}/${f}`, "utf8").trim();
+    const seedS = raw.split("|")[0]!;
     const seed = Number(seedS);
     runs.push({
       name: f.replace(".txt", ""),
       seed,
-      raw: raw!,
+      raw,
       revs: LEGACY_REVS.map((rev) => {
-        const r = replayWavefrontRun(seed, raw!, rev);
+        const r = replayWavefrontRun(seed, raw, rev);
         return { rev, score: r.score, digest: stateDigest(r.state) };
       }),
     });

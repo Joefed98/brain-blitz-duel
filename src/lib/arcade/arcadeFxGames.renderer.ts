@@ -658,7 +658,8 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "clear",
       count: (s) => s.wavesCleared,
       at: (s) => ({ x: s.shipX, y: wavShipY(s) - 30 }),
-      label: (_s, n) => `WAVE ${n} CLEARED`,
+      // wavRev 9: the gunship after wave 3 counts as a wave; its banner names it, and the waves after it keep their own numbers.
+      label: (s, n) => (s.x9 && s.midKilled ? (n === 4 ? "GUNSHIP DOWN!" : `WAVE ${n - 1} CLEARED`) : `WAVE ${n} CLEARED`),
       sweep: true,
     },
     // wavRev 2: a diver shot down mid-dive, boss hits every 6, the boss destroyed (the final moment).
@@ -675,7 +676,7 @@ export const WAVEFRONT_FX: ArcadeFxSpec<WavState> = {
       kind: "streak",
       count: (s) => s.bossHits ?? 0,
       every: 6,
-      at: (s) => ({ x: (s.boss?.x ?? 131) + 64, y: 150 }),
+      at: (s) => ({ x: (s.boss?.x ?? 131) + (s.boss?.mid ? 48 : 64), y: 150 }),
       label: (_s, n) => `BOSS HIT ×${n}`,
     },
     {

@@ -5,8 +5,11 @@
  * edge, waves cleared and how often the boss fell. A tool, not a check.
  *
  *   bun scripts/wavefront-expand-bands.ts [--seeds=40] [--revs=8,9] [--save=<file.json>]
+ *   bun scripts/wavefront-expand-bands.ts --record   (re-records the 16 wavRev 9 runs wavefront-expand-check replays)
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync, gzipSync } from "node:zlib";
+import { stateDigest } from "./wavefront-expand-record";
 import { GAMES } from "./arcade-skill-bands/games";
 import { Human, LEVELS } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/wavefront";
@@ -57,7 +60,23 @@ export function playWavefront(rev: number, level: (typeof LEVELS)[number], n: nu
   return { rev, level, n, seed, score: result.score, raw, base: parts.points, units: parts.units, edge: s.x9 ? bandPoints(WAV_X_EDGE_CURVE, wavEdgeUnits(s)) : 0, edgeUnits: s.x9 ? wavEdgeUnits(s) : 0, waves: s.wavesCleared, killed: Boolean(s.bossKilled) };
 }
 
-if (import.meta.main) {
+if (import.meta.main && args.includes("--record")) {
+  const path = "scripts/fixtures/wavefront-expand-runs.json.gz";
+  let data: { runs: unknown[]; ace?: unknown } = { runs: [] };
+  try {
+    data = JSON.parse(gunzipSync(readFileSync(path)).toString());
+  } catch {
+    /* first write */
+  }
+  data.runs = [];
+  for (const level of LEVELS)
+    for (const n of [0, 10, 20, 30]) {
+      const r = playWavefront(9, level, n);
+      data.runs.push({ level, n, seed: r.seed, score: r.score, raw: r.raw, digest: stateDigest(replayWavefrontRun(r.seed, r.raw, 9).state) });
+    }
+  writeFileSync(path, gzipSync(JSON.stringify(data)));
+  console.log(`recorded ${data.runs.length} wavRev 9 runs to ${path}`);
+} else if (import.meta.main) {
   const runs: WavBandRun[] = [];
   const q = (xs: number[], p: number) => {
     const a = [...xs].sort((x, y) => x - y);

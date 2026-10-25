@@ -1798,7 +1798,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     }
   }
 
-  // Bolts up, and what they hit.
+  // Bolts up, and what they hit (the formation's boxes are fixed for the rest of the tick).
+  const boxes = s.shapes.map((_, i) => wavShapeBox(s, i));
   const kept: WavBolt[] = [];
   for (const bolt of s.bolts) {
     bolt.y -= boltSpeed;
@@ -1813,7 +1814,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       const code = s.shapes[i] ?? 0;
       if (code === 0 || away.has(i)) continue;
       if (code === WAV_ARMOUR_CODE && bolt.a) continue;
-      const box = wavShapeBox(s, i);
+      const box = boxes[i]!;
       if (bolt.x + 2 * FP > box.x * FP && bolt.x - 2 * FP < (box.x + WAV_CELL) * FP && bolt.y < (box.y + WAV_CELL) * FP && bolt.y + WAV_BOLT_H * FP > box.y * FP) {
         if (bolt.p) {
           bolt.p -= 1;
