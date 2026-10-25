@@ -277,27 +277,44 @@ home bar. Arcade backgrounds (their screen fills) are unchanged.
 
 ### The tray and the board's size (puzzles)
 
-Every puzzle board sits on a tray: the game's own arena box (`data-game-arena`) dressed with a 26 px
-radius, 14 px padding, `linear-gradient(180deg, {cat}14, rgba(255,255,255,.02))`, a 1 px `{cat}2E` border
-and `inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 30px rgba(0,0,0,.35), 0 18px 40px rgba(0,0,0,.45)`.
-A tray with no control dock after it keeps the inset shading but a short drop shadow (`0 6px 12px -6px`):
-it ends near the game region's clipping bottom edge, where the long shadow was cut in a faint line across
-the home-bar strip. On puzzle play screens the notch strip fades over 24 px (0.5 rem elsewhere), because
-the header starts right at the inset over the brighter category top.
-The arena's height cap is lifted, so the tray fills the space between the goal line and the dock, with
-16 px side margins; the board inside keeps its aspect ratio and is never cropped or under the dock,
-because it sizes from the tray's content box as it sized from the arena. This is all in the shared layout
-(`game-frame.css`); no game's code changed. Games whose board doesn't size from its arena keep today's
-size and no tray (`TRAY_SKIP` in `GameFrame.tsx`, each with its reason): Slider, Counterweight, Tally,
-Trail and Ballpark size their boards from the whole column, so the tray's padding would push them past
-it. The category batches move them onto the tray in their own code. `bun scripts/shots/frame-probe.ts`
-reports any board past its tray, cut header text and short dock targets at 414 × 896 and 375 × 667.
+**Never smaller than main.** A puzzle's board keeps main's layout exactly: the same column (4 px sides),
+the same arena and design caps, centred between the goal line and the dock by layout 2's auto margins.
+The frame's top (60 px header and an 18 or 28 px goal line) is shorter than main's (top bar, heading and
+timer row), so a height-limited board gets more room, never less. Two games whose content spreads over
+their arena's height, Tally and Don't Break the Chain, lift the arena's cap and fill the whole height
+(`BOARD_FILL` in `GameFrame.tsx`, `data-board-fill`); measured with every cap lifted, the other boards
+that "grew" only grew an empty panel round a board of the same size, so they keep main's cap.
+
+**The tray hugs the board.** The tray is its own layer (`[data-game-tray]`, `useBoardTray` in
+`GameFrame.tsx`), drawn under the stage in the game region (isolated, pointer-events none), so the
+board's layout, size and input are untouched. It is the board's box (`boardBox`, `src/lib/boardBox.ts`)
+plus 10 px all round, 8 px clear of the screen's sides; beside a board too wide for that the side
+padding shrinks to 4 px and then the margin to 0, so a full-width board keeps main's width and its tray
+runs to the screen's edge. It is placed before the first paint and again whenever the board's box
+changes size; it never follows a dragged piece (absolutely placed content is left out of the box).
+Look: a 26 px radius, `linear-gradient(180deg, {cat}14, rgba(255,255,255,.02))`, a 1 px `{cat}2E`
+border and `inset 0 1px 0 rgba(255,255,255,.08), inset 0 -10px 30px rgba(0,0,0,.35), 0 18px 40px
+rgba(0,0,0,.45)`; a tray within 58 px of the game region's clipping bottom edge gets a short drop shadow
+(`0 6px 12px -6px`), or the region would cut the long one in a faint line across the home-bar strip. On
+puzzle play screens the notch strip fades over 24 px (0.5 rem elsewhere), because the header starts right
+at the inset over the brighter category top.
+
+**The board-size check.** `bun scripts/shots/frame-probe.ts --compare=scripts/fixtures/board-sizes-main.json`
+opens every puzzle at 414 × 896 and 375 × 667 on the fixed intro example and fails unless each board's box
+is at least main's width and height and the tray's empty space above and below the board is at most
+24 px each (`--record` re-records main's sizes, run against main; `--fill` measures with every cap lifted).
+It also reports cut header or goal-line text and dock buttons under 52 px.
+
+**Small boards in a big space** need the game's own code to grow and are left for the category batches:
+Strikeout's word row, Bang On's track, Hanoi's pegs, Roundabout's wheel and Safe Cracker's dials stay at
+main's size, centred, with the tray round them.
 
 ### The control dock
 
 A game's controls (keypads, number chips, arrows, Submit, Reset) follow the tray and so sit at the
 bottom, above the home-bar inset plus 16 px. Every button after the tray is at least 52 px tall
-(`game-frame.css`, "the dock"), except Cryptogrid's clue strip and keypad, a dense board of their own. A one-line live summary may sit just above the dock
+(`game-frame.css`, "the dock"), except Cryptogrid's clue strip and keypad (a dense board of their own) and
+Tally's number pad (its taller keys would take height from its board). A one-line live summary may sit just above the dock
 where the game already has that information; the category batches add those.
 
 ### The toolkit (for the category batches)

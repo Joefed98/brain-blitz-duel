@@ -219,10 +219,11 @@
 .game-screen:is([data-puzzle-play], [data-arcade-play]) > [data-game-column] {
   padding-top: env(safe-area-inset-top, 0px);
 }
-/* Puzzles: 16px screen margins for the header, goal line, tray and dock. */
-[data-puzzle-play] > [data-game-column] {
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+/* Puzzles keep main's column (its 4px sides), so every board keeps main's width; the header and goal
+   line take 12px more, the frame's 16px screen margin. */
+[data-frame="puzzle"] > .game-frame-header,
+[data-frame="puzzle"] > .game-goal-line {
+  padding-inline: 12px;
 }
 
 /* ---------------------------------------------------------------- the goal line */
@@ -402,19 +403,20 @@
 /* ---------------------------------------------------------------- the tray, the board's size and the dock */
 
 /*
- * The tray: every puzzle board sits on one, the game's own arena box (data-game-arena) dressed as
- * a rounded, lightly tinted plate with 14px of padding. The arena keeps its own layout: the board
- * inside sizes itself from the tray's content box as it did from the arena (container queries,
- * measured spaces). The arena's height cap is lifted, so the tray takes the whole height between
- * the goal line and the dock and the board scales up inside it, keeping its aspect ratio; the dock
- * (the controls after the arena) sits at the bottom. Games listed in TRAY_SKIP (data-tray="off")
- * keep today's size: their board doesn't size from its arena (docs/design-system.md).
+ * The tray (GameFrame useBoardTray): its own layer behind the board, the board's box plus 10px all
+ * round (less at the sides of a board too wide for it, down to 4px of padding and then no margin),
+ * 8px clear of the screen's sides. The board's layout is main's exactly: the same column, the same
+ * arena and design caps, centred between the goal line and the dock (layout 2's auto margins), so no
+ * board is ever smaller than on main; the frame's shorter top gives height-limited boards more room.
+ * Games in BOARD_FILL (data-board-fill) lift the arena's cap and grow to the whole height. The game
+ * region stacks the tray under the stage (isolation), and nothing on it takes a touch.
  */
-[data-puzzle-play] [data-game-stage] [data-game-arena]:not([data-tray="off"] [data-game-arena]) {
-  --arena-max: none;
-  box-sizing: border-box;
-  max-height: none;
-  padding: 14px;
+[data-puzzle-play] [data-game-region] {
+  isolation: isolate;
+}
+.game-tray {
+  position: absolute;
+  z-index: -1;
   border: 1px solid color-mix(in srgb, var(--category-accent) 18%, transparent);
   border-radius: 26px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), rgba(255, 255, 255, 0.02));
@@ -422,26 +424,32 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -10px 30px rgba(0, 0, 0, 0.35),
     0 18px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
-
-/* A tray with no control dock after it (Chroma Lines, Don't Break the Chain, Swapword…) ends near the game
-   region's bottom edge, which clips: the full 40px drop shadow was cut there in a faint line across the
-   home-bar strip (bottom-clearance-check). Those trays keep the inset shading and a short drop shadow;
-   a tray with its dock after it keeps the full one (the dock covers its reach). */
-[data-puzzle-play] [data-game-stage]:not(:has([data-game-arena] ~ * :is(button, [role="button"]), [data-game-arena] ~ :is(button, [role="button"]))) [data-game-arena]:not([data-tray="off"] [data-game-arena]) {
+.game-tray:not([data-placed]) {
+  display: none;
+}
+/* A tray near the game region's clipping bottom edge: a short drop shadow, or the region would cut
+   the 40px one in a faint line across the home-bar strip (bottom-clearance-check). */
+.game-tray[data-tray-low] {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -10px 30px rgba(0, 0, 0, 0.35),
     0 6px 12px -6px rgba(0, 0, 0, 0.45);
 }
+[data-board-fill] [data-game-stage] [data-game-arena] {
+  --arena-max: none;
+  max-height: none;
+}
 
 /*
  * The dock: the controls after the tray (keypads, number chips, arrows, Submit, Reset) are at least
- * 52px tall, so every target clears a thumb; they already sit at the bottom, 16px above the
- * home-bar inset (pad-game-safe), because the tray takes the height above them. Cryptogrid's clue
- * number strip and keypad are a dense board of their own and keep their size.
+ * 52px tall, so every target clears a thumb; they sit at the bottom, 16px above the home-bar inset
+ * (pad-game-safe), under the centred board (layout 2's auto margins). Cryptogrid's clue
+ * number strip and keypad are a dense board of their own and keep their size; so does Tally's
+ * number pad, whose taller keys would take height from its board (never smaller than on main).
  */
-[data-puzzle-play]:not([data-puzzle-surface="codeword"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ * :is(button, [role="button"]),
-[data-puzzle-play]:not([data-puzzle-surface="codeword"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ :is(button, [role="button"]) {
+[data-puzzle-play]:not([data-puzzle-surface="codeword"], [data-puzzle-surface="countup"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ * :is(button, [role="button"]),
+[data-puzzle-play]:not([data-puzzle-surface="codeword"], [data-puzzle-surface="countup"]) [data-game-stage] :is([data-game-arena], :has([data-game-arena])) ~ :is(button, [role="button"]) {
   min-height: 52px;
 }

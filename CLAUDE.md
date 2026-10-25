@@ -504,8 +504,11 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
   of N / Daily" left, the 48 px timer ring centred (TimerBar), the score block (`FrameScore`: room total with place or
   opponent, daily total, practice "Best"), "?" and one sound button (MuteToggle `variant="frame"`) right; the arena
   starts directly under it (no 4 px gaps). Puzzles (`data-puzzle-play`) add the goal line (`GoalLine`, `frameGoal`;
-  StageProgress games publish "Stage n of N" through `useGoalProgress`), the category gradient background, the tray
-  on `[data-game-arena]` (its height cap lifted; `TRAY_SKIP` keeps five boards at today's size) and a 52 px dock.
+  StageProgress games publish "Stage n of N" through `useGoalProgress`), the category gradient background, main's
+  board layout exactly (never smaller; `BOARD_FILL` lifts the arena cap for Tally and Don't Break the Chain), the tray
+  as its own layer hugging the board (`useBoardTray`, `boardBox` in `src/lib/boardBox.ts`) and a 52 px dock. The
+  board-size check: `bun scripts/shots/frame-probe.ts --compare=scripts/fixtures/board-sizes-main.json` (every board at
+  least main's size at 414×896 and 375×667, the tray within 24 px above and below).
   Toolkit for the category batches: `.gf-glass`, `.gf-well`, `.gf-glow`, `.gf-alert`, `gameToolkit.ts`,
   `ArcadeAtmosphere`. Tools: `bun scripts/shots/before-after.ts` (main beside the branch, `screenshots/before-after/`)
   and `bun scripts/shots/frame-probe.ts` (cut text, tray overflow, dock heights at 414×896 and 375×667).

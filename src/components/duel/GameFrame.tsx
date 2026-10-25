@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
+import { boardBox } from "@/lib/boardBox";
 import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
 import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
 
@@ -9,6 +10,8 @@ import type { PuzzleCategory, PuzzleType } from "@/lib/duel/types";
  * 60px header for every game's live round (GameLayout), the puzzles' goal line under it, and the
  * score block. Nothing here reads or writes a sim, a grade or a stamp.
  */
+
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export const CATEGORY_NAMES: Record<PuzzleCategory, string> = {
   word: "Word",
@@ -79,17 +82,95 @@ export const GOAL_BAR_GAMES: ReadonlySet<PuzzleType> = new Set<PuzzleType>([
 ]);
 
 /**
- * Puzzles that keep today's board size and no tray (data-tray="off"): their board doesn't size from
- * its arena box, so the tray's 14px padding would push it past the tray. The category batches move
- * them onto the tray in their own code. Each entry says why.
+ * Puzzles whose arena may grow past its design cap to the whole height between the goal line and the
+ * dock (data-board-fill, game-frame.css): their board sizes itself from the arena's height, so it
+ * grows (keeping its aspect ratio) where every other board would stay at main's size. Chosen by
+ * measuring every puzzle on main and with the cap lifted (scripts/shots/frame-probe.ts --fill): six
+ * boxes grew, but only Tally's shapes and Don't Break the Chain's charms spread over the taller area;
+ * Nucleus, Double Take, Roundabout and Checkout only grew an empty panel round a board of the same size,
+ * so they keep main's cap.
  */
-export const TRAY_SKIP: ReadonlyMap<PuzzleType, string> = new Map<PuzzleType, string>([
-  ["wordslide", "Slider measures its whole stage column's width for its cells, so the board and padlocks ran 59px past the tray at 375px"],
-  ["balance", "Counterweight's scale is laid out from the column's width (352px at 375px), past a 315px tray"],
-  ["countup", "Tally scatters its shapes over the column's width, so shapes sat on and past the tray's edge at 375px"],
-  ["trail", "Trail's grid is sized from the column (100cqw), so it was wider than its tray and the screen"],
-  ["numline", "Ballpark's number line is drawn across the column's width, past the tray's padding"],
-]);
+export const BOARD_FILL: ReadonlySet<PuzzleType> = new Set<PuzzleType>(["countup", "chain"]);
+
+/** The tray's padding round the board, its smallest side padding and screen margin, and its gap test. */
+const TRAY_PAD = 10;
+const TRAY_SIDE_MIN = 4;
+const TRAY_MARGIN = 8;
+/** Below this, the tray's 40px drop shadow would reach the game region's clipping bottom edge. */
+const TRAY_SHADOW_REACH = 58;
+
+/**
+ * The tray (Polish 2): a plate drawn behind the puzzle board, hugging it. It is its own layer
+ * ([data-game-tray], pointer-events none, under the stage in the game region), so the board's layout,
+ * size and input are exactly main's. It is the board's box (boardBox) plus 10px all round, 8px clear
+ * of the screen's sides; beside a board too wide for that, the side padding and margin shrink, the
+ * padding to 4px, then the margin to 0 (a full-width board keeps main's width and the tray runs to the
+ * screen's edge). Measured before the first paint and again whenever the board's box changes size.
+ */
+export function useBoardTray(region: { current: HTMLElement | null }, tray: { current: HTMLElement | null }, enabled: boolean) {
+  useIsoLayoutEffect(() => {
+    const host = region.current;
+    const plate = tray.current;
+    if (!enabled || !host || !plate) return;
+    let frame = 0;
+    const place = () => {
+      frame = 0;
+      const arena = host.querySelector<HTMLElement>("[data-game-stage] [data-game-arena]");
+      if (!arena) {
+        delete plate.dataset["placed"];
+        return;
+      }
+      const b = boardBox(arena);
+      const r = host.getBoundingClientRect();
+      const room = Math.max(0, Math.min(b.left, window.innerWidth - b.right));
+      const side = room >= TRAY_PAD + TRAY_MARGIN ? TRAY_PAD : room >= TRAY_SIDE_MIN * 2 ? Math.min(TRAY_PAD, room - TRAY_SIDE_MIN) : Math.min(room, TRAY_SIDE_MIN);
+      const top = Math.max(r.top, b.top - TRAY_PAD);
+      const bottom = Math.min(r.bottom, b.bottom + TRAY_PAD);
+      plate.dataset["placed"] = "";
+      plate.style.left = `${b.left - side - r.left}px`;
+      plate.style.top = `${top - r.top}px`;
+      plate.style.width = `${b.right - b.left + side * 2}px`;
+      plate.style.height = `${bottom - top}px`;
+      plate.toggleAttribute("data-tray-low", r.bottom - bottom < TRAY_SHADOW_REACH);
+    };
+    place();
+    const later = () => {
+      if (!frame) frame = requestAnimationFrame(place);
+    };
+    const resize = new ResizeObserver(later);
+    const watch = () => {
+      resize.disconnect();
+      resize.observe(host);
+      const arena = host.querySelector("[data-game-stage] [data-game-arena]");
+      if (!arena) return;
+      resize.observe(arena);
+      for (const child of Array.from(arena.children)) {
+        resize.observe(child);
+        for (const inner of Array.from(child.children)) resize.observe(inner);
+      }
+    };
+    watch();
+    // A board whose rows arrive or leave (a new stage): watch its new boxes and place again.
+    const mutations = new MutationObserver(() => {
+      watch();
+      later();
+    });
+    const stage = host.querySelector("[data-game-stage]");
+    if (stage) mutations.observe(stage, { childList: true, subtree: true });
+    // A board that animates into place (Tally's shapes landing) is placed again when it settles.
+    stage?.addEventListener("animationend", later);
+    stage?.addEventListener("transitionend", later);
+    window.addEventListener("resize", later);
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      mutations.disconnect();
+      stage?.removeEventListener("animationend", later);
+      stage?.removeEventListener("transitionend", later);
+      window.removeEventListener("resize", later);
+    };
+  }, [enabled]);
+}
 
 export interface GoalProgress {
   /** Stages done (0-based index of the current one). */
@@ -102,7 +183,6 @@ export interface GoalProgress {
 /** Set inside a live round's frame: a stage publishes its progress to the goal line instead of drawing its own bar. */
 export const GoalLineContext = createContext<((progress: GoalProgress | null) => void) | null>(null);
 
-const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
  * A stage's progress for the goal line. Returns true when the frame shows it (the stage then draws

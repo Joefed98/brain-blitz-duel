@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { MuteToggle } from "./MuteToggle";
-import { CATEGORY_NAMES, GoalLine, TRAY_SKIP } from "./GameFrame";
+import { BOARD_FILL, CATEGORY_NAMES, GoalLine, useBoardTray } from "./GameFrame";
 import { Wordmark } from "./Wordmark";
 import { AppHeader } from "@/components/app/AppHeader";
 import { FxLayer } from "./FxLayer";
@@ -107,8 +107,18 @@ export function GameLayout({ label, title, help, progress, score, ping, timer, b
   const arcade = Boolean(frame?.arcade);
   const type = frame?.type;
   const category = type ? puzzleDef(type).category : undefined;
+  const regionRef = useRef<HTMLDivElement | null>(null);
+  const trayRef = useRef<HTMLDivElement | null>(null);
+  const setRegion = (el: HTMLDivElement | null) => {
+    regionRef.current = el;
+    if (typeof stageRef === "function") stageRef(el);
+    else if (stageRef) (stageRef as { current: HTMLDivElement | null }).current = el;
+  };
+  // Puzzles: the tray behind the board (GameFrame useBoardTray); arcade worlds have none.
+  useBoardTray(regionRef, trayRef, Boolean(frame && !arcade && type));
   const stage = (
-    <div ref={stageRef} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div ref={setRegion} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      {frame && !arcade && type ? <div ref={trayRef} data-game-tray aria-hidden="true" className="game-tray" /> : null}
       <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
         <GameColumnLayout.Provider value>{children}</GameColumnLayout.Provider>
       </div>
@@ -398,7 +408,7 @@ export function PhoneShell({ children, bare = false, constrained = false, gameSc
       data-arcade-play={arcadePlay ? "" : undefined}
       data-puzzle-screen={puzzleScreen ? "" : undefined}
       data-puzzle-play={framePlay && puzzleScreen ? "" : undefined}
-      data-tray={framePlay && puzzleScreen && gameType && TRAY_SKIP.has(gameType) ? "off" : undefined}
+      data-board-fill={framePlay && puzzleScreen && gameType && BOARD_FILL.has(gameType) ? "" : undefined}
       data-particle-shape={theme?.particleShape ?? "disc"}
       data-tab-screen={tabs && !gameScreen ? tabs : undefined}
       data-skin={gameScreen ? undefined : (skin ?? tabs)}
