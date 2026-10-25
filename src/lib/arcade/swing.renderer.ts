@@ -111,6 +111,9 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   haze.addColorStop(1, "#2A0D08");
   ctx.fillStyle = haze;
   ctx.fillRect(0, 0, SWING_WORLD_W, SWING_WORLD_H);
+  // Polish A4 (25 Oct 2026, display only): a far ceiling of stalactites at slow parallax, behind
+  // everything and darker than any hazard, so it reads as distance (the near ceiling's own spikes are the sim's).
+  if (!lite) drawFarStalactites(ctx, cam, SWING_WORLD_W);
   // The distant rock keeps its height above the lava.
   for (const [par, base, span, colour, step] of lite ? [] : ([[0.15, 250 + deep, 90, "#160D10", 46], [0.3, 330 + deep, 70, "#21131A", 30]] as const)) {
     ctx.fillStyle = colour;
@@ -125,18 +128,29 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.lineTo(SWING_WORLD_W + 20, SWING_WORLD_H);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,120,70,0.07)";
+    // Polish A4: the layer's face warms towards the lava below it, and its ridge catches an orange rim light.
+    ctx.save();
+    ctx.clip();
+    const face = ctx.createLinearGradient(0, base, 0, SWING_WORLD_H);
+    face.addColorStop(0, "rgba(255,110,50,0)");
+    face.addColorStop(1, `rgba(255,96,40,${par > 0.2 ? 0.2 : 0.12})`);
+    ctx.fillStyle = face;
+    ctx.fillRect(0, base, SWING_WORLD_W, SWING_WORLD_H - base);
+    ctx.restore();
+    ctx.strokeStyle = par > 0.2 ? "rgba(255,138,70,0.34)" : "rgba(255,120,70,0.2)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
   // Lava light cast up onto nearby rock.
   const lavaTop = Math.min(...state.floor.slice(first, last + 1)) / FP;
   if (!lite) {
-    const cast = ctx.createLinearGradient(0, lavaTop - 160, 0, lavaTop + 10);
+    // Polish A4: a taller, warmer glow over the lower cave, breathing slowly with the lava.
+    const cast = ctx.createLinearGradient(0, lavaTop - 260, 0, lavaTop + 10);
     cast.addColorStop(0, "rgba(255,90,30,0)");
-    cast.addColorStop(1, `rgba(255,90,30,${0.26 + (still ? 0 : 0.04 * Math.sin(t * 1.7))})`);
+    cast.addColorStop(0.55, `rgba(255,100,36,${0.1 + (still ? 0 : 0.02 * Math.sin(t * 1.7))})`);
+    cast.addColorStop(1, `rgba(255,96,30,${0.34 + (still ? 0 : 0.05 * Math.sin(t * 1.7))})`);
     ctx.fillStyle = cast;
-    ctx.fillRect(0, lavaTop - 160, SWING_WORLD_W, SWING_WORLD_H - lavaTop + 160);
+    ctx.fillRect(0, lavaTop - 260, SWING_WORLD_W, SWING_WORLD_H - lavaTop + 260);
   }
 
   // Narrow rock band begins at the sim's ceiling line and faces down into the cave.
@@ -409,17 +423,67 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.fillStyle = crust;
     ctx.fillRect(Math.min(x0, x1), lavaTop - 4, 40, SWING_WORLD_H);
   }
-  // Floating crust plates.
+  // Polish A4: a bright highlight flowing along under the surface.
+  if (!lite) {
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(255,214,120,0.22)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let px = -4; px <= SWING_WORLD_W + 4; px += 8) {
+      const flow = still ? 0 : t * 22;
+      const y = lerpAt(state.floor, Math.round((px + cam) * FP)) / FP + wave(px + cam) + 7 + Math.sin((px + cam - flow) * 0.06) * 2.2;
+      if (px === -4) ctx.moveTo(px, y);
+      else ctx.lineTo(px, y);
+    }
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+  }
+  // Floating crust plates, each with a glowing molten edge.
   if (!lite) for (let k = Math.floor(cam / 90) - 1; k < Math.floor(cam / 90) + 6; k++) {
     const h = artHash(k, 77);
     if (h % 3) continue;
     const wx = k * 90 + (h % 60);
     const px = wx - cam;
     const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + wave(wx) + 3;
-    ctx.fillStyle = "rgba(40,14,10,0.75)";
+    const rx = 8 + (h >>> 4) % 8;
+    ctx.fillStyle = "rgba(255,170,70,0.55)";
     ctx.beginPath();
-    ctx.ellipse(px, py + 1, 8 + (h >>> 4) % 8, 2.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + 1, rx + 1.6, 3.4, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = "rgba(40,14,10,0.85)";
+    ctx.beginPath();
+    ctx.ellipse(px, py + 1, rx, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Polish A4: bubbles swelling and popping on the surface, each on its own seeded beat.
+  if (!lite && !still) for (let k = Math.floor(cam / 60) - 1; k < Math.floor(cam / 60) + 8; k++) {
+    const h = artHash(k, 131);
+    if (h % 2) continue;
+    const life = 70 + (h % 50);
+    const age = (state.tick + ((h >>> 6) % life)) % life;
+    const wx = k * 60 + ((h >>> 3) % 50);
+    const px = wx - cam;
+    const py = lerpAt(state.floor, Math.round(wx * FP)) / FP + wave(wx) + 4;
+    const grow = age / life;
+    if (grow < 0.85) {
+      const r = 1 + grow * 3.2;
+      ctx.fillStyle = "rgba(120,24,10,0.6)";
+      ctx.beginPath();
+      ctx.arc(px, py, r, Math.PI, 0);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,226,150,0.85)";
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(px, py, r, Math.PI * 1.05, Math.PI * 1.6);
+      ctx.stroke();
+    } else {
+      const pop = (grow - 0.85) / 0.15;
+      ctx.strokeStyle = `rgba(255,214,130,${(1 - pop) * 0.8})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(px, py, 4 + pop * 5, 1.4 + pop, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
   ctx.restore();
   // Glowing surface line.
@@ -516,8 +580,17 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
       const px = wx - cam + Math.sin(age * 0.05 + k) * 6;
       const base = lerpAt(state.floor, Math.round((px + cam) * FP)) / FP;
       const py = base - age * 0.9;
-      ctx.globalAlpha = Math.max(0, 1 - age / life) * 0.8;
-      ctx.fillStyle = k % 2 ? "#FFB040" : "#FF6A2A";
+      const fade = Math.max(0, 1 - age / life);
+      // Polish A4: each ember carries a soft glow (skipped with reduced effects).
+      if (!lite) {
+        ctx.globalAlpha = fade * 0.35;
+        ctx.fillStyle = "#FF7A2A";
+        ctx.beginPath();
+        ctx.arc(px + 0.8, py + 0.8, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = fade * 0.9;
+      ctx.fillStyle = k % 2 ? "#FFC860" : "#FF6A2A";
       ctx.fillRect(px, py, 1.6, 1.6);
     }
     ctx.globalAlpha = 1;
@@ -529,7 +602,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     if (spotsTaken.has(i)) return;
     const x = sx(wx);
     if (x < -20 || x > SWING_WORLD_W + 20) return;
-    drawStar(ctx, x, wy / FP, SWING_STAR_R / FP, still ? 0 : state.tick + i * 17);
+    drawCoin(ctx, x, wy / FP, SWING_STAR_R / FP, still ? 0 : state.tick + i * 17, lite);
   });
 
   // Anchors: iron rings bolted in the rock.
@@ -539,7 +612,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     const x = sx(a.x);
     if (x < -20 || x > SWING_WORLD_W + 20) return;
     // swingRev 4: a gold star around each star anchor until it is taken.
-    if (starAt.has(i) && !taken.has(i)) drawStar(ctx, x, a.y / FP, 11, still ? 0 : state.tick);
+    if (starAt.has(i) && !taken.has(i)) drawCoin(ctx, x, a.y / FP, 11, still ? 0 : state.tick, lite);
     const flash = i === state.rope && state.tick - state.grabTick < 12;
     // Art pilot (Cave & Lava): anchor sprite at the ring's size; the gold grab flash stays code-drawn.
     if (!flash && drawArtSprite(ctx, "cavelava", "anchor", x - 6, a.y / FP - 6, 12, 12)) return;
@@ -669,7 +742,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.textAlign = "right";
     const label = `${state.stars ?? 0} / ${swingStarTotal(state)}`;
     ctx.fillText(label, SWING_WORLD_W - 14, 26);
-    drawStar(ctx, SWING_WORLD_W - 22 - ctx.measureText(label).width, 20, 8, 0);
+    drawCoin(ctx, SWING_WORLD_W - 22 - ctx.measureText(label).width, 20, 8, 0, true);
     ctx.textAlign = "left";
   }
   ctx.restore();
@@ -700,33 +773,118 @@ function drawCrumble(ctx: CanvasRenderingContext2D, x: number, tipY: number, flo
   ctx.restore();
 }
 
-/** A five-point gold star centred on an anchor ring (outer radius r), slowly twinkling. */
-function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number): void {
+/**
+ * Polish A4 (25 Oct 2026, display only): a pickup is a glowing gold coin (radius r, the pickup's own
+ * radius) with a small raised star on its face, slowly catching the light. The glow round it is
+ * light, not a body; with reduced effects (`flat`) only the coin is drawn.
+ */
+function drawCoin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number, flat: boolean): void {
   ctx.save();
-  ctx.globalAlpha = 0.85 + 0.15 * Math.sin(tick * 0.12);
-  ctx.fillStyle = "#FFD84A";
-  ctx.strokeStyle = "#8A5A10";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let p = 0; p < 10; p++) {
-    const rad = p % 2 === 0 ? r : r * 0.45;
-    const a = -Math.PI / 2 + (p * Math.PI) / 5;
-    if (p === 0) ctx.moveTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
-    else ctx.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+  if (!flat) {
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.6, cx, cy, r * 2.1);
+    glow.addColorStop(0, `rgba(255,214,90,${0.38 + 0.12 * Math.sin(tick * 0.09)})`);
+    glow.addColorStop(1, "rgba(255,180,60,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 2.1, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.closePath();
-  const body = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
-  body.addColorStop(0, "#FFF2A8");
-  body.addColorStop(0.5, "#FFD84A");
-  body.addColorStop(1, "#E8A520");
-  ctx.fillStyle = body;
+  // Rim, then the face a little inside it.
+  const rim = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  rim.addColorStop(0, "#FFE9A0");
+  rim.addColorStop(0.5, "#E8A520");
+  rim.addColorStop(1, "#8A5A10");
+  ctx.fillStyle = rim;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.stroke();
-  // A small white glint in the upper-left arm, well inside the star.
+  const face = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r * 0.8);
+  face.addColorStop(0, "#FFF2A8");
+  face.addColorStop(0.6, "#FFD84A");
+  face.addColorStop(1, "#E3A124");
+  ctx.fillStyle = face;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2);
+  ctx.fill();
+  // The raised star: a dark under-edge, then the gold star.
+  const star = (dy: number) => {
+    ctx.beginPath();
+    for (let p = 0; p < 10; p++) {
+      const rad = p % 2 === 0 ? r * 0.52 : r * 0.23;
+      const a = -Math.PI / 2 + (p * Math.PI) / 5;
+      if (p === 0) ctx.moveTo(cx + Math.cos(a) * rad, cy + dy + Math.sin(a) * rad);
+      else ctx.lineTo(cx + Math.cos(a) * rad, cy + dy + Math.sin(a) * rad);
+    }
+    ctx.closePath();
+  };
+  ctx.fillStyle = "rgba(138,90,16,0.75)";
+  star(Math.max(0.6, r * 0.07));
+  ctx.fill();
+  ctx.fillStyle = "#FFF6C8";
+  star(0);
+  ctx.fill();
+  // A glint that slides across the face now and then.
+  const sweep = ((tick % 150) / 150) * 3 - 1;
+  if (sweep > -0.8 && sweep < 0.8) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.beginPath();
+    ctx.moveTo(cx + sweep * r - r * 0.2, cy - r);
+    ctx.lineTo(cx + sweep * r + r * 0.05, cy - r);
+    ctx.lineTo(cx + sweep * r - r * 0.25, cy + r);
+    ctx.lineTo(cx + sweep * r - r * 0.5, cy + r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   ctx.beginPath();
-  ctx.arc(cx - r * 0.18, cy - r * 0.2, Math.max(0.8, r * 0.12), 0, Math.PI * 2);
+  ctx.arc(cx - r * 0.42, cy - r * 0.42, Math.max(0.7, r * 0.1), 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Polish A4: the far ceiling, a dark band with hanging stalactites at a slow parallax behind the
+ * cave (between the back wall and the near rock). Scenery only: nothing in it collides.
+ */
+function drawFarStalactites(ctx: CanvasRenderingContext2D, cam: number, width: number): void {
+  const par = 0.22;
+  const step = 22;
+  const off = (cam * par) % step;
+  const k0 = Math.floor((cam * par) / step);
+  const roof = (k: number) => 100 + (artHash(k0 + k, 401) % 26);
+  ctx.save();
+  ctx.fillStyle = "rgba(62,36,40,0.4)";
+  ctx.beginPath();
+  ctx.moveTo(-step, 0);
+  for (let k = -1; k <= width / step + 2; k++) {
+    const x = k * step - off;
+    const h = artHash(k0 + k, 313);
+    const y = roof(k);
+    ctx.lineTo(x, y);
+    // About two in three joints carry a stalactite of seeded length.
+    if (h % 3) {
+      const len = 8 + (h >>> 4) % 20;
+      const w = 4 + (h >>> 9) % 5;
+      ctx.lineTo(x + step * 0.5 - w, y + 2);
+      ctx.lineTo(x + step * 0.5, y + len);
+      ctx.lineTo(x + step * 0.5 + w, y + 2);
+    }
+  }
+  ctx.lineTo(width + step * 2, 0);
+  ctx.closePath();
+  ctx.fill();
+  // Lava light catches the stalactites' tips faintly from far below.
+  const warm = ctx.createLinearGradient(0, 110, 0, 150);
+  warm.addColorStop(0, "rgba(255,110,50,0)");
+  warm.addColorStop(1, "rgba(255,110,50,0.22)");
+  ctx.clip();
+  ctx.fillStyle = warm;
+  ctx.fillRect(0, 100, width, 60);
   ctx.restore();
 }
 

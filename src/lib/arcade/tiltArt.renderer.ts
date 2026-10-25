@@ -157,9 +157,55 @@ function drawDiscSurface(ctx: CanvasRenderingContext2D): void {
   else paintDisc(ctx);
 }
 
+/**
+ * Polish A4 (25 Oct 2026, display only): the table round the maze board: plank seams across the oak
+ * (kept 12 px clear of the world's top and bottom, so the board meets its scene with no line), a little
+ * more grain and a warm pool of lamplight over the board's centre, fading out before the edges.
+ */
+function drawTableDressing(c: CanvasRenderingContext2D): void {
+  c.save();
+  for (let y = 58; y < TILT_WORLD_H - 12; y += 58) {
+    c.fillStyle = "rgba(70,40,16,0.32)";
+    c.fillRect(0, y, TILT_WORLD_W, 1.2);
+    c.fillStyle = "rgba(255,230,190,0.16)";
+    c.fillRect(0, y + 1.2, TILT_WORLD_W, 1);
+    // A butt joint in each plank, staggered (none in the edge planks, so nothing reaches the world's edge).
+    if (y - 58 >= 24) {
+      const jx = 60 + ((y * 7) % 300);
+      c.fillStyle = "rgba(70,40,16,0.28)";
+      c.fillRect(jx, y - 57, 1, 56);
+    }
+  }
+  for (let k = 0; k < 60; k++) {
+    const h = Math.imul(k * 2654435761 + 97, 0x85ebca6b) >>> 0;
+    const y = 14 + (h % (TILT_WORLD_H - 28));
+    c.strokeStyle = h % 3 ? "rgba(110,66,30,0.12)" : "rgba(255,226,180,0.09)";
+    c.lineWidth = 0.8;
+    c.beginPath();
+    c.moveTo(0, y);
+    c.bezierCurveTo(TILT_WORLD_W * 0.3, y + ((h >>> 5) % 7) - 3, TILT_WORLD_W * 0.7, y - ((h >>> 9) % 5) + 2, TILT_WORLD_W, y + 1);
+    c.stroke();
+  }
+  const pool = c.createRadialGradient(CX - 30, CY - 50, 20, CX - 30, CY - 50, 250);
+  pool.addColorStop(0, "rgba(255,206,130,0.24)");
+  pool.addColorStop(0.6, "rgba(255,190,110,0.1)");
+  pool.addColorStop(1, "rgba(255,190,110,0)");
+  c.fillStyle = pool;
+  c.fillRect(0, 12, TILT_WORLD_W, TILT_WORLD_H - 24);
+  c.restore();
+}
+
 /** The disc's carved groove and bevelled rim, about the disc's centre (static: in the cached board layer). */
 function drawDiscBed(ctx: CanvasRenderingContext2D): void {
   // Polish G: the disc sits in a carved groove in the board, casting a soft shadow down-right.
+  // Polish A4: a deeper drop shadow under it.
+  const drop = ctx.createRadialGradient(5, 7, TILT_DISC_R - 10, 5, 7, TILT_DISC_R + 11);
+  drop.addColorStop(0, "rgba(30,14,4,0.6)");
+  drop.addColorStop(1, "rgba(30,14,4,0)");
+  ctx.fillStyle = drop;
+  ctx.beginPath();
+  ctx.arc(5, 7, TILT_DISC_R + 11, 0, Math.PI * 2);
+  ctx.fill();
   const groove = ctx.createRadialGradient(3, 4, TILT_DISC_R - 4, 3, 4, TILT_DISC_R + 12);
   groove.addColorStop(0, "rgba(40,20,6,0.55)");
   groove.addColorStop(1, "rgba(40,20,6,0)");
@@ -170,8 +216,17 @@ function drawDiscBed(ctx: CanvasRenderingContext2D): void {
   // Disc rim: darker wood ring just outside the sim's disc, bevelled (lit upper left).
   ctx.fillStyle = TOY_WOOD_DARK;
   ctx.beginPath();
-  ctx.arc(0, 0, TILT_DISC_R + 2, 0, Math.PI * 2);
+  ctx.arc(0, 0, TILT_DISC_R + 4, 0, Math.PI * 2);
   ctx.fill();
+  const bevel = ctx.createLinearGradient(-TILT_DISC_R, -TILT_DISC_R, TILT_DISC_R, TILT_DISC_R);
+  bevel.addColorStop(0, "rgba(255,226,180,0.55)");
+  bevel.addColorStop(0.5, "rgba(255,226,180,0)");
+  bevel.addColorStop(1, "rgba(20,8,2,0.5)");
+  ctx.strokeStyle = bevel;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, TILT_DISC_R + 2.4, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = "rgba(255,220,170,0.35)";
   ctx.beginPath();
@@ -179,11 +234,49 @@ function drawDiscBed(ctx: CanvasRenderingContext2D): void {
   ctx.stroke();
 }
 
+/** Polish A4: a soft marble shadow, cast down-right from the screen-fixed lamp (offset turned into the disc's frame). */
+function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+  const dx = 1.6 * Math.cos(-rot) - 2.4 * Math.sin(-rot);
+  const dy = 1.6 * Math.sin(-rot) + 2.4 * Math.cos(-rot);
+  const g = ctx.createRadialGradient(x + dx, y + dy, r * 0.4, x + dx, y + dy, r * 1.25);
+  g.addColorStop(0, "rgba(30,14,4,0.45)");
+  g.addColorStop(1, "rgba(30,14,4,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x + dx, y + dy, r * 1.25, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Polish A4: a glossy window highlight and a soft rim light over a marble, screen-fixed (inside its circle). */
+function marbleGloss(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-rot);
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.3, -r * 0.42, r * 0.34, r * 0.17, -0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.lineWidth = Math.max(0.6, r * 0.1);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.84, Math.PI * 0.2, Math.PI * 0.75);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** tiltRev 2 bonus star: a gold five-point star filling most of its dead-end cell. */
 function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-rot);
+  // Polish A4: a warm glow round the star (light only).
+  const glow = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 1.9);
+  glow.addColorStop(0, "rgba(255,226,90,0.55)");
+  glow.addColorStop(1, "rgba(255,210,63,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 1.9, 0, Math.PI * 2);
+  ctx.fill();
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 5;
@@ -191,11 +284,19 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
     ctx.lineTo(Math.cos(a) * d, Math.sin(a) * d);
   }
   ctx.closePath();
-  ctx.fillStyle = STAR_GOLD;
+  const face = ctx.createLinearGradient(0, -r, 0, r);
+  face.addColorStop(0, "#FFF2A0");
+  face.addColorStop(0.5, STAR_GOLD);
+  face.addColorStop(1, "#E8A21E");
+  ctx.fillStyle = face;
   ctx.fill();
   ctx.strokeStyle = STAR_EDGE;
   ctx.lineWidth = 1.2;
   ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.beginPath();
+  ctx.arc(-r * 0.16, -r * 0.2, Math.max(0.8, r * 0.12), 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -250,6 +351,15 @@ function drawPits(ctx: CanvasRenderingContext2D, m: Maze): void {
     deep.addColorStop(1, "#3A2210");
     ctx.fillStyle = deep;
     ctx.fillRect(x - pr, y - pr, pr * 2, pr * 2);
+    // Polish A4: a deeper pit: its inner walls, shadowed at the top and left, the lit bottom wall showing.
+    const wall = Math.max(1.5, pr * 0.32);
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(x - pr, y - pr, pr * 2, wall);
+    ctx.fillRect(x - pr, y - pr, wall, pr * 2);
+    ctx.fillStyle = "rgba(120,70,30,0.55)";
+    ctx.fillRect(x - pr + wall, y + pr - wall, pr * 2 - wall, wall);
+    ctx.fillStyle = "rgba(0,0,0,0.85)";
+    ctx.fillRect(x - pr * 0.45, y - pr * 0.45, pr * 0.9, pr * 0.9);
     ctx.strokeStyle = TOY_WOOD_DARK;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -275,18 +385,22 @@ function drawStrips(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean): void
     ctx.lineWidth = 4;
     walls(ctx, m, o, 2, 2.6);
   }
-  ctx.strokeStyle = "rgba(30,15,5,0.35)";
+  // Polish A4: deeper carving: a darker edge on the shadow side and a brighter lit edge.
+  ctx.strokeStyle = "rgba(30,15,5,0.5)";
   ctx.lineWidth = 3;
   walls(ctx, m, o, 1.2, 1.6);
   ctx.strokeStyle = STRIP;
   ctx.lineWidth = 3;
   walls(ctx, m, o, 0, 0);
+  ctx.strokeStyle = "rgba(60,30,10,0.55)";
+  ctx.lineWidth = 0.8;
+  walls(ctx, m, o, 0.8, 0.8);
   ctx.strokeStyle = STRIP_TOP;
   ctx.lineWidth = 1;
   walls(ctx, m, o, -0.5, -0.5);
   if (!lite) {
-    ctx.strokeStyle = "rgba(255,236,200,0.35)";
-    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = "rgba(255,236,200,0.6)";
+    ctx.lineWidth = 0.7;
     walls(ctx, m, o, -0.9, -0.9);
   }
 }
@@ -361,6 +475,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     c.translate(ox, oy);
     c.scale(scale, scale);
     toyBoard(c, 0, 0, TILT_WORLD_W, TILT_WORLD_H, 10, false);
+    drawTableDressing(c);
     c.translate(CX, CY);
     drawDiscBed(c);
     c.restore();
@@ -395,7 +510,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     ctx.save();
     ctx.rotate(-rot);
     const gloss = ctx.createRadialGradient(-TILT_DISC_R * 0.45, -TILT_DISC_R * 0.5, 10, 0, 0, TILT_DISC_R);
-    gloss.addColorStop(0, "rgba(255,246,220,0.28)");
+    gloss.addColorStop(0, "rgba(255,236,196,0.34)");
     gloss.addColorStop(0.6, "rgba(255,246,220,0)");
     gloss.addColorStop(1, "rgba(60,30,10,0.22)");
     ctx.fillStyle = gloss;
@@ -478,7 +593,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
       padlock(ctx, lx, ly, w, anim);
       ctx.globalAlpha = 1;
     }
-    if (state.chaser) toyMarble(ctx, state.chaser.x / FP - o, state.chaser.y / FP - o, m.br / FP, TILT_MARBLE_RED, -rot, 2);
+    if (state.chaser) {
+      marbleShadow(ctx, state.chaser.x / FP - o, state.chaser.y / FP - o, m.br / FP, rot);
+      toyMarble(ctx, state.chaser.x / FP - o, state.chaser.y / FP - o, m.br / FP, TILT_MARBLE_RED, -rot, 2);
+    }
   }
 
   // Finishing a maze: the marble sinks into the previous maze's cup.
@@ -506,7 +624,10 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     if (state.b) {
       const cup = cupOf(m, o, m.exit2!, m.exitDir2!, true);
       const at = state.bHome ? cup : { x: state.b.x / FP - o, y: state.b.y / FP - o };
-      if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+      if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) {
+        if (!state.bHome) marbleShadow(ctx, at.x, at.y, mr, rot);
+        toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+      }
     }
     if (state.aHome) {
       const cup = cupOf(m, o, m.exit, m.exitDir, true);
@@ -516,7 +637,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
   if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES) && !state.aHome) {
     // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
     const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
+    marbleShadow(ctx, mx, my, mr, rot);
     if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    marbleGloss(ctx, mx, my, mr, rot);
     // The marbles roll through each other, and pressed into the same corner they sit exactly on top of
     // each other (and then move as one). The blue one is drawn last, so it used to hide the amber one
     // completely: while their centres are within a marble radius, the amber marble's right half is drawn
