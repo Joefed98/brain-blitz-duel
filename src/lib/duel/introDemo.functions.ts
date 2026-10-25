@@ -1,6 +1,7 @@
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { CLAY_REV } from "@/lib/arcade/clayShoot";
+import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
+import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
@@ -12,6 +13,7 @@ import { BUB_REV_REEF } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_GOALS } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { chainDemoCompatible } from "./chain";
+import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -19,7 +21,7 @@ import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TALL, ORBIT_REV_TUNED } from "@/lib/arcade/orbit";
 import { BT_BALLS, BT_REV_RUSH, BT_V7_BALLS } from "@/lib/arcade/ballTrack";
-import { clashPlays3, CLASH_REV_TALL } from "@/lib/arcade/colourClash";
+import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
   game_type: string;
@@ -83,8 +85,14 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
-    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;
+    // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
+    // diamonds; an older demo shows none of them, so each stays stopped (the intro shows its still) until re-recorded.
+    if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_DEPTH) return null;
+    if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_DEPTH) return null;
     if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
+    // Depth to 200 (25 Oct 2026): Matchmaker's pairRev 1 deals a gold pair and shows the streak; an older demo has
+    // neither, so it stays stopped (the intro shows its still) until one is recorded on pairRev 1.
+    if (data.type === "pairmatch" && demo?.puzzle.type === "pairmatch" && !pairUsesDepth(demo.puzzle)) return null;
     // Rev-1 Letterfall demos fall faster, deal vowel-heavy runs and have no Enter box under the well.
     if (data.type === "wordfall" && demo?.puzzle.type === "wordfall" && demo.puzzle.wordfallRev !== WORDFALL_REV) return null;
     // Taller worlds batch 1 (16 Oct 2026): a demo recorded on an older revision would show the short world (and its
@@ -99,7 +107,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
     if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_REEF) return null;
-    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;
+    // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
+    // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
+    if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.

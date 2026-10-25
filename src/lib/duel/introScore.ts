@@ -1,4 +1,4 @@
-import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
+import { CLASH_DEPTH_MAX_WRONG, CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { BINTOSS_THROWS } from "@/lib/arcade/binToss";
 import { BRK_BRICKS } from "@/lib/arcade/breaker";
@@ -7,8 +7,13 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
+import { doubleTakeDepthIntro, eagleEyeDepthIntro, tallyDepthIntro } from "./depth/attentionTexts";
+import { ASCEND_DEPTH_INTRO, BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
 import { depthIntro } from "./numberDepthText";
 import { fillMax, liveRecord } from "./roundMax";
+import { CHAIN_DEPTH_INTRO } from "./depth/chain";
+import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
+import { labyrinthDepthIntro } from "./depth/labyrinth";
 import { TOPSY_INTRO_SCORE } from "./topsy";
 import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
@@ -52,18 +57,19 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention
-    reaction: "Tap fast: 150 ms or quicker on average scores {max}. Early taps cost 8, then 11 after two.",
-    stopwatch: "Stop on the line: about 5 ms off or closer on average scores {max}. Far off drops fast.",
-    numhunt: bandsIntro("numhunt"),
-    chain: bandsIntro("chain"),
-    whack: "Points for each target you hit; all of them scores {max}. Wrong taps lose points.",
-    clayshoot: "5 per orange, 10 per gold; quick hits score more. A bird costs 10; spraying shots costs.",
-    symscan: bandsIntro("symscan"),
-    countup: bandsIntro("countup"),
-    spotdiff: bandsIntro("spotdiff"),
-    pairmatch: bandsIntro("pairmatch"),
-    maze: bandsIntro("maze"),
-    stroop: `Sort all ${CLASH_QUEUE} with 2 wrong at most, quicker for more; else right less wrong words.`,
+    // Depth to 200 (tapRev 5): depth/speedTexts.ts.
+    reaction: FLASH_DEPTH_INTRO,
+    stopwatch: BANGON_DEPTH_INTRO,
+    numhunt: ASCEND_DEPTH_INTRO,
+    chain: CHAIN_DEPTH_INTRO,
+    whack: "Points per target hit; combos and diamonds add more, up to {max}. Wrong taps cost.",
+    clayshoot: "Points per clay, more for quick hits; doubles and streaks add up to {max}. Birds cost.",
+    symscan: eagleEyeDepthIntro(),
+    countup: tallyDepthIntro(),
+    spotdiff: doubleTakeDepthIntro(),
+    pairmatch: PAIR_DEPTH_INTRO,
+    maze: labyrinthDepthIntro(),
+    stroop: `Sort all ${CLASH_QUEUE}, ${CLASH_DEPTH_MAX_WRONG} wrong at most; gold words and a long streak on a quick run reach {max}.`,
 
     // Logic and pattern
     unblock: bandsIntro("unblock"),

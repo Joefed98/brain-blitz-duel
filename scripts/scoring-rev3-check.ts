@@ -16,7 +16,6 @@
  *  6. The help and intro numbers: each game's dealt clock and "150 in about N s" agree with freshly dealt puzzles.
  *  7. Grading stays quick: every stored run grades in a few ms once a board's table is built.
  */
-import { D5_REMODELLED } from "../src/lib/duel/d5Remodels";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
@@ -47,6 +46,11 @@ import { KNOWN_SPAM } from "./puzzle-fairness";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves rev 3 on the stamps before it.
+pinPreDepthTapRev(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -265,8 +269,8 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(dealt.size === 1 && dealt.has((DEALT_LIMIT_S[type] ?? 0) * 1000), `${type}: the help's clock ${DEALT_LIMIT_S[type]} s, dealt ${[...dealt].join("/")} ms`);
   const n = fastFinishSeconds(type);
   ok(n === rev3FastFinishSeconds(type, [...dealt][0]!), `${type}: help says 150 in ${n} s`);
-  // The D5 remodels' help and intro state their own scoring to 200 (d5-remodels-check proves it).
-  if (D5_REMODELLED.has(type)) continue;
+  // A D3 game raised to 200 (Depth to 200, docs/depth/) writes its own help and intro on its new stamp; its depth check proves them.
+  if (roundMaxFor(type) > 150 && !isNumberDepthType(type)) continue;
   // The Number puzzles to 200 (depthRev 1) keep rev 3's numbers inside their own text (numberDepthText.ts).
   const help = isNumberDepthType(type) ? depthHelp(type) : rev3Help(type);
   const intro = isNumberDepthType(type) ? fillMax(depthIntro(type), type) : rev3Intro(type);

@@ -17,7 +17,7 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   wordslide: ["words"],
   equation: ["operators"],
   symscan: ["targets"],
-  spotdiff: ["differences"],
+  spotdiff: ["differences", "bonus"],
   // The server derives each answer directly from the stored scene.
   countup: ["counts"],
   // These types show the player everything they need on screen — there is

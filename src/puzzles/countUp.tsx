@@ -19,7 +19,8 @@ import {
   type GlyphShape,
 } from "@/lib/duel/types";
 
-import { ATTENTION_REWORK_TIME_MS, COUNT_COMPARE_REV, countUpCounts, countUpStageTruth, usesCountRev2 } from "@/lib/duel/attentionRev";
+import { COUNT_DEPTH_REV } from "@/lib/duel/depth/tally";
+import { ATTENTION_REWORK_TIME_MS, countUpCounts, countUpStageTruth, usesCountRev2 } from "@/lib/duel/attentionRev";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
@@ -483,7 +484,8 @@ export function buildCountUp(): CountUpPuzzleData {
     type: "countup",
     stages: built.map((b) => b.stage),
     counts: built.map((b) => b.count),
-    countRev: COUNT_COMPARE_REV,
+    // countRev 3 (25 Oct 2026, depth/tally.ts): the same trays, scored to {max}.
+    countRev: COUNT_DEPTH_REV,
     timeLimitMs: ATTENTION_REWORK_TIME_MS,
   };
 }

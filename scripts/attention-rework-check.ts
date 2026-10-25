@@ -124,7 +124,8 @@ const apart = (a: string, b: string) => {
 for (let i = 0; i < 40; i++) {
   const seed = 9601 + i;
   const scan = roomPuzzle("symscan", seed) as SymbolScanPuzzleData;
-  ok(scan.scanRev === 1, `symscan ${seed}: scanRev ${scan.scanRev}`);
+  // Depth to 200 (25 Oct 2026): rooms deal scanRev 2, spotRev 2 and countRev 3 on the same rework rules (depth-*-check).
+  ok(scan.scanRev === 2, `symscan ${seed}: scanRev ${scan.scanRev}`);
   scan.stages.forEach((st, k) => {
     const matches = scanStageMatches(st);
     ok(
@@ -144,7 +145,7 @@ for (let i = 0; i < 40; i++) {
   });
   const spot = roomPuzzle("spotdiff", seed) as SpotPuzzleData;
   ok(
-    spot.spotRev === 1 && spot.timeLimitMs === ATTENTION_REWORK_TIME_MS && !!spot.reef,
+    spot.spotRev === 2 && spot.timeLimitMs === ATTENTION_REWORK_TIME_MS && !!spot.reef,
     `spotdiff ${seed}: stamp ${spot.spotRev} limit ${spot.timeLimitMs}`,
   );
   for (const [scene, pic] of [
@@ -164,7 +165,7 @@ for (let i = 0; i < 40; i++) {
   }
   const tally = roomPuzzle("countup", seed) as CountUpPuzzleData;
   ok(
-    tally.countRev === 2 &&
+    tally.countRev === 3 &&
       tally.timeLimitMs === ATTENTION_REWORK_TIME_MS &&
       tally.stages.length === 4,
     `countup ${seed}: countRev ${tally.countRev}, ${tally.stages.length} trays`,
@@ -367,8 +368,9 @@ for (const type of ["symscan", "spotdiff", "countup"]) {
     !puzzleInputDemoCompatible(type, { presentation: SPEED_POLISH_PRESENTATION }),
     `${type}: a pre-rework demo still plays`,
   );
+  // Depth to 200 (25 Oct 2026): Double Take's rework demos are stopped too (its hidden difference), until re-recorded.
   ok(
-    puzzleInputDemoCompatible(type, { presentation: ATTENTION_REWORK_PRESENTATION }),
+    puzzleInputDemoCompatible(type, { presentation: ATTENTION_REWORK_PRESENTATION }) === (type !== "spotdiff"),
     `${type}: a rework demo is rejected`,
   );
 }

@@ -22,7 +22,8 @@ import {
 } from "@/lib/duel/types";
 
 import { ShopBackdrop, SweetArt, playDifferenceGlow } from "./doubleTakeArt";
-import { ATTENTION_REWORK_TIME_MS, SPOT_REV, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
+import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
+import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
 import { ReefArt, ReefBackdrop, reefLabel } from "./doubleTakeReef";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -99,7 +100,8 @@ function sweetLabel(label: string): string {
 
 function DrawnShape({ shape, size = SHAPE, theme = "shop" }: { shape: SpotShape; size?: number; theme?: SpotTheme }) {
   const { x, y } = cellCentre(shape.cell);
-  const scale = size / 40;
+  // spotRev 2's hidden difference: the same art, a little smaller.
+  const scale = (size / 40) * (shape.small ? SPOT_BONUS_SCALE : 1);
   const turns = [
     `translate(${x} ${y})`,
     shape.rot ? `rotate(${shape.rot})` : "",
@@ -119,7 +121,7 @@ const SweetLayer = memo(function SweetLayer({ shapes, size, theme }: { shapes: S
   return (
     <g pointerEvents="none">
       {shapes.map((shape) => (
-        <DrawnShape key={`${shape.cell}-${shape.kind}`} shape={shape} size={size} theme={theme} />
+        <DrawnShape key={`${shape.cell}-${shape.kind}${shape.small ? "-s" : ""}`} shape={shape} size={size} theme={theme} />
       ))}
     </g>
   );
@@ -128,6 +130,7 @@ const SweetLayer = memo(function SweetLayer({ shapes, size, theme }: { shapes: S
 function Panel({
   shapes,
   found = [],
+  hidden = [],
   missed = [],
   wrongCell,
   onTap,
@@ -142,6 +145,8 @@ function Panel({
   shapes: SpotShape[];
   /** Cells ringed in gold. */
   found?: number[];
+  /** spotRev 2: the hidden difference, once found (a double gold ring). */
+  hidden?: number[];
   /** Reveal only: differences not found, ringed dashed in the warning colour. */
   missed?: number[];
   wrongCell?: number | null;
@@ -197,6 +202,15 @@ function Panel({
             strokeWidth="2.5"
             style={{ filter: "drop-shadow(0 0 2px var(--primary))" }}
           />
+        );
+      })}
+      {hidden.map((cell) => {
+        const { x, y } = cellCentre(cell);
+        return (
+          <g key={`h${cell}`} className="dt-ring-hidden" data-dt-hidden-found={cell} style={{ filter: "drop-shadow(0 0 3px var(--primary))" }}>
+            <ellipse cx={x} cy={y} rx={CELL_W / 2 - 2} ry={CELL_H / 2 - 2} fill="none" stroke="var(--primary)" strokeWidth="2.5" />
+            <ellipse cx={x} cy={y} rx={CELL_W / 2 - 6} ry={CELL_H / 2 - 6} fill="none" stroke="var(--primary)" strokeWidth="1.75" strokeDasharray="3 2.5" />
+          </g>
         );
       })}
       {wrongCell !== null && wrongCell !== undefined
@@ -353,6 +367,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const submitted = useRef("");
   const arenaRef = useRef<HTMLDivElement>(null);
   const groups = allGroups[scene] ?? [];
+  // spotRev 2: the hidden seventh difference (a shape drawn smaller), found from the panels for feedback only.
+  const allHidden = useMemo(() => scenes.map((sc) => hiddenCells(sc.top, sc.bottom)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hidden = allHidden[scene] ?? [];
+  const hasHidden = allHidden.some((cells) => cells.length > 0);
   const glow = useRef<() => void>(() => undefined);
   glow.current = () => {
     if (arenaRef.current) playDifferenceGlow(arenaRef.current, groups.flat(), { cols: SPOT_COLS, cell: CELL_W, width: PANEL_W, height: PANEL_H });
@@ -370,8 +388,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const foundGroups = groups.filter((g) => g.some((cell) => sceneTaps.includes(cell)));
   const foundCells = foundGroups.flat();
   const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
-  const groupCells = new Set(groups.flat());
+  const groupCells = new Set([...groups.flat(), ...hidden]);
   const misses = sceneTaps.filter((c) => !groupCells.has(c)).length;
+  const hiddenFound = hidden.filter((c) => sceneTaps.includes(c));
+  const anyHiddenFound = allHidden.some((cells, i) => cells.some((c) => (taps[i] ?? []).includes(c)));
   const limitMs = data?.timeLimitMs ?? SPOT_TIME_MS;
   const lastScene = scene >= scenes.length - 1;
   // Stored rounds send "c1,c2,…"; spotRev 1 sends one list per picture, "picture1|picture2".
@@ -426,8 +446,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
 
   const tap = (cell: number) => {
     if (locked || sceneFinished) return;
-    if (foundCells.includes(cell)) return;
-    const hit = groups.some((g) => g.includes(cell));
+    if (foundCells.includes(cell) || hiddenFound.includes(cell)) return;
+    const hit = groups.some((g) => g.includes(cell)) || hidden.includes(cell);
     const add = (prev: number[][]) => prev.map((t, i) => (i === scene && !t.includes(cell) ? [...t, cell] : t));
     if (hit) {
       playCorrect();
@@ -457,6 +477,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
             Misses {misses} / {SPOT_TWO_WRONG_LIMIT}
           </span>
         ) : null}
+        {/* spotRev 2: a gold star once the hidden difference is found; its space is always kept, so nothing moves. */}
+        {hasHidden ? (
+          <span
+            className={`dt-hidden-star text-primary ${anyHiddenFound ? "" : "invisible"}`}
+            data-dt-hidden={anyHiddenFound ? "found" : "open"}
+            aria-label={anyHiddenFound ? "Hidden difference found" : undefined}
+            aria-hidden={anyHiddenFound ? undefined : true}
+          >
+            ★
+          </span>
+        ) : null}
       </div>
       <div
         ref={arenaRef}
@@ -467,11 +498,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
         } ${wrong !== null ? "animate-shake" : ""}`}
       >
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={current.top} theme={current.theme} found={foundCells} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+          <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
         </div>
         <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-          <Panel shapes={current.bottom} theme={current.theme} found={foundCells} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+          <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
         </div>
       </div>
       {twoPictures && !lastScene ? (
@@ -509,10 +540,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     const found = own.filter((d) => d.cells.some((cell) => taps.includes(cell)));
     const foundCells = found.flatMap((d) => d.cells);
     const missedCells = own.flatMap((d) => d.cells).filter((cell) => !foundCells.includes(cell));
-    return { scene: sc, own, found, foundCells, missedCells };
+    // spotRev 2: the hidden seventh difference, if it was in this picture (shown after the six, never counted).
+    const bonus = puzzle.bonus && (puzzle.bonus.scene ?? 0) === i ? puzzle.bonus : null;
+    const bonusGot = bonus ? bonus.cells.some((cell) => taps.includes(cell)) : false;
+    return { scene: sc, own, found, foundCells, missedCells, bonus, bonusGot };
   });
   // One picture at a time on spotRev 1; the first with a miss opens first.
-  const open = shown ?? Math.max(0, pictures.findIndex((p) => p.found.length < p.own.length));
+  // spotRev 2: with nothing missed, the picture that hid the seventh difference opens, so its line shows.
+  const firstMiss = pictures.findIndex((p) => p.found.length < p.own.length);
+  const open = shown ?? (firstMiss >= 0 ? firstMiss : Math.max(0, pictures.findIndex((p) => p.bonus !== null)));
   const pic = pictures[open]!;
   const totalFound = pictures.reduce((n, p) => n + p.found.length, 0);
   const totalDiffs = twoPictures ? differences.length : SPOT_DIFFERENCES;
@@ -540,10 +576,10 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       {/* Side by side: each picture is larger than when stacked on a short phone. */}
       <div className="dt-reveal-panels dt-arena flex w-full flex-row gap-1 overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme}>
         <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={pic.scene.top} theme={pic.scene.theme} found={pic.foundCells} missed={pic.missedCells} />
+          <Panel shapes={pic.scene.top} theme={pic.scene.theme} found={pic.foundCells} hidden={pic.bonusGot ? pic.bonus!.cells : []} missed={[...pic.missedCells, ...(pic.bonus && !pic.bonusGot ? pic.bonus.cells : [])]} />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden rounded-lg">
-          <Panel shapes={pic.scene.bottom} theme={pic.scene.theme} found={pic.foundCells} missed={pic.missedCells} />
+          <Panel shapes={pic.scene.bottom} theme={pic.scene.theme} found={pic.foundCells} hidden={pic.bonusGot ? pic.bonus!.cells : []} missed={[...pic.missedCells, ...(pic.bonus && !pic.bonusGot ? pic.bonus.cells : [])]} />
         </div>
       </div>
       <div className="flex w-full flex-col gap-0.5">
@@ -558,6 +594,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
             </div>
           );
         })}
+        {pic.bonus ? (
+          <div className="flex items-center justify-between text-base leading-6" data-dt-hidden-line={pic.bonusGot ? "found" : "missed"}>
+            <span className="text-foreground/80">★ Hidden: {themedLabel(pic.bonus, pic.scene.theme, pic.scene.top)}</span>
+            <span className={`font-display font-bold ${pic.bonusGot ? "text-primary" : "text-muted-foreground"}`}>{pic.bonusGot ? "✓" : "–"}</span>
+          </div>
+        ) : null}
       </div>
       <p className="font-mono text-2xl font-bold tabular-nums text-primary">
         {totalFound} / {totalDiffs} found
@@ -638,18 +680,47 @@ function buildPicture(): Pick<SpotPuzzleData, "top" | "bottom"> & { differences:
 export function buildSpotDifference(): SpotPuzzleData {
   const shop = buildPicture();
   const reef = buildPicture();
+  // spotRev 2 (25 Oct 2026, depth/doubleTake.ts): one picture hides a seventh, subtler difference.
+  const scene = Math.random() < 0.5 ? 0 : 1;
+  const hidden = hideBonus(scene === 0 ? shop : reef);
+  const pictures = [shop, reef].map((pic, i) => (i === scene && hidden ? { ...pic, top: hidden.top, bottom: hidden.bottom } : pic));
   return {
     type: "spotdiff",
-    top: shop.top,
-    bottom: shop.bottom,
-    reef: { top: reef.top, bottom: reef.bottom },
+    top: pictures[0]!.top,
+    bottom: pictures[0]!.bottom,
+    reef: { top: pictures[1]!.top, bottom: pictures[1]!.bottom },
     differences: [
       ...shop.differences.map((d) => ({ ...d, scene: 0 })),
       ...reef.differences.map((d) => ({ ...d, scene: 1 })),
     ],
-    spotRev: SPOT_REV,
+    ...(hidden ? { bonus: { ...hidden.bonus, scene } } : {}),
+    spotRev: SPOT_DEPTH_REV,
     timeLimitMs: ATTENTION_REWORK_TIME_MS,
   };
+}
+
+/**
+ * spotRev 2: one shape, at least two cells from every counted difference, drawn smaller in one panel (either), so
+ * the picture differs in a seventh way the "n / 6" count never shows. Null only if no cell is far enough away.
+ */
+function hideBonus(pic: { top: SpotShape[]; bottom: SpotShape[]; differences: SpotDifference[] }): { top: SpotShape[]; bottom: SpotShape[]; bonus: SpotDifference } | null {
+  const used = pic.differences.flatMap((d) => d.cells);
+  const options = pic.top.filter((shape) => used.every((cell) => cellsApart(cell, shape.cell) >= 2));
+  if (options.length === 0) return null;
+  const cell = pick(options).cell;
+  const inTop = Math.random() < 0.5;
+  const shrink = (shapes: SpotShape[]) => shapes.map((shape) => (shape.cell === cell ? { ...shape, small: true } : shape));
+  return {
+    top: inTop ? shrink(pic.top) : pic.top,
+    bottom: inTop ? pic.bottom : shrink(pic.bottom),
+    bonus: { kind: "size", cells: [cell], label: "A shape was drawn smaller" },
+  };
+}
+
+/** spotRev 2: the hidden difference's cells in one picture, found from the two panels (feedback only). */
+export function hiddenCells(top: SpotShape[], bottom: SpotShape[]): number[] {
+  const byBottom = new Map(bottom.map((s) => [s.cell, s]));
+  return top.flatMap((shape) => ((shape.small ?? false) !== (byBottom.get(shape.cell)?.small ?? false) ? [shape.cell] : []));
 }
 
 function buildSpotPicture(): SpotPuzzleData {

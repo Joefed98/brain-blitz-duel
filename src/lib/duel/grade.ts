@@ -24,7 +24,8 @@ import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slid
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
-import { decodeMazePath, verifyMazePath } from "./maze";
+import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
+import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
@@ -47,11 +48,11 @@ import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
 import { decodeBeatRun, replayBeatRun } from "./beat";
-import { decodeWhackRun, replayWhackRun } from "./whack";
+import { decodeWhackRun, replayWhackRun, whackDepthDetail } from "./whack";
 import { decodeTenDropRun, replayTenDropRun } from "./tenDrop";
 import { decodeWordfallRun, replayWordfallRun } from "./wordfall";
 import { ensureWordfallDict } from "./wordfallDict.server";
-import { decodeClayRun, replayClayRun } from "./clayShoot";
+import { clayDepthDetail, decodeClayRun, replayClayRun } from "./clayShoot";
 import { clayChargesEmptyShots, clayEmptyShotCost, clayEmptyShots } from "@/lib/arcade/clayShoot";
 import { decodeWavefrontRun, replayWavefrontRun } from "./wavefront";
 import { decodeBastionRun, replayBastionRun } from "./bastion";
@@ -117,7 +118,11 @@ import {
   usesCountRev2,
   usesScanRev1,
   usesSpotRev1,
+  parseSpotTaps,
+  SPOT_REV1_SCENES,
 } from "./attentionRev";
+import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
+import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./registry";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
 import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
@@ -437,7 +442,8 @@ function gradeUnderRev(
       revealRun = replay;
       correctCount = replay.correct;
       // clashRev 4–7: a finish allows up to CLASH_REV4_MAX_WRONG wrong gates; older rounds need every word right.
-      isCorrect = puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS || puzzle.clashRev === CLASH_REV_GREAT
+      // clashRev 8 (depth to 200): its own finish (one more wrong word allowed for the "don't sort" words).
+      isCorrect = replay.depth ? replay.depth.finished : puzzle.clashRev === CLASH_REV || puzzle.clashRev === CLASH_REV_TALL || puzzle.clashRev === CLASH_REV_BANDS || puzzle.clashRev === CLASH_REV_GREAT
         ? clashRev4Finished(replay.correct, replay.wrong, replay.total, replay.state.finishTick)
         : replay.correct >= replay.total;
       score = replay.score;
@@ -450,6 +456,11 @@ function gradeUnderRev(
           ? Math.min(ms, clamp(timeLimitMs - (finishTick * 1000) / TICKS_PER_SECOND, 0, timeLimitMs))
           : 0;
       extraDetail = { wrong: replay.wrong, missed: replay.missed, total: replay.total };
+      // clashRev 8: the score's parts and the streak / gold / "don't sort" counts, for the reveal.
+      if (replay.depth) {
+        const d = replay.depth;
+        extraDetail = { ...extraDetail, depth: { base: d.base, gold: d.gold, streak: d.streak, stretch: d.stretch, best: d.best, golds: d.golds, goldWords: d.goldWords, touched: d.touched, passed: d.passed, skips: d.skips } };
+      }
       break;
     }
     case "spotdiff": {
@@ -461,6 +472,8 @@ function gradeUnderRev(
         isCorrect = result.finished;
         score = scoreSpotTwo(result, ms, timeLimitMs);
         extraDetail = { found: result.found, wrong: result.wrong };
+        // spotRev 2: whether the hidden seventh difference was tapped (scored by depth/doubleTake.server.ts).
+        if (usesSpotDepth(puzzle)) extraDetail["hiddenFound"] = spotBonusFound(puzzle, parseSpotTaps(answer, SPOT_REV1_SCENES));
         break;
       }
       // The phone sends every cell it tapped; the six differences live
@@ -488,6 +501,8 @@ function gradeUnderRev(
         errors = results.reduce((sum, r) => sum + r.wrong, 0);
         isCorrect = correctCount === STAGE_COUNT;
         score = scoreScanRev1(results, ms, timeLimitMs);
+        // scanRev 2: taps taken back, the phone's count (scored by depth/eagleEye.server.ts).
+        if (usesScanDepth(puzzle)) extraDetail = { corrections: scanCorrections(answer) };
         break;
       }
       const parts = splitStages(answer);
@@ -813,14 +828,20 @@ function gradeUnderRev(
       break;
     }
     case "maze": {
+      // mazeRev 1 (depth/labyrinth.ts): the answer is the whole trail; the route is the trail with its backtracks
+      // folded away, graded exactly as the older path answer, and the stars are the ones the trail rolled over.
+      const depth = usesMazeDepth(puzzle);
+      const cols = mazeColsOf(puzzle);
+      const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols) : null;
       // The drawn route is re-walked through the stored corridors.
-      const path = decodeMazePath(answer);
+      const path = walk ? mazeTrailRoute(walk) : decodeMazePath(answer);
       const verdict = verifyMazePath(
         puzzle.cells,
         puzzle.start,
         puzzle.exit,
         puzzle.solution ?? [],
         path,
+        cols,
       );
       isCorrect = verdict.solved;
       correctCount = verdict.walked;
@@ -835,6 +856,7 @@ function gradeUnderRev(
         solved: verdict.solved,
         progress: Math.round(verdict.progress * 100),
         wasted: verdict.wasted,
+        ...(walk ? { stars: mazeStarsTaken(walk, puzzle.stars ?? []), backtracks: mazeTrailBacktracks(walk) } : {}),
       };
       break;
     }
@@ -1501,6 +1523,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeWhackRun(answer).events.length,
         claimedScore: decodeWhackRun(answer).claimedScore,
+        // whackRev 3 (depth to 200): the base, the gold combo and the diamonds, stored for the reveal.
+        ...(run.state.dp ? { depth: whackDepthDetail(run.state) } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;
@@ -1610,6 +1634,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeClayRun(answer).events.length,
         claimedScore: decodeClayRun(answer).claimedScore,
+        // clayRev 9 (depth to 200): the base, the doubles and the hit streak, stored for the reveal.
+        ...(run.state.dp ? { depth: clayDepthDetail(run.state) } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

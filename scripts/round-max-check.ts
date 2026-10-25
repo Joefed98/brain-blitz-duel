@@ -52,7 +52,13 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
  * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156). Checked against ROUND_MAX below, so the list and the
  * maximums can't drift apart.
  */
-const RAISED: PuzzleType[] = ["target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack", "gravity", "tiles"];
+const RAISED: PuzzleType[] = [
+  "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
+  // Depth D3 (docs/depth/d3-speed-attention.md): the twelve Speed and Attention games.
+  "reaction", "numhunt", "stopwatch", "chain", "whack", "clayshoot", "stroop", "symscan", "spotdiff", "countup", "maze", "pairmatch",
+  // The D5 remodels (docs/depth/d5-remodels.md): Topsy-Turvy and Jumbled.
+  "gravity", "tiles",
+];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);
 /** A game still at 150 for the samples below (the preferred one while it is). */
@@ -63,6 +69,7 @@ const E6_RAISED: PuzzleType[] = ["bubble", "matchup", "balltrack"];
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
+
 
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");

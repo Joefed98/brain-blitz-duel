@@ -155,6 +155,8 @@ export interface WhackState {
   tgt?: number;
   /** whackRev 2 only (score bands): 1 = the raw score mapped through WHACK_BANDS_MAP. Absent on older rounds. */
   sb?: number;
+  /** whackRev 3 only (depth to 200): the gold combo and the diamonds (WhackDepth). Absent on older rounds. */
+  dp?: WhackDepth;
   tick: number;
   rng: number;
   schedule: WhackSchedule;
@@ -221,22 +223,44 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
     status[next] = WHACK_STATUS_UP;
     next += 1;
   }
+  // whackRev 3: diamonds rise and sink on their own schedule, in holes no pop uses meanwhile.
+  const dp = state.dp ? stepDiamonds(state.dp, tick) : undefined;
   if (input && input.k === WHACK_INPUT_TAP) {
     const h = clampInt(input.a, 0, WHACK_HOLES - 1);
     taps += 1;
     let struck = false;
+    let outcome = 0;
+    let risenAt = tick;
     for (let i = 0; i < next; i++) {
       if (status[i] !== WHACK_STATUS_UP || s.hole[i] !== h) continue;
-      if (s.kind[i] === whackRule(s.flips, s.at[i]!)) { status[i] = WHACK_STATUS_HIT; hits += 1; }
-      else if (s.kind[i] === WHACK_BOMB) { status[i] = WHACK_STATUS_WRONG; bombs += 1; }
-      else { status[i] = WHACK_STATUS_WRONG; wrong += 1; }
+      if (s.kind[i] === whackRule(s.flips, s.at[i]!)) { status[i] = WHACK_STATUS_HIT; hits += 1; outcome = 1; risenAt = s.at[i]!; }
+      else if (s.kind[i] === WHACK_BOMB) { status[i] = WHACK_STATUS_WRONG; bombs += 1; outcome = -1; }
+      else { status[i] = WHACK_STATUS_WRONG; wrong += 1; outcome = -1; }
       doneTick[i] = tick;
       struck = true;
       break;
     }
-    if (!struck) empty += 1;
+    if (dp && !struck) {
+      const d = diamondUpAt(dp, h);
+      if (d >= 0) {
+        dp.status[d] = WHACK_STATUS_HIT;
+        dp.done[d] = tick;
+        dp.hits += 1;
+        struck = true;
+      }
+    }
+    if (!struck) { empty += 1; outcome = -1; }
+    if (dp) {
+      // The gold combo: each right hit adds to the run; a wrong colour, a hedgehog or an empty hole ends it.
+      if (outcome > 0) {
+        dp.combo += 1;
+        // Each hit's pips are weighted by how quickly it landed after the target rose (whackComboQuick).
+        dp.pips += (whackComboMultiplier(dp.combo) - 1) * whackComboQuick(tick - risenAt);
+        if (dp.combo > dp.best) dp.best = dp.combo;
+      } else if (outcome < 0) dp.combo = 0;
+    }
   }
-  return { ...state, tick, status, doneTick, hits, wrong, bombs, empty, taps, next };
+  return { ...state, tick, status, doneTick, hits, wrong, bombs, empty, taps, next, ...(dp ? { dp } : {}) };
 }
 
 /** round(135 × hits ÷ total) − 3 per wrong-colour tap − 5 per bomb − 3 per empty tap; +15 if every target hit; clamp 0…150. */
@@ -249,6 +273,7 @@ export function whackScore(hits: number, wrong: number, total: number, empty = 0
 
 function score(state: WhackState): number {
   const raw = whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  if (state.dp) return whackDepthScore(state).score;
   if (state.sb) return bandMapTotal(WHACK_BANDS_MAP, raw);
   return state.tgt ? whackLift(raw) : raw;
 }
@@ -304,7 +329,8 @@ export function whackCheckpointState(state: WhackState): WhackCheckpointState {
 export function whackCheckpoint(state: WhackState): WhackCheckpoint {
   const snapshot = whackCheckpointState(state);
   let checksum = 0x811c9dc5;
-  for (const value of Object.values(snapshot)) {
+  // whackRev 3: the combo and the diamonds, last (they are in no encoded field).
+  for (const value of [...Object.values(snapshot), ...(state.dp ? whackDepthChecksumValues(state.dp) : [])]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -430,6 +456,7 @@ export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = 
 
 /** The game for a stored whackRev (absent = the original score). */
 export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  if (rev === WHACK_REV_DEPTH) return whackDepthGame;
   if (rev === WHACK_REV_BANDS) return whackBandsGame;
   return rev === WHACK_REV_TARGET ? whackTargetGame : whackGame;
 }
@@ -444,3 +471,162 @@ export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, Arcade
 export const WHACK_REV_BANDS = 2;
 export const WHACK_BANDS_MAP = bandCurve([0, 62, 102, 118, 133, 150], [0, 70, 100, 120, 140, 150]);
 export const whackBandsGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...init(seed), sb: 1 }) };
+
+/* ================= Depth to 200 (whackRev 3, 25 Oct 2026) ================= */
+
+/**
+ * whackRev 3 (docs/depth/d3-speed-attention.md): whackRev 2 play, schedule and score (0–150, the base), plus two
+ * features that are the only way past 150 (round maximum 200, roundMax.ts):
+ *
+ *   - the gold combo: right hits in a row, with no wrong-colour, hedgehog or empty-hole tap between them (a target
+ *     left to sink does not break it), raise a multiplier, ×1 for hits 1–5, ×2 from the 6th, ×3 from the 11th, ×4
+ *     from the 16th; each hit adds (multiplier − 1) combo pips weighted by its quickness (whackComboQuick: full up to
+ *     150 ms after the target rose, none from about 267 ms), and the combo part rises evenly to WHACK_COMBO_POINTS at
+ *     WHACK_COMBO_FULL_PCT of the pips of one unbroken, full-quickness run through every target (elite pace);
+ *   - the diamond: WHACK_DIAMONDS times a run a diamond rises for WHACK_DIAMOND_LIFE_TICKS (300 ms) in a burrow no
+ *     target uses meanwhile; a tap on it is worth WHACK_DIAMOND_POINTS and is never a mistake.
+ *
+ * The diamond schedule is drawn after the pop schedule from the same seeded stream (rng carried in the state), so
+ * the base schedule is whackRev 2's exactly. 200 needs a perfect base, an unbroken combo at elite pace and both
+ * diamonds.
+ */
+export const WHACK_REV_DEPTH = 3;
+export const WHACK_COMBO_POINTS = 44;
+/**
+ * The share of a perfect run's pips (every target, unbroken, at full quickness) that earns the whole combo part,
+ * in per cent: an unbroken run at elite pace (tuned 26 Oct 2026); the part rises evenly to it.
+ */
+export const WHACK_COMBO_FULL_PCT = 52;
+export const WHACK_DIAMONDS = 2;
+export const WHACK_DIAMOND_POINTS = 3;
+export const WHACK_DIAMOND_LIFE_TICKS = 18;
+/** Each diamond rises in its own window of the run (ticks). */
+export const WHACK_DIAMOND_WINDOWS: readonly (readonly [number, number])[] = [[12 * TICKS_PER_SECOND, 28 * TICKS_PER_SECOND], [34 * TICKS_PER_SECOND, 52 * TICKS_PER_SECOND]];
+/** Hits in a row per multiplier step, and the top multiplier. */
+export const WHACK_COMBO_STEP = 5;
+export const WHACK_COMBO_TOP = 4;
+
+export interface WhackDepth {
+  /** Right hits in a row now, the best run, and the combo pips earned. */
+  combo: number;
+  best: number;
+  pips: number;
+  /** Diamond schedule (rise tick, hole) and progress. */
+  at: number[];
+  hole: number[];
+  status: number[];
+  done: number[];
+  hits: number;
+}
+
+/** The multiplier for the `combo`-th right hit in a row (1-based). */
+export function whackComboMultiplier(combo: number): number {
+  if (combo <= 0) return 1;
+  return Math.min(WHACK_COMBO_TOP, 1 + Math.floor((combo - 1) / WHACK_COMBO_STEP));
+}
+
+/**
+ * A combo hit's quickness weight, 0–WHACK_QUICK_STEPS, from the ticks between the target rising and the hit: the
+ * full weight up to WHACK_QUICK_FULL_TICKS (elite pace), falling evenly to 0 at WHACK_QUICK_ZERO_TICKS, so the
+ * combo's full value needs an unbroken run at elite pace (tuned 26 Oct 2026, before whackRev 3 went live).
+ */
+export const WHACK_QUICK_STEPS = 8;
+export const WHACK_QUICK_FULL_TICKS = 9;
+export const WHACK_QUICK_ZERO_TICKS = 16;
+export function whackComboQuick(delayTicks: number): number {
+  if (delayTicks <= WHACK_QUICK_FULL_TICKS) return WHACK_QUICK_STEPS;
+  if (delayTicks >= WHACK_QUICK_ZERO_TICKS) return 0;
+  return Math.floor((WHACK_QUICK_STEPS * (WHACK_QUICK_ZERO_TICKS - delayTicks)) / (WHACK_QUICK_ZERO_TICKS - WHACK_QUICK_FULL_TICKS));
+}
+
+/** Combo pips of one unbroken run through `total` targets, every hit at full quickness. */
+export function whackComboMaxPips(total: number): number {
+  let pips = 0;
+  for (let n = 1; n <= total; n++) pips += (whackComboMultiplier(n) - 1) * WHACK_QUICK_STEPS;
+  return pips;
+}
+
+function buildDiamonds(rngStart: number, schedule: WhackSchedule): { rng: number; at: number[]; hole: number[] } {
+  let rng = rngStart | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const at: number[] = [];
+  const hole: number[] = [];
+  for (const [lo, hi] of WHACK_DIAMOND_WINDOWS) {
+    let tick = lo + draw(hi - lo);
+    for (let tries = 0; tries < hi - lo; tries++, tick = tick + 1 >= hi ? lo : tick + 1) {
+      // Burrows with no target up at any moment of the diamond's life (and a beat either side).
+      const busy = new Set<number>();
+      for (let i = 0; i < schedule.at.length; i++) {
+        const from = schedule.at[i]!;
+        const to = from + schedule.life[i]! + 12;
+        if (from <= tick + WHACK_DIAMOND_LIFE_TICKS + 6 && to >= tick) busy.add(schedule.hole[i]!);
+      }
+      const free: number[] = [];
+      for (let h = 0; h < WHACK_HOLES; h++) if (!busy.has(h)) free.push(h);
+      if (free.length === 0) continue;
+      at.push(tick);
+      hole.push(free[draw(free.length)]!);
+      break;
+    }
+  }
+  return { rng, at, hole };
+}
+
+function initDepth(seed: number): WhackState {
+  const base = init(seed);
+  const d = buildDiamonds(base.rng, base.schedule);
+  return {
+    ...base,
+    rng: d.rng,
+    sb: 1,
+    dp: { combo: 0, best: 0, pips: 0, at: d.at, hole: d.hole, status: d.at.map(() => WHACK_STATUS_WAITING), done: d.at.map(() => 0), hits: 0 },
+  };
+}
+
+function stepDiamonds(dp: WhackDepth, tick: number): WhackDepth {
+  const status = [...dp.status];
+  const done = [...dp.done];
+  for (let i = 0; i < dp.at.length; i++) {
+    if (status[i] === WHACK_STATUS_UP && tick >= dp.at[i]! + WHACK_DIAMOND_LIFE_TICKS) { status[i] = WHACK_STATUS_RETIRED; done[i] = tick; }
+    else if (status[i] === WHACK_STATUS_WAITING && tick >= dp.at[i]!) status[i] = WHACK_STATUS_UP;
+  }
+  return { ...dp, status, done };
+}
+
+/** The diamond standing in a hole, or -1. */
+export function diamondUpAt(dp: WhackDepth, hole: number): number {
+  for (let i = 0; i < dp.at.length; i++) if (dp.status[i] === WHACK_STATUS_UP && dp.hole[i] === hole) return i;
+  return -1;
+}
+
+export interface WhackDepthScore {
+  base: number;
+  combo: number;
+  diamonds: number;
+  score: number;
+}
+
+/** whackRev 3's score: the whackRev 2 base, the combo part and the diamonds, 0–200. */
+export function whackDepthScore(state: WhackState): WhackDepthScore {
+  const raw = whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  const base = bandMapTotal(WHACK_BANDS_MAP, raw);
+  const dp = state.dp;
+  if (!dp) return { base, combo: 0, diamonds: 0, score: base };
+  const maxPips = whackComboMaxPips(state.schedule.total);
+  const pips = Math.min(dp.pips, maxPips);
+  const combo = maxPips > 0 ? Math.min(WHACK_COMBO_POINTS, Math.floor((WHACK_COMBO_POINTS * 100 * pips) / (maxPips * WHACK_COMBO_FULL_PCT))) : 0;
+  const diamonds = WHACK_DIAMOND_POINTS * dp.hits;
+  return { base, combo, diamonds, score: clampInt(base + combo + diamonds, 0, 200) };
+}
+
+function whackDepthChecksumValues(dp: WhackDepth): number[] {
+  let h = 0;
+  for (let i = 0; i < dp.status.length; i++) h = (Math.imul(h, 31) + dp.status[i]! * 7 + dp.done[i]!) | 0;
+  return [dp.combo, dp.best, dp.pips, dp.hits, h];
+}
+
+export const whackDepthGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: initDepth };
