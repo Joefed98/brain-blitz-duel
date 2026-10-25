@@ -14,6 +14,7 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { planTimelapse, TIMELAPSE } from "../src/lib/replay/timelapse";
 import { encodeActionLog } from "../src/lib/duel/actionLog";
 import { laserAction } from "../src/lib/duel/laserLog";
+import { encodeMazeTrail, usesMazeDepth } from "../src/lib/duel/depth/labyrinth";
 
 /** A move list each puzzle could store: its own minimum solution where it keeps one. */
 export function answerFor(type: string, p: any): string {
@@ -24,6 +25,8 @@ export function answerFor(type: string, p: any): string {
     case "gravity":
       return String(p.solution);
     case "maze":
+      // mazeRev 1 stores the trail (one letter a step); older mazes the path's cells.
+      return usesMazeDepth(p) ? encodeMazeTrail(p.solution as number[], p.cols) : (p.solution as number[]).join(",");
     case "flood":
     case "rings":
       return (p.solution as number[]).join(",");
