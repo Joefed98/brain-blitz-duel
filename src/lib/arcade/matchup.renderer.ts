@@ -419,10 +419,13 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
   glow.addColorStop(1, "rgba(120,80,200,0)");
   c.fillStyle = glow;
   c.fillRect(0, 0, W, H);
-  // Diagonal sheen bands.
+  // Diagonal sheen bands, fading out before the world's bottom edge so they never end in a line (A3).
   c.save();
-  c.globalAlpha = 0.05;
-  c.fillStyle = "#FFFFFF";
+  const sheen = c.createLinearGradient(0, 0, 0, H);
+  sheen.addColorStop(0, "rgba(255,255,255,0.05)");
+  sheen.addColorStop(0.7, "rgba(255,255,255,0.035)");
+  sheen.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = sheen;
   for (const [x0, wBand] of [[60, 34], [150, 14], [300, 26]] as const) {
     c.beginPath();
     c.moveTo(x0, 0);
@@ -433,14 +436,16 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
     c.fill();
   }
   c.restore();
+  paintTray(c);
   // Sparkles in the margins only (never behind a gem).
-  const boardTop = MATCHUP_NEXT_Y - 6, boardBottom = MATCHUP_BOARD_Y + MATCHUP_BOARD_H + 8;
+  const boardTop = TRAY_Y - 4, boardBottom = TRAY_Y + TRAY_H + 6;
   for (let k = 0; k < 46; k++) {
     const h = artHash(k, 431);
     const x = h % W;
     const y = (h >>> 9) % H;
-    const inBoard = y > boardTop && y < boardBottom && x > MATCHUP_BOARD_X - 8 && x < MATCHUP_BOARD_X + MATCHUP_BOARD_W + 8;
-    if (inBoard || (y < 40 && x < 150)) continue;
+    const inBoard = y > boardTop && y < boardBottom && x > TRAY_X - 4 && x < TRAY_X + TRAY_W + 4;
+    // Clear of the HUD row too (the score and the collection bar, A3).
+    if (inBoard || y < 46) continue;
     const colour = MATCHUP_COLOURS[k % MATCHUP_COLOURS.length] ?? MATCHUP_GOLD;
     const r = 0.8 + ((h >>> 20) % 3) * 0.6;
     c.globalAlpha = 0.35 + ((h >>> 4) % 4) * 0.1;
@@ -458,6 +463,72 @@ function paintBackdrop(c: CanvasRenderingContext2D): void {
     c.fill();
   }
   c.globalAlpha = 1;
+}
+
+/**
+ * Polish A3 (display only): a velvet tray under the next strip and the board, lifted off the
+ * backdrop by a soft purple glow. It sits in the world's margins round the board (inside the
+ * world rectangle), painted into the cached backdrop; the board and gems draw over it unchanged.
+ */
+const TRAY_X = MATCHUP_BOARD_X - 13;
+const TRAY_Y = MATCHUP_NEXT_Y - 9;
+const TRAY_W = MATCHUP_BOARD_W + 26;
+const TRAY_H = MATCHUP_BOARD_Y + MATCHUP_BOARD_H + 13 - TRAY_Y;
+function paintTray(c: CanvasRenderingContext2D): void {
+  const cx = TRAY_X + TRAY_W / 2;
+  // The glow: wide and soft, strongest under the tray's lower half.
+  const glow = c.createRadialGradient(cx, TRAY_Y + TRAY_H * 0.62, TRAY_W * 0.2, cx, TRAY_Y + TRAY_H * 0.62, TRAY_H * 0.72);
+  glow.addColorStop(0, "rgba(150,90,255,0.30)");
+  glow.addColorStop(0.55, "rgba(130,70,230,0.12)");
+  glow.addColorStop(1, "rgba(120,60,220,0)");
+  c.fillStyle = glow;
+  c.fillRect(0, 0, MATCHUP_WORLD_W, MATCHUP_WORLD_H);
+  // A soft drop shadow under the tray.
+  c.save();
+  c.beginPath();
+  c.roundRect(TRAY_X + 2, TRAY_Y + 6, TRAY_W - 4, TRAY_H, 16);
+  c.fillStyle = "rgba(4,2,10,0.45)";
+  c.fill();
+  c.restore();
+  // The velvet: deep plum, lit from above, with a fine nap.
+  c.save();
+  c.beginPath();
+  c.roundRect(TRAY_X, TRAY_Y, TRAY_W, TRAY_H, 16);
+  const velvet = c.createLinearGradient(0, TRAY_Y, 0, TRAY_Y + TRAY_H);
+  velvet.addColorStop(0, "#3A2160");
+  velvet.addColorStop(0.18, "#2A1748");
+  velvet.addColorStop(0.75, "#1E1036");
+  velvet.addColorStop(1, "#170C2A");
+  c.fillStyle = velvet;
+  c.fill();
+  c.clip();
+  const sheenV = c.createRadialGradient(cx, TRAY_Y, 10, cx, TRAY_Y, TRAY_W * 0.8);
+  sheenV.addColorStop(0, "rgba(200,150,255,0.18)");
+  sheenV.addColorStop(1, "rgba(200,150,255,0)");
+  c.fillStyle = sheenV;
+  c.fillRect(TRAY_X, TRAY_Y, TRAY_W, TRAY_H);
+  for (let k = 0; k < 900; k++) {
+    const h = artHash(k, 613);
+    c.fillStyle = h % 2 ? "rgba(255,230,255,0.035)" : "rgba(0,0,0,0.10)";
+    c.fillRect(TRAY_X + (h % TRAY_W), TRAY_Y + ((h >>> 10) % TRAY_H), 1, 1);
+  }
+  // Inner shadow round the rim, so the tray reads as padded.
+  c.lineWidth = 6;
+  c.strokeStyle = "rgba(0,0,0,0.28)";
+  c.beginPath();
+  c.roundRect(TRAY_X + 1, TRAY_Y + 3, TRAY_W - 2, TRAY_H - 2, 15);
+  c.stroke();
+  c.restore();
+  // Piping: a lit top lip and a thin gold cord.
+  c.beginPath();
+  c.roundRect(TRAY_X + 0.5, TRAY_Y + 0.5, TRAY_W - 1, TRAY_H - 1, 16);
+  c.strokeStyle = "rgba(210,170,255,0.30)";
+  c.lineWidth = 1;
+  c.stroke();
+  c.beginPath();
+  c.roundRect(TRAY_X + 3.5, TRAY_Y + 3.5, TRAY_W - 7, TRAY_H - 7, 13);
+  c.strokeStyle = "rgba(245,184,46,0.22)";
+  c.stroke();
 }
 
 const backdrops = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas }>();
@@ -688,6 +759,77 @@ interface SceneOptions {
 }
 
 /**
+ * The collection bar (Polish A3, presentation only): one small gem per colour with the number of
+ * that colour cleared so far and a bar against the leading colour. Counted from the sim's own
+ * animation steps (each new `lastAnimation`: the cleared cells' kinds in `before`), in memory per
+ * canvas like the cascade labels; it shows only on a canvas that has watched the run from its
+ * start (live play), never on a reveal or a demo joined part-way, and a rewind resets it.
+ */
+interface CollectMemory { tick: number; start: number; anim: MatchupAnimStep[]; counts: number[]; flash: number[] }
+const collectMemories = new WeakMap<CanvasRenderingContext2D, CollectMemory>();
+const COLLECT_X = 176;
+const COLLECT_SLOT = (MATCHUP_WORLD_W - 10 - COLLECT_X) / 6;
+
+function drawCollection(ctx: CanvasRenderingContext2D, state: MatchupState, time: number): void {
+  let m = collectMemories.get(ctx);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, start: state.tick, anim: state.lastAnimation, counts: [0, 0, 0, 0, 0, 0], flash: [-99, -99, -99, -99, -99, -99] };
+    collectMemories.set(ctx, m);
+  }
+  if (state.lastAnimation !== m.anim) {
+    m.anim = state.lastAnimation;
+    for (const step of state.lastAnimation) {
+      for (const index of new Set([...step.cleared, ...step.detonated])) {
+        const kind = step.before[index] ?? -1;
+        if (kind >= 0 && kind < 6) {
+          m.counts[kind] = (m.counts[kind] ?? 0) + 1;
+          m.flash[kind] = state.tick;
+        }
+      }
+    }
+  }
+  m.tick = state.tick;
+  if (m.start > 30) return;
+  const lead = Math.max(10, ...m.counts);
+  const still = reducedMotion();
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  for (let kind = 0; kind < 6; kind++) {
+    const x = COLLECT_X + kind * COLLECT_SLOT;
+    const n = m.counts[kind] ?? 0;
+    const colour = MATCHUP_COLOURS[kind] ?? MATCHUP_GOLD;
+    const since = state.tick - (m.flash[kind] ?? -99);
+    // A just-collected colour glows for half a second.
+    if (since >= 0 && since < 30) {
+      const g = ctx.createRadialGradient(x + 8, 20, 0, x + 8, 20, 14);
+      g.addColorStop(0, colour);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = 0.45 * (1 - since / 30);
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 6, 6, 28, 28);
+      ctx.globalAlpha = 1;
+    }
+    drawMatchupGem(ctx, kind, x + 8, 20, still || since >= 12 || since < 0 ? 7 : 7 + (1 - since / 12) * 1.5, time);
+    ctx.fillStyle = n > 0 ? MATCHUP_TEXT : "rgba(247,247,248,0.45)";
+    // Three digits step down to 10 px so the count stays inside its slot.
+    ctx.font = n >= 100 ? "700 10px 'JetBrains Mono', ui-monospace, monospace" : "700 12px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillText(`${n}`, x + 16.5, 21);
+    // The progress bar: a dark well and the colour's share of the leader.
+    const bw = COLLECT_SLOT - 6;
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillRect(x, 32, bw, 3);
+    if (n > 0) {
+      ctx.fillStyle = colour;
+      ctx.fillRect(x, 32, Math.max(1.5, (bw * n) / lead), 3);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillRect(x, 32, Math.max(1.5, (bw * n) / lead), 1);
+    }
+  }
+  ctx.restore();
+}
+
+/**
  * Cascade labels (presentation only): each clear (a swap's or a cascade
  * step's) labels its chain count on the first cell it cleared, read from the
  * sim's lastCleared (Tuning C removed the sparks and rings over the gems). Memory per canvas, keyed by the sim's clear
@@ -777,11 +919,22 @@ function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size
       ctx.globalAlpha = 1;
     }
   }
-  ctx.font = "600 20px 'JetBrains Mono', ui-monospace, monospace";
-  ctx.fillStyle = MATCHUP_TEXT;
-  ctx.textBaseline = "top";
+  // A bigger score (A3): the number large, "pts" small beside it, on a soft shadow.
+  ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  successHud(ctx,'matchup',state.tick,12,12,()=>{ctx.fillText(`${state.raw} pts`, 12, 12);});
+  successHud(ctx,'matchup',state.tick,12,12,()=>{
+    const num = `${state.raw}`;
+    ctx.font = "700 28px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.fillText(num, 13, 39);
+    ctx.fillStyle = MATCHUP_TEXT;
+    ctx.fillText(num, 12, 38);
+    const w = ctx.measureText(num).width;
+    ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.fillStyle = "rgba(247,247,248,0.62)";
+    ctx.fillText("pts", 12 + w + 5, 37);
+  });
+  drawCollection(ctx, state, time);
   if (!options.cells) drawClearBursts(ctx, state);
   ctx.restore();
 }
@@ -800,13 +953,33 @@ export function drawMatchupArtSelection(ctx: CanvasRenderingContext2D, size: Can
   ctx.save();
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
-  ctx.shadowColor = "rgba(245,184,46,0.9)";
-  ctx.shadowBlur = 12;
-  ctx.strokeStyle = MATCHUP_GOLD;
-  ctx.lineWidth = 3;
+  const x = MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + 2;
+  const y = MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX + 2;
+  const s = MATCHUP_CELL_PX - 4;
+  // A3: a glowing gold frame: a warm wash in the cell, a soft outer glow, a metallic rim and a
+  // bright inner line, inside the cell's own square.
+  const wash = ctx.createRadialGradient(x + s / 2, y + s / 2, s * 0.2, x + s / 2, y + s / 2, s * 0.7);
+  wash.addColorStop(0, "rgba(255,214,110,0)");
+  wash.addColorStop(1, "rgba(255,200,80,0.22)");
+  ctx.fillStyle = wash;
   ctx.beginPath();
-  ctx.roundRect(MATCHUP_BOARD_X + col * MATCHUP_CELL_PX + 2, MATCHUP_BOARD_Y + row * MATCHUP_CELL_PX + 2,
-    MATCHUP_CELL_PX - 4, MATCHUP_CELL_PX - 4, 8);
+  ctx.roundRect(x, y, s, s, 8);
+  ctx.fill();
+  ctx.shadowColor = "rgba(255,196,60,0.95)";
+  ctx.shadowBlur = 14;
+  const rim = ctx.createLinearGradient(x, y, x + s, y + s);
+  rim.addColorStop(0, "#FFE9A3");
+  rim.addColorStop(0.45, MATCHUP_GOLD);
+  rim.addColorStop(1, "#C98A0E");
+  ctx.strokeStyle = rim;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = "rgba(255,246,214,0.75)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x + 2.5, y + 2.5, s - 5, s - 5, 6);
   ctx.stroke();
   ctx.restore();
 }

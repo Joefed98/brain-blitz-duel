@@ -36,6 +36,7 @@ import {
   type BubState,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import {
   seaClock,
   seaCoral,
@@ -43,7 +44,6 @@ import {
   seaKelp,
   seaNow,
   seaLayer,
-  seaRays,
   seaSprite,
   seaWater,
   SEA_BRASS,
@@ -337,7 +337,39 @@ function paintSpecial(value: number, directional: boolean) {
     c.beginPath();
     c.arc(r, r, r * 0.8, Math.PI * 1.12, Math.PI * 1.42);
     c.stroke();
+    bubbleGloss(c, r);
   };
+}
+
+/**
+ * Polish A3: the glass finish every bubble shares, inside its circle (the collision bound): a fine dark
+ * outer rim, a soft specular sheen high on the lit side and a thin bright line just inside the rim.
+ */
+function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
+  c.save();
+  const fine = Math.max(0.8, r * 0.06);
+  c.strokeStyle = "rgba(3,12,28,0.55)";
+  c.lineWidth = fine;
+  c.beginPath();
+  c.arc(r, r, r - 0.5 - fine / 2, 0, Math.PI * 2);
+  c.stroke();
+  c.translate(r * 0.66, r * 0.46);
+  c.rotate(-0.6);
+  c.scale(1, 0.55);
+  const sheen = c.createRadialGradient(0, 0, 0, 0, 0, r * 0.42);
+  sheen.addColorStop(0, "rgba(255,255,255,0.75)");
+  sheen.addColorStop(0.55, "rgba(255,255,255,0.22)");
+  sheen.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = sheen;
+  c.beginPath();
+  c.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+  c.strokeStyle = "rgba(255,255,255,0.28)";
+  c.lineWidth = Math.max(0.6, r * 0.035);
+  c.beginPath();
+  c.arc(r, r, r - fine - Math.max(0.6, r * 0.05), Math.PI * 0.55, Math.PI * 1.05);
+  c.stroke();
 }
 
 export function paintBubble(value: number) {
@@ -384,12 +416,43 @@ export function paintBubble(value: number) {
     c.beginPath();
     c.arc(r, r, r * 0.8, Math.PI * 0.15, Math.PI * 0.5);
     c.stroke();
+    bubbleGloss(c, r);
   };
 }
 
-/** The cached reef layer: water, shaded margin rock up to the walls, coral and stones on the floor. */
-function paintReef(c: CanvasRenderingContext2D, w: number, h: number, margin: number): void {
+/** Polish A3: the sand's colour at the world's very bottom, where the screen fill-in (bubbleFill) carries on. */
+export const BUB_SAND_FOOT = "#6E5A3E";
+/** The sandy floor's depth above the world's bottom, in world px (the gun's base rests on it). */
+const SAND_DEPTH = 26;
+
+/**
+ * The cached reef layer: deeper water, a far reef in silhouette, shaded margin rock up to the walls, then
+ * the sandy floor under the gun with ripples, pebbles and shells, and pink coral and stones on it. All of it
+ * sits below the shooter line (the field never reaches it) or in the side margins.
+ */
+function paintReef(c: CanvasRenderingContext2D, w: number, h: number, margin: number, sy: number): void {
   seaWater(c, w, h);
+  // A deeper ocean: a touch of sunlit teal under the surface, sinking to near-black navy at depth.
+  const depth = c.createLinearGradient(0, 0, 0, h);
+  depth.addColorStop(0, "rgba(46,150,205,0.16)");
+  depth.addColorStop(0.3, "rgba(10,40,80,0)");
+  depth.addColorStop(0.75, "rgba(2,10,28,0.32)");
+  depth.addColorStop(1, "rgba(1,6,18,0.5)");
+  c.fillStyle = depth;
+  c.fillRect(0, 0, w, h);
+  const floor = h - SAND_DEPTH * sy;
+  // The far reef: soft dark mounds and fans in silhouette just above the sand, low enough to stay under the shooter line.
+  c.fillStyle = "rgba(18,62,96,0.5)";
+  c.beginPath();
+  c.moveTo(0, floor + 2);
+  for (let i = 0; i <= 12; i++) {
+    const x = (i / 12) * w;
+    const hump = (16 + ((i * 37) % 5) * 6) * sy;
+    c.quadraticCurveTo(x - w / 24, floor - hump, x, floor - hump * 0.45);
+  }
+  c.lineTo(w, floor + 2);
+  c.closePath();
+  c.fill();
   // Margin rock: darker towards the screen edge, ending exactly at the wall line the bubbles bounce off.
   for (const [x0, x1] of [[0, margin], [w, w - margin]] as const) {
     const g = c.createLinearGradient(x0, 0, x1, 0);
@@ -398,20 +461,145 @@ function paintReef(c: CanvasRenderingContext2D, w: number, h: number, margin: nu
     c.fillStyle = g;
     c.fillRect(Math.min(x0, x1), 0, margin, h);
     c.fillStyle = "rgba(150,200,235,0.16)";
-    c.fillRect(x1 - (x1 > x0 ? 1 : 0), 0, 1, h);
+    c.fillRect(x1 - (x1 > x0 ? 1 : 0), 0, 1, floor);
   }
-  seaCoral(c, margin * 0.55, h, margin * 0.8, "#E0705A");
-  seaCoral(c, w - margin * 0.45, h, margin * 0.7, "#E58FB4");
-  // A few rounded stones at the foot of each wall.
-  for (const [x, s] of [[margin * 0.2, 0.5], [margin * 0.95, 0.35], [w - margin * 0.15, 0.45], [w - margin * 0.9, 0.3]] as const) {
-    c.fillStyle = "#0E2238";
+  // The sandy floor: a lit wavy crest, warm sand darkening to the bottom edge, ripples, grains, pebbles, shells.
+  const crest = (x: number) => floor + Math.sin(x / (w * 0.11)) * 2.2 * sy + Math.sin(x / (w * 0.031)) * 0.8 * sy;
+  const sand = c.createLinearGradient(0, floor - 3 * sy, 0, h);
+  sand.addColorStop(0, "#B89C6A");
+  sand.addColorStop(0.35, "#9A8058");
+  sand.addColorStop(1, BUB_SAND_FOOT);
+  c.fillStyle = sand;
+  c.beginPath();
+  c.moveTo(0, h);
+  for (let x = 0; x <= w + 4; x += 4) c.lineTo(x, crest(x));
+  c.lineTo(w, h);
+  c.closePath();
+  c.fill();
+  // A soft shadow under the crest's water side and a sunlit line along it.
+  c.strokeStyle = "rgba(255,236,190,0.45)";
+  c.lineWidth = Math.max(1, 1.2 * sy);
+  c.beginPath();
+  for (let x = 0; x <= w + 4; x += 4) (x ? c.lineTo(x, crest(x)) : c.moveTo(x, crest(x)));
+  c.stroke();
+  c.strokeStyle = "rgba(70,52,30,0.35)";
+  c.lineWidth = Math.max(0.8, sy);
+  for (let k = 0; k < 9; k++) {
+    const y = floor + (6 + (k % 3) * 6) * sy;
+    const x0 = ((k * 0.37) % 1) * w;
+    const len = w * (0.12 + ((k * 7) % 5) * 0.02);
     c.beginPath();
-    c.ellipse(x, h, margin * s, margin * s * 0.6, 0, Math.PI, 0);
-    c.fill();
-    c.fillStyle = "rgba(160,200,230,0.14)";
+    c.moveTo(x0, y);
+    c.quadraticCurveTo(x0 + len / 2, y - 2.2 * sy, x0 + len, y);
+    c.stroke();
+  }
+  for (let i = 0; i < 90; i++) {
+    const x = ((i * 157) % 401) / 401 * w;
+    const y = floor + 3 * sy + (((i * 71) % 97) / 97) * (h - floor - 3 * sy);
+    c.fillStyle = i % 3 ? "rgba(230,210,160,0.35)" : "rgba(80,60,36,0.35)";
+    c.fillRect(x, y, i % 7 ? 1 : 1.6, i % 7 ? 1 : 1.6);
+  }
+  // Pebbles and two small shells, clear of the gun and its magazine (x 160–300 of 390).
+  for (const [fx, s] of [[0.07, 4], [0.33, 3], [0.81, 3.5], [0.95, 2.6]] as const) {
+    const x = fx * w;
+    const y = h - 8 * sy;
+    c.fillStyle = "#4E4636";
     c.beginPath();
-    c.ellipse(x - margin * s * 0.2, h - margin * s * 0.35, margin * s * 0.45, margin * s * 0.12, 0, 0, Math.PI * 2);
+    c.ellipse(x, y, s * 1.5 * sy, s * sy, 0, 0, Math.PI * 2);
     c.fill();
+    c.fillStyle = "rgba(230,220,200,0.3)";
+    c.beginPath();
+    c.ellipse(x - s * 0.4 * sy, y - s * 0.4 * sy, s * 0.7 * sy, s * 0.3 * sy, 0, 0, Math.PI * 2);
+    c.fill();
+  }
+  for (const [fx, flip] of [[0.22, 1], [0.88, -1]] as const) {
+    const x = fx * w;
+    const y = h - 12 * sy;
+    const s = 5 * sy;
+    c.save();
+    c.translate(x, y);
+    c.scale(flip, 1);
+    c.fillStyle = "#F0C9B4";
+    c.beginPath();
+    c.moveTo(0, s * 0.6);
+    c.arc(0, s * 0.1, s * 0.8, Math.PI * 1.05, Math.PI * 1.95);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "rgba(150,90,70,0.6)";
+    c.lineWidth = Math.max(0.6, 0.5 * sy);
+    c.beginPath();
+    for (const dx of [-0.4, 0, 0.4]) {
+      c.moveTo(0, s * 0.55);
+      c.lineTo(dx * s, -s * 0.5);
+    }
+    c.stroke();
+    c.restore();
+  }
+  // Pink and coral-red reef on the sand either side of the gun, below the shooter line, plus the margin coral.
+  seaCoral(c, w * 0.1, crest(w * 0.1) + 2 * sy, 30 * sy, "#F07FB0");
+  seaCoral(c, w * 0.29, crest(w * 0.29) + 2 * sy, 20 * sy, "#E0705A");
+  seaCoral(c, w * 0.86, crest(w * 0.86) + 2 * sy, 26 * sy, "#F59AC2");
+  seaCoral(c, margin * 0.55, floor, margin * 0.8, "#E0705A");
+  seaCoral(c, w - margin * 0.45, floor, margin * 0.7, "#E58FB4");
+  // Brain coral domes: round pink mounds with a lit top and grooves.
+  for (const [fx, rr] of [[0.18, 9], [0.95, 8]] as const) {
+    const x = fx * w;
+    const y = crest(x) + 3 * sy;
+    const R = rr * sy;
+    const dome = c.createRadialGradient(x - R * 0.3, y - R * 0.6, R * 0.1, x, y, R * 1.1);
+    dome.addColorStop(0, "#FFB7CF");
+    dome.addColorStop(0.6, "#D9668F");
+    dome.addColorStop(1, "#8E3558");
+    c.fillStyle = dome;
+    c.beginPath();
+    c.ellipse(x, y, R * 1.3, R, 0, Math.PI, 0);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "rgba(110,30,60,0.45)";
+    c.lineWidth = Math.max(0.6, 0.6 * sy);
+    for (let k = 1; k <= 3; k++) {
+      c.beginPath();
+      c.ellipse(x, y, R * 1.3 * (k / 4), R * (k / 4), 0, Math.PI * 1.1, Math.PI * 1.9);
+      c.stroke();
+    }
+  }
+}
+
+/** Light rays slanting down from the surface, brighter than the shared sea's (additive; none under reduced effects). */
+function bubbleRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
+  if (arcadeReducedEffects()) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 5; i++) {
+    const sway = Math.sin(t * 0.22 + i * 1.9) * w * 0.03;
+    const x = w * (0.06 + i * 0.22) + sway;
+    const spread = w * (0.1 + (i % 2) * 0.05);
+    const ray = ctx.createLinearGradient(0, 0, 0, h * 0.85);
+    ray.addColorStop(0, `rgba(170,225,255,${i % 2 ? 0.1 : 0.14})`);
+    ray.addColorStop(0.6, "rgba(150,215,255,0.04)");
+    ray.addColorStop(1, "rgba(150,215,255,0)");
+    ctx.fillStyle = ray;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.035, 0);
+    ctx.lineTo(x + w * 0.035, 0);
+    ctx.lineTo(x + spread, h * 0.85);
+    ctx.lineTo(x - spread * 0.3, h * 0.85);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Plankton specks drifting slowly through the water (presentation clock; none under reduced motion or effects). */
+function bubbleDrift(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void {
+  if (reducedMotion() || arcadeReducedEffects()) return;
+  for (let i = 0; i < 26; i++) {
+    const vx = 4 + (i % 5) * 1.6;
+    const x = (((i * 0.383) % 1) * w + t * vx * (i % 2 ? 1 : -1) + w * 4) % w;
+    const y = (((i * 0.617) % 1) * h * 0.86 + Math.sin(t * 0.5 + i) * 6 + t * 2.5) % (h * 0.86);
+    ctx.fillStyle = i % 4 === 0 ? "rgba(190,255,235,0.4)" : "rgba(210,235,255,0.28)";
+    const d = i % 6 === 0 ? 2 : 1.2;
+    ctx.fillRect(x, y, d, d);
   }
 }
 
@@ -556,8 +744,9 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   // Water, margin rock and coral are one cached layer; rays, drifting bubbles and kelp move over it.
   const margin = X(BUB_WALL);
   const floor = size.height;
-  seaLayer(ctx, "bubble-reef", size.width, size.height, dpr, (c) => paintReef(c, size.width, size.height, margin));
-  seaRays(ctx, size.width, size.height);
+  seaLayer(ctx, "bubble-reef-a3", size.width, size.height, dpr, (c) => paintReef(c, size.width, size.height, margin, sy));
+  bubbleRays(ctx, size.width, size.height, t);
+  bubbleDrift(ctx, size.width, size.height, t);
 
   // Rising background bubbles (margins and open water, behind everything).
   if (!reducedMotion()) {
@@ -572,9 +761,12 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     }
   }
 
-  // Kelp in the side margins only.
+  // Kelp in the side margins, and short fronds on the sand beside the gun (below the shooter line).
   seaKelp(ctx, margin * 0.45, floor, size.height * 0.42, Math.max(2, margin * 0.16), 0);
   seaKelp(ctx, size.width - margin * 0.5, floor, size.height * 0.34, Math.max(2, margin * 0.16), 2.1);
+  const sand = floor - SAND_DEPTH * sy + 3 * sy;
+  seaKelp(ctx, size.width * 0.04, sand, 52 * sy, Math.max(2, 3 * rs), 1.2);
+  seaKelp(ctx, size.width * 0.93, sand, 44 * sy, Math.max(2, 2.6 * rs), 3.4);
 
   // Rock ledge from the top down to the sim ceiling line: shaded stone, a lit lip, pebbles and barnacles.
   const ceiling = Y(BUB_TOP + state.descents * BUB_ROW_H);
@@ -621,9 +813,37 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = "rgba(160,190,215,0.35)";
-  ctx.lineWidth = Math.max(1, 1.5 * rs);
+  // Strata: a few darker seams across the stone.
+  ctx.strokeStyle = "rgba(8,10,16,0.35)";
+  ctx.lineWidth = Math.max(0.8, rs);
+  for (let i = 0; i < 3; i++) {
+    const y = ((i + 1) / 4) * Math.max(4, ceiling - Y(12));
+    if (y < Y(3)) continue;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let k = 1; k <= 6; k++) ctx.lineTo((k / 6) * size.width, y + (((k * 29 + i * 13) % 7) - 3) * rs);
+    ctx.stroke();
+  }
+  // Polish A3: the lip lit from below by the water's glow: a soft light band inside the rock, then a bright edge.
+  const glowH = Y(12);
+  const lit = ctx.createLinearGradient(0, ceiling - glowH, 0, ceiling);
+  lit.addColorStop(0, "rgba(110,190,235,0)");
+  lit.addColorStop(1, "rgba(110,190,235,0.28)");
+  ctx.fillStyle = lit;
+  ctx.beginPath();
+  ctx.moveTo(0, ceiling - glowH);
+  ctx.lineTo(size.width, ceiling - glowH);
+  for (const [x, y] of lip) ctx.lineTo(x, y);
+  ctx.closePath();
+  ctx.fill();
   ctx.lineJoin = "round";
+  ctx.strokeStyle = "rgba(120,200,240,0.28)";
+  ctx.lineWidth = Math.max(2, 3.5 * rs);
+  ctx.beginPath();
+  lip.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 1.5 * rs) : ctx.moveTo(x, y - 1.5 * rs)));
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(210,240,255,0.7)";
+  ctx.lineWidth = Math.max(1, 1.3 * rs);
   ctx.beginPath();
   lip.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
   ctx.stroke();
