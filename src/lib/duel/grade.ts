@@ -1047,6 +1047,7 @@ function gradeUnderRev(
         gates: run.gates,
         totalGates: run.totalGates,
         ...(puzzle.hoverRev ? { hoverRev: puzzle.hoverRev, stars: run.stars, totalStars: run.totalStars } : {}),
+        ...(run.state.xp ? { tightGates: run.state.tight ?? 0, starChains: run.state.chainsDone ?? 0, shieldBreaks: run.state.shieldBreaks ?? 0 } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,

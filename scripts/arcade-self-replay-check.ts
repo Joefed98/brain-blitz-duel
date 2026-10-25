@@ -120,7 +120,7 @@ import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL } from "@/lib/arcade/sn
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
-import { HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
+import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
@@ -622,6 +622,8 @@ const GAMES: Game[] = [
     encode: encodeInkBridgeRun,
     replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_EXPAND),
   },
+  // Expansion E1 (25 Oct 2026): Hover hoverRev 8 (tight gates, star chains, shields; 390 × 727).
+  { key: "hover/expand", game: hoverGameFor(HOVER_REV_EXPAND), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, HOVER_REV_EXPAND) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

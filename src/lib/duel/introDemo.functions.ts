@@ -1,5 +1,6 @@
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
+import { HOVER_REV_EXPAND } from "@/lib/arcade/hover";
 import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -104,6 +105,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Expansion E1 (25 Oct 2026): Jaywalk crossRev 8's taller 13-lane world with the island, coins, buses and motorbikes;
     // an older demo would show the 9-lane road, so it stays stopped until one is recorded on crossRev 8.
     if (data.type === "cross" && demo?.puzzle.type === "cross" && demo.puzzle.crossRev !== CROSS_REV_EXPAND) return null;
+    // Expansion E1 (25 Oct 2026): Hover's hoverRev 8 adds tight gates, star chains and shields in a 727 px world; an older
+    // demo would show none of them, so it stays stopped (the intro shows its still) until one is recorded on hoverRev 8.
+    if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_EXPAND) return null;
     return demo;
   });
 

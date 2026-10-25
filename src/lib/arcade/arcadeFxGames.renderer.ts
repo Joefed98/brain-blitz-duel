@@ -13,7 +13,7 @@
 import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { px } from "./engine";
 
-import { HOVER_DISC_X, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
+import { HOVER_DISC_X, HOVER_EXPAND_H, HOVER_TALL_H, HOVER_WORLD_H, HOVER_WORLD_W, hoverWorldH, type HoverState } from "./hover";
 
 /** hoverRev 2: passed barriers of one kind (original courses have none, so these stay 0). */
 function hoverPassed(s: HoverState, kind: "twoGap" | "moving"): number {
@@ -358,8 +358,39 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       textOnly: true,
       bulbs: { pattern: "step", colours: HOVER_STEP_COLOURS, strong: true },
     },
+    // hoverRev 8 (Expansion E1): a tight gate threaded, a whole star chain, a shield picked up (older rounds keep 0).
+    {
+      kind: "perfect",
+      count: (s) => s.tight ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 16 }),
+      label: () => "TIGHT GATE!",
+      colour: () => "#FFD84A",
+      textOnly: true,
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
+    },
+    {
+      kind: "clear",
+      count: (s) => s.chainsDone ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 16 }),
+      label: () => "STAR CHAIN!",
+      colour: () => "#FFD84A",
+      textOnly: true,
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
+    },
+    {
+      kind: "pop",
+      count: (s) => s.pickupsTaken?.length ?? 0,
+      at: (s) => ({ x: px(HOVER_DISC_X) + 24, y: px(s.y) - 14 }),
+      label: () => "SHIELD!",
+      colour: () => "#5CD0FF",
+      textOnly: true,
+    },
   ],
-  misses: [{ count: (s) => (s.crashed ? 1 : 0), at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) }],
+  misses: [
+    { count: (s) => (s.crashed ? 1 : 0), at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) },
+    // hoverRev 8: a shield breaking in place of a crash.
+    { count: (s) => s.shieldBreaks ?? 0, at: (s) => ({ x: px(HOVER_DISC_X), y: px(s.y) }) },
+  ],
 };
 
 function brickCentre(index: number): { x: number; y: number } {
@@ -1316,6 +1347,8 @@ export const crossFxFor = (s: CrossState): ArcadeFxSpec<CrossState> => fxSpecAt(
 export const CROSS_FX_TALL = fxSpecAt(CROSS_FX, CROSS_X_WORLD_H);
 /** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
 export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
+/** Expansion E1 (hoverRev 8): the 727 px world rooms deal now. */
+export const HOVER_FX_EXPAND = fxSpecAt(HOVER_FX, HOVER_EXPAND_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
 export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s)));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
@@ -1389,7 +1422,7 @@ export const PINBALL_FX: ArcadeFxSpec<PinState> = {
 };
 
 export const ARCADE_FX_SPECS = {
-  hover: HOVER_FX_TALL,
+  hover: HOVER_FX_EXPAND,
   breaker: BREAKER_FX_TALL,
   rally: RALLY_FX_TALL,
   beat: BEAT_FX_TALL,

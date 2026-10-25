@@ -27,6 +27,7 @@ import {
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import type { PuzzleType } from "../src/lib/duel/types";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 const SIM_MODULES: Record<LiveBandGame, string[]> = {
   balltrack: ["ballTrack"],

@@ -17,13 +17,14 @@ import {
 import {
   hoverGameFor,
   hoverCheckpoint,
+  hoverFeatureTotals,
   hoverSurvived,
   HOVER_BG,
   HOVER_CRASH_COLOUR,
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
-  HOVER_REV_TARGET, HOVER_REV_STRICT,
+  HOVER_REV_EXPAND,
   hoverWorldHFor,
   HOVER_RUN_TICKS,
   type HoverState,
@@ -62,12 +63,20 @@ function IntroExample() {
         <rect x="155" y="0" width="20" height="18" fill="url(#hover-energy-blocks)" />
         <rect x="155" y="44" width="20" height="26" fill="url(#hover-energy-blocks)" />
         <rect x="155" y="94" width="20" height="16" fill="url(#hover-energy-blocks)" />
-        <path d="M95 29.5 H115 M95 78.5 H115 M155 17.5 H175 M155 44.5 H175 M155 69.5 H175 M155 94.5 H175" stroke="#F6ADFF" strokeWidth="1" />
+        <path d="M95 29.5 H115 M95 78.5 H115 M155 17.5 H175 M155 69.5 H175" stroke="#F6ADFF" strokeWidth="1" />
+        {/* hoverRev 8: the second barrier's lower gap is a gold-rimmed tight gate. */}
+        <path d="M155 44 H175 M155 95 H175" stroke="#FFD84A" strokeWidth="3" />
         <path d="M105 37 L107 41 L111 41.5 L108 44 L109 48 L105 46 L101 48 L102 44 L99 41.5 L103 41 Z" fill="#FFD84A" />
+        {/* A star chain on one flap's arc, and a shield bubble. */}
+        {[[121, 64], [129, 55], [137, 51], [145, 55]].map(([x, y]) => (
+          <circle key={x} cx={x} cy={y} r="2.6" fill="#FFD84A" />
+        ))}
+        <circle cx="30" cy="88" r="7" fill="none" stroke="#5CD0FF" strokeWidth="1.6" opacity="0.9" />
+        <circle cx="55" cy="55" r="12.5" fill="none" stroke="#5CD0FF" strokeWidth="1.4" opacity="0.75" />
         <circle cx="55" cy="55" r="9" fill={HOVER_DISC_COLOUR} />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap to lift the saucer through the gaps. Brush a gold star for a bonus; later barriers have two gaps or slide.
+        Tap to lift the saucer through the gaps. Thread gold-rimmed tight gates and sweep star chains for a bonus; a shield bubble takes one crash.
       </p>
     </div>
   );
@@ -293,6 +302,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.stars} / {result.totalStars} gold stars
         </p>
       )}
+      {result.state.xp ? (
+        <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
+          {result.state.tight ?? 0} / {hoverFeatureTotals(result.state).tight} tight gates · {result.state.chainsDone ?? 0} / {hoverFeatureTotals(result.state).chains} star chains
+        </p>
+      ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         Same course for everyone
       </p>
@@ -307,7 +321,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_STRICT }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_EXPAND }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

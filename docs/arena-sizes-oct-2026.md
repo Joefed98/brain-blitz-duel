@@ -24,7 +24,7 @@ revisions keep their own world in reveals and replays.
 
 | Game | World | 375x667 | 390x700 | 390x844 | 414x896 (48/34px insets) | 430x932 | 1280x800 | Scale at 390x844 | Box top | Spare above | Spare below | Spare across | Bottom control (gap to bottom) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hover | 390x735 | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | 1.000x | 60px | 0px | 33px | 0px | - |
+| Hover | 390x727 | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | 1.000x | 60px | 0px | 41px | 0px | - |
 | Breaker | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Rally | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
 | Tempo | 390x730 | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | 1.000x | 60px | 0px | 38px | 0px | - |
@@ -68,7 +68,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Bonk | 375x491 → 375x375 | 390x524 → 390x390 | 390x668 → 390x390 | 414x672 → 414x414 | 430x756 → 430x430 | 1280x624 → 624x624 | the meadow below the 4x4 field starts in the field's green, then soft tufts, a few faded flowers and small stones on a faint band of soil (static); the field centred, the meadow above it too |
 | Tenfall | 375x535 → 370x535 | 390x568 → 390x563 | 390x712 → 390x563 | 414x716 → 414x598 | 430x800 → 430x621 | 1280x668 → 462x668 | a sill closing the columns, then the frame's rails and a shaded backing to a foot rail |
 | Pull! | 375x565 → 299x565 | 390x598 → 317x598 | 390x742 → 390x737 | 414x746 → 395x746 | 430x830 → 430x812 | 1280x698 → 370x698 | more field below, starting in the world's own bottom grass; sky, treeline and field beside the world (no seam) |
-| Hover | 375x591 → 314x591 | 390x624 → 331x624 | 390x768 → 390x735 | 414x772 → 410x772 | 430x856 → 430x810 | 1280x724 → 384x724 | the black night sky with faint still stars |
+| Hover | 375x591 → 317x591 | 390x624 → 335x624 | 390x768 → 390x727 | 414x772 → 414x772 | 430x856 → 430x802 | 1280x724 → 388x724 | the black night sky with faint still stars |
 | Breaker | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the black screen runs on into a dark retro floor (a faint horizon grid) |
 | Rally | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the court's dark floor, five retro lamps lit by Rally's good moments |
 | Tempo | 375x591 → 316x591 | 390x624 → 333x624 | 390x768 → 390x730 | 414x772 → 412x772 | 430x856 → 430x805 | 1280x724 → 387x724 | the four lanes' tints fade into the dark, a few small notes drifting and slowly changing colour |
@@ -104,7 +104,7 @@ than half hidden; Hover's world is cut the same way, its disc at the top).
 
 | Game | Before (home-screen app) | After | Cut at 848px between fix and fix-up |
 |---|---|---|---|
-| Hover | 414x724 → 384x724, 64px | 414x772 → 410x772, 16px | world 32px |
+| Hover | 414x724 → 388x724, 64px | 414x772 → 414x772, 16px | world 32px |
 | Breaker | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Rally | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
 | Tempo | 414x724 → 387x724, 64px | 414x772 → 412x772, 16px | world 32px |
@@ -140,7 +140,7 @@ bottom; the spare space was the game's arena fill or the page colour. Same arith
 
 | Game | 375x667 | 390x700 | 390x844 | 430x932 | 1280x800 |
 |---|---|---|---|---|---|
-| Hover | 367x543 → 288x543 | 382x576 → 306x576 | 382x720 → 382x720 | 422x808 → 422x795 | 1272x676 → 359x676 |
+| Hover | 367x543 → 291x543 | 382x576 → 309x576 | 382x720 → 382x712 | 422x808 → 422x787 | 1272x676 → 363x676 |
 | Breaker | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Rally | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
 | Tempo | 367x543 → 290x543 | 382x576 → 308x576 | 382x720 → 382x715 | 422x808 → 422x790 | 1272x676 → 361x676 |
