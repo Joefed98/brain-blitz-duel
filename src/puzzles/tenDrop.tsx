@@ -38,7 +38,8 @@ import { TENDROP_TIME_MS, type TenDropPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playTick, playWrong } from "@/lib/sound";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { drawTenDrop, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
+import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.renderer";
+import "@/polish-layout/batch-w-tendrop.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -287,7 +288,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           node.height = Math.round(height * ratio);
         }
         const ctx = node.getContext("2d");
-        if (ctx) drawTenDrop(ctx, s, { width, height }, ratio, time);
+        if (ctx) drawTenDropLive(ctx, s, { width, height }, ratio, time);
       }
 
       frameTiming.rendered();

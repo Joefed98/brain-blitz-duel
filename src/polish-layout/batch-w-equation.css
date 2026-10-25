@@ -1,0 +1,103 @@
+/* Polish batch W (25 Oct 2026, display only): Operator. Imported only from src/puzzles/equation.tsx.
+   The second pass (lit surface, deeper strip, keys and slots, the target's glow) applies on a live
+   round's game screen ([data-puzzle-play]); intros and demos keep main's look. */
+
+/* The board: a lit surface in the category colour, an inner shade at its edges, the faint grid kept. */
+[data-puzzle-play] [data-polish="equation"][data-stage-column] .op-board {
+  background:
+    radial-gradient(80% 36% at 50% 50%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 72%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 24px),
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 15%, #1b1b24) 0%, #14141b 50%, color-mix(in srgb, var(--category-accent) 7%, #0e0e13) 100%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--category-accent) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 28px rgba(0, 0, 0, 0.55),
+    0 10px 24px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play] [data-polish="equation"] .op-caption {
+  color: #cfccd6;
+}
+
+/* The equation strip: a light top edge, a body lighter at the top and a soft shadow under it. */
+[data-puzzle-play] [data-polish="equation"] .op-equation {
+  background: linear-gradient(180deg, #363643 0%, #262630 50%, #1c1c24 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.32),
+    0 10px 22px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play] [data-polish="equation"] .op-equation[data-correct="true"] {
+  box-shadow:
+    inset 0 0 0 2px #3ddc84,
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+    0 0 22px 2px rgba(61, 220, 132, 0.45);
+}
+/* The target after "=": a soft gold glow behind it. */
+[data-puzzle-play] [data-polish="equation"] .op-goal {
+  color: #ffc844;
+  text-shadow:
+    0 0 18px rgba(245, 184, 46, 0.65),
+    0 0 4px rgba(255, 224, 138, 0.45),
+    0 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Empty slots: clearly sunk. The slot the next operator drops into rims and glows in the category colour. */
+[data-puzzle-play] [data-polish="equation"] .op-equation .op-slot:not([data-filled="true"]) {
+  background: linear-gradient(180deg, #07070a, #121218) !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+[data-polish="equation"] .op-equation .op-slot[data-next="true"] {
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px color-mix(in srgb, var(--category-accent) 70%, transparent),
+    0 0 12px color-mix(in srgb, var(--category-accent) 35%, transparent) !important;
+}
+[data-puzzle-play] [data-polish="equation"] .op-equation .op-slot[data-next="true"] {
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.85),
+    inset 0 0 0 2px color-mix(in srgb, var(--category-accent) 85%, transparent),
+    0 0 14px 2px color-mix(in srgb, var(--category-accent) 55%, transparent) !important;
+}
+[data-polish="equation"] .op-equation .op-slot[data-next="true"]::before {
+  border-color: color-mix(in srgb, var(--category-accent) 45%, transparent);
+}
+
+/* Placed chips: a stronger light top edge and a drop shadow. */
+[data-puzzle-play] [data-polish="equation"] .op-chip {
+  background: linear-gradient(180deg, #ffe08a 0%, #f5b82e 55%, #d4930f 100%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 248, 215, 0.85),
+    inset 0 -3px 0 rgba(120, 80, 0, 0.4),
+    0 4px 9px rgba(0, 0, 0, 0.55);
+}
+
+/* Operator keys: the same lit piece. */
+[data-puzzle-play] [data-polish="equation"] .op-key {
+  background: linear-gradient(180deg, #3b3b48 0%, #2a2a35 50%, #1f1f28 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.35),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* The strip uses the board's spare height: taller slots and chips (a bigger tap target) and more air. */
+[data-puzzle-play] [data-polish="equation"] .op-equation {
+  padding-top: 26px;
+  padding-bottom: 26px;
+}
+[data-puzzle-play] [data-polish="equation"] .op-equation .op-slot {
+  height: 2.3em;
+}
+[data-puzzle-play] [data-polish="equation"] .op-caption {
+  font-size: 13px;
+}
+[data-puzzle-play] [data-polish="equation"] .op-key {
+  height: 74px;
+}

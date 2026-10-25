@@ -22,6 +22,8 @@ import { buzz } from "@/lib/motion";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-swapword.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -148,6 +150,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const root = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const press = useRef<{ tile: number; x: number; y: number; moved: boolean } | null>(null);
+  const lastCounts = useRef<number[] | null>(null);
   useNoTouchScroll(root);
 
   const encoded = encodeSwapword(swaps);
@@ -164,6 +167,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       if (newlyPlaced > 0 && !view.solved) {
         fx.onPlace();
         buzz(10);
+        // Batch W: the toolkit's right-move glow on each tile that just turned gold (display only; prev
+        // is null only for the starting board's first marks, which are not a move).
+        if (prev) {
+          const fresh = view.marks.flatMap((m, t) => (m === 2 && prev[t] !== 2 ? [t] : []));
+          window.requestAnimationFrame(() => fresh.forEach((t) => rightMoveFlash(boardRef.current?.querySelector(`[data-sw-tile="${t}"]`))));
+        }
       }
       return view.marks;
     });
@@ -218,6 +227,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const board = replaySwapword(data.start, swaps, data.maxSwaps).board;
   const done = locked || submitted.current || result.solved || result.over || left === 0;
   const looks: TileLook[] = Array.from({ length: SW_TILES }, (_, t) => marks?.[t] ?? "pending");
+  // Each colour's count, once every tile has its mark (between a swap and its reply the last counts stay).
+  const counts =
+    marks && marks.length === SW_TILES && marks.every((m) => m !== null)
+      ? ([0, 1, 2] as const).map((k) => marks.filter((m) => m === k).length)
+      : lastCounts.current;
+  lastCounts.current = counts;
 
   const doSwap = (a: number, b: number) => {
     if (done || a === b) return;
@@ -307,10 +322,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
           side={boardSide}
         />
       </div>
-      <div className="flex h-8 w-full shrink-0 items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm" style={{ background: SW_GOLD }} />in place</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm" style={{ background: SW_TEAL }} />elsewhere</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-sm" style={{ background: "var(--puzzle-given)" }} />neither</span>
+      {/* Batch W: the key doubles as the live summary, each colour's count from the marks the board shows. */}
+      <div data-live-summary="swapword" className="flex h-8 w-full shrink-0 items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="flex items-center gap-1"><span className="bw-lift h-3 w-3 rounded-sm" style={{ background: SW_GOLD }} /><b className="inline-block w-[2ch] text-right text-[13px] tabular-nums text-foreground">{counts ? counts[2] : "\u00a0"}</b>in place</span>
+        <span className="flex items-center gap-1"><span className="bw-lift h-3 w-3 rounded-sm" style={{ background: SW_TEAL }} /><b className="inline-block w-[2ch] text-right text-[13px] tabular-nums text-foreground">{counts ? counts[1] : "\u00a0"}</b>elsewhere</span>
+        <span className="flex items-center gap-1"><span className="bw-lift h-3 w-3 rounded-sm" style={{ background: "var(--puzzle-given)" }} /><b className="inline-block w-[2ch] text-right text-[13px] tabular-nums text-foreground">{counts ? counts[0] : "\u00a0"}</b>neither</span>
       </div>
       {drag ? (
         <div

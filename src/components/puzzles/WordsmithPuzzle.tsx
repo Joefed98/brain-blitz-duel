@@ -10,6 +10,8 @@ import { shuffleLetterOrder } from "./letterShuffle";
 import { playFinish, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 import { scoreWordsmith } from "@/lib/duel/scoring";
 import { useStageState } from "@/lib/duel/stageState";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-wordsmith.css";
 
 import {
   WORDSMITH_MIN_LENGTH,
@@ -59,6 +61,7 @@ export function WordsmithPuzzle({
   const [listOpen, setListOpen] = useState(false);
   const [runEnded, setRunEnded] = useState(false);
   const ringRef = useRef<HTMLDivElement | null>(null);
+  const wordBoxRef = useRef<HTMLDivElement | null>(null);
   const selectedRef = useRef<number[]>([]);
   const submitted = useRef(false);
   const foundRef = useRef<Found[]>([]);
@@ -130,6 +133,7 @@ export function WordsmithPuzzle({
       setSelectedTiles([]);
       setMessage(null);
       setAcceptedWord(verdict.word);
+      rightMoveFlash(wordBoxRef.current);
     } else {
       setMessage(verdict.reason ?? "Not a word");
       setShake((n) => n + 1);
@@ -173,6 +177,14 @@ export function WordsmithPuzzle({
     }
     return false;
   });
+
+  // Batch W live summary (display only): what the status line shows when no message is up.
+  const longest = found.reduce((best, entry) => Math.max(best, entry.word.length), 0);
+  const summary = word
+    ? `${word.length} letter${word.length === 1 ? "" : "s"}${word.length < WORDSMITH_MIN_LENGTH ? ` · ${WORDSMITH_MIN_LENGTH} needed` : ""}`
+    : found.length > 0
+      ? `${found.length} word${found.length === 1 ? "" : "s"} · longest ${longest} letters`
+      : "Tap tiles to build a word";
 
   return (
     <div data-stage-column="2" data-word-polish="wordsmith" className="flex min-h-0 flex-1 flex-col gap-2">
@@ -225,11 +237,11 @@ export function WordsmithPuzzle({
           </div>
         </div>
       </div>
-      <div key={shake} aria-live="polite" aria-label="Current word"
+      <div key={shake} ref={wordBoxRef} aria-live="polite" aria-label="Current word" data-bw-well={word ? undefined : ""}
         data-game-controls="input" data-word-controls-first="" className={`flex h-11 shrink-0 items-center justify-center rounded-lg border bg-card px-2 text-center font-mono text-xl uppercase text-foreground ${message ? "border-warn animate-shake" : "border-border"}`}>
         {word || " "}
       </div>
-      <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
+      <p data-game-controls="status" data-live-summary="wordsmith" className={`h-4 shrink-0 truncate text-center leading-4 ${message ? "font-mono text-xs text-warn" : "text-[13px] font-semibold text-[#a09da6] tabular-nums"}`}>{message ?? summary}</p>
 
       <div data-game-controls="actions" className={`${column ? "" : "mt-auto "}grid shrink-0 grid-cols-[44px_1fr_1fr] gap-2`}>
         <Button type="button" variant="outline" className="h-11 w-11 p-0" aria-label="Shuffle letters" title="Shuffle letters" disabled={locked || busy} onClick={() => setOrder(current => shuffleLetterOrder(current, WORDSMITH_CENTRE_INDEX))}><Shuffle className="h-5 w-5" /></Button>

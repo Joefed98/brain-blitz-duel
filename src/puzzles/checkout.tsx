@@ -43,6 +43,7 @@ import { playCorrect, playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import "@/polish-layout/batch-w-checkout.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -761,13 +762,17 @@ function Stage({
         className={`co-score flex h-10 w-full shrink-0 items-center justify-between gap-2 rounded-lg px-2.5 font-mono ${shake ? "animate-shake" : ""}`}
         data-checkout-darts
       >
-        <span className="co-from truncate text-sm">
+        <span className="co-from min-w-0 truncate text-sm">
           {current.target}
           {darts.map((d, i) => (
             <span key={`${stage}-${i}`} className={i === fresh ? "co-term" : undefined} style={{ color: FAIR_CHALK }}>
               {" "}− {checkoutDartLabel(current, d)}
             </span>
           ))}
+        </span>
+        {/* Batch W: the live summary's dart count, beside what is left (display only). */}
+        <span className="co-darts ml-auto shrink-0 whitespace-nowrap text-xs" data-checkout-dart-count>
+          {darts.length}/{current.maxDarts} darts
         </span>
         <span
           key={`${stage}:${left}:${done}`}

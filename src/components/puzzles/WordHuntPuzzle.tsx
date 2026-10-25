@@ -18,6 +18,8 @@ import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useStageState } from "@/lib/duel/stageState";
 import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "@/lib/duel/scoring";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-wordhunt.css";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
@@ -99,6 +101,7 @@ export function WordHuntBoard({
             <div
               key={cell}
               data-cell={cell}
+              data-bw-lit={lit ? "" : undefined}
               onPointerDown={
                 interactive && onPathStart ? (event) => onPathStart(cell, event) : undefined
               }
@@ -242,6 +245,7 @@ export function WordHuntPuzzle({
       setMessage(null);
       setAcceptedWord(verdict.word);
       hapticTick();
+      cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
     } else {
       setFlash("bad");
       puzzleReject(gridRef.current);
@@ -374,6 +378,14 @@ export function WordHuntPuzzle({
     };
   }, [finish, tapCell]);
 
+  // Batch W live summary (display only): what the status line shows when no message is up.
+  const best = found.reduce<Found | null>((top, entry) => (!top || entry.points > top.points || (entry.points === top.points && entry.word.length > top.word.length) ? entry : top), null);
+  const summary = path.length > 0
+    ? `${path.length} letter${path.length === 1 ? "" : "s"}${path.length < WORDHUNT_MIN_LENGTH ? ` · ${WORDHUNT_MIN_LENGTH} needed` : ""}`
+    : best
+      ? `Best ${best.word} · ${best.points} pts`
+      : `Drag through touching letters · ${WORDHUNT_MIN_LENGTH}+`;
+
   return (
     <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="grid grid-cols-2 items-center font-mono text-base font-semibold uppercase text-foreground">
@@ -403,7 +415,7 @@ export function WordHuntPuzzle({
         </div>
       </div>
 
-      <p data-game-controls="status" className="h-4 shrink-0 truncate text-center font-mono text-xs text-warn">{message ?? ""}</p>
+      <p data-game-controls="status" data-live-summary="wordhunt" className={`h-4 shrink-0 truncate text-center leading-4 ${message ? "font-mono text-xs text-warn" : "text-[13px] font-semibold text-[#a09da6] tabular-nums"}`}>{message ?? summary}</p>
 
       <button
         type="button"
