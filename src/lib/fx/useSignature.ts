@@ -8,6 +8,8 @@ import {
   signatureTierForVerdict,
   type SignatureVerdict,
 } from "./signature";
+import { roundMaxFor } from "@/lib/duel/roundMax";
+import type { PuzzleType } from "@/lib/duel/types";
 
 /**
  * Rooms and practice: once per round (`key`), when this player's verdict lands,
@@ -38,12 +40,12 @@ export function useSignatureHold(key: string | null, verdict: SignatureVerdict |
   return hold.current.until;
 }
 
-/** The reveal: a stored 150 gets one short gold burst on the score element. */
-export function usePerfectBurst(ref: RefObject<HTMLElement | null>, score: number | null): void {
+/** The reveal: a stored score at the game's maximum (roundMax.ts) gets one short gold burst on the score element. */
+export function usePerfectBurst(ref: RefObject<HTMLElement | null>, score: number | null, type: PuzzleType): void {
   const burst = useRef(false);
   useEffect(() => {
-    if (score !== 150 || burst.current || !ref.current) return;
+    if (score !== roundMaxFor(type) || burst.current || !ref.current) return;
     burst.current = true;
     perfectBurst(ref.current);
-  }, [ref, score]);
+  }, [ref, score, type]);
 }

@@ -9,6 +9,7 @@
  * listed here, or if a sim exports a newer band curve than the one listed.
  */
 import { bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
+import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STRICT, BT_V6_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_STRICT, WAV_V8_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_STRICT, FLIP_V6_BAND_CURVE } from "./flip";
@@ -71,5 +72,5 @@ export type LiveBandGame = keyof typeof LIVE_BANDS;
 
 /** The "?" help SCORE text for a band game, its numbers from the curve new rounds are dealt on. */
 export function liveBandHelp(game: LiveBandGame, units: string, words: BandHelpWords): string {
-  return bandHelp(units, LIVE_BANDS[game].curve, words);
+  return bandHelp(units, LIVE_BANDS[game].curve, words, roundMaxFor(game));
 }

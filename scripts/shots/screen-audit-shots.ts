@@ -27,6 +27,7 @@ import { bankedIntroExample } from "../../src/lib/duel/puzzleBank.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
 import { splitPuzzle } from "../../src/lib/duel/secrets";
 import { currentPracticeStamp } from "../../src/lib/duel/practiceStamps";
+import { practiceBestKey } from "../../src/lib/duel/practiceBest";
 import { GAME_COLUMN_LAYOUT, INTRO_EXAMPLE_SEED } from "../../src/lib/duel/puzzleDemo";
 import { puzzlePresentation } from "../../src/components/puzzles/wordInput";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
@@ -400,7 +401,7 @@ async function open(browser: Browser, origin: string, shot: Shot, vp: Viewport):
   await context.addInitScript(deviceInit, {
     onboarding: ONBOARDING_KEY,
     device,
-    bests: BEST_TYPES.map((t, i) => [`duelz-practice-best:v2:${t}@${currentPracticeStamp(t)}`, 148 - i * 17] as [string, number]),
+    bests: BEST_TYPES.map((t, i) => [practiceBestKey(t, currentPracticeStamp(t)), 148 - i * 17] as [string, number]),
   });
   // A home-screen app at 414×896, except where the shot is Safari's (the Add to Home Screen hint).
   const standalone = Boolean(vp.insets && !shot.userAgent);

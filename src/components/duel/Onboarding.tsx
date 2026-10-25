@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PhoneShell } from "./PhoneShell";
 import { AppWordmark } from "@/components/brand/AppWordmark";
 import { LogoMark } from "@/components/brand/LogoMark";
+import { topRoundMax } from "@/lib/duel/roundMax";
 import { markOnboardingSeen } from "@/lib/onboarding";
 import { playLock, unlockAudio } from "@/lib/sound";
 
@@ -30,7 +31,8 @@ const PANELS: Panel[] = [
   },
   {
     title: "Score big, win the room.",
-    body: "Every game scores up to 150. Faster and sharper scores higher. Most points across the rounds wins.",
+    // The top is the games' own maximums (roundMax.ts): "Every game" while they all share it.
+    body: `${topRoundMax().shared ? "Every game scores" : "Games score"} up to ${topRoundMax().top}. Faster and sharper scores higher. Most points across the rounds wins.`,
     art: <ScoreArt />,
   },
 ];
@@ -219,7 +221,7 @@ function RoomCodeArt() {
 function ScoreArt() {
   return (
     <div className="flex flex-col items-center leading-none">
-      <span className="font-mono text-6xl font-bold text-primary">150</span>
+      <span className="font-mono text-6xl font-bold text-primary">{topRoundMax().top}</span>
       <span className="mt-2 text-[13px] font-semibold text-muted-foreground">
         top score
       </span>

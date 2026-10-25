@@ -1120,6 +1120,7 @@ function DuelScreen() {
         {puzzle ? <CategoryPill category={puzzleDef(puzzle.type).category} className="self-start" /> : null}
         <RoomChatSlot.Provider value={chatButton}>
         <RoundResult
+          gameType={puzzle?.type}
           roundTitle={roundTitle}
           best={bestLine}
           myName={me.display_name}
