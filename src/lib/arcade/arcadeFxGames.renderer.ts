@@ -1305,6 +1305,8 @@ export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
 export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
+/** The live round's view size on orbitRev 11 (world expansion), with ORBIT_FX's events (ARCADE_FX_SPECS). */
+const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, height: 782 };
 /** orbitRev 11 (world expansion): the same events in the wider 450 × 782 view. */
 export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 782 };
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
@@ -1359,8 +1361,9 @@ export const ARCADE_FX_SPECS = {
   snake: SNAKE_FX_TALL,
   burst: BURST_FX_TALL,
   wavefront: WAVEFRONT_FX_TALL,
-  // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
-  orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
+  // The live round's view (orbitRev 11's 450 × 782; orbitRev 8–10 were 390 × 650); rev 1/2 rounds draw through ORBIT_FX
+  // and rev 3 and later through ORBIT3_FX (orbit3FxFor).
+  orbit: ORBIT_FX_XP_VIEW,
   skyline: SKYLINE_FX_TALL,
   cross: CROSS_FX,
   junction: JUNCTION_FX,

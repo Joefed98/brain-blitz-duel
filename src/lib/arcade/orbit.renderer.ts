@@ -1273,11 +1273,14 @@ function drawXpRock(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   }
   ctx.closePath();
   const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
-  g.addColorStop(0, "#C0B7A7");
-  g.addColorStop(0.5, hash & 1 ? "#A29989" : "#8E8476");
-  g.addColorStop(1, "#4F4A44");
+  g.addColorStop(0, "#EDE3D2");
+  g.addColorStop(0.45, hash & 1 ? "#B9AC98" : "#A89A86");
+  g.addColorStop(1, "#5E554B");
   ctx.fillStyle = g;
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,214,160,0.75)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.beginPath();
   ctx.arc(r * 0.25, r * 0.15, r * 0.24, 0, Math.PI * 2);
@@ -1329,7 +1332,6 @@ function drawXpFeatures(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: O
     f.rocks.forEach((r, k) => {
       const x = r.x / FP - cam.x, y = r.y / FP - cam.y;
       const hash = Math.imul((r.x ^ (r.y * 31)) + k * 977, 0x85ebca6b) >>> 0;
-      if (!lite) drawFxGlow(ctx, "#FF8A5C", x, y, r.r / FP + 7, 0.18);
       drawXpRock(ctx, x, y, r.r / FP, hash, still ? 0 : (t * 0.4 * (hash & 1 ? 1 : -1)));
     });
   });
