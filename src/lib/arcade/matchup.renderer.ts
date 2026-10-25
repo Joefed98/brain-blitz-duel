@@ -6,7 +6,7 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { MATCHUP_FX } from "./arcadeFxGames.renderer";
+import { MATCHUP_FX, fxSpecAt } from "./arcadeFxGames.renderer";
 import type { SoundId } from "@/lib/fx/manifest";
 import {
   matchupGame, matchupIndex, matchupShowHint, matchupTransform,
@@ -979,7 +979,10 @@ function drawGoalsPanel(ctx: CanvasRenderingContext2D, state: MatchupState, time
   ctx.restore();
 }
 
-/** Banners for a goal met and a treasure collected (memory per canvas, keyed by the sim's counters; render only). */
+/**
+ * Banners for a goal met and a treasure collected (memory per canvas, keyed by the sim's counters; render only).
+ * A deep cascade's multiplier already has the shared layer's "CASCADE ×n" banner.
+ */
 interface BannerMemory { tick: number; levels: number; treasures: number; mult: number; banners: { text: string; tick: number; gold: boolean }[] }
 const bannerMemories = new WeakMap<CanvasRenderingContext2D, BannerMemory>();
 function drawBanners(ctx: CanvasRenderingContext2D, state: MatchupState): void {
@@ -990,7 +993,6 @@ function drawBanners(ctx: CanvasRenderingContext2D, state: MatchupState): void {
   }
   if ((state.levels ?? 0) > m.levels) m.banners.push({ text: "GOAL!", tick: state.tick, gold: false });
   if ((state.treasures ?? 0) > m.treasures) m.banners.push({ text: "TREASURE!", tick: state.tick, gold: true });
-  if (state.swaps !== m.mult && (state.lastMult ?? 0) >= 3) m.banners.push({ text: `CASCADE ×${state.lastMult}`, tick: state.tick, gold: false });
   m.levels = state.levels ?? 0;
   m.treasures = state.treasures ?? 0;
   m.mult = state.swaps;
@@ -1073,7 +1075,8 @@ function drawClearBursts(ctx: CanvasRenderingContext2D, state: MatchupState): vo
 
 /** The board drawing through the shared success layer (presentation only). */
 function drawScene(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
-  arcadeFx(ctx, MATCHUP_FX, state, () => drawSceneWorld(ctx, state, size, options), size);
+  // matchupRev 9: the shared layer spans the taller world (fxSpecAt, as the other taller worlds do).
+  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), state, () => drawSceneWorld(ctx, state, size, options), size);
 }
 
 function drawSceneWorld(ctx: CanvasRenderingContext2D, state: MatchupState, size: CanvasSize, options: SceneOptions = {}): void {
@@ -1190,7 +1193,7 @@ export function drawMatchupSwap(
   const options = { cells: tween.before.cells, skip: new Set([tween.a, tween.b]) };
   // The two sliding gems are part of the world, so the shared layer's effects (a refused swap's
   // miss puff, Polish 1) paint over them, as over every other gem.
-  arcadeFx(ctx, MATCHUP_FX, scene, () => {
+  arcadeFx(ctx, fxSpecAt(MATCHUP_FX, matchupWorldH(state)), scene, () => {
     drawSceneWorld(ctx, scene, size, options);
     const { scale, offsetX, offsetY } = matchupTransform(size, L.worldH);
     ctx.save();

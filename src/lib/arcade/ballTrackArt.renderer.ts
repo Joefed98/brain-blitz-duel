@@ -18,6 +18,7 @@ import {
   toyBoard, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
+import { reducedMotion } from "./art.renderer";
 
 const BALL_R = 22.5;
 const SLOT = 100;
@@ -493,7 +494,7 @@ function drawCrossPlate(ctx: CanvasRenderingContext2D, cell: number): void {
 function drawBooster(ctx: CanvasRenderingContext2D, cell: number, tick: number): void {
   const { x, y } = cellCentre(cell);
   const dir = rowDir(Math.floor(cell / BT_COLS));
-  const still = arcadeReducedEffects();
+  const still = arcadeReducedEffects() || reducedMotion();
   const lit = still ? -1 : Math.floor(tick / 8) % 3;
   ctx.save();
   ctx.lineCap = "round";
@@ -518,10 +519,16 @@ function goldBand(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   ring.addColorStop(0, "#FFF1B8");
   ring.addColorStop(0.5, "#F2BE3C");
   ring.addColorStop(1, "#A8700E");
-  ctx.strokeStyle = ring;
-  ctx.lineWidth = Math.max(1.5, r * 0.2);
+  // A dark edge first, so the band reads on every marble colour (yellow included).
+  ctx.strokeStyle = "rgba(70,40,4,0.85)";
+  ctx.lineWidth = Math.max(2, r * 0.32);
   ctx.beginPath();
   ctx.arc(x, y, r - ctx.lineWidth / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth = Math.max(1.5, r * 0.22);
+  ctx.beginPath();
+  ctx.arc(x, y, r - Math.max(2, r * 0.32) / 2, 0, Math.PI * 2);
   ctx.stroke();
   ctx.fillStyle = "#FFFBE6";
   ctx.beginPath();
@@ -799,7 +806,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   for (const b of s.balls) {
     const p = btArtBallPoint(s, b, rot);
     // btRev 7: a boosted marble trails a short streak (behind it, along the way it came; decorative).
-    if ((b.bst ?? 0) > 0 && b.cell >= 0 && b.cell < SLOT && !arcadeReducedEffects()) boostStreak(ctx, s, b, p);
+    if ((b.bst ?? 0) > 0 && b.cell >= 0 && b.cell < SLOT && !arcadeReducedEffects() && !reducedMotion()) boostStreak(ctx, s, b, p);
     btMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, b.colour);
     if (btIsGold(course, b.id)) goldBand(ctx, p.x, p.y, BALL_R);
   }
