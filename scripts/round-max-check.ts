@@ -117,7 +117,7 @@ for (const type of TYPES) {
     const other = type === "tilegrid" ? "wordsmith" : "tilegrid";
     ok(roundMaxFor(other) === 150 && isPerfectScore(other, 150) && signatureMinScore(other) === 120, `${type}: ${other} keeps 150`);
   });
-  ok(roundMaxFor(type) === maxOf(type), `${type}: the override ends with its call`);
+  ok(roundMaxFor(type) === todayMax(type), `${type}: the override ends with its call`);
 }
 // Every other game's texts are untouched by one game's change (checked once for a sample, all games each way).
 for (const raised of ["snake", "tilegrid", "wordsmith", "reaction"] as const) {

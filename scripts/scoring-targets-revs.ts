@@ -24,14 +24,14 @@ const bandsRevOf = (type: LiveBandGame): number => EXPANDED[type]?.bands ?? LIVE
 export const EXPANSION_REVS: Partial<Record<LiveBandGame, readonly [dealt: number, strictBefore: number]>> = Object.fromEntries(
   Object.entries(EXPANDED).map(([type, e]) => [type, [e!.rev, e!.bands] as const]),
 );
-
-/**
- * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms now deal the score-bands
- * revision after it (19 Oct 2026, LIVE_BANDS: the same play again, band 3), so the target is LIVE_BANDS' rev − 1.
 /** The same table as type → score-bands revision. */
 export const EXPANDED_FROM: Partial<Record<LiveBandGame, number>> = Object.fromEntries(
   Object.entries(EXPANDED).map(([type, e]) => [type, e!.bands]),
 );
+
+/**
+ * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms now deal the score-bands
+ * revision after it (19 Oct 2026, LIVE_BANDS: the same play again, band 3), so the target is LIVE_BANDS' rev − 1.
  */
 export const TARGET_REVS: Partial<Record<LiveBandGame, readonly [target: number, play: number]>> = Object.fromEntries(
   (Object.keys(LIVE_BANDS) as LiveBandGame[])
