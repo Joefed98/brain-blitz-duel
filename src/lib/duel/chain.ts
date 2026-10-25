@@ -121,9 +121,12 @@ export function chainScore(links: number, msRemaining = 0, puzzle?: ChainPuzzleD
   return Math.min(150, Math.floor(rules.points * count) + bonus);
 }
 
-/** Old recordings use the old timing bands (or, before chainCycleRev 1, three-symbol cycles) and must be recorded again. */
+/**
+ * Old recordings use the old timing bands (or, before chainCycleRev 1, three-symbol cycles) and must be recorded again;
+ * since Depth to 200 (25 Oct 2026) a demo must also be on chainDepthRev 1, which shows the milestone pips.
+ */
 export function chainDemoCompatible(puzzle: ChainPuzzleData): boolean {
-  return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK && chainLongCycles(puzzle);
+  return puzzle.rulesVersion === CHAIN_RULES_VERSION && puzzle.boards.length === CHAIN_LENGTH / CHAIN_BLOCK && chainLongCycles(puzzle) && (puzzle.chainDepthRev ?? 0) >= 1;
 }
 
 /** One tap: node index on the board showing at the time, ms since the round began. */

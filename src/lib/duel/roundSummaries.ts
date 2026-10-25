@@ -1,4 +1,5 @@
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
+import { LAB_STARS } from "./depth/labyrinth";
 import { solutionProgress } from "./progressFigures";
 import { PUZZLE_SCORE_REV_BANDS } from "./puzzleScoreRev2";
 import {
@@ -326,7 +327,12 @@ function spotDifferenceSummary(result: RoundResultRow, puzzle: PuzzleData): Buil
       const got = difference.cells.some((cell) => (taps[difference.scene ?? 0] ?? []).includes(cell));
       return `${index + 1}. Picture ${(difference.scene ?? 0) + 1}: ${difference.label} · ${got ? "✓" : "✗"}`;
     });
-    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}` : `${found} / ${total}`, detail };
+    // spotRev 2: the hidden seventh difference, never counted in the twelve (depth/doubleTake.ts).
+    const bonus = puzzle.bonus;
+    const hidden = bonus ? bonus.cells.some((cell) => (taps[bonus.scene ?? 0] ?? []).includes(cell)) : false;
+    if (bonus) detail.push(`★ Picture ${(bonus.scene ?? 0) + 1} hidden: ${bonus.label} · ${hidden ? "✓" : "–"}`);
+    const star = hidden ? " · ★" : "";
+    return { summary: r.finished ? `${found} / ${total} · ${seconds(elapsedMs(result, puzzle))}${star}` : `${found} / ${total}${star}`, detail };
   }
   const count = result.correct_count ?? 0;
   const taps = (result.answer ?? "")
@@ -686,13 +692,17 @@ const towerSummary: SummaryBuilder = (result, puzzle) => {
 const mazeSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "maze") return { summary: "—", detail: [] };
   const progress = Number(result.extra?.["progress"] ?? 0);
+  // mazeRev 1 (depth/labyrinth.ts): the stars the trail took, and their stored points on a finish.
+  const stars = Array.isArray(result.extra?.["stars"]) ? (result.extra!["stars"] as unknown[]).length : null;
+  const starText = stars === null ? "" : ` · ★ ${stars}/${LAB_STARS}`;
   if (result.is_correct) {
+    const bonus = Number(result.extra?.["starBonus"] ?? 0);
     return {
-      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}`,
-      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`],
+      summary: `Solved · ${seconds(elapsedMs(result, puzzle))}${starText}`,
+      detail: [`${Number(result.extra?.["wasted"] ?? 0)} wasted squares`, ...(stars === null ? [] : [`${stars} of ${LAB_STARS} stars · +${bonus}`])],
     };
   }
-  return { summary: `${progress}%`, detail: [`${progress}% of the way to the exit`] };
+  return { summary: `${progress}%${starText}`, detail: [`${progress}% of the way to the exit`, ...(stars ? ["Stars count only with a finish"] : [])] };
 };
 
 const tubesSummary: SummaryBuilder = (result, puzzle) => {

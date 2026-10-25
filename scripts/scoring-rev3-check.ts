@@ -43,6 +43,11 @@ import { KNOWN_SPAM } from "./puzzle-fairness";
 import { KITS } from "./puzzle-fairness/kits";
 import { hashText, makeRng } from "./puzzle-fairness/kit";
 import { roomPuzzle } from "./puzzle-fairness/run";
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves rev 3 on the stamps before it.
+pinPreDepthTapRev(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -261,6 +266,8 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(dealt.size === 1 && dealt.has((DEALT_LIMIT_S[type] ?? 0) * 1000), `${type}: the help's clock ${DEALT_LIMIT_S[type]} s, dealt ${[...dealt].join("/")} ms`);
   const n = fastFinishSeconds(type);
   ok(n === rev3FastFinishSeconds(type, [...dealt][0]!), `${type}: help says 150 in ${n} s`);
+  // A game raised to 200 (Depth to 200, docs/depth/) writes its own help and intro on its new stamp; its depth check proves them.
+  if (roundMaxFor(type) > 150) continue;
   ok(rev3Help(type).includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === rev3Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
   ok(INTRO_SCORE[type] === rev3Intro(type) && rev3Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
 }

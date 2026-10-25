@@ -43,7 +43,8 @@ for (const puzzle of rev1) puzzle.stages.forEach((stage, index) => checkCountTra
 // fourth, comparison tray of COUNTUP_COMPARE_SIZE shapes asking "how many more A than B?".
 for (let round = 0; round < 100; round += 1) {
   const puzzle = buildCountUp();
-  check(puzzle.countRev === 2 && puzzle.stages.length === 4, "Count Up countRev 2 has four trays");
+  // Depth to 200 (25 Oct 2026): dealt as countRev 3 on countRev 2's trays (depth-tally-check).
+  check(puzzle.countRev === 3 && puzzle.stages.length === 4, "Count Up countRev 3 has countRev 2's four trays");
   puzzle.stages.forEach((stage, index) => {
     if (index < 3) {
       check(!stage.compare, `Count Up stage ${index + 1} is a count tray`);
@@ -67,5 +68,5 @@ for (const dir of ["U", "D", "L", "R"] as const) {
   check(coordinates.every((value) => Number.isFinite(value) && value >= 0 && value <= 24), `Laser ${dir} marker is clipped`);
 }
 
-console.log(`Count Up: ${rev1.length} stored countRev 1 three-tray sets and 100/100 countRev 2 four-tray sets are contained and in range; minimum sampled target visibility ${(minimumVisibility * 100).toFixed(1)}%`);
+console.log(`Count Up: ${rev1.length} stored countRev 1 three-tray sets and 100/100 countRev 3 (countRev 2's) four-tray sets are contained and in range; minimum sampled target visibility ${(minimumVisibility * 100).toFixed(1)}%`);
 console.log("Laser: directional chevrons stay inside all four cell sides; shared board renderer covers intro, play and reveal");

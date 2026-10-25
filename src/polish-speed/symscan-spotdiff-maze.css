@@ -135,6 +135,17 @@
 @media (prefers-reduced-motion: reduce) {
   .maze-exit-glow { animation: none; }
 }
+/* mazeRev 1 detour stars (depth to 200): a slow shimmer while waiting, a pop when the ball takes one, then a
+   faint gold outline where it was. Still under reduced motion and reduced effects (display only). */
+.maze-star-glow { animation: maze-exit-pulse 2200ms ease-in-out infinite; }
+.maze-star-pop { animation: maze-star-pop 420ms ease-out both; transform-box: fill-box; transform-origin: center; }
+@keyframes maze-star-pop { from { transform: scale(1); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .maze-star-glow { animation: none; }
+  .maze-star-pop { animation: none; opacity: 0; }
+}
+[data-reduced-effects] .maze-star-glow { animation: none; }
+[data-reduced-effects] .maze-star-pop { animation: none; opacity: 0; }
 
 /* Main's centred column (layout 2) adds auto margins to every arena; these columns centre
    their play block themselves (auto margins on the first child and the controls, or

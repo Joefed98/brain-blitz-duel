@@ -8,6 +8,7 @@ import {
   FLASH_FASTEST_MS,
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
+  dealtTapRev,
   TAP_REV_ONE_CURVE,
   tapRevOf,
   decodeTapTimes,
@@ -31,6 +32,8 @@ import {
 import { fireFlashGoldPulse, flashEarnsGoldPulse, localFlashScore } from "@/components/puzzles/reactionFx";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { FLASH_FALSE_START_COST } from "@/lib/duel/scoring";
+import { FLASH_REV5_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
+import { roundMaxFor } from "@/lib/duel/roundMax";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -91,7 +94,7 @@ export function buildReaction(): ReactionPuzzleData {
   }
   const kinds = dealDecoyKinds(decoys.length);
   decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
-  return { type: "reaction", flashes, decoys, tapRev: TAP_REV_ONE_CURVE };
+  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction") };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -135,7 +138,8 @@ function IntroExample() {
       <p className="text-center text-xs text-muted-foreground">
         Traps: teal, red or blue, near-gold amber, a gold border, the word GOLD, half the screen gold. Tapping a trap, a
         dark screen, or within {FLASH_FASTEST_MS} ms of the gold is a false start: −8 each for the first two, −11 each
-        after that. Score: 150 at 150 ms average or faster, 128 at 200 ms, 100 at 300 ms; a missed flash counts 1,200 ms.
+        after that. Score: {roundMaxFor("reaction")} at {FLASH_REV5_CURVE[0][0]} ms average with a steady hand (every reaction
+        close together), 155 at 150 ms, 120 at 200 ms; a missed flash counts 1,200 ms.
       </p>
     </div>
   );
@@ -253,6 +257,20 @@ function flashSummary(times: readonly (number | null)[], total: number): string 
   return settled.length >= total ? `All ${total} flashes${best}` : `Flash ${shown} of ${total}${best}`;
 }
 
+/**
+ * Depth (tapRev 5): the same line, with the steady-hand spread in place of the best while it is still on
+ * ("Flash 4 of 6 · steady 38 ms"): every flash so far hit, no false start, and the fastest to slowest within the
+ * loose spread. Gold while it is within the tight one. Display only; the server works the bonus out itself.
+ */
+function flashSteadyLine(times: readonly (number | null)[], total: number, falseStarts: number): { text: string; steady: "tight" | "loose" | null } {
+  const settled = times.filter((v) => v !== null) as number[];
+  const spread = settled.length >= 2 && falseStarts === 0 ? flashSpread(settled) : null;
+  if (spread === null || spread > FLASH_STEADY_LOOSE_MS) return { text: flashSummary(times, total), steady: null };
+  const shown = Math.min(total, settled.length + 1);
+  const head = settled.length >= total ? `All ${total} flashes` : `Flash ${shown} of ${total}`;
+  return { text: `${head} · steady ${spread} ms`, steady: spread <= FLASH_STEADY_TIGHT_MS ? "tight" : "loose" };
+}
+
 function surfaceFor(liveIndex: number, decoy: { color: ReactionDecoyColour } | null): string {
   if (liveIndex >= 0) return "bg-primary";
   switch (decoy?.color) {
@@ -296,6 +314,7 @@ function ReactionArena({
   runKey = "",
   fxScore = null,
   summary = "",
+  steady = null,
 }: {
   surface: string;
   falseStarts: number;
@@ -313,6 +332,8 @@ function ReactionArena({
   fxScore?: number | null;
   /** Polish batch S: the live summary line ("Flash 3 of 5 · best 241 ms"). */
   summary?: string;
+  /** Depth (tapRev 5): the steady hand still on, within the tight or the loose spread. */
+  steady?: "tight" | "loose" | null;
 }) {
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const arenaRef = useRef<HTMLButtonElement | null>(null);
@@ -329,7 +350,7 @@ function ReactionArena({
   return (
     <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex items-center justify-between gap-2 font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        <span data-flash-summary="" className="flash-summary truncate">{summary}</span>
+        <span data-flash-summary="" data-flash-steady={steady ?? undefined} className="flash-summary truncate">{summary}</span>
         {falseStarts > 0 && <span className="shrink-0 text-warn">{falseStarts} false</span>}
       </div>
       <button
@@ -428,6 +449,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
+  const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, flashes.length, replay.falseStarts) : null;
 
   const handleTap = () => {
     if (locked || replay.done) return;
@@ -464,7 +486,8 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       inactive={locked || replay.done}
       runKey={key}
       // The live replay shows each reaction as tapped; the end-of-run score uses the credited ones (tapRev 4's decoy cut).
-      summary={flashes.length ? flashSummary(replay.times, flashes.length) : ""}
+      summary={steadyLine ? steadyLine.text : flashes.length ? flashSummary(replay.times, flashes.length) : ""}
+      steady={steadyLine?.steady ?? null}
       fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
     />
   );
@@ -481,6 +504,12 @@ function storedFlash(extra: Record<string, unknown> | null | undefined) {
   const cost = extra?.["falseStartCost"];
   if (!Array.isArray(times) || typeof falseStarts !== "number" || typeof cost !== "number") return null;
   return { times: times.filter((v): v is number => typeof v === "number"), falseStarts, cost };
+}
+
+function storedFlashDepth(extra: Record<string, unknown> | null | undefined): { steady: number; spread: number | null } | null {
+  const d = extra?.["depth"] as Record<string, unknown> | undefined;
+  if (!d || typeof d["steady"] !== "number") return null;
+  return { steady: d["steady"] as number, spread: typeof d["spread"] === "number" ? (d["spread"] as number) : null };
 }
 
 function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProps) {
@@ -508,6 +537,8 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
     ? replayFlash(puzzle, decodeTapTimes(myAnswer, REACTION_ROUND_MS).times, REACTION_ROUND_MS)
     : null;
   const storedAvg = usesTapLog(puzzle) ? myReactionAvgMs : null;
+  // Depth (tapRev 5): the server's stored steady-hand figures (flash.server.ts).
+  const depth = usesFlashDepth(puzzle) ? storedFlashDepth(myExtra) : null;
   const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
   return (
@@ -526,6 +557,15 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
           False starts: {falseStarts}
           {falseStarts > 0 ? ` (−${cost} points)` : ""}
         </p>
+        {depth ? (
+          <p data-flash-steady-reveal="" className="text-center font-mono text-sm text-muted-foreground">
+            {depth.steady > 0
+              ? `Steady hand: all within ${depth.spread} ms, +${depth.steady}`
+              : depth.spread === null
+                ? "Steady hand: needs every flash hit"
+                : `Steady hand: spread ${depth.spread} ms (within ${FLASH_STEADY_LOOSE_MS} for a bonus)`}
+          </p>
+        ) : null}
         {decoyReplay && decoyReplay.decoyCut > 0 ? (
           <p className="text-center font-mono text-xs text-muted-foreground">
             Decoys tapped: {decoyReplay.decoysTapped} of {decoyReplay.decoysShown}, so reactions count slower

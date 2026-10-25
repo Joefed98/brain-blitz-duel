@@ -25,6 +25,8 @@ import { driver as measure } from "./measure";
 import { driver as checkout } from "./checkout";
 import { driver as numline } from "./numline";
 import { driver as tendrop } from "./tendrop";
+// Depth to 200 (D3)
+import { driver as maze } from "./maze";
 
 export const DRIVERS: Record<string, Driver> = {
   ...LOGIC_DRIVERS,
@@ -49,4 +51,5 @@ export const DRIVERS: Record<string, Driver> = {
   checkout,
   numline,
   tendrop,
+  maze,
 };

@@ -165,9 +165,11 @@ export interface SpotShape {
   rot?: number;
   /** Mirrored horizontally (arrows and triangles only). */
   flip?: boolean;
+  /** spotRev 2: drawn a little smaller (the hidden seventh difference; depth/doubleTake.ts). */
+  small?: boolean;
 }
 
-export type SpotDifferenceKind = "colour" | "turn" | "kind";
+export type SpotDifferenceKind = "colour" | "turn" | "kind" | "size";
 
 export interface SpotDifference {
   kind: SpotDifferenceKind;
@@ -194,6 +196,11 @@ export interface SpotPuzzleData {
   reef?: { top: SpotShape[]; bottom: SpotShape[] };
   /** spotRev 1 carries its own 60 s clock; stored rounds use SPOT_TIME_MS. */
   timeLimitMs?: number;
+  /**
+   * spotRev 2: the hidden seventh difference (a shape drawn smaller in one panel), in one of the two pictures
+   * (`scene`). Server-side only until the reveal, like `differences`; never counted in the twelve.
+   */
+  bonus?: SpotDifference;
 }
 
 export interface ReactionPuzzleData {
@@ -254,7 +261,7 @@ export interface StroopPuzzleData {
   seed: number;
   /** Fixed queue length (current rounds); absent = legacy open-ended 60 s stream. */
   queue?: number;
-  /** Rules revision (3 = 75 s, five phases; 4 = the puzzle score shape; 5 = the taller 390 × 650 board and the gentler finish); absent = older rules by queue. */
+  /** Rules revision (3 = 75 s, five phases; 4 = the puzzle score shape; 5 = the taller 390 × 650 board and the gentler finish; 6–7 score maps; 8 = depth to 200: streak, "don't sort" and gold words); absent = older rules by queue. */
   clashRev?: number;
 }
 
@@ -1241,6 +1248,14 @@ export interface MazePuzzleData {
   exit: number;
   /** Server-side only: the one route from the start to the exit. */
   solution?: number[];
+  /**
+   * `mazeRev: 1` (depth to 200, 25 Oct 2026; src/lib/duel/depth/labyrinth.ts): a 19 × 23 board (`cols`, `rows`),
+   * detour stars (`stars`, cells off the route) and a trail answer. Absent: the 19 × 19 board and path answer.
+   */
+  mazeRev?: number;
+  cols?: number;
+  rows?: number;
+  stars?: number[];
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1495,6 +1510,8 @@ export interface ChainPuzzleData {
   chainTimeRev?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
+  /** Depth to 200 (25 Oct 2026, depth/chain.ts CHAIN_DEPTH_REV): milestones at 10 / 20 / 30 links and the stretched finish, up to 200; absent = 150. */
+  chainDepthRev?: number;
   /** The repeating three-item rule: shape and colour must both match. */
   cycle: ChainRuleItem[];
   /** Seeded rule per five-link board; absent on legacy single-cycle puzzles. */
@@ -1556,6 +1573,10 @@ export interface PairPuzzleData {
   type: "pairmatch";
   /** The shuffled board — identical on every phone in the room. */
   cards: PairCard[];
+  /** Depth to 200 (25 Oct 2026, depth/matchmaker.ts PAIR_DEPTH_REV): the match streak and the gold pair, up to 200; absent = 150. */
+  pairRev?: number;
+  /** pairRev 1: the gold pair's face (one of the fifteen), dealt on the server. */
+  gold?: PairCard;
 }
 
 /* ============================= Colour Flood ============================= */
@@ -1853,7 +1874,7 @@ export interface ClayShootPuzzleData {
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
-  /** 2 = seeded white birds and bird-hit penalties; 3 = 10–12 birds; 4 = empty shots cost beyond 30; 5 = 14–16 birds; 6 = the taller 360 × 680 sky. Absent = original clay-only run. */
+  /** 2 = seeded white birds and bird-hit penalties; 3 = 10–12 birds; 4 = empty shots cost beyond 30; 5 = 14–16 birds; 6 = the taller 360 × 680 sky; 7 score bands; 8 quick shots; 9 depth to 200 (doubles and the hit streak). Absent = original clay-only run. */
   clayRev?: number;
 }
 
@@ -1861,7 +1882,7 @@ export interface WhackPuzzleData {
   type: "whack";
   /** Draws the whole pop schedule — identical for everyone. */
   seed: number;
-  /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; absent = the original score. */
+  /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; 2 score bands; 3 depth to 200 (the gold combo and diamonds); absent = the original score. */
   whackRev?: number;
 }
 

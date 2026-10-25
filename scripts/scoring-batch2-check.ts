@@ -47,8 +47,8 @@ import { flashDecoyCut, replayFlash, TAP_REV_ONE_CURVE, TAP_REV_SPEED_TUNING } f
 import { isWordHuntMiss, wordFromPath } from "../src/lib/duel/wordHunt.server";
 import { isWord } from "../src/lib/duel/dictionary.server";
 import { TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
-import { CLAY_QUICK_STEPS, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
-import { CLASH_GREAT_MAP, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
+import { CLAY_QUICK_STEPS, CLAY_REV_DEPTH, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
+import { CLASH_GREAT_MAP, CLASH_REV_DEPTH, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { bandMapTotal } from "../src/lib/arcade/scoreBands";
 import { WORDFALL_REV_BANDS } from "../src/lib/arcade/wordfall";
 import type { PuzzleData, PuzzleType, ReactionPuzzleData, WordHuntPuzzleData, WordsmithPuzzleData } from "../src/lib/duel/types";
@@ -56,6 +56,10 @@ import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { hashText, makeRng, type Skill } from "./puzzle-fairness/kit";
 import { PROFILES } from "./arcade-skill-bands/human";
+import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
+
+// Flash, Bang On and Ascend deal tapRev 5 (Depth to 200, depth-*-check proves it); this check proves the stamps before it.
+pinPreDepthTapRev(true);
 
 const failures: string[] = [];
 let checks = 0;
@@ -70,8 +74,10 @@ ok(dealt("wordsmith", "wordsmithRev") === WORDSMITH_REV_ONE_CURVE, "Nucleus: roo
 ok(dealt("wordhunt", "wordHuntRev") === WORDHUNT_REV_MISSES, "Forage: rooms deal wordHuntRev 2");
 ok(dealt("reaction", "tapRev") === TAP_REV_ONE_CURVE && dealt("stopwatch", "tapRev") === TAP_REV_ONE_CURVE, "Flash and Bang On: rooms deal tapRev 4");
 ok(dealt("tendrop", "tenRev") === TEN_DROP_RAW_REV, "Tenfall: rooms deal tenRev 3");
-ok(dealt("clayshoot", "clayRev") === CLAY_REV_QUICK, "Pull!: rooms deal clayRev 8");
-ok(dealt("stroop", "clashRev") === CLASH_REV_GREAT, "Mixed Signals: rooms deal clashRev 7");
+// Depth to 200 (25 Oct 2026): rooms deal clayRev 9 (clayRev 8 play and base, depth-pull-check); clayRev 8 is proved on its stored runs.
+ok(dealt("clayshoot", "clayRev") === CLAY_REV_QUICK || dealt("clayshoot", "clayRev") === CLAY_REV_DEPTH, "Pull!: rooms deal clayRev 8 or 9");
+// Depth to 200 (25 Oct 2026): rooms deal clashRev 8 (depth-mixedsignals-check); clashRev 7 is proved on its stored runs.
+ok(dealt("stroop", "clashRev") === CLASH_REV_GREAT || dealt("stroop", "clashRev") === CLASH_REV_DEPTH, "Mixed Signals: rooms deal clashRev 7 or 8");
 ok(isRetired("wordfall") && !ACTIVE_PUZZLE_TYPES.includes("wordfall") && PUZZLE_REGISTRY.wordfall !== undefined, "Letterfall: practice only, still registered");
 ok(dealt("wordfall", "wordfallRev") === WORDFALL_REV_BANDS, "Letterfall: practice deals its current wordfallRev 3");
 ok(typesInCategory("word").length >= 6, "Word keeps at least 6 active games");
@@ -230,7 +236,10 @@ if (process.argv.includes("--record")) {
 const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { runs: Run[] };
 const scores: Record<string, Record<string, number[]>> = {};
 for (const run of fixture.runs) {
-  const p = roomPuzzle(run.type, run.seed);
+  const dealtP = roomPuzzle(run.type, run.seed);
+  // Mixed Signals' stored runs are clashRev 7 runs (rooms deal clashRev 8 since depth to 200).
+  // Pull!'s stored runs are clayRev 8 runs (rooms deal clayRev 9 since depth to 200).
+  const p = run.type === "stroop" ? ({ ...(dealtP as object), clashRev: CLASH_REV_GREAT } as unknown as PuzzleData) : run.type === "clayshoot" ? ({ ...(dealtP as object), clayRev: CLAY_REV_QUICK } as unknown as PuzzleData) : dealtP;
   const g = quiet(() => gradeAnswer(p, run.answer, 0));
   ok(g.score === run.score && g.isCorrect === run.isCorrect, `${run.type} ${run.label} ${run.seed}: grades to its stored ${run.score} (got ${g.score})`);
   const room = quiet(() => gradeRoomAnswer(p, { phase: "reveal", phaseStartedAt: new Date(100_000).toISOString(), nowMs: 100_100 }, run.answer, 0).graded);

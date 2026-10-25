@@ -15,6 +15,7 @@
 import {
   CLASH_COLOURS,
   CLASH_FLASH_TICKS,
+  CLASH_GOLD_STREAK,
   CLASH_NAMES,
   CLASH_WORLD_W,
   clashDrop,
@@ -28,6 +29,8 @@ import {
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
+import { reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 const FP = 256;
@@ -179,9 +182,68 @@ function paintBanner(c: Ctx, flash: boolean): void {
 }
 
 interface Pulse { lane: number; lanes: number; at: number; good: boolean }
-interface Memory { tick: number; sorted: number; correct: number; lane: number; pulses: Pulse[] }
+/** clashRev 8: a sorted word zipping on down its lane (or a let-fall word sliding through the gates). */
+interface Zip { lane: number; lanes: number; at: number; y0: number; word: number; ink: number; kind: number }
+interface Memory { tick: number; sorted: number; correct: number; lane: number; pulses: Pulse[]; zips: Zip[]; item: ClashState["items"][number] | null; y: number }
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
 const PULSE_TICKS = 18;
+const ZIP_TICKS = 14;
+/** The streak at which the lanes glow their brightest. */
+const STREAK_FULL = 20;
+const GOLD = "#F2C75C";
+const SKIP_INK = "#9C9CA8";
+
+/** A "don't sort" word: grey ink on a darker plate in a dashed grey frame (let it fall). */
+function drawSkipWord(ctx: CanvasRenderingContext2D, word: string, x: number, y: number, w: number, spoiled: boolean): void {
+  ctx.fillStyle = "rgba(0,0,0,0.45)"; roundRect(ctx, x - w / 2 + 1, y + 8, w - 2, 4, 3); ctx.fill();
+  ctx.fillStyle = "#15151C"; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
+  ctx.save();
+  // Touched: the frame turns red and the word is struck through (it will land as a wrong word).
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = spoiled ? "#FF5A5A" : "#B4B4C0"; ctx.lineWidth = 2;
+  roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.stroke();
+  ctx.restore();
+  ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
+  ctx.fillStyle = SKIP_INK; ctx.fillText(word, x, y);
+  if (spoiled) { ctx.fillStyle = "#FF5A5A"; ctx.fillRect(x - w / 2 + 8, y - 11, w - 16, 3); }
+}
+
+/** A sorted word's zip: a fading ghost of the word dropping on into its gate, a streak of its ink behind it. */
+function drawZip(ctx: CanvasRenderingContext2D, z: Zip, tick: number, laneW: number, gateY: number): void {
+  const age = (tick - z.at) / ZIP_TICKS;
+  if (age < 0 || age >= 1) return;
+  const x = LEFT + (z.lane + 0.5) * laneW;
+  const skip = z.kind === 1;
+  const end = skip ? gateY + 60 : gateY + 12;
+  const ease = 1 - (1 - age) * (1 - age);
+  const y = z.y0 + (end - z.y0) * ease;
+  const colour = skip ? SKIP_INK : z.kind === 2 ? GOLD : CLASH_COLOURS[z.ink]!;
+  const top = Math.max(WELL_TOP, Math.min(z.y0 - 120, y - 200));
+  const trail = ctx.createLinearGradient(0, top, 0, y);
+  trail.addColorStop(0, "rgba(0,0,0,0)"); trail.addColorStop(0.6, colour); trail.addColorStop(1, "#FFFFFF");
+  ctx.globalAlpha = 0.75 * (1 - age);
+  ctx.fillStyle = trail; roundRect(ctx, x - 9, top, 18, Math.max(0, y - top), 9); ctx.fill();
+  ctx.globalAlpha = 0.35 * (1 - age);
+  roundRect(ctx, x - 16, top + (y - top) * 0.4, 32, Math.max(0, (y - top) * 0.6), 16); ctx.fill();
+  ctx.globalAlpha = 0.8 * (1 - age);
+  ctx.font = "bold 30px ui-sans-serif, sans-serif";
+  const scale = 1 - 0.35 * ease;
+  ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+  ctx.fillStyle = skip ? SKIP_INK : CLASH_COLOURS[z.ink]!; ctx.fillText(CLASH_NAMES[z.word]!, 0, 0);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+/** clashRev 8's two badges either side of the rule banner: the streak (left) and gold words sorted (right). */
+function drawDepthHud(ctx: CanvasRenderingContext2D, state: ClashState): void {
+  const d = state.depth!;
+  const hot = d.streak >= CLASH_GOLD_STREAK;
+  for (const [x, label, value, lit] of [[6, "STREAK", `${d.streak}`, hot], [329, "GOLD", `${d.golds}/${d.goldAt.length}`, d.golds > 0]] as const) {
+    ctx.fillStyle = "#14141C"; roundRect(ctx, x, 12, 55, 40, 8); ctx.fill();
+    ctx.strokeStyle = lit ? "rgba(242,199,92,0.7)" : "rgba(255,255,255,0.12)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "bold 9px ui-monospace, monospace"; ctx.fillText(label, x + 27.5, 24);
+    ctx.fillStyle = lit ? GOLD : "#FFFFFF"; ctx.font = "bold 18px ui-monospace, monospace"; ctx.fillText(value, x + 27.5, 45);
+  }
+}
 
 function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize): void {
   // clashRev 5: the taller board, its gates `low` px lower (the original 560 / 472 otherwise).
@@ -200,13 +262,24 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   // Landing pulses (presentation memory: the lane the word was in when it was sorted).
   let mem = memories.get(ctx);
   const sorted = state.correct + state.wrong;
-  if (!mem || state.tick < mem.tick || sorted < mem.sorted) { mem = { tick: state.tick, sorted, correct: state.correct, lane: state.lane, pulses: [] }; memories.set(ctx, mem); }
+  if (!mem || state.tick < mem.tick || sorted < mem.sorted) { mem = { tick: state.tick, sorted, correct: state.correct, lane: state.lane, pulses: [], zips: [], item: null, y: 0 }; memories.set(ctx, mem); }
   if (sorted > mem.sorted) {
-    mem.pulses.push({ lane: mem.lane, lanes: clashLaneCount(Math.max(0, state.tick - 1)), at: state.tick, good: state.correct > mem.correct });
+    const lanesBefore = clashLaneCount(Math.max(0, state.tick - 1));
+    const good = state.correct > mem.correct;
+    const skip = mem.item?.kind === 1;
+    // clashRev 8: a let-fall word draws no gate pulse (no gate judged it); a touched one ends with the miss layer only.
+    if (!skip) mem.pulses.push({ lane: mem.lane, lanes: lanesBefore, at: state.tick, good });
     if (mem.pulses.length > 3) mem.pulses.shift();
+    if (state.depth && mem.item && good) {
+      mem.zips.push({ lane: mem.lane, lanes: lanesBefore, at: state.tick, y0: mem.y, word: mem.item.word, ink: mem.item.ink, kind: mem.item.kind ?? 0 });
+      if (mem.zips.length > 3) mem.zips.shift();
+    }
   }
   mem.tick = state.tick; mem.sorted = sorted; mem.correct = state.correct; mem.lane = state.lane;
+  mem.item = state.items.at(-1) ?? null; mem.y = state.itemY / FP;
   mem.pulses = mem.pulses.filter((p) => state.tick - p.at < PULSE_TICKS);
+  mem.zips = mem.zips.filter((z) => state.tick - z.at < ZIP_TICKS);
+  const still = reducedMotion() || arcadeReducedEffects();
 
   const transition = state.tick % (15 * TICKS_PER_SECOND);
   const flash = transition < CLASH_FLASH_TICKS && state.tick > 0 && Math.trunc(state.tick / 5) % 2 === 0;
@@ -219,10 +292,21 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
   const laneW = LANES_W / lanes;
   const sel = clashLaneRect(Math.min(lanes - 1, Math.max(0, state.lane)), lanes);
   if (!blit(ctx, `sel-${lanes}-${low}`, sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP, (c) => paintSelected(c, sel.w, GATE_Y - WELL_TOP))) { ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(sel.x, WELL_TOP, sel.w, GATE_Y - WELL_TOP); }
+  // clashRev 8: the lanes glow brighter as the streak grows (the same cached glow drawn again over itself, up to
+  // twice as bright from a streak of 20), with a slow breath; still under reduced motion or reduced effects.
+  const streak = state.depth?.streak ?? 0;
+  const boost = state.depth ? Math.min(1, streak / STREAK_FULL) : 0;
+  const breath = still ? 1 : 0.7 + 0.3 * Math.sin(state.tick / 9);
   for (let lane = 0; lane < lanes; lane += 1) {
     const colour = gates[lane]!;
     const well = clashLaneRect(lane, lanes);
-    blit(ctx, `lane-${colour}-${lanes}-${low}`, well.x, WELL_TOP, well.w, GATE_Y - WELL_TOP, (c) => paintLaneGlow(c, CLASH_COLOURS[colour]!, well.w, GATE_Y - WELL_TOP));
+    const paint = (c: Ctx) => paintLaneGlow(c, CLASH_COLOURS[colour]!, well.w, GATE_Y - WELL_TOP);
+    blit(ctx, `lane-${colour}-${lanes}-${low}`, well.x, WELL_TOP, well.w, GATE_Y - WELL_TOP, paint);
+    if (boost > 0) {
+      ctx.globalAlpha = boost * breath;
+      blit(ctx, `lane-${colour}-${lanes}-${low}`, well.x, WELL_TOP, well.w, GATE_Y - WELL_TOP, paint);
+      ctx.globalAlpha = 1;
+    }
   }
   for (let lane = 0; lane < lanes; lane += 1) {
     const colour = gates[lane]!;
@@ -240,12 +324,25 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.globalAlpha = 1;
   }
 
+  // clashRev 8: sorted words zip on down into their gate with a trail (none under reduced motion or effects).
+  if (!still) for (const z of mem.zips) if (z.lanes === lanes) drawZip(ctx, z, state.tick, laneW, GATE_Y);
+
   const current = state.items.at(-1);
   if (current) {
     const x = LEFT + (state.lane + 0.5) * laneW, y = state.itemY / FP;
     const word = CLASH_NAMES[current.word]!;
     ctx.font = "bold 30px ui-sans-serif, sans-serif";
     const w = ctx.measureText(word).width + 18;
+    if (current.kind === 1) {
+      drawSkipWord(ctx, word, LEFT + (state.lane + 0.5) * laneW, y, w, Boolean(state.depth?.spoiled));
+    } else {
+    // clashRev 8: a gold word's plate wears a gold frame and glow outside it (its ink is never tinted).
+    if (current.kind === 2) {
+      ctx.save();
+      ctx.shadowColor = GOLD; ctx.shadowBlur = still ? 10 : 10 + 4 * Math.sin(state.tick / 6);
+      ctx.strokeStyle = GOLD; ctx.lineWidth = 3; roundRect(ctx, x - w / 2 - 3, y - 31, w + 6, 42, 11); ctx.stroke();
+      ctx.restore();
+    }
     // Polish batch S: the plate lifted (neutral only, so the ink is never tinted): a soft white halo and
     // drop shadow, a body lit about 20 % lighter at the top, a bright top edge.
     ctx.save();
@@ -260,7 +357,10 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(x - w / 2 + 8, y - 28, w - 16, 1);
     ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
     ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.fillText(word, x, y);
+    if (current.kind === 2) { ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; roundRect(ctx, x - w / 2 - 1, y - 29, w + 2, 38, 10); ctx.stroke(); }
+    }
   }
+  if (state.depth) drawDepthHud(ctx, state);
   ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 15px ui-monospace, monospace"; ctx.fillText(state.queue > 0 ? `${state.correct} right · ${state.wrong} wrong · ${state.queue - state.correct - state.wrong} left` : `${state.correct} right · ${state.wrong} wrong`, 195, 548 + low);
   ctx.restore();
 }

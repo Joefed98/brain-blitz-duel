@@ -15,7 +15,7 @@ import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT } from "@/lib/arcade/pinball";
-import { WHACK_REV_BANDS } from "@/lib/arcade/whack";
+import { WHACK_REV_DEPTH } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
@@ -23,9 +23,9 @@ import { BEAT_REV_TARGET, BEAT_REV_STRICT } from "@/lib/arcade/beat";
 import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
-import { CLAY_REV_QUICK } from "@/lib/arcade/clayShoot";
+import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
-import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_GREAT } from "@/lib/arcade/colourClash";
+import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 /**
  * Server-only seeds for the arcade rounds. One seed per round drives the whole
  * course, so everyone in the room plays the identical run; practice draws a
@@ -150,11 +150,11 @@ export function generateWordfall(): WordfallPuzzleData {
 }
 
 export function generateClayShoot(): ClayShootPuzzleData {
-  return { type: "clayshoot", seed: arcadeSeed(), clayRev: CLAY_REV_QUICK };
+  return { type: "clayshoot", seed: arcadeSeed(), clayRev: CLAY_REV_DEPTH };
 }
 
 export function generateWhack(): WhackPuzzleData {
-  return { type: "whack", seed: arcadeSeed(), whackRev: WHACK_REV_BANDS };
+  return { type: "whack", seed: arcadeSeed(), whackRev: WHACK_REV_DEPTH };
 }
 
 export function generateWavefront(): WavefrontPuzzleData {
@@ -170,7 +170,7 @@ export function generateRooftop(): RooftopPuzzleData {
 }
 
 export function generateColourClash(): StroopPuzzleData {
-  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV_GREAT };
+  return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: CLASH_REV_DEPTH };
 }
 
 export function generateFlip(): FlipPuzzleData {

@@ -6,7 +6,7 @@ import { randInt } from "@/lib/duel/random";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
-  TAP_REV,
+  dealtTapRev,
   decodeNumberTaps,
   encodeNumberTaps,
   replayAscend,
@@ -28,6 +28,8 @@ import { playSound } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
+
+import { ASCEND_FLOW_TOP, ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -128,7 +130,7 @@ function IntroExample() {
           />
         </svg>
       </div>
-      <p className="text-center text-xs text-muted-foreground">Wrong taps cost you points.</p>
+      <p className="text-center text-xs text-muted-foreground">Wrong taps cost you points; quick right taps in a row build a flow bonus.</p>
     </div>
   );
 }
@@ -227,6 +229,7 @@ function AscendBoard({
   elapsed,
   onTap,
   arenaRef,
+  flow = null,
 }: {
   spots: HuntSpot[];
   next: number;
@@ -237,6 +240,8 @@ function AscendBoard({
   elapsed: number;
   onTap: (index: number, disc: Element | null) => void;
   arenaRef: RefObject<HTMLDivElement | null>;
+  /** Depth (tapRev 5): the flow multiplier on show (null: an older round, no chip). */
+  flow?: number | null;
 }) {
   const spotsRef = useRef(spots);
   spotsRef.current = spots;
@@ -244,8 +249,9 @@ function AscendBoard({
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}
+        <span className="flex min-w-0 items-center gap-2 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span className="truncate">Next: {spots[Math.min(next, spots.length - 1)]?.n ?? ""}</span>
+          {flow !== null ? <FlowChip level={flow} /> : null}
         </span>
         <MoveTimer elapsed={elapsed} />
         <span className="text-right font-mono text-xs text-muted-foreground">
@@ -269,6 +275,28 @@ function AscendBoard({
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Depth (tapRev 5): the flow multiplier, a small pill beside "Next" in the HUD row (always there on a depth
+ * round, so nothing moves): ×1 dim, ×2 to ×4 gold and brighter, with one dot per level. Display only; the server
+ * works the flow out from the same tap log.
+ */
+function FlowChip({ level }: { level: number }) {
+  return (
+    <span
+      data-ascend-flow={level}
+      aria-label={`Flow ×${level}`}
+      className="ascend-flow-chip inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-1.5 font-mono text-xs font-bold normal-case tracking-normal tabular-nums"
+    >
+      ×{level}
+      <span aria-hidden="true" className="inline-flex gap-[2px]">
+        {Array.from({ length: ASCEND_FLOW_TOP - 1 }, (_, i) => (
+          <span key={i} className="ascend-flow-dot" data-on={i < level - 1 ? "" : undefined} />
+        ))}
+      </span>
+    </span>
   );
 }
 
@@ -369,6 +397,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       elapsed={Math.max(0, now - phaseStartedAt)}
       onTap={handleTap}
       arenaRef={arenaRef}
+      flow={usesAscendDepth(puzzle) ? liveFlowMultiplier(ascendFlow(puzzle, taps.current), Math.max(0, now - phaseStartedAt)) : null}
     />
   );
 }
@@ -377,8 +406,15 @@ function Stage(props: PuzzleStageProps) {
   return usesTapLog(props.puzzle) ? <LoggedStage {...props} /> : <LegacyStage {...props} />;
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/** Depth (tapRev 5): the stored flow points and best multiplier (ascend.server.ts). */
+function storedFlow(extra: Record<string, unknown> | null | undefined): { flow: number; best: number } | null {
+  const d = extra?.["depth"] as Record<string, unknown> | undefined;
+  return d && typeof d["flow"] === "number" && typeof d["bestFlow"] === "number" ? { flow: d["flow"] as number, best: d["bestFlow"] as number } : null;
+}
+
+function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "numhunt") return null;
+  const flow = usesAscendDepth(puzzle) ? storedFlow(myExtra) : null;
   const { reached, errors, elapsedMs } = usesTapLog(puzzle) ? loggedRun(puzzle, myAnswer) : parseRun(myAnswer);
   const finished = reached >= puzzle.spots.length;
 
@@ -403,6 +439,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               ).toFixed(1)}s`
             : `Did not finish · reached ${Math.max(reached, 0)} of ${puzzle.spots.length}`}
         </p>
+        {flow ? (
+          <p data-ascend-flow-reveal="" className="text-center font-mono text-sm text-muted-foreground">
+            Flow bonus +{flow.flow} · best ×{flow.best}
+          </p>
+        ) : null}
       </div>
     </>
   );
@@ -456,7 +497,7 @@ function buildLayout(values: number[]): HuntSpot[] {
 export function buildNumberHunt(): NumberHuntPuzzleData {
   const values = pickValues();
   const layouts = Array.from({ length: 4 }, () => buildLayout(values));
-  return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: TAP_REV };
+  return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: dealtTapRev("numhunt") };
 }
 
 export const numberHuntPuzzle: PuzzleDefinition = {

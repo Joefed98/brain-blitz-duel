@@ -48,13 +48,30 @@ const TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
 
+/**
+ * Games an expansion has raised to 200 (each with its own version stamp and scoring). Depth D3 (25 Oct 2026,
+ * docs/depth/d3-speed-attention.md): the twelve Speed and Attention games.
+ */
+const RAISED: ReadonlySet<PuzzleType> = new Set<PuzzleType>([
+  "reaction", "numhunt", "stopwatch", "chain", "whack", "clayshoot",
+  "stroop", "symscan", "spotdiff", "countup", "maze", "pairmatch",
+]);
+const maxToday = (type: PuzzleType) => (RAISED.has(type) ? 200 : 150);
+
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");
 ok(TYPES.length >= 80 && TYPES.every((t) => t in ROUND_MAX) && Object.keys(ROUND_MAX).every((t) => t in GAME_DISPLAY_NAMES), "every game has its own maximum line, and only games do");
-for (const type of TYPES) ok(ROUND_MAX[type] === 150 && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
+for (const type of TYPES) ok(ROUND_MAX[type] === maxToday(type) && roundMaxFor(type) === maxToday(type), `${type}: its maximum is ${maxToday(type)} today (${ROUND_MAX[type]})`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
-ok(topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is 150, shared by every game");
+ok(RAISED.size > 0 ? topRoundMax().top === 200 && !topRoundMax().shared : topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score follows the raised games");
+// The raised games: perfect, the bands and the no-finish beat on the 200 scale, and no intro still stating 150.
+for (const type of RAISED) {
+  ok(!isPerfectScore(type, 150) && !isPerfectScore(type, 199) && isPerfectScore(type, 200), `${type}: perfect is 200 only`);
+  ok(scoreBandFloor(type, "near-perfect") === 173 && scoreBandFloor(type, "great") === 147 && scoreBandOf(type, 150) === "great", `${type}: bands on the 200 scale`);
+  ok(signatureMinScore(type) === 160 && isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: the beat needs 160 and valid scores run to 200`);
+  ok(/(?<![\d,.])200(?![\d,]*\d)/.test(INTRO_SCORE[type]), `${type}: the intro states its 200 maximum: "${INTRO_SCORE[type]}"`);
+}
 ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150"]', "the chart reads 0 / 50 / 100 / 150");
 ok(signatureMinScore("wordsmith") === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, "the no-finish beat still needs 120");
 ok(scaledToMax("snake", 110) === 110 && scaledToMax("snake", 120) === 120, "thresholds on the 150 scale are unchanged at 150");
@@ -72,6 +89,8 @@ const perfectionist = (type: PuzzleType, score: number) =>
   podiumAwards(players, [row(1, score), row(2, 10)], [{ type, name: "Game", timeLimitMs: 60_000, timed: false } satisfies AwardRound]).find((a) => a.id === "perfect");
 
 for (const type of TYPES) {
+  // A raised game is already at 200: its own checks are above.
+  if (RAISED.has(type)) continue;
   const before = baseline.get(type)!;
   const statesTop = /\b150\b/.test(before.intro.replace(/150 ms/g, ""));
   withRoundMax(type, 200, () => {
@@ -108,7 +127,7 @@ for (const type of TYPES) {
   ok(roundMaxFor(type) === 150, `${type}: the override ends with its call`);
 }
 // Every other game's texts are untouched by one game's change (checked once for a sample, all games each way).
-for (const raised of ["snake", "tilegrid", "wordsmith", "reaction"] as const) {
+for (const raised of ["snake", "tilegrid", "wordsmith", "hover"] as const) {
   withRoundMax(raised, 200, () => {
     for (const type of TYPES) if (type !== raised) ok(JSON.stringify(texts(type)) === JSON.stringify(baseline.get(type)), `${raised} raised: ${type}'s texts changed`);
   });
@@ -184,4 +203,4 @@ if (failures.length) {
   console.log(`FAIL round-max-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice and room arcade bests are never read`);
+console.log(`PASS round-max-check: ${passes} checks — every game's maximum is 150 today but the raised games' 200; raising one moves its texts, chart, perfect moment, Perfectionist, signature threshold and bands together and no other game; old practice and room arcade bests are never read`);
