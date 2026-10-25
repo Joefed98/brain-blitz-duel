@@ -20,6 +20,11 @@
  *     the average player 60–79 (Tenfall excepted: its raw shape puts 8 of 10 targets at 97, a decision for
  *     Joe), and each level no lower than the one below.
  *
+ * Pinned to the batch-2 revisions (25 Oct 2026): a later revision of one of these games (the 200-point
+ * expansions, docs/scoring-200.md) must not break it, so rooms must deal these stamps or later ones, and
+ * every graded rule and stored run is played on the batch-2 stamp itself: the stored runs on the exact
+ * puzzles they were recorded on (kept in the fixture beside them), the rules on puzzles stamped here.
+ *
  *   bun scripts/scoring-batch2-check.ts            # ~10 s
  *   bun scripts/scoring-batch2-check.ts --record   # re-record the fixture (only when a stamp here changes)
  */
@@ -46,7 +51,7 @@ import { REV2_IDENTITY_KNOTS, rev2KnotsFor, rev2KnotsForPuzzle } from "../src/li
 import { flashDecoyCut, replayFlash, TAP_REV_ONE_CURVE, TAP_REV_SPEED_TUNING } from "../src/lib/duel/tapLog";
 import { isWordHuntMiss, wordFromPath } from "../src/lib/duel/wordHunt.server";
 import { isWord } from "../src/lib/duel/dictionary.server";
-import { TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
+import { TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
 import { CLAY_QUICK_STEPS, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
 import { CLASH_GREAT_MAP, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { bandMapTotal } from "../src/lib/arcade/scoreBands";
@@ -66,21 +71,37 @@ const ok = (cond: boolean, label: string) => {
 
 /* ============================== 1. Stamps and rotation ============================== */
 const dealt = (type: PuzzleType, field: string) => (generatePuzzle(type) as unknown as Record<string, unknown>)[field];
-ok(dealt("wordsmith", "wordsmithRev") === WORDSMITH_REV_ONE_CURVE, "Nucleus: rooms deal wordsmithRev 2");
-ok(dealt("wordhunt", "wordHuntRev") === WORDHUNT_REV_MISSES, "Forage: rooms deal wordHuntRev 2");
-ok(dealt("reaction", "tapRev") === TAP_REV_ONE_CURVE && dealt("stopwatch", "tapRev") === TAP_REV_ONE_CURVE, "Flash and Bang On: rooms deal tapRev 4");
-// Tenfall: tenRev 3 until the depth-to-200 tenRev 4 (25 Oct 2026, tendrop-depth-check); the runs below stay pinned to tenRev 3.
-ok(dealt("tendrop", "tenRev") === TEN_DROP_RAW_REV || dealt("tendrop", "tenRev") === TEN_DROP_DEPTH_REV, "Tenfall: rooms deal tenRev 3 (or the later tenRev 4)");
-ok(dealt("clayshoot", "clayRev") === CLAY_REV_QUICK, "Pull!: rooms deal clayRev 8");
-ok(dealt("stroop", "clashRev") === CLASH_REV_GREAT, "Mixed Signals: rooms deal clashRev 7");
+/** Rooms deal the batch-2 stamp or a later revision (never an older one); a later one has its own checks. */
+const dealsAtLeast = (type: PuzzleType, field: string, rev: number) => {
+  const d = dealt(type, field);
+  return typeof d === "number" && d >= rev;
+};
+ok(dealsAtLeast("wordsmith", "wordsmithRev", WORDSMITH_REV_ONE_CURVE), "Nucleus: rooms deal wordsmithRev 2 (or later)");
+ok(dealsAtLeast("wordhunt", "wordHuntRev", WORDHUNT_REV_MISSES), "Forage: rooms deal wordHuntRev 2 (or later)");
+ok(dealsAtLeast("reaction", "tapRev", TAP_REV_ONE_CURVE) && dealsAtLeast("stopwatch", "tapRev", TAP_REV_ONE_CURVE), "Flash and Bang On: rooms deal tapRev 4 (or later)");
+ok(dealsAtLeast("tendrop", "tenRev", TEN_DROP_RAW_REV), "Tenfall: rooms deal tenRev 3 (or later)");
+ok(dealsAtLeast("clayshoot", "clayRev", CLAY_REV_QUICK), "Pull!: rooms deal clayRev 8 (or later)");
+ok(dealsAtLeast("stroop", "clashRev", CLASH_REV_GREAT), "Mixed Signals: rooms deal clashRev 7 (or later)");
 ok(isRetired("wordfall") && !ACTIVE_PUZZLE_TYPES.includes("wordfall") && PUZZLE_REGISTRY.wordfall !== undefined, "Letterfall: practice only, still registered");
-ok(dealt("wordfall", "wordfallRev") === WORDFALL_REV_BANDS, "Letterfall: practice deals its current wordfallRev 3");
+ok(dealsAtLeast("wordfall", "wordfallRev", WORDFALL_REV_BANDS), "Letterfall: practice deals wordfallRev 3 (or later)");
 ok(typesInCategory("word").length >= 6, "Word keeps at least 6 active games");
 for (const type of ["wordsmith", "reaction", "stopwatch"] as const) ok(rev2KnotsFor(type) === REV2_IDENTITY_KNOTS, `${type}: its own curve passes through the open-game knots`);
 ok(rev2KnotsForPuzzle({ ...(generatePuzzle("wordsmith") as object), wordsmithRev: 1 } as unknown as PuzzleData) !== REV2_IDENTITY_KNOTS, "Nucleus wordsmithRev 1 keeps its fitted knots");
 ok(rev2KnotsForPuzzle({ ...(generatePuzzle("reaction") as object), tapRev: TAP_REV_SPEED_TUNING } as unknown as PuzzleData) !== REV2_IDENTITY_KNOTS, "Flash tapRev 3 keeps its fitted knots");
 
 /* ============================== 2. Rules ============================== */
+const FIXTURE = "scripts/fixtures/scoring-batch2-runs.json.gz";
+interface Run { type: PuzzleType; seed: number; label: string; answer: string; score: number; isCorrect: boolean }
+type Fixture = { runs: Run[]; puzzles: Record<string, PuzzleData> };
+const loadFixture = () => JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as Fixture;
+let fixture = loadFixture();
+/** The puzzle a stored run was recorded on (batch-2 stamps), as the fixture keeps it. */
+const storedPuzzle = (type: PuzzleType, seed: number): PuzzleData => {
+  const p = fixture.puzzles?.[`${type}:${seed}`];
+  if (!p) throw new Error(`${FIXTURE}: no stored puzzle for ${type} ${seed} (re-record with --record)`);
+  return structuredClone(p);
+};
+const FIRST_SEED = 9001;
 // Nucleus.
 for (let p = 0; p <= 80; p++) {
   if (p > 0) ok(scoreWordsmith(p, 2) >= scoreWordsmith(p - 1, 2) && scoreWordsmith(p, 2, true) >= scoreWordsmith(p - 1, 2, true), `Nucleus: more points never score less (${p})`);
@@ -90,7 +111,8 @@ for (let p = 0; p <= 80; p++) {
 }
 ok(scoreWordsmith(60, 2, true) === 150 && scoreWordsmith(11, 2) === 70 && scoreWordsmith(18, 2) === 90 && scoreWordsmith(32, 2) === 130 && scoreWordsmith(3, 2) < 10, "Nucleus anchors: 3 → under 10, 11 → 70, 18 → 90, 32 → 130, 60 with every tile → 150");
 {
-  const p = generatePuzzle("wordsmith") as WordsmithPuzzleData & { words: { word: string; points: number }[] };
+  const p = storedPuzzle("wordsmith", FIRST_SEED) as WordsmithPuzzleData & { words: { word: string; points: number }[] };
+  ok((p as unknown as { wordsmithRev?: number }).wordsmithRev === WORDSMITH_REV_ONE_CURVE, "Nucleus: the stored board is wordsmithRev 2");
   const full = p.words.find((w) => w.word.length === p.letters.length);
   ok(full !== undefined, "Nucleus: the board has a word using every tile");
   const all = p.words.map((w) => w.word);
@@ -104,7 +126,8 @@ ok(scoreWordsmith(60, 2, true) === 150 && scoreWordsmith(11, 2) === 70 && scoreW
 }
 // Forage.
 {
-  const p = generatePuzzle("wordhunt") as WordHuntPuzzleData & { words: { word: string; path: number[] }[] };
+  const p = storedPuzzle("wordhunt", FIRST_SEED) as WordHuntPuzzleData & { words: { word: string; path: number[] }[] };
+  ok((p as unknown as { wordHuntRev?: number }).wordHuntRev === WORDHUNT_REV_MISSES, "Forage: the stored board is wordHuntRev 2");
   const words = p.words.slice(0, 5).map((w) => `${w.word}:${w.path.join("-")}`);
   // A non-word path of four letters (searched on the grid), a word path and a broken path.
   let miss: number[] | null = null;
@@ -135,7 +158,8 @@ for (let t = 0; t <= 16; t++) for (let n = 1; n <= 16; n++) if (t <= n) {
   ok(cut >= 0 && cut <= 1 && (2 * t > n || cut === 0) && (t < n || cut === 1), `Flash: decoy cut ${t} of ${n} = ${cut}`);
 }
 for (let seed = 1; seed <= 60; seed++) {
-  const p = roomPuzzle("reaction", seed) as ReactionPuzzleData;
+  // tapRev 4's decoy rule (a later tapRev has its own checks).
+  const p = { ...(roomPuzzle("reaction", seed) as ReactionPuzzleData), tapRev: TAP_REV_ONE_CURVE } as ReactionPuzzleData;
   const every = [...p.flashes.map((f) => f + 190), ...p.decoys.map((d) => d.at + 190)].sort((a, b) => a - b);
   const now = replayFlash(p, every, 60_000);
   ok(now.decoysTapped === p.decoys.length && now.times.every((t) => t === 1_200), `Flash ${seed}: tapping on every colour credits nothing`);
@@ -180,7 +204,6 @@ for (let x = 120; x <= 150; x++) ok(bandMapTotal(CLASH_GREAT_MAP, x) >= 120, `Mi
 ok(bandMapTotal(CLASH_GREAT_MAP, 110) === 110 && bandMapTotal(CLASH_GREAT_MAP, 120) === 120, "Mixed Signals: raw 110 → 110, a finish as time runs out → 120");
 
 /* ============================== 3. Stored runs ============================== */
-const FIXTURE = "scripts/fixtures/scoring-batch2-runs.json.gz";
 const GAMES: PuzzleType[] = ["wordsmith", "wordhunt", "reaction", "stopwatch", "tendrop", "clayshoot", "stroop"];
 const SEEDS = Array.from({ length: 15 }, (_, n) => 9001 + n * 7);
 const LEVELS: Record<string, Skill> = {
@@ -191,7 +214,6 @@ const LEVELS: Record<string, Skill> = {
   great: { level: "great", pace: 0.72, err: 0.05, reactionMs: 190, reactionSd: 30 },
   near: { level: "near", pace: 0.5, err: 0.015, reactionMs: 160, reactionSd: 20 },
 };
-interface Run { type: PuzzleType; seed: number; label: string; answer: string; score: number; isCorrect: boolean }
 const quiet = <T>(fn: () => T): T => {
   const error = console.error;
   console.error = () => {};
@@ -208,10 +230,12 @@ if (process.argv.includes("--record")) {
   P.careless ??= { ...PROFILES.average, timingSdMs: 80, aimSdPx: 16, mistake: 0.25, lapse: 0.2, reactionMs: [420, 90] };
   P.below ??= { ...PROFILES.average, timingSdMs: 60, aimSdPx: 12, mistake: 0.17, lapse: 0.13, reactionMs: [350, 70] };
   const runs: Run[] = [];
+  const puzzles: Record<string, PuzzleData> = {};
   for (const type of GAMES) {
     const kit = (KITS as Record<string, (typeof KITS)[keyof typeof KITS]>)[type]!;
     for (const seed of SEEDS) {
       const p = roomPuzzle(type, seed);
+      puzzles[`${type}:${seed}`] = p;
       const limit = puzzleTimeLimitMs(p);
       const answers: [string, string][] = Object.entries(LEVELS).map(([lv, skill]) => {
         const steps = kit.play(p, makeRng(hashText(`${type}:play:${seed}:${lv}`)), skill, limit).steps.filter((s) => s.atMs <= limit);
@@ -224,15 +248,27 @@ if (process.argv.includes("--record")) {
       }
     }
   }
-  writeFileSync(FIXTURE, gzipSync(JSON.stringify({ recordedOn: "scoring report batch 2, 20 Oct 2026", runs })));
+  // The puzzles go in beside the runs, so the runs keep their stamps whatever rooms deal later.
+  writeFileSync(FIXTURE, gzipSync(JSON.stringify({ recordedOn: "scoring report batch 2, 20 Oct 2026", runs, puzzles })));
   console.log(`recorded ${runs.length} runs → ${FIXTURE}`);
+  fixture = loadFixture();
 }
 
-const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { runs: Run[] };
 const scores: Record<string, Record<string, number[]>> = {};
+// Each game's batch-2 stamp: every stored puzzle must carry it.
+const BATCH2_STAMP: Partial<Record<PuzzleType, [string, number]>> = {
+  wordsmith: ["wordsmithRev", WORDSMITH_REV_ONE_CURVE],
+  wordhunt: ["wordHuntRev", WORDHUNT_REV_MISSES],
+  reaction: ["tapRev", TAP_REV_ONE_CURVE],
+  stopwatch: ["tapRev", TAP_REV_ONE_CURVE],
+  tendrop: ["tenRev", TEN_DROP_RAW_REV],
+  clayshoot: ["clayRev", CLAY_REV_QUICK],
+  stroop: ["clashRev", CLASH_REV_GREAT],
+};
 for (const run of fixture.runs) {
-  // Tenfall's runs were recorded on tenRev 3; rooms deal tenRev 4 since 25 Oct 2026, so they keep their stamp here.
-  const p = run.type === "tendrop" ? ({ ...(roomPuzzle(run.type, run.seed) as object), tenRev: TEN_DROP_RAW_REV } as unknown as PuzzleData) : roomPuzzle(run.type, run.seed);
+  const p = storedPuzzle(run.type, run.seed);
+  const [field, rev] = BATCH2_STAMP[run.type]!;
+  ok((p as unknown as Record<string, unknown>)[field] === rev, `${run.type} ${run.seed}: the stored puzzle is ${field} ${rev}`);
   const g = quiet(() => gradeAnswer(p, run.answer, 0));
   ok(g.score === run.score && g.isCorrect === run.isCorrect, `${run.type} ${run.label} ${run.seed}: grades to its stored ${run.score} (got ${g.score})`);
   const room = quiet(() => gradeRoomAnswer(p, { phase: "reveal", phaseStartedAt: new Date(100_000).toISOString(), nowMs: 100_100 }, run.answer, 0).graded);

@@ -35,6 +35,7 @@ const ok = (cond: boolean, message: string) => {
 
 const sig = await import("../src/lib/fx/signature");
 const { BAND_SPECS } = await import("../src/lib/arcade/bandParts");
+const { DEFAULT_ROUND_MAX, roundMaxFor } = await import("../src/lib/duel/roundMax");
 const { GameLayout } = await import("../src/components/duel/PhoneShell");
 const {
   NO_FINISH_TYPES,
@@ -83,13 +84,15 @@ ok(holdFor({}, 2100) === null, "verdict after 2 s → no hold");
 // Unsolved and timed out: never held.
 ok(holdFor({ correct: false, score: 90 }) === null, "unsolved → no hold");
 ok(holdFor({ correct: false, score: 60, msRemaining: 0 }) === null, "timed out unsolved → no hold");
-// No-finish games: the run ends at the buzzer; 120+ fires the beat and holds, below 120 does not.
+// No-finish games: the run ends at the buzzer; 120+ (on the 150 scale, scaled to the game's own maximum:
+// 160 at 200, roundMax.ts) fires the beat and holds, below it does not.
 for (const type of NO_FINISH_TYPES) {
+  const min = Math.round((120 * roundMaxFor(type)) / DEFAULT_ROUND_MAX);
   ok(
-    holdFor({ type, correct: false, score: 120, msRemaining: 0 }) === beatEnd,
-    `${type}: 120 at the end → held to the beat's end`,
+    holdFor({ type, correct: false, score: min, msRemaining: 0 }) === beatEnd,
+    `${type}: ${min} at the end → held to the beat's end`,
   );
-  ok(holdFor({ type, correct: false, score: 119, msRemaining: 0 }) === null, `${type}: 119 → no hold`);
+  ok(holdFor({ type, correct: false, score: min - 1, msRemaining: 0 }) === null, `${type}: ${min - 1} → no hold`);
 }
 reduced = true;
 ok(holdFor() === null, "reduced motion → no wait");
