@@ -78,7 +78,7 @@ import {
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
 import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
-import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
+import { wavShipY, wavWorldH, WAV_X_H, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
 import type { OrbitRev3State } from "./orbitRev3";
@@ -128,8 +128,8 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
   const row = Math.floor(cell / BUB_COLS);
   return { x: bubCellX(row, cell % BUB_COLS), y: bubCellY(row, s.descents) };
 }
-import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, snipCamera, snipWorldH, type SnipState } from "./snip";
-import { TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
+import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
+import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
 import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
@@ -1369,7 +1369,8 @@ export const ARCADE_FX_SPECS = {
   beat: BEAT_FX_TALL,
   snake: SNAKE_FX_TALL,
   burst: BURST_FX_TALL,
-  wavefront: WAVEFRONT_FX_TALL,
+  // The live round's world (wavRev 9, E8); older rounds draw through wavefrontFxFor(state).
+  wavefront: fxSpecAt(WAVEFRONT_FX, WAV_X_H),
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
   orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
   skyline: SKYLINE_FX_TALL,
@@ -1382,8 +1383,9 @@ export const ARCADE_FX_SPECS = {
   bubble: BUBBLE_FX_TALL,
   flip: FLIP_FX,
   swing: SWING_FX_TALL,
-  snip: SNIP_FX_TALL,
-  tilt: TILT_FX,
+  // The live round's view (snipRev 10 and tiltRev 7, E8); older rounds draw through their state's spec.
+  snip: fxSpecAt(SNIP_FX, SNIP_X_VIEW_H),
+  tilt: fxSpecAt(TILT_FX, TILT_X_H),
   balltrack: BALLTRACK_FX_TALL,
   matchup: MATCHUP_FX,
   pinball: PINBALL_FX,

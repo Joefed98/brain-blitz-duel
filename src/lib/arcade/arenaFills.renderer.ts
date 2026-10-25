@@ -479,7 +479,8 @@ export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
 /** 14. Wavefront: its night sky (stars and a faint nebula) runs on below and beside the world. */
 export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   for (const [i, r] of around(view, true).entries()) {
-    ctx.fillStyle = "#07070C";
+    // A deep navy (wavRev 9's taller world leaves sides at 414 px): never the screen edge's #070709.
+    ctx.fillStyle = "#0B0B18";
     ctx.fillRect(r.x, r.y, r.w, r.h);
     stars(ctx, r, 401 + i, ["#FFFFFF", "#C9D6FF", "#8FA8FF"], 380, 0.42);
   }
@@ -569,6 +570,11 @@ export const burstAmbient: ArenaAmbient = {
 
 /** 20. Scrumper: the orchard grass runs on below, a deeper green, with leafy dark above a centred world. */
 export function snipFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  // snipRev 10's taller view is a hair narrower than the screen: the trunks' dark bark (#72502D) runs on beside it.
+  for (const r of fillSides(view)) {
+    ctx.fillStyle = "#72502D";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
   const below = fillBelow(view);
   const above = fillAbove(view);
   if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#0B1A0C"], [1, "#2E5A26"]]);

@@ -817,6 +817,42 @@ function drawDiscSurfaceX(ctx: CanvasRenderingContext2D, r: number): void {
   else paintDisc(ctx, r);
 }
 
+/**
+ * tiltRev 7 sprites (presentation only): pieces drawn every frame about a fixed point (the rim's bevel and drop
+ * shadow, the lamp's gloss, a star), baked once per size and canvas scale and blitted. At 4× CPU slowdown their
+ * gradients and paths cost most of the frame.
+ */
+const spritesX = new Map<string, ArtCanvas | null>();
+function blitX(ctx: CanvasRenderingContext2D, key: string, half: number, paint: (c: CanvasRenderingContext2D) => void): void {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const k = Math.round(Math.max(0.25, Math.min(3, t ? Math.hypot(t.a, t.b) : 1)) * 20) / 20;
+  const id = `${key}@${k}`;
+  let sprite = spritesX.get(id);
+  if (sprite === undefined) {
+    const size = Math.ceil(half * 2 * k);
+    const canvas = artCanvas(size, size);
+    const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
+    if (canvas && c) {
+      c.scale(size / (half * 2), size / (half * 2));
+      c.translate(half, half);
+      paint(c);
+    }
+    sprite = canvas && c ? canvas : null;
+    if (spritesX.size > 64) spritesX.clear();
+    spritesX.set(id, sprite);
+  }
+  if (sprite) ctx.drawImage(sprite as CanvasImageSource, -half, -half, half * 2, half * 2);
+  else paint(ctx);
+}
+/** A star upright on the screen at (x, y) in the disc's frame, from its sprite. */
+function drawStarX(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rot: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-rot);
+  blitX(ctx, `star:${r.toFixed(2)}`, r * 2.7, (c) => drawStar(c, 0, 0, r, 0));
+  ctx.restore();
+}
+
 /** Frosted ice over a maze's iced cells (in the disc's frame, under the strips). */
 function drawIce(ctx: CanvasRenderingContext2D, m: Maze, o: number): void {
   if (!m.ice) return;
@@ -984,7 +1020,7 @@ function drawQuickStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: n
   const fade = Math.min(1, left / 120);
   ctx.save();
   ctx.globalAlpha = fade;
-  drawStar(ctx, x, y, r, rot);
+  drawStarX(ctx, x, y, r, rot);
   ctx.translate(x, y);
   ctx.rotate(-rot);
   ctx.strokeStyle = "rgba(60,30,8,0.45)";
@@ -1093,7 +1129,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   // The groove and rim, turned with the disc (their light stays screen-fixed: drawn unrotated about the centre).
   ctx.save();
   ctx.rotate(-rot);
-  drawDiscBed(ctx, R);
+  blitX(ctx, `bed:${R}`, R + 26, (c) => drawDiscBed(c, R));
   ctx.restore();
   ctx.save();
   ctx.beginPath();
@@ -1111,14 +1147,16 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     // The lamp's gloss over the disc, screen-fixed.
     ctx.save();
     ctx.rotate(-rot);
-    const gloss = ctx.createRadialGradient(-R * 0.45, -R * 0.5, 10, 0, 0, R);
-    gloss.addColorStop(0, "rgba(255,236,196,0.4)");
-    gloss.addColorStop(0.6, "rgba(255,246,220,0)");
-    gloss.addColorStop(1, "rgba(60,30,10,0.3)");
-    ctx.fillStyle = gloss;
-    ctx.beginPath();
-    ctx.arc(0, 0, R, 0, Math.PI * 2);
-    ctx.fill();
+    blitX(ctx, `gloss:${R}`, R + 1, (c) => {
+      const gloss = c.createRadialGradient(-R * 0.45, -R * 0.5, 10, 0, 0, R);
+      gloss.addColorStop(0, "rgba(255,236,196,0.4)");
+      gloss.addColorStop(0.6, "rgba(255,246,220,0)");
+      gloss.addColorStop(1, "rgba(60,30,10,0.3)");
+      c.fillStyle = gloss;
+      c.beginPath();
+      c.arc(0, 0, R, 0, Math.PI * 2);
+      c.fill();
+    });
     ctx.restore();
   }
 
@@ -1127,7 +1165,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   (m.stars ?? []).forEach((_c, k) => {
     if ((state.starGot ?? [])[k]) return;
     const p = tiltStarPoint(m, k);
-    drawStar(ctx, p.x / FP - o, p.y / FP - o, cs * 0.3, rot);
+    drawStarX(ctx, p.x / FP - o, p.y / FP - o, cs * 0.3, rot);
   });
   const left = tiltQuickLeft(state);
   if (left > 0)

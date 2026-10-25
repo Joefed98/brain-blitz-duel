@@ -7,6 +7,7 @@ import type { CanvasSize } from './engine';
 import { snipCamera, snipGame, snipMouthAt, snipView, SNIP_CONFIG, SNIP_EATEN, SNIP_HOOK_REACH, SNIP_STUNG, SNIP_TALL_H, SNIP_W, snipWorldH, type SnipState, type SnipTemplate } from './snip';
 import { snipCourseMouthAt, snipWindAt, SNIP_COURSES, SNIP_X_GOLD_TICKS, SNIP_X_PLAY, SNIP_X_RING_R, SNIP_X_RING_REACH, SNIP_X_VIEW_H, SNIP_X_W, type SnipCourse } from './snip';
 import { artHash, reducedMotion } from './art.renderer';
+import { artCanvas, artContext, deviceLayer, type ArtCanvas } from './cache.renderer';
 import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import { countryStamp, countryClock, countryCloud, COUNTRY_SKY, COUNTRY_GRASS_BACK, COUNTRY_GRASS, COUNTRY_GRASS_DARK, COUNTRY_WOOD, COUNTRY_WOOD_DARK, COUNTRY_WOOD_LIGHT, COUNTRY_STONE, COUNTRY_STONE_DARK, COUNTRY_GOLD, COUNTRY_GOLD_EDGE, COUNTRY_SHINE, COUNTRY_APPLE, COUNTRY_APPLE_EDGE } from './countryside.renderer';
 
@@ -322,9 +323,9 @@ function orchardCloud(c: CanvasRenderingContext2D): void {
   for (const [x, y, r] of [[12, 10, 7], [26, 8, 8], [37, 13, 6]] as const) { c.beginPath(); c.arc(x - 1, y - 1, r, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
-function drawOrchardSky(c: CanvasRenderingContext2D, camera: number): void {
+function drawOrchardSky(c: CanvasRenderingContext2D, camera: number, clock?: number): void {
   countryStamp(c, 'orchard-backdrop-a4', 390, 620, 0, 0, orchardBackdrop);
-  const t = countryClock();
+  const t = clock ?? countryClock();
   for (const [x, y, f] of [[38, 100, 0.7], [278, 146, 0.85], [152, 218, 0.55], [330, 250, 0.45], [90, 300, 0.4]] as const) {
     c.save(); c.globalAlpha = 0.85; c.translate(x + Math.sin(t * 0.08 + y) * 5 - camera * 0.08, y); c.scale(f, f);
     countryStamp(c, 'orchard-cloud-a4', 56, 34, 0, 0, orchardCloud); c.restore();
@@ -422,7 +423,8 @@ function ringArt(c:CanvasRenderingContext2D,x:number,y:number,used:boolean,glow:
 function courseTrees(c:CanvasRenderingContext2D,h:number):void {
   for(const side of [0,1]){
     const x=side?SNIP_X_W-7:7;
-    c.fillStyle=COUNTRY_WOOD_DARK;c.fillRect(x-6,0,12,h);
+    // The dark bark runs to the world's edge, so the screen fill's bark beside a centred world meets it with no seam.
+    c.fillStyle=COUNTRY_WOOD_DARK;c.fillRect(side?x-6:0,0,side?SNIP_X_W-(x-6):x+6,h);
     c.fillStyle=COUNTRY_WOOD;c.fillRect(x-4,0,7,h);
     c.fillStyle='rgba(255,230,190,0.25)';c.fillRect(x-3,0,2,h);
     for(let y=60;y<h-40;y+=140){
@@ -433,6 +435,15 @@ function courseTrees(c:CanvasRenderingContext2D,h:number):void {
       if(k%3===0){c.fillStyle=COUNTRY_APPLE;circle(c,x+dir*36,y-14,3.5);}
     }
   }
+}
+/** The trees' sprite per course height (2× its size); only the slice in view is drawn each frame (a 2,400 px blit cost more than the rest of the frame at 4× CPU slowdown). */
+const treeSprites=new Map<number,ArtCanvas|null>();
+function drawTreesSlice(c:CanvasRenderingContext2D,h:number,camY:number):void {
+  let sprite=treeSprites.get(h);
+  if(sprite===undefined){const canvas=artCanvas(SNIP_X_W*2,h*2);const x=canvas&&(artContext(canvas) as CanvasRenderingContext2D|null);if(canvas&&x){x.scale(2,2);courseTrees(x,h);}sprite=canvas&&x?canvas:null;treeSprites.set(h,sprite);}
+  if(!sprite){courseTrees(c,h);return;}
+  const top=Math.max(0,Math.floor(camY)),bottom=Math.min(h,Math.ceil(camY+SNIP_X_VIEW_H));
+  if(bottom>top)c.drawImage(sprite as CanvasImageSource,0,top*2,SNIP_X_W*2,(bottom-top)*2,0,top,SNIP_X_W,bottom-top);
 }
 /** The view's foreground fringe: tufts rising from a strip in the screen fill's top green (#4E9C42). */
 function fringe(c:CanvasRenderingContext2D):void {
@@ -496,9 +507,12 @@ function drawCourseWorld(c:CanvasRenderingContext2D,state:SnipState,size:CanvasS
   const still=reducedMotion();const lite=arcadeReducedEffects();
   c.save();c.fillStyle=ORCHARD_SKY_TOP;c.fillRect(0,0,size.width,size.height);c.beginPath();c.rect(0,0,size.width,size.height);c.clip();
   // The sky: the backdrop's hills meet the course's bottom; higher up it slides down slowly (parallax).
-  {const k=Math.max(size.width/390,size.height/620);const lift=(course.h-SNIP_X_VIEW_H-camY)*0.25*sy;c.save();c.translate(0,size.height-620*k+lift);c.scale(k,k);drawOrchardSky(c,0);c.restore();}
+  // The sky is one screen-sized cached layer, repainted only when its parallax lift moves a whole px or the
+  // clouds drift a step (a scaled 2× backdrop and five clouds every frame cost a third of a frame at 4× CPU slowdown).
+  {const k=Math.max(size.width/390,size.height/620);const lift=Math.round((course.h-SNIP_X_VIEW_H-camY)*0.25*sy);const drift=still?0:Math.round(countryClock()*2)/2;
+    deviceLayer(c,`snip-x-sky:${lift}:${drift}`,(l)=>{l.save();l.translate(0,size.height-620*k+lift);l.scale(k,k);drawOrchardSky(l,0,drift);l.restore();});}
   c.scale(sx,sy);c.translate(0,-camY);
-  if(!lite)countryStamp(c,`orchard-trees-${course.h}`,SNIP_X_W,course.h,0,0,ctx=>courseTrees(ctx,course.h));
+  if(!lite)drawTreesSlice(c,course.h,camY);
   countryStamp(c,'orchard-canopy',SNIP_W,28,0,0,canopy);
   for(const [x0,y0,x1,y1] of course.platforms??[])countryStamp(c,'orchard-rail',x1-x0,y1-y0,x0,y0,ctx=>rail(ctx,x1-x0,y1-y0));
   const now=typeof performance==='undefined'?0:performance.now()/1000;
