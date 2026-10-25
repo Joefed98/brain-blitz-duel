@@ -22,8 +22,10 @@ import { msToTicks } from "../human";
 import {
   matchupAnimationDuration,
   matchupConstantPlay,
-  matchupFindSwap,
+  matchupHintSwap,
   matchupIndex,
+  matchupRowsOf,
+  MATCHUP_TREASURE,
   matchupIsJackpot,
   MATCHUP_BOMB,
   MATCHUP_CROSS,
@@ -50,26 +52,46 @@ const LOW_BIAS: Record<string, number> = { average: 0, good: 0.3, great: 0.6, ne
 const FOLLOW_UP: Record<string, number> = { average: 0.1, good: 0.3, great: 0.5, near: 0.7 };
 /** Swipe: from decision to the swap landing on the board, ms. */
 const SWIPE_MS = 140;
+/**
+ * matchupRev 9: how much a player weighs the features they can see in a swap's own clear (goal gems,
+ * ice under it, gems cleared below the treasure gem) against plain clearing; weaker players mostly just match.
+ */
+const FEATURE_EYE: Record<string, number> = { average: 0.15, good: 0.45, great: 0.8, near: 1.2 };
 
 type Move = [number, number, number, number];
 const special = (k: number) => k === MATCHUP_BOMB || k === MATCHUP_CROSS || k === MATCHUP_STAR || matchupIsJackpot(k);
 
-function allSwaps(): Move[] {
+function allSwaps(rows = MATCHUP_ROWS): Move[] {
   const out: Move[] = [];
-  for (let r = 0; r < MATCHUP_ROWS; r++)
+  for (let r = 0; r < rows; r++)
     for (let c = 0; c < MATCHUP_SIZE; c++) {
       if (c + 1 < MATCHUP_SIZE) out.push([r, c, r, c + 1]);
-      if (r + 1 < MATCHUP_ROWS) out.push([r, c, r + 1, c]);
+      if (r + 1 < rows) out.push([r, c, r + 1, c]);
     }
   return out;
 }
-const SWAPS = allSwaps();
 
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const plan = new Plan();
   const init = game.init(seed) as MatchupState;
   const constant = matchupConstantPlay(init);
+  const ROWS = matchupRowsOf(init.cells);
+  const SWAPS = allSwaps(ROWS);
+  const eyeFor = init.goals ? FEATURE_EYE[level]! : 0;
+  /** matchupRev 9: what a swap's own clear does for the goals, the ice and the treasure gem, as the player sees it. */
+  const featureValue = (s: MatchupState, cleared: readonly number[]): number => {
+    if (!eyeFor) return 0;
+    const treasure = s.cells.indexOf(MATCHUP_TREASURE);
+    let v = 0;
+    for (const i of cleared) {
+      const kind = s.cells[i] ?? -1;
+      if (kind >= 0 && kind < 6 && (s.goalLeft?.[kind] ?? 0) > 0) v += 0.8;
+      if (s.ice?.[i]) v += 2.5;
+      if (treasure >= 0 && i % MATCHUP_SIZE === treasure % MATCHUP_SIZE && i > treasure) v += 4;
+    }
+    return eyeFor * v;
+  };
   /** Tick the phone finishes animating the latest step. */
   let animEnd = 0;
   let serial = init.resolveSerial ?? 0;
@@ -99,8 +121,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       if (!settled && [matchupIndex(m[0], m[1]), matchupIndex(m[2], m[3]), ...after.lastCleared].some((i) => s.cells[i] !== view[i])) continue;
       const step0 = after.lastAnimation[0];
       // Gems cleared now and specials made; players who know the game favour moves low on the board.
-      const low = Math.max(m[0], m[2]) / (MATCHUP_ROWS - 1);
-      const value = after.lastCleared.length + 5 * (step0?.created.length ?? 0) + 2 * LOW_BIAS[level]! * low;
+      const low = Math.max(m[0], m[2]) / (ROWS - 1);
+      const value = after.lastCleared.length + 5 * (step0?.created.length ?? 0) + 2 * LOW_BIAS[level]! * low + featureValue(s, step0?.cleared ?? []);
       const eye = special(s.cells[matchupIndex(m[0], m[1])]!) || special(s.cells[matchupIndex(m[2], m[3])]!);
       found.push({ m, u: human.u() * (eye ? 0.5 : 1), value });
     }
@@ -170,7 +192,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     }
     if (phase === "scan" && t >= decideAt) {
       let move = chosen ?? (() => {
-        const h = matchupFindSwap(s.cells);
+        const h = matchupHintSwap(s);
         return h ? ([h.row1, h.col1, h.row2, h.col2] as Move) : null;
       })();
       if (move && !valid(s, move)) {
@@ -191,7 +213,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // A fumbled swipe: the right gem, the wrong direction.
         const [r, c] = move;
         const dirs: Move[] = [[r, c, r - 1, c], [r, c, r + 1, c], [r, c, r, c - 1], [r, c, r, c + 1]];
-        const ok = dirs.filter((d) => d[2] >= 0 && d[2] < MATCHUP_ROWS && d[3] >= 0 && d[3] < MATCHUP_SIZE);
+        const ok = dirs.filter((d) => d[2] >= 0 && d[2] < ROWS && d[3] >= 0 && d[3] < MATCHUP_SIZE);
         move = ok[human.int(0, ok.length - 1)]!;
       }
       plan.at(t + msToTicks(SWIPE_MS * human.power(3)), { k: MATCHUP_INPUT_SWAP, a: move[0], b: move[1], c: move[2], d: move[3] });

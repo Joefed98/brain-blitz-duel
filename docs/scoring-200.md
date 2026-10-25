@@ -59,14 +59,18 @@ version stamps.
    plus runs on the new stamp reaching 200. Never regrade stored rounds.
 8. **Practice stamps**: run `bun scripts/practice-stamps.ts` (the new stamp starts a fresh
    practice best for that game, as every stamp change does).
-9. **Checks**: round-max-check (it reads the raised games from `ROUND_MAX`: nothing to edit),
+9. **Checks**: round-max-check (add the game to its one `RAISED` list; the check fails unless the list is exactly
+   the games `ROUND_MAX` puts at 200),
    intro-score-text-check, the game's own checks, reveal-score-check, arcade-chart-check. The
    shared checks (25 Oct 2026) take every maximum, perfect score, band edge, signature threshold
    and "up to …" text from `roundMaxFor`, and pin the scoring they prove to its own revision
    (scoring-batch2-check grades its stored runs on the puzzles it recorded them on, kept in its
    fixture), so raising a game breaks none of them. Screen snapshots recorded at 150 pin the
    maximums they were recorded with in the harness page (`scripts/round-max-pin.ts`,
-   celebrations-check).
+   celebrations-check). An arcade band game whose expansion deals a new revision keeps its score-band (strict)
+   revision in its `LIVE_BANDS` entry as `strictRev` (`rev` and `curve` become the expansion's); scoring-bands-check,
+   scoring-targets-check, scoring-targets-revs and scoring-bands-record read it through `liveStrictRev()`
+   (expansion E6, Coral Pop, Gemstone and Ball Tracker, is the first to use it).
 
 ## Practice bests reset (Joe's decision)
 
