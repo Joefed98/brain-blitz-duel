@@ -1,6 +1,7 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
-import { skylineFxFor } from "./arcadeFxGames.renderer";
+import { SKYLINE_FX, skylineFxFor } from "./arcadeFxGames.renderer";
+import type { ArcadeFxSpec } from "./arcadeFx.renderer";
 /**
  * Skyline art (Real World construction site). Render only: reads SkylineState,
  * never mutates it. Blocks fill exactly the sim's block rectangles; the camera
@@ -9,6 +10,17 @@ import { skylineFxFor } from "./arcadeFxGames.renderer";
 import { px, type CanvasSize } from "./engine";
 import { skylineFlagAt, skylineGustAt, skylineWorldH, SKYLINE_STREAK_FROM, SKYLINE_WIND_FROM } from "./skyline";
 import { skylineGame, SKYLINE_BLOCK_H, SKYLINE_MIN_ZOOM, SKYLINE_PERFECT_GROW, SKYLINE_WORLD_W, type SkylineState } from "./skyline";
+import {
+  skylineKindAt,
+  skylineNextMult,
+  skylineStreakMult,
+  SKYLINE_KIND_GOLD,
+  SKYLINE_KIND_NARROW,
+  SKYLINE_KIND_NORMAL,
+  SKYLINE_KIND_WIDE,
+  SKYLINE_MILESTONE_EVERY,
+  SKYLINE_SKY_H,
+} from "./skyline";
 import { artHash, reducedMotion } from "./art.renderer";
 import { APP_FLAG_LOGO_URL } from "@/lib/brand";
 import { realMemo, realNow, REAL_GOLD, REAL_SHADOW, REAL_NIGHT_BG, REAL_NIGHT_TEXT, REAL_LAMP } from "./realworld.renderer";
@@ -449,7 +461,7 @@ function drawGustLines(ctx: CanvasRenderingContext2D, dir: number, tick: number,
 
 /** The game's drawing through the shared success layer (presentation only). */
 export function drawSkylineArt(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
-  arcadeFx(ctx, skylineFxFor(state), state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
+  arcadeFx(ctx, state.expandRev ? SKYLINE_FX_EXPAND : skylineFxFor(state), state, () => drawSkylineArtWorld(ctx, state, size, crashIndicator), size);
 }
 
 function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState, size: CanvasSize, crashIndicator = true): void {
@@ -466,13 +478,18 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   ctx.scale(scale, scale);
 
   const towerH = state.blocks.length * blockH;
-  const middle = SKYLINE_WORLD_H / 2;
-  const target = towerH + blockH <= middle ? 1 : Math.max(SKYLINE_MIN_ZOOM, middle / (towerH + blockH));
+  const expand = Boolean(state.expandRev);
+  // skylineRev 7: more sky. The tower climbs to 60 % of the taller view before the camera pulls back, and
+  // zooms out further; for a moment after each height milestone it pulls right back to show the city.
+  const middle = SKYLINE_WORLD_H * (expand ? EXPAND_CLIMB : 0.5);
+  let target = towerH + blockH <= middle ? 1 : Math.max(expand ? EXPAND_MIN_ZOOM : SKYLINE_MIN_ZOOM, middle / (towerH + blockH));
+  if (expand && milestoneAge(state) < MILESTONE_TICKS) target = Math.min(target, Math.max(MILESTONE_ZOOM_MIN, (SKYLINE_WORLD_H * 0.55) / (towerH + blockH * 3)));
   const prev = zoomMemo.get(ctx);
-  const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * 0.12;
+  const ease = expand ? (reducedMotion() ? 1 : 0.09) : 0.12;
+  const zoom = prev === undefined || state.tick < 2 ? target : prev + (target - prev) * ease;
   zoomMemo.set(ctx, zoom);
   const visibleH = SKYLINE_WORLD_H / zoom;
-  const camScroll = Math.max(0, towerH + blockH - visibleH * 0.5);
+  const camScroll = Math.max(0, towerH + blockH - visibleH * (expand ? EXPAND_CLIMB : 0.5));
 
   drawBackdrop(ctx, zoom, camScroll, SKYLINE_WORLD_H);
 
@@ -496,6 +513,8 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
       if (r > l) ctx.fillRect(l, top + blockH, r - l, 3);
     }
     drawBlock(ctx, px(block.x), top, px(block.w), blockH, index, state.tick - (mem.placementTicks[index] ?? state.tick));
+    // skylineRev 7: a special block keeps its look once placed (block 0 is the base).
+    if (expand && index > 0) drawKindMark(ctx, skylineKindAt(state, index - 1), px(block.x), top, px(block.w), blockH, state.tick, false);
   });
 
   const hangTop = SKYLINE_WORLD_H - state.blocks.length * blockH - blockH;
@@ -523,6 +542,7 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     ctx.fillStyle = REAL_GOLD;
     ctx.fillRect(hookX - 3, hangTop - 18, 6, 5);
     drawBlock(ctx, bx, hangTop, bw, blockH, state.blocks.length);
+    if (expand) drawKindMark(ctx, skylineKindAt(state, state.placed), bx, hangTop, bw, blockH, state.tick, true);
   }
 
   // Perfect drop: sparks at the two seam ends (tick-driven, deterministic).
@@ -568,6 +588,10 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   const popY=SKYLINE_WORLD_H+(-(state.blocks.length-1)*blockH+camScroll)*zoom;
   if(perfectTop)successFrame(ctx,{id:'skyline',tick:state.tick,count:state.perfects,eventTick:state.perfectTick,colour:REAL_GOLD,width:SKYLINE_WORLD_W,height:SKYLINE_WORLD_H,point:{x:popX,y:popY,shape:'spark'},hud:{x:12,y:12,text:`Blocks ${state.placed}`}});
   if(perfectTop)drawPerfectPop(ctx,state,popX,popY);
+  if (expand && perfectTop) {
+    drawGoldPop(ctx, state, popX, popY);
+    drawMilestone(ctx, state, popX, popY);
+  }
   // Crane jib at the top, trolley above the hook's screen x.
   drawCrane(ctx, (hookX - SKYLINE_WORLD_W / 2) * zoom + SKYLINE_WORLD_W / 2, state.tick);
 
@@ -576,8 +600,10 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   successHud(ctx,'skyline',state.tick,12,12,()=>{ctx.fillText(`Blocks ${state.placed}`, 12, 12);});
+  // skylineRev 7: the streak multiplier and the next-block preview.
+  if (expand) drawExpandHud(ctx, state);
   // skylineRev 2: the perfect-streak counter, gold once it is scoring.
-  if (state.rev && (state.streak ?? 0) > 0) {
+  else if (state.rev && (state.streak ?? 0) > 0) {
     const streak = state.streak ?? 0;
     ctx.textAlign = "right";
     ctx.fillStyle = streak >= SKYLINE_STREAK_FROM ? REAL_GOLD : REAL_NIGHT_TEXT;
@@ -600,6 +626,9 @@ const PERFECT_POP_TICKS = 45;
  */
 function drawPerfectPop(ctx: CanvasRenderingContext2D, state: SkylineState, x: number, seamY: number): void {
   const age = state.tick - state.perfectTick;
+  // skylineRev 7: the pop carries the streak multiplier the drop scored at.
+  const mult = state.expandRev ? skylineStreakMult(state.streak ?? 0) : 1;
+  const word = mult > 1 ? `PERFECT ×${mult}` : "PERFECT";
   if (state.perfectTick <= 0 || age < 0 || age >= PERFECT_POP_TICKS) return;
   const p = age / PERFECT_POP_TICKS;
   const still = reducedMotion();
@@ -616,16 +645,16 @@ function drawPerfectPop(ctx: CanvasRenderingContext2D, state: SkylineState, x: n
   ctx.lineJoin = "round";
   ctx.lineWidth = 5;
   ctx.strokeStyle = "rgba(20,14,40,0.85)";
-  ctx.strokeText("PERFECT", 0, 0);
+  ctx.strokeText(word, 0, 0);
   if (!arcadeReducedEffects()) {
     ctx.shadowColor = "rgba(245,184,46,0.8)";
     ctx.shadowBlur = 12;
   }
   ctx.fillStyle = REAL_GOLD;
-  ctx.fillText("PERFECT", 0, 0);
+  ctx.fillText(word, 0, 0);
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(255,248,220,0.55)";
-  ctx.fillText("PERFECT", 0, -1);
+  ctx.fillText(word, 0, -1);
   ctx.restore();
 }
 
@@ -674,3 +703,249 @@ export function skylineRiverFill(ctx: CanvasRenderingContext2D, view: ArenaScene
   ctx.fillStyle = "rgba(160,170,230,0.06)";
   for (let y = water.y + 5; y < water.y + water.h; y += 7) ctx.fillRect(water.x, Math.round(y), water.w, 1);
 }
+
+/* ============ skylineRev 7: special blocks, the multiplier, the preview and milestones ============ */
+
+/** The tower climbs to this share of the taller view before the camera pulls back (rev 7), and zooms out to this. */
+const EXPAND_CLIMB = 0.6;
+const EXPAND_MIN_ZOOM = 0.34;
+/** A milestone's celebration and camera pull-back, in sim ticks, and how far out the pull-back may go. */
+const MILESTONE_TICKS = 100;
+const MILESTONE_ZOOM_MIN = 0.22;
+const MILESTONE_GOLD = "#FFD24A";
+/** Special block looks: gold glass, a red hazard band (narrow), a green band (wide). */
+const KIND_LOOK: Record<number, { band: string; glow: string; label: string }> = {
+  [SKYLINE_KIND_GOLD]: { band: "#FFD24A", glow: "rgba(255,210,74,0.38)", label: "GOLD" },
+  [SKYLINE_KIND_NARROW]: { band: "#FF5D5D", glow: "rgba(255,93,93,0.3)", label: "NARROW" },
+  [SKYLINE_KIND_WIDE]: { band: "#46E39A", glow: "rgba(70,227,154,0.3)", label: "WIDE" },
+};
+
+function milestoneAge(state: SkylineState): number {
+  return state.milestoneTick ? state.tick - state.milestoneTick : Infinity;
+}
+
+/**
+ * A special block's marks over drawBlock's art, inside the block's own rectangle (the bounds rule): gold
+ * glass with a glint for gold, a striped red hazard band for narrow, a green band with arrows for wide.
+ */
+function drawKindMark(ctx: CanvasRenderingContext2D, kind: number, x: number, top: number, w: number, h: number, tick: number, sliding: boolean): void {
+  if (kind === SKYLINE_KIND_NORMAL) return;
+  const look = KIND_LOOK[kind]!;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, top, w, h);
+  ctx.clip();
+  if (kind === SKYLINE_KIND_GOLD) {
+    const g = ctx.createLinearGradient(0, top, 0, top + h);
+    g.addColorStop(0, "rgba(255,231,140,0.62)");
+    g.addColorStop(0.5, "rgba(245,184,46,0.5)");
+    g.addColorStop(1, "rgba(160,104,10,0.55)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x, top, w, h);
+    ctx.fillStyle = "#FFE79A";
+    ctx.fillRect(x, top, w, 2);
+    // A glint sweeping across the sliding gold block (still under reduced motion).
+    if (sliding && !reducedMotion()) {
+      const gx = x + (((tick * 4) % (w + 60)) - 30);
+      ctx.fillStyle = "rgba(255,252,230,0.55)";
+      ctx.beginPath();
+      ctx.moveTo(gx, top);
+      ctx.lineTo(gx + 10, top);
+      ctx.lineTo(gx - 2, top + h);
+      ctx.lineTo(gx - 12, top + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else {
+    ctx.fillStyle = look.band;
+    ctx.fillRect(x, top, w, 4);
+    if (kind === SKYLINE_KIND_NARROW) {
+      // Hazard stripes along the band.
+      ctx.fillStyle = "rgba(30,10,10,0.55)";
+      for (let sx = x - 6; sx < x + w; sx += 8) {
+        ctx.beginPath();
+        ctx.moveTo(sx, top + 4);
+        ctx.lineTo(sx + 4, top);
+        ctx.lineTo(sx + 7, top);
+        ctx.lineTo(sx + 3, top + 4);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      // Wide: small outward arrows at both ends of the band.
+      ctx.fillStyle = "rgba(10,40,26,0.7)";
+      for (const [ax, d] of [[x + 3, -1], [x + w - 3, 1]] as const) {
+        ctx.beginPath();
+        ctx.moveTo(ax + d * 2, top + 2);
+        ctx.lineTo(ax - d * 2, top);
+        ctx.lineTo(ax - d * 2, top + 4);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = look.glow;
+    ctx.fillRect(x, top + 4, w, 2);
+  }
+  ctx.restore();
+}
+
+/** A rounded dark pill (the HUD's backing). */
+function hudPill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  ctx.fillStyle = "rgba(6,10,28,0.62)";
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") ctx.roundRect(x, y, w, h, h / 2);
+  else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+
+/**
+ * skylineRev 7's HUD (top right, clear of the crane): the streak and its multiplier (gold while a perfect
+ * drop scores more than ×1), and the next block preview with its kind's look and name.
+ */
+function drawExpandHud(ctx: CanvasRenderingContext2D, state: SkylineState): void {
+  const streak = state.streak ?? 0;
+  const mult = skylineStreakMult(streak);
+  ctx.save();
+  ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textBaseline = "top";
+  ctx.textAlign = "right";
+  if (streak > 0) {
+    ctx.fillStyle = mult > 1 ? REAL_GOLD : REAL_NIGHT_TEXT;
+    ctx.fillText(mult > 1 ? `Streak ${streak} ×${mult}` : `Streak ${streak}`, SKYLINE_WORLD_W - 12, 12);
+  }
+  // The next block: a pill under the crane's jib, right side.
+  if (!state.missed) {
+    const nextKind = skylineKindAt(state, state.placed + 1);
+    const look = KIND_LOOK[nextKind];
+    const px0 = SKYLINE_WORLD_W - 112;
+    const py0 = 50;
+    hudPill(ctx, px0, py0, 100, 26);
+    ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(229,237,255,0.75)";
+    ctx.fillText("NEXT", px0 + 10, py0 + 13);
+    const bw = nextKind === SKYLINE_KIND_NARROW ? 22 : nextKind === SKYLINE_KIND_WIDE ? 40 : 30;
+    const bx = px0 + 44 + (40 - bw) / 2;
+    ctx.fillStyle = STEEL;
+    ctx.fillRect(bx, py0 + 7, bw, 12);
+    ctx.fillStyle = GLASS[(state.blocks.length + 1) % GLASS.length]!;
+    ctx.fillRect(bx + 2, py0 + 10, bw - 4, 6);
+    if (look) drawKindMark(ctx, nextKind, bx, py0 + 7, bw, 12, state.tick, nextKind === SKYLINE_KIND_GOLD);
+    if (look && nextKind !== SKYLINE_KIND_NORMAL) {
+      // The name above the pill, in the kind's colour.
+      ctx.font = "800 11px 'JetBrains Mono', ui-monospace, monospace";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = look.band;
+      ctx.fillText(look.label, SKYLINE_WORLD_W - 12, py0 + 30);
+    }
+  }
+  // The multiplier the next perfect drop would score at, once it is more than ×1.
+  const nextMult = skylineNextMult(state);
+  if (!state.missed && nextMult > mult && streak > 0) {
+    ctx.font = "700 10px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(245,184,46,0.8)";
+    ctx.fillText(`next perfect ×${nextMult}`, SKYLINE_WORLD_W - 12, 32);
+  }
+  ctx.restore();
+}
+
+/** How long the "GOLD +" pop shows, in sim ticks. */
+const GOLD_POP_TICKS = 50;
+/** skylineRev 7: a gold block landed perfectly: "GOLD BONUS" rises beside the PERFECT pop with a few gold motes. */
+function drawGoldPop(ctx: CanvasRenderingContext2D, state: SkylineState, x: number, seamY: number): void {
+  const age = state.tick - (state.lastPerfect ?? 0);
+  if (!state.lastPerfect || state.lastKind !== SKYLINE_KIND_GOLD || age < 0 || age >= GOLD_POP_TICKS) return;
+  const p = age / GOLD_POP_TICKS;
+  const still = reducedMotion();
+  const cx = Math.max(70, Math.min(SKYLINE_WORLD_W - 70, x));
+  const y = Math.max(96, seamY - 62 - (still ? 0 : p * 16));
+  ctx.save();
+  ctx.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+  ctx.font = "800 15px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(20,14,40,0.85)";
+  ctx.strokeText("GOLD BONUS", cx, y);
+  ctx.fillStyle = MILESTONE_GOLD;
+  ctx.fillText("GOLD BONUS", cx, y);
+  if (!still && !arcadeReducedEffects()) {
+    ctx.fillStyle = "#FFF1B8";
+    for (let k = 0; k < 8; k++) {
+      const h = artHash(state.lastPerfect, 40 + k);
+      const ang = (k / 8) * Math.PI * 2 + (h % 7) * 0.1;
+      const r = 14 + p * 40;
+      ctx.fillRect(cx + Math.cos(ang) * r * 1.6, seamY + Math.sin(ang) * r * 0.6, 2, 2);
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * skylineRev 7: a height milestone. A gold banner ("FLOOR 20 · CITY BONUS") over the city while the camera
+ * pulls back, gold sparks bursting off the top block, and the rooftop's beacon flashing. Reduced motion: the
+ * banner fades in still, no sparks; reduced effects: no glow.
+ */
+function drawMilestone(ctx: CanvasRenderingContext2D, state: SkylineState, x: number, seamY: number): void {
+  const age = milestoneAge(state);
+  if (age < 0 || age >= MILESTONE_TICKS) return;
+  const p = age / MILESTONE_TICKS;
+  const still = reducedMotion();
+  ctx.save();
+  if (!still) {
+    ctx.fillStyle = MILESTONE_GOLD;
+    for (let k = 0; k < 18; k++) {
+      const h = artHash(state.milestoneTick ?? 0, k);
+      const ang = -Math.PI * (0.1 + 0.8 * ((h % 1000) / 1000));
+      const v = 1.6 + ((h >>> 10) % 7) * 0.35;
+      const t = Math.min(age, 60);
+      const sx = x + Math.cos(ang) * v * t;
+      const sy = seamY + Math.sin(ang) * v * t + 0.035 * t * t;
+      ctx.globalAlpha = Math.max(0, 1 - age / 60);
+      ctx.fillRect(sx, sy, 2.5, 2.5);
+    }
+  }
+  const floor = (state.milestones ?? 0) * SKYLINE_MILESTONE_EVERY;
+  const fade = p < 0.12 ? p / 0.12 : p > 0.8 ? (1 - p) / 0.2 : 1;
+  ctx.globalAlpha = Math.max(0, fade);
+  const y = skylineWorldH(state) * 0.24;
+  hudPill(ctx, SKYLINE_WORLD_W / 2 - 128, y - 20, 256, 40);
+  ctx.font = "800 20px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (!arcadeReducedEffects()) {
+    ctx.shadowColor = "rgba(255,210,74,0.75)";
+    ctx.shadowBlur = 10;
+  }
+  ctx.fillStyle = MILESTONE_GOLD;
+  ctx.fillText(`FLOOR ${floor}`, SKYLINE_WORLD_W / 2, y - 4);
+  ctx.shadowBlur = 0;
+  ctx.font = "700 11px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.fillStyle = "#FFF1C8";
+  ctx.fillText("CITY BONUS", SKYLINE_WORLD_W / 2, y + 12);
+  ctx.restore();
+}
+
+/**
+ * skylineRev 7's success layer: Tuning E's events in the taller view (390 × SKYLINE_SKY_H), the streak
+ * banner naming the multiplier, the milestone banner left to the game's own (drawMilestone), and a burst for
+ * a gold block landed perfectly.
+ */
+export const SKYLINE_FX_EXPAND: ArcadeFxSpec<SkylineState> = {
+  ...SKYLINE_FX,
+  height: SKYLINE_SKY_H,
+  events: [
+    { kind: "perfect", count: (s) => s.perfects, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.42 }), label: () => null },
+    // The milestone's banner is the game's own; this adds the edge glow and burst only.
+    { kind: "streak", count: (s) => s.milestones ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => null },
+    { kind: "combo", count: (s) => skylineStreakMult(s.streak ?? 0), min: 2, label: (_s, n) => `STREAK ×${n}` },
+    { kind: "pop", count: (s) => (s.rev && s.placed >= 20 ? 1 : 0), at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.3 }), label: () => "FLAG UP: WATCH THE WIND!" },
+    { kind: "perfect", count: (s) => s.golds ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => null, lights: ["#FFD24A", "#FFF1B8"] },
+    { kind: "perfect", count: (s) => s.gustPerfects ?? 0, at: () => ({ x: SKYLINE_WORLD_W / 2, y: SKYLINE_SKY_H * 0.36 }), label: () => "PERFECT IN THE WIND!" },
+  ],
+};

@@ -22,7 +22,7 @@ import { SNAKE_REV_STRICT, SNAKE_V8_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_V6_BAND_CURVE } from "./binToss";
 import { SNIP_REV_STRICT, SNIP_V9_BAND_CURVE } from "./snip";
 import { HOVER_REV_STRICT, HOVER_V7_BAND_CURVE } from "./hover";
-import { SKYLINE_REV_STRICT, SKYLINE_V6_BAND_CURVE } from "./skyline";
+import { SKYLINE_REV_EXPAND, SKYLINE_V7_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STRICT, BRK_V8_BAND_CURVE } from "./breaker";
 import { TILT_REV_STRICT, TILT_V6_BAND_CURVE } from "./tilt";
@@ -33,7 +33,7 @@ import { SLICE_REV_STRICT, SLICE_V8_BAND_CURVE } from "./slice";
 import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "./burst";
 import { SWING_REV_STRICT, SWING_V11_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STRICT, BULLSEYE_V6_BAND_CURVE } from "./bullseye";
-import { PIN_REV_STRICT, PIN_V3_BAND_CURVE } from "./pinball";
+import { PIN_REV_EXPAND, PIN_V4_BAND_CURVE } from "./pinball4";
 
 export interface LiveBand {
   /** The puzzle field that carries the stamp, and the revision new rounds are dealt. */
@@ -55,7 +55,7 @@ export const LIVE_BANDS = {
   bintoss: { field: "binRev", rev: BINTOSS_REV_STRICT, curve: BINTOSS_V6_BAND_CURVE },
   snip: { field: "snipRev", rev: SNIP_REV_STRICT, curve: SNIP_V9_BAND_CURVE },
   hover: { field: "hoverRev", rev: HOVER_REV_STRICT, curve: HOVER_V7_BAND_CURVE },
-  skyline: { field: "skylineRev", rev: SKYLINE_REV_STRICT, curve: SKYLINE_V6_BAND_CURVE },
+  skyline: { field: "skylineRev", rev: SKYLINE_REV_EXPAND, curve: SKYLINE_V7_BAND_CURVE },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_STRICT, curve: BRK_V8_BAND_CURVE },
   tilt: { field: "tiltRev", rev: TILT_REV_STRICT, curve: TILT_V6_BAND_CURVE },
@@ -65,7 +65,7 @@ export const LIVE_BANDS = {
   burst: { field: "burstRev", rev: BURST_REV_STRICT, curve: BURST_V6_BAND_CURVE },
   swing: { field: "swingRev", rev: SWING_REV_STRICT, curve: SWING_V11_BAND_CURVE },
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STRICT, curve: BULLSEYE_V6_BAND_CURVE },
-  pinball: { field: "pinRev", rev: PIN_REV_STRICT, curve: PIN_V3_BAND_CURVE },
+  pinball: { field: "pinRev", rev: PIN_REV_EXPAND, curve: PIN_V4_BAND_CURVE },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

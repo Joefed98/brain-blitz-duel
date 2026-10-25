@@ -55,7 +55,7 @@ export interface SkylineBlock {
   w: number;
 }
 
-export interface SkylineState extends BandFields {
+export interface SkylineState extends BandFields, SkylineExpandFields {
   tick: number;
   rng: number;
   /** Bottom-up: index 0 is the base block. */
@@ -234,6 +234,8 @@ export function skylineCheckpoint(state: SkylineState): SkylineCheckpoint {
   if (state.rev === SKYLINE_REV) values.push(state.streak ?? 0, state.streakPoints ?? 0, state.gustPerfects ?? 0);
   // skylineRev 4 (Tuning E): the taller view's height, last.
   if (state.worldH) values.push(state.worldH);
+  // skylineRev 7: the expansion's counters, after it.
+  if (state.expandRev) values.push(state.expandRev, state.golds ?? 0, state.narrows ?? 0, state.wides ?? 0, state.specialPerfects ?? 0, state.milestones ?? 0, state.perfectUnits ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -441,6 +443,7 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+  if (rev === SKYLINE_REV_EXPAND) return skylineExpandGame;
   if (rev === SKYLINE_REV_STRICT) return skylineStrictGame;
   if (rev === SKYLINE_REV_TARGET) return skylineTargetGame;
   if (rev === SKYLINE_REV_TALL) return skylineTallGame;
@@ -456,6 +459,7 @@ export const SKYLINE_REV_BAND = 3;
 export const SKYLINE_BAND_CURVE = bandCurve([0, 100, 165, 280, 480, 600], [0, 70, 100, 125, 145, 150]);
 
 export function skylineBandParts(state: SkylineState): BandParts {
+  if (state.expandRev) return skylineExpandParts(state);
   const units = 5 * state.placed + 5 * state.perfects + 2 * (state.streakPoints ?? 0);
   return { units, points: bandPoints(bandCurveOf(state, SKYLINE_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${state.placed} blocks · ${state.perfects} perfect · +${state.streakPoints ?? 0} streak` };
 }
@@ -481,6 +485,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
+  if (rev === SKYLINE_REV_EXPAND) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -508,3 +513,262 @@ export const SKYLINE_REV_STRICT = 6;
 export const skylineStrictGame = bandStrictGame(skylineTargetGame);
 /** The curve new rounds score on: SKYLINE_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const SKYLINE_V6_BAND_CURVE = bandStrict(SKYLINE_BAND_CURVE);
+
+/* ============ World expansion (skylineRev 7, 25 Oct 2026, docs/expansions/e4.md) ============ */
+
+/**
+ * skylineRev 7 (the 200-point expansion, docs/scoring-200.md): skylineRev 6 play (the slide, the
+ * overhang rule, the wind from block 20 and the perfect streak) with
+ *
+ *  - more sky: a camera that lets the tower climb higher before it pulls back, zooms out further and pulls
+ *    right back at every milestone (render only, skyline.renderer.ts), in Tuning E's 390 × 735 view;
+ *  - a streak multiplier: a perfect drop scores ×2 from the 3rd perfect drop in a row, ×3 from the
+ *    6th and ×4 from the 10th (SKYLINE_STREAK_TIERS); any drop that isn't perfect resets it;
+ *  - special blocks, dealt from the seed and announced one block ahead in the next-block preview:
+ *    gold (the usual width; a perfect drop adds SKYLINE_GOLD_UNITS), narrow (three quarters of the
+ *    top's width: harder, worth more) and wide (SKYLINE_WIDE_GROW wider: easier, worth less; a
+ *    perfect, centred drop keeps it whole, so the tower widens). A narrow or wide block is perfect
+ *    when its centre lines up with the top's centre;
+ *  - height milestones every SKYLINE_MILESTONE_EVERY floors: a bonus, a celebration and the camera
+ *    pulling back to show the city (render only).
+ *
+ * Scored to 200 (ROUND_MAX) on its own curve (SKYLINE_V7_BAND_CURVE) over skylineV7Units. Every older
+ * revision plays and scores exactly as before: the expansion's step and score run only on states
+ * with `expandRev` (absent on every older round).
+ */
+export const SKYLINE_REV_EXPAND = 7;
+/**
+ * The view's height (px): Tuning E's 735, the tallest world that still fills the arena box's width on the
+ * iPhone 11 home-screen app (414 × 772) and a 390 × 844 phone (taller, the world would leave side strips the
+ * parallax city cannot run on into). The extra sky comes from the camera (skyline.renderer.ts).
+ */
+export const SKYLINE_SKY_H = SKYLINE_TALL_H;
+
+/** Block kinds (skylineRev 7). */
+export const SKYLINE_KIND_NORMAL = 0;
+export const SKYLINE_KIND_GOLD = 1;
+export const SKYLINE_KIND_NARROW = 2;
+export const SKYLINE_KIND_WIDE = 3;
+/** Special blocks are dealt from this block on (0-based: the 5th block), never two in a row. */
+export const SKYLINE_SPECIAL_FROM = 4;
+/** Chance of a special block (in 1000ths) on a block that may be one, and the kind shares (gold, narrow, wide). */
+export const SKYLINE_SPECIAL_CHANCE = 300;
+export const SKYLINE_SPECIAL_SHARES: readonly [number, number, number] = [4, 3, 3];
+/** How many blocks the schedule deals (no run places more than ~70 in 60 s). */
+export const SKYLINE_KIND_COUNT = 96;
+/** A wide block is this much wider than the top (capped at the start width). */
+export const SKYLINE_WIDE_GROW = 12_288;
+/** A narrow block is three quarters of the top's width, but never under this (or the top, if narrower). */
+export const SKYLINE_NARROW_MIN = 8_192;
+
+/** Streak multiplier tiers: [perfect drops in a row, multiplier], highest first. */
+export const SKYLINE_STREAK_TIERS: readonly (readonly [number, number])[] = [
+  [10, 4],
+  [6, 3],
+  [3, 2],
+];
+/** Units (skylineV7Units): per block by kind, per perfect drop (times the streak multiplier), gold and milestones. */
+export const SKYLINE_V7_BLOCK_UNITS: readonly number[] = [5, 5, 8, 3];
+export const SKYLINE_V7_PERFECT_UNITS = 5;
+export const SKYLINE_GOLD_UNITS = 15;
+export const SKYLINE_MILESTONE_EVERY = 10;
+export const SKYLINE_MILESTONE_UNITS = 20;
+
+/** The streak multiplier for a run of `streak` perfect drops (1 below the first tier). */
+export function skylineStreakMult(streak: number): number {
+  for (const [from, mult] of SKYLINE_STREAK_TIERS) if (streak >= from) return mult;
+  return 1;
+}
+
+/** The seeded block-kind schedule for a run (its own stream), one kind per block index. */
+export function skylineKinds(seed: number): number[] {
+  let rng = (seed ^ 0x5b1d_e7a3) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const shares = SKYLINE_SPECIAL_SHARES[0] + SKYLINE_SPECIAL_SHARES[1] + SKYLINE_SPECIAL_SHARES[2];
+  const out: number[] = [];
+  for (let i = 0; i < SKYLINE_KIND_COUNT; i++) {
+    const roll = draw(1000);
+    const pick = draw(shares);
+    if (i < SKYLINE_SPECIAL_FROM || out[i - 1] !== SKYLINE_KIND_NORMAL || roll >= SKYLINE_SPECIAL_CHANCE) out.push(SKYLINE_KIND_NORMAL);
+    else out.push(pick < SKYLINE_SPECIAL_SHARES[0] ? SKYLINE_KIND_GOLD : pick < SKYLINE_SPECIAL_SHARES[0] + SKYLINE_SPECIAL_SHARES[1] ? SKYLINE_KIND_NARROW : SKYLINE_KIND_WIDE);
+  }
+  return out;
+}
+
+/** The kind of the block with this 0-based index in a rev-7 run (normal past the schedule, and on older rounds). */
+export function skylineKindAt(state: SkylineState, index: number): number {
+  return state.kinds?.[index] ?? SKYLINE_KIND_NORMAL;
+}
+
+/** The sliding block's width for a kind, given the top block's width. */
+export function skylineKindWidth(kind: number, topW: number): number {
+  if (kind === SKYLINE_KIND_NARROW) return Math.max(Math.min(topW, SKYLINE_NARROW_MIN), Math.trunc((topW * 3) / 4));
+  if (kind === SKYLINE_KIND_WIDE) return Math.min(SKYLINE_START_W, topW + SKYLINE_WIDE_GROW);
+  return topW;
+}
+
+/** skylineRev 7's fields (absent on every older round). */
+export interface SkylineExpandFields {
+  expandRev?: number;
+  /** The block-kind schedule (skylineKinds), one per block index. */
+  kinds?: number[];
+  /** Gold blocks landed perfectly, narrow and wide blocks placed, perfect narrow / wide drops. */
+  golds?: number;
+  narrows?: number;
+  wides?: number;
+  specialPerfects?: number;
+  /** Height milestones reached and the tick of the last one (render: celebration and camera pull-back). */
+  milestones?: number;
+  milestoneTick?: number;
+  /** Streak-multiplied perfect units so far (5 × the multiplier per perfect drop). */
+  perfectUnits?: number;
+  /** The highest streak multiplier reached. */
+  bestMult?: number;
+  /** Kind of the last block placed and the tick it landed (render: the gold pop). */
+  lastKind?: number;
+  lastPerfect?: number;
+}
+
+const kindCache = new Map<number, number[]>();
+function kindsFor(seed: number): number[] {
+  let kinds = kindCache.get(seed | 0);
+  if (!kinds) {
+    kinds = skylineKinds(seed);
+    if (kindCache.size > 16) kindCache.clear();
+    kindCache.set(seed | 0, kinds);
+  }
+  return kinds;
+}
+
+function initExpand(seed: number): SkylineState {
+  return {
+    ...skylineStrictGame.init(seed),
+    worldH: SKYLINE_SKY_H,
+    expandRev: SKYLINE_REV_EXPAND,
+    kinds: kindsFor(seed),
+    golds: 0,
+    narrows: 0,
+    wides: 0,
+    specialPerfects: 0,
+    milestones: 0,
+    milestoneTick: 0,
+    perfectUnits: 0,
+    bestMult: 1,
+    lastKind: SKYLINE_KIND_NORMAL,
+    lastPerfect: 0,
+  };
+}
+
+/** One rev-7 tick (the rev-2 rules plus the expansion's blocks, multiplier and milestones). */
+function stepExpand(state: SkylineState, tapped: boolean): SkylineState {
+  if (isOver(state)) return state;
+  if (!tapped) return step(state, false);
+  const tick = state.tick + 1;
+  const below = state.blocks[state.blocks.length - 1]!;
+  const left = Math.max(state.x, below.x);
+  const right = Math.min(state.x + state.w, below.x + below.w);
+  if (right - left <= 0) return { ...state, tick, missed: true, endedTick: tick };
+
+  const kind = skylineKindAt(state, state.placed);
+  const special = kind === SKYLINE_KIND_NARROW || kind === SKYLINE_KIND_WIDE;
+  let perfect: boolean;
+  let x: number;
+  let width: number;
+  if (special) {
+    const centre = below.x + (below.w >> 1);
+    perfect = Math.abs(state.x + (state.w >> 1) - centre) <= SKYLINE_PERFECT_TOL;
+    // A centred narrow or wide block stays whole (a wide one widens the tower); otherwise the overhang is cut.
+    x = perfect ? centre - (state.w >> 1) : left;
+    width = perfect ? state.w : right - left;
+  } else {
+    perfect = Math.abs(state.x - below.x) <= SKYLINE_PERFECT_TOL;
+    width = perfect ? Math.min(SKYLINE_START_W, below.w + SKYLINE_PERFECT_GROW) : right - left;
+    x = perfect ? below.x : left;
+  }
+  const blocks = [...state.blocks, { x, w: width }];
+  const placed = state.placed + 1;
+  const streak = perfect ? (state.streak ?? 0) + 1 : 0;
+  const mult = perfect ? skylineStreakMult(streak) : 1;
+  const nextKind = skylineKindAt(state, placed);
+  const nextW = skylineKindWidth(nextKind, width);
+  const dir = state.dir >= 0 ? -1 : 1;
+  const milestone = placed % SKYLINE_MILESTONE_EVERY === 0;
+  const next: SkylineState = {
+    ...state,
+    tick,
+    blocks,
+    placed,
+    perfects: state.perfects + (perfect ? 1 : 0),
+    perfectTick: perfect ? tick : state.perfectTick,
+    x: dir === 1 ? 0 : SKYLINE_WORLD_RIGHT - nextW,
+    w: nextW,
+    dir,
+    streak,
+    bestStreak: Math.max(state.bestStreak ?? 0, streak),
+    streakPoints: (state.streakPoints ?? 0) + (streak >= SKYLINE_STREAK_FROM ? SKYLINE_STREAK_POINTS : 0),
+    gustPerfects: (state.gustPerfects ?? 0) + (perfect && skylineGustAt(state, tick) !== 0 ? 1 : 0),
+    golds: (state.golds ?? 0) + (perfect && kind === SKYLINE_KIND_GOLD ? 1 : 0),
+    narrows: (state.narrows ?? 0) + (kind === SKYLINE_KIND_NARROW ? 1 : 0),
+    wides: (state.wides ?? 0) + (kind === SKYLINE_KIND_WIDE ? 1 : 0),
+    specialPerfects: (state.specialPerfects ?? 0) + (perfect && special ? 1 : 0),
+    milestones: (state.milestones ?? 0) + (milestone ? 1 : 0),
+    milestoneTick: milestone ? tick : (state.milestoneTick ?? 0),
+    perfectUnits: (state.perfectUnits ?? 0) + (perfect ? SKYLINE_V7_PERFECT_UNITS * mult : 0),
+    bestMult: Math.max(state.bestMult ?? 1, mult),
+    lastKind: kind,
+    lastPerfect: perfect ? tick : (state.lastPerfect ?? 0),
+  };
+  if (tick >= SKYLINE_RUN_TICKS) return { ...next, endedTick: tick };
+  return next;
+}
+
+/** The streak multiplier the next perfect drop would score at (HUD). */
+export function skylineNextMult(state: SkylineState): number {
+  return skylineStreakMult((state.streak ?? 0) + 1);
+}
+
+/** skylineRev 7's achievement units: blocks by kind, streak-multiplied perfects, gold perfects and milestones. */
+export function skylineV7Units(state: SkylineState): { blocks: number; perfects: number; gold: number; milestones: number; total: number } {
+  let blocks = 0;
+  for (let i = 0; i < state.placed; i++) blocks += SKYLINE_V7_BLOCK_UNITS[skylineKindAt(state, i)] ?? 5;
+  const perfects = state.perfectUnits ?? 0;
+  const gold = SKYLINE_GOLD_UNITS * (state.golds ?? 0);
+  const milestones = SKYLINE_MILESTONE_UNITS * (state.milestones ?? 0);
+  return { blocks, perfects, gold, milestones, total: blocks + perfects + gold + milestones };
+}
+
+/**
+ * skylineRev 7's curve to 200 over skylineV7Units: fitted (scripts/e4-fit.ts on the skill-band bots) so a
+ * player of every level lands near today's rev-6 score for that level up to great, and only strong use of
+ * the streak multiplier, gold blocks and milestones climbs to 190–200.
+ */
+/** skylineRev 7's top score (its ROUND_MAX line, roundMax.ts). */
+export const SKYLINE_V7_MAX = 200;
+export const SKYLINE_V7_BAND_CURVE = bandCurve([0, 129, 203, 326, 613, 833, 1050], [0, 72, 99, 118, 165, 190, 200]);
+
+export function skylineExpandParts(state: SkylineState): BandParts {
+  const u = skylineV7Units(state);
+  return {
+    units: u.total,
+    points: bandPoints(SKYLINE_V7_BAND_CURVE, u.total),
+    bonus: 0,
+    penalty: 0,
+    finished: false,
+    text: `${state.placed} blocks · ${state.perfects} perfect · best ×${state.bestMult ?? 1} · ${state.golds ?? 0} gold · ${state.milestones ?? 0} milestones`,
+  };
+}
+
+function scoreExpand(state: SkylineState): number {
+  return bandTotal(skylineExpandParts(state), Boolean(state.acted), SKYLINE_V7_MAX);
+}
+
+export const skylineExpandGame: ArcadeGame<SkylineState> = {
+  ...skylineGame,
+  init: initExpand,
+  step: bandStep(stepExpand),
+  score: scoreExpand,
+};

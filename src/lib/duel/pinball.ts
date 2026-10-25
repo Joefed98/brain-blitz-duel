@@ -7,10 +7,9 @@
 
 import type { InputDiag } from "@/lib/arcade/engine";
 
+import { pinballGameForAny, pinCheckpointAny, type Pin4State } from "@/lib/arcade/pinball4";
 import {
-  pinballGameFor,
   pinBallsLeft,
-  pinCheckpoint,
   PIN_CHECKPOINT_INTERVAL,
   PIN_INPUT_RANGES,
   PIN_RUN_TICKS,
@@ -72,6 +71,12 @@ export interface PinballResult {
   banks: number;
   spins: number;
   laneSets: number;
+  /** pinRev 4 (0 on older rounds): clean ramp shots, the best ramp combo, multiballs, jackpots and skill shots. */
+  ramps: number;
+  bestCombo: number;
+  multiballs: number;
+  jackpots: number;
+  skills: number;
   /** Balls drained, and balls the run still had when it ended. */
   lost: number;
   ballsLeft: number;
@@ -90,7 +95,7 @@ export interface PinballResult {
 
 /** The single place a Pinball score is worked out. */
 export function replayPinballRun(seed: number, raw: string, rev?: number | null): PinballResult {
-  const game = pinballGameFor(rev);
+  const game = pinballGameForAny(rev);
   const run = decodePinballRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, PIN_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < PIN_RUN_TICKS;
@@ -108,7 +113,7 @@ export function replayPinballRun(seed: number, raw: string, rev?: number | null)
     state = game.step(state, events.get(tick) ?? null);
     reached = tick;
     if (state.tick % PIN_CHECKPOINT_INTERVAL === 0) {
-      const serverState = pinCheckpoint(state);
+      const serverState = pinCheckpointAny(state);
       serverCheckpoints.push(serverState);
       const clientState = clientCheckpoints.get(state.tick);
       if ((!clientState || clientState.checksum !== serverState.checksum) && desyncTick === null) {
@@ -129,6 +134,11 @@ export function replayPinballRun(seed: number, raw: string, rev?: number | null)
     banks: state.banks,
     spins: state.spins,
     laneSets: state.laneSets,
+    ramps: (state as Partial<Pin4State>).ramps ?? 0,
+    bestCombo: (state as Partial<Pin4State>).bestCombo ?? 0,
+    multiballs: (state as Partial<Pin4State>).multiballs ?? 0,
+    jackpots: (state as Partial<Pin4State>).jackpots ?? 0,
+    skills: (state as Partial<Pin4State>).skills ?? 0,
     lost: state.lost,
     ballsLeft: pinBallsLeft(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,

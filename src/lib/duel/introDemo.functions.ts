@@ -9,6 +9,8 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { SKYLINE_REV_EXPAND } from "@/lib/arcade/skyline";
+import { PIN_REV_EXPAND } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -99,6 +101,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
+    // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
+    // still until a demo is recorded on skylineRev 7.
+    if (data.type === "skyline" && demo?.puzzle.type === "skyline" && demo.puzzle.skylineRev !== SKYLINE_REV_EXPAND) return null;
+    // Pinball's pinRev 4 (the taller table, its ramps, lanes, lock and plunger): only a pinRev 4 demo plays.
+    if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_EXPAND) return null;
     return demo;
   });
 

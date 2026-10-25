@@ -169,7 +169,7 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   ok(snakeWorldHForRev(SNAKE_REV_TALL) === SNAKE_TALL_H && SNAKE_TALL_H === 724 && snakeWorldHForRev(SNAKE_REV_BAND) === SNAKE_WORLD_H, "Meteor: 390 × 724 on snakeRev 5, 390 × 532 before");
   ok(snipWorldHFor(SNIP_REV_TALL) === SNIP_TALL_H && SNIP_TALL_H === 640 && snipWorldHFor(SNIP_REV_BAND) === SNIP_H, "Scrumper: 360 × 640 on snipRev 5, 360 × 560 before");
   // The arena table (presentation-geometry) uses the worlds rooms deal today.
-  ok(ARCADE_FX_SPECS.hover.height === HOVER_TALL_H && ARCADE_FX_SPECS.skyline.height === SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds");
+  ok(ARCADE_FX_SPECS.hover.height === HOVER_TALL_H && ARCADE_FX_SPECS.skyline.height === skylineWorldHFor(generateSkyline().skylineRev) && skylineWorldHFor(generateSkyline().skylineRev) >= SKYLINE_TALL_H && ARCADE_FX_SPECS.snake.height === SNAKE_TALL_H && ARCADE_FX_SPECS.snip.height === SNIP_TALL_H, "the live arena sizes are the taller worlds");
   // Effects follow the state's own world; old states keep the old spec object.
   const states = {
     hover: [hoverGameFor(HOVER_REV_TUNEC).init(5), hoverGameFor(HOVER_REV_TALL).init(5)],

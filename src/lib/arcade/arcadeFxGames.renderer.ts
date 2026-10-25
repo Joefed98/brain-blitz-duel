@@ -1286,6 +1286,12 @@ export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);
 export const SKYLINE_FX_TALL = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
+/**
+ * Expansion E4 (25 Oct 2026): High Rise skylineRev 7 (Tuning E's 390 × 735) and Pinball pinRev 4's taller table
+ * (390 × 820), the worlds rooms deal. The same events as before (the replays' moment table); the games draw
+ * their expansions' own specs (skyline.renderer.ts SKYLINE_FX_EXPAND, pinball4.renderer.ts PINBALL4_FX).
+ */
+export const SKYLINE_FX_SKY = fxSpecAt(SKYLINE_FX, SKYLINE_TALL_H);
 /** Taller worlds batch 1 (Oct 2026): Breaker brkRev 6, Rally rallyRev 6, Wavefront wavRev 6, Fission burstRev 4. */
 export const breakerFxFor = (s: BrkState): ArcadeFxSpec<BrkState> => fxSpecAt(BREAKER_FX, brkWorldH(s));
 export const BREAKER_FX_TALL = fxSpecAt(BREAKER_FX, BRK_TALL_H);
@@ -1359,7 +1365,7 @@ export const ARCADE_FX_SPECS = {
   wavefront: WAVEFRONT_FX_TALL,
   // The live round's view (orbitRev 8); rev 1/2 rounds draw through ORBIT_FX and rev 3–7 through ORBIT3_FX.
   orbit: fxSpecAt(ORBIT_FX, ORBIT_TALL_VIEW_H),
-  skyline: SKYLINE_FX_TALL,
+  skyline: SKYLINE_FX_SKY,
   cross: CROSS_FX,
   junction: JUNCTION_FX,
   inkbridge: INKBRIDGE_FX,
@@ -1373,7 +1379,7 @@ export const ARCADE_FX_SPECS = {
   tilt: TILT_FX,
   balltrack: BALLTRACK_FX_TALL,
   matchup: MATCHUP_FX,
-  pinball: PINBALL_FX,
+  pinball: fxSpecAt(PINBALL_FX, 820),
 } satisfies Record<ArcadeFxGame, ArcadeFxSpec<never>>;
 
 /* ============================ Engine word games ============================ */
