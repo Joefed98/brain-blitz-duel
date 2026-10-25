@@ -43,7 +43,7 @@ import {
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/arcade/bubble";
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
-import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
+import { WAV_BOSS_HP, WAV_X_CANNON_HP, WAV_X_CORE_DAMAGE } from "@/lib/arcade/wavefront";
 import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
 import {
   PIN_MULT_MAX,
@@ -766,19 +766,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: `Up to 135 for the share of targets hit, −3 per wrong hat, −5 per hedgehog, −3 per empty tap, +15 for hitting every target; that total then sets the score: 62 scores ${bandMapTotal(WHACK_BANDS_MAP, 62)}, 102 scores ${bandMapTotal(WHACK_BANDS_MAP, 102)}, 118 scores ${bandMapTotal(WHACK_BANDS_MAP, 118)}, 133 scores ${bandMapTotal(WHACK_BANDS_MAP, 133)}. Only a perfect 150 is {max}.`,
     },
     wavefront: {
-      goal: "Five waves and a boss in 90 s.",
+      goal: "Five waves and two bosses in 90 s.",
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
-        { action: "Dodge red bolts and divers:", detail: "3 lives." },
-        { action: "After wave 5,", detail: "shoot down the boss fast." },
+        { action: "Dodge bolts and divers;", detail: "catch power-ups." },
+        { action: "Keep a streak;", detail: "hit the bosses' weak points." },
+        { action: "Red bolts and divers cost a life:", detail: "you have 3.", helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don't let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
-        { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon – always 30 ships. Waves 3 and 4 come down more slowly.", helpOnly: true },
+        { action: "Each wave flies its own shape:", detail: "a grid, then a triangle, a circle, a pentagon and an octagon – 36 ships each, with six escorts under the shapes. Waves 3 and 4 come down more slowly.", helpOnly: true },
         { action: "From wave 2, a grey armoured ship", detail: "sits in the middle of the shape and takes 6-12 hits – every hit counts.", helpOnly: true },
-        { action: "Shoot the saucer", detail: "and catch its drop: 5 laser shots that pierce up to 3 enemies.", helpOnly: true },
-        { action: "The boss slides side to side and fires in patterns.", detail: `Its bar shows the ${WAV_BOSS_HP} hits it can take; every hit counts, and destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
+        { action: "Power-ups:", detail: "a shot-down saucer, armoured ship or boss cannon drops one. Laser: 5 shots that pierce up to 3 enemies. Spread: 8 volleys with two extra bolts angled out. Shield: absorbs the next hit (12 s).", helpOnly: true },
+        { action: "Streak:", detail: "every hit in a row counts; ×2 from 8, ×3 from 16, ×4 from 24. A shot that flies off without hitting, or a lost life, ends it (spread bolts and a shielded hit don't).", helpOnly: true },
+        { action: "After wave 3 a gunship flies in; after wave 5, the boss.", detail: `Each has two cannons (${WAV_X_CANNON_HP} hits each; a destroyed one stops firing and drops a power-up) and a core that opens and closes: a hit on the open core counts ${WAV_X_CORE_DAMAGE}. The boss's bar shows its ${WAV_BOSS_HP} hit points; destroying it ends the run – the sooner after it arrives, the more it scores.`, helpOnly: true },
       ],
-      score: liveBandHelp("wavefront", "Ships, armour hits, boss hits and saucers count 1, and cleared waves 15.", { more: "More ships, hits and waves", finish: "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s." }),
+      score: liveBandHelp("wavefront", "Ships, armour hits, boss hit points and saucers count 1, and cleared waves (the gunship too) 15.", { more: "More ships, hits and waves", finish: "Destroying the boss adds up to 10 for speed: the full 10 within 20 s of its arrival, falling to 0 at 40 s. Long streaks, open-core hits, cannons, power-ups and shield saves add up to 50 more." }),
     },
     bastion: {
       goal: "Defend the base.",

@@ -4,7 +4,7 @@ import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
-import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
+import { WAV_REV_EXPAND } from "@/lib/arcade/wavefront";
 import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
@@ -85,7 +85,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // touches would land on the old paddle, ship or floor line), so these four stay stopped until one is recorded on the tall revision.
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_TALL) return null;
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
-    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
+    // Expansion E8 (wavRev 9): a demo recorded on an older revision shows the shorter arena and no power-ups, so it stays stopped until one is recorded on wavRev 9.
+    if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_EXPAND) return null;
     if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.

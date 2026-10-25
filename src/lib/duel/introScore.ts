@@ -101,7 +101,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bubble: "Points for each bubble cleared. Clear the whole field quickly for up to {max}.",
     slice: "Points for each food sliced; cut several at once for more. Chilli: lose 10. Up to {max}.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
-    wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
+    wavefront: "Ships, hits, waves, a fast boss kill; streaks, weak points and power-ups: up to {max}.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,

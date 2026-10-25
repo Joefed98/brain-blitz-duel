@@ -44,12 +44,23 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND,
+  wavBossW,
+  wavCannonX,
+  wavCoreOpen,
+  wavStreakMult,
+  WAV_DROP_SHIELD,
+  WAV_DROP_SPREAD,
+  WAV_X_CANNON_HP,
+  WAV_X_CANNON_W,
+  WAV_X_CORE_W,
+  WAV_X_SHIELD_TICKS,
   WAV_WORLD_W,
   type WavArmour,
   type WavState,
 } from "./wavefront";
 import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
 /* Mirrors of private sim constants, used only to place art on the same geometry. */
@@ -471,7 +482,8 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   if (!boss || boss.hp <= 0) return;
   const x = boss.x;
   const y = WAV_BOSS_Y;
-  const w = WAV_BOSS_W;
+  // wavRev 9: the gunship is narrower (and crimson); the mothership keeps its 128 px.
+  const w = state.x9 ? wavBossW(boss) : WAV_BOSS_W;
   const h = WAV_BOSS_H;
   const cx = x + w / 2;
   ctx.save();
@@ -479,9 +491,10 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   ctx.rect(x, y, w, h);
   ctx.clip();
   const hull = ctx.createLinearGradient(0, y, 0, y + h);
-  hull.addColorStop(0, "#3B1450");
-  hull.addColorStop(0.5, "#7A2A8C");
-  hull.addColorStop(1, "#2A0E3A");
+  const crimson = Boolean(boss.mid);
+  hull.addColorStop(0, crimson ? "#4A0E18" : "#3B1450");
+  hull.addColorStop(0.5, crimson ? "#9A2436" : "#7A2A8C");
+  hull.addColorStop(1, crimson ? "#2A0810" : "#2A0E3A");
   ctx.fillStyle = hull;
   ctx.strokeStyle = "#E8B4FF";
   ctx.lineWidth = 1.5;
@@ -502,14 +515,17 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   // Gun pods (where the pattern's bolts leave) and a pulsing core.
   ctx.fillStyle = "#1A0824";
   for (const gx of [8, w / 2, w - 8]) ctx.fillRect(x + gx - 4, y + h * 0.62 - 2, 8, 8);
-  const pulse = 0.6 + 0.4 * Math.sin(t * 6);
-  const core = ctx.createRadialGradient(cx, y + h * 0.45, 1, cx, y + h * 0.45, 12);
-  core.addColorStop(0, `rgba(255,120,200,${pulse})`);
-  core.addColorStop(1, "rgba(255,60,160,0)");
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(cx, y + h * 0.45, 12, 0, Math.PI * 2);
-  ctx.fill();
+  if (state.x9) drawWeakPoints(ctx, state, boss, x, y, w, h, t);
+  else {
+    const pulse = 0.6 + 0.4 * Math.sin(t * 6);
+    const core = ctx.createRadialGradient(cx, y + h * 0.45, 1, cx, y + h * 0.45, 12);
+    core.addColorStop(0, `rgba(255,120,200,${pulse})`);
+    core.addColorStop(1, "rgba(255,60,160,0)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(cx, y + h * 0.45, 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
   // A white flash on the frame a hit lands.
   const hitAge = state.tick - lastHit;
   if (hitAge >= 0 && hitAge < 4) {
@@ -523,9 +539,157 @@ function drawBoss(ctx: CanvasRenderingContext2D, state: WavState, t: number, las
   const barY = y - 9;
   ctx.fillStyle = "rgba(255,255,255,0.15)";
   ctx.fillRect(x, barY, w, 5);
-  const maxHp = WAV_BOSS_HP;
+  const maxHp = boss.maxHp ?? WAV_BOSS_HP;
   ctx.fillStyle = boss.hp * 3 > maxHp ? "#FF4DB8" : WAV_RED;
   ctx.fillRect(x, barY, (w * boss.hp) / maxHp, 5);
+}
+
+/**
+ * wavRev 9 weak points, inside the boss's box: each cannon still firing glows amber in its 16 px column
+ * (one pip per hit left; destroyed, a dark smoking stub), and the core is an iris that opens (bright,
+ * pulsing pink-white, the hit box's 24 px) for half of each cycle and closes behind grey shutters.
+ */
+function drawWeakPoints(ctx: CanvasRenderingContext2D, state: WavState, boss: NonNullable<WavState["boss"]>, x: number, y: number, w: number, h: number, t: number): void {
+  const still = reducedMotion();
+  const light = !arcadeReducedEffects();
+  const guns = boss.guns ?? [0, 0];
+  for (const side of [0, 1]) {
+    const gx = x + wavCannonX(boss, side);
+    const half = WAV_X_CANNON_W / 2;
+    if (guns[side]! > 0) {
+      if (light) {
+        const glow = ctx.createLinearGradient(0, y + h * 0.3, 0, y + h);
+        glow.addColorStop(0, "rgba(255,180,60,0)");
+        glow.addColorStop(1, `rgba(255,180,60,${still ? 0.45 : 0.35 + 0.15 * Math.sin(t * 5 + side)})`);
+        ctx.fillStyle = glow;
+        ctx.fillRect(gx - half, y + h * 0.3, WAV_X_CANNON_W, h * 0.7);
+      }
+      ctx.fillStyle = "#2A1206";
+      ctx.fillRect(gx - 4, y + h * 0.62 - 2, 8, 10);
+      ctx.fillStyle = "#FFB43A";
+      ctx.fillRect(gx - 3, y + h * 0.62 + 6, 6, 2);
+      // One pip per hit the cannon can still take.
+      for (let k = 0; k < WAV_X_CANNON_HP; k++) {
+        ctx.fillStyle = k < guns[side]! ? "#FFD27A" : "rgba(255,255,255,0.15)";
+        ctx.fillRect(gx - half + 1 + k * 3.6, y + h - 5, 2.4, 2.4);
+      }
+    } else {
+      ctx.fillStyle = "#120808";
+      ctx.fillRect(gx - 5, y + h * 0.6, 10, h * 0.4);
+      ctx.fillStyle = "rgba(160,160,170,0.35)";
+      const puff = still ? 0 : (t * 14) % 10;
+      ctx.beginPath();
+      ctx.arc(gx, y + h * 0.6 - puff * 0.4, 3 + puff * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  const cx = x + w / 2;
+  const cy = y + h * 0.45;
+  const r = WAV_X_CORE_W / 2;
+  const open = wavCoreOpen(boss, state.tick);
+  if (open) {
+    const pulse = still ? 1 : 0.75 + 0.25 * Math.sin(t * 9);
+    if (light) {
+      const bloom = ctx.createRadialGradient(cx, cy, 2, cx, cy, r + 4);
+      bloom.addColorStop(0, `rgba(255,240,250,${0.95 * pulse})`);
+      bloom.addColorStop(0.5, `rgba(255,90,190,${0.8 * pulse})`);
+      bloom.addColorStop(1, "rgba(255,60,160,0)");
+      ctx.fillStyle = bloom;
+      ctx.fillRect(cx - r - 4, cy - r - 4, 2 * r + 8, 2 * r + 8);
+    }
+    ctx.fillStyle = "#FFE6F6";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#FF4DB8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = "#2B2F38";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#8C93A0";
+    ctx.lineWidth = 1;
+    for (let k = 0; k < 6; k++) {
+      const a = (k * Math.PI) / 3;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * (r - 1), cy + Math.sin(a) * (r - 1));
+      ctx.stroke();
+    }
+  }
+}
+
+/** wavRev 9: a power-up's diamond in its kind's colour, with its glyph (the hit box's 8 px radius). */
+function drawDrop(ctx: CanvasRenderingContext2D, dx: number, dy: number, kind: number, t: number): void {
+  const colour = kind === WAV_DROP_SPREAD ? "#7CF29A" : kind === WAV_DROP_SHIELD ? "#4FD8FF" : WAV_PURPLE;
+  const R = WAV_DROP_R;
+  if (!arcadeReducedEffects()) {
+    const glow = ctx.createRadialGradient(dx, dy, 1, dx, dy, R + 2);
+    glow.addColorStop(0, `${colour}AA`);
+    glow.addColorStop(1, `${colour}00`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(dx - R - 2, dy - R - 2, 2 * R + 4, 2 * R + 4);
+  }
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.moveTo(dx, dy - R);
+  ctx.lineTo(dx + R, dy);
+  ctx.lineTo(dx, dy + R);
+  ctx.lineTo(dx - R, dy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = "#0B0B14";
+  ctx.strokeStyle = "#0B0B14";
+  if (kind === WAV_DROP_SPREAD) {
+    // Three prongs fanning up.
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (const dir of [-1, 0, 1]) {
+      ctx.moveTo(dx, dy + 3);
+      ctx.lineTo(dx + dir * 3.5, dy - 3.5);
+    }
+    ctx.stroke();
+  } else if (kind === WAV_DROP_SHIELD) {
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 3.5, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = "#F7F7F8";
+    ctx.fillRect(dx - 1, dy - 5, 2, 10);
+  }
+  void t;
+}
+
+/** wavRev 9: the shield round the ship (light, not a body): a soft cyan bubble, fading in its last 2 s. */
+function drawShield(ctx: CanvasRenderingContext2D, x: number, y: number, left: number, t: number, still: boolean): void {
+  const fade = Math.min(1, left / 120);
+  const pulse = still ? 1 : 0.85 + 0.15 * Math.sin(t * 4);
+  ctx.save();
+  ctx.globalAlpha = 0.9 * fade * pulse;
+  if (!arcadeReducedEffects()) {
+    const g = ctx.createRadialGradient(x, y, WAV_SHIP_W * 0.25, x, y, WAV_SHIP_W * 0.62);
+    g.addColorStop(0, "rgba(79,216,255,0)");
+    g.addColorStop(0.8, "rgba(79,216,255,0.22)");
+    g.addColorStop(1, "rgba(79,216,255,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(x, y, WAV_SHIP_W * 0.62, WAV_SHIP_H * 0.95, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = "#8BE7FF";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(x, y, WAV_SHIP_W * 0.6, WAV_SHIP_H * 0.9, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** Per-canvas render memory of the boss's last hit tick (flash only). */
@@ -804,7 +968,8 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     drawBoss(ctx, state, t, hit.tick);
   }
 
-  if (state.drop && state.drop.wait === 0) {
+  if (state.drop && state.drop.wait === 0 && state.x9) drawDrop(ctx, state.drop.x / FP, state.drop.y / FP, state.drop.k ?? 0, t);
+  else if (state.drop && state.drop.wait === 0) {
     const dx = state.drop.x / FP;
     const dy = state.drop.y / FP;
     ctx.shadowBlur = 0;
@@ -848,6 +1013,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     drawShipFlame(ctx, state.shipX, WAV_SHIP_Y + WAV_SHIP_H / 2, moving, t, still);
     drawFighter(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W, WAV_SHIP_H, moving, recoil, t);
   }
+  if ((state.shield ?? 0) > 0 && state.ended === 0) drawShield(ctx, state.shipX, WAV_SHIP_Y, state.shield ?? 0, t, still);
 
   // Polish A4: the shield line glows faintly, a slow shimmer running along it.
   ctx.save();
@@ -879,7 +1045,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   ctx.fillStyle = "#F7F7F8";
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
-  const head = state.boss ? "Boss" : `Wave ${state.wave}`;
+  const head = state.boss?.mid ? "Gunship" : state.boss ? "Boss" : `Wave ${state.wave}`;
   successHud(ctx,'wavefront-hit',state.tick,14,14,()=>ctx.fillText(`${head} · ${wavefrontGame.score(state)}`,14,14));
   // wavRev 2: "WAVE n" (or "BOSS") while the next formation flies in.
   if ((state.enter ?? 0) > 0 && state.ended === 0) {
@@ -890,16 +1056,17 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = state.boss ? "#FF4DB8" : WAV_GOLD;
-    ctx.fillText(state.boss ? "BOSS" : `WAVE ${state.wave}`, WAV_WORLD_W / 2, 300);
+    ctx.fillText(state.boss?.mid ? "GUNSHIP" : state.boss ? "BOSS" : `WAVE ${state.wave}`, WAV_WORLD_W / 2, 300);
     ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
     ctx.fillStyle = "#F7F7F8";
-    ctx.fillText(state.boss ? "Shoot it down" : state.wave === wavWaves(state) ? "Last wave" : `of ${wavWaves(state)}`, WAV_WORLD_W / 2, 332);
+    ctx.fillText(state.boss && state.x9 ? "Hit the cannons and the open core" : state.boss ? "Shoot it down" : state.wave === wavWaves(state) ? "Last wave" : `of ${wavWaves(state)}`, WAV_WORLD_W / 2, 332);
     ctx.globalAlpha = 1;
     ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
   }
-  if (state.pierce > 0) {
+  if (state.x9) drawExpandHud(ctx, state);
+  else if (state.pierce > 0) {
     ctx.fillStyle = WAV_PURPLE;
     ctx.fillText(`Laser ×${state.pierce}`, 14, 34);
   }
@@ -908,6 +1075,34 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     drawFighter(ctx, WAV_WORLD_W - 24 - i * 26, 22, 18, 11, false, 0, 0);
   }
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/**
+ * wavRev 9 HUD, second line: the power-up held on the left (laser shots, spread volleys or the shield's
+ * seconds) and the hit streak on the right ("STREAK 17 ×3", gold from ×2). Counter facts only, never points.
+ */
+function drawExpandHud(ctx: CanvasRenderingContext2D, state: WavState): void {
+  ctx.save();
+  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textBaseline = "top";
+  let x = 14;
+  const tag = (text: string, colour: string) => {
+    ctx.fillStyle = colour;
+    ctx.textAlign = "left";
+    ctx.fillText(text, x, 36);
+    x += ctx.measureText(text).width + 10;
+  };
+  if (state.pierce > 0) tag(`Laser ×${state.pierce}`, WAV_PURPLE);
+  if ((state.spread ?? 0) > 0) tag(`Spread ×${state.spread}`, "#7CF29A");
+  if ((state.shield ?? 0) > 0) tag(`Shield ${Math.ceil((state.shield ?? 0) / 60)}s`, "#4FD8FF");
+  const streak = state.streak ?? 0;
+  const mult = wavStreakMult(streak);
+  if (streak > 0) {
+    ctx.textAlign = "right";
+    ctx.fillStyle = mult > 1 ? WAV_GOLD : "rgba(247,247,248,0.75)";
+    ctx.fillText(mult > 1 ? `STREAK ${streak} ×${mult}` : `STREAK ${streak}`, WAV_WORLD_W - 14, 36);
+  }
   ctx.restore();
 }
 
@@ -920,8 +1115,10 @@ const wavefrontArtGameTunec = { ...wavefrontGameFor(WAV_REV_TUNEC), draw: drawWa
 const wavefrontArtGameTall = { ...wavefrontGameFor(WAV_REV_TALL), draw: drawWavefrontArt };
 const wavefrontArtGameTarget = { ...wavefrontGameFor(WAV_REV_TARGET), draw: drawWavefrontArt };
 const wavefrontArtGameStrict = { ...wavefrontGameFor(WAV_REV_STRICT), draw: drawWavefrontArt };
+const wavefrontArtGameExpand = { ...wavefrontGameFor(WAV_REV_EXPAND), draw: drawWavefrontArt };
 /** The art game for a stored wavRev; one cached object per revision. */
 export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_EXPAND) return wavefrontArtGameExpand;
   if (rev === WAV_REV_STRICT) return wavefrontArtGameStrict;
   if (rev === WAV_REV_TARGET) return wavefrontArtGameTarget;
   if (rev === WAV_REV_TALL) return wavefrontArtGameTall;

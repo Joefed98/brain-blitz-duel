@@ -161,7 +161,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   ok(playRevOf("breaker", generateBreaker().brkRev) === BRK_REV_TALL, "rooms deal brkRev 6");
   ok(playRevOf("rally", generateRally().rallyRev) === RALLY_REV_TALL, "rooms deal rallyRev 6");
-  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL, "rooms deal wavRev 6");
+  // Expansion E8 (25 Oct 2026) moved rooms on to wavRev 9 (wavefront-expand-check); wavRev 6 stays as it was.
+  ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_TALL + 3, "rooms deal wavRev 9 (the expansion, after wavRev 6)");
   ok(playRevOf("burst", generateBurst().burstRev) === BURST_REV_TALL, "rooms deal burstRev 4");
 
   ok(breakerWorldHFor(BRK_REV_TALL) === 730 && breakerWorldHFor(BRK_REV_TUNEF) === BRK_WORLD_H && breakerWorldHFor(undefined) === 620, "Breaker world heights by revision");
@@ -349,7 +350,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   const src = read("src/lib/duel/introDemo.functions.ts");
   ok(/data\.type === "breaker" && demo\?\.puzzle\.type === "breaker" && demo\.puzzle\.brkRev !== BRK_REV_TALL\) return null/.test(src), "Breaker's demo plays only on brkRev 6");
   ok(/data\.type === "rally" && demo\?\.puzzle\.type === "rally" && demo\.puzzle\.rallyRev !== RALLY_REV_TALL\) return null/.test(src), "Rally's demo plays only on rallyRev 6");
-  ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_TALL\) return null/.test(src), "Wavefront's demo plays only on wavRev 6");
+  // Expansion E8: Wavefront's demo now plays only on wavRev 9 (none is recorded yet, so the intro shows its still).
+  ok(/data\.type === "wavefront" && demo\?\.puzzle\.type === "wavefront" && demo\.puzzle\.wavRev !== WAV_REV_EXPAND\) return null/.test(src), "Wavefront's demo plays only on wavRev 9");
   ok(/data\.type === "burst" && demo\?\.puzzle\.type === "burst" && demo\.puzzle\.burstRev !== BURST_REV_TALL\) return null/.test(src), "Fission's demo plays only on burstRev 4");
 }
 
