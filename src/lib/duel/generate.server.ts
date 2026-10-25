@@ -36,11 +36,16 @@ import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
+import { generateTiles } from "./tiles.server";
+import { dealsD5Remodels } from "./d5Remodels";
+import { isTopsy } from "./topsy";
+import { generateTopsy } from "./topsy.server";
+import { isJumbledGradient } from "./jumbled";
+import { generateJumbled } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
-import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
 import {
@@ -124,6 +129,10 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
+  // for the previous versions pin the old deal, d5Remodels.ts).
+  if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
@@ -258,6 +267,8 @@ export function gradeAnswer(
     return gradeSubmission(puzzle, answer, msRemaining, extra, receivedMsRemaining);
   });
   const rev = puzzleScoreRevOf(puzzle);
+  // The D5 remodels (Topsy-Turvy gravityRev 3, Jumbled tilesRev 3) score to 200 in their own grader.
+  if (isTopsy(puzzle) || isJumbledGradient(puzzle)) return graded;
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
   if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
   // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.

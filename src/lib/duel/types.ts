@@ -1410,6 +1410,21 @@ export interface GravityPuzzleData {
   gravityRev?: number;
   /** Tilts allowed (gravityRev 1); public, rounded so it never shows the minimum. */
   tiltLimit?: number;
+  /**
+   * gravityRev 3 (25 Oct 2026, the remodel, topsy.ts): the round's boards (10×10, six balls with their own
+   * holes, stars), played in order. `walls` / `starts` / `targets` then repeat board 1's blocks, starts and holes.
+   */
+  boards?: import("./topsy").TopsyBoard[];
+  /** gravityRev 3: the round's own clock (120 s). */
+  timeLimitMs?: number;
+  /** gravityRev 3: each board's tilt limit (public; topsyTiltLimit of its minimum). */
+  tiltLimits?: number[];
+  /** Server-side only (gravityRev 3): each board's fewest tilts to get every ball home. */
+  boardMins?: number[];
+  /** Server-side only (gravityRev 3): each board's fewest tilts home with every star. */
+  boardStarMins?: number[];
+  /** Server-side only (gravityRev 3): one shortest all-stars tilt list per board. */
+  boardSolutions?: string[];
 }
 
 /* ======================= Don't Break the Chain ========================== */
@@ -1617,8 +1632,13 @@ export interface TilesPuzzleData {
    * the extra cell on tilesRev 1.
    */
   frame: number[];
-  /** 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. */
-  tilesRev?: 1 | 2;
+  /**
+   * 1 = the extra-cell board (tiles.ts); absent on stored 3×3 rounds. 3 (25 Oct 2026, the remodel,
+   * jumbled.ts) = the 5×5 colour gradient with row and column slides; `frame` is then 25 tiles.
+   */
+  tilesRev?: 1 | 2 | 3;
+  /** tilesRev 3: par moves, shown on the phone (the proved minimum + JUMBLED_PAR_SLACK). */
+  par?: number;
   /** tilesRev 2: the round's own clock (90 s); absent = TILES_TIME_MS. */
   timeLimitMs?: number;
   /** tilesRev 1: where the extra cell sits. */

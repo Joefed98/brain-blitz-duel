@@ -60,7 +60,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   trail: 150,
   // Pattern
   flood: 150,
-  tiles: 150,
+  tiles: 200,
   rings: 150,
   pipes: 150,
   lightsout: 150,
@@ -78,7 +78,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   push: 150,
   laser: 150,
   tower: 150,
-  gravity: 150,
+  gravity: 200,
   lightup: 150,
   shikaku: 150,
   tents: 150,

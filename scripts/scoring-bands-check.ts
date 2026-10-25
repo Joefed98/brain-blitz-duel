@@ -20,6 +20,7 @@
  *   bun scripts/scoring-bands-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { D5_REMODELLED } from "../src/lib/duel/d5Remodels";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
@@ -257,7 +258,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+    // The D5 remodels' help states their own scoring to 200 (d5-remodels-check proves it).
+    if (!D5_REMODELLED.has(type)) ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

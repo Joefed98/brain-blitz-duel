@@ -12,6 +12,7 @@
  * empty bank falls back to live generation, with a capped attempt count.
  */
 
+import { dealsD5Remodels } from "./d5Remodels";
 import { BLOCK_MAX_ATTEMPTS, generateBlockParty, verifyBlockPartyPuzzle } from "./blockParty.server";
 import { BLOCKPARTY_BANK, BLOCKPARTY_INTRO_EXAMPLE } from "./blockPartyBank.server";
 import { FLOW_MAX_ATTEMPTS, generateFlow, verifyFlowPuzzle } from "./flow.server";
@@ -41,6 +42,17 @@ import type {
 
 export const BANKED_TYPES = ["flow", "blockparty", "tubes", "gravity", "lightup", "iceslide"] as const;
 export type BankedType = (typeof BANKED_TYPES)[number];
+
+/**
+ * Banks kept (verified, rebuildable, drawn by nothing new) for a game whose new version is dealt live: Topsy-Turvy
+ * since gravityRev 3 (the D5 remodel, 25 Oct 2026; topsy.server.ts). Rooms and practice deal the new version, so its
+ * old bank has no intro example to give either.
+ */
+export const RETIRED_BANKS: ReadonlySet<BankedType> = new Set<BankedType>(["gravity"]);
+/** A retired bank is retired only while the remodel is dealt (a check pinning the old deal draws from it again). */
+function retired(type: BankedType): boolean {
+  return RETIRED_BANKS.has(type) && dealsD5Remodels();
+}
 
 /** Topsy-Turvy's live generator has no cap of its own; bank builds and the fallback use this one. */
 export const GRAVITY_MAX_TRIES = 20_000;
@@ -230,7 +242,7 @@ export function drawBankedPuzzle(
  * puzzle-bank check proves it). Null for other types or before a bank build.
  */
 export function bankedIntroExample(type: PuzzleType): PuzzleData | null {
-  if (!isBankedType(type)) return null;
+  if (!isBankedType(type) || retired(type)) return null;
   const example = spec(type).example;
   if (!example) return null;
   const copy = stampMoveLimits(JSON.parse(JSON.stringify(example)) as PuzzleData);

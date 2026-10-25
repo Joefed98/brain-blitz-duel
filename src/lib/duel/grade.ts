@@ -119,7 +119,9 @@ import {
   usesSpotRev1,
 } from "./attentionRev";
 import { puzzleTimeLimitMs } from "./registry";
-import { PUZZLE_SCORE_REV, puzzleScoreRevOf, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
+import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { decodeJumbled, isJumbledGradient, replayJumbled, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
@@ -908,6 +910,26 @@ function gradeUnderRev(
       break;
     }
     case "gravity": {
+      // gravityRev 3 (the remodel, topsy.ts): three boards, six balls with holes, stars; scored to 200 here.
+      if (isTopsy(puzzle)) {
+        const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
+        const graded = scoreTopsy(replay, ms, timeLimitMs);
+        isCorrect = replay.solved;
+        correctCount = replay.home;
+        score = graded.score;
+        recordParts(graded.parts);
+        extraDetail = {
+          solved: replay.solved,
+          tilts: replay.tilts,
+          minMoves: puzzle.minMoves ?? 0,
+          home: replay.home,
+          stars: replay.stars,
+          cleared: replay.cleared,
+          boardTilts: replay.boards.map((b) => b.tilts),
+          outOfTilts: replay.boards.filter((b) => b.outOfTilts).length,
+        };
+        break;
+      }
       // Every tilt is replayed on the stored board, all four balls at once.
       // gravityRev 1: nothing past the stored tilt limit counts.
       const tiltLimit = gravityTiltLimit(puzzle);
@@ -996,6 +1018,24 @@ function gradeUnderRev(
       break;
     }
     case "tiles": {
+      // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
+      if (isJumbledGradient(puzzle)) {
+        const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
+        const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs);
+        isCorrect = replay.solved;
+        correctCount = replay.inPlace;
+        score = graded.score;
+        recordParts(graded.parts);
+        extraDetail = {
+          solved: replay.solved,
+          moves: replay.moves,
+          minMoves: puzzle.minMoves ?? 0,
+          par: puzzle.par ?? 0,
+          inPlace: replay.inPlace,
+          ...(graded.progress !== undefined ? { progress: Math.round(graded.progress * 100) } : {}),
+        };
+        break;
+      }
       // Every tapped tile is replayed on the stored frame, Undo and Reset too.
       // tilesRev 1: the extra-cell board (ten cells, tiles 1–9); stored rounds keep the 3×3 frame.
       const layout = tilesLayout(puzzle);
