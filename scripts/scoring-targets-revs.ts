@@ -9,18 +9,29 @@
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 
 /**
- * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms now deal the score-bands
- * revision after it (19 Oct 2026, LIVE_BANDS: the same play again, band 3), so the target is LIVE_BANDS' rev − 1.
+ * Games an expansion (docs/scoring-200.md) has moved past their score-bands revision: type → that score-bands
+ * revision (what rooms dealt before the expansion). One line per expansion.
+ */
+export const EXPANDED_FROM: Partial<Record<LiveBandGame, number>> = {
+  hover: 7, // Expansion E1: hoverRev 8 follows the score-bands hoverRev 7
+};
+
+/** The score-bands revision (19 Oct 2026) of a band game: the one rooms deal, or the one before its expansion. */
+const strictRevOf = (type: LiveBandGame) => EXPANDED_FROM[type] ?? LIVE_BANDS[type].rev;
+
+/**
+ * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms then dealt the score-bands
+ * revision after it (19 Oct 2026, LIVE_BANDS: the same play again, band 3), so the target is that revision − 1.
  */
 export const TARGET_REVS: Partial<Record<LiveBandGame, readonly [target: number, play: number]>> = Object.fromEntries(
   (Object.keys(LIVE_BANDS) as LiveBandGame[])
     .filter((type) => type !== "junction")
-    .map((type) => [type, [LIVE_BANDS[type].rev - 1, LIVE_BANDS[type].rev - 2] as const]),
+    .map((type) => [type, [strictRevOf(type) - 1, strictRevOf(type) - 2] as const]),
 );
 
 /** The score-bands revision rooms deal (19 Oct 2026), the same play as the target revision. */
 export const STRICT_REVS: Partial<Record<LiveBandGame, number>> = Object.fromEntries(
-  (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((type) => type !== "junction").map((type) => [type, LIVE_BANDS[type].rev]),
+  (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((type) => type !== "junction").map((type) => [type, strictRevOf(type)]),
 );
 
 /**

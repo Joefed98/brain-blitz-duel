@@ -88,7 +88,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     dig: "Fill the drain with clean water for 100, more if you're quick and use few digs.",
 
     // Arcade
-    hover: "Points for each barrier and gold star, 10 for the whole minute; tight gates and full star chains add up to 50 more. Up to {max}.",
+    hover: "Points per barrier and gold star, 10 for the minute, more for gates and chains. Up to {max}.",
     skyline: "Points for each block and perfect drop, more for perfects in a row. Up to {max}.",
     bintoss: `Points for each bucket and hoop. All ${BINTOSS_THROWS} in for 10 more, up to {max}.`,
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,

@@ -37,7 +37,7 @@ import type { PuzzleType } from "../src/lib/duel/types";
 import { whackCheckpoint, whackGameFor, whackLift, whackScore, WHACK_HOLES, WHACK_INPUT_TAP, WHACK_REV_TARGET } from "../src/lib/arcade/whack";
 import { encodeWhackRun, replayWhackRun } from "../src/lib/duel/whack";
 import { GAMES } from "./arcade-skill-bands/games";
-import { TARGET_REVS } from "./scoring-targets-revs";
+import { EXPANDED_FROM, TARGET_REVS } from "./scoring-targets-revs";
 import { BT_V4_BAND_CURVE } from "../src/lib/arcade/ballTrack";
 import { FLIP_V4_BAND_CURVE } from "../src/lib/arcade/flip";
 import { INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
@@ -130,7 +130,9 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [LiveBandGame, (typeof 
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
   ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
   if (type === "junction") continue;
-  ok(TARGET_REVS[type]?.[0] === live.rev - 1 && TARGET_REVS[type]?.[1] === live.rev - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
+  // An expanded game (scoring-targets-revs EXPANDED_FROM) deals a later revision; its score-bands one is listed there.
+  const strict = EXPANDED_FROM[type] ?? live.rev;
+  ok(TARGET_REVS[type]?.[0] === strict - 1 && TARGET_REVS[type]?.[1] === strict - 2, `${type}: the target revision follows the one rooms dealt before it (and the score-bands revision follows it)`);
   ok(BAND_SPECS[type] !== undefined, `${type}: a band game`);
 }
 {

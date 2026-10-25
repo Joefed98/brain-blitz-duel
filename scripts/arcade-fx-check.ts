@@ -248,6 +248,10 @@ const BUMPS: Record<string, ((s: any) => any)[]> = {
     (s) => ({ ...s, gates: 17 }),
     (s) => ({ ...s, gates: 24 }),
     (s) => ({ ...s, gates: s.totalGates }),
+    // hoverRev 8 (Expansion E1): a tight gate, a whole star chain, a shield picked up.
+    (s) => ({ ...s, tight: (s.tight ?? 0) + 1 }),
+    (s) => ({ ...s, chainsDone: (s.chainsDone ?? 0) + 1 }),
+    (s) => ({ ...s, pickupsTaken: [...(s.pickupsTaken ?? []), 0] }),
   ],
   breaker: [
     (s) => ({ ...s, powerUps: s.powerUps + 1 }),

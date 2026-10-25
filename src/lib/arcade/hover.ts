@@ -743,7 +743,7 @@ export const HOVER_V7_BAND_CURVE = bandStrict(HOVER_V5_BAND_CURVE);
  *    HOVER_SHIELD_INVULN ticks (barriers pass through it; the floor bounces it up with a tap's
  *    kick, the ceiling stops its climb). The shield scores nothing itself.
  *
- * Score: the base (barriers 3, gold stars 2, on HOVER_V8_BASE_CURVE to 140, plus 10 for lasting
+ * Score: the base (barriers 3, gold stars 2, on HOVER_V8_BAND_CURVE to 140, plus 10 for lasting
  * the minute; at most 150) plus the feature bonus (tight gates and full chains, at most 50),
  * capped at roundMaxFor("hover") (200). 200 only for every barrier, star, tight gate and chain.
  * States add `xp` and the feature fields, folded into the checkpoint checksum after the rest.
@@ -781,7 +781,7 @@ export const HOVER_CHAIN_POINTS = 5;
  * for the minute). Refitted with scripts/hover-expand-bands.ts so the simulated players who
  * leave the features alone land where they did on hoverRev 7.
  */
-export const HOVER_V8_BASE_CURVE = bandCurve(
+export const HOVER_V8_BAND_CURVE = bandCurve(
   [0, 24, 27, 42, 45, 65, 89, 100, 146],
   [0, 69, 71, 103, 107, 118, 122, 139, 140],
 );
@@ -1210,7 +1210,7 @@ export function hoverExpandParts(state: HoverState): BandParts {
   const text = words.join(" · ");
   return {
     units,
-    points: bandPoints(HOVER_V8_BASE_CURVE, units),
+    points: bandPoints(HOVER_V8_BAND_CURVE, units),
     bonus: (finished ? BAND_FINISH_BONUS : 0) + hoverFeatureBonus(state),
     penalty: 0,
     finished,

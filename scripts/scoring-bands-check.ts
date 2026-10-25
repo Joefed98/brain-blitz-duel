@@ -26,7 +26,7 @@ import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
-import { TARGET_REVS } from "./scoring-targets-revs";
+import { EXPANDED_FROM, TARGET_REVS } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, REV2_IDENTITY_KNOTS, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
@@ -110,7 +110,8 @@ for (const type of ARCADE) {
   const live = LIVE_BANDS[type];
   ok(bandHasStrict(base), `${type}: its base curve has a strict row`);
   const strict = bandStrict(base);
-  ok(live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
+  // An expanded game (scoring-targets-revs EXPANDED_FROM) deals its expansion's own curve; its strict revision stays as it was.
+  ok(EXPANDED_FROM[type] !== undefined || live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
   ok(strict.units[0] === 0 && strict.points[0] === 0, `${type}: strict curve starts at (0, 0)`);
   ok(strict.points.at(-1) === base.points.at(-1) && bandTop(strict) === bandTop(base), `${type}: strict curve keeps the top (${base.points.at(-1)} at ${bandTop(base)})`);
   for (let i = 1; i < strict.units.length; i++) ok(strict.units[i]! > strict.units[i - 1]! && strict.points[i]! > strict.points[i - 1]!, `${type}: strict knots rise (${i})`);
@@ -134,7 +135,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const spec = GAMES.find((g) => g.type === run.type)!;
     const seed = spec.seedFor(run.n);
     const tag = `${run.type} ${run.level} #${run.n}`;
-    ok(run.rev === (LIVE_BANDS as Record<string, { rev: number }>)[run.type]!.rev, `${tag}: recorded on the revision rooms deal`);
+    ok(run.rev === (EXPANDED_FROM[run.type as LiveBandGame] ?? (LIVE_BANDS as Record<string, { rev: number }>)[run.type]!.rev), `${tag}: recorded on the revision rooms deal (before an expansion)`);
     const now = spec.replay(seed, run.raw, run.rev);
     ok(!now.flagged && now.desyncTick == null, `${tag}: replays unflagged (${now.reason ?? ""})`);
     ok(now.score === run.score, `${tag}: replays to its stored ${run.score} (got ${now.score})`);

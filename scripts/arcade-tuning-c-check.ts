@@ -89,7 +89,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
-import { playRevOf } from "./scoring-targets-revs";
+import { EXPANDED_FROM, playRevOf } from "./scoring-targets-revs";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -165,7 +165,7 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
-    ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
+    ["hover", playRevOf("hover", EXPANDED_FROM.hover ?? generateHover().hoverRev), HOVER_REV_TALL],
     ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.

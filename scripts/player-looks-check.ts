@@ -56,6 +56,7 @@ import { COMEBACK_MAX_FINAL_PLACE, COMEBACK_MIN_PLACES, FASTEST_MAX_SHARE, FASTE
 import { isGenuinelyClose, nearMissInfo } from "../src/lib/duel/nearMiss";
 import { MAX_ROUND_SCORE, standings } from "../src/lib/duel/scoring";
 import type { DuelPlayerRow, RoundResultRow } from "../src/lib/duel/types";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 const failures: string[] = [];
 let passes = 0;
@@ -606,8 +607,8 @@ const find = (awards: PodiumAward[], id: string) => awards.find((a) => a.id === 
   const metres = (m: number) => podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, 40 * s, { extra: s === 2 ? { metres: m } : null })), [SWING]);
   check(!find(metres(300), "close"), "So Close for 200 m short of 500");
   check(find(metres(460), "close")?.slot === 2, "So Close: 40 m short of 500 not awarded");
-  // A 150 is never a near miss.
-  const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? 150 : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
+  // A perfect score (the game's maximum) is never a near miss.
+  const full = podiumAwards(players, [1, 2, 3].map((s) => result(s, 1, s === 2 ? roundMaxFor(HOVER.type) : 40, { extra: s === 2 ? { gates: 19, totalGates: 20 } : null })), [HOVER]);
   check(!find(full, "close"), "So Close on a 150");
 }
 // Fastest Finger: a full solve scoring 110+ (FASTEST_MIN_SCORE) in at most half the clock; arcade runs and reactions never.
@@ -684,15 +685,17 @@ for (let r = 0; r < 300; r++) {
     awardCounts[award.id] = (awardCounts[award.id] ?? 0) + 1;
     const mine = results.filter((x) => x.player_slot === award.slot);
     if (award.id === "perfect") {
-      const n = mine.filter((x) => x.score >= MAX_ROUND_SCORE).length;
-      check(n >= 1, `room ${r}: Perfectionist with no 150`);
-      const best = Math.max(...players.map((p) => results.filter((x) => x.player_slot === p.player_slot && x.score >= MAX_ROUND_SCORE).length));
+      // A perfect round is the game's own maximum (roundMax.ts: 200 for a raised game).
+      const perfect = (x: RoundResultRow) => x.score >= roundMaxFor(rounds[x.round_number - 1]!.type);
+      const n = mine.filter(perfect).length;
+      check(n >= 1, `room ${r}: Perfectionist with no perfect round`);
+      const best = Math.max(...players.map((p) => results.filter((x) => x.player_slot === p.player_slot && perfect(x)).length));
       check(n === best, `room ${r}: Perfectionist not the most 150s in the room`);
     }
     if (award.id === "close") {
       const n = rounds.filter((round, i) => {
         const row = mine.find((x) => x.round_number === i + 1);
-        return row && row.score < MAX_ROUND_SCORE && isGenuinelyClose(nearMissInfo(round.type as never, row.extra as Record<string, unknown> | null));
+        return row && row.score < roundMaxFor(round.type) && isGenuinelyClose(nearMissInfo(round.type as never, row.extra as Record<string, unknown> | null));
       }).length;
       check(n >= 1, `room ${r}: So Close with no genuinely close near miss`);
     }

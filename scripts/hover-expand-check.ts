@@ -52,7 +52,7 @@ import {
   HOVER_TIGHT_GATES,
   HOVER_TIGHT_H,
   HOVER_TIGHT_WALL,
-  HOVER_V8_BASE_CURVE,
+  HOVER_V8_BAND_CURVE,
   hoverBottom,
   hoverCheckpoint,
   hoverExpandParts,
@@ -122,7 +122,7 @@ section("dealing and wiring");
   ok(/height=\{hoverWorldHFor\(data\.hoverRev\)\}/.test(stage), "the stage sizes its arena from the stored revision");
   ok(hoverWorldHFor(HOVER_REV_EXPAND) === 727 && HOVER_EXPAND_H === 727, "hoverRev 8's world is 390 × 727 (fills a 414 × 772 arena edge to edge)");
   ok(ARCADE_FX_SPECS.hover.height === HOVER_EXPAND_H && hoverFxFor(game.init(5) as HoverState).height === HOVER_EXPAND_H, "the effects spec draws at 727 for the rounds dealt now");
-  ok(LIVE_BANDS.hover.rev === HOVER_REV_EXPAND && LIVE_BANDS.hover.curve === HOVER_V8_BASE_CURVE, "the help reads hoverRev 8's base curve");
+  ok(LIVE_BANDS.hover.rev === HOVER_REV_EXPAND && LIVE_BANDS.hover.curve === HOVER_V8_BAND_CURVE, "the help reads hoverRev 8's base curve");
   ok(roundMaxFor("hover") === 200, "Hover's round maximum is 200");
   ok(/data\.type === "hover" && demo\?\.puzzle\.type === "hover" && demo\.puzzle\.hoverRev !== HOVER_REV_EXPAND/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "a demo recorded before hoverRev 8 is stopped");
   ok(/hoverRev 8|HOVER_REV_EXPAND/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")) || /state\.xp/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")), "the sound observer handles the new moments");
@@ -238,10 +238,10 @@ section("features and scoring");
     const score = game.score(state);
     maxSeen = Math.max(maxSeen, score);
     if (score !== Math.min(200, base + hoverFeatureBonus(state)) || base > 150 || hoverFeatureBonus(state) > 50 || score > 200) formula = false;
-    if (parts.points !== bandPoints(HOVER_V8_BASE_CURVE, 3 * state.gates + 2 * (state.stars ?? 0))) formula = false;
+    if (parts.points !== bandPoints(HOVER_V8_BAND_CURVE, 3 * state.gates + 2 * (state.stars ?? 0))) formula = false;
   }
   ok(formula && maxSeen <= 200, `60 runs: score = min(200, base ≤ 150 + bonus ≤ 50) (max ${maxSeen})`);
-  ok(bandPoints(HOVER_V8_BASE_CURVE, 3 * HOVER_REACHABLE_GATES + 20) + 10 === 150, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
+  ok(bandPoints(HOVER_V8_BAND_CURVE, 3 * HOVER_REACHABLE_GATES + 20) + 10 === 150, "the base tops out at 150 (all barriers and stars, 140, plus the minute)");
 
   // Shields, by hand: a state with a shield, flown into the floor, the ceiling and a barrier.
   const seed = 4242;

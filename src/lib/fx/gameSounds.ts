@@ -286,7 +286,7 @@ export function hoverSounds(): GameSounds<HoverState> {
             if ((state.chainsDone ?? 0) > (prev.chainsDone ?? 0) || (state.tight ?? 0) > (prev.tight ?? 0)) sfx("hover.star", "arc_retro_coin", 1, 1.25);
             else if ((state.chainHits?.length ?? 0) > (prev.chainHits?.length ?? 0)) sfx("hover.star", "arc_retro_coin", 0.5, 1.12);
             if ((state.pickupsTaken?.length ?? 0) > (prev.pickupsTaken?.length ?? 0)) sfx("hover.star", "arc_retro_pickup", 0.8);
-            if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) sfx("burst.shieldBreak", "arc_retro_hit", 0.9);
+            if ((state.shieldBreaks ?? 0) > (prev.shieldBreaks ?? 0)) sfx("hover.crash", "arc_retro_hit", 0.9);
           }
           // hoverRev 2: the first two-gap and the first moving barrier scroll into view.
           if (state.rev) {

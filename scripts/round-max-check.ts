@@ -44,6 +44,11 @@ function ok(cond: boolean, message: string): void {
 }
 
 const TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
+/** Games an expansion has raised to 200 (docs/scoring-200.md); every other game is 150. One line per expansion. */
+const RAISED = new Set<string>([
+  "hover", // Expansion E1: hoverRev 8
+]);
+const maxOf = (type: string) => (RAISED.has(type) ? 200 : 150);
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
@@ -51,17 +56,17 @@ const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_IN
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");
 ok(TYPES.length >= 80 && TYPES.every((t) => t in ROUND_MAX) && Object.keys(ROUND_MAX).every((t) => t in GAME_DISPLAY_NAMES), "every game has its own maximum line, and only games do");
-for (const type of TYPES) ok(ROUND_MAX[type] === 150 && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
+for (const type of TYPES) ok(ROUND_MAX[type] === maxOf(type) && roundMaxFor(type) === maxOf(type), `${type}: its maximum is ${maxOf(type)} today (${ROUND_MAX[type]})`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
-ok(topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is 150, shared by every game");
+ok(RAISED.size ? topRoundMax().top === 200 && !topRoundMax().shared : topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is the games' top (200 once a game is raised, shared by every game while none is)");
 ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150"]', "the chart reads 0 / 50 / 100 / 150");
 ok(signatureMinScore("wordsmith") === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, "the no-finish beat still needs 120");
 ok(scaledToMax("snake", 110) === 110 && scaledToMax("snake", 120) === 120, "thresholds on the 150 scale are unchanged at 150");
 for (const [score, band] of [[150, "perfect"], [149, "near-perfect"], [130, "near-perfect"], [129, "great"], [110, "great"], [109, "good"], [90, "good"], [89, "decent"], [80, "decent"], [79, "average"], [60, "average"], [59, "low"], [0, "low"]] as const)
   ok(scoreBandOf("tilegrid", score) === band, `bands at 150: ${score} is ${band} (${scoreBandOf("tilegrid", score)})`);
-ok(isPerfectScore("hover", 150) && !isPerfectScore("hover", 149) && !isPerfectScore("hover", null), "perfect is 150 only");
-ok(isValidRoundScore("hover", 150) && !isValidRoundScore("hover", 151) && !isValidRoundScore("hover", -1) && !isValidRoundScore("hover", 1.5), "a valid score is a whole number 0–150");
+ok(isPerfectScore("tilegrid", 150) && !isPerfectScore("tilegrid", 149) && !isPerfectScore("tilegrid", null), "perfect is 150 only");
+ok(isValidRoundScore("tilegrid", 150) && !isValidRoundScore("tilegrid", 151) && !isValidRoundScore("tilegrid", -1) && !isValidRoundScore("tilegrid", 1.5), "a valid score is a whole number 0–150");
 
 /* 2. One game raised to 200. */
 const baseline = new Map(TYPES.map((t) => [t, texts(t)]));
@@ -81,9 +86,11 @@ for (const type of TYPES) {
     // ", 150 at N" (openBandsLine) is where today's scoring reaches the maximum, so it drops out until the
     // expansion's scoring reaches 200; a band curve's own top ("150 at 24,000") is the curve and stays.
     const dropTop = (text: string) => text.replace(/, 150 at [^;]*?(?=;|\. |\.$)/g, "");
-    ok(now.intro.replace(TOP200, "150") === before.intro, `${type}: its intro changed beyond the maximum`);
+    // A game already raised states 200 today, so the override changes nothing.
+    const back = (text: string) => (RAISED.has(type) ? text : text.replace(TOP200, "150"));
+    ok(back(now.intro) === before.intro, `${type}: its intro changed beyond the maximum`);
     ok(now.lines === before.lines, `${type}: its goal or how-to lines changed`);
-    ok(now.help.replace(TOP200, "150") === before.help || now.help.replace(TOP200, "150") === dropTop(before.help), `${type}: its help changed beyond the maximum`);
+    ok(back(now.help) === before.help || back(now.help) === dropTop(before.help), `${type}: its help changed beyond the maximum`);
     if (statesTop) ok(/\b200\b/.test(now.intro), `${type}: the intro still states 150, not its 200 maximum: "${now.intro}"`);
     ok(!/\b150\b/.test(now.intro.replace(/150 ms/g, "")), `${type}: the intro still says 150: "${now.intro}"`);
     // The chart's axis.
@@ -102,10 +109,10 @@ for (const type of TYPES) {
     ok(isValidRoundScore(type, 200) && !isValidRoundScore(type, 201), `${type}: valid scores run to 200`);
     ok(topRoundMax().top === 200 && !topRoundMax().shared, `${type}: the onboarding's top becomes 200, no longer every game's`);
     // Every other game is untouched.
-    const other = type === "hover" ? "tilegrid" : "hover";
+    const other = type === "tilegrid" ? "wordsmith" : "tilegrid";
     ok(roundMaxFor(other) === 150 && isPerfectScore(other, 150) && signatureMinScore(other) === 120, `${type}: ${other} keeps 150`);
   });
-  ok(roundMaxFor(type) === 150, `${type}: the override ends with its call`);
+  ok(roundMaxFor(type) === maxOf(type), `${type}: the override ends with its call`);
 }
 // Every other game's texts are untouched by one game's change (checked once for a sample, all games each way).
 for (const raised of ["snake", "tilegrid", "wordsmith", "reaction"] as const) {

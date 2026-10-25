@@ -371,7 +371,7 @@ export const HOVER_FX: ArcadeFxSpec<HoverState> = {
       label: () => "STAR CHAIN!",
       colour: () => "#FFD84A",
       textOnly: true,
-      lights: ["#FFD84A", "#FFFFFF"],
+      bulbs: { pattern: "step", colours: ["#FFD84A"], strong: true },
     },
     {
       kind: "pop",
