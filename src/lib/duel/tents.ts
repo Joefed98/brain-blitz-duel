@@ -9,16 +9,23 @@ import { speedBonusCurve } from "./speedPar";
 
 export const TENTS_SIZE = 8;
 export const TENTS_CELLS = TENTS_SIZE * TENTS_SIZE;
+/** The depth revision's larger field (depthRev 1, 25 Oct 2026): 8 wide, 9 tall, 12–13 pairs. */
+export const TENTS_DEPTH_HEIGHT = 9;
+
+/** A stored board's rows: its `height` (the depth revision's taller field) or its `size` (square, every older board). */
+export function tentsHeightOf(board: { size: number; height?: number | undefined }): number {
+  return typeof board.height === "number" && board.height > 0 ? board.height : board.size;
+}
 
 export function tentsRowCol(cell: number, size = TENTS_SIZE): { r: number; c: number } {
   return { r: Math.floor(cell / size), c: cell % size };
 }
 
-export function orthNeighbours(cell: number, size = TENTS_SIZE): number[] {
+export function orthNeighbours(cell: number, size = TENTS_SIZE, height = size): number[] {
   const { r, c } = tentsRowCol(cell, size);
   const out: number[] = [];
   if (r > 0) out.push(cell - size);
-  if (r < size - 1) out.push(cell + size);
+  if (r < height - 1) out.push(cell + size);
   if (c > 0) out.push(cell - 1);
   if (c < size - 1) out.push(cell + 1);
   return out;
@@ -35,12 +42,12 @@ export function encodeTents(tents: readonly number[]): string {
   return [...new Set(tents)].sort((a, b) => a - b).join(",");
 }
 
-export function decodeTents(raw: string, size = TENTS_SIZE): number[] {
+export function decodeTents(raw: string, size = TENTS_SIZE, height = size): number[] {
   const cells = String(raw ?? "")
     .split(",")
     .map((part) => Number.parseInt(part, 10))
-    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < size * size);
-  return [...new Set(cells)].slice(0, size * size);
+    .filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < size * height);
+  return [...new Set(cells)].slice(0, size * height);
 }
 
 /** True when every tent can be paired with its own orthogonally adjacent tree. */
@@ -48,11 +55,12 @@ export function tentsMatchTrees(
   trees: readonly number[],
   tents: readonly number[],
   size = TENTS_SIZE,
+  height = size,
 ): boolean {
   if (trees.length !== tents.length) return false;
   const treeIndex = new Map(trees.map((cell, index) => [cell, index]));
   const options = tents.map((tent) =>
-    orthNeighbours(tent, size)
+    orthNeighbours(tent, size, height)
       .map((cell) => treeIndex.get(cell))
       .filter((index): index is number => index !== undefined),
   );
@@ -74,8 +82,8 @@ export function tentsMatchTrees(
   return true;
 }
 
-export function lineCounts(tents: readonly number[], size = TENTS_SIZE) {
-  const rows = new Array<number>(size).fill(0);
+export function lineCounts(tents: readonly number[], size = TENTS_SIZE, height = size) {
+  const rows = new Array<number>(height).fill(0);
   const cols = new Array<number>(size).fill(0);
   for (const tent of tents) {
     const { r, c } = tentsRowCol(tent, size);
@@ -87,6 +95,8 @@ export function lineCounts(tents: readonly number[], size = TENTS_SIZE) {
 
 export interface TentsBoard {
   size: number;
+  /** Rows, when taller than wide (the depth revision); absent = `size`. */
+  height?: number | undefined;
   trees: readonly number[];
   rowCounts: readonly number[];
   colCounts: readonly number[];
@@ -94,6 +104,7 @@ export interface TentsBoard {
 
 export function tentsLayoutValid(board: TentsBoard, tents: readonly number[]): boolean {
   const { size, trees } = board;
+  const height = tentsHeightOf(board);
   const treeSet = new Set(trees);
   if (tents.length !== trees.length) return false;
   if (tents.some((tent) => treeSet.has(tent))) return false;
@@ -102,31 +113,30 @@ export function tentsLayoutValid(board: TentsBoard, tents: readonly number[]): b
       if (tentsTouch(tents[i]!, tents[j]!, size)) return false;
     }
   }
-  const { rows, cols } = lineCounts(tents, size);
-  for (let i = 0; i < size; i++) {
-    if ((board.rowCounts[i] ?? -1) >= 0 && rows[i] !== board.rowCounts[i]) return false;
-    if ((board.colCounts[i] ?? -1) >= 0 && cols[i] !== board.colCounts[i]) return false;
-  }
-  return tentsMatchTrees(trees, tents, size);
+  const { rows, cols } = lineCounts(tents, size, height);
+  for (let i = 0; i < height; i++) if ((board.rowCounts[i] ?? -1) >= 0 && rows[i] !== board.rowCounts[i]) return false;
+  for (let i = 0; i < size; i++) if ((board.colCounts[i] ?? -1) >= 0 && cols[i] !== board.colCounts[i]) return false;
+  return tentsMatchTrees(trees, tents, size, height);
 }
 
 /** Counts valid layouts up to `limit` by backtracking over tree-adjacent cells. */
 export function countTentSolutions(board: TentsBoard, limit = 2): number {
   const { size, trees, rowCounts, colCounts } = board;
+  const height = tentsHeightOf(board);
   const treeSet = new Set(trees);
   const candidateSet = new Set<number>();
   for (const tree of trees) {
-    for (const cell of orthNeighbours(tree, size)) if (!treeSet.has(cell)) candidateSet.add(cell);
+    for (const cell of orthNeighbours(tree, size, height)) if (!treeSet.has(cell)) candidateSet.add(cell);
   }
   const candidates = [...candidateSet].sort((a, b) => a - b);
-  const rowLeft = new Array<number>(size).fill(0);
+  const rowLeft = new Array<number>(height).fill(0);
   const colLeft = new Array<number>(size).fill(0);
   for (const cell of candidates) {
     const { r, c } = tentsRowCol(cell, size);
     rowLeft[r]! += 1;
     colLeft[c]! += 1;
   }
-  const rowUsed = new Array<number>(size).fill(0);
+  const rowUsed = new Array<number>(height).fill(0);
   const colUsed = new Array<number>(size).fill(0);
   const chosen: number[] = [];
   let found = 0;
@@ -134,11 +144,9 @@ export function countTentSolutions(board: TentsBoard, limit = 2): number {
   const walk = (index: number): void => {
     if (found >= limit) return;
     if (index === candidates.length) {
-      for (let i = 0; i < size; i++) {
-        if ((rowCounts[i] ?? -1) >= 0 && rowUsed[i] !== rowCounts[i]) return;
-        if ((colCounts[i] ?? -1) >= 0 && colUsed[i] !== colCounts[i]) return;
-      }
-      if (tentsMatchTrees(trees, chosen, size)) found += 1;
+      for (let i = 0; i < height; i++) if ((rowCounts[i] ?? -1) >= 0 && rowUsed[i] !== rowCounts[i]) return;
+      for (let i = 0; i < size; i++) if ((colCounts[i] ?? -1) >= 0 && colUsed[i] !== colCounts[i]) return;
+      if (tentsMatchTrees(trees, chosen, size, height)) found += 1;
       return;
     }
     const cell = candidates[index]!;

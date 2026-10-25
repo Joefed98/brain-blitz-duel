@@ -9,6 +9,7 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
+import { withLogicDepth } from "./logicDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -259,7 +260,8 @@ export function gradeAnswer(
   });
   const rev = puzzleScoreRevOf(puzzle);
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
-  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
+  // depthRev 1 (logicDepth.ts): the Logic games' finishes rescored to 200 on top of rev 3.
+  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withLogicDepth(puzzle, withRev3(puzzle, answer, graded, receivedMsRemaining));
   // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
   return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
 }

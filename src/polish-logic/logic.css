@@ -39,6 +39,11 @@
   aspect-ratio: 1;
   flex: none;
 }
+/* A taller-than-wide board (the depth revision's bigger grids, 25 Oct 2026): --board-aspect is rows ÷ columns. */
+.logic-board-tall {
+  width: min(100cqw, calc((100cqh - 28px) / var(--board-aspect, 1)));
+  flex: none;
+}
 .logic-square-bare {
   width: min(100cqw, 100cqh);
   aspect-ratio: 1;
@@ -956,7 +961,8 @@
 
 /* --------------------------------------------------------- Tents and Trees */
 .logic-tents-fit {
-  width: min(100cqw, calc(100cqh - 44px));
+  /* --board-aspect: rows ÷ columns (1, or 9 ÷ 8 on the depth revision's taller field). */
+  width: min(100cqw, calc((100cqh - 44px) / var(--board-aspect, 1)));
   flex: none;
 }
 .logic-camp-frame {

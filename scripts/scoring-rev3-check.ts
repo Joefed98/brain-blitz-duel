@@ -16,6 +16,8 @@
  *  6. The help and intro numbers: each game's dealt clock and "150 in about N s" agree with freshly dealt puzzles.
  *  7. Grading stays quick: every stored run grades in a few ms once a board's table is built.
  */
+import { isDepthType } from "../src/lib/duel/logicDepth";
+import { depthHelp, depthIntro } from "../src/lib/duel/logicDepthText";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
@@ -261,8 +263,10 @@ for (const type of Object.keys(REV3_GAMES) as PuzzleType[]) {
   ok(dealt.size === 1 && dealt.has((DEALT_LIMIT_S[type] ?? 0) * 1000), `${type}: the help's clock ${DEALT_LIMIT_S[type]} s, dealt ${[...dealt].join("/")} ms`);
   const n = fastFinishSeconds(type);
   ok(n === rev3FastFinishSeconds(type, [...dealt][0]!), `${type}: help says 150 in ${n} s`);
-  ok(rev3Help(type).includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === rev3Help(type), `${type}: the "?" help does not state the rev-3 numbers`);
-  ok(INTRO_SCORE[type] === rev3Intro(type) && rev3Intro(type).length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
+  // The Logic depth games (depthRev 1, 25 Oct 2026) state their depth revision's numbers instead (depth-d6-check).
+  const depth = isDepthType(type);
+  ok(rev3Help(type).includes(`about ${n} s with no mistakes`) && PUZZLE_INSTRUCTIONS[type]?.score === (depth ? depthHelp(type) : rev3Help(type)), `${type}: the "?" help does not state the rev-3 numbers`);
+  ok(INTRO_SCORE[type] === (depth ? depthIntro(type) : rev3Intro(type)) && INTRO_SCORE[type].length <= 90, `${type}: intro line "${INTRO_SCORE[type]}"`);
 }
 
 if (failures.length) {

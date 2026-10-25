@@ -17,6 +17,8 @@ import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { ParMeter } from "@/components/puzzles/depth/ParMeter";
+import { usesDepth } from "@/lib/duel/logicDepth";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One glass bulb in its socket: dark glass and a grey filament off, a warm glow on. */
@@ -221,7 +223,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         <div className="logic-square logic-bulb-panel">
           <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
         </div>
-        <LiveSummary inArena className="logic-status" items={[<SummaryItem key="presses" label="Presses" value={presses.filter((cell) => cell >= 0).length} />]} />
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[
+            // depthRev 1: the par line (turning every light off in the fewest presses earns the par bonus).
+            puzzle.type === "lightsout" && usesDepth(puzzle) && (puzzle.par ?? 0) > 0 ? (
+              <ParMeter key="presses" label="Presses" moves={presses.filter((cell) => cell >= 0).length} par={puzzle.par!} />
+            ) : (
+              <SummaryItem key="presses" label="Presses" value={presses.filter((cell) => cell >= 0).length} />
+            ),
+          ]}
+        />
       </div>
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-center gap-3">
         <Button type="button" variant="outline" aria-label="Undo" title="Undo"
@@ -257,7 +270,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         </div>
       </div>
       <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
-        {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · min{" "}
+        {myCorrect ? "✓" : "✗"} your presses <span className="text-primary">{mine}</span> · {usesDepth(puzzle) ? "par" : "min"}{" "}
         {min}
       </p>
       {myCorrect ? (

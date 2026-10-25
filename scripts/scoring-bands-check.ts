@@ -43,6 +43,9 @@ import { ensureWordfallDict } from "../src/lib/duel/wordfallDict.server";
 import { KNOWN_SPAM } from "./puzzle-fairness";
 import { FIXTURE, type AnswerRun, type ArcadeRun } from "./scoring-bands-record";
 import { roomPuzzle, runSpam } from "./puzzle-fairness/run";
+import { legacyRoomPuzzle, stripDepth } from "./depth-d6-legacy";
+import { isDepthType } from "../src/lib/duel/logicDepth";
+import { depthHelp } from "../src/lib/duel/logicDepthText";
 import { KITS } from "./puzzle-fairness/kits";
 import type { FloodPuzzleData, PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { FLOOD_BANK, FLOOD_BANK_V3 } from "../src/lib/duel/flood.server";
@@ -98,8 +101,10 @@ function floodRev2(p: PuzzleData): PuzzleData {
   return { ...f, grid: [...old.grid], solution: [...(old.solution ?? [])], par: old.par, floodRev: 2, moveLimit: old.par + FLOOD_REV2_SPARE_MOVES } as unknown as PuzzleData;
 }
 function recordedPuzzle(type: PuzzleType, seed: number): PuzzleData {
-  if (type === "flood") return floodRev2(roomPuzzleCached(type, seed));
-  const p = roomPuzzleCached(type, seed);
+  if (type === "flood") return floodRev2(stripDepth(roomPuzzleCached(type, seed)));
+  // The Logic depth revision (25 Oct 2026): the eleven games' answers were played before it (no depth stamp; Mosaic,
+  // Tents, Shikaku and Lamplighter on their old boards, scripts/depth-d6-legacy.ts).
+  const p = isDepthType(type) ? legacyRoomPuzzle(type, seed) : roomPuzzleCached(type, seed);
   return RECORDED_STAMPS[type] ? ({ ...(p as object), ...RECORDED_STAMPS[type] } as unknown as PuzzleData) : p;
 }
 
@@ -257,7 +262,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+    // The Logic depth games state their depth revision's numbers (depth-d6-check proves them).
+    ok(PUZZLE_INSTRUCTIONS[type].score === (isDepthType(type) ? depthHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 
