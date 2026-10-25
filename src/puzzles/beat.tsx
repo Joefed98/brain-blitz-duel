@@ -84,9 +84,13 @@ function IntroExample() {
         <line x1={8} y1={92} x2={160} y2={92} stroke="rgba(255,255,255,0.4)" strokeWidth={2} />
         <rect x={48} y={86} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[1]} />
         <rect x={120} y={40} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[3]} />
+        {/* beatRev 9: a golden note and the fever meter. */}
+        <rect x={12} y={30} width={32} height={12} rx={4} fill="#FFF2B0" stroke="#FFD84A" strokeWidth={2} />
+        <rect x={12} y={8} width={144} height={6} rx={3} fill="rgba(255,255,255,0.12)" />
+        <rect x={12} y={8} width={100} height={6} rx={3} fill="#FF4FD8" />
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap the lane as its note meets the line; arrow notes are swipes.
+        Tap the lane as its note meets the line; fill the meter and tap it for FEVER.
       </p>
     </div>
   );

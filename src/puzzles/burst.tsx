@@ -56,8 +56,11 @@ function IntroExample() {
         <path d="M96 70 L99 74" stroke={BURST_GOLD} strokeWidth={2} />
         <rect x={90} y={102} width={12} height={14} rx={5} fill={BURST_GOLD} />
         <circle cx={96} cy={98} r={3} fill={BURST_GOLD} />
+        {/* burstRev 7: a chain reaction's shockwave and the golden atom crossing the top. */}
+        <circle cx={104} cy={46} r={26} fill="none" stroke="#FFB43A" strokeWidth={2} strokeDasharray="2 3" />
+        <circle cx={30} cy={14} r={6} fill="#FFD84A" stroke="#FFF2B0" strokeWidth={1} />
       </svg>
-       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atom.</p>
+       <p className="text-center text-xs text-muted-foreground">Fire straight up to split the atom; shockwaves chain to its neighbours.</p>
     </div>
   );
 }
