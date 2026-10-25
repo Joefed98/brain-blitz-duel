@@ -743,6 +743,8 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (state.dropping && !prev.dropping) effectCue("inkbridge.release");
         // The coin lands on a rainbow; the live levels (9–10) begin.
         if (state.dropping && prev.dropping && prev.ball.on < 0 && state.ball.on >= 0) effectCue("inkbridge.coinLand", 150);
+        // inkRev 9: the coin springs off a bounce cloud.
+        if (state.cloudTick !== undefined && state.cloudTick !== prev.cloudTick && state.cloudTick === state.tick) effectCue("inkbridge.cloudBounce", 120);
         if (inkIsLive(state.level, state.rev) && !inkIsLive(prev.level, prev.rev)) effectCue("inkbridge.liveLevel");
         // The ink meter and pen tip pulse red at the pre-release cap (as the renderer draws it).
         const cap = (INK_LIVE_PRE_CAP - 2) * 256;

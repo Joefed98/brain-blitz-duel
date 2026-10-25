@@ -88,7 +88,8 @@ import { encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { clearSpot, holeDelays, holeFork, HOLE_WINDOW_MAX, HOLE_WINDOW_MIN } from "./orbit-hole-lib";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { playRevOf } from "./scoring-targets-revs";
+import { EXPANSION_REVS, playRevOf } from "./scoring-targets-revs";
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {
@@ -310,7 +311,8 @@ if (want("beat")) {
 if (want("inkbridge")) {
   section("Rainbow Bridge inkRev 4 (optional gold stars)");
   const game = inkBridgeGameFor(INK_REV4);
-  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_TUNEC, "new rounds are stamped inkRev 6 (rev 4 play on the score bands; Tuning C curve)");
+  // Rooms dealt rev 4 play (inkRev 8) until Expansion E1 moved them on to inkRev 9 (ink-expand-check).
+  ok(generateInkBridge().inkRev === EXPANSION_REVS.inkbridge![0] && playRevOf("inkbridge", EXPANSION_REVS.inkbridge![1]) === INK_REV_TUNEC, "rooms dealt inkRev 6 play (rev 4 play on the score bands; Tuning C curve) until the expansion's inkRev 9");
   ok(inkBridgeGameFor(INK_REV3).init(5).stars === undefined, "rev-3 rounds have no stars");
   const seeds = SEEDS(Number(process.env.BATCH5_INK_SEEDS ?? 12), 7919);
   for (const seed of seeds) {
@@ -338,7 +340,7 @@ if (want("inkbridge")) {
     ok(reveal && !JSON.stringify(reveal).includes("Standard") && JSON.stringify(reveal).includes("live drawing"), "the reveal explains the level kind in plain words");
   }
   console.log(`  ${seeds.length} seeds: four proved off-route stars each; ${runs} bot runs reach 150, ${INK_V4_PARTIAL_MAX} one level short, all levels without stars`);
-  ok(INTRO_SCORE.inkbridge.includes("up to 150") && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states 150 and no partial cap (score bands)");
+  ok(INTRO_SCORE.inkbridge.includes(`up to ${roundMaxFor("inkbridge")}`) && !INTRO_SCORE.inkbridge.includes(`up to ${INK_V4_PARTIAL_MAX}`), "Rainbow Bridge intro states its maximum and no partial cap (score bands)");
 }
 
 /* ================================ 2f. Orbit ================================ */

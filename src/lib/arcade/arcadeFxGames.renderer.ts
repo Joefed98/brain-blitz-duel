@@ -81,7 +81,7 @@ import {
   type CrossState,
 } from "./cross";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, JUNC_LIGHT_AT_V2, JUNC_WORLD_H, JUNC_WORLD_W, type JuncState } from "./junction";
-import { INK_LEVELS, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
+import { inkBucketX, inkWorldH, INK_LEVELS, INK_TALL_H, INK_WORLD_H, INK_WORLD_W, type InkState } from "./inkBridge";
 import { wavShipY, wavWorldH, WAV_TALL_H, WAV_WORLD_H, WAV_WORLD_W, type WavState } from "./wavefront";
 import { ORBIT_WORLD_H, ORBIT_WORLD_W, type OrbitState } from "./orbit";
 import { orbitViewH, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W, ORBIT_TALL_VIEW_H } from "./orbitCamera";
@@ -882,6 +882,16 @@ export const INKBRIDGE_FX: ArcadeFxSpec<InkState> = {
       count: (s) => (s.levels >= INK_LEVELS ? 1 : 0),
       label: () => "ALL 10 LEVELS!",
     },
+    {
+      // inkRev 9: the coin potted after bouncing off a cloud (last, so the replay moments' indexes stay put).
+      kind: "combo",
+      count: (s) => s.tricks ?? 0,
+      at: (s) => {
+        const lvl = s.list[Math.max(0, s.level - (s.ended ? 0 : 1))];
+        return lvl ? { x: inkBucketX(lvl, s.flashTick), y: lvl.bucketY - 18 } : null;
+      },
+      label: () => "TRICK SHOT!",
+    },
   ],
   // A failed drop (off the bridge or onto a block): the red flash the renderer draws, kind 2.
   misses: [{ count: (s) => (s.flashKind === 2 ? s.flashTick + 1 : 0) }],
@@ -1335,6 +1345,9 @@ export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => 
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
+/** Expansion E1 (Oct 2026): Rainbow Bridge inkRev 9's taller world draws through the spec at its own height. */
+export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => fxSpecAt(INKBRIDGE_FX, inkWorldH(s));
+export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);
 
 /* ================================ Pinball ================================ */
 
@@ -1388,7 +1401,7 @@ export const ARCADE_FX_SPECS = {
   skyline: SKYLINE_FX_TALL,
   cross: CROSS_FX_TALL,
   junction: JUNCTION_FX,
-  inkbridge: INKBRIDGE_FX,
+  inkbridge: INKBRIDGE_FX_TALL,
   slice: SLICE_FX_TALL,
   bintoss: BINTOSS_FX,
   bullseye: BULLSEYE_FX,

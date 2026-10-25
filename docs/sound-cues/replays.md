@@ -90,6 +90,7 @@ game the round was.
 | `inkbridge.level` | Level cleared: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `inkbridge.gold-star` | Coin through the gold star: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `inkbridge.all-levels` | All 10 levels: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
+| `inkbridge.trick-shot` | Trick shot off a bounce cloud: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.combo` | Combo multiplier: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.frenzy` | Sauce frenzy: the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |
 | `slice.simmer` | Simmer (slow time): the clip reaches the moment's key tick | instant (the moment lands; about 0.5 s of half-speed play follows) |

@@ -25,7 +25,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -91,7 +91,52 @@ export const INK_REV_BAND = 5;
 export const INK_REV_TUNEC = 6;
 /** Rev 3 rules (live levels 9–10, shared live ink) apply to rev 3 and rev 4. */
 function rev3Rules(rev?: number | null): boolean {
-  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET || rev === INK_REV_STRICT;
+  return rev === INK_REV3 || rev === INK_REV4 || rev === INK_REV_BAND || rev === INK_REV_TUNEC || rev === INK_REV_TARGET || rev === INK_REV_STRICT || rev === INK_REV_EXPAND;
+}
+
+/* ================= Expansion E1 (inkRev 9, 25 Oct 2026) ================= */
+
+/**
+ * inkRev 9 ("more sky"): the world is 390 × 674 (INK_TALL_H; older rounds keep 620), every level is
+ * laid out as inkRev 3's with the pot (and so the whole fall below the spout) INK_TALL_DROP px lower,
+ * with 9 % more ink; plus two optional skill features placed on their own seeded stream:
+ *  - bounce clouds: a springy cloud (a capsule INK_CLOUD_HW × INK_CLOUD_R) on levels where a proved
+ *    "trick line" pots the coin after bouncing off it; a coin touching a cloud rebounds upward (at
+ *    least INK_CLOUD_KICK). Potting the coin after a cloud bounce is a trick shot;
+ *  - gold stars on every one of levels 1–8 where one can be proved, on a cloud level at the top of the
+ *    trick line's bounce (high in the new sky).
+ * Neither is ever needed: every level's reference line pots the coin with the clouds present and never
+ * touches one. Scored to 200 (roundMax): the levels and finish on INK_V9_BAND_CURVE (≤ 150) plus up to
+ * 50 for the share of the round's stars and trick shots potted.
+ */
+export const INK_REV_EXPAND = 9;
+export const INK_TALL_H = 674;
+/** How much lower every inkRev 9 pot sits (the extra sky): INK_TALL_H − INK_WORLD_H. */
+export const INK_TALL_DROP = INK_TALL_H - INK_WORLD_H;
+/**
+ * inkRev 9 gravity: the usual 64 (and the live levels' 54) scaled by 620 / 674, so a coin falling the taller
+ * world's longer drop reaches the pot at the speed it did in the 620 world.
+ */
+export const INK_TALL_GRAVITY = 59;
+export const INK_TALL_LIVE_GRAVITY = 50;
+/** Bounce cloud: the core segment's half length and the capsule's radius, px (drawn 52 × 20). */
+export const INK_CLOUD_HW = 16;
+export const INK_CLOUD_R = 10;
+/** Cloud bounce: the normal speed kept (/256), and the least speed it sends the coin away at (1/256 px a tick). */
+const CLOUD_BOUNCE_256 = 236;
+export const INK_CLOUD_KICK = 5 * 256;
+/** The most the stars and trick shots add (the round maximum 200 less the base's 150). */
+export const INK_FEATURE_MAX = 50;
+/** The world height a round is drawn and played in. */
+export function inkWorldHFor(rev?: number | null): number {
+  return rev === INK_REV_EXPAND ? INK_TALL_H : INK_WORLD_H;
+}
+export function inkWorldH(state: { worldH?: number }): number {
+  return state.worldH ?? INK_WORLD_H;
+}
+/** Does this revision carry gold stars (rev 4's four, rev 9's)? */
+function starRev(rev?: number | null): boolean {
+  return rev === INK_REV4 || rev === INK_REV_EXPAND;
 }
 /** Star draw radius in px; the coin collects it when its centre comes within STAR_R + coin radius. */
 export const INK_STAR_R = 9;
@@ -133,6 +178,8 @@ export const INK_INPUT_RANGES: readonly InputRange[] = [
   inputRange(INK_INPUT_DROP_AGAIN, [0, 255]),
   inputRange(INK_INPUT_LIFT, [0, 255]),
 ];
+/** inkRev 9: strokes reach the taller world's bottom. */
+export const INK_TALL_INPUT_RANGES: readonly InputRange[] = [inputRange(INK_INPUT_STROKE, [0, INK_WORLD_W], [0, 674], [0, 1]), ...INK_INPUT_RANGES.slice(1)];
 
 /** Ink for a level (0-based), px: 500 at level 1 rising to 1,400 at level 10. */
 export function inkBudget(level: number): number {
@@ -146,7 +193,8 @@ export function inkIsLive(level: number, rev?: number | null): boolean {
 
 /** Ink for a level, rev-aware: live levels share a budget 1.5× the usual. */
 export function inkBudgetFor(level: number, rev?: number | null): number {
-  const base = inkBudget(level);
+  // inkRev 9: 9 % more ink for the taller levels.
+  const base = rev === INK_REV_EXPAND ? Math.trunc((inkBudget(level) * 279) / 256) : inkBudget(level);
   return inkIsLive(level, rev) ? Math.trunc((base * INK_LIVE_BUDGET_256) / 256) : base;
 }
 
@@ -179,7 +227,20 @@ export interface InkBlock {
   h?: number;
 }
 
+/** inkRev 9 bounce cloud: centre (px); its capsule core runs INK_CLOUD_HW either side. */
+export interface InkCloud {
+  x: number;
+  y: number;
+}
+
 export interface InkLevel {
+  /** inkRev 9 only: the world's height (absent = INK_WORLD_H) and the level's gravity (1/256 px a tick²; absent = the caller's). */
+  worldH?: number;
+  gravity?: number;
+  /** inkRev 9 only: bounce clouds, and the proved trick line that pots after bouncing off one. */
+  clouds?: InkCloud[];
+  trickRef?: number[][];
+  trickT0?: number;
   spoutX: number;
   bucketX: number;
   /** Bucket rim, px. */
@@ -426,6 +487,47 @@ function rimBounce(ball: InkBall, bx: number, by: number): boolean {
   return struck;
 }
 
+/**
+ * inkRev 9: bounce the coin off the first cloud it touches; returns that cloud's index or −1. The coin
+ * is pushed out to the capsule's surface and the inward part of its velocity reflected, keeping
+ * CLOUD_BOUNCE_256 of it and leaving at INK_CLOUD_KICK at least (springy: a coin rolling on a line is
+ * thrown off it too). Integer maths only.
+ */
+function cloudBounce(ball: InkBall, clouds: readonly InkCloud[], segs: readonly InkSeg[]): number {
+  for (let i = 0; i < clouds.length; i++) {
+    const cl = clouds[i]!;
+    const cx = clampInt(ball.x, (cl.x - INK_CLOUD_HW) * FP, (cl.x + INK_CLOUD_HW) * FP);
+    const cy = cl.y * FP;
+    const dx = ball.x - cx;
+    const dy = ball.y - cy;
+    const reach = (INK_CLOUD_R + BALL_R) * FP;
+    if (Math.abs(dx) >= reach || Math.abs(dy) >= reach) continue;
+    const d = isqrt(dx * dx + dy * dy);
+    if (d >= reach) continue;
+    const nx = d > 0 ? Math.trunc((dx * 1024) / d) : 0;
+    const ny = d > 0 ? Math.trunc((dy * 1024) / d) : -1024;
+    const seg = ball.on >= 0 ? segs[ball.on] : undefined;
+    if (seg) {
+      // Rolling: its speed along the line becomes a free velocity.
+      ball.vx = Math.trunc(((seg.x1 - seg.x0) * ball.sp) / seg.len);
+      ball.vy = Math.trunc(((seg.y1 - seg.y0) * ball.sp) / seg.len);
+    }
+    ball.x = cx + Math.trunc((nx * reach) / 1024);
+    ball.y = cy + Math.trunc((ny * reach) / 1024);
+    ball.on = -1;
+    ball.u = 0;
+    ball.sp = 0;
+    const vn = Math.trunc((ball.vx * nx + ball.vy * ny) / 1024);
+    if (vn >= 0) return -1; // already leaving: pushed clear, no bounce
+    const out = Math.max(INK_CLOUD_KICK, Math.trunc((-vn * CLOUD_BOUNCE_256) / 256));
+    const k = out - vn;
+    ball.vx = clampInt(ball.vx + Math.trunc((k * nx) / 1024), -MAX_V, MAX_V);
+    ball.vy = clampInt(ball.vy + Math.trunc((k * ny) / 1024), -MAX_V, MAX_V);
+    return i;
+  }
+  return -1;
+}
+
 /** One tick of the ball: 0 still going, 1 in the bucket, 2 failed. Mutates ball. */
 function moveBall(
   ball: InkBall,
@@ -433,7 +535,10 @@ function moveBall(
   lvl: InkLevel,
   tick = 0,
   gravity = GRAVITY,
+  hit?: { cloud: number },
 ): number {
+  // inkRev 9 levels carry their own (gentler) gravity, so every caller plays them alike.
+  if (lvl.gravity !== undefined) gravity = lvl.gravity;
   const bucketX = inkBucketX(lvl, tick);
   const px = ball.x;
   const py = ball.y;
@@ -518,13 +623,20 @@ function moveBall(
     }
   }
   for (const b of lvl.blocks) if (touchesBlock(ball, b)) return 2;
+  if (lvl.clouds) {
+    const c = cloudBounce(ball, lvl.clouds, segs);
+    if (c >= 0) {
+      if (hit) hit.cloud = c;
+      return 0;
+    }
+  }
   if (rimBounce(ball, bucketX, lvl.bucketY)) return 0;
   // Into the bucket between its rim caps, or past the bottom.
   if (py < lvl.bucketY * FP && ball.y >= lvl.bucketY * FP) {
     const x = Math.trunc(ball.x / FP);
     if (Math.abs(x - bucketX) <= INK_BUCKET_W / 2 - BALL_R) return 1;
   }
-  if (ball.y > (INK_WORLD_H + BALL_R) * FP) return 2;
+  if (ball.y > ((lvl.worldH ?? INK_WORLD_H) + BALL_R) * FP) return 2;
   return 0;
 }
 
@@ -610,13 +722,15 @@ function layout(
   draw: Draw,
   h?: number,
   forceSlide = false,
+  drop = 0,
 ): InkLevel {
   const spoutX = 60 + draw(271);
   let bucketX = 50 + draw(291);
   if (Math.abs(bucketX - spoutX) < 100)
     bucketX =
       spoutX < 195 ? Math.min(340, spoutX + 100 + draw(60)) : Math.max(50, spoutX - 100 - draw(60));
-  const bucketY = 470 + draw(81);
+  // inkRev 9 (drop > 0): the pot sits lower in the taller world, so the fall (and every bird range) is longer.
+  const bucketY = 470 + drop + draw(81);
   let slideAmp = 0;
   let slidePeriod = 1;
   let slidePhase = 0;
@@ -647,7 +761,7 @@ function layout(
     blocks.push(b);
     k++;
   }
-  return { spoutX, bucketX, bucketY, blocks, slideAmp, slidePeriod, slidePhase, ref: [], refT0: 0 };
+  return { ...(drop ? { worldH: INK_WORLD_H + drop } : {}), spoutX, bucketX, bucketY, blocks, slideAmp, slidePeriod, slidePhase, ref: [], refT0: 0 };
 }
 
 /** Candidate reference strokes: a ramp under the spout to above the bucket, optionally via a waypoint. */
@@ -758,7 +872,7 @@ function anyPreAloneWins(lvl: InkLevel, cap: number, gravity: number): boolean {
       for (const frac of PRE_SAMPLE_LEN_FRACS) {
         const len = Math.round(cap * frac);
         const ex = clampInt(sx + Math.round(Math.cos(theta) * len), 0, INK_WORLD_W);
-        const ey = clampInt(sy + Math.round(Math.sin(theta) * len), 0, INK_WORLD_H);
+        const ey = clampInt(sy + Math.round(Math.sin(theta) * len), 0, lvl.worldH ?? INK_WORLD_H);
         const pen = strokeSegs([[sx, sy, ex, ey]], cap);
         if (pen.segs.length === 0) continue;
         if (simulateDrop(lvl, pen.segs, 0, gravity) === 1) return true;
@@ -825,7 +939,7 @@ function findLiveReference(
         for (const dx0 of [6]) {
           const cx = Math.round(p.x / FP) + dir * dx0;
           const cy = Math.round(p.y / FP) + dy0;
-          if (cx >= 2 && cx <= INK_WORLD_W - 2 && cy < INK_WORLD_H) catches.push({ t, x: cx, y: cy });
+          if (cx >= 2 && cx <= INK_WORLD_W - 2 && cy < (lvl.worldH ?? INK_WORLD_H)) catches.push({ t, x: cx, y: cy });
         }
     }
     for (const cat of catches) {
@@ -906,7 +1020,7 @@ export function inkLiveReferenceCheck(seed: number): { ok: number; preAloneWins:
 /** Rev-3 level plan: 1–4 reuse old levels 3–6 stationary, 5–8 reuse old levels 7–10
  * (inkRev2 bird counts) with a forced moving pot, 9–10 are new live levels (stationary,
  * gentler gravity, hardest block count, shared live ink budget). */
-function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
+function buildLevelsRev3(seed: number, drop = 0, rev = INK_REV3): { list: InkLevel[]; rng: number } {
   let rng = seed | 0;
   const draw: Draw = (bound) => {
     const r = rngBelow(rng, Math.max(1, bound));
@@ -932,11 +1046,12 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
     const h = INK_BIRD_H_FP;
     const gravity = live ? INK_LIVE_GRAVITY : GRAVITY;
     const count = counts[sourceLevel]!;
-    const ink = inkBudgetFor(i, INK_REV3);
+    const ink = inkBudgetFor(i, rev);
     let made: InkLevel | null = null;
     for (let attempt = 0; attempt < (live ? 48 : 120) && !made; attempt++) {
       const c = Math.max(1, count - Math.trunc(attempt / 20));
-      let lvl = layout(sourceLevel, c, draw, h, forceSlide);
+      let lvl = layout(sourceLevel, c, draw, h, forceSlide, drop);
+      if (drop) lvl.gravity = live ? INK_TALL_LIVE_GRAVITY : INK_TALL_GRAVITY;
       if (live) {
         // A shield block straddling the spout column, between the pre-release
         // waypoints (within ±60 px of the spout) and the bucket: a pre-release line
@@ -971,11 +1086,12 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
       // liveRef — never a plain over-cap single-stroke solve.
       const spoutX = 120;
       const lvl: InkLevel = {
+        ...(drop ? { worldH: INK_WORLD_H + drop, gravity: live ? INK_TALL_LIVE_GRAVITY : INK_TALL_GRAVITY } : {}),
         spoutX,
         bucketX: 300,
-        bucketY: 540,
+        bucketY: 540 + drop,
         blocks: live
-          ? [{ x0: Math.max(0, spoutX - 70), x1: Math.min(INK_WORLD_W, spoutX + 70), y: 420, h }]
+          ? [{ x0: Math.max(0, spoutX - 70), x1: Math.min(INK_WORLD_W, spoutX + 70), y: 420 + drop, h }]
           : [{ x0: 90, x1: 150, y: 200, h }],
         slideAmp: 0,
         slidePeriod: 1,
@@ -1000,7 +1116,7 @@ function buildLevelsRev3(seed: number): { list: InkLevel[]; rng: number } {
         }
       } else {
         const found = findReference(lvl, ink, gravity);
-        made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526]], refT0: found?.t0 ?? 0 };
+        made = { ...lvl, ref: found?.ref ?? [[96, 78, 300, 526 + drop]], refT0: found?.t0 ?? 0 };
       }
     }
     list.push(made);
@@ -1024,8 +1140,8 @@ function blockDistance2(b: InkBlock, x: number, y: number): number {
  * farthest from the easy reference route, at least INK_STAR_OFF_ROUTE away,
  * clear of every bird and well above the pot.
  */
-function placeStar(lvl: InkLevel, level: number, draw: Draw): Pick<InkLevel, "star" | "starRef" | "starT0"> | null {
-  const ink = inkBudgetFor(level, INK_REV4);
+function placeStar(lvl: InkLevel, level: number, draw: Draw, rev = INK_REV4): Pick<InkLevel, "star" | "starRef" | "starT0"> | null {
+  const ink = inkBudgetFor(level, rev);
   const still: InkLevel = { ...lvl, slideAmp: 0 };
   const refTrace = traceDrop(still, strokeSegs(lvl.ref, ink).segs);
   const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
@@ -1113,6 +1229,275 @@ function buildLevelsRev4(seed: number): { list: InkLevel[]; rng: number } {
   return { list, rng: base.rng };
 }
 
+/* ---------------------- inkRev 9: bounce clouds and stars ---------------------- */
+
+/** Levels (of 1–8) that get a bounce cloud, at most. */
+export const INK_CLOUD_LEVELS = 5;
+/** Seeded ramps (cloud places) tried per level. */
+const CLOUD_TRIES = 16;
+/** A trick line must still work moved by each of these (px), at least TRICK_STEADY of them. */
+const TRICK_WOBBLE = [[3, 0], [-3, 0], [0, 3], [0, -3]] as const;
+const TRICK_STEADY = 3;
+
+/** A drop with a fixed line set released on tick t0, reporting the first cloud bounce (tick, or −1) and the path. */
+function dropWithHit(
+  lvl: InkLevel,
+  segs: readonly InkSeg[],
+  t0 = 0,
+  path?: { x: number; y: number }[],
+  gravity = GRAVITY,
+): { result: number; hitAt: number } {
+  const ball = spoutBall(lvl);
+  const hit = { cloud: -1 };
+  let hitAt = -1;
+  for (let t = 0; t < DROP_MAX; t++) {
+    const r = moveBall(ball, segs, lvl, t0 + t + 1, gravity, hit);
+    if (hit.cloud >= 0 && hitAt < 0) hitAt = t;
+    path?.push({ x: ball.x, y: ball.y });
+    if (r) return { result: r, hitAt };
+  }
+  return { result: 2, hitAt };
+}
+
+/** Squared distance (px²) from a point to a cloud's core segment. */
+function cloudDistance2(cl: InkCloud, x: number, y: number): number {
+  const dx = x < cl.x - INK_CLOUD_HW ? cl.x - INK_CLOUD_HW - x : x > cl.x + INK_CLOUD_HW ? x - cl.x - INK_CLOUD_HW : 0;
+  const dy = y - cl.y;
+  return dx * dx + dy * dy;
+}
+
+/** The first of 16 release ticks over one slide period that pots after a cloud bounce; −1 if none. */
+function trickRelease(lvl: InkLevel, segs: readonly InkSeg[]): number {
+  for (let k = 0; k < 16; k++) {
+    const t0 = Math.trunc((k * lvl.slidePeriod) / 16);
+    const d = dropWithHit(lvl, segs, t0);
+    if (d.result === 1 && d.hitAt >= 0) return t0;
+  }
+  return -1;
+}
+
+type CloudFind = { cloud: InkCloud; trickRef: number[][]; trickT0: number; path: { x: number; y: number }[]; hitAt: number };
+
+/**
+ * inkRev 9: a bounce cloud for this (non-live) level and its proved trick line, or null. The cloud is
+ * set where a seeded ramp's coin falls (so the ramp's coin lands on its top); a place is kept only when
+ * it is clear of every bird, the pot and the reference route, the coin still never pots unaided, the
+ * reference line still pots (with its own release) without touching the cloud, and the trick line (the
+ * ramp, plus a catch ramp under the coin's fall after the bounce if needed) pots after the bounce within
+ * the level's ink.
+ */
+function placeCloud(lvl: InkLevel, level: number, draw: Draw): CloudFind | null {
+  const ink = inkBudgetFor(level, INK_REV_EXPAND);
+  const refSegs = strokeSegs(lvl.ref, ink).segs;
+  const still: InkLevel = { ...lvl, slideAmp: 0 };
+  const refPts = traceDrop(still, refSegs).map((r) => [Math.trunc(r.x / FP), Math.trunc(r.y / FP)] as const);
+  const dir = lvl.bucketX > lvl.spoutX ? 1 : -1;
+  const clearRef = INK_CLOUD_R + BALL_R + 8;
+  const top = SPOUT_Y + 100;
+  const gap = 14;
+  for (let attempt = 0; attempt < CLOUD_TRIES; attempt++) {
+    // A seeded ramp from beside the spout, mostly toward the pot.
+    const rd = draw(4) === 0 ? -dir : dir;
+    const sx = lvl.spoutX - rd * 24;
+    const sy = SPOUT_Y + 28;
+    const ex = clampInt(sx + rd * (40 + draw(150)), 6, INK_WORLD_W - 6);
+    const ey = sy + 24 + draw(Math.max(1, Math.min(220, lvl.bucketY - 200 - sy)));
+    const pick = draw(1000);
+    const ramp = [sx, sy, ex, ey];
+    const pen = strokeSegs([ramp], ink);
+    if (pen.penDown === 0 || pen.segs.length === 0) continue;
+    // Where its coin falls: descending, off the line, in the band where a cloud may sit.
+    const fall: { x: number; y: number }[] = [];
+    let wasOn = false;
+    const ball = spoutBall(still);
+    for (let t = 0; t < DROP_MAX; t++) {
+      const prevY = ball.y;
+      const r = moveBall(ball, pen.segs, still, t + 1);
+      if (ball.on >= 0) wasOn = true;
+      else if (wasOn && ball.y > prevY) {
+        const x = Math.trunc(ball.x / FP);
+        const y = Math.trunc(ball.y / FP);
+        if (y >= top && y <= lvl.bucketY - 80 && x >= 30 && x <= INK_WORLD_W - 30) fall.push({ x, y });
+      }
+      if (r) break;
+    }
+    if (fall.length === 0) continue;
+    const at = fall[Math.trunc((pick * fall.length) / 1000)]!;
+    const cloud: InkCloud = { x: clampInt(at.x, 30, INK_WORLD_W - 30), y: at.y + INK_CLOUD_R + BALL_R - 3 };
+    const { x, y } = cloud;
+    if (lvl.blocks.some((b) => b.x0 - gap < x + INK_CLOUD_HW && x - INK_CLOUD_HW < b.x1 + gap && b.y - gap - INK_CLOUD_R < y && y < b.y + inkBlockH(b) + gap + INK_CLOUD_R)) continue;
+    // Clear of the pot and its slide (a cloud never sits over the pot's mouth).
+    if (Math.abs(x - lvl.bucketX) < INK_BUCKET_W / 2 + lvl.slideAmp + INK_CLOUD_HW + INK_CLOUD_R + BALL_R && y > lvl.bucketY - 90) continue;
+    if (refPts.some(([rx, ry]) => cloudDistance2(cloud, rx, ry) < clearRef * clearRef)) continue;
+    const withCloud: InkLevel = { ...lvl, clouds: [cloud] };
+    if (landsUnaided(withCloud)) continue;
+    const refDrop = dropWithHit(withCloud, refSegs, lvl.refT0);
+    if (refDrop.result !== 1 || refDrop.hitAt >= 0) continue;
+    const stillCloud: InkLevel = { ...withCloud, slideAmp: 0 };
+    const path: { x: number; y: number }[] = [];
+    const first = dropWithHit(stillCloud, pen.segs, 0, path);
+    if (first.hitAt < 0) continue;
+    // The bounce alone, or a catch ramp drawn under the coin's fall after it, leading to the pot.
+    const tries: number[][][] = first.result === 1 ? [[ramp]] : [];
+    if (first.result !== 1) {
+      let apex = first.hitAt;
+      for (let i = first.hitAt; i < path.length; i++) if (path[i]!.y < path[apex]!.y) apex = i;
+      for (const fallBy of [24, 60, 110]) {
+        let k = -1;
+        for (let i = apex; i < path.length; i++) if (path[i]!.y >= path[apex]!.y + fallBy * FP) { k = i; break; }
+        if (k < 0) continue;
+        const px = Math.trunc(path[k]!.x / FP);
+        const py = Math.trunc(path[k]!.y / FP) + 22;
+        const d = lvl.bucketX >= px ? 1 : -1;
+        for (const lift of [26, 50]) {
+          const cx = lvl.bucketX - d * 8;
+          const cy = lvl.bucketY - lift;
+          if (py >= cy - 8 || Math.abs(cx - px) < 24) continue;
+          // Every point inside the world, as a finger can draw it (the sim clamps strokes to it).
+          for (const back of [24, 10]) tries.push([ramp, [clampInt(px - d * back, 2, INK_WORLD_W - 2), py - 4, cx, cy]]);
+        }
+      }
+    }
+    for (const ref of tries) {
+      const pen2 = ref.length === 1 ? pen : strokeSegs(ref, ink);
+      if (pen2.penDown === 0) continue;
+      const p2: { x: number; y: number }[] = [];
+      const r = ref.length === 1 ? first : dropWithHit(stillCloud, pen2.segs, 0, p2);
+      if (r.result !== 1 || r.hitAt < 0) continue;
+      // A hand is never exact: the line must still bounce and pot moved 3 px either way, across and down.
+      let steady = 0;
+      for (const [ox, oy] of TRICK_WOBBLE) {
+        const moved = strokeSegs(ref.map((pts) => pts.map((v, j) => v + (j % 2 === 0 ? ox : oy))), ink);
+        const w = dropWithHit(stillCloud, moved.segs);
+        if (moved.penDown !== 0 && w.result === 1 && w.hitAt >= 0) steady++;
+      }
+      if (steady < TRICK_STEADY) continue;
+      const t0 = lvl.slideAmp ? trickRelease(withCloud, pen2.segs) : 0;
+      if (t0 < 0) continue;
+      return { cloud, trickRef: ref, trickT0: t0, path: ref.length === 1 ? path : p2, hitAt: r.hitAt };
+    }
+  }
+  return null;
+}
+
+/**
+ * inkRev 9: a star on the trick line's path after the bounce, as high as it rises (at least 44 px
+ * down, under the HUD), clear of birds and the cloud and off the reference route; or null.
+ */
+function trickStar(lvl: InkLevel, level: number, found: CloudFind): { x: number; y: number } | null {
+  const refPts = traceDrop({ ...lvl, slideAmp: 0 }, strokeSegs(lvl.ref, inkBudgetFor(level, INK_REV_EXPAND)).segs).map((r) => [Math.trunc(r.x / FP), Math.trunc(r.y / FP)] as const);
+  let best: { x: number; y: number } | null = null;
+  for (let i = found.hitAt + 1; i < found.path.length; i++) {
+    const x = Math.trunc(found.path[i]!.x / FP);
+    const y = Math.trunc(found.path[i]!.y / FP);
+    if (y < 44 || x < 14 || x > INK_WORLD_W - 14 || y > lvl.bucketY - 40) continue;
+    if (best && y >= best.y) continue;
+    if (cloudDistance2(found.cloud, x, y) < (INK_CLOUD_R + INK_STAR_R + 6) ** 2) continue;
+    if (lvl.blocks.some((b) => blockDistance2(b, x, y) < (INK_STAR_R + BALL_R + 4) ** 2)) continue;
+    if (refPts.some(([rx, ry]) => (rx - x) ** 2 + (ry - y) ** 2 < INK_STAR_OFF_ROUTE * INK_STAR_OFF_ROUTE)) continue;
+    best = { x, y };
+  }
+  return best;
+}
+
+/** inkRev 9: the tall levels with bounce clouds (and their trick lines) and gold stars, on their own seeded stream. */
+function buildLevelsRev9(seed: number): { list: InkLevel[]; rng: number } {
+  const base = buildLevelsRev3(seed, INK_TALL_DROP, INK_REV_EXPAND);
+  let frng = (seed ^ 0x9c10d5) | 0;
+  const draw: Draw = (bound) => {
+    const r = rngBelow(frng, Math.max(1, bound));
+    frng = r.state;
+    return r.value;
+  };
+  const order = Array.from({ length: INK_LIVE_FROM }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const list = base.list.map((lvl) => ({ ...lvl }));
+  let clouds = 0;
+  for (const level of order) {
+    const lvl = list[level]!;
+    const found = clouds < INK_CLOUD_LEVELS ? placeCloud(lvl, level, draw) : null;
+    if (found) {
+      clouds++;
+      const withCloud: InkLevel = { ...lvl, clouds: [found.cloud], trickRef: found.trickRef, trickT0: found.trickT0 };
+      const star = trickStar(lvl, level, found);
+      // A cloud level's star is on its trick line or nowhere, so one line can take both.
+      const starred: InkLevel | null = star ? { ...withCloud, star, starRef: found.trickRef, starT0: found.trickT0 } : null;
+      list[level] = starred && starProved(starred, level) ? starred : withCloud;
+      continue;
+    }
+    const placed = placeStar(list[level]!, level, draw, INK_REV_EXPAND);
+    if (placed && starProved({ ...list[level]!, ...placed }, level)) list[level] = { ...list[level]!, ...placed };
+  }
+  return { list, rng: base.rng };
+}
+
+/** inkRev 9: the star's own line, on its own release (the pot moving), takes the star and pots the coin. */
+function starProved(lvl: InkLevel, level: number): boolean {
+  if (!lvl.star || !lvl.starRef) return false;
+  const pen = strokeSegs(lvl.starRef, inkBudgetFor(level, INK_REV_EXPAND));
+  const path: { x: number; y: number }[] = [];
+  const d = dropWithHit(lvl, pen.segs, lvl.starT0 ?? 0, path);
+  const reach = (INK_STAR_R + BALL_R) ** 2;
+  return pen.penDown === 1 && d.result === 1 && path.some((p) => (p.x / FP - lvl.star!.x) ** 2 + (p.y / FP - lvl.star!.y) ** 2 <= reach);
+}
+
+/** Does a live level's staged reference (pre-release line plus live strokes) pot within its shared ink? */
+function liveReferenceLands(lvl: InkLevel, level: number, rev?: number | null): boolean {
+  const budget = inkBudgetFor(level, rev);
+  const pen = strokeSegs(lvl.ref, budget);
+  let segs: InkSeg[] = pen.segs;
+  let usedInk = pen.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+  if (pen.penDown !== 1) return false;
+  const stages: { tick: number; segs: readonly InkSeg[] }[] = [{ tick: 0, segs }];
+  for (const ev of lvl.liveRef ?? []) {
+    const pen2 = strokeSegs([ev.pts], Math.trunc((budget * FP - usedInk) / FP));
+    if (pen2.penDown !== 1) return false;
+    segs = [...segs, ...pen2.segs];
+    usedInk += pen2.segs.reduce((sum, seg) => sum + seg.len, 0) * FP;
+    stages.push({ tick: ev.tick + 2, segs });
+  }
+  return simulateStaged(lvl, stages, INK_LIVE_GRAVITY) === 1;
+}
+
+/**
+ * Test hook (inkRev 9): per level, whether the reference pots with the clouds present and never touches
+ * one, the coin never pots unaided, the trick line pots after a cloud bounce, and the star line pots
+ * through the star, each within the level's ink and on its own release.
+ */
+export function inkExpandProof(seed: number): { level: number; ref: boolean; refClear: boolean; unaided: boolean; trick: boolean | null; star: boolean | null; cloud: InkCloud | null; star_: { x: number; y: number } | null }[] {
+  const { list } = buildLevels(seed, INK_REV_EXPAND);
+  return list.map((lvl, i) => {
+    const ink = inkBudgetFor(i, INK_REV_EXPAND);
+    const live = inkIsLive(i, INK_REV_EXPAND);
+    let ref = false;
+    let refClear = true;
+    if (!live) {
+      const pen = strokeSegs(lvl.ref, ink);
+      const d = dropWithHit(lvl, pen.segs, lvl.refT0);
+      ref = pen.penDown === 1 && d.result === 1;
+      refClear = d.hitAt < 0;
+    } else ref = liveReferenceLands(lvl, i, INK_REV_EXPAND);
+    let trick: boolean | null = null;
+    if (lvl.trickRef) {
+      const pen = strokeSegs(lvl.trickRef, ink);
+      const d = dropWithHit(lvl, pen.segs, lvl.trickT0 ?? 0);
+      trick = pen.penDown === 1 && d.result === 1 && d.hitAt >= 0;
+    }
+    let star: boolean | null = null;
+    if (lvl.star && lvl.starRef) {
+      const pen = strokeSegs(lvl.starRef, ink);
+      const path: { x: number; y: number }[] = [];
+      const d = dropWithHit(lvl, pen.segs, lvl.starT0 ?? 0, path);
+      const got = path.some((p) => (p.x / FP - lvl.star!.x) ** 2 + (p.y / FP - lvl.star!.y) ** 2 <= (INK_STAR_R + BALL_R) ** 2);
+      star = pen.penDown === 1 && d.result === 1 && got;
+    }
+    return { level: i, ref, refClear, unaided: landsUnaided(lvl, live ? INK_LIVE_GRAVITY : GRAVITY), trick, star, cloud: lvl.clouds?.[0] ?? null, star_: lvl.star ?? null };
+  });
+}
+
 /** Test hook: each rev-4 star's proved line pots the coin through the star within its ink. */
 export function inkStarCheck(seed: number): { stars: number; proved: number; offRoute: number } {
   const { list } = buildLevels(seed, INK_REV4);
@@ -1136,6 +1521,7 @@ export function inkStarCheck(seed: number): { stars: number; proved: number; off
 }
 
 function buildLevels(seed: number, rev?: number): { list: InkLevel[]; rng: number } {
+  if (rev === INK_REV_EXPAND) return buildLevelsRev9(seed);
   if (rev === INK_REV4) return buildLevelsRev4(seed);
   if (rev === INK_REV3) return buildLevelsRev3(seed);
   const birds = rev === INK_REV;
@@ -1330,6 +1716,13 @@ export interface InkState extends BandFields {
   starGot?: number;
   /** inkRev 6 only (Tuning C): 1 = scored on INK_V6_BAND_CURVE. Absent on every earlier round. */
   tunec?: number;
+  /** inkRev 9 only: the world's height, trick shots potted, whether this drop has bounced off a
+   * cloud, and the last bounce (tick and cloud index, for the art's squash). */
+  worldH?: number;
+  tricks?: number;
+  cloudHit?: number;
+  cloudTick?: number;
+  cloudIdx?: number;
 }
 
 const cache = new Map<string, ReturnType<typeof buildLevels>>();
@@ -1377,6 +1770,7 @@ function initWith(seed: number, rev?: number): InkState {
     liveLifts: 0,
     preInkUsed: 0,
     ...(rev === INK_REV4 ? { stars: 0, starGot: 0 } : {}),
+    ...(rev === INK_REV_EXPAND ? { stars: 0, starGot: 0, worldH: INK_TALL_H, tricks: 0, cloudHit: 0, cloudTick: -100, cloudIdx: -1 } : {}),
   };
 }
 
@@ -1399,7 +1793,14 @@ function resetLevel(s: InkState): void {
   s.liveLifts = 0;
   s.preInkUsed = 0;
   if (s.rev === INK_REV4) s.starGot = 0;
+  if (s.rev === INK_REV_EXPAND) {
+    s.starGot = 0;
+    s.cloudHit = 0;
+  }
 }
+
+/** moveBall's cloud report for the live step (reset after every read). */
+const bounce = { cloud: -1 };
 
 function step(state: InkState, input: ArcadeInputEvent | null): InkState {
   if (isOver(state)) return state;
@@ -1431,7 +1832,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
         addStroke(
           s,
           clampInt(input.a, 0, INK_WORLD_W),
-          clampInt(input.b, 0, INK_WORLD_H),
+          clampInt(input.b, 0, inkWorldH(s)),
           input.c === 1,
         );
         const used = Math.min(beforeInk, capRemain) - s.ink;
@@ -1441,7 +1842,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
         addStroke(
           s,
           clampInt(input.a, 0, INK_WORLD_W),
-          clampInt(input.b, 0, INK_WORLD_H),
+          clampInt(input.b, 0, inkWorldH(s)),
           input.c === 1,
         );
       }
@@ -1464,7 +1865,7 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
   } else if (input && s.dropping && live) {
     if (input.k === INK_INPUT_STROKE) {
       const x = clampInt(input.a, 0, INK_WORLD_W);
-      const y = clampInt(input.b, 0, INK_WORLD_H);
+      const y = clampInt(input.b, 0, inkWorldH(s));
       // No-draw zone: a point too close to the ball breaks the stroke instead of drawing to it.
       const tooClose =
         Math.hypot(x - s.ball.x / FP, y - s.ball.y / FP) < INK_NO_DRAW_ZONE_PX;
@@ -1509,9 +1910,16 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
     let result =
       input?.k === INK_INPUT_DROP_AGAIN
         ? 2
-        : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity);
+        : moveBall(s.ball, s.segs, s.list[s.level]!, tick, gravity, s.rev === INK_REV_EXPAND ? bounce : undefined);
+    // inkRev 9: a cloud bounce marks this drop (a pot after it is a trick shot) and the art's squash.
+    if (bounce.cloud >= 0) {
+      s.cloudHit = 1;
+      s.cloudTick = tick;
+      s.cloudIdx = bounce.cloud;
+      bounce.cloud = -1;
+    }
     // Rev 4: the coin collects the level's star by passing over it; it counts once the coin is potted.
-    const starLvl = s.rev === INK_REV4 ? s.list[s.level]! : null;
+    const starLvl = starRev(s.rev) ? s.list[s.level]! : null;
     if (starLvl?.star && !s.starGot) {
       const dx = s.ball.x / FP - starLvl.star.x;
       const dy = s.ball.y / FP - starLvl.star.y;
@@ -1528,7 +1936,8 @@ function step(state: InkState, input: ArcadeInputEvent | null): InkState {
       result = 2;
     if (result === 1) {
       s.levels += 1;
-      if (s.rev === INK_REV4 && s.starGot) s.stars = (s.stars ?? 0) + 1;
+      if (starRev(s.rev) && s.starGot) s.stars = (s.stars ?? 0) + 1;
+      if (s.rev === INK_REV_EXPAND && s.cloudHit) s.tricks = (s.tricks ?? 0) + 1;
       s.flashKind = 1;
       s.flashTick = tick;
       if (s.levels >= INK_LEVELS) {
@@ -1642,6 +2051,8 @@ export function inkCheckpoint(state: InkState): InkCheckpoint {
   for (const p of state.positions) values.push(p.x, p.y);
   // Rev 4 folds its own counters in; older states never have them, so their sums are unchanged.
   if (state.rev === INK_REV4) values.push(state.stars ?? 0, state.starGot ?? 0);
+  // inkRev 9 folds its own fields in the same place; no older state has rev 9, so their sums are unchanged.
+  if (state.rev === INK_REV_EXPAND) values.push(state.stars ?? 0, state.starGot ?? 0, state.tricks ?? 0, state.cloudHit ?? 0, state.cloudTick ?? 0, state.cloudIdx ?? 0, state.worldH ?? 0);
   // inkRev 6 (Tuning C) adds its marker before the segments only when present, so older sums are unchanged.
   if (state.tunec) values.push(state.tunec);
   for (const seg of state.segs) values.push(seg.x0, seg.y0, seg.x1, seg.y1);
@@ -1824,6 +2235,7 @@ export const inkBridgeBirdsGame: ArcadeGame<InkState, ArcadeInputEvent | null> =
 export const inkBridgeInkRev3Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV3) };
 export const inkBridgeInkRev4Game: ArcadeGame<InkState, ArcadeInputEvent | null> = { ...inkBridgeGame, init: (seed) => initWith(seed, INK_REV4) };
 export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, ArcadeInputEvent | null> {
+  if (rev === INK_REV_EXPAND) return inkBridgeExpandGame;
   if (rev === INK_REV_STRICT) return inkBridgeStrictGame;
   if (rev === INK_REV_TARGET) return inkBridgeTargetGame;
   if (rev === INK_REV_TUNEC) return inkBridgeTunecGame;
@@ -1838,12 +2250,14 @@ export function inkBridgeGameFor(rev?: number | null): ArcadeGame<InkState, Arca
 /** Levels count 10 and gold stars 2; 140 at all ten levels and every star; finishing adds up to 10 for speed. */
 export const INK_BAND_CURVE = bandCurve([0, 10, 20, 40, 60, 80, 90, 108], [0, 35, 55, 85, 110, 128, 138, 140]);
 export function inkBridgeBandParts(state: InkState): BandParts {
+  if (state.rev === INK_REV_EXPAND) return inkExpandBandParts(state);
   const units = 10 * clampInt(state.levels, 0, INK_LEVELS) + INK_STAR_POINTS * clampInt(state.stars ?? 0, 0, INK_STAR_LEVELS);
   const finished = state.levels >= INK_LEVELS;
   return { units, points: bandPoints(bandCurveOf(state, state.tunec ? INK_V6_BAND_CURVE : INK_BAND_CURVE), units), bonus: finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0, penalty: 0, finished, text: `${state.levels} / ${INK_LEVELS} levels · ${state.stars ?? 0} stars`, bonusText: "All ten levels" };
 }
 
 function scoreBand(state: InkState): number {
+  if (state.rev === INK_REV_EXPAND) return bandTotal(inkBridgeBandParts(state), Boolean(state.acted), INK_EXPAND_MAX);
   return bandTotal(inkBridgeBandParts(state), Boolean(state.acted));
 }
 
@@ -1885,3 +2299,57 @@ export const INK_REV_STRICT = 8;
 export const inkBridgeStrictGame = bandStrictGame(inkBridgeTargetGame);
 /** The curve new rounds score on: INK_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const INK_V8_BAND_CURVE = bandStrict(INK_V6_BAND_CURVE);
+
+
+/* ================= Expansion E1 (inkRev 9, 25 Oct 2026): scored to 200 ================= */
+
+/** inkRev 9's round maximum (roundMax.ts inkbridge): the base's 150 plus INK_FEATURE_MAX. */
+export const INK_EXPAND_MAX = 200;
+/**
+ * inkRev 9's base curve: levels only (10 a level; stars moved to the feature bonus), refit on the
+ * skill-band bots (scripts/ink-expand-bands.ts, 80 seeds a level): the taller levels pot about half a level
+ * fewer at every skill, so each level count takes the inkRev 8 score at the same place in the pooled
+ * distribution, and a player who ignores the clouds and stars lands where they did on inkRev 8. All ten
+ * levels reach 140, plus up to 10 for speed: the base is at most 150.
+ */
+export const INK_V9_BAND_CURVE = bandCurve([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], [0, 42, 56, 71, 86, 97, 106, 116, 126, 132, 140]);
+
+/** inkRev 9: how many stars and trick shots the round offers (levels with a star, levels with a cloud). */
+export function inkFeatureSlots(list: readonly InkLevel[]): { stars: number; tricks: number } {
+  return { stars: list.filter((l) => l.star).length, tricks: list.filter((l) => l.clouds?.length).length };
+}
+
+/** inkRev 9's feature bonus: INK_FEATURE_MAX × the share of the round's stars and trick shots potted (rounded down). */
+export function inkFeatureBonus(stars: number, tricks: number, slots: { stars: number; tricks: number }): number {
+  const total = slots.stars + slots.tricks;
+  if (total <= 0) return 0;
+  const got = clampInt(stars, 0, slots.stars) + clampInt(tricks, 0, slots.tricks);
+  return Math.trunc((INK_FEATURE_MAX * got) / total);
+}
+
+function inkExpandBandParts(state: InkState): BandParts {
+  const units = 10 * clampInt(state.levels, 0, INK_LEVELS);
+  const finished = state.levels >= INK_LEVELS;
+  const speed = finished ? speedBonusCurve(BAND_FINISH_BONUS, INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS), INK_RUN_TICKS) : 0;
+  const slots = inkFeatureSlots(state.list);
+  const stars = state.stars ?? 0;
+  const tricks = state.tricks ?? 0;
+  const feature = inkFeatureBonus(stars, tricks, slots);
+  const featureText = `${stars} / ${slots.stars} stars · ${tricks} / ${slots.tricks} trick shots`;
+  return {
+    units,
+    points: bandPoints(INK_V9_BAND_CURVE, units),
+    bonus: speed + feature,
+    penalty: 0,
+    finished,
+    text: `${state.levels} / ${INK_LEVELS} levels`,
+    bonusText: finished ? `All ten levels, stars and trick shots (${featureText})` : `Stars and trick shots (${featureText})`,
+  };
+}
+
+/** inkRev 9: the taller world with bounce clouds and stars, scored to 200 (band 3 marks the bands' rules: no input scores 0). */
+export const inkBridgeExpandGame: ArcadeGame<InkState, ArcadeInputEvent | null> = {
+  ...inkBridgeGame,
+  init: (seed) => ({ ...initWith(seed, INK_REV_EXPAND), band: BAND_STRICT_MARK, acted: 0 }),
+  inputRanges: INK_TALL_INPUT_RANGES,
+};

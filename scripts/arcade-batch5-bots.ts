@@ -307,7 +307,7 @@ export function playInk(
   game: ArcadeGame<InkState, ArcadeInputEvent | null>,
   seed: number,
   checkpoint: (s: InkState) => unknown,
-  opts: { stars: boolean; failFrom?: number },
+  opts: { stars: boolean; failFrom?: number; /** inkRev 9: draw each cloud level's trick line (it carries that level's star, if any). */ tricks?: boolean },
 ): BotRun<InkState> {
   type Step = { ev: Omit<ArcadeInputEvent, "t">; after?: number; release?: { t0: number; period: number } };
   let queue: Step[] = [];
@@ -325,9 +325,10 @@ export function playInk(
     if (planned !== key) {
       planned = key;
       const lvl = s.list[s.level]!;
-      const useStar = opts.stars && lvl.star && lvl.starRef;
-      const lines = useStar ? lvl.starRef! : lvl.ref;
-      const t0 = useStar ? (lvl.starT0 ?? 0) : lvl.refT0;
+      const useTrick = opts.tricks && lvl.trickRef;
+      const useStar = !useTrick && opts.stars && lvl.star && lvl.starRef;
+      const lines = useTrick ? lvl.trickRef! : useStar ? lvl.starRef! : lvl.ref;
+      const t0 = useTrick ? (lvl.trickT0 ?? 0) : useStar ? (lvl.starT0 ?? 0) : lvl.refT0;
       queue = [];
       for (const pts of lines) {
         queue.push({ ev: { k: INK_INPUT_STROKE, a: pts[0]!, b: pts[1]!, c: 1, d: 0 } });

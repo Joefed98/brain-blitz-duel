@@ -136,7 +136,7 @@ eq(inkRev4Score(INK_LEVELS - 1, INK_STAR_LEVELS, 0), SPLIT_PARTIAL_MAX.inkbridge
 for (const game of [orbitGame, orbitRev3Game] as const) {
   eq(game.score({ ...game.init(1), best: ORBIT_TOTAL - 1, finished: 0 } as never), SPLIT_PARTIAL_MAX.orbit, "Orbit partial max");
 }
-for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to 150"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to 150"], ["inkbridge", "All 10 levels quickly: up to 150"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
+for (const [type, goal] of [["balltrack", "Get all 30 home quickly for up to 150"], ["bintoss", "All 10 in for 10 more"], ["breaker", "Clear all 80 quickly for up to 150"], ["inkbridge", "All 10 quickly: up to 200"], ["swing", "Reach 500 metres for 10 more"], ["tilt", "All 4 quickly: up to 150"]] as const) {
   eq(INTRO_SCORE[type].includes(goal), true, `${type} intro goal`);
 }
 // Scrumper and Mixed Signals are not on the split: no partial cap at 130.

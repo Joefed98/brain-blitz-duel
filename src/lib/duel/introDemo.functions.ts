@@ -1,6 +1,6 @@
 import { CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { SWING_REV_TALL } from "@/lib/arcade/swing";
-import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
+import { INK_REV_EXPAND } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
@@ -75,7 +75,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // help, so Strikeout's demo stays stopped until one is recorded on a rev-4 puzzle.
     if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV4) return null;
     // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
-    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV3 && demo.puzzle.inkRev !== INK_REV4 && demo.puzzle.inkRev !== INK_REV_BAND && demo.puzzle.inkRev !== INK_REV_TUNEC) return null;
+    // Expansion E1 (inkRev 9): a taller world with bounce clouds; only a demo recorded on it plays (the still shows until then).
+    if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_EXPAND) return null;
     // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
     // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
     if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV) return null;

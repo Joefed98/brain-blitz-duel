@@ -15,9 +15,14 @@ import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
  */
 export const EXPANDED: Partial<Record<LiveBandGame, { rev: number; bands: number }>> = {
   cross: { rev: 8, bands: 7 }, // Expansion E1: Jaywalk crossRev 8
+  inkbridge: { rev: 9, bands: 8 }, // Expansion E1: Rainbow Bridge inkRev 9
 };
 /** The score-bands revision (19 Oct 2026) of a game: LIVE_BANDS' rev, or the one an expansion builds on. */
 const bandsRevOf = (type: LiveBandGame): number => EXPANDED[type]?.bands ?? LIVE_BANDS[type].rev;
+/** The same table as [dealt, score-bands revision] pairs. */
+export const EXPANSION_REVS: Partial<Record<LiveBandGame, readonly [dealt: number, strictBefore: number]>> = Object.fromEntries(
+  Object.entries(EXPANDED).map(([type, e]) => [type, [e!.rev, e!.bands] as const]),
+);
 
 /**
  * type → [the target revision (18 Oct 2026), the revision whose play it keeps]. Rooms now deal the score-bands

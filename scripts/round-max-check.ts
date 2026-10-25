@@ -47,6 +47,7 @@ const TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /** Games an expansion has raised to 200 (one entry per game; docs/scoring-200.md). Every other game is 150. */
 const RAISED: ReadonlySet<string> = new Set<string>([
   "cross", // Expansion E1: Jaywalk crossRev 8
+  "inkbridge", // Expansion E1: Rainbow Bridge inkRev 9
 ]);
 const todayMax = (type: string) => (RAISED.has(type) ? 200 : 150);
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */

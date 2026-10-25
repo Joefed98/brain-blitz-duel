@@ -834,15 +834,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Draw a line,", detail: "then tap RELEASE to drop." },
         { action: "Levels 9-10:", detail: "keep drawing as the coin falls." },
-        { action: "Gold star:", detail: "roll through it for +2." },
+        { action: "Clouds, stars:", detail: "bounce or roll through: bonus." },
         { action: "Levels 1-4", detail: "Draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5-8", detail: "The pot moves! Time your release so the coin rolls into it.", helpOnly: true },
         { action: "Levels 9-10: LIVE", detail: "Draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can't draw through birds or near the coin.", helpOnly: true },
-        { action: "Gold stars:", detail: "four of levels 1-8 have one, on a harder route. Roll the coin through it and into the pot for 2 bonus points. You never need it to finish the level.", helpOnly: true },
+        { action: "Bounce clouds:", detail: "some of levels 1-8 have a springy cloud that throws the coin back up. Pot the coin after it bounces off one for a trick shot. You never need it to finish the level.", helpOnly: true },
+        { action: "Gold stars:", detail: "most of levels 1-8 have one, on a harder route (on a cloud level, high up where the bounce takes the coin). Roll the coin through it and into the pot. You never need it either.", helpOnly: true },
         { action: "Ink is limited", detail: "Each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "Three failed drops", detail: "and you're out.", helpOnly: true },
       ],
-      score: liveBandHelp("inkbridge", "Each level counts 10 and each gold star 2.", { more: "More levels and stars", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer." }),
+      score: liveBandHelp("inkbridge", "Each level counts 10.", { more: "More levels", good: (u) => `counts ${u} – about ${Math.round(u / 10)} levels`, finish: "All ten levels adds up to 10 for speed: the full 10 with at least half the time left, falling to 0 at the buzzer. Gold stars and trick shots add up to 50 more, shared out over every star and cloud in the run (all of them: the full 50)." }),
     },
 
     burst: {
