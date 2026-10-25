@@ -1305,7 +1305,9 @@ export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
 export const swingFxFor = (s: SwingState): ArcadeFxSpec<SwingState> => fxSpecAt(SWING_FX, swingWorldH(s));
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
-export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => fxSpecAt(ORBIT3_FX, orbitViewH(s));
+/** orbitRev 11 (world expansion): the same events in the wider 450 × 782 view. */
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: 782 };
+export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);

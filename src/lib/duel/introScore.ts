@@ -106,7 +106,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
-    orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
+    orbit: "Points for each planet you reach and the sun. Stardust, slingshots, threaded fields and perfect orbits take you to {max}.",
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
     swing: `Points for distance and stars. Reach ${SWING_FINISH_M} metres for 10 more.`,
     tilt: `Points for each maze, how close you get, and stars. All ${TILT_MAX_MAZES} quickly: up to {max}.`,

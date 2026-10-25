@@ -26,8 +26,8 @@ import { SKYLINE_REV_STRICT, SKYLINE_V6_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_STRICT, BRK_V8_BAND_CURVE } from "./breaker";
 import { TILT_REV_STRICT, TILT_V6_BAND_CURVE } from "./tilt";
-import { ORBIT_REV_STRICT } from "./orbit";
-import { ORBIT_V10_BAND_CURVE } from "./orbitRev3";
+import { ORBIT_REV_XP } from "./orbit";
+import { ORBIT_V11_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_STRICT, BEAT_V8_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_V8_BAND_CURVE } from "./slice";
 import { BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "./burst";
@@ -59,7 +59,7 @@ export const LIVE_BANDS = {
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   breaker: { field: "brkRev", rev: BRK_REV_STRICT, curve: BRK_V8_BAND_CURVE },
   tilt: { field: "tiltRev", rev: TILT_REV_STRICT, curve: TILT_V6_BAND_CURVE },
-  orbit: { field: "orbitRev", rev: ORBIT_REV_STRICT, curve: ORBIT_V10_BAND_CURVE },
+  orbit: { field: "orbitRev", rev: ORBIT_REV_XP, curve: ORBIT_V11_BAND_CURVE },
   beat: { field: "beatRev", rev: BEAT_REV_STRICT, curve: BEAT_V8_BAND_CURVE },
   slice: { field: "sliceRev", rev: SLICE_REV_STRICT, curve: SLICE_V8_BAND_CURVE },
   burst: { field: "burstRev", rev: BURST_REV_STRICT, curve: BURST_V6_BAND_CURVE },

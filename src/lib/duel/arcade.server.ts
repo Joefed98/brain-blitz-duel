@@ -17,10 +17,10 @@ import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT } from "@/lib/arcade/pinball";
 import { WHACK_REV_BANDS } from "@/lib/arcade/whack";
 import { WAV_REV_TARGET, WAV_REV_STRICT } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_XP } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_STRICT } from "@/lib/arcade/beat";
-import { orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitExtrasForBankSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { CLAY_REV_QUICK } from "@/lib/arcade/clayShoot";
@@ -200,6 +200,10 @@ export function generateOrbit(): OrbitPuzzleData {
   // Rev 8 (taller worlds, batch 3): rev-7 play framed in a taller 390 × 650 view.
   const bankSeed = orbitRev3BankEntryForSeed(seed)?.seed;
   const holes = bankSeed === undefined ? null : orbitHolesForBankSeed(bankSeed);
+  // Rev 11 (world expansion, 25 Oct 2026): a course with proved features (scripts/orbit-xp-bank.ts) in the bigger
+  // view; a course without them keeps rev 10.
+  const extras = bankSeed === undefined || !holes ? null : orbitExtrasForBankSeed(bankSeed);
+  if (extras) return { type: "orbit", seed, orbitRev: ORBIT_REV_XP, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [], extras };
   return { type: "orbit", seed, orbitRev: ORBIT_REV_STRICT, planets: encodeRev3Planets(bankPlanets), holes: holes ?? [] };
 }
 

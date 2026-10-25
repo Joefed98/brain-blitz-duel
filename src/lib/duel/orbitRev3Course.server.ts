@@ -9,7 +9,8 @@ import { ORBIT_TOTAL, planetShape, type Planet } from "@/lib/arcade/orbit";
 import { ORBIT_REV3_WORLD_W, initRev3From, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
 import { ORBIT_REV3_BANK, type OrbitRev3BankEntry } from "./orbitRev3Bank.server";
 import { ORBIT_HOLE_BANK } from "./orbitHoleBank.server";
-import type { OrbitHoleRow } from "@/lib/arcade/orbitRev3";
+import type { OrbitExtrasRow, OrbitHoleRow } from "@/lib/arcade/orbitRev3";
+import { ORBIT_XP_BANK } from "./orbitXpBank.server";
 
 export { encodeRev3Planets, decodeRev3Planets, type OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { decodeRev3Planets } from "@/lib/arcade/orbitRev3";
@@ -31,6 +32,12 @@ export function orbitHolesForBankSeed(bankSeed: number): OrbitHoleRow[] | null {
   return ORBIT_HOLE_BY_SEED.get(bankSeed) ?? null;
 }
 const ORBIT_HOLE_BY_SEED = new Map(ORBIT_HOLE_BANK.map((entry) => [entry.seed, entry.holes]));
+
+/** orbitRev 11: a bank course's proved features (stardust, slingshot moons, asteroid fields), or null when it has none. */
+export function orbitExtrasForBankSeed(bankSeed: number): OrbitExtrasRow | null {
+  return ORBIT_XP_BY_SEED.get(bankSeed) ?? null;
+}
+const ORBIT_XP_BY_SEED = new Map(ORBIT_XP_BANK.map((entry) => [entry.seed, entry.extras]));
 
 /** Proved planets for a room seed, straight from the bank (null if the bank is empty). */
 export function orbitRev3PlanetsForSeed(seed: number): Planet[] | null {

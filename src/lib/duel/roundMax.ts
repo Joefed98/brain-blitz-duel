@@ -97,7 +97,7 @@ export const ROUND_MAX: Readonly<Record<PuzzleType, number>> = {
   inkbridge: 150,
   junction: 150,
   matchup: 150,
-  orbit: 150,
+  orbit: 200,
   rally: 150,
   skyline: 150,
   slice: 150,

@@ -1,5 +1,5 @@
 import type { BtCourse } from "@/lib/arcade/ballTrack";
-import type { OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
+import type { OrbitExtrasRow, OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import type { RemovedPuzzleType } from "./removedGames";
 export type PuzzleType =
   | "wordsmith"
@@ -2035,12 +2035,14 @@ export interface OrbitPuzzleData {
   type: "orbit";
   /** Draws the planet course — identical for everyone. */
   seed: number;
-  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; absent = legacy fixed-camera course. */
+  /** 3 = wider zig-zag world with a scrolling camera; 4 = black holes; 5 = score bands; 6 = fly-in (Tuning A); 7 = swept black holes (Tuning F); 8 = rev 7 in a taller 390 × 650 view; 11 = world expansion (450 × 782 view, extras); absent = legacy fixed-camera course. */
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
   /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
+  /** orbitRev 11 (world expansion): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts). */
+  extras?: OrbitExtrasRow;
 }
 
 export interface SwingPuzzleData {
