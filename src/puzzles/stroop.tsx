@@ -4,6 +4,7 @@ import { colourClashArtGameFor, drawClashFinish } from "@/lib/arcade/colourClash
 import { playOverlayFx, registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { colourClashSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { stroopFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArrowPad } from "@/components/puzzles/GridDrag";
 import { clashTapPayload } from "@/components/puzzles/tapMapping";
 import { CLASH_QUEUE, CLASH_REV_TALL, clashVariantOf, clashWorldHFor, CLASH_CHECKPOINT_INTERVAL, CLASH_DROP, CLASH_INPUT_LANE, CLASH_MOVE_LEFT, CLASH_MOVE_RIGHT, CLASH_WORLD_W, clashCheckpoint, type ClashState } from "@/lib/arcade/colourClash";
@@ -47,7 +48,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
   }).current;
   if (puzzle.type !== "stroop") return null;
-  return <div ref={column} data-stage-column="" data-polish="stroop" className="flex min-h-0 w-full flex-1 flex-col"><ArcadeCanvasStage diagKey="stroop" completeCue={() => "stroop.gatesFlash"} sounds={sounds} label={`${gameDisplayName("stroop")} lane board`} background="#07070D" fitWorld seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={clashWorldHFor(clashVariantOf(puzzle))} game={colourClashArtGameFor(clashVariantOf(puzzle))} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={(answer) => { fireFinish(); onSubmit(answer); }} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
+  return <div ref={column} data-stage-column="" data-polish="stroop" className="flex min-h-0 w-full flex-1 flex-col"><ArcadeCanvasStage diagKey="stroop" completeCue={() => "stroop.gatesFlash"} sounds={sounds} label={`${gameDisplayName("stroop")} lane board`} background="#07070D" fitWorld scene={stroopFill} seed={puzzle.seed} enabled locked={locked} worldW={CLASH_WORLD_W} worldH={clashWorldHFor(clashVariantOf(puzzle))} game={colourClashArtGameFor(clashVariantOf(puzzle))} checkpoint={clashCheckpoint} interval={CLASH_CHECKPOINT_INTERVAL} encodeRun={encodeColourClashRun} inputKind={CLASH_INPUT_LANE} discrete onSubmit={(answer) => { fireFinish(); onSubmit(answer); }} onDraftAnswer={onDraftAnswer} footer={(send) => <ArrowPad directions={["L", "D", "R"]} disabled={locked} onPress={(dir) => send({ k: CLASH_INPUT_LANE, a: dir === "L" ? CLASH_MOVE_LEFT : dir === "R" ? CLASH_MOVE_RIGHT : CLASH_DROP, b: 0, c: 0 })} />} pointer={(kind, x, y) => {
     if (kind === "down") { down.current = { x, y }; return null; }
     if (kind !== "up" || !down.current) return null;
     const from = down.current; down.current = null;

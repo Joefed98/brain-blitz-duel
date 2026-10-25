@@ -19,7 +19,7 @@ const SCENE_FILES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   bintoss: "binToss", clayshoot: "clayShoot", flip: "flip", inkbridge: "inkBridge", cross: "cross",
   hover: "hover", breaker: "breaker", rally: "rally", beat: "beat", snake: "snake", burst: "burst",
   wavefront: "wavefront", orbit: "orbit", skyline: "skyline", slice: "slice", bubble: "bubble",
-  swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball",
+  swing: "swing", snip: "snip", balltrack: "ballTrack", pinball: "pinball", stroop: "stroop",
 };
 const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   matchup: "the sparkly purple velvet over the whole screen, behind the header too (world centred)",
@@ -47,6 +47,7 @@ const ARENA_SCENE_NOTES: Record<(typeof ARENA_SCENE_GAMES)[number], string> = {
   snip: "the orchard grass runs on below, a deeper green (world centred)",
   balltrack: "the wooden board runs on across the sides and to the bottom",
   pinball: "the dark table, five retro lamps lit by the table's good moments (world centred)",
+  stroop: "the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow",
 };
 
 // Markup and analytic geometry only: no browser and no simulated layout engine.

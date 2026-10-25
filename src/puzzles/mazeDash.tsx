@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { memo, useEffect, useId, useMemo, useRef } from "react";
+import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { GoalLineContext } from "@/components/duel/GameFrame";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
@@ -43,33 +45,33 @@ type Wall = { x1: number; y1: number; x2: number; y2: number };
  * (pattern, deterministic), then every wall three times for depth — a drop shadow,
  * the stone body and a thin lit top edge. Walls sit on the same grid lines as before.
  */
-const MazeWalls = memo(function MazeWalls({ cells, cols, rows }: { cells: number[]; cols: number; rows: number }) {
+const MazeWalls = memo(function MazeWalls({ cells, cols, rows, k = 1 }: { cells: number[]; cols: number; rows: number; k?: number }) {
   const id = useId().replace(/:/g, "");
   const walls: Wall[] = [];
   cells.forEach((mask, cell) => {
     const col = cell % cols;
     const row = Math.floor(cell / cols);
-    if (!(mask & MAZE_N)) walls.push({ x1: col, y1: row, x2: col + 1, y2: row });
-    if (!(mask & MAZE_W)) walls.push({ x1: col, y1: row, x2: col, y2: row + 1 });
+    if (!(mask & MAZE_N)) walls.push({ x1: col, y1: row * k, x2: col + 1, y2: row * k });
+    if (!(mask & MAZE_W)) walls.push({ x1: col, y1: row * k, x2: col, y2: (row + 1) * k });
     if (!(mask & MAZE_S) && row === rows - 1)
-      walls.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
+      walls.push({ x1: col, y1: (row + 1) * k, x2: col + 1, y2: (row + 1) * k });
     if (!(mask & MAZE_E) && col === cols - 1)
-      walls.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
+      walls.push({ x1: col + 1, y1: row * k, x2: col + 1, y2: (row + 1) * k });
   });
   const d = walls.map((w) => `M${w.x1} ${w.y1}L${w.x2} ${w.y2}`).join("");
   return (
     <g>
       <defs>
-        <pattern id={`maze-floor-${id}`} width="2" height="2" patternUnits="userSpaceOnUse">
-          <rect width="2" height="2" fill="var(--maze-floor)" />
-          <rect width="1" height="1" fill="var(--maze-floor-alt)" />
-          <rect x="1" y="1" width="1" height="1" fill="var(--maze-floor-alt)" />
-          <circle cx="0.3" cy="0.7" r="0.05" fill="var(--maze-floor-speck)" />
-          <circle cx="1.65" cy="0.35" r="0.06" fill="var(--maze-floor-speck)" />
-          <circle cx="1.2" cy="1.6" r="0.04" fill="var(--maze-floor-speck)" />
+        <pattern id={`maze-floor-${id}`} width="2" height={2 * k} patternUnits="userSpaceOnUse">
+          <rect width="2" height={2 * k} fill="var(--maze-floor)" />
+          <rect width="1" height={k} fill="var(--maze-floor-alt)" />
+          <rect x="1" y={k} width="1" height={k} fill="var(--maze-floor-alt)" />
+          <circle cx="0.3" cy={0.7 * k} r="0.05" fill="var(--maze-floor-speck)" />
+          <circle cx="1.65" cy={0.35 * k} r="0.06" fill="var(--maze-floor-speck)" />
+          <circle cx="1.2" cy={1.6 * k} r="0.04" fill="var(--maze-floor-speck)" />
         </pattern>
       </defs>
-      <rect width={cols} height={rows} fill={`url(#maze-floor-${id})`} />
+      <rect width={cols} height={rows * k} fill={`url(#maze-floor-${id})`} />
       {/* Polish batch S: a wide, faint ambient shadow under every wall for depth (display only). */}
       <path d={d} transform="translate(0.09 0.13)" stroke="rgba(0,0,0,0.28)" strokeWidth={0.3} strokeLinecap="round" fill="none" />
       <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
@@ -89,7 +91,14 @@ function MazeBoard({
   ghost,
   onCell,
   onRelease,
+  k = 1,
 }: {
+  /**
+   * Polish batch S (display only): each cell's height over its width. A live round's frame passes more
+   * than 1 where the arena has spare height, so the maze grows taller; touches map through the board's
+   * own box (gridCellAt), so the same cells answer the same touches. Circles stay round.
+   */
+  k?: number;
   cells: number[];
   cols?: number;
   start: number;
@@ -108,14 +117,16 @@ function MazeBoard({
   const cellAt = (clientX: number, clientY: number): number | null =>
     gridCellAt(box.current, clientX, clientY, cols, rows);
 
-  const centre = (cell: number) => `${(cell % cols) + 0.5},${Math.floor(cell / cols) + 0.5}`;
+  const cx = (cell: number) => (cell % cols) + 0.5;
+  const cy = (cell: number) => (Math.floor(cell / cols) + 0.5) * k;
+  const centre = (cell: number) => `${cx(cell)},${cy(cell)}`;
 
   return (
     <div
       ref={box}
       className="maze-board relative mx-auto aspect-square h-full max-h-full w-full max-w-full touch-none select-none rounded-lg bg-card p-1"
       data-maze-board=""
-      style={{ touchAction: "none" }}
+      style={k === 1 ? { touchAction: "none" } : { touchAction: "none", aspectRatio: `${cols} / ${rows * k}` }}
       onPointerDown={(event) => {
         if (!onCell) return;
         event.preventDefault();
@@ -135,7 +146,7 @@ function MazeBoard({
       onPointerUp={() => onRelease?.()}
       onPointerCancel={() => onRelease?.()}
     >
-      <svg viewBox={`0 0 ${cols} ${rows}`} className="h-full w-full" aria-hidden="true">
+      <svg viewBox={`0 0 ${cols} ${rows * k}`} className="h-full w-full" aria-hidden="true">
         {/* Polish batch S (display only): the glossy ball, the exit's glow and the star's light. */}
         <defs>
           <radialGradient id={`maze-ball-${gid}`} cx="0.36" cy="0.32" r="0.75">
@@ -153,10 +164,10 @@ function MazeBoard({
             <stop offset="1" stopColor="#C98A12" />
           </linearGradient>
         </defs>
-        <MazeWalls cells={cells} cols={cols} rows={rows} />
+        <MazeWalls cells={cells} cols={cols} rows={rows} k={k} />
         {/* Start pad and exit tile: clear ends, drawn on the floor under the route. */}
-        <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) + 0.08} width={0.84} height={0.84} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
-        <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) + 0.08} width={0.84} height={0.84} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />
+        <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
+        <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />
         {ghost && ghost.length > 1 && (
           <polyline
             points={ghost.map(centre).join(" ")}
@@ -180,21 +191,21 @@ function MazeBoard({
           />
         )}
         <circle
-          cx={(start % cols) + 0.5}
-          cy={Math.floor(start / cols) + 0.5}
+          cx={cx(start)}
+          cy={cy(start)}
           r={0.18}
           fill="var(--maze-start)"
         />
         {/* Goal: a gold star flag marking the exit cell, lit by a soft halo inside its cell. */}
         <circle
           className="maze-exit-glow"
-          cx={(exit % cols) + 0.5}
-          cy={Math.floor(exit / cols) + 0.5}
+          cx={cx(exit)}
+          cy={cy(exit)}
           r={0.5}
           fill={`url(#maze-halo-${gid})`}
         />
         <polygon
-          points={starPoints((exit % cols) + 0.5, Math.floor(exit / cols) + 0.5, 0.32, 0.14)}
+          points={starPoints(cx(exit), cy(exit), 0.32, 0.14)}
           fill={`url(#maze-star-${gid})`}
           stroke="#7A4E06"
           strokeWidth={0.025}
@@ -206,18 +217,18 @@ function MazeBoard({
           const head = path.length ? path[path.length - 1]! : start;
           return (
             <g data-maze-ball="">
-              <circle cx={(head % cols) + 0.5} cy={Math.floor(head / cols) + 0.5} r={0.42} fill={`url(#maze-halo-${gid})`} />
-              <ellipse cx={(head % cols) + 0.53} cy={Math.floor(head / cols) + 0.7} rx={0.2} ry={0.07} fill="rgba(0,0,0,0.45)" />
+              <circle cx={cx(head)} cy={cy(head)} r={0.42} fill={`url(#maze-halo-${gid})`} />
+              <ellipse cx={cx(head) + 0.03} cy={cy(head) + 0.2} rx={0.2} ry={0.07} fill="rgba(0,0,0,0.45)" />
               <circle
-                cx={(head % cols) + 0.5}
-                cy={Math.floor(head / cols) + 0.5}
+                cx={cx(head)}
+                cy={cy(head)}
                 r={0.24}
                 fill={`url(#maze-ball-${gid})`}
                 stroke="rgba(90,55,0,0.6)"
                 strokeWidth={0.02}
                 style={{ filter: "drop-shadow(0 0 0.14px var(--primary)) drop-shadow(0 0 0.28px var(--primary))" }}
               />
-              <ellipse cx={(head % cols) + 0.43} cy={Math.floor(head / cols) + 0.41} rx={0.08} ry={0.05} fill="rgba(255,255,255,0.85)" />
+              <ellipse cx={cx(head) - 0.07} cy={cy(head) - 0.09} rx={0.08} ry={0.05} fill="rgba(255,255,255,0.85)" />
             </g>
           );
         })()}
@@ -262,6 +273,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   const [path, setPath] = useStageState<number[]>(stateKey, "mazePath", () => [start]);
   const submitted = useRef(false);
   const arenaRef = useRef<HTMLDivElement>(null);
+  // Polish batch S: on a live round the arena takes the spare height (batch-s.css) and the maze grows
+  // into it with taller cells, measured before the first paint so nothing moves (display only).
+  const framed = useContext(GoalLineContext) !== null;
+  const [k, setK] = useState(1);
+  useBeforePaint(() => {
+    const arena = arenaRef.current;
+    if (!framed || !arena) return;
+    const read = () => {
+      const w = arena.clientWidth;
+      const h = arena.clientHeight;
+      if (w < 1 || h < 1) return;
+      setK(Math.round(Math.min(1.32, Math.max(1, h / w)) * 1000) / 1000);
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(arena);
+    return () => observer.disconnect();
+  }, [framed]);
   const trace = useRef<(route: number[]) => void>(() => undefined);
   trace.current = (route) => {
     const board = arenaRef.current?.querySelector("[data-maze-board]");
@@ -339,7 +368,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
       </p>
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
-        <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} />
+        <MazeBoard cells={cells} start={start} exit={exit} path={path} onCell={touch} k={k} />
       </div>
 
        <div data-game-controls="pad" className="flex shrink-0 flex-col items-center justify-center">

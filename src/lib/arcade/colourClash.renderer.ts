@@ -121,16 +121,21 @@ export function paintGate(c: Ctx, colour: string, w: number): void {
   const x = GLOW, y = WASH;
   const wash = c.createLinearGradient(0, 0, 0, y);
   wash.addColorStop(0, "rgba(0,0,0,0)"); wash.addColorStop(1, colour);
-  c.globalAlpha = 0.16; c.fillStyle = wash; c.fillRect(x + 2, 0, w - 4, y);
+  // Polish batch S: a stronger wash and a doubled halo, so each gate glows in its colour (same footprint).
+  c.globalAlpha = 0.34; c.fillStyle = wash; c.fillRect(x + 2, 0, w - 4, y);
   c.globalAlpha = 1;
   c.save();
   c.shadowColor = colour; c.shadowBlur = GLOW;
-  c.fillStyle = colour; roundRect(c, x, y, w, GATE_H, 4); c.fill();
+  c.fillStyle = colour; roundRect(c, x, y, w, GATE_H, 4); c.fill(); c.fill();
   c.restore();
+  // Body: lit from the top (about 20 % lighter there than at the bottom), a bright top edge, a dark base.
+  const body = c.createLinearGradient(0, y, 0, y + GATE_H);
+  body.addColorStop(0, "rgba(255,255,255,0.34)"); body.addColorStop(0.45, "rgba(255,255,255,0.06)"); body.addColorStop(1, "rgba(0,0,0,0.22)");
   c.fillStyle = colour; roundRect(c, x, y, w, GATE_H, 4); c.fill();
   c.save(); roundRect(c, x, y, w, GATE_H, 4); c.clip();
-  c.fillStyle = "rgba(255,255,255,0.28)"; c.fillRect(x, y, w, 3);
-  c.fillStyle = "rgba(0,0,0,0.18)"; c.fillRect(x, y + GATE_H - 4, w, 4);
+  c.fillStyle = body; c.fillRect(x, y, w, GATE_H);
+  c.fillStyle = "rgba(255,255,255,0.55)"; c.fillRect(x + 3, y, w - 6, 1.5);
+  c.fillStyle = "rgba(0,0,0,0.2)"; c.fillRect(x, y + GATE_H - 3, w, 3);
   c.restore();
 }
 
@@ -142,19 +147,24 @@ export function paintGate(c: Ctx, colour: string, w: number): void {
 function paintLaneGlow(c: Ctx, colour: string, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "rgba(0,0,0,0)");
-  g.addColorStop(0.55, "rgba(0,0,0,0)");
+  g.addColorStop(0.3, "rgba(0,0,0,0)");
   g.addColorStop(1, colour);
-  c.globalAlpha = 0.11; c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.globalAlpha = 0.3; c.fillRect(0, 0, 1, h); c.fillRect(w - 1, 0, 1, h);
+  c.globalAlpha = 0.24; c.fillStyle = g; c.fillRect(0, 0, w, h);
+  // Lit rails in the gate's colour, brightest near the gate, with a soft inner glow beside each.
+  const rail = c.createLinearGradient(0, 0, 0, h);
+  rail.addColorStop(0, "rgba(0,0,0,0)"); rail.addColorStop(1, colour);
+  c.fillStyle = rail;
+  c.globalAlpha = 0.7; c.fillRect(0, 0, 1, h); c.fillRect(w - 1, 0, 1, h);
+  c.globalAlpha = 0.18; c.fillRect(1, 0, 5, h); c.fillRect(w - 6, 0, 5, h);
   c.globalAlpha = 1;
 }
 
 /** Selected lane: a lit well with corner brackets. */
 function paintSelected(c: Ctx, w: number, h: number): void {
   const g = c.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "rgba(255,255,255,0.035)"); g.addColorStop(1, "rgba(255,255,255,0.075)");
+  g.addColorStop(0, "rgba(255,255,255,0.05)"); g.addColorStop(1, "rgba(255,255,255,0.13)");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.fillStyle = "rgba(255,255,255,0.22)";
+  c.fillStyle = "rgba(255,255,255,0.4)";
   for (const [x, y, sx, sy] of [[0, 0, 1, 1], [w, 0, -1, 1], [0, h, 1, -1], [w, h, -1, -1]] as const) {
     c.fillRect(sx > 0 ? x : x - 10, sy > 0 ? y : y - 2, 10, 2);
     c.fillRect(sx > 0 ? x : x - 2, sy > 0 ? y : y - 10, 2, 10);
@@ -236,8 +246,18 @@ function draw(ctx: CanvasRenderingContext2D, state: ClashState, size: CanvasSize
     const word = CLASH_NAMES[current.word]!;
     ctx.font = "bold 30px ui-sans-serif, sans-serif";
     const w = ctx.measureText(word).width + 18;
-    ctx.fillStyle = "rgba(14,14,22,0.88)"; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = 1; ctx.stroke();
+    // Polish batch S: the plate lifted (neutral only, so the ink is never tinted): a soft white halo and
+    // drop shadow, a body lit about 20 % lighter at the top, a bright top edge.
+    ctx.save();
+    ctx.shadowColor = "rgba(255,255,255,0.28)"; ctx.shadowBlur = 12;
+    ctx.fillStyle = "rgba(14,14,22,0.92)"; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "rgba(0,0,0,0.45)"; roundRect(ctx, x - w / 2 + 1, y + 8, w - 2, 4, 3); ctx.fill();
+    const plate = ctx.createLinearGradient(0, y - 28, 0, y + 8);
+    plate.addColorStop(0, "#2A2A36"); plate.addColorStop(1, "#111119");
+    ctx.fillStyle = plate; roundRect(ctx, x - w / 2, y - 28, w, 36, 9); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(x - w / 2 + 8, y - 28, w - 16, 1);
     ctx.lineJoin = "round"; ctx.lineWidth = 4; ctx.strokeStyle = BG; ctx.strokeText(word, x, y);
     ctx.fillStyle = CLASH_COLOURS[current.ink]!; ctx.fillText(word, x, y);
   }
