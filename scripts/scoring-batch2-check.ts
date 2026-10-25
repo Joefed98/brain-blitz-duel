@@ -46,7 +46,7 @@ import { REV2_IDENTITY_KNOTS, rev2KnotsFor, rev2KnotsForPuzzle } from "../src/li
 import { flashDecoyCut, replayFlash, TAP_REV_ONE_CURVE, TAP_REV_SPEED_TUNING } from "../src/lib/duel/tapLog";
 import { isWordHuntMiss, wordFromPath } from "../src/lib/duel/wordHunt.server";
 import { isWord } from "../src/lib/duel/dictionary.server";
-import { TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
+import { TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV, tenDropScore, TD_RUN_TICKS } from "../src/lib/arcade/tenDrop";
 import { CLAY_QUICK_STEPS, CLAY_REV_QUICK, clayQuickScore } from "../src/lib/arcade/clayShoot";
 import { CLASH_GREAT_MAP, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { bandMapTotal } from "../src/lib/arcade/scoreBands";
@@ -69,7 +69,8 @@ const dealt = (type: PuzzleType, field: string) => (generatePuzzle(type) as unkn
 ok(dealt("wordsmith", "wordsmithRev") === WORDSMITH_REV_ONE_CURVE, "Nucleus: rooms deal wordsmithRev 2");
 ok(dealt("wordhunt", "wordHuntRev") === WORDHUNT_REV_MISSES, "Forage: rooms deal wordHuntRev 2");
 ok(dealt("reaction", "tapRev") === TAP_REV_ONE_CURVE && dealt("stopwatch", "tapRev") === TAP_REV_ONE_CURVE, "Flash and Bang On: rooms deal tapRev 4");
-ok(dealt("tendrop", "tenRev") === TEN_DROP_RAW_REV, "Tenfall: rooms deal tenRev 3");
+// Tenfall: tenRev 3 until the depth-to-200 tenRev 4 (25 Oct 2026, tendrop-depth-check); the runs below stay pinned to tenRev 3.
+ok(dealt("tendrop", "tenRev") === TEN_DROP_RAW_REV || dealt("tendrop", "tenRev") === TEN_DROP_DEPTH_REV, "Tenfall: rooms deal tenRev 3 (or the later tenRev 4)");
 ok(dealt("clayshoot", "clayRev") === CLAY_REV_QUICK, "Pull!: rooms deal clayRev 8");
 ok(dealt("stroop", "clashRev") === CLASH_REV_GREAT, "Mixed Signals: rooms deal clashRev 7");
 ok(isRetired("wordfall") && !ACTIVE_PUZZLE_TYPES.includes("wordfall") && PUZZLE_REGISTRY.wordfall !== undefined, "Letterfall: practice only, still registered");
@@ -230,7 +231,8 @@ if (process.argv.includes("--record")) {
 const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { runs: Run[] };
 const scores: Record<string, Record<string, number[]>> = {};
 for (const run of fixture.runs) {
-  const p = roomPuzzle(run.type, run.seed);
+  // Tenfall's runs were recorded on tenRev 3; rooms deal tenRev 4 since 25 Oct 2026, so they keep their stamp here.
+  const p = run.type === "tendrop" ? ({ ...(roomPuzzle(run.type, run.seed) as object), tenRev: TEN_DROP_RAW_REV } as unknown as PuzzleData) : roomPuzzle(run.type, run.seed);
   const g = quiet(() => gradeAnswer(p, run.answer, 0));
   ok(g.score === run.score && g.isCorrect === run.isCorrect, `${run.type} ${run.label} ${run.seed}: grades to its stored ${run.score} (got ${g.score})`);
   const room = quiet(() => gradeRoomAnswer(p, { phase: "reveal", phaseStartedAt: new Date(100_000).toISOString(), nowMs: 100_100 }, run.answer, 0).graded);
