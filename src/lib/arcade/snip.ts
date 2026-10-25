@@ -1353,7 +1353,7 @@ export const SNIP_X_LEVEL_PLAN = [2, 2, 2] as const;
 export const SNIP_X_FEED_UNITS = 18;
 export const SNIP_X_STAR_UNITS = 2;
 export const SNIP_X_UNITS_TOP = SNIP_X_LEVELS * (SNIP_X_FEED_UNITS + SNIP_X_STAR_UNITS);
-/** The feature bonus (to 50): 5 a golden apple fed, 2.5 a par level, 2 a level's second star, 8 a perfect run. */
+/** The feature bonus's raw points (to 50, then squared, see snipFeatureBonus): 5 a golden apple fed in time, 2.5 a par level, 2 a level's second star, 8 a perfect run. */
 export const SNIP_X_GOLD_POINTS = 5;
 export const SNIP_X_STAR2_POINTS = 2;
 export const SNIP_X_PERFECT_POINTS = 8;
@@ -1890,15 +1890,24 @@ export function snipCourseUnits(state: SnipState): number {
 /**
  * snipRev 10 knots: units are 18 a level's fruits (shared) and 2 a star, 120 = everything on all six
  * levels = 140; feeding everything adds up to 10 for speed. Fitted with scripts/arcade-skill-bands.ts
- * snip --rev=now (docs/expansions/e8-snip.md) so today's players land about where snipRev 9 put them.
+ * snip --rev=now (docs/expansions/e8-snip.md) so today's players, with their usual share of the
+ * features, land about where snipRev 9 put them (median units: average 87, good 93, great 96, near 100).
  */
-export const SNIP_V10_BAND_CURVE = bandCurve([0, 30, 50, 66, 84, 100, 120], [0, 38, 60, 78, 100, 122, 140]);
+export const SNIP_V10_BAND_CURVE = bandCurve([0, 40, 70, 87, 93, 97, 102, 110, 120], [0, 26, 46, 62, 90, 104, 118, 130, 140]);
 
-/** The feature bonus on a snipRev 10 state (0–50): golden apples, par levels, second leaves, a perfect run. */
-export function snipFeatureBonus(state: SnipState): number {
-  const par = Math.trunc((5 * (state.parLevels ?? 0)) / 2);
+/**
+ * The feature bonus on a snipRev 10 state (0–50). Its raw points: 5 a golden apple fed in time, 2.5 a par
+ * level, 2 a second leaf, 8 for a perfect run (all 50 at the top); the bonus is 50 × (raw ÷ 50)², so a
+ * little use of the features adds little and only strong use of all of them nears 50 (in half points:
+ * raw2 = 2 × raw, bonus = raw2² ÷ 200).
+ */
+export function snipFeatureRaw2(state: SnipState): number {
   const run = (state.perfect ?? 0) >= SNIP_X_LEVELS && (state.golden ?? 0) >= SNIP_X_GOLD_LEVELS.length ? SNIP_X_PERFECT_POINTS : 0;
-  return clampInt(SNIP_X_GOLD_POINTS * (state.golden ?? 0) + par + SNIP_X_STAR2_POINTS * (state.stars2 ?? 0) + run, 0, SNIP_X_FEATURE_MAX);
+  return 2 * SNIP_X_GOLD_POINTS * (state.golden ?? 0) + 5 * (state.parLevels ?? 0) + 2 * SNIP_X_STAR2_POINTS * (state.stars2 ?? 0) + 2 * run;
+}
+export function snipFeatureBonus(state: SnipState): number {
+  const raw2 = clampInt(snipFeatureRaw2(state), 0, 2 * SNIP_X_FEATURE_MAX);
+  return clampInt(Math.trunc((raw2 * raw2) / (4 * SNIP_X_FEATURE_MAX)), 0, SNIP_X_FEATURE_MAX);
 }
 
 export function snipCourseParts(state: SnipState): BandParts {

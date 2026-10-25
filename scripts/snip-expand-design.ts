@@ -60,7 +60,9 @@ function referencePlan(course: Mut, r: ReturnType<typeof rng>): XPlan {
   course.fruits.forEach((f) => {
     f.pins.forEach((_, j) => {
       plan.push([rope++, t]);
-      t += j + 1 < f.pins.length ? 1 : 0;
+      // A fruit's second rope: one swipe on if its pin is close (one stroke), else a separate swipe.
+      const next = f.pins[j + 1];
+      t += next ? (Math.abs(next[0] - f.pins[j]![0]) + Math.abs(next[1] - f.pins[j]![1]) < 60 ? 1 : X_STROKE_GAP + r.int(0, 20)) : 0;
     });
     t += r.int(40, 80);
   });
@@ -80,7 +82,7 @@ interface Built {
 
 /** Lays one candidate course. Null when the build fails. */
 function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
-  const nFruit = band === 0 ? (r.u() < 0.6 ? 1 : 2) : band === 1 ? 2 : r.u() < 0.5 ? 2 : 3;
+  const nFruit = band === 0 ? (r.u() < 0.6 ? 1 : 2) : band === 1 ? 2 : r.u() < 0.7 ? 2 : 3;
   const course: Mut = {
     name: `${r.pick(NAMES)} ${r.pick(SUFFIX)}`,
     band,
@@ -108,7 +110,7 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
   }
   let plan = referencePlan(course, r);
   const side = r.u() < 0.5 ? -1 : 1;
-  const mouthX = side < 0 ? r.int(60, 150) : r.int(210, 300);
+  let mouthX = side < 0 ? r.int(60, 150) : r.int(210, 300);
   course.mouth = [mouthX, MOUTH_Y];
   // Whole px only (the sim is integer): every placement is rounded before it is played.
   const round = () => Object.assign(course, JSON.parse(JSON.stringify(course, (_k, v) => (typeof v === "number" ? Math.round(v) : v))));
@@ -119,8 +121,8 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
   // A hopper over the basket on most courses: two planks sloping into a gap above it.
   const hopperY = MOUTH_Y - 170;
   // A narrow wooden chute on most easy courses and some medium ones (two boards sloping in, two upright).
-  const hopper = r.u() < (band === 0 ? 0.7 : band === 1 ? 0.25 : 0);
-  const span = band === 0 ? 80 : 66;
+  const hopper = nFruit > 1 || r.u() < (band === 0 ? 0.6 : band === 1 ? 0.2 : 0);
+  const span = band === 0 ? 80 : band === 1 ? 66 : 56;
   if (hopper) course.planks!.push([clampX(mouthX - span, 4), hopperY + 20, mouthX - 26, hopperY + 60], [clampX(mouthX + span, 4), hopperY + 20, mouthX + 26, hopperY + 60], [mouthX - 26, hopperY + 60, mouthX - 26, MOUTH_Y - 44], [mouthX + 26, hopperY + 60, mouthX + 26, MOUTH_Y - 44]);
   // Some medium and hard baskets slide (set once the fruit are steered in, see below).
   const slide = !hopper && r.u() < (band === 1 ? 0.3 : band === 2 ? 0.5 : 0) ? ([r.int(30, 55), r.int(200, 300)] as [number, number]) : null;
@@ -175,20 +177,62 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
       e++;
       y += r.int(150, 230);
     }
+    // With no chute, the basket goes where the first fruit lands.
+    if (!hopper && k === 0) {
+      const land = at(play0().paths?.[0] ?? [], MOUTH_Y - 4);
+      if (land) {
+        mouthX = Math.round(Math.max(44, Math.min(316, land[0])));
+        course.mouth = [mouthX, MOUTH_Y];
+      }
+    }
     // Steer it into the hopper (or the basket): up to two deflector planks toward the mouth.
     for (let d = 0; d < 3; d++) {
       const res = play0();
       if (res.fed >= k + 1) break;
-      if (d === 2) return fail("steer");
+      if (process.env.SNIP_DESIGN_DEBUG) {
+        const p = res.paths?.[k] ?? [];
+        console.error(`    steer k${k} d${d} fed ${res.fed} mouth ${mouthX} hopper ${hopper} last ${JSON.stringify(p.at(-1)?.map(Math.round))} at-hopper ${JSON.stringify(at(p, hopperY)?.map(Math.round))} n ${p.length}`);
+      }
+      if (d === 2) {
+        // Tune the last deflector's low end until the fruit drops into the basket.
+        const seg = course.planks!.at(-1);
+        let ok = false;
+        for (let it = 0; seg && it < 12 && !ok; it++) {
+          const rr = play0();
+          if (rr.fed >= k + 1) ok = true;
+          else {
+            const land = at(rr.paths?.[k] ?? [], MOUTH_Y - 30);
+            if (!land) break;
+            seg[2] = clampX(seg[2] - (land[0] - mouthX) * 0.7);
+          }
+        }
+        if (!ok) return fail("steer");
+        break;
+      }
       const p = res.paths?.[k] ?? [];
       const q = at(p, (hopper ? hopperY : MOUTH_Y - 60) - 200 - d * 120);
       if (!q) return fail("steer-path");
       const dx = mouthX - q[0];
       const toward = Math.sign(dx) || side;
+      if (hopper && d === 0) {
+        // A tin gutter (no bounce) from under the fruit down to the chute's near edge.
+        const endX = mouthX - toward * (span - 14);
+        if (Math.abs(endX - q[0]) > 20) course.gutters!.push([clampX(q[0] - toward * 25), q[1] + 16, clampX(endX), Math.max(q[1] + 46, hopperY - 10)]);
+        continue;
+      }
       const len = Math.min(190, Math.max(70, Math.abs(dx) + 20));
       course.planks!.push([clampX(q[0] - toward * 25), q[1] + 16, clampX(q[0] + toward * len), q[1] + 16 + r.int(35, 60)]);
     }
-    const res = play0();
+    let res = play0();
+    // A steer can change a peg's or ring's catch: drop a vine cut whose vine no longer comes.
+    for (let i = plan.length - 1; i >= 0 && res.fed >= k + 1 && !res.valid; i--) {
+      const without = plan.filter((_, j) => j !== i);
+      const r2 = xPlayLevel(course as SnipCourse, 0, 0, -1, without, true);
+      if (r2.valid && r2.fed >= k + 1 && xPaced(without)) {
+        plan = without;
+        res = r2;
+      }
+    }
     if (res.fed < k + 1 || !res.valid) return fail("fed");
   }
 
@@ -219,7 +263,7 @@ function build(band: 0 | 1 | 2, r: ReturnType<typeof rng>): Built | null {
     if (!xPaced(v)) continue;
     const res = xPlayLevel(course as SnipCourse, 0, 0, -1, v, true);
     if (!res.all) continue;
-    const cand = (res.paths ?? []).flat().filter(([x, y]) => y > 560 && y < MOUTH_Y - 160 && Math.min(...pts.map(([px, py]) => Math.hypot(px - x, py - y))) > 44);
+    const cand = (res.paths ?? []).flat().filter(([x, y]) => y > 560 && y < MOUTH_Y - 160 && Math.min(...pts.map(([px, py]) => Math.hypot(px - x, py - y))) > 36);
     if (cand.length) {
       s2 = cand[r.int(0, cand.length - 1)]!;
       break;
@@ -358,6 +402,7 @@ if (import.meta.main) {
     const r = rng(Number(opt("seed") ?? 1) * 7919 + band);
     const kept: { course: SnipCourse; plan: XPlan; proofs: Record<string, XDealProof>; tol: number }[] = [];
     for (let tries = 0; kept.length < count && tries < count * 80; tries++) {
+      if (tries % 20 === 19) console.error(`  ${tries + 1} tries: ${JSON.stringify(FAILS)}`);
       const b = build(band, r);
       if (!b) continue;
       const tol = tolerance(b.course as SnipCourse, b.plan);
@@ -376,6 +421,8 @@ if (import.meta.main) {
       b.course.par = Math.max(...values.map((p) => p.bestStrokes));
       if (proved.golds.length < b.course.fruits.length) b.course.golds = proved.golds;
       kept.push({ course: b.course as SnipCourse, plan: b.plan, proofs: proved.proofs, tol });
+      // --out=<file>: keep what is kept so far on disk (a long search can be stopped at any time).
+      if (opt("out")) writeFileSync(opt("out")!, JSON.stringify(kept));
       console.error(`kept ${kept.length}/${count} (try ${tries}): ${b.course.name} · ${b.course.fruits.length} fruit · golds ${proved.golds.join(",")} · par ${b.course.par} · strokes ${xStrokes(b.plan)} · tolerance ${tol.toFixed(2)} · worst ${worst} ticks`);
     }
     console.error(`fails ${JSON.stringify(FAILS)}`);
