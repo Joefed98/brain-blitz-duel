@@ -12,6 +12,8 @@ import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-letterwheel.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -343,6 +345,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           next[i] = v.word;
           return next;
         });
+        // Batch W: the toolkit's right-move glow on the slot's cells as the word lands (display only).
+        const slot = data.slots[i];
+        if (slot) for (const cell of lwSlotCells(slot, data.cols)) rightMoveFlash(stageRef.current?.querySelector(`[data-lw-cell="${cell}"]`));
       } else if (v.reason === "Not in this puzzle") {
         puzzleReject();
         setFlash("Not in this puzzle");
@@ -363,7 +368,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       data-stage-column="1"
       className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1"
       // The bigger crosswords (up to 11 × 9) take height from the wheel: 180–240 px instead of 200–240 px.
-      style={{ "--lw-wheel": "clamp(180px, calc(100cqh - 330px), 240px)" } as CSSProperties}
+      // Batch W (display only): past that the wheel grows into the height left empty, up to 340 px and 24 px
+      // inside the stage's width, by 100cqh - 376 px (the crossword's 260 px plus 108 px of trace row, gaps and the 52 px
+      // dock buttons, plus 8 px), so the crossword keeps its height (styles.css: min(260px, 100cqh - wheel - 80px)).
+      // The wheel hit-tests in its own percentages, so taps and traces follow the bigger tiles.
+      style={{ "--lw-wheel": "max(clamp(180px, calc(100cqh - 330px), 240px), min(340px, calc(100cqw - 24px), calc(100cqh - 376px)))" } as CSSProperties}
     >
       <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[7] items-center justify-center" style={{ containerType: "size" }}>
         <div

@@ -1,4 +1,5 @@
-import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { rightMoveFlash, wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { useGoalProgress } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef } from "react";
 
@@ -64,7 +65,7 @@ function Board({
   matched: Set<number>;
   cols?: number;
   glyph?: number;
-  onCard?: ((index: number) => void) | undefined;
+  onCard?: ((index: number, card?: Element | null) => void) | undefined;
   compact?: boolean;
 }) {
   return (
@@ -80,7 +81,7 @@ function Board({
             type="button"
             data-pair-card=""
             aria-label={open ? `${card.colour} ${card.shape}` : "Face-down card"}
-            onPointerDown={onCard ? () => onCard(index) : undefined}
+            onPointerDown={onCard ? (event) => onCard(index, event.currentTarget) : undefined}
             className="pairmatch-card relative aspect-square rounded-lg border-0 bg-transparent p-0 [-webkit-tap-highlight-color:transparent]"
           >
             {/* Two-sided card turned in 3D over the same PAIR_FLIP_MS as before (display only). */}
@@ -164,9 +165,13 @@ function Stage({
     onSubmit(encodePairFlips(flips));
   }, [now, phaseStartedAt, locked, data, flips, onSubmit]);
 
+  // Polish batch S: the pairs count goes to the frame's goal line on a live round; the line above the
+  // dock keeps the flips (display only).
+  const framed = useGoalProgress({ done: replay?.pairs ?? 0, total: PAIR_PAIRS, text: `${replay?.pairs ?? 0} of ${PAIR_PAIRS} pairs` });
+
   if (!data || !replay) return null;
 
-  const tap = (index: number) => {
+  const tap = (index: number, card?: Element | null) => {
     if (locked || submitted.current) return;
     if (matched.has(index) || open.includes(index)) return;
     if (open.length >= 2) return;
@@ -180,6 +185,7 @@ function Stage({
     const [first, second] = nextOpen as [number, number];
     if (sameCard(data.cards[first], data.cards[second])) {
       playCorrect();
+      rightMoveFlash(card);
       setOpen([]);
       if (replayPairs(data.cards, nextFlips).solved) {
         submitted.current = true;
@@ -191,7 +197,8 @@ function Stage({
     }
     buzz(20);
     playWrong();
-    puzzleReject();
+    // The shared wrong-move shake and red outline (and its reject cue, as before), on the card just turned.
+    wrongMoveFlash(card ?? null);
     timer.current = setTimeout(() => setOpen([]), PAIR_FLIP_BACK_MS);
   };
 
@@ -208,7 +215,7 @@ function Stage({
         />
       </div>
       <p data-game-controls="status" className="shrink-0 text-center font-mono text-xs text-muted-foreground">
-        pairs {replay.pairs} / {PAIR_PAIRS} · flips {replay.flips}
+        {framed ? `${replay.flips} flips` : `pairs ${replay.pairs} / ${PAIR_PAIRS} · flips ${replay.flips}`}
       </p>
     </div>
   );

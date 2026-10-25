@@ -25,6 +25,8 @@ import {
 } from "@/lib/duel/types";
 
 import { registerFxPreview } from "@/components/puzzles/speedFx";
+import { useGoalProgress } from "@/components/duel/GameFrame";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { playSound } from "@/lib/sound";
 import { bangOnEarnsGoldFaces, fireBangOnGoldFaces, localBangOnScore } from "@/components/puzzles/stopWatchFx";
 
@@ -383,7 +385,11 @@ function WatchView({
     if (result !== "missed" || missedAt.current === at) return;
     missedAt.current = at;
     playSound("wrong");
+    // Polish batch S: the shared wrong-move shake and red outline on the face (its sound is the one above).
+    wrongMoveFlash(rootRef.current?.querySelector("[data-game-arena] .bangon-face"), false);
   }, [result, index, runKey]);
+  // Polish batch S: "Watch n of 10" goes to the frame's goal line on a live round (intros keep the label).
+  const framed = useGoalProgress({ done: Math.min(index, count), total: count, text: `Watch ${Math.min(index + 1, count)} of ${count}` });
   return (
     <div
       ref={rootRef}
@@ -393,9 +399,11 @@ function WatchView({
       onPointerDown={onTap}
       data-polish="stopwatch" data-stage-column="7" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-7"
     >
-      <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        Watch {Math.min(index + 1, count)} / {count}
-      </p>
+      {framed ? null : (
+        <p className="font-mono text-sm uppercase tracking-widest text-muted-foreground">
+          Watch {Math.min(index + 1, count)} / {count}
+        </p>
+      )}
       <div data-game-arena={spec.vertical ? "tall" : "fixed"} className={`flex min-h-0 w-full ${spec.vertical ? "flex-1 justify-center" : spec.diagonal ? "justify-center" : ""}`}>
         <Bar
           key={index}

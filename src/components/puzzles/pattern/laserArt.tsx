@@ -4,7 +4,7 @@
  * props the board already has, inside the cell (or the cell-sized overlay box)
  * it belongs to, so hit areas and what the tracer counts are unchanged.
  */
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useId, useRef } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
 import type { BeamDir, MirrorKind, MirrorPlacement } from "@/lib/duel/types";
@@ -165,9 +165,19 @@ export function LaserBeam({
   const colour = danger ? "#FF4D4D" : "#F7C548";
   const core = danger ? "#FFE1E1" : "#FFF8E0";
   const lines = branches.filter((points) => points.length > 1).map(pathData);
+  const neon = `laser-neon-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   if (!lines.length) return null;
   return (
     <g className={`laser-beam ${solved ? "laser-beam-solved" : ""}`} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      {/* Batch P (live round only, batch-p.css): a blurred wide copy, so the beam glows like neon. */}
+      <defs>
+        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation={Math.max(2, unit * 0.16)} />
+        </filter>
+      </defs>
+      {lines.map((d, i) => (
+        <path key={`n${i}`} d={d} className="laser-beam-neon" stroke={colour} strokeOpacity={0.85} strokeWidth={unit * 0.45} filter={`url(#${neon})`} />
+      ))}
       {solved
         ? lines.map((d, i) => <path key={`f${i}`} d={d} className="laser-beam-flare" stroke={colour} strokeWidth={unit * 0.6} />)
         : null}

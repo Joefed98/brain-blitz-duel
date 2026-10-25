@@ -58,6 +58,55 @@ function hash(a: number, b = 0): number {
 
 /* ============================== Scenery ============================== */
 
+/**
+ * Polish batch S (25 Oct 2026, display only): a richer sky, baked once with the scenery. Faint sun rays
+ * fanning from the sun, a few high wisps of cirrus (seeded, never Math.random, kept inside the world's
+ * sides) and a warm haze over the horizon. All low alpha, so every clay and bird reads as before.
+ */
+function paintSkyDepth(c: Ctx2D, sx: number, sy: number, horizon: number): void {
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI * (0.55 + i * 0.08) + (hash(i, 41) - 0.5) * 0.05;
+    const spread = 0.03 + hash(i, 43) * 0.02;
+    const reach = horizon * (0.42 + hash(i, 47) * 0.22);
+    const ray = c.createLinearGradient(sx, sy, sx + Math.cos(a) * reach, sy + Math.sin(a) * reach);
+    ray.addColorStop(0, "rgba(255,240,205,0.05)");
+    ray.addColorStop(1, "rgba(255,240,205,0)");
+    c.fillStyle = ray;
+    c.beginPath();
+    c.moveTo(sx, sy);
+    c.lineTo(sx + Math.cos(a - spread) * reach, sy + Math.sin(a - spread) * reach);
+    c.lineTo(sx + Math.cos(a + spread) * reach, sy + Math.sin(a + spread) * reach);
+    c.closePath();
+    c.fill();
+  }
+  c.restore();
+  // High cirrus: long, very flat soft wisps in the upper sky.
+  for (let i = 0; i < 7; i++) {
+    const y = 30 + hash(i, 51) * Math.min(150, horizon * 0.42);
+    const len = 50 + hash(i, 57) * 70;
+    const x = len / 2 + 4 + hash(i, 53) * (W - len - 8);
+    c.save();
+    c.translate(x, y);
+    c.scale(len / 2, 3 + hash(i, 59) * 2);
+    const wisp = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+    wisp.addColorStop(0, "rgba(240,247,253,0.16)");
+    wisp.addColorStop(1, "rgba(240,247,253,0)");
+    c.fillStyle = wisp;
+    c.beginPath();
+    c.arc(0, 0, 1, 0, TAU);
+    c.fill();
+    c.restore();
+  }
+  // Warm haze over the horizon.
+  const haze = c.createLinearGradient(0, horizon - 90, 0, horizon);
+  haze.addColorStop(0, "rgba(255,226,190,0)");
+  haze.addColorStop(1, "rgba(255,226,190,0.12)");
+  c.fillStyle = haze;
+  c.fillRect(0, horizon - 90, W, 90);
+}
+
 function paintScenery(c: Ctx2D, worldH: number): void {
   // clayRev 6: the sky runs `dy` px further down; the horizon, trees, fence, field and trap
   // houses are the original band, moved down by it (no change at the original 400).
@@ -89,6 +138,7 @@ function paintScenery(c: Ctx2D, worldH: number): void {
   c.beginPath();
   c.arc(sx, sy, 15, 0, TAU);
   c.fill();
+  paintSkyDepth(c, sx, sy, GRASS_TOP + dy);
 
   c.save();
   c.translate(0, dy);

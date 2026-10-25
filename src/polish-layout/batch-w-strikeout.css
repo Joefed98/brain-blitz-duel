@@ -1,0 +1,96 @@
+/*
+ * Polish batch W (25 Oct 2026, display only): Strikeout's live board. Imported only from
+ * src/puzzles/strikeout.tsx; scoped to its live stage ([data-word-polish="strikeout"]), so reveals and
+ * intros' stills keep their look. Repeated attributes outrank wordPolish.css's bevel. Colours are the
+ * game's own (grey slots, the gold solved tiles, the gold/red/grey keypad); this adds depth and glow.
+ */
+
+/* Hidden letters: wells clearly sunk into the tray (a dark floor, a lit lower lip, a deep inner shadow). */
+[data-word-polish="strikeout"][data-word-polish] .so-tile[data-so-look="hidden"] {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.38));
+  box-shadow:
+    inset 0 4px 10px rgba(0, 0, 0, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* Found and starting letters: lit pieces, the body about a fifth lighter at the top, a bright top edge,
+   a darker foot and a soft drop shadow (starting letters grey, found ones in their gold tint). */
+[data-word-polish="strikeout"][data-word-polish] .so-tile:is([data-so-look="shown"], [data-so-look="given"]) {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, #4b4b55 0%, #34343c 55%, #26262d 100%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.32),
+    0 8px 18px rgba(0, 0, 0, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+[data-word-polish="strikeout"][data-word-polish] .so-tile[data-so-look="shown"] {
+  border-color: color-mix(in srgb, var(--primary) 75%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 48%, #3a3a42) 0%,
+    color-mix(in srgb, var(--primary) 26%, #2c2c33) 55%,
+    color-mix(in srgb, var(--primary) 14%, #1f1f25) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 236, 180, 0.5),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+    0 0 12px color-mix(in srgb, var(--primary) 28%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.6);
+}
+/* Solved word: the gold tiles with a light top edge, a deeper foot and a soft shadow. */
+[data-word-polish="strikeout"][data-word-polish] .so-tile[data-so-look="solved"] {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 100%, white 26%), var(--primary) 50%, color-mix(in srgb, var(--primary) 78%, black));
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    0 0 14px color-mix(in srgb, var(--primary) 45%, transparent),
+    0 8px 18px rgba(0, 0, 0, 0.5);
+}
+/* Letters being typed for a solve: a sunk well with the gold ring and a clear category glow round it. */
+[data-word-polish="strikeout"][data-word-polish] .so-tile[data-so-look="typed"] {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+  box-shadow:
+    inset 0 0 0 2px var(--primary),
+    inset 0 3px 8px rgba(0, 0, 0, 0.6),
+    0 0 12px 2px color-mix(in srgb, var(--category-accent) 70%, transparent);
+}
+/* The row in solve mode glows in the category colour (box-shadow only, no layout). */
+[data-word-polish="strikeout"][data-word-polish] [aria-label^="Word "][role="button"].ring-1 {
+  box-shadow:
+    0 0 0 1.5px var(--category-accent),
+    0 0 14px 3px color-mix(in srgb, var(--category-accent) 55%, transparent);
+}
+/* The word sits lower in its arena, nearer the keyboard, so the band between them is smaller (the
+   arena and the board keep their size; only the free space moves above the word). */
+[data-word-polish="strikeout"][data-word-polish] > [data-game-arena="strikeout"] {
+  align-items: flex-end;
+  padding-bottom: clamp(6px, 4.5vh, 40px);
+}
+/* The strike markers and word dots: their own colours, with a little depth. */
+[data-word-polish="strikeout"][data-word-polish] [aria-label$=" strikes"] > * {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Keypad: a light top edge and a soft shadow on every key, in its own colour. */
+[data-word-polish="strikeout"][data-word-polish] [data-game-controls="keypad"] :is([data-key], [data-key-action]) {
+  /* A lit body over the key's own colour (gold, red, grey stay theirs): lighter at the top, darker at the foot. */
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.16));
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* The live summary sits in the hint line, which is set in mono capitals: the summary reads as a sentence. */
+[data-word-polish="strikeout"] .bw-summary {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-word-polish="strikeout"] .so-tile {
+    transition: none;
+  }
+}

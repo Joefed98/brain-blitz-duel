@@ -4,6 +4,7 @@ import type { CanvasSize } from './engine';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { BONK_BODY, BONK_HAT, BONK_SPIKES } from './bonkShapes.renderer';
 import { SCENE_TUCK, sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
+import { arcadeFx, type ArcadeFxSpec } from './arcadeFx.renderer';
 
 /**
  * Bonk art (Polish, 13 Oct 2026): a meadow with earth burrows, hard-hatted gophers and
@@ -91,8 +92,11 @@ function paintMeadow(c: Ctx, width: number, height: number): void {
     const rx = cellW * 0.47, ry = cellH * 0.45;
     c.fillStyle = 'rgba(0,0,0,0.22)';
     c.beginPath(); c.ellipse(cx, cy + cellH * 0.025, cellW * 0.5, cellH * 0.475, 0, 0, Math.PI * 2); c.fill();
+    // Polish batch S: a soft cast shadow under each mound (inside its cell).
+    c.fillStyle = 'rgba(0,0,0,0.18)';
+    c.beginPath(); c.ellipse(cx, cy + cellH * 0.035, cellW * 0.5, cellH * 0.47, 0, 0, Math.PI * 2); c.fill();
     const mound = c.createLinearGradient(0, cy - cellH * 0.5, 0, cy + cellH * 0.5);
-    mound.addColorStop(0, PALETTE.earthLight); mound.addColorStop(0.55, PALETTE.earth); mound.addColorStop(1, PALETTE.earthDark);
+    mound.addColorStop(0, '#A87D50'); mound.addColorStop(0.3, PALETTE.earthLight); mound.addColorStop(0.6, PALETTE.earth); mound.addColorStop(1, '#3A2718');
     c.fillStyle = mound;
     c.beginPath(); c.ellipse(cx, cy, cellW * 0.495, cellH * 0.48, 0, 0, Math.PI * 2); c.fill();
     // Pebbles and crumbs on the mound ring.
@@ -114,10 +118,30 @@ function paintMeadow(c: Ctx, width: number, height: number): void {
     c.restore();
     c.strokeStyle = PALETTE.rim; c.lineWidth = 1.5;
     c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.stroke();
-    c.strokeStyle = '#C49A68'; c.globalAlpha = 0.75; c.lineWidth = 1.4;
+    c.strokeStyle = '#D9AE76'; c.globalAlpha = 0.85; c.lineWidth = 1.8;
     c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88); c.stroke();
     c.globalAlpha = 1;
+    // Polish batch S (display only): depth inside the burrow, a soft occlusion band under the far rim
+    // and a faint warm bounce on the near wall, all inside the hole's ellipse.
+    c.save(); c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.clip();
+    const occlusion = c.createRadialGradient(cx, cy + ry * 0.2, Math.min(rx, ry) * 0.55, cx, cy + ry * 0.2, Math.max(rx, ry) * 1.15);
+    occlusion.addColorStop(0, 'rgba(0,0,0,0)'); occlusion.addColorStop(1, 'rgba(0,0,0,0.5)');
+    c.fillStyle = occlusion; c.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+    c.fillStyle = 'rgba(196,154,104,0.07)';
+    c.beginPath(); c.ellipse(cx, cy + ry * 0.82, rx * 0.8, ry * 0.22, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+    // The mound's top edge catching the light (a bright arc on its outer rim, upper half).
+    c.strokeStyle = '#EDCB94'; c.globalAlpha = 0.85; c.lineWidth = 2.2;
+    c.beginPath(); c.ellipse(cx, cy, cellW * 0.485, cellH * 0.468, 0, Math.PI * 1.12, Math.PI * 1.88); c.stroke();
+    c.globalAlpha = 1;
   }
+  // Polish batch S: one soft light from the top and a vignette round the meadow (static, baked once per size).
+  const sun = c.createRadialGradient(width * 0.5, height * 0.42, 0, width * 0.5, height * 0.42, Math.min(width, height) * 0.5);
+  sun.addColorStop(0, 'rgba(255,244,207,0.13)'); sun.addColorStop(1, 'rgba(255,244,207,0)');
+  c.fillStyle = sun; c.fillRect(0, 0, width, height);
+  const vignette = c.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.45, width / 2, height / 2, Math.hypot(width, height) * 0.62);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)'); vignette.addColorStop(1, 'rgba(0,0,0,0.28)');
+  c.fillStyle = vignette; c.fillRect(0, 0, width, height);
 }
 
 function ground(width: number, height: number, scale: number): ArtCanvas | null {
@@ -258,6 +282,11 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     }
     if (state.status[i] === WHACK_STATUS_UP) {
       const grow = Math.min(1, (tick - spawnTick + 1) / 7);
+      // Polish batch S: a warm light rises in the burrow behind every popped target (the same for every
+      // kind, so it never tells which to tap; inside the hole's clip).
+      const glow = ctx.createRadialGradient(cx, cy + cellH * 0.08, 0, cx, cy + cellH * 0.08, cellW * 0.47);
+      glow.addColorStop(0, `rgba(255,226,160,${0.62 * grow})`); glow.addColorStop(1, 'rgba(255,226,160,0)');
+      ctx.fillStyle = glow; ctx.fillRect(x, y, cellW, cellH);
       drawTarget(ctx, cx, cy + (1 - grow) * cellH * 0.35, r * (0.4 + 0.6 * grow), targetKind);
     } else if (state.status[i] === WHACK_STATUS_RETIRED) {
       const fall = (tick - doneTick) / 10;
@@ -266,7 +295,11 @@ export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size:
     } else if (state.status[i] === WHACK_STATUS_HIT) {
       const age = tick - doneTick;
       if (age < 10) {
+        // Polish batch S: a gold glow inside the cell under the hit ring.
+        const hitGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cell * 0.5);
+        hitGlow.addColorStop(0, 'rgba(245,184,46,0.55)'); hitGlow.addColorStop(1, 'rgba(245,184,46,0)');
         ctx.globalAlpha = 1 - age / 10;
+        ctx.fillStyle = hitGlow; ctx.fillRect(x, y, cellW, cellH);
         ctx.strokeStyle = PALETTE.gold;
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -331,7 +364,35 @@ export function drawBonkFinale(ctx: CanvasRenderingContext2D, ms: number, width:
   ctx.restore();
 }
 
-export const whackArtGame = { ...whackGame, draw: drawBonk };
+/**
+ * Bonk's miss moment (Polish batch S, 25 Oct 2026, display only): the shared arcade layer's faint red
+ * edge pulse on every counted mistake (a wrong-colour gopher, a hedgehog, an empty hole: the moments
+ * that already play playWrong, whack.bomb and whack.emptyTap), with a puff over the hole where the
+ * tap struck a target. Read only from counters the sim keeps; the board px are the effect's world.
+ */
+function bonkMissAt(state: WhackState, width: number, height: number): { x: number; y: number } | null {
+  let last = -1;
+  for (let i = 0; i < state.status.length; i++) if (state.status[i] === WHACK_STATUS_WRONG && (last < 0 || (state.doneTick[i] ?? 0) > (state.doneTick[last] ?? 0))) last = i;
+  const hole = state.schedule.hole[last];
+  if (last < 0 || hole === undefined || state.tick - (state.doneTick[last] ?? 0) > 6) return null;
+  const { cellW, cellH, origin } = grid(width, height);
+  const o = origin(hole);
+  return { x: o.x + cellW / 2, y: o.y + cellH / 2 };
+}
+function bonkFxSpec(width: number, height: number): ArcadeFxSpec<WhackState> {
+  return {
+    game: 'whack', world: 'realworld', width, height, events: [], shake: false, fit: 'world',
+    misses: [{ count: (s) => s.wrong + s.bombs + s.empty, at: (s) => bonkMissAt(s, width, height) }],
+  };
+}
+let bonkSpec: ArcadeFxSpec<WhackState> | null = null;
+/** drawBonk through the shared arcade layer (misses only; Bonk's successes keep their own art). */
+export function drawBonkWithFx(ctx: CanvasRenderingContext2D, state: WhackState, size: CanvasSize): void {
+  if (!bonkSpec || bonkSpec.width !== size.width || bonkSpec.height !== size.height) bonkSpec = bonkFxSpec(size.width, size.height);
+  arcadeFx(ctx, bonkSpec, state, () => drawBonk(ctx, state, size), size);
+}
+
+export const whackArtGame = { ...whackGame, draw: drawBonkWithFx };
 
 /**
  * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): the meadow's grass

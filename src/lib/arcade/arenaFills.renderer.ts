@@ -381,38 +381,99 @@ export function skylineFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView)
 export function sliceFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#5E7973"], [Math.min(0.6, 24 / r.h), "#56706A"], [1, "#3F534F"]]);
-  // Soft marble veins.
-  ctx.lineWidth = 1;
-  for (let k = 0; k < 7; k++) {
+  // Polish A3: a polished teal marble worktop, starting from the board's counter edge colour.
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#5E7973"], [Math.min(0.6, 24 / r.h), "#587C75"], [Math.min(0.9, 90 / r.h), "#4E716B"], [1, "#3A524D"]]);
+  // Cloudy patches in the stone.
+  for (let k = 0; k < 6; k++) {
+    const h = artHash(k, 57);
+    const cx = r.x + ((h % 1000) / 1000) * r.w;
+    const cy = r.y + 20 + (((h >>> 10) % 1000) / 1000) * Math.max(10, r.h - 30);
+    const rad = 30 + ((h >>> 20) % 50);
+    const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, rad);
+    g.addColorStop(0, k % 2 ? "rgba(220,245,238,0.08)" : "rgba(20,40,36,0.12)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+  }
+  // Marble veins: a soft wide vein with a fine bright core, and small branches.
+  ctx.lineCap = "round";
+  for (let k = 0; k < 9; k++) {
     const h = artHash(k, 51);
     const x0 = r.x + ((h % 1000) / 1000) * r.w;
-    ctx.strokeStyle = k % 2 ? "rgba(255,255,255,0.10)" : "rgba(60,55,50,0.12)";
+    const x1 = x0 + 50 + ((h >>> 12) % 40) - (k % 3 === 0 ? 120 : 0);
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(x0, r.y + 6);
+      ctx.bezierCurveTo(x0 + 30, r.y + r.h * 0.3, x0 - 20, r.y + r.h * 0.6, x1, r.y + r.h);
+    };
+    ctx.strokeStyle = k % 2 ? "rgba(230,250,244,0.07)" : "rgba(30,48,44,0.14)";
+    ctx.lineWidth = 4;
+    path();
+    ctx.stroke();
+    ctx.strokeStyle = k % 2 ? "rgba(240,255,250,0.2)" : "rgba(28,44,40,0.24)";
+    ctx.lineWidth = 0.8;
+    path();
+    ctx.stroke();
+    const bx = x0 + 10 + ((h >>> 5) % 20);
+    const by = r.y + r.h * (0.25 + ((h >>> 8) % 40) / 100);
+    ctx.lineWidth = 0.6;
     ctx.beginPath();
-    ctx.moveTo(x0, r.y + 6);
-    ctx.bezierCurveTo(x0 + 30, r.y + r.h * 0.3, x0 - 20, r.y + r.h * 0.6, x0 + 50 + ((h >>> 12) % 40), r.y + r.h);
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(bx + 18, by + 10, bx + 30 + ((h >>> 16) % 20), by + 28);
     ctx.stroke();
   }
+  // Polished edge: a soft sheen a little below the board, from the kitchen lamp.
+  const sheenY = r.y + 12;
+  const sheen = ctx.createLinearGradient(0, sheenY, 0, sheenY + 16);
+  sheen.addColorStop(0, "rgba(220,255,246,0)");
+  sheen.addColorStop(0.45, "rgba(220,255,246,0.10)");
+  sheen.addColorStop(1, "rgba(220,255,246,0)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(r.x, sheenY, r.w, 16);
+  const lamp = ctx.createRadialGradient(view.worldW / 2, r.y, 10, view.worldW / 2, r.y, r.w * 0.6);
+  lamp.addColorStop(0, "rgba(255,226,170,0.08)");
+  lamp.addColorStop(1, "rgba(255,226,170,0)");
+  ctx.fillStyle = lamp;
+  ctx.fillRect(r.x, r.y, r.w, r.h);
   settle(ctx, r, "#26302E", 0.45, 0.4);
 }
 
-/** 10. Coral Pop: the deep water settles onto soft sand. */
+/** 10. Coral Pop: the world's sandy floor (Polish A3, from its foot colour) runs on with ripples, pebbles and shells. */
 export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   const r = fillBelow(view);
   if (!r) return;
-  const sand = r.y + Math.min(r.h * 0.35, 18);
-  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#081B30"], [Math.min(0.9, (sand - r.y) / r.h), "#1D2A30"], [Math.min(1, (sand - r.y + 14) / r.h), "#4A4535"], [1, "#3A3428"]]);
-  // A gentle dune line and a scatter of grains and pebbles.
-  ctx.fillStyle = "rgba(200,180,130,0.10)";
-  ctx.beginPath();
-  ctx.moveTo(r.x, sand + 6);
-  for (let x = r.x; x <= r.x + r.w + 10; x += 10) ctx.lineTo(x, sand + 6 + Math.sin(x / 47) * 3);
-  ctx.lineTo(r.x + r.w, r.y + r.h);
-  ctx.lineTo(r.x, r.y + r.h);
-  ctx.fill();
-  const grains = { x: r.x, y: sand + 4, w: r.w, h: Math.max(0, r.y + r.h - sand - 4) };
-  stars(ctx, grains, 61, ["#B9A880", "#8A7D60", "#D8C9A0"], 60, 0.35, 0);
-  settle(ctx, r, "#141410", 0.45, 0.45);
+  fillGradient(ctx, r, r.y, r.y + r.h, [[0, "#6E5A3E"], [Math.min(0.6, 30 / r.h), "#62513A"], [1, "#3E3426"]]);
+  // Soft ripples in the sand.
+  ctx.strokeStyle = "rgba(60,44,26,0.35)";
+  ctx.lineWidth = 1;
+  for (let k = 0; k < 10; k++) {
+    const h = artHash(k, 67);
+    const y = r.y + 8 + ((h % 1000) / 1000) * Math.max(0, r.h - 12);
+    const x0 = r.x + (((h >>> 10) % 1000) / 1000) * r.w;
+    const len = 40 + ((h >>> 20) % 50);
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.quadraticCurveTo(x0 + len / 2, y - 2.5, x0 + len, y);
+    ctx.stroke();
+  }
+  const grains = { x: r.x, y: r.y + 3, w: r.w, h: Math.max(0, r.h - 3) };
+  stars(ctx, grains, 61, ["#C9B488", "#7E6E50", "#E0D0A6"], 40, 0.4, 0);
+  // A few pebbles and shells.
+  for (let k = 0; k < 6; k++) {
+    const h = artHash(k, 71);
+    const x = r.x + ((h % 1000) / 1000) * r.w;
+    const y = r.y + 10 + (((h >>> 10) % 1000) / 1000) * Math.max(0, r.h - 20);
+    const s = 2.2 + ((h >>> 20) % 3);
+    ctx.fillStyle = k % 3 ? "#4A4030" : "#E9C6B0";
+    ctx.beginPath();
+    ctx.ellipse(x, y, s * 1.5, s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(240,230,210,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(x - s * 0.4, y - s * 0.4, s * 0.6, s * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  settle(ctx, r, "#141410", 0.4, 0.5);
 }
 
 /** 14. Wavefront: its night sky (stars and a faint nebula) runs on below and beside the world. */
@@ -590,16 +651,42 @@ export function matchupFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView)
   for (const side of fillSides(view)) fillGradient(ctx, side, 0, H, [[0, "#1B1131"], [0.55, "#130E21"], [1, "#0F0C1A"]]);
   const below = fillBelow(view);
   if (below) fillGradient(ctx, below, H, view.bottom, [[0, "#0F0C1A"], [Math.min(0.5, 60 / below.h), "#130E22"], [1, "#160F28"]]);
+  // Polish A3: a faint violet haze in the empty space above and below, then sparkles: the old
+  // small four-point glints plus a few larger twinkles with a soft halo and a cross flare (static).
+  for (const r of [top, below]) {
+    if (!r || r.h < 24) continue;
+    const cy = r === top ? r.y + r.h * 0.6 : r.y + r.h * 0.4;
+    const haze = ctx.createRadialGradient(view.left + (view.right - view.left) / 2, cy, 4, view.left + (view.right - view.left) / 2, cy, Math.max(r.w, r.h) * 0.6);
+    haze.addColorStop(0, "rgba(140,90,230,0.10)");
+    haze.addColorStop(1, "rgba(140,90,230,0)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+  }
   for (const [j, r] of [top, below, ...fillSides(view)].entries()) {
     if (!r || r.h < 1) continue;
-    const n = Math.round((r.w * r.h) / 2600);
+    const n = Math.round((r.w * r.h) / 2000);
     for (let k = 0; k < n; k++) {
       const h = artHash(k, 977 + j);
       const x = r.x + ((h % 10007) / 10007) * r.w;
       const y = r.y + 6 + (((h >>> 14) % 10009) / 10009) * Math.max(0, r.h - 12);
-      const s = 0.8 + ((h >>> 20) % 3) * 0.6;
-      ctx.globalAlpha = 0.22 + ((h >>> 4) % 4) * 0.07;
-      ctx.fillStyle = GEM_SPARKS[k % GEM_SPARKS.length]!;
+      // Larger twinkles only clear of the header (the top 90 px of the screen).
+      const big = j < 2 && (h >>> 24) % 9 === 0 && y > view.top + 90;
+      const s = big ? 2.4 + ((h >>> 20) % 3) * 0.5 : 0.8 + ((h >>> 20) % 3) * 0.6;
+      const colour = GEM_SPARKS[k % GEM_SPARKS.length]!;
+      if (big) {
+        const halo = ctx.createRadialGradient(x, y, 0, x, y, s * 5);
+        halo.addColorStop(0, colour);
+        halo.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = halo;
+        ctx.fillRect(x - s * 5, y - s * 5, s * 10, s * 10);
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "#FFF6E8";
+        ctx.fillRect(x - s * 4, y - 0.5, s * 8, 1);
+        ctx.fillRect(x - 0.5, y - s * 4, 1, s * 8);
+      }
+      ctx.globalAlpha = big ? 0.75 : 0.22 + ((h >>> 4) % 4) * 0.07;
+      ctx.fillStyle = big ? "#FFF3DA" : colour;
       ctx.beginPath();
       ctx.moveTo(x, y - s * 2.2);
       ctx.lineTo(x + s * 0.5, y - s * 0.5);
@@ -715,4 +802,24 @@ export function inkBridgeExtras(ctx: CanvasRenderingContext2D, view: ArenaSceneV
     }
   }
   ctx.globalAlpha = 1;
+}
+
+/**
+ * Mixed Signals (stroop, Polish batch S, 25 Oct 2026): the night board runs on under the world, behind the arrow
+ * pad: the same faint dot grid as its backdrop, starting from the board's own #07070D at the edge and lifting to a
+ * soft indigo glow (its backdrop's tone), then settling darker towards the screen's bottom. Painted once per size.
+ */
+export function stroopFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  for (const r of around(view, true)) {
+    fillGradient(ctx, r, r.y, r.y + Math.max(1, r.h), [[0, "#07070D"], [0.18, "#0C0C17"], [0.6, "#121226"], [1, "#0D0D1A"]]);
+    const glow = ctx.createRadialGradient(view.worldW / 2, r.y + r.h * 0.45, 10, view.worldW / 2, r.y + r.h * 0.45, Math.max(60, r.w * 0.7));
+    glow.addColorStop(0, "rgba(40,44,72,0.35)");
+    glow.addColorStop(1, "rgba(40,44,72,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    const x0 = Math.floor(r.x / 16) * 16;
+    for (let y = Math.ceil((r.y + 4) / 16) * 16 + 8; y < r.y + r.h; y += 16) for (let x = x0 + 8 + ((y / 16) % 2) * 8; x < r.x + r.w; x += 16) ctx.fillRect(x, y, 1, 1);
+    settle(ctx, r, "#07070D", 0.6, 0.35);
+  }
 }

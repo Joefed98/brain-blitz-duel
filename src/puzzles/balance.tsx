@@ -33,6 +33,9 @@ import { playCorrect, playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { useGoalProgress } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-balance.css";
 
 const PEG_GAP = 0;
 const MIN_PEG_WIDTH = 44;
@@ -228,9 +231,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const arena = useRef<HTMLDivElement | null>(null);
   const arenaHeight = useHeight(arena);
 
+  // Polish batch W: in a live round the frame's goal line shows the scale; the old pip bar is not drawn.
+  const inFrame = useGoalProgress({ done: current, total, text: `Scale ${current + 1} of ${total}` });
+
   useEffect(() => {
-    setProgressTarget(document.getElementById(`balance-progress-${stateKey}`));
-  }, [stateKey]);
+    setProgressTarget(inFrame ? null : document.getElementById(`balance-progress-${stateKey}`));
+  }, [stateKey, inFrame]);
 
   const verdicts = balanceScalesSolved(scales, placements);
   // Limited boards credit each scale on its own (any order); stored rounds advance only past a balanced scale.
@@ -328,11 +334,25 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       aria-label={`Select weight ${scale.tray[i] ?? 0}`}
       data-selected={selected === i}
       onClick={() => tapWeight(i)}
-      className="bal-tray-cup h-14 w-14 p-0"
+      className={`bal-tray-cup ${inFrame ? "h-16 w-16" : "h-14 w-14"} p-0`}
     >
-      <Disc value={scale.tray[i] ?? 0} fixed={false} width={44} height={52} />
+      {/* A live round's cups are a size up (polish batch W); intros and demos keep main's. */}
+      <Disc value={scale.tray[i] ?? 0} fixed={false} width={inFrame ? 50 : 44} height={inFrame ? 59 : 52} />
     </Button>
   ));
+
+  // The live summary above the rack (polish batch W): the scale (outside the frame), hangs, balanced scales, the pick.
+  const summary = (
+    <LiveSummary
+      testId="balance"
+      parts={[
+        !inFrame && `Scale ${current + 1} / ${total}`,
+        placeLimits ? <>Hangs <span className={outOfHangs ? "text-warn" : "text-primary"} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null,
+        <><b>{solved}</b> of {total} balanced</>,
+        selected !== null ? <>Weight <b>{scale.tray[selected] ?? 0}</b> picked</> : trayLeft.length ? `${trayLeft.length} to hang` : null,
+      ]}
+    />
+  );
 
   return (
     <div
@@ -373,11 +393,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
             </div>
           </div>
           {/* The rack stands 16 px clear of the bottom of the screen. */}
-          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-2 pb-4">
-            <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-              scale {current + 1} / {total}
-              {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : "text-primary"} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
-            </p>
+          <div data-game-controls="tray" className="flex w-full shrink-0 flex-col items-center gap-1.5 pb-4">
+            {summary}
             <div className="bal-rack flex min-h-[68px] w-full flex-wrap items-center justify-center gap-3 px-2 py-1.5">
               {trayButtons}
             </div>
@@ -398,10 +415,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
               onPlace={(peg) => { if (selected !== null && !frozen) hang(selected, peg); }}
             />
           </div>
-          <p className="absolute inset-x-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground" style={{ bottom: 108 }}>
-            scale {current + 1} / {total}
-            {placeLimits ? <> · hangs <span className={outOfHangs ? "text-warn" : undefined} data-move-limit={placeLimits[current]}>{limitText(hangs[current] ?? 0, placeLimits[current] ?? 0)}</span></> : null}
-          </p>
+          <div className="absolute inset-x-0" style={{ bottom: 108 }}>{summary}</div>
           <div className="absolute inset-x-0 flex min-h-[48px] flex-wrap justify-center gap-3" style={{ bottom: 56 }}>
             {trayButtons}
           </div>

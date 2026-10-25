@@ -34,33 +34,44 @@ export function drawDart(
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  // Steel point.
-  ctx.fillStyle = "#3C424C";
+  // Steel point (Polish A3: polished, lit down its left side).
+  const point = ctx.createLinearGradient(-1.1, 0, 1.1, 0);
+  point.addColorStop(0, "#E4E8EE");
+  point.addColorStop(0.5, "#8E96A2");
+  point.addColorStop(1, "#4A515C");
+  ctx.fillStyle = point;
   ctx.beginPath();
   ctx.moveTo(0, 0);
   ctx.lineTo(1.1, 8);
   ctx.lineTo(-1.1, 8);
   ctx.closePath();
   ctx.fill();
-  // Barrel with knurl lines.
+  // Chrome barrel with knurl lines and a bright streak.
   const barrel = ctx.createLinearGradient(-2, 0, 2, 0);
-  barrel.addColorStop(0, "#4A505A");
-  barrel.addColorStop(0.4, "#23262C");
-  barrel.addColorStop(1, "#15171B");
+  barrel.addColorStop(0, "#7C8592");
+  barrel.addColorStop(0.3, "#F2F4F7");
+  barrel.addColorStop(0.55, "#9AA2AE");
+  barrel.addColorStop(1, "#3C424C");
   ctx.fillStyle = barrel;
   ctx.fillRect(-2, 8, 4, 9);
-  ctx.fillStyle = "#8C939E";
+  ctx.fillStyle = "rgba(40,44,52,0.55)";
   for (let k = 10; k < 17; k += 2) ctx.fillRect(-2, k, 4, 0.7);
   // Shaft.
-  ctx.fillStyle = "#1A1C20";
+  ctx.fillStyle = "#2A2D33";
   ctx.fillRect(-0.7, 17, 1.4, 6);
-  // Feather flights.
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillRect(-0.7, 17, 0.5, 6);
+  // Gold flights, with the dart's own colour as a stripe down each.
   ctx.translate(0, 21);
   ctx.transform(1, 0, wobble, 1, 0, 0);
-  ctx.fillStyle = colour;
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.strokeStyle = "#6E4A10";
   ctx.lineWidth = 0.6;
   for (const side of [-1, 1]) {
+    const gold = ctx.createLinearGradient(0, 0, 5.5 * side, 10);
+    gold.addColorStop(0, "#FFE9A3");
+    gold.addColorStop(0.45, "#F2BE3C");
+    gold.addColorStop(1, "#B07A16");
+    ctx.fillStyle = gold;
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(5.5 * side, 4);
@@ -69,6 +80,14 @@ export function drawDart(
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(1 * side, 2.2);
+    ctx.lineTo(3.6 * side, 7.6);
+    ctx.stroke();
+    ctx.strokeStyle = "#6E4A10";
+    ctx.lineWidth = 0.6;
   }
   ctx.restore();
 }
@@ -236,7 +255,8 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
   ctx.save();
   // A warm stall lamp lighting the wall behind the board (background only).
   const spot = ctx.createRadialGradient(cx, cy, outer * 0.6, cx, cy, outer * 1.9);
-  spot.addColorStop(0, "rgba(255,214,140,0.22)");
+  spot.addColorStop(0, "rgba(255,214,140,0.3)");
+  spot.addColorStop(0.5, "rgba(255,190,110,0.16)");
   spot.addColorStop(1, "rgba(255,214,140,0)");
   ctx.fillStyle = spot;
   ctx.fillRect(cx - outer * 1.9, cy - outer * 1.9, outer * 3.8, outer * 3.8);
@@ -251,25 +271,40 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
   hay.addColorStop(1, "#A9853A");
   ctx.fillStyle = hay;
   ctx.fillRect(cx - bw / 2, bTop, bw, bh);
+  // Polish A3: rounded, shaded ends and layered straw (dark under-straw, gold, then lit strands).
+  const ends = ctx.createLinearGradient(cx - bw / 2, 0, cx + bw / 2, 0);
+  ends.addColorStop(0, "rgba(90,60,15,0.4)");
+  ends.addColorStop(0.12, "rgba(90,60,15,0)");
+  ends.addColorStop(0.88, "rgba(90,60,15,0)");
+  ends.addColorStop(1, "rgba(90,60,15,0.45)");
+  ctx.fillStyle = ends;
+  ctx.fillRect(cx - bw / 2, bTop, bw, bh);
   ctx.lineWidth = 1;
+  const straw = (count: number, seed: number, colour: string, len: number, width: number) => {
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) {
+      const sx = cx - bw / 2 + 2 + ((i * seed) % Math.max(1, bw - 12));
+      const sy = bTop + 2 + ((i * (seed + 14)) % Math.max(1, bh - 5));
+      const l = len + (i % 5) * 1.5;
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + l, sy + 2 - (i % 4) * 0.9);
+    }
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  };
+  straw(60, 37, "rgba(110, 76, 24, 0.5)", 6, 1);
+  straw(46, 41, "rgba(176, 132, 52, 0.6)", 7, 0.9);
+  straw(36, 53, "rgba(255, 236, 170, 0.5)", 6, 0.8);
+  // Loose strands standing up along the lit top.
   ctx.beginPath();
-  for (let i = 0; i < 46; i++) {
-    const sx = cx - bw / 2 + 3 + ((i * 37) % Math.max(1, bw - 14));
-    const sy = bTop + 3 + ((i * 23) % Math.max(1, bh - 6));
-    const len = 6 + (i % 4) * 2;
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(sx + len, sy + 2 - (i % 4));
+  for (let i = 0; i < 18; i++) {
+    const sx = cx - bw / 2 + 4 + ((i * 47) % Math.max(1, bw - 8));
+    ctx.moveTo(sx, bTop + 1);
+    ctx.lineTo(sx + (i % 3) * 1.5 - 1.5, bTop - 2.5 - (i % 4));
   }
-  ctx.strokeStyle = "rgba(120, 86, 30, 0.55)";
-  ctx.stroke();
-  ctx.beginPath();
-  for (let i = 0; i < 30; i++) {
-    const sx = cx - bw / 2 + 5 + ((i * 53) % Math.max(1, bw - 16));
-    const sy = bTop + 2 + ((i * 29) % Math.max(1, bh - 5));
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(sx + 7, sy - 1 + (i % 3));
-  }
-  ctx.strokeStyle = "rgba(255, 236, 170, 0.45)";
+  ctx.strokeStyle = "rgba(230, 196, 110, 0.75)";
+  ctx.lineWidth = 0.8;
   ctx.stroke();
   ctx.fillStyle = "rgba(255, 240, 190, 0.35)";
   ctx.fillRect(cx - bw / 2, bTop, bw, 1.5);
@@ -280,12 +315,24 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
     ctx.fillRect(tx, bTop, 3, bh);
     ctx.fillStyle = "rgba(255, 220, 160, 0.35)";
     ctx.fillRect(tx, bTop, 1, bh);
+    ctx.fillStyle = "rgba(40, 24, 6, 0.35)";
+    ctx.fillRect(tx + 3, bTop, 1, bh);
   }
   // Wooden board: a 2 px wood rim beyond the outer ring.
   ctx.fillStyle = FAIR_WOOD;
   ctx.beginPath();
   ctx.arc(cx, cy, outer + 2, 0, Math.PI * 2);
   ctx.fill();
+  // Polish A3: the rim bevelled, lit above and shaded below.
+  const bevel = ctx.createLinearGradient(0, cy - outer - 2, 0, cy + outer + 2);
+  bevel.addColorStop(0, "#D9A267");
+  bevel.addColorStop(0.5, FAIR_WOOD);
+  bevel.addColorStop(1, "#3A2210");
+  ctx.strokeStyle = bevel;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outer + 1.1, 0, Math.PI * 2);
+  ctx.stroke();
   // Painted rings, exact sim radii, in their value colours.
   for (let ring = BULLSEYE_RINGS; ring >= 1; ring--) {
     const radius = (BULLSEYE_RING_STEP * ring * scalePct) / 100;
@@ -306,7 +353,7 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
   ctx.arc(cx, cy, outer + 2, 0, Math.PI * 2);
   ctx.clip();
   ctx.strokeStyle = FAIR_WOOD_DARK;
-  ctx.globalAlpha = 0.16;
+  ctx.globalAlpha = 0.06;
   ctx.lineWidth = 1;
   for (let gy = cy - outer; gy < cy + outer; gy += 9) {
     ctx.beginPath();
@@ -323,9 +370,22 @@ export function paintBoard(ctx: CanvasRenderingContext2D, cx: number, cy: number
   lamp.addColorStop(1, "rgba(20,10,4,0.32)");
   ctx.fillStyle = lamp;
   ctx.fillRect(cx - outer - 2, cy - outer - 2, outer * 2 + 4, outer * 2 + 4);
+  // Polish A3: a glossy varnish sheen across the upper left.
+  ctx.save();
+  ctx.translate(cx - outer * 0.32, cy - outer * 0.42);
+  ctx.rotate(-0.6);
+  const sheen = ctx.createLinearGradient(0, -outer * 0.3, 0, outer * 0.3);
+  sheen.addColorStop(0, "rgba(255,255,255,0)");
+  sheen.addColorStop(0.5, "rgba(255,255,255,0.28)");
+  sheen.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = sheen;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, outer * 0.75, outer * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
   ctx.restore();
   // Wire between rings: a fine lit line just inside each dark ring edge.
-  ctx.strokeStyle = "rgba(255, 245, 225, 0.35)";
+  ctx.strokeStyle = "rgba(255, 245, 225, 0.5)";
   ctx.lineWidth = 0.6;
   ctx.beginPath();
   for (let ring = 1; ring <= BULLSEYE_RINGS; ring++) {

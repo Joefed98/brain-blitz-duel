@@ -17,6 +17,8 @@ import { playLock } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
@@ -127,6 +129,7 @@ function Stage({
   const moveLimit = data ? floodMoveLimit(data) : null;
   const replay = data ? replayFlood(data.grid, moves, undefined, moveLimit) : null;
   const solving = useSolveFx("flood", Boolean(replay?.solved && moves.length));
+  const inFrame = useFrameProgress(replay?.region ?? 0, FLOOD_CELLS, "flooded");
   // Presentation only: which cells the last move swallowed, for the wet-paint ripple.
   const ripple = useMemo(() => {
     if (!data || !moves.length) return undefined;
@@ -159,7 +162,11 @@ function Stage({
 
   const tap = (colour: number) => {
     if (locked || submitted.current || replay.solved || replay.outOfMoves) return;
-    if (replay.grid[0] === colour) return;
+    if (replay.grid[0] === colour) {
+      // Batch P (display only): the pot already in use shakes, so a tap that changes nothing still answers.
+      wrongMoveFlash(document.querySelector(`[data-game-stage] [aria-label="${FLOOD_NAMES[colour]}"]`));
+      return;
+    }
     hapticTick();
     soundCue("flood.spread");
     const next = [...moves, colour];
@@ -187,13 +194,27 @@ function Stage({
         </div>
       </div>
       {/* The moves line sits above the colours and the colours are lifted off the bottom edge (14 Oct 2026), so nothing is cut off. */}
-      <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
-        <span className="font-mono text-xs text-muted-foreground" data-move-limit={moveLimit ?? undefined}>
-          {moveLimit !== null
-            ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
-            : <>Moves: {replay.moves}</>}
-        </span>
-      </div>
+      {inFrame ? (
+        <LiveSummary
+          items={[
+            <SummaryItem
+              key="moves"
+              label="Moves"
+              value={<span data-move-limit={moveLimit ?? undefined}>{moveLimit !== null ? limitText(replay.moves, moveLimit) : replay.moves}</span>}
+              warn={replay.outOfMoves}
+            />,
+            data.par ? <SummaryItem key="par" label="Par" value={data.par} /> : null,
+          ]}
+        />
+      ) : (
+        <div data-game-controls="status" className="flex shrink-0 items-center gap-3">
+          <span className="font-mono text-xs text-muted-foreground" data-move-limit={moveLimit ?? undefined}>
+            {moveLimit !== null
+              ? <>Moves <span className={replay.outOfMoves ? "text-warn" : undefined}>{limitText(replay.moves, moveLimit)}</span></>
+              : <>Moves: {replay.moves}</>}
+          </span>
+        </div>
+      )}
       <div data-game-controls="colours" className="flood-colours flex shrink-0 items-center gap-2">
         {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
           <button

@@ -21,7 +21,11 @@ for(const [width,height] of [[382,510],[367,477]])for(const still of [false,true
  reduced=still;const c=createCanvas(width*2,height*2),native=c.getContext('2d');native.scale(2,2);
  const blits:number[][]=[];
  const ctx=new Proxy(native,{get(target,key){if(key==='drawImage')return (image:unknown,...args:number[])=>{blits.push(args);return target.drawImage(image as never,...args as [number,number,number,number]);};const v=Reflect.get(target,key,target);return typeof v==='function'?v.bind(target):v;},set(target,key,value){return Reflect.set(target,key,value,target);}}) as unknown as CanvasRenderingContext2D;
- const before=JSON.stringify(state);drawSliceArt(ctx,state,{width,height});assert.equal(JSON.stringify(state),before);assert.equal(blits.length,9);
+ const before=JSON.stringify(state);drawSliceArt(ctx,state,{width,height});assert.equal(JSON.stringify(state),before);
+ // Exact blit count, a performance guard: 1 cached backdrop (board, tile wall, grain, bevel) + 7 food stamps + 1 chilli glow
+ // + 7 food shadows (Polish A3, 25 Oct 2026: one per whole food, drawn per frame because each follows its moving food; a shadow
+ // can't share the food's exact-diameter stamp). Was 9 before the shadows.
+ assert.equal(blits.length,16);
  for(let i=0;i<7;i++){const o=objects[i],r=o.special?SLICE_SPECIAL_R:SLICE_R;assert(blits.some(b=>b[0]===o.x/256-r&&b[2]===2*r&&b[3]===2*r),'exact sim diameter and x centre');}
  const warm=allocations;for(let frame=0;frame<30;frame++){clock+=16;drawSliceArt(ctx,state,{width,height});}assert.equal(allocations,warm,'cached warm-frame art');
  writeFileSync(`/tmp/slice-kitchen/live-${width}-${still}.png`,c.toBuffer('image/png'));

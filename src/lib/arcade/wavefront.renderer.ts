@@ -64,116 +64,223 @@ function shade(hex: string, amount: number): string {
   return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
 }
 
+/*
+ * Polish A4 (25 Oct 2026, display only): the three enemy kinds redrawn as dark gunmetal craft with neon
+ * trim in their old colour (teal, pink, blue) and glowing red eyes, at the same places and sizes: every
+ * hull still fills its 28 px hit cell (x, y, s × s), nose down at the player.
+ *   kind 0 (was the round-cored "crab") → a pincer fighter: bat-wing hull, two forward claws, two red eyes;
+ *   kind 1 (was the arrow)             → a delta-wing interceptor: wing struts, twin engine lights, a red cockpit eye;
+ *   kind 2 (was the octagon)           → an armoured gunship: plated hull, side cannons, a big red core eye.
+ */
+const GUNMETAL_HI = "#5A626E";
+const GUNMETAL = "#343A44";
+const GUNMETAL_LO = "#1A1E25";
+const EYE_RED = "#FF3B3B";
+
 /** The hull's outline for each kind, filling the cell box (x, y, s x s); nose points down at the player. */
 function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: number, s: number): void {
-  const cx = x + s / 2;
+  const P = (u: number, v: number) => ctx.lineTo(x + u * s, y + v * s);
   ctx.beginPath();
   if (kind === 0) {
-    // Interceptor: round core with swept wings, full width.
-    ctx.moveTo(x, y + s * 0.35);
-    ctx.lineTo(x + s * 0.25, y + s * 0.2);
-    ctx.arc(cx, y + s * 0.5, s * 0.3, -Math.PI * 0.85, -Math.PI * 0.15);
-    ctx.lineTo(x + s * 0.75, y + s * 0.2);
-    ctx.lineTo(x + s, y + s * 0.35);
-    ctx.lineTo(x + s * 0.78, y + s * 0.72);
-    ctx.arc(cx, y + s * 0.5, s * 0.3, Math.PI * 0.15, Math.PI * 0.85);
-    ctx.lineTo(x + s * 0.22, y + s * 0.72);
+    // Pincer fighter: scalloped bat wings across the top, a narrow body between the claws.
+    ctx.moveTo(x, y + s * 0.2);
+    P(0.16, 0.04); P(0.27, 0.2); P(0.38, 0.1); P(0.5, 0.18); P(0.62, 0.1); P(0.73, 0.2); P(0.84, 0.04);
+    P(1, 0.2); P(0.95, 0.5); P(0.84, 0.44); P(0.74, 0.56); P(0.62, 0.52); P(0.58, 0.72); P(0.5, 0.78);
+    P(0.42, 0.72); P(0.38, 0.52); P(0.26, 0.56); P(0.16, 0.44); P(0.05, 0.5);
     ctx.closePath();
   } else if (kind === 1) {
-    // Dart: arrowhead with tail fins.
-    ctx.moveTo(cx, y + s);
-    ctx.lineTo(x + s, y + s * 0.15);
-    ctx.lineTo(x + s * 0.68, y + s * 0.3);
-    ctx.lineTo(cx, y);
-    ctx.lineTo(x + s * 0.32, y + s * 0.3);
-    ctx.lineTo(x, y + s * 0.15);
+    // Delta-wing interceptor: a long nose, swept wings to the corners, two engine pods at the rear.
+    ctx.moveTo(x + s * 0.5, y + s);
+    P(1, 0.24); P(0.88, 0.13); P(0.64, 0.24); P(0.6, 0); P(0.4, 0); P(0.36, 0.24); P(0.12, 0.13); P(0, 0.24);
     ctx.closePath();
   } else {
-    // Cruiser: heavy hexagonal hull with side pods.
-    ctx.moveTo(x + s * 0.3, y);
-    ctx.lineTo(x + s * 0.7, y);
-    ctx.lineTo(x + s, y + s * 0.3);
-    ctx.lineTo(x + s, y + s * 0.7);
-    ctx.lineTo(x + s * 0.7, y + s);
-    ctx.lineTo(x + s * 0.3, y + s);
-    ctx.lineTo(x, y + s * 0.7);
-    ctx.lineTo(x, y + s * 0.3);
+    // Armoured gunship: a heavy octagon set in from the sides (the cannons take the edges).
+    ctx.moveTo(x + s * 0.32, y + s * 0.02);
+    P(0.68, 0.02); P(0.88, 0.2); P(0.88, 0.76); P(0.68, 0.98); P(0.32, 0.98); P(0.12, 0.76); P(0.12, 0.2);
     ctx.closePath();
   }
 }
 
-/** The static hull: body gradient, dark rim, Polish G lit edge and panel lines, cockpit. */
+/** A glowing red eye: a soft red bloom, the red lens, a hot centre and a glint. */
+function paintEye(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  const bloom = ctx.createRadialGradient(x, y, r * 0.3, x, y, r * 2.4);
+  bloom.addColorStop(0, "rgba(255,70,60,0.55)");
+  bloom.addColorStop(1, "rgba(255,40,40,0)");
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#5A0A0E";
+  ctx.beginPath();
+  ctx.arc(x, y, r + 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  const lens = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r);
+  lens.addColorStop(0, "#FFD0C0");
+  lens.addColorStop(0.35, "#FF6A5A");
+  lens.addColorStop(1, EYE_RED);
+  ctx.fillStyle = lens;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillRect(x - r * 0.5, y - r * 0.55, Math.max(0.5, r * 0.35), Math.max(0.5, r * 0.3));
+}
+
+/** Neon trim: a soft wide stroke in the trim colour, then the bright line. */
+function trim(ctx: CanvasRenderingContext2D, colour: string, width: number): void {
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = width * 3;
+  ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = shade(colour, 0.25);
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+/** The static hull (cached): gunmetal body, plating, neon trim and the red eyes. */
 function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
-  const cx = x + s / 2;
-  const body = ctx.createLinearGradient(x, y, x, y + s);
-  body.addColorStop(0, shade(colour, -0.15));
-  body.addColorStop(0.55, colour);
-  body.addColorStop(1, colour);
+  const P = (u: number, v: number) => [x + u * s, y + v * s] as const;
+  const line = (pts: (readonly [number, number])[]) => {
+    ctx.beginPath();
+    pts.forEach(([px, py], k) => (k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)));
+  };
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, s, s);
   ctx.clip();
-  ctx.fillStyle = body;
-  ctx.strokeStyle = shade(colour, -0.6);
-  ctx.lineWidth = 1;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  // A faint glow in the trim colour behind the craft, inside the cell.
+  const halo = ctx.createRadialGradient(x + s / 2, y + s * 0.45, s * 0.1, x + s / 2, y + s * 0.45, s * 0.62);
+  halo.addColorStop(0, `${colour}40`);
+  halo.addColorStop(1, `${colour}00`);
+  ctx.fillStyle = halo;
+  ctx.fillRect(x, y, s, s);
+  if (kind === 2) {
+    // Side cannons first, under the hull: barrels pointing down, a trim ring at each muzzle.
+    for (const side of [0, 1]) {
+      const cx = x + (side ? 0.94 : 0.06) * s;
+      const g = ctx.createLinearGradient(cx - s * 0.06, 0, cx + s * 0.06, 0);
+      g.addColorStop(0, GUNMETAL_HI);
+      g.addColorStop(1, GUNMETAL_LO);
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - s * 0.06, y + s * 0.3, s * 0.12, s * 0.58);
+      ctx.fillStyle = GUNMETAL_LO;
+      ctx.fillRect(cx - s * 0.035, y + s * 0.84, s * 0.07, s * 0.1);
+      ctx.fillStyle = shade(colour, 0.2);
+      ctx.fillRect(cx - s * 0.06, y + s * 0.8, s * 0.12, s * 0.04);
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(x + (side ? 0.86 : 0.12) * s - (side ? 0 : s * 0.02), y + s * 0.4, s * 0.02, s * 0.3);
+    }
+  }
+  if (kind === 0) {
+    // Two forward claws curling in towards the nose, under the hull.
+    for (const side of [-1, 1]) {
+      const cx = x + s / 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + side * s * 0.12, y + s * 0.5);
+      ctx.quadraticCurveTo(cx + side * s * 0.36, y + s * 0.62, cx + side * s * 0.24, y + s * 0.98);
+      ctx.quadraticCurveTo(cx + side * s * 0.2, y + s * 0.8, cx + side * s * 0.06, y + s * 0.8);
+      ctx.quadraticCurveTo(cx + side * s * 0.18, y + s * 0.72, cx + side * s * 0.12, y + s * 0.5);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, y + s * 0.5, 0, y + s);
+      g.addColorStop(0, GUNMETAL);
+      g.addColorStop(1, GUNMETAL_LO);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      trim(ctx, colour, 0.7);
+      ctx.restore();
+    }
+  }
+  // The gunmetal body, lit from the upper left.
+  const body = ctx.createLinearGradient(x, y, x + s * 0.6, y + s);
+  body.addColorStop(0, GUNMETAL_HI);
+  body.addColorStop(0.45, GUNMETAL);
+  body.addColorStop(1, GUNMETAL_LO);
   hullPath(ctx, kind, x, y, s);
+  ctx.fillStyle = body;
   ctx.fill();
   ctx.save();
   ctx.clip();
-  // Lit from the upper left: a bright inner edge on that side, shade on the other.
-  const rim = ctx.createLinearGradient(x, y, x + s, y + s);
-  rim.addColorStop(0, "rgba(255,255,255,0.55)");
-  rim.addColorStop(0.5, "rgba(255,255,255,0)");
-  rim.addColorStop(1, "rgba(0,0,0,0.35)");
-  ctx.strokeStyle = rim;
-  ctx.lineWidth = 2.4;
-  hullPath(ctx, kind, x, y, s);
-  ctx.stroke();
-  // Panel lines and a centre spine.
-  ctx.strokeStyle = shade(colour, -0.4);
-  ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  ctx.moveTo(cx, y + s * 0.2);
-  ctx.lineTo(cx, y + s * 0.45);
-  if (kind !== 1) {
-    ctx.moveTo(x + s * 0.14, y + s * 0.42);
-    ctx.lineTo(x + s * 0.3, y + s * 0.5);
-    ctx.moveTo(x + s * 0.86, y + s * 0.42);
-    ctx.lineTo(x + s * 0.7, y + s * 0.5);
+  // Plating seams and struts, dark with a faint lit edge.
+  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 0.8;
+  if (kind === 0) {
+    line([P(0.5, 0.18), P(0.5, 0.74)]); ctx.stroke();
+    line([P(0.16, 0.06), P(0.3, 0.42)]); ctx.stroke();
+    line([P(0.84, 0.06), P(0.7, 0.42)]); ctx.stroke();
+  } else if (kind === 1) {
+    // Wing struts from the fuselage to each wing, dark with a faint trim-coloured edge.
+    const struts: [readonly [number, number], readonly [number, number]][] = [[P(0.42, 0.3), P(0.12, 0.2)], [P(0.58, 0.3), P(0.88, 0.2)], [P(0.44, 0.44), P(0.24, 0.36)], [P(0.56, 0.44), P(0.76, 0.36)]];
+    ctx.lineWidth = 1.4;
+    for (const st of struts) { line(st); ctx.stroke(); }
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 0.6;
+    for (const [[ax, ay], [bx, by]] of struts) { line([[ax, ay - 0.7], [bx, by - 0.7]]); ctx.stroke(); }
+    ctx.restore();
+    // The fuselage spine.
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 0.7;
+    line([P(0.5, 0.05), P(0.5, 0.5)]); ctx.stroke();
   } else {
-    ctx.moveTo(x + s * 0.3, y + s * 0.3);
-    ctx.lineTo(cx, y + s * 0.78);
-    ctx.lineTo(x + s * 0.7, y + s * 0.3);
+    for (const v of [0.34, 0.66]) { line([P(0.12, v), P(0.88, v)]); ctx.stroke(); }
+    for (const u of [0.34, 0.66]) { line([P(u, 0.02), P(u, 0.34)]); ctx.stroke(); line([P(u, 0.66), P(u, 0.98)]); ctx.stroke(); }
+    // Rivets on the plates.
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    for (const [u, v] of [[0.24, 0.26], [0.76, 0.26], [0.24, 0.74], [0.76, 0.74], [0.5, 0.1], [0.5, 0.9]] as const) ctx.fillRect(x + u * s - 0.5, y + v * s - 0.5, 1, 1);
   }
+  // A lit upper-left edge and a dark lower-right one.
+  const rim = ctx.createLinearGradient(x, y, x + s, y + s);
+  rim.addColorStop(0, "rgba(255,255,255,0.4)");
+  rim.addColorStop(0.5, "rgba(255,255,255,0)");
+  rim.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.strokeStyle = rim;
+  ctx.lineWidth = 2;
+  hullPath(ctx, kind, x, y, s);
   ctx.stroke();
   ctx.restore();
-  ctx.strokeStyle = shade(colour, -0.6);
-  ctx.lineWidth = 1;
+  // The neon trim round the hull.
   hullPath(ctx, kind, x, y, s);
-  ctx.stroke();
-  if (kind === 2) {
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath();
-    ctx.moveTo(x + s * 0.2, y + s * 0.5);
-    ctx.lineTo(x + s * 0.8, y + s * 0.5);
-    ctx.stroke();
+  trim(ctx, colour, 0.9);
+  if (kind === 1) {
+    // Neon leading edges along the wings.
+    ctx.save();
+    line([P(0.5, 0.97), P(0.97, 0.25)]); trim(ctx, colour, 0.6);
+    line([P(0.5, 0.97), P(0.03, 0.25)]); trim(ctx, colour, 0.6);
+    ctx.restore();
   }
-  // Dark cockpit with a faint reflection.
-  ctx.fillStyle = shade(colour, -0.65);
-  ctx.beginPath();
-  ctx.ellipse(cx, y + s * (kind === 1 ? 0.55 : 0.6), s * 0.1, s * 0.07, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "rgba(200,230,255,0.45)";
-  ctx.fillRect(cx - s * 0.05, y + s * (kind === 1 ? 0.52 : 0.57), s * 0.04, s * 0.025);
+  if (kind === 2) {
+    // An armoured collar round the core eye.
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s * 0.5, s * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = GUNMETAL_LO;
+    ctx.fill();
+    trim(ctx, colour, 0.7);
+  }
+  // The eyes.
+  if (kind === 0) {
+    paintEye(ctx, x + s * 0.4, y + s * 0.36, s * 0.065);
+    paintEye(ctx, x + s * 0.6, y + s * 0.36, s * 0.065);
+  } else if (kind === 1) {
+    paintEye(ctx, x + s * 0.5, y + s * 0.58, s * 0.08);
+  } else {
+    paintEye(ctx, x + s * 0.5, y + s * 0.5, s * 0.13);
+  }
   ctx.restore();
 }
 
 const HULL_SCALE = 3;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
-/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine glow. */
+/** One enemy hull filling the cell box (x, y, s x s): a cached sprite plus the live engine lights. */
 function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
-  const key = `${kind}:${colour}:${s}`;
+  const key = `a4:${kind}:${colour}:${s}`;
   let sprite = hullSprites.get(key);
   if (sprite === undefined) {
     const canvas = artCanvas(Math.ceil(s * HULL_SCALE), Math.ceil(s * HULL_SCALE));
@@ -187,12 +294,14 @@ function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x
   }
   if (sprite) ctx.drawImage(sprite as CanvasImageSource, x, y, s, s);
   else paintHull(ctx, kind, colour, x, y, s);
-  // Engine glow at the rear (top), inside the box.
+  // Engine lights at the rear (top), inside the box: twin for the interceptor, one for the others.
   const pulse = 0.6 + 0.4 * Math.sin(t * 9 + x * 0.1);
-  ctx.fillStyle = `rgba(255,200,120,${0.55 * pulse})`;
-  ctx.beginPath();
-  ctx.ellipse(x + s / 2, y + s * 0.12, s * 0.12, s * 0.08, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = kind === 1 ? `rgba(255,230,170,${0.75 * pulse})` : `rgba(255,200,120,${0.55 * pulse})`;
+  for (const u of kind === 1 ? [0.44, 0.56] : [0.5]) {
+    ctx.beginPath();
+    ctx.ellipse(x + s * u, y + s * (kind === 1 ? 0.06 : 0.12), s * (kind === 1 ? 0.06 : 0.12), s * 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 /**
@@ -208,9 +317,18 @@ function paintSpace(c: CanvasRenderingContext2D, H: number): void {
   sky.addColorStop(1, "#07070C");
   c.fillStyle = sky;
   c.fillRect(0, 0, W, H);
-  for (const [nx, ny, nr, colour] of [[300, 150, 190, "rgba(150,70,200,0.13)"], [70, 380, 170, "rgba(60,110,220,0.11)"], [220, 260, 110, "rgba(220,90,170,0.06)"]] as const) {
+  // Polish A4 (25 Oct 2026): a richer blue and purple nebula, each cloud with a brighter heart.
+  for (const [nx, ny, nr, colour] of [
+    [300, 150, 220, "rgba(150,70,220,0.2)"],
+    [70, 380, 200, "rgba(50,100,235,0.18)"],
+    [230, 290, 140, "rgba(110,80,240,0.12)"],
+    [350, 480, 170, "rgba(80,60,210,0.12)"],
+    [110, 110, 120, "rgba(180,80,230,0.1)"],
+    [220, 260, 110, "rgba(220,90,170,0.05)"],
+  ] as const) {
     const g = c.createRadialGradient(nx, ny, 0, nx, ny, nr);
     g.addColorStop(0, colour);
+    g.addColorStop(0.45, colour.replace(/[\d.]+\)$/, (a) => `${(Number.parseFloat(a) * 0.45).toFixed(3)})`));
     g.addColorStop(1, "rgba(0,0,0,0)");
     c.fillStyle = g;
     c.fillRect(nx - nr, ny - nr, nr * 2, nr * 2);
@@ -472,21 +590,100 @@ export function drawFighter(ctx: CanvasRenderingContext2D, cx: number, cy: numbe
   ctx.restore();
 }
 
-/** All three beam styles stay inside the sim's identical 4 × 12 projectile box. */
+/**
+ * All three beam styles stay inside the sim's identical 4 × 12 projectile box; Polish A4 gives each a
+ * soft glow in its colour (at most 2 px past the box) and a bright core.
+ */
 export function drawWavefrontBeam(ctx: CanvasRenderingContext2D, x: number, y: number, kind: "player" | "enemy" | "piercing"): void {
   const piercing = kind === "piercing";
   const w = Math.min(WAV_BOLT_W, piercing ? 3 : 2);
   const h = Math.min(WAV_BOLT_H, piercing ? 12 : 8);
-  if (kind === "player") {
-    ctx.fillStyle = "rgba(61, 220, 132, 0.3)";
-    ctx.fillRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
-  }
-  if (kind === "player") {
-    ctx.fillStyle = "rgba(61, 220, 132, 0.35)";
-    ctx.fillRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
-  }
-  ctx.fillStyle = piercing ? WAV_PURPLE : kind === "enemy" ? WAV_RED : "#3DDC84";
+  const colour = piercing ? WAV_PURPLE : kind === "enemy" ? WAV_RED : "#3DDC84";
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2 - 2, y - 2, w + 4, h + 4, 3);
+  ctx.fill();
+  ctx.globalAlpha = 0.45;
+  ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, h + 2);
+  ctx.globalAlpha = 1;
   ctx.fillRect(x - w / 2, y, w, h);
+  ctx.fillStyle = kind === "enemy" ? "#FFD0C8" : "#F0FFF6";
+  ctx.fillRect(x - 0.5, y + 1, 1, h - 2);
+  ctx.restore();
+}
+
+/**
+ * Polish A4: the player ship's engine flame, under its box (exhaust light, not a body): always a small
+ * flickering flame, longer while the ship moves.
+ */
+function drawShipFlame(ctx: CanvasRenderingContext2D, cx: number, bottom: number, moving: boolean, t: number, still: boolean): void {
+  const flick = still ? 1 : 0.75 + 0.25 * Math.sin(t * 30);
+  const len = (moving ? 11 : 6) * flick;
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = "#FF8A3D";
+  ctx.beginPath();
+  ctx.ellipse(cx, bottom + len * 0.4, 5, len * 0.6 + 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  const fire = ctx.createLinearGradient(0, bottom - 3, 0, bottom + len);
+  fire.addColorStop(0, "rgba(255,245,200,0.95)");
+  fire.addColorStop(0.4, "rgba(255,170,70,0.9)");
+  fire.addColorStop(1, "rgba(255,80,40,0)");
+  ctx.fillStyle = fire;
+  ctx.beginPath();
+  ctx.moveTo(cx - 3.5, bottom - 3);
+  ctx.quadraticCurveTo(cx - 2, bottom + len * 0.6, cx, bottom + len);
+  ctx.quadraticCurveTo(cx + 2, bottom + len * 0.6, cx + 3.5, bottom - 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Per-canvas render memory of hits (shape kills and armour hits) for the hit sparkle. */
+const hitSparkMemo = new WeakMap<object, { tick: number; count: number; marks: { x: number; y: number; t: number }[] }>();
+const SPARK_TICKS = 20;
+
+/** Polish A4: a four-point sparkle where each shape is hit, growing and turning as it fades. */
+function drawHitSparkles(ctx: CanvasRenderingContext2D, state: WavState, still: boolean): void {
+  let memo = hitSparkMemo.get(ctx);
+  const count = state.shapesDown + state.armourHits;
+  if (!memo || state.tick < memo.tick) {
+    memo = { tick: state.tick, count, marks: [] };
+    hitSparkMemo.set(ctx, memo);
+  }
+  if (count > memo.count) {
+    // The new kills' bursts (shape colours 0–2, armour 4); never more marks than hits.
+    const fresh = state.bursts.filter((b) => b.t > memo!.tick && b.c !== 3).slice(-(count - memo.count));
+    for (const b of fresh) memo.marks.push({ x: b.x, y: b.y, t: b.t });
+  }
+  memo.count = count;
+  memo.tick = state.tick;
+  memo.marks = memo.marks.filter((m) => state.tick - m.t < SPARK_TICKS).slice(-8);
+  for (const m of memo.marks) {
+    const p = (state.tick - m.t) / SPARK_TICKS;
+    const r = still ? 7 : 4 + 9 * Math.sin(Math.min(1, p * 1.6) * Math.PI * 0.5);
+    ctx.save();
+    ctx.translate(m.x, m.y - (still ? 0 : p * 6));
+    ctx.rotate(still ? 0 : p * 1.2);
+    ctx.globalAlpha = (1 - p) * 0.95;
+    ctx.fillStyle = "#FFF4C8";
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      const d = k % 2 === 0 ? r : r * 0.22;
+      ctx.lineTo(Math.cos(a) * d, Math.sin(a) * d);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(0.8, r * 0.18), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawSaucer(ctx: CanvasRenderingContext2D, x: number, t: number): void {
@@ -634,6 +831,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   }
 
   drawBursts(ctx, state, [...WAV_COLOURS, WAV_PURPLE, "#9AA3B2"], still);
+  drawHitSparkles(ctx, state, still);
 
   if (state.tick < motion.tick) motion.movedTick = -100;
   if (state.tick !== motion.tick && state.shipX !== motion.shipX) motion.movedTick = state.tick;
@@ -646,14 +844,36 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.globalAlpha = 0.4;
     drawFighter(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W, WAV_SHIP_H, false, 0, t);
     ctx.globalAlpha = 1;
-  } else if (!flashing) drawFighter(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W, WAV_SHIP_H, moving, recoil, t);
+  } else if (!flashing) {
+    drawShipFlame(ctx, state.shipX, WAV_SHIP_Y + WAV_SHIP_H / 2, moving, t, still);
+    drawFighter(ctx, state.shipX, WAV_SHIP_Y, WAV_SHIP_W, WAV_SHIP_H, moving, recoil, t);
+  }
 
-  ctx.strokeStyle = "rgba(245,184,46,0.12)";
-  ctx.lineWidth = 1;
+  // Polish A4: the shield line glows faintly, a slow shimmer running along it.
+  ctx.save();
+  ctx.strokeStyle = "rgba(245,184,46,0.05)";
+  ctx.lineWidth = 6;
   ctx.beginPath();
   ctx.moveTo(8, WAV_DRAG_ZONE_TOP);
   ctx.lineTo(WAV_WORLD_W - 8, WAV_DRAG_ZONE_TOP);
   ctx.stroke();
+  ctx.strokeStyle = "rgba(245,184,46,0.18)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (!still) {
+    const sx = 8 + ((t * 60) % (WAV_WORLD_W + 64)) - 32;
+    const shimmer = ctx.createLinearGradient(sx - 32, 0, sx + 32, 0);
+    shimmer.addColorStop(0, "rgba(255,226,140,0)");
+    shimmer.addColorStop(0.5, "rgba(255,226,140,0.45)");
+    shimmer.addColorStop(1, "rgba(255,226,140,0)");
+    ctx.strokeStyle = shimmer;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(Math.max(8, sx - 32), WAV_DRAG_ZONE_TOP);
+    ctx.lineTo(Math.min(WAV_WORLD_W - 8, sx + 32), WAV_DRAG_ZONE_TOP);
+    ctx.stroke();
+  }
+  ctx.restore();
 
   ctx.font = "600 16px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillStyle = "#F7F7F8";

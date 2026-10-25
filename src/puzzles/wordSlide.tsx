@@ -31,6 +31,8 @@ import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-wordslide.css";
 
 const CELL = 56;
 /** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
@@ -193,7 +195,15 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           setVerdicts((c) => ({ ...c, [word]: v.valid }));
           if (v.valid) setAccepted(previous => ({ word: v.word, points: 22, serial: (previous?.serial ?? 0) + 1 }));
           // A row the player made into a word: the shared "correct" and its small burst, like the other word games.
-          if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) fx.onCorrect();
+          if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) {
+            fx.onCorrect();
+            // Batch W (display only): the row that became a word gets the toolkit's right-move glow.
+            rowWords.forEach((w, i) => {
+              if (w !== word) return;
+              const row = WS_MARKED_ROWS[i]!;
+              for (let col = 0; col < WS_SIZE; col++) rightMoveFlash(board.current?.querySelector(`[data-cell="${row * WS_SIZE + col}"]`));
+            });
+          }
         })
         .catch(() => undefined);
     }
@@ -312,7 +322,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       </div>
       <Board grid={replay.grid} cell={cell} good={good} boardRef={board} onPointerDown={onPointerDown} locked={lockedRows} shut={finished} onLock={(row) => { playSound("pz_padlock"); push(`L${row}`); }} />
       <div data-game-controls="status" data-word-controls-first="" className="relative flex h-8 shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        <span>Moves <span className="text-primary">{replay.moves}</span></span>
+        {/* Batch W live summary (display only): rows reading as words, rows locked, moves. */}
+        <span data-live-summary="wordslide" className="whitespace-nowrap font-sans text-[13px] font-semibold normal-case tracking-normal tabular-nums text-[#a09da6]">
+          <b className="font-extrabold text-[#f3f1ec]">{good.size}</b> / {WS_MARKED_ROWS.length} words<span className="text-[#5d5a63]"> · </span>
+          <b className="font-extrabold text-[#f3f1ec]">{lockedRows.size}</b> locked<span className="text-[#5d5a63]"> · </span>
+          Moves <span className="text-primary">{replay.moves}</span>
+        </span>
       </div>
       <div data-game-controls="actions" className="flex shrink-0 gap-3 px-2">
         <Button

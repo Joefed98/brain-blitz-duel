@@ -1,0 +1,30 @@
+/* Polish batch W (25 Oct 2026, display only): Integer Pyramid. Imported only from src/puzzles/numberPyramid.tsx. */
+
+/* The live summary takes the old "Pyramid n of 4" text's place, left of Skip. */
+[data-polish="numpyramid"] [data-live-summary="numpyramid"] {
+  justify-content: flex-start;
+  padding-left: 2px;
+}
+
+/* A picked stone lifts with a soft glow in the category colour (was the app's gold ring). */
+[data-puzzle-surface] [data-polish="numpyramid"] .pyramid-tray-tile.np-loose.np-picked,
+[data-polish="numpyramid"] .pyramid-tray-tile.np-loose.np-picked {
+  box-shadow:
+    0 0 0 2px #1c1a17,
+    0 0 0 4px var(--category-accent),
+    0 0 18px color-mix(in srgb, var(--category-accent) 55%, transparent),
+    0 6px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* A placed stone picked for a swap: the same glow, not the plain white ring. */
+[data-polish="numpyramid"] [data-np-cell].ring-2 {
+  --tw-ring-color: var(--category-accent);
+  box-shadow: 0 0 0 2px var(--category-accent), 0 0 16px color-mix(in srgb, var(--category-accent) 55%, transparent);
+}
+
+/* The stone bed: a deeper drop shadow under each row so the pyramid stands off the tray. */
+[data-polish="numpyramid"] [data-game-arena] .np-row {
+  box-shadow:
+    0 0 0 2px var(--np-mortar),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}

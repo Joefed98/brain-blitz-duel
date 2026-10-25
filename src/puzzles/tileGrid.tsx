@@ -27,6 +27,8 @@ import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/F
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useGameKeys } from "@/lib/desktop";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
+import "@/polish-layout/batch-w-tilegrid.css";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
@@ -113,6 +115,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const cells = useMemo(() => placed.map((t) => (t === null ? "" : (tray[t] ?? ""))), [placed, tray]);
   const runs = useMemo(() => tileGridRuns(cells), [cells]);
   const encoded = encodeTileGrid(cells);
+  const runsRef = useRef(runs);
+  runsRef.current = runs;
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -137,7 +141,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       setVerdicts((v) => ({ ...v, [word]: verdict.valid }));
       if (verdict.valid) setAccepted(previous => ({ word, points: "points" in verdict && typeof verdict.points === "number" ? verdict.points : 0, serial: (previous?.serial ?? 0) + 1 }));
       // A word the player built: the shared "correct" and its small burst, like the other word games.
-      if (verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) fx.onCorrect();
+      if (verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) {
+        fx.onCorrect();
+        // Batch W (display only): the word's tiles get the toolkit's right-move glow.
+        for (const run of runsRef.current)
+          if (run.word === word) run.cells.forEach((cell) => rightMoveFlash(boardSpace.current?.querySelector(`[data-tg-cell="${cell}"]`)));
+      }
       return verdict.valid;
     },
     [checkWord, verdicts],
@@ -268,6 +277,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               key={i}
               data-tg-cell={i}
               data-word-cell={letter && goodCells.has(i) ? "true" : undefined}
+              data-bw-slot={letter ? undefined : selected !== null ? "open" : "empty"}
+              data-bw-selected={selected === tile && tile !== null ? "" : undefined}
               onClick={() => {
                 if (frozen) return;
                 if (tile !== null) tapPlaced(tile);
@@ -295,6 +306,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         {inTray.map((tile) => (
           <span
             key={tile}
+            data-bw-selected={selected === tile ? "" : undefined}
             onClick={() => { if (!frozen) setSelected((current) => current === tile ? null : tile); }}
             className={`word-letter-tile flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
             style={{ width: TRAY_TILE, height: TRAY_TILE }}
@@ -304,11 +316,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         ))}
       </div>
       <div data-game-controls="actions" className="flex w-full shrink-0 items-center gap-2">
-        <span data-tg-hint="" className="min-w-0 truncate whitespace-nowrap font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {/* Batch W live summary (display only): tiles placed and tiles in words, from what the board shows. */}
+        <span data-tg-hint="" data-live-summary="tilegrid" className="min-w-0 truncate whitespace-nowrap text-[13px] font-semibold tabular-nums text-[#a09da6]">
           {allPlaced ? (
-            <>words <span className="text-primary">{goodCells.size}</span> / {TG_TILES}</>
+            <><b className="font-extrabold text-[#f3f1ec]">{goodCells.size}</b> / {TG_TILES} in words</>
           ) : (
-            <>Place all {TG_TILES}</>
+            <><b className="font-extrabold text-[#f3f1ec]">{placedCount(cells)}</b> / {TG_TILES} placed{goodCells.size > 0 ? ` · ${goodCells.size} in words` : ""}</>
           )}
         </span>
         <Button

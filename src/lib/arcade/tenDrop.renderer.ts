@@ -18,6 +18,7 @@ import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { sceneBelow, sceneFill, sceneSides, type ArenaSceneView } from "./arenaScene.renderer";
 import type { CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
+import { arcadeFx, type ArcadeFxPoint, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import {
   tdKind,
   tdLabel,
@@ -92,9 +93,9 @@ function boardCanvas(wPx: number, hPx: number, ratio: number): ArtCanvas | null 
   const sx = wPx / TD_W;
   // Oak, lamp-lit from above.
   const oak = c.createLinearGradient(0, 0, 0, hPx);
-  oak.addColorStop(0, "#D7AA70");
+  oak.addColorStop(0, "#E4BA80");
   oak.addColorStop(0.55, TOY_OAK);
-  oak.addColorStop(1, "#B98950");
+  oak.addColorStop(1, "#A97A44");
   c.fillStyle = oak;
   c.fillRect(0, 0, wPx, hPx);
   // Grain: long soft waves, seeded by row so every phone draws the same board.
@@ -112,11 +113,14 @@ function boardCanvas(wPx: number, hPx: number, ratio: number): ArtCanvas | null 
   for (let col = 0; col < TD_CONFIG.cols; col++) {
     const x0 = col * TD_COL_W * sx + 3;
     const x1 = (col + 1) * TD_COL_W * sx - 3;
-    c.fillStyle = "rgba(92,56,22,0.13)";
+    // Deeper grooves (polish batch W): a darker floor, a wider shaded wall and a brighter lit lip.
+    c.fillStyle = "rgba(92,56,22,0.19)";
     c.fillRect(x0, 0, x1 - x0, hPx);
-    c.fillStyle = "rgba(62,39,22,0.32)";
-    c.fillRect(x0, 0, 2, hPx);
-    c.fillStyle = "rgba(255,236,200,0.28)";
+    c.fillStyle = "rgba(62,39,22,0.42)";
+    c.fillRect(x0, 0, 3, hPx);
+    c.fillStyle = "rgba(62,39,22,0.16)";
+    c.fillRect(x0 + 3, 0, 4, hPx);
+    c.fillStyle = "rgba(255,236,200,0.42)";
     c.fillRect(x1 - 1.5, 0, 1.5, hPx);
   }
   // Lane dividers: dark wooden rails.
@@ -169,7 +173,7 @@ export function tileSprite(label: string, look: Look, w: number, h: number, rati
   const [faceTop, faceLow, edge, ink] = LOOKS[look];
   const r = Math.min(11, h * 0.2);
   // Drop shadow (2 px down, inside the 2 px allowance).
-  c.fillStyle = "rgba(43,26,14,0.35)";
+  c.fillStyle = "rgba(43,26,14,0.5)";
   c.beginPath();
   c.roundRect(2, 4, w, h, r);
   c.fill();
@@ -180,10 +184,23 @@ export function tileSprite(label: string, look: Look, w: number, h: number, rati
   c.beginPath();
   c.roundRect(2, 2, w, h, r);
   c.fill();
-  // Bevel: a lit top lip and a shaded bottom lip, inside the face.
-  c.fillStyle = "rgba(255,255,255,0.45)";
+  // Light from above (polish batch W): a gloss over the top 45 % of the face and a shade low down,
+  // inside the face, so the tile reads as lit; then the bevel's lit top lip and shaded bottom lip.
+  c.save();
+  c.beginPath();
+  c.roundRect(2, 2, w, h, r);
+  c.clip();
+  const gloss = c.createLinearGradient(0, 2, 0, 2 + h);
+  gloss.addColorStop(0, "rgba(255,255,255,0.34)");
+  gloss.addColorStop(0.45, "rgba(255,255,255,0)");
+  gloss.addColorStop(0.7, "rgba(40,20,5,0)");
+  gloss.addColorStop(1, "rgba(40,20,5,0.2)");
+  c.fillStyle = gloss;
+  c.fillRect(2, 2, w, h);
+  c.restore();
+  c.fillStyle = "rgba(255,255,255,0.6)";
   c.fillRect(2 + r * 0.7, 4, w - r * 1.4, 2);
-  c.fillStyle = "rgba(60,30,10,0.18)";
+  c.fillStyle = "rgba(60,30,10,0.26)";
   c.fillRect(2 + r * 0.7, h - 2, w - r * 1.4, 2);
   c.lineWidth = 2;
   c.strokeStyle = edge;
@@ -405,6 +422,51 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+}
+
+/** The centre of a tile in world px. */
+const tileCentre = (t: { col: number; y: number }): ArcadeFxPoint => ({ x: t.col * TD_COL_W + TD_COL_W / 2, y: t.y / 256 + TILE_H / 2 });
+
+/**
+ * Tenfall's miss moment (polish batch W, 25 Oct 2026, display only): the shared arcade miss layer
+ * (arcadeFx.renderer.ts `misses`: the faint red edge pulse and a small puff) on the two counters
+ * the live round's sounds already read, a refused tile (`refused`, `tendrop.refused`) and an
+ * overshoot reset (`resets`, `tendrop.reset`). No success events: Tenfall keeps its own rings,
+ * shimmer and confetti. Live round only; reveals and replays draw drawTenDrop unchanged.
+ */
+export const TENDROP_MISS_FX: ArcadeFxSpec<TenDropState> = {
+  game: "tendrop",
+  world: "toybox",
+  width: TD_W,
+  height: TD_H,
+  fit: "stretch",
+  shake: false,
+  events: [],
+  misses: [
+    {
+      count: (s) => s.refused,
+      // The refused tile is the one shaking most recently.
+      at: (s) => {
+        let best: TenDropState["tiles"][number] | null = null;
+        for (const t of s.tiles) if (t.shakeUntil > s.tick && (!best || t.shakeUntil > best.shakeUntil)) best = t;
+        return best ? tileCentre(best) : null;
+      },
+    },
+    {
+      count: (s) => s.resets,
+      // The overshooting tile left the board on that tick: its last place on the previous frame.
+      at: (s, before) => {
+        if (!before) return null;
+        const left = before.tiles.find((t) => !s.tiles.some((u) => u.id === t.id));
+        return left ? tileCentre(left) : null;
+      },
+    },
+  ],
+};
+
+/** The live round's frame: drawTenDrop unchanged, the shared miss layer on top (device px, stretched as tdView). */
+export function drawTenDropLive(ctx: CanvasRenderingContext2D, s: TenDropState, size: CanvasSize, ratio: number, now: number): void {
+  arcadeFx(ctx, TENDROP_MISS_FX, s, () => drawTenDrop(ctx, s, size, ratio, now), { width: size.width * ratio, height: size.height * ratio });
 }
 
 /**

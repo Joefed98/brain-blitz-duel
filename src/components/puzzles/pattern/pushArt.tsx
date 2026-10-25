@@ -69,9 +69,9 @@ function WarehouseFloor({
           <path d="M0.5 0.9h9M10.5 0.9h9M5.5 5.9h9" stroke="rgba(255,210,180,.16)" strokeWidth="0.5" />
         </pattern>
         <linearGradient id={`${id}-wallshade`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="rgba(255,235,220,.22)" />
+          <stop offset="0" stopColor="rgba(255,235,220,.22)" className="push-wall-top" />
           <stop offset="0.18" stopColor="rgba(255,235,220,0)" />
-          <stop offset="1" stopColor="rgba(0,0,0,.38)" />
+          <stop offset="1" stopColor="rgba(0,0,0,.38)" className="push-wall-bottom" />
         </linearGradient>
         <linearGradient id={`${id}-cast`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="rgba(0,0,0,.42)" />
@@ -171,6 +171,15 @@ export function CrateArt({ home }: { home: boolean }) {
       <path d="M3.2 16.2 16.2 3.2" stroke="var(--crate-dark)" strokeWidth="3" strokeLinecap="round" />
       <path d="M3.2 15.6 15.6 3.2" stroke="var(--crate-light)" strokeWidth="0.9" strokeLinecap="round" opacity="0.8" />
       <path d="M1.2 1.2h17" stroke="var(--crate-light)" strokeWidth="0.6" opacity="0.9" />
+      {/* Batch P (live round only, batch-p.css): light from above across the whole crate. */}
+      <defs>
+        <linearGradient id="push-crate-lit" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.34" />
+          <stop offset="0.35" stopColor="#fff" stopOpacity="0.04" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.34" />
+        </linearGradient>
+      </defs>
+      <rect x="0.6" y="0.6" width="18.2" height="18.2" rx="1.2" fill="url(#push-crate-lit)" className="push-crate-lit" />
       {[
         [2.6, 2.6],
         [16.8, 2.6],
