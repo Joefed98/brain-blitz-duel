@@ -24,12 +24,12 @@ const INTRO_FEATURE: Record<D4Type, string> = {
 
 /** The feature, as the help explains it, with the share lost per step over its par where it has one. */
 const HELP_FEATURE: Partial<Record<D4Type, string>> = {
-  unblock: "Par is the fewest moves the lot can be solved in: finish at or under par for up to 50 more (each move over par costs a third of it)",
+  unblock: "Par is the fewest moves the lot can be solved in: finishing at or under par earns more (each move over par costs a third of it)",
   rings: "Par is the fewest turns that line the rings up: finish at or under par for up to 25 more (each turn over par costs a third of it)",
   pipes: "Par is the fewest taps that turn the board into its solution: finish at or under par for up to 25 more (each tap over par costs a tenth of it)",
   laser: "An elegant beam lights every gem with no more mirrors than the solution needs (there are two spare): up to 25 more (each extra mirror costs half of it)",
-  iceslide: "Ice gems sit off the shortest route; slide over them on your way: up to 50 more for collecting them all (a share for each)",
-  push: "One crate is gold: finish with it on the gold mark for up to 50 more",
+  iceslide: "Ice gems sit off the shortest route; slide over them on your way; each gem collected earns a share",
+  push: "One crate is gold: finishing with it on the gold mark earns more",
 };
 
 /** Seconds a finish must take at most to reach the top of the stretch. */
@@ -56,7 +56,9 @@ export function d4Help(type: D4Type): string {
   ];
   if (g.stretch > 0)
     parts.push(`Finishing faster still adds up to ${g.stretch} more, all of it for a finish in about ${d4EliteSeconds(type)} s with nothing wasted.`);
-  if (feature)
+  if (feature && g.featureBase !== undefined)
+    parts.push(`${feature}. It pays up to ${g.featureBase} at that 150 pace (less when slower), and up to ${g.feature} for a finish in about ${d4EliteSeconds(type)} s.`);
+  else if (feature)
     parts.push(`${feature}; the full amount at that 150 pace, less when slower.`);
   parts.push(`{max} needs ${g.stretch > 0 && feature ? "both" : "it all"}.`);
   return fillMax(parts.join(" "), type);

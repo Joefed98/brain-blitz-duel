@@ -24,14 +24,20 @@ export interface D4Game {
   feature: number;
   /** Share of the clock left at which the stretch is full (elite pace). */
   elite: number;
+  /**
+   * The part of the feature paid at today's 150 pace (with the floor below it); the rest of `feature` is paid
+   * only on the elite stretch (0 at the fast share, all of it at the elite share). Absent: all of it at 150 pace.
+   */
+  featureBase?: number;
   /** The feature's name on the reveal's breakdown ("120 + 50 par + 30 speed"). */
   measure: string;
 }
 
 export const D4_GAMES: Record<D4Type, D4Game> = {
-  unblock: { stretch: 0, feature: 50, elite: 1, measure: "par" },
-  iceslide: { stretch: 0, feature: 50, elite: 1, measure: "gems" },
-  push: { stretch: 0, feature: 50, elite: 1, measure: "gold crate" },
+  // FEATURE games: a fixed part of the feature at today's pace, the rest of the 50 only at elite pace.
+  unblock: { stretch: 0, feature: 50, featureBase: 15, elite: 0.78, measure: "par" },
+  iceslide: { stretch: 0, feature: 50, featureBase: 30, elite: 0.69, measure: "gems" },
+  push: { stretch: 0, feature: 50, featureBase: 15, elite: 0.7, measure: "gold crate" },
   blockparty: { stretch: 50, feature: 0, elite: 0.72, measure: "" },
   flow: { stretch: 50, feature: 0, elite: 0.75, measure: "" },
   pipes: { stretch: 25, feature: 25, elite: 0.66, measure: "par" },
@@ -62,23 +68,35 @@ export function d4Game(type: D4Type): D4Game {
   return elite === undefined ? g : { ...g, elite };
 }
 
+/** The elite stretch's share (0 at the fast share of the clock left, 1 at the elite share). */
+export function d4EliteShare(type: D4Type, left: number): number {
+  const g = d4Game(type);
+  const fast = rev3Game(type).fastShare;
+  return clamp((clamp(left, 0, 1) - fast) / Math.max(0.01, g.elite - fast), 0, 1);
+}
+
 /** Stretch points for a finish leaving `left` (0–1) of the clock with `efficiency` (0–1). */
 export function d4StretchPoints(type: D4Type, left: number, efficiency: number): number {
   const g = d4Game(type);
   if (g.stretch <= 0) return 0;
-  const fast = rev3Game(type).fastShare;
-  const s = clamp((clamp(left, 0, 1) - fast) / Math.max(0.01, g.elite - fast), 0, 1);
+  const s = d4EliteShare(type, left);
   const e = clamp(efficiency, 0, 1);
   return Math.round(g.stretch * s * e * e);
 }
 
-/** Feature points for a finish: the feature's share, kept in full only at today's 150 pace or faster. */
+/**
+ * Feature points for a finish: the feature's share of its base part, kept in full only at today's 150 pace or
+ * faster, plus (where the game sets a base) the share of the rest, paid on the elite stretch.
+ */
 export function d4FeaturePoints(type: D4Type, left: number, share: number): number {
   const g = d4Game(type);
   if (g.feature <= 0) return 0;
   const fast = rev3Game(type).fastShare;
   const pace = clamp(clamp(left, 0, 1) / fast, 0, 1);
-  return Math.round(g.feature * clamp(share, 0, 1) * (D4_FEATURE_FLOOR + (1 - D4_FEATURE_FLOOR) * pace));
+  const base = g.featureBase ?? g.feature;
+  const atPace = base * (D4_FEATURE_FLOOR + (1 - D4_FEATURE_FLOOR) * pace);
+  const atElite = (g.feature - base) * d4EliteShare(type, left);
+  return Math.round(clamp(share, 0, 1) * (atPace + atElite));
 }
 
 export interface D4Finish {

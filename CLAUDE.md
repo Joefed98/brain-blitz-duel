@@ -199,7 +199,7 @@ Lovable still hosts and publishes the app (https://brain-blitz-duel.lovable.app)
     `min(100% + inset, screen)` (`--standalone-short` is now the top inset, `--standalone-screen` the screen's height, neither
     read from layout): a shortfall measured once per screen size used to stay on a layout viewport WebKit had since grown to the
     whole screen (after a room's keyboard, after a few runs), pushing the lowest controls 48 px down (Rainbow Bridge and Mixed
-    Signals in rooms, Fission's arrows after repeat plays). arcade-room-practice-check (headless Chromium, ~2 min, `play15`)
+    Signals in rooms, Fission's arrows after repeat plays). arcade-room-practice-check (headless Chromium, ~2 min, in thirds since 25 Oct 2026 on `play15`, `play7` and `play8`)
     draws every arcade play screen in a room and in practice at 848, 896 and 848 again and fails unless room = practice box for
     box and everything ends 16 px above the bottom; fission-repeat-check (~2 min, `play15`) plays Fission four times in a row.
   - *Silent puzzle replays.* The results screen's (and podium's) time-lapse and moment cards play no sound effects: their own

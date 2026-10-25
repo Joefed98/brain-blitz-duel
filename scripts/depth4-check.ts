@@ -14,7 +14,7 @@
  *      rebuilds byte for byte on a sample.
  *   3. Scores: a perfect, very fast run scores 200 on every game; no score above 200; a finish never below 120;
  *      an unfinished round scores what rev 3 gives it (the features add nothing unfinished, Tessellate's
- *      progress counting its own ten pieces); the reveal breakdown adds up to the score.
+ *      progress counting its own pieces); the reveal breakdown adds up to the score.
  *   4. Phone parity: the pipes tap answer, the gem replay and the gold crate are what the server counts.
  *
  *   bun scripts/depth4-check.ts            (CHECKS_FULL=1 verifies every Tessellate and Heave bank entry)
@@ -148,7 +148,7 @@ for (const type of D4_TYPES) {
       ok(extra >= ICE_GEM_MIN_DETOUR && extra <= ICE_GEM_MAX_DETOUR, `iceslide seed ${s}: the gem route is ${extra} slides longer`);
     }
     if (p.type === "push") ok(!!p.gold && p.crates.length === 5, `push seed ${s}: no gold crate or not five crates`);
-    if (p.type === "blockparty") ok(p.blockers.length === 15 && (p.blockRev ?? 0) === 1, `blockparty seed ${s}: not the 7×7 board`);
+    if (p.type === "blockparty") ok(p.blockers.length === 16 && (p.blockRev ?? 0) === 1, `blockparty seed ${s}: not the 7×7 board`);
   }
 }
 void gemRouteLength;

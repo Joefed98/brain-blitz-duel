@@ -1518,6 +1518,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeTenDropRun(answer).events.length,
         claimedScore: decodeTenDropRun(answer).claimedScore,
+        // tenRev 4: tens made by the gold tile (absent on older revisions).
+        ...(run.goldTens !== undefined ? { goldTens: run.goldTens } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

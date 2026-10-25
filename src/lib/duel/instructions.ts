@@ -1,4 +1,5 @@
 import { bandsHelp, openBandsLine } from "./puzzleBandsText";
+import { depthHelp } from "./numberDepthText";
 import { d4Help } from "./depth4/text";
 import {
   scoreReaction,
@@ -15,7 +16,7 @@ import {
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { FLASH_DECOY_FREE_SHARE_PCT, TAP_REV_ONE_CURVE } from "./tapLog";
 import { bandMapTotal } from "@/lib/arcade/scoreBands";
-import { TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
+import { TD_GOLD_MAX, TD_GOLD_POINTS, TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TD_STRETCH_FROM, TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_GREAT_MAP } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP } from "@/lib/arcade/whack";
 import { CLAY_QUICK_HIT_MAP, CLAY_QUICK_POINTS } from "@/lib/arcade/clayShoot";
@@ -113,7 +114,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
         { action: "Hangs are limited:", detail: "6 / 8 / 10 / 12 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
       ],
-      score: bandsHelp("balance"),
+      score: depthHelp("balance"),
     },
     wordslide: {
       goal: "Slide rows and columns until every row is a word.",
@@ -132,8 +133,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two numbers,", detail: "then + − × or ÷." },
         { action: "Use each number", detail: "once at most." },
         { action: "Every step", detail: "must be a whole number." },
+        { action: "Elegance bonus:", detail: "hit the target with 5 numbers, not all 6." },
       ],
-      score: bandsHelp("target"),
+      score: depthHelp("target"),
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
@@ -145,7 +147,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The last one", detail: "uses division in a harder mix. 90 seconds for all four.", helpOnly: true },
         { action: "3 tries each:", detail: "every full set of signs is a try. After the third wrong one the equation locks; tap Next.", helpOnly: true },
       ],
-      score: bandsHelp("equation"),
+      score: depthHelp("equation"),
     },
     reaction: {
       goal: "Tap the instant the screen turns gold.",
@@ -743,10 +745,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap falling tiles", detail: "to apply them to the total." },
         { action: "×2, ÷2, ÷3 and −N", detail: "change the total." },
         { action: "Overshoot", detail: "and the total drops to 0." },
+        { action: "Gold tiles:", detail: "hit a target with one for bonus points." },
         { action: "Tiles apply", detail: "in the order you tap them.", helpOnly: true },
         { action: "A ÷ that doesn't divide exactly", detail: "is refused.", helpOnly: true },
       ],
-      score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_RAW_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_RAW_REV)} if the last clears as time runs out, rising the earlier it clears; {max} only with at least half the time left.`,
+      // tenRev 4 (the dealt stamp): tenRev 3's unfinished score; a finish to the game's maximum.
+      score: `Unfinished: targets hit, about ${tenDropScore(1, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for the first and ${tenDropScore(9, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} for nine (−${TD_REV3_RESET_COST} per reset after the first ${TD_REV3_FREE_RESETS}). All ten: ${tenDropScore(10, TD_RUN_TICKS, TEN_DROP_DEPTH_REV)} if the last clears as time runs out, rising the earlier it clears: ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN, TEN_DROP_DEPTH_REV)} at ${Math.round((TD_RUN_TICKS - TD_STRETCH_FROM - TD_STRETCH_SPAN) / 60)} s, ${tenDropScore(10, TD_RUN_TICKS / 2, TEN_DROP_DEPTH_REV)} by ${TD_RUN_TICKS / 120} s. Each target hit exactly with a gold tile adds ${TD_GOLD_POINTS} on a finish (up to ${TD_GOLD_MAX}), so {max} takes all ten by ${TD_RUN_TICKS / 120} s and ${TD_GOLD_MAX / TD_GOLD_POINTS} gold targets.`,
     },
     clayshoot: {
       goal: "Shoot all 25 clays without hitting a bird.",
@@ -960,7 +964,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ten dark numbers are fixed", detail: "– the path must reach each one at exactly that step. You fill the other 26.", helpOnly: true },
         { action: "Undo removes your last square; Reset clears your path.", detail: "Tapping your last square or dragging back along the path also undoes.", helpOnly: true },
       ],
-      score: bandsHelp("trail"),
+      score: depthHelp("trail"),
     },
     measure: {
       goal: "Measure out exactly the target amount.",
@@ -968,12 +972,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a jug, then another", detail: "to pour." },
         { action: "Fill and Empty", detail: "use the tap and drain." },
         { action: "Every action", detail: "is a move." },
+        { action: "Par pours:", detail: "solve a puzzle in its fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
         { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
         { action: "Reset", detail: "starts the puzzle again; moves keep counting.", helpOnly: true },
         { action: "Moves are limited", detail: "to about 3× the fewest (the counter). Out of moves, the run ends there.", helpOnly: true },
       ],
-      score: bandsHelp("measure"),
+      score: depthHelp("measure"),
     },
     checkout: {
       goal: "Score exactly the target with your darts.",
@@ -981,11 +986,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number,", detail: "then x1, x2 or x3." },
         { action: "Hit zero exactly", detail: "and finish in the ring shown." },
         { action: "Tap Throw", detail: "to check." },
+        { action: "Big finish:", detail: "end on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
         { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
       ],
-      score: bandsHelp("checkout"),
+      score: depthHelp("checkout"),
     },
     numline: {
       goal: "Place each number on the line.",
@@ -993,11 +999,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Drag the marker,", detail: "then tap Place." },
         { action: "Only the ends", detail: "are labelled." },
         { action: "Estimate:", detail: "no calculator needed." },
+        { action: "Bullseye streak:", detail: "land within a hair of exact, in a row, for a bonus." },
         { action: "A magnifier", detail: "shows where your finger is.", helpOnly: true },
         { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
         { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
       ],
-      score: "Up to 8 per number: full 8 within 1% of the line, falling evenly to 0 at 10% away; 25% or more away costs 1. Place all 15 for more, the quicker and the more of them within 1% the better. That total maps to the score bands: about 70 for an average round, 100 good, 120 great; {max} only for a perfect one.",
+      score: depthHelp("numline"),
     },
     numpyramid: {
       goal: "Each cell is the sum of the two below it.",
@@ -1008,7 +1015,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
         { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
       ],
-      score: bandsHelp("numpyramid"),
+      score: depthHelp("numpyramid"),
     },
     balltrack: {
       goal: "Steer every marble into the cup of its colour.",

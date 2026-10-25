@@ -9,7 +9,7 @@
  *   Chroma Lines (flow)     the same bank (already 9×9); stamped for the 200 stretch.
  *   Skid (iceslide)         the same bank (already 12×12) with ice gems off the shortest route (gems.server.ts).
  *   Heave (push)            its own bank: bigger warehouses, more crates, a gold crate (pushD4Bank.server.ts).
- *   Tessellate (blockparty) its own bank: a 7×7 board, fifteen pegs, ten pieces (blockD4Bank.server.ts).
+ *   Tessellate (blockparty) its own bank: a 7×7 board, sixteen pegs, nine pieces with a Plus for the Dot (blockD4Bank.server.ts).
  *
  * The three banked games (flow, iceslide, blockparty) take the new stamp only when drawn by seed (rooms,
  * practice): their fixed intro examples stay the old stored ones, so the bank checks still prove them.

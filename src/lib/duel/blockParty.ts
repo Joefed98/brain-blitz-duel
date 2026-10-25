@@ -97,12 +97,11 @@ export const BLOCK_PIECES: BlockPieceDef[] = [
 export const BLOCK_PIECE_CELLS = BLOCK_PIECES.reduce((sum, p) => sum + p.cells.length, 0);
 
 /**
- * blockRev 1 (depth batch 4, docs/depth/d4-pattern.md): the 7×7 board's ten pieces, the nine above plus a
- * Plus, covering exactly its 34 free cells (49 less fifteen pegs): a bigger shape with one more piece, so the
- * round still fits its 60 seconds.
+ * blockRev 1 (depth batch 4, docs/depth/d4-pattern.md): the 7×7 board's nine pieces: the 6×6 board's set with
+ * the Dot swapped for a Plus, covering exactly its 33 free cells (49 less sixteen pegs). A bigger shape to fill
+ * with the same number of pieces, so the round still fits its 60 seconds. The Plus takes the Dot's index (0).
  */
 export const BLOCK_D4_PIECES: BlockPieceDef[] = [
-  ...BLOCK_PIECES,
   {
     name: "Plus",
     cells: [
@@ -112,8 +111,9 @@ export const BLOCK_D4_PIECES: BlockPieceDef[] = [
       [1, 2],
       [2, 1],
     ],
-    colour: 4,
+    colour: 0,
   },
+  ...BLOCK_PIECES.slice(1),
 ];
 
 /** A Tessellate board's shape: its width, its pegs and its pieces. */
@@ -127,8 +127,8 @@ export interface BlockGeometry {
 
 /** The board every round dealt before blockRev 1 plays. */
 export const BLOCK_GEOMETRY_0: BlockGeometry = { cols: N, cells: BLOCK_CELLS, blockers: 7, free: BLOCK_FREE_CELLS, pieces: BLOCK_PIECES };
-/** blockRev 1: 7×7, fifteen pegs, ten pieces. */
-export const BLOCK_GEOMETRY_D4: BlockGeometry = { cols: 7, cells: 49, blockers: 15, free: 34, pieces: BLOCK_D4_PIECES };
+/** blockRev 1: 7×7, sixteen pegs, nine pieces (a Plus for the Dot). */
+export const BLOCK_GEOMETRY_D4: BlockGeometry = { cols: 7, cells: 49, blockers: 16, free: 33, pieces: BLOCK_D4_PIECES };
 
 /** The board a stored puzzle plays on. */
 export function blockGeometry(puzzle: { blockRev?: number } | null | undefined): BlockGeometry {
@@ -171,7 +171,7 @@ export function orientations(piece: number, pieces: BlockPieceDef[] = BLOCK_PIEC
 }
 
 export const BLOCK_ORIENTATIONS: Offsets[][] = BLOCK_PIECES.map((_, i) => orientations(i));
-/** Orientations of every piece of the 7×7 board (the first nine are BLOCK_ORIENTATIONS). */
+/** Orientations of every piece of the 7×7 board. */
 export const BLOCK_D4_ORIENTATIONS: Offsets[][] = BLOCK_D4_PIECES.map((_, i) => orientations(i, BLOCK_D4_PIECES));
 
 export function orientationsFor(geo: BlockGeometry): Offsets[][] {
@@ -261,8 +261,8 @@ export function decodePlacements(raw: string): BlockPlacement[] {
 }
 
 /** The piece's cells after a number of quarter turns and an optional flip. */
-export function orientationOffsets(piece: number, rot: number, flipped: boolean): Offsets {
-  let cells = normalise(BLOCK_D4_PIECES[piece]!.cells);
+export function orientationOffsets(piece: number, rot: number, flipped: boolean, pieces: BlockPieceDef[] = BLOCK_PIECES): Offsets {
+  let cells = normalise(pieces[piece]!.cells);
   if (flipped) cells = flip(cells);
   const turns = ((rot % 4) + 4) % 4;
   for (let i = 0; i < turns; i++) cells = rotate(cells);

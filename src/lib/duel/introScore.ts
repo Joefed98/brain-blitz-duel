@@ -8,6 +8,7 @@ import { SNIP_CONFIG } from "@/lib/arcade/snip";
 import { SWING_FINISH_M } from "@/lib/arcade/swing";
 import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
+import { depthIntro } from "./numberDepthText";
 import { d4IntroTemplate } from "./depth4/text";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -38,17 +39,17 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wordfall: "Longer words score more; Qu counts as two letters. {max} for a big haul of words.",
 
     // Number
-    target: bandsIntro("target"),
-    equation: bandsIntro("equation"),
-    balance: bandsIntro("balance"),
-    numpyramid: bandsIntro("numpyramid"),
-    trail: bandsIntro("trail"),
-    measure: bandsIntro("measure"),
+    target: depthIntro("target"),
+    equation: depthIntro("equation"),
+    balance: depthIntro("balance"),
+    numpyramid: depthIntro("numpyramid"),
+    trail: depthIntro("trail"),
+    measure: depthIntro("measure"),
     // "board" for the brief's "stage": the intro wording check rejects "stage".
-    checkout: bandsIntro("checkout"),
+    checkout: depthIntro("checkout"),
     // "speed points" for the brief's "speed bonus": the intro wording check rejects "speed bonus".
-    numline: "Up to 8 per number, more if quick and close; far-off ones lose 1. {max} is perfect.",
-    tendrop: "Points for each target you hit. Clear all ten for more, earlier for more still.",
+    numline: depthIntro("numline"),
+    tendrop: "Points per target. Clear all ten fast, hitting targets with gold tiles, for up to {max}.",
 
     // Attention
     reaction: "Tap fast: 150 ms or quicker on average scores {max}. Early taps cost 8, then 11 after two.",

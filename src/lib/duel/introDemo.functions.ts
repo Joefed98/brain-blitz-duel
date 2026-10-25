@@ -9,6 +9,7 @@ import { BURST_REV_TALL } from "@/lib/arcade/burst";
 import { BEAT_REV_TALL } from "@/lib/arcade/beat";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
+import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { chainDemoCompatible } from "./chain";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
@@ -100,6 +101,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
+    // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
+    // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
+    if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
     // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
     // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
     // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.

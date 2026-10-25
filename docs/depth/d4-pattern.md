@@ -7,7 +7,7 @@ depth4-check against 1,440 rounds recorded on main).
 | Game | Type | Route | Stamp | What is new |
 | --- | --- | --- | --- | --- |
 | Gridlock | `unblock` | FEATURE | `unblockRev 1` | par moves (the solver's minimum), shown as "Moves n · Par p" |
-| Tessellate | `blockparty` | STRETCH | `blockRev 1` | a 7×7 board: fifteen pegs, ten pieces (the nine plus a Plus), 34 cells to fill (from 29) |
+| Tessellate | `blockparty` | STRETCH | `blockRev 1` | a 7×7 board: sixteen pegs, nine pieces (a Plus for the Dot), 33 cells to fill (from 29) |
 | Pipeline | `pipes` | STRETCH + par turns | `pipesRev 1` | par turns (fewest taps to the stored solution); the answer carries the tap log |
 | Chroma Lines | `flow` | STRETCH | `flowRev 1` | the curve only (the board is unchanged) |
 | Skid | `iceslide` | FEATURE | `slideRev 1` | ice gems off the shortest route |
@@ -47,20 +47,23 @@ score exactly as today.
     finished = rev-3 finish (120 + up to 30 for speed, cut by mistakes)
              + stretch: up to S × s × efficiency²,  s = 0 at the game's fast share (today's 150 pace),
                                                     rising evenly to 1 at its elite share of the clock left
-             + feature: up to F × the feature's share × (0.3 + 0.7 × min(1, time left ÷ fast share))
+             + feature: the feature's share × (B × (0.3 + 0.7 × min(1, time left ÷ fast share))
+                                                + (F − B) × s)     (B = F where the game sets no base)
 
-| Game | Stretch S | Feature F | Fast share (rev 3) | Elite share | Feature share |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Gridlock | 0 | 50 | 0.68 | – | 1 at or under par, a third less per move over |
-| Skid | 0 | 50 | 0.63 | – | gems collected ÷ gems |
-| Heave | 0 | 50 | 0.64 | – | 1 when the gold crate ends on the gold mark |
-| Tessellate | 50 | 0 | 0.59 | 0.72 | – |
-| Chroma Lines | 50 | 0 | 0.61 | 0.75 | – |
-| Pipeline | 25 | 25 | 0.49 | 0.66 | 1 at or under par turns, a tenth less per tap over |
-| Lightbender | 25 | 25 | 0.63 | 0.75 | 1 with no more mirrors than par, half less per extra mirror |
-| Turntable | 25 | 25 | 0.75 | 0.86 | 1 at or under par, a third less per turn over |
+| Game | Stretch S | Feature F | Base B (at 150 pace) | Fast share (rev 3) | Elite share | Feature share |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Gridlock | 0 | 50 | 15 | 0.68 | 0.78 | 1 at or under par, a third less per move over |
+| Skid | 0 | 50 | 30 (10 a gem) | 0.63 | 0.69 | gems collected ÷ gems |
+| Heave | 0 | 50 | 15 | 0.64 | 0.70 | 1 when the gold crate ends on the gold mark |
+| Tessellate | 50 | 0 | – | 0.59 | 0.72 | – |
+| Chroma Lines | 50 | 0 | – | 0.61 | 0.75 | – |
+| Pipeline | 25 | 25 | 25 | 0.49 | 0.66 | 1 at or under par turns, a tenth less per tap over |
+| Lightbender | 25 | 25 | 25 | 0.63 | 0.75 | 1 with no more mirrors than par, half less per extra mirror |
+| Turntable | 25 | 25 | 25 | 0.75 | 0.86 | 1 at or under par, a third less per turn over |
 
-- FEATURE games put all 50 on the feature, so the extra is reachable only through it.
+- FEATURE games put all 50 on the feature, so the extra is reachable only through it. Since the pre-merge review
+  (26 Oct 2026) only a fixed base B is paid at today's 150 pace; the rest of the feature is paid on the elite stretch,
+  so a near-perfect player with the feature lands about 165–175 and only elite pace reaches 190–200.
 - Skid's gems are not wasted moves: a finish's efficiency is measured against the fewest slides that collect the
   gems it collected (`gemMinMoves`), not the bare minimum.
 - The reveal's breakdown adds up to the score: "120 + 50 par + 30 speed" (the stretch is part of the speed figure).
@@ -73,16 +76,16 @@ Simulated players (the fairness kits at the audit's four levels plus an elite le
 
 | Game | Level | Old median | Old top 10 % | Old best | New median | New top 10 % | New best | Solved old → new |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Gridlock | average | 47 | 76 | 123 | 47 | 76 | 131 | 3 % → 3 % |
-| Gridlock | good | 130 | 136 | 143 | 131 | 145 | 159 | 77 % → 77 % |
-| Gridlock | great | 139 | 146 | 149 | 147 | 163 | 189 | 100 % → 100 % |
-| Gridlock | near | 148 | 150 | 150 | 160 | 200 | 200 | 100 % → 100 % |
-| Gridlock | elite | 150 | 150 | 150 | 200 | 200 | 200 | 100 % → 100 % |
-| Tessellate | average | 69 | 83 | 83 | 61 | 73 | 73 | 0 % → 0 % |
-| Tessellate | good | 125 | 130 | 132 | 110 | 125 | 127 | 73 % → 45 % |
-| Tessellate | great | 137 | 142 | 148 | 134 | 138 | 145 | 100 % → 100 % |
-| Tessellate | near | 149 | 150 | 150 | 146 | 152 | 158 | 100 % → 100 % |
-| Tessellate | elite | 150 | 150 | 150 | 188 | 200 | 200 | 100 % → 100 % |
+| Gridlock | average | 47 | 76 | 123 | 47 | 76 | 124 | 3 % → 3 % |
+| Gridlock | good | 130 | 136 | 143 | 130 | 139 | 143 | 77 % → 77 % |
+| Gridlock | great | 139 | 146 | 149 | 143 | 149 | 158 | 100 % → 100 % |
+| Gridlock | near | 148 | 150 | 150 | 150 | 167 | 191 | 100 % → 100 % |
+| Gridlock | elite | 150 | 150 | 150 | 197 | 200 | 200 | 100 % → 100 % |
+| Tessellate | average | 69 | 83 | 83 | 69 | 83 | 96 | 0 % → 0 % |
+| Tessellate | good | 125 | 130 | 132 | 125 | 130 | 132 | 73 % → 72 % |
+| Tessellate | great | 137 | 142 | 148 | 137 | 142 | 148 | 100 % → 100 % |
+| Tessellate | near | 149 | 150 | 150 | 149 | 167 | 173 | 100 % → 100 % |
+| Tessellate | elite | 150 | 150 | 150 | 199 | 200 | 200 | 100 % → 100 % |
 | Pipeline | average | 51 | 59 | 67 | 51 | 59 | 67 | 0 % → 0 % |
 | Pipeline | good | 125 | 128 | 129 | 127 | 134 | 139 | 88 % → 88 % |
 | Pipeline | great | 139 | 141 | 143 | 148 | 154 | 161 | 100 % → 100 % |
@@ -94,15 +97,15 @@ Simulated players (the fairness kits at the audit's four levels plus an elite le
 | Chroma Lines | near | 150 | 150 | 150 | 152 | 166 | 188 | 100 % → 100 % |
 | Chroma Lines | elite | 150 | 150 | 150 | 198 | 200 | 200 | 100 % → 100 % |
 | Skid | average | 65 | 78 | 91 | 58 | 78 | 91 | 0 % → 0 % |
-| Skid | good | 124 | 132 | 137 | 120 | 135 | 152 | 70 % → 53 % |
-| Skid | great | 138 | 143 | 146 | 145 | 168 | 183 | 100 % → 97 % |
-| Skid | near | 148 | 150 | 150 | 183 | 193 | 198 | 100 % → 100 % |
-| Skid | elite | 150 | 150 | 150 | 200 | 200 | 200 | 100 % → 100 % |
+| Skid | good | 124 | 132 | 137 | 120 | 132 | 144 | 70 % → 53 % |
+| Skid | great | 138 | 143 | 146 | 142 | 155 | 167 | 100 % → 97 % |
+| Skid | near | 148 | 150 | 150 | 167 | 174 | 178 | 100 % → 100 % |
+| Skid | elite | 150 | 150 | 150 | 192 | 200 | 200 | 100 % → 100 % |
 | Heave | average | 74 | 121 | 127 | 68 | 87 | 103 | 12 % → 0 % |
-| Heave | good | 133 | 142 | 144 | 134 | 161 | 170 | 95 % → 82 % |
-| Heave | great | 144 | 148 | 150 | 172 | 187 | 194 | 100 % → 100 % |
-| Heave | near | 150 | 150 | 150 | 195 | 200 | 200 | 100 % → 100 % |
-| Heave | elite | 150 | 150 | 150 | 200 | 200 | 200 | 100 % → 100 % |
+| Heave | good | 133 | 142 | 144 | 132 | 141 | 146 | 95 % → 82 % |
+| Heave | great | 144 | 148 | 150 | 148 | 157 | 161 | 100 % → 100 % |
+| Heave | near | 150 | 150 | 150 | 162 | 174 | 195 | 100 % → 100 % |
+| Heave | elite | 150 | 150 | 150 | 190 | 200 | 200 | 100 % → 100 % |
 | Lightbender | average | 14 | 69 | 89 | 14 | 69 | 89 | 0 % → 0 % |
 | Lightbender | good | 124 | 133 | 140 | 130 | 138 | 159 | 77 % → 77 % |
 | Lightbender | great | 138 | 144 | 148 | 143 | 156 | 166 | 100 % → 100 % |
@@ -135,9 +138,10 @@ The request assumed smaller boards than the game has today:
 - **Heave** stays on its 9×9 grid (the border is wall; 10×10 would make cells about 36 px at 375 px). The warehouse
   is bigger inside: 4–9 inner walls (from 5–12), so more floor, and five crates (from four or five), 18–27 pushes,
   every crate pushed at least three times, the detour rule kept. 120 layouts, seeded.
-- **Tessellate** grows to 7×7 (49 cells, from 36) with ten pieces covering 34 cells (from nine on 29): fifteen pegs,
-  5–60 solutions, the same band as the 6×6 board. The tray sets four pieces to a row (three rows, as before), so the
-  board keeps its size; its board is 406 px at 414×896 and 367 px at 375×667 (frame-probe), so cells are about 58 and 52 px.
+- **Tessellate** grows to 7×7 (49 cells, from 36) with nine pieces covering 33 cells (from 29): the 6×6 set with the
+  Dot swapped for a Plus, sixteen pegs, 5–60 solutions, the same band as the 6×6 board. Keeping nine pieces keeps the
+  round's pace (a first version with ten pieces cost good players 12 %); the tray is unchanged, so the board keeps its
+  size; its board is 406 px at 414×896 and 367 px at 375×667 (frame-probe), so cells are about 58 and 52 px.
 
 Round lengths are unchanged. Every new board is solver-verified: Gridlock's par by breadth-first search
 (depth4-check re-solves a sample), Turntable's by the exact 8⁵ search, Heave's by the backward search (depth = minimum
@@ -145,9 +149,8 @@ pushes), Tessellate's by the exact-cover count, Skid's gem route by a search ove
 
 ## Known costs
 
-- **Tessellate** good players score about 12 % less in the simulation (125 → 110 median; 73 % → 45 % finish): one
-  more piece takes about 5.5 s of a 60 s round. Inside ±10 % would need the old piece count. Flagged for Joe.
-- **Heave**: five crates on a bigger floor take longer; the good player's median holds (134 → 133) but fewer finish.
+- **Heave**: five crates on a bigger floor take longer; the good player's median holds but fewer finish.
+- **Tessellate**: the near-perfect median stays about 150 (a stretch game: the stretch pays only above the fast share).
 
 ## Intro demos
 

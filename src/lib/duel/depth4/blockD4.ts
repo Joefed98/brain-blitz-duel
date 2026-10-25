@@ -9,7 +9,7 @@ import type { BlockPartyPuzzleData, BlockPlacement } from "../types";
 const GEO = BLOCK_GEOMETRY_D4;
 const N = GEO.cols;
 
-/** Solution count band: the 6×6 board's 5–60 (fifteen pegs make the bigger board as constrained). */
+/** Solution count band: the 6×6 board's 5–60 (sixteen pegs make the bigger board as constrained). */
 export const BLOCK_D4_MIN_SOLUTIONS = 5;
 export const BLOCK_D4_MAX_SOLUTIONS = 60;
 export const BLOCK_D4_CAP = 61;
@@ -32,15 +32,15 @@ const COVERING: number[][][][] = GEO.pieces.map((_, piece) =>
 
 const SIZES = GEO.pieces.map((p) => p.cells.length);
 const FULL = (1 << GEO.pieces.length) - 1;
-/** fillable[unused mask × 36 + n]: some set of the unused pieces covers exactly n cells. */
+/** fillable[unused mask × 35 + n]: some set of the unused pieces covers exactly n cells. */
 const FILLABLE = (() => {
-  const table = new Uint8Array((FULL + 1) * 36);
+  const table = new Uint8Array((FULL + 1) * 35);
   for (let mask = 0; mask <= FULL; mask++) {
-    table[mask * 36] = 1;
+    table[mask * 35] = 1;
     for (let piece = 0; piece < SIZES.length; piece++) {
       if (!(mask & (1 << piece))) continue;
       const rest = mask & ~(1 << piece);
-      for (let n = 0; n + SIZES[piece]! <= 34; n++) if (table[rest * 36 + n]) table[mask * 36 + n + SIZES[piece]!] = 1;
+      for (let n = 0; n + SIZES[piece]! <= 33; n++) if (table[rest * 35 + n]) table[mask * 35 + n + SIZES[piece]!] = 1;
     }
   }
   return table;
@@ -65,7 +65,7 @@ function regionsFillable(taken: boolean[], unused: number, seen: Uint8Array, sta
       if (col > 0 && !taken[c - 1] && !seen[c - 1]) { seen[c - 1] = 1; stack.push(c - 1); }
       if (col < N - 1 && !taken[c + 1] && !seen[c + 1]) { seen[c + 1] = 1; stack.push(c + 1); }
     }
-    if (size > 34 || !FILLABLE[unused * 36 + size]) return false;
+    if (size > 33 || !FILLABLE[unused * 35 + size]) return false;
   }
   return true;
 }
