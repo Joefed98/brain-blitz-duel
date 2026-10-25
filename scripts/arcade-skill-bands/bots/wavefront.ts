@@ -15,6 +15,9 @@ import {
   wavForm,
   wavShapeBox,
   WAV_BOSS_W,
+  wavBossW,
+  wavCannonX,
+  wavCoreOpen,
   WAV_CELL,
   WAV_COLS,
   WAV_DIVE_TICKS,
@@ -33,6 +36,9 @@ const FINGER: Record<string, number> = { average: 26, good: 32, great: 38, near:
 /** Chance of going for a saucer, and for its power-up drop. */
 const SAUCER: Record<string, number> = { average: 0.4, good: 0.6, great: 0.8, near: 0.9 };
 const DROP: Record<string, number> = { average: 0.5, good: 0.7, great: 0.85, near: 0.95 };
+/** wavRev 9: chance of aiming at a boss's open core, and at a cannon still firing, when deciding. */
+const CORE: Record<string, number> = { average: 0.15, good: 0.4, great: 0.7, near: 0.9 };
+const CANNON: Record<string, number> = { average: 0.1, good: 0.3, great: 0.55, near: 0.8 };
 /** How far ahead (ticks) a player keeps track of incoming bolts when choosing where to stand. */
 const LOOKAHEAD: Record<string, number> = { average: 30, good: 38, great: 44, near: 50 };
 
@@ -83,6 +89,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let dropAt = 0;
   let bossErr = 0;
   let bossAt = -1;
+  /** wavRev 9: what the player aims at on a boss (0/1 a cannon, 2 the core, 3 the hull), -1 undecided. */
+  let bossMode = -1;
 
   return driveEvents(game, (s: WavState, t) => {
     history.push(s);
@@ -141,8 +149,24 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       if (t >= bossAt) {
         if ((t & 63) === 0 || bossErr === 0) bossErr = human.normal();
         const flight = (BOLT_Y0 - 84 - 48) / BOLT_SPEED;
-        const centre = seen.boss.x + WAV_BOSS_W / 2 + seen.boss.dir * lag;
-        want = centre + seen.boss.dir * flight * (1 + human.p.judgement * bossErr) + bossErr * WAV_BOSS_W * 0.15;
+        const w = seen.x9 ? wavBossW(seen.boss) : WAV_BOSS_W;
+        let offset = w / 2;
+        let spread = w * 0.15;
+        if (seen.x9) {
+          // wavRev 9: weak points. Decide every half second: the core when it will be open as the bolt lands, else a cannon.
+          const guns = seen.boss.guns ?? [0, 0];
+          if ((t & 31) === 0 || bossMode < 0) {
+            const open = wavCoreOpen(seen.boss, Math.round(t + flight + lag * (1 + human.normal() * 0.3)));
+            bossMode = open && human.chance(CORE[level]!) ? 2 : guns.some((g) => g > 0) && human.chance(CANNON[level]!) ? (guns[0]! > 0 && (guns[1]! <= 0 || human.chance(0.5)) ? 0 : 1) : 3;
+          }
+          if (bossMode === 2) spread = human.p.aimSdPx * 0.8;
+          else if ((bossMode === 0 || bossMode === 1) && guns[bossMode]! > 0) {
+            offset = wavCannonX(seen.boss, bossMode);
+            spread = human.p.aimSdPx * 0.8;
+          }
+        }
+        const centre = seen.boss.x + offset + seen.boss.dir * lag;
+        want = centre + seen.boss.dir * flight * (1 + human.p.judgement * bossErr) + bossErr * spread;
         chasing = true;
       }
     }
@@ -163,7 +187,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       } else
         for (let c = 0; c < WAV_COLS; c++) {
           let low = -1;
-          for (let r = WAV_ROWS - 1; r >= 0; r--) {
+          for (let r = Math.trunc(seen.shapes.length / WAV_COLS) - 1; r >= 0; r--) {
             const code = seen.shapes[r * WAV_COLS + c] ?? 0;
             if (code !== 0) {
               low = r;

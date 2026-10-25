@@ -9,7 +9,7 @@ import {
   WAV_REV_SHAPES,
   WAV_REV_TUNEC,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND,
   WAV_CHECKPOINT_INTERVAL,
   WAV_CHECKPOINT_KEYS,
   type WavCheckpoint,
@@ -84,6 +84,15 @@ const runStrict = makeArcadeRun<WavState, WavCheckpoint>({
   interval: WAV_CHECKPOINT_INTERVAL,
 });
 
+/** Expansion E8 (wavRev 9): the taller arena, longer waves, power-ups, streaks and boss weak points. */
+const runExpand = makeArcadeRun<WavState, WavCheckpoint>({
+  tag: "wavefront",
+  game: wavefrontGameFor(WAV_REV_EXPAND),
+  checkpoint: wavCheckpoint,
+  keys: WAV_CHECKPOINT_KEYS,
+  interval: WAV_CHECKPOINT_INTERVAL,
+});
+
 export type WavefrontRun = FlatRun<WavCheckpoint>;
 
 export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
@@ -98,6 +107,12 @@ export interface WavefrontResult extends FlatReplay<WavState, WavCheckpoint> {
   bossHits: number;
   bossKilled: number;
   rammed: number;
+  /** wavRev 9 (0 on older rounds): best hit streak, open-core hits, cannons destroyed, power-ups caught, shield blocks. */
+  bestStreak: number;
+  weakHits: number;
+  cannonsDown: number;
+  powerups: number;
+  shieldBlocks: number;
 }
 
 export const encodeWavefrontRun = run.encode;
@@ -105,7 +120,7 @@ export const decodeWavefrontRun = run.decode;
 
 /** The single place a Wavefront score is worked out. */
 export function replayWavefrontRun(seed: number, raw: string, rev?: number | null): WavefrontResult {
-  const result = (rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === WAV_REV_EXPAND ? runExpand : rev === WAV_REV_STRICT ? runStrict : rev === WAV_REV_TARGET ? runTarget : rev === WAV_REV_TALL ? runTall : rev === WAV_REV_TUNEC ? runTunec : rev === WAV_REV_SHAPES ? runShapes : rev === WAV_REV_BAND ? runBand : rev === WAV_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
@@ -119,5 +134,10 @@ export function replayWavefrontRun(seed: number, raw: string, rev?: number | nul
     bossHits: s.bossHits ?? 0,
     bossKilled: s.bossKilled ?? 0,
     rammed: s.rammed ?? 0,
+    bestStreak: s.bestStreak ?? 0,
+    weakHits: s.weakHits ?? 0,
+    cannonsDown: s.cannonsDown ?? 0,
+    powerups: s.powerups ?? 0,
+    shieldBlocks: s.shieldBlocks ?? 0,
   };
 }

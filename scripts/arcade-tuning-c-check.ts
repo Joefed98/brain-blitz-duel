@@ -172,7 +172,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     ["beat", playRevOf("beat", generateBeat().beatRev), BEAT_REV_TUNEF + 1],
     // Taller worlds batch 1 (16 Oct 2026) moved Wavefront on to its taller world (wavRev 6); arcade-tuning-g1-check covers it.
-    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 1],
+    // Expansion E8 (25 Oct 2026) then moved it on to wavRev 9; wavefront-expand-check covers it.
+    ["wavefront", playRevOf("wavefront", generateWavefront().wavRev), WAV_REV_TUNEC + 4],
     ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_TUNEC],
     ["slice", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG + 1],
   ];
