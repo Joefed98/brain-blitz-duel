@@ -61,7 +61,7 @@ import {
   BEAT_V6_BAND_CURVE,
   type BeatState,
 } from "../src/lib/arcade/beat";
-import {
+import { SLICE_REV_EXPAND,
   sliceCheckpoint,
   sliceGameFor,
   sliceMaxPath,
@@ -204,7 +204,8 @@ for (const [file, label] of [["scripts/fixtures/arcade-tuning-g2-legacy.json", "
 section("New rounds: stamps, start states, checksums, worlds by revision");
 {
   ok(playRevOf("beat", generateBeat().beatRev) === BEAT_REV_TALL, "rooms deal beatRev 6");
-  ok(playRevOf("slice", generateSlice().sliceRev) === SLICE_REV_TALL, "rooms deal sliceRev 6");
+  // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
+  ok([SLICE_REV_TALL, SLICE_REV_EXPAND].includes(playRevOf("slice", generateSlice().sliceRev) ?? -1), "rooms deal sliceRev 6 (or sliceRev 9, the expansion)");
   ok(playRevOf("bubble", generateBubble().bubbleRev) === BUB_REV_TALL, "rooms deal bubbleRev 5");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
   // 20 Oct 2026 scoring report batch 2's (clashRev 7, clayRev 8: the same play again, scoring-batch2-check).

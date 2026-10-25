@@ -24,7 +24,6 @@ import {
   bullseyeAimPointFor,
   bullseyeBoard,
   bullseyeIsBull,
-  bullseyeStreakPoints,
   BULLSEYE_REV_EXPAND,
   BULLSEYE_V7_LIFT,
   BULLSEYE_ARROWS,
@@ -421,7 +420,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       ) : null}
       {puzzle.bullRev === BULLSEYE_REV_EXPAND ? (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-          {result.hits.filter(bullseyeIsBull).length} bulls · best streak ×{bestStreak(result.hits)} (+{bullseyeStreakPoints(result.state)})
+          {result.hits.filter(bullseyeIsBull).length} bulls · best streak ×{bestStreak(result.hits)}
         </p>
       ) : null}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">

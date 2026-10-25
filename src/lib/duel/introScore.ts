@@ -1,3 +1,4 @@
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
 import { CLASH_QUEUE } from "@/lib/arcade/colourClash";
 import { BT_BALLS } from "@/lib/arcade/ballTrack";
 import { BINTOSS_FAR_POINTS, BINTOSS_THROWS } from "@/lib/arcade/binToss";
@@ -89,8 +90,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Arcade
     hover: "Points for each barrier and gold star. Last the whole minute for 10 more.",
     skyline: "Points for each block and perfect drop, more for perfects in a row. Up to {max}.",
-    bintoss: `Buckets and hoops: up to 150 with all ${BINTOSS_THROWS} in. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
-    bullseye: "Rings 10 to 1, balloons +1 to +3. Up to 150; bulls in a row add up to 50 more: {max}.",
+    bintoss: `Buckets, hoops, All ${BINTOSS_THROWS} in for 10 more: up to 150. Far buckets +${BINTOSS_FAR_POINTS} each: up to {max}.`,
+    bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}: Up to 150; bulls in a row add 50: {max}.`,
     matchup: "Match lines of three or more; longer lines score far more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
     cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
@@ -98,7 +99,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
     pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to {max}.",
     bubble: "Points for each bubble cleared. Clear the whole field quickly for up to {max}.",
-    slice: "Food ×combo: Up to 150; gold, tickets, dodges add 50: {max}. Chilli: lose 10.",
+    slice: "Food by combo: Up to 150; gold, tickets, dodges add 50: {max}. Chilli: lose 10.",
     beat: "Points for each note hit in time; every note Perfect for {max}. A miss costs a little.",
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",

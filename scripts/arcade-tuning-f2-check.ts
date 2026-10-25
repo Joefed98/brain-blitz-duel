@@ -40,7 +40,7 @@ import {
   CROSS_REV_SMALL,
   type CrossLane,
 } from "../src/lib/arcade/cross";
-import {
+import { SLICE_REV_EXPAND,
   sliceClipSegment,
   sliceGameFor,
   sliceMaxPath,
@@ -147,7 +147,8 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
     ["snip", "snipRev", playRevOf("snip", generateSnip().snipRev), SNIP_REV_PROVEN],
   ];
   // Taller worlds batch 3 (16 Oct 2026) moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_LONG + 1, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };
+  // World expansion E5 (25 Oct 2026) moved Slice on again (sliceRev 9); expansion-e5-check covers it.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_EXPAND, bubble: BUB_REV_TORPEDO + 1, swing: SWING_REV_SPREAD + 1 };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);
