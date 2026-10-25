@@ -42,6 +42,7 @@ import {
   retroTrail,
   RETRO_WHITE,
 } from "./retro.renderer";
+import { addPop, blob, drawPops, glow, linear, rise } from "./polishA1.renderer";
 
 const COURT = "#1F6F8B";
 // Tuning D: a near-black court so the ball, paddle and lights carry the screen.
@@ -91,6 +92,14 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number): ArtCa
       c.fillRect(Math.round(x), Math.round(y), Math.min(tile, right - x), tile);
     }
   }
+  // Polish A1: a deep blue glow behind the court (the checker floor stays faint under it), settling
+  // back to the floor's own dark over the last stretch, where the screen fill takes over.
+  blob(c, RALLY_WORLD_W / 2, (top + RALLY_PADDLE_Y) / 2, RALLY_WORLD_W * 0.75, "#123A8C", 0.42, 1.55);
+  blob(c, RALLY_WORLD_W / 2, (top + RALLY_PADDLE_Y) / 2, RALLY_WORLD_W * 0.38, "#1E5FC0", 0.16, 1.3);
+  blob(c, RALLY_WORLD_W / 2, top + 10, RALLY_WORLD_W * 0.5, "#7A2C8C", 0.12, 0.5);
+  const fade = Math.min(60, RALLY_WORLD_H - RALLY_PADDLE_Y);
+  c.fillStyle = linear(c, 0, RALLY_WORLD_H - fade, 0, RALLY_WORLD_H, [[0, "rgba(2,5,7,0)"], [1, "rgba(2,5,7,0.85)"]]);
+  c.fillRect(left, RALLY_WORLD_H - fade, right - left, fade);
   // Neon grid, brighter towards the paddle.
   for (let y = top + tile; y < RALLY_WORLD_H; y += tile) {
     c.fillStyle = `rgba(31,111,139,${(0.06 + 0.16 * ((y - top) / (RALLY_WORLD_H - top))).toFixed(3)})`;
@@ -146,6 +155,11 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
   for (let i = 0; i < 24; i++) {
     const y = top + 10 + i * 24;
     const lit = i === run || i === (run + 12) % 24;
+    if (lit) {
+      // Polish A1: the running lights glow as they pass.
+      glow(ctx, GOLD, 3, y + 2, 8, 10, 0.7);
+      glow(ctx, GOLD, RALLY_WORLD_W - 3, y + 2, 8, 10, 0.7);
+    }
     pixelRect(ctx, 2, y, 2, 4, lit ? GOLD : `${COURT}AA`);
     pixelRect(ctx, RALLY_WORLD_W - 4, y, 2, 4, lit ? GOLD : `${COURT}AA`);
   }
@@ -154,6 +168,8 @@ function drawWalls(ctx: CanvasRenderingContext2D, colour: string, _bloom: number
 /** Rev 2: a target pad set into the far wall; the ball scores it by touching the wall within its span. */
 function drawPad(ctx: CanvasRenderingContext2D, left: number, bloom: number, blink: boolean): void {
   const top = RALLY_HUD_H + RALLY_WALL;
+  // Polish A1: a soft magenta light under the pad.
+  glow(ctx, PAD, left + RALLY_TARGET_W / 2, top - 2, RALLY_TARGET_W * 0.8, 14, 0.55);
   pixelRect(ctx, left, top - 6, RALLY_TARGET_W, 6, blink ? RETRO_WHITE : PAD, bloom);
   pixelRect(ctx, left + 4, top - 4, RALLY_TARGET_W - 8, 2, "#5A1050");
   retroText(ctx, `+${RALLY_TARGET_POINTS}`, left + RALLY_TARGET_W / 2, top + 4, 8, PAD, "center");
@@ -224,19 +240,32 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     const p = hitAge / 260;
     lightUp(ctx, state.paddleX, RALLY_PADDLE_Y + RALLY_PADDLE_H / 2, heat === RETRO_WHITE ? PADDLE : heat, width * 0.75 + 12 * p, 0.6 * (1 - p));
   }
+  // Polish A1: the paddle's own teal light.
+  glow(ctx, PADDLE, state.paddleX, RALLY_PADDLE_Y + RALLY_PADDLE_H / 2, width / 2 + 16, 16, 0.4);
   retroPaddle(ctx, state.paddleX - width / 2, RALLY_PADDLE_Y, width, RALLY_PADDLE_H, PADDLE, "#0E4A44", bloom);
 
   state.golds.forEach((ball, i) => {
     const x = px(ball.x);
     const y = px(ball.y);
     drawRetroTrail(ctx, retroTrail(key, state.tick, `g${i}`, x, y, 6), RALLY_BALL_R, GOLD);
+    glow(ctx, GOLD, x, y, RALLY_BALL_R + 9, RALLY_BALL_R + 9, 0.6);
     retroBall(ctx, x, y, RALLY_BALL_R, GOLD, GOLD);
   });
 
   const bx = px(state.x);
   const by = px(state.y);
-  if (!state.dead) drawRetroTrail(ctx, retroTrail(key, state.tick, "main", bx, by, 6), RALLY_BALL_R, heat);
+  if (!state.dead) {
+    drawRetroTrail(ctx, retroTrail(key, state.tick, "main", bx, by, 6), RALLY_BALL_R, heat);
+    glow(ctx, heat, bx, by, RALLY_BALL_R + 8, RALLY_BALL_R + 8, 0.45);
+  }
   retroBall(ctx, bx, by, RALLY_BALL_R, state.dead && crashIndicator ? "#FF3B5C" : heat);
+  // Polish A1: "RALLY ×n" above the paddle on each return from the second (the shared layer already
+  // calls every tenth), on the presentation clock; a rewind clears it.
+  if (crashIndicator) {
+    if (rise(key, "rally-hits", state.tick, state.hits) > 0 && state.hits >= 2 && state.hits % 10 !== 0)
+      addPop(key, state.paddleX, RALLY_PADDLE_Y - 22, `RALLY ×${state.hits}`, state.hits >= 20 ? SUCCESS_ACCENTS.orange : state.hits >= 10 ? GOLD : PADDLE, 9, 2);
+    drawPops(ctx, key, RALLY_WORLD_W);
+  }
 
   successHud(ctx,'rally',state.tick,14,26,()=>{retroReadout(ctx, 14, 8, `RALLY ${state.hits}`, RETRO_WHITE);});
   // rallyRev 3+ (band-stamped, `band`) score on the band curve, so the HUD shows the counts only (17 Oct
