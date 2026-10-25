@@ -1,3 +1,4 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { useRef } from "react";
 import { heldHorizontal } from "@/lib/desktop";
 import { wavefrontFill } from "@/lib/arcade/arenaFills.renderer";
@@ -80,7 +81,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={WAV_WORLD_W}
       worldH={worldH}
-      game={wavefrontArtGameFor(data?.wavRev)}
+      game={devWarp("wavefront", wavefrontArtGameFor(data?.wavRev))}
       sounds={wavefrontSounds}
       checkpoint={wavCheckpoint}
       interval={WAV_CHECKPOINT_INTERVAL}

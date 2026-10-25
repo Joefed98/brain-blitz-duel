@@ -1,3 +1,4 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { snipFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -55,7 +56,7 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SnipPuzzleData | null = puzzle.type === "snip" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const snipGame = snipGameFor(data?.snipRev);
+  const snipGame = devWarp("snip", snipGameFor(data?.snipRev));
 
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);

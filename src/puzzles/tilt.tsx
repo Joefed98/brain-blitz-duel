@@ -1,3 +1,4 @@
+import { devWarp } from "@/lib/arcade/devWarp";
 import { heldHorizontal } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { tiltArenaSceneFor, tiltArtGameFor } from "@/lib/arcade/tiltArt.renderer";
@@ -64,7 +65,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       // tiltRev 7: the taller world (the bigger mazes scroll under a camera that follows the marbles).
       worldH={tiltWorldHFor(data?.tiltRev)}
       renderAtCanvasSize
-      game={tiltArtGameFor(data?.tiltRev)}
+      game={devWarp("tilt", tiltArtGameFor(data?.tiltRev))}
       sounds={tiltSounds}
       checkpoint={tiltCheckpoint}
       interval={TILT_CHECKPOINT_INTERVAL}
