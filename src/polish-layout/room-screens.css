@@ -201,8 +201,6 @@
 }
 [data-category]:has(.round-intro) > .screen-background {
   background:
-    /* The home-bar strip stays the screen edge's black (screen-bottom-check), fading in over 16 px above it. */
-    linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent calc(env(safe-area-inset-bottom, 0px) + 16px)),
     radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
     radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
     linear-gradient(180deg, var(--frame-deep) 0%, #0d0d0f 45%, #0d0d0f 60%, var(--frame-deep) 100%);
@@ -210,6 +208,16 @@
 [data-category]:has(.round-intro) > .screen-background::before,
 [data-category]:has(.round-intro) > .screen-background > .screen-drift {
   display: none;
+}
+/* The edge strips, as the play screen's (game-frame.css): the notch strip the screen edge's black fading out
+   over 24 px, the home-bar strip solid black (screen-bottom-check) fading out over 32 px, so the gradient runs
+   into both with no step (bottom-clearance-check's seams), then the vignette. One fade per edge: the shell's own
+   bottom fade is replaced, not stacked (two stacked fades stepped by 3 a row). */
+[data-category]:has(.round-intro) > .screen-background::after {
+  background:
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
+    linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 32px) no-repeat,
+    radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 /* The batch's own pieces sit in the components layer, so a component's utilities (sizes, padding) still win. */
