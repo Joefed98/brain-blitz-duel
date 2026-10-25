@@ -13,14 +13,14 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND,
   swingWorldHFor,
+  swingWorldWFor,
   SWING_BG,
   SWING_CHECKPOINT_INTERVAL,
   SWING_GOLD,
   SWING_INPUT_HOLD,
   SWING_RED,
-  SWING_WORLD_W,
 } from "@/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
@@ -45,8 +45,16 @@ function IntroExample() {
         <path d="M73 79 H83 M73 79 L69 83 M73 80 L70 87" stroke="var(--ball-pink)" strokeWidth={1.5} fill="none" />
         <path d="M75 82 H80" stroke="var(--foreground)" strokeWidth={1.5} />
         <path d="M 84 82 Q 104 70 118 50" fill="none" stroke={SWING_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
+        {/* swingRev 12: a high-route gem, a low-route speed gate and a set-route ledge with its flag. */}
+        <polygon points="104,26 109,30 107,36 101,36 99,30" fill="#5FDCF0" stroke="#E6FDFF" strokeWidth={0.8} />
+        <rect x={146} y={60} width={6} height={14} rx={2} fill="#33262B" />
+        <rect x={146} y={92} width={6} height={14} rx={2} fill="#33262B" />
+        <line x1={149} y1={74} x2={149} y2={92} stroke="#FFE08A" strokeWidth={1.2} strokeDasharray="3 3" />
+        <rect x={10} y={66} width={30} height={6} rx={1} fill="#5A4A50" stroke={SWING_GOLD} strokeWidth={0.8} />
+        <line x1={36} y1={66} x2={36} y2={52} stroke="#C9A25A" strokeWidth={1.2} />
+        <path d="M36 52 Q31 54 28 55 L36 58 Z" fill={SWING_GOLD} />
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Swing the ninja back for momentum, then let go to fly forward. Keep moving: from 200 m a dragon chases you.</p>
+      <p className="text-center text-xs text-muted-foreground">Swing back for momentum, let go to fly. Fly high for gems, swoop low and fast through gates, land the ledges. From 200 m a dragon chases you.</p>
     </div>
   );
 }
@@ -65,7 +73,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
-      worldW={SWING_WORLD_W}
+      // swingRev 12: the expansion's wider view (450 × 844); 390 wide on every earlier revision.
+      worldW={swingWorldWFor(data?.swingRev)}
       // swingRev 9: the taller cavern; every phone draws the stored revision's world.
       worldH={swingWorldHFor(data?.swingRev)}
       game={swingArtGameFor(data?.swingRev)}
@@ -128,9 +137,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
         {swingLine(result)}
       </p>
-      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT) && (
+      {(puzzle.swingRev === SWING_REV || puzzle.swingRev === SWING_REV_BAND || puzzle.swingRev === SWING_REV_TUNED || puzzle.swingRev === SWING_REV_TUNEC || puzzle.swingRev === SWING_REV_SPREAD || puzzle.swingRev === SWING_REV_TALL || puzzle.swingRev === SWING_REV_TARGET || puzzle.swingRev === SWING_REV_STRICT || puzzle.swingRev === SWING_REV_EXPAND) && (
         <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
+        </p>
+      )}
+      {puzzle.swingRev === SWING_REV_EXPAND && "gems" in result && (
+        <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
+          {result.gems} / {result.gemTotal} gems · {result.gates} / {result.gateTotal} gates · {result.ledges} / {result.ledgeTotal} ledges · best chain {result.bestChain}
         </p>
       )}
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same cavern for everyone</p>

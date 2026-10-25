@@ -442,6 +442,26 @@ export interface SwingState extends Body, BandFields {
   starSpots?: [number, number][];
   /** swingRev 9 only (taller worlds): the world height in px (SWING_TALL_H). Absent = SWING_WORLD_H. */
   worldH?: number;
+  /**
+   * swingRev 12 only (the expansion, absent on every earlier round): the marker, the wider world, the
+   * ledges (set-route sections) and which one the hero stands on, each ledge's first landing tick,
+   * the swing chain, the high-route gems and the speed gates (see "swingRev 12" below).
+   */
+  expand?: number;
+  worldW?: number;
+  ledges?: SwingLedge[];
+  ledgeOn?: number;
+  ledgeTicks?: number[];
+  /** A press made while walking to a ledge's centre, held until the hero gets there (1). */
+  ledgeHold?: number;
+  chain?: number;
+  lastGrabX?: number;
+  comboPts?: number;
+  bestChain?: number;
+  gems?: [number, number][];
+  gemsTaken?: number;
+  gates?: SwingGate[];
+  gatesLit?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -617,12 +637,41 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   if (isOver(state)) return state;
   const tick = state.tick + 1;
   const s: SwingState = { ...state, tick };
-  if (input !== null && input.k === SWING_INPUT_HOLD) {
-    if (input.a === 1) {
+  // swingRev 12 (the expansion): standing on a ledge, only the walk to its centre and a press (a kick off it) move the body.
+  const expand = s.expand === 1;
+  const px = s.x;
+  const py = s.y;
+  let standing = expand && (s.ledgeOn ?? -1) >= 0;
+  if (standing && expand12LedgeGone(s, s.ledgeOn!, tick)) {
+    // A collapsing ledge gives way under the hero: they fall from where they stood.
+    s.ledgeOn = -1;
+    s.ledgeHold = 0;
+    standing = false;
+  }
+  // On a ledge the hero first walks to its centre (every kick off a ledge is the proved one); a press
+  // while walking is held until they get there, a let-go cancels it.
+  let press = input !== null && input.k === SWING_INPUT_HOLD && input.a === 1;
+  if (standing) {
+    const centre = s.ledges![s.ledgeOn!]!.x;
+    if (s.x !== centre) s.x += clampInt(centre - s.x, -SWING_LEDGE_WALK, SWING_LEDGE_WALK);
+    if (input !== null && input.k === SWING_INPUT_HOLD) s.ledgeHold = input.a === 1 ? 1 : 0;
+    press = s.x === centre && s.ledgeHold === 1;
+    if (press) s.ledgeHold = 0;
+  }
+  if (standing ? press : input !== null && input.k === SWING_INPUT_HOLD) {
+    if (press) {
       const target = nearestAhead(s.anchors, s, 0);
       if (target >= 0) {
+        // swingRev 12: the speed the grab is made at (flying only) counts for the swing chain.
+        const flying = s.rope < 0 && !standing;
         if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
+        if (expand) expand12NoteGrab(s, target, tick, flying ? s.vx * s.vx + s.vy * s.vy : 0);
         attach(s, target, s.anchors[target]!);
+        if (standing) {
+          s.ledgeOn = -1;
+          standing = false;
+          kickOff(s);
+        }
         s.grabTick = tick;
         // swingRev 4: grabbing a star anchor takes its star (once).
         if (s.starAnchors && s.starAnchors.includes(target) && !(s.starsTaken ?? []).includes(target)) {
@@ -631,11 +680,13 @@ function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
         }
       }
     } else if (s.rope >= 0) detach(s, s.anchors[s.rope]!);
-  } else if (input !== null && input.k === SWING_INPUT_REEL) {
+  } else if (input !== null && input.k === SWING_INPUT_REEL && !standing) {
     startReel(s, clampInt(input.a, 0, 1));
   }
-  let dead = moveBody(s, s);
-  s.camX = s.x - LEAD;
+  let dead = standing ? false : moveBody(s, s);
+  // swingRev 12: a landing, gems and gates first, then the camera.
+  if (expand && !dead && !standing) expand12Move(s, px, py, tick);
+  s.camX = s.x - (expand ? SWING_LEAD_V12 : LEAD);
   if (s.x > s.maxX) s.maxX = s.x;
   // swingRev 6: a star is taken by touching it (the ninja's disc over the star's), on a rope or flying.
   if (s.starSpots && !dead) {
@@ -727,6 +778,7 @@ export function swingScoreV4(metres: number, stars: number): number {
 }
 
 function score(state: SwingState): number {
+  if (state.expand) return swingScoreV12(state);
   if (state.rev === SWING_REV) return swingScoreV4(swingMetres(state), state.stars ?? 0);
   const m = Math.min(SWING_FINISH_M, swingMetres(state));
   if (m >= SWING_FINISH_M) return finishScore(SWING_RUN_TICKS, state.endedTick);
@@ -740,6 +792,7 @@ export function swingExtra(s: SwingState) {
     survivedSeconds: s.tick / 60,
     ...(s.dragons ? { dragonTotal: s.dragons.length } : {}),
     ...(s.rev === SWING_REV ? { stars: s.stars ?? 0, starTotal: swingStarTotal(s), cause: s.cause ?? 0 } : {}),
+    ...(s.expand ? swingFeatureCounts(s) : {}),
   };
 }
 
@@ -798,6 +851,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
     if (state.spread) values.push(state.spread);
     // swingRev 9 (taller worlds): the world height, last.
     if (state.worldH) values.push(state.worldH);
+    // swingRev 12: the expansion's state, after every earlier value.
+    if (state.expand) values.push(state.expand, state.ledgeOn ?? -1, state.ledgeHold ?? 0, state.chain ?? 0, state.comboPts ?? 0, state.gemsTaken ?? 0, state.gatesLit ?? 0, ...(state.ledgeTicks ?? []));
   }
   for (const value of values) {
     checksum ^= value | 0;
@@ -961,6 +1016,7 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number): typeof swingGame {
+  if (rev === SWING_REV_EXPAND) return swingExpandGame;
   if (rev === SWING_REV_STRICT) return swingStrictGame;
   if (rev === SWING_REV_TARGET) return swingTargetGame;
   if (rev === SWING_REV_TALL) return swingTallGame;
@@ -981,12 +1037,14 @@ export const SWING_REV_BAND = 5;
 /** Metres count 1 and stars 5; 140 at 500 m with all ten stars; reaching 500 m adds 10. */
 export const SWING_BAND_CURVE = bandCurve([0, 86, 162, 245, 400, 499, 550], [0, 70, 100, 125, 136, 138, 140]);
 export function swingBandParts(state: SwingState): BandParts {
+  if (state.expand) return swingBandPartsV12(state);
   const units = Math.min(SWING_FINISH_M, swingMetres(state)) + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
   const finished = swingMetres(state) >= SWING_FINISH_M;
   return { units, points: bandPoints(bandCurveOf(state, state.worldH ? SWING_V9_BAND_CURVE : state.tunec ? SWING_V7_BAND_CURVE : SWING_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${Math.min(SWING_FINISH_M, swingMetres(state))} m · ${state.stars ?? 0} stars`, bonusText: "Reached 500 m" };
 }
 
 function scoreBand(state: SwingState): number {
+  if (state.expand) return swingScoreV12(state);
   return bandTotal(swingBandParts(state), Boolean(state.acted));
 }
 
@@ -1278,10 +1336,12 @@ export const SWING_TALL_DROP = (SWING_TALL_H - SWING_WORLD_H) * FP;
 
 /** The world height (px) a state plays in: swingRev 9's taller cavern, or the original 620. */
 export function swingWorldH(state: { worldH?: number }): number {
+  // swingRev 12 carries its own (taller) height in worldH as well.
   return state.worldH ?? SWING_WORLD_H;
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
+  if (rev === SWING_REV_EXPAND) return SWING_V12_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1344,3 +1404,608 @@ export const SWING_REV_STRICT = 11;
 export const swingStrictGame = bandStrictGame(swingTargetGame);
 /** The curve new rounds score on: SWING_V9_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const SWING_V11_BAND_CURVE = bandStrict(SWING_V9_BAND_CURVE);
+
+/* ================= The expansion (swingRev 12, 25 Oct 2026) ================= */
+
+/**
+ * swingRev 12 (world expansion and depth, docs/expansions/e7-swing.md; the round's maximum is 200,
+ * src/lib/duel/roundMax.ts). Every rule below is gated on the state's `expand` marker, so every
+ * earlier revision plays and scores exactly as before.
+ *
+ *  - More world: a 450 × 844 view (SWING_V12_W × SWING_V12_H, the box's shape on an iPhone 11), the
+ *    lava SWING_V12_DROP below rev 8's (each jet's top where it was), the hero 225 px from the left.
+ *    The ceiling, anchors, ceiling spikes, stalactites, dragon and every course draw are rev 9's; the
+ *    ten touch stars are re-proved on the deeper cavern (spreadSpots).
+ *  - High and low routes: above the anchor line, SWING_GEMS gold gems sit at the tops of proved flights
+ *    (a high route: strong releases close under the ceiling); below it, SWING_GATES speed gates hang
+ *    under anchors, their openings around the deepest proved fast swing (a low route: grab early for a
+ *    long rope and swoop through at SWING_GATE_SPEED or faster). A gate lights on any forward pass
+ *    through its opening at that speed; neither ever ends a run.
+ *  - Swing combos: a flying grab of an anchor further ahead at SWING_COMBO_SPEED or faster, within
+ *    SWING_COMBO_GAP ticks of the last grab, adds one to the chain (a fast grab after a slow one starts
+ *    a new chain at 1; a slow grab, a grab from a ledge or a landing ends it). Every fifth link of a
+ *    chain is a combo point.
+ *  - Course sections: three set routes before the dragon (from about 25, 85 and 150 m): a start ledge,
+ *    three landing ledges and a finish-flag ledge, each placed where a proved swing from rest on the
+ *    ledge before lands (swing, let go, fly, land). Ledges are one-way: falling on to one from above, off
+ *    the rope, lands the hero (standing still, the chain ended); a press grabs the anchor ahead from
+ *    rest (a kick: SWING_LEDGE_KICK along the swing). The middle landing ledge of sections 2 and 3
+ *    collapses SWING_LEDGE_CRUMBLE ticks after the hero first lands on it. Every ledge landed counts
+ *    once. Landed, the hero walks to the ledge's centre (SWING_LEDGE_WALK a tick; a press on the way is
+ *    held until there), so every kick off a ledge is the proved one (each ledge sits where releases a
+ *    tick or two either side of the proved one land too).
+ *  - Score: a base curve on metres + 5 a star (to 140, plus 10 for 500 m; the same base as
+ *    today, refitted to the deeper cave) plus up to 50 for the features: combo points (at most 25), a
+ *    point a gem (12), a point a lit gate (8) and 15 shared by the ledges landed (a point each with three
+ *    sections, 1.5 with two), capped at 50: 200 needs nearly everything.
+ */
+export const SWING_REV_EXPAND = 12;
+export const SWING_V12_W = 450;
+export const SWING_V12_H = 844;
+/** How far the rev-12 lava (and each jet's base) sits below rev 8's, 1/256 px. */
+export const SWING_V12_DROP = (SWING_V12_H - SWING_WORLD_H) * FP;
+export const SWING_LEAD_V12 = 225 * FP;
+export const SWING_GEMS = 12;
+export const SWING_GEM_R = 12 * FP;
+export const SWING_GEM_TOUCH = SWING_GEM_R + RADIUS;
+export const SWING_GATES = 8;
+/** A gate lights only at this speed or more (px a tick), measured over the tick that passes it. */
+export const SWING_GATE_SPEED = 7;
+/** A gate post's half-width (art only; the pass test is the line x = gate.x). */
+export const SWING_GATE_HALF_W = 6 * FP;
+export const SWING_COMBO_GAP = 60;
+/** A chain link is a flying grab at this speed or more (px a tick). */
+export const SWING_COMBO_SPEED = 7;
+export const SWING_COMBO_EVERY = 5;
+export const SWING_SECTIONS = 3;
+/** Each section: start, three landings, the finish flag. */
+export const SWING_SECTION_LEDGES = 5;
+export const SWING_LEDGE_HALF = 30 * FP;
+/** Landed on a ledge, the hero walks to its centre at this speed (1/256 px a tick) before kicking off. */
+export const SWING_LEDGE_WALK = 6 * FP;
+/** The start ledge is wider: open swinging drops on to it from many different flights. */
+export const SWING_START_LEDGE_HALF = 56 * FP;
+/** The ledge slab's thickness below its top (art; landing tests the top line only). */
+export const SWING_LEDGE_THICK = 10 * FP;
+export const SWING_LEDGE_CRUMBLE = 45;
+/** Pressing on a ledge kicks off it at this speed along the swing (1/256 px a tick, forward) as the rope takes hold. */
+export const SWING_LEDGE_KICK = 8 * FP;
+export const SWING_SECTION_FROM_M = [22, 80, 145] as const;
+/** Feature caps on the 200 scale; the ledges share SWING_LEDGE_POINTS however many sections a course has (two or three). */
+export const SWING_COMBO_CAP = 25;
+export const SWING_LEDGE_POINTS = 15;
+export const SWING_FEATURE_CAP = 50;
+export const SWING_V12_MAX = 200;
+/**
+ * The base part of a rev-12 score (metres + 5 a star, as every band revision): 140 at 500 m with every
+ * star, as rev 11. The deeper cave takes fewer runs into the lava, so the same players go further; the
+ * knots were fitted by matching the skill-band players' unit quantiles on rev 12 to their curve points
+ * on rev 11 (the same bank courses, 30 a level), so today's players keep today's base score
+ * (docs/expansions/e7-swing.md has the fit and the tuning table).
+ */
+export const SWING_V12_BAND_CURVE = bandCurve([0, 55, 74, 129, 166, 215, 260, 329, 489, 515, 550], [0, 46, 60, 84, 93, 107, 117, 129, 133, 135, 140]);
+
+/** A set-route ledge: its centre x and top (1/256 px), half-width, kind (0 start, 1 landing, 2 finish flag), section, order and whether it collapses. */
+export interface SwingLedge {
+  x: number;
+  top: number;
+  half: number;
+  kind: number;
+  section: number;
+  order: number;
+  crumble: number;
+}
+
+/** A speed gate: its x and opening (1/256 px, y0 above y1). */
+export interface SwingGate {
+  x: number;
+  y0: number;
+  y1: number;
+}
+
+/** True once a collapsing ledge has given way (rev 12). */
+export function expand12LedgeGone(s: Pick<SwingState, "ledges" | "ledgeTicks">, i: number, tick: number): boolean {
+  const ledge = s.ledges?.[i];
+  if (!ledge || !ledge.crumble) return false;
+  const first = s.ledgeTicks?.[i] ?? 0;
+  return first > 0 && tick - first >= SWING_LEDGE_CRUMBLE;
+}
+
+function expand12NoteGrab(s: SwingState, target: number, tick: number, speed2: number): void {
+  const a = s.anchors[target]!;
+  const forward = a.x > (s.lastGrabX ?? 0);
+  const fast = forward && speed2 >= SWING_COMBO_SPEED * SWING_COMBO_SPEED * FP * FP;
+  const chain = s.chain ?? 0;
+  if (fast && chain > 0 && tick - s.grabTick <= SWING_COMBO_GAP) s.chain = chain + 1;
+  else s.chain = fast ? 1 : 0;
+  if (forward) s.lastGrabX = a.x;
+  if (s.chain > (s.bestChain ?? 0)) s.bestChain = s.chain;
+  if (s.chain > 0 && s.chain % SWING_COMBO_EVERY === 0) s.comboPts = (s.comboPts ?? 0) + 1;
+}
+
+/** One tick of rev-12 pickups after the body moved from (px, py): a ledge landing, gems, gates. */
+function expand12Move(s: SwingState, px: number, py: number, tick: number): void {
+  if (s.rope < 0 && s.vy > 0 && s.ledges) {
+    for (let i = 0; i < s.ledges.length; i++) {
+      const l = s.ledges[i]!;
+      if (Math.abs(s.x - l.x) > l.half || expand12LedgeGone(s, i, tick)) continue;
+      if (py + RADIUS <= l.top && s.y + RADIUS >= l.top) {
+        s.y = l.top - RADIUS;
+        s.ledgeHold = 0;
+        s.vx = 0;
+        s.vy = 0;
+        s.ledgeOn = i;
+        s.chain = 0;
+        if (!(s.ledgeTicks?.[i] ?? 0)) {
+          const ticks = [...(s.ledgeTicks ?? [])];
+          ticks[i] = tick;
+          s.ledgeTicks = ticks;
+        }
+        break;
+      }
+    }
+  }
+  if (s.gems) {
+    let taken = s.gemsTaken ?? 0;
+    for (let i = 0; i < s.gems.length; i++) {
+      if (taken & (1 << i)) continue;
+      const dx = s.x - s.gems[i]![0];
+      const dy = s.y - s.gems[i]![1];
+      if (dx * dx + dy * dy <= SWING_GEM_TOUCH * SWING_GEM_TOUCH) taken |= 1 << i;
+    }
+    s.gemsTaken = taken;
+  }
+  if (s.gates) {
+    let lit = s.gatesLit ?? 0;
+    const dx = s.x - px;
+    const dy = s.y - py;
+    const fast = dx * dx + dy * dy >= SWING_GATE_SPEED * SWING_GATE_SPEED * FP * FP;
+    for (let i = 0; i < s.gates.length; i++) {
+      const g = s.gates[i]!;
+      if (lit & (1 << i) || !(px < g.x && s.x >= g.x)) continue;
+      const y = py + Math.trunc((dy * (g.x - px)) / dx);
+      if (fast && y >= g.y0 && y <= g.y1) lit |= 1 << i;
+    }
+    s.gatesLit = lit;
+  }
+}
+
+function bitCount(n: number): number {
+  let c = 0;
+  for (let b = n; b; b &= b - 1) c += 1;
+  return c;
+}
+
+/** The rev-12 feature counts (reveal lines, effects, the score). */
+export function swingFeatureCounts(s: SwingState) {
+  const landed = (i: number) => (s.ledgeTicks?.[i] ?? 0) > 0;
+  const ledges = (s.ledges ?? []).filter((_, i) => landed(i)).length;
+  const sectionIds = [...new Set((s.ledges ?? []).map((l) => l.section))];
+  const sections = sectionIds.filter((k) => (s.ledges ?? []).every((l, i) => l.section !== k || landed(i))).length;
+  return {
+    comboPts: s.comboPts ?? 0,
+    bestChain: s.bestChain ?? 0,
+    gems: bitCount(s.gemsTaken ?? 0),
+    gemTotal: (s.gems ?? []).length,
+    gates: bitCount(s.gatesLit ?? 0),
+    gateTotal: (s.gates ?? []).length,
+    ledges,
+    ledgeTotal: (s.ledges ?? []).length,
+    sections,
+    sectionTotal: sectionIds.length,
+  };
+}
+
+/** The feature points of a rev-12 run (0…50) and their parts. */
+export function swingFeaturePoints(s: SwingState) {
+  const c = swingFeatureCounts(s);
+  const combo = Math.min(SWING_COMBO_CAP, c.comboPts);
+  const ledgePts = c.ledgeTotal ? Math.trunc((SWING_LEDGE_POINTS * c.ledges) / c.ledgeTotal) : 0;
+  const total = Math.min(SWING_FEATURE_CAP, combo + c.gems + c.gates + ledgePts);
+  return { ...c, combo, ledgePts, total };
+}
+
+export function swingBandPartsV12(state: SwingState): BandParts {
+  const metres = Math.min(SWING_FINISH_M, swingMetres(state));
+  const units = metres + 5 * clampInt(state.stars ?? 0, 0, SWING_STARS);
+  const finished = swingMetres(state) >= SWING_FINISH_M;
+  const f = swingFeaturePoints(state);
+  const words = `combos ${f.combo} · gems ${f.gems} · gates ${f.gates} · ledges ${f.ledgePts}`;
+  return {
+    units,
+    points: bandPoints(SWING_V12_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + f.total,
+    penalty: 0,
+    finished,
+    text: `${metres} m · ${state.stars ?? 0} stars`,
+    bonusText: finished ? `Reached 500 m +${BAND_FINISH_BONUS} · ${words}` : words,
+  };
+}
+
+export function swingScoreV12(state: SwingState): number {
+  return bandTotal(swingBandPartsV12(state), Boolean(state.acted), SWING_V12_MAX);
+}
+
+/** The world width (px) a state plays in: swingRev 12's wider view, or 390. */
+export function swingWorldW(state: { worldW?: number }): number {
+  return state.worldW ?? SWING_WORLD_W;
+}
+/** The world width (px) a stored round's swingRev plays in. */
+export function swingWorldWFor(rev?: number | null): number {
+  return rev === SWING_REV_EXPAND ? SWING_V12_W : SWING_WORLD_W;
+}
+/**
+ * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
+ * world's own height, or for swingRev 12's 450-wide view the height that keeps its shape (731).
+ */
+export function swingRevealHFor(rev?: number | null): number {
+  return rev === SWING_REV_EXPAND ? Math.round((SWING_V12_H * SWING_WORLD_W) / SWING_V12_W) : swingWorldHFor(rev);
+}
+
+/** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
+function kickOff(b: Body): void {
+  b.om += Math.trunc((SWING_LEDGE_KICK * KANG) / b.len);
+  capOm(b);
+}
+
+/** The hero standing at (x, y) (1/256 px), off any rope. */
+function restBody(x: number, y: number): Body {
+  return { x, y, vx: 0, vy: 0, rope: -1, len: MIN_ROPE, th: 0, om: 0, grabLen: MIN_ROPE, reelTo: 0, reelLeft: 0, pumps: 0 };
+}
+
+/** The hero on a ledge at `at` after pressing for anchor j: attached and kicked off. */
+function kickedFrom(c: Course, at: [number, number], j: number): Body {
+  const b = restBody(at[0], at[1]);
+  attach(b, j, c.anchors[j]!);
+  kickOff(b);
+  return b;
+}
+
+/** A standard swing on anchor i (provedLines' probe: a 130 px rope let go from behind). */
+function standardSwing(c: Course, i: number): Body {
+  const b: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: 130 * FP, th: 55000 * SUB, om: 0, grabLen: 130 * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
+  ropePos(b, c.anchors[i]!);
+  return b;
+}
+
+/**
+ * From a body swinging on anchor j (a kick off a ledge, or a standard swing into a section): the landing points of proved releases (a forward upswing, then a
+ * flight that descends on to the spot without dying). A spot qualifies behind and a little below the
+ * anchor a press from rest there would take (one further ahead than j), far enough out for a swing
+ * from rest to carry. Each is [x, y, that anchor]: the body centre on the tick it lands (the ledge's
+ * top is that y + RADIUS).
+ */
+function ledgeLandings(c: Course, onRope: Body, j: number, deep = 110 * FP, half = SWING_LEDGE_HALF): [number, number, number][] {
+  const a = c.anchors[j]!;
+  const swing = { ...onRope };
+  // Up to three passes of pumping from rest (each bottom pass adds speed): the body each tick, and whether it is on a forward upswing.
+  const bodies: Body[] = [];
+  const up: boolean[] = [];
+  let px = swing.x;
+  let py = swing.y;
+  for (let r = 0; r < 420; r++) {
+    if (moveBody(swing, c)) break;
+    up.push(swing.x > px && swing.y < py && swing.x >= a.x);
+    px = swing.x;
+    py = swing.y;
+    bodies.push({ ...swing });
+  }
+  /** Does a release after body r land on a ledge with this centre and top (descending through the top line within reach of the centre)? */
+  const lands = (r: number, x: number, top: number) => {
+    if (!bodies[r] || !up[r]) return false;
+    const fly = { ...bodies[r]! };
+    detach(fly, a);
+    for (let t = 0; t < 100; t++) {
+      const fy = fly.y;
+      if (moveBody(fly, c)) return false;
+      if (fy + RADIUS <= top && fly.y + RADIUS >= top) return Math.abs(fly.x - x) <= half - 4 * FP;
+    }
+    return false;
+  };
+  const out: [number, number, number][] = [];
+  for (let r = 6; r < bodies.length; r += 2) {
+    if (!up[r]) continue;
+    const fly = { ...bodies[r]! };
+    detach(fly, a);
+    for (let t = 0; t < 100; t++) {
+      const fy = fly.y;
+      if (moveBody(fly, c)) break;
+      if (fly.vy <= 0 || fly.y <= fy || fly.x < a.x + 30 * FP) continue;
+      if (fly.y > lerpAt(c.floor, fly.x) - 160 * FP || fly.y - RADIUS < lerpAt(c.ceil, fly.x) + 30 * FP) continue;
+      const m = nearestAhead(c.anchors, restBody(fly.x, fly.y), 0);
+      if (m <= j) continue;
+      const next = c.anchors[m]!;
+      const dx = next.x - fly.x;
+      const dy = fly.y - next.y;
+      if (dx < 55 * FP || dx > 170 * FP || dy < 10 * FP || dy > deep || (deep <= 110 * FP && 5 * dx < 4 * dy)) continue;
+      // A forgiving spot: releases a tick or two either side land on it too (four of the five).
+      const top = fly.y + RADIUS;
+      let near = 0;
+      for (const d of [-2, -1, 1, 2]) if (lands(r + d, fly.x, top)) near += 1;
+      if (near >= 2) out.push([fly.x, fly.y, m]);
+      break;
+    }
+  }
+  return out;
+}
+
+/** From a kick off the finish ledge on anchor j, can a release reach anchor j + 1 (open swinging resumes)? */
+function leavesLedge(c: Course, onRope: Body, j: number): boolean {
+  const a = c.anchors[j]!;
+  const next = c.anchors[j + 1];
+  if (!next) return false;
+  const swing = { ...onRope };
+  for (let r = 0; r < 260; r++) {
+    if (moveBody(swing, c)) return false;
+    if (r % 2) continue;
+    const fly = { ...swing };
+    detach(fly, a);
+    for (let t = 0; t < 110; t++) {
+      if (moveBody(fly, c)) break;
+      if (nearestAhead(c.anchors, fly, j + 1) === j + 1 && fly.x < next.x) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Start-ledge spots for a section entered from anchor i: the places where the most flights come down
+ * (nine probe swings on i, ropes of 110–190 px let go from three angles, every other release), each
+ * a spot from which a press takes an anchor ahead, below it by 10–200 px and behind it by 55–170 px.
+ * Best covered first; the coverage is the number of flights descending through the ledge's top line
+ * within its reach, read from a 16 × 8 px grid of their descending points.
+ */
+function entrySpots(c: Course, i: number): [number, number, number][] {
+  const a = c.anchors[i]!;
+  const cell = new Map<number, number>();
+  const key = (gx: number, gy: number) => gx * 8192 + gy;
+  const points: [number, number][] = [];
+  for (const len of [110, 150, 190])
+    for (const th of [52000, 56000, 60000]) {
+      const swing: Body = { x: 0, y: 0, vx: 0, vy: 0, rope: i, len: len * FP, th: th * SUB, om: 0, grabLen: len * FP, reelTo: 0, reelLeft: 0, pumps: 0 };
+      ropePos(swing, a);
+      for (let r = 0; r < 240; r++) {
+        if (moveBody(swing, c) || swing.pumps > 3) break;
+        if (r % 2) continue;
+        const fly = { ...swing };
+        detach(fly, a);
+        const seen = new Set<number>();
+        for (let t = 0; t < 90; t++) {
+          const fy = fly.y;
+          if (moveBody(fly, c)) break;
+          if (fly.y <= fy || fly.x < a.x + 30 * FP) continue;
+          const k = key(Math.trunc(fly.x / (16 * FP)), Math.trunc(fly.y / (8 * FP)));
+          if (seen.has(k)) continue;
+          seen.add(k);
+          cell.set(k, (cell.get(k) ?? 0) + 1);
+          if (cell.get(k) === 1) points.push([fly.x, fly.y]);
+        }
+      }
+    }
+  const reach = Math.trunc((SWING_START_LEDGE_HALF - 4 * FP) / (16 * FP));
+  const scored: [number, number, number, number][] = [];
+  for (const [x, y] of points) {
+    if (y > lerpAt(c.floor, x) - 160 * FP || y - RADIUS < lerpAt(c.ceil, x) + 30 * FP) continue;
+    const m = nearestAhead(c.anchors, restBody(x, y), 0);
+    if (m <= i) continue;
+    const next = c.anchors[m]!;
+    const dx = next.x - x;
+    const dy = y - next.y;
+    if (dx < 55 * FP || dx > 170 * FP || dy < 10 * FP || dy > 200 * FP) continue;
+    const gx = Math.trunc(x / (16 * FP));
+    const gy = Math.trunc(y / (8 * FP));
+    let cover = 0;
+    for (let d = -reach; d <= reach; d++) cover += cell.get(key(gx + d, gy)) ?? 0;
+    scored.push([x, y, m, cover]);
+  }
+  scored.sort((p, q) => q[3] - p[3] || p[0] - q[0]);
+  return scored.slice(0, 6).map(([x, y, m]) => [x, y, m]);
+}
+
+/**
+ * One set-route section from anchor i0: a start ledge under and behind it, then four ledges, each on
+ * a proved landing from a swing from rest on the ledge before (the last is the finish flag), and a
+ * proved way on from the flag. Null if no chain is found.
+ */
+/** The most ledge searches one section start may spend (each a kick off a ledge and its flights). */
+const SECTION_SEARCH_NODES = 40;
+/** The most anchors a section tries to start from. */
+const SECTION_STARTS = 4;
+
+function buildSection(c: Course, i0: number, section: number, draw: (n: number) => number): SwingLedge[] | null {
+  let tries = 0;
+  /** Ledges from the one at `at` (whose press takes anchor j) to the flag. */
+  const chain = (at: [number, number], j: number, k: number): [number, number][] | null => {
+    if (++tries > SECTION_SEARCH_NODES) return null;
+    if (k === SWING_SECTION_LEDGES) return leavesLedge(c, kickedFrom(c, at, j), j) ? [] : null;
+    // Distinct options: one spot per next anchor and 24 px of x.
+    const seen = new Set<number>();
+    const spots = ledgeLandings(c, kickedFrom(c, at, j), j).filter(([x, , m]) => {
+      const key = m * 4096 + Math.trunc(x / (24 * FP));
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (spots.length === 0) return null;
+    // The seed picks among the first few options; the rest follow in release order.
+    const startAt = draw(Math.min(3, spots.length));
+    for (let n = 0; n < spots.length; n++) {
+      const [x, y, m] = spots[(startAt + n) % spots.length]!;
+      const rest = chain([x, y], m, k + 1);
+      if (rest) return [[x, y], ...rest];
+      if (tries > SECTION_SEARCH_NODES) return null;
+    }
+    return null;
+  };
+  // The start ledge: where the most open flights off the anchor before come down (so open swinging can drop on to it).
+  const entries = entrySpots(c, i0 - 1);
+  const startAt = draw(Math.max(1, Math.min(3, entries.length)));
+  for (let n = 0; n < entries.length; n++) {
+    const [x, y, m] = entries[(startAt + n) % entries.length]!;
+    const rest = chain([x, y], m, 1);
+    if (tries > SECTION_SEARCH_NODES) return null;
+    if (!rest) continue;
+    return [[x, y] as [number, number], ...rest].map(([lx, ly], order) => ({
+      x: lx,
+      top: ly + RADIUS,
+      half: order === 0 ? SWING_START_LEDGE_HALF : SWING_LEDGE_HALF,
+      kind: order === 0 ? 0 : order === SWING_SECTION_LEDGES - 1 ? 2 : 1,
+      section,
+      order,
+      crumble: section > 0 && order === 2 ? 1 : 0,
+    }));
+  }
+  return null;
+}
+
+const v12Cache = new Map<number, SwingState>();
+function initV12(seed: number): SwingState {
+  const cached = v12Cache.get(seed | 0);
+  if (cached) return { ...cached, rocks: cached.rocks!.map((r) => ({ ...r })) };
+  const v4 = initV4(seed);
+  const floor = v4.floor.map((y) => y + SWING_V12_DROP);
+  const jets = (v4.jets ?? []).map((jet) => ({ ...jet, h: jet.h + SWING_V12_DROP }));
+  const deep: SwingState = { ...v4, floor, jets };
+  const rocks = v4.rocks!.map((r) => ({ ...r, trigger: r.trigger + SWING_ROCK_LEAD_V6 }));
+  const starSpots = spreadSpots(deep, seed);
+  // Its own stream, so every earlier draw (and the stored rng) is unchanged.
+  let rng = (seed ^ 0x3c6ef372) | 0;
+  const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
+  const anchors = deep.anchors;
+  const course: Course = { ceil: deep.ceil, floor, anchors, spikes: deep.spikes, rng: 0 };
+  const startIndex = anchors.findIndex((a) => a.x >= START_X);
+  const metreX = (m: number) => START_X + m * METRE;
+  const nearHazard = (x0: number, x1: number) =>
+    jets.some((j) => j.x > x0 - 90 * FP && j.x < x1 + 90 * FP) ||
+    rocks.some((r) => r.x > x0 - 70 * FP && r.x < x1 + 70 * FP);
+
+  // Sections: the first anchor from each section's metre whose span is clear of jets and loose stalactites (ceiling spikes are in the proofs).
+  const ledges: SwingLedge[] = [];
+  const spans: [number, number][] = [];
+  SWING_SECTION_FROM_M.forEach((from, section) => {
+    let starts = 0;
+    for (let i0 = anchors.findIndex((a) => a.x >= metreX(from)); i0 > startIndex && i0 + SWING_SECTION_LEDGES + 3 < anchors.length; i0++) {
+      if (anchors[i0]!.x > metreX(from + 45) || starts >= SECTION_STARTS) break;
+      const x0 = anchors[i0 - 1]!.x;
+      const x1 = anchors[i0 + SWING_SECTION_LEDGES + 2]!.x;
+      if (nearHazard(x0, x1)) continue;
+      starts += 1;
+      const built = buildSection(course, i0, section, draw);
+      if (!built) continue;
+      ledges.push(...built);
+      spans.push([x0 - 40 * FP, x1 + 40 * FP]);
+      break;
+    }
+  });
+  const inSection = (x: number) => spans.some(([a, b]) => x >= a && x <= b);
+  const clearOf = ([x, y]: [number, number], gap: number) =>
+    anchors.every((a) => Math.abs(a.x - x) > STAR_CLEAR_OF_ANCHOR || Math.abs(a.y - y) > STAR_CLEAR_OF_ANCHOR) &&
+    jets.every((jet) => Math.abs(jet.x - x) > SWING_JET_HALF_W + gap) &&
+    rocks.every((r) => Math.abs(r.x - x) > SWING_ROCK_HALF_W + gap) &&
+    starSpots.every(([sx, sy]) => Math.abs(sx - x) > 45 * FP || Math.abs(sy - y) > 45 * FP) &&
+    !inSection(x);
+  const lineCache = new Map<number, Line[]>();
+  const linesAt = (j: number) => {
+    let lines = lineCache.get(j);
+    if (!lines) lineCache.set(j, (lines = provedLines(course, j, 6)));
+    return lines;
+  };
+  const gapAt = (x: number) => anchors.findIndex((a) => a.x > x);
+  /** The k-th of n evenly spread aims over [from, to] metres with the sections' spans left out. */
+  const freeAim = (k: number, n: number, from: number, to: number) => {
+    const cuts = spans.filter(([a, b]) => b > metreX(from) && a < metreX(to)).sort((p, q) => p[0] - q[0]);
+    const pieces: [number, number][] = [];
+    let at = metreX(from);
+    for (const [a, b] of cuts) {
+      if (a > at) pieces.push([at, a]);
+      at = Math.max(at, b);
+    }
+    if (metreX(to) > at) pieces.push([at, metreX(to)]);
+    const total = pieces.reduce((sum, [a, b]) => sum + (b - a), 0);
+    let left = Math.trunc(((2 * k + 1) * total) / (2 * n));
+    for (const [a, b] of pieces) {
+      if (left <= b - a) return a + left;
+      left -= b - a;
+    }
+    return metreX(to);
+  };
+
+  // High-route gems: the highest proved flight point near each aim (aims spread over 40–480 m outside the sections).
+  const gems: [number, number][] = [];
+  for (let k = 0; k < SWING_GEMS; k++) {
+    const aim = freeAim(k, SWING_GEMS, 40, 480) + (draw(41) - 20) * FP;
+    const ahead = gapAt(aim);
+    let best: [number, number] | null = null;
+    for (const j of [0, 1, -1, 2, -2].map((d) => ahead + d).filter((j) => j > startIndex && j + 1 < anchors.length)) {
+      for (const line of linesAt(j))
+        for (const p of line.flight)
+          if (Math.abs(p[0] - aim) <= 140 * FP && clearOf(p, SWING_GEM_TOUCH) && gems.every(([gx]) => Math.abs(gx - p[0]) > 80 * FP) && (!best || p[1] < best[1])) best = p;
+      if (best) break;
+    }
+    if (best) gems.push(best);
+  }
+  gems.sort((p, q) => p[0] - q[0]);
+
+  // Low-route speed gates: under an anchor near each aim (50–470 m outside the sections), the opening around the deepest proved fast swing.
+  const gates: SwingGate[] = [];
+  for (let k = 0; k < SWING_GATES; k++) {
+    const aim = freeAim(k, SWING_GATES, 50, 470);
+    const ahead = gapAt(aim);
+    let made: SwingGate | null = null;
+    for (const j of [0, 1, -1, 2, -2, 3].map((d) => ahead + d).filter((j) => j > startIndex + 1 && j + 1 < anchors.length)) {
+      const a = anchors[j]!;
+      if (inSection(a.x) || nearHazard(a.x - 40 * FP, a.x + 40 * FP) || gates.some((g) => Math.abs(g.x - a.x) < 400 * FP)) continue;
+      // The deepest crossing of x = a.x at gate speed on the proved swings through j.
+      let deepest = -1;
+      for (const line of linesAt(j)) {
+        const pts = line.swing;
+        for (let n = 1; n < pts.length; n++) {
+          const [x0, y0] = pts[n - 1]!;
+          const [x1, y1] = pts[n]!;
+          if (!(x0 < a.x && x1 >= a.x)) continue;
+          const dx = x1 - x0;
+          const dy = y1 - y0;
+          if (dx * dx + dy * dy < SWING_GATE_SPEED * SWING_GATE_SPEED * FP * FP) continue;
+          const y = y0 + Math.trunc((dy * (a.x - x0)) / dx);
+          if (y > deepest) deepest = y;
+        }
+      }
+      if (deepest < 0 || deepest < a.y + 110 * FP) continue;
+      made = { x: a.x, y0: deepest - 40 * FP, y1: Math.min(deepest + 40 * FP, lerpAt(floor, a.x) - 90 * FP) };
+      break;
+    }
+    if (made) gates.push(made);
+  }
+  gates.sort((p, q) => p.x - q.x);
+
+  const v12: SwingState = {
+    ...deep,
+    tuned: 1,
+    starAnchors: [],
+    starSpots,
+    rocks,
+    tunec: 1,
+    spread: 1,
+    worldH: SWING_V12_H,
+    expand: 1,
+    worldW: SWING_V12_W,
+    camX: deep.x - SWING_LEAD_V12,
+    ledges,
+    ledgeOn: -1,
+    ledgeTicks: ledges.map(() => 0),
+    chain: 0,
+    lastGrabX: anchors[deep.rope]!.x,
+    comboPts: 0,
+    bestChain: 0,
+    gems,
+    gemsTaken: 0,
+    gates,
+    gatesLit: 0,
+  };
+  if (v12Cache.size > 16) v12Cache.clear();
+  v12Cache.set(seed | 0, v12);
+  return { ...v12, rocks: v12.rocks!.map((r) => ({ ...r })) };
+}
+
+/** swingRev 12: the expansion. Band 3 like rev 11, so shared readers stay on strict curves; the score is swingScoreV12. */
+export const swingExpandGame: typeof swingGame = { ...swingTunecGame, init: (seed) => ({ ...bandInit(initV12(seed)), band: 3 }) };

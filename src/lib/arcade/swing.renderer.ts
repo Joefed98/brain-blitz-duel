@@ -32,7 +32,15 @@ import {
   swingStarTotal,
   SWING_GOLD,
   swingWorldH,
-  SWING_WORLD_W,
+  swingWorldW,
+  swingFeatureCounts,
+  expand12LedgeGone,
+  SWING_COMBO_EVERY,
+  SWING_GATE_HALF_W,
+  SWING_GEM_R,
+  SWING_LEDGE_CRUMBLE,
+  SWING_LEDGE_THICK,
+  SWING_REV_EXPAND,
   type SwingState,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
@@ -68,7 +76,9 @@ export function drawSwingArt(ctx: CanvasRenderingContext2D, state: SwingState, s
 
 function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, size: CanvasSize): void {
   // swingRev 9: the taller cavern (its lava 110 px lower); 620 on every earlier revision.
+  // swingRev 12: the expansion's wider, taller view (450 × 844); 390 wide on every earlier revision.
   const SWING_WORLD_H = swingWorldH(state);
+  const SWING_WORLD_W = swingWorldW(state);
   const deep = SWING_WORLD_H - 620;
   const still = reducedMotion();
   // Reduced effects (lib/fx/lowEnd.ts, slow devices only): no distant parallax rock, lava light,
@@ -88,7 +98,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
   const cam = state.camX / FP;
   const sx = (x: number) => x / FP - cam;
   const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
-  const last = Math.min(state.ceil.length - 1, first + 12);
+  const last = Math.min(state.ceil.length - 1, first + Math.ceil(SWING_WORLD_W / 40) + 2);
   const ceilingAt = (x: number) => lerpAt(state.ceil, Math.round((x + cam) * FP)) / FP;
   // Polish G: the solid rock above the ceiling line (the sim's boundary), shaded and faceted.
   drawRockMass(ctx, state, first, last, sx);
@@ -596,6 +606,9 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     ctx.globalAlpha = 1;
   }
 
+  // swingRev 12: speed gates, set-route ledges and gems.
+  if (state.expand) drawExpand(ctx, state, sx, SWING_WORLD_W, still, lite);
+
   // swingRev 6: star pickups, taken by touching them.
   const spotsTaken = new Set(state.starSpots ? (state.starsTaken ?? []) : []);
   (state.starSpots ?? []).forEach(([wx, wy], i) => {
@@ -745,6 +758,7 @@ function drawSwingArtWorld(ctx: CanvasRenderingContext2D, state: SwingState, siz
     drawCoin(ctx, SWING_WORLD_W - 22 - ctx.measureText(label).width, 20, 8, 0, true);
     ctx.textAlign = "left";
   }
+  if (state.expand) drawExpandHud(ctx, state, SWING_WORLD_W);
   ctx.restore();
 }
 
@@ -964,7 +978,9 @@ const spreadArtGameV8 = { ...swingGameFor(SWING_REV_SPREAD), draw: drawSwingArt 
 const tallArtGameV9 = { ...swingGameFor(SWING_REV_TALL), draw: drawSwingArt };
 const tallArtGameV9Target = { ...swingGameFor(SWING_REV_TARGET), draw: drawSwingArt };
 const tallArtGameV9Strict = { ...swingGameFor(SWING_REV_STRICT), draw: drawSwingArt };
+const expandArtGameV12 = { ...swingGameFor(SWING_REV_EXPAND), draw: drawSwingArt };
 export function swingArtGameFor(rev?: number): typeof swingArtGame {
+  if (rev === SWING_REV_EXPAND) return expandArtGameV12;
   if (rev === SWING_REV_STRICT) return tallArtGameV9Strict;
   if (rev === SWING_REV_TARGET) return tallArtGameV9Target;
   if (rev === SWING_REV_TALL) return tallArtGameV9;
@@ -976,4 +992,253 @@ export function swingArtGameFor(rev?: number): typeof swingArtGame {
   if (rev === 3) return dragonArtGameV3;
   if (rev === 2) return dragonArtGameV2;
   return swingArtGame;
+}
+
+/* ======================= swingRev 12: the expansion's art ======================= */
+
+/**
+ * The expansion's features in the cave's own materials (presentation only; each shape on the sim's
+ * geometry). Ledges: a rock shelf whose top is the sim's landing line (± 0 px), its width the landing
+ * reach, hung from the ceiling by two iron chains; gold trim once landed on, a cracked face on a
+ * collapsing ledge that shakes once stood on and is gone when the sim says so (a few falling chips
+ * after, scenery only). The start ledge carries a small gold arrow, the finish ledge a gold flag.
+ * Gems: cave crystals at the pickup's own radius (cool cyan against the lava light, so they never
+ * read as a star coin), a soft glow skipped with reduced effects. Speed gates: two rock posts above
+ * and below the sim's opening with a glowing band between them that lights gold when the gate is lit.
+ */
+function drawExpand(ctx: CanvasRenderingContext2D, state: SwingState, sx: (x: number) => number, width: number, still: boolean, lite: boolean): void {
+  const tick = state.tick;
+  // Speed gates (behind everything else of the expansion).
+  (state.gates ?? []).forEach((g, i) => {
+    const x = sx(g.x);
+    if (x < -30 || x > width + 30) return;
+    const lit = ((state.gatesLit ?? 0) & (1 << i)) !== 0;
+    const y0 = g.y0 / FP;
+    const y1 = g.y1 / FP;
+    const half = SWING_GATE_HALF_W / FP;
+    // The opening: a soft band (gold once lit, a faint ember red until then) with chevrons for speed.
+    if (!lite) {
+      const band = ctx.createLinearGradient(x - 14, 0, x + 14, 0);
+      band.addColorStop(0, "rgba(255,170,60,0)");
+      band.addColorStop(0.5, lit ? "rgba(255,214,90,0.42)" : `rgba(255,120,60,${0.12 + (still ? 0 : 0.05 * Math.sin(tick * 0.12 + i))})`);
+      band.addColorStop(1, "rgba(255,170,60,0)");
+      ctx.fillStyle = band;
+      ctx.fillRect(x - 14, y0, 28, y1 - y0);
+    }
+    ctx.strokeStyle = lit ? "#FFE08A" : "rgba(255,170,110,0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath();
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x, y1);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (!lit) {
+      ctx.strokeStyle = "rgba(255,200,140,0.7)";
+      ctx.lineWidth = 1.6;
+      const cy = (y0 + y1) / 2;
+      for (const k of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(x - 4 + k * 5, cy - 5);
+        ctx.lineTo(x + k * 5 + 1, cy);
+        ctx.lineTo(x - 4 + k * 5, cy + 5);
+        ctx.stroke();
+      }
+    }
+    // Rock posts: one hanging over the opening, one standing under it, gold-rimmed caps on the opening's edges.
+    for (const [top, bottom, cap] of [[y0 - 34, y0, y0], [y1, y1 + 34, y1]] as const) {
+      const stone = ctx.createLinearGradient(x - half, 0, x + half, 0);
+      stone.addColorStop(0, "#54404A");
+      stone.addColorStop(0.5, "#33262B");
+      stone.addColorStop(1, "#1A1215");
+      ctx.fillStyle = stone;
+      ctx.beginPath();
+      ctx.roundRect(x - half, top, half * 2, bottom - top, 3);
+      ctx.fill();
+      ctx.fillStyle = lit ? SWING_GOLD : "#C9A25A";
+      ctx.fillRect(x - half - 1, cap - 1.5, half * 2 + 2, 3);
+    }
+  });
+
+  // Ledges.
+  (state.ledges ?? []).forEach((l, i) => {
+    const x = sx(l.x);
+    const half = l.half / FP;
+    if (x < -half - 40 || x > width + half + 40) return;
+    const top = l.top / FP;
+    const first = state.ledgeTicks?.[i] ?? 0;
+    const gone = expand12LedgeGone(state, i, tick);
+    if (gone) {
+      // A few chips falling away for half a second after it gives way (scenery only).
+      const age = tick - first - SWING_LEDGE_CRUMBLE;
+      if (still || age > 40) return;
+      ctx.fillStyle = "#45363A";
+      for (let k = 0; k < 6; k++) {
+        const h = artHash(l.x, k + 3);
+        const cx = x - half + ((h % 100) / 100) * half * 2;
+        const cy = top + 4 + age * age * 0.12 + (h >>> 8) % 6;
+        ctx.globalAlpha = Math.max(0, 1 - age / 40);
+        ctx.fillRect(cx, cy, 3 + (h >>> 4) % 3, 3);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const thick = SWING_LEDGE_THICK / FP;
+    const shaking = l.crumble && first > 0 && !still ? Math.sin(tick * 2.1) * 1.2 : 0;
+    const left = x - half + shaking;
+    // Chains up to the ceiling, behind the slab.
+    const ceil = (wx: number) => {
+      const c = state.ceil;
+      const k = Math.max(0, Math.min(c.length - 2, Math.trunc(wx / COL)));
+      return (c[k]! + Math.trunc(((c[k + 1]! - c[k]!) * (wx - k * COL)) / COL)) / FP;
+    };
+    ctx.strokeStyle = "rgba(150,130,120,0.55)";
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([3, 2]);
+    ctx.beginPath();
+    for (const dx of [-half + 6, half - 6]) {
+      ctx.moveTo(x + dx, top);
+      ctx.lineTo(x + dx, ceil(l.x + dx * FP));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // The slab: its top on the sim's landing line.
+    const stone = ctx.createLinearGradient(0, top, 0, top + thick);
+    stone.addColorStop(0, l.crumble ? "#6A5052" : "#5A4A50");
+    stone.addColorStop(1, "#211619");
+    ctx.fillStyle = stone;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left + half * 2, top);
+    ctx.lineTo(left + half * 2 - 4, top + thick);
+    ctx.lineTo(left + 4, top + thick);
+    ctx.closePath();
+    ctx.fill();
+    // Lava light on its underside.
+    if (!lite) {
+      ctx.fillStyle = "rgba(255,110,40,0.22)";
+      ctx.fillRect(left + 4, top + thick - 2, half * 2 - 8, 2);
+    }
+    ctx.strokeStyle = first > 0 ? SWING_GOLD : "rgba(255,190,140,0.55)";
+    ctx.lineWidth = first > 0 ? 2 : 1.2;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left + half * 2, top);
+    ctx.stroke();
+    if (l.crumble) {
+      ctx.strokeStyle = "rgba(0,0,0,0.65)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(left + half * 0.6, top + 1);
+      ctx.lineTo(left + half * 0.9, top + thick * 0.6);
+      ctx.lineTo(left + half * 0.75, top + thick);
+      ctx.moveTo(left + half * 1.4, top + 1);
+      ctx.lineTo(left + half * 1.2, top + thick * 0.7);
+      ctx.stroke();
+    }
+    if (l.kind === 0) {
+      // Start: a small gold arrow on the slab's face.
+      ctx.fillStyle = SWING_GOLD;
+      ctx.beginPath();
+      ctx.moveTo(x - 5, top + 3);
+      ctx.lineTo(x + 4, top + thick / 2 + 0.5);
+      ctx.lineTo(x - 5, top + thick - 2);
+      ctx.closePath();
+      ctx.fill();
+    } else if (l.kind === 2) {
+      // The finish flag: a pole at the slab's far end with a gold pennant that ripples.
+      const pole = left + half * 2 - 6;
+      ctx.strokeStyle = "#C9A25A";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(pole, top);
+      ctx.lineTo(pole, top - 26);
+      ctx.stroke();
+      const wave = still ? 0 : Math.sin(tick * 0.15) * 2;
+      ctx.fillStyle = first > 0 ? "#FFE08A" : SWING_GOLD;
+      ctx.beginPath();
+      ctx.moveTo(pole, top - 26);
+      ctx.quadraticCurveTo(pole - 8, top - 23 + wave, pole - 15, top - 21 + wave);
+      ctx.lineTo(pole, top - 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+  });
+
+  // Gems.
+  const taken = state.gemsTaken ?? 0;
+  (state.gems ?? []).forEach(([gx, gy], i) => {
+    if (taken & (1 << i)) return;
+    const x = sx(gx);
+    if (x < -20 || x > width + 20) return;
+    drawCrystal(ctx, x, gy / FP, SWING_GEM_R / FP, still ? 0 : tick + i * 23, lite);
+  });
+}
+
+/** A cave crystal of radius r (the gem's pickup radius): a faceted cyan cut with a white glint. */
+function drawCrystal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tick: number, flat: boolean): void {
+  ctx.save();
+  if (!flat) {
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * 2.2);
+    glow.addColorStop(0, `rgba(120,240,255,${0.32 + 0.1 * Math.sin(tick * 0.08)})`);
+    glow.addColorStop(1, "rgba(120,240,255,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const body = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  body.addColorStop(0, "#E6FDFF");
+  body.addColorStop(0.45, "#5FDCF0");
+  body.addColorStop(1, "#1C6E8A");
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r * 0.8, cy - r * 0.25);
+  ctx.lineTo(cx + r * 0.5, cy + r);
+  ctx.lineTo(cx - r * 0.5, cy + r);
+  ctx.lineTo(cx - r * 0.8, cy - r * 0.25);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(220,255,255,0.75)";
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+  // Facets.
+  ctx.strokeStyle = "rgba(20,80,100,0.6)";
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.8, cy - r * 0.25);
+  ctx.lineTo(cx + r * 0.8, cy - r * 0.25);
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx - r * 0.25, cy - r * 0.25);
+  ctx.lineTo(cx, cy + r);
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r * 0.25, cy - r * 0.25);
+  ctx.lineTo(cx, cy + r);
+  ctx.stroke();
+  const glint = (tick % 120) / 120;
+  if (glint < 0.25) {
+    ctx.fillStyle = `rgba(255,255,255,${0.9 - glint * 3})`;
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy - r * 0.45, Math.max(0.8, r * 0.16), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** swingRev 12's HUD row under the metres: the chain while it runs, then gems and gates. */
+function drawExpandHud(ctx: CanvasRenderingContext2D, state: SwingState, width: number): void {
+  const f = swingFeatureCounts(state);
+  ctx.font = "600 13px 'JetBrains Mono', ui-monospace, monospace";
+  ctx.textAlign = "left";
+  const chain = state.chain ?? 0;
+  if (chain >= 2) {
+    ctx.fillStyle = chain >= SWING_COMBO_EVERY ? SWING_GOLD : "rgba(255,255,255,0.75)";
+    ctx.fillText(`CHAIN ×${chain}`, 14, 46);
+  }
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#BDF6FF";
+  const gems = `${f.gems} / ${f.gemTotal}`;
+  ctx.fillText(gems, width - 14, 46);
+  drawCrystal(ctx, width - 24 - ctx.measureText(gems).width, 41, 6, 0, true);
+  ctx.textAlign = "left";
 }

@@ -36,6 +36,8 @@
  * Tempo, Slice and Coral Pop; Mixed Signals and Pull! are engine games, measured
  * by scripts/arcade-tuning-g2-engine-bands.ts with the puzzle-fairness kits).
  * --rev=g3 does the same for batch 3 (a game's `tuneg3`: Grappler, Orbit and Ball Tracker).
+ * --rev=x measures a game's expansion (a game's `expand`, Oct 2026: Grappler swingRev 12) against the revision
+ * rooms dealt before it (`expandBefore`), on the seeds rooms deal each revision (`seedForRev`).
  * --rev=now measures the revision rooms deal today (LIVE_BANDS in src/lib/arcade/liveBands.ts), reported as
  * "live": the scoring-targets audit (18 Oct 2026, docs/scoring-targets.md) ran it before and after.
  * --levels=average,near limits the levels. --save=<dir> writes each run's
@@ -57,7 +59,7 @@ import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const SEEDS = Number(opt("seeds") ?? 30);
-const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank" | "f" | "g1" | "g2" | "g3" | "now";
+const REV_MODE = (opt("rev") ?? "live") as "live" | "next" | "both" | "current" | "tuned" | "c" | "e" | "bank" | "f" | "g1" | "g2" | "g3" | "now" | "x";
 const JOBS = Number(opt("jobs") ?? 1);
 const JSON_PATH = opt("json");
 const SAVE_DIR = opt("save");
@@ -137,7 +139,11 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     return [];
   }
   const revs: ["live" | "next" | "tuned", number | null][] = [];
-  if (REV_MODE === "now") {
+  if (REV_MODE === "x") {
+    // A game's expansion (Oct 2026, docs/expansions/): the revision rooms dealt before it ("live") against the expansion ("next").
+    if (spec.expand === undefined || spec.expandBefore === undefined) console.error(`${spec.type}: no expansion revision`);
+    else revs.push(["live", spec.expandBefore], ["next", spec.expand]);
+  } else if (REV_MODE === "now") {
     // The revision rooms deal today (LIVE_BANDS), as "live": the scoring-targets audit (Oct 2026).
     const now = (LIVE_BANDS as Record<string, { rev: number }>)[spec.type]?.rev;
     if (now === undefined) console.error(`${spec.type}: no live band`);
@@ -190,7 +196,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
     if (spec.current === undefined || spec.next === undefined) console.error(`${spec.type}: no current revision past the band revision`);
     else revs.push(["live", spec.next], ["next", spec.current]);
   } else if (REV_MODE !== "next") revs.push(["live", spec.live]);
-  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank" && REV_MODE !== "f" && REV_MODE !== "g1" && REV_MODE !== "g2" && REV_MODE !== "g3" && REV_MODE !== "now") {
+  if (REV_MODE !== "live" && REV_MODE !== "current" && REV_MODE !== "tuned" && REV_MODE !== "c" && REV_MODE !== "e" && REV_MODE !== "bank" && REV_MODE !== "f" && REV_MODE !== "g1" && REV_MODE !== "g2" && REV_MODE !== "g3" && REV_MODE !== "now" && REV_MODE !== "x") {
     if (spec.next === undefined) console.error(`${spec.type}: no next revision`);
     else revs.push(["next", spec.next]);
   }
@@ -198,7 +204,7 @@ async function runGame(spec: GameSpec): Promise<RunRecord[]> {
   for (const [which, rev] of revs)
     for (const level of LEVEL_LIST)
       for (let n = 0; n < SEEDS; n++) {
-        const seed = spec.seedFor(n);
+        const seed = spec.seedForRev?.(n, rev) ?? spec.seedFor(n);
         const rec = playOne(spec, bot, rev, which, level, seed);
         if (SAVE_DIR) {
           mkdirSync(`${SAVE_DIR}/${spec.type}`, { recursive: true });

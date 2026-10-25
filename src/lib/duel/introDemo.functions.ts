@@ -1,4 +1,4 @@
-import { SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_EXPAND } from "@/lib/arcade/swing";
 import { INK_REV3, INK_REV4, INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
 import { CLAY_REV } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -96,7 +96,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Taller worlds batch 3 (16 Oct 2026): Grappler's taller cavern, Orbit's taller view and Ball Tracker's 12-row board.
     // An older demo would show the short world (and Ball Tracker's would play a 9-row course), so each stays stopped
     // until one is recorded on its tall revision.
-    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_TALL) return null;
+    // Grappler's expansion (swingRev 12, 25 Oct 2026): a wider, deeper cave with ledges, gems and gates, so only a
+    // demo recorded on swingRev 12 plays; until one is, the intro shows its still.
+    if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_EXPAND) return null;
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_TALL) return null;
     if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.btRev !== BT_REV_TALL) return null;
     return demo;

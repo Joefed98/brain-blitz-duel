@@ -131,7 +131,8 @@ import { initBandFrom, initSweptFrom, initTallFrom, initTunedFrom } from "@/lib/
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND } from "@/lib/arcade/swing";
+import { SWING_V12_BANK } from "@/lib/duel/swingBankV12.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -607,6 +608,17 @@ const GAMES: Game[] = [
     rate: 30,
     encode: (run: any) => encodeBallTrackRun(btCourseTall(run.seed), run, BT_REV_TALL),
     replay: (seed: number, raw: string) => replayBallTrackRun(btCourseTall(seed), seed, raw, BT_REV_TALL),
+  },
+  // Grappler's expansion (swingRev 12, 25 Oct 2026), appended so every earlier entry keeps its index: its bank courses.
+  {
+    key: "swing/expand",
+    game: swingGameFor(SWING_REV_EXPAND),
+    seedFor: (n: number) => SWING_V12_BANK[n % SWING_V12_BANK.length]!.seed,
+    checkpoint: swingCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: encodeSwingRun,
+    replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_EXPAND),
   },
 ];
 

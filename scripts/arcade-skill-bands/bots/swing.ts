@@ -14,6 +14,12 @@
  * player's feel for the cave; the human then executes with their own noise and
  * the sim decides what happens. Decisions value forward progress and staying
  * alive (and stars for star-chasers), never the score.
+ *
+ * swingRev 12 (the expansion): the better levels also go out of their way for
+ * the high-route gems, the low-route speed gates and the set-route ledges
+ * (each a level's chance per feature they see, like stars), and keep a quicker
+ * tempo for swing combos; the forked flights already land on ledges, take gems
+ * and light gates, so a wanted one simply adds to that plan's value.
  */
 import { SWING_INPUT_HOLD, type SwingState } from "../../../src/lib/arcade/swing";
 import { driveEvents, Plan, type SkillBot } from "../bot";
@@ -25,6 +31,18 @@ const RADIUS = 10 * FP;
 const COL = 40 * FP;
 /** Chance a level goes out of its way for a star anchor it sees coming. */
 const STAR_CHASE: Record<string, number> = { average: 0.1, good: 0.35, great: 0.65, near: 0.9 };
+/** swingRev 12: the same for a gem, a speed gate and a set-route ledge. */
+const GEM_CHASE: Record<string, number> = { average: 0.05, good: 0.25, great: 0.6, near: 0.9 };
+const GATE_CHASE: Record<string, number> = { average: 0.05, good: 0.25, great: 0.6, near: 0.9 };
+const LEDGE_CHASE: Record<string, number> = { average: 0, good: 0.2, great: 0.55, near: 0.9 };
+/** What a wanted gem, gate or ledge is worth to them, in px of progress. */
+const GEM_PULL = 180;
+const GATE_PULL = 150;
+const LEDGE_PULL = 900;
+/** Window key offset for presses made standing on a ledge. */
+const STANDING = 1_000_000;
+/** swingRev 12: the pace a level keeps for combos (px a tick, in place of PACE). */
+const COMBO_PACE: Record<string, number> = { average: 4, good: 4.5, great: 5.5, near: 6.5 };
 /** Pace a player wants (px a tick): trades a further anchor against time spent. */
 const PACE = 4;
 /** How much a star-chaser values a star anchor, in px of progress. */
@@ -108,19 +126,46 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   /** swingRev 6: the stars taken when this plan started; touch stars taken since that the player wants. */
   let originTaken = 0;
+  /** swingRev 12: the gems, gates and ledges taken when this plan started. */
+  let originGems = 0;
+  let originGates = 0;
+  let originLedges: number[] = [];
+  const wants = (key: number, chance: number) => {
+    let c = starChoice.get(key);
+    if (c === undefined) {
+      c = human.chance(chance);
+      starChoice.set(key, c);
+    }
+    return c;
+  };
   const pickups = (b: SwingState) => {
     if (!b.starSpots) return 0;
     let n = 0;
-    for (const i of (b.starsTaken ?? []).slice(originTaken)) {
-      let c = starChoice.get(10_000 + i);
-      if (c === undefined) {
-        c = human.chance(STAR_CHASE[level]!);
-        starChoice.set(10_000 + i, c);
-      }
-      if (c) n++;
-    }
+    for (const i of (b.starsTaken ?? []).slice(originTaken)) if (wants(10_000 + i, STAR_CHASE[level]!)) n++;
     return n;
   };
+  /** swingRev 12: the value (px) of the wanted gems, gates and ledges taken since the plan started. */
+  const extras = (b: SwingState) => {
+    if (!b.expand) return 0;
+    let v = 0;
+    const gems = (b.gemsTaken ?? 0) & ~originGems;
+    const gates = (b.gatesLit ?? 0) & ~originGates;
+    for (let i = 0; i < 16; i++) {
+      if (gems & (1 << i) && wants(20_000 + i, GEM_CHASE[level]!)) v += GEM_PULL;
+      if (gates & (1 << i) && wants(30_000 + i, GATE_CHASE[level]!)) v += GATE_PULL;
+    }
+    (b.ledgeTicks ?? []).forEach((t, i) => {
+      if (t > 0 && !(originLedges[i]! > 0) && wants(40_000 + i, LEDGE_CHASE[level]!)) v += LEDGE_PULL;
+    });
+    return v;
+  };
+  const markOrigin = (s: SwingState) => {
+    originTaken = (s.starsTaken ?? []).length;
+    originGems = s.gemsTaken ?? 0;
+    originGates = s.gatesLit ?? 0;
+    originLedges = s.ledgeTicks ?? [];
+  };
+  const pace = (s: SwingState) => (s.expand ? COMBO_PACE[level]! : PACE);
 
   /** What a press from body state b would take, and how good it looks: forward progress, a swing clear of the floor, a wanted star. */
   const grabAt = (b: SwingState, from: number, ropeAnchor: number): { j: number; v: number } => {
@@ -132,9 +177,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     const dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (a.y + len + RADIUS > floorAt(b, a.x) - 12 * FP) return { j: -1, v: -Infinity };
-    return { j, v: (a.x - from) / FP + (wantStar(b, j) ? STAR_PULL : 0) + pickups(b) * STAR_PULL };
+    // swingRev 12: a press while standing on a ledge is its own window (they wait for the landing).
+    return { j: (b.ledgeOn ?? -1) >= 0 ? j + STANDING : j, v: (a.x - from) / FP + (wantStar(b, j) ? STAR_PULL : 0) + pickups(b) * STAR_PULL + extras(b) };
   };
 
+  let paceNow = PACE;
   /** Own timing spread (ticks) for a press `start` ticks into a flight, and where in a window they aim. */
   const spread = (start: number) => (human.p.timingSdMs * (1 + start / 40)) / (1000 / 60);
   const aimIn = (start: number, len: number) => start + Math.min(Math.trunc((len - 1) / 2), Math.round(1.5 * spread(start)) + 1);
@@ -162,7 +209,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         // A player knows roughly how reliably they can hit a window this wide this far ahead,
         // and weighs the progress against the fall that a miss means.
         const hit = hitChance(i, len);
-        out.push({ start: i, len, value: vals[mid]!.v * hit - MISS_COST * (1 - hit) - PACE * mid });
+        out.push({ start: i, len, value: vals[mid]!.v * hit - MISS_COST * (1 - hit) - paceNow * mid });
       }
       i = k;
     }
@@ -183,7 +230,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   /** On a rope: the release tick (delay from now) whose flight offers the best grab, robust to a tick or two either side. */
   const planRelease = (s: SwingState): { d: number; grab: { start: number; len: number } } | null => {
-    originTaken = (s.starsTaken ?? []).length;
+    markOrigin(s);
+    paceNow = pace(s);
     const ropeAnchor = s.rope;
     const from = s.anchors[ropeAnchor]?.x ?? s.x;
     let rope = s;
@@ -204,7 +252,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           const w = windowsOf(vals, REGRAB_MIN);
           let top = null as { start: number; len: number; value: number } | null;
           for (const x of w) if (!top || x.value > top.value) top = x;
-          value.push(top ? top.value - PACE * d : -Infinity);
+          value.push(top ? top.value - paceNow * d : -Infinity);
           grabs.push(top);
         }
       }
@@ -233,7 +281,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
 
   /** Flying: the grab tick (delay from now) in the best window whose swing keeps the ninja alive. */
   const planGrab = (s: SwingState, ropeAnchor: number): { start: number; len: number } | null => {
-    originTaken = (s.starsTaken ?? []).length;
+    markOrigin(s);
+    paceNow = pace(s);
     const from = s.anchors[Math.max(0, ropeAnchor)]?.x ?? s.x;
     const { vals, states } = flightGrabs(s, from, ropeAnchor);
     const wins = windowsOf(vals, lag + 2).sort((a, b) => b.value - a.value);

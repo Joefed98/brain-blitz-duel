@@ -14,6 +14,7 @@
  *
  *   bun scripts/arcade-help-bands-check.ts
  */
+import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_SPECS } from "../src/lib/arcade/bandParts";
 import {
@@ -127,8 +128,8 @@ for (const [type, live] of Object.entries(LIVE_BANDS) as [
     );
   else
     ok(
-      score.includes(`– up to ${top}.`) && score.endsWith("Up to 150."),
-      `${type}: finish game states up to ${top} then up to 150`,
+      score.includes(`– up to ${top}.`) && score.endsWith(`Up to ${roundMaxFor(type)}.`),
+      `${type}: finish game states up to ${top} then up to ${roundMaxFor(type)}`,
     );
   ok(!/→|Points follow|straight lines/.test(score), `${type}: no knot list in the help`);
 }
