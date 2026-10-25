@@ -28,8 +28,10 @@ import {
   SNAKE_SWIPE_PX,
   type SnakeState,
   snakeWorldHForRev,
-  SNAKE_WORLD_W,
+  snakeWorldWForRev,
+  snakeV9Bonus,
 } from "@/lib/arcade/snake";
+import { expansionSounds } from "@/lib/fx/expansionSounds";
 import { decodeSnakeRun, encodeSnakeRun, replaySnakeRun } from "@/lib/duel/snake";
 import { ARCADE_CRASH_FREEZE_MS, type SnakePuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
@@ -157,6 +159,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "snake" });
     const sounds = snakeSounds();
+    // snakeRev 9's features (older rounds keep every counter at 0, so they stay silent).
+    const featureSounds = expansionSounds<SnakeState>([
+      { count: (s) => s.goldsEaten ?? 0, sound: "chime" },
+      { count: (s) => s.warpsUsed ?? 0, sound: "zap", volume: 0.8 },
+      { count: (s) => ((s.combo ?? 0) >= 3 ? s.comboPts ?? 0 : 0), sound: "ding", volume: 0.7 },
+      { count: (s) => Math.trunc((s.laneCells ?? 0) / 4), sound: "tick", volume: 0.5 },
+    ]);
 
     const finish = () => {
       if (submitted.current) return;
@@ -196,6 +205,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, snakeGame.isOver(state.current));
       feedback(state.current, snakeGame.isOver(state.current));
       sounds.frame(state.current, !snakeGame.isOver(state.current) && !lockedRef.current);
+      featureSounds(state.current, !snakeGame.isOver(state.current) && !lockedRef.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
@@ -268,7 +278,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SNAKE_WORLD_W} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
+    <ArcadeArenaSlot width={snakeWorldWForRev(data.snakeRev)} height={snakeWorldHForRev(data.snakeRev)} scene={snakeFill} ambient={snakeAmbient} playCentre>
       <div
         ref={wrap}
         data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl"
@@ -325,6 +335,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
         {puzzle.snakeRev ? `Same stars and rocks for everyone${result.rocks > 0 ? ` · ${result.rocks} rock${result.rocks === 1 ? "" : "s"} landed` : ""}` : "Same stars for everyone"}
       </p>
+      {result.state.exp ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`${result.state.goldsEaten ?? 0} gold · best combo ${result.state.maxCombo ?? 0} · ${result.state.warpsUsed ?? 0} warps · bonus +${snakeV9Bonus(result.state).total}`}
+        </p>
+      ) : null}
     </div>
   );
 }

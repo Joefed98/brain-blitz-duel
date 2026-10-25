@@ -14,7 +14,8 @@ import {
   BURST_GOLD,
   BURST_INPUT_FIRE,
   BURST_INPUT_MOVE,
-  BURST_REV_TARGET, BURST_REV_STRICT,
+  BURST_REV_200,
+  burstV7Bonus,
   BURST_TEAL,
   BURST_WORLD_W,
   type BurstState,
@@ -23,6 +24,19 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { BURST_TIME_MS, type BurstPuzzleData } from "@/lib/duel/types";
 import { burstArtGameFor } from "@/lib/arcade/burst.renderer";
 import { burstSounds } from "@/lib/fx/gameSounds";
+import { expansionSounds } from "@/lib/fx/expansionSounds";
+
+/** Fission's sounds plus burstRev 7's features (older rounds keep those counters at 0, so they stay silent). */
+function burstAllSounds() {
+  const base = burstSounds();
+  const features = expansionSounds<BurstState>([
+    { count: (s) => s.chainLinks ?? 0, sound: "crackle" },
+    { count: (s) => s.doubles ?? 0, sound: "zap" },
+    { count: (s) => s.golds ?? 0, sound: "chime" },
+    { count: (s) => (s.clearPts ?? 0) > 0 ? s.clearPts ?? 0 : 0, sound: "ding", volume: 0.8 },
+  ]);
+  return { frame: (state: BurstState, running: boolean) => { base.frame(state, running); features(state, running); }, stop: base.stop };
+}
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -90,7 +104,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={BURST_WORLD_W}
       worldH={burstWorldHFor(data?.burstRev)}
       game={burstArtGameFor(data?.burstRev)}
-      sounds={burstSounds}
+      sounds={burstAllSounds}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
@@ -134,6 +148,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         {burstLine(result)}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same waves for everyone</p>
+      {result.state.exp ? (
+        <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">
+          {`longest chain ${result.state.maxChain ?? 0} · ${result.state.golds ?? 0} golden · bonus +${burstV7Bonus(result.state).total}`}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -145,7 +164,7 @@ export const burstPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: BURST_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_STRICT }) satisfies BurstPuzzleData,
+  generate: () => ({ type: "burst", seed: 1, burstRev: BURST_REV_200 }) satisfies BurstPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

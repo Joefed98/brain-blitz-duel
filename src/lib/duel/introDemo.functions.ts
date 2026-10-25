@@ -5,8 +5,9 @@ import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_TALL } from "@/lib/arcade/breaker";
 import { RALLY_REV_TALL } from "@/lib/arcade/rally";
 import { WAV_REV_TALL } from "@/lib/arcade/wavefront";
-import { BURST_REV_TALL } from "@/lib/arcade/burst";
-import { BEAT_REV_TALL } from "@/lib/arcade/beat";
+import { BURST_REV_200 } from "@/lib/arcade/burst";
+import { BEAT_REV_200 } from "@/lib/arcade/beat";
+import { SNAKE_REV_200 } from "@/lib/arcade/snake";
 import { SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BUB_REV_TALL } from "@/lib/arcade/bubble";
 import { chainDemoCompatible } from "./chain";
@@ -86,10 +87,12 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_TALL) return null;
     if (data.type === "rally" && demo?.puzzle.type === "rally" && demo.puzzle.rallyRev !== RALLY_REV_TALL) return null;
     if (data.type === "wavefront" && demo?.puzzle.type === "wavefront" && demo.puzzle.wavRev !== WAV_REV_TALL) return null;
-    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_TALL) return null;
+    // Expansion E2 (25 Oct 2026): Fission, Tempo and Meteor demos stay stopped until one is recorded on the 200-point revision.
+    if (data.type === "burst" && demo?.puzzle.type === "burst" && demo.puzzle.burstRev !== BURST_REV_200) return null;
+    if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_200) return null;
     // Taller worlds batch 2 (16 Oct 2026): the same for Tempo, Slice, Coral Pop and Mixed Signals (Pull! above), each stopped
     // until a demo is recorded on its tall revision.
-    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_TALL) return null;
+    if (data.type === "beat" && demo?.puzzle.type === "beat" && demo.puzzle.beatRev !== BEAT_REV_200) return null;
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_TALL) return null;
     if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_TALL) return null;
     if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_TALL) return null;

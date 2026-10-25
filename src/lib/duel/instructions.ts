@@ -44,7 +44,9 @@ import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK } from "@/lib/a
 import { MATCHUP_V3_PAR_RAW } from "@/lib/arcade/matchup";
 import { HOVER_REACHABLE_GATES, HOVER_STARS, HOVER_V2_GATES_SCORE, HOVER_V2_STARS_SCORE } from "@/lib/arcade/hover";
 import { WAV_BOSS_HP } from "@/lib/arcade/wavefront";
-import { SNAKE_COLS, SNAKE_TALL_ROWS } from "@/lib/arcade/snake";
+import { SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "@/lib/arcade/snake";
+import { BURST_GOLD_POINTS, BURST_V7_CAPS } from "@/lib/arcade/burst";
+import { BEAT_V9_CAPS } from "@/lib/arcade/beat";
 import {
   PIN_MULT_MAX,
   PIN_PTS_BANK,
@@ -568,15 +570,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
         { action: "Red shadow?", detail: "A rock lands there in 2 s." },
-        { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!" },
+        { action: "Wormholes and violet lanes:", detail: "quick shortcuts, but risky." },
+        { action: "Gold stars and quick combos", detail: "add bonus points." },
+        { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks!", helpOnly: true },
+        { action: "Wormholes:", detail: "two pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within a second of a trip is a warp star (+2).", helpOnly: true },
+        { action: "Gold comet stars:", detail: "about every 7 s a gold star appears for 3.5 s and fades. Eat it for 1 to 5 bonus points, more the sooner you get there. It doesn't make you longer.", helpOnly: true },
+        { action: "Violet speed lanes:", detail: "one row and one column. Travelling along one you move faster; from a ride's sixth square, every 4 squares score 1.", helpOnly: true },
+        { action: "Combo:", detail: "eat stars within 1.25 s of each other; from the third in a row each star adds 1 to 3 bonus points.", helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
         { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
-        { action: "Taller grid:", detail: `${SNAKE_COLS} squares across and ${SNAKE_TALL_ROWS} down, so stars can be further away.`, helpOnly: true },
+        { action: "Bigger field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      score: liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` }),
+      score: `${liveBandHelp("snake", "Each star eaten counts 1.", { more: "More stars", good: (u) => `eats ${u} stars` })} Gold stars (up to ${SNAKE_V9_CAPS.gold}), combos (up to ${SNAKE_V9_CAPS.combo}), lane rides (up to ${SNAKE_V9_CAPS.lane}) and warp stars (up to ${SNAKE_V9_CAPS.warp}) add up to 50 more, to {max}.`,
     },
     cross: {
       goal: "Get across the traffic as many times as you can.",
@@ -696,15 +704,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Tap the notes in time.",
       how: [
         { action: "Tap a lane", detail: "as its note reaches the line." },
-        { action: "Tail notes:", detail: "hold, let go at the end." },
-        { action: "Arrow notes:", detail: "swipe that way on the line." },
+        { action: "Tails: hold. Arrows: swipe.", detail: "Twin dots: tap twice." },
+        { action: "Fill the meter, tap it:", detail: "FEVER doubles your notes." },
+        { action: "Gold notes and Perfect streaks", detail: "score bonus; 5 lanes later!" },
+        { action: "Tail notes:", detail: "hold, let go at the end.", helpOnly: true },
+        { action: "Arrow notes:", detail: "swipe that way on the line.", helpOnly: true },
+        { action: "A 75-second song:", detail: "from 40 s, after a short break, the lanes become five (a pink fifth lane), and the last section is the busiest.", helpOnly: true },
+        { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it: for 8 seconds every note you hit counts twice.", helpOnly: true },
+        { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus point.", helpOnly: true },
+        { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus point.", helpOnly: true },
+        { action: "Perfect streak:", detail: "a bonus point for every 10 Perfects in your longest run of Perfects.", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
         { action: "Swipe notes (from 30 seconds)", detail: "show a left or right arrow. Flick your finger that way in the lane as the note reaches the line. A plain tap won't hit them, and the wrong way is a miss.", helpOnly: true },
         { action: "Keep a combo going", detail: "to light up the lanes at 10, 25 and 50 – a miss resets it.", helpOnly: true },
       ],
-      score: liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` }),
+      score: `${liveBandHelp("beat", "Perfect counts 4, Good 3, OK 1 and a missed note −2, out of 4 a note, in thousandths of the chart.", { more: "More notes, closer to the beat", good: (u) => `reaches ${u}` })} Fever (up to ${BEAT_V9_CAPS.fever}), golden notes (up to ${BEAT_V9_CAPS.gold}), double taps (up to ${BEAT_V9_CAPS.double}) and the Perfect streak (up to ${BEAT_V9_CAPS.streak}) add up to 50 more, to {max}.`,
     },
 
     ricochet: {
@@ -845,15 +861,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don't get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: "Catch drops:", detail: "BURST, SHIELD and FREEZE." },
+        { action: "Catch drops:", detail: "BURST, DOUBLE, SHIELD, FREEZE." },
+        { action: "Split atoms send out shockwaves:", detail: "chain them for bonus points." },
+        { action: "Shoot the golden atom", detail: "and clear waves fast for more." },
         { action: "An atom touching you", detail: "costs a life (3 lives)." },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: "There is no FIRE button: every tap on the arena is a shot.", helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
-        { action: "Purple atoms: 1 in 2 drop a gold BURST icon", detail: "– triple shots until you lose a life.", helpOnly: true },
+        { action: "Purple atoms: 1 in 4 drop a gold BURST icon", detail: "– triple shots until you lose a life – and 1 in 4 a green DOUBLE: two beams a shot for 8 seconds.", helpOnly: true },
         { action: "Blue atoms: 1 in 8 drop a teal SHIELD", detail: "– it takes the next hit for you.", helpOnly: true },
-        { action: "Green atoms: 1 in 12 drop an ice-blue FREEZE", detail: "– every atom stops for 3 seconds. Frozen atoms still hurt if you walk into one.", helpOnly: true },
+        { action: "Green atoms: 1 in 8 drop an ice-blue FREEZE", detail: "– every atom stops for 3 seconds; every 2 atoms you hit while frozen add 1. Frozen atoms still hurt if you walk into one.", helpOnly: true },
+        { action: "Chain reactions:", detail: "a split atom gives off an orange shockwave; any atom it touches splits too and sends its own. From the second link on, each link adds more (4, then 6).", helpOnly: true },
+        { action: "Golden atom:", detail: `from 10 s, every 12 s a small golden atom crosses the top of the arena; hit it with a beam for ${BURST_GOLD_POINTS}. It never splits and can't hurt you.`, helpOnly: true },
+        { action: "Fast waves:", detail: "clear a wave within 5 s of it appearing for 3, within 8 s for 2, within 12 s for 1.", helpOnly: true },
       ],
-      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: "Lasting the 90 s adds 10." }),
+      score: liveBandHelp("burst", "Each atom hit counts 1 unit; each life lost takes 5 units off (never below 0 units).", { more: "More atoms, fewer lives lost", good: (u) => `counts ${u} units`, finish: `Lasting the 90 s adds 10; chains (up to ${BURST_V7_CAPS.chain}), golden atoms (up to ${BURST_V7_CAPS.gold}), fast waves (up to ${BURST_V7_CAPS.clear}) and frozen hits (up to ${BURST_V7_CAPS.freeze}) add up to 50 more.` }),
     },
     orbit: {
       goal: "Fly planet to planet to the sun.",

@@ -16,7 +16,9 @@ import {
   BURST_INPUT_MOVE,
   BURST_RADIUS,
   BURST_WORLD_W,
-  burstCeiling,
+  burstCeilingOf,
+  burstBounceOf,
+  BURST_ICON_DOUBLE,
   type BurstBall,
   type BurstState,
 } from "../../../src/lib/arcade/burst";
@@ -45,11 +47,18 @@ const APEX_PCT = [75, 60, 45, 30];
 /** The floor and bounce speeds, set per run from the game's own arena (burstRev 4's taller one). */
 let BURST_FLOOR_Y = 0;
 let BOUNCE_V: number[] = [];
-function setArena(floor: number): void {
+function setArena(floor: number, state?: BurstState): void {
   BURST_FLOOR_Y = floor;
   const arenaH = floor - 40;
-  BOUNCE_V = APEX_PCT.map((pct) => Math.trunc(Math.sqrt(2 * GRAVITY * Math.trunc((arenaH * pct) / 100) * FP)));
+  BOUNCE_V = state?.exp ? [...burstBounceOf(state)] : APEX_PCT.map((pct) => Math.trunc(Math.sqrt(2 * GRAVITY * Math.trunc((arenaH * pct) / 100) * FP)));
 }
+
+/**
+ * burstRev 7: whether the bots play the expansion's features (golden atoms first, atoms in a bunch for
+ * chain reactions, the DOUBLE icon). The measuring script (scripts/expansions-e2-bands.ts) turns it off
+ * to see where today's play lands.
+ */
+export const burstBotOptions = { features: true };
 
 interface Tracked {
   x: number;
@@ -102,7 +111,8 @@ function touches(bx: number, by: number, r: number, px: number, margin: number):
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
-  setArena(burstFloorY(game.init(seed)));
+  setArena(burstFloorY(game.init(seed)), game.init(seed) as BurstState);
+  const features = Boolean((game.init(seed) as BurstState).exp) && burstBotOptions.features;
   const level = human.level;
   const read = READ[level]!;
   const horizon = LOOKAHEAD[level]!;
@@ -129,7 +139,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   return driveEvents(game, (s: BurstState, t) => {
     history.push(s);
     const seen = history[Math.max(0, history.length - 1 - lag)]!;
-    const ceil = burstCeiling(seen.wave, BURST_FLOOR_Y);
+    const ceil = burstCeilingOf(seen);
 
     // Track atoms frame to frame; one born from a split (or a new wave) is seen a reaction later.
     const next: Tracked[] = [];
@@ -177,6 +187,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // A falling icon worth catching.
     let chasing = false;
     for (const icon of seen.icons) {
+      // A player who doesn't know the DOUBLE beam leaves its icon alone.
+      if (icon.kind === BURST_ICON_DOUBLE && !features) continue;
       const key = `${icon.x}:${icon.kind}`;
       if (!iconWill.has(key)) iconWill.set(key, { go: human.chance(ICON[level]!), at: t + human.reactTicks() });
       const w = iconWill.get(key)!;
@@ -190,6 +202,19 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         break;
       }
     }
+    // burstRev 7: a golden atom crossing the top; a player using the feature lines up under it (reacting late).
+    const atom = features && seen.goldAtom ? seen.goldAtom : null;
+    let atomAim = NaN;
+    if (atom && !chasing) {
+      const ay = atom.y / FP;
+      const k = Math.max(1, (BURST_FLOOR_Y - ay) / SHOT_SPEED) + lag;
+      const ax = (atom.x + atom.vx * k) / FP;
+      if (ax > MIN_X && ax < MAX_X && Math.abs(ax - x) / WALK < k + 60) {
+        atomAim = ax + aimErr * human.p.aimSdPx * 0.5;
+        want = atomAim;
+        chasing = true;
+      }
+    }
     if (!chasing) {
       const targ = reads.find((rd) => rd.tr.id === targetId);
       if (!targ || t >= rethinkAt) {
@@ -199,7 +224,17 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           rethinkAt = t + human.reactTicks();
         } else if (reads.length > 0) {
           // Nearest atoms first; small fast ones are harder to catch under.
-          const values = reads.map((rd) => -Math.abs(rd.pts[Math.min(20, rd.pts.length - 1)]!.x - x) / 80 - rd.tr.size * 0.3);
+          const values = reads.map((rd) => {
+            let v = -Math.abs(rd.pts[Math.min(20, rd.pts.length - 1)]!.x - x) / 80 - rd.tr.size * 0.3;
+            if (features) {
+              // burstRev 7: golden atoms first, then atoms with neighbours close by (a chain reaction).
+              const ball = seen.balls.find((b) => Math.abs(b.x / FP - rd.pts[0]!.x) < 1 && Math.abs(b.y / FP - rd.pts[0]!.y) < 40 && b.size === rd.tr.size);
+              if (ball?.gold) v += 1.5;
+              const near = reads.filter((o) => o !== rd && Math.hypot(o.pts[0]!.x - rd.pts[0]!.x, o.pts[0]!.y - rd.pts[0]!.y) < 60 + rd.r).length;
+              v += 0.5 * near;
+            }
+            return v;
+          });
           targetId = reads[human.pick(values)]!.tr.id;
           aimErr = human.normal();
           rethinkAt = t + human.thinkTicks(1000);
@@ -238,6 +273,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           if (Math.abs(p.x - x) <= rd.r * 0.8 && p.y + rd.r >= lineTop) go = true;
         }
         if (go) break;
+      }
+      if (atom && !go) {
+        const k = (BURST_FLOOR_Y - atom.y / FP) / SHOT_SPEED;
+        const ax = (atom.x + atom.vx * (k + lag)) / FP;
+        if (Math.abs(ax - x) <= 7) go = true;
       }
       if (go || human.slip(0.01)) {
         plan.at(t, { k: BURST_INPUT_FIRE, a: 0, b: (fireFlip ^= 1), c: 0, d: 0 });

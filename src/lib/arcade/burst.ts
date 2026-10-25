@@ -191,6 +191,17 @@ export interface BurstBall {
   y: number;
   vx: number;
   vy: number;
+  /** burstRev 7 only: the tick the atom appeared (fresh fragments shrug off chain rings). */
+  born?: number;
+}
+
+/** burstRev 7 chain reaction: a shockwave ring from a split, growing to `max` px; `link` is its place in the chain. */
+export interface BurstRing {
+  x: number;
+  y: number;
+  r: number;
+  max: number;
+  link: number;
 }
 
 export interface BurstShot {
@@ -203,7 +214,7 @@ export interface BurstShot {
 export interface BurstIcon {
   x: number;
   y: number;
-  /** 0 BURST shots (gold), 1 SHIELD (teal), 2 FREEZE (burstRev 2). */
+  /** 0 BURST shots (gold), 1 SHIELD (teal), 2 FREEZE (burstRev 2), 3 DOUBLE beam (burstRev 7). */
   kind: number;
 }
 
@@ -215,6 +226,31 @@ export interface BurstState extends BandFields {
   freezes?: number;
   /** burstRev 4 only (taller worlds): the floor, which is the drawn world's height, px (BURST_TALL_H). Absent = BURST_FLOOR_Y. */
   worldH?: number;
+  /** burstRev 7 only (the expansion): every field below is absent on earlier rounds. */
+  exp?: number;
+  /** Chain reactions: live rings, the current chain's length, the longest, links in all and their points. */
+  rings?: BurstRing[];
+  chain?: number;
+  maxChain?: number;
+  chainLinks?: number;
+  chainPts?: number;
+  /** Double beam: ticks left (two beams per shot) and DOUBLE icons caught. */
+  double?: number;
+  doubles?: number;
+  /** Freeze: atoms hit while frozen, and their points. */
+  freezeHits?: number;
+  /** The room seed (golden atoms' sides come from a stream of their own). */
+  seed?: number;
+  /** Golden atoms: the one crossing now (x, vx in 1/256 px, or null), golden atoms hit, and their points. */
+  goldAtom?: { x: number; y: number; vx: number } | null;
+  goldAt?: number;
+  golds?: number;
+  goldPts?: number;
+  /** The tick the wave on screen appeared, and wave-clear time points. */
+  waveAt?: number;
+  clearPts?: number;
+  /** The last wave cleared's time bonus (render only: the pop). */
+  lastClear?: number;
   tick: number;
   rng: number;
   waves: BurstSpawn[][];
@@ -321,7 +357,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   const minX = PLAYER_HALF_W * FP;
   const maxX = (BURST_WORLD_W - PLAYER_HALF_W) * FP;
   // burstRev 4: the taller arena's floor and its scaled ceilings and bounces (560 and the constants otherwise).
-  const geo = burstGeometry(burstFloorY(state));
+  const geo = state.exp ? burstGeometryV7(burstFloorY(state)) : burstGeometry(burstFloorY(state));
   const FLOOR_Y = geo.floor;
 
   if (input && input.k === BURST_INPUT_MOVE) {
@@ -335,7 +371,12 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
         s.burstLeft = BURST_SHOTS;
         s.burstNext = tick;
       }
-    } else if (s.shots.length === 0) s.shots.push({ x: s.x, top: FLOOR_Y * FP, short: 0 });
+    } else if (s.shots.length === 0) {
+      if (s.exp && (s.double ?? 0) > 0) {
+        // burstRev 7 double beam: two beams either side of the ship.
+        for (const dx of [-BURST_DOUBLE_GAP, BURST_DOUBLE_GAP]) s.shots.push({ x: clampInt(s.x + dx * FP, 0, BURST_WORLD_W * FP), top: FLOOR_Y * FP, short: 0 });
+      } else s.shots.push({ x: s.x, top: FLOOR_Y * FP, short: 0 });
+    }
   }
 
   // Player walks toward its target.
@@ -350,7 +391,7 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
   // Next wave enters.
   if (s.balls.length === 0 && tick >= s.nextWaveAt && s.wave < s.waves.length) {
     s.wave += 1;
-    const ceil = burstCeiling(s.wave, FLOOR_Y);
+    const ceil = s.exp ? burstCeilingV7(s.wave, FLOOR_Y) : burstCeiling(s.wave, FLOOR_Y);
     for (const spawn of s.waves[s.wave - 1]!) {
       const r = BURST_RADIUS[spawn.size]!;
       const y = Math.min(FLOOR_Y - r - 40, ceil + r + 20 + spawn.lift);
@@ -360,14 +401,18 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
         y: y * FP,
         vx: spawn.side ? -SPEED_X[spawn.size]! : SPEED_X[spawn.size]!,
         vy: 0,
+        // burstRev 7: every atom carries its birth tick.
+        ...(s.exp ? { born: tick } : {}),
       });
     }
+    if (s.exp) s.waveAt = tick;
   }
 
   // Balls bounce (burstRev 2: not while frozen).
-  const ceil = burstCeiling(s.wave, FLOOR_Y) * FP;
+  const ceil = (s.exp ? burstCeilingV7(s.wave, FLOOR_Y) : burstCeiling(s.wave, FLOOR_Y)) * FP;
   const frozen = (s.freeze ?? 0) > 0;
   if (frozen) s.freeze = (s.freeze ?? 0) - 1;
+  if (s.exp && (s.double ?? 0) > 0) s.double = (s.double ?? 0) - 1;
   for (const ball of frozen ? [] : s.balls) {
     const r = BURST_RADIUS[ball.size]! * FP;
     ball.vy += GRAVITY;
@@ -419,7 +464,10 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
         break;
       }
     }
-    if (hit >= 0) {
+    if (hit >= 0 && s.exp) {
+      // burstRev 7: the split, its drops, golden and frozen points, and the chain ring it gives off.
+      burstSplitV7(s, hit, tick, frozen, 0);
+    } else if (hit >= 0) {
       const ball = s.balls[hit]!;
       s.hits += 1;
       if (s.rev === BURST_REV) {
@@ -450,6 +498,10 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     } else if (shot.top > ceil) flying.push(shot);
   }
   s.shots = flying;
+  if (s.exp) {
+    burstRingsV7(s, tick, frozen);
+    burstGoldV7(s, tick, frozen, ceil);
+  }
 
   // Power-up icons fall; the player catches them, the floor loses them.
   const falling: BurstIcon[] = [];
@@ -459,7 +511,10 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     const near = Math.abs(icon.x - s.x) <= (PLAYER_HALF_W + ICON_HALF) * FP;
     if (near && icon.y + ICON_HALF * FP >= top) {
       if (icon.kind === 1) s.shield = 1;
-      else if (icon.kind === BURST_ICON_FREEZE) {
+      else if (icon.kind === BURST_ICON_DOUBLE) {
+        s.double = BURST_DOUBLE_TICKS;
+        s.doubles = (s.doubles ?? 0) + 1;
+      } else if (icon.kind === BURST_ICON_FREEZE) {
         s.freeze = BURST_FREEZE_TICKS;
         s.freezes = (s.freezes ?? 0) + 1;
       } else s.burst = 1;
@@ -479,12 +534,20 @@ function step(state: BurstState, input: ArcadeInputEvent | null): BurstState {
     s.invuln = INVULN_TICKS;
     s.burst = 0;
     s.burstLeft = 0;
+    // burstRev 7: a lost life also ends the double beam.
+    if (s.exp) s.double = 0;
     }
   }
 
   if (s.balls.length === 0 && s.wave > 0 && s.nextWaveAt <= state.tick) {
     s.cleared += 1;
     s.nextWaveAt = tick + WAVE_GAP;
+    if (s.exp) {
+      // burstRev 7 wave-clear time bonus: 3 within 5 s of the wave appearing, 2 within 8 s, 1 within 12 s.
+      const pts = burstClearPoints(tick - (s.waveAt ?? tick));
+      s.clearPts = (s.clearPts ?? 0) + pts;
+      s.lastClear = pts;
+    }
   }
 
   if (s.lives <= 0) {
@@ -562,6 +625,14 @@ export function burstCheckpoint(state: BurstState): BurstCheckpoint {
   for (const icon of state.icons) values.push(icon.x, icon.y, icon.kind);
   // burstRev 4 (taller worlds): the floor, last.
   if (state.worldH) values.push(state.worldH);
+  // burstRev 7 (the expansion): its own state after that, so every earlier checksum is unchanged.
+  if (state.exp) {
+    values.push(state.chain ?? 0, state.chainLinks ?? 0, state.chainPts ?? 0, state.double ?? 0, state.doubles ?? 0, state.freezeHits ?? 0, state.golds ?? 0, state.goldPts ?? 0, state.waveAt ?? 0, state.clearPts ?? 0);
+    for (const ball of state.balls) values.push(ball.born ?? 0);
+    const atom = state.goldAtom;
+    values.push(state.goldAt ?? 0, atom ? atom.x : -1, atom ? atom.y : -1, atom ? atom.vx : 0);
+    for (const ring of state.rings ?? []) values.push(ring.x, ring.y, ring.r, ring.max, ring.link);
+  }
   let checksum = 0x811c9dc5;
   for (const value of values) {
     checksum ^= value | 0;
@@ -716,6 +787,7 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_200) return burstV7Game;
   if (rev === BURST_REV_STRICT) return burstStrictGame;
   if (rev === BURST_REV_TARGET) return burstTargetGame;
   if (rev === BURST_REV_TALL) return burstTallGame;
@@ -730,6 +802,7 @@ export const BURST_REV_BAND = 3;
 /** Atoms hit, minus 5 a life lost; 140 at 100; lasting the 90 s adds 10 (no 130 cap, no 150 shortcut). */
 export const BURST_BAND_CURVE = bandCurve([0, 55, 76, 88, 100], [0, 70, 100, 125, 140]);
 export function burstBandParts(state: BurstState): BandParts {
+  if (state.exp) return burstV7Parts(state);
   const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
   const finished = state.ended === 1;
   return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BURST_V4_BAND_CURVE : BURST_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
@@ -767,7 +840,7 @@ export const burstTallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = { 
 
 /** The drawn world's height (the floor, px) a stored round's burstRev plays in. */
 export function burstWorldHFor(rev?: number | null): number {
-  return rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
+  return rev === BURST_REV_200 || rev === BURST_REV_TALL || rev === BURST_REV_TARGET || rev === BURST_REV_STRICT ? BURST_TALL_H : BURST_FLOOR_Y;
 }
 
 /* ================= Scoring targets (burstRev 5, 18 Oct 2026) ================= */
@@ -794,3 +867,256 @@ export const BURST_REV_STRICT = 6;
 export const burstStrictGame = bandStrictGame(burstTargetGame);
 /** The curve new rounds score on: BURST_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BURST_V6_BAND_CURVE = bandStrict(BURST_V4_BAND_CURVE);
+
+
+/* ================= The expansion (burstRev 7, 25 Oct 2026) ================= */
+
+/**
+ * burstRev 7 (world expansion, docs/expansions/e2.md): burstRev 6's waves, drops, lives and ship in a
+ * higher arena, plus five skill features, scored to 200 (docs/scoring-200.md). Everything is decided by
+ * the seed and the player's own shots, so every phone and the server agree.
+ *
+ *  - Higher arena: the same 390 × 650 world (it already fills a phone's arena box above the arrows) with
+ *    the ceiling starting at 24 px (was 40; the HUD line is slimmer), each atom bouncing higher (84 / 70 /
+ *    54 / 38 % of the arena, was 75 / 60 / 45 / 30) and the ceiling never lower than 70 % of the arena
+ *    above the floor (was 60 %), so atoms spread through the upper part of the screen.
+ *  - Chain reactions: an atom split by a beam (not the smallest, which just pops) gives off a shockwave
+ *    ring (60 / 50 / 40 px by size). Any atom the ring touches splits too and gives off its own ring,
+ *    up to 3 links; fragments under BURST_FRESH_TICKS old shrug rings off. From the second link, link n
+ *    adds min(2n, 6) (a real chain, not one knock-on).
+ *  - Power-ups: the DOUBLE beam (from 1 in 4 purple atoms, in place of half the BURST drops): 8 s of two
+ *    beams a shot. FREEZE (from 1 in 8 green atoms, was 1 in 12): every 2 atoms hit while frozen add 1.
+ *  - Golden atoms: from 10 s, every 12 s a small golden atom crosses the top of the arena (its side from a
+ *    stream of its own); a beam that reaches it takes it for 4. It never splits or hurts the ship.
+ *  - Wave-clear time bonus: 3 for clearing a wave within 5 s of it appearing, 2 within 8 s, 1 within 12 s.
+ *
+ * Score: atoms hit less 5 a life lost on BURST_V7_BAND_CURVE (to 140), 10 for lasting the 90 s, plus the
+ * features' points, each capped (BURST_V7_CAPS, 50 in all), to 200. States keep `rev: 2` and `worldH`
+ * and add `exp: 1` and the fields above, folded into the checkpoint checksum last.
+ */
+export const BURST_REV_200 = 7;
+export const BURST_V7_MAX = 200;
+const CEIL_START_V7 = 24;
+const APEX_PCT_V7 = [84, 70, 54, 38] as const;
+export const BURST_ICON_DOUBLE = 3;
+export const BURST_DOUBLE_TICKS = 8 * TICKS_PER_SECOND;
+export const BURST_DOUBLE_GAP = 14;
+export const BURST_V7_DROP_ODDS = 4;
+export const BURST_V7_FREEZE_ODDS = 8;
+export const BURST_RING_MAX = [60, 50, 40, 0] as const;
+export const BURST_RING_SPEED = 4;
+export const BURST_CHAIN_LINKS = 3;
+export const BURST_CHAIN_STEP_MAX = 6;
+export const BURST_FRESH_TICKS = 20;
+export const BURST_GOLD_POINTS = 4;
+/** Golden atoms: one crosses the top of the arena from 10 s, then every 12 s, 2 px a tick, 18 px across. */
+export const BURST_GOLD_FIRST = 10 * TICKS_PER_SECOND;
+export const BURST_GOLD_EVERY = 12 * TICKS_PER_SECOND;
+export const BURST_GOLD_SPEED = 2;
+export const BURST_GOLD_R = 9;
+/** Its height: this far under the ceiling. */
+export const BURST_GOLD_DROP = 36;
+/** Each feature's most points, 50 in all. */
+export const BURST_V7_CAPS = { chain: 22, gold: 16, clear: 6, freeze: 6 } as const;
+
+const geometriesV7 = new Map<number, BurstGeometry>();
+/** burstRev 7's higher arena: the ceiling from 24 px, higher bounces and a higher lowest ceiling. */
+export function burstGeometryV7(floor: number): BurstGeometry {
+  let g = geometriesV7.get(floor);
+  if (!g) {
+    const arenaH = floor - CEIL_START_V7;
+    g = {
+      floor,
+      arenaH,
+      ceilMax: floor - Math.trunc((arenaH * 70) / 100),
+      ceilStep: Math.trunc((CEIL_STEP * arenaH) / ARENA_H),
+      bounceV: APEX_PCT_V7.map((pct) => isqrt(2 * GRAVITY * Math.trunc((arenaH * pct) / 100) * FP)),
+    };
+    geometriesV7.set(floor, g);
+  }
+  return g;
+}
+
+export function burstCeilingV7(wave: number, floor: number): number {
+  const g = burstGeometryV7(floor);
+  return Math.min(g.ceilMax, CEIL_START_V7 + g.ceilStep * Math.max(0, wave - 5));
+}
+
+/** The ceiling (px) of a state's arena now, for any revision. */
+export function burstCeilingOf(state: BurstState): number {
+  return state.exp ? burstCeilingV7(state.wave, burstFloorY(state)) : burstCeiling(state.wave, burstFloorY(state));
+}
+
+/** The bounce speeds (1/256 px a tick) of a state's arena, for any revision (the bots read them). */
+export function burstBounceOf(state: BurstState): readonly number[] {
+  return (state.exp ? burstGeometryV7(burstFloorY(state)) : burstGeometry(burstFloorY(state))).bounceV;
+}
+
+/** The side (0 left, 1 right) the n-th golden atom enters from: a stream of its own keyed by the seed. */
+export function burstGoldSide(seed: number, n: number): number {
+  return rngBelow(((seed ^ 0x474f4c44) + Math.imul(n + 1, 0x9e3779b1)) | 0, 2).value;
+}
+
+export function burstClearPoints(ticks: number): number {
+  return ticks <= 5 * TICKS_PER_SECOND ? 3 : ticks <= 8 * TICKS_PER_SECOND ? 2 : ticks <= 12 * TICKS_PER_SECOND ? 1 : 0;
+}
+
+/** burstRev 7: splits (or pops) ball `index` in place: drops, golden and frozen points, children and its ring. */
+function burstSplitV7(s: BurstState, index: number, tick: number, frozen: boolean, link: number): void {
+  const ball = s.balls[index]!;
+  s.hits += 1;
+  // Seeded drops: L → BURST or DOUBLE (1 in 4 each), M → SHIELD (1 in 8), S → FREEZE (1 in 8).
+  const odds = ball.size === 0 ? BURST_V7_DROP_ODDS : ball.size === 1 ? BURST_V2_SHIELD_ODDS : ball.size === 2 ? BURST_V7_FREEZE_ODDS : 0;
+  if (odds > 0) {
+    const roll = rngBelow(s.rng, odds);
+    s.rng = roll.state;
+    if (ball.size === 0 && roll.value <= 1) s.icons.push({ x: ball.x, y: ball.y, kind: roll.value === 0 ? 0 : BURST_ICON_DOUBLE });
+    else if (ball.size > 0 && roll.value === 0) s.icons.push({ x: ball.x, y: ball.y, kind: ball.size === 2 ? BURST_ICON_FREEZE : 1 });
+  }
+  if (frozen) s.freezeHits = (s.freezeHits ?? 0) + 1;
+  s.popX = ball.x;
+  s.popY = ball.y;
+  s.popTick = tick;
+  s.popSize = ball.size;
+  s.balls.splice(index, 1);
+  if (ball.size < 3) {
+    const size = ball.size + 1;
+    for (const dir of [-1, 1]) s.balls.push({ size, x: ball.x, y: ball.y, vx: dir * SPEED_X[size]!, vy: -KICK, born: tick });
+    if (link < BURST_CHAIN_LINKS) s.rings = [...(s.rings ?? []), { x: ball.x, y: ball.y, r: 0, max: BURST_RING_MAX[ball.size]! * FP, link }];
+  }
+}
+
+/** burstRev 7: rings grow; each splits the first older atom it touches (again until none), links counting up. */
+function burstRingsV7(s: BurstState, tick: number, frozen: boolean): void {
+  const rings = s.rings ?? [];
+  if (rings.length === 0) {
+    if (s.chain) s.chain = 0;
+    return;
+  }
+  const grown = rings.map((ring) => ({ ...ring, r: Math.min(ring.max, ring.r + BURST_RING_SPEED * FP) }));
+  s.rings = grown;
+  for (let guard = 0; guard < 64; guard++) {
+    let found = -1;
+    let by: BurstRing | null = null;
+    for (const ring of s.rings) {
+      for (let i = 0; i < s.balls.length && found < 0; i++) {
+        const ball = s.balls[i]!;
+        if (tick - (ball.born ?? 0) < BURST_FRESH_TICKS) continue;
+        const reach = ring.r + BURST_RADIUS[ball.size]! * FP;
+        const dx = ball.x - ring.x;
+        const dy = ball.y - ring.y;
+        if (dx * dx + dy * dy <= reach * reach) found = i;
+      }
+      if (found >= 0) {
+        by = ring;
+        break;
+      }
+    }
+    if (found < 0 || !by) break;
+    const link = by.link + 1;
+    s.chainLinks = (s.chainLinks ?? 0) + 1;
+    s.chain = Math.max(s.chain ?? 0, link);
+    s.maxChain = Math.max(s.maxChain ?? 0, link);
+    // The first link is a plain knock-on: points start at the second (4, then 6).
+    if (link >= 2) s.chainPts = (s.chainPts ?? 0) + Math.min(2 * link, BURST_CHAIN_STEP_MAX);
+    burstSplitV7(s, found, tick, frozen, link);
+  }
+  s.rings = s.rings.filter((ring) => ring.r < ring.max);
+}
+
+/**
+ * burstRev 7 golden atoms: one appears on its schedule at the side its stream picks and crosses the top of
+ * the arena (frozen with the rest); a beam that reaches it takes it (+4) and stops there. It never splits
+ * and never touches the ship. Gone at the far wall.
+ */
+function burstGoldV7(s: BurstState, tick: number, frozen: boolean, ceil: number): void {
+  let atom = s.goldAtom ?? null;
+  const n = s.goldAt ?? 0;
+  if (!atom && tick >= BURST_GOLD_FIRST + n * BURST_GOLD_EVERY) {
+    const side = burstGoldSide(s.seed ?? 0, n);
+    atom = { x: (side ? BURST_WORLD_W + BURST_GOLD_R : -BURST_GOLD_R) * FP, y: ceil + BURST_GOLD_DROP * FP, vx: (side ? -BURST_GOLD_SPEED : BURST_GOLD_SPEED) * FP };
+    s.goldAt = n + 1;
+  }
+  if (!atom) return;
+  if (!frozen) atom = { ...atom, x: atom.x + atom.vx };
+  const r = BURST_GOLD_R * FP;
+  const kept: BurstShot[] = [];
+  let hit = false;
+  for (const shot of s.shots) {
+    if (!hit && Math.abs(shot.x - atom.x) <= r && shot.top <= atom.y + r && (!shot.short || shot.top + BURST_SHORT_LEN * FP >= atom.y - r)) hit = true;
+    else kept.push(shot);
+  }
+  if (hit) {
+    s.shots = kept;
+    s.golds = (s.golds ?? 0) + 1;
+    s.goldPts = (s.goldPts ?? 0) + BURST_GOLD_POINTS;
+    s.popX = atom.x;
+    s.popY = atom.y;
+    s.popTick = tick;
+    s.popSize = 3;
+    s.goldAtom = null;
+    return;
+  }
+  s.goldAtom = atom.x < -r * 2 || atom.x > (BURST_WORLD_W * FP + r * 2) ? null : atom;
+}
+
+function initV7(seed: number): BurstState {
+  return {
+    ...burstStrictGame.init(seed),
+    seed: seed | 0,
+    goldAtom: null,
+    goldAt: 0,
+    exp: 1,
+    rings: [],
+    chain: 0,
+    maxChain: 0,
+    chainLinks: 0,
+    chainPts: 0,
+    double: 0,
+    doubles: 0,
+    freezeHits: 0,
+    golds: 0,
+    goldPts: 0,
+    waveAt: 0,
+    clearPts: 0,
+    lastClear: 0,
+  };
+}
+
+/** burstRev 7's feature points, each capped (BURST_V7_CAPS). */
+export function burstV7Bonus(state: BurstState): { chain: number; gold: number; clear: number; freeze: number; total: number } {
+  const chain = Math.min(BURST_V7_CAPS.chain, state.chainPts ?? 0);
+  const gold = Math.min(BURST_V7_CAPS.gold, state.goldPts ?? 0);
+  const clear = Math.min(BURST_V7_CAPS.clear, state.clearPts ?? 0);
+  const freeze = Math.min(BURST_V7_CAPS.freeze, Math.trunc((state.freezeHits ?? 0) / 2));
+  return { chain, gold, clear, freeze, total: chain + gold + clear + freeze };
+}
+
+/**
+ * burstRev 7 band knots (atoms hit, minus 5 a life lost; 140 at the top, lasting the 90 s adds 10), fitted
+ * so the simulated players who ignore the features land where they did on burstRev 6
+ * (scripts/expansions-e2-bands.ts).
+ */
+export const BURST_V7_BAND_CURVE = bandCurve([0, 49, 51, 72, 74, 80, 82, 92], [0, 70, 73, 90, 92, 120, 128, 140]);
+
+export function burstV7Parts(state: BurstState): BandParts {
+  const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
+  const finished = state.ended === 1;
+  const b = burstV7Bonus(state);
+  const bits = [b.chain && `chains ${b.chain}`, b.gold && `golden ${b.gold}`, b.clear && `fast waves ${b.clear}`, b.freeze && `frozen hits ${b.freeze}`].filter(Boolean);
+  return {
+    units,
+    points: bandPoints(BURST_V7_BAND_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + b.total,
+    penalty: 0,
+    finished,
+    text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`,
+    bonusText: `${finished ? "Lasted the 90 s +10 · " : ""}skill bonus (${bits.join(" · ") || "none"})`,
+  };
+}
+
+export const burstV7Game: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
+  ...burstGame,
+  init: initV7,
+  score: (state) => bandTotal(burstV7Parts(state), Boolean(state.acted), BURST_V7_MAX),
+};

@@ -49,7 +49,9 @@ function brkSlideDestroyed(s: BrkState): number {
 }
 import { PINBALL_IN_ROOMS, PIN_BUMPERS, PIN_LANE_POSTS, PIN_LANE_SENSOR_Y, PIN_LEFT_WALL, PIN_ORBIT_INNER, PIN_SPINNER_Y, PIN_TARGET_XS, PIN_TARGET_Y, PIN_WORLD_H, PIN_WORLD_W, type PinState } from "./pinball";
 import { rallyPaddleY, rallyWorldH, RALLY_SPEED_CAP, RALLY_SPEED_START, RALLY_TALL_H, RALLY_WORLD_H, RALLY_WORLD_W, type RallyState } from "./rally";
-import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneX, beatWorldH, type BeatState } from "./beat";
+import { BEAT_TALL_H, BEAT_WORLD_H, BEAT_WORLD_W, beatHitLineY, beatLaneXOf, beatLanesAt, beatWorldH, type BeatState } from "./beat";
+/** Tempo's last judged lane centre (beatRev 9: in the five-lane section, five lanes). */
+const beatLastX = (s: BeatState) => beatLaneXOf(Math.max(0, s.lastLane), beatLanesAt(s, s.tick));
 import {
   SNAKE_BOARD_X,
   SNAKE_BOARD_Y,
@@ -61,6 +63,10 @@ import {
   SNAKE_WORLD_W,
   snakeCol,
   snakeRow,
+  snakeBoardXOf,
+  snakeColsOf,
+  SNAKE_V9_WORLD_W,
+  SNAKE_V9_H,
   type SnakeState,
 } from "./snake";
 import { burstFloorY, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
@@ -525,7 +531,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       kind: "combo",
       count: (s) => s.combo,
       every: 10,
-      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: beatHitLineY(s) }),
+      at: (s) => ({ x: beatLastX(s), y: beatHitLineY(s) }),
       label: (_s, n) => `COMBO ${n}`,
       neon: true,
     },
@@ -533,7 +539,7 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
       // Rev 2: a swipe note swiped the right way in time.
       kind: "pop",
       count: (s) => s.swipesHit ?? 0,
-      at: (s) => ({ x: beatLaneX(Math.max(0, s.lastLane)), y: beatHitLineY(s) - 20 }),
+      at: (s) => ({ x: beatLastX(s), y: beatHitLineY(s) - 20 }),
       label: () => "SWIPE!",
     },
     {
@@ -548,9 +554,10 @@ export const BEAT_FX: ArcadeFxSpec<BeatState> = {
 
 function snakeHead(s: SnakeState): { x: number; y: number } {
   const cell = s.body[0] ?? 0;
+  // snakeRev 9's wider board (snakeBoardXOf / snakeColsOf give the original's on older rounds).
   return {
-    x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CELL + SNAKE_CELL / 2,
-    y: SNAKE_BOARD_Y + snakeRow(cell) * SNAKE_CELL + SNAKE_CELL / 2,
+    x: snakeBoardXOf(s) + snakeCol(cell, snakeColsOf(s)) * SNAKE_CELL + SNAKE_CELL / 2,
+    y: SNAKE_BOARD_Y + snakeRow(cell, snakeColsOf(s)) * SNAKE_CELL + SNAKE_CELL / 2,
   };
 }
 
@@ -576,7 +583,7 @@ export const SNAKE_FX: ArcadeFxSpec<SnakeState> = {
       when: (s) => !s.dead,
       at: (s) => {
         const rock = s.rocks?.[s.rocks.length - 1] ?? 0;
-        return { x: SNAKE_BOARD_X + snakeCol(rock) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(rock) * SNAKE_CELL - 6 };
+        return { x: snakeBoardXOf(s) + snakeCol(rock, snakeColsOf(s)) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(rock, snakeColsOf(s)) * SNAKE_CELL - 6 };
       },
       label: () => "DODGED!",
     },
@@ -1281,7 +1288,8 @@ export const hoverFxFor = (s: HoverState): ArcadeFxSpec<HoverState> => fxSpecAt(
 /** The specs live rooms deal today (Tuning E's taller worlds); stored rounds draw through fxSpecAt. */
 export const HOVER_FX_TALL = fxSpecAt(HOVER_FX, HOVER_TALL_H);
 export const skylineFxFor = (s: SkylineState): ArcadeFxSpec<SkylineState> => fxSpecAt(SKYLINE_FX, skylineWorldH(s));
-export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s)));
+const SNAKE_FX_V9: ArcadeFxSpec<SnakeState> = { ...SNAKE_FX, width: SNAKE_V9_WORLD_W, height: SNAKE_V9_H };
+export const snakeFxFor = (s: SnakeState): ArcadeFxSpec<SnakeState> => (s.cols ? SNAKE_FX_V9 : fxSpecAt(SNAKE_FX, snakeWorldHFor(snakeRowsOf(s))));
 export const SNAKE_FX_TALL = fxSpecAt(SNAKE_FX, SNAKE_TALL_H);
 export const snipFxFor = (s: SnipState): ArcadeFxSpec<SnipState> => fxSpecAt(SNIP_FX, snipWorldH(s));
 export const SNIP_FX_TALL = fxSpecAt(SNIP_FX, SNIP_TALL_H);

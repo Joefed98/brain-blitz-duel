@@ -113,6 +113,9 @@ export interface BeatChart {
   holds: number[];
   /** Rev 2 only: −1 swipe left, +1 swipe right, 0 for any other note. */
   swipes?: number[];
+  /** beatRev 9 only: 1 for a golden note; for a double tap's second note its first note's index, else −1. */
+  golds?: number[];
+  pairs?: number[];
 }
 
 /** The whole chart, built once from the seed. */
@@ -211,6 +214,20 @@ export interface BeatState extends BandFields {
   tunef?: number;
   /** beatRev 6 only (taller worlds batch 2): the world height in px (BEAT_TALL_H). Absent = BEAT_WORLD_H. */
   worldH?: number;
+  /** beatRev 9 only (the expansion): every field below is absent on earlier rounds. */
+  exp?: number;
+  /** Fever: the meter (half steps, to BEAT_FEVER_FULL), ticks of fever left, fevers had, quarters earned in fever. */
+  meter?: number;
+  fever?: number;
+  fevers?: number;
+  feverQ?: number;
+  /** Golden notes hit and their points; double taps completed; the Perfect streak, its best and its points. */
+  goldsHit?: number;
+  goldPts?: number;
+  doublesDone?: number;
+  streak?: number;
+  maxStreak?: number;
+  streakPts?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -264,7 +281,7 @@ function init(seed: number): BeatState {
 }
 
 function isOver(state: BeatState): boolean {
-  return state.tick >= BEAT_RUN_TICKS;
+  return state.tick >= (state.exp ? BEAT_V9_RUN_TICKS : BEAT_RUN_TICKS);
 }
 
 export function beatNoteCount(state: BeatState): number {
@@ -285,6 +302,8 @@ export function beatJudge(distance: number): number {
 
 function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   if (isOver(state)) return state;
+  // beatRev 9: five lanes in its later sections (every older round has four).
+  const LANES = state.exp ? BEAT_V9_LANES : BEAT_LANES;
   const tick = state.tick + 1;
   const next: BeatState = {
     ...state,
@@ -341,14 +360,14 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
     next.judgeAge = 0;
   };
   // No automatic credit at the tail: a release inside the window is required.
-  for (let lane = 0; lane < BEAT_LANES; lane++) {
+  for (let lane = 0; lane < LANES; lane++) {
     const index = state.holding[lane] ?? -1;
     if (index < 0) continue;
     const tailTick = (ticks[index] ?? 0) + (state.chart.holds[index] ?? 0);
     if (tick > tailTick + BEAT_GOOD_TICKS) judgeHold(lane, BEAT_GOOD_TICKS + 1);
   }
   if (input && input.k === BEAT_INPUT_RELEASE) {
-    const lane = clampInt(input.a, 0, BEAT_LANES - 1);
+    const lane = clampInt(input.a, 0, LANES - 1);
     const index = (holding ?? state.holding)[lane] ?? -1;
     if (index >= 0) {
       const tailTick = (ticks[index] ?? 0) + (state.chart.holds[index] ?? 0);
@@ -357,7 +376,7 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   }
 
   if (input && input.k === BEAT_INPUT_TAP) {
-    const lane = clampInt(input.a, 0, BEAT_LANES - 1);
+    const lane = clampInt(input.a, 0, LANES - 1);
     let bestIndex = -1;
     let bestDistance = BEAT_OK_TICKS + 1;
     for (
@@ -412,7 +431,7 @@ function step(state: BeatState, input: ArcadeInputEvent | null): BeatState {
 
   // Rev 2: a swipe takes the nearest swipe note in its lane; the wrong way is a miss.
   if (state.rev === BEAT_REV && input && input.k === BEAT_INPUT_SWIPE) {
-    const lane = clampInt(input.a, 0, BEAT_LANES - 1);
+    const lane = clampInt(input.a, 0, LANES - 1);
     const dir = input.b === 1 ? BEAT_SWIPE_RIGHT : BEAT_SWIPE_LEFT;
     const swipes = state.chart.swipes ?? [];
     let bestIndex = -1;
@@ -521,6 +540,8 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   if (state.tunef) values.push(state.tunef);
   // beatRev 6 (taller worlds): the world height, last.
   if (state.worldH) values.push(state.worldH);
+  // beatRev 9 (the expansion): its own counters after that, so every earlier checksum is unchanged.
+  if (state.exp) values.push(state.exp, state.meter ?? 0, state.fever ?? 0, state.fevers ?? 0, state.feverQ ?? 0, state.goldPts ?? 0, state.doublesDone ?? 0, state.streak ?? 0, state.streakPts ?? 0, ...state.holding);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -682,6 +703,7 @@ export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ..
 
 /** Takes puzzle.beatRev; anything else is the original game. */
 export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  if (rev === BEAT_REV_200) return beatV9Game;
   if (rev === BEAT_REV_STRICT) return beatStrictGame;
   if (rev === BEAT_REV_TARGET) return beatTargetGame;
   if (rev === BEAT_REV_TALL) return beatTallGame;
@@ -707,6 +729,7 @@ export const BEAT_REV_BAND = 3;
 export const BEAT_BAND_CURVE = bandCurve([0, 590, 810, 920, 975, 1000], [0, 70, 100, 125, 145, 150]);
 
 export function beatBandParts(state: BeatState): BandParts {
+  if (state.exp) return beatV9Parts(state);
   const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
   const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
   return { units, points: bandPoints(bandCurveOf(state, state.tunef ? BEAT_V5_BAND_CURVE : state.tunec ? BEAT_V4_BAND_CURVE : BEAT_BAND_CURVE), units), bonus: 0, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed` };
@@ -840,7 +863,7 @@ export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's beatRev plays in. */
 export function beatWorldHFor(rev?: number | null): number {
-  return rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
+  return rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
 }
 
 /* ================= Scoring targets (beatRev 7, 18 Oct 2026) ================= */
@@ -867,3 +890,263 @@ export const BEAT_REV_STRICT = 8;
 export const beatStrictGame = bandStrictGame(beatTargetGame);
 /** The curve new rounds score on: BEAT_V6_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BEAT_V8_BAND_CURVE = bandStrict(BEAT_V6_BAND_CURVE);
+
+
+/* ================= The expansion (beatRev 9, 25 Oct 2026) ================= */
+
+/**
+ * beatRev 9 (world expansion, docs/expansions/e2.md): a longer song with a fifth lane in its later
+ * sections and four skill features, scored to 200 (docs/scoring-200.md). The whole chart is built once
+ * from the seed (a stream of its own), so every player plays the same notes; judging stays whole-tick.
+ *
+ *  - The song: 75 s (was 60), in sections at 120 BPM: quarter notes, then eighths, chords and holds;
+ *    from 40 s (after a one-second break with no notes) the lanes become five, and the last section is
+ *    the busiest. The lanes share the same 390 px (78 px each in the five-lane part).
+ *  - Fever: Perfect fills the meter by 2 half steps and Good by 1; a miss empties it. Once it is full
+ *    (BEAT_FEVER_FULL, 30 Perfects' worth), a tap on the meter (the strip above the lanes, input kind
+ *    12) starts 8 s of fever, in which every note hit counts again (×2): a point per 8 quarters.
+ *  - Golden notes: about one plain tap in ten; hitting one dead on (on the very tick it meets the line) adds 1.
+ *  - Double-tap notes: two notes in one lane 9 ticks apart; both Perfect adds 1.
+ *  - Perfect streak: a point per 10 Perfects in the run's longest streak.
+ *
+ * Score: the chart's per mille (Perfect 4, Good 3, OK 1, a miss −2, of 4 a note; both halves of a double
+ * count) on BEAT_V9_BAND_CURVE (to 150), plus the features' points, each capped (BEAT_V9_CAPS, 50 in all),
+ * to 200. States add `exp: 1` and the fields above, folded into the checkpoint checksum last.
+ */
+export const BEAT_REV_200 = 9;
+export const BEAT_V9_MAX = 200;
+export const BEAT_V9_RUN_SECONDS = 75;
+export const BEAT_V9_RUN_TICKS = BEAT_V9_RUN_SECONDS * TICKS_PER_SECOND;
+export const BEAT_V9_LANES = 5;
+/** Five lanes from here (40 s); no note within a second before it or half a beat after. */
+export const BEAT_V9_FIVE_FROM = 40 * TICKS_PER_SECOND;
+export const BEAT_V9_BREAK = TICKS_PER_SECOND;
+export const BEAT_DOUBLE_GAP = 9;
+export const BEAT_FEVER_FULL = 60;
+export const BEAT_FEVER_TICKS = 8 * TICKS_PER_SECOND;
+/** Fever bonus: one point per this many quarters earned in fever. */
+export const BEAT_FEVER_Q_PER = 8;
+/** A golden note scores when hit dead on: on the very tick it meets the line (a Perfect is within 3). */
+export const BEAT_GOLD_TICKS = 0;
+export const BEAT_GOLD_POINTS = 1;
+/** Perfect streak: a point per this many Perfects in the run's best streak. */
+export const BEAT_STREAK_PER = 10;
+/** Each feature's most points, 50 in all. */
+export const BEAT_V9_CAPS = { fever: 26, gold: 8, double: 8, streak: 8 } as const;
+
+/** Fever: kind 12, a tap on the meter (the HUD strip above the lanes); it starts fever only when the meter is full. */
+export const BEAT_INPUT_FEVER = 12;
+export const BEAT_V9_INPUT_RANGES: readonly InputRange[] = [
+  inputRange(BEAT_INPUT_FEVER, [0, 0]),
+  inputRange(BEAT_INPUT_TAP, [0, BEAT_V9_LANES - 1]),
+  inputRange(BEAT_INPUT_RELEASE, [0, BEAT_V9_LANES - 1]),
+  inputRange(BEAT_INPUT_SWIPE, [0, BEAT_V9_LANES - 1], [0, 1]),
+];
+
+/** Lanes on screen at a tick: four, or five from BEAT_V9_FIVE_FROM on beatRev 9. */
+export function beatLanesAt(state: { exp?: number }, tick: number): number {
+  return state.exp && tick >= BEAT_V9_FIVE_FROM ? BEAT_V9_LANES : BEAT_LANES;
+}
+
+/** A lane's centre x for a lane count (beatLaneX is the four-lane one). */
+export function beatLaneXOf(lane: number, lanes: number): number {
+  const width = BEAT_WORLD_W / lanes;
+  return lane * width + width / 2;
+}
+
+/** The section plan: [from tick, eighth %, chord %]. */
+const V9_SECTIONS: readonly (readonly [number, number, number])[] = [
+  [0, 0, 0],
+  [14 * TICKS_PER_SECOND, 30, 0],
+  [26 * TICKS_PER_SECOND, 35, 20],
+  [BEAT_V9_FIVE_FROM, 25, 15],
+  [56 * TICKS_PER_SECOND, 35, 25],
+];
+
+/** beatRev 9's chart: sections, the fifth lane, holds, double taps, swipes and golden notes. */
+function buildChartV9(seed: number): { rng: number; chart: BeatChart } {
+  let rng = (seed ^ 0x54454d39) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  type Note = { tick: number; lane: number; hold: number; swipe: number; gold: number; first: Note | null };
+  const notes: Note[] = [];
+  const lastInLane = [-999, -999, -999, -999, -999];
+  const lastTick = BEAT_V9_RUN_TICKS - BEAT_OK_TICKS - 2;
+  const quiet = (tick: number) => tick > BEAT_V9_FIVE_FROM - BEAT_V9_BREAK && tick < BEAT_V9_FIVE_FROM + BEAT_EIGHTH_TICKS;
+  const lanesAt = (tick: number) => (tick >= BEAT_V9_FIVE_FROM ? BEAT_V9_LANES : BEAT_LANES);
+  const add = (tick: number, lane: number): Note | null => {
+    if (tick < BEAT_FIRST_BEAT || tick > lastTick || quiet(tick)) return null;
+    if (tick - lastInLane[lane]! < BEAT_LANE_GAP) return null;
+    const note: Note = { tick, lane, hold: 0, swipe: 0, gold: 0, first: null };
+    notes.push(note);
+    lastInLane[lane] = tick;
+    return note;
+  };
+  const place = (tick: number, wanted: number, avoid: number): Note | null => {
+    const lanes = lanesAt(tick);
+    for (let offset = 0; offset < lanes; offset++) {
+      const lane = (wanted + offset) % lanes;
+      if (lane === avoid) continue;
+      const note = add(tick, lane);
+      if (note) return note;
+    }
+    return null;
+  };
+  for (let tick = BEAT_FIRST_BEAT; tick <= lastTick; tick += BEAT_BEAT_TICKS) {
+    let section = V9_SECTIONS[0]!;
+    for (const s of V9_SECTIONS) if (tick >= s[0]) section = s;
+    const lanes = lanesAt(tick);
+    const main = place(tick, draw(lanes), -1);
+    const lane = main ? main.lane : -1;
+    // A double tap: from 14 s, about one single note in eight gets a second hit 9 ticks later.
+    if (main && tick >= 14 * TICKS_PER_SECOND && draw(100) < 12 && tick + BEAT_DOUBLE_GAP <= lastTick && !quiet(tick + BEAT_DOUBLE_GAP)) {
+      const second: Note = { tick: tick + BEAT_DOUBLE_GAP, lane, hold: 0, swipe: 0, gold: 0, first: main };
+      notes.push(second);
+      lastInLane[lane] = second.tick;
+    }
+    if (section[2] > 0 && draw(100) < section[2]) place(tick, draw(lanes), lane);
+    if (section[1] > 0 && draw(100) < section[1]) place(tick + BEAT_EIGHTH_TICKS, draw(lanesAt(tick + BEAT_EIGHTH_TICKS)), lane);
+  }
+  notes.sort((a, b) => a.tick - b.tick || a.lane - b.lane);
+  const index = new Map(notes.map((n, i) => [n, i]));
+  const firsts = new Set(notes.filter((n) => n.first).map((n) => n.first!));
+  const alone = (i: number) => notes[i - 1]?.tick !== notes[i]!.tick && notes[i + 1]?.tick !== notes[i]!.tick;
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i]!;
+    const plain = !n.first && !firsts.has(n);
+    // Holds from 20 s (about one plain note in seven), only when the lane stays clear for the tail.
+    if (plain && n.tick >= BEAT_HOLD_FROM && draw(100) < 15) {
+      const len = BEAT_BEAT_TICKS + draw(3) * BEAT_EIGHTH_TICKS;
+      const crosses = n.tick < BEAT_V9_FIVE_FROM && n.tick + len + BEAT_LANE_GAP >= BEAT_V9_FIVE_FROM - BEAT_V9_BREAK;
+      let clear = n.tick + len <= lastTick && !crosses;
+      for (let j = i + 1; clear && j < notes.length && notes[j]!.tick <= n.tick + len + BEAT_LANE_GAP; j++) if (notes[j]!.lane === n.lane) clear = false;
+      if (clear) n.hold = len;
+    }
+    // Swipes from 30 s: plain single notes alone on their tick.
+    if (plain && n.hold === 0 && n.tick >= BEAT_SWIPE_FROM && alone(i) && draw(100) < 22) n.swipe = draw(2) === 0 ? BEAT_SWIPE_LEFT : BEAT_SWIPE_RIGHT;
+    // Golden notes from 6 s, about one plain tap in ten (never a hold, swipe or double).
+    if (plain && n.hold === 0 && n.swipe === 0 && n.tick >= 6 * TICKS_PER_SECOND && draw(10) === 0) n.gold = 1;
+  }
+  return {
+    rng,
+    chart: {
+      ticks: notes.map((n) => n.tick),
+      lanes: notes.map((n) => n.lane),
+      holds: notes.map((n) => n.hold),
+      swipes: notes.map((n) => n.swipe),
+      golds: notes.map((n) => n.gold),
+      pairs: notes.map((n) => (n.first ? index.get(n.first)! : -1)),
+    },
+  };
+}
+
+function initV9(seed: number): BeatState {
+  const built = buildChartV9(seed);
+  const base = beatStrictGame.init(seed);
+  return {
+    ...base,
+    rng: built.rng,
+    chart: built.chart,
+    judged: built.chart.ticks.map(() => BEAT_JUDGE_NONE),
+    holding: [-1, -1, -1, -1, -1],
+    holdStartErrors: [0, 0, 0, 0, 0],
+    exp: 1,
+    meter: 0,
+    fever: 0,
+    fevers: 0,
+    feverQ: 0,
+    goldsHit: 0,
+    goldPts: 0,
+    doublesDone: 0,
+    streak: 0,
+    maxStreak: 0,
+    streakPts: 0,
+  };
+}
+
+const QUARTERS = [0, BEAT_PERFECT_Q, BEAT_GOOD_Q, BEAT_OK_Q] as const;
+
+/** beatRev 9: the shared judging, then the features read from the notes judged this tick. */
+function stepV9(state: BeatState, input: ArcadeInputEvent | null): BeatState {
+  const next = step(state, input);
+  if (next === state) return state;
+  let meter = state.meter ?? 0;
+  let fever = Math.max(0, (state.fever ?? 0) - 1);
+  let fevers = state.fevers ?? 0;
+  let feverQ = state.feverQ ?? 0;
+  let goldsHit = state.goldsHit ?? 0;
+  let goldPts = state.goldPts ?? 0;
+  let doublesDone = state.doublesDone ?? 0;
+  let streak = state.streak ?? 0;
+  let maxStreak = state.maxStreak ?? 0;
+  let streakPts = state.streakPts ?? 0;
+  if (next.judged !== state.judged) {
+    const { golds = [], pairs = [] } = state.chart;
+    for (let i = 0; i < next.judged.length; i++) {
+      const was = state.judged[i]!;
+      const now = next.judged[i]!;
+      if (now === was || now === BEAT_JUDGE_PENDING || (was !== BEAT_JUDGE_NONE && was !== BEAT_JUDGE_PENDING)) continue;
+      if (now === BEAT_JUDGE_MISS) {
+        streak = 0;
+        meter = 0;
+        continue;
+      }
+      if (fever > 0) feverQ += QUARTERS[now] ?? 0;
+      else meter = Math.min(BEAT_FEVER_FULL, meter + (now === BEAT_JUDGE_PERFECT ? 2 : now === BEAT_JUDGE_GOOD ? 1 : 0));
+      // A golden note hit dead on (its tap within BEAT_GOLD_TICKS of the line).
+      if (golds[i] && now === BEAT_JUDGE_PERFECT && Math.abs(next.tick - state.chart.ticks[i]!) <= BEAT_GOLD_TICKS) {
+        goldsHit += 1;
+        goldPts += BEAT_GOLD_POINTS;
+      }
+      const first = pairs[i] ?? -1;
+      // A double tap counts when both its hits are Perfect.
+      if (first >= 0 && now === BEAT_JUDGE_PERFECT && next.judged[first] === BEAT_JUDGE_PERFECT) doublesDone += 1;
+      if (now === BEAT_JUDGE_PERFECT) {
+        streak += 1;
+        maxStreak = Math.max(maxStreak, streak);
+      } else streak = 0;
+    }
+  }
+  // FEVER! is the player's call: a tap on the meter (the strip above the lanes) once it is full.
+  if (input && input.k === BEAT_INPUT_FEVER && fever === 0 && meter >= BEAT_FEVER_FULL) {
+    meter = 0;
+    fever = BEAT_FEVER_TICKS;
+    fevers += 1;
+  }
+  return { ...next, meter, fever, fevers, feverQ, goldsHit, goldPts, doublesDone, streak, maxStreak, streakPts };
+}
+
+/** beatRev 9's feature points, each capped (BEAT_V9_CAPS). */
+export function beatV9Bonus(state: BeatState): { fever: number; gold: number; double: number; streak: number; total: number } {
+  const fever = Math.min(BEAT_V9_CAPS.fever, Math.trunc((state.feverQ ?? 0) / BEAT_FEVER_Q_PER));
+  const gold = Math.min(BEAT_V9_CAPS.gold, state.goldPts ?? 0);
+  const double = Math.min(BEAT_V9_CAPS.double, state.doublesDone ?? 0);
+  const streak = Math.min(BEAT_V9_CAPS.streak, Math.trunc((state.maxStreak ?? 0) / BEAT_STREAK_PER));
+  return { fever, gold, double, streak, total: fever + gold + double + streak };
+}
+
+/**
+ * beatRev 9 band knots: per mille of the chart, fitted so the simulated players who ignore the features
+ * land where they did on beatRev 8 (scripts/expansions-e2-bands.ts); every note Perfect is 150.
+ */
+export const BEAT_V9_BAND_CURVE = bandCurve([0, 580, 790, 925, 985, 1000], [0, 68, 96, 112, 126, 150]);
+
+export function beatV9Parts(state: BeatState): BandParts {
+  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
+  const units = Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
+  const b = beatV9Bonus(state);
+  const bits = [b.fever && `fever ${b.fever}`, b.gold && `golden ${b.gold}`, b.double && `doubles ${b.double}`, b.streak && `streaks ${b.streak}`].filter(Boolean);
+  return { units, points: bandPoints(BEAT_V9_BAND_CURVE, units), bonus: b.total, penalty: 0, finished: false, text: `${state.perfect} perfect · ${state.good} good · ${state.ok} OK · ${state.misses} missed`, bonusText: `Skill bonus (${bits.join(" · ") || "none"})` };
+}
+
+export const beatV9Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatGame,
+  runTicks: BEAT_V9_RUN_TICKS,
+  init: initV9,
+  step: bandStep(stepV9),
+  score: (state) => bandTotal(beatV9Parts(state), Boolean(state.acted), BEAT_V9_MAX),
+  inputRanges: BEAT_V9_INPUT_RANGES,
+};

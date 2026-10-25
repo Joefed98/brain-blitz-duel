@@ -3,7 +3,6 @@ import { arcadeFx } from "./arcadeFx.renderer";
 import { burstFxFor } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
 import {
-  burstCeiling,
   burstGame,
   burstGameFor,
   BURST_COLOURS,
@@ -11,7 +10,11 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   burstFloorY,
-  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT,
+  BURST_REV_TALL, BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_200,
+  burstCeilingOf,
+  burstV7Bonus,
+  BURST_ICON_DOUBLE,
+  BURST_GOLD_R,
   BURST_LIVES,
   BURST_RADIUS,
   BURST_SHORT_LEN,
@@ -196,7 +199,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   const tick = state.tick;
   // burstRev 4: the taller arena's floor and its scaled ceiling (560 otherwise).
   const BURST_FLOOR_Y = burstFloorY(state);
-  const ceil = burstCeiling(state.wave, BURST_FLOOR_Y);
+  // burstRev 7: the higher arena's ceiling (burstCeilingOf gives the original's on older rounds).
+  const ceil = burstCeilingOf(state);
   backdrop(ctx, "fission-space", BURST_WORLD_W, BURST_FLOOR_Y, (c) => paintSpace(c, BURST_FLOOR_Y));
 
   // Ceiling and side walls as neon; the ceiling flashes while a ball touches it.
@@ -227,6 +231,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const y = icon.y / FP;
     if (icon.kind === BURST_ICON_FREEZE) {
       sprite(ctx, SNOWFLAKE, x - 7, y - 7, 2, ICE, 8);
+      continue;
+    }
+    if (icon.kind === BURST_ICON_DOUBLE) {
+      // burstRev 7 DOUBLE beam: two green beams in a gold frame.
+      sprite(ctx, DOUBLE_ICON, x - ICON_HALF, y - ICON_HALF, 2, BEAM, 8);
       continue;
     }
     if (icon.kind === 1) {
@@ -277,6 +286,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     pixelRect(ctx, 0, BURST_FLOOR_Y - 6, BURST_WORLD_W, 4, ICE);
     ctx.globalAlpha = 1;
   }
+  if (state.exp) drawV7(ctx, state, key);
   successFrame(ctx,{id:'burst',tick:state.tick,count:0,eventTick:state.popSize===3?state.popTick:0,colour:SHIP,width:BURST_WORLD_W,height:BURST_FLOOR_Y,point:{x:state.popX/FP,y:state.popY/FP,shape:'spark'},enabled:state.balls.length<=BURST_FX_ENEMY_THRESHOLD&&state.shots.length<=BURST_FX_SHOT_THRESHOLD});
   particles(ctx, state);
   splitPop(ctx, state, key);
@@ -287,7 +297,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     const left = state.x / FP - PLAYER_HALF_W;
     const top = BURST_FLOOR_Y - PLAYER_H;
     const colour = lifeFlash > 0 ? RETRO_RED : SHIP;
-    sprite(ctx, SHIP_ROWS, left, top, 2, lifeFlash > 0 ? RETRO_RED : state.burst ? "#FFF2A8" : colour, state.burst ? 12 : 0);
+    const double = (state.double ?? 0) > 0;
+    sprite(ctx, SHIP_ROWS, left, top, 2, lifeFlash > 0 ? RETRO_RED : state.burst ? "#FFF2A8" : double ? "#C8FFB0" : colour, state.burst || double ? 12 : 0);
     pixelRect(ctx, left + 10, top + 8, 4, 2, "#000000");
   }
   if (state.shield) {
@@ -309,13 +320,22 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
     ctx.globalAlpha = 1;
   }
 
-  const score = burstGame.score(state);
+  const score = burstGameFor(state.exp ? BURST_REV_200 : null).score(state);
   const on = Math.floor(retroClock() / 500) % 2 === 0;
+  if (state.exp) {
+    // burstRev 7: one slim line above the higher ceiling (24 px): wave and score, the live power-ups, lives.
+    const double = state.double ?? 0;
+    retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 10, 7, 8, RETRO_WHITE);
+    const status = freeze > 0 ? [`FREEZE ${Math.ceil(freeze / 60)}`, ICE] : double > 0 ? [`DOUBLE ${Math.ceil(double / 60)}`, BEAM] : [`BONUS +${burstV7Bonus(state).total}`, SHIP];
+    retroText(ctx, status[0]!, BURST_WORLD_W / 2 + 18, 7, 8, status[1]!, "center");
+    for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 52 + i * 14, 4, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  } else {
   retroText(ctx, "1UP", 14, 8, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
   retroText(ctx, `WAVE ${Math.max(1, state.wave)} ${score}${state.burst ? " BURST" : ""}`, 14, 20, 10, RETRO_WHITE);
   if (freeze > 0) retroText(ctx, `FREEZE ${Math.ceil(freeze / 60)}`, 14, 34, 10, ICE);
   for (let i = 0; i < BURST_LIVES; i++) {
     sprite(ctx, SHIP_ROWS, BURST_WORLD_W - 100 + i * 16, 14, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  }
   }
 }
 
@@ -387,10 +407,80 @@ const burstArtGameTall: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...b
 const burstArtGameTarget: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_TARGET), draw };
 const burstArtGameStrict: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_STRICT), draw };
 /** The art game for a stored burstRev; cached so the stage sees one object per revision. */
+const burstArtGameV7: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_200), draw };
 export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  if (rev === BURST_REV_200) return burstArtGameV7;
   if (rev === BURST_REV_STRICT) return burstArtGameStrict;
   if (rev === BURST_REV_TARGET) return burstArtGameTarget;
   if (rev === BURST_REV_TALL) return burstArtGameTall;
   if (rev === BURST_REV_BAND) return burstArtGameBand;
   return rev === BURST_REV ? burstArtGameV2 : burstArtGame;
+}
+
+/* ================= burstRev 7 features (display only) ================= */
+
+const GOLD_ATOM = "#FFD84A";
+const SHOCK = "#FFB43A";
+const DOUBLE_ICON = ["XXXXXXXX", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "X.X..X.X", "XXXXXXXX"];
+type V7Memo = { tick: number; chain: number; golds: number; cleared: number; doubles: number };
+const v7Memos = new WeakMap<object, V7Memo>();
+
+/**
+ * burstRev 7's chain rings (orange shockwaves of 2 px pixels at the sim's own radius, fading as they
+ * reach it), the golden atom (a gold atom sprite in its 18 px hit disc with a soft glow) and pops for a
+ * chain link ("CHAIN ×n"), a golden atom ("GOLD +4"), a fast wave ("FAST +n") and the DOUBLE beam.
+ * Under reduced motion the rings are drawn as a still ring at their final size; under reduced effects
+ * the glows are skipped (glow() does that itself).
+ */
+function drawV7(ctx: CanvasRenderingContext2D, state: BurstState, key: object): void {
+  const still = reducedMotion();
+  for (const ring of state.rings ?? []) {
+    const r = (still ? ring.max : ring.r) / FP;
+    const k = ring.max > 0 ? ring.r / ring.max : 1;
+    const cx = ring.x / FP, cy = ring.y / FP;
+    const colour = ring.link > 0 ? "#FFE6B0" : SHOCK;
+    // A soft band, then the ring of 3 px pixels every 4 px round it (white-hot for a chain link).
+    if (!arcadeReducedEffects()) {
+      ctx.globalAlpha = 0.22 * (1 - k * 0.6);
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(1, r - 2), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const dots = Math.max(12, Math.round((r * Math.PI * 2) / 4));
+    ctx.globalAlpha = 0.95 * (1 - k * 0.55);
+    ctx.fillStyle = colour;
+    for (let i = 0; i < dots; i++) {
+      const a = (i / dots) * Math.PI * 2;
+      ctx.fillRect(Math.round(cx + Math.cos(a) * r) - 1, Math.round(cy + Math.sin(a) * r) - 1, 3, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  const atom = state.goldAtom;
+  if (atom) {
+    const x = atom.x / FP, y = atom.y / FP;
+    glow(ctx, GOLD_ATOM, x, y, BURST_GOLD_R + 4, BURST_GOLD_R + 4, 0.6);
+    const stamp = cachedArt("atom:gold", BURST_GOLD_R * 2, BURST_GOLD_R * 2, GOLD_ATOM, 0, (c) => paintAtom(c, BURST_GOLD_R, GOLD_ATOM, 3));
+    if (stamp) blit(ctx, stamp, x - BURST_GOLD_R, y - BURST_GOLD_R);
+    if (!still) {
+      // A short sparkle trail behind it (three pixels).
+      ctx.fillStyle = GOLD_ATOM;
+      const back = atom.vx > 0 ? -1 : 1;
+      for (let i = 1; i <= 3; i++) {
+        ctx.globalAlpha = 0.6 - i * 0.15;
+        ctx.fillRect(Math.round(x + back * (BURST_GOLD_R + i * 5)) - 1, Math.round(y + ((state.tick + i) % 3) - 1) - 1, 2, 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  const now = { tick: state.tick, chain: state.chainLinks ?? 0, golds: state.golds ?? 0, cleared: state.cleared, doubles: state.doubles ?? 0 };
+  let memo = v7Memos.get(key);
+  if (!memo || state.tick < memo.tick) memo = now;
+  const px = state.popX / FP, py = state.popY / FP;
+  if (now.chain > memo.chain && (state.chain ?? 0) >= 2) addPop(key, px, py - 14, `CHAIN x${state.chain}`, SHOCK, 9, 4);
+  if (now.golds > memo.golds) addPop(key, px, py - 12, "GOLD +4", GOLD_ATOM, 10, 4);
+  if (now.cleared > memo.cleared && (state.lastClear ?? 0) > 0) addPop(key, BURST_WORLD_W / 2, burstFloorY(state) / 2, `FAST +${state.lastClear}`, SHIP, 10, 4);
+  if (now.doubles > memo.doubles) addPop(key, state.x / FP, burstFloorY(state) - 50, "DOUBLE!", BEAM, 10, 4);
+  v7Memos.set(key, now);
 }

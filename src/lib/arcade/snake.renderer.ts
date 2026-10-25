@@ -6,6 +6,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, SNAKE_GOLD_LIFE,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -43,7 +44,10 @@ const stamps = new Map<string, ArtCanvas>();
 
 type Memory = { tick: number; rng: number; eaten: number; pellet: number; dead: boolean; eatAt: number; eatCell: number; deathAt: number };
 const memories = new WeakMap<CanvasRenderingContext2D, Memory>();
-const point = (cell: number) => ({ x: SNAKE_BOARD_X + snakeCol(cell) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(cell) * SNAKE_CELL + SNAKE_CELL / 2 });
+/** The board being drawn: its left edge and columns (snakeRev 9's wider grid, else the original); set per frame. */
+let BX = SNAKE_BOARD_X;
+let COLS = SNAKE_COLS;
+const point = (cell: number) => ({ x: BX + snakeCol(cell, COLS) * SNAKE_CELL + SNAKE_CELL / 2, y: SNAKE_BOARD_Y + snakeRow(cell, COLS) * SNAKE_CELL + SNAKE_CELL / 2 });
 const direction = (dir: number) => ({ x: dir === 1 ? 1 : dir === 3 ? -1 : 0, y: dir === 2 ? 1 : dir === 0 ? -1 : 0 });
 
 /** Fixed DPR-2 sprites: only cache creation draws pixel planes and pays for blur. */
@@ -160,24 +164,25 @@ function blit(ctx: CanvasRenderingContext2D, sprite: ArtCanvas | null, x: number
 }
 
 /** The faint grid, one cached raster per row count (the original 20 rows or Tuning E's taller grid). */
-const grids = new Map<number, ArtCanvas | null>();
-function drawGrid(ctx: CanvasRenderingContext2D, rows: number): void {
+const grids = new Map<string, ArtCanvas | null>();
+function drawGrid(ctx: CanvasRenderingContext2D, rows: number, cols: number = SNAKE_COLS, bx: number = SNAKE_BOARD_X): void {
   const boardH = rows * SNAKE_CELL;
-  let grid = grids.get(rows) ?? null;
+  const boardW = cols * SNAKE_CELL;
+  let grid = grids.get(`${rows}:${cols}`) ?? null;
   if (!grid) {
-    const canvas = artCanvas(SNAKE_BOARD_W * SPRITE_RATIO, boardH * SPRITE_RATIO);
+    const canvas = artCanvas(boardW * SPRITE_RATIO, boardH * SPRITE_RATIO);
     const c = canvas && artContext(canvas);
     if (canvas && c) {
       c.scale(SPRITE_RATIO, SPRITE_RATIO);
       c.fillStyle = "rgba(75,255,122,0.07)";
-      for (let col = 0; col <= SNAKE_COLS; col++) c.fillRect(col * SNAKE_CELL, 0, 1, boardH);
-      for (let row = 0; row <= rows; row++) c.fillRect(0, row * SNAKE_CELL, SNAKE_BOARD_W, 1);
+      for (let col = 0; col <= cols; col++) c.fillRect(col * SNAKE_CELL, 0, 1, boardH);
+      for (let row = 0; row <= rows; row++) c.fillRect(0, row * SNAKE_CELL, boardW, 1);
       // The board's outer border is drawn live over the scanlines (drawBorder), not in this raster.
       grid = canvas;
-      grids.set(rows, grid);
+      grids.set(`${rows}:${cols}`, grid);
     }
   }
-  if (grid) ctx.drawImage(grid, SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, boardH);
+  if (grid) ctx.drawImage(grid, bx, SNAKE_BOARD_Y, boardW, boardH);
 }
 
 function memory(key: CanvasRenderingContext2D, state: SnakeState, now: number): Memory {
@@ -211,11 +216,17 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   const deathAge = now - memo.deathAt;
   const rows = snakeRowsOf(state);
   const SNAKE_WORLD_H = snakeWorldHFor(rows);
-  backdrop(ctx, "meteor-space", SNAKE_WORLD_W, SNAKE_WORLD_H, (c) => paintSpace(c, rows, SNAKE_WORLD_H));
-  drawGrid(ctx, rows);
+  // snakeRev 9: the wider world and board (the original otherwise).
+  const W = snakeWorldWOf(state);
+  BX = snakeBoardXOf(state);
+  COLS = snakeColsOf(state);
+  const cols = COLS, bx = BX;
+  backdrop(ctx, `meteor-space:${W}`, W, SNAKE_WORLD_H, (c) => paintSpace(c, rows, SNAKE_WORLD_H, W, cols, bx));
+  drawGrid(ctx, rows, cols, bx);
   // Body decoration cannot spill beyond the playable grid.
   ctx.save();
-  ctx.beginPath(); ctx.rect(SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_BOARD_W, rows * SNAKE_CELL); ctx.clip();
+  ctx.beginPath(); ctx.rect(bx, SNAKE_BOARD_Y, cols * SNAKE_CELL, rows * SNAKE_CELL); ctx.clip();
+  if (state.exp) drawFeatures(ctx, state, motion, now);
   const pellet = point(state.pellet);
   // Polish A1: the star's white-gold glow, breathing slowly (still under reduced motion), inside its cell.
   glow(ctx, STAR_GLOW, pellet.x, pellet.y, 12, 12, motion ? 0.5 + 0.18 * Math.sin(now / 380) : 0.55);
@@ -264,20 +275,28 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       eyes(ctx, head.x, head.y, state.dir);
     }
     if (motion) sparks(ctx, state, now, deathAge);
+    if (state.exp) v9Pops(key, state, head);
   }
   const rewardPoint=memo.eatCell>=0?point(memo.eatCell):point(state.body[0]??0);
-  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:SNAKE_WORLD_W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${state.eaten}`}});
+  successFrame(ctx,{id:'snake',tick:state.tick,count:state.eaten,colour:ACCENT,width:W,height:SNAKE_WORLD_H,point:{...rewardPoint,shape:'spark'},hud:{x:14,y:22,text:`STARS ${state.eaten}`}});
   ctx.restore();
   // Same 1UP readout, without a per-frame text blur.
   const on = Math.floor(retroClock() / 500) % 2 === 0;
   retroText(ctx, "1UP", 14, 10, 8, on ? RETRO_RED : "rgba(255,59,92,0.35)");
-  drawPops(ctx, key, SNAKE_WORLD_W);
+  drawPops(ctx, key, W);
   successHud(ctx,'snake',state.tick,14,22,()=>{retroText(ctx, `STARS ${state.eaten}`, 14, 22, 10, RETRO_WHITE);});
   if (state.rev) {
     const rocks = state.rocks?.length ?? 0;
     const falling = (state.rockWarn ?? -1) >= 0;
     const shower = (state.showerWarn ?? []).length > 0;
-    retroText(ctx, shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, SNAKE_WORLD_W - 14, 22, 8, (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
+    retroText(ctx, shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`, W - 14, 22, 8, (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.6)", "right");
+  }
+  if (state.exp) {
+    // snakeRev 9's HUD line: the combo (gold while it scores) and the skill bonus so far.
+    const combo = state.combo ?? 0;
+    const quick = state.tick - (state.lastStar ?? -9999) <= 150;
+    retroText(ctx, combo >= 2 && quick ? `COMBO x${combo}` : "", W / 2, 22, 10, combo >= 3 ? GOLD : RETRO_WHITE, "center");
+    retroText(ctx, `BONUS +${snakeV9Bonus(state).total}`, W - 14, 8, 8, GOLD, "right");
   }
 }
 
@@ -338,9 +357,9 @@ function dashedRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
  * purple and a teal nebula, a pixel starfield and a soft glow round the board's edge, fading to black
  * at the world's edges so it meets the screen fill without a seam. Static: nothing here moves.
  */
-function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number): void {
-  const W = SNAKE_WORLD_W;
+function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number, W: number = SNAKE_WORLD_W, cols: number = SNAKE_COLS, boardX: number = SNAKE_BOARD_X): void {
   const boardH = rows * SNAKE_CELL;
+  const SNAKE_BOARD_W = cols * SNAKE_CELL;
   c.fillStyle = "#04030A";
   c.fillRect(0, 0, W, worldH);
   blob(c, W * 0.22, worldH * 0.26, W * 0.62, "#5B2A9E", 0.42, 1.25);
@@ -349,7 +368,7 @@ function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number): 
   blob(c, W * 0.12, worldH * 0.84, W * 0.32, "#1FA8A0", 0.14, 1.2);
   pixelStars(c, 0, 0, W, worldH, 150, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 0.85);
   // The board's edge: a soft light just inside and outside the frame (the live border is drawn over it).
-  const bx = SNAKE_BOARD_X, by = SNAKE_BOARD_Y;
+  const bx = boardX, by = SNAKE_BOARD_Y;
   c.globalAlpha = 1;
   for (const [x, y, w, h, x0, y0, x1, y1] of [
     [bx, by, SNAKE_BOARD_W, 10, 0, by, 0, by + 10],
@@ -455,10 +474,10 @@ export function meteorBorderLook(t: number, hold: boolean): { colour: string; gl
  * The border's outer edges in device pixels for a world-to-device transform (scale a, d; offset e, f):
  * left, right, top and bottom snapped to whole device pixels, and its width w (one world pixel, rounded).
  */
-export function meteorBorderRect(a: number, d: number, e: number, f: number, rows: number): { x0: number; x1: number; y0: number; y1: number; w: number } {
+export function meteorBorderRect(a: number, d: number, e: number, f: number, rows: number, cols: number = SNAKE_COLS, bx: number = SNAKE_BOARD_X): { x0: number; x1: number; y0: number; y1: number; w: number } {
   return {
-    x0: Math.round(a * SNAKE_BOARD_X + e),
-    x1: Math.round(a * (SNAKE_BOARD_X + SNAKE_BOARD_W) + e),
+    x0: Math.round(a * bx + e),
+    x1: Math.round(a * (bx + cols * SNAKE_CELL) + e),
     y0: Math.round(d * SNAKE_BOARD_Y + f),
     y1: Math.round(d * (SNAKE_BOARD_Y + rows * SNAKE_CELL) + f),
     w: Math.max(1, Math.round(Math.min(a, d))),
@@ -470,10 +489,10 @@ export function meteorBorderRect(a: number, d: number, e: number, f: number, row
  * whole device pixels and as wide as one world pixel rounds to, so no row is part-covered and
  * anti-aliased. Four fills at rest, twelve more during a pulse; no blur.
  */
-function drawBorder(ctx: CanvasRenderingContext2D, rows: number): void {
+function drawBorder(ctx: CanvasRenderingContext2D, rows: number, cols: number = SNAKE_COLS, bx: number = SNAKE_BOARD_X): void {
   const look = meteorBorderLook(retroClock(), arcadeReducedEffects());
   const m = ctx.getTransform();
-  const { x0, x1, y0, y1, w } = meteorBorderRect(m.a || 1, m.d ?? (m.a || 1), m.e ?? 0, m.f ?? 0, rows);
+  const { x0, x1, y0, y1, w } = meteorBorderRect(m.a || 1, m.d ?? (m.a || 1), m.e ?? 0, m.f ?? 0, rows, cols, bx);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = look.colour;
@@ -507,8 +526,117 @@ function drawBorder(ctx: CanvasRenderingContext2D, rows: number): void {
 function draw(ctx: CanvasRenderingContext2D, state: SnakeState, size: CanvasSize): void {
   const rows = snakeRowsOf(state);
   const worldH = snakeWorldHFor(rows);
-  const s = Math.min(size.width / SNAKE_WORLD_W, size.height / worldH);
-  const ownBox = size.width - SNAKE_WORLD_W * s < 1 && size.height - worldH * s < 1;
-  retroScreen(ctx, size, SNAKE_WORLD_W, worldH, ownBox ? "stretch" : "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)), 0, ownBox ? 0 : 6, c => drawBorder(c, rows));
+  const worldW = snakeWorldWOf(state);
+  const cols = snakeColsOf(state);
+  const bx = snakeBoardXOf(state);
+  const s = Math.min(size.width / worldW, size.height / worldH);
+  const ownBox = size.width - worldW * s < 1 && size.height - worldH * s < 1;
+  retroScreen(ctx, size, worldW, worldH, ownBox ? "stretch" : "fit", c => arcadeFx(c, snakeFxFor(state), state, () => drawWorld(c, state, ctx)), 0, ownBox ? 0 : 6, c => drawBorder(c, rows, cols, bx));
 }
 export const snakeArtGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { ...snakeGame, draw };
+
+/* ================= snakeRev 9 features (display only) ================= */
+
+const GOLD = "#FFD84A";
+const GOLD_HOT = "#FFF4C4";
+/** Wormhole pair colours (Meteor's border palette's teal and magenta). */
+const WARP_COLOURS = ["#3DFFE0", "#FF4FD8"] as const;
+const LANE = "#9F8BFF";
+type V9Memory = { tick: number; golds: number; goldPts: number; warps: number; combo: number; laneCells: number };
+const v9Memories = new WeakMap<object, V9Memory>();
+
+/** Pops for the features' moments: "+n" where a gold star was eaten, "WARP", "COMBO ×n" (presentation memory only). */
+function v9Pops(key: object, state: SnakeState, head: { x: number; y: number }): void {
+  let memo = v9Memories.get(key);
+  const now = { tick: state.tick, golds: state.goldsEaten ?? 0, goldPts: state.goldPts ?? 0, warps: state.warpsUsed ?? 0, combo: state.combo ?? 0, laneCells: state.laneCells ?? 0 };
+  if (!memo || state.tick < memo.tick) memo = now;
+  if (now.golds > memo.golds) addPop(key, head.x, head.y - 10, `GOLD +${now.goldPts - memo.goldPts}`, GOLD, 10, 4);
+  if (now.warps > memo.warps) addPop(key, head.x, head.y - 10, "WARP!", WARP_COLOURS[0], 9, 4);
+  if (now.combo > memo.combo && now.combo >= 3) addPop(key, head.x, head.y + 14, `COMBO x${now.combo}`, GOLD_HOT, 9, 4);
+  v9Memories.set(key, now);
+}
+
+/**
+ * snakeRev 9's speed lanes, wormholes and gold comet star, under the stars and the meteor. Everything
+ * sits inside its squares (a lane's strip, a mouth's or the gold star's cell), so the art matches what
+ * the head collides with. The board's last 64 px (kept dark against the scanline drift) get only the
+ * lanes' still strip: nothing there moves from frame to frame.
+ */
+function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: boolean, now: number): void {
+  const rows = snakeRowsOf(state);
+  const boardW = COLS * SNAKE_CELL;
+  const boardH = rows * SNAKE_CELL;
+  const fade = SNAKE_BOARD_Y + boardH - 64;
+  const shift = motion ? Math.floor(now / 45) % 24 : 0;
+  // Speed lanes: a violet strip with glowing edges and chevrons running both ways.
+  const lanes: [number, number, number, number, boolean][] = [];
+  if (state.laneRow !== undefined) lanes.push([BX, SNAKE_BOARD_Y + state.laneRow * SNAKE_CELL, boardW, SNAKE_CELL, true]);
+  if (state.laneCol !== undefined) lanes.push([BX + state.laneCol * SNAKE_CELL, SNAKE_BOARD_Y, SNAKE_CELL, boardH, false]);
+  for (const [x, y, w, h, across] of lanes) {
+    ctx.fillStyle = "rgba(159,139,255,0.10)";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = LANE;
+    ctx.globalAlpha = 0.45;
+    if (across) {
+      ctx.fillRect(x, y + 1, w, 1);
+      ctx.fillRect(x, y + h - 2, w, 1);
+    } else {
+      ctx.fillRect(x + 1, y, 1, h);
+      ctx.fillRect(x + w - 2, y, 1, h);
+    }
+    ctx.globalAlpha = 0.5;
+    // Chevrons: 2 px pixels, one row each way (right/left, or down/up), every 24 px, drifting.
+    for (let k = -1; k < (across ? w : Math.min(h, fade - y)) / 24 + 1; k++) {
+      for (const way of [1, -1]) {
+        const along = k * 24 + (way > 0 ? shift : 24 - shift);
+        for (let i = 0; i < 3; i++) {
+          const a = along + i * 2 * way, b = (i === 1 ? 0 : i === 0 ? -2 : 2);
+          const lx = across ? x + a : x + SNAKE_CELL / 2 + (way > 0 ? -5 : 4) + b * 0;
+          const ly = across ? y + SNAKE_CELL / 2 + (way > 0 ? -5 : 4) : y + a;
+          if (across ? lx < x || lx > x + w - 2 : ly < y || ly > fade - 2) continue;
+          if (across) ctx.fillRect(lx, ly + b, 2, 2);
+          else ctx.fillRect(lx + b, ly, 2, 2);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Wormholes: a dark mouth with two turning rings in its pair's colour; both mouths flash on a trip.
+  const warps = state.warps ?? [];
+  const flash = motion ? Math.max(0, 1 - (state.tick - (state.lastWarp ?? -9999)) / 20) : 0;
+  warps.forEach((cell, i) => {
+    const p = point(cell);
+    const colour = WARP_COLOURS[i >> 1] ?? WARP_COLOURS[0];
+    glow(ctx, colour, p.x, p.y, 11, 11, 0.45 + 0.4 * flash);
+    ctx.fillStyle = "#05030C";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    const turn = motion ? state.tick * 0.08 * (i % 2 ? -1 : 1) : 0;
+    dashedRing(ctx, p.x, p.y, 10, 18, turn, colour, 0.9);
+    dashedRing(ctx, p.x, p.y, 6, 10, -turn * 1.6, "#FFFFFF", 0.55 + 0.45 * flash);
+  });
+  // The gold comet star: the star sprite on a gold glow, fading as it runs out, with a timer ring.
+  const gold = state.gold ?? -1;
+  if (gold >= 0) {
+    const p = point(gold);
+    const left = Math.max(0, (state.goldEnd ?? 0) - state.tick) / SNAKE_GOLD_LIFE;
+    const blink = motion && left < 0.3 ? (Math.floor(state.tick / 6) % 2 ? 0.45 : 1) : 1;
+    glow(ctx, GOLD, p.x, p.y, 12, 12, (0.4 + 0.5 * left) * blink);
+    ctx.globalAlpha = (0.45 + 0.55 * left) * blink;
+    // A gold pixel diamond filling the cell behind the star, so it never reads as an ordinary star.
+    ctx.fillStyle = "#E39A10";
+    for (let d = 0; d < 10; d += 2) ctx.fillRect(Math.round(p.x) - 10 + d, Math.round(p.y) - 1 - d, 20 - 2 * d, 2 + 2 * d);
+    ctx.fillStyle = GOLD;
+    for (let d = 2; d < 10; d += 2) ctx.fillRect(Math.round(p.x) - 10 + d, Math.round(p.y) - 1 - d + 2, 20 - 2 * d, 2 * d - 2);
+    const sprite = stamp("star");
+    if (sprite) ctx.drawImage(sprite, Math.round(p.x - SNAKE_CELL / 2), Math.round(p.y - SNAKE_CELL / 2), SNAKE_CELL, SNAKE_CELL);
+    ctx.fillStyle = GOLD;
+    const dots = 16;
+    for (let i = 0; i < Math.ceil(dots * left); i++) {
+      const a = -Math.PI / 2 + (i / dots) * Math.PI * 2;
+      ctx.fillRect(Math.round(p.x + Math.cos(a) * 10) - 1, Math.round(p.y + Math.sin(a) * 10) - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+}

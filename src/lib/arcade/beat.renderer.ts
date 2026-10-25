@@ -23,12 +23,20 @@ import {
   beatLaneX,
   beatWorldH,
   type BeatState,
+  beatLanesAt,
+  beatLaneXOf,
+  beatV9Bonus,
+  BEAT_FEVER_FULL,
+  BEAT_FEVER_TICKS,
+  BEAT_V9_FIVE_FROM,
+  BEAT_V9_BREAK,
 } from "./beat";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { blob, glow, linear } from "./polishA1.renderer";
 import { pixelRect, retroBloom, retroNeon, retroReadout, retroScreen, retroText, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
 
-const NEON = BEAT_LANE_COLOURS.map(retroNeon);
+/** beatRev 9's fifth lane takes a hot pink (the four lanes keep their colours). */
+const NEON = [...BEAT_LANE_COLOURS, "#FF6FAE"].map(retroNeon);
 const GOLD = "#FFD84A";
 const lanePulses=new WeakMap<CanvasRenderingContext2D,{tick:number;event:number;at:number}>();
 
@@ -41,7 +49,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   // beatRev 6: the taller lanes and their hit line (the original 620 / 520 otherwise).
   const BEAT_WORLD_H = beatWorldH(state);
   const BEAT_HIT_LINE_Y = beatHitLineY(state);
-  const laneW = BEAT_WORLD_W / BEAT_LANES;
+  // beatRev 9: four lanes, then five from its fifth-lane section (the stage switches in the break before it).
+  const LANES = state.exp ? beatLanesAt(state, state.tick + BEAT_V9_BREAK) : BEAT_LANES;
+  const laneW = BEAT_WORLD_W / LANES;
+  const laneX = (lane: number) => beatLaneXOf(lane, LANES);
+  const noteLanes = (tick: number) => (state.exp ? beatLanesAt(state, tick) : BEAT_LANES);
   const bloom = retroBloom();
   const tier = BEAT_COMBO_TIERS.filter((t) => state.combo >= t).length;
   const eventTick=state.tick-state.judgeAge;
@@ -51,8 +63,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   pulse.tick=state.tick;lanePulses.set(ctx,pulse);
   const hit = !reducedMotion() && state.lastJudge === 1 && eventTick===pulse.at && state.judgeAge < 12;
 
-  drawStage(ctx, BEAT_WORLD_H);
-  for (let lane = 0; lane < BEAT_LANES; lane++) {
+  drawStage(ctx, BEAT_WORLD_H, LANES);
+  if (state.exp) drawFever(ctx, state, BEAT_WORLD_H, BEAT_HIT_LINE_Y);
+  for (let lane = 0; lane < LANES; lane++) {
     const x = lane * laneW;
     const colour = NEON[lane]!;
     const h = BEAT_WORLD_H - BEAT_HUD_H;
@@ -74,8 +87,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
 
   pixelRect(ctx, 0, BEAT_HIT_LINE_Y - 2, BEAT_WORLD_W, 4, RETRO_WHITE, bloom);
   // Polish A1: each lane's marker on the hit line, in its colour, with a soft glow.
-  for (let lane = 0; lane < BEAT_LANES; lane++) {
-    const cx = beatLaneX(lane), colour = NEON[lane]!;
+  for (let lane = 0; lane < LANES; lane++) {
+    const cx = laneX(lane), colour = NEON[lane]!;
     glow(ctx, colour, cx, BEAT_HIT_LINE_Y, 30, 9, 0.55);
     pixelRect(ctx, cx - 14, BEAT_HIT_LINE_Y - 3, 28, 6, colour);
     pixelRect(ctx, cx - 10, BEAT_HIT_LINE_Y - 1, 20, 2, RETRO_WHITE);
@@ -91,6 +104,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     const remaining = state.chart.ticks[index]! - state.tick;
     if (remaining > BEAT_FALL_TICKS || remaining + hold < -BEAT_OK_TICKS) continue;
     const colour = NEON[lane % NEON.length]!;
+    // beatRev 9: a note sits in its own section's lanes (five from the fifth-lane section).
+    const laneW = BEAT_WORLD_W / noteLanes(state.chart.ticks[index]!);
     if (hold > 0) {
       const headY = held ? BEAT_HIT_LINE_Y : yAt(remaining);
       const tailY = yAt(remaining + hold);
@@ -106,7 +121,21 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
       drawSwipe(ctx, lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, colour, swipe, bloom);
       continue;
     }
+    if (state.chart.golds?.[index]) {
+      drawGolden(ctx, lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, state.tick);
+      continue;
+    }
     drawBar(ctx, lane * laneW + 10, yAt(remaining) - BEAT_NOTE_H / 2, laneW - 20, colour, bloom);
+    // beatRev 9 double tap: both notes carry two white pips; the second is tied to the first by a bridge.
+    const first = state.chart.pairs?.[index] ?? -1;
+    const isFirst = firstsOf(state.chart).has(index);
+    if (first >= 0 || isFirst) {
+      const y = yAt(remaining);
+      const cx = lane * laneW + laneW / 2;
+      pixelRect(ctx, cx - 7, y - 2, 4, 4, RETRO_WHITE);
+      pixelRect(ctx, cx + 3, y - 2, 4, 4, RETRO_WHITE);
+      if (first >= 0) pixelRect(ctx, cx - 1, y + BEAT_NOTE_H / 2, 2, Math.max(0, yAt(state.chart.ticks[first]! - state.tick) - y - BEAT_NOTE_H), RETRO_WHITE);
+    }
   }
 
   // Combo in pixel font, growing with the combo.
@@ -120,7 +149,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   // inside the lane, timed by the sim tick like the word itself).
   if (state.lastJudge === BEAT_JUDGE_PERFECT && state.judgeAge < 14 && state.lastLane >= 0 && !reducedMotion()) {
     const lane = state.lastLane, colour = NEON[lane % NEON.length]!;
-    const cx = beatLaneX(lane), p = state.judgeAge / 14;
+    const cx = laneX(lane), p = state.judgeAge / 14;
     ctx.save();
     ctx.beginPath();
     ctx.rect(lane * laneW, BEAT_HUD_H, laneW, BEAT_WORLD_H - BEAT_HUD_H);
@@ -142,7 +171,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     retroText(
       ctx,
       BEAT_JUDGE_TEXT[state.lastJudge] ?? "",
-      beatLaneX(Math.max(0, state.lastLane)),
+      laneX(Math.max(0, state.lastLane)),
       BEAT_HIT_LINE_Y - 30 - Math.floor(state.judgeAge / 2),
       pop,
       state.lastJudge === BEAT_JUDGE_MISS ? RETRO_RED : GOLD,
@@ -153,10 +182,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   }
 
   pixelRect(ctx, 0, 0, BEAT_WORLD_W, BEAT_HUD_H, "#000000");
-  for (let lane = 0; lane < BEAT_LANES; lane++) pixelRect(ctx, lane * laneW, BEAT_HUD_H - 2, laneW, 2, `${NEON[lane]!}90`);
-  const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:beatLaneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
-  if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(beatLaneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+  for (let lane = 0; lane < LANES; lane++) pixelRect(ctx, lane * laneW, BEAT_HUD_H - 2, laneW, 2, `${NEON[lane]!}90`);
+  const reward=successFrame(ctx,{id:'beat',tick:state.tick,count:state.combo,eventTick:state.lastJudge===1?state.tick-state.judgeAge:0,misses:state.misses,every:10,colour:tier>=3?GOLD:tier===2?SUCCESS_ACCENTS.pink:SUCCESS_ACCENTS.cyan,width:BEAT_WORLD_W,height:BEAT_WORLD_H,point:{x:laneX(Math.max(0,state.lastLane)),y:BEAT_HIT_LINE_Y,shape:'ring',radius:6},hud:{x:12,y:20,text:`COMBO ${state.combo}`}});
+  if(state.lastJudge===1&&state.judgeAge<10){ctx.save();ctx.globalAlpha=.45*(1-state.judgeAge/10);ctx.strokeStyle=RETRO_WHITE;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(laneX(Math.max(0,state.lastLane)),BEAT_HIT_LINE_Y,8+state.judgeAge*3,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
   successHud(ctx,'beat',state.tick,12,20,()=>{retroReadout(ctx, 12, 2, `COMBO ${state.combo}`, RETRO_WHITE);});
+  if (state.exp) drawMeter(ctx, state);
 }
 
 /**
@@ -242,7 +272,7 @@ function noteSprite(colour: string, width: number): ArtCanvas | null {
  * lane's tint brighter towards the bottom, glowing inner dividers and a soft tap zone per lane under
  * the line; the world's very edges stay as dark as before, where the screen fill takes over.
  */
-function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
+function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number, BEAT_LANES = 4): void {
   const BEAT_HIT_LINE_Y = beatHitLineY({ worldH: BEAT_WORLD_H });
   const laneW = BEAT_WORLD_W / BEAT_LANES;
   const h = BEAT_WORLD_H - BEAT_HUD_H;
@@ -326,23 +356,114 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
 }
 
 const stages = new WeakMap<CanvasRenderingContext2D, { key: string; layer: ArtCanvas | null }>();
-function drawStage(ctx: CanvasRenderingContext2D, BEAT_WORLD_H: number): void {
+function drawStage(ctx: CanvasRenderingContext2D, BEAT_WORLD_H: number, lanes = BEAT_LANES): void {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   const sx = Math.min(3, Math.max(1, t ? Math.abs(t.a) : 1));
   const sy = Math.min(3, Math.max(1, t ? Math.abs(t.d) : 1));
-  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${BEAT_WORLD_H}`;
+  const key = `${sx.toFixed(3)}x${sy.toFixed(3)}:${BEAT_WORLD_H}:${lanes}`;
   let cached = stages.get(ctx);
   if (!cached || cached.key !== key) {
     const layer = artCanvas(Math.ceil(BEAT_WORLD_W * sx), Math.ceil(BEAT_WORLD_H * sy));
     const c = layer && (artContext(layer) as CanvasRenderingContext2D | null);
     if (layer && c) {
       c.scale(sx, sy);
-      paintStage(c, BEAT_WORLD_H);
+      paintStage(c, BEAT_WORLD_H, lanes);
     }
     stages.set(ctx, (cached = { key, layer: layer && c ? layer : null }));
   }
   if (cached.layer) ctx.drawImage(cached.layer as CanvasImageSource, 0, 0, BEAT_WORLD_W, BEAT_WORLD_H);
-  else paintStage(ctx, BEAT_WORLD_H);
+  else paintStage(ctx, BEAT_WORLD_H, lanes);
 }
 
 export const beatArtGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, draw };
+
+/* ================= beatRev 9 features (display only) ================= */
+
+const FEVER_PINK = "#FF4FD8";
+
+/** The double taps' first notes, once per chart. */
+const firstSets = new WeakMap<object, Set<number>>();
+function firstsOf(chart: BeatState["chart"]): Set<number> {
+  let set = firstSets.get(chart);
+  if (!set) {
+    set = new Set((chart.pairs ?? []).filter((p) => p >= 0));
+    firstSets.set(chart, set);
+  }
+  return set;
+}
+
+/**
+ * A golden note: the note's exact rect in gold with a white-hot core and two sparkle pixels at its ends
+ * (still under reduced motion).
+ */
+function drawGolden(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, tick: number): void {
+  // White-hot body in a gold frame with a pixel star in the middle, so it never reads as the gold lane's note.
+  drawBar(ctx, x, y, w, "#FFF2B0", retroBloom());
+  pixelRect(ctx, x, y, w, 2, GOLD);
+  pixelRect(ctx, x, y + BEAT_NOTE_H - 2, w, 2, GOLD);
+  pixelRect(ctx, x, y, 2, BEAT_NOTE_H, GOLD);
+  pixelRect(ctx, x + w - 2, y, 2, BEAT_NOTE_H, GOLD);
+  const cx = Math.round(x + w / 2), cy = Math.round(y + BEAT_NOTE_H / 2);
+  pixelRect(ctx, cx - 1, cy - 6, 2, 12, "#C98A00");
+  pixelRect(ctx, cx - 6, cy - 1, 12, 2, "#C98A00");
+  pixelRect(ctx, cx - 3, cy - 3, 6, 6, "#C98A00");
+  const twinkle = reducedMotion() ? 1 : 0.5 + 0.5 * Math.sin(tick / 5);
+  ctx.globalAlpha = twinkle;
+  pixelRect(ctx, x - 1, y - 3, 3, 3, RETRO_WHITE);
+  pixelRect(ctx, x + w - 2, y + BEAT_NOTE_H, 3, 3, RETRO_WHITE);
+  ctx.globalAlpha = 1;
+}
+
+/** Fever: the lanes wash gold and pink, pulsing on the beat (still under reduced motion), fading out in its last second. */
+function drawFever(ctx: CanvasRenderingContext2D, state: BeatState, worldH: number, hitY: number): void {
+  const fever = state.fever ?? 0;
+  if (fever <= 0) return;
+  const fade = Math.min(1, fever / 60, (BEAT_FEVER_TICKS - fever) / 10);
+  const beat = reducedMotion() ? 0.5 : 0.5 + 0.5 * Math.cos(((state.tick % 30) / 30) * Math.PI * 2);
+  ctx.globalAlpha = fade * (0.16 + 0.1 * beat);
+  ctx.fillStyle = linear(ctx, 0, BEAT_HUD_H, 0, hitY, [[0, `${FEVER_PINK}00`], [0.6, `${FEVER_PINK}88`], [1, GOLD]]);
+  ctx.fillRect(0, BEAT_HUD_H, BEAT_WORLD_W, hitY - BEAT_HUD_H);
+  ctx.globalAlpha = 1;
+  glow(ctx, GOLD, BEAT_WORLD_W / 2, hitY, BEAT_WORLD_W * 0.6, 40, 0.5 * fade);
+  void worldH;
+}
+
+type V9Memo = { tick: number; gold: number; fevers: number; doubles: number; at: number; text: string; colour: string };
+const v9Memos = new WeakMap<CanvasRenderingContext2D, V9Memo>();
+
+/**
+ * The fever meter in the HUD strip (right of COMBO): a pixel bar filling with Perfects and Goods; full,
+ * it flashes "TAP FEVER!" (the strip is where the tap goes); during fever it reads "FEVER x2" and drains.
+ * Under it, one feature moment at a time ("GOLD +1", "DOUBLE!", "FEVER!") floats up for half a second.
+ */
+function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
+  const x = 150, y = 14, w = 140, h = 12;
+  const fever = state.fever ?? 0;
+  const full = (state.meter ?? 0) >= BEAT_FEVER_FULL;
+  const share = fever > 0 ? fever / BEAT_FEVER_TICKS : (state.meter ?? 0) / BEAT_FEVER_FULL;
+  pixelRect(ctx, x, y, w, h, "rgba(255,255,255,0.12)");
+  pixelRect(ctx, x, y, Math.round(w * share), h, fever > 0 ? FEVER_PINK : full ? GOLD : NEON[0]!);
+  pixelRect(ctx, x, y, w, 1, "rgba(255,255,255,0.4)");
+  const blink = reducedMotion() || Math.floor(state.tick / 15) % 2 === 0;
+  if (fever > 0) retroText(ctx, "FEVER x2", x + w / 2, y + 2, 8, RETRO_WHITE, "center");
+  else if (full) retroText(ctx, "TAP FEVER!", x + w / 2, y + 2, 8, blink ? "#000000" : RETRO_WHITE, "center");
+  else retroText(ctx, "FEVER", x + w / 2, y + 2, 8, "rgba(255,255,255,0.75)", "center");
+  retroText(ctx, `+${beatV9Bonus(state).total}`, BEAT_WORLD_W - 10, y + 2, 8, GOLD, "right");
+  let memo = v9Memos.get(ctx);
+  const now = { tick: state.tick, gold: state.goldsHit ?? 0, fevers: state.fevers ?? 0, doubles: state.doublesDone ?? 0 };
+  if (!memo || state.tick < memo.tick) memo = { ...now, at: -99, text: "", colour: GOLD };
+  if (now.fevers > memo.fevers) Object.assign(memo, { at: state.tick, text: "FEVER!", colour: FEVER_PINK });
+  else if (now.gold > memo.gold) Object.assign(memo, { at: state.tick, text: "GOLD +1", colour: GOLD });
+  else if (now.doubles > memo.doubles) Object.assign(memo, { at: state.tick, text: "DOUBLE!", colour: RETRO_WHITE });
+  Object.assign(memo, now);
+  v9Memos.set(ctx, memo);
+  const age = state.tick - memo.at;
+  if (age >= 0 && age < 30) {
+    ctx.globalAlpha = 1 - age / 30;
+    retroText(ctx, memo.text, BEAT_WORLD_W / 2, BEAT_HUD_H + 14 - (reducedMotion() ? 0 : Math.floor(age / 3)), 12, memo.colour, "center");
+    ctx.globalAlpha = 1;
+  }
+  // The fifth lane's banner in the break before it.
+  const toFive = BEAT_V9_FIVE_FROM - state.tick;
+  if (toFive > 0 && toFive <= BEAT_V9_BREAK + 30) retroText(ctx, "5 LANES!", BEAT_WORLD_W / 2, BEAT_HUD_H + 60, 16, NEON[4]!, "center");
+}
