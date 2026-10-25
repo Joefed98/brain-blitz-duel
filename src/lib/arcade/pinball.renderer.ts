@@ -19,6 +19,8 @@
 import { arcadeFx } from "./arcadeFx.renderer";
 import { PINBALL_FX } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
+import { fillAbove, fillBelow, pinballFill } from "./arenaFills.renderer";
+import type { ArenaSceneView } from "./arenaScene.renderer";
 import { type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import {
   pinballGame,
@@ -54,6 +56,7 @@ import {
   PIN_LANE_OUTER,
   PIN_RUN_TICKS,
   PIN_WALL_R,
+  PIN_PTS_BUMPER,
   type PinSegDef,
   type PinState,
   pinballTargetGame,
@@ -62,7 +65,6 @@ import {
   PIN_REV_STRICT,
 } from "./pinball";
 import {
-  drawRetroTrail,
   retroBloom,
   retroClock,
   retroScreen,
@@ -198,6 +200,18 @@ function bevelRails(
   strokeSegs(ctx, segs, Math.max(0.8, r * 0.3), spec, -1, -1.25);
 }
 
+/**
+ * Polish A2 (display only): a thin neon rail, about 2 px of light on the capsule's centre line, in a
+ * soft glow that fills the capsule faintly (so the solid still reads) and fades just past it.
+ */
+function neonRails(ctx: Ctx, segs: readonly PinSegDef[], r: number): void {
+  strokeSegs(ctx, segs, r * 2 + 8, "rgba(61,255,224,0.035)");
+  strokeSegs(ctx, segs, r * 2 + 3, "rgba(61,255,224,0.07)");
+  strokeSegs(ctx, segs, r * 2, "rgba(14,127,114,0.42)");
+  strokeSegs(ctx, segs, 2.2, "#3DFFE0");
+  strokeSegs(ctx, segs, 0.8, "rgba(236,255,251,0.85)", -0.3, -0.4);
+}
+
 /** The playfield outline (inside the arch and side walls, shooter lane included). */
 function playfieldPath(ctx: Ctx): void {
   ctx.beginPath();
@@ -293,10 +307,28 @@ const SLING_TRIS: [number, number][][] = SEG_SLINGS.map((face) => {
   return [[face.a[0], face.a[1]], corner, [face.b[0], face.b[1]]];
 });
 
+/**
+ * Polish A2 (display only): the deep purple glow behind the table, added ("lighter") over black, in world
+ * units. The world's corners and the play screen's fill round it (pinballGlowFill) paint the same glow,
+ * so the light runs on past the world's edges with no seam.
+ */
+export function paintTableGlow(c: Ctx, x: number, y: number, w: number, h: number): void {
+  const g = c.createRadialGradient(PIN_MID_X, 360, 40, PIN_MID_X, 360, 560);
+  g.addColorStop(0, "rgba(96,30,170,0.55)");
+  g.addColorStop(0.45, "rgba(70,20,130,0.32)");
+  g.addColorStop(1, "rgba(40,10,80,0)");
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  c.fillStyle = g;
+  c.fillRect(x, y, w, h);
+  c.restore();
+}
+
 function paintPlayfield(c: Ctx, detail: boolean): void {
-  // Black screen round the table (HUD corners), then the playfield inside the walls.
+  // Black screen round the table (HUD corners) lit by the purple glow behind it, then the playfield inside the walls.
   c.fillStyle = "#000000";
   c.fillRect(0, 0, PIN_WORLD_W, PIN_WORLD_H);
+  paintTableGlow(c, 0, 0, PIN_WORLD_W, PIN_WORLD_H);
   c.save();
   playfieldPath(c);
   c.clip();
@@ -529,24 +561,50 @@ function paintSlingPlastics(c: Ctx): void {
     c.beginPath();
     tri.forEach(([x, y], i) => (i === 0 ? c.moveTo(x, y) : c.lineTo(x, y)));
     c.closePath();
-    const [a, , b] = tri as [[number, number], [number, number], [number, number]];
+    const [a, m, b] = tri as [[number, number], [number, number], [number, number]];
+    // Polish A2: a purple plastic, fine pink hatching and a lit inner triangle.
     const g = c.createLinearGradient(a[0], a[1], b[0], b[1]);
-    g.addColorStop(0, "rgba(255,216,74,0.32)");
-    g.addColorStop(1, "rgba(255,77,255,0.22)");
+    g.addColorStop(0, "#4A1878");
+    g.addColorStop(1, "#2A0C4C");
     c.fillStyle = g;
     c.fill();
     c.clip();
-    // Inlaid stripes inside the plastic.
-    c.strokeStyle = "rgba(255,248,214,0.18)";
-    c.lineWidth = 2;
+    c.strokeStyle = "rgba(255,110,220,0.26)";
+    c.lineWidth = 0.75;
     c.beginPath();
-    for (let d = -60; d < 60; d += 9) {
-      c.moveTo(a[0] + d, a[1]);
-      c.lineTo(a[0] + d + 60, a[1] + 120);
+    for (let d = -140; d < 140; d += 4) {
+      c.moveTo(a[0] + d, a[1] - 20);
+      c.lineTo(a[0] + d + 70, a[1] + 140);
     }
+    c.stroke();
+    const cx = (a[0] + m[0] + b[0]) / 3;
+    const cy = (a[1] + m[1] + b[1]) / 3;
+    const inner = tri.map(([x, y]) => [cx + (x - cx) * 0.5, cy + (y - cy) * 0.5] as const);
+    c.beginPath();
+    inner.forEach(([x, y], i) => (i === 0 ? c.moveTo(x, y) : c.lineTo(x, y)));
+    c.closePath();
+    const ig = c.createRadialGradient(cx, cy, 1, cx, cy, 26);
+    ig.addColorStop(0, "rgba(255,190,250,0.55)");
+    ig.addColorStop(1, "rgba(255,77,255,0.18)");
+    c.fillStyle = ig;
+    c.fill();
+    c.strokeStyle = "rgba(255,160,240,0.7)";
+    c.lineWidth = 1;
     c.stroke();
     c.restore();
   }
+}
+
+/** A chrome post (a small domed cap with a glint). */
+function chromePost(c: Ctx, x: number, y: number, r: number): void {
+  const g = c.createRadialGradient(x - r * 0.35, y - r * 0.4, 0.3, x, y, r);
+  g.addColorStop(0, "#FFFFFF");
+  g.addColorStop(0.45, "#C6CEDC");
+  g.addColorStop(1, "#4E5666");
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fill();
 }
 
 /** A bumper's resting body: skirt ring (outer edge exactly at the collision radius), cap, rim light, star. */
@@ -614,15 +672,10 @@ function paintTable(c: Ctx, detail: boolean): void {
   paintSlingPlastics(c);
   PIN_BUMPERS.forEach(([bx, by]) => paintBumper(c, bx, by));
   // Rails, the sling kickers (resting) and the gate, all on their own capsules.
-  bevelRails(
-    c,
-    SEG_WALLS,
-    PIN_WALL_R,
-    SHADE.railBody,
-    SHADE.railLight,
-    SHADE.railSpec,
-    SHADE.railHalo,
-  );
+  neonRails(c, SEG_WALLS, PIN_WALL_R);
+  // The slingshots' kicker faces: glowing gold rubber.
+  strokeSegs(c, SEG_SLINGS, PIN_WALL_R * 2 + 9, "rgba(255,216,74,0.07)");
+  strokeSegs(c, SEG_SLINGS, PIN_WALL_R * 2 + 4, "rgba(255,216,74,0.14)");
   bevelRails(
     c,
     SEG_SLINGS,
@@ -630,8 +683,10 @@ function paintTable(c: Ctx, detail: boolean): void {
     SHADE.slingBody,
     SHADE.slingLight,
     SHADE.slingSpec,
-    "rgba(255,216,74,0.06)",
+    null,
   );
+  // Chrome posts at the slingshots' corners (inside the rails' own capsules).
+  for (const tri of SLING_TRIS) for (const [x, y] of tri) chromePost(c, x, y, PIN_WALL_R + 0.5);
   for (const g of SEG_GATE)
     capsule(c, g.a[0], g.a[1], g.b[0], g.b[1], g.r, "rgba(61,255,224,0.55)");
   // Spinner brackets: rivets on the lane walls (inside their capsules).
@@ -762,6 +817,33 @@ function drawBumperFlash(ctx: Ctx, state: PinState): void {
     ctx.beginPath();
     ctx.arc(bx, by, PIN_BUMPER_R - 1.5, 0, Math.PI * 2);
     ctx.stroke();
+    // Polish A2: the flare, eight short rays of light off the bumper's skirt, fading with the glow.
+    ctx.strokeStyle = `rgba(255,190,255,${(0.6 * k).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    for (let ray = 0; ray < 8; ray++) {
+      const a = (ray * Math.PI) / 4 + Math.PI / 8;
+      const r0 = PIN_BUMPER_R + 3;
+      const r1 = PIN_BUMPER_R + 3 + 9 * k;
+      ctx.moveTo(bx + Math.cos(a) * r0, by + Math.sin(a) * r0);
+      ctx.lineTo(bx + Math.cos(a) * r1, by + Math.sin(a) * r1);
+    }
+    ctx.stroke();
+  });
+}
+
+/** How long a bumper's "+100" rises, in sim ticks. */
+const POINTS_TICKS = 36;
+/** Polish A2: "+100" (times the multiplier) rising off a struck bumper, from the sim's bumperAt. */
+function drawBumperPoints(ctx: Ctx, state: PinState): void {
+  PIN_BUMPERS.forEach(([bx, by], i) => {
+    const age = state.tick - (state.bumperAt[i] ?? -999);
+    if (age < 0 || age >= POINTS_TICKS) return;
+    const k = age / POINTS_TICKS;
+    ctx.globalAlpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+    retroText(ctx, `+${PIN_PTS_BUMPER * state.mult}`, bx, by - PIN_BUMPER_R - 12 - 16 * k, 9, "#FFE6FF", "center", 4);
+    ctx.globalAlpha = 1;
   });
 }
 
@@ -799,14 +881,36 @@ function drawSpinner(ctx: Ctx, state: PinState, key: Ctx, t: number): void {
     sx1 = PIN_ORBIT_INNER - 4;
   const h = 2 + 8 * squash,
     y0 = PIN_SPINNER_Y - h / 2;
-  ctx.fillStyle = lit ? "#B8901A" : "#8C9AA6";
+  // Polish A2: brushed chrome (gold while lit), shaded across the bar, the lit face flipping side as it turns.
+  const body = ctx.createLinearGradient(0, y0, 0, y0 + h);
+  body.addColorStop(0, lit ? "#FFF0B0" : "#F2F6FC");
+  body.addColorStop(0.5, lit ? "#C99A1E" : "#8C98A8");
+  body.addColorStop(1, lit ? "#6E5108" : "#3E4656");
+  ctx.fillStyle = body;
   ctx.fillRect(sx0, y0, sx1 - sx0, h);
-  // The face catching the light flips side as it turns.
-  ctx.fillStyle = lit ? PIN_COLOURS.spinnerLit : PIN_COLOURS.spinner;
   const face = Math.max(1, h * 0.55);
+  ctx.fillStyle = lit ? "rgba(255,216,74,0.55)" : "rgba(255,255,255,0.35)";
   ctx.fillRect(sx0, cos >= 0 ? y0 : y0 + h - face, sx1 - sx0, face);
-  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.fillRect(sx0 + 2, cos >= 0 ? y0 : y0 + h - 1, sx1 - sx0 - 4, 1);
+  // Chrome bearings where the bar meets the lane walls.
+  for (const x of [sx0, sx1]) {
+    ctx.fillStyle = "#DDE4EE";
+    ctx.fillRect(x - 1, PIN_SPINNER_Y - 2, 2, 4);
+  }
+}
+
+/** A tapered bat: a circle of r0 at (ax, ay) and r1 at (bx, by), joined by their outer tangents. */
+function flipperPath(ctx: Ctx, ax: number, ay: number, bx: number, by: number, r0: number, r1: number): void {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const d = Math.hypot(dx, dy) || 1;
+  const base = Math.atan2(dy, dx);
+  const off = Math.acos(Math.max(-1, Math.min(1, (r0 - r1) / d)));
+  ctx.beginPath();
+  ctx.arc(ax, ay, r0, base + off, base - off + Math.PI * 2);
+  ctx.arc(bx, by, r1, base - off, base + off);
+  ctx.closePath();
 }
 
 function drawFlippers(ctx: Ctx, state: PinState): void {
@@ -825,23 +929,30 @@ function drawFlippers(ctx: Ctx, state: PinState): void {
       nx = -nx;
       ny = -ny;
     }
-    capsule(ctx, pxp, pyp, tx, ty, PIN_FLIP_R, SHADE.shadow, 2, 3);
-    capsule(ctx, pxp, pyp, tx, ty, PIN_FLIP_R, SHADE.flipEdge);
-    capsule(
-      ctx,
-      pxp,
-      pyp,
-      tx,
-      ty,
-      PIN_FLIP_R - 1.6,
-      held ? SHADE.flipHeld : SHADE.flipBody,
-      nx * 0.4,
-      ny * 0.4,
-    );
-    capsule(ctx, pxp, pyp, tx, ty, 1, SHADE.flipSpec, nx * 2.4, ny * 2.4);
-    // Chrome pivot cap.
+    // Polish A2: a shaped bat, full width at the pivot, tapering to a round tip (inside the swept capsule).
+    const tipR = PIN_FLIP_R - 2;
+    flipperPath(ctx, pxp + 2, pyp + 3, tx + 2, ty + 3, PIN_FLIP_R, tipR);
+    ctx.fillStyle = SHADE.shadow;
+    ctx.fill();
+    flipperPath(ctx, pxp, pyp, tx, ty, PIN_FLIP_R, tipR);
+    ctx.fillStyle = SHADE.flipEdge;
+    ctx.fill();
+    flipperPath(ctx, pxp + nx * 0.4, pyp + ny * 0.4, tx + nx * 0.4, ty + ny * 0.4, PIN_FLIP_R - 1.4, tipR - 1.2);
+    const shade = ctx.createLinearGradient(pxp + nx * PIN_FLIP_R, pyp + ny * PIN_FLIP_R, pxp - nx * PIN_FLIP_R, pyp - ny * PIN_FLIP_R);
+    shade.addColorStop(0, held ? "#FFF4B8" : "#FFE68A");
+    shade.addColorStop(0.45, held ? SHADE.flipHeld : SHADE.flipBody);
+    shade.addColorStop(1, "#C8960F");
+    ctx.fillStyle = shade;
+    ctx.fill();
+    capsule(ctx, pxp + nx * 2.6, pyp + ny * 2.6, tx + nx * 1.4, ty + ny * 1.4, 0.8, SHADE.flipSpec);
+    // Chrome pivot cap with a dark ring.
+    ctx.fillStyle = "#5A4510";
+    ctx.beginPath();
+    ctx.arc(pxp, pyp, 4.4, 0, Math.PI * 2);
+    ctx.fill();
     const g = ctx.createRadialGradient(pxp - 1, pyp - 1.5, 0.5, pxp, pyp, 3.6);
     g.addColorStop(0, "#FFFFFF");
+    g.addColorStop(0.5, "#C6CEDC");
     g.addColorStop(1, "#5E6676");
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -892,17 +1003,27 @@ function drawWorld(ctx: Ctx, state: PinState, key: Ctx): void {
   drawSpinner(ctx, state, key, t);
   drawBumperFlash(ctx, state);
   drawFlippers(ctx, state);
+  drawBumperPoints(ctx, state);
 
   // The ball (with a short trail while in play), or waiting in the shooter lane.
   const bx = state.x / 256,
     by = state.y / 256;
-  if (state.live)
-    drawRetroTrail(
-      ctx,
-      retroTrail(key, state.tick, "ball", bx, by, 6),
-      PIN_BALL_R,
-      PIN_COLOURS.ball,
-    );
+  if (state.live) {
+    // Polish A2: a fainter trail, so the chrome ball reads first.
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    const trail = retroTrail(key, state.tick, "ball", bx, by, 6);
+    const n = trail.length - 1;
+    for (let i = 0; i < n; i++) {
+      const p = trail[i]!;
+      const k = (i + 1) / (n + 1);
+      ctx.fillStyle = `rgba(201,214,232,${(0.22 * k).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(1.5, PIN_BALL_R * k * 0.85), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
   if (state.live || state.lost < PIN_BALLS) drawBall(ctx, bx, by);
   if (!state.live && state.lost < PIN_BALLS && state.wait > 0) {
     const blink = t === 0 || Math.floor(t / 300) % 2 === 0;
@@ -963,4 +1084,26 @@ export function pinballArtGameFor(
   rev?: number | null,
 ): ArcadeGame<PinState, ArcadeInputEvent | null> {
   return rev === PIN_REV_STRICT ? pinballStrictArtGame : rev === PIN_REV_TARGET ? pinballTargetArtGame : pinballArtGame;
+}
+
+/**
+ * Polish A2 (display only): the play screen's fill round the centred table. The existing dark fill and
+ * its five resting lamps (arenaFills' pinballFill), then the table's purple glow over the gap above (the
+ * same glow the world's corners carry, so no seam) and a purple light rising from the screen's bottom
+ * under it, faint at the world's edge.
+ */
+export function pinballGlowFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  pinballFill(ctx, view);
+  const above = fillAbove(view);
+  if (above) paintTableGlow(ctx, above.x, above.y, above.w, above.h);
+  const below = fillBelow(view);
+  if (!below) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const g = ctx.createLinearGradient(0, below.y, 0, below.y + below.h);
+  g.addColorStop(0, "rgba(70,20,130,0)");
+  g.addColorStop(1, "rgba(70,20,130,0.28)");
+  ctx.fillStyle = g;
+  ctx.fillRect(below.x, below.y, below.w, below.h);
+  ctx.restore();
 }
