@@ -2,9 +2,10 @@ import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { Button } from "@/components/ui/button";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { prefersReducedMotion } from "@/lib/motion";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 import { StageProgress } from "@/components/puzzles/StageProgress";
+import { GoalLineContext } from "@/components/duel/GameFrame";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
@@ -148,6 +149,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
   const gridRef = useRef<HTMLDivElement>(null);
   const [gridSide, setGridSide] = useState(280);
   const [flown, setFlown] = useState(false);
+  const goalLine = useContext(GoalLineContext);
   const takeoff = useRef<() => void>(() => undefined);
   useEffect(() => registerFxPreview("symscan", () => takeoff.current()), []);
 
@@ -182,6 +184,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
 
   if (!data || !current) return null;
   const frozen = locked || done.current;
+  // Polish batch S: on a live round the goal line shows "Stage n of 3", so the label drops its own count
+  // and the row carries a live count of the eagles marked instead (display only).
+  const framed = goalLine !== null;
   const selected = selections[stage] ?? [];
 
   /** Finish effect: the eagles facing the target take off (display only, never awaited). */
@@ -219,10 +224,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "symscan" }
       <div ref={topRef} className="flex w-full shrink-0 flex-col items-center gap-2">
         <StageProgress stage={stage} />
         <div className="flex items-center gap-3">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Grid {stage + 1} of 3 · {current.alsoTarget ? "targets" : "target"}
+          <span data-eye-label="" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {framed ? "" : `Grid ${stage + 1} of 3 · `}{current.alsoTarget ? "targets" : "target"}
           </span>
           <TargetBadge stage={current} />
+          {framed ? (
+            <span data-eye-summary="" className="eye-summary font-mono text-xs tabular-nums text-muted-foreground">
+              {selected.length} marked
+            </span>
+          ) : null}
         </div>
       </div>
 

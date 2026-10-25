@@ -26,6 +26,7 @@ import {
 import { fireAscendFinish } from "@/components/puzzles/numberHuntFx";
 import { playSound } from "@/lib/sound";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -141,8 +142,10 @@ function ascendWrongTap(disc: Element | null): void {
   playSound("wrong");
   if (disc) puzzleReject(disc, false);
 }
-function ascendRightTap(): void {
+function ascendRightTap(disc: Element | null): void {
   playSound("tick", 0.45, 1.25, true);
+  // Polish batch S: the shared right-move glow on the disc just tapped (display only).
+  rightMoveFlash(disc);
 }
 
 /** Rounds stored before tap logs (no `tapRev`): the phone's own "reached,errors" summary. */
@@ -188,7 +191,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
       ascendWrongTap(disc);
       return;
     }
-    ascendRightTap();
+    ascendRightTap(disc);
     const done = index + 1;
     setNext(done);
     if (done === spots.length && submitted.current !== key) {
@@ -347,7 +350,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     if (outcome === "wrong") {
       setFlash(index);
       ascendWrongTap(disc);
-    } else if (after.reached > replay.reached) ascendRightTap();
+    } else if (after.reached > replay.reached) ascendRightTap(disc);
     if (after.finishedAt !== null && submitted.current !== key) {
       submitted.current = key;
       fireAscendFinish(arenaRef.current, spots);

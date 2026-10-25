@@ -45,9 +45,9 @@ export interface ArenaAmbient {
 }
 
 /**
- * Games whose play screen shows their own scene instead of the screen edge's black: the three engine
- * games with one (Bonk, Tenfall, Pull!) and, since the screen fill-ins (17 Oct 2026,
- * arenaFills.renderer.ts), every active arcade game.
+ * Games whose play screen shows their own scene instead of the screen edge's black: the engine games
+ * with one (Bonk, Tenfall, Pull! and, since Polish batch S on 25 Oct 2026, Mixed Signals) and, since the
+ * screen fill-ins (17 Oct 2026, arenaFills.renderer.ts), every active arcade game.
  */
 export const ARENA_SCENE_GAMES = [
   "whack",
@@ -75,6 +75,7 @@ export const ARENA_SCENE_GAMES = [
   "balltrack",
   "matchup",
   "pinball",
+  "stroop",
 ] as const;
 
 /**

@@ -34,6 +34,7 @@ import {
   type ChainShape,
 } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { playCueSlot, playTick, playTone } from "@/lib/sound";
 import { soundCue } from "@/lib/fx/soundCues";
 
@@ -320,7 +321,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     length: rules.length,
   };
 
-  const tap = (nodeId: number) => {
+  const tap = (nodeId: number, charm?: Element | null) => {
     if (over) return;
     const t = Math.max(0, Math.round(Date.now() - phaseStartedAt));
     const next = { node: nodeId, t };
@@ -332,6 +333,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       return;
     }
     hapticTick();
+    // Polish batch S: the shared right-move glow on the charm just linked (display only).
+    rightMoveFlash(charm);
     // Pitch climbs a semitone per link (a recorded chain.linkTone climbs the same way).
     const climb = Math.pow(2, links / 12);
     if (!playCueSlot("chain.linkTone", 1, climb)) playTone(440 * climb, 110, "triangle", 0.22);
@@ -403,7 +406,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
               onPointerDown={(event) => {
                 event.preventDefault();
                 const hit = pointerElementIndex(event.currentTarget);
-                if (hit !== null) tap(hit);
+                if (hit !== null) tap(hit, event.currentTarget);
               }}
               className={`absolute flex items-center justify-center rounded-full border-0 bg-transparent p-0 [-webkit-tap-highlight-color:transparent] ${
                 isUsed && !ringed ? "opacity-35" : ""

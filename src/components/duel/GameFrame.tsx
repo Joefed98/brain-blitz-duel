@@ -29,7 +29,7 @@ export const CATEGORY_NAMES: Record<PuzzleCategory, string> = {
  */
 const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   wordslide: "Make every row a word",
-  numhunt: "Tap 1 to 24 in order",
+  numhunt: "Tap the numbers lowest to highest",
   spotdiff: "Find six differences in each",
   stopwatch: "Stop in the gold zone, ten times",
   flow: "Join every pair, fill every square",
