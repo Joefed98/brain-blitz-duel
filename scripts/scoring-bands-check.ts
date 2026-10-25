@@ -22,7 +22,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
+import { LIVE_BANDS, liveDealtRev, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
@@ -115,7 +115,8 @@ for (const type of ARCADE) {
   ok(strict.points.at(-1) === base.points.at(-1) && bandTop(strict) === bandTop(base), `${type}: strict curve keeps the top (${base.points.at(-1)} at ${bandTop(base)})`);
   for (let i = 1; i < strict.units.length; i++) ok(strict.units[i]! > strict.units[i - 1]! && strict.points[i]! > strict.points[i - 1]!, `${type}: strict knots rise (${i})`);
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
+  // A world expansion (docs/scoring-200.md) deals its own later stamp (LIVE_BANDS' `dealt`); the band-3 revision stays proved below.
+  ok(dealt === liveDealtRev(type), `${type}: rooms deal ${live.field} ${liveDealtRev(type)} (got ${String(dealt)})`);
   const spec = GAMES.find((g) => g.type === type)!;
   const seed = spec.seedFor(0);
   ok((spec.gameFor(live.rev, seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${live.rev}: band ${BAND_STRICT_MARK} from the first tick`);

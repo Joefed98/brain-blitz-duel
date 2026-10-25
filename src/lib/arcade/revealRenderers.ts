@@ -10,6 +10,8 @@ import { hoverArtGame as hoverGame, hoverRevealGame } from "./hover.renderer";
 import { skylineArtGame as skylineGame, skylineRevealGame } from "./skyline.renderer";
 import { binTossArtGame as binTossGame } from "./binTossArt.renderer";
 import { drawBullseye } from "./bullseye.renderer";
+import { BINTOSS_REV_EXPAND, BINTOSS_V7_WORLD_H, BINTOSS_V7_WORLD_W } from "./binToss";
+import { BULLSEYE_REV_EXPAND, BULLSEYE_V7_WORLD_H } from "./bullseye";
 import { matchupArtGame as matchupGame } from "./matchup.renderer";
 import { breakerArtGameFor } from "./breaker.renderer";
 import { breakerWorldHFor } from "./breaker";
@@ -17,7 +19,7 @@ import { rallyWorldHFor } from "./rally";
 import { pinballArtGameFor } from "./pinball.renderer";
 import { PIN_WORLD_H, PIN_WORLD_W } from "./pinball";
 import { rallyArtGame as rallyGame, rallyRevealGame } from "./rally.renderer";
-import { sliceGame, sliceWorldHFor } from "./slice";
+import { sliceGame, sliceWorldHFor, SLICE_REV_EXPAND, SLICE_V9_H, SLICE_V9_W } from "./slice";
 import { sliceArtGame } from "./slice.renderer";
 import { bubbleArtGame as bubbleGame } from "./bubble.renderer";
 import { bubbleWorldHFor } from "./bubble";
@@ -150,9 +152,12 @@ const seedOf = (puzzle: PuzzleData): number => ("seed" in puzzle ? Number(puzzle
 export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
-  bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined)),
+  // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.
+  bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined), undefined, undefined,
+    (p) => (p.type === "bintoss" && p.binRev === BINTOSS_REV_EXPAND ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
   bullseye: simple(GOLD, 390, 560, { draw: drawBullseye }, (p, a) =>
     replayBullseyeRun(seedOf(p), a, p.type === "bullseye" ? p.winds : [], p.type === "bullseye" ? p.bullRev : undefined),
+    undefined, undefined, (p) => (p.type === "bullseye" && p.bullRev === BULLSEYE_REV_EXPAND ? BULLSEYE_V7_WORLD_H : 560),
   ),
   matchup: simple(GOLD, 390, 560, matchupGame, (p, a) => replayMatchupRun(seedOf(p), a, p.type === "matchup" ? p.matchupRev : undefined)),
   breaker: {
@@ -168,7 +173,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   },
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, pinballArtGameFor(1), (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined)),
   rally: simple("#4D8CFF", 390, 620, rallyGame, (p, a) => replayRallyRun(seedOf(p), a, p.type === "rally" ? p.rallyRev : undefined), undefined, rallyRevealGame, (p) => rallyWorldHFor(p.type === "rally" ? p.rallyRev : undefined)),
-  slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined)),
+  slice: simple("#C9CED6", 390, 620, sliceArtGame, (p, a) => replaySliceRun(seedOf(p), a, p.type === "slice" ? p.sliceRev : undefined), undefined, undefined, (p) => (p.type === "slice" && p.sliceRev === SLICE_REV_EXPAND ? Math.round((390 * SLICE_V9_H) / SLICE_V9_W) : sliceWorldHFor(p.type === "slice" ? p.sliceRev : undefined))),
   bubble: simple(GOLD, 390, 620, bubbleGame, (p, a) => replayBubbleRun(seedOf(p), a, p.type === "bubble" ? p.bubbleRev : undefined), undefined, undefined, (p) => bubbleWorldHFor(p.type === "bubble" ? p.bubbleRev : undefined)),
   beat: simple(GOLD, 390, 620, beatGame, (p, a) => replayBeatRun(seedOf(p), a, p.type === "beat" ? p.beatRev : undefined), undefined, undefined, (p) => beatWorldHFor(p.type === "beat" ? p.beatRev : undefined)),
   snake: simple("#2ED3B7", SNAKE_WORLD_W, SNAKE_WORLD_H, snakeGame, (p, a) => replaySnakeRun(seedOf(p), a, p.type === "snake" ? p.snakeRev : undefined), undefined, undefined, (p) => snakeWorldHForRev(p.type === "snake" ? p.snakeRev : undefined)),

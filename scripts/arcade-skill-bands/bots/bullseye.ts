@@ -17,13 +17,18 @@
  * leads it through the middle.
  */
 import {
+  bullseyeBoard,
+  bullseyeDxOf,
+  bullseyeWindShiftFor,
+  BULLSEYE_EXPAND,
+  BULLSEYE_V7_FLIGHT_NUM,
+  BULLSEYE_FLIGHT_NUM,
   bullseyeBalloonPos,
   bullseyeDrag,
   bullseyeRingValues,
   bullseyeScalePct,
   bullseyeSway,
   bullseyeTargetDx,
-  bullseyeWindShiftPx,
   BULLSEYE_ARROWS,
   BULLSEYE_BOW_X,
   BULLSEYE_BOW_Y,
@@ -49,12 +54,13 @@ const WAIT_END: Record<string, number> = { average: 0.35, good: 0.6, great: 0.85
 /** Landing distance per launch unit (the sim's flight constant). */
 const REACH = (BULLSEYE_BOW_Y - BULLSEYE_CY) / BULLSEYE_REF_V;
 
-/** The drag (finger travel, phone px) that puts the swayless landing at (x, y). */
-function dragFor(x: number, y: number): { dx: number; dy: number } {
+/** The drag (finger travel, phone px) that puts the swayless landing at (x, y); bullRev 7 reaches 1.5 times as far. */
+function dragFor(x: number, y: number, expand = false): { dx: number; dy: number } {
   const ox = x - BULLSEYE_BOW_X;
   const oy = y - BULLSEYE_BOW_Y;
   const dist = Math.hypot(ox, oy);
-  const scale = (dist / REACH / BULLSEYE_REF_V) * 256;
+  const reach = expand ? (REACH * BULLSEYE_V7_FLIGHT_NUM) / BULLSEYE_FLIGHT_NUM : REACH;
+  const scale = (dist / reach / BULLSEYE_REF_V) * 256;
   let len = DRAG_MIN_PX + ((scale - DRAG_MIN_SCALE_256) * (DRAG_FULL_PX - DRAG_MIN_PX)) / (DRAG_MAX_SCALE_256 - DRAG_MIN_SCALE_256);
   len = Math.max(DRAG_MIN_PX, Math.min(DRAG_FULL_PX, len));
   return { dx: (ox / dist) * len, dy: (oy / dist) * len };
@@ -74,7 +80,11 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       planned = arrow;
       // Notice the new dart, read the wind and board, drag the reticle into place.
       const ready = t + human.reactTicks() + human.thinkTicks(1300);
-      const scale = bullseyeScalePct(arrow) / 100;
+      // bullRev 7: each dart's board has its own height and size (and its drift stays on the range).
+      const expand = s.expand === BULLSEYE_EXPAND;
+      const board = bullseyeBoard(s, arrow);
+      const boardDx = (u: number) => (expand ? bullseyeDxOf(s, arrow, u) : bullseyeTargetDx(arrow, u, s.driftPhase, s.driftDir));
+      const scale = board.scalePct / 100;
       const ring = BULLSEYE_RING_STEP * scale;
       const balloon = s.balloons?.[arrow] ?? null;
       let goBalloon = Boolean(balloon) && !human.slip();
@@ -86,14 +96,14 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const ringOff = tenAt === 0 ? 0 : ring * (tenAt + 0.5);
       // When to let go, and where the spot is at landing.
       let at = ready;
-      let spot: { x: number; y: number } = { x: BULLSEYE_CX, y: BULLSEYE_CY - ringOff };
+      let spot: { x: number; y: number } = { x: BULLSEYE_CX, y: board.cy - ringOff };
       let useSway = true;
       let timeScale = 1;
       if (goBalloon && s.tune === BULLSEYE_TUNE) {
         // bullRev 4: the balloon adds to the ring under it, so a patient player
         // waits (up to 4 s) for it to cross the 10 and throws through it there;
         // otherwise they throw at it where it is, or leave it if it is far off.
-        const tenSpot = (u: number) => ({ x: BULLSEYE_CX + bullseyeTargetDx(arrow, u, s.driftPhase, s.driftDir), y: BULLSEYE_CY - ringOff });
+        const tenSpot = (u: number) => ({ x: BULLSEYE_CX + boardDx(u), y: board.cy - ringOff });
         const wait = human.chance(WAIT_END[level]!);
         let best = ready;
         let bestD = Infinity;
@@ -106,7 +116,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
             best = u;
           }
         }
-        if (wait && bestD > ring * 2.5) goBalloon = false; // not worth leaving the 10 for
+        // bullRev 7: a streak running makes a balloon off the 10 not worth the risk.
+        const leave = expand && (s.streak ?? 0) > 0 ? 1 : 2.5;
+        if (wait && bestD > ring * leave) goBalloon = false; // not worth leaving the 10 for
         else {
           at = best;
           timeScale = 1.3;
@@ -122,7 +134,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       } else if (drift) {
         // Watch the drift and let go ~a flight-time before the target reaches the chosen point.
         const waitEnd = human.chance(WAIT_END[level]!);
-        const dxAt = (u: number) => bullseyeTargetDx(arrow, u + BULLSEYE_FLIGHT_TICKS, s.driftPhase, s.driftDir);
+        const dxAt = (u: number) => boardDx(u + BULLSEYE_FLIGHT_TICKS);
         for (let u = ready; u < ready + BULLSEYE_DRIFT_PERIOD + 4; u++) {
           const a = dxAt(u - 1);
           const b = dxAt(u);
@@ -135,16 +147,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         }
         useSway = false;
         timeScale = waitEnd ? 1.3 : 1.5;
-        spot = { x: BULLSEYE_CX + dxAt(at), y: BULLSEYE_CY - ringOff };
+        spot = { x: BULLSEYE_CX + dxAt(at), y: board.cy - ringOff };
       }
       // Wind: the player shifts the reticle against it, misjudging the amount.
-      const shift = bullseyeWindShiftPx(arrow, s.winds[arrow] ?? 0);
+      const shift = bullseyeWindShiftFor(s, arrow, s.winds[arrow] ?? 0);
       const comp = shift * (1 + WIND_READ[level]! * human.normal());
       // Where the reticle is put (visual placement error), then the sway it is timed against.
-      const sway = useSway ? bullseyeSway(arrow, at) : { dx: 0, dy: 0 };
+      const sway = useSway ? bullseyeSway(arrow, at, board.scalePct) : { dx: 0, dy: 0 };
       const aimX = spot.x - comp + human.aim(1) - sway.dx;
       const aimY = spot.y + human.aim(1) - sway.dy;
-      const drag = dragFor(aimX, aimY);
+      const drag = dragFor(aimX, aimY, expand);
       // Finger jitter on lift-off; a slip is a botched release.
       const jitter = human.slip() ? 6 : 0.25;
       const fx = drag.dx + human.aim(1, jitter);

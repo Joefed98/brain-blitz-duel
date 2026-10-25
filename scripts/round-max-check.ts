@@ -44,6 +44,18 @@ function ok(cond: boolean, message: string): void {
 }
 
 const TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
+/**
+ * Games whose expansion has raised their maximum to 200 (docs/scoring-200.md; each expansion PR adds its own
+ * games here). They are proved at 200 in section 1 and skip the "raise one game" override in section 2.
+ */
+const EXPANDED: Partial<Record<PuzzleType, number>> = {
+  // E5 (docs/expansions/e5.md): Swish binRev 7, Flightpath bullRev 7, Slice sliceRev 9.
+  bintoss: 200,
+  bullseye: 200,
+  slice: 200,
+};
+const todayMax = (type: PuzzleType) => EXPANDED[type] ?? 150;
+const ALL_150 = TYPES.every((t) => !EXPANDED[t]);
 /** A stated 200 (not the 200 in "1,200 ms" or "7,200 points"). */
 const TOP200 = /(?<![\d,.])200(?![\d,]*\d)/g;
 const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_INSTRUCTIONS[type].score, lines: JSON.stringify({ ...PUZZLE_INSTRUCTIONS[type], score: "" }) });
@@ -51,10 +63,10 @@ const texts = (type: PuzzleType) => ({ intro: INTRO_SCORE[type], help: PUZZLE_IN
 /* 1. Today. */
 ok(SCORE_CEILING === 200 && DEFAULT_ROUND_MAX === 150, "the ceiling is 200 and the default 150");
 ok(TYPES.length >= 80 && TYPES.every((t) => t in ROUND_MAX) && Object.keys(ROUND_MAX).every((t) => t in GAME_DISPLAY_NAMES), "every game has its own maximum line, and only games do");
-for (const type of TYPES) ok(ROUND_MAX[type] === 150 && roundMaxFor(type) === 150, `${type}: its maximum is 150 today (${ROUND_MAX[type]})`);
+for (const type of TYPES) ok(ROUND_MAX[type] === todayMax(type) && roundMaxFor(type) === todayMax(type), `${type}: its maximum is ${todayMax(type)} today (${ROUND_MAX[type]})`);
 ok(roundMaxFor("no-such-game") === 150 && roundMaxFor(null) === 150, "an unknown or removed game is 150");
 ok(Object.values(ROUND_MAX).every((m) => m <= SCORE_CEILING), "no maximum above the ceiling");
-ok(topRoundMax().top === 150 && topRoundMax().shared, "the onboarding's top score is 150, shared by every game");
+ok(ALL_150 ? topRoundMax().top === 150 && topRoundMax().shared : topRoundMax().top === 200 && !topRoundMax().shared, "the onboarding's top score is 150 shared by every game, or 200 once a game is raised");
 ok(JSON.stringify(chartLabels().map((l) => l.text)) === '["0","50","100","150"]', "the chart reads 0 / 50 / 100 / 150");
 ok(signatureMinScore("wordsmith") === SIGNATURE_MIN_SCORE && SIGNATURE_MIN_SCORE === 120, "the no-finish beat still needs 120");
 ok(scaledToMax("snake", 110) === 110 && scaledToMax("snake", 120) === 120, "thresholds on the 150 scale are unchanged at 150");
@@ -72,6 +84,7 @@ const perfectionist = (type: PuzzleType, score: number) =>
   podiumAwards(players, [row(1, score), row(2, 10)], [{ type, name: "Game", timeLimitMs: 60_000, timed: false } satisfies AwardRound]).find((a) => a.id === "perfect");
 
 for (const type of TYPES) {
+  if (EXPANDED[type]) continue;
   const before = baseline.get(type)!;
   const statesTop = /\b150\b/.test(before.intro.replace(/150 ms/g, ""));
   withRoundMax(type, 200, () => {

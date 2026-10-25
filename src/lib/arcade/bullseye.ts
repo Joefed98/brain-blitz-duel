@@ -146,9 +146,9 @@ export const BULLSEYE_SWAY_SIN: readonly number[] = [
 ];
 
 /** The sway offset, in whole world pixels, for this arrow at this sim tick. */
-export function bullseyeSway(index: number, tick: number): { dx: number; dy: number } {
+export function bullseyeSway(index: number, tick: number, scalePct: number = bullseyeScalePct(index)): { dx: number; dy: number } {
   const phase = ((tick % BULLSEYE_SWAY_PERIOD) + BULLSEYE_SWAY_PERIOD) % BULLSEYE_SWAY_PERIOD;
-  const radius = BULLSEYE_SWAY_TENTHS * BULLSEYE_OUTER_R * bullseyeScalePct(index);
+  const radius = BULLSEYE_SWAY_TENTHS * BULLSEYE_OUTER_R * scalePct;
   const divisor = 10 * BULLSEYE_RINGS * 100 * BULLSEYE_SWAY_UNIT;
   return {
     dx: Math.round((radius * BULLSEYE_SWAY_COS[phase]!) / divisor),
@@ -192,9 +192,9 @@ export function bullseyeTargetDx(index: number, tick: number, phase: number, dir
  * Which ring a landing point falls in, as an index, or −1 for a miss. Compared
  * with scaled integers so there is never a floating-point radius.
  */
-export function bullseyeRingAt(x: number, y: number, scalePct: number): number {
+export function bullseyeRingAt(x: number, y: number, scalePct: number, cy: number = BULLSEYE_CY): number {
   const dx = x - BULLSEYE_CX;
-  const dy = y - BULLSEYE_CY;
+  const dy = y - cy;
   const distance2 = dx * dx + dy * dy;
   for (let ring = 1; ring <= BULLSEYE_RINGS; ring++) {
     // Keep authoritative geometry integer-only: radius is
@@ -244,10 +244,10 @@ export const BULLSEYE_INNER_BULL_DIV = BULLSEYE_RINGS * 3;
  * while the 10 is the centre ring (always on darts 1–6; on shuffled darts only
  * when the 10 landed in the middle). Integer comparison, as bullseyeRingAt.
  */
-export function bullseyeInInnerBull(x: number, y: number, scalePct: number, values: readonly number[]): boolean {
+export function bullseyeInInnerBull(x: number, y: number, scalePct: number, values: readonly number[], cy: number = BULLSEYE_CY): boolean {
   if (values[0] !== 10) return false;
   const dx = x - BULLSEYE_CX;
-  const dy = y - BULLSEYE_CY;
+  const dy = y - cy;
   return (dx * dx + dy * dy) * BULLSEYE_INNER_BULL_DIV * BULLSEYE_INNER_BULL_DIV * 10_000 <= (BULLSEYE_OUTER_R * scalePct) ** 2;
 }
 
@@ -320,6 +320,9 @@ export interface BullseyeHit {
   pop?: number;
   /** bullRev 4 only: the popped balloon's value (1–3), added on top of the ring. */
   bal?: number;
+  /** bullRev 7 only: the bull streak's length on this dart (2+, n bulls in a row) and the streak points it earned. */
+  sk?: number;
+  skp?: number;
 }
 
 export interface BullseyeState extends BandFields {
@@ -347,6 +350,16 @@ export interface BullseyeState extends BandFields {
    * (`balloons` then holds BullseyeBalloonV4 entries). Absent on every earlier round.
    */
   tune?: number;
+  /**
+   * bullRev 7 only (the world expansion, docs/expansions/e5.md): 1 marks the taller range with targets at
+   * different distances and heights and the bullseye streak. Absent on every earlier round.
+   */
+  expand?: number;
+  /** bullRev 7: each dart's target, its centre height (sim px; the range runs from −BULLSEYE_V7_LIFT) and size (per cent). */
+  targets?: BullseyeTarget[];
+  /** bullRev 7: bulls in a row so far, and the streak points they have earned (uncapped; the score caps them). */
+  streak?: number;
+  streakPts?: number;
 }
 
 export function bullseyeWinds(seed: number): number[] {
@@ -436,6 +449,7 @@ function step(state: BullseyeState, input: ArcadeInputEvent | null): BullseyeSta
     let ring = bullseyeRingAt(x - tdx, y, bullseyeScalePct(arrow));
     let value = bullseyeRingValue(ring, bullseyeRingValues(state, arrow));
     let hit: BullseyeHit = { x, y, ring, value, arrow, wind, tdx };
+    if (state.expand === BULLSEYE_EXPAND) return bullseyeV7Shot(state, tick, vx, vy);
     if (state.rev === BULLSEYE_REV && state.tune === BULLSEYE_TUNE) {
       // bullRev 4: the board scores as rev 2 (inner bull 12); a balloon the dart
       // passes through on its way in pops and adds its own value on top.
@@ -546,6 +560,8 @@ export function bullseyeCheckpoint(state: BullseyeState): BullseyeCheckpoint {
   if (state.rev === BULLSEYE_REV) values.push(bullseyeInnerBulls(state), bullseyePops(state));
   // bullRev 4 adds its marker and the balloon points taken; rev-2 sums are unchanged.
   if (state.tune === BULLSEYE_TUNE) values.push(state.tune, bullseyeBalloonPoints(state));
+  // bullRev 7 adds its marker, the streak and its points last; every older sum is unchanged.
+  if (state.expand === BULLSEYE_EXPAND) values.push(state.expand, state.streak ?? 0, state.streakPts ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -795,6 +811,7 @@ export const bullseyeRev2Game: ArcadeGame<BullseyeState, ArcadeInputEvent | null
 
 /** Takes puzzle.bullRev; anything else is the original game. */
 export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, ArcadeInputEvent | null> {
+  if (rev === BULLSEYE_REV_EXPAND) return bullseyeExpandGame;
   if (rev === BULLSEYE_REV_STRICT) return bullseyeStrictGame;
   if (rev === BULLSEYE_REV_TARGET) return bullseyeTargetGame;
   if (rev === BULLSEYE_REV_TUNED) return bullseyeTunedGame;
@@ -804,6 +821,7 @@ export function bullseyeGameFor(rev?: number | null): ArcadeGame<BullseyeState, 
 
 /** Start state for a stored round: its own winds and its own revision. */
 export function bullseyeInitFor(seed: number, storedWinds: readonly number[] | undefined, rev?: number | null): BullseyeState {
+  if (rev === BULLSEYE_REV_EXPAND) return bullseyeInitRev7(seed, storedWinds);
   if (rev === BULLSEYE_REV_STRICT) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_STRICT_MARK };
   if (rev === BULLSEYE_REV_TARGET) return { ...bandInit(bullseyeInitRev4(seed, storedWinds)), band: BAND_TARGET_MARK };
   if (rev === BULLSEYE_REV_TUNED) return bandInit(bullseyeInitRev4(seed, storedWinds));
@@ -855,8 +873,8 @@ function boardRadiusPx(arrow: number): number {
 }
 
 /** Half the balloon's path length for this dart (board radius plus the overrun), whole px. */
-export function bullseyeV4HalfSpan(arrow: number): number {
-  return boardRadiusPx(arrow) + BULLSEYE_V4_BALLOON_OVERRUN;
+export function bullseyeV4HalfSpan(arrow: number, scalePct: number = bullseyeScalePct(arrow)): number {
+  return Math.trunc((BULLSEYE_OUTER_R * scalePct) / 100) + BULLSEYE_V4_BALLOON_OVERRUN;
 }
 
 /**
@@ -867,11 +885,12 @@ export function bullseyeV4HalfSpan(arrow: number): number {
  */
 export function bullseyeBalloonV4At(
   balloon: BullseyeBalloonV4,
-  state: Pick<BullseyeState, "driftPhase" | "driftDir">,
+  state: Pick<BullseyeState, "driftPhase" | "driftDir"> & Partial<Pick<BullseyeState, "expand" | "targets">>,
   arrow: number,
   tick: number,
 ): { x: number; y: number } {
-  const half = bullseyeV4HalfSpan(arrow);
+  const board = bullseyeBoard(state, arrow);
+  const half = bullseyeV4HalfSpan(arrow, board.scalePct);
   const length = 2 * half * 256;
   const loop = 2 * length;
   const speed = BULLSEYE_V4_BALLOON_SPEED[balloon.value] ?? BULLSEYE_V4_BALLOON_SPEED[1]!;
@@ -885,15 +904,15 @@ export function bullseyeBalloonV4At(
   const slot = Math.trunc((phase * BULLSEYE_SWAY_PERIOD) / BULLSEYE_V4_BALLOON_BOB_PERIOD);
   const bob = Math.round((BULLSEYE_V4_BALLOON_BOB * BULLSEYE_SWAY_SIN[slot]!) / BULLSEYE_SWAY_UNIT);
   return {
-    x: BULLSEYE_CX + bullseyeTargetDx(arrow, tick, state.driftPhase, state.driftDir) + localX,
-    y: BULLSEYE_CY + localY + bob,
+    x: BULLSEYE_CX + bullseyeDxOf(state, arrow, tick) + localX,
+    y: board.cy + localY + bob,
   };
 }
 
 /** Does a landing point pass through this dart's bullRev 4 balloon at the landing tick? */
 export function bullseyeBalloonV4Popped(
   balloon: BullseyeBalloonV4,
-  state: Pick<BullseyeState, "driftPhase" | "driftDir">,
+  state: Pick<BullseyeState, "driftPhase" | "driftDir"> & Partial<Pick<BullseyeState, "expand" | "targets">>,
   arrow: number,
   tick: number,
   x: number,
@@ -927,7 +946,11 @@ export function bullseyeBalloonPoints(state: BullseyeState): number {
 
 /** bullRev 4 start state: the original state plus three value balloons drawn after every original draw. */
 export function bullseyeInitRev4(seed: number, storedWinds?: readonly number[]): BullseyeState {
-  const base = bullseyeInit(seed, storedWinds);
+  return withValueBalloons(bullseyeInit(seed, storedWinds), boardRadiusPx);
+}
+
+/** Draws the three value balloons after every earlier draw; `radius` is each dart's board radius (px). */
+function withValueBalloons(base: BullseyeState, radius: (arrow: number) => number): BullseyeState {
   let rng = base.rng;
   // Which value goes on which balloon: one of the six orders.
   const order = rngBelow(rng, 6);
@@ -942,7 +965,7 @@ export function bullseyeInitRev4(seed: number, storedWinds?: readonly number[]):
   for (let n = 0; n < BULLSEYE_BALLOON_COUNT; n++) {
     const pick = rngBelow(rng, pool.length);
     const index = pool.splice(pick.value, 1)[0]!;
-    const lim = Math.trunc((boardRadiusPx(index) * BULLSEYE_V4_BALLOON_Y_PCT) / 100);
+    const lim = Math.trunc((radius(index) * BULLSEYE_V4_BALLOON_Y_PCT) / 100);
     const dir = rngBelow(pick.state, 2);
     const phase = rngBelow(dir.state, BULLSEYE_V4_PHASE_UNITS);
     const ya = rngBelow(phase.state, 2 * lim + 1);
@@ -969,12 +992,14 @@ export const BULLSEYE_REV_BAND = 3;
 export const BULLSEYE_BAND_CURVE = bandCurve([0, 72, 82, 94, 102, 110], [0, 70, 100, 125, 145, 150]);
 
 export function bullseyeBandParts(state: BullseyeState): BandParts {
+  if (state.expand === BULLSEYE_EXPAND) return bullseyeV7Parts(state);
   const units = Math.max(0, state.total);
   const curve = bandCurveOf(state, state.tune === BULLSEYE_TUNE ? BULLSEYE_V4_BAND_CURVE : BULLSEYE_BAND_CURVE);
   return { units, points: bandPoints(curve, units), bonus: 0, penalty: 0, finished: false, text: `${units} points from ${state.arrowIndex} darts` };
 }
 
 function scoreBand(state: BullseyeState): number {
+  if (state.expand === BULLSEYE_EXPAND) return bandTotal(bullseyeBandParts(state), Boolean(state.acted), BULLSEYE_V7_MAX);
   return bandTotal(bullseyeBandParts(state), Boolean(state.acted));
 }
 
@@ -1010,3 +1035,192 @@ export const BULLSEYE_REV_STRICT = 6;
 export const bullseyeStrictGame = bandStrictGame(bullseyeTargetGame);
 /** The curve new rounds score on: BULLSEYE_V4_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BULLSEYE_V6_BAND_CURVE = bandStrict(BULLSEYE_V4_BAND_CURVE);
+
+
+/* ============ World expansion (bullRev 7, 25 Oct 2026; docs/expansions/e5.md) ============ */
+
+/**
+ * bullRev 7: bullRev 6's darts, rings, inner bull, wind, sway, drifting board, shuffles and value
+ * balloons on a taller range (390 × BULLSEYE_V7_WORLD_H; the range runs BULLSEYE_V7_LIFT px above the
+ * original top, so the bow, the counter and every original coordinate stay where they were), with each
+ * dart's board at its own distance and height: five distances, nearer boards lower and bigger, further
+ * ones higher and smaller (seeded per dart after every earlier draw; darts 1–3 never the two furthest).
+ * A drag carries the dart 1.5 times as far (BULLSEYE_V7_FLIGHT_NUM), so every board is in reach.
+ *
+ * The skill feature: a bullseye streak multiplier. Darts in the gold 10 (wherever the 10 sits, inner
+ * bull included) in a row build a streak ×n (n bulls in a row); from ×3 each bull adds
+ * BULLSEYE_V7_STREAK_STEP × (n − 2) streak points (+2, +4, +6 …). A dart anywhere else ends it. The
+ * score is the dart total on bullRev 6's own curve (up to 150, so today's players land where they did)
+ * plus the streak points, up to 50: 200 needs both a near-perfect board and a long streak.
+ * States add `expand: 1`, `targets`, `streak` and `streakPts`; scoring passes 200 as the maximum.
+ */
+export const BULLSEYE_REV_EXPAND = 7;
+export const BULLSEYE_EXPAND = 1;
+export const BULLSEYE_V7_MAX = 200;
+/** The extra range above the original top, px; the world is 390 × (560 + lift). */
+export const BULLSEYE_V7_LIFT = 168;
+export const BULLSEYE_V7_WORLD_H = BULLSEYE_WORLD_H + BULLSEYE_V7_LIFT;
+/** bullRev 7's flight constant: 1.5 × the original reach for the same drag. */
+export const BULLSEYE_V7_FLIGHT_NUM = (BULLSEYE_FLIGHT_NUM * 3) / 2;
+/** The five distances, near to far: board size (per cent) and centre height (sim px, up negative). */
+export const BULLSEYE_V7_SCALES = [104, 92, 82, 72, 64] as const;
+export const BULLSEYE_V7_HEIGHTS = [246, 178, 112, 48, -12] as const;
+/** Each board's height is moved up to this many px either way (seeded). */
+export const BULLSEYE_V7_JITTER = 10;
+/** Darts 1–3 are dealt from the three nearest distances. */
+export const BULLSEYE_V7_EASY_DARTS = 3;
+/** The drifting board stays this far inside the range's sides. */
+export const BULLSEYE_V7_SIDE = 8;
+/** Streak points per bull: STEP × (n − 2) on the n-th bull in a row (none for the first two). */
+export const BULLSEYE_V7_STREAK_STEP = 2;
+/** The streak length from which a bull earns streak points. */
+export const BULLSEYE_V7_STREAK_FROM = 3;
+/** The most streak points the score counts. */
+export const BULLSEYE_V7_STREAK_CAP = 50;
+
+export interface BullseyeTarget {
+  /** Centre height, sim px (the original range's coordinates; negative above its top). */
+  cy: number;
+  /** Board size, per cent of the full board. */
+  scale: number;
+  /** Distance level, 0 (near) to 4 (far). */
+  dist: number;
+}
+
+/** A dart's board: its centre height and size. Earlier revisions: the original centre and the shrinking range. */
+export function bullseyeBoard(state: Partial<Pick<BullseyeState, "expand" | "targets">>, arrow: number): { cy: number; scalePct: number } {
+  const target = state.expand === BULLSEYE_EXPAND ? state.targets?.[clampInt(arrow, 0, BULLSEYE_ARROWS - 1)] : undefined;
+  return target ? { cy: target.cy, scalePct: target.scale } : { cy: BULLSEYE_CY, scalePct: bullseyeScalePct(arrow) };
+}
+
+/**
+ * The board's sideways drift at a tick: bullseyeTargetDx, held inside the range on bullRev 7 (a near,
+ * big board swings less so its rim never leaves the screen).
+ */
+export function bullseyeDxOf(state: Pick<BullseyeState, "driftPhase" | "driftDir"> & Partial<Pick<BullseyeState, "expand" | "targets">>, arrow: number, tick: number): number {
+  const dx = bullseyeTargetDx(arrow, tick, state.driftPhase, state.driftDir);
+  if (state.expand !== BULLSEYE_EXPAND) return dx;
+  const room = BULLSEYE_CX - BULLSEYE_V7_SIDE - Math.ceil((BULLSEYE_OUTER_R * bullseyeBoard(state, arrow).scalePct) / 100);
+  return clampInt(dx, -room, room);
+}
+
+/** Where a flick lands before the wind: bullseyeLanding, with bullRev 7's longer reach. */
+export function bullseyeLandingFor(state: Partial<Pick<BullseyeState, "expand">>, vx: number, vy: number): { x: number; y: number } {
+  if (state.expand !== BULLSEYE_EXPAND) return bullseyeLanding(vx, vy);
+  const reach = (value: number) => Math.round((value * BULLSEYE_V7_FLIGHT_NUM) / BULLSEYE_FLIGHT_DEN);
+  return {
+    x: clampInt(BULLSEYE_BOW_X + reach(vx), -400, BULLSEYE_WORLD_W + 400),
+    y: clampInt(BULLSEYE_BOW_Y - reach(-vy), -BULLSEYE_V7_LIFT - 400, BULLSEYE_WORLD_H + 400),
+  };
+}
+
+/** Where a shot released on this tick would land for this state's dart, sway included, wind excluded. */
+export function bullseyeAimPointFor(state: BullseyeState, tick: number, vx: number, vy: number): { x: number; y: number } {
+  if (state.expand !== BULLSEYE_EXPAND) return bullseyeAimPoint(state.arrowIndex, tick, vx, vy);
+  const arrow = clampInt(state.arrowIndex, 0, BULLSEYE_ARROWS - 1);
+  const landing = bullseyeLandingFor(state, vx, vy);
+  const sway = bullseyeSway(arrow, tick, bullseyeBoard(state, arrow).scalePct);
+  return { x: landing.x + sway.dx, y: landing.y + sway.dy };
+}
+
+/** One wind unit moves one ring width at this dart's board size. */
+export function bullseyeWindShiftFor(state: BullseyeState, arrow: number, wind: number): number {
+  if (state.expand !== BULLSEYE_EXPAND) return bullseyeWindShiftPx(arrow, wind);
+  return Math.round((wind * BULLSEYE_OUTER_R * bullseyeBoard(state, arrow).scalePct) / (BULLSEYE_RINGS * 100));
+}
+
+/** Streak points for the n-th bull in a row: STEP × (n − 2) from the third. */
+export function bullseyeStreakGain(n: number): number {
+  return n >= BULLSEYE_V7_STREAK_FROM ? BULLSEYE_V7_STREAK_STEP * (n - BULLSEYE_V7_STREAK_FROM + 1) : 0;
+}
+
+/** True when a hit landed in the gold 10, wherever the 10 sits (the inner bull included). */
+export function bullseyeIsBull(hit: Pick<BullseyeHit, "ring" | "value" | "bal">): boolean {
+  return hit.ring >= 0 && hit.value - (hit.bal ?? 0) >= 10;
+}
+
+/** bullRev 7: one dart, scored where its board is when it lands. */
+function bullseyeV7Shot(state: BullseyeState, tick: number, vx: number, vy: number): BullseyeState {
+  const arrow = state.arrowIndex;
+  const wind = state.winds[arrow] ?? 0;
+  const board = bullseyeBoard(state, arrow);
+  const aimed = bullseyeAimPointFor(state, tick, vx, vy);
+  const x = aimed.x + bullseyeWindShiftFor(state, arrow, wind);
+  const y = aimed.y;
+  const land = tick + BULLSEYE_FLIGHT_TICKS;
+  const tdx = bullseyeDxOf(state, arrow, land);
+  const values = bullseyeRingValues(state, arrow);
+  const ring = bullseyeRingAt(x - tdx, y, board.scalePct, board.cy);
+  let value = bullseyeRingValue(ring, values);
+  const bull = ring === 0 && bullseyeInInnerBull(x - tdx, y, board.scalePct, values, board.cy);
+  if (bull) value = BULLSEYE_INNER_BULL_POINTS;
+  const balloon = (state.balloons?.[arrow] ?? null) as BullseyeBalloonV4 | null;
+  const popped = balloon !== null && bullseyeBalloonV4Popped(balloon, state, arrow, land, x, y);
+  if (popped) value += balloon.value;
+  const hit: BullseyeHit = { x, y, ring, value, arrow, wind, tdx, bull: bull ? 1 : 0, pop: popped ? 1 : 0, bal: popped ? balloon.value : 0 };
+  let streak = 0;
+  let gained = 0;
+  if (bullseyeIsBull(hit)) {
+    streak = (state.streak ?? 0) + 1;
+    gained = bullseyeStreakGain(streak);
+    if (streak > 1) hit.sk = streak;
+    if (gained > 0) hit.skp = gained;
+  }
+  const next: BullseyeState = {
+    ...state,
+    tick,
+    flightTick: BULLSEYE_FLIGHT_TICKS,
+    arrowIndex: arrow + 1,
+    hits: [...state.hits, hit],
+    total: state.total + value,
+    streak,
+    streakPts: (state.streakPts ?? 0) + gained,
+  };
+  if (isOver(next)) return { ...next, endedTick: tick };
+  return next;
+}
+
+/** bullRev 7's start state: bullRev 6's draws (winds, drift, ring swaps), then each dart's board, then the value balloons. */
+export function bullseyeInitRev7(seed: number, storedWinds?: readonly number[]): BullseyeState {
+  const base = bullseyeInit(seed, storedWinds);
+  let rng = base.rng;
+  const targets: BullseyeTarget[] = [];
+  for (let arrow = 0; arrow < BULLSEYE_ARROWS; arrow++) {
+    const levels = arrow < BULLSEYE_V7_EASY_DARTS ? 3 : BULLSEYE_V7_SCALES.length;
+    const dist = rngBelow(rng, levels);
+    const jitter = rngBelow(dist.state, 2 * BULLSEYE_V7_JITTER + 1);
+    rng = jitter.state;
+    targets.push({ cy: BULLSEYE_V7_HEIGHTS[dist.value]! + jitter.value - BULLSEYE_V7_JITTER, scale: BULLSEYE_V7_SCALES[dist.value]!, dist: dist.value });
+  }
+  const placed = withValueBalloons({ ...base, rng }, (arrow) => Math.trunc((BULLSEYE_OUTER_R * targets[arrow]!.scale) / 100));
+  return { ...bandInit(placed), band: BAND_STRICT_MARK, expand: BULLSEYE_EXPAND, targets, streak: 0, streakPts: 0 };
+}
+
+/**
+ * bullRev 7's dart-total curve (rings, inner bulls and balloons; the streak points come on top): bullRev
+ * 6's strict curve, knot for knot. The taller range keeps the same dart totals level by level
+ * (scripts/arcade-skill-bands.ts --rev=x), so today's players land where they did before streaks.
+ */
+export const BULLSEYE_V7_BASE_CURVE = bandCurve([0, 73, 75, 82, 90, 92, 100, 101, 112], [0, 70, 74, 100, 120, 125, 140, 143, 150]);
+
+/** bullRev 7's streak points as the score counts them (up to 50). */
+export function bullseyeStreakPoints(state: Pick<BullseyeState, "streakPts">): number {
+  return clampInt(state.streakPts ?? 0, 0, BULLSEYE_V7_STREAK_CAP);
+}
+
+function bullseyeV7Parts(state: BullseyeState): BandParts {
+  const units = Math.max(0, state.total);
+  const streak = bullseyeStreakPoints(state);
+  return {
+    units,
+    points: bandPoints(BULLSEYE_V7_BASE_CURVE, units),
+    bonus: streak,
+    penalty: 0,
+    finished: false,
+    text: `${units} points from ${state.arrowIndex} darts`,
+    bonusText: "Bull streaks",
+  };
+}
+
+/** bullRev 7: the taller range with boards at five distances and the bullseye streak, scored to 200. */
+export const bullseyeExpandGame: ArcadeGame<BullseyeState, ArcadeInputEvent | null> = { ...bullseyeRev2Game, init: (seed) => bullseyeInitRev7(seed) };

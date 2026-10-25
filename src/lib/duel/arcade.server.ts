@@ -1,5 +1,5 @@
 import { TEN_DROP_RAW_REV } from "@/lib/arcade/tenDrop";
-import { SLICE_REV_TARGET, SLICE_REV_STRICT } from "@/lib/arcade/slice";
+import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_EXPAND } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
 import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
@@ -10,7 +10,7 @@ import { SNIP_REV_TARGET, SNIP_REV_STRICT } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT } from "@/lib/arcade/skyline";
 import { tiltSeedCupsReachable, TILT_REV_TARGET, TILT_REV_STRICT } from "@/lib/arcade/tilt";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT } from "@/lib/arcade/binToss";
+import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_EXPAND } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT } from "@/lib/arcade/breaker";
@@ -33,7 +33,7 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_GREAT } from "@/lib/arcade/colou
  */
 
 import { randomBelow } from "./random";
-import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT } from "@/lib/arcade/bullseye";
+import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_EXPAND } from "@/lib/arcade/bullseye";
 import type {
   BinTossPuzzleData,
   BullseyePuzzleData,
@@ -84,12 +84,12 @@ export function generateSkyline(): SkylinePuzzleData {
 }
 
 export function generateBinToss(): BinTossPuzzleData {
-  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_STRICT };
+  return { type: "bintoss", seed: arcadeSeed(), binRev: BINTOSS_REV_EXPAND };
 }
 
 export function generateBullseye(): BullseyePuzzleData {
   const seed = arcadeSeed();
-  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_STRICT };
+  return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_EXPAND };
 }
 
 export function generateMatchup(): MatchupPuzzleData {
@@ -129,7 +129,7 @@ export function generateSteady(): SteadyPuzzleData {
 }
 
 export function generateSlice(): SlicePuzzleData {
-  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_STRICT };
+  return { type: "slice", seed: arcadeSeed(), sliceRev: SLICE_REV_EXPAND };
 }
 
 export function generateBubble(): BubblePuzzleData {

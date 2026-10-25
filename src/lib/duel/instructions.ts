@@ -13,7 +13,7 @@ import {
 } from "./scoring";
 import { withPuzzleScoreRev } from "./puzzleScoreRev";
 import { FLASH_DECOY_FREE_SHARE_PCT, TAP_REV_ONE_CURVE } from "./tapLog";
-import { bandMapTotal } from "@/lib/arcade/scoreBands";
+import { BAND_GOOD_POINTS, bandMapTotal, bandTop, bandUnitsFor } from "@/lib/arcade/scoreBands";
 import { TD_REV3_FREE_RESETS, TD_REV3_RESET_COST, TD_RUN_TICKS, TEN_DROP_RAW_REV, tenDropScore } from "@/lib/arcade/tenDrop";
 import { CLASH_GREAT_MAP } from "@/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP } from "@/lib/arcade/whack";
@@ -56,7 +56,9 @@ import {
   PIN_PTS_SPIN_LIT,
   PIN_PTS_TARGET,
 } from "@/lib/arcade/pinball";
-import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES } from "@/lib/arcade/bullseye";
+import { SLICE_V9_BASE_CURVE, SLICE_V9_BONUS_CAP, SLICE_V9_DODGE_POINTS, SLICE_V9_GOLD_POINTS, SLICE_V9_TICKET_POINTS, SLICE_V9_VALUE } from "@/lib/arcade/slice";
+import { BINTOSS_FAR_CAP, BINTOSS_FAR_POINTS, BINTOSS_FAR_THROWS, BINTOSS_V7_BASE_CURVE } from "@/lib/arcade/binToss";
+import { BULLSEYE_INNER_BULL_POINTS, BULLSEYE_RING_VALUES, BULLSEYE_V7_BASE_CURVE, BULLSEYE_V7_STREAK_CAP, BULLSEYE_V7_STREAK_STEP } from "@/lib/arcade/bullseye";
 import { liveBandHelp } from "@/lib/arcade/liveBands";
 import { fillMax, liveRecord } from "./roundMax";
 import type { PuzzleType } from "./types";
@@ -490,7 +492,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to aim,", detail: "then let go to throw." },
         { action: "Wind 1 = a quarter bucket.", detail: "Aim into the wind." },
-        { action: "Through the hoop, then in:", detail: "+3 bonus." },
+        { action: "Far bucket at the back:", detail: `+${BINTOSS_FAR_POINTS}, and its hoop +3.` },
+        { action: "Through the hoop, then in:", detail: "+3 bonus.", helpOnly: true },
+        {
+          action: "Far buckets:",
+          detail: `on throws 1-${BINTOSS_FAR_THROWS} a narrow bucket stands still further back. Either bucket counts; the far one adds ${BINTOSS_FAR_POINTS} more (up to ${BINTOSS_FAR_CAP} in all). The hoops hang over it.`,
+          helpOnly: true,
+        },
         {
           action: "Each wind point moves the ball a quarter of a bucket width.",
           detail: "Wind 2 to the left? Aim half a bucket width to the right.",
@@ -500,7 +508,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "From throw 7 the bucket slides", detail: "side to side – time your release.", helpOnly: true },
         {
           action: "Hoops:",
-          detail: "on three of throws 2-5 a hoop hangs above the bucket. Go down through it and into the bucket for 3 bonus points. Its gold ends bounce the ball away.",
+          detail: "on three of throws 2-5 a hoop hangs over the far bucket. Go down through it and into a bucket for 3 bonus points. Its gold ends bounce the ball away.",
           helpOnly: true,
         },
         {
@@ -510,14 +518,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         },
         { action: "Drag down to the cancel strip", detail: "to put a throw back.", helpOnly: true },
       ],
-      score: liveBandHelp("bintoss", "Each bucket counts 10 and each hoop bonus 3.", { more: "More buckets and hoops", good: (u) => `counts ${u} – about ${Math.round(u / 10)} buckets`, finish: "All ten in adds 10." }),
+      // binRev 7 (docs/expansions/e5.md): binRev 6's units on their own curve, plus the far points.
+      score: `Each bucket counts 10 and each hoop bonus 3. More buckets and hoops, higher score – up to ${BINTOSS_V7_BASE_CURVE.points.at(-1)}. A good run (${BAND_GOOD_POINTS} points) counts ${bandUnitsFor(BINTOSS_V7_BASE_CURVE, BAND_GOOD_POINTS)} – about ${Math.round(bandUnitsFor(BINTOSS_V7_BASE_CURVE, BAND_GOOD_POINTS) / 10)} buckets. All ten in adds 10, and each far bucket ${BINTOSS_FAR_POINTS} (up to ${BINTOSS_FAR_CAP}). Up to {max}.`,
     },
     bullseye: {
-      goal: "Hit the centre – ten darts.",
+      goal: "Hit the gold 10, near and far.",
       how: [
         { action: "Drag to aim,", detail: "let go to throw." },
         { action: "Wind 2?", detail: "Aim two rings into the wind." },
-        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3." },
+        { action: "Bulls in a row:", detail: `from the 3rd, +${BULLSEYE_V7_STREAK_STEP}, +${2 * BULLSEYE_V7_STREAK_STEP}, +${3 * BULLSEYE_V7_STREAK_STEP}…` },
+        { action: "Inner bull 12.", detail: "Balloons add +1, +2 or +3.", helpOnly: true },
         {
           action: "Touch and drag to aim:",
           detail: "the dotted path shows where the dart will land.",
@@ -533,7 +543,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           detail: "Wind 2 to the right? Aim two rings to the left.",
           helpOnly: true,
         },
-        { action: "The target", detail: "gets further away each throw.", helpOnly: true },
+        { action: "Every dart's board stands at its own distance:", detail: "near boards low and big, far ones high and small.", helpOnly: true },
+        {
+          action: "Bull streak:",
+          detail: `a dart in the gold 10 (wherever it sits) right after another is a streak ×2, then ×3… From ×3 each bull adds ${BULLSEYE_V7_STREAK_STEP} more than the last (+${BULLSEYE_V7_STREAK_STEP}, +${2 * BULLSEYE_V7_STREAK_STEP}, +${3 * BULLSEYE_V7_STREAK_STEP}…), up to ${BULLSEYE_V7_STREAK_CAP} in all. Any other dart ends the streak.`,
+          helpOnly: true,
+        },
         { action: "From the fourth dart the target moves – lead it.", detail: "It is scored where it is when the dart lands.", helpOnly: true },
         { action: "From the seventh dart the ring values swap places.", detail: "Read the numbers – each value keeps its colour.", helpOnly: true },
         {
@@ -547,7 +562,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           helpOnly: true,
         },
       ],
-      score: liveBandHelp("bullseye", `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in.`, { more: "A higher dart total", good: (u) => `totals ${u}` }),
+      // bullRev 7 (docs/expansions/e5.md): the dart total on its curve, plus the bull-streak points.
+      score: `Your dart total: rings ${BULLSEYE_RING_VALUES.join(" / ")} from the centre out (the inner bull ${BULLSEYE_INNER_BULL_POINTS}), plus +1, +2 or +3 for each balloon popped on the way in. A higher dart total, higher score – 150 at ${bandTop(BULLSEYE_V7_BASE_CURVE)}. A good run (${BAND_GOOD_POINTS} points) totals ${bandUnitsFor(BULLSEYE_V7_BASE_CURVE, BAND_GOOD_POINTS)}. Bull streaks add up to ${BULLSEYE_V7_STREAK_CAP} more. Up to {max}.`,
     },
     matchup: {
       goal: "Line up three or more gems.",
@@ -670,13 +686,20 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Slice the flying food. Don't cut the chillies.",
       how: [
         { action: "Swipe through food.", detail: "3+ in one swipe: combo ×2, ×3." },
-        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo." },
-        { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up." },
+        { action: "Small is worth more:", detail: "onion 3, golden fruit 5." },
+        { action: "Fill the ticket; skim chillies,", detail: "never cut one." },
+        { action: "Never cut a chilli:", detail: "it costs 10 points and ends your combo.", helpOnly: true },
+        { action: "Cut a bottle:", detail: "ketchup, mustard or mayo power-up.", helpOnly: true },
+        { action: "Food sizes:", detail: `bread is big and worth ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onions small and worth ${SLICE_V9_VALUE[2]}, golden fruit tiny and worth ${SLICE_V9_VALUE[4]}.`, helpOnly: true },
+        { action: "Golden fruit:", detail: `cut one while a combo is live for +${SLICE_V9_GOLD_POINTS} at ×2 or +${2 * SLICE_V9_GOLD_POINTS} at ×3.`, helpOnly: true },
+        { action: "Order tickets:", detail: `the ticket at the top right asks for one food, 1–3 in a row, before its time runs out (cutting another food starts the count again). Filling it adds ${SLICE_V9_TICKET_POINTS}.`, helpOnly: true },
+        { action: "Dodge streak:", detail: `slice food close past a chilli (it shows DODGE) and let the chilli fall: ${SLICE_V9_DODGE_POINTS}, ${2 * SLICE_V9_DODGE_POINTS}, then ${3 * SLICE_V9_DODGE_POINTS} for each dodge in a row. Cutting a chilli ends the streak.`, helpOnly: true },
         { action: "Bottles:", detail: "ketchup stops chillies, mustard slows time, mayo pulls food together.", helpOnly: true },
         { action: "Saucy (ketchup): 3 chilli-free seconds.", detail: "Simmer (mustard): 4 slow seconds. Squeeze (mayo): nearby food gathers where you cut it.", helpOnly: true },
         { action: "One finger-down-to-up path counts together", detail: "– curves too, up to the full height of the screen. Each combo resets a 10-second timer.", helpOnly: true },
       ],
-      score: liveBandHelp("slice", "Combo-weighted slices out of the most the run offers (every food at ×3), in thousandths. Each chilli then costs 10 and ends the combo.", { more: "More combo slices", good: (u) => `reaches ${u}` }),
+      // sliceRev 9 (docs/expansions/e5.md): the value-weighted share on its curve, plus the bonus points.
+      score: `Combo-weighted food values (bread ${SLICE_V9_VALUE[0]}, cabbage and meat ${SLICE_V9_VALUE[1]}, onion ${SLICE_V9_VALUE[2]}, golden fruit ${SLICE_V9_VALUE[4]}) out of the most the run offers (every food at ×3), in thousandths. More combo slices, higher score – 150 at ${bandTop(SLICE_V9_BASE_CURVE)}. A good run (${BAND_GOOD_POINTS} points) reaches ${bandUnitsFor(SLICE_V9_BASE_CURVE, BAND_GOOD_POINTS)}. Golden fruit in a combo, filled tickets and dodges add up to ${SLICE_V9_BONUS_CAP} more. Each chilli costs 10 and ends the combo. Up to {max}.`,
     },
     bubble: {
       goal: "Pop bubbles in threes.",

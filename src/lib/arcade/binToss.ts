@@ -12,6 +12,7 @@ import {
   clampInt,
   finishScore,
   dragLaunch,
+  DRAG_MAX_SCALE_256,
   inputRange,
   isqrt,
   px,
@@ -23,7 +24,7 @@ import {
   type DragLaunch,
   type InputRange,
 } from "./engine";
-import { bandStrictGame, bandStrict, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
+import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandCurveOf, bandTargetGame, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { icos, isin } from "./trig";
 
 /* ============================== Constants ============================== */
@@ -450,6 +451,18 @@ export interface BinTossState extends BandFields {
   knockTick?: number;
   /** binRev 5 only: the spinner bar's half-length, 1/256 px (BINTOSS_SPIN_HALF_SHORT). Absent = BINTOSS_SPIN_HALF. */
   spinHalf?: number;
+  /**
+   * binRev 7 only (the world expansion, docs/expansions/e5.md): 1 marks the wider fairground with a far
+   * bucket on throws 1–6. Absent on every earlier round.
+   */
+  expand?: number;
+  /** binRev 7: each throw's far bucket centre, 1/256 px (0 = none on that throw). */
+  fars?: number[];
+  /** binRev 7: baskets made in the far bucket, and 1 per resolved throw that went in the far bucket. */
+  farIn?: number;
+  farResults?: number[];
+  /** binRev 7: last far-bucket rim hit (render only, like wobbleTick). */
+  farWobbleTick?: number;
   tick: number;
   rng: number;
   /** The throw now in hand, 0-based; reaches ten when they are all done. */
@@ -536,7 +549,11 @@ export function binTossPerfect(state: BinTossState): boolean {
 }
 
 /** Ends the throw in flight and starts the wait for the next ball. */
-function resolve(state: BinTossState, tick: number, scored: boolean): BinTossState {
+function resolve(state: BinTossState, tick: number, scored: boolean, far = false): BinTossState {
+  // binRev 7: which bucket it went in.
+  const expand = state.expand === BINTOSS_EXPAND
+    ? { farIn: (state.farIn ?? 0) + (scored && far ? 1 : 0), farResults: [...(state.farResults ?? []), scored && far ? 1 : 0] }
+    : {};
   const rev3 =
     state.rev === BINTOSS_REV3
       ? {
@@ -548,6 +565,7 @@ function resolve(state: BinTossState, tick: number, scored: boolean): BinTossSta
   return {
     ...state,
     ...rev3,
+    ...expand,
     tick,
     phase: BINTOSS_WAIT,
     resolved: state.resolved + 1,
@@ -663,19 +681,31 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
   }
 
   const centre = binTossCentreAt(state, state.throwIndex, tick);
+  // binRev 7: this throw's far bucket (0 = none), standing still further back on the same floor.
+  const far = state.expand === BINTOSS_EXPAND ? (state.fars?.[state.throwIndex] ?? 0) : 0;
+  let farWobbleTick = state.farWobbleTick;
 
   // Crossing the rim line on the way down decides the throw.
   if (vy > 0 && state.y < BINTOSS_RIM_Y && ny >= BINTOSS_RIM_Y) {
     const offset = Math.abs(nx - centre);
-    if (offset <= half - binTossRimInset(state.rev)) {
+    const farOffset = far ? Math.abs(nx - far) : Infinity;
+    const inMain = offset <= half - binTossRimInset(state.rev);
+    if (inMain || farOffset <= BINTOSS_FAR_HALF - binTossRimInset(state.rev)) {
       const caught: BinTossState = { ...state, x: nx, y: ny, wobbleTick };
       if (state.rev === BINTOSS_REV3) {
         caught.hooped = hooped ?? 0;
         caught.knockTick = knockTick ?? 0;
       }
-      return resolve(caught, tick, true);
+      return resolve(caught, tick, true, !inMain);
     }
-    if (offset <= half + BINTOSS_BALL_R) {
+    if (farOffset <= BINTOSS_FAR_HALF + BINTOSS_BALL_R) {
+      // binRev 7: the far bucket's rim edge, as the main bucket's.
+      farWobbleTick = tick;
+      vx = -(vx >> 1);
+      vy = -(vy >> 1);
+      nx = state.x + vx;
+      ny = state.y + vy;
+    } else if (offset <= half + BINTOSS_BALL_R) {
       // A rim edge: the ball bounces away and the throw is a miss.
       wobbleTick = tick;
       vx = -(vx >> 1);
@@ -695,15 +725,24 @@ function step(state: BinTossState, input: ArcadeInputEvent | null): BinTossState
         : centre + half + BINTOSS_BALL_R;
   }
 
+  // binRev 7: the far bucket's outside wall.
+  if (far && ny > BINTOSS_RIM_Y && Math.abs(nx - far) <= BINTOSS_FAR_HALF + BINTOSS_BALL_R) {
+    farWobbleTick = tick;
+    vx = -(vx >> 1);
+    nx = state.x < far ? far - BINTOSS_FAR_HALF - BINTOSS_BALL_R : far + BINTOSS_FAR_HALF + BINTOSS_BALL_R;
+  }
+
   const next: BinTossState = { ...state, tick, vx, vy, windV, windPos, x: nx, y: ny, wobbleTick };
   if (state.rev === BINTOSS_REV3) {
     next.hooped = hooped ?? 0;
     next.knockTick = knockTick ?? 0;
   }
+  if (state.expand === BINTOSS_EXPAND) next.farWobbleTick = farWobbleTick ?? 0;
 
   // Landing on the floor or leaving the canvas is a miss.
+  const right = state.expand === BINTOSS_EXPAND ? BINTOSS_V7_RIGHT : BINTOSS_WORLD_RIGHT;
   if (ny >= BINTOSS_FLOOR_Y - BINTOSS_BALL_R) return resolve(next, tick, false);
-  if (nx < -BINTOSS_BALL_R || nx > BINTOSS_WORLD_RIGHT + BINTOSS_BALL_R) {
+  if (nx < -BINTOSS_BALL_R || nx > right + BINTOSS_BALL_R) {
     return resolve(next, tick, false);
   }
   if (ny < -BINTOSS_WORLD_BOTTOM) return resolve(next, tick, false);
@@ -777,6 +816,8 @@ export function binTossCheckpoint(state: BinTossState): BinTossCheckpoint {
   if (state.rev === BINTOSS_REV3) values.push(state.hooped ?? 0, state.swishes ?? 0, state.spinBaskets ?? 0);
   // binRev 5 only, last, so every older sum is unchanged.
   if (state.spinHalf !== undefined) values.push(state.spinHalf);
+  // binRev 7 only, after that: its marker and the far baskets.
+  if (state.expand === BINTOSS_EXPAND) values.push(state.expand, state.farIn ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -975,6 +1016,9 @@ export interface BinTossLandingPresentation {
   binCentre: number;
   binIndex: number;
   rev?: number | undefined;
+  /** binRev 7: the wider world (BINTOSS_EXPAND), and true when the ball went in the far bucket. */
+  expand?: number | undefined;
+  far?: boolean | undefined;
 }
 
 /** Draws a walked flight as a dotted arc. Never touches simulation state. */
@@ -1102,8 +1146,7 @@ function initRev2(seed: number): BinTossState {
  * there is always a throw through the hoop and into the bucket. Returns null if
  * no reference fits (the throw then has no hoop).
  */
-function placeHoop(index: number, wind: number, liftPx: number, apexPx: number): BinTossHoop | null {
-  const centre = binTossBinCentre(index);
+function placeHoop(index: number, wind: number, liftPx: number, apexPx: number, centre = binTossBinCentre(index), maxSpeed = Infinity): BinTossHoop | null {
   const hoopY = BINTOSS_RIM_Y - liftPx * 256;
   const acc = binTossWindAcc(index, BINTOSS_REV3);
   const sub = BINTOSS_WIND_SUB_V3;
@@ -1125,6 +1168,8 @@ function placeHoop(index: number, wind: number, liftPx: number, apexPx: number):
     const errHi = Math.abs(binTossPredict(hi, vy, wind, acc, sub).x * 256 - centre);
     const best = errLo <= errHi ? lo : hi;
     if (Math.min(errLo, errHi) > 1_024) continue;
+    // binRev 7: the reference throw must be one a drag can make.
+    if (best * best + vy * vy > maxSpeed * maxSpeed) continue;
     // Walk that flight in sim units to find where it falls through the hoop's height.
     let flight: BinTossFlight = { x: BINTOSS_BALL_X, y: BINTOSS_BALL_Y, vx: best, vy, windV: 0, windPos: 0 };
     let up: number | null = null;
@@ -1195,6 +1240,7 @@ export const binTossRev3Game: ArcadeGame<BinTossState, ArcadeInputEvent | null> 
 
 /** Takes puzzle.binRev; anything else is the original bin. */
 export function binTossGameFor(rev?: number | null): ArcadeGame<BinTossState, ArcadeInputEvent | null> {
+  if (rev === BINTOSS_REV_EXPAND) return binTossExpandGame;
   if (rev === BINTOSS_REV_STRICT) return binTossStrictGame;
   if (rev === BINTOSS_REV_TARGET) return binTossTargetGame;
   if (rev === BINTOSS_REV_BAND) return binTossBandGame;
@@ -1209,12 +1255,14 @@ export const BINTOSS_REV_BAND = 4;
 /** Buckets count 10 and hoop swishes 3; 140 at every bucket and hoop; all ten in adds 10 (no 99 cap). */
 export const BINTOSS_BAND_CURVE = bandCurve([0, 45, 70, 80, 90, 109], [0, 70, 100, 118, 138, 140]);
 export function binTossBandParts(state: BinTossState): BandParts {
+  if (state.expand === BINTOSS_EXPAND) return binTossV7Parts(state);
   const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
   const finished = state.baskets >= BINTOSS_THROWS;
   return { units, points: bandPoints(bandCurveOf(state, BINTOSS_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`, bonusText: "All ten in" };
 }
 
 function scoreBand(state: BinTossState): number {
+  if (state.expand === BINTOSS_EXPAND) return bandTotal(binTossBandParts(state), Boolean(state.acted), BINTOSS_V7_MAX);
   return bandTotal(binTossBandParts(state), Boolean(state.acted));
 }
 
@@ -1249,3 +1297,141 @@ export const BINTOSS_REV_STRICT = 6;
 export const binTossStrictGame = bandStrictGame(binTossTargetGame);
 /** The curve new rounds score on: BINTOSS_BAND_CURVE's strict curve (what bandCurveOf gives a band-3 state). */
 export const BINTOSS_V6_BAND_CURVE = bandStrict(BINTOSS_BAND_CURVE);
+
+
+/* ============ World expansion (binRev 7, 25 Oct 2026; docs/expansions/e5.md) ============ */
+
+/**
+ * binRev 7: binRev 6's ten throws (the bucket's distances, narrowing, slide, spinners, wind) in a wider,
+ * taller fairground (BINTOSS_V7_WORLD_W × BINTOSS_V7_WORLD_H; the extra height is BINTOSS_V7_LIFT px of sky
+ * above the original top, so every original coordinate stays where it was), with a stronger throw (a drag
+ * launches 1.2 times as fast, BINTOSS_V7_REF_V).
+ *
+ * The skill feature: on throws 1–6 a far bucket stands further back on the same floor (its gap behind the
+ * main bucket seeded per throw), a narrow one that never moves. Either bucket counts as a basket; the far
+ * one also earns BINTOSS_FAR_POINTS far points. The bonus hoops (three of throws 2–5) now hang over the far
+ * bucket, placed on a throw a drag can make. The score is binRev 6's units (10 a bucket, 3 a hoop swish)
+ * on its own curve to 140, 10 for all ten in, plus the far points up to 50: 200 needs all ten in, every
+ * hoop and the far bucket on (nearly) every throw that has one.
+ * States keep `rev: 3` (the rev-3 bucket, wind, hoops and spinners) and add `expand: 1`, `fars`, `farIn`,
+ * `farResults` and `farWobbleTick`; `spinHalf` as binRev 5; band 3; scoring passes 200 as the maximum.
+ */
+export const BINTOSS_REV_EXPAND = 7;
+export const BINTOSS_EXPAND = 1;
+export const BINTOSS_V7_MAX = 200;
+export const BINTOSS_V7_WORLD_W = 430;
+export const BINTOSS_V7_LIFT = 168;
+export const BINTOSS_V7_WORLD_H = BINTOSS_WORLD_H + BINTOSS_V7_LIFT;
+export const BINTOSS_V7_RIGHT = BINTOSS_V7_WORLD_W * 256;
+/** binRev 7's reference speed: a drag throws 1.2 times as fast, so the far bucket is in reach. */
+export const BINTOSS_V7_REF_V = Math.round((BINTOSS_REF_V * 6) / 5);
+/** Far buckets on throws 1–6 (0-based 0–5): never a sliding throw. */
+export const BINTOSS_FAR_THROWS = 6;
+/** The far bucket's centre sits 110–140 px behind the main bucket's resting centre (seeded), inside the stall. */
+export const BINTOSS_FAR_GAP_MIN = 110;
+export const BINTOSS_FAR_GAP_SPAN = 31;
+export const BINTOSS_FAR_HALF = BINTOSS_NARROW_HALF_V2;
+/** The far bucket's centre stays this far inside the right edge (1/256 px). */
+export const BINTOSS_FAR_RIGHT = BINTOSS_V7_RIGHT - BINTOSS_FAR_HALF - 10 * 256;
+/** Far points per far basket, and the most the score counts. */
+export const BINTOSS_FAR_POINTS = 9;
+export const BINTOSS_FAR_CAP = 50;
+
+/** The aim launch for a drag on this revision (binRev 7 throws 1.2 times as fast). */
+export function binTossDragFor(rev: number | null | undefined, dx: number, dy: number): DragLaunch | null {
+  if (rev !== BINTOSS_REV_EXPAND) return binTossDrag(dx, dy);
+  const launch = dragLaunch(dx, dy, BINTOSS_V7_REF_V);
+  if (!launch) return null;
+  return { ...launch, vx: clampInt(launch.vx, -BINTOSS_VX_MAX, BINTOSS_VX_MAX), vy: clampInt(launch.vy, -BINTOSS_VY_MAX, -1) };
+}
+
+/** The fastest throw a drag can make on binRev 7, 1/256 px a tick. */
+export const BINTOSS_V7_MAX_SPEED = Math.round((BINTOSS_V7_REF_V * DRAG_MAX_SCALE_256) / 256);
+
+/** The world a state plays in: binRev 7's wider, taller fairground, else 390 × 560. */
+export function binTossWorldOf(state: Pick<BinTossState, "expand">): { w: number; h: number; lift: number } {
+  return state.expand === BINTOSS_EXPAND
+    ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_V7_WORLD_H, lift: BINTOSS_V7_LIFT }
+    : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, lift: 0 };
+}
+
+/** binRev 7's far points as the score counts them. */
+export function binTossFarPoints(state: Pick<BinTossState, "farIn">): number {
+  return clampInt(BINTOSS_FAR_POINTS * (state.farIn ?? 0), 0, BINTOSS_FAR_CAP);
+}
+
+function initRev7(seed: number): BinTossState {
+  // Winds and slides first, exactly as every revision draws them; then the far buckets, then rev 3's draws.
+  const base = init(seed);
+  let rng = base.rng;
+  const fars: number[] = [];
+  for (let index = 0; index < BINTOSS_THROWS; index++) {
+    if (index >= BINTOSS_FAR_THROWS) {
+      fars.push(0);
+      continue;
+    }
+    const gap = rngBelow(rng, BINTOSS_FAR_GAP_SPAN);
+    rng = gap.state;
+    fars.push(Math.min(BINTOSS_FAR_RIGHT, binTossBinCentre(index) + (BINTOSS_FAR_GAP_MIN + gap.value) * 256));
+  }
+  const hoopPick = pickThrows(rng, BINTOSS_HOOP_FROM, BINTOSS_HOOP_TO, BINTOSS_HOOP_COUNT);
+  rng = hoopPick.rng;
+  const spinPick = pickThrows(rng, BINTOSS_SPIN_FROM, BINTOSS_THROWS - 1, BINTOSS_SPIN_COUNT);
+  rng = spinPick.rng;
+  const hoops: (BinTossHoop | null)[] = [];
+  const spinners: (BinTossSpinner | null)[] = [];
+  for (let index = 0; index < BINTOSS_THROWS; index++) {
+    let hoop: BinTossHoop | null = null;
+    if (hoopPick.picked[index]) {
+      const lift = rngBelow(rng, BINTOSS_HOOP_LIFT_SPAN);
+      const apex = rngBelow(lift.state, 41);
+      rng = apex.state;
+      // The hoop hangs over the far bucket (the main one when a throw has none), on a throw a drag can make.
+      hoop = placeHoop(index, base.winds[index] ?? 0, BINTOSS_HOOP_LIFT_MIN + lift.value, 30 + apex.value, fars[index] || binTossBinCentre(index), BINTOSS_V7_MAX_SPEED);
+    }
+    hoops.push(hoop);
+    let spinner: BinTossSpinner | null = null;
+    if (spinPick.picked[index]) {
+      const phase = rngBelow(rng, 65_536);
+      const dir = rngBelow(phase.state, 2);
+      rng = dir.state;
+      spinner = { phase: phase.value, dir: dir.value === 0 ? -1 : 1 };
+    }
+    spinners.push(spinner);
+  }
+  return {
+    ...bandInit({ ...base, rng, rev: BINTOSS_REV3, hoops, spinners, hooped: 0, swishes: 0, spinBaskets: 0, knockTick: 0 }),
+    band: BAND_STRICT_MARK,
+    spinHalf: BINTOSS_SPIN_HALF_SHORT,
+    expand: BINTOSS_EXPAND,
+    fars,
+    farIn: 0,
+    farResults: [],
+    farWobbleTick: 0,
+  };
+}
+
+/**
+ * binRev 7's curve for binRev 6's units (10 a bucket, 3 a hoop swish; the far points come on top, and 10
+ * for all ten in): fitted with scripts/arcade-skill-bands.ts --rev=x so each simulated level's median
+ * stays within about 10 % of binRev 6's; 140 at every bucket and hoop.
+ */
+export const BINTOSS_V7_BASE_CURVE = bandCurve([0, 40, 60, 70, 74, 83, 100, 109], [0, 50, 80, 96, 110, 124, 137, 140]);
+
+function binTossV7Parts(state: BinTossState): BandParts {
+  const units = 10 * clampInt(state.baskets, 0, BINTOSS_THROWS) + BINTOSS_HOOP_POINTS * clampInt(state.swishes ?? 0, 0, BINTOSS_HOOP_COUNT);
+  const finished = state.baskets >= BINTOSS_THROWS;
+  const far = binTossFarPoints(state);
+  return {
+    units,
+    points: bandPoints(BINTOSS_V7_BASE_CURVE, units),
+    bonus: (finished ? BAND_FINISH_BONUS : 0) + far,
+    penalty: 0,
+    finished,
+    text: `${state.baskets} / ${BINTOSS_THROWS} buckets · ${state.swishes ?? 0} hoops`,
+    bonusText: finished ? `All ten in (${BAND_FINISH_BONUS}) and far buckets (${far})` : `${state.farIn ?? 0} far buckets`,
+  };
+}
+
+/** binRev 7: the wider fairground with a far bucket on throws 1–6, scored to 200. */
+export const binTossExpandGame: ArcadeGame<BinTossState, ArcadeInputEvent | null> = { ...binTossGame, init: initRev7 };

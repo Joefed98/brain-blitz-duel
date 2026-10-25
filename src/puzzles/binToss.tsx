@@ -18,11 +18,14 @@ import {
 import {
   binTossCheckpoint,
   binTossCentreAt,
-  binTossDrag,
+  binTossDragFor,
   binTossDrawGhost,
 
   binTossGameFor,
-  binTossTransform,
+  BINTOSS_REV_EXPAND,
+  BINTOSS_V7_LIFT,
+  BINTOSS_V7_WORLD_H,
+  BINTOSS_V7_WORLD_W,
   BINTOSS_AIM,
   BINTOSS_BALL_COLOUR,
   BINTOSS_BG,
@@ -42,7 +45,9 @@ import { decodeBinTossRun, encodeBinTossRun, replayBinTossRun } from "@/lib/duel
 import { ARCADE_CRASH_FREEZE_MS, type BinTossPuzzleData } from "@/lib/duel/types";
 import { buzz } from "@/lib/motion";
 import { playWrong } from "@/lib/sound";
-import { binTossArenaScene, binTossArtGame, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
+import { binTossArenaScene, binTossArenaSceneV7, binTossArtGame, binTossArtGhost, binTossArtLanding, binTossArtAim as binTossDrawAim } from "@/lib/arcade/binTossArt.renderer";
+import { fairTransform } from "@/lib/arcade/fairground.renderer";
+import { binTossExtraSounds } from "@/lib/arcade/e5Sounds";
 import { useFairSceneKey } from "@/components/puzzles/useFairSceneKey";
 import { binTossSounds } from "@/lib/fx/gameSounds";
 
@@ -98,6 +103,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const seed = data?.seed ?? 1;
   const fairSceneKey = useFairSceneKey();
   const binTossGame = binTossGameFor(data?.binRev);
+  // binRev 7: the wider, taller fairground and its stronger throw; every phone draws the stored revision's world.
+  const expand = data?.binRev === BINTOSS_REV_EXPAND;
+  const world = expand ? { w: BINTOSS_V7_WORLD_W, h: BINTOSS_V7_WORLD_H, lift: BINTOSS_V7_LIFT } : { w: BINTOSS_WORLD_W, h: BINTOSS_WORLD_H, lift: 0 };
+  const dragOf = (dx: number, dy: number) => binTossDragFor(data?.binRev, dx, dy);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const arenaBox = useRef<HTMLDivElement | null>(null);
@@ -131,7 +140,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // through the same launch as a finger lifted, Esc hides the aim.
   const keyAim = useRef(aimVector());
   const showKeyAim = (v: { dx: number; dy: number }) => {
-    const preview = binTossDrag(v.dx, v.dy);
+    const preview = dragOf(v.dx, v.dy);
     aim.current = preview ? { vx: preview.vx, vy: preview.vy, wind: state.current.winds[state.current.throwIndex] ?? 0 } : null;
   };
   useGameKeys((kind, key, event) => {
@@ -194,6 +203,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let draftAt = 0;
     const feedback = arcadeFeedback({ game: "bintoss" });
     const sounds = binTossSounds();
+    const extra = binTossExtraSounds();
     let secondAt = last;
     let ticksThisSecond = 0;
 
@@ -230,12 +240,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             lastGhost.current = activeLaunch.current;
             activeLaunch.current = null;
             if (state.current.results[state.current.results.length - 1] === 1) {
+              // binRev 7: a far basket drops into the far bucket.
+              const far = state.current.farResults?.at(-1) === 1;
               landing.current = {
                 startedAt: time,
                 progress: 0,
-                binCentre: binTossCentreAt(before, before.throwIndex, state.current.tick),
+                binCentre: far ? (before.fars?.[before.throwIndex] ?? 0) : binTossCentreAt(before, before.throwIndex, state.current.tick),
                 binIndex: before.throwIndex,
                 rev: before.rev,
+                expand: before.expand,
+                far,
                 tick: state.current.tick,
               };
             }
@@ -251,6 +265,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       reportArcadeTick(state.current.tick, binTossGame.isOver(state.current));
       feedback(state.current, binTossGame.isOver(state.current));
       sounds.frame(state.current, !binTossGame.isOver(state.current));
+      extra(state.current);
 
       frameTiming.draw();
       const size = sizeCanvas();
@@ -276,9 +291,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               : state.current,
             size,
           );
-          if (lastGhost.current) binTossDrawGhost(context, size, lastGhost.current);
+          if (lastGhost.current) (expand ? binTossArtGhost : binTossDrawGhost)(context, size, lastGhost.current);
           if (aim.current && state.current.phase === BINTOSS_AIM) {
-            binTossDrawAim(context, size, aim.current, cancelActive.current);
+            binTossDrawAim(context, size, aim.current, cancelActive.current, expand);
           }
           if (activeLanding) binTossArtLanding(context, size, activeLanding);
         }
@@ -342,13 +357,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Canvas coordinates to world pixels, using the sim's own mapping. */
   const worldPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
-    const { scale, offsetX, offsetY } = binTossTransform({
-      width: box.width,
-      height: box.height,
-    });
+    const { scale, offsetX, offsetY } = fairTransform({ width: box.width, height: box.height }, world.w, world.h);
     return {
       x: (event.clientX - box.left - offsetX) / Math.max(scale, 0.0001),
-      y: (event.clientY - box.top - offsetY) / Math.max(scale, 0.0001),
+      y: (event.clientY - box.top - offsetY) / Math.max(scale, 0.0001) - world.lift,
     };
   };
 
@@ -365,7 +377,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** A finger lifted (or Space on desktop) with this drag vector: the throw. */
   function throwWith(drag: { dx: number; dy: number }) {
     aim.current = null;
-    const launch = binTossDrag(drag.dx, drag.dy);
+    const launch = dragOf(drag.dx, drag.dy);
     if (!launch) return;
     lastGhost.current = null;
     activeLaunch.current = {
@@ -385,7 +397,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       ref={wrap}
       className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
     >
-      <ArcadeArenaSlot width={BINTOSS_WORLD_W} height={BINTOSS_WORLD_H} scene={binTossArenaScene} sceneKey={fairSceneKey}>
+      <ArcadeArenaSlot width={world.w} height={world.h} scene={expand ? binTossArenaSceneV7 : binTossArenaScene} sceneKey={fairSceneKey}>
       <div ref={arenaBox} data-game-arena="canvas" className="relative overflow-hidden">
       <canvas
         ref={canvas}
@@ -410,7 +422,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           setCancelled(inCancelZone(event.clientY));
           // The aim is the drag vector itself, so the path holds still when the
           // finger does.
-          const preview = binTossDrag(point.x - start.x, point.y - start.y);
+          const preview = dragOf(point.x - start.x, point.y - start.y);
           aim.current = preview
             ? {
                 vx: preview.vx,
