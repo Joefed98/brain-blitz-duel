@@ -31,6 +31,7 @@ import {
   CHECKOUT_STANDARD,
   type CheckoutDart,
 } from "@/lib/duel/checkout";
+import { checkoutBigFinish } from "@/lib/duel/checkout";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -469,6 +470,7 @@ const CHECKOUT_CSS = `
   color: #0B0B0F;
 }
 [data-checkout-root] .co-rule { color: color-mix(in srgb, ${FAIR_CHALK} 72%, transparent); }
+[data-checkout-root] .co-big { color: ${GOLD}; font-weight: 700; }
 [data-checkout-root] .co-score {
   background: radial-gradient(120% 140% at 30% 0%, #2B3A33, #18221E);
   border: 2px solid ${FAIR_WOOD};
@@ -507,6 +509,18 @@ const CHECKOUT_CSS = `
 
 function finishWord(stage: CheckoutStageData): string {
   return stage.finish === 3 ? "treble" : "double";
+}
+
+/** checkoutRev 2's rule line: the finishing ring and the big finish, short enough for one line at 375 px. */
+function bigFinishRule(stage: CheckoutStageData): string {
+  return stage.finish === 3 ? "Treble · ★ Bull" : "Double · ★ Bull/treble";
+}
+
+/** True when a stored stage answer ended on a big finish (checkoutRev 2). */
+function endedBig(stage: CheckoutStageData, encoded: string | undefined): boolean {
+  if (!encoded) return false;
+  const darts = decodeCheckoutDarts(encoded, stage.maxDarts);
+  return checkoutBigFinish(stage, darts[darts.length - 1]);
 }
 
 function dartsRule(stage: CheckoutStageData): string {
@@ -722,7 +736,7 @@ function Stage({
             }}
             className="flex-1 rounded-lg border font-mono text-sm font-bold"
           >
-            {isSolved(i) ? "✓" : s.target}
+            {isSolved(i) ? (endedBig(s, solved[i]) ? "★" : "✓") : s.target}
           </button>
         ))}
       </div>
@@ -730,8 +744,22 @@ function Stage({
         className="co-rule h-5 w-full shrink-0 text-center font-mono text-xs uppercase tracking-wider"
         data-checkout-rule
       >
-        Finish on a <span className="text-primary">{finishWord(current)}</span> ·{" "}
-        {dartsRule(current)}
+        {current.bigFinish ? (
+          correct && endedBig(current, solved[stage]) ? (
+            <span className="co-big">★ Big finish!</span>
+          ) : (
+            <>
+              <span className="text-primary">{bigFinishRule(current).split(" · ")[0]}</span>
+              {" · "}<span className="co-big">{bigFinishRule(current).split(" · ")[1]}</span>{" · "}
+              {dartsRule(current)}
+            </>
+          )
+        ) : (
+          <>
+            Finish on a <span className="text-primary">{finishWord(current)}</span> ·{" "}
+            {dartsRule(current)}
+          </>
+        )}
       </p>
       <StageCorrect visible={correct} />
       <div
@@ -846,6 +874,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
               <div className="flex items-center justify-between gap-1 text-sm">
                 <span className="text-xs" style={{ color: REVEAL_LABEL }}>
                   {index + 1}. {stage.target} · {finishWord(stage)}
+                  {ok && checkoutBigFinish(stage, mine[mine.length - 1]) ? <span style={{ color: GOLD }}> · ★ big finish</span> : null}
                 </span>
                 <span className={ok ? "font-bold text-primary" : "text-warn"}>
                   {ok
