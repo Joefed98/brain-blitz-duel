@@ -1,7 +1,7 @@
 import { TEN_DROP_RAW_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT } from "@/lib/arcade/flip";
-import { CROSS_REV_TARGET, CROSS_REV_STRICT } from "@/lib/arcade/cross";
+import { CROSS_REV_TARGET, CROSS_REV_EXPAND } from "@/lib/arcade/cross";
 import { INK_REV_TARGET, INK_REV_STRICT } from "@/lib/arcade/inkBridge";
 import { SNAKE_REV_TARGET, SNAKE_REV_STRICT } from "@/lib/arcade/snake";
 import { BUB_REV_TARGET, BUB_REV_STRICT } from "@/lib/arcade/bubble";
@@ -101,7 +101,7 @@ export function generateSnake(): SnakePuzzleData {
 }
 
 export function generateCross(): CrossPuzzleData {
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_STRICT };
+  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_EXPAND };
 }
 
 export function generateDual(): DualPuzzleData {

@@ -94,7 +94,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     bullseye: `Rings ${BULLSEYE_RING_VALUES.join(" / ")}, inner bull ${BULLSEYE_INNER_BULL_POINTS}; balloons +1 to +3. Up to {max}.`,
     matchup: "Match lines of three or more; longer lines score far more. Up to {max}.",
     snake: "Points for each star you eat. Up to {max}.",
-    cross: "Points for each lane crossed, more for each full crossing. Up to {max}.",
+    cross: "Points for rows and crossings; coins and hit-free streaks add more. Up to {max}.",
     breaker: `Points for each brick. Clear all ${BRK_BRICKS} quickly for up to {max}.`,
     rally: "Points for each gold-ball hit and pink target. Blue scores nothing. Up to {max}.",
     pinball: "Table points from bumpers, targets, the spinner and lit lanes. Up to {max}.",

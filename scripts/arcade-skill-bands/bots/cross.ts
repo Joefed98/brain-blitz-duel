@@ -18,12 +18,18 @@
  * level's timing jitter; swipes are limited to a human rate and only land when
  * the disc is standing (as on the phone). Now and then a swipe goes the wrong
  * way (slip).
+ *
+ * crossRev 8 (the expansion): 14 rows (the island is never blocked); motorbikes are read like
+ * cyclists; a coin in the next lane is chased (the hop aimed at its column) at a skill-dependent
+ * rate, decided once per lane and crossing. Older revisions draw nothing extra from the human, so
+ * their runs are unchanged.
  */
 import {
   CROSS_COLS,
   CROSS_INPUT_MOVE,
   CROSS_KIND_CYCLE,
-  CROSS_LANES,
+  CROSS_KIND_MOTO,
+  crossRowsOf,
   CROSS_WORLD_W,
   crossBlocked,
   crossClosed,
@@ -35,6 +41,13 @@ import {
 } from "../../../src/lib/arcade/cross";
 import { driveEvents, type SkillBot } from "../bot";
 
+/** crossRev 8: how often a coin in the next lane is gone for (the hop aimed at its column). */
+const COIN_CHASE: Record<string, number> = { average: 0.15, good: 0.35, great: 0.6, near: 0.85 };
+let chaseScale = 1;
+/** Measurement only (scripts/cross-expand-bands.ts): scales every level's coin chasing (0 = never). */
+export function setCoinChase(scale: number): void {
+  chaseScale = scale;
+}
 /** Fastest repeated swiping, ticks between swipes (a swipe is a down-move-up gesture). */
 const SWIPE_GAP: Record<string, number> = { average: 18, good: 15, great: 13, near: 11 };
 /** Relative misjudgement of when traffic arrives (sd), per lane read. */
@@ -71,6 +84,26 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let warp = new Map<number, number>();
   let notice = new Map<number, number>();
   const init = game.init(seed) as CrossState;
+  /** Rows between the kerbs: 9, or crossRev 8's 13 lanes and the island. */
+  const ROWS = crossRowsOf(init);
+  /** crossRev 8: per crossing and lane, whether this player goes for its coin. */
+  const chase = new Map<number, boolean>();
+  const coinColFor = (s: CrossState, lane: number): number | null => {
+    if (!s.wide) return null;
+    const coins = crossCourse(s).coins ?? [];
+    for (let i = 0; i < coins.length; i++) {
+      const cell = coins[i]!;
+      if (cell >> 4 !== lane || ((s.coins ?? 0) & (1 << i))) continue;
+      const id = s.crossings * 32 + lane;
+      let go = chase.get(id);
+      if (go === undefined) {
+        go = human.chance(COIN_CHASE[level]! * chaseScale);
+        chase.set(id, go);
+      }
+      return go ? cell & 15 : null;
+    }
+    return null;
+  };
 
   const noticeFor = (lane: number) => {
     let r = notice.get(lane);
@@ -83,7 +116,8 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const warpFor = (course: CrossCourse, lane: number) => {
     let w = warp.get(lane);
     if (w === undefined) {
-      const cyc = course.lanes[lane - 1]?.kind === CROSS_KIND_CYCLE;
+      const kind = course.lanes[lane - 1]?.kind;
+      const cyc = kind === CROSS_KIND_CYCLE || kind === CROSS_KIND_MOTO;
       const sd = READ[level]! * (cyc ? 1.3 : 1);
       // Fast riders look slower than they are: their arrival is judged late on average.
       w = Math.max(0.5, 1 + sd * human.normal() + (cyc ? 0.5 * READ[level]! : 0));
@@ -103,6 +137,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     dir: number,
     edges: number,
     occ: (lane: number, col: number, k: number) => boolean,
+    want: number | null = null,
   ) => {
     const course = crossCourse(s);
     const to = s.lane + (dir > 0 ? 1 : -1);
@@ -122,13 +157,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // Landing safety for a hop starting at offset k from column c.
     const landOk = (c: number, k: number) => {
       if (crossClosed(course, to, c)) return false;
-      if (to === 0 || to > CROSS_LANES) return true;
+      if (to === 0 || to > ROWS) return true;
       for (let j = k + HOP - CUSHION; j <= k + HOP + need; j++) if (occ(to, c, j)) return false;
       return true;
     };
     // Leaving a cell at offset k: it should stay clear a little beyond, in case the move is late.
     const holds = (c: number, k: number) => {
-      if (lane < 1 || lane > CROSS_LANES) return true;
+      if (lane < 1 || lane > ROWS) return true;
       for (let j = k; j <= k + SLACK; j++) if (occ(lane, c, j)) return false;
       return true;
     };
@@ -147,10 +182,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     for (let k = 0; k < HORIZON && layer.size; k++) {
       const next = new Map<number, Node>();
       for (const n of layer.values()) {
-        if (n.cool === 0 && hopWindow(n.c, k))
+        if (n.cool === 0 && (want === null || n.c === want) && hopWindow(n.c, k))
           return n.first ?? { at: t + k + half, m: dir > 0 ? UP : DOWN };
         const add = (c: number, cool: number, first: Node["first"]) => {
-          if (lane >= 1 && lane <= CROSS_LANES && occ(lane, c, k + 1)) return;
+          if (lane >= 1 && lane <= ROWS && occ(lane, c, k + 1)) return;
           const key = c * 64 + cool;
           if (!next.has(key)) next.set(key, { c, cool, first });
         };
@@ -162,7 +197,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
             // The side-step lands this tick: that cell must be clear now, and not just cleared, and
             // the cell left must not be cut close either.
             if (!holds(n.c, k)) continue;
-            if (lane >= 1 && lane <= CROSS_LANES) {
+            if (lane >= 1 && lane <= ROWS) {
               let hit = false;
               for (let j = Math.max(0, k - CUSHION); j <= k && !hit; j++) hit = occ(lane, c, j);
               if (hit) continue;
@@ -178,7 +213,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   return driveEvents(
     game,
     (s: CrossState, t) => {
-      if (t < s.pauseUntil || s.hop > 0 || s.lane > CROSS_LANES) {
+      if (t < s.pauseUntil || s.hop > 0 || s.lane > ROWS) {
         pending = null;
         plan = null;
         nextLook = 0;
@@ -213,14 +248,16 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           }
           return v;
         };
+        const want = coinColFor(s, s.lane + 1);
         plan =
+          (want !== null ? search(s, t, 1, 1, occ, want) : null) ??
           search(s, t, 1, 2, occ) ??
           search(s, t, 1, 1, occ) ??
           (s.lane >= 1 ? (search(s, t, -1, 2, occ) ?? search(s, t, -1, 1, occ)) : null);
         if (!plan && s.lane >= 1) {
           // Cornered: whatever looks clear longest, now (blurred pick).
           const run = (lane: number, col: number, from: number) => {
-            if (lane < 1 || lane > CROSS_LANES) return 90;
+            if (lane < 1 || lane > ROWS) return 90;
             let k = from;
             while (k < from + 90 && !occ(lane, col, k)) k++;
             return k - from;
@@ -268,7 +305,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     tau: number,
     tPer: number,
   ): boolean {
-    if (lane < 1 || lane > CROSS_LANES) return false;
+    if (lane < 1 || lane > ROWS) return false;
     const def = course.lanes[lane - 1]!;
     const seenAt = Math.round(tPer + (tau - tPer) / warpFor(course, lane));
     const centre = crossColumnCentreFp(col);

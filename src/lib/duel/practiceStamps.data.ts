@@ -16,7 +16,7 @@ export const PRACTICE_STAMPS = {
   "clayshoot": "clayRev=8 puzzleScoreRev=3 speedPar=1",
   "codeword": "codewordRev=3 puzzleScoreRev=3 speedPar=1",
   "countup": "countRev=2 puzzleScoreRev=3 speedPar=1",
-  "cross": "crossRev=7 puzzleScoreRev=3 speedPar=1",
+  "cross": "crossRev=8 puzzleScoreRev=3 speedPar=1",
   "dig": "puzzleScoreRev=3 speedPar=1",
   "dual": "puzzleScoreRev=3 speedPar=1",
   "equation": "equationRev=1 puzzleScoreRev=3 speedPar=1",
