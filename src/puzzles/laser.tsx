@@ -49,6 +49,7 @@ import {
   LaserSplitter,
   useLaserCues,
 } from "@/components/puzzles/pattern/laserArt";
+import { LiveSummary, SummaryItem, useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -320,6 +321,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
   const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
+  const inFrame = useInFrame();
 
   const refuse = useCallback(() => {
     buzz(20);
@@ -581,10 +583,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
 
   return (
     <div data-stage-column="2" data-polish="laser" className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        mirrors <span className="text-primary">{mirrorsPlaced}</span> / {total}
-        {splitterTotal > 0 ? <> · splitter <span className="text-opponent">{splitterPlaced}</span> / {splitterTotal}</> : null}
-      </p>
+      {inFrame ? null : (
+        <p className="shrink-0 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          mirrors <span className="text-primary">{mirrorsPlaced}</span> / {total}
+          {splitterTotal > 0 ? <> · splitter <span className="text-opponent">{splitterPlaced}</span> / {splitterTotal}</> : null}
+        </p>
+      )}
 
       <div data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         <LaserBoard
@@ -608,6 +612,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
         />
       </div>
 
+      <LiveSummary
+        items={[
+          <SummaryItem key="mirrors" label="Mirrors" value={`${mirrorsPlaced} / ${total}`} />,
+          splitterTotal > 0 ? <SummaryItem key="splitter" label="Splitter" value={`${splitterPlaced} / ${splitterTotal}`} /> : null,
+          <SummaryItem key="gems" label="Gems lit" value={`${litGems.length} / ${gems.length}`} />,
+        ]}
+      />
       <div data-game-controls="pieces" className="flex shrink-0 items-center justify-center gap-2">
         {(["/", ...(splitterTotal > 0 ? ["S-"] : [])] as MirrorKind[]).map((kind) => {
           const left = isSplitter(kind) ? splitterTotal - splitterPlaced : total - mirrorsPlaced;

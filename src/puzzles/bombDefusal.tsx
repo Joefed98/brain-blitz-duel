@@ -25,6 +25,7 @@ import { playLock } from "@/lib/sound";
 import { useGameKeys } from "@/lib/desktop";
 
 import { soundCue } from "./logicFx";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 interface PanelProps {
@@ -294,6 +295,8 @@ function Stage({
   const [actions, setActions] = useStageState<BombAction[]>(stateKey, "bombActions", () => []);
   const [frozenAt, setFrozenAt] = useState<number | null>(null);
   const submitted = useRef(false);
+  const stepTotal = (isBomb ? puzzle.stepCount || BOMB_MAX_SEQUENCE : BOMB_MAX_SEQUENCE);
+  const inFrame = useFrameProgress(Math.min(actions.length, stepTotal), stepTotal, "steps");
 
   useEffect(() => {
     onDraftAnswer?.(encodeBombActions(actions));
@@ -381,9 +384,11 @@ function Stage({
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-between">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          steps <span className="text-primary">{actions.length}</span> / {puzzle.stepCount || BOMB_MAX_SEQUENCE}
-        </p>
+        {inFrame ? null : (
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            steps <span className="text-primary">{actions.length}</span> / {puzzle.stepCount || BOMB_MAX_SEQUENCE}
+          </p>
+        )}
         <div className="flex flex-1 items-center justify-center">
         <Button
           type="button"

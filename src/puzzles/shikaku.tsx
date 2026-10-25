@@ -25,6 +25,7 @@ import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const FILLS = ["var(--primary)", "var(--me)"];
@@ -130,6 +131,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const submitted = useRef(false);
   const encoded = encodeShikaku(rects);
   const solving = useSolveFx("shikaku", Boolean(data && shikakuSolved(rects, clues, size)));
+  const inFrame = useFrameProgress(shikakuCovered(rects, clues, size), size * size, "covered");
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -188,12 +190,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     <div data-logic-stage="shikaku" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          uncovered <span className="text-primary">{uncovered}</span>
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            uncovered <span className="text-primary">{uncovered}</span>
+          </p>
+        )}
         <div key={shake} className={`logic-square logic-glass-frame ${shake ? "animate-shake" : ""}`}>
           <Board size={size} clues={clues} rects={rects} preview={preview} pointer={pointer} />
         </div>
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[
+            <SummaryItem key="rects" label="Rectangles" value={`${rects.length} / ${clues.length}`} />,
+          ]}
+        />
       </div>
     </div>
   );

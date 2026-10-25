@@ -19,6 +19,7 @@ import { buzz } from "@/lib/motion";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
@@ -165,6 +166,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     [start, targetPeg, discs, moves],
   );
   const solving = useSolveFx("tower", isTower && replay.solved);
+  const inFrame = useFrameProgress(replay.pegs[targetPeg]?.length ?? 0, discs, "on gold");
 
   useEffect(() => {
     onDraftAnswer?.(encodeTowerMoves(moves));
@@ -243,9 +245,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     <div data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
-        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          moves <span className="text-primary">{replay.moves}</span>
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            moves <span className="text-primary">{replay.moves}</span>
+          </p>
+        )}
         <div className="logic-hanoi-stage">
           <Pegs
             pegs={replay.pegs}
@@ -255,9 +259,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
             shake={shake}
             onPeg={tapPeg}
             dropped={dropped}
-            discHeight={`clamp(9px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.55), 16px)`}
+            discHeight={
+              // Batch P: in the frame the tray gives the tower more room, so the rings (and posts) grow.
+              inFrame
+                ? `clamp(12px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.8), 26px)`
+                : `clamp(9px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.55), 16px)`
+            }
           />
         </div>
+        <LiveSummary inArena className="logic-status" items={[<SummaryItem key="moves" label="Moves" value={replay.moves} />]} />
       </div>
 
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">

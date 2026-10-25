@@ -13,6 +13,7 @@ import { NONO_SIZE, NONO_TIME_MS, type NonoPuzzleData } from "@/lib/duel/types";
 import { playLock } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function clueText(clue: number[]): string {
@@ -195,6 +196,16 @@ function Stage({
     );
   }, [data, marks]);
   const solving = useSolveFx("nonogram", complete);
+  const linesDone = useMemo(() => {
+    if (!data) return 0;
+    const line = (cells: number[]) => cells.map((cell) => marks[cell] === 1);
+    const span = Array.from({ length: NONO_SIZE }, (_, i) => i);
+    return (
+      data.rows.filter((clue, row) => lineSatisfied(clue, line(span.map((col) => row * NONO_SIZE + col)))).length +
+      data.cols.filter((clue, col) => lineSatisfied(clue, line(span.map((row) => row * NONO_SIZE + col)))).length
+    );
+  }, [data, marks]);
+  useFrameProgress(linesDone, NONO_SIZE * 2, "lines");
 
   // Every line matching its clues means the picture is the stored one.
   useEffect(() => {

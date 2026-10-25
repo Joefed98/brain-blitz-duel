@@ -56,6 +56,8 @@ export function FlowTubes({
         const end = tube.points[tube.points.length - 1]!;
         return (
           <g key={index} className="flow-tube">
+            {/* Batch P (live round only, batch-p.css): a joined colour glows softly in its own hue. */}
+            {tube.joined ? <path d={d} className="flow-halo" stroke={tube.colour} strokeOpacity={0.3} strokeWidth={width + 9} /> : null}
             <path d={d} stroke={shadeHex(tube.colour, -0.55)} strokeOpacity={0.85} strokeWidth={width + 3} />
             <path d={d} stroke={tube.colour} strokeWidth={width} />
             <path d={d} stroke={shadeHex(tube.colour, 0.6)} strokeOpacity={0.55} strokeWidth={Math.max(1, width * 0.3)} />
