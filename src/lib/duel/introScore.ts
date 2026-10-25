@@ -14,6 +14,8 @@ import { fillMax, liveRecord } from "./roundMax";
 import { CHAIN_DEPTH_INTRO } from "./depth/chain";
 import { PAIR_DEPTH_INTRO } from "./depth/matchmaker";
 import { labyrinthDepthIntro } from "./depth/labyrinth";
+import { TOPSY_INTRO_SCORE } from "./topsy";
+import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -82,10 +84,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     tubes: bandsIntro("tubes"),
     safe: bandsIntro("safe"),
     bomb: bandsIntro("bomb"),
-    gravity: bandsIntro("gravity"),
+    gravity: TOPSY_INTRO_SCORE,
     nonogram: bandsIntro("nonogram"),
     flood: bandsIntro("flood"),
-    tiles: bandsIntro("tiles"),
+    tiles: JUMBLED_INTRO_SCORE,
     rings: bandsIntro("rings"),
     blockparty: bandsIntro("blockparty"),
     shikaku: bandsIntro("shikaku"),

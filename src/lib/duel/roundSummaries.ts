@@ -16,6 +16,8 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
+import { isTopsy, TOPSY_BALLS, TOPSY_BOARDS, TOPSY_STARS } from "./topsy";
+import { isJumbledGradient, JUMBLED_MOVABLE } from "./jumbled";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
 import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
@@ -774,6 +776,19 @@ function ordinalTry(value: number): string {
 const gravitySummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "gravity") return { summary: "—", detail: [] };
   const tilts = Number(result.extra?.["tilts"] ?? 0);
+  // gravityRev 3 (the remodel, topsy.ts): three boards, balls home and stars.
+  if (isTopsy(puzzle)) {
+    const cleared = Number(result.extra?.["cleared"] ?? 0);
+    const home = Number(result.extra?.["home"] ?? 0);
+    const stars = Number(result.extra?.["stars"] ?? 0);
+    const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    return {
+      summary: result.is_correct
+        ? `Cleared · ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars · ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${TOPSY_BOARDS} boards · ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+      detail: [`${tilts} tilts made${out ? ` · out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
+    };
+  }
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const locked = Number(result.extra?.["locked"] ?? 0);
   if (result.is_correct) {
@@ -852,6 +867,20 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
 const tilesSummary: SummaryBuilder = (result, puzzle) => {
   if (puzzle.type !== "tiles") return { summary: "—", detail: [] };
   const moves = Number(result.extra?.["moves"] ?? 0);
+  // tilesRev 3 (the remodel, jumbled.ts): the gradient, moves against par.
+  if (isJumbledGradient(puzzle)) {
+    const par = Number(result.extra?.["par"] ?? puzzle.par ?? 0);
+    const inPlaceNow = Number(result.extra?.["inPlace"] ?? 0);
+    // Unfinished: the progress its credit counts (progressFigures.ts: tiles put in place).
+    const progress = result.is_correct ? null : progressOf(result, puzzle);
+    if (progress) return { summary: progress.summary, detail: [...progress.detail, `${moves} moves made`] };
+    return {
+      summary: result.is_correct
+        ? `Solved · ${moves} moves (par ${par}) · ${seconds(elapsedMs(result, puzzle))}`
+        : `${inPlaceNow} / ${JUMBLED_MOVABLE} in place`,
+      detail: [result.is_correct && moves <= par ? "At or under par" : `${moves} moves made`],
+    };
+  }
   const min = Number(result.extra?.["minMoves"] ?? puzzle.minMoves ?? 0);
   const inPlace = Number(result.extra?.["inPlace"] ?? 0);
   const progress = result.is_correct ? null : progressOf(result, puzzle);

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { ArrowPad, hapticTick, useGridMetrics } from "@/components/puzzles/GridDrag";
 import { GravityBoard, type GravityBoardProps } from "@/components/puzzles/pattern/gravityBoard";
+import { TopsyIntroExample, TopsyReveal, TopsyStage } from "@/components/puzzles/pattern/topsyBoard";
+import { isTopsy } from "@/lib/duel/topsy";
 import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
@@ -31,8 +33,8 @@ function Board(props: Omit<GravityBoardProps, "colours">) {
   return <GravityBoard {...props} colours={BALL_COLOURS} />;
 }
 
-/** Fixed intro example — never randomised. A 5×5 board, one tilt down. */
-function IntroExample() {
+/** The old rounds' intro example (stored gravityRev 0–2 rounds; the intro now shows the remodel's still). */
+export function ClassicIntroExample() {
   const example = { walls: [12], targets: [20, 21, 7, 24] };
   return (
     <div className="flex flex-col items-center gap-2">
@@ -49,7 +51,12 @@ function IntroExample() {
   );
 }
 
-function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }: PuzzleStageProps) {
+/** gravityRev 3 rounds play the remodel (topsyBoard.tsx); stored older rounds keep the four-ball board. */
+function Stage(props: PuzzleStageProps) {
+  return isTopsy(props.puzzle) ? <TopsyStage {...props} /> : <ClassicStage {...props} />;
+}
+
+function ClassicStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }: PuzzleStageProps) {
   const data = puzzle.type === "gravity" ? puzzle : null;
   const [tilts, setTilts] = useStageState<GravityDir[]>(stateKey, "gravityTilts", () => []);
   const [lean, setLean] = useStageState<GravityDir | null>(stateKey, "gravityLean", () => null);
@@ -174,7 +181,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gravity" }
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
+function Reveal(props: PuzzleRevealProps) {
+  return isTopsy(props.puzzle) ? <TopsyReveal {...props} /> : <ClassicReveal {...props} />;
+}
+
+function ClassicReveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "gravity") return null;
   const tiltLimit = gravityTiltLimit(puzzle);
   const mine = replayGravity(puzzle.walls, puzzle.starts, puzzle.targets, decodeGravityTilts(myAnswer ?? ""), tiltLimit);
@@ -214,13 +225,14 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   key: "gravity",
   name: gameDisplayName("gravity"),
   category: "pattern",
+  // gravityRev 3 stores its own 120 s clock on the puzzle; this is stored older rounds' clock.
   timeLimitMs: GRAV_TIME_MS,
   revealMs: 8_000,
   generate: () =>
     ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,
   check: () => false,
-  revealHeading: "The shortest route",
-  IntroExample,
+  revealHeading: "Shortest routes, every star",
+  IntroExample: TopsyIntroExample,
   Stage,
   Reveal,
 };

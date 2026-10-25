@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { hapticTick } from "@/components/puzzles/GridDrag";
 import { TilesFrame } from "@/components/puzzles/pattern/tilesBoard";
+import { GradientIntroExample, GradientReveal, GradientStage } from "@/components/puzzles/pattern/gradientBoard";
+import { isJumbledGradient } from "@/lib/duel/jumbled";
 import {
   decodeTileMoves,
   encodeTileMoves,
@@ -41,8 +43,8 @@ function tileFill(value: number): string {
 
 const EXAMPLE_FRAME = [1, 2, 3, 0];
 
-/** Fixed intro example — a 2×2 frame with one slide shown. */
-function IntroExample() {
+/** The old rounds' intro example (stored tilesRev 0–2 rounds; the intro now shows the remodel's still). */
+export function ClassicIntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <div className="flex items-center gap-3">
@@ -91,7 +93,12 @@ function IntroExample() {
   );
 }
 
-function Stage({
+/** tilesRev 3 rounds play the remodel (gradientBoard.tsx); stored older rounds keep the sliding-gap board. */
+function Stage(props: PuzzleStageProps) {
+  return isJumbledGradient(props.puzzle) ? <GradientStage {...props} /> : <ClassicStage {...props} />;
+}
+
+function ClassicStage({
   puzzle,
   phaseStartedAt,
   now,
@@ -200,7 +207,11 @@ function Stage({
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
+function Reveal(props: PuzzleRevealProps) {
+  return isJumbledGradient(props.puzzle) ? <GradientReveal {...props} /> : <ClassicReveal {...props} />;
+}
+
+function ClassicReveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, scoreParts }: PuzzleRevealProps) {
   if (puzzle.type !== "tiles") return null;
   const layout = tilesLayout(puzzle);
   const replay = replayTiles(puzzle.frame, decodeTileMoves(myAnswer ?? "", layout.count), layout);
@@ -233,8 +244,8 @@ export const slidingTilesPuzzle: PuzzleDefinition = {
   revealMs: 5_000,
   generate: () => ({ type: "tiles", frame: solvedFrame() }) satisfies TilesPuzzleData,
   check: () => false,
-  revealHeading: "In order",
-  IntroExample,
+  revealHeading: "The gradient",
+  IntroExample: GradientIntroExample,
   Stage,
   Reveal,
 };

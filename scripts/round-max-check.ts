@@ -49,12 +49,15 @@ const ALL_TYPES = Object.keys(GAME_DISPLAY_NAMES) as PuzzleType[];
 /**
  * Games an expansion has raised to the ceiling, one list for every expansion (docs/scoring-200.md: each adds its
  * games here): the Number depth games and Tenfall and Trail (#152), Coral Pop, Gemstone and Ball Tracker (E6,
- * #153). Checked against ROUND_MAX below, so the list and the maximums can't drift apart.
+ * #153), Topsy-Turvy and Jumbled (the D5 remodels, #156). Checked against ROUND_MAX below, so the list and the
+ * maximums can't drift apart.
  */
 const RAISED: PuzzleType[] = [
   "target", "equation", "numline", "numpyramid", "balance", "measure", "checkout", "tendrop", "trail", "bubble", "matchup", "balltrack",
   // Depth D3 (docs/depth/d3-speed-attention.md): the twelve Speed and Attention games.
   "reaction", "numhunt", "stopwatch", "chain", "whack", "clayshoot", "stroop", "symscan", "spotdiff", "countup", "maze", "pairmatch",
+  // The D5 remodels (docs/depth/d5-remodels.md): Topsy-Turvy and Jumbled.
+  "gravity", "tiles",
 ];
 /** The games still at 150: section 2 raises each of them in turn. */
 const TYPES = ALL_TYPES.filter((t) => ROUND_MAX[t] === DEFAULT_ROUND_MAX);

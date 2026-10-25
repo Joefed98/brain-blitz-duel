@@ -43,6 +43,7 @@ import { buildRoomPuzzles, generatePuzzle, gradeAnswer } from "../src/lib/duel/g
 import { stampMoveLimits } from "../src/lib/duel/moveLimits.server";
 import {
   BANKED_TYPES,
+  RETIRED_BANKS,
   bankEntrySeed,
   bankFor,
   bankIndexFor,
@@ -189,10 +190,14 @@ for (const [bankIndex, type] of BANKED_TYPES.entries()) {
   check(retriesOk, `${type}: sampled entries use the first retry seed that gave a new verified board`);
   const rebuildS = (performance.now() - tRebuild) / 1000;
 
-  const live = liveIntroExample(type);
-  const stored = bankedIntroExample(type);
-  check(!!stored && JSON.stringify(stored) === JSON.stringify({ ...live, speedPar: SPEED_PAR_VERSION }),
-    `${type}: stored intro example equals the live seeded example`);
+  // A retired bank (RETIRED_BANKS: its game's new version is dealt live) gives no intro example.
+  if (RETIRED_BANKS.has(type)) check(bankedIntroExample(type) === null, `${type}: a retired bank gives no intro example`);
+  else {
+    const live = liveIntroExample(type);
+    const stored = bankedIntroExample(type);
+    check(!!stored && JSON.stringify(stored) === JSON.stringify({ ...live, speedPar: SPEED_PAR_VERSION }),
+      `${type}: stored intro example equals the live seeded example`);
+  }
 
   // Grading: the stored solution replays to a full solve on the stored board.
   const graded = gradeAnswer({ ...bank[0]!, speedPar: SPEED_PAR_VERSION } as PuzzleData, solutionAnswer(bank[0]!), 30_000);
@@ -242,7 +247,7 @@ if (PART === PARTS) {
   for (let seed = 1; seed <= 60; seed++) {
     const built = buildRoomPuzzles({ seed, categories: [...categories] });
     for (const puzzle of built.puzzles) {
-      if (!(BANKED_TYPES as readonly string[]).includes(puzzle.type)) continue;
+      if (!(BANKED_TYPES as readonly string[]).includes(puzzle.type) || RETIRED_BANKS.has(puzzle.type as BankedType)) continue;
       banked++;
       const { speedPar, puzzleScoreRev, tieRev: _tieRev, ...rest } = puzzle as PuzzleData & { speedPar?: number; puzzleScoreRev?: number; tieRev?: number };
       const expected = bankFor(puzzle.type as BankedType)[bankIndexFor(puzzle.type as BankedType, seed, BANK_COUNT)];
@@ -258,7 +263,7 @@ if (PART === PARTS) {
   check(reproducible, "room start: the room seed alone reproduces every banked round");
   // Practice draws from the bank (generatePuzzle with a fresh bank seed, practice.functions.ts) carry the same stamps.
   let practiceSame = true;
-  for (const t of BANKED_TYPES) for (const seed of [11, 4242, 987654]) {
+  for (const t of BANKED_TYPES.filter((b) => !RETIRED_BANKS.has(b))) for (const seed of [11, 4242, 987654]) {
     const p = generatePuzzle(t, { bankSeed: seed }) as PuzzleData & { speedPar?: number; puzzleScoreRev?: number };
     const { speedPar: sp, puzzleScoreRev: ps, ...rest } = p;
     if (sp !== live.speedPar || ps !== live.puzzleScoreRev || JSON.stringify(rest) !== JSON.stringify(stampMoveLimits(drawBankedPuzzle(t, seed)))) practiceSame = false;

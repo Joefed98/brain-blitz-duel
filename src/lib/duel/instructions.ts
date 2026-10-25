@@ -63,6 +63,8 @@ import { chainDepthHelp } from "./depth/chain";
 import { pairDepthHelp } from "./depth/matchmaker";
 import { labyrinthDepthHelp } from "./depth/labyrinth";
 import { rev3UnfinishedScore } from "./puzzleScoreRev3";
+import { topsyHelpScore } from "./topsy";
+import { jumbledHelpScore } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 export interface PuzzleInstructionLine {
@@ -391,15 +393,17 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: bandsHelp("bomb"),
     },
     gravity: {
-      goal: "Tilt to park each ball on its own target.",
+      // gravityRev 3 (the remodel, topsy.ts); stored older rounds keep their own reveal.
+      goal: "Tilt to roll every ball into its own hole, three boards in a row.",
       how: [
         { action: "Use the arrows", detail: "to tilt the board." },
-        { action: "Every ball slides", detail: "until it hits something." },
-        { action: "A ball on its target", detail: "locks and becomes a wall." },
-        { action: "A locked ball", detail: "can help or block the others.", helpOnly: true },
-        { action: "Tilts are limited", detail: "(the counter). Undo and Reset don't give a tilt back; out of tilts, the board ends.", helpOnly: true },
+        { action: "Every ball rolls", detail: "until it hits a block, the edge or a ball." },
+        { action: "A ball drops home", detail: "as it rolls over its own colour's hole." },
+        { action: "Roll through a star", detail: "for bonus points." },
+        { action: "The rings", detail: "above the board fill as balls go home; a clear board brings the next.", helpOnly: true },
+        { action: "Tilts are limited", detail: "on each board (the counter). Undo and Reset don't give a tilt back; out of tilts, the next board comes.", helpOnly: true },
       ],
-      score: bandsHelp("gravity"),
+      score: topsyHelpScore(),
     },
     chain: {
       goal: "Tap 40 charms, following the cycle.",
@@ -448,15 +452,16 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: bandsHelp("flood"),
     },
     tiles: {
-      goal: "Slide the tiles into order, 1 to 9.",
+      // tilesRev 3 (the remodel, jumbled.ts).
+      goal: "Slide rows and columns to rebuild the colour gradient.",
       how: [
-        { action: "Tap a tile", detail: "next to the gap to slide it." },
-        { action: "One extra cell", detail: "sits beside the 3 × 3, so one row or column has four." },
-        { action: "Finish in reading order,", detail: "row by row, with the gap in the last cell.", helpOnly: true },
-        { action: "Undo or Reset", detail: "takes slides back." },
-        { action: "Every slide counts", detail: "as a move, undone ones too.", helpOnly: true },
+        { action: "Swipe a row", detail: "left or right, or a column up or down." },
+        { action: "Tiles wrap round", detail: "the line; there is no gap." },
+        { action: "The four corners", detail: "(dotted) never move: their lines slide round them." },
+        { action: "Tiles in place", detail: "glow softly.", helpOnly: true },
+        { action: "Par", detail: "is shown with your moves; every slide counts, undone ones too.", helpOnly: true },
       ],
-      score: bandsHelp("tiles"),
+      score: jumbledHelpScore(),
     },
     rings: {
       goal: "Turn the rings until every spoke is one colour.",

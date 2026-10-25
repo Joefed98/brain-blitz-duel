@@ -38,11 +38,14 @@ import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
+import { generateTiles } from "./tiles.server";
+import { dealsD5Remodels } from "./d5Remodels";
+import { generateTopsy } from "./topsy.server";
+import { generateJumbled } from "./jumbled.server";
 import { generateChain } from "./chain.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
-import { generateTiles } from "./tiles.server";
 import { generateRings } from "./rings.server";
 import { generateHover } from "./hover.server";
 import {
@@ -127,6 +130,10 @@ export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}):
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
+  // for the previous versions pin the old deal, d5Remodels.ts).
+  if (type === "gravity" && dealsD5Remodels()) return generateTopsy();
+  if (type === "tiles" && dealsD5Remodels()) return generateJumbled();
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
