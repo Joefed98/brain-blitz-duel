@@ -462,3 +462,468 @@
 [data-puzzle-play][data-puzzle-play] .logic-lamp-frame {
   box-shadow: inset 0 0 0 1px rgba(255, 210, 130, 0.1), 0 14px 30px rgba(0, 0, 0, 0.55), 0 0 20px rgba(255, 190, 80, 0.06);
 }
+
+/* ================================================================ PASS 2 (25 Oct 2026, Joe's review)
+ * Depth and glow that read at a glance on a phone: every piece a light top edge, a body ~15–20% lighter at
+ * the top than the bottom and a soft drop shadow; empty cells clearly sunken; active, selected or solved
+ * pieces an 8–14px outer glow; board panels a lit surface (a low category-colour gradient and an inner
+ * shadow at the edges). Later rules here win over the first pass's (same specificity, later in the file).
+ */
+
+/* ---------------------------------------------------------------- Gridlock */
+[data-puzzle-play][data-puzzle-play] .ub-shade-top { stop-opacity: 0.62; }
+[data-puzzle-play][data-puzzle-play] .ub-shade-upper { stop-opacity: 0.14; }
+[data-puzzle-play][data-puzzle-play] .ub-shade-bottom { stop-opacity: 0.55; }
+[data-puzzle-play][data-puzzle-play] .unblock-car-art {
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.6)) saturate(1.15);
+}
+[data-puzzle-play][data-puzzle-play] .unblock-car--gold .unblock-car-art {
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 85%, transparent)) saturate(1.1);
+}
+[data-puzzle-play][data-puzzle-play] .unblock-car.is-lifted .unblock-car-art {
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 12px color-mix(in srgb, var(--category-accent) 90%, transparent)) saturate(1.15);
+}
+[data-puzzle-play][data-puzzle-play] .unblock-car--gold.is-lifted .unblock-car-art {
+  filter: drop-shadow(0 12px 10px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px var(--primary)) saturate(1.1);
+}
+/* The lot: light falls from the top of the screen, the far edge in shade. */
+[data-puzzle-play][data-puzzle-play] .unblock-lot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 45%, rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+[data-puzzle-play][data-puzzle-play] .unblock-grid {
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------- Tessellate */
+[data-puzzle-play][data-puzzle-play] .bp-rim-top { stop-opacity: 0.8; }
+[data-puzzle-play][data-puzzle-play] .bp-rim-bottom { stop-opacity: 0.62; }
+[data-puzzle-play][data-puzzle-play] .bp-face-top { stop-opacity: 0.5; }
+[data-puzzle-play][data-puzzle-play] .bp-face-bottom { stop-opacity: 0.36; }
+[data-puzzle-play][data-puzzle-play] .bp-drop { opacity: 0.6; }
+[data-puzzle-play][data-puzzle-play] .bp-pieces-art {
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.5));
+}
+[data-puzzle-play][data-puzzle-play] .block-party-tray svg {
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.6));
+}
+[data-puzzle-play][data-puzzle-play] .block-party-tray {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, #1c1d26, #121319);
+  box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-puzzle-play][data-puzzle-play] .bp-board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 40%, rgba(0, 0, 0, 0.22));
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.5);
+  mix-blend-mode: normal;
+}
+
+/* ---------------------------------------------------------------- Pipeline */
+/* Each tile a lit steel plate; pipes in the network glow blue round the whole tile. */
+[data-puzzle-play][data-puzzle-play] .pipe-tile {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.26)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #343b45, #1b2027);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px #2f3640,
+    0 3px 5px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] {
+  background:
+    linear-gradient(180deg, rgba(160, 225, 255, 0.2), rgba(76, 198, 247, 0.04) 45%, rgba(0, 0, 0, 0.24)),
+    linear-gradient(180deg, #2d3a48, #18212b);
+  box-shadow:
+    inset 0 1.5px 0 rgba(200, 240, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(76, 198, 247, 0.75),
+    0 0 10px rgba(76, 198, 247, 0.45),
+    0 3px 5px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
+  filter: drop-shadow(0 0 5px rgba(76, 198, 247, 0.85));
+}
+[data-puzzle-play][data-puzzle-play] .pipes-board {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(160deg, #1a1f26, #0e1116);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------- Chroma Lines */
+/* The neon halo (flowArt, a blurred copy) under every path; deep slots; a lit tray. */
+[data-puzzle-play][data-puzzle-play] .flow-board {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(180deg, #15171e, #0b0c10);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .flow-board .flow-cell[data-puzzle-cell]:not(.flow-wall) {
+  background-color: #101117 !important;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+[data-puzzle-play][data-puzzle-play] .flow-dot {
+  box-shadow:
+    0 0 0 1.5px var(--dot-rim, rgba(0, 0, 0, 0.6)),
+    0 0 0 3px rgba(10, 11, 15, 0.9),
+    0 0 10px 2px color-mix(in oklab, var(--dot, #fff) 55%, transparent),
+    0 3px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------------------------------------------------------- Heave */
+[data-puzzle-play][data-puzzle-play] .push-wall-top { stop-color: rgba(255, 235, 220, 0.4); }
+[data-puzzle-play][data-puzzle-play] .push-wall-bottom { stop-color: rgba(0, 0, 0, 0.55); }
+.push-crate-lit {
+  display: none;
+}
+[data-puzzle-play][data-puzzle-play] .push-crate-lit {
+  display: inline;
+}
+[data-puzzle-play][data-puzzle-play] .push-crate {
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6));
+}
+[data-puzzle-play][data-puzzle-play] .push-crate[aria-label="Crate home"] {
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(255, 200, 70, 0.95));
+}
+[data-puzzle-play][data-puzzle-play] .push-worker {
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6));
+}
+/* Warehouse light: brighter under the lamps along the top, falling off to shade at the bottom. */
+[data-puzzle-play][data-puzzle-play] .push-board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 230, 180, 0.16), transparent 70%),
+    linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------------------------------------------------------------- Lightbender */
+.laser-beam-neon {
+  display: none;
+}
+[data-puzzle-play][data-puzzle-play] .laser-beam-neon {
+  display: inline;
+}
+[data-puzzle-play][data-puzzle-play] .laser-board {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(180deg, #14161d, #0b0c10);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-cell,
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-cell[data-puzzle-cell] {
+  background-color: #12131a !important;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-block,
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-block[data-puzzle-cell] {
+  background-color: #5f6782 !important;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.06) 40%, rgba(0, 0, 0, 0.3));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.4),
+    0 4px 6px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-cell.border-primary\/50,
+[data-puzzle-play][data-puzzle-play] .laser-board .laser-cell.border-primary\/50[data-puzzle-cell] {
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6), 0 0 10px color-mix(in oklab, var(--primary) 55%, transparent);
+}
+[data-puzzle-play][data-puzzle-play] .laser-gem-lit {
+  filter: drop-shadow(0 0 8px rgba(247, 197, 72, 0.95));
+}
+
+/* ---------------------------------------------------------------- Topsy-Turvy */
+[data-puzzle-play][data-puzzle-play] .grav-block {
+  background: linear-gradient(180deg, #b2bacb, #7b8498 45%, #4a5265);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.4),
+    0 4px 6px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play][data-puzzle-play] .grav-floor {
+  background: radial-gradient(circle at 50% 30%, #1d2333, #0f131c 80%);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-puzzle-play][data-puzzle-play] .grav-well {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 55%),
+    #0b0e16;
+  box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .grav-ball {
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.7));
+}
+[data-puzzle-play][data-puzzle-play] .grav-ball.is-locked {
+  filter: drop-shadow(0 0 6px var(--ball)) drop-shadow(0 0 12px color-mix(in srgb, var(--ball) 70%, transparent));
+}
+
+/* ---------------------------------------------------------------- Jumbled */
+/* The tiles: a 20% brighter top, a light lip and a deeper drop; the tray a lit surface. */
+[data-puzzle-play][data-puzzle-play] .tiles-frame .tiles-tile {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.12) 40%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.24) 100%) !important;
+  box-shadow:
+    inset 0 2.5px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 6px 10px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .tiles-frame .tiles-tile[data-home] {
+  box-shadow:
+    inset 0 2.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.26),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.45),
+    0 0 14px color-mix(in oklab, var(--tile-fill) 90%, transparent),
+    0 6px 10px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play][data-puzzle-play] .tiles-frame-shaped > .tiles-bed {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, #1d1d25, #131319);
+}
+
+/* ---------------------------------------------------------------- Turntable */
+.rings-lit {
+  display: none;
+}
+[data-puzzle-play][data-puzzle-play] .rings-lit {
+  display: inline;
+}
+[data-puzzle-play][data-puzzle-play] .rings-deck {
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.6)) saturate(1.12);
+}
+
+/* ================================================================ LOGIC, PASS 2 */
+/* Boards use the whole column width (the arena's 12px side padding is dropped in the frame). */
+[data-puzzle-play][data-puzzle-play] [data-logic-stage] > [data-game-arena="logic"].px-3 {
+  padding-inline: 0;
+}
+
+/* ---------------------------------------------------------------- Blackout */
+[data-puzzle-play][data-puzzle-play] .logic-bulb-panel {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 55%, rgba(0, 0, 0, 0.28)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #17181e, #0e0f13);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .lightsout-bulb-off.logic-bulb {
+  background: radial-gradient(circle at 50% 40%, #191a21 0 45%, #0b0c10 75%);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.8), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-puzzle-play][data-puzzle-play] .lightsout-bulb-on.logic-bulb {
+  background: radial-gradient(circle at 50% 40%, #5a4317 0 28%, #2c2416 60%, #17140f 82%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 225, 150, 0.45),
+    inset 0 0 0 1px rgba(255, 210, 120, 0.35),
+    0 0 14px rgba(255, 190, 70, 0.55);
+}
+
+/* ---------------------------------------------------------------- Box Six */
+[data-puzzle-play][data-puzzle-play] .logic-sudoku > .logic-sudoku-cell {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.22));
+}
+[data-puzzle-play][data-puzzle-play] .logic-sudoku > .logic-sudoku-cell.bg-muted\/40 {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 20%, transparent), color-mix(in srgb, var(--category-accent) 8%, transparent));
+}
+[data-puzzle-play][data-puzzle-play] .logic-sudoku > .logic-sudoku-cell.bg-primary\/20 {
+  background-image: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--primary) 50%, transparent), color-mix(in srgb, var(--primary) 16%, transparent) 80%);
+}
+[data-puzzle-play][data-puzzle-play] .logic-sudoku-frame {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.55), 0 0 22px color-mix(in srgb, var(--category-accent) 22%, transparent);
+}
+[data-puzzle-play][data-puzzle-play] .logic-sudoku-key.gf-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.3), 0 5px 10px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------------------------------------------------------------- Hanoi */
+[data-puzzle-play][data-puzzle-play] .logic-hanoi-stage {
+  border-radius: 14px;
+  padding: 10px 6px 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.25));
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+[data-puzzle-play][data-puzzle-play] .logic-hanoi .logic-hanoi-ring {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 40%, rgba(0, 0, 0, 0.06) 60%, rgba(0, 0, 0, 0.3) 100%);
+}
+[data-puzzle-play][data-puzzle-play] .logic-hanoi-target .logic-hanoi-ring {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.16),
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    0 0 12px rgba(255, 205, 100, 0.55),
+    0 4px 6px rgba(0, 0, 0, 0.45);
+}
+[data-puzzle-play][data-puzzle-play] .logic-hanoi-post {
+  box-shadow: 3px 0 5px rgba(0, 0, 0, 0.5), inset 1px 0 0 rgba(255, 255, 255, 0.25);
+}
+[data-puzzle-play][data-puzzle-play] .logic-hanoi-base-gold {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 14px rgba(245, 184, 46, 0.6), 0 3px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------- Polypotions */
+/* Round glass: the liquid shaded like a cylinder (lit left, dark right, a light top); a lit shelf. */
+[data-puzzle-play][data-puzzle-play] .logic-potion.potion-layer {
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.32));
+}
+[data-puzzle-play][data-puzzle-play] .logic-flask.flask {
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.55));
+}
+[data-puzzle-play][data-puzzle-play] .logic-flask.flask.border-primary {
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px color-mix(in srgb, var(--primary) 85%, transparent));
+}
+[data-puzzle-play][data-puzzle-play] .logic-flask.flask:has([aria-label="Corked"]) {
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px color-mix(in srgb, var(--category-accent) 85%, transparent));
+}
+[data-puzzle-play][data-puzzle-play] .tubes-play-board {
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 12%, transparent), rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.25));
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ---------------------------------------------------------------- Safe Cracker */
+/* The door takes 92% of the width (80% on main) and the drums grow to fill it. */
+[data-puzzle-play][data-puzzle-play] [data-logic-stage="safe"] .logic-safe-vault {
+  width: 92%;
+}
+[data-puzzle-play][data-puzzle-play] .logic-drum-live {
+  width: clamp(48px, 12cqh, 78px);
+  height: clamp(58px, 15cqh, 98px);
+  font-size: clamp(30px, 8.2cqh, 52px);
+}
+[data-puzzle-play][data-puzzle-play] .logic-safe-card {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, white), var(--card));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 18px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------------------------------------------------------------- Bomb Defusal */
+[data-puzzle-play][data-puzzle-play] .logic-bomb-cap {
+  background-image: radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12) 42%, rgba(0, 0, 0, 0.35) 100%);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(255, 255, 255, 0.14), 0 6px 10px rgba(0, 0, 0, 0.65), 0 0 12px rgba(255, 255, 255, 0.12);
+}
+[data-puzzle-play][data-puzzle-play] .logic-wire {
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.2) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* ---------------------------------------------------------------- Mosaic */
+[data-puzzle-play][data-puzzle-play] .logic-nono-fit {
+  width: min(100cqw, calc((100cqh - 80px) / 0.86));
+}
+[data-puzzle-play][data-puzzle-play] .logic-nono > .logic-nono-cell:not(.bg-primary) {
+  background-color: #0e1013 !important;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+[data-puzzle-play][data-puzzle-play] .logic-nono > .logic-nono-cell.bg-primary {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 40%, rgba(0, 0, 0, 0.05) 60%, rgba(0, 0, 0, 0.26) 100%) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 0 10px color-mix(in srgb, var(--primary) 60%, transparent),
+    0 3px 5px rgba(0, 0, 0, 0.5) !important;
+  z-index: 1;
+}
+[data-puzzle-play][data-puzzle-play] .logic-nono-frame {
+  border-radius: 12px;
+  padding: 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.25));
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  filter: none;
+}
+
+/* ---------------------------------------------------------------- Colour Flood */
+[data-puzzle-play][data-puzzle-play] .logic-flood-frame {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 0 4px color-mix(in srgb, var(--category-accent) 22%, transparent), 0 14px 30px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .logic-paint-pot {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 6px 10px rgba(0, 0, 0, 0.6);
+}
+[data-puzzle-play][data-puzzle-play] .logic-paint-pot-current {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--background), 0 0 0 5px rgba(242, 244, 247, 0.9), 0 0 14px rgba(242, 244, 247, 0.45);
+}
+
+/* ---------------------------------------------------------------- Tents and Trees */
+[data-puzzle-play][data-puzzle-play] .logic-camp-frame {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    radial-gradient(140% 90% at 50% 0%, rgba(120, 190, 110, 0.1), transparent 60%),
+    linear-gradient(180deg, #17221a, #0d140f);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .logic-camp > .logic-camp-cell {
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-puzzle-play][data-puzzle-play] .logic-tent {
+  filter: drop-shadow(0 0 7px rgba(245, 184, 46, 0.85)) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.6));
+}
+[data-puzzle-play][data-puzzle-play] .logic-camp > .logic-sign {
+  box-shadow: inset 0 1.5px 0 rgba(255, 220, 170, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 3px 4px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------------------------------------------------------------- Shikaku */
+[data-puzzle-play][data-puzzle-play] .logic-glass > .logic-pane {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 35%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.28) 100%) !important;
+  box-shadow:
+    0 0 0 1px rgba(10, 10, 14, 0.85),
+    inset 0 2px 0 rgba(255, 245, 210, 0.6),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+    0 0 12px rgba(245, 184, 46, 0.55);
+  z-index: 1;
+}
+[data-puzzle-play][data-puzzle-play] .logic-glass > .logic-glass-cell {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+[data-puzzle-play][data-puzzle-play] .logic-glass-frame {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(180deg, #2a2c33, #15161b);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------------------------------------------------------- Lamplighter */
+[data-puzzle-play][data-puzzle-play] .logic-lamps .logic-lamp.bg-primary {
+  box-shadow: 0 0 12px 3px rgba(255, 200, 90, 0.9), 0 0 26px rgba(255, 180, 60, 0.55) !important;
+}
+[data-puzzle-play][data-puzzle-play] .logic-lamps > .logic-lamp-cell.lightup-cell-lit {
+  background-image: radial-gradient(circle at 50% 45%, rgba(255, 220, 130, 0.5), rgba(245, 184, 46, 0.16) 75%);
+  box-shadow: inset 0 0 14px rgba(255, 190, 80, 0.6), inset 0 1px 0 rgba(255, 240, 200, 0.3);
+}
+[data-puzzle-play][data-puzzle-play] .logic-lamps > .logic-lamp-cell:not(.lightup-cell-lit) {
+  filter: none;
+  background-color: #0f1012 !important;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-puzzle-play][data-puzzle-play] .logic-lamps > .logic-wall {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.04) 40%, rgba(0, 0, 0, 0.32));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.4), 0 3px 5px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .logic-lamp-frame {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(180deg, #1e1a14, #110f0b);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 190, 80, 0.1);
+}

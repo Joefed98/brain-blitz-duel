@@ -67,10 +67,10 @@ const LotArt = memo(function LotArt({ base, ids }: { base: string; ids: ArtIds }
         </linearGradient>
         {/* Shared car shading (light from the top left on every car). */}
         <linearGradient id={ids.shade} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" stopOpacity="0.38" />
-          <stop offset="0.22" stopColor="#fff" stopOpacity="0.06" />
+          <stop offset="0" stopColor="#fff" stopOpacity="0.38" className="ub-shade-top" />
+          <stop offset="0.22" stopColor="#fff" stopOpacity="0.06" className="ub-shade-upper" />
           <stop offset="0.6" stopColor="#000" stopOpacity="0" />
-          <stop offset="1" stopColor="#000" stopOpacity="0.38" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.38" className="ub-shade-bottom" />
         </linearGradient>
         <linearGradient id={ids.glass} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#9fb4cc" />

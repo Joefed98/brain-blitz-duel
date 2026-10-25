@@ -262,7 +262,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
             discHeight={
               // Batch P: in the frame the tray gives the tower more room, so the rings (and posts) grow.
               inFrame
-                ? `clamp(12px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.8), 26px)`
+                ? `clamp(12px, calc(((100cqh - 112px) / ${discs + 1} - 4px) * 0.86), 34px)`
                 : `clamp(9px, calc(((100cqh - 92px) / ${discs + 1} - 4px) * 0.55), 16px)`
             }
           />

@@ -97,6 +97,39 @@ Figures are from the intro example mid-play at 414 × 896.
 - **Shikaku**: gold panes glow faintly; unclaimed squares are wells.
 - **Lamplighter**: lit squares glow warmer; unlit floor squares sit darker.
 
+## Pass 2 (Joe's review, 25 Oct 2026)
+
+The first pass read as "almost identical to main" on most games. Pass 2 pushes every game further, still in
+its own colours and materials, with the same scoping (live round only):
+
+- **Depth that reads.** Pieces have a visible light top edge, a body about 15–20 % lighter at the top than the
+  bottom, and a soft drop shadow; empty cells are clearly sunken wells.
+  - SVG-drawn pieces get stronger lighting stops through classes the live round overrides (Gridlock's cars
+    `ub-shade-*`, Tessellate's `bp-rim-*` / `bp-face-*`, Heave's `push-wall-*`), plus drop shadows.
+  - Heave's crates get a lit overlay (`push-crate-lit`) and Turntable's record a top-lit overlay (`rings-lit`).
+  - DOM-drawn pieces get new gradients and shadows: Pipeline's plates, Lightbender's blocks, Topsy-Turvy's
+    stone, Jumbled's tiles, Hanoi's rings, Polypotions' cylinder-shaded liquid, Mosaic's tiles, Shikaku's gold
+    panes, Lamplighter's walls, Bomb Defusal's caps and wires, Box Six's glass keys.
+- **Glow that reads.** Glows are 8–14 px.
+  - Chroma Lines' paths and Lightbender's beam have a blurred neon copy underneath (an SVG `feGaussianBlur`,
+    so it also shows in Safari, where CSS filters on SVG children do not).
+  - Lit pieces glow: the gold car, network pipes, home crates, locked balls, tiles in place, corked flasks,
+    Hanoi's gold-post rings, pitched tents, Shikaku panes, Mosaic fills, lit bulbs and lamps.
+  - Turntable's selected ring glows in the category colour (an SVG blur).
+- **Lit board surfaces.** Each board panel takes a low category-colour gradient from the top and an inner
+  shadow at its edges. Hanoi's tower and the Polypotions shelf get a panel of their own.
+  - Gridlock, Tessellate and Heave, whose boards are art, take a light-from-above overlay instead.
+- **Board sizes.**
+  - The Logic boards in a padded arena (Blackout, Mosaic, Colour Flood, Tents and Trees, Shikaku,
+    Lamplighter) drop the arena's 12 px side padding in the frame, so they use the column's whole width
+    (382 → 406 px at 414 × 896).
+  - Hanoi's rings go up to 34 px (16 px on main).
+  - Safe Cracker's door takes 92 % of the width (80 % on main) and its drums go up to 78 × 98 px.
+  - The square boards (Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave, Lightbender, Topsy-Turvy,
+    Turntable, Box Six) were already 406 px wide, the column's full width at 414 × 896. A square cannot
+    grow taller without growing wider, so the space above and below them stays. Using it would need a
+    taller-than-wide board, which would change the game's layout logic.
+
 ## Assumptions
 
 - "Move the HUD into the goal line": the goal line takes the HUD's progress figure; the HUD's other counts go to
