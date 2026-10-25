@@ -11,6 +11,7 @@
  *
  * Stored rounds (gravityRev absent, 1 or 2) keep the old four-ball, locking-target rules (gravity.ts).
  */
+import { eliteStretchPoints } from "./d5Remodels";
 import type { GravityDir, GravityPuzzleData } from "./types";
 
 /** The remodel's stamp. */
@@ -161,7 +162,7 @@ export interface TopsyReplay {
 }
 
 /** Spare tilts over a board's minimum before its limit (rounded up to a multiple of 5, so it never shows the minimum). */
-export const TOPSY_SPARE_TILTS = 6;
+export const TOPSY_SPARE_TILTS = 8;
 export function topsyTiltLimit(min: number): number {
   return Math.ceil((min + TOPSY_SPARE_TILTS) / 5) * 5;
 }
@@ -233,42 +234,60 @@ export function replayTopsyPuzzle(puzzle: GravityPuzzleData & { boards: TopsyBoa
 
 /* ------------------------------------------------------------------ scoring (gravityRev 3, to 200) */
 
-/** Points for each star collected. */
-export const TOPSY_STAR_POINTS = 5;
+/** Points for each star collected (a modest fixed amount: 6 stars, 18). */
+export const TOPSY_STAR_POINTS = 3;
 /** A cleared round's base. */
 export const TOPSY_FINISH_BASE = 120;
-/** Speed points on a cleared round. */
-export const TOPSY_SPEED_POINTS = 50;
-/** Share of the clock left that earns every speed point. */
-export const TOPSY_FAST_SHARE = 0.45;
-/** Unfinished: up to this many points for balls home (all but one ball home ≈ 96). */
+/** Speed points on a cleared round, 32 × √(share left ÷ TOPSY_FAST_SHARE), all of them from TOPSY_FAST_SHARE left. */
+export const TOPSY_SPEED_POINTS = 32;
+export const TOPSY_FAST_SHARE = 0.5;
+/** The elite stretch: nothing at TOPSY_ELITE_FROM (a near-perfect pace), all of it at TOPSY_ELITE_SHARE of the clock left with no waste. */
+export const TOPSY_ELITE_POINTS = 30;
+export const TOPSY_ELITE_FROM = 0.64;
+export const TOPSY_ELITE_SHARE = 0.76;
+/** Unfinished: up to this many points for balls home (all but one ball home ≈ 94). */
 export const TOPSY_HOME_POINTS = 100;
 /** An unfinished round never reaches a cleared one's base. */
 export const TOPSY_UNFINISHED_CAP = 119;
 
 export interface TopsyScore {
   score: number;
-  /** finish: 120 + stars + speed; partial: balls home + stars. */
+  /** finish: 120 + stars + speed (the linear part and the elite stretch); partial: balls home + stars. */
   parts: { kind: "finish" | "partial"; base: number; efficiency?: number; speed?: number; measure?: string };
   home: number;
   stars: number;
+  /** Finish only: the elite stretch's share of the speed points. */
+  elite?: number;
 }
 
 /**
  * gravityRev 3's score (max 200, ROUND_MAX.gravity):
- *   cleared every board: 120 + 5 a star (6 stars, 30) + up to 50 for speed (all 50 with 45 % of the clock left);
- *   unfinished: 100 × balls home ÷ all balls + 5 a star on the boards cleared, at most 119.
+ *   cleared every board: 120 + 3 a star (6 stars, 18) + up to 32 for speed (32 × √(share left ÷ ½), all 32 with half the
+ *   clock left) + up to 30 elite (eliteStretchPoints: nothing at 64 % left, about a near-perfect pace, all 30 at 76 %
+ *   left with no wasted tilts; efficiency = the boards' all-stars minimums ÷ the tilts made);
+ *   unfinished: 100 × balls home ÷ all balls + 3 a star on the boards cleared, at most 119.
  */
-export function scoreTopsy(replay: Pick<TopsyReplay, "solved" | "home" | "stars"> & { clearedStars?: number }, msRemaining: number, limitMs: number, totalBalls = TOPSY_BALLS * TOPSY_BOARDS): TopsyScore {
+export function scoreTopsy(
+  replay: Pick<TopsyReplay, "solved" | "home" | "stars"> & { clearedStars?: number; tilts?: number },
+  msRemaining: number,
+  limitMs: number,
+  totalBalls = TOPSY_BALLS * TOPSY_BOARDS,
+  /** The boards' all-stars minimums summed (server-side); without it the elite stretch counts no waste. */
+  minTilts?: number,
+): TopsyScore {
   const stars = replay.stars * TOPSY_STAR_POINTS;
   if (replay.solved) {
     const left = limitMs > 0 ? Math.max(0, Math.min(limitMs, msRemaining)) / limitMs : 0;
-    const speed = Math.round(TOPSY_SPEED_POINTS * Math.min(1, left / TOPSY_FAST_SHARE));
+    // Concave: a steady clear earns most of it; all 32 from half the clock left.
+    const linear = Math.round(TOPSY_SPEED_POINTS * Math.sqrt(Math.min(1, left / TOPSY_FAST_SHARE)));
+    const efficiency = minTilts && replay.tilts ? Math.min(1, minTilts / replay.tilts) : 1;
+    const elite = eliteStretchPoints(left, TOPSY_ELITE_FROM, TOPSY_ELITE_SHARE, efficiency, TOPSY_ELITE_POINTS);
     return {
-      score: TOPSY_FINISH_BASE + stars + speed,
-      parts: { kind: "finish", base: TOPSY_FINISH_BASE, efficiency: stars, measure: "stars", speed },
+      score: TOPSY_FINISH_BASE + stars + linear + elite,
+      parts: { kind: "finish", base: TOPSY_FINISH_BASE, efficiency: stars, measure: "stars", speed: linear + elite },
       home: replay.home,
       stars: replay.stars,
+      elite,
     };
   }
   // Unfinished: stars count only on boards that were cleared (random tilting collects stars too).
@@ -277,16 +296,21 @@ export function scoreTopsy(replay: Pick<TopsyReplay, "solved" | "home" | "stars"
   return { score: base, parts: { kind: "partial", base }, home: replay.home, stars: replay.stars };
 }
 
-/** Seconds of play that still earn every speed point, on the stored clock. */
+/** Seconds of play that still earn every linear speed point, on the stored clock. */
 export function topsyFastSeconds(limitMs = TOPSY_TIME_MS): number {
   return Math.round((limitMs * (1 - TOPSY_FAST_SHARE)) / 1000);
+}
+
+/** Seconds an elite clear takes for the full 200. */
+export function topsyEliteSeconds(limitMs = TOPSY_TIME_MS): number {
+  return Math.round((limitMs * (1 - TOPSY_ELITE_SHARE)) / 1000);
 }
 
 /* ------------------------------------------------------------------ texts ({max} = ROUND_MAX.gravity) */
 
 /** The "?" help SCORE text. */
 export function topsyHelpScore(): string {
-  return `Clear all ${TOPSY_BOARDS} boards: ${TOPSY_FINISH_BASE}, + ${TOPSY_STAR_POINTS} a star (${TOPSY_BOARDS * TOPSY_STARS} stars), + up to ${TOPSY_SPEED_POINTS} for speed: {max} if you clear them in about ${topsyFastSeconds()} s with every star. Unfinished: up to ${TOPSY_HOME_POINTS} for balls home, + ${TOPSY_STAR_POINTS} a star on boards you cleared.`;
+  return `Clear all ${TOPSY_BOARDS} boards: ${TOPSY_FINISH_BASE}, + ${TOPSY_STAR_POINTS} a star (${TOPSY_BOARDS * TOPSY_STARS} stars), + up to ${TOPSY_SPEED_POINTS} for speed (all of it if you clear them in about ${topsyFastSeconds()} s). Faster still, with no wasted tilts, earns up to ${TOPSY_ELITE_POINTS} more: {max} needs every star in about ${topsyEliteSeconds()} s. Unfinished: up to ${TOPSY_HOME_POINTS} for balls home, + ${TOPSY_STAR_POINTS} a star on boards you cleared.`;
 }
 
 /** The round intro SCORE line (two phone lines, no scoring terms). */

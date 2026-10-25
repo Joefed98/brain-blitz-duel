@@ -145,6 +145,8 @@ export interface TargetStep {
 
 export interface TargetNumberPuzzleData {
   type: "target";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** The six starting tiles, in the order both players see them. */
   tiles: number[];
   /** The three-digit number to reach exactly. */
@@ -219,6 +221,8 @@ export interface EquationStage {
 
 export interface EquationPuzzleData {
   type: "equation";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Four equations of three, four, five and five numbers. */
   stages: EquationStage[];
   /** Server-side only until reveal: the one operator set per stage. */
@@ -1852,7 +1856,10 @@ export interface TenDropPuzzleData {
   type: "tendrop";
   /** Draws every target and tile queue — identical for everyone. */
   seed: number;
-  /** Score revision (1 = the Oct 2026 puzzle shape: 120 + speed, 110 for nine). Absent = 13 per target. */
+  /**
+   * Score revision (1 = the Oct 2026 puzzle shape: 120 + speed, 110 for nine; 2 = mapped bands; 3 = raw; 4 = gold
+   * tiles and a finish to 200, docs/depth/d2-number-tenfall.md). Absent = 13 per target.
+   */
   tenRev?: number;
 }
 
@@ -1954,6 +1961,8 @@ export interface BalanceScale {
 
 export interface BalancePuzzleData {
   type: "balance";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   scales: BalanceScale[];
   /** Server-side only until reveal: one balanced peg per tray weight, per scale. */
   solutions?: number[][];
@@ -2108,6 +2117,8 @@ export interface NumberPyramidBoardData {
 
 export interface NumberPyramidPuzzleData {
   type: "numpyramid";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   pyramids: NumberPyramidBoardData[];
   /** Every board's values — private until the reveal. */
   solutions?: number[][];
@@ -2118,6 +2129,8 @@ export const TRAIL_TIME_MS = 120_000;
 
 export interface TrailPuzzleData {
   type: "trail";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** 36 cells row by row; the step number for given cells, else null. */
   givens: (number | null)[];
   /** Cell index for each step 1–36 — private until the reveal. */
@@ -2142,6 +2155,8 @@ export interface MeasureBoardData {
 
 export interface MeasurePuzzleData {
   type: "measure";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules; 2 = a per-board move limit (`moveLimits`, moveLimits.ts, 13 Oct 2026). */
   measureRev: number;
   /** Moves allowed per board (measureRev 2); public, rounded so it never shows the minimum. */
@@ -2149,6 +2164,8 @@ export interface MeasurePuzzleData {
   boards: MeasureBoardData[];
   /** Breadth-first minimum moves per board — private until the reveal. */
   minMoves?: number[];
+  /** depthRev 1: each board's par pours (its fewest actions, public: the par-pours bonus aims at it). */
+  par?: number[];
   /** One shortest action list per board — private until the reveal. */
   solutions?: string[];
 }
@@ -2169,10 +2186,17 @@ export interface CheckoutStageData {
   finish: 2 | 3;
   /** True when the board has a thin x4 ring. */
   quad?: boolean;
+  /**
+   * checkoutRev 2 (depthRev 1): the stage may also check out on a big finish, the Bull or (on a double-finish
+   * board) a treble, for the big-finish bonus (numberDepth.ts isBigFinishDart).
+   */
+  bigFinish?: boolean;
 }
 
 export interface CheckoutPuzzleData {
   type: "checkout";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules. */
   checkoutRev: number;
   stages: CheckoutStageData[];
@@ -2203,6 +2227,8 @@ export interface NumlineStageData {
 
 export interface NumlinePuzzleData {
   type: "numline";
+  /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
+  depthRev?: number;
   /** Rules revision; 1 = the first rules, 2 = 90 s and the rev-2 item curve (numline.ts). */
   numlineRev: number;
   /** numlineRev 2: the round clock (90,000 ms). Absent on stored rounds, which keep the registry's 75 s. */

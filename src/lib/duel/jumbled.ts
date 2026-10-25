@@ -11,6 +11,7 @@
  * A frame is one tile per cell: tile t belongs on cell t. Stored rounds (tilesRev absent, 1 or 2) keep the
  * sliding-gap rules (tiles.ts).
  */
+import { eliteStretchPoints } from "./d5Remodels";
 import type { TilesPuzzleData } from "./types";
 
 export const TILES_REV_GRADIENT = 3;
@@ -179,13 +180,17 @@ export function jumbledPalette(): readonly string[] {
 /* ------------------------------------------------------------------ scoring (tilesRev 3, to 200) */
 
 export const JUMBLED_FINISH_BASE = 120;
-/** Finishing at or under par. */
-export const JUMBLED_PAR_POINTS = 40;
+/** Finishing at or under par (a modest fixed amount). */
+export const JUMBLED_PAR_POINTS = 12;
 /** Each move over par takes this off the par points. */
-export const JUMBLED_OVER_PAR_STEP = 10;
-export const JUMBLED_SPEED_POINTS = 40;
-/** Share of the clock left that earns every speed point. */
+export const JUMBLED_OVER_PAR_STEP = 6;
+/** Speed points, 38 × √(share left ÷ JUMBLED_FAST_SHARE), all of them from JUMBLED_FAST_SHARE left. */
+export const JUMBLED_SPEED_POINTS = 38;
 export const JUMBLED_FAST_SHARE = 0.65;
+/** The elite stretch: nothing at JUMBLED_ELITE_FROM (a near-perfect pace), all of it at JUMBLED_ELITE_SHARE left at the minimum. */
+export const JUMBLED_ELITE_POINTS = 30;
+export const JUMBLED_ELITE_FROM = 0.78;
+export const JUMBLED_ELITE_SHARE = 0.87;
 export const JUMBLED_UNFINISHED_CAP = 110;
 
 export interface JumbledScore {
@@ -193,6 +198,8 @@ export interface JumbledScore {
   parts: { kind: "finish" | "partial"; base: number; efficiency?: number; speed?: number; measure?: string };
   /** Unfinished: the share of the misplaced tiles the player put in place. */
   progress?: number;
+  /** Finish only: the elite stretch's share of the speed points. */
+  elite?: number;
 }
 
 export function jumbledParPoints(moves: number, par: number): number {
@@ -201,16 +208,32 @@ export function jumbledParPoints(moves: number, par: number): number {
 
 /**
  * tilesRev 3's score (max 200, ROUND_MAX.tiles):
- *   solved: 120 + par points (40 at or under par, 10 fewer each move over) + up to 40 for speed (all 40 with
- *   65 % of the clock left);
+ *   solved: 120 + par points (12 at or under par, 6 at one over) + up to 38 for speed (38 × √(share left ÷ 0.65),
+ *   all 38 with 65 % of the clock left) + up to 30 elite (eliteStretchPoints: nothing at 78 % left, about a
+ *   near-perfect pace, all 30 at 87 % left with no wasted slides; efficiency = the proved minimum ÷ the slides made);
  *   unsolved: 110 × the share of the tiles that started out of place now in place (net), at most 110.
  */
-export function scoreJumbled(start: readonly number[], replay: JumbledReplay, par: number, msRemaining: number, limitMs: number): JumbledScore {
+export function scoreJumbled(
+  start: readonly number[],
+  replay: JumbledReplay,
+  par: number,
+  msRemaining: number,
+  limitMs: number,
+  /** The proved minimum (server-side); without it the elite stretch counts no waste. */
+  minMoves?: number,
+): JumbledScore {
   if (replay.solved) {
     const left = limitMs > 0 ? Math.max(0, Math.min(limitMs, msRemaining)) / limitMs : 0;
-    const speed = Math.round(JUMBLED_SPEED_POINTS * Math.min(1, left / JUMBLED_FAST_SHARE));
+    // Concave: a steady solve earns most of it; all 38 from 65 % of the clock left.
+    const linear = Math.round(JUMBLED_SPEED_POINTS * Math.sqrt(Math.min(1, left / JUMBLED_FAST_SHARE)));
+    const efficiency = minMoves && replay.moves ? Math.min(1, minMoves / replay.moves) : 1;
+    const elite = eliteStretchPoints(left, JUMBLED_ELITE_FROM, JUMBLED_ELITE_SHARE, efficiency, JUMBLED_ELITE_POINTS);
     const parPts = jumbledParPoints(replay.moves, par);
-    return { score: JUMBLED_FINISH_BASE + parPts + speed, parts: { kind: "finish", base: JUMBLED_FINISH_BASE, efficiency: parPts, measure: "par", speed } };
+    return {
+      score: JUMBLED_FINISH_BASE + parPts + linear + elite,
+      parts: { kind: "finish", base: JUMBLED_FINISH_BASE, efficiency: parPts, measure: "par", speed: linear + elite },
+      elite,
+    };
   }
   const progress = jumbledProgress(start, replay.frame);
   const base = Math.min(JUMBLED_UNFINISHED_CAP, Math.round(JUMBLED_UNFINISHED_CAP * progress));
@@ -230,11 +253,16 @@ export function jumbledFastSeconds(limitMs = JUMBLED_TIME_MS): number {
   return Math.round((limitMs * (1 - JUMBLED_FAST_SHARE)) / 1000);
 }
 
+/** Seconds an elite solve at the minimum takes for the full 200. */
+export function jumbledEliteSeconds(limitMs = JUMBLED_TIME_MS): number {
+  return Math.round((limitMs * (1 - JUMBLED_ELITE_SHARE)) / 1000);
+}
+
 /* ------------------------------------------------------------------ texts ({max} = ROUND_MAX.tiles) */
 
 /** The "?" help SCORE text. */
 export function jumbledHelpScore(): string {
-  return `Finish: ${JUMBLED_FINISH_BASE}, + ${JUMBLED_PAR_POINTS} at or under par (${JUMBLED_OVER_PAR_STEP} fewer each move over), + up to ${JUMBLED_SPEED_POINTS} for speed: {max} if you finish at par in about ${jumbledFastSeconds()} s. Unfinished: up to ${JUMBLED_UNFINISHED_CAP} for the tiles you put in place.`;
+  return `Finish: ${JUMBLED_FINISH_BASE}, + ${JUMBLED_PAR_POINTS} at or under par (${JUMBLED_PAR_POINTS - JUMBLED_OVER_PAR_STEP} one over), + up to ${JUMBLED_SPEED_POINTS} for speed (all of it if you finish in about ${jumbledFastSeconds()} s). Faster still, in the fewest moves, earns up to ${JUMBLED_ELITE_POINTS} more: {max} needs the fewest moves in about ${jumbledEliteSeconds()} s. Unfinished: up to ${JUMBLED_UNFINISHED_CAP} for the tiles you put in place.`;
 }
 
 /** The round intro SCORE line (two phone lines, no scoring terms). */

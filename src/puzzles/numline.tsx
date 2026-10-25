@@ -38,6 +38,7 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { horizontalOf, useGameKeys } from "@/lib/desktop";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import { ballparkStreak, isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
 import "@/polish-layout/batch-w-numline.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
@@ -379,6 +380,7 @@ function Stage({
 }: PuzzleStageProps) {
   const data: NumlinePuzzleData | null = puzzle.type === "numline" ? puzzle : null;
   const framed = Boolean(useContext(GoalLineContext));
+  const depth = data !== null && usesNumberDepth(data);
   const [placements, setPlacements] = useStageState<number[]>(
     stateKey,
     "numlinePlacements",
@@ -737,7 +739,9 @@ function Stage({
               ? ["All placed"]
               : [
                   `${placedHere.length} of ${NUMLINE_ITEMS} placed`,
-                  marker === null ? "touch the line" : "drag to adjust, then Place",
+                  marker === null ? "touch the line" : depth ? "drag, then Place" : "drag to adjust, then Place",
+                  // depthRev 1: the bullseye streak (judged at the reveal; the exact values stay on the server).
+                  depth && <span style={{ color: "#F5B82E" }}>◎ Streak bonus</span>,
                 ]
           }
         />
@@ -767,6 +771,9 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const results = gradeNumlineItems(puzzle.stages, puzzle.values ?? [], myAnswer, puzzle.numlineRev);
   const full = numlineFullError(puzzle.numlineRev);
   const placed = decodeNumline(myAnswer).length;
+  // depthRev 1: bullseyes (within a hair of exact) and the best run of them.
+  const depth = usesNumberDepth(puzzle);
+  const streak = depth ? ballparkStreak(results.map((r) => r.error)) : null;
   return (
     <div className="flex w-full flex-col items-stretch gap-1.5 px-1">
       <PolishStyle id="numline" css={NUMLINE_CSS} />
@@ -856,6 +863,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
                         : undefined
                     }
                   >
+                    {depth && isBullseye(r.error) ? <span style={{ color: "#F5B82E" }}>◎ </span> : null}
                     {numlineErrorLabel(r.error)}
                   </span>
                 </div>
@@ -867,6 +875,11 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <p className="text-center font-mono text-[13px] text-muted-foreground">
         {placed} / {NUMLINE_TOTAL} placed · tick = true spot, dot = yours
       </p>
+      {streak ? (
+        <p className="text-center font-mono text-[13px]" style={{ color: "#F5B82E" }} data-bullseye-streak={streak.best}>
+          ◎ {streak.runs.filter((r) => r > 0).length} bullseye{streak.runs.filter((r) => r > 0).length === 1 ? "" : "s"} · best streak {streak.best}
+        </p>
+      ) : null}
     </div>
   );
 }

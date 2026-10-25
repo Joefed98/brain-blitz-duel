@@ -9,11 +9,17 @@
  * exactly that many darts where the stage says so), the last dart landing in
  * the stage's finishing ring.
  */
+import { isBigFinishDart } from "./numberDepth";
 import { finishParts, partialParts, scoreRev1, PUZZLE_SPEED_POINTS } from "./puzzleScoreRev";
 import { speedBonusCurve } from "./speedPar";
 import type { CheckoutStageData } from "./types";
 
 export const CHECKOUT_REV = 1;
+/**
+ * checkoutRev 2 (25 Oct 2026, depthRev 1, numberDepth.ts): every stage may also check out on a big finish, the
+ * Bull or (on a double-finish board) a treble, for the big-finish bonus (`bigFinish` on each stage).
+ */
+export const CHECKOUT_REV_BIG_FINISH = 2;
 export const CHECKOUT_STAGES = 5;
 export const CHECKOUT_BULL = 20;
 export const CHECKOUT_BULL_VALUE = 25;
@@ -61,12 +67,22 @@ export function checkoutRemaining(
   return darts.reduce((left, dart) => left - checkoutDartValue(stage, dart), stage.target);
 }
 
-/** True when these darts check out: exactly zero, right count, last dart in the finishing ring. */
+/** True when this dart may end the stage: the finishing ring, or (checkoutRev 2) a big finish. */
+export function checkoutFinisher(stage: CheckoutStageData, dart: CheckoutDart): boolean {
+  return dart.ring === stage.finish || (stage.bigFinish === true && isBigFinishDart(stage.finish, dart, CHECKOUT_BULL));
+}
+
+/** True when this dart ends the stage on a big finish (checkoutRev 2 boards only). */
+export function checkoutBigFinish(stage: CheckoutStageData, dart: CheckoutDart | undefined): boolean {
+  return !!dart && stage.bigFinish === true && isBigFinishDart(stage.finish, dart, CHECKOUT_BULL);
+}
+
+/** True when these darts check out: exactly zero, right count, last dart in the finishing ring (or a big finish). */
 export function checkoutValid(stage: CheckoutStageData, darts: readonly CheckoutDart[]): boolean {
   if (!darts.length || darts.length > stage.maxDarts) return false;
   if (stage.exactDarts && darts.length !== stage.maxDarts) return false;
   if (!darts.every((dart) => checkoutDartAllowed(stage, dart))) return false;
-  return checkoutRemaining(stage, darts) === 0 && darts[darts.length - 1]!.ring === stage.finish;
+  return checkoutRemaining(stage, darts) === 0 && checkoutFinisher(stage, darts[darts.length - 1]!);
 }
 
 export function encodeCheckoutDarts(darts: readonly CheckoutDart[]): string {
@@ -120,7 +136,7 @@ export function searchCheckout(stage: CheckoutStageData): CheckoutSearch {
   const values = options.map((dart) => checkoutDartValue(stage, dart));
   const finishers = options
     .map((dart, i) => [dart, values[i]!] as const)
-    .filter(([dart]) => dart.ring === stage.finish);
+    .filter(([dart]) => checkoutFinisher(stage, dart));
   let minDarts: number | null = null;
   let route: CheckoutDart[] | null = null;
   let routes = 0;
@@ -158,7 +174,7 @@ export function checkoutGreedySolves(stage: CheckoutStageData): boolean {
   const values = options.map((dart) => checkoutDartValue(stage, dart));
   const finishValues = new Set(
     options
-      .filter((dart) => dart.ring === stage.finish)
+      .filter((dart) => checkoutFinisher(stage, dart))
       .map((dart) => checkoutDartValue(stage, dart)),
   );
   let remaining = stage.target;

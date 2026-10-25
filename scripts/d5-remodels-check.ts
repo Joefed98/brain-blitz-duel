@@ -6,14 +6,17 @@
  *   2. Topsy-Turvy: 30 room-dealt rounds verify (three boards, exact breadth-first minimums in the band, every star
  *      reachable within the detour, the stored routes clear every board with every star, tilt limits); the rules
  *      (a ball drops as it rolls over its own hole, rolls over other holes, stars, the board's limit moves play on,
- *      Undo / Reset give no tilt back); scoring anchors (200 only for every star and a fast clear, 120 + stars at the
- *      buzzer, unfinished under 120); generation time.
+ *      Undo / Reset give no tilt back); scoring anchors (120 + 3 a star at the buzzer, 170 at a near-perfect pace
+ *      with no elite points, 200 only at elite pace with every star and no wasted tilt, unfinished under 120);
+ *      generation time.
  *   3. Jumbled: 30 room-dealt boards verify (the anchors in place, the meet-in-the-middle minimum proved again and
  *      equal to the stored one, par = minimum + 3, the stored route solves); random slides never move an anchor
- *      and every board stays solvable (its frame is a permutation of the movable tiles); scoring anchors; the
+ *      and every board stays solvable (its frame is a permutation of the movable tiles); scoring anchors (132 at par
+ *      at the buzzer, 170 at a near-perfect pace, 200 only at elite pace in the fewest moves); the
  *      gradient's colours under normal and simulated colour-blind vision.
  *   4. Tuning: the skill table (scripts/d5-remodels/tuning.ts) on 20 rounds each: random play stays low, each level
- *      above the one below, a solid player around today's Pattern scores, only strong, fast play at 190–200.
+ *      above the one below, solid around today's Pattern scores (135–155), strong about 160–170, near-perfect about
+ *      165–175 and under 190, and only elite play (clearly faster than near-perfect, no waste) at 190–200.
  *   5. New-stamp runs: scripts/fixtures/d5-remodels-runs.json.gz (bots at every level, recorded on this branch)
  *      regrade exactly, and reach 200.
  *
@@ -105,10 +108,14 @@ for (const [i, p] of topsyRounds.entries()) {
   ok(p.tiltLimits!.every((l, b) => l === topsyTiltLimit(p.boardStarMins![b]!) && l >= p.boardStarMins![b]! + 5), `Topsy-Turvy round ${i}: every tilt limit leaves at least 5 spare tilts over the all-stars route`);
   // The stored routes, fast: 200.
   const route = p.boardSolutions!.join("");
-  const g = gradeAnswer(p, route, Math.round(0.6 * TOPSY_TIME_MS));
-  ok(g.isCorrect && g.score === 200, `Topsy-Turvy round ${i}: the all-stars routes with 60 % of the clock left score 200 (${g.score})`);
+  const g = gradeAnswer(p, route, Math.round(0.8 * TOPSY_TIME_MS));
+  ok(g.isCorrect && g.score === 200, `Topsy-Turvy round ${i}: the all-stars routes (no waste) with 80 % of the clock left score 200 (${g.score})`);
+  const nearPace = gradeAnswer(p, route, Math.round(0.62 * TOPSY_TIME_MS));
+  ok(nearPace.score === 170, `Topsy-Turvy round ${i}: the same routes at a near-perfect pace (62 % left) score 170, no elite points (${nearPace.score})`);
+  const wasteful = gradeAnswer(p, `${route[0] === "U" ? "D" : "U"}X${route}`, Math.round(0.8 * TOPSY_TIME_MS));
+  ok(!wasteful.isCorrect || wasteful.score < 200, `Topsy-Turvy round ${i}: a wasted tilt costs elite points (${wasteful.score})`);
   const buzzer = gradeAnswer(p, route, 0);
-  ok(buzzer.score === 120 + 5 * TOPSY_BOARDS * TOPSY_STARS, `Topsy-Turvy round ${i}: every star at the buzzer is 150 (${buzzer.score})`);
+  ok(buzzer.score === 120 + 3 * TOPSY_BOARDS * TOPSY_STARS, `Topsy-Turvy round ${i}: every star at the buzzer is 138 (${buzzer.score})`);
 }
 const dist: Record<number, number> = {};
 for (const m of mins) dist[m] = (dist[m] ?? 0) + 1;
@@ -141,11 +148,16 @@ console.log(`Topsy-Turvy: ${topsyRounds.length} rounds, board minimums ${JSON.st
 }
 // Scoring anchors.
 {
-  ok(scoreTopsy({ solved: true, home: 18, stars: 6 }, 120_000, 120_000).score === 200, "score: every star and a clear with the whole clock left is 200");
-  ok(scoreTopsy({ solved: true, home: 18, stars: 5 }, 120_000, 120_000).score === 195, "score: a missed star costs 5");
-  ok(scoreTopsy({ solved: true, home: 18, stars: 6 }, 54_000, 120_000).score === 200, "score: 45 % of the clock left still earns every speed point");
-  ok(scoreTopsy({ solved: true, home: 18, stars: 0 }, 0, 120_000).score === 120, "score: a clear at the buzzer with no stars is 120");
-  ok(scoreTopsy({ solved: false, home: 17, stars: 6, clearedStars: 4 }, 0, 120_000).score === 114, "score: unfinished counts balls home and stars on cleared boards only");
+  const fin = (stars: number, ms: number, tilts = 20, min = 20) => scoreTopsy({ solved: true, home: 18, stars, tilts }, ms, 120_000, undefined, min).score;
+  ok(fin(6, 120_000) === 200, "score: every star, no waste, a clear with the whole clock left is 200");
+  ok(fin(6, Math.round(0.76 * 120_000)) === 200, "score: the elite share (76 % left) with no waste is 200");
+  ok(fin(5, 120_000) === 197, "score: a missed star costs 3");
+  ok(fin(6, 60_000) === 170 && fin(6, Math.round(0.64 * 120_000)) === 170, "score: from half the clock left to the near-perfect pace (64 %), every star is 170: nothing elite yet");
+  ok(fin(6, Math.round(0.7 * 120_000)) > 170 && fin(6, Math.round(0.7 * 120_000)) < 185, "score: the elite stretch is convex (70 % left: a few points)");
+  ok(fin(6, 120_000, 25, 20) < 190, `score: wasted tilts cut the elite stretch (5 over the minimum: ${fin(6, 120_000, 25, 20)})`);
+  ok(fin(0, 0) === 120, "score: a clear at the buzzer with no stars is 120");
+  ok(fin(6, 30_000) > 138 && fin(6, 30_000) < 170, `score: a steady clear (a quarter of the clock left) earns most of the speed points (${fin(6, 30_000)})`);
+  ok(scoreTopsy({ solved: false, home: 17, stars: 6, clearedStars: 4 }, 0, 120_000).score === 106, "score: unfinished counts balls home and stars on cleared boards only");
   let maxUnfinished = 0;
   for (let home = 0; home < 18; home++) for (let s = 0; s <= 6; s++) maxUnfinished = Math.max(maxUnfinished, scoreTopsy({ solved: false, home, stars: s, clearedStars: s }, 0, 120_000).score);
   ok(maxUnfinished < 120, `score: no unfinished round reaches a clear's 120 (best ${maxUnfinished})`);
@@ -167,9 +179,10 @@ for (const [i, p] of jumbledRounds.entries()) {
   jdist[p.minMoves!] = (jdist[p.minMoves!] ?? 0) + 1;
   ok(p.minMoves! >= JUMBLED_MIN_MOVES && p.par === p.minMoves! + JUMBLED_PAR_SLACK, `Jumbled board ${i}: minimum ${p.minMoves}, par ${p.par}`);
   const route = encodeJumbled(jumbledSolutionMoves(p.solution ?? []));
-  const g = gradeAnswer(p, route, Math.round(0.7 * JUMBLED_TIME_MS));
-  ok(g.isCorrect && g.score === 200, `Jumbled board ${i}: the shortest route with 70 % of the clock left scores 200 (${g.score})`);
-  ok(gradeAnswer(p, route, 0).score === 160, `Jumbled board ${i}: at par at the buzzer is 160`);
+  const g = gradeAnswer(p, route, Math.round(0.9 * JUMBLED_TIME_MS));
+  ok(g.isCorrect && g.score === 200, `Jumbled board ${i}: the shortest route with 90 % of the clock left scores 200 (${g.score})`);
+  ok(gradeAnswer(p, route, Math.round(0.75 * JUMBLED_TIME_MS)).score === 170, `Jumbled board ${i}: the shortest route at a near-perfect pace (75 % left) is 170, no elite points`);
+  ok(gradeAnswer(p, route, 0).score === 132, `Jumbled board ${i}: at par at the buzzer is 132`);
   ok(gradeAnswer(p, "", 0).score === 0, `Jumbled board ${i}: nothing scores 0`);
 }
 console.log(`Jumbled: ${jumbledRounds.length} boards, minimums ${JSON.stringify(jdist)}, slowest live board ${Math.round(jMs)} ms`);
@@ -212,12 +225,14 @@ const { topsy, jumbled } = tuning(20);
 console.log(`\n${table("Topsy-Turvy (tilts)", topsy)}\n\n${table("Jumbled (slides)", jumbled)}\n`);
 function bands(game: string, rows: Row[]): void {
   const by = Object.fromEntries(rows.map((r) => [r.label, r]));
-  const [spam, novice, average, solid, strong, near] = ["Random spam", "Novice", "Average", "Solid", "Strong", "Near-perfect"].map((l) => by[l]!);
+  const [spam, novice, average, solid, strong, near, elite] = ["Random spam", "Novice", "Average", "Solid", "Strong", "Near-perfect", "Elite"].map((l) => by[l]!);
   ok(spam!.median <= 50 && spam!.p90 < 80 && spam!.median < average!.median, `${game}: random play stays low, under an average player (median ${spam!.median}, p90 ${spam!.p90})`);
-  ok(novice!.mean < average!.mean && average!.mean < solid!.mean && solid!.mean < strong!.mean && strong!.mean <= near!.mean, `${game}: each level scores above the one below`);
-  ok(solid!.median >= 120 && solid!.median <= 160, `${game}: a solid player lands around today's Pattern scores (median ${solid!.median})`);
-  ok(near!.median >= 190, `${game}: near-perfect play reaches 190–200 (median ${near!.median})`);
-  ok(solid!.p90 < 200 || solid!.median < 160, `${game}: 200 stays rare for a solid player`);
+  ok(novice!.mean < average!.mean && average!.mean < solid!.mean && solid!.mean < strong!.mean && strong!.mean <= near!.mean && near!.mean < elite!.mean, `${game}: each level scores above the one below`);
+  ok(solid!.median >= 135 && solid!.median <= 155, `${game}: a solid player lands around today's Pattern scores (median ${solid!.median})`);
+  ok(strong!.median >= 155 && strong!.median <= 172, `${game}: a strong player lands about 160–170 (median ${strong!.median})`);
+  ok(near!.median >= 162 && near!.median <= 178, `${game}: near-perfect play lands about 165–175 (median ${near!.median})`);
+  ok(near!.p90 < 190, `${game}: near-perfect play stays under 190 (p90 ${near!.p90})`);
+  ok(elite!.median >= 190, `${game}: only elite play (clearly faster, no waste) reaches 190–200 (median ${elite!.median})`);
   ok(rows.every((r) => r.p90 <= 200), `${game}: no score above 200`);
 }
 bands("Topsy-Turvy", topsy);
@@ -276,4 +291,4 @@ if (failures.length) {
   console.log(`FAIL d5-remodels-check: ${failures.length} of ${passes + failures.length} checks failed (${secs} s)`);
   process.exit(1);
 }
-console.log(`PASS d5-remodels-check: ${passes} checks (${secs} s) — both remodels deal, verify, score to 200 and tune as documented`);
+console.log(`PASS d5-remodels-check: ${passes} checks (${secs} s) — both remodels deal, verify, score to 200 (the top only at elite pace) and tune as documented`);

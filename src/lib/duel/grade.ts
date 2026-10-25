@@ -913,7 +913,8 @@ function gradeUnderRev(
       // gravityRev 3 (the remodel, topsy.ts): three boards, six balls with holes, stars; scored to 200 here.
       if (isTopsy(puzzle)) {
         const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
-        const graded = scoreTopsy(replay, ms, timeLimitMs);
+        // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
+        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
         isCorrect = replay.solved;
         correctCount = replay.home;
         score = graded.score;
@@ -1021,7 +1022,7 @@ function gradeUnderRev(
       // tilesRev 3 (the remodel, jumbled.ts): the 5×5 gradient with row and column slides; scored to 200 here.
       if (isJumbledGradient(puzzle)) {
         const replay = replayJumbled(puzzle.frame, decodeJumbled(answer));
-        const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs);
+        const graded = scoreJumbled(puzzle.frame, replay, puzzle.par ?? 0, ms, timeLimitMs, puzzle.minMoves);
         isCorrect = replay.solved;
         correctCount = replay.inPlace;
         score = graded.score;
@@ -1529,6 +1530,8 @@ function gradeUnderRev(
         desyncTick: run.desyncTick,
         inputs: decodeTenDropRun(answer).events.length,
         claimedScore: decodeTenDropRun(answer).claimedScore,
+        // tenRev 4: tens made by the gold tile (absent on older revisions).
+        ...(run.goldTens !== undefined ? { goldTens: run.goldTens } : {}),
         ...(run.reason ? { reason: run.reason } : {}),
       };
       break;

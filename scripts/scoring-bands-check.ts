@@ -34,8 +34,10 @@ import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
 import { puzzleScoreRevOf } from "../src/lib/duel/puzzleScoreRev";
 import { decodeSafePending, decodeSafeTries, encodeSafeDraft } from "../src/lib/duel/safe";
 import { bandsFigures, bandsHelp } from "../src/lib/duel/puzzleBandsText";
+import { isNumberDepthType } from "../src/lib/duel/numberDepth";
+import { depthHelp } from "../src/lib/duel/numberDepthText";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
+import { TEN_DROP_BANDS_MAP, TEN_DROP_BANDS_REV, TEN_DROP_DEPTH_REV, TEN_DROP_RAW_REV } from "../src/lib/arcade/tenDrop";
 import { CLASH_BANDS_MAP, CLASH_REV_BANDS, CLASH_REV_GREAT } from "../src/lib/arcade/colourClash";
 import { WHACK_BANDS_MAP, WHACK_REV_BANDS } from "../src/lib/arcade/whack";
 import { CLAY_BANDS_MAP, CLAY_REV_BANDS, CLAY_REV_QUICK } from "../src/lib/arcade/clayShoot";
@@ -162,7 +164,8 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
   const later: Partial<Record<PuzzleType, number>> = { tendrop: TEN_DROP_RAW_REV, stroop: CLASH_REV_GREAT, clayshoot: CLAY_REV_QUICK };
   for (const [type, field, rev, map, prev] of maps) {
     const dealt = (generatePuzzle(type) as unknown as Record<string, unknown>)[field];
-    ok(dealt === rev || dealt === later[type], `${type}: rooms deal ${field} ${rev}${later[type] ? ` or ${later[type]}` : ""}`);
+    // Tenfall's depth-to-200 tenRev 4 (25 Oct 2026) follows tenRev 3.
+    ok(dealt === rev || dealt === later[type] || (type === "tendrop" && dealt === TEN_DROP_DEPTH_REV), `${type}: rooms deal ${field} ${rev}${later[type] ? ` or ${later[type]}` : ""}`);
     ok(bandMapTotal(map, 0) === 0 && bandMapTotal(map, bandTop(map)) === 150, `${type}: the map runs 0 → 150`);
     for (let x = 1; x <= bandTop(map); x++) ok(bandMapTotal(map, x) >= bandMapTotal(map, x - 1), `${type}: the map never falls (${x})`);
     if (type !== "wordfall") ok(bandMapTotal(map, 149) < 150, `${type}: only a perfect 150 is 150`);
@@ -258,8 +261,9 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const f = bandsFigures(type);
     // Since puzzleScoreRev 3 (20 Oct 2026) the help states the helper's numbers (scoring-rev3-check proves them).
     void f;
-    // The D5 remodels' help states their own scoring to 200 (d5-remodels-check proves it).
-    if (!D5_REMODELLED.has(type)) ok(PUZZLE_INSTRUCTIONS[type].score === bandsHelp(type), `${type}: the "?" help is not the puzzle's score text`);
+    // The D5 remodels' help states their own scoring to 200 (d5-remodels-check proves it); the Number puzzles to 200
+    // (depthRev 1) state their own text (numberDepthText.ts; number-depth-check proves it).
+    if (!D5_REMODELLED.has(type)) ok(PUZZLE_INSTRUCTIONS[type].score === (isNumberDepthType(type) ? depthHelp(type) : bandsHelp(type)), `${type}: the "?" help is not the puzzle's score text`);
   }
 }
 

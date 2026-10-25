@@ -9,6 +9,7 @@ import { dealtPuzzleScoreRev, puzzleScoreRevOf, storedScoreParts } from "./puzzl
 import { PUZZLE_SCORE_REV_BANDS, rev2Applies, rev2Grade, rev2ResultOf } from "./puzzleScoreRev2";
 import { PUZZLE_SCORE_REV_HELPER, rev3Applies, rev3Efficiency, rev3Finish, rev3Unfinished } from "./puzzleScoreRev3";
 import { rev3EfficiencyOverride, rev3Progress } from "./puzzleProgress";
+import { stampNumberDepth, withNumberDepth } from "./numberDepth.server";
 import { puzzleTimeLimitMs } from "./registry";
 import { WORDHUNT_REV_TARGET, WORDSMITH_REV_TARGET } from "./scoring";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -125,7 +126,8 @@ export interface GenerateContext {
 export function generatePuzzle(type: PuzzleType, context: GenerateContext = {}): PuzzleData {
   // The seven games with a 13 Oct 2026 limit or count-range revision carry their own stamp (moveLimits.ts).
   const made = stampMoveLimits(generateUnstamped(type, context));
-  return { ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData;
+  // Number puzzles to 200 (numberDepth.ts) carry depthRev 1 on puzzleScoreRev 3.
+  return stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
@@ -270,9 +272,10 @@ export function gradeAnswer(
   // The D5 remodels (Topsy-Turvy gravityRev 3, Jumbled tilesRev 3) score to 200 in their own grader.
   if (isTopsy(puzzle) || isJumbledGradient(puzzle)) return graded;
   // puzzleScoreRev 3 (the shared helper, puzzleScoreRev3.ts): finish puzzles score progress, time and mistakes.
-  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withRev3(puzzle, answer, graded, receivedMsRemaining);
+  // Number puzzles stamped depthRev 1 then score to 200 (numberDepth.server.ts); without the stamp it returns the grade as is.
+  if (rev >= PUZZLE_SCORE_REV_HELPER && rev3Applies(puzzle.type)) return withNumberDepth(puzzle, answer, withRev3(puzzle, answer, graded, receivedMsRemaining));
   // puzzleScoreRev 2 (score bands, puzzleScoreRev2.ts): the rev-1 grade above, mapped through the game's knots.
-  return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withRev2(puzzle, graded) : graded;
+  return rev >= PUZZLE_SCORE_REV_BANDS && rev2Applies(puzzle.type) ? withNumberDepth(puzzle, answer, withRev2(puzzle, graded)) : graded;
 }
 
 /**

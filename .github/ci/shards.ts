@@ -45,8 +45,9 @@ export const SHARDS: Record<string, string[]> = {
   // touch-highlight-check (18 Oct 2026: no tap highlight, touch focus ring or selection on game and room screens,
   // ~1 min with its dev server) rides beside screen-bottom-check, through the same harness.
   play6: ["bottom-clearance-check.ts@1/8", "screen-bottom-check.tsx", "touch-highlight-check.tsx"],
-  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6"],
-  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6"],
+  // arcade-room-practice-check's other two thirds (25 Oct 2026, see play15) ride on the two lightest of these jobs.
+  play7: ["bottom-clearance-check.ts@2/8", "arcade-device-bottom-check.ts@4/6", "arcade-room-practice-check.ts@2/3"],
+  play8: ["bottom-clearance-check.ts@3/8", "arcade-device-bottom-check.ts@5/6", "arcade-room-practice-check.ts@3/3"],
   play9: ["bottom-clearance-check.ts@4/8", "arcade-device-bottom-check.ts@6/6"],
   play10: ["bottom-clearance-check.ts@5/8", "arcade-device-bottom-check.ts@3/6"],
   // arcade-fill-check (17 Oct 2026, the screen fill-ins: every active arcade game at 390x844 and as an iPhone 11
@@ -70,9 +71,11 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-room-practice-check (18 Oct 2026: every arcade play screen in a room and in practice as an iPhone 11
   // home-screen app, at three layout viewports, ~2 min with its dev server) and fission-repeat-check (Fission
   // four times in a row in practice, ~2 min) on their own job: play14 is already near its limit.
+  // In thirds since 25 Oct 2026 (~55 s a third locally with its dev server, ~2 min whole): it ran into the 300 s limit
+  // on CI, and every expansion makes the arcade games heavier. @1/3 here, @2/3 on play7, @3/3 on play8.
   // app-shell-check (18 Oct 2026: the four tabs, icons and the public-games card in the real app plus room screens
   // in the harness, ~2 min with its dev server) rides here too.
-  play15: ["arcade-room-practice-check.ts", "fission-repeat-check.ts", "app-shell-check.ts"],
+  play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts"],
   // The page skin (19 Oct 2026): theme-check and no-wrap-check's 63 draws in thirds (the daily screens joined 21 Oct 2026:
   // locally theme-check ~2 min, no-wrap-check ~4 min whole, so each job stays near 4 min).
   play16: ["theme-check.tsx", "no-wrap-check.tsx@1/3"],

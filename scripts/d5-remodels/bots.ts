@@ -30,9 +30,9 @@ export function makeRng(seed: number): Rng {
   };
 }
 
-export const BOT_LEVELS = ["novice", "average", "good", "great", "near"] as const;
+export const BOT_LEVELS = ["novice", "average", "good", "great", "near", "elite"] as const;
 export type BotLevel = (typeof BOT_LEVELS)[number];
-export const BOT_LABEL: Record<BotLevel, string> = { novice: "Novice", average: "Average", good: "Solid", great: "Strong", near: "Near-perfect" };
+export const BOT_LABEL: Record<BotLevel, string> = { novice: "Novice", average: "Average", good: "Solid", great: "Strong", near: "Near-perfect", elite: "Elite" };
 
 export interface BotSkill {
   /** Seconds per action relative to a solid player. */
@@ -52,6 +52,8 @@ export const TOPSY_SKILLS: Record<BotLevel, BotSkill> = {
   good: { pace: 1.0, err: 0.24, stars: 0.35 },
   great: { pace: 0.72, err: 0.12, stars: 0.75 },
   near: { pace: 0.5, err: 0.04, stars: 1 },
+  /** Clearly faster than near-perfect, and no wasted tilt. */
+  elite: { pace: 0.32, err: 0, stars: 1 },
 };
 /**
  * Jumbled: nobody sees a shortest route on a 5 × 5 gradient; most slides are exploration. A mistake is a slide
@@ -63,6 +65,8 @@ export const JUMBLED_SKILLS: Record<BotLevel, BotSkill> = {
   good: { pace: 1.0, err: 0.4, stars: 0 },
   great: { pace: 0.75, err: 0.22, stars: 0 },
   near: { pace: 0.55, err: 0.07, stars: 0 },
+  /** Clearly faster than near-perfect, and no wasted slide. */
+  elite: { pace: 0.36, err: 0, stars: 0 },
 };
 
 /** Seconds a solid player takes per tilt / slide, and to read a fresh board. */

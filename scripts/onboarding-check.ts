@@ -12,7 +12,9 @@
  *  - reduced motion drops the slide;
  *  - at 414x896 (48/34 px insets, the iPhone 11 home-screen app), 390x844, 375x667 and 360x800
  *    (47/34 px insets) every panel fits without scrolling, nothing sits under the notch or home
- *    bar, and Skip and Next are at least 44 px tall.
+ *    bar, and Skip and Next are at least 44 px tall;
+ *  - the third panel states the games' top score from roundMax.ts ("Every game scores up to 150"
+ *    while every game shares it, "Games score up to 200" once one game is raised; topRoundMax).
  *
  *   bun scripts/onboarding-check.ts [--verbose] [--shots=.shots]
  */
@@ -23,6 +25,7 @@ import { startSafeAreaServer } from "./safe-area-server";
 import { gotoRetried, warmUp } from "./browser-load";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { APP_NAME } from "../src/lib/brand";
+import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
@@ -38,6 +41,13 @@ const SIZES = [
   { w: 360, h: 800, top: 47, bottom: 34 },
 ] as const;
 const TITLES = ["Quick games. Real rivals.", "Same game, same time.", "Score big, win the room."];
+/**
+ * The third panel's opening, worked out here from the games' own maximums (ROUND_MAX), not from the
+ * app's topRoundMax: the highest maximum, "Every game" while all share it, "Games" once they differ.
+ */
+const MAXES = Object.values(ROUND_MAX);
+const TOP = Math.max(...MAXES);
+const SCORE_LINE = `${MAXES.every((m) => m === TOP) ? "Every game scores" : "Games score"} up to ${TOP}.`;
 
 const failures: string[] = [];
 const fail = (msg: string) => failures.push(msg);
@@ -53,14 +63,18 @@ const ok = (msg: string) => console.log(`PASS ${msg}`);
   if (!/markOnboardingSeen\(\)/.test(room)) fail("source: the room route does not mark the intro seen");
   if (new RegExp(APP_NAME).test(intro.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")))
     fail(`source: Onboarding.tsx spells the app name (take it from APP_NAME)`);
-  const copy = intro.match(/(?:title|body): "([^"]*)"/g) ?? [];
+  // A body may be a template literal (the third panel's top score comes from roundMax.ts).
+  const copy = intro.match(/(?:title|body): (?:"[^"]*"|`[^`]*`)/g) ?? [];
   if (copy.length !== 6) fail(`source: expected 3 titles and 3 bodies, found ${copy.length}`);
   // Sound: only the existing lock cue, nothing new.
   const sounds = intro.match(/play[A-Z]\w*\(/g) ?? [];
   if (sounds.some((s) => s !== "playLock(")) fail(`source: Onboarding.tsx plays ${sounds.join(", ")} (only playLock is allowed)`);
   // Presentation only: the flag module imports nothing, the intro no game, sim or room code.
   if (/^import /m.test(readFileSync("src/lib/onboarding.ts", "utf8"))) fail("source: src/lib/onboarding.ts imports code");
-  if (/from "@\/lib\/(arcade|duel)\//.test(intro)) fail("source: Onboarding.tsx imports game or room code");
+  // The one exception is the games' maximums (roundMax.ts), which imports nothing but types.
+  const libImports = intro.match(/from "@\/lib\/(arcade|duel)\/[^"]*"/g) ?? [];
+  if (libImports.some((i) => i !== 'from "@/lib/duel/roundMax"')) fail("source: Onboarding.tsx imports game or room code");
+  if (/^import (?!type )/m.test(readFileSync("src/lib/duel/roundMax.ts", "utf8"))) fail("source: roundMax.ts (read by the intro) imports code");
   if (!failures.length) ok("source: home reads the flag, the room marks it, no name or new sound in the intro");
 }
 
@@ -232,7 +246,8 @@ function measure(arg: { top: number; bottom: number }) {
     if (r.height < 44) out.push(`${sel} is ${r.height}px tall (min 44)`);
   }
   const h2 = panel.querySelector("h2")!.textContent;
-  return { out, title: h2 };
+  const body = panel.querySelector("p")!.textContent;
+  return { out, title: h2, body };
 }
 
 try {
@@ -259,6 +274,7 @@ try {
         await settle(page);
         const m = await page.evaluate(measure, { top: size.top, bottom: size.bottom });
         if (m.title !== TITLES[i]) fail(`${where}: panel ${i + 1} title "${m.title}" (expected "${TITLES[i]}")`);
+        if (i === 2 && !m.body?.startsWith(SCORE_LINE)) fail(`${where}: panel 3 says "${m.body}" (expected it to open "${SCORE_LINE}")`);
         if ((await currentPanel(page)) !== i + 1) fail(`${where}: dots show panel ${await currentPanel(page)} on panel ${i + 1}`);
         for (const o of m.out) fail(`${where} panel ${i + 1}: ${o}`);
         const label = (await page.locator("[data-onboarding-next]").textContent())?.trim();

@@ -22,7 +22,7 @@ Older rounds keep their stamps and grade exactly as before.
 - A ball is **home the moment it rolls over its own hole**: it drops in and leaves the board, so it stops
   blocking. It does not have to stop on the hole. A ball rolls straight over other colours' holes.
 - Any ball that rolls through a star collects it.
-- Each board has a public **tilt limit**: the board's all-stars minimum + 6, rounded up to a multiple of 5 (so
+- Each board has a public **tilt limit**: the board's all-stars minimum + 8, rounded up to a multiple of 5 (so
   the limit does not reveal the minimum). Undo and Reset work within a board and never give a tilt back. If a
   board runs out of tilts, play moves on to the next board; that board stays unfinished.
 - When a board is cleared (or runs out of tilts) it stays on screen for 0.9 s (0.5 s with reduced motion), then
@@ -51,11 +51,16 @@ Topsy-Turvy's old bank (`gravityBank.server.ts`, gravityRev 2 boards) is no long
 list as a **retired bank** (`RETIRED_BANKS` in `puzzleBank.server.ts`): it is still verified and rebuildable,
 but it gives no intro example.
 
-**Score** (`scoreTopsy`, max 200):
+**Score** (`scoreTopsy`, max 200; retuned before merge, see "Retune" below):
 
-- **Every board cleared**: 120, + 5 per star (6 stars, up to 30), + up to 50 for speed. The full 50 needs 45 % of
-  the clock left, which means finishing in about 66 s. So 200 requires every star and a fast clear.
-- **Unfinished**: 100 × balls home ÷ 18, + 5 per star on the boards you cleared, capped at 119 (always below a
+- **Every board cleared**: 120, + 3 per star (6 stars, up to 18), + up to 32 for speed, + up to 30 elite.
+  - Speed is concave: 32 × √(share of the clock left ÷ ½). All 32 from half the clock left; a steady clear with a
+    quarter left still earns about 23.
+  - Elite (`eliteStretchPoints` in `d5Remodels.ts`, the Number depth games' stretch shape): nothing up to 64 % of
+    the clock left (about a near-perfect pace), then convex up to all 30 at 76 % left (about 29 s), scaled by the
+    square of the efficiency (the boards' all-stars minimums ÷ the tilts made). So 200 needs every star, elite pace
+    and no wasted tilt.
+- **Unfinished**: 100 × balls home ÷ 18, + 3 per star on the boards you cleared, capped at 119 (always below a
   full clear). Stars on an unfinished board do not count, because random tilting collects them too.
 
 ## Jumbled, tilesRev 3
@@ -98,11 +103,14 @@ but it gives no intro example.
 - Generation plus proof takes about 40 ms. Over 30 room boards: minimum 5 on 2, minimum 6 on 28.
 - `verifyJumbledPuzzle` repeats the proof, checks par and the anchors, and replays the stored route.
 
-**Score** (`scoreJumbled`, max 200):
+**Score** (`scoreJumbled`, max 200; retuned before merge):
 
-- **Solved**: 120, + par points, + up to 40 for speed.
-  - Par points: 40 at or under par, then 10 fewer for each move over (so 0 from par + 4).
-  - Speed: the full 40 needs 65 % of the clock left, which means finishing in about 42 s.
+- **Solved**: 120, + par points, + up to 38 for speed, + up to 30 elite.
+  - Par points: 12 at or under par, 6 at one over, then 0.
+  - Speed is concave: 38 × √(share of the clock left ÷ 0.65). All 38 from 65 % of the clock left.
+  - Elite: nothing up to 78 % of the clock left (about a near-perfect pace), then convex up to all 30 at 87 % left
+    (about 16 s), scaled by the square of the efficiency (the proved minimum ÷ the slides made). So 200 needs the
+    fewest moves at elite pace.
 - **Unsolved**: 110 × the net share of the tiles that started out of place and are now in place, capped at 110.
   Random slides score about 0.
 
@@ -132,35 +140,44 @@ per level per round, all graded by the server's own `gradeAnswer`. The bots are 
   plus the slide back. A solid player makes about twice par's slides.
 - **Random spam** tilts every 0.4 s, or slides every 0.5 s.
 
-| Topsy-Turvy (tilts) | median | p10–p90 | mean | finished | tilts | notes |
+| Topsy-Turvy (tilts) | median | p10–p90 | mean | finished | actions | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Random spam | 44 | 17–67 | 44 | 0 % | 43.9 | 7.7 home, 4.9 stars |
-| Novice | 38 | 11–72 | 38 | 0 % | 14 | 6.1 home, 2 stars, 0 s left |
-| Average | 60 | 33–109 | 66 | 10 % | 19.2 | 10.2 home, 2.9 stars, 9 s left |
-| Solid | 147 | 61–179 | 129 | 51 % | 23.3 | 15.8 home, 4.2 stars, 31 s left |
-| Strong | 190 | 98–200 | 169 | 76 % | 23 | 17.2 home, 5.3 stars, 53 s left |
-| Near-perfect | 200 | 200–200 | 195 | 94 % | 20 | 17.9 home, 6 stars, 75 s left |
+| Random spam | 42 | 17–67 | 42 | 0 % | 45.6 | 7.4 home, 5 stars |
+| Novice | 36 | 11–70 | 36 | 0 % | 14.1 | 6.1 home, 2 stars, 0 s left |
+| Average | 56 | 28–103 | 63 | 10 % | 19.3 | 10 home, 2.9 stars, 9 s left |
+| Solid | 143 | 59–159 | 119 | 51 % | 23.3 | 15.8 home, 4.2 stars, 31 s left |
+| Strong | 164 | 90–169 | 147 | 76 % | 23.1 | 17.2 home, 5.3 stars, 53 s left |
+| Near-perfect | 170 | 170–171 | 167 | 94 % | 20 | 17.9 home, 6 stars, 75 s left |
+| Elite | 200 | 193–200 | 198 | 100 % | 18.8 | 18 home, 6 stars, 93 s left |
 
-| Jumbled (slides) | median | p10–p90 | mean | finished | slides | notes |
+| Jumbled (slides) | median | p10–p90 | mean | finished | actions | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Random spam | 0 | 0–0 | 1 | 0 % | 239 | |
+| Random spam | 0 | 0–0 | 1 | 0 % | 239 |  |
 | Novice | 28 | 0–72 | 34 | 4 % | 10.6 | 14 s left, at/under par 1 % |
-| Average | 81 | 31–169 | 93 | 44 % | 13.4 | 24 s left, at/under par 9 % |
-| Solid | 143 | 81–194 | 144 | 87 % | 13.7 | 42 s left, at/under par 20 % |
-| Strong | 188 | 148–200 | 185 | 100 % | 9.5 | 73 s left, at/under par 46 % |
-| Near-perfect | 200 | 200–200 | 199 | 100 % | 6.7 | 93 s left, at/under par 94 % |
+| Average | 81 | 31–152 | 91 | 44 % | 13.4 | 24 s left, at/under par 9 % |
+| Solid | 147 | 81–167 | 139 | 87 % | 13.7 | 42 s left, at/under par 20 % |
+| Strong | 163 | 152–170 | 163 | 100 % | 9.5 | 73 s left, at/under par 46 % |
+| Near-perfect | 170 | 170–173 | 170 | 100 % | 6.7 | 93 s left, at/under par 94 % |
+| Elite | 196 | 187–200 | 195 | 100 % | 5.9 | 104 s left, at/under par 100 % |
 
 Reading the table:
 
-- **Solid players** land at a median of about 143–147. That is around today's Pattern finish scores (120–150) and
-  sits in the "great" band on the 200 scale.
-- **Strong players** land at 188–190 and **near-perfect players** at 200. Only strong, fast play reaches 190–200.
-- **Topsy-Turvy is bimodal for solid players**: about half clear all three boards, and the other half run a board
-  out of tilts. That is the tilt limit's job.
+- **Solid players** land at a median of 143 (Topsy-Turvy) and 147 (Jumbled), around today's Pattern finish scores.
+- **Strong players** land at 163–164 and **near-perfect players** at 170, with near-perfect's p90 at 171–173.
+- **Only the elite level** (clearly faster than near-perfect, no wasted move) reaches 190–200: medians 200 and 196.
+- **Topsy-Turvy is bimodal for solid players**: about half clear all three boards, and the rest run out of time
+  or tilts on a board, so the solid median sits at the slowest clears' scores.
 - **Random tilting in Topsy-Turvy scores about what a novice does** (around 40), well under an average player.
-  Rolling over your own hole makes stray tilts drop some balls, and the tilt limit plus the stars rule keep that
-  in check.
-- d5-remodels-check re-runs the table on 20 rounds and holds these bands.
+- d5-remodels-check re-runs the table on 20 rounds and holds these bands: solid 135–155, strong 155–172,
+  near-perfect 162–178 with p90 under 190, elite median 190 or more.
+
+### Retune (before merge, 26 Oct 2026)
+
+The first version paid strong players 188–190 and near-perfect players 200 in 94 % of runs, worth far more than
+other games in a room. The stamps were not live yet, so they were kept (gravityRev 3, tilesRev 3) and only the
+scoring changed: a smaller fixed bonus (stars 3 each, par 12), a concave speed part a near-perfect player fills,
+and the elite stretch on top. Topsy-Turvy's tilt limit gained two spare tilts (minimum + 8). The new-stamp fixture
+was re-recorded; the old stamps' fixture is unchanged and still regrades identically.
 
 ## Replay coverage
 
@@ -172,7 +189,7 @@ Reading the table:
   - Each under puzzleScoreRev 0–3.
   - `d5-remodels-legacy-check` regrades every answer and requires the same score, verdict, counts, stored time and
     stored extra.
-- **New stamps**: `scripts/fixtures/d5-remodels-runs.json.gz` holds 72 runs (bots at every level plus perfect
+- **New stamps**: `scripts/fixtures/d5-remodels-runs.json.gz` holds 84 runs (every level, elite included) (bots at every level plus perfect
   routes) recorded on this branch. `d5-remodels-check --record` re-records it; the check regrades every run and
   needs both games to reach 200.
 - **Checks written for the old versions keep proving them**:
@@ -229,7 +246,7 @@ Reading the table:
 - **Board size against cell width**: about 10 × 10 wins over 40 px at 375 (see above). The cells are about 40 px on
   Joe's phone.
 - **Topsy-Turvy's tilt limit**: random tilting drops balls by chance, so each board has a tilt limit (all-stars
-  minimum + 6, rounded up to 5). Running out moves play to the next board instead of ending the round.
+  minimum + 8, rounded up to 5). Running out moves play to the next board instead of ending the round.
 - **Stars**: any ball can collect a star. Stars count fully on a cleared round; on an unfinished round they count
   only on the boards that were cleared.
 - **Jumbled's par** is public, as Colour Flood's is. It is the proved minimum + 3, so the minimum can be worked out
@@ -296,8 +313,9 @@ Reading the table:
 
 1. **`round-max-check`** now has a `RAISED` table. Other depth sessions raising their own games will add lines
    to the same table, so expect a merge conflict there. They are simple to resolve.
-2. **`gradeAnswer`** (`generate.server.ts`) has a one-line pass-through for the remodels' 200-point grades. A
-   shared "this stamp scores itself" hook would serve every expansion.
+2. **`gradeAnswer`** (`generate.server.ts`) has a one-line pass-through for the remodels' 200-point grades, kept
+   in one place just before the rev-3 / Number depth mapping. There was no single depth dispatcher
+   (`depth200.server.ts`) on main at this merge; when one lands, these two games route through it in one line.
 3. **The retired-bank mechanism** (`RETIRED_BANKS`) in `puzzleBank.server.ts`, puzzle-bank-check and
    puzzle-bank-lib: Topsy-Turvy's old bank is kept and verified but not dealt. CLAUDE.md's "six banked types"
    sentence could mention it.

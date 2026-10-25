@@ -34,6 +34,7 @@ import {
   TD_LOG_RESET,
   TD_MINUS,
   TD_TARGETS,
+  TD_GOLD,
   TD_W,
   type TenDropState,
 } from "./tenDrop";
@@ -60,18 +61,22 @@ const LOOKS = {
   op: ["#F6D47A", "#D9A946", TOY_BRASS_DARK, "#2E1C06"],
   minus: ["#6E93B8", "#4C7097", "#2D4A68", "#FFFFFF"],
   refused: ["#F2B3A6", "#DB8576", "#A8402F", "#4A120A"],
+  /** tenRev 4's gold digit: a bright gilded face, a deep gold rim and a star (tileSprite). */
+  gold: ["#FFF3C2", TD_GOLD, "#8A5A08", "#3A2200"],
 } as const;
 export type Look = keyof typeof LOOKS;
 
 export const TD_POP_MS = 200;
 export const TD_RING_MS = 360;
 export const TD_SOLVE_MS = 1200;
+/** A gold ten's pop: "GOLD TEN" rising from the tile, ms. */
+export const TD_GOLD_POP_MS = 900;
 const GHOST_MS = 220;
 
-function lookOf(tile: number, refused: boolean): Look {
+function lookOf(tile: number, refused: boolean, gold?: boolean): Look {
   if (refused) return "refused";
   const k = tdKind(tile);
-  if (k === TD_DIGIT) return "digit";
+  if (k === TD_DIGIT) return gold ? "gold" : "digit";
   if (k === TD_MINUS) return "minus";
   return "op";
 }
@@ -207,6 +212,43 @@ export function tileSprite(label: string, look: Look, w: number, h: number, rati
   c.beginPath();
   c.roundRect(3, 3, w - 2, h - 2, r - 1);
   c.stroke();
+  if (look === "gold") {
+    // Gilded: a bright inner rim, a diagonal glint and a small star in the top-left corner (all inside the face).
+    c.lineWidth = 1.5;
+    c.strokeStyle = "rgba(255,248,214,0.9)";
+    c.beginPath();
+    c.roundRect(5.5, 5.5, w - 7, h - 7, Math.max(2, r - 3.5));
+    c.stroke();
+    c.save();
+    c.beginPath();
+    c.roundRect(2, 2, w, h, r);
+    c.clip();
+    c.fillStyle = "rgba(255,255,255,0.28)";
+    c.beginPath();
+    c.moveTo(2 + w * 0.58, 2);
+    c.lineTo(2 + w * 0.74, 2);
+    c.lineTo(2 + w * 0.36, 2 + h);
+    c.lineTo(2 + w * 0.2, 2 + h);
+    c.closePath();
+    c.fill();
+    c.restore();
+    const sr = Math.max(3, Math.min(w, h) * 0.11);
+    const sx = 2 + sr + 6;
+    const sy = 2 + sr + 6;
+    c.fillStyle = "#FFFBEA";
+    c.strokeStyle = edge;
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = i % 2 ? sr * 0.45 : sr;
+      if (i === 0) c.moveTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr);
+      else c.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr);
+    }
+    c.closePath();
+    c.fill();
+    c.stroke();
+  }
   // Lettering at uniform size, centred.
   const size = Math.round(Math.min(h * (label.length > 1 ? 0.5 : 0.58), w * (label.length > 1 ? 0.4 : 0.5)));
   c.font = `700 ${size}px ${FONT}`;
@@ -243,13 +285,15 @@ function shimmerBand(): ArtCanvas | null {
 
 interface Ghost { x: number; y: number; label: string; look: Look; at: number; ms: number; grow: boolean }
 interface Ring { x: number; y: number; at: number; colour: string }
+interface GoldPop { x: number; y: number; at: number }
 interface Memo {
-  tiles: Map<number, { col: number; y: number; tile: number }>;
+  tiles: Map<number, { col: number; y: number; tile: number; gold?: true | undefined }>;
   tick: number;
   logTick: number;
   stage: number;
   ghosts: Ghost[];
   rings: Ring[];
+  golds: GoldPop[];
   solveAt: number;
   solveFrom: { x: number; y: number };
 }
@@ -260,8 +304,8 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
   const lastLog = s.log.length ? unpackTdLog(s.log[s.log.length - 1]!).tick : -1;
   if (!m || s.tick < m.tick || m.stage > s.stage) {
     // First frame this canvas sees (or a restarted run): remember, never animate.
-    m = { tiles: new Map(), tick: s.tick, logTick: lastLog, stage: s.stage, ghosts: [], rings: [], solveAt: s.cleared >= TD_TARGETS ? -Infinity : 0, solveFrom: { x: TD_W / 2, y: TD_H / 2 } };
-    for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile });
+    m = { tiles: new Map(), tick: s.tick, logTick: lastLog, stage: s.stage, ghosts: [], rings: [], golds: [], solveAt: s.cleared >= TD_TARGETS ? -Infinity : 0, solveFrom: { x: TD_W / 2, y: TD_H / 2 } };
+    for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile, gold: t.gold });
     memos.set(ctx, m);
     return m;
   }
@@ -270,7 +314,7 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
     const e = unpackTdLog(entry);
     if (e.tick <= m.logTick) continue;
     if (e.code !== TD_LOG_APPLIED && e.code !== TD_LOG_CLEAR && e.code !== TD_LOG_RESET) continue;
-    let gone: { col: number; y: number; tile: number } | null = null;
+    let gone: { col: number; y: number; tile: number; gold?: true | undefined } | null = null;
     for (const [id, t] of m.tiles) {
       if (t.col !== e.extra || s.tiles.some((x) => x.id === id)) continue;
       if (!gone || t.y > gone.y) gone = t;
@@ -278,9 +322,11 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
     if (!gone) continue;
     const x = gone.col * TD_COL_W + TILE_X;
     const y = gone.y / 256;
-    m.ghosts.push({ x, y, label: tdLabel(gone.tile), look: lookOf(gone.tile, false), at: now, ms: TD_POP_MS, grow: true });
+    m.ghosts.push({ x, y, label: tdLabel(gone.tile), look: lookOf(gone.tile, false, gone.gold), at: now, ms: TD_POP_MS, grow: true });
     if (e.code === TD_LOG_CLEAR) {
-      m.rings.push({ x: x + TILE_W / 2, y: y + TILE_H / 2, at: now, colour: "#FFD978" });
+      m.rings.push({ x: x + TILE_W / 2, y: y + TILE_H / 2, at: now, colour: gone.gold ? TD_GOLD : "#FFD978" });
+      // tenRev 4: a ten made by the gold tile (the sim counts it in goldTens).
+      if (gone.gold) m.golds.push({ x: x + TILE_W / 2, y: y + TILE_H / 2, at: now });
       m.solveFrom = { x: x + TILE_W / 2, y: y + TILE_H / 2 };
     } else if (e.code === TD_LOG_RESET) m.rings.push({ x: x + TILE_W / 2, y: y + TILE_H / 2, at: now, colour: "#E0503C" });
   }
@@ -289,14 +335,15 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
   // A new target sweeps the old lane contents away: they fade where they were.
   if (s.stage > m.stage) {
     for (const t of m.tiles.values()) {
-      m.ghosts.push({ x: t.col * TD_COL_W + TILE_X, y: t.y / 256, label: tdLabel(t.tile), look: lookOf(t.tile, false), at: now, ms: GHOST_MS, grow: false });
+      m.ghosts.push({ x: t.col * TD_COL_W + TILE_X, y: t.y / 256, label: tdLabel(t.tile), look: lookOf(t.tile, false, t.gold), at: now, ms: GHOST_MS, grow: false });
     }
     m.stage = s.stage;
   }
   if (s.cleared >= TD_TARGETS && m.solveAt === 0) m.solveAt = now;
   m.tiles.clear();
-  for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile });
+  for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile, gold: t.gold });
   m.ghosts = m.ghosts.filter((g) => now - g.at < g.ms).slice(-8);
+  m.golds = m.golds.filter((g) => now - g.at < TD_GOLD_POP_MS).slice(-2);
   m.rings = m.rings.filter((r) => now - r.at < TD_RING_MS).slice(-4);
   return m;
 }
@@ -363,7 +410,7 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     const dx = refused ? (s.tick % 4 < 2 ? -2 : 2) : 0;
     const x = (t.col * TD_COL_W + TILE_X + dx) * sx;
     const y = (t.y / 256) * sy;
-    const sprite = tileSprite(tdLabel(t.tile), lookOf(t.tile, refused), w, h, ratio, fontReady);
+    const sprite = tileSprite(tdLabel(t.tile), lookOf(t.tile, refused, t.gold), w, h, ratio, fontReady);
     if (sprite) ctx.drawImage(sprite as CanvasImageSource, x - 2, y - 2, w + 4, h + 4);
     if (!solving) continue;
     // Completion: the remaining tiles shimmer, lane by lane (a static gold rim when reduced).
@@ -402,6 +449,24 @@ export function drawTenDrop(ctx: CanvasRenderingContext2D, s: TenDropState, size
     }
     ctx.globalAlpha = 1;
   }
+
+  // A gold ten: "GOLD TEN" rises from the tile and fades (still, fading only, under reduced motion).
+  for (const g of m.golds) {
+    const f = Math.min(1, (now - g.at) / TD_GOLD_POP_MS);
+    const rise = reduced ? 0 : 34 * f;
+    const px = Math.min(TD_W - 52, Math.max(52, g.x)) * sx;
+    const py = Math.max(16, g.y - 10 - rise) * sy;
+    ctx.globalAlpha = f < 0.7 ? 1 : (1 - f) / 0.3;
+    ctx.font = `800 ${Math.round(Math.max(13, Math.min(20, 17 * Math.min(sx, sy))))}px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(58,34,0,0.85)";
+    ctx.strokeText("GOLD TEN", px, py);
+    ctx.fillStyle = TD_GOLD;
+    ctx.fillText("GOLD TEN", px, py);
+  }
+  ctx.globalAlpha = 1;
 
   // Completion: brass confetti bursts from the last target's tile and falls inside the board.
   if (solving && !reduced) {
