@@ -4,13 +4,19 @@
  *   1. Legacy identity: every answer in scripts/fixtures/number-depth-legacy.json.gz (recorded on main before the
  *      stamp: ladders, finishes at 0 / 50 / 90 % of the clock, mistakes, spam and every kit level, for the eight
  *      Number puzzles) grades to its stored score, verdict, breakdown and progress.
- *   2. The stamp: rooms deal depthRev 1 on puzzleScoreRev 3 for these eight games only; a check pinned before it
+ *   1b. depthRev 1 identity: every answer in scripts/fixtures/number-depth-rev1.json.gz (Exact, Brimful and Checkout
+ *      rounds dealt on depthRev 1, recorded on main before depthRev 2 by scripts/number-depth-rev1-record.ts) grades
+ *      to its stored score, verdict, breakdown, progress and depth figures.
+ *   2. The stamp: rooms deal depthRev 1 on puzzleScoreRev 3 for these eight games only (Exact, Brimful and Checkout
+ *      depthRev 2, the feature's gentler curve); a check pinned before it
  *      (pinNumberDepth, or an older puzzleScoreRev) gets the old boards (Checkout rev 1, Exact's old targets).
  *   3. The layer: on depth rounds an unfinished run scores exactly as before (≤ 110); a finish never scores less
  *      than the same answer without the stamp, never above 200, the breakdown adds up, and more time left never
  *      scores less. Stretch games: today's 150 pace stays 150–165 and the elite share with no mistakes is 200.
  *   4. Each feature: Exact's elegance (five numbers, generation guarantees both answers), Brimful's par pours,
- *      Checkout's big finish (rules and bonus), Ballpark's bullseye streak and speed stretch.
+ *      Checkout's big finish (rules and bonus), Ballpark's bullseye streak and speed stretch. depthRev 2 pays the
+ *      feature's base part at the fast share and the full bonus only at the game's elite share; the same boards
+ *      stamped depthRev 1 still pay in full at the fast share.
  *   5. Texts: the intro and help state 200 through the game's maximum, the feature lines are in the help.
  *
  *   bun scripts/number-depth-check.ts      (~20 s)
@@ -26,7 +32,10 @@ import { encodeNumline, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL
 import {
   ballparkStreak,
   ballparkStreakPoints,
+  dealtDepthRev,
+  depthFeaturePointsRev2,
   depthStretchPoints,
+  NUMBER_DEPTH_FEATURE_REV,
   NUMBER_DEPTH_GAMES,
   pinNumberDepth,
   usesNumberDepth,
@@ -43,6 +52,7 @@ import { KITS } from "./puzzle-fairness/kits";
 import { roomPuzzle } from "./puzzle-fairness/run";
 import { gradeEntry, type Rev3Game } from "./scoring-rev3-record";
 import { NUMBER_DEPTH_FIXTURE, NUMBER_DEPTH_GAMES as GAMES } from "./number-depth-record";
+import { gradeRev1Entry, NUMBER_DEPTH_REV1_FIXTURE, type Rev1Game } from "./number-depth-rev1-record";
 
 const failures: string[] = [];
 let passes = 0;
@@ -64,10 +74,25 @@ for (const g of legacy.games) {
 }
 ok(legacy.games.length >= 30 && legacyEntries >= 900, `the legacy fixture holds the eight games (${legacy.games.length} seeds, ${legacyEntries} answers)`);
 
+/* 1b. depthRev 1 identity (the feature games before depthRev 2). */
+const rev1 = JSON.parse(gunzipSync(readFileSync(NUMBER_DEPTH_REV1_FIXTURE)).toString()) as { games: Rev1Game[] };
+let rev1Entries = 0;
+for (const g of rev1.games) {
+  ok((g.puzzle as { depthRev?: number }).depthRev === 1, `${g.type} ${g.seed}: the stored puzzle is depthRev 1`);
+  for (const e of g.entries) {
+    rev1Entries++;
+    const now = gradeRev1Entry(g.puzzle, e.answer, e.ms);
+    ok(JSON.stringify(now) === JSON.stringify(e.graded), `depthRev 1 ${g.type} ${g.seed} ${e.level}: grades as stored (${JSON.stringify(e.graded)} → ${JSON.stringify(now)})`);
+  }
+}
+ok(new Set(rev1.games.map((g) => g.type)).size === 3 && rev1Entries >= 800, `the depthRev 1 fixture holds Exact, Brimful and Checkout (${rev1.games.length} seeds, ${rev1Entries} answers)`);
+ok(rev1.games.some((g) => g.entries.some((e) => e.graded.score === 200)), "the depthRev 1 fixture holds finishes at 200 (the feature in full at the fast share)");
+
 /* 2. The stamp. */
 for (const type of GAMES) {
   const made = generatePuzzle(type, { bankSeed: 4242 }) as unknown as Record<string, unknown>;
-  ok(made["depthRev"] === 1 && made["puzzleScoreRev"] === 3, `${type}: rooms deal depthRev 1 on puzzleScoreRev 3`);
+  const want = ["target", "measure", "checkout"].includes(type) ? NUMBER_DEPTH_FEATURE_REV : 1;
+  ok(dealtDepthRev(type) === want && made["depthRev"] === want && made["puzzleScoreRev"] === 3, `${type}: rooms deal depthRev ${want} on puzzleScoreRev 3 (${String(made["depthRev"])})`);
   ok(roundMaxFor(type) === 200, `${type}: its round maximum is 200`);
 }
 for (const other of ["tiles", "unblock", "wordslide", "numhunt", "tendrop"] as PuzzleType[])
@@ -152,16 +177,22 @@ for (let s = 1; s <= 12; s++) {
   ok(!hasSolutionWithAtMostFourTiles(p.tiles, p.target), `Exact ${s}: no answer from four or fewer numbers`);
   ok(exactTilesUsed(p, five) === 5, `Exact ${s}: the stored answer uses five numbers`);
   ok(sixSteps !== null, `Exact ${s}: a six-number answer exists too (elegance is a choice)`);
+  const game = NUMBER_DEPTH_GAMES.target!;
   const fast = Math.ceil(limit * rev3Game("target").fastShare);
+  const elite = Math.ceil(limit * game.featureElite!);
+  const v1 = { ...p, depthRev: 1 } as TargetNumberPuzzleData;
+  ok(p.depthRev === 2, `Exact ${s}: dealt on depthRev 2`);
   const g5 = gradeAnswer(p, five, fast);
-  ok(g5.score === 200 && (g5.extra?.["depth"] as { elegant?: boolean })?.elegant === true, `Exact ${s}: five numbers at the fast share is 200 (${g5.score})`);
+  ok(g5.score === 150 + Math.round(50 * game.featureBase!) && (g5.extra?.["depth"] as { elegant?: boolean })?.elegant === true, `Exact ${s}: depthRev 2, five numbers at the fast share is 150 + the base part (${g5.score})`);
+  ok(gradeAnswer(p, five, elite).score === 200, `Exact ${s}: depthRev 2, five numbers at the elite share is 200`);
+  ok(gradeAnswer(v1, five, fast).score === 200, `Exact ${s}: depthRev 1, five numbers at the fast share is still 200`);
   if (sixSteps) {
     const six = encodeSteps(sixSteps);
     ok(exactTilesUsed(p, six) === 6, `Exact ${s}: the six-number answer uses six`);
-    ok(gradeAnswer(p, six, fast).score === 150, `Exact ${s}: six numbers at the fast share is 150, no elegance`);
+    ok(gradeAnswer(p, six, fast).score === 150 && gradeAnswer(v1, six, fast).score === 150, `Exact ${s}: six numbers at the fast share is 150, no elegance (both revisions)`);
     ok(gradeAnswer(p, six, limit).score === 150 && gradeAnswer(p, five, limit).score === 200, `Exact ${s}: elegance needs the five`);
   }
-  ok(gradeAnswer(p, five, 0).score === 120, `Exact ${s}: an elegant hit at the buzzer earns no bonus (it is paid with speed)`);
+  ok(gradeAnswer(p, five, 0).score === 120 && gradeAnswer(v1, five, 0).score === 120, `Exact ${s}: an elegant hit at the buzzer earns no bonus (it is paid with speed)`);
 }
 // Brimful: par on every puzzle at the fast share is 200; one extra move on one puzzle shares the bonus.
 for (let s = 1; s <= 6; s++) {
@@ -169,9 +200,14 @@ for (let s = 1; s <= 6; s++) {
   const limit = puzzleTimeLimitMs(p);
   const plans = p.boards.map((board) => bfs(board));
   const fast = Math.ceil(limit * rev3Game("measure").fastShare);
+  const eliteMs = Math.ceil(limit * NUMBER_DEPTH_GAMES.measure!.featureElite!);
   const parAnswer = encodeMeasureRound(plans);
-  const g = gradeAnswer(p, parAnswer, fast);
-  ok(g.score === 200 && (g.extra?.["depth"] as { parBoards?: number })?.parBoards === 4, `Brimful ${s}: par on all four at the fast share is 200 (${g.score})`);
+  ok(p.depthRev === 2, `Brimful ${s}: dealt on depthRev 2`);
+  const atFast = gradeAnswer(p, parAnswer, fast);
+  ok(atFast.score === 150 + Math.round(50 * NUMBER_DEPTH_GAMES.measure!.featureBase!), `Brimful ${s}: depthRev 2, par on all four at the fast share is 150 + the base part (${atFast.score})`);
+  ok(gradeAnswer({ ...p, depthRev: 1 } as MeasurePuzzleData, parAnswer, fast).score === 200, `Brimful ${s}: depthRev 1, par on all four at the fast share is still 200`);
+  const g = gradeAnswer(p, parAnswer, eliteMs);
+  ok(g.score === 200 && (g.extra?.["depth"] as { parBoards?: number })?.parBoards === 4, `Brimful ${s}: depthRev 2, par on all four at the elite share is 200 (${g.score})`);
   // A wasted Fill-and-Empty on the first board (only where the board has a tap).
   const first = p.boards[0]!;
   if (first.tap) {
@@ -179,7 +215,7 @@ for (let s = 1; s <= 6; s++) {
     const empty = fill ? measureActions(first).find((a) => a.kind === "empty" && a.jug === (fill as { jug: number }).jug) : undefined;
     if (fill && empty) {
       const wasted = encodeMeasureRound([[fill, empty, ...plans[0]!], ...plans.slice(1)]);
-      const w = gradeAnswer(p, wasted, fast);
+      const w = gradeAnswer(p, wasted, eliteMs);
       ok(w.isCorrect && (w.extra?.["depth"] as { parBoards?: number })?.parBoards === 3, `Brimful ${s}: two wasted moves lose that puzzle's par`);
       ok(w.score < g.score && w.score > 150, `Brimful ${s}: three pars of four still earn some bonus (${w.score})`);
     }
@@ -210,7 +246,18 @@ for (let s = 1; s <= 6; s++) {
   }).length;
   ok(g.isCorrect && bigCount === expectBig, `Checkout ${s}: ordinary checkouts count only their own big finishes (${bigCount} vs ${expectBig})`);
   const plain = gradeAnswer(stripped(p), joinCheckoutRound(ordinary), fast).score;
-  ok(g.score === plain + Math.round((50 * bigCount) / 5), `Checkout ${s}: ordinary checkouts score their rev-3 ${plain} plus their big finishes (${g.score})`);
+  const game = NUMBER_DEPTH_GAMES.checkout!;
+  ok(p.depthRev === 2, `Checkout ${s}: dealt on depthRev 2`);
+  const rev2Bonus = depthFeaturePointsRev2(bigCount / 5, fast / limit, rev3Game("checkout").fastShare, game.featureElite!, game.featureBase!);
+  ok(g.score === plain + rev2Bonus, `Checkout ${s}: depthRev 2, ordinary checkouts score their rev-3 ${plain} plus their big finishes' base part (${g.score})`);
+  const g1 = gradeAnswer({ ...p, depthRev: 1 } as CheckoutPuzzleData, joinCheckoutRound(ordinary), fast);
+  ok(g1.score === plain + Math.round((50 * bigCount) / 5), `Checkout ${s}: depthRev 1, ordinary checkouts score their rev-3 ${plain} plus their big finishes in full (${g1.score})`);
+  if (p.routes?.length) {
+    const big = joinCheckoutRound(p.routes);
+    const all = gradeAnswer(p, big, Math.ceil(limit * game.featureElite!));
+    const n = (all.extra?.["depth"] as { bigFinishes?: number })?.bigFinishes ?? 0;
+    if (all.isCorrect && n === 5) ok(all.score === 200, `Checkout ${s}: depthRev 2, five big finishes at the elite share is 200 (${all.score})`);
+  }
 }
 // Ballpark: the streak sum and points; exact placements at the elite share are 200; unfinished as before.
 {
@@ -233,6 +280,22 @@ for (let s = 1; s <= 6; s++) {
     ok(alt.score - altOld.score === ballparkStreakPoints(8), `Ballpark ${s}: broken streaks earn their own sum (${alt.score - altOld.score})`);
     const part = gradeAnswer(p, encodeNumline(exact.slice(0, 14)), 0);
     ok(part.score === gradeAnswer(stripped(p), encodeNumline(exact.slice(0, 14)), 0).score, `Ballpark ${s}: unfinished (14 placed) scores as before`);
+  }
+}
+
+// depthRev 2's feature curve: the base part by the fast share, the full bonus only at the elite share, rising.
+for (const type of ["target", "measure", "checkout"] as PuzzleType[]) {
+  const game = NUMBER_DEPTH_GAMES[type]!;
+  const fast = rev3Game(type).fastShare;
+  ok(game.route === "feature" && game.featureElite! > fast && game.featureElite! < 1 && game.featureBase! > 0 && game.featureBase! < 1, `${type}: depthRev 2's elite share beyond the fast share, a base part under 1`);
+  ok(depthFeaturePointsRev2(1, fast, fast, game.featureElite!, game.featureBase!) === Math.round(50 * game.featureBase!), `${type}: depthRev 2 pays the base part at the fast share`);
+  ok(depthFeaturePointsRev2(1, game.featureElite!, fast, game.featureElite!, game.featureBase!) === 50, `${type}: depthRev 2 pays the full 50 at the elite share`);
+  ok(depthFeaturePointsRev2(0, 1, fast, game.featureElite!, game.featureBase!) === 0, `${type}: depthRev 2 pays nothing without the feature`);
+  let prev = -1;
+  for (let k = 0; k <= 100; k++) {
+    const pts = depthFeaturePointsRev2(1, k / 100, fast, game.featureElite!, game.featureBase!);
+    ok(pts >= prev, `${type}: depthRev 2 never pays less for more time left (${k} %)`);
+    prev = pts;
   }
 }
 
@@ -280,4 +343,4 @@ if (failures.length) {
   console.log(`FAIL number-depth-check: ${failures.length} of ${passes + failures.length} checks failed`);
   process.exit(1);
 }
-console.log(`PASS number-depth-check: ${passes} checks — ${legacyEntries} stored answers grade as before; depthRev 1 dealt on puzzleScoreRev 3 only; unfinished unchanged, finishes only gain, ≤ 200; stretch 150–165 at today's pace, 200 at the elite share; elegance, par pours, big finish and the bullseye streak`);
+console.log(`PASS number-depth-check: ${passes} checks — ${legacyEntries} stored answers grade as before; ${rev1Entries} depthRev 1 feature answers grade as before; depthRev 2 for Exact, Brimful and Checkout (base part at the fast share, 200 at the elite share); depthRev 1 dealt on puzzleScoreRev 3 only; unfinished unchanged, finishes only gain, ≤ 200; stretch 150–165 at today's pace, 200 at the elite share; elegance, par pours, big finish and the bullseye streak`);
