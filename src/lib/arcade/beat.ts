@@ -221,13 +221,12 @@ export interface BeatState extends BandFields {
   fever?: number;
   fevers?: number;
   feverQ?: number;
-  /** Golden notes hit and their points; double taps completed; the Perfect streak, its best and its points. */
+  /** Golden notes hit and their points; double taps completed; the Perfect streak and its best (the streak bonus). */
   goldsHit?: number;
   goldPts?: number;
   doublesDone?: number;
   streak?: number;
   maxStreak?: number;
-  streakPts?: number;
   tick: number;
   rng: number;
   chart: BeatChart;
@@ -541,7 +540,7 @@ export function beatCheckpoint(state: BeatState): BeatCheckpoint {
   // beatRev 6 (taller worlds): the world height, last.
   if (state.worldH) values.push(state.worldH);
   // beatRev 9 (the expansion): its own counters after that, so every earlier checksum is unchanged.
-  if (state.exp) values.push(state.exp, state.meter ?? 0, state.fever ?? 0, state.fevers ?? 0, state.feverQ ?? 0, state.goldPts ?? 0, state.doublesDone ?? 0, state.streak ?? 0, state.streakPts ?? 0, ...state.holding);
+  if (state.exp) values.push(state.exp, state.meter ?? 0, state.fever ?? 0, state.fevers ?? 0, state.feverQ ?? 0, state.goldPts ?? 0, state.doublesDone ?? 0, state.streak ?? 0, state.maxStreak ?? 0, state.goldsHit ?? 0, ...state.holding);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1063,7 +1062,6 @@ function initV9(seed: number): BeatState {
     doublesDone: 0,
     streak: 0,
     maxStreak: 0,
-    streakPts: 0,
   };
 }
 
@@ -1082,7 +1080,6 @@ function stepV9(state: BeatState, input: ArcadeInputEvent | null): BeatState {
   let doublesDone = state.doublesDone ?? 0;
   let streak = state.streak ?? 0;
   let maxStreak = state.maxStreak ?? 0;
-  let streakPts = state.streakPts ?? 0;
   if (next.judged !== state.judged) {
     const { golds = [], pairs = [] } = state.chart;
     for (let i = 0; i < next.judged.length; i++) {
@@ -1116,7 +1113,7 @@ function stepV9(state: BeatState, input: ArcadeInputEvent | null): BeatState {
     fever = BEAT_FEVER_TICKS;
     fevers += 1;
   }
-  return { ...next, meter, fever, fevers, feverQ, goldsHit, goldPts, doublesDone, streak, maxStreak, streakPts };
+  return { ...next, meter, fever, fevers, feverQ, goldsHit, goldPts, doublesDone, streak, maxStreak };
 }
 
 /** beatRev 9's feature points, each capped (BEAT_V9_CAPS). */
