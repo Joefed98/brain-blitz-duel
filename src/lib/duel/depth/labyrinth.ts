@@ -13,7 +13,8 @@
  *
  * Score: unfinished exactly as puzzleScoreRev 3 (up to 110 for progress; stars count only with a finish). A finish
  * is puzzleScoreRev 3's 120 + up to 30 for speed (150 with 48 % of the clock left), plus each star taken
- * LAB_STAR_POINTS × min(1, time left share ÷ LAB_STAR_FAST_SHARE)²: all three with a fast finish is the 200 top.
+ * LAB_STAR_POINTS × the time left share's place between LAB_STAR_ZERO_SHARE and LAB_STAR_FAST_SHARE: all three with an
+ * elite-pace finish is the 200 top.
  * Without stars the most is 150, as before. Older mazes (no `mazeRev`) keep their 19 × 19 board, path answer and
  * grading.
  */
@@ -33,10 +34,12 @@ export const LAB_ROUTE_MAX = 147;
 /** Each star's full worth: three of them make the 50 above 150. */
 export const LAB_STAR_POINTS = [17, 17, 16] as const;
 /**
- * A star keeps its full worth with at least this share of the clock left at the finish (about 19 s used, stars
- * included: elite pace), and (left ÷ this)² of it below, so the last points need a really quick run.
+ * A star keeps its full worth with at least this share of the clock left at the finish (about 23 s used, stars
+ * included: elite pace), falling evenly to nothing at LAB_STAR_ZERO_SHARE (about 33 s used), so stars pay at elite
+ * pace and little at near-perfect pace (tuned 26 Oct 2026, before mazeRev 1 went live; it was (left ÷ 0.68)²).
  */
-export const LAB_STAR_FAST_SHARE = 0.68;
+export const LAB_STAR_FAST_SHARE = 0.63;
+export const LAB_STAR_ZERO_SHARE = 0.45;
 /** Speed share of the clock for today's 150 (puzzleScoreRev 3's Labyrinth fastShare). */
 export const LAB_FAST_SHARE = 0.48;
 
@@ -114,8 +117,8 @@ export function mazeStarsTaken(walk: readonly number[], stars: readonly number[]
 /** One star's points for a finish with `left` (0–1) of the clock. */
 export function labStarPoints(index: number, left: number): number {
   const full = LAB_STAR_POINTS[index] ?? 0;
-  const share = Math.max(0, Math.min(1, left / LAB_STAR_FAST_SHARE));
-  return Math.round(full * share * share);
+  const share = Math.max(0, Math.min(1, (left - LAB_STAR_ZERO_SHARE) / (LAB_STAR_FAST_SHARE - LAB_STAR_ZERO_SHARE)));
+  return Math.round(full * share);
 }
 
 /** Cells walked that were steps back (backtracks), for the stage's "wasted" counter. */
@@ -135,6 +138,11 @@ export function labStarFullSeconds(limitMs = 60_000): number {
   return Math.round((limitMs * (1 - LAB_STAR_FAST_SHARE)) / 1000);
 }
 
+/** Seconds of play (stars included) after which a star is worth nothing. */
+export function labStarZeroSeconds(limitMs = 60_000): number {
+  return Math.round((limitMs * (1 - LAB_STAR_ZERO_SHARE)) / 1000);
+}
+
 /** The round intro SCORE line (two phone lines at most; `{max}` is the game's maximum). */
 export function labyrinthDepthIntro(): string {
   return `Finish: 120+, 150 in about ${labFastSeconds()} s. Side-path stars add up to 50 more, {max} in all.`;
@@ -145,6 +153,6 @@ export function labyrinthDepthHelp(halfDone: number): string {
   return (
     `Progress counts: how far along the route you got (wandering costs). Unfinished scores up to 110: about ${halfDone} half done, 110 one step short; stars count only with a finish. ` +
     `Any finish scores 120 to 150: 150 if you finish in about ${labFastSeconds()} s. ` +
-    `Each star you roll over adds up to ${LAB_STAR_POINTS[0]} more when you finish quickly (all of it with about ${labStarFullSeconds()} s used, stars included, and less the longer you take); {max} takes all ${LAB_STARS} stars on a fast run.`
+    `Each star you roll over adds up to ${LAB_STAR_POINTS[0]} more when you finish quickly (all of it with about ${labStarFullSeconds()} s used, stars included, falling to nothing by ${labStarZeroSeconds()} s); {max} takes all ${LAB_STARS} stars on a fast run.`
   );
 }

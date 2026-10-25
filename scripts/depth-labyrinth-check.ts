@@ -206,11 +206,12 @@ console.log(`2. ${mazes.length} dealt mazes: 19 × 23, route ≤ ${LAB_ROUTE_MAX
   const g = (trail: number[], ms: number) => gradeAnswer(m, encodeMazeTrail(trail, cols), ms);
   const plain = g(route, 40_000);
   const all = g(tour([true, true, true]), 42_000);
-  const allSlow = g(tour([true, true, true]), 20_000);
+  const allSlow = g(tour([true, true, true]), 30_000);
   ok(plain.isCorrect && plain.score === 150, `no stars, fast: 150 (${plain.score})`);
   ok(all.score === 200, `all stars, fast: 200 (${all.score})`);
   ok(g(tour([true, false, true]), 42_000).score === 183, "two stars, fast: 183");
-  ok(allSlow.score > g(route, 20_000).score && allSlow.score < 165, `a slower finish keeps some of the stars (${allSlow.score})`);
+  ok(allSlow.score > g(route, 30_000).score && allSlow.score < 175, `a slower finish keeps some of the stars (${allSlow.score})`);
+  ok(g(tour([true, true, true]), 20_000).score === g(route, 20_000).score, "stars are worth nothing past the zero point (20 s left)");
   ok(g(route, 0).score === 120, "a finish at the buzzer is 120");
   const walk = mazeTrailWalk(m.cells, m.start, m.exit, tour([true, true, true]), cols);
   ok(mazeTrailRoute(walk).join() === route.join(), "the drawn route folds every backtrack");
@@ -264,7 +265,7 @@ for (const name of ["average", "good"]) {
   const [o, n] = medians[name]!;
   ok(Math.abs(n - o) <= Math.max(8, 0.1 * o), `${name}: new median ${n} within about 10 % of old ${o}`);
 }
-ok(medians["near-perfect"]![1] >= 165 && medians["near-perfect"]![1] <= 188, `near-perfect median ${medians["near-perfect"]![1]} in 165–188`);
+ok(medians["near-perfect"]![1] >= 165 && medians["near-perfect"]![1] <= 175, `near-perfect median ${medians["near-perfect"]![1]} in 165–175`);
 ok(medians["elite"]![1] >= 190, `elite median ${medians["elite"]![1]} ≥ 190`);
 ok(best["good"]! < 190, `a good player never reaches 190 (${best["good"]})`);
 

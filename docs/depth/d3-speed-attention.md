@@ -157,15 +157,18 @@ whackRev 2's score (0–150). The extra 50 comes only from:
 
 - **Gold combo**: right hits in a row, with no wrong-colour, hedgehog or empty-burrow tap between them (a gopher left
   to sink does not break it), raise a multiplier: ×1 for hits 1–5, ×2 from the 6th, ×3 from the 11th, ×4 from the
-  16th. Each hit adds (multiplier − 1) pips; combo points = floor(40 × (pips ÷ P)³), P = the pips of one unbroken run
-  through every target of the round, so a long clean run is worth far more than short ones.
+  16th. Each hit adds (multiplier − 1) pips weighted by its quickness (full when it lands within 9 ticks, 150 ms, of
+  the target rising, falling evenly to none at 16 ticks, about 267 ms); combo points = min(44, floor(44 × pips ÷
+  (0.52 × P))), P = the pips of one unbroken, full-quickness run through every target, so the full combo needs a
+  long clean run at elite pace (retuned 26 Oct 2026, before whackRev 3 went live: it was floor(40 × (pips ÷ P)³)
+  with unweighted pips).
 - **Diamonds**: two a run (one in 12–28 s, one in 34–52 s), each up for 18 ticks (300 ms) in a burrow no target uses
-  meanwhile (plus a beat either side); a tap on one is worth 5 and is never a mistake. A late tap on an empty burrow
+  meanwhile (plus a beat either side); a tap on one is worth 3 (5 before the 26 Oct retune) and is never a mistake. A late tap on an empty burrow
   costs 3 as before.
 
-Score = whackRev 2 base + combo + diamonds, capped at 200. 200 = a perfect base, one unbroken combo through every target
-and both diamonds. Without the features no run passes 150 (the base is capped there; a perfect run without diamonds is
-190, without the combo 160).
+Score = whackRev 2 base + combo + diamonds, capped at 200. 200 = a perfect base, an unbroken combo at elite pace and
+both diamonds. Without the features no run passes 150 (the base is capped there; a perfect run without diamonds is
+194, without the combo 156).
 
 Look: the HUD line keeps one line ("Hits 17/74 · Wrong 0 · Combo ×4 · ◆0"; gold multiplier once it passes ×1, the
 diamond count in ice blue once taken). The diamond is a cut gem lit from the top, rising out of the burrow like a
@@ -185,22 +188,22 @@ out as on whackRev 2; elite = pace 0.4, 0.4 % slips, 140 ms reactions), 40 room 
 
 | Level | whackRev 2 median | top 10 % | best | whackRev 3 median | top 10 % | best |
 | --- | --- | --- | --- | --- | --- | --- |
-| average | 71 | 82 | 97 | 68 | 81 | 98 |
-| good | 102 | 112 | 120 | 105 | 118 | 127 |
-| great | 122 | 133 | 145 | 139 | 162 | 183 |
-| near | 137 | 148 | 150 | 180 | 198 | 200 |
-| elite | 150 | 150 | 150 | 200 | 200 | 200 |
+| average | 71 | 82 | 97 | 68 | 81 | 97 |
+| good | 102 | 112 | 120 | 101 | 111 | 116 |
+| great | 122 | 133 | 145 | 130 | 143 | 148 |
+| near | 137 | 148 | 150 | 167 | 178 | 182 |
+| elite | 150 | 150 | 150 | 198 | 200 | 200 |
 
-The average player dips 3 because a late diamond tap lands on an empty burrow (−3, as any empty tap). Bonk's simulated
-near-perfect player is almost flawless (its base already reaches 150), so it lands in the 200 scale's near-perfect band
-(173+); the elite bot is a perfect player.
+Retuned 26 Oct 2026 (Joe: near-perfect 180 and great +14 % were too generous): great +6.6 %, near-perfect 167, only
+elite reaches 190–200. Before the retune: great 139 / 162 / 183, near 180 / 198 / 200, elite 200. The average
+player dips 3 because a late diamond tap lands on an empty burrow (−3, as any empty tap).
 
 Checks: `scripts/depth-bonk-check.ts` (~6 s): 45 runs recorded on main (whackRev none / 1 / 2,
 `scripts/fixtures/depth-engine-legacy.json.gz`, `scripts/depth-engine-legacy-record.ts`) grade and replay identically;
 whackRev 3 dealt; pop schedule = whackRev 2's on 400 seeds; diamonds in their windows in free burrows; the multiplier
 table; wrong / hedgehog / empty taps end the combo, a sunk gopher does not; scripted perfect runs score 200 and replay
 on the server; without the features ≤ 150; the base = whackRev 2's score for the same taps; the table above with
-average and good within 10 %.
+average and good within 10 %, great within 8 % of whackRev 2, near-perfect 165–175 and elite 190+.
 
 Demo: stopped (introDemo.functions.ts: only a demo recorded on whackRev 3 plays); the intro shows its still. **Needs
 re-recording on whackRev 3.**
@@ -437,8 +440,9 @@ grading (`generateMazeClassic` keeps the old builder for the checks).
   exactly as the old path answer did. A path-style answer on a mazeRev 1 maze reads as nothing.
 - **Score:** unfinished exactly as puzzleScoreRev 3 (up to 110; stars count only with a finish). A finish: rev 3's
   120 + up to 30 for speed (150 with 48 % of the clock left), plus each star taken × 17 / 17 / 16 ×
-  min(1, time-left share ÷ 0.68)²: all three stars with about 19 s used (stars included) is 200. No stars: 150 at
-  most, as before.
+  clamp((time-left share − 0.45) ÷ 0.18): full with about 22 s used (stars included, elite pace), nothing from about
+  33 s, so all three stars on an elite-pace run is 200. No stars: 150 at most, as before. (Retuned 26 Oct 2026,
+  before mazeRev 1 went live; it was min(1, share ÷ 0.68)², which gave near-perfect play 180.)
 
 Distribution (`scripts/depth-labyrinth-check.ts`, 30 room seeds per level; the puzzle-fairness kit's model, 0.4 s a
 route cell × pace, wrong turns walked and retraced, stars taken with the level's chance: 25 / 50 / 80 / 100 / 100 %):
@@ -446,10 +450,14 @@ route cell × pace, wrong turns walked and retraced, stars taken with the level'
 | Level | Old median | Old top 10 % | Old best | New median | New top 10 % | New best | Stars (new, median) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | average | 63 | 78 | 82 | 63 | 78 | 80 | 0 |
-| good | 128 | 133 | 135 | 123 | 131 | 136 | 1 |
-| great | 144 | 150 | 150 | 148 | 157 | 158 | 2 |
-| near-perfect | 150 | 150 | 150 | 180 | 183 | 186 | 3 |
-| elite | 150 | 150 | 150 | 191 | 197 | 197 | 3 |
+| good | 128 | 133 | 135 | 123 | 129 | 134 | 1 |
+| great | 144 | 150 | 150 | 141 | 144 | 145 | 2 |
+| near-perfect | 150 | 150 | 150 | 171 | 179 | 185 | 3 |
+| elite | 150 | 150 | 150 | 197 | 200 | 200 | 3 |
+
+Before the 26 Oct retune: good 123 / 131 / 136, great 148 / 157 / 158, near-perfect 180 / 183 / 186, elite 191 /
+197 / 197. Good and great now lose a little (−4 % and −2 %) when they take stars on a slower run; they keep today's
+score by skipping them.
 
 Legacy: `scripts/fixtures/depth-labyrinth-legacy.json.gz` (576 grades of 12 room mazes on puzzleScoreRev 3 / 2 / 1 /
 unstamped, recorded on unmodified main by `scripts/depth-labyrinth-record.ts`) regrade identically. Demo: older maze

@@ -175,7 +175,10 @@ for (const level of ["average", "good"]) {
   const r = by[level]!;
   ok(Math.abs(r.now.median - r.old.median) <= 0.1 * r.old.median, `${level}: median within 10 % of whackRev 2 (${r.old.median} → ${r.now.median})`);
 }
-ok(by["elite"]!.now.median >= 185, `elite: median at the top of the scale (${by["elite"]!.now.median})`);
+ok(by["elite"]!.now.median >= 190, `elite: median at the top of the scale (${by["elite"]!.now.median})`);
+// Tuning (26 Oct 2026): near-perfect about 165–175, great within about 8 % of whackRev 2.
+ok(by["near"]!.now.median >= 165 && by["near"]!.now.median <= 175, `near-perfect: median in 165–175 (${by["near"]!.now.median})`);
+ok(by["great"]!.now.median <= Math.round(by["great"]!.old.median * 1.08), `great: within 8 % of before (${by["great"]!.old.median} → ${by["great"]!.now.median})`);
 ok(rows.every((r) => r.now.best <= 200 && r.old.best <= 150), "no score past its maximum");
 
 if (failures.length) {
