@@ -39,7 +39,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   tubes: ["minMoves", "solution"],
   safe: ["combination"],
   bomb: ["sequence", "required", "constraints"],
-  gravity: ["minMoves", "solution"],
+  // gravityRev 3: the boards, stars and holes are public; the minimums and shortest routes are not.
+  gravity: ["minMoves", "solution", "boardMins", "boardStarMins", "boardSolutions"],
   // The rule strip and nodes are public; one searched path stays private.
   chain: [],
   // The clues are public; the picture they describe is not.

@@ -9,6 +9,8 @@ import { TILT_MAX_MAZES } from "@/lib/arcade/tilt";
 import { bandsIntro } from "./puzzleBandsText";
 import { depthIntro } from "./numberDepthText";
 import { fillMax, liveRecord } from "./roundMax";
+import { TOPSY_INTRO_SCORE } from "./topsy";
+import { JUMBLED_INTRO_SCORE } from "./jumbled";
 import type { PuzzleType } from "./types";
 
 /**
@@ -76,10 +78,10 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     tubes: bandsIntro("tubes"),
     safe: bandsIntro("safe"),
     bomb: bandsIntro("bomb"),
-    gravity: bandsIntro("gravity"),
+    gravity: TOPSY_INTRO_SCORE,
     nonogram: bandsIntro("nonogram"),
     flood: bandsIntro("flood"),
-    tiles: bandsIntro("tiles"),
+    tiles: JUMBLED_INTRO_SCORE,
     rings: bandsIntro("rings"),
     blockparty: bandsIntro("blockparty"),
     shikaku: bandsIntro("shikaku"),
