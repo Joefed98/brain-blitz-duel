@@ -1,6 +1,8 @@
 import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
 import { PIPE_ARMS, PipeArt, PipeDefs, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
+import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
+import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -76,6 +78,7 @@ const PipeTileView = memo(function PipeTileView({
       }
       className="pipe-tile relative rounded-[6px]"
       data-lit={lit ? "true" : undefined}
+      data-pipe-cell={onTapCell ? cell : undefined}
       aria-label={label ?? "Pipe tile"}
     >
       <PipeArt id={defsId} mask={mask} wet={lit} source={source} inflow={inflow} turnKey={turns} />
@@ -208,10 +211,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   );
   const state = useMemo(() => pipesState(tiles, source), [tiles, source]);
   const solveFx = useSolveMoment(state.solved && tiles.length > 0, "pipes.solve");
+  const inFrame = useFrameProgress(state.connected.size, PIPES_CELLS, "connected");
   const wetCount = useRef(state.connected.size);
+  const lastTurned = useRef<number | null>(null);
   useEffect(() => {
     // Water reaching more pipes after a turn (the solve has its own cue).
-    if (state.connected.size > wetCount.current && !state.solved) soundCue("pipes.flow");
+    if (state.connected.size > wetCount.current && !state.solved) {
+      soundCue("pipes.flow");
+      // Batch P (display only): the turned tile that let the water on flashes the right-move ring.
+      if (lastTurned.current !== null) {
+        rightMoveFlash(document.querySelector(`[data-game-stage] [data-pipe-cell="${lastTurned.current}"]`));
+      }
+    }
     wetCount.current = state.connected.size;
   }, [state.connected.size, state.solved]);
 
@@ -232,6 +243,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
   const rotate = useCallback(
     (cell: number) => {
       if (lockedRef.current || submitted.current) return;
+      lastTurned.current = cell;
       buzz(8);
       setSides((current) =>
         current.map((value, index) => (index === cell ? rotateMask(value, 1) : value)),
@@ -244,9 +256,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "pipes" }: 
 
   return (
     <div data-stage-column="3" data-polish="pipes" className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-        connected <span className="text-primary">{state.connected.size}</span> / {PIPES_CELLS}
-      </p>
+      {inFrame ? null : (
+        <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          connected <span className="text-primary">{state.connected.size}</span> / {PIPES_CELLS}
+        </p>
+      )}
       <div data-game-arena="board" className="puzzle-square-space flex min-h-0 flex-1 items-center justify-center">
         <div className="pipes-play-board aspect-square" data-solve-fx={solveFx ? "true" : undefined}>
         <PipesBoard

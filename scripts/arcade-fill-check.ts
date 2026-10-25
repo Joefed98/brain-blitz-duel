@@ -1,8 +1,8 @@
 /**
  * Arcade screen fill-ins and seamless arena edges (17 Oct 2026, display only).
  *
- * Every active arcade game's play screen, plus Pull! (item 26: its edges) and Bonk (item 27: the scenery
- * under its field) (arenaScene.renderer.ts, arenaFills.renderer.ts: each game's backdrop runs
+ * Every active arcade game's play screen, plus Pull! (item 26: its edges), Bonk (item 27: the scenery
+ * under its field) and Mixed Signals (Polish batch S: its fill under the board) (arenaScene.renderer.ts, arenaFills.renderer.ts: each game's backdrop runs
  * from the world's edges out to the screen's) is opened in practice with its run frozen and drawn as an
  * iPhone 11 home-screen app (414 × 896, 48 / 34 px insets, laid out 414 × 848, then the window grown to
  * the whole screen, as arcade-device-bottom-check does) and at 390 × 844. It fails if
@@ -262,7 +262,7 @@ async function main() {
   }
   const named = args.filter((a) => !a.startsWith("--")) as PuzzleType[];
   // Every active arcade game, plus Pull! (item 26: its edges) and Bonk (item 27: the scenery below its field).
-  let games: PuzzleType[] = named.length ? named : [...(ACTIVE_ARCADE_GAMES as readonly string[] as PuzzleType[]), "clayshoot", "whack"];
+  let games: PuzzleType[] = named.length ? named : [...(ACTIVE_ARCADE_GAMES as readonly string[] as PuzzleType[]), "clayshoot", "whack", "stroop"];
   const part = opt("part");
   if (part) {
     const [k, n] = part.split("/").map(Number) as [number, number];

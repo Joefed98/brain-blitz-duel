@@ -1,0 +1,54 @@
+/*
+ * Polish batch W (25 Oct 2026, display only): Word and Number puzzles. Imported only from batch W's own
+ * games (src/components/puzzles/batchW/). Uses the frame toolkit (.gf-glass, .gf-well, .gf-glow,
+ * rightMoveFlash / wrongMoveFlash) as it is; this file only adds the pieces the batch shares.
+ * Notes: docs/polish-batches/batch-w.md.
+ */
+
+/* The one-line live summary just above the dock: a fixed 18px line, drawn from the first paint (empty
+   or not), so nothing below or above it moves when its text changes. */
+.bw-summary {
+  display: flex;
+  height: 18px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #a09da6;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.bw-summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bw-summary b {
+  font-weight: 800;
+  color: #f3f1ec;
+}
+.bw-summary .bw-sep {
+  color: #5d5a63;
+}
+
+/* A piece's soft glow in the category colour when it is selected or active (box-shadow only: no layout). */
+.bw-active {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--category-accent) 85%, transparent),
+    0 0 16px color-mix(in srgb, var(--category-accent) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+/* Lighter glass for a piece that already has its own colour: only the light top edge and the soft shadow,
+   so the game's palette shows through unchanged. */
+.bw-lift {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}

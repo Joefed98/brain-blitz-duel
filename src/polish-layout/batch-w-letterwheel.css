@@ -1,0 +1,70 @@
+/*
+ * Polish batch W (25 Oct 2026, display only): Roundabout's live board. Imported only from
+ * src/puzzles/letterWheel.tsx and scoped to its live stage ([data-word-polish="letterwheel"]); the
+ * intro's still and the reveal keep their look. Hit testing is in the wheel's own percentages, so a
+ * bigger wheel keeps every letter's tap and trace target where its tile is drawn.
+ */
+
+/* The wheel's face: a lit dome in its own card colour, a faint category-colour fall of light from the top,
+   darker towards a sunk rim, and a soft shadow under it. */
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-wheel] {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.1), transparent 55%),
+    radial-gradient(circle at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.42) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, var(--card)), color-mix(in srgb, var(--card) 80%, black));
+  box-shadow:
+    inset 0 3px 12px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px color-mix(in srgb, var(--category-accent) 22%, rgba(255, 255, 255, 0.06)),
+    inset 0 -2px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 4px rgba(0, 0, 0, 0.25),
+    0 14px 30px rgba(0, 0, 0, 0.55);
+}
+/* Wheel letters: lit discs (a body a fifth lighter at the top, a bright top edge, a darker foot and a soft
+   drop shadow, in the tiles' own grey), larger type. */
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-wheel] .letter-shuffle-tile {
+  background-image: linear-gradient(180deg, #52525c 0%, #393941 55%, #2a2a31 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 2px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.32),
+    0 8px 16px rgba(0, 0, 0, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  font-size: clamp(28px, 12cqmin, 40px) !important;
+}
+/* A letter in the trace: tinted and glowing clearly in the category colour. */
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-wheel] .letter-shuffle-tile.bg-primary {
+  background-image: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 55%, #52525c), color-mix(in oklab, var(--category-accent) 25%, #2a2a31));
+  box-shadow:
+    inset 0 0 0 2px var(--category-accent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 65%, transparent) !important;
+}
+
+/* Crossword: empty cells are wells; filled cells keep their tile with a light top edge and a soft shadow. */
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-cell].bg-card {
+  /* Sunk, but still clearly drawn: the crossword's shape must read at a glance. */
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.32), rgba(255, 255, 255, 0.05));
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 2px 5px rgba(0, 0, 0, 0.55) !important;
+}
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-cell].bg-primary {
+  background-image: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 26%, #4e4e58), color-mix(in oklab, var(--category-accent) 10%, #2a2a31));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+    0 3px 7px rgba(0, 0, 0, 0.55) !important;
+}
+/* The toolkit's right-move glow on a word's cells as it lands (rightMoveFlash), over the cells' own shadow. */
+[data-word-polish="letterwheel"][data-word-polish] [data-lw-cell][data-move-flash="right"] {
+  box-shadow:
+    0 0 0 2px var(--category-accent),
+    0 0 14px color-mix(in srgb, var(--category-accent) 60%, transparent) !important;
+}
+
+/* The wheel's arena follows --lw-wheel (set on the stage) past main's 60cqw design cap, up to 340px. */
+.game-column [data-word-polish="letterwheel"][data-word-polish] > [data-game-arena="letterwheel-wheel"] {
+  --arena-max: max(60cqw, 340px);
+}

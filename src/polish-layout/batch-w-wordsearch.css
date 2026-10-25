@@ -1,0 +1,61 @@
+/*
+ * Polish batch W (25 Oct 2026, display only): Lookout's live stage (data-polish="wordsearch").
+ * Imported only from src/puzzles/wordSearch.tsx; the intro example and reveal keep their look.
+ * Second pass: depth and glow that read at a glance. docs/polish-batches/batch-w.md.
+ */
+
+/* The grid sits on a lit surface: a faint category wash, brighter at the top, with shaded edges. */
+[data-polish="wordsearch"] [data-game-arena] [data-play-area] {
+  border-radius: 8px;
+  /* Word's own blue (#4D8CFF) as fixed colours: one cheap layer on the first frames. */
+  background-image: linear-gradient(180deg, rgb(77 140 255 / 0.16), rgb(77 140 255 / 0.03));
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35), inset 0 0 18px rgb(0 0 0 / 0.5), 0 10px 22px rgb(0 0 0 / 0.45);
+}
+
+/* Letter cells: a sheen under the letter (about 18% lighter at the top), a bright top edge and a dark
+   lip (the 2px gaps leave no room for a drop shadow). */
+[data-polish="wordsearch"] [data-game-arena] .word-letter-tile.word-letter-tile {
+  /* The sheen is a layer over main's tile gradient (no pseudo-element or stacking context per cell: a
+     100-cell grid must stay cheap to paint on the first frames). */
+  background-image:
+    linear-gradient(180deg, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0) 50%, rgb(0 0 0 / 0.22)),
+    linear-gradient(to bottom, var(--letter-tile-top), var(--letter-tile-bottom));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    inset 0 -2px 0 rgb(0 0 0 / 0.45) !important;
+}
+/* Found words: main's accent-tinted tile, lit and lifted, with a clear ring and glow in the category colour. */
+[data-polish="wordsearch"] [data-game-arena] .word-letter-tile.word-letter-tile.bg-primary {
+  position: relative;
+  z-index: 1;
+  background-image:
+    linear-gradient(180deg, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0) 50%, rgb(0 0 0 / 0.22)),
+    linear-gradient(to bottom, color-mix(in oklab, var(--category-accent) 34%, var(--letter-tile-top)), var(--letter-tile-bottom));
+  box-shadow:
+    inset 0 0 0 1px var(--category-accent),
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    inset 0 -2px 0 rgb(0 0 0 / 0.35),
+    0 0 9px color-mix(in srgb, var(--category-accent) 65%, transparent) !important;
+}
+/* The line being dragged: a clear glow in the category colour. */
+[data-polish="wordsearch"] [data-game-arena] .word-letter-tile.word-letter-tile[data-bw-live] {
+  position: relative;
+  z-index: 2;
+  box-shadow:
+    inset 0 0 0 2px var(--category-accent),
+    0 0 10px 2px color-mix(in srgb, var(--category-accent) 75%, transparent) !important;
+}
+
+/* Word chips: found ones lit gold glass with a soft glow, open ones sunk wells. */
+[data-polish="wordsearch"] .lookout-word-chip {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0) 55%, rgb(0 0 0 / 0.14));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 0 10px color-mix(in srgb, var(--primary) 40%, transparent),
+    0 4px 10px rgb(0 0 0 / 0.45);
+}
+[data-polish="wordsearch"] .lookout-word-placeholder {
+  background: linear-gradient(180deg, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.3));
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 3px 7px rgb(0 0 0 / 0.7), inset 0 -1px 0 rgb(255 255 255 / 0.06);
+}

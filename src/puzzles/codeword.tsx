@@ -19,6 +19,8 @@ import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-codeword.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -62,6 +64,7 @@ function Grid({
           <div
             key={i}
             data-cw-cell={n}
+            data-cw-filled={letters[n - 1] ? "" : undefined}
             role={onCell ? "button" : undefined}
             aria-label={onCell ? `Number ${n}` : undefined}
             onClick={onCell ? () => onCell(n) : undefined}
@@ -104,11 +107,14 @@ function KeyStrip({
             tabIndex={-1}
             onClick={onPick ? () => onPick(n) : undefined}
             disabled={!onPick}
+            data-cw-key={n}
+            data-cw-key-on={selected === n ? "" : undefined}
             className={`flex min-w-0 flex-1 flex-col items-center rounded-sm py-0.5 ${selected === n ? "bg-primary/25 ring-1 ring-primary" : "bg-card"}`}
             style={{ maxWidth: 26, touchAction: "manipulation" }}
           >
-            <span className="font-mono text-[9px] leading-none text-muted-foreground">{n}</span>
-            <span className={`font-display text-sm font-bold leading-tight ${given.has(n) ? "text-primary" : "text-foreground"}`}>{letter || "·"}</span>
+            {/* Batch W: the clue strip's type a step larger (10px numbers, 16px letters); the note line under it gave up the 4px. */}
+            <span className="font-mono text-[10px] leading-none text-muted-foreground">{n}</span>
+            <span className={`font-display text-base font-bold leading-tight ${given.has(n) ? "text-primary" : "text-foreground"}`}>{letter || "·"}</span>
           </button>
         );
       })}
@@ -250,6 +256,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   };
 
   const placed = new Set(letters.filter(Boolean));
+  const placedCount = letters.filter((l, i) => !!l && !given.has(i + 1)).length;
 
   return (
     <div ref={root} data-stage-column="1" data-word-polish="codeword" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
@@ -265,8 +272,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         </div>
       </div>
       <KeyStrip letters={letters} given={given} selected={selected} onPick={done ? undefined : (n) => setSelected(n)} />
-      <div className="flex h-6 w-full shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground" aria-live="polite">
-        {note ? <span className="text-destructive">{note}</span> : solved ? <span className="text-primary">Cracked!</span> : complete ? <span>Checking…</span> : <span>Tap a square, then a letter</span>}
+      <div className="flex h-5 w-full shrink-0 items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground" aria-live="polite">
+        {note ? (
+          <span className="text-destructive">{note}</span>
+        ) : solved ? (
+          <span className="text-primary">Cracked!</span>
+        ) : complete ? (
+          <span>Checking…</span>
+        ) : actions.length > 0 ? (
+          // Batch W: the live summary once a letter is placed (counts the grid already shows).
+          <LiveSummary
+            testId="codeword"
+            parts={[
+              <><b>{placedCount}</b> placed</>,
+              <><b>{Math.max(0, numbers - givens.length - placedCount)}</b> to go</>,
+            ]}
+          />
+        ) : (
+          <span>Tap a square, then a letter</span>
+        )}
       </div>
       <LetterKeypad
         onLetter={pressLetter}

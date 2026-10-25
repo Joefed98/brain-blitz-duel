@@ -1,11 +1,12 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
 import { StageProgress } from "@/components/puzzles/StageProgress";
+import { GoalLineContext } from "@/components/duel/GameFrame";
 import { useStageState } from "@/lib/duel/stageState";
 import { STAGE_COUNT, joinStages, parseCount, splitStages } from "@/lib/duel/stagedRounds";
 import {
@@ -206,6 +207,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
     if (stage > 0 && stage < trays) soundCue("countup.trayIn");
   }, [stage, trays]);
 
+  // Polish batch S: on a live round the goal line shows "Stage n of N", so the question drops its count.
+  const framed = useContext(GoalLineContext) !== null;
   const current = data?.stages[Math.min(stage, trays - 1)];
   if (!data || !current) return null;
   const { cols, rows } = current;
@@ -232,7 +235,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   return (
     <div data-polish="countup" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
       <NumberEntry
-        label={`${stage + 1} / ${trays} · ${countUpStageQuestion(current)}`}
+        label={framed ? countUpStageQuestion(current) : `${stage + 1} / ${trays} · ${countUpStageQuestion(current)}`}
         resetKey={`stage-${stage}`}
         locked={locked || done.current}
         maxLength={2}
@@ -242,7 +245,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
         onSubmit={submitStage}
       >
         <StageProgress stage={stage} total={trays} />
-        <div ref={spaceRef} className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
+        <div ref={spaceRef} data-tally-space="" className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
           {cellSize > 0 && (
             <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
           )}

@@ -68,23 +68,26 @@ const GLINTS = [
 /** Completion glints: the twinkle spots plus a rotated copy. */
 const SHATTER: (readonly [number, number, number])[] = [...GLINTS, ...GLINTS.map(([x, y, s]) => [1 - y, x, s] as const)];
 
-/** The ice sheet under the grid: gradient, frost grain, reflections, scratches, glints. Built once. */
+/**
+ * The ice sheet under the grid: gradient, frost grain, reflections, scratches, glints. Built once.
+ * The stops carry classes so the live round can take them into the dark palette (batch-p.css).
+ */
 const IceSheet = memo(function IceSheet() {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   return (
     <svg className="ice-sheet-art" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id={`${id}-base`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#F4FBFF" />
-          <stop offset="0.45" stopColor="#DCEFF9" />
-          <stop offset="1" stopColor="#C9E3F1" />
+          <stop offset="0" stopColor="#F4FBFF" className="ice-base-0" />
+          <stop offset="0.45" stopColor="#DCEFF9" className="ice-base-1" />
+          <stop offset="1" stopColor="#C9E3F1" className="ice-base-2" />
         </linearGradient>
         <radialGradient id={`${id}-sheen`} cx="0.3" cy="0.22" r="0.5">
-          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" className="ice-sheen-0" />
           <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
         <radialGradient id={`${id}-cool`} cx="0.78" cy="0.8" r="0.45">
-          <stop offset="0" stopColor="#9CCBE6" stopOpacity="0.45" />
+          <stop offset="0" stopColor="#9CCBE6" stopOpacity="0.45" className="ice-cool-0" />
           <stop offset="1" stopColor="#9CCBE6" stopOpacity="0" />
         </radialGradient>
         <filter id={`${id}-grain`} x="0" y="0" width="100%" height="100%">
@@ -93,7 +96,7 @@ const IceSheet = memo(function IceSheet() {
         </filter>
       </defs>
       <rect width="100" height="100" fill={`url(#${id}-base)`} />
-      <rect width="100" height="100" filter={`url(#${id}-grain)`} opacity="0.35" />
+      <rect width="100" height="100" filter={`url(#${id}-grain)`} opacity="0.35" className="ice-grain" />
       <rect width="100" height="100" fill={`url(#${id}-cool)`} />
       <ellipse cx="30" cy="22" rx="46" ry="30" fill={`url(#${id}-sheen)`} transform="rotate(-24 30 22)" />
       <g className="ice-scratch">

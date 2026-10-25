@@ -9,6 +9,9 @@ import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsSnapLine, WS_SIZE, WS_WORDS
 import { buzz } from "@/lib/motion";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
 
+import { useGoalProgress } from "@/components/duel/GameFrame";
+import "@/polish-layout/batch-w-wordsearch.css";
+
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 function Grid({
@@ -58,6 +61,7 @@ function Grid({
           <div
             key={cell}
             data-ws-cell={cell}
+            data-bw-live={live?.has(cell) && !bad?.has(cell) ? "" : undefined}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
             style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
           >
@@ -123,6 +127,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   }, [found.length, locked]);
 
   const done = locked || found.length >= total;
+  // Batch W (display only): the found count moves to the frame's goal line in a live round; intros keep theirs.
+  const inFrame = useGoalProgress({ done: found.length, total, text: `${found.length} of ${total} found` });
   const pointer = useGridPointer({
     cols: size,
     rows: size,
@@ -186,9 +192,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     <div ref={stageRef} data-polish="wordsearch" data-stage-column="2" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1">
       <div className="flex shrink-0 flex-col items-center">
         <p className="font-display text-2xl font-bold leading-tight text-foreground">{data.category}</p>
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          <span className="text-primary">{found.length}</span> / {total} found
-        </p>
+        {inFrame ? null : (
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="text-primary">{found.length}</span> / {total} found
+          </p>
+        )}
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>

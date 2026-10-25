@@ -16,6 +16,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One glass bulb in its socket: dark glass and a grey filament off, a warm glow on. */
@@ -169,6 +170,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const lights = useMemo(() => replayLights(start, presses), [start, presses]);
   const solved = presses.some((cell) => cell >= 0) && lightsAllOff(lights);
   const solving = useSolveFx("lightsout", solved);
+  const litCount = lights.filter(Boolean).length;
+  const inFrame = useFrameProgress(lights.length - litCount, lights.length, "off", `${litCount} still on`);
 
   useEffect(() => {
     onDraftAnswer?.(encodePresses(presses));
@@ -210,12 +213,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-logic-stage="lightsout" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            presses <span className="text-primary">{presses.filter((cell) => cell >= 0).length}</span>
+          </p>
+        )}
         <div className="logic-square logic-bulb-panel">
           <LightsGrid lights={lights} flash={flash} onPress={locked ? undefined : press} />
         </div>
+        <LiveSummary inArena className="logic-status" items={[<SummaryItem key="presses" label="Presses" value={presses.filter((cell) => cell >= 0).length} />]} />
       </div>
       <div data-game-controls="actions" className="flex shrink-0 items-center justify-center gap-3">
         <Button type="button" variant="outline" aria-label="Undo" title="Undo"

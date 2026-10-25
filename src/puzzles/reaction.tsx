@@ -236,8 +236,21 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       inactive={locked || done}
       runKey={key}
       fxScore={done ? localFlashScore(times, falseStarts, flashes.length) : null}
+      summary={flashes.length ? flashSummary(times, flashes.length) : ""}
     />
   );
+}
+
+/**
+ * Polish batch S (display only): the one-line live summary over the screen, from the times the stage
+ * already shows ("Flash 3 of 5 · best 241 ms"). Misses count as settled, never as a best.
+ */
+function flashSummary(times: readonly (number | null)[], total: number): string {
+  const settled = times.filter((v) => v !== null) as number[];
+  const hits = settled.filter((v) => v < REACTION_MISS_MS);
+  const shown = Math.min(total, settled.length + 1);
+  const best = hits.length ? ` · best ${Math.min(...hits)} ms` : "";
+  return settled.length >= total ? `All ${total} flashes${best}` : `Flash ${shown} of ${total}${best}`;
 }
 
 function surfaceFor(liveIndex: number, decoy: { color: ReactionDecoyColour } | null): string {
@@ -282,6 +295,7 @@ function ReactionArena({
   inactive,
   runKey = "",
   fxScore = null,
+  summary = "",
 }: {
   surface: string;
   falseStarts: number;
@@ -297,6 +311,8 @@ function ReactionArena({
   runKey?: string;
   /** The phone's local score once every flash is settled (read-only), else null. */
   fxScore?: number | null;
+  /** Polish batch S: the live summary line ("Flash 3 of 5 · best 241 ms"). */
+  summary?: string;
 }) {
   const [ripple, setRipple] = useState<{ x: number; y: number; id: number } | null>(null);
   const arenaRef = useRef<HTMLButtonElement | null>(null);
@@ -312,8 +328,9 @@ function ReactionArena({
   const overlay = !live && decoyKind && decoyKind !== "amber" && (REACTION_GOLD_LIKE_DECOYS as readonly string[]).includes(decoyKind) ? decoyKind : null;
   return (
     <div data-polish="reaction" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex items-center justify-end font-mono text-sm uppercase tracking-widest text-muted-foreground">
-        {falseStarts > 0 && <span className="text-warn">{falseStarts} false</span>}
+      <div className="flex items-center justify-between gap-2 font-mono text-sm uppercase tracking-widest text-muted-foreground">
+        <span data-flash-summary="" className="flash-summary truncate">{summary}</span>
+        {falseStarts > 0 && <span className="shrink-0 text-warn">{falseStarts} false</span>}
       </div>
       <button
         type="button"
@@ -447,6 +464,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       inactive={locked || replay.done}
       runKey={key}
       // The live replay shows each reaction as tapped; the end-of-run score uses the credited ones (tapRev 4's decoy cut).
+      summary={flashes.length ? flashSummary(replay.times, flashes.length) : ""}
       fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle)) : null}
     />
   );

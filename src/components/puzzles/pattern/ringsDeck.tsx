@@ -230,6 +230,17 @@ export function RingsDeck({
           <stop offset="70%" stopColor="#fff" stopOpacity="0.16" />
           <stop offset="100%" stopColor="#fff" stopOpacity="0.04" />
         </radialGradient>
+        {/* Batch P (live round only, batch-p.css): light from above over the record, and a blur for the
+            selected ring's glow. */}
+        <linearGradient id={id("lit")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.4" />
+          <stop offset="40%" stopColor="#fff" stopOpacity="0.05" />
+          <stop offset="62%" stopColor="#000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.45" />
+        </linearGradient>
+        <filter id={id("glow")} x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation={Math.max(2.5, size * 0.012)} />
+        </filter>
         <radialGradient id={id("label")} cx="40%" cy="35%" r="70%">
           <stop offset="0%" stopColor={GLYPH_COLOURS.GOLD} stopOpacity="0.9" />
           <stop offset="100%" stopColor="var(--vinyl-label)" />
@@ -429,6 +440,7 @@ export function RingsDeck({
         />
       </g>
       {sheen}
+      <circle cx={centre} cy={centre} r={record} fill={`url(#${id("lit")})`} className="rings-lit" pointerEvents="none" />
       {/* The rings that just turned together flash once (inside their own bands). */}
       {seq > 0 && lastTurned.current.length > 0 ? (
         <g key={`flash-${seq}`} pointerEvents="none" className="rings-turn-flash">
@@ -466,6 +478,10 @@ export function RingsDeck({
       ) : null}
       {selectedRing === undefined ? null : (
         <g pointerEvents="none" className="rings-selected">
+          <g className="rings-selected-glow" filter={`url(#${id("glow")})`}>
+            <circle cx={centre} cy={centre} r={radiusOf(selectedRing) - 0.6} fill="none" stroke="var(--category-accent, #b07cff)" strokeWidth={Math.max(3, size * 0.014)} />
+            <circle cx={centre} cy={centre} r={innerOf(selectedRing) + 0.6} fill="none" stroke="var(--category-accent, #b07cff)" strokeWidth={Math.max(3, size * 0.014)} />
+          </g>
           <circle
             cx={centre}
             cy={centre}

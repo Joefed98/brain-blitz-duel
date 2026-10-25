@@ -1,5 +1,6 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -35,6 +36,9 @@ import { playTick } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { horizontalOf, useGameKeys } from "@/lib/desktop";
+import { GoalLineContext } from "@/components/duel/GameFrame";
+import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
+import "@/polish-layout/batch-w-numline.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -374,6 +378,7 @@ function Stage({
   stateKey = "numline",
 }: PuzzleStageProps) {
   const data: NumlinePuzzleData | null = puzzle.type === "numline" ? puzzle : null;
+  const framed = Boolean(useContext(GoalLineContext));
   const [placements, setPlacements] = useStageState<number[]>(
     stateKey,
     "numlinePlacements",
@@ -532,8 +537,9 @@ function Stage({
         <div className="flex w-full flex-col items-center gap-1.5">
           <StageProgress stage={stageIndex} total={NUMLINE_STAGES} />
           <p className="h-5 w-full shrink-0 text-center font-mono text-xs uppercase text-muted-foreground">
-            Line {stageIndex + 1} of {NUMLINE_STAGES} · number {(index % NUMLINE_ITEMS) + 1} of{" "}
-            {NUMLINE_ITEMS}
+            {/* Batch W: in a live round the goal line already shows the line ("Stage n of 3"). */}
+            {framed ? "" : `Line ${stageIndex + 1} of ${NUMLINE_STAGES} · `}
+            {framed ? "Number" : "number"} {(index % NUMLINE_ITEMS) + 1} of {NUMLINE_ITEMS}
           </p>
           <div
             className="numline-card flex w-full shrink-0 items-center justify-center rounded-xl border border-border"
@@ -723,7 +729,20 @@ function Stage({
           </svg>
         </div>
       ) : null}
-      {/* Place stands 16 px clear of the bottom of the screen. */}
+      {framed ? (
+        <LiveSummary
+          testId="numline"
+          parts={
+            placements.length >= NUMLINE_TOTAL
+              ? ["All placed"]
+              : [
+                  `${placedHere.length} of ${NUMLINE_ITEMS} placed`,
+                  marker === null ? "touch the line" : "drag to adjust, then Place",
+                ]
+          }
+        />
+      ) : null}
+      {/* Place stands 16 px clear of the bottom of the screen (in a live round the frame's dock gives that 16 px). */}
       <div data-game-controls="actions" className="flex w-full shrink-0 justify-center pb-4">
         <button
           type="button"

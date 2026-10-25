@@ -90,6 +90,7 @@ stars, walkers, lava, reactions) that holds still under reduced motion or reduce
 | Ball Tracker | 375x555 → 299x555 | 390x588 → 317x588 | 390x732 → 390x724 | 414x736 → 396x736 | 430x820 → 430x799 | 1280x688 → 370x688 | the wooden board runs on across the sides and to the bottom |
 | Gemstone | 375x591 → 375x538 | 390x624 → 390x560 | 390x768 → 390x560 | 414x772 → 414x594 | 430x856 → 430x617 | 1280x724 → 504x724 | the sparkly purple velvet over the whole screen, behind the header too (world centred) |
 | Pinball | 375x591 → 329x591 | 390x624 → 348x624 | 390x768 → 390x700 | 414x772 → 414x743 | 430x856 → 430x772 | 1280x724 → 403x724 | the dark table, five retro lamps lit by the table's good moments (world centred) |
+| Mixed Signals | 375x531 → 319x531 | 390x564 → 338x564 | 390x708 → 390x650 | 414x712 → 414x690 | 430x796 → 430x717 | 1280x664 → 398x664 | the night board runs on under the arrows: its faint dot grid, lifting from the board's black to a soft indigo glow |
 
 ## iPhone 11 home-screen app, before and after the 15 Oct 2026 fix
 

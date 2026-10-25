@@ -803,3 +803,23 @@ export function inkBridgeExtras(ctx: CanvasRenderingContext2D, view: ArenaSceneV
   }
   ctx.globalAlpha = 1;
 }
+
+/**
+ * Mixed Signals (stroop, Polish batch S, 25 Oct 2026): the night board runs on under the world, behind the arrow
+ * pad: the same faint dot grid as its backdrop, starting from the board's own #07070D at the edge and lifting to a
+ * soft indigo glow (its backdrop's tone), then settling darker towards the screen's bottom. Painted once per size.
+ */
+export function stroopFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  for (const r of around(view, true)) {
+    fillGradient(ctx, r, r.y, r.y + Math.max(1, r.h), [[0, "#07070D"], [0.18, "#0C0C17"], [0.6, "#121226"], [1, "#0D0D1A"]]);
+    const glow = ctx.createRadialGradient(view.worldW / 2, r.y + r.h * 0.45, 10, view.worldW / 2, r.y + r.h * 0.45, Math.max(60, r.w * 0.7));
+    glow.addColorStop(0, "rgba(40,44,72,0.35)");
+    glow.addColorStop(1, "rgba(40,44,72,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    const x0 = Math.floor(r.x / 16) * 16;
+    for (let y = Math.ceil((r.y + 4) / 16) * 16 + 8; y < r.y + r.h; y += 16) for (let x = x0 + 8 + ((y / 16) % 2) * 8; x < r.x + r.w; x += 16) ctx.fillRect(x, y, 1, 1);
+    settle(ctx, r, "#07070D", 0.6, 0.35);
+  }
+}

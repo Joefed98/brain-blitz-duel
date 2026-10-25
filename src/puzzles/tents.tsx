@@ -14,6 +14,7 @@ import { playCorrect } from "@/lib/sound";
 import { buzz } from "@/lib/motion";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Clean flat trees; pine or round is picked from the cell position (cosmetic only). */
@@ -189,6 +190,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tents = marks.flatMap((mark, cell) => (mark === 1 ? [cell] : []));
   const encoded = encodeTents(tents);
   const solving = useSolveFx("tents", Boolean(data && tentsLayoutValid(data, tents)));
+  const inFrame = useFrameProgress(tents.length, data?.trees.length ?? 0, "tents");
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -222,9 +224,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     <div data-logic-stage="tents" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
-        </p>
+        {inFrame ? null : (
+          <p className="logic-status font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            tents <span className="text-primary">{tents.length}</span> / {data.trees.length}
+          </p>
+        )}
         <div className="logic-tents-fit logic-camp-frame">
           <Board
             size={size}
@@ -239,6 +243,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             gap={1}
           />
         </div>
+        <LiveSummary
+          inArena
+          className="logic-status"
+          items={[<SummaryItem key="grass" label="Grass marked" value={marks.filter((mark) => mark === 2).length} />]}
+        />
       </div>
     </div>
   );
