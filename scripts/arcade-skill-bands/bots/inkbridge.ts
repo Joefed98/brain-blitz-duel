@@ -22,6 +22,11 @@
  * error (judging where the coin will fall), lifting to commit it. A failed drop
  * resets the level (redrawn after a short rethink, no star try); three
  * failures end the run. Only the better players go for the gold stars.
+ *
+ * inkRev 9 (Expansion E1, taller world): on a level with a bounce cloud the player goes for the trick
+ * shot (the proved trick line, which carries that level's star when it has one) at the same
+ * skill-dependent rate as a star; INK_BOT_FEATURES=0 in the environment makes every player ignore stars
+ * and clouds (the "no features" measurement).
  */
 import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import {
@@ -32,6 +37,7 @@ import {
   INK_WORLD_H,
   INK_WORLD_W,
   inkIsLive,
+  inkWorldH,
   type InkLevel,
   type InkState,
 } from "../../../src/lib/arcade/inkBridge";
@@ -48,6 +54,12 @@ const DRAW_LIVE: Record<SkillLevel, number> = { average: 10, good: 12, great: 14
 const READ: Record<SkillLevel, number> = { average: 0.09, good: 0.065, great: 0.045, near: 0.03 };
 /** Chance of going for the gold star on a level that has one (first attempt only). */
 const STAR_GO: Record<SkillLevel, number> = { average: 0.1, good: 0.35, great: 0.6, near: 0.85 };
+/** inkRev 9: chance of going for the trick shot on a level with a bounce cloud (first attempt only). */
+const TRICK_GO: Record<SkillLevel, number> = STAR_GO;
+/** Wobbled copies (of PROBES) a trick line must survive before a player risks a drop on it. */
+const TRICK_MIN_REL = 5;
+/** INK_BOT_FEATURES=0: nobody goes for stars or trick shots. */
+const FEATURES = process.env.INK_BOT_FEATURES !== "0";
 /** The ideal live ramp is worked out for a hand that starts this many ticks after RELEASE. */
 const IDEAL_LIVE_DELAY = 18;
 const IDEAL_LIVE_SPEED = 12;
@@ -136,7 +148,9 @@ function steep(pts: readonly number[]): boolean {
 const idealCache = new Map<string, Ideal>();
 
 const clampX = (x: number) => Math.max(0, Math.min(INK_WORLD_W, Math.round(x)));
-const clampY = (y: number) => Math.max(0, Math.min(INK_WORLD_H, Math.round(y)));
+/** The world's height for the run being played (inkRev 9 is taller); set when a bot starts. */
+let worldH = INK_WORLD_H;
+const clampY = (y: number) => Math.max(0, Math.min(worldH, Math.round(y)));
 
 /**
  * Schedules one hand-drawn stroke from tick `t0`; returns the tick after its last point.
@@ -180,7 +194,7 @@ type Game = ArcadeGame<InkState, ArcadeInputEvent | null>;
  * Noise-free drop from a fresh level state: lines drawn as a phone sends them, RELEASE at
  * `rel` (absolute tick, or as soon as drawn), live ramps from IDEAL_LIVE_DELAY after it.
  */
-function simulate(game: Game, from: InkState, strokes: number[][], rel: number | null, live: number[][], still = false, wantTrace = false, perturb = 0): { potted: boolean; star: boolean; flight: number; trace: { x: number; y: number; on: number }[] } {
+function simulate(game: Game, from: InkState, strokes: number[][], rel: number | null, live: number[][], still = false, wantTrace = false, perturb = 0): { potted: boolean; star: boolean; trick: boolean; flight: number; trace: { x: number; y: number; on: number }[] } {
   const trace: { x: number; y: number; on: number }[] = [];
   let s: InkState = from;
   if (still) {
@@ -236,12 +250,13 @@ function simulate(game: Game, from: InkState, strokes: number[][], rel: number |
     s = game.step(s, inputAt(log, s.tick + 1));
     if (wantTrace && s.dropping) trace.push({ x: s.ball.x / 256, y: s.ball.y / 256, on: s.ball.on });
   }
-  return { potted: s.levels > from.levels, star: (s.stars ?? 0) > (from.stars ?? 0), flight: released >= 0 ? s.tick - released : 0, trace };
+  return { potted: s.levels > from.levels, star: (s.stars ?? 0) > (from.stars ?? 0), trick: (s.tricks ?? 0) > (from.tricks ?? 0), flight: released >= 0 ? s.tick - released : 0, trace };
 }
 
 /** The line (and release phase / live ramp) an experienced player would use on this level. */
-export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolean): Ideal {
-  const key = `${seed}:${s.level}:${wantStar ? 1 : 0}:${s.rev}`;
+export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolean | "trick"): Ideal {
+  const key = `${seed}:${s.level}:${wantStar === "trick" ? 2 : wantStar ? 1 : 0}:${s.rev}`;
+  const trickMode = wantStar === "trick";
   const hit = idealCache.get(key);
   if (hit) return hit;
   const lvl: InkLevel = s.list[s.level]!;
@@ -254,7 +269,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
     if (sims >= budget) return null;
     sims += 1;
     const base = simulate(game, s, strokes, null, liveSt, moving);
-    if (!base.potted || (needStar && !base.star)) return null;
+    if (!base.potted || (needStar && !(trickMode ? base.trick : base.star))) return null;
     let phase = 0;
     let flight = base.flight;
     if (moving) {
@@ -264,7 +279,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
         const rel = s.tick + 400 + Math.trunc((k * lvl.slidePeriod) / 12);
         sims += 1;
         const r = simulate(game, s, strokes, rel, liveSt);
-        if (r.potted && (!needStar || r.star)) {
+        if (r.potted && (!needStar || (trickMode ? r.trick : r.star))) {
           found = rel;
           flight = r.flight;
         }
@@ -281,7 +296,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
       if (sims >= budget) break;
       sims += 1;
       const r = simulate(game, s, cand.strokes, null, cand.live, true, false, k + 17 * s.level);
-      if (r.potted && (!needStar || r.star)) ok += 1;
+      if (r.potted && (!needStar || (trickMode ? r.trick : r.star))) ok += 1;
     }
     return ok;
   };
@@ -301,9 +316,10 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
   };
   let found: Ideal | null = null;
   const liveRamps = (lvl.liveRef ?? []).map((l) => [...l.pts]);
-  if (wantStar && lvl.starRef) {
-    // The proved star line, then small reshapes of it that still take the star.
-    const sr = lvl.starRef.map((p) => [...p]);
+  const featureRef = trickMode ? lvl.trickRef : lvl.starRef;
+  if (wantStar && featureRef) {
+    // The proved star (or trick) line, then small reshapes of it that still take the star (or bounce).
+    const sr = featureRef.map((p) => [...p]);
     found = consider(sr, [], true);
     for (const [dx, dy] of [[0, 10], [0, -10], [12, 0], [-12, 0], [8, 8], [-8, 8], [0, 20], [16, 10]] as const) {
       if (found || sims >= budget) break;
@@ -398,6 +414,7 @@ export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolea
 export const bot: SkillBot = ({ game, seed, human }) => {
   const level = human.level;
   const init = game.init(seed) as InkState;
+  worldH = inkWorldH(init);
 
   const plan = new Plan();
   let key = -1;
@@ -422,7 +439,13 @@ export const bot: SkillBot = ({ game, seed, human }) => {
     // Look at the level (a fresh level takes longer than a retry).
     let at = t + (first ? human.thinkTicks(2800 + 250 * s.level + (live ? 1500 : 0)) : human.thinkTicks(1300));
     let ideal: Ideal | null = null;
-    if (first && lvl.star && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
+    if (FEATURES && first && lvl.trickRef && !starTried.has(s.level) && human.chance(TRICK_GO[level])) {
+      // inkRev 9: the trick shot off the bounce cloud (its line carries the level's star, if any).
+      starTried.add(s.level);
+      const st = inkIdeal(game, seed, s, "trick");
+      // A trick line that rarely holds up to a wobble is not worth a failed drop: only a steady one is tried.
+      if (st.ok && (st.rel ?? 0) >= TRICK_MIN_REL) ideal = st;
+    } else if (FEATURES && first && lvl.star && !lvl.trickRef && !starTried.has(s.level) && human.chance(STAR_GO[level])) {
       starTried.add(s.level);
       const st = inkIdeal(game, seed, s, true);
       if (st.ok) ideal = st;

@@ -26,7 +26,7 @@ import { LIVE_BANDS, type LiveBandGame } from "../src/lib/arcade/liveBands";
 import { BAND_STRICT_MARK, BAND_TARGET_MARK, bandHasStrict, bandMapTotal, bandStrict, bandTop, type BandCurve } from "../src/lib/arcade/scoreBands";
 import { BASES } from "./arcade-bands-fit";
 import { GAMES } from "./arcade-skill-bands/games";
-import { TARGET_REVS } from "./scoring-targets-revs";
+import { EXPANSION_REVS, STRICT_REVS, TARGET_REVS } from "./scoring-targets-revs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { rev2KnotsFor, rev2KnotsForPuzzle, REV2_DEALT_KEY, REV2_IDENTITY_KNOTS, rev2Points, REV2_FINISH_GAMES, REV2_OPEN_GAMES, PUZZLE_SCORE_REV_BANDS } from "../src/lib/duel/puzzleScoreRev2";
 import { PUZZLE_REV2_KNOTS } from "../src/lib/duel/puzzleBands.data";
@@ -108,17 +108,20 @@ const ARCADE = (Object.keys(LIVE_BANDS) as LiveBandGame[]).filter((t) => t !== "
 for (const type of ARCADE) {
   const { base } = BASES[type]!;
   const live = LIVE_BANDS[type];
+  // An expansion (docs/scoring-200.md) deals a later revision on its own curve; its score-bands revision is proved here.
+  const strictRev = STRICT_REVS[type]!;
+  const expansion = EXPANSION_REVS[type];
   ok(bandHasStrict(base), `${type}: its base curve has a strict row`);
   const strict = bandStrict(base);
-  ok(live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
+  ok(expansion !== undefined || live.curve === strict, `${type}: LIVE_BANDS lists the strict curve`);
   ok(strict.units[0] === 0 && strict.points[0] === 0, `${type}: strict curve starts at (0, 0)`);
   ok(strict.points.at(-1) === base.points.at(-1) && bandTop(strict) === bandTop(base), `${type}: strict curve keeps the top (${base.points.at(-1)} at ${bandTop(base)})`);
   for (let i = 1; i < strict.units.length; i++) ok(strict.units[i]! > strict.units[i - 1]! && strict.points[i]! > strict.points[i - 1]!, `${type}: strict knots rise (${i})`);
   const dealt = (generatePuzzle(type as PuzzleType) as unknown as Record<string, unknown>)[live.field];
-  ok(dealt === live.rev, `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
+  ok(dealt === live.rev && (expansion === undefined || expansion[0] === live.rev), `${type}: rooms deal ${live.field} ${live.rev} (got ${String(dealt)})`);
   const spec = GAMES.find((g) => g.type === type)!;
   const seed = spec.seedFor(0);
-  ok((spec.gameFor(live.rev, seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${live.rev}: band ${BAND_STRICT_MARK} from the first tick`);
+  ok((spec.gameFor(strictRev, seed).init(seed) as { band?: number }).band === BAND_STRICT_MARK, `${type} ${strictRev}: band ${BAND_STRICT_MARK} from the first tick`);
   ok((spec.gameFor(TARGET_REVS[type]![0], seed).init(seed) as { band?: number }).band === BAND_TARGET_MARK, `${type} ${TARGET_REVS[type]![0]}: still band ${BAND_TARGET_MARK}`);
 }
 
@@ -134,7 +137,7 @@ const fixture = JSON.parse(gunzipSync(readFileSync(FIXTURE)).toString()) as { ar
     const spec = GAMES.find((g) => g.type === run.type)!;
     const seed = spec.seedFor(run.n);
     const tag = `${run.type} ${run.level} #${run.n}`;
-    ok(run.rev === (LIVE_BANDS as Record<string, { rev: number }>)[run.type]!.rev, `${tag}: recorded on the revision rooms deal`);
+    ok(run.rev === STRICT_REVS[run.type as LiveBandGame], `${tag}: recorded on the score-bands revision (the one rooms deal, or dealt before an expansion)`);
     const now = spec.replay(seed, run.raw, run.rev);
     ok(!now.flagged && now.desyncTick == null, `${tag}: replays unflagged (${now.reason ?? ""})`);
     ok(now.score === run.score, `${tag}: replays to its stored ${run.score} (got ${now.score})`);

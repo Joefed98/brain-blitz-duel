@@ -89,7 +89,7 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
 import { PINBALL_IN_ROOMS } from "../src/lib/arcade/pinball";
-import { playRevOf } from "./scoring-targets-revs";
+import { playRevOf, EXPANSION_REVS } from "./scoring-targets-revs";
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -166,7 +166,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 2],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL],
-    ["inkbridge", playRevOf("inkbridge", generateInkBridge().inkRev), INK_REV_TUNEC],
+    // Expansion E1 (25 Oct 2026) moved Rainbow Bridge on to inkRev 9 (ink-expand-check); the revision dealt before it keeps Tuning C's play.
+    ["inkbridge", generateInkBridge().inkRev === EXPANSION_REVS.inkbridge![0] ? playRevOf("inkbridge", EXPANSION_REVS.inkbridge![1]) : -1, INK_REV_TUNEC],
     ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
@@ -225,7 +226,7 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   }
   // Hover's help now states its Tuning E curve (arcade-tuning-e-check).
   // Screen audit Oct 2026: the help gives a good run from the curve rooms deal (swingRev 9, inkRev 6, beatRev 6; arcade-help-bands-check).
-  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 59") && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
+  ok(PUZZLE_INSTRUCTIONS.swing.score.includes("A good run (100 points) counts 166") && PUZZLE_INSTRUCTIONS.inkbridge.score.includes("A good run (100 points) counts 54") /* inkRev 9 (Expansion E1) */ && PUZZLE_INSTRUCTIONS.beat.score.includes("A good run (100 points) reaches 868"), "the \"?\" help states a good run on the curves rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

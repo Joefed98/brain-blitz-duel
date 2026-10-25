@@ -104,7 +104,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     wavefront: "Ships, armour hits, saucers, waves, boss hits. Destroy the boss fast for up to 10 more.",
     flip: "Points for every second you last and each gold star. Last the minute for 10 more.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
-    inkbridge: `Points for each level and gold star. All ${INK_LEVELS} levels quickly: up to {max}.`,
+    inkbridge: `Points for each level; stars and cloud bounces add more. All ${INK_LEVELS} quickly: up to {max}.`,
     burst: "Points for each atom hit; a lost life takes 5 hits off. Last the 90 s for 10 more.",
     orbit: "Points for each planet you reach. Reach the sun quickly for up to {max}.",
     snip: `Points for each apple and leaf. All ${SNIP_CONFIG.levels} apples quickly: up to {max}.`,
