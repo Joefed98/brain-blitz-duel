@@ -14,7 +14,7 @@ import {
   type BtBall, type BtCourse, type BtState,
 } from "./ballTrack";
 import {
-  TOY_BRASS, TOY_INK, TOY_OAK, TOY_OAK_LIGHT, TOY_WOOD_DARK, TOY_WOOD_DEEP,
+  TOY_BRASS, TOY_INK, TOY_OAK, TOY_WOOD_DARK, TOY_WOOD_DEEP,
   toyBoard, toyMarble, toyTabletop,
 } from "./toybox.renderer";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
@@ -242,9 +242,12 @@ function strokeChannels(ctx: CanvasRenderingContext2D, trace: (c: CanvasRenderin
   pass(BALL_R * 3 - 6, movable ? "#CF8E5E" : "#B88A5A");
   pass(BALL_R * 2 + 6, movable ? "#7E4524" : "#6E4A2A");
   pass(BALL_R * 2, movable ? "#C47A48" : "#AD7A4A");
-  pass(BALL_R * 1.1, movable ? "rgba(255,214,170,0.16)" : "rgba(255,226,186,0.14)");
-  pass(3, GROOVE);
-  pass(1, "rgba(255,230,190,0.32)", 0, 2);
+  // Polish A3 (25 Oct 2026, art only): two carved rail grooves the marble rides between, each with
+  // a lit lower lip, then the polished centre and the fine centre groove, all inside the channel.
+  pass(BALL_R * 1.3, movable ? "rgba(255,226,190,0.22)" : "rgba(255,232,200,0.2)", 0, 1.5);
+  pass(BALL_R * 1.3, "rgba(90,53,25,0.6)");
+  pass(BALL_R * 1.3 - 3, movable ? "#C47A48" : "#AD7A4A");
+  pass(BALL_R * 0.9, movable ? "rgba(255,214,170,0.2)" : "rgba(255,226,186,0.17)");
 }
 
 /** A domed brass pin (radius 6, same as before). */
@@ -265,6 +268,12 @@ function brassPin(ctx: CanvasRenderingContext2D, x: number, y: number): void {
   ctx.beginPath();
   ctx.arc(x - 2, y - 2, 1.4, 0, Math.PI * 2);
   ctx.fill();
+  // Polish A3: a lit lower rim on the collar (inside the pin's radius).
+  ctx.strokeStyle = "rgba(255,226,150,0.55)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x, y, 6.1, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
 }
 
 /** Recessed shelf: shadow under its top edge, light along its bottom lip. */
@@ -283,29 +292,80 @@ function shelf(c: CanvasRenderingContext2D, y: number, h: number): void {
   c.fillRect(0, y, BT_W, 1.5);
 }
 
-/** Board, plank seams, shelves and settled channels (cached by btLayer). */
+/** A tile's tone: a few seeded shades so neighbouring squares read as separate pieces of wood. */
+function tileTone(cell: number): number {
+  let h = (cell + 1) * 2654435761;
+  h ^= h >>> 15;
+  return ((h >>> 0) % 5) - 2;
+}
+
+/**
+ * Polish A3 (25 Oct 2026, art only): each tile a bevelled wooden square, inside its own 100 px cell:
+ * a faint tone of its own, a lit top-left bevel, a shaded bottom-right bevel and a fine joint line.
+ */
+function bevelTile(c: CanvasRenderingContext2D, x: number, y: number, tone: number): void {
+  const t = BT_TILE;
+  if (tone) {
+    c.fillStyle = tone > 0 ? `rgba(255,230,190,${0.035 * tone})` : `rgba(70,38,14,${-0.05 * tone})`;
+    c.fillRect(x, y, t, t);
+  }
+  const b = 5;
+  // Lit top and left faces.
+  c.fillStyle = "rgba(255,236,200,0.2)";
+  c.beginPath();
+  c.moveTo(x, y); c.lineTo(x + t, y); c.lineTo(x + t - b, y + b); c.lineTo(x + b, y + b); c.lineTo(x + b, y + t - b); c.lineTo(x, y + t);
+  c.closePath();
+  c.fill();
+  // Shaded bottom and right faces.
+  c.fillStyle = "rgba(70,36,12,0.26)";
+  c.beginPath();
+  c.moveTo(x + t, y + t); c.lineTo(x, y + t); c.lineTo(x + b, y + t - b); c.lineTo(x + t - b, y + t - b); c.lineTo(x + t - b, y + b); c.lineTo(x + t, y);
+  c.closePath();
+  c.fill();
+  // The joint between tiles and a hairline highlight on the bevel's crest.
+  c.strokeStyle = "rgba(60,30,10,0.42)";
+  c.lineWidth = 1.5;
+  c.strokeRect(x + 0.75, y + 0.75, t - 1.5, t - 1.5);
+  c.strokeStyle = "rgba(255,240,210,0.16)";
+  c.lineWidth = 1;
+  c.strokeRect(x + b + 0.5, y + b + 0.5, t - b * 2 - 1, t - b * 2 - 1);
+}
+
+/**
+ * The queue's wooden shelf across the hopper strip (Polish A3): a shaded back wall, the shelf's top
+ * on which the queued marbles rest (their lowest point, hopper centre + ball radius) and its lit front lip.
+ */
+function queueShelf(c: CanvasRenderingContext2D): void {
+  const h = BT_HOPPER_H;
+  const rest = h / 2 + BALL_R - 3;
+  const back = c.createLinearGradient(0, 0, 0, rest);
+  back.addColorStop(0, "rgba(46,24,8,0.5)");
+  back.addColorStop(1, "rgba(46,24,8,0.18)");
+  c.fillStyle = back;
+  c.fillRect(0, 0, BT_W, rest);
+  const top = c.createLinearGradient(0, rest, 0, h - 4);
+  top.addColorStop(0, "#B9874F");
+  top.addColorStop(1, "#D9AC72");
+  c.fillStyle = top;
+  c.fillRect(0, rest, BT_W, h - 4 - rest);
+  c.fillStyle = "rgba(255,240,210,0.45)";
+  c.fillRect(0, h - 5, BT_W, 1.2);
+  const lip = c.createLinearGradient(0, h - 4, 0, h);
+  lip.addColorStop(0, "#9C6B3E");
+  lip.addColorStop(1, GROOVE);
+  c.fillStyle = lip;
+  c.fillRect(0, h - 4, BT_W, 4);
+  c.fillStyle = "rgba(40,20,6,0.4)";
+  c.fillRect(0, rest - 1, BT_W, 1);
+}
+
+/** Board, bevelled tiles, shelves, settled channels and the overhead light (cached by btLayer). */
 function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], BT_ROWS = BT_BASE_ROWS, BT_H = BT_BASE_H): void {
   toyBoard(c, 0, 0, BT_W, BT_H, 14);
-  // Plank seams across the board, with a lit edge under each.
   const gridY = BT_HOPPER_H;
-  for (let row = 0; row <= BT_ROWS; row++) {
-    const y = gridY + row * BT_TILE;
-    c.fillStyle = "rgba(70,40,18,0.22)";
-    c.fillRect(0, y - 1, BT_W, 1.5);
-    c.fillStyle = "rgba(255,232,196,0.16)";
-    c.fillRect(0, y + 0.5, BT_W, 1);
-    // Staggered plank ends.
-    if (row < BT_ROWS) {
-      c.fillStyle = "rgba(70,40,18,0.18)";
-      for (const x of [((row * 3 + 2) % BT_COLS) * BT_TILE + BT_TILE / 2, ((row * 3 + 6) % BT_COLS) * BT_TILE])
-        c.fillRect(x - 0.75, y + 1, 1.5, BT_TILE - 2);
-    }
-  }
-  c.fillStyle = TOY_OAK_LIGHT;
-  c.globalAlpha = 0.08;
-  c.fillRect(0, gridY, BT_W, BT_TILE * 0.35);
-  c.globalAlpha = 1;
-  shelf(c, 0, gridY);
+  for (let row = 0; row < BT_ROWS; row++)
+    for (let col = 0; col < BT_COLS; col++) bevelTile(c, col * BT_TILE, gridY + row * BT_TILE, tileTone(row * BT_COLS + col));
+  queueShelf(c);
   shelf(c, gridY + BT_ROWS * BT_TILE, BT_TRAY_H);
   for (const movable of [false, true]) {
     strokeChannels(c, (cc) => {
@@ -315,6 +375,13 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
       }
     }, movable);
   }
+  // Warm overhead light: a soft lamp pool from above the board's top, falling off down the board.
+  const lamp = c.createRadialGradient(BT_W / 2, -BT_H * 0.08, BT_W * 0.1, BT_W / 2, BT_H * 0.25, BT_H * 0.75);
+  lamp.addColorStop(0, "rgba(255,214,150,0.2)");
+  lamp.addColorStop(0.55, "rgba(255,200,130,0.06)");
+  lamp.addColorStop(1, "rgba(30,14,4,0.16)");
+  c.fillStyle = lamp;
+  c.fillRect(0, 0, BT_W, BT_H);
 }
 
 /**
@@ -343,7 +410,36 @@ export function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r:
   ctx.beginPath();
   ctx.arc(x, y, r - ctx.lineWidth / 2, 0, Math.PI * 2);
   ctx.stroke();
+  // Polish A3: a glossy window reflection over the upper left and a warm bounce under it (inside r).
+  const gloss = ctx.createLinearGradient(x, y - r, x, y);
+  gloss.addColorStop(0, "rgba(255,255,255,0.55)");
+  gloss.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gloss;
+  ctx.beginPath();
+  ctx.ellipse(x - r * 0.12, y - r * 0.42, r * 0.62, r * 0.4, -0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.4, y - r * 0.44, r * 0.11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,214,150,0.35)";
+  ctx.lineWidth = Math.max(0.6, r * 0.07);
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.86, Math.PI * 0.6, Math.PI * 0.9);
+  ctx.stroke();
   ctx.restore();
+}
+
+/** A marble's soft contact shadow on the wood, offset away from the overhead lamp (Polish A3). */
+function marbleShadow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.fillStyle = "rgba(40,18,4,0.16)";
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.12, y + r * 0.22, r * 1.02, r * 0.92, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(40,18,4,0.2)";
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.08, y + r * 0.18, r * 0.9, r * 0.8, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** Ball Tracker drawing (world units; the caller scales) through the shared success layer. */
@@ -408,6 +504,7 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
   const ease = k * k * (3 - 2 * k);
   const shuffleFlash = since >= 0 && since < BT_SHUFFLE_TICKS + 20 && Math.floor(since / 5) % 2 === 0;
   const now = btTraysAt(course, s.tick);
+  const reduced = arcadeReducedEffects();
   prior.forEach((tray, from) => {
     if (tray < 0) return;
     const to = event ? event.trays.indexOf(tray) : from;
@@ -415,6 +512,22 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     const x = col * BT_TILE + 6, w = BT_TILE - 12, h = BT_TRAY_H - 10;
     const landed = now.indexOf(tray);
     const flash = shuffleFlash || s.landings.some((m) => m.cell === landed && s.tick - m.tick < 30);
+    // Polish A3: each cup glows softly in its colour on the tray shelf (brighter as a marble lands).
+    if (!reduced) {
+      ctx.save();
+      ctx.translate(x + w / 2, trayY + h / 2);
+      ctx.scale(1, 0.55);
+      const glow = ctx.createRadialGradient(0, 0, w * 0.2, 0, 0, w * 0.68);
+      glow.addColorStop(0, BT_PALETTE[tray]!);
+      glow.addColorStop(0.62, BT_PALETTE[tray]!);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = flash ? 0.8 : 0.5;
+      ctx.fillStyle = glow;
+      ctx.fillRect(-w * 0.68, -w * 0.68, w * 1.36, w * 1.36);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
     // A carved oak cup: light lip, hollow shaded from the top, the colour tint, then the colour edge.
     ctx.fillStyle = TOY_OAK;
     ctx.fillRect(x, trayY, w, h);
@@ -427,10 +540,20 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     ctx.globalAlpha = flash ? 0.6 : 0.25;
     ctx.fillStyle = BT_PALETTE[tray]!;
     ctx.fillRect(x, trayY, w, h);
+    ctx.globalAlpha = flash ? 0.45 : 0.22;
+    const inner = ctx.createLinearGradient(0, trayY, 0, trayY + h);
+    inner.addColorStop(0, "rgba(255,255,255,0)");
+    inner.addColorStop(1, BT_PALETTE[tray]!);
+    ctx.fillStyle = inner;
+    ctx.fillRect(x + 4, trayY + 3, w - 8, h - 6);
     ctx.globalAlpha = 1;
     ctx.fillStyle = "rgba(255,236,200,0.35)";
     ctx.fillRect(x + 4, trayY + h - 5, w - 8, 1.5);
     ctx.strokeStyle = shuffleFlash ? "#FFFFFF" : BT_PALETTE[tray]!;
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 9;
+    ctx.strokeRect(x, trayY, w, h);
+    ctx.globalAlpha = 1;
     ctx.lineWidth = 4;
     ctx.strokeRect(x, trayY, w, h);
     ctx.strokeStyle = "rgba(255,255,255,0.28)";
@@ -504,17 +627,44 @@ function btArtDrawWorld(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSt
     const offset = i - s.next;
     const x = offset === 0 ? leadX : leadX - leadOutline - queueGap - queuedRadius - (offset - 1) * (queuedRadius * 2 + queueGap);
     const colour = course.balls[i]!;
+    const r = offset === 0 ? BALL_R : queuedRadius;
+    if (i === s.next) {
+      // Polish A3: the current marble sits in a soft gold halo inside its ring.
+      const halo = ctx.createRadialGradient(x, hy, BALL_R * 0.8, x, hy, BALL_R + 6);
+      halo.addColorStop(0, "rgba(255,206,90,0)");
+      halo.addColorStop(1, "rgba(255,206,90,0.4)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(x, hy, BALL_R + 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Contact shadow where the marble rests on the shelf.
+    ctx.fillStyle = "rgba(40,18,4,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(x + r * 0.1, hy + r * 0.86, r * 0.8, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.globalAlpha = i === s.next ? 1 : 0.7;
-    btMarble(ctx, x, hy, offset === 0 ? BALL_R : queuedRadius, BT_PALETTE[colour]!, colour);
+    btMarble(ctx, x, hy, r, BT_PALETTE[colour]!, colour);
     ctx.globalAlpha = 1;
     if (i === s.next) {
-      ctx.strokeStyle = TOY_BRASS;
+      // The gold ring (same radius and width as the old brass one), lit at the top.
+      const ring = ctx.createLinearGradient(x, hy - BALL_R - 6, x, hy + BALL_R + 6);
+      ring.addColorStop(0, "#FFE9A6");
+      ring.addColorStop(0.5, "#F2BE3C");
+      ring.addColorStop(1, "#B07A16");
+      ctx.strokeStyle = ring;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(x, hy, BALL_R + 6, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
+  // Shadows are decorative: skipped in reduced effects (slow devices only).
+  if (!arcadeReducedEffects())
+    for (const b of s.balls) {
+      const p = btArtBallPoint(s, b, rot);
+      marbleShadow(ctx, p.x, p.y, BALL_R);
+    }
   for (const b of s.balls) {
     const p = btArtBallPoint(s, b, rot);
     btMarble(ctx, p.x, p.y, BALL_R, BT_PALETTE[b.colour]!, b.colour);
