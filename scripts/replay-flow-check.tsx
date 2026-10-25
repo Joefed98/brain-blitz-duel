@@ -191,11 +191,11 @@ const podium = (panel?: React.ReactNode) =>
       {...(panel !== undefined ? { playOfTheGame: panel } : {})}
     />,
   );
+// Polish batch R: Leave moved into the room header's "⋯" menu (the route draws it, checked below).
 ok(
   podium(marker).includes("Play again") &&
-    podium(marker).includes("Leave") &&
     strip(podium(marker)) === podium(),
-  "Podium: the play of the game changed Play again / Leave or the screen",
+  "Podium: the play of the game changed Play again or the screen",
 );
 const podiumEl = (panel?: React.ReactNode) => (
   <Podium
@@ -267,6 +267,10 @@ ok(
 ok(
   /onPlayAgain=\{\(\) => void handlePlayAgain\(\)\}/.test(route),
   "duel route: Play again unchanged",
+);
+ok(
+  /label: "Leave", onSelect: \(\) => void handleLeave\(\)/.test(route),
+  "duel route: the final screens' Leave (the header menu) unchanged",
 );
 const highlightSource = readFileSync("src/components/replay/RoundHighlight.tsx", "utf8");
 ok(

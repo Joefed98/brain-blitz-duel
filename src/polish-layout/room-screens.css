@@ -1,0 +1,774 @@
+/*
+ * Polish batch R (25 Oct 2026, presentation only; docs/polish-batches/room-screens.md): the room and
+ * other non-game screens take the tab pages' look (app-pages.css, docs/design-system.md): Archivo in
+ * sentence case, flat #17171B panels of divided rows, and gold only for the action that plays (Start
+ * game, Ready, Continue, Play again, Join, the daily Play / Continue, Create a room, I agree).
+ *
+ * - Scope: every skinned screen that is not a tab page ([data-skin] without [data-tab-screen]): the
+ *   lobby, link join, round results, standings, podium and final results, the answer reveal's chrome,
+ *   the daily and challenge screens, terms, the settings sheet, the chat sheet and confirm dialogs. The
+ *   tab pages (and the share welcome card on Play) keep exactly what they had.
+ * - Inside it the page and skin tokens resolve to the tab pages' palette; --primary is neutral
+ *   (text-primary, bg-primary and the old gold accents turn the page's light text), and the gold
+ *   buttons (.th-btn-gold, .ap-btn-gold) carry the gold shine explicitly.
+ * - data-skin-off (a game's own art inside a reveal or replay) keeps the game's tokens, as before.
+ * Nothing here changes layout timing: no animation is added, and the room footer's height is fixed.
+ */
+
+:where([data-skin]:not([data-tab-screen])) {
+  --background: var(--ap-bg);
+  --foreground: var(--ap-text);
+  --card-foreground: var(--ap-text);
+  --muted-foreground: var(--ap-text-2);
+  --primary: var(--ap-text);
+  --primary-foreground: var(--ap-bg);
+  --me: var(--ap-text);
+  --opponent: var(--ap-text);
+  --card: var(--ap-panel);
+  --border: var(--ap-divider);
+  --font-display: var(--ap-font);
+  --font-body: var(--ap-font);
+  --font-mono: var(--ap-font);
+  --th-font-head: var(--ap-font);
+  --th-font-body: var(--ap-font);
+  --th-font-mono: var(--ap-font);
+  --th-bg: var(--ap-bg);
+  --th-text: var(--ap-text);
+  --th-text-2: var(--ap-text-2);
+  --th-gold-text: var(--ap-text);
+  --th-teal-text: var(--ap-text);
+}
+[data-skin]:not([data-tab-screen]) {
+  font-family: var(--ap-font);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+/* Headings and every label in sentence case (the copy is written that way; the old look upper-cased it). */
+[data-skin]:not([data-tab-screen]) :is(h1, h2, h3):not([data-skin-off] *) {
+  font-family: var(--ap-font);
+  font-weight: 800;
+  font-stretch: 108%;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+[data-skin]:not([data-tab-screen]) :is(.uppercase, .font-display, .font-mono, .th-name):not([data-skin-off], [data-skin-off] *) {
+  text-transform: none;
+  letter-spacing: normal;
+}
+[data-skin]:not([data-tab-screen]) .th-kicker:not([data-skin-off] *) {
+  font-family: var(--ap-font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ap-text-2);
+}
+
+/* The page behind: flat #0D0D0F like the tab pages, the home-bar strip the screen edge's black. */
+[data-skin]:not([data-tab-screen]) > .screen-background {
+  background:
+    linear-gradient(to top, var(--screen-edge) calc(env(safe-area-inset-bottom, 0px) + 16px), transparent calc(env(safe-area-inset-bottom, 0px) + 16px)),
+    var(--ap-bg);
+}
+[data-skin]:not([data-tab-screen]) > .screen-background::before {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ surfaces */
+/* The skin's glass cards are the tab pages' flat panels. */
+[data-skin]:not([data-tab-screen]) .th-card,
+[data-skin]:not([data-tab-screen]).th-card {
+  background: var(--ap-panel);
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-skin]:not([data-tab-screen]) .th-card::before {
+  display: none;
+}
+/* "You": a 3 px bar in the player's own colour (--you, set on the row) and "(you)" after the name; never gold. */
+[data-skin]:not([data-tab-screen]) .th-card[data-tint="me"],
+[data-skin]:not([data-tab-screen]) [data-you] {
+  box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+}
+[data-skin]:not([data-tab-screen]) .th-sheet,
+.th-sheet[data-skin]:not([data-tab-screen]) {
+  background: var(--ap-panel);
+  background-image: none;
+  border-color: var(--ap-divider);
+  box-shadow: 0 -18px 40px -18px rgb(0 0 0 / 0.9);
+}
+[data-skin]:not([data-tab-screen]) .th-input,
+[data-skin]:not([data-tab-screen]) input.th-input {
+  background: var(--ap-input);
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-skin]:not([data-tab-screen]) .th-input:focus {
+  border-color: var(--ap-text-2);
+}
+
+/* ------------------------------------------------------------------ buttons */
+/* Gold: the action that plays. The tab pages' gold shine. */
+[data-skin]:not([data-tab-screen]) .th-btn-gold {
+  background: var(--ap-shine);
+  box-shadow: var(--ap-shine-shadow);
+  color: var(--ap-on-gold);
+  text-shadow: none;
+  font-family: var(--ap-font);
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-skin]:not([data-tab-screen]) .th-btn-gold::before {
+  display: none;
+}
+/* Everything else is a quiet outline (Share, Copy link, Leave, Home…), never gold or teal. */
+[data-skin]:not([data-tab-screen]) :is(.th-btn-teal, .th-btn-ghost, .th-btn-outline-gold, .th-btn-outline-teal) {
+  background: transparent;
+  background-image: none;
+  border: 1px solid var(--ap-line);
+  box-shadow: none;
+  color: var(--ap-text);
+  text-shadow: none;
+  font-family: var(--ap-font);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-skin]:not([data-tab-screen]) .th-btn-teal::before {
+  display: none;
+}
+
+/* Chips and segments: selected = light fill, dark text (never gold). */
+[data-skin]:not([data-tab-screen]) .th-chip {
+  background: transparent;
+  background-image: none;
+  border-color: var(--ap-outline);
+  color: var(--ap-link);
+  box-shadow: none;
+}
+[data-skin]:not([data-tab-screen]) .th-chip:is([aria-pressed="true"], [aria-checked="true"]) {
+  background: var(--ap-text);
+  border-color: var(--ap-text);
+  color: var(--ap-bg);
+  box-shadow: none;
+}
+
+/* Scores are white; the old gold "top score" glow is gone. */
+[data-skin]:not([data-tab-screen]) .th-score-top {
+  color: var(--ap-text);
+  text-shadow: none;
+}
+[data-skin]:not([data-tab-screen]) .th-score {
+  font-family: var(--ap-font);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+[data-skin]:not([data-tab-screen]) .th-medal {
+  font-family: var(--ap-font);
+  font-weight: 800;
+}
+[data-skin]:not([data-tab-screen]) .th-pill {
+  font-family: var(--ap-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: capitalize;
+}
+[data-skin]:not([data-tab-screen]) .th-pill:is([data-tone="gold"], [data-tone="teal"]) {
+  --cat: var(--ap-line);
+  --cat-hi: var(--ap-text-2);
+}
+
+/* Tap feedback, as on the tab pages: sink to 98 % and lighten; transform and filter only. */
+[data-skin]:not([data-tab-screen]) .press {
+  transition: transform 90ms ease-out, filter 90ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-skin]:not([data-tab-screen]) .press:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(1.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-skin]:not([data-tab-screen]) .press:active:not(:disabled) {
+    transform: none;
+  }
+}
+/* The intro takes the play screen's category gradient (game-frame.css "the puzzle background"). */
+[data-category]:has(.round-intro) {
+  --frame-deep: color-mix(in srgb, var(--category-accent) 10%, #0d0d0f);
+}
+[data-category]:has(.round-intro) > .screen-background {
+  background:
+    /* The home-bar strip stays the screen edge's black (screen-bottom-check), fading in over 16 px above it. */
+    linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent calc(env(safe-area-inset-bottom, 0px) + 16px)),
+    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
+    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--frame-deep) 0%, #0d0d0f 45%, #0d0d0f 60%, var(--frame-deep) 100%);
+}
+[data-category]:has(.round-intro) > .screen-background::before,
+[data-category]:has(.round-intro) > .screen-background > .screen-drift {
+  display: none;
+}
+
+/* The batch's own pieces sit in the components layer, so a component's utilities (sizes, padding) still win. */
+@layer components {
+  .rs-you {
+    color: var(--ap-text-2);
+    font-weight: 500;
+  }
+  .rs-seg {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 13px;
+    background: var(--ap-input);
+  }
+  .rs-seg > button {
+    display: flex;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    border-radius: 10px;
+    color: var(--ap-text-2);
+    font-size: 14px;
+    font-weight: 650;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-seg > button:is([aria-pressed="true"], [aria-checked="true"]) {
+    background: var(--ap-text);
+    color: var(--ap-bg);
+  }
+  /* Category chips: tinted fill and border in the category's own colour when on, grey when off. */
+  .rs-cat {
+    position: relative;
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid var(--ap-outline);
+    border-radius: 999px;
+    color: var(--ap-faint);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-cat > .rs-cat-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ap-line);
+  }
+  .rs-cat[aria-pressed="true"] {
+    border-color: color-mix(in oklab, var(--cat) 60%, transparent);
+    background: color-mix(in oklab, var(--cat) 16%, var(--ap-bg));
+    color: var(--cat-hi);
+  }
+  .rs-cat[aria-pressed="true"] > .rs-cat-dot {
+    background: var(--cat);
+  }
+  /* A 36 px chip with an invisible 44 px hit area (as .ap-hit). */
+  .rs-cat::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+  .rs-cat:disabled {
+    opacity: 0.6;
+  }
+  .rs-pill {
+    display: inline-flex;
+    height: 22px;
+    flex: none;
+    align-items: center;
+    padding: 0 9px;
+    border: 1px solid var(--ap-line);
+    border-radius: 999px;
+    color: var(--ap-text-2);
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------------ the room footer */
+  /*
+   * One row on every room screen (RoomFooter): the 52 px chat button, then the screen's main action (and
+   * Share where there is one). Sticky above the home bar, solid, 68 px tall (8 + 52 + 8), so with a 34 px
+   * home bar it takes 102 px. Under it the home-bar inset is the screen edge's black (styles.css
+   * .room-chat-bar::after); a 16 px fade above it shows that a list scrolls on under it.
+   */
+  .room-footer {
+    position: sticky;
+    bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 30;
+    display: flex;
+    height: 68px;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 0;
+    background: var(--background);
+  }
+  .room-footer::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: 16px;
+    background: linear-gradient(to top, var(--background), transparent);
+    pointer-events: none;
+  }
+  .room-footer-main {
+    display: flex;
+    min-width: 0;
+    height: 52px;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+  }
+  .room-footer-main > * {
+    min-width: 0;
+  }
+  .room-footer :is(.rs-btn-gold, .rs-btn) {
+    height: 52px;
+  }
+  .rs-chat-btn {
+    position: relative;
+    display: flex;
+    width: 52px;
+    height: 52px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ap-line);
+    border-radius: 14px;
+    color: var(--ap-text-2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-chat-btn > svg {
+    width: 22px;
+    height: 22px;
+  }
+  /* Unread messages from other players: a small light badge with the count, never gold. */
+  .rs-chat-unread {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    height: 16px;
+    min-width: 16px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--ap-text);
+    box-shadow: 0 0 0 2px var(--ap-bg);
+    color: var(--ap-bg);
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .rs-btn-gold {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 14px;
+    font-size: 17px;
+    white-space: nowrap;
+  }
+  .rs-btn {
+    display: flex;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 14px;
+    border: 1px solid var(--ap-line);
+    border-radius: 14px;
+    color: var(--ap-text);
+    font-size: 15px;
+    font-weight: 650;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-status {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--ap-text-2);
+    font-size: 14px;
+    font-weight: 550;
+    text-align: center;
+  }
+
+  /* ------------------------------------------------------------------ the header menu (⋯) */
+  .rs-menu-btn {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: var(--ap-text-2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-menu {
+    position: absolute;
+    z-index: 70;
+    min-width: 200px;
+    overflow: hidden;
+    border: 1px solid var(--ap-divider);
+    border-radius: 14px;
+    background: var(--ap-panel);
+    box-shadow: 0 18px 40px rgb(0 0 0 / 0.6);
+    font-family: var(--ap-font);
+  }
+  .rs-menu > button {
+    display: flex;
+    width: 100%;
+    min-height: 48px;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    color: var(--ap-text);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rs-menu > button + button {
+    border-top: 1px solid var(--ap-divider);
+  }
+  .rs-menu > button:active {
+    background: rgb(255 255 255 / 0.05);
+  }
+  .rs-menu > button[data-danger] {
+    color: #FF8A80;
+  }
+
+  /* ------------------------------------------------------------------ lists and rows */
+  .rs-head {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .rs-title {
+    font-size: 22px;
+    font-weight: 800;
+    font-stretch: 110%;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--ap-text);
+    white-space: nowrap;
+  }
+  .rs-meta {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ap-text-2);
+    white-space: nowrap;
+  }
+  .rs-list {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 18px;
+    background: var(--ap-panel);
+  }
+  .rs-row {
+    position: relative;
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 6px 14px;
+    text-align: left;
+  }
+  .rs-row + .rs-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 14px;
+    height: 1px;
+    background: var(--ap-divider);
+    pointer-events: none;
+  }
+  .rs-row[data-you] {
+    box-shadow: inset 3px 0 0 var(--you, var(--ap-text-2));
+  }
+  .rs-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ap-text);
+  }
+  .rs-sub {
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--ap-text-2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rs-total {
+    font-size: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--ap-text);
+    white-space: nowrap;
+  }
+  .rs-move {
+    width: 22px;
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .rs-move[data-move="up"] { color: #5BE3A0; }
+  .rs-move[data-move="down"] { color: #FF7A6E; }
+  .rs-move[data-move="same"] { color: var(--ap-faint); }
+  /* A list that can still scroll under the footer: a fade at its bottom while there is more below. */
+  .rs-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .rs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .rs-scroll[data-more] {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  }
+
+  /* The lobby's room code, white and large. */
+  .rs-code {
+    font-size: 36px;
+    font-weight: 850;
+    font-stretch: 108%;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    color: var(--ap-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .rs-meter {
+    position: relative;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--ap-divider);
+  }
+  .rs-meter > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: inherit;
+    background: var(--ap-text-2);
+  }
+
+  /* The error screens (404, room not found, challenge not found). */
+  .rs-error-mark {
+    display: flex;
+    width: 76px;
+    height: 76px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 22px;
+    background: var(--ap-panel);
+    opacity: 0.85;
+  }
+  .rs-error-mark > svg {
+    opacity: 0.45;
+  }
+
+  /* A tie note under a standings row's name: its own line across the row, so it is never cut short. */
+  .rs-tie-note {
+    grid-column: 3 / -1;
+    margin-top: -2px;
+    padding-left: 36px;
+  }
+
+  /* ------------------------------------------------------------------ game intros */
+  /* The game frame's 60 px header on the intro (the frame's own name and context classes, game-frame.css). */
+  .intro-header {
+    display: flex;
+    height: 60px;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--ap-font);
+  }
+  .intro-header > .game-frame-left {
+    flex: 1;
+  }
+  .intro-back {
+    display: flex;
+    width: 36px;
+    height: 44px;
+    flex: none;
+    align-items: center;
+    justify-content: flex-start;
+    margin-left: -6px;
+    color: #A09DA6;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .intro-header-right {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+  .intro-best {
+    display: flex;
+    min-width: 44px;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 15px;
+    color: #A09DA6;
+    white-space: nowrap;
+  }
+  .intro-best-label {
+    font-size: 11px;
+    color: #8E8B94;
+  }
+  .intro-best-value {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 22px;
+    color: #F3F1EC;
+    font-variant-numeric: tabular-nums;
+  }
+  .round-intro .intro-footer {
+    background: transparent;
+    font-family: var(--ap-font);
+  }
+  .round-intro .intro-footer .ap-btn-gold {
+    color: var(--ap-on-gold);
+  }
+  .intro-ready-done {
+    border: 1px solid var(--ap-line);
+    background: var(--ap-panel);
+    color: var(--ap-text);
+  }
+  .intro-ring {
+    position: relative;
+    display: flex;
+    width: 52px;
+    height: 52px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    color: #F3F1EC;
+    font-family: var(--ap-font);
+    font-size: 15px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .intro-ring > svg {
+    position: absolute;
+    inset: 4px;
+  }
+  /* The still or demo sits in a tray that hugs it (IntroStage), never a tall empty panel. */
+  .intro-tray {
+    position: absolute;
+    border: 1px solid color-mix(in srgb, var(--category-accent) 18%, transparent);
+    border-radius: 20px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), rgb(255 255 255 / 0.02));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    pointer-events: none;
+    transition: opacity 200ms ease-out;
+  }
+}
+
+/* The intro's GOAL / HOW / SCORE labels in sentence case (PuzzleInstructions writes them that way); unlayered,
+   so it beats the component's own uppercase utility. */
+.round-intro .round-instructions > div > p:first-child {
+  font-family: var(--ap-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The answer reveal's board tray (AnswerReveal useRevealTray): placed on the board's drawn box. */
+.reveal-tray {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--category-accent, #3A3A42) 22%, transparent);
+  border-radius: 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent, #3A3A42) 8%, transparent), rgb(255 255 255 / 0.02));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  pointer-events: none;
+}
+
+/* The settings sheet's switch (role="switch" rows). */
+.rs-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 28px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--ap-line);
+  transition: background 150ms ease-out;
+}
+.rs-switch > span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  transition: transform 150ms ease-out;
+}
+.rs-switch[data-on] {
+  background: #5BE3A0;
+}
+.rs-switch[data-on] > span {
+  transform: translateX(18px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rs-switch,
+  .rs-switch > span {
+    transition: none;
+  }
+}
+
+/* The final screens' Share: secondary, beside (after) Play again in the room footer, at the footer's height. */
+[data-podium-actions] > [data-share-button] {
+  width: 116px;
+  height: 52px;
+  flex: 0 0 auto;
+}

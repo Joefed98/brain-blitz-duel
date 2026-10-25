@@ -154,9 +154,10 @@ export function ArcadeScoreChart({ players }: { players: ChartPlayer[] }) {
                 </span>
               );
               const text = (
+                // Each name on a pill in the player's own colour (Polish batch R), the text still #F3F1EC.
                 <span
-                  className={`min-w-0 truncate rounded px-1 py-0.5 text-[13px] leading-none ${p.isMe ? "font-bold" : "font-semibold"}`}
-                  style={{ ...textStyle, maxWidth: CHART_NAME_MAX + 8 }}
+                  className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[13px] leading-none ${p.isMe ? "font-bold" : "font-semibold"}`}
+                  style={{ ...textStyle, background: `color-mix(in srgb, ${colourOf(p)} 32%, #17171B)`, boxShadow: `inset 0 0 0 1px ${colourOf(p)}`, maxWidth: CHART_NAME_MAX + 8 }}
                 >
                   {p.isMe ? "You" : p.name}
                 </span>

@@ -46,6 +46,15 @@ export function IntroStage({
   const demoW = showDemo ? Math.min(box.w, box.h * aspect!) : 0;
   const demoH = showDemo ? demoW / aspect! : 0;
   const playing = showDemo && ready;
+  // The tray (Polish batch R) hugs what shows: the still's scaled content, or the demo's box once it plays;
+  // the two cross-fade (opacity only), so nothing in the layout moves.
+  const [stillSize, setStillSize] = useState({ w: 0, h: 0 });
+  const tray = (w: number, h: number) => {
+    const pad = 10;
+    const tw = Math.min(box.w, w + pad * 2);
+    const th = Math.min(box.h, h + pad * 2);
+    return { left: (box.w - tw) / 2, top: (box.h - th) / 2, width: tw, height: th };
+  };
 
   return (
     <div
@@ -54,7 +63,13 @@ export function IntroStage({
       data-intro-demo={playing ? "playing" : demo ? "loading" : "none"}
       className="intro-stage relative min-h-0 w-full flex-1 overflow-hidden"
     >
-      <IntroStill box={box} hidden={playing}>
+      {stillSize.w > 0 && box.w > 0 ? (
+        <div aria-hidden="true" data-intro-tray="still" className="intro-tray" style={{ ...tray(stillSize.w, stillSize.h), opacity: playing ? 0 : 1 }} />
+      ) : null}
+      {showDemo ? (
+        <div aria-hidden="true" data-intro-tray="demo" className="intro-tray" style={{ ...tray(demoW, demoH), opacity: playing ? 1 : 0 }} />
+      ) : null}
+      <IntroStill box={box} hidden={playing} onSize={setStillSize}>
         {still}
       </IntroStill>
       {showDemo ? (
@@ -80,23 +95,29 @@ export function IntroStage({
 function IntroStill({
   box,
   hidden,
+  onSize,
   children,
 }: {
   box: { w: number; h: number };
   hidden: boolean;
+  /** The still's drawn size (its content, scaled), for the tray behind it. */
+  onSize?: (size: { w: number; h: number }) => void;
   children: ReactNode;
 }) {
   const innerRef = useRef<HTMLDivElement | null>(null);
-  const [natural, setNatural] = useState({ w: 0, h: 0 });
+  const [natural, setNatural] = useState({ w: 0, h: 0, content: 0 });
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    const measure = () =>
+    const measure = () => {
+      // The widest child: what the still really draws inside its full-width column.
+      const content = Math.max(0, ...[...inner.children].map((c) => (c as HTMLElement).offsetWidth));
       setNatural((n) =>
-        n.w === inner.scrollWidth && n.h === inner.offsetHeight
+        n.w === inner.scrollWidth && n.h === inner.offsetHeight && n.content === content
           ? n
-          : { w: inner.scrollWidth, h: inner.offsetHeight },
+          : { w: inner.scrollWidth, h: inner.offsetHeight, content },
       );
+    };
     measure();
     const watch = new ResizeObserver(measure);
     watch.observe(inner);
@@ -106,6 +127,11 @@ function IntroStill({
     natural.h > 0 && box.h > 0
       ? Math.max(0, Math.min(1, box.h / natural.h, natural.w > 0 ? box.w / natural.w : 1))
       : 1;
+  const drawnW = Math.round((natural.content || natural.w) * scale);
+  const drawnH = Math.round(natural.h * scale);
+  useLayoutEffect(() => {
+    onSize?.({ w: drawnW, h: drawnH });
+  }, [drawnW, drawnH]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div
       data-intro-still=""

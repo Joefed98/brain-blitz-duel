@@ -644,7 +644,8 @@ function PracticeScreen() {
 
   if (stage === "intro") {
     return (
-      <PhoneShell gameType={type}>
+      // The intro draws the game frame's header itself (RoundIntro, Polish batch R).
+      <PhoneShell gameType={type} bare>
         <RoundIntro
           round={1}
           type={type}

@@ -10,7 +10,7 @@ import { currentUserId } from "@/lib/duel/session";
  * under the podium and the daily results; otherwise Profile's link on the right of its
  * footer line (Prompt R, polish-layout/app-pages.css).
  */
-export function FeedbackLink({ small = false }: { small?: boolean }) {
+export function FeedbackLink({ small = false, row = false }: { small?: boolean; row?: boolean }) {
   const base = feedbackBase();
   const [deviceId, setDeviceId] = useState<string | null>(null);
   useEffect(() => {
@@ -26,6 +26,14 @@ export function FeedbackLink({ small = false }: { small?: boolean }) {
   }, [base]);
   const href = feedbackUrl(base, deviceId);
   if (!href) return null;
+  // The settings sheet's row (Polish batch R).
+  if (row)
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" data-feedback-link="settings" className="ap-row press">
+        <span className="ap-row-title flex-1">Send feedback</span>
+        <MessageSquare aria-hidden="true" className="ap-chevron" />
+      </a>
+    );
   if (small)
     return (
       <a
@@ -33,7 +41,7 @@ export function FeedbackLink({ small = false }: { small?: boolean }) {
         target="_blank"
         rel="noopener noreferrer"
         data-feedback-link="small"
-        className="press tap-target mx-auto flex items-center justify-center gap-1.5 whitespace-nowrap px-3 font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        className="press tap-target mx-auto flex items-center justify-center gap-1.5 whitespace-nowrap px-3 text-[13px] font-semibold text-muted-foreground"
       >
         <MessageSquare aria-hidden="true" className="h-3.5 w-3.5" />
         Send feedback

@@ -28,7 +28,8 @@ const BRANCHES = 2;
 
 /** The hero's height (px) when running and on the podium. */
 export const HERO_RUN_H = 58;
-export const PODIUM_HERO_H = 46;
+/** On the podium (Polish batch R, 25 Oct 2026): larger, standing on the top step. */
+export const PODIUM_HERO_H = 60;
 /** The podium hero's loop, pre-drawn once into a strip of this many frames (then one drawImage a frame). */
 export const PODIUM_HERO_FRAMES = 24;
 
@@ -295,10 +296,10 @@ export class CelebrationScene {
     const age = now - podium.at;
     if (age < 0) return;
     const box = podium.box;
-    // On the floor at the gold step's front right corner, beside the winner: below the winner's name
-    // and total, clear of the step's "1" (centred at its top).
-    const cx = box.left + box.width - 17;
-    const footY = box.top + box.height - 3;
+    // On the gold step, at its right end, beside the winner's name and total (which the podium keeps to
+    // the step's left part), clear of the step's medal (Polish batch R: the hero on the top step).
+    const cx = box.left + box.width - 20;
+    const footY = box.top + 1;
     const t = Math.min(age, PODIUM_HERO_BOB_MS);
     ctx.save();
     ctx.globalAlpha = Math.min(1, age / (podium.calm ? 300 : 180));

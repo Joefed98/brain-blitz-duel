@@ -7,7 +7,6 @@ import { buzz } from "@/lib/motion";
 import { playBlip } from "@/lib/sound";
 
 import {
-  CHAT_BAR_HEIGHT,
   MESSAGE_MAX_LENGTH,
   ROOM_EMOJI,
   type RoomMessageRow,
@@ -19,6 +18,7 @@ import { PLAYER_COLOURS, type PlayerLook, type PlayerLooks } from "@/lib/duel/pl
 import type { DuelPlayerRow } from "@/lib/duel/types";
 
 import { PlayerBadge } from "./PlayerBadge";
+import { RoomChatButton, RoomChatSlot, RoomFooter } from "./RoomFooter";
 
 interface RoomChatProps {
   chat: RoomChatState;
@@ -28,6 +28,11 @@ interface RoomChatProps {
   looks?: PlayerLooks;
   available?: boolean;
   screenLabel?: string;
+  /**
+   * Draw the chat button's own footer row (a screen without a footer). The room route passes false and
+   * hands the button to each screen's RoomFooter instead (RoomChatSlot), beside its main action.
+   */
+  bar?: boolean;
 }
 
 /** The sender's colour for the toast's rim (the border colour when they have none). */
@@ -137,6 +142,7 @@ export function RoomChat({
   looks,
   available = true,
   screenLabel = "Lobby",
+  bar = true,
 }: RoomChatProps) {
   const lookOf = (userId: string) => {
     const slot = players.find((p) => p.user_id === userId)?.player_slot;
@@ -154,7 +160,6 @@ export function RoomChat({
   const seenCount = useRef(chat.messages.length);
   const focusScroll = useRef<{ x: number; y: number } | null>(null);
   const headerTouch = useRef<{ x: number; y: number } | null>(null);
-  const barTouchY = useRef<number | null>(null);
   const savedListTop = useRef(0);
   const open = available && chat.sheetOpen;
   const setSheetOpen = chat.setSheetOpen;
@@ -250,76 +255,59 @@ export function RoomChat({
     setText("");
     void chat.send(value);
   };
+  // The composer lives in the sheet (Polish batch R): the input, Send and, under them, the reactions.
   const composer = (
-    <div className={`flex h-11 min-w-0 shrink-0 items-center gap-1.5 ${open ? "bg-card" : "bg-background"}`}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => (open ? close() : chat.setSheetOpen(true))}
-        aria-label={
-          chat.unread > 0 && !open ? `Messages, ${chat.unread} unread` : "Messages"
-        }
-        className="relative h-11 w-11 shrink-0 p-0 text-muted-foreground"
-      >
-        <MessageCircle aria-hidden="true" />
-        {/* Only unread messages from other players ride on the icon, in gold (chatNotice.ts). */}
-        {chat.unread > 0 && !open ? (
-          <span
-            data-chat-unread={chat.unread}
-            className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 font-mono text-[11px] font-bold leading-none text-primary-foreground ring-2 ring-background"
-          >
-            {chat.unread > 99 ? "99+" : chat.unread}
-          </span>
-        ) : null}
-      </Button>
-      <input
-        data-room-chat-input
-        value={text}
-        onChange={(event) => setText(event.target.value.slice(0, MESSAGE_MAX_LENGTH))}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) submit();
-        }}
-        maxLength={MESSAGE_MAX_LENGTH}
-        placeholder="Chat…"
-        aria-label="Message"
-        onFocus={() => {
-          focusScroll.current = { x: window.scrollX, y: window.scrollY };
-          syncViewport.current();
-        }}
-        onBlur={() => {
-          setViewport(null);
-          const saved = focusScroll.current;
-          focusScroll.current = null;
-          if (!saved) return;
-          window.setTimeout(() => {
-            if (window.scrollX !== saved.x || window.scrollY !== saved.y)
-              window.scrollTo(saved.x, saved.y);
-          }, 50);
-        }}
-        className="h-11 min-w-0 flex-1 rounded-md border border-border bg-card px-3 text-[16px] text-foreground outline-none placeholder:text-muted-foreground"
-      />
-      <Button
-        type="button"
-        onClick={submit}
-        disabled={chat.sending || !text.trim()}
-        aria-label="Send message"
-        title="Send message"
-        className="h-11 w-11 shrink-0 p-0"
-      >
-        <Send />
-      </Button>
-      <div className="flex shrink-0 items-center">
+    <div className="flex min-w-0 shrink-0 flex-col gap-1.5">
+      <div className="flex h-11 min-w-0 items-center gap-2">
+        <input
+          data-room-chat-input
+          value={text}
+          onChange={(event) => setText(event.target.value.slice(0, MESSAGE_MAX_LENGTH))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) submit();
+          }}
+          maxLength={MESSAGE_MAX_LENGTH}
+          placeholder="Chat…"
+          aria-label="Message"
+          onFocus={() => {
+            focusScroll.current = { x: window.scrollX, y: window.scrollY };
+            syncViewport.current();
+          }}
+          onBlur={() => {
+            setViewport(null);
+            const saved = focusScroll.current;
+            focusScroll.current = null;
+            if (!saved) return;
+            window.setTimeout(() => {
+              if (window.scrollX !== saved.x || window.scrollY !== saved.y)
+                window.scrollTo(saved.x, saved.y);
+            }, 50);
+          }}
+          className="ap-input h-11 min-w-0 flex-1 px-3 text-[16px]"
+        />
+        {/* Neutral: sending a message is not a play action (the gold rule). */}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={chat.sending || !text.trim()}
+          aria-label="Send message"
+          title="Send message"
+          className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--ap-text)] text-[var(--ap-bg)] disabled:opacity-40"
+        >
+          <Send aria-hidden="true" className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="flex shrink-0 items-center justify-between" data-chat-reactions>
         {ROOM_EMOJI.map((emoji) => (
-          <Button
+          <button
             key={emoji}
             type="button"
-            variant="ghost"
             aria-label={`React ${emoji}`}
             onClick={() => void chat.react(emoji)}
-            className="h-11 w-7 p-0 text-lg leading-none"
+            className="press flex h-11 w-11 items-center justify-center rounded-xl text-xl leading-none"
           >
             {emoji}
-          </Button>
+          </button>
         ))}
       </div>
     </div>
@@ -514,23 +502,11 @@ export function RoomChat({
   return (
     <>
       <ReactionLayer chat={chat} />
-      <div
-        data-chat-bar
-        aria-hidden={open || undefined}
-        className={`room-chat-bar sticky z-[55] mt-2 shrink-0 bg-background ${open ? "invisible pointer-events-none" : ""}`}
-        style={{ height: CHAT_BAR_HEIGHT, bottom: "env(safe-area-inset-bottom, 0px)" }}
-        onTouchStart={(event) => {
-          barTouchY.current = event.touches[0]?.clientY ?? null;
-        }}
-        onTouchEnd={(event) => {
-          const start = barTouchY.current;
-          const end = event.changedTouches[0]?.clientY;
-          if (start !== null && end !== undefined && start - end > 30) setSheetOpen(true);
-          barTouchY.current = null;
-        }}
-      >
-        {!open && composer}
-      </div>
+      {bar ? (
+        <RoomChatSlot.Provider value={<RoomChatButton chat={chat} available />}>
+          <RoomFooter className={open ? "invisible pointer-events-none" : ""} />
+        </RoomChatSlot.Provider>
+      ) : null}
       {!open && chat.error && (
         <p className="shrink-0 text-center text-[11px] text-warn">{chat.error}</p>
       )}

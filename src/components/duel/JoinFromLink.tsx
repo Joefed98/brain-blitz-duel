@@ -12,6 +12,8 @@ import {
 } from "@/lib/share/shareRef";
 import { unlockAudio } from "@/lib/sound";
 
+import { ErrorState } from "@/components/app/ErrorState";
+
 import { Dots, WaitingLine } from "./Dots";
 
 /**
@@ -85,7 +87,7 @@ export function JoinFromLink({
     <button
       type="button"
       onClick={() => void navigate({ to: "/" })}
-      className="th-btn-gold press tap-target w-full max-w-xs rounded-xl bg-primary px-6 font-display text-base font-bold uppercase tracking-wide text-primary-foreground"
+      className="rs-btn press tap-target h-[50px] w-full max-w-xs"
     >
       Home
     </button>
@@ -95,11 +97,13 @@ export function JoinFromLink({
 
   if (!preview.found) {
     return (
-      <>
-        <h1 className="font-display text-2xl">Room not found</h1>
-        <p className="text-sm text-muted-foreground">No room exists with the code {roomCode}.</p>
-        {home}
-      </>
+      // The shared error layout (Polish batch R): try another code, Back to Play, or Create a room.
+      <ErrorState
+        title="Room not found"
+        body={`No room exists with the code ${roomCode}. Check the code, or start your own room.`}
+        codeBox
+        action={{ label: "Create a room", onClick: () => void navigate({ to: "/" }) }}
+      />
     );
   }
 
@@ -115,8 +119,8 @@ export function JoinFromLink({
           : ["This room is closed", "The host closed it."];
     return (
       <>
-        <p className="font-mono text-4xl font-bold tracking-[0.2em] text-primary">{roomCode}</p>
-        <h1 className="font-display text-2xl">{title}</h1>
+        <p className="rs-code">{roomCode}</p>
+        <h1 className="text-[24px] font-extrabold">{title}</h1>
         <p className="text-sm text-muted-foreground">{line}</p>
         {home}
       </>
@@ -133,20 +137,16 @@ export function JoinFromLink({
       }}
     >
       <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          You're invited to room
-        </p>
-        <p className="th-score th-score-top mt-2 font-mono text-5xl font-bold tracking-[0.2em] text-primary">
-          {roomCode}
-        </p>
-        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+        <p className="rs-meta">You're invited to room</p>
+        <p className="rs-code mt-2">{roomCode}</p>
+        <p className="rs-meta mt-2">
           {preview.playerCount} of {preview.maxPlayers} players
         </p>
       </div>
       <div className="flex flex-col gap-2 text-left">
         <label
           htmlFor="link-name"
-          className="text-xs uppercase tracking-widest text-muted-foreground"
+          className="pl-1 text-[13px] font-semibold text-muted-foreground"
         >
           Display name
         </label>
@@ -164,7 +164,7 @@ export function JoinFromLink({
       <button
         type="submit"
         disabled={busy || full}
-        className="th-btn-gold press tap-target flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-display text-lg font-bold uppercase tracking-wide text-primary-foreground disabled:opacity-40"
+        className="th-btn-gold ap-btn-gold press tap-target flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[17px] disabled:opacity-40"
       >
         {busy ? (
           <>
@@ -180,7 +180,7 @@ export function JoinFromLink({
       <button
         type="button"
         onClick={() => void navigate({ to: "/" })}
-        className="press tap-target w-full font-display text-sm uppercase tracking-widest text-muted-foreground"
+        className="rs-btn press tap-target h-[50px] w-full"
       >
         Home
       </button>

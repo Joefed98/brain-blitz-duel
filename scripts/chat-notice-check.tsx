@@ -110,9 +110,11 @@ const draw = async (chat: ChatState, available: boolean) => {
 };
 const toast = () => document.querySelector("[data-chat-toast]");
 
-// 1, 2: placeholder and the unread badge.
-await draw(state(), true);
+// 1, 2: placeholder and the unread badge. Polish batch R: the composer is in the messages sheet (the room
+// footer has only the chat button), so the placeholder is read with the sheet open.
+await draw(state({ sheetOpen: true }), true);
 check(document.querySelector("input[data-room-chat-input]")?.getAttribute("placeholder") === "Chat…", `placeholder is "${document.querySelector("input[data-room-chat-input]")?.getAttribute("placeholder")}"`);
+await draw(state(), true);
 check(!document.querySelector("[data-chat-unread]"), "a badge with nothing unread");
 const two = [msg("a", "u2", "first"), msg("b", "u2", "second")];
 await draw(state({ messages: two, unread: 2 }), true);

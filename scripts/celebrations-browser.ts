@@ -251,6 +251,8 @@ async function markup(page: Page): Promise<string> {
     .replace(/(in |closes in )\d+[^<]*/g, "$1#")
     .replace(/\d{1,2}:\d{2}/g, "#:#")
     .replace(/ style="[^"]*transform[^"]*"/g, "")
+    // Polish batch R: the reveal's and intro's trays are placed from the board's measured box (display only).
+    .replace(/(<div[^>]*data-(?:reveal|intro)-tray[^>]*?) style="[^"]*"/g, "$1")
     .replace(/(:r[0-9a-z]+:|«r[0-9a-z]+»|r[0-9a-z]+-[a-z])/g, "#id");
 }
 
@@ -259,10 +261,11 @@ const { chromium } = await import("playwright");
 const browser = await chromium.launch({ executablePath: CHROMIUM });
 try {
   if (RECORD) {
-    // On main (today's screens): the markup each screen settles on.
+    // The markup each screen settles on with the switch off (recorded on main while the switch was off by
+    // default; Polish batch R re-recorded it on its branch, the switch now on by default, so it is set off).
     const out: Record<string, string> = {};
     for (const key of ["podium", "standings", "final2", "lobby3", "reveal150", "home"]) {
-      const o = await open(browser, server.origin, key, null);
+      const o = await open(browser, server.origin, key, false);
       out[key] = await markup(o.page);
       await o.close();
     }
@@ -386,7 +389,8 @@ try {
       if (!meter || !line) return null;
       return { line: line.textContent, own: meter.textContent, gap: meter.getBoundingClientRect().top - line.getBoundingClientRect().bottom, h: meter.getBoundingClientRect().height };
     });
-    check(placed?.line === "3 of 10 players" && placed.own === "" && placed.gap >= 0 && placed.gap <= 8 && placed.h === 20, `lobby: the meter is not directly under "3 of 10 players" with no label of its own (${JSON.stringify(placed)})`);
+    // Polish batch R: the line is the lobby's "Players · 3 of 10" heading row.
+    check(placed?.line === "Players3 of 10" && placed.own === "" && placed.gap >= 0 && placed.gap <= 8 && placed.h === 20, `lobby: the meter is not directly under "Players · 3 of 10" with no label of its own (${JSON.stringify(placed)})`);
     await judgeLayout(o.page, "lobby");
     await shot(o.page, "lobby-meter-3-of-10");
     await o.page.evaluate(() => {
@@ -398,7 +402,7 @@ try {
     });
     await o.page.waitForTimeout(300);
     check((await o.log()).some((e) => e.kind === "sound:crackle"), "lobby: a join does not crackle");
-    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "4" && (await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.previousElementSibling?.textContent)) === "4 of 10 players", "lobby: the meter or its line after a join");
+    check((await o.page.getAttribute("[data-charge-meter]", "data-charge-meter")) === "4" && (await o.page.evaluate(() => document.querySelector("[data-charge-meter]")?.previousElementSibling?.textContent)) === "Players4 of 10", "lobby: the meter or its line after a join");
     await o.close();
   }
   {
